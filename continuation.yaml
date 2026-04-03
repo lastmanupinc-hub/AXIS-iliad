@@ -14,26 +14,26 @@ project_continuation:
 
   current_identity:
     project_name: "Axis Toolbox"
-    date: "2025-07-17"
-    commit_or_tag: "291cba2"
-    current_session_id: "session_002"
-    one_sentence_summary: "v1 vertical slice running — production API on port 4000 with snapshot intake, repo parser, context engine; E2E tested with 23-file Next.js project."
+    date: "2026-04-03"
+    commit_or_tag: "b9ed465"
+    current_session_id: "session_003"
+    one_sentence_summary: "All 4 wave-1 programs generating (11 generators), 70 vitest tests passing, 12 API endpoints live, store.ts project indexing bug fixed."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
   executive_truth:
     maturity_estimate:
-      functional_percent: 35
-      hardened_percent: 5
-      integrated_percent: 20
+      functional_percent: 55
+      hardened_percent: 20
+      integrated_percent: 45
       production_percent: 0
     confidence:
-      architecture_confidence: 70
-      runtime_confidence: 60
-      pipeline_confidence: 15
-      product_surface_confidence: 10
-      integration_confidence: 40
-      notes: "v1 vertical slice proven E2E. 4 packages compile clean. API accepts snapshots, parses repos (60+ languages, 10 frameworks), builds context maps with route detection, architecture analysis, AI summaries. In-memory store — no persistence yet. No auth, no tests, no CI."
+      architecture_confidence: 80
+      runtime_confidence: 75
+      pipeline_confidence: 30
+      product_surface_confidence: 15
+      integration_confidence: 60
+      notes: "All 4 wave-1 programs (search, debug, skills, frontend) generating real output. 11 generators producing .ai/ files. 70 vitest tests passing across 5 test files. 12 API endpoints. 5 packages + 1 app compile clean. In-memory store — no persistence yet. No auth, no CI."
 
   boundary_truth:
     accepted_input_modes:
@@ -51,10 +51,10 @@ project_continuation:
       hygiene_and_memory_yaml: behavior_routing
       rules_to_compile_snapshot_yaml: forensic_snapshot
     target_outputs_truth:
-      search_context_graph: not_started
-      debug_playbooks: not_started
-      skills_governance_files: not_started
-      frontend_ui_rules: not_started
+      search_context_graph: generating
+      debug_playbooks: generating
+      skills_governance_files: generating
+      frontend_ui_rules: generating
       seo_analysis: not_started
       optimization_reports: not_started
       artifacts_components: not_started
@@ -101,42 +101,43 @@ project_continuation:
 
     - id: v1_search_context_graph
       name: Search Context Graph
-      status: building
+      status: generating
       priority: P0
       user_story: >
         As a developer, I need the search program to produce a context graph
         so all other programs have foundational repo understanding.
       saturation:
-        foundation: 80
-        runtime: 60
+        foundation: 95
+        runtime: 80
         editor: 0
-        export: 40
-        polish: 0
+        export: 80
+        polish: 10
       evidence:
         - "packages/snapshots — intake, storage, lifecycle (commit 291cba2)"
         - "packages/repo-parser — 60+ lang detection, 10 framework detection, import graph (commit 291cba2)"
         - "packages/context-engine — context-map + repo-profile generation (commit 291cba2)"
-        - "apps/api — HTTP endpoints for snapshot CRUD, context retrieval (commit 291cba2)"
-        - "E2E test: 23-file Next.js project → correct framework/route/arch detection"
+        - "apps/api — 12 HTTP endpoints for all 4 programs (commit de5237d)"
+        - "packages/generator-core — 11 generators producing .ai/ files (commit 89376c6)"
+        - "E2E: 8 generated files, 0 skipped across all 4 wave-1 programs (commit de5237d)"
+        - "70 vitest tests passing across 5 files (commit b9ed465)"
       blockers:
         - No persistent storage (in-memory only)
         - No authentication
-        - No automated test suite
-      next_required_move: "Add generated file export (.ai/context-map.json, .ai/repo-profile.yaml) and wire to search/ output templates"
+      next_required_move: "Build apps/web frontend UI or add SQLite persistence"
 
   subsystem_scorecards:
     - name: "search"
-      canonical_path: "packages/repo-parser/ + packages/context-engine/"
+      canonical_path: "packages/repo-parser/ + packages/context-engine/ + packages/generator-core/generators-search.ts"
       maturity:
         code_exists: true
         functionally_exercised: true
-        hardened: false
+        hardened: true
         integrated: true
         production_validated: false
       parity_view:
-        functional_percent: 60
-        hardened_percent: 5
-        integrated_percent: 40
+        functional_percent: 85
+        hardened_percent: 25
+        integrated_percent: 80
       known_truth:
         works:
           - Language detection (60+ extensions with LOC counting)
@@ -146,74 +147,89 @@ project_continuation:
           - Architecture signal analysis (patterns, layers, separation score)
           - AI context generation (summary, conventions, warnings)
           - Context-map and repo-profile output generation
-          - E2E proven with 23-file Next.js project
+          - Generated file export (.ai/context-map.json, .ai/repo-profile.yaml, architecture-summary.md)
+          - POST /v1/search/export API endpoint
+          - 17 context-engine tests + 11 repo-parser tests passing
         missing:
           - Full-text search indexing
           - Semantic code search
           - File content search API
-          - Generated file templates (.ai/context-map.json export)
         stubs_or_fakes: []
       next_promotion_step: "Add search indexing and query API"
     - name: "debug"
-      canonical_path: "debug/"
+      canonical_path: "packages/generator-core/src/generators-debug.ts"
       maturity:
-        code_exists: false
-        functionally_exercised: false
-        hardened: false
-        integrated: false
+        code_exists: true
+        functionally_exercised: true
+        hardened: true
+        integrated: true
         production_validated: false
       parity_view:
-        functional_percent: 0
-        hardened_percent: 0
-        integrated_percent: 0
+        functional_percent: 70
+        hardened_percent: 20
+        integrated_percent: 70
       known_truth:
         works:
-          - YAMLs initialized
+          - Debug playbook generation (framework-specific debugging steps, hotspot analysis, triage)
+          - Incident template generation (structured report with suspect files from dependency graph)
+          - Tracing rules generation (trace points, logging format, retention policy)
+          - POST /v1/debug/analyze API endpoint
+          - Generator tests passing
         missing:
-          - analysis engine
-          - debug API
+          - Live runtime analysis
+          - Error log ingestion
+          - Automated triage from stack traces
         stubs_or_fakes: []
-      next_promotion_step: "Define playbook schema"
+      next_promotion_step: "Add runtime error analysis"
     - name: "skills"
-      canonical_path: "skills/"
+      canonical_path: "packages/generator-core/src/generators-skills.ts"
       maturity:
-        code_exists: false
-        functionally_exercised: false
-        hardened: false
-        integrated: false
+        code_exists: true
+        functionally_exercised: true
+        hardened: true
+        integrated: true
         production_validated: false
       parity_view:
-        functional_percent: 0
-        hardened_percent: 0
-        integrated_percent: 0
+        functional_percent: 75
+        hardened_percent: 20
+        integrated_percent: 75
       known_truth:
         works:
-          - YAMLs initialized
+          - AGENTS.md generation (stack-aware agent instructions, framework rules, architecture boundaries)
+          - CLAUDE.md generation (project overview, commands, stack, conventions)
+          - .cursorrules generation (IDE rules with framework detection)
+          - POST /v1/skills/generate API endpoint with custom output support
+          - Generator tests passing
         missing:
-          - generation engine
-          - governance templates
+          - User-customizable governance templates
+          - Multi-agent orchestration rules
+          - Team-specific conventions
         stubs_or_fakes: []
-      next_promotion_step: "Define governance file templates"
+      next_promotion_step: "Add template customization system"
     - name: "frontend"
-      canonical_path: "frontend/"
+      canonical_path: "packages/generator-core/src/generators-frontend.ts"
       maturity:
-        code_exists: false
-        functionally_exercised: false
-        hardened: false
-        integrated: false
+        code_exists: true
+        functionally_exercised: true
+        hardened: true
+        integrated: true
         production_validated: false
       parity_view:
-        functional_percent: 0
-        hardened_percent: 0
-        integrated_percent: 0
+        functional_percent: 65
+        hardened_percent: 20
+        integrated_percent: 65
       known_truth:
         works:
-          - YAMLs initialized
+          - Frontend rules generation (component conventions, Tailwind styling, state management, accessibility, performance)
+          - Component guidelines generation (file structure, naming, templates, anti-patterns)
+          - POST /v1/frontend/audit API endpoint
+          - Generator tests passing
         missing:
-          - audit engine
-          - frontend API
+          - Component library analysis
+          - Design token extraction
+          - Accessibility audit scoring
         stubs_or_fakes: []
-      next_promotion_step: "Define frontend rules schema"
+      next_promotion_step: "Add component library analysis"
     - name: "seo"
       canonical_path: "seo/"
       maturity:
@@ -352,6 +368,39 @@ project_continuation:
     commit_results: ["291cba2"]
     push_results: ["df830fb..291cba2 main → main"]
 
+  current_session_result_003:
+    session_goal: "Complete all 4 wave-1 program generators, add test suite"
+    selected_move: "Generator core + all wave-1 generators + vitest suite"
+    selected_move_roi_reason: "Complete the generation pipeline for all wave-1 programs, then validate with automated tests"
+    completed_candidates:
+      - "eq_004: packages/generator-core — template engine with 11 generators"
+      - "eq_004: Search generators — .ai/context-map.json, .ai/repo-profile.yaml, architecture-summary.md"
+      - "eq_006: Skills generators — AGENTS.md (stack-aware), CLAUDE.md (project overview), .cursorrules (IDE rules)"
+      - "eq_005: Debug generators — debug-playbook.md (framework-specific triage), incident-template.md, tracing-rules.md"
+      - "eq_005: Frontend generators — frontend-rules.md (component conventions), component-guidelines.md"
+      - "API endpoints: POST /v1/search/export, POST /v1/skills/generate, POST /v1/debug/analyze, POST /v1/frontend/audit"
+      - "GET /v1/projects/:id/generated-files/:file_path for individual file download"
+      - "eq_008: vitest test suite — 70 tests across 5 files (store, parser, engine, generators, API integration)"
+      - "Fixed store.ts project_id indexing bug (name→project_id lookup was broken)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "packages/generator-core — 11 generators, 4 generator modules (commit 89376c6)"
+      - "E2E: 8 generated files, 0 skipped across all 4 wave-1 programs (commit de5237d)"
+      - "70 vitest tests passing across 5 test files (commit b9ed465)"
+      - "5 packages + 1 app all compile clean"
+      - "12 API endpoints live on port 4000"
+    verticals_advanced:
+      - "v1_search_context_graph → generating (foundation 95%, export 80%)"
+      - "v2_debug_playbooks → generating (functional 70%)"
+      - "v3_skills_governance → generating (functional 75%)"
+      - "v4_frontend_rules → generating (functional 65%)"
+    blockers_removed:
+      - "No automated test suite → 70 tests passing"
+    blockers_added: []
+    commit_results: ["89376c6", "de5237d", "b9ed465"]
+    push_results: ["f220036..89376c6", "89376c6..de5237d", "de5237d..b9ed465"]
+
   execution_queue:
     completed:
       - id: "eq_001"
@@ -366,37 +415,47 @@ project_continuation:
         description: "Build v1 vertical slice — production API with snapshot intake, repo parser, context engine"
         completion_status: complete
         commit: "291cba2"
+      - id: "eq_004"
+        description: "Add generator-core with search exports (.ai/context-map.json, .ai/repo-profile.yaml, architecture-summary.md)"
+        completion_status: complete
+        commit: "89376c6"
+      - id: "eq_005"
+        description: "Wire debug + frontend generators (playbook, incident template, tracing rules, frontend rules, component guidelines)"
+        completion_status: complete
+        commit: "de5237d"
+      - id: "eq_006"
+        description: "Wire skills governance generators (AGENTS.md, CLAUDE.md, .cursorrules)"
+        completion_status: complete
+        commit: "89376c6"
+      - id: "eq_008"
+        description: "Add vitest test suite — 70 tests across 5 files covering all packages + API"
+        completion_status: complete
+        commit: "b9ed465"
 
     qualifying_candidates:
-      - id: "eq_004"
-        description: "Add generated file export — .ai/context-map.json and .ai/repo-profile.yaml templates"
-        active_vertical: "v1_search_context_graph"
-        total_roi_score: 90
-        execution_rank: 1
-        blocked: false
-      - id: "eq_005"
-        description: "Wire debug/ playbook generator to consume context-map output"
-        active_vertical: "v2_debug_playbooks"
-        total_roi_score: 85
-        execution_rank: 2
-        blocked: false
-      - id: "eq_006"
-        description: "Wire skills/ governance file generator (AGENTS.md, CLAUDE.md, .cursorrules)"
-        active_vertical: "v3_skills_governance"
-        total_roi_score: 85
-        execution_rank: 3
-        blocked: false
       - id: "eq_007"
         description: "Build apps/web — frontend UI for snapshot upload and context visualization"
         active_vertical: "v1_search_context_graph"
-        total_roi_score: 80
-        execution_rank: 4
+        total_roi_score: 85
+        execution_rank: 1
         blocked: false
-      - id: "eq_008"
-        description: "Add automated test suite (vitest) for all packages"
+      - id: "eq_009"
+        description: "Add persistent storage (SQLite) for snapshots"
         active_vertical: "platform"
-        total_roi_score: 75
-        execution_rank: 5
+        total_roi_score: 80
+        execution_rank: 2
+        blocked: false
+      - id: "eq_010"
+        description: "Add SEO program generators"
+        active_vertical: "v5_seo_analysis"
+        total_roi_score: 70
+        execution_rank: 3
+        blocked: false
+      - id: "eq_011"
+        description: "Add GitHub CI pipeline (.github/workflows/ci.yml)"
+        active_vertical: "platform"
+        total_roi_score: 65
+        execution_rank: 4
         blocked: false
       - id: "eq_009"
         description: "Add persistent storage (SQLite) for snapshots"
