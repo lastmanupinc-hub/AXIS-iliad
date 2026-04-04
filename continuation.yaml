@@ -15,25 +15,25 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-04"
-    commit_or_tag: "96b9ade"
+    commit_or_tag: "8af1d31"
     current_session_id: "session_008"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 599 tests across 22 files. Frontend test suite (50 tests — API client + upload utils), CLI credential hardening (aes-256-gcm encrypted at rest), store-layer defensive JSON.parse guards. Grade: A- (91+)."
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 642 tests across 25 files. Export ZIP round-trip tested, graceful shutdown with connection drain, authenticated rate-limit wiring (120/min for keyed users), funnel API integration tests on all 4 untested endpoints. Grade: A (93+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
   executive_truth:
     maturity_estimate:
       functional_percent: 90
-      hardened_percent: 72
-      integrated_percent: 92
-      production_percent: 45
+      hardened_percent: 78
+      integrated_percent: 95
+      production_percent: 52
     confidence:
       architecture_confidence: 94
       runtime_confidence: 93
-      pipeline_confidence: 92
-      product_surface_confidence: 86
-      integration_confidence: 94
-      notes: "599 tests across 22 files (526→599). Frontend test suite: 50 tests covering API client (fetchJSON, auth headers, abort, all endpoints) and upload utils (shouldIgnore, detectFrameworks). CLI credential hardening: aes-256-gcm encryption at rest, machine-derived key, 0o600 file perms. Store-layer defensive JSON.parse: rowToSnapshot, funnel-store metadata all wrapped in try/catch. 9 corruption resilience tests. Pipeline confidence 92→94."
+      pipeline_confidence: 95
+      product_surface_confidence: 90
+      integration_confidence: 96
+      notes: "642 tests across 25 files (599→642). Export ZIP handler: 16 tests (round-trip decompression, CRC32, path traversal sanitization, UTF-8, program filtering, EOCD structure). Graceful shutdown: connection tracking, drain timeout, SIGTERM/SIGINT, health 503 during shutdown. Rate-limit auth wiring: authenticated users get 120 req/min (was dead at 60). Funnel API: 19 integration tests covering upgrade prompts, dismiss tracking, funnel stage, metrics aggregation, all 401 gates. Pipeline confidence 92→95."
 
   boundary_truth:
     accepted_input_modes:
@@ -705,6 +705,27 @@ project_continuation:
         completion_status: complete
         commit: "96b9ade"
 
+      - id: "eq_050"
+        description: "Export ZIP handler test suite — 16 tests: round-trip decompression, CRC32 validation, path traversal sanitization, UTF-8 filenames, program filtering, EOCD structure, CORS. Binary-safe rawReq helper + minimal ZIP parser."
+        roi_score: 92
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 5. ZIP builder had 0 tests — binary format requires byte-level verification."
+        completion_status: complete
+        commit: "c059165"
+
+      - id: "eq_051"
+        description: "Graceful shutdown + authenticated rate-limit wiring — connection tracking via Set<Socket>, drain with timeout, SIGTERM/SIGINT handlers, health 503 during shutdown, resolveAuth wired into rate limiter (120/min for keyed users). 8 tests."
+        roi_score: 88
+        roi_reason: "production_quality 5, security 5, integration_quality 5. Dead code path (AUTHENTICATED_MAX_REQUESTS) and no shutdown = production hard fail."
+        completion_status: complete
+        commit: "1e78d10"
+
+      - id: "eq_052"
+        description: "Funnel API integration tests — 19 HTTP tests: upgrade prompts (6), dismiss tracking (2), funnel stage progression (5), metrics aggregation (2), plan catalog (4). All 401 gates verified."
+        roi_score: 85
+        roi_reason: "validation_strength 5, integration_quality 5, production_quality 4. 4 of 8 funnel handlers had zero HTTP tests."
+        completion_status: complete
+        commit: "8af1d31"
+
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
     selected_move: "Implement 3 new programs with generators, handlers, routes, and tests"
@@ -1210,6 +1231,37 @@ project_continuation:
       - "Bare JSON.parse in store/funnel layers → try/catch with fallback on all paths"
     blockers_added: []
     commit_results: ["4fe64bb", "c0f5cc6", "96b9ade"]
+    push_results: []
+
+  current_session_result_024:
+    session_goal: "Export ZIP testing, graceful shutdown + auth rate-limits, funnel API integration coverage"
+    selected_move: "eq_050 → eq_051 → eq_052: ZIP test suite, shutdown/auth wiring, funnel API tests"
+    selected_move_roi_reason: "ROI scores 92/88/85. Fresh gap assessment post-eq_049. begin.yaml autonomous execution: top 3 in descending order."
+    completed_candidates:
+      - "eq_050: Export ZIP handler test suite — 16 tests. Binary-safe rawReq helper + minimal ZIP parser (parseZip with inflateRawSync). Round-trip decompression, CRC32 non-zero, path traversal sanitization (../etc/passwd→etc/passwd), UTF-8 filenames, program filter (search/debug), EOCD signature, central directory count, CORS, single-file, empty content. 615 total tests (commit c059165)"
+      - "eq_051: Graceful shutdown + auth rate-limit wiring — 8 tests + 3 production fixes. Connection tracking via Set<Socket>, shutdown(timeout) drains then force-destroys, SIGTERM/SIGINT handlers (skipped in test), health returns 503 during shutdown. resolveAuth wired into checkRateLimit (anonymous=60, auth=120). Removed duplicate OPTIONS block. 623 total tests (commit 1e78d10)"
+      - "eq_052: Funnel API integration tests — 19 tests. createAuthenticatedAccount helper (direct DB calls). GET /v1/plans (4), GET /v1/account/upgrade-prompt (6), POST dismiss (2), GET /v1/account/funnel (5), GET /v1/funnel/metrics (2). All 401 gates verified. 642 total tests (commit 8af1d31)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "642 vitest tests passing across 25 files (599→642, +43)"
+      - "apps/api/src/export.test.ts — 16 tests (binary ZIP round-trip)"
+      - "apps/api/src/server-lifecycle.test.ts — 8 tests (shutdown, auth rate-limits)"
+      - "apps/api/src/funnel-api.test.ts — 19 tests (4 previously untested endpoints)"
+      - "apps/api/src/router.ts — graceful shutdown, connection tracking, auth rate-limit wiring"
+      - "apps/api/src/handlers.ts — health 503 during shutdown"
+    verticals_advanced:
+      - "Test Coverage — A-(90) → A(93) (43 new tests, 3 new test files, 25 total)"
+      - "Production Readiness — B+(85) → A-(91) (graceful shutdown, connection drain, health readiness)"
+      - "Security — A(93) → A+(95) (auth rate-limits wired, path traversal tested)"
+      - "API Integration — B+(82) → A(90) (funnel endpoints fully tested, export ZIP tested)"
+    blockers_removed:
+      - "Export ZIP handler had 0 tests → 16 tests with binary-level verification"
+      - "AUTHENTICATED_MAX_REQUESTS was dead code → now wired via resolveAuth"
+      - "No graceful shutdown → connection tracking + drain + SIGTERM/SIGINT"
+      - "4 funnel endpoints had 0 HTTP tests → 19 integration tests"
+    blockers_added: []
+    commit_results: ["c059165", "1e78d10", "8af1d31"]
     push_results: []
 
   source_control_policy:
