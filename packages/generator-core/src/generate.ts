@@ -6,6 +6,7 @@ import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules }
 import { generateFrontendRules, generateComponentGuidelines } from "./generators-frontend.js";
 import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit } from "./generators-seo.js";
 import { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate } from "./generators-optimization.js";
+import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap } from "./generators-theme.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile) => GeneratedFile;
 
@@ -28,6 +29,10 @@ const REGISTRY: Record<string, GeneratorFn> = {
   ".ai/optimization-rules.md": (ctx) => generateOptimizationRules(ctx),
   "prompt-diff-report.md": (ctx, profile) => generatePromptDiffReport(ctx, profile),
   "cost-estimate.json": (ctx, profile) => generateCostEstimate(ctx, profile),
+  ".ai/design-tokens.json": (ctx) => generateDesignTokens(ctx),
+  "theme.css": (ctx) => generateThemeCss(ctx),
+  "theme-guidelines.md": (ctx) => generateThemeGuidelines(ctx),
+  "component-theme-map.json": (ctx) => generateComponentThemeMap(ctx),
 };
 
 // Aliases (user may request with different naming)
@@ -40,6 +45,7 @@ const ALIASES: Record<string, string> = {
   "frontend-rules.md": ".ai/frontend-rules.md",
   "seo-rules.md": ".ai/seo-rules.md",
   "optimization-rules.md": ".ai/optimization-rules.md",
+  "design-tokens.json": ".ai/design-tokens.json",
 };
 
 export function generateFiles(input: GeneratorInput): GeneratorResult {

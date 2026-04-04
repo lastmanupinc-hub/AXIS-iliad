@@ -6,3 +6,4 @@ export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules }
 export { generateFrontendRules, generateComponentGuidelines } from "./generators-frontend.js";
 export { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit } from "./generators-seo.js";
 export { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate } from "./generators-optimization.js";
+export { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap } from "./generators-theme.js";

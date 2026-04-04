@@ -277,10 +277,61 @@ describe("optimization generators content", () => {
   });
 });
 
+describe("theme generators content", () => {
+  const result = generateFiles(makeInput([".ai/design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json"]));
+
+  it("generates all 4 theme files", () => {
+    const themeFiles = result.files.filter(f => f.program === "theme");
+    expect(themeFiles.length).toBe(4);
+  });
+
+  it("design-tokens.json is valid JSON with color and typography tokens", () => {
+    const file = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const parsed = JSON.parse(file.content);
+    expect(parsed.colors).toBeTruthy();
+    expect(parsed.typography).toBeTruthy();
+    expect(parsed.spacing).toBeTruthy();
+    expect(parsed.project).toBe("test-app");
+  });
+
+  it("theme.css has CSS custom properties", () => {
+    const file = result.files.find(f => f.path === "theme.css")!;
+    expect(file.content).toContain(":root");
+    expect(file.content).toContain("--color-primary-500");
+    expect(file.content).toContain("--font-sans");
+    expect(file.content).toContain("prefers-color-scheme: dark");
+    expect(file.content_type).toBe("text/css");
+  });
+
+  it("theme-guidelines.md has styling and color sections", () => {
+    const file = result.files.find(f => f.path === "theme-guidelines.md")!;
+    expect(file.content).toContain("Styling Approach");
+    expect(file.content).toContain("Color Usage");
+    expect(file.content).toContain("Typography");
+    expect(file.content).toContain("Accessibility");
+    expect(file.content.length).toBeGreaterThan(200);
+  });
+
+  it("component-theme-map.json is valid JSON with component list", () => {
+    const file = result.files.find(f => f.path === "component-theme-map.json")!;
+    const parsed = JSON.parse(file.content);
+    expect(parsed.summary).toBeTruthy();
+    expect(parsed.components).toBeTruthy();
+    expect(Array.isArray(parsed.components)).toBe(true);
+    expect(parsed.token_usage_guidance).toBeTruthy();
+  });
+
+  it("resolves design-tokens.json alias", () => {
+    const result2 = generateFiles(makeInput(["design-tokens.json"]));
+    const paths = result2.files.map(f => f.path);
+    expect(paths).toContain(".ai/design-tokens.json");
+  });
+});
+
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(18);
+    expect(generators.length).toBe(22);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/context-map.json");
     expect(paths).toContain("AGENTS.md");
@@ -291,5 +342,9 @@ describe("listAvailableGenerators", () => {
     expect(paths).toContain(".ai/optimization-rules.md");
     expect(paths).toContain("prompt-diff-report.md");
     expect(paths).toContain("cost-estimate.json");
+    expect(paths).toContain(".ai/design-tokens.json");
+    expect(paths).toContain("theme.css");
+    expect(paths).toContain("theme-guidelines.md");
+    expect(paths).toContain("component-theme-map.json");
   });
 });

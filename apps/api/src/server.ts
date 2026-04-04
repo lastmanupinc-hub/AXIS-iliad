@@ -11,6 +11,7 @@ import {
   handleFrontendAudit,
   handleSeoAnalyze,
   handleOptimizationAnalyze,
+  handleThemeGenerate,
   handleHealthCheck,
 } from "./handlers.js";
 
@@ -35,6 +36,7 @@ router.post("/v1/debug/analyze", handleDebugAnalyze);
 router.post("/v1/frontend/audit", handleFrontendAudit);
 router.post("/v1/seo/analyze", handleSeoAnalyze);
 router.post("/v1/optimization/analyze", handleOptimizationAnalyze);
+router.post("/v1/theme/generate", handleThemeGenerate);
 
 const port = parseInt(process.env.PORT ?? "4000", 10);
 createApp(router, port);
