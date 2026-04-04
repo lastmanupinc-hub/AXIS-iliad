@@ -35,6 +35,17 @@ import {
   handleUpdateTier,
   handleUpdatePrograms,
 } from "./billing.js";
+import {
+  handleGetPlans,
+  handleInviteSeat,
+  handleListSeats,
+  handleAcceptSeat,
+  handleRevokeSeat,
+  handleGetUpgradePrompt,
+  handleDismissUpgradePrompt,
+  handleGetFunnelStatus,
+  handleGetFunnelMetrics,
+} from "./funnel.js";
 
 const router = new Router();
 
@@ -81,6 +92,17 @@ router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
 router.get("/v1/account/usage", handleGetUsage);
 router.post("/v1/account/tier", handleUpdateTier);
 router.post("/v1/account/programs", handleUpdatePrograms);
+
+// Plans & Funnel
+router.get("/v1/plans", handleGetPlans);
+router.post("/v1/account/seats", handleInviteSeat);
+router.get("/v1/account/seats", handleListSeats);
+router.post("/v1/account/seats/:seat_id/accept", handleAcceptSeat);
+router.post("/v1/account/seats/:seat_id/revoke", handleRevokeSeat);
+router.get("/v1/account/upgrade-prompt", handleGetUpgradePrompt);
+router.post("/v1/account/upgrade-prompt/dismiss", handleDismissUpgradePrompt);
+router.get("/v1/account/funnel", handleGetFunnelStatus);
+router.get("/v1/funnel/metrics", handleGetFunnelMetrics);
 
 const port = parseInt(process.env.PORT ?? "4000", 10);
 createApp(router, port);

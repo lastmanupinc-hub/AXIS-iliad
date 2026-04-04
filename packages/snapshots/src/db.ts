@@ -79,6 +79,35 @@ CREATE TABLE IF NOT EXISTS usage_records (
 CREATE INDEX IF NOT EXISTS idx_usage_account ON usage_records(account_id);
 CREATE INDEX IF NOT EXISTS idx_usage_account_program ON usage_records(account_id, program);
 CREATE INDEX IF NOT EXISTS idx_usage_created ON usage_records(created_at);
+
+CREATE TABLE IF NOT EXISTS seats (
+  seat_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'member',
+  invited_by TEXT NOT NULL,
+  accepted_at TEXT,
+  revoked_at TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_seats_account ON seats(account_id);
+CREATE INDEX IF NOT EXISTS idx_seats_email ON seats(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_seats_account_email ON seats(account_id, email) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS funnel_events (
+  event_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  event_type TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_funnel_account ON funnel_events(account_id);
+CREATE INDEX IF NOT EXISTS idx_funnel_stage ON funnel_events(stage);
+CREATE INDEX IF NOT EXISTS idx_funnel_type ON funnel_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_funnel_created ON funnel_events(created_at);
 `;
 
 export function getDb(): Database.Database {

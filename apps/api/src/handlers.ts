@@ -12,6 +12,8 @@ import {
   getGeneratorResult,
   recordUsage,
   checkQuota,
+  trackEvent,
+  resolveStage,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -69,6 +71,7 @@ export async function handleCreateSnapshot(
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
     if (!quota.allowed) {
+      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
       sendJSON(res, 429, { error: quota.reason, tier: quota.tier, usage: quota.usage });
       return;
     }
@@ -100,6 +103,11 @@ export async function handleCreateSnapshot(
         const programFiles = generated.files.filter(f => f.program === program);
         recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
       }
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+        snapshot_id: snapshot.snapshot_id,
+        programs: [...programs],
+        files: files.length,
+      });
     }
 
     sendJSON(res, 201, {
@@ -976,6 +984,7 @@ export async function handleGitHubAnalyze(
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
     if (!quota.allowed) {
+      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
       sendJSON(res, 429, { error: quota.reason, tier: quota.tier, usage: quota.usage });
       return;
     }
@@ -1020,6 +1029,12 @@ export async function handleGitHubAnalyze(
         const programFiles = generated.files.filter(f => f.program === program);
         recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
       }
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+        snapshot_id: snapshot.snapshot_id,
+        programs: [...programs],
+        source: "github",
+        github_url: githubUrl,
+      });
     }
 
     sendJSON(res, 201, {

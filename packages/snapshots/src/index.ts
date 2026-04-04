@@ -38,3 +38,25 @@ export {
   getProjectCount,
   checkQuota,
 } from "./billing-store.js";
+
+// Funnel & Seats
+export type { FunnelStage, FunnelEventType, FunnelEvent, SeatRole, Seat, PlanFeature, PlanDefinition, UpgradePrompt } from "./funnel-types.js";
+export { SEAT_LIMITS, PLAN_CATALOG, PLAN_FEATURES, ACTIVATION_THRESHOLD, ENGAGEMENT_THRESHOLD, CHURN_RISK_DAYS } from "./funnel-types.js";
+export type { FunnelMetrics } from "./funnel-store.js";
+export {
+  inviteSeat,
+  acceptSeat,
+  revokeSeat,
+  getSeat,
+  getActiveSeats,
+  getAllSeats,
+  getSeatByEmail,
+  getSeatCount,
+  trackEvent,
+  getAccountEvents,
+  getLatestEvent,
+  getEventsByType,
+  resolveStage,
+  generateUpgradePrompt,
+  getFunnelMetrics,
+} from "./funnel-store.js";

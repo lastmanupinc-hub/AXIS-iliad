@@ -16,6 +16,7 @@ import {
   getUsageSummary,
   recordUsage,
   isProgramEnabled,
+  trackEvent,
   type Account,
   type BillingTier,
 } from "@axis/snapshots";
@@ -117,6 +118,9 @@ export async function handleCreateAccount(
 
   // Auto-generate an API key for the new account
   const { apiKey, rawKey } = createApiKey(account.account_id, "default");
+
+  // Track signup funnel event
+  trackEvent(account.account_id, "account_created", "signup", { tier, source: "api" });
 
   sendJSON(res, 201, {
     account,
@@ -277,6 +281,13 @@ export async function handleUpdateTier(
   updateAccountTier(ctx.account!.account_id, tier);
   const updated = getAccount(ctx.account!.account_id);
 
+  // Track tier change funnel event
+  const isUpgrade = (tier === "paid" && ctx.account!.tier === "free") || (tier === "suite");
+  trackEvent(ctx.account!.account_id, isUpgrade ? "upgrade_completed" : "downgrade_completed",
+    isUpgrade ? "conversion" : "signup",
+    { from_tier: ctx.account!.tier, to_tier: tier },
+  );
+
   sendJSON(res, 200, { account: updated });
 }
 
@@ -308,11 +319,13 @@ export async function handleUpdatePrograms(
   if (enable) {
     for (const prog of enable) {
       enableProgram(ctx.account!.account_id, prog);
+      trackEvent(ctx.account!.account_id, "program_added", "expansion", { program: prog });
     }
   }
   if (disable) {
     for (const prog of disable) {
       disableProgram(ctx.account!.account_id, prog);
+      trackEvent(ctx.account!.account_id, "program_removed", "conversion", { program: prog });
     }
   }
 
