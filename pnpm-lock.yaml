@@ -34,6 +34,25 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  apps/cli:
+    dependencies:
+      '@axis/context-engine':
+        specifier: workspace:*
+        version: link:../../packages/context-engine
+      '@axis/generator-core':
+        specifier: workspace:*
+        version: link:../../packages/generator-core
+      '@axis/repo-parser':
+        specifier: workspace:*
+        version: link:../../packages/repo-parser
+      '@axis/snapshots':
+        specifier: workspace:*
+        version: link:../../packages/snapshots
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.7.3
+
   apps/web:
     dependencies:
       react:

@@ -1,0 +1,22 @@
+{
+  "name": "@axis/cli",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "axis": "./bin/axis.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@axis/snapshots": "workspace:*",
+    "@axis/repo-parser": "workspace:*",
+    "@axis/context-engine": "workspace:*",
+    "@axis/generator-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
