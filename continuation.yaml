@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "58286fe"
+    commit_or_tag: "06d717b"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with CLI entry point — 80/80 generators, 28 API endpoints, 175 tests, dogfooded on own repo in 97ms."
+    one_sentence_summary: "Full-stack Axis Toolbox with CLI, GitHub URL intake, 80 generators across 17 programs, 29 API endpoints, 207 tests — all 4 input methods exercised."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -28,12 +28,12 @@ project_continuation:
       integrated_percent: 70
       production_percent: 10
     confidence:
-      architecture_confidence: 90
-      runtime_confidence: 85
-      pipeline_confidence: 80
-      product_surface_confidence: 60
-      integration_confidence: 88
-      notes: "Full-stack application with CLI entry point, SQLite persistence and CI: Vite+React frontend, 28 API endpoints, 80 generators (61 base + 19 depth) across 17 programs, 175 tests. CLI dogfooded on own repo — 142 files scanned, 80/80 generated, 97ms. GitHub Actions CI on Node 20/22. No auth."
+      architecture_confidence: 92
+      runtime_confidence: 88
+      pipeline_confidence: 85
+      product_surface_confidence: 65
+      integration_confidence: 90
+      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 29 API endpoints, 80 generators across 17 programs, 207 tests across 7 files. CLI dogfooded on own repo + AXIS-Scalpel. GitHub tarball fetch with custom tar parser. No auth."
 
   boundary_truth:
     accepted_input_modes:
@@ -567,6 +567,21 @@ project_continuation:
         completion_status: complete
         commit: "58286fe"
 
+      - id: "eq_027"
+        description: "CLI test suite — 20 vitest tests (9 scanner, 6 runner, 4 writer, 1 integration). 195 total tests."
+        completion_status: complete
+        commit: "0c0c39d"
+
+      - id: "eq_028"
+        description: "Cross-repo dogfood — ran CLI against AXIS-Scalpel (Python repo, 449 files, 80/80 generated, 172ms). Verified contextual Python output."
+        completion_status: complete
+        commit: "0c0c39d"
+
+      - id: "eq_029"
+        description: "GitHub URL intake — POST /v1/github/analyze, tarball fetch, custom tar parser, gzip decompress, 12 new tests. 207 total tests, 29 endpoints."
+        completion_status: complete
+        commit: "06d717b"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -684,6 +699,31 @@ project_continuation:
     blockers_added: []
     commit_results: ["58286fe"]
     push_results: ["caa2699..58286fe main → main"]
+
+  current_session_result_010:
+    session_goal: "CLI test suite + cross-repo dogfood + GitHub URL intake"
+    selected_move: "Harden CLI with 20 tests, cross-repo validation, then implement github_repo_url input method"
+    selected_move_roi_reason: "eq_027: untested CLI is a gap (production_quality 5). eq_028: cross-repo proves generality. eq_029: github_repo_url listed but unimplemented — blocker_removal 4, capability_gain 5."
+    completed_candidates:
+      - "eq_027: 20 CLI vitest tests (scanner, runner, writer, integration) — commit 0c0c39d"
+      - "eq_028: Cross-repo dogfood on AXIS-Scalpel (449 files, Python, 80/80 generated, 172ms) — commit 0c0c39d"
+      - "eq_029: GitHub URL intake — github.ts (tarball fetch + custom POSIX tar parser + gunzip), handleGitHubAnalyze handler, POST /v1/github/analyze route, 12 new tests — commit 06d717b"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "207 vitest tests passing across 7 files (195→207, +12)"
+      - "29 API endpoints (28→29, +1 GitHub analyze)"
+      - "apps/api/src/github.ts — zero-dep tarball fetch + parse (node:https + node:zlib)"
+      - "Cross-repo: AXIS-Scalpel AGENTS.md correctly detected Python library, no TS/React output"
+      - "All 4 input methods now exercised: upload, API, CLI, GitHub URL"
+    verticals_advanced:
+      - "v1_search_context_graph → all input paths now feed the same pipeline"
+    blockers_removed:
+      - "github_repo_url listed but unimplemented → fully implemented with tarball fetch"
+      - "CLI untested → 20 tests covering scanner, runner, writer, integration"
+    blockers_added: []
+    commit_results: ["0c0c39d", "06d717b"]
+    push_results: ["2ca0ff5..0c0c39d main → main", "0c0c39d..06d717b main → main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
