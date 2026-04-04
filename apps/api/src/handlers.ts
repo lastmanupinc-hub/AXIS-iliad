@@ -21,7 +21,7 @@ import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
-import { sendJSON, readBody, sendError } from "./router.js";
+import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 
@@ -340,8 +340,9 @@ export async function handleHealthCheck(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  sendJSON(res, 200, {
-    status: "ok",
+  const ready = !isShuttingDown();
+  sendJSON(res, ready ? 200 : 503, {
+    status: ready ? "ok" : "shutting_down",
     service: "axis-api",
     version: "0.2.0",
     timestamp: new Date().toISOString(),

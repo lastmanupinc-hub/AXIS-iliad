@@ -1,6 +1,8 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
+import type { Socket } from "node:net";
 import { initRequest, getRequestId, getRequestStart, log, type ErrorCodeValue } from "./logger.js";
 import { checkRateLimit } from "./rate-limiter.js";
+import { resolveAuth } from "./billing.js";
 
 type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<string, string>) => Promise<void>;
 
@@ -114,7 +116,19 @@ export async function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-export function createApp(router: Router, port: number) {
+export interface AppHandle {
+  server: Server;
+  shutdown: (timeout?: number) => Promise<void>;
+  isShuttingDown: () => boolean;
+}
+
+let _shuttingDown = false;
+export function isShuttingDown(): boolean { return _shuttingDown; }
+
+export function createApp(router: Router, port: number): Server {
+  const connections = new Set<Socket>();
+  _shuttingDown = false;
+
   const server = createServer((req, res) => {
     // Request ID + timing
     const requestId = initRequest(res);
@@ -140,8 +154,9 @@ export function createApp(router: Router, port: number) {
       return;
     }
 
-    // Rate limiting (before route handling)
-    if (!checkRateLimit(req, res)) return;
+    // Rate limiting (before route handling — auth-aware)
+    const auth = resolveAuth(req);
+    if (!checkRateLimit(req, res, { authenticated: !auth.anonymous && auth.account !== null })) return;
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);
@@ -168,9 +183,51 @@ export function createApp(router: Router, port: number) {
     router.handle(req, res);
   });
 
+  server.on("connection", (socket: Socket) => {
+    connections.add(socket);
+    socket.on("close", () => connections.delete(socket));
+  });
+
   server.listen(port, () => {
     log("info", "server_start", { port, service: "axis-api" });
   });
+
+  const shutdown = async (timeout = 10_000): Promise<void> => {
+    if (_shuttingDown) return;
+    _shuttingDown = true;
+    log("info", "shutdown_start", { active_connections: connections.size });
+
+    // Stop accepting new connections
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+
+    // Wait for existing connections to drain, or force after timeout
+    if (connections.size > 0) {
+      await Promise.race([
+        new Promise<void>((resolve) => {
+          const check = setInterval(() => {
+            if (connections.size === 0) { clearInterval(check); resolve(); }
+          }, 100);
+        }),
+        new Promise<void>((resolve) => setTimeout(() => {
+          for (const socket of connections) socket.destroy();
+          connections.clear();
+          resolve();
+        }, timeout)),
+      ]);
+    }
+
+    log("info", "shutdown_complete", {});
+  };
+
+  // Register signal handlers (skip in test environments)
+  if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
+    const onSignal = () => { shutdown().then(() => process.exit(0)); };
+    process.on("SIGTERM", onSignal);
+    process.on("SIGINT", onSignal);
+  }
+
+  // Attach shutdown handle for programmatic access
+  (server as Server & { shutdown: typeof shutdown }).shutdown = shutdown;
 
   return server;
 }
