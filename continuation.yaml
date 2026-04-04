@@ -15,25 +15,25 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "d0754a5"
-    current_session_id: "session_003"
-    one_sentence_summary: "Full-stack Axis Toolbox — Vite+React frontend, 12 API endpoints, 11 generators across 4 programs, 70 tests passing."
+    commit_or_tag: "1594fc7"
+    current_session_id: "session_004"
+    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence — Vite+React frontend, 12 API endpoints, 11 generators, 78 tests passing."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
   executive_truth:
     maturity_estimate:
-      functional_percent: 60
-      hardened_percent: 20
-      integrated_percent: 55
-      production_percent: 5
+      functional_percent: 65
+      hardened_percent: 25
+      integrated_percent: 60
+      production_percent: 10
     confidence:
       architecture_confidence: 85
       runtime_confidence: 80
       pipeline_confidence: 30
       product_surface_confidence: 40
-      integration_confidence: 70
-      notes: "Full-stack application: Vite+React frontend with upload, dashboard (4 tabs), generated file viewer. 12 API endpoints. 11 generators across 4 programs. 70 tests. In-memory store — no persistence yet. No auth, no CI."
+      integration_confidence: 75
+      notes: "Full-stack application with SQLite persistence: Vite+React frontend, 12 API endpoints, 11 generators across 4 programs, 78 tests. WAL-mode SQLite via better-sqlite3. No auth, no CI."
 
   boundary_truth:
     accepted_input_modes:
@@ -121,9 +121,8 @@ project_continuation:
         - "E2E: 8 generated files, 0 skipped across all 4 wave-1 programs (commit de5237d)"
         - "70 vitest tests passing across 5 files (commit b9ed465)"
       blockers:
-        - No persistent storage (in-memory only)
         - No authentication
-      next_required_move: "Build apps/web frontend UI or add SQLite persistence"
+      next_required_move: "Add SEO program generators or GitHub CI pipeline"
 
   subsystem_scorecards:
     - name: "search"
@@ -286,7 +285,7 @@ project_continuation:
         impact: "Cannot run multi-session workflows"
         owner: "platform"
         unblock_strategy: "Add SQLite or Postgres persistence layer"
-        status: "open"
+        status: "RESOLVED — SQLite persistence via better-sqlite3, WAL mode, 5 tables (commit 1594fc7)"
 
     architectural_risks:
       - risk_id: "risk_001"
@@ -310,14 +309,7 @@ project_continuation:
           - "Keep axis_master_blueprint.yaml as canonical"
         impact: "All program subfolders reference axis_all_tools.yaml as primary governing spec"
 
-    open_decisions:
-      - question: "Should we add persistent storage (SQLite/Postgres) or continue with in-memory for MVP?"
-        options:
-          - "SQLite via better-sqlite3 for zero-config local persistence"
-          - "Postgres via Prisma for production-grade persistence"
-          - "Continue in-memory for now, add persistence when needed"
-        required_by: "Before multi-session usage"
-        recommended_next_step: "Evaluate based on deployment target"
+    open_decisions: []
 
     resolved_decisions:
       - date: "2025-07-16"
@@ -330,6 +322,12 @@ project_continuation:
           - "Go + Chi"
           - "Python + FastAPI"
           - "Node.js + Express"
+      - date: "2025-07-18"
+        decision: "SQLite via better-sqlite3 for persistent storage"
+        rationale: "Zero-config local persistence with WAL mode. Synchronous API matches the existing code patterns. In-memory mode for tests. AXIS_DB_PATH env var for custom location."
+        alternatives_rejected:
+          - "Postgres via Prisma"
+          - "Continue in-memory"
 
   current_session_result_001:
     session_goal: "Scaffold all 17 Axis programs with YAML governance files"
@@ -440,13 +438,12 @@ project_continuation:
         completion_status: complete
         commit: "d0754a5"
 
-    qualifying_candidates:
       - id: "eq_009"
-        description: "Add persistent storage (SQLite) for snapshots"
-        active_vertical: "platform"
-        total_roi_score: 80
-        execution_rank: 2
-        blocked: false
+        description: "Add SQLite persistence — replace in-memory Maps with better-sqlite3, 5 tables, WAL mode, 8 new tests"
+        completion_status: complete
+        commit: "1594fc7"
+
+    qualifying_candidates:
       - id: "eq_010"
         description: "Add SEO program generators"
         active_vertical: "v5_seo_analysis"
