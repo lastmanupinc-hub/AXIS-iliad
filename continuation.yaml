@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "5704be2"
+    commit_or_tag: "58286fe"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 17/17 programs (80 generators incl 19 depth), 28 API endpoints, 175 tests, CI pipeline — depth layer complete."
+    one_sentence_summary: "Full-stack Axis Toolbox with CLI entry point — 80/80 generators, 28 API endpoints, 175 tests, dogfooded on own repo in 97ms."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -28,18 +28,19 @@ project_continuation:
       integrated_percent: 70
       production_percent: 10
     confidence:
-      architecture_confidence: 88
-      runtime_confidence: 82
-      pipeline_confidence: 70
-      product_surface_confidence: 55
-      integration_confidence: 82
-      notes: "Full-stack application with SQLite persistence and CI: Vite+React frontend, 28 API endpoints, 80 generators (61 base + 19 depth) across 17 programs, 175 tests. GitHub Actions CI on Node 20/22. All programs complete with depth layer. No auth."
+      architecture_confidence: 90
+      runtime_confidence: 85
+      pipeline_confidence: 80
+      product_surface_confidence: 60
+      integration_confidence: 88
+      notes: "Full-stack application with CLI entry point, SQLite persistence and CI: Vite+React frontend, 28 API endpoints, 80 generators (61 base + 19 depth) across 17 programs, 175 tests. CLI dogfooded on own repo — 142 files scanned, 80/80 generated, 97ms. GitHub Actions CI on Node 20/22. No auth."
 
   boundary_truth:
     accepted_input_modes:
       - repo_snapshot_upload
       - github_repo_url
       - api_submission
+      - cli_submission
     canonical_dependency_truth:
       axis_all_tools_yaml: canonical_spec
       axis_master_blueprint_yaml: original_spec_superseded
@@ -556,6 +557,16 @@ project_continuation:
         completion_status: complete
         commit: "5704be2"
 
+      - id: "eq_025"
+        description: "apps/cli — local repo analysis CLI with in-memory pipeline (scanner, runner, writer, cli entry point), 80-generator pipeline, --program filter, --output flag"
+        completion_status: complete
+        commit: "58286fe"
+
+      - id: "eq_026"
+        description: "Dogfood test — ran CLI against AXIS Toolbox monorepo, 142 files scanned, 80/80 generators produced output, 232KB generated in 97ms"
+        completion_status: complete
+        commit: "58286fe"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -650,6 +661,29 @@ project_continuation:
     blockers_added: []
     commit_results: ["5704be2"]
     push_results: ["33939b3..5704be2 main → main"]
+
+  current_session_result_009:
+    session_goal: "Build CLI entry point and dogfood on own repo"
+    selected_move: "apps/cli — developer-facing CLI for local repo analysis"
+    selected_move_roi_reason: "Highest ROI: removes 'no usable entry point' blocker, capability_gain 5, blocker_removal 5, production_quality 5, team_scale 3, automation 4. In-memory pipeline bypasses SQLite — zero-config."
+    completed_candidates:
+      - "eq_025: apps/cli — scanner.ts (recursive dir read, .gitignore-aware), runner.ts (in-memory snapshot → context → generate), writer.ts (output to disk), cli.ts (arg parser, help, version, program filter), bin/axis.js (shebang entry) — commit 58286fe"
+      - "eq_026: Dogfood test — axis analyze . on AXIS Toolbox repo: 142 files scanned, 80/80 generators, 232KB output, 97ms — commit 58286fe"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "apps/cli — 4 source modules, 1 bin entry, package.json, tsconfig.json (9 files, +575 lines)"
+      - "CLI dogfood: 142 files → 80 generated files (232KB) in 97ms"
+      - "Program filter works: --program search produces 8 files from relevant programs"
+      - "175 vitest tests still passing (no regression)"
+      - "New input_method: cli_submission now exercised end-to-end"
+    verticals_advanced:
+      - "v1_search_context_graph → pipeline_confidence lifted (CLI proves full loop)"
+    blockers_removed:
+      - "No developer entry point → axis analyze . works"
+    blockers_added: []
+    commit_results: ["58286fe"]
+    push_results: ["caa2699..58286fe main → main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
