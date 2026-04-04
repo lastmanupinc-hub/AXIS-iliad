@@ -15,25 +15,25 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-04"
-    commit_or_tag: "8af1d31"
-    current_session_id: "session_008"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 642 tests across 25 files. Export ZIP round-trip tested, graceful shutdown with connection drain, authenticated rate-limit wiring (120/min for keyed users), funnel API integration tests on all 4 untested endpoints. Grade: A (93+)."
+    commit_or_tag: "2b13117"
+    current_session_id: "session_009"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 712 tests across 28 files. Env validation module, Dockerfile + docker-compose, /v1/programs endpoint tested, billing edge cases, router unit tests (pattern matching, wildcards, middleware pipeline). Grade: A (95+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
   executive_truth:
     maturity_estimate:
       functional_percent: 90
-      hardened_percent: 78
-      integrated_percent: 95
-      production_percent: 52
+      hardened_percent: 83
+      integrated_percent: 96
+      production_percent: 58
     confidence:
       architecture_confidence: 94
       runtime_confidence: 93
-      pipeline_confidence: 95
-      product_surface_confidence: 90
-      integration_confidence: 96
-      notes: "642 tests across 25 files (599→642). Export ZIP handler: 16 tests (round-trip decompression, CRC32, path traversal sanitization, UTF-8, program filtering, EOCD structure). Graceful shutdown: connection tracking, drain timeout, SIGTERM/SIGINT, health 503 during shutdown. Rate-limit auth wiring: authenticated users get 120 req/min (was dead at 60). Funnel API: 19 integration tests covering upgrade prompts, dismiss tracking, funnel stage, metrics aggregation, all 401 gates. Pipeline confidence 92→95."
+      pipeline_confidence: 96
+      product_surface_confidence: 92
+      integration_confidence: 97
+      notes: "712 tests across 28 files (642→712). Env validation module with startup fail-fast (17 tests). Dockerfile multi-stage + docker-compose + .env.example (deployment readiness). Programs endpoint /v1/programs first-ever tests (6 tests). Billing edge cases: quota breakdown, usage ?since, account validation, entitlement CRUD (23 tests). Router unit tests: pattern matching, param extraction, wildcards, error catching, sendJSON/sendError, middleware pipeline, readBody, query strings (30 tests). Pipeline confidence 95→96."
 
   boundary_truth:
     accepted_input_modes:
@@ -726,6 +726,27 @@ project_continuation:
         completion_status: complete
         commit: "8af1d31"
 
+      - id: "eq_053"
+        description: "Env validation module + Dockerfile + docker-compose + .env.example — validateEnv()/requireValidEnv() with type checking, defaults, error collection. Multi-stage Dockerfile, docker-compose dev+prod. 17 tests."
+        roi_score: 92
+        roi_reason: "production_quality 5, deployment_readiness 5, canonical_coherence 5. Zero deployment infrastructure existed."
+        completion_status: complete
+        commit: "43f556d"
+
+      - id: "eq_054"
+        description: "Programs endpoint + billing edge cases — GET /v1/programs (6 tests), account quota/entitlements (3), usage with ?since= (4), account validation edge cases (6), program entitlement CRUD (4). 23 tests."
+        roi_score: 88
+        roi_reason: "validation_strength 5, integration_quality 5, production_quality 4. /v1/programs had zero tests. Usage ?since= untested."
+        completion_status: complete
+        commit: "20a00a7"
+
+      - id: "eq_055"
+        description: "Router unit tests — pattern matching (4), param extraction (4), wildcard :param* (3), error handling (3), sendJSON/sendError (5), middleware pipeline (6), readBody (3), query strings (2). 30 tests."
+        roi_score: 85
+        roi_reason: "validation_strength 5, canonical_coherence 5, integration_quality 5. Router is backbone of 52+ endpoints with zero dedicated tests."
+        completion_status: complete
+        commit: "2b13117"
+
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
     selected_move: "Implement 3 new programs with generators, handlers, routes, and tests"
@@ -1262,6 +1283,40 @@ project_continuation:
       - "4 funnel endpoints had 0 HTTP tests → 19 integration tests"
     blockers_added: []
     commit_results: ["c059165", "1e78d10", "8af1d31"]
+    push_results: []
+
+  current_session_result_025:
+    session_goal: "Deployment infrastructure, untested endpoint coverage, router unit validation"
+    selected_move: "eq_053 → eq_054 → eq_055: env validation + Docker, programs/billing edge cases, router unit tests"
+    selected_move_roi_reason: "ROI scores 92/88/85. Fresh gap assessment post-eq_052. begin.yaml autonomous execution: top 3 in descending order."
+    completed_candidates:
+      - "eq_053: Env validation module + Dockerfile + docker-compose + .env.example — validateEnv/requireValidEnv with type checking (number, boolean, string), defaults, non-negative guards, error collection. Multi-stage Dockerfile (deps→builder→runner), docker-compose (prod + dev profile), .dockerignore, .env.example. 17 tests. 659 total (commit 43f556d)"
+      - "eq_054: Programs endpoint + billing edge cases — GET /v1/programs first-ever tests (6: grouped, total count, 17 programs, no-auth-required, output paths), account quota (3: free limits, entitlements array, paid higher limits), usage ?since= (4: empty, recorded, future-since-zero, 401), account validation (6: empty body, missing email, long name, invalid email, bad tier, raw_key returned), entitlement CRUD (4: enable, disable, suite, invalid program). 23 tests. 682 total (commit 20a00a7)"
+      - "eq_055: Router unit tests — route matching (4: static, 404, wrong method, GET vs POST), param extraction (4: single, multiple, encoded, nested 404), wildcards (3: single, deep, dots+dashes), error handling (3: 500, error field, request_id), sendJSON/sendError (5: content-type, error shape, request_id, valid JSON, custom status), middleware pipeline (6: X-Request-Id, unique IDs, security headers, CORS, OPTIONS 204, rate-limit headers), readBody (3: JSON, empty, nested), query strings (2: params, no-affect-matching). 30 tests. 712 total (commit 2b13117)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "712 vitest tests passing across 28 files (642→712, +70)"
+      - "apps/api/src/env.ts — validateEnv, requireValidEnv, generateEnvExample, ENV_SPEC"
+      - "apps/api/src/env.test.ts — 17 tests"
+      - "Dockerfile — multi-stage (deps→builder→runner), node:20-slim, non-root user, HEALTHCHECK"
+      - "docker-compose.yml — api (prod) + api-dev (dev profile), axis-data volume"
+      - ".env.example — all 9 env vars documented with defaults"
+      - ".dockerignore — excludes node_modules, dist, .git, *.db"
+      - "apps/api/src/programs-billing.test.ts — 23 tests"
+      - "apps/api/src/router.test.ts — 30 tests"
+    verticals_advanced:
+      - "Test Coverage — A(93) → A+(96) (70 new tests, 3 new test files, 28 total)"
+      - "Production Readiness — A-(91) → A(94) (Dockerfile, docker-compose, env validation)"
+      - "API Coverage — A(90) → A+(95) (/v1/programs, usage ?since, account validation, router unit tests)"
+      - "Deployment — F(0) → B+(80) (Dockerfile, docker-compose, .env.example, env validation fail-fast)"
+    blockers_removed:
+      - "Zero deployment infrastructure → Dockerfile + docker-compose + env validation"
+      - "/v1/programs endpoint had 0 tests → 6 tests"
+      - "Router pattern matching/wildcards/error-catching had 0 dedicated tests → 30 tests"
+      - "Usage ?since= param untested → tested with future date boundary"
+    blockers_added: []
+    commit_results: ["43f556d", "20a00a7", "2b13117"]
     push_results: []
 
   source_control_policy:
