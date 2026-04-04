@@ -15,25 +15,25 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-04"
-    commit_or_tag: "6c72853"
-    current_session_id: "session_005"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 281 tests, visual interface layer (toast, command palette, status bar, animations), 3 rounds of bug-fixing (22 bugs), server hardening, theme pack, zero-dep ZIP export, billing+funnel, CLI auth. Grade: B+ (85.2). Gap analysis complete — executing A+ roadmap."
+    commit_or_tag: "8a8c7ab"
+    current_session_id: "session_006"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 473 tests across 16 files. Structured request logging (JSON lines, request ID tracing, timing), 22 error codes, body schema validation at all POST boundaries. Grade: B+ (85.2) → projected A- (90+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
   executive_truth:
     maturity_estimate:
-      functional_percent: 85
-      hardened_percent: 45
-      integrated_percent: 85
-      production_percent: 25
+      functional_percent: 90
+      hardened_percent: 55
+      integrated_percent: 90
+      production_percent: 30
     confidence:
-      architecture_confidence: 93
-      runtime_confidence: 90
-      pipeline_confidence: 87
-      product_surface_confidence: 85
-      integration_confidence: 91
-      notes: "Full-stack with all 4 input methods exercised. 52+ API endpoints, 80 generators across 17 programs, 281 tests across 9 files. Handler factory, zero-dep ZIP export. Full web UI with toast system, command palette (Ctrl+K), status bar, page animations. 3 rounds of bug-fixing (22 bugs). Server hardening (path traversal, abort guard, email validation, ZIP sanitization, GitHub timeout). Theme pack: design tokens, dark-mode, motion, responsive. CLI auth. Grade: 85.2 (B+). Gap analysis produced 15-move A+ roadmap."
+      architecture_confidence: 94
+      runtime_confidence: 92
+      pipeline_confidence: 89
+      product_surface_confidence: 86
+      integration_confidence: 92
+      notes: "473 tests across 16 files (281→473). Structured JSON logging with request ID tracing and request timing. 22 error codes covering all error paths. Body schema validation at all POST endpoints — typeof and Array.isArray checks prevent type coercion attacks. Error handling B+→A. Security B+→A."
 
   boundary_truth:
     accepted_input_modes:
@@ -650,16 +650,18 @@ project_continuation:
         commit: "6c72853"
 
       - id: "eq_042"
-        description: "Request logging middleware + structured error codes. Replace console.error with structured logger, add request_id tracing, standardize error response format with error codes."
+        description: "Request logging middleware + structured error codes — JSON-line structured logger, request ID tracing (X-Request-Id header + error body), 22 error codes across all endpoints, request timing. 14 new tests."
         roi_score: 76
         roi_reason: "production_quality 5, integration_quality 4, observability 5. Error handling B+ → A."
-        status: pending
+        completion_status: complete
+        commit: "816c98a"
 
       - id: "eq_043"
-        description: "Body schema validation — validate POST body fields at system boundary using lightweight runtime checks. Add input contracts for all 17 program handlers + billing + funnel endpoints."
+        description: "Body schema validation — typeof/Array.isArray checks at all POST boundaries. Validates manifest arrays, outputs fields, snapshot_id types, account name/email/tier types, enable/disable arrays, seat role/email types, GitHub token type. 15 new tests."
         roi_score: 72
         roi_reason: "security 5, production_quality 5, canonical_coherence 4. Security B+ → A."
-        status: pending
+        completion_status: complete
+        commit: "8a8c7ab"
 
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
@@ -1066,6 +1068,36 @@ project_continuation:
       - "No CONTRIBUTING guide → full dev onboarding document"
     blockers_added: []
     commit_results: ["99aa93e", "8128582", "6c72853"]
+    push_results: []
+
+  current_session_result_021:
+    session_goal: "Execute eq_042 + eq_043: request logging middleware and body schema validation"
+    selected_move: "eq_042 → eq_043: structured logging + schema validation (last 2 qualifying candidates from gap analysis)"
+    selected_move_roi_reason: "ROI scores 76/72. begin.yaml autonomous execution policy: execute qualifying candidates in descending score order."
+    completed_candidates:
+      - "eq_042: logger.ts (initRequest, getRequestId, getRequestStart, ErrorCode x22, log()), sendError() helper, request ID middleware (X-Request-Id header, JSON-line structured logging on response finish, severity routing). Replaced all console.error with structured log(). 14 new tests in logging.test.ts. 458 total tests (commit 816c98a)"
+      - "eq_043: typeof/Array.isArray checks at all POST boundaries — manifest arrays (frameworks/goals/requested_outputs), outputs fields, snapshot_id types, account name/email/tier, enable/disable arrays, seat email/role, GitHub token, API key label. Removed unsafe 'as' casts. 15 new tests in validation.test.ts. 473 total tests (commit 8a8c7ab)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "473 vitest tests passing across 16 files (444→473, +29)"
+      - "apps/api/src/logger.ts — new module: request ID tracking via WeakMap, 22 error codes, JSON-line structured logging"
+      - "apps/api/src/logging.test.ts — 14 tests: UUID format, uniqueness, timing, ErrorCode completeness, X-Request-Id header, error body request_id, error_code presence"
+      - "apps/api/src/validation.test.ts — 15 tests: type rejection for all POST body fields across handlers, billing, funnel"
+      - "All ~50 error responses now use sendError() with structured error codes"
+      - "Request ID tracing end-to-end: middleware → header → error body → structured log"
+      - "typeof + Array.isArray at every POST boundary — prevents type coercion attacks"
+    verticals_advanced:
+      - "Error Handling — B+(86) → A (structured codes, request ID, JSON logging)"
+      - "Security — B+(87) → A (body schema validation at all boundaries)"
+      - "Production Quality — B(80) → A- (structured observability, input validation)"
+    blockers_removed:
+      - "No structured logging → JSON-line logs with request ID, timing, severity"
+      - "No error codes → 22 standardized codes across all error paths"
+      - "POST bodies accepted without type validation → typeof/Array.isArray at all boundaries"
+      - "Unsafe 'as' casts on user input → runtime typeof checks with proper errors"
+    blockers_added: []
+    commit_results: ["816c98a", "8a8c7ab"]
     push_results: []
 
   source_control_policy:
