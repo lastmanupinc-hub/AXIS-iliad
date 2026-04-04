@@ -6,42 +6,72 @@ import { FilesTab } from "../components/FilesTab.tsx";
 import { GraphTab } from "../components/GraphTab.tsx";
 import { GeneratedTab } from "../components/GeneratedTab.tsx";
 import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
+import { useToast } from "../components/Toast.tsx";
 
 interface Props {
   result: SnapshotResponse;
+  onGeneratedCountChange?: (count: number) => void;
 }
 
 const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs"] as const;
 type Tab = (typeof TABS)[number];
 
-export function DashboardPage({ result }: Props) {
+export function DashboardPage({ result, onGeneratedCountChange }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [downloading, setDownloading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     getGeneratedFiles(result.project_id)
-      .then((data) => setGeneratedFiles(data.files))
+      .then((data) => {
+        setGeneratedFiles(data.files);
+        onGeneratedCountChange?.(data.files.length);
+      })
       .catch(() => {});
-  }, [result.project_id]);
+  }, [result.project_id, onGeneratedCountChange]);
+
+  // Keyboard shortcuts: Ctrl+1–5 for tabs (only on dashboard)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Only capture Alt+number to avoid conflict with Ctrl+number page nav
+      if (!e.altKey) return;
+      const idx = parseInt(e.key) - 1;
+      if (idx >= 0 && idx < TABS.length) {
+        e.preventDefault();
+        setActiveTab(TABS[idx]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   async function handleRunProgram(endpoint: string) {
-    const res = await runProgram(endpoint, result.snapshot_id);
-    // Merge new files into the list (replace existing by path)
-    setGeneratedFiles((prev) => {
-      const existing = new Map(prev.map((f) => [f.path, f]));
-      for (const f of res.files) existing.set(f.path, f);
-      return [...existing.values()];
-    });
-    setActiveTab("Generated Files");
+    try {
+      const res = await runProgram(endpoint, result.snapshot_id);
+      // Merge new files into the list (replace existing by path)
+      setGeneratedFiles((prev) => {
+        const existing = new Map(prev.map((f) => [f.path, f]));
+        for (const f of res.files) existing.set(f.path, f);
+        const next = [...existing.values()];
+        onGeneratedCountChange?.(next.length);
+        return next;
+      });
+      setActiveTab("Generated Files");
+      toast("success", `Generated ${res.files.length} files from ${endpoint.split("/")[0]}`);
+    } catch (err) {
+      toast("error", err instanceof Error ? err.message : "Program failed");
+      throw err;
+    }
   }
 
   async function handleDownloadAll() {
     setDownloading(true);
     try {
       await downloadExport(result.project_id);
+      toast("success", "Export downloaded");
     } catch {
-      // silently fail — could show toast
+      toast("error", "Export failed");
     } finally {
       setDownloading(false);
     }
@@ -84,11 +114,12 @@ export function DashboardPage({ result }: Props) {
       </div>
 
       <div className="tabs">
-        {TABS.map((tab) => (
+        {TABS.map((tab, idx) => (
           <div
             key={tab}
             className={`tab ${activeTab === tab ? "active" : ""}`}
             onClick={() => setActiveTab(tab)}
+            title={`Alt+${idx + 1}`}
           >
             {tab}
             {tab === "Generated Files" && generatedFiles.length > 0 && (
@@ -100,19 +131,21 @@ export function DashboardPage({ result }: Props) {
         ))}
       </div>
 
-      {activeTab === "Overview" && <OverviewTab ctx={ctx} profile={profile} />}
-      {activeTab === "Structure" && <FilesTab ctx={ctx} />}
-      {activeTab === "Dependencies" && <GraphTab ctx={ctx} />}
-      {activeTab === "Generated Files" && (
-        <GeneratedTab files={generatedFiles} projectId={result.project_id} />
-      )}
-      {activeTab === "Programs" && (
-        <ProgramLauncher
-          snapshotId={result.snapshot_id}
-          generatedFiles={generatedFiles}
-          onRun={handleRunProgram}
-        />
-      )}
+      <div key={activeTab} className="animate-fade-in">
+        {activeTab === "Overview" && <OverviewTab ctx={ctx} profile={profile} />}
+        {activeTab === "Structure" && <FilesTab ctx={ctx} />}
+        {activeTab === "Dependencies" && <GraphTab ctx={ctx} />}
+        {activeTab === "Generated Files" && (
+          <GeneratedTab files={generatedFiles} projectId={result.project_id} />
+        )}
+        {activeTab === "Programs" && (
+          <ProgramLauncher
+            snapshotId={result.snapshot_id}
+            generatedFiles={generatedFiles}
+            onRun={handleRunProgram}
+          />
+        )}
+      </div>
     </div>
   );
 }

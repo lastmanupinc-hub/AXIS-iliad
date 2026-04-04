@@ -20,7 +20,7 @@ export function OverviewTab({ ctx, profile }: Props) {
   return (
     <div>
       {/* Stats row */}
-      <div className="grid grid-4" style={{ marginBottom: 16 }}>
+      <div className="grid grid-4 stagger" style={{ marginBottom: 16 }}>
         <div className="card" style={{ textAlign: "center" }}>
           <div className="stat-value">{ctx.structure.total_files}</div>
           <div className="stat-label">Files</div>
@@ -39,7 +39,7 @@ export function OverviewTab({ ctx, profile }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-2">
+      <div className="grid grid-2 stagger">
         {/* Frameworks */}
         <div className="card">
           <h3>Frameworks</h3>

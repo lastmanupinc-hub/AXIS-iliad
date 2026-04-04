@@ -1,5 +1,6 @@
 import { useState, useRef, type FormEvent, type DragEvent } from "react";
 import { createSnapshot, analyzeGitHubUrl, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
+import { useToast } from "../components/Toast.tsx";
 
 interface Props {
   onComplete: (data: SnapshotResponse) => void;
@@ -60,8 +61,8 @@ export function UploadPage({ onComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [skippedCount, setSkippedCount] = useState(0);
+  const { toast } = useToast();
 
   async function readFiles(fileList: FileList) {
     const results: Array<{ path: string; content: string; size: number }> = [];
@@ -122,9 +123,12 @@ export function UploadPage({ onComplete }: Props) {
       setError(null);
       try {
         const result = await analyzeGitHubUrl(githubUrl.trim());
+        toast("success", `Analyzed ${result.context_map.project_identity.name} — ${result.context_map.structure.total_files} files`);
         onComplete(result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "GitHub analysis failed");
+        const msg = err instanceof Error ? err.message : "GitHub analysis failed";
+        setError(msg);
+        toast("error", msg);
       } finally {
         setLoading(false);
       }
@@ -185,9 +189,12 @@ export function UploadPage({ onComplete }: Props) {
 
     try {
       const result = await createSnapshot(payload);
+      toast("success", `Snapshot created — ${result.generated_files.length} files generated`);
       onComplete(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      setError(msg);
+      toast("error", msg);
     } finally {
       setLoading(false);
     }
