@@ -1,12 +1,10 @@
 import { resolve } from "node:path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { scanDirectory } from "./scanner.js";
 import { run } from "./runner.js";
 import { writeGeneratedFiles } from "./writer.js";
 import { fetchGitHubRepo } from "@axis/snapshots";
 import { listAvailableGenerators } from "@axis/generator-core";
+import { loadConfig, saveConfig, getConfigFile, type AxisConfig } from "./credential-store.js";
 
 interface CliArgs {
   command: string;
@@ -14,30 +12,6 @@ interface CliArgs {
   output: string;
   programs: string[];
   quiet: boolean;
-}
-
-// ─── Config storage (~/.axis/config.json) ───────────────────────
-
-const CONFIG_DIR = join(homedir(), ".axis");
-const CONFIG_FILE = join(CONFIG_DIR, "config.json");
-
-interface AxisConfig {
-  api_key?: string;
-  api_url?: string;
-}
-
-function loadConfig(): AxisConfig {
-  try {
-    if (existsSync(CONFIG_FILE)) {
-      return JSON.parse(readFileSync(CONFIG_FILE, "utf-8")) as AxisConfig;
-    }
-  } catch { /* ignore corrupt config */ }
-  return {};
-}
-
-function saveConfig(config: AxisConfig): void {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), "utf-8");
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -152,7 +126,7 @@ function handleAuth(args: CliArgs): void {
     }
     config.api_key = keyArg;
     saveConfig(config);
-    console.log("API key saved to ~/.axis/config.json");
+    console.log("API key encrypted and saved to ~/.axis/config.json");
     console.log(`Key prefix: ${keyArg.slice(0, 10)}...`);
     return;
   }
@@ -167,7 +141,7 @@ function handleAuth(args: CliArgs): void {
   // status (default)
   if (config.api_key) {
     console.log(`Authenticated: ${config.api_key.slice(0, 10)}...`);
-    console.log(`Config:        ${CONFIG_FILE}`);
+    console.log(`Config:        ${getConfigFile()}`);
     console.log(`API URL:       ${config.api_url ?? "http://localhost:4000"}`);
   } else {
     console.log("Not authenticated. Run: axis auth login <api_key>");
