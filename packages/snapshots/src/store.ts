@@ -90,9 +90,25 @@ export function saveContextMap(snapshot_id: string, data: unknown): void {
   ).run(snapshot_id, JSON.stringify(data));
 }
 
+/** Runtime shape check — validates minimum required ContextMap fields */
+function isValidContextMap(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return typeof d.version === "string"
+    && typeof d.snapshot_id === "string"
+    && typeof d.project_id === "string"
+    && typeof d.project_identity === "object" && d.project_identity !== null;
+}
+
 export function getContextMap(snapshot_id: string): unknown | undefined {
   const row = getDb().prepare("SELECT data FROM context_maps WHERE snapshot_id = ?").get(snapshot_id) as { data: string } | undefined;
-  return row ? JSON.parse(row.data) : undefined;
+  if (!row) return undefined;
+  try {
+    const parsed = JSON.parse(row.data);
+    return isValidContextMap(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // ─── Repo Profile persistence ───────────────────────────────────
@@ -103,9 +119,25 @@ export function saveRepoProfile(snapshot_id: string, data: unknown): void {
   ).run(snapshot_id, JSON.stringify(data));
 }
 
+/** Runtime shape check — validates minimum required RepoProfile fields */
+function isValidRepoProfile(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return typeof d.version === "string"
+    && typeof d.snapshot_id === "string"
+    && typeof d.project_id === "string"
+    && typeof d.project === "object" && d.project !== null;
+}
+
 export function getRepoProfile(snapshot_id: string): unknown | undefined {
   const row = getDb().prepare("SELECT data FROM repo_profiles WHERE snapshot_id = ?").get(snapshot_id) as { data: string } | undefined;
-  return row ? JSON.parse(row.data) : undefined;
+  if (!row) return undefined;
+  try {
+    const parsed = JSON.parse(row.data);
+    return isValidRepoProfile(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // ─── Generator Result persistence ───────────────────────────────
@@ -116,7 +148,22 @@ export function saveGeneratorResult(snapshot_id: string, data: unknown): void {
   ).run(snapshot_id, JSON.stringify(data));
 }
 
+/** Runtime shape check — validates minimum required GeneratorResult fields */
+function isValidGeneratorResult(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) return false;
+  const d = data as Record<string, unknown>;
+  return typeof d.snapshot_id === "string"
+    && typeof d.generated_at === "string"
+    && Array.isArray(d.files);
+}
+
 export function getGeneratorResult(snapshot_id: string): unknown | undefined {
   const row = getDb().prepare("SELECT data FROM generator_results WHERE snapshot_id = ?").get(snapshot_id) as { data: string } | undefined;
-  return row ? JSON.parse(row.data) : undefined;
+  if (!row) return undefined;
+  try {
+    const parsed = JSON.parse(row.data);
+    return isValidGeneratorResult(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }

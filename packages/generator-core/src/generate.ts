@@ -117,6 +117,18 @@ const ALIASES: Record<string, string> = {
   "design-tokens.json": ".ai/design-tokens.json",
 };
 
+/** Validate a GeneratedFile has all required non-empty string fields. Returns error message or null. */
+function validateGeneratedFile(file: unknown, expected_path: string): string | null {
+  if (typeof file !== "object" || file === null) return "Generator returned non-object";
+  const f = file as Record<string, unknown>;
+  if (typeof f.path !== "string" || f.path.length === 0) return "Missing or empty 'path'";
+  if (typeof f.content !== "string" || f.content.length === 0) return `Empty content for ${expected_path}`;
+  if (typeof f.content_type !== "string" || f.content_type.length === 0) return "Missing 'content_type'";
+  if (typeof f.program !== "string" || f.program.length === 0) return "Missing 'program'";
+  if (typeof f.description !== "string" || f.description.length === 0) return "Missing 'description'";
+  return null;
+}
+
 export function generateFiles(input: GeneratorInput): GeneratorResult {
   const { context_map, repo_profile, requested_outputs } = input;
   const files: GeneratedFile[] = [];
@@ -133,7 +145,20 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
     const generator = REGISTRY[resolved];
 
     if (generator) {
-      files.push(generator(context_map, repo_profile));
+      try {
+        const file = generator(context_map, repo_profile);
+        const validation = validateGeneratedFile(file, resolved);
+        if (validation) {
+          skipped.push({ path: resolved, reason: validation });
+        } else {
+          files.push(file);
+        }
+      } catch (err) {
+        skipped.push({
+          path: resolved,
+          reason: `Generator error: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
     } else {
       skipped.push({ path: requested, reason: "No generator registered for this output" });
     }

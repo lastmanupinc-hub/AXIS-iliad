@@ -95,7 +95,7 @@ describe("SnapshotStore", () => {
 describe("ContextMap persistence", () => {
   it("saves and retrieves context map", () => {
     const snap = createSnapshot(makeInput());
-    const ctx = { project_identity: { name: "test" }, structure: { total_files: 1 } };
+    const ctx = { version: "1.0.0", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project_identity: { name: "test" }, structure: { total_files: 1 } };
     saveContextMap(snap.snapshot_id, ctx);
     const found = getContextMap(snap.snapshot_id);
     expect(found).toEqual(ctx);
@@ -109,7 +109,7 @@ describe("ContextMap persistence", () => {
 describe("RepoProfile persistence", () => {
   it("saves and retrieves repo profile", () => {
     const snap = createSnapshot(makeInput());
-    const profile = { identity: { name: "test" }, health: { has_tests: true } };
+    const profile = { version: "1.0.0", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project: { name: "test" }, health: { has_tests: true } };
     saveRepoProfile(snap.snapshot_id, profile);
     const found = getRepoProfile(snap.snapshot_id);
     expect(found).toEqual(profile);
@@ -124,6 +124,7 @@ describe("GeneratorResult persistence", () => {
   it("saves and retrieves generator result", () => {
     const snap = createSnapshot(makeInput());
     const result = {
+      snapshot_id: snap.snapshot_id,
       generated_at: "2025-01-01T00:00:00Z",
       files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
       skipped: [],
@@ -139,8 +140,8 @@ describe("GeneratorResult persistence", () => {
 
   it("overwrites on re-save", () => {
     const snap = createSnapshot(makeInput());
-    saveGeneratorResult(snap.snapshot_id, { v: 1 });
-    saveGeneratorResult(snap.snapshot_id, { v: 2 });
+    saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2025-01-01", files: [], v: 1 });
+    saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2025-01-02", files: [], v: 2 });
     const found = getGeneratorResult(snap.snapshot_id) as Record<string, unknown>;
     expect(found.v).toBe(2);
   });
