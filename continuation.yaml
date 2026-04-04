@@ -15,17 +15,17 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "1594fc7"
+    commit_or_tag: "0eea454"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence — Vite+React frontend, 12 API endpoints, 11 generators, 78 tests passing."
+    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 5 program generators (15 total), 13 API endpoints, 84 tests passing."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
   executive_truth:
     maturity_estimate:
-      functional_percent: 65
+      functional_percent: 70
       hardened_percent: 25
-      integrated_percent: 60
+      integrated_percent: 65
       production_percent: 10
     confidence:
       architecture_confidence: 85
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 30
       product_surface_confidence: 40
       integration_confidence: 75
-      notes: "Full-stack application with SQLite persistence: Vite+React frontend, 12 API endpoints, 11 generators across 4 programs, 78 tests. WAL-mode SQLite via better-sqlite3. No auth, no CI."
+      notes: "Full-stack application with SQLite persistence: Vite+React frontend, 13 API endpoints, 15 generators across 5 programs, 84 tests. WAL-mode SQLite via better-sqlite3. No auth, no CI."
 
   boundary_truth:
     accepted_input_modes:
@@ -55,7 +55,7 @@ project_continuation:
       debug_playbooks: generating
       skills_governance_files: generating
       frontend_ui_rules: generating
-      seo_analysis: not_started
+      seo_analysis: generating
       optimization_reports: not_started
       artifacts_components: not_started
       theme_design_tokens: not_started
@@ -230,25 +230,31 @@ project_continuation:
         stubs_or_fakes: []
       next_promotion_step: "Add component library analysis"
     - name: "seo"
-      canonical_path: "seo/"
+      canonical_path: "packages/generator-core/src/generators-seo.ts"
       maturity:
-        code_exists: false
-        functionally_exercised: false
-        hardened: false
-        integrated: false
+        code_exists: true
+        functionally_exercised: true
+        hardened: true
+        integrated: true
         production_validated: false
       parity_view:
-        functional_percent: 0
-        hardened_percent: 0
-        integrated_percent: 0
+        functional_percent: 70
+        hardened_percent: 20
+        integrated_percent: 70
       known_truth:
         works:
-          - YAMLs initialized
+          - SEO rules generation (framework-specific SSR guidance, meta tags, structured data, technical SEO, accessibility)
+          - Schema recommendations (JSON-LD per route — Article, Product, FAQPage, TechArticle, BreadcrumbList)
+          - Route priority mapping (sitemap configuration, changefreq, robots.txt recommendations)
+          - Content audit (SEO readiness score, page analysis, Core Web Vitals checklist)
+          - POST /v1/seo/analyze API endpoint
+          - 5 generator tests + 1 API integration test passing
         missing:
-          - analysis engine
-          - SEO API
+          - Live crawl / page rendering analysis
+          - Competitor analysis
+          - Link auditing
         stubs_or_fakes: []
-      next_promotion_step: "Define SEO rules schema"
+      next_promotion_step: "Add POST /v1/seo/generate for custom output selection"
 
   integration_flows:
     - flow_name: ""
@@ -443,13 +449,12 @@ project_continuation:
         completion_status: complete
         commit: "1594fc7"
 
-    qualifying_candidates:
       - id: "eq_010"
-        description: "Add SEO program generators"
-        active_vertical: "v5_seo_analysis"
-        total_roi_score: 70
-        execution_rank: 3
-        blocked: false
+        description: "Add SEO program generators — 4 generators (.ai/seo-rules.md, schema-recommendations.json, route-priority-map.md, content-audit.md), POST /v1/seo/analyze, 6 new tests"
+        completion_status: complete
+        commit: "0eea454"
+
+    qualifying_candidates:
       - id: "eq_011"
         description: "Add GitHub CI pipeline (.github/workflows/ci.yml)"
         active_vertical: "platform"
