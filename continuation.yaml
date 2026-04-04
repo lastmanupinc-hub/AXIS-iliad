@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "ef0bc24"
+    commit_or_tag: "834462b"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with CLI (local + GitHub URL), 80 generators across 17 programs, 29 API endpoints, 209 tests — shared GitHub fetch module in packages/snapshots."
+    one_sentence_summary: "Full-stack Axis Toolbox with web UI (upload + GitHub URL), CLI, 80 generators across 17 programs, 29 API endpoints, 209 tests — all user-facing surfaces support GitHub URL input."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 85
       product_surface_confidence: 65
       integration_confidence: 90
-      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 29 API endpoints, 80 generators across 17 programs, 209 tests across 7 files. CLI dogfooded on own repo + AXIS-Scalpel. GitHub tarball fetch shared in packages/snapshots. CLI supports axis github <url>. No auth."
+      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 29 API endpoints, 80 generators across 17 programs, 209 tests across 7 files. Web UI has GitHub URL mode toggle. CLI supports axis github <url>. GitHub tarball fetch shared in packages/snapshots. No auth."
 
   boundary_truth:
     accepted_input_modes:
@@ -587,6 +587,11 @@ project_continuation:
         completion_status: complete
         commit: "ef0bc24"
 
+      - id: "eq_031"
+        description: "GitHub URL input in web frontend — mode toggle (Upload/GitHub URL), analyzeGitHubUrl() API call, handler returns context_map+repo_profile, DashboardPage shows full results. 209 tests."
+        completion_status: complete
+        commit: "834462b"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -751,6 +756,28 @@ project_continuation:
     blockers_added: []
     commit_results: ["ef0bc24"]
     push_results: ["f99e281..ef0bc24 main → main"]
+
+  current_session_result_012:
+    session_goal: "Add GitHub URL input to web frontend"
+    selected_move: "eq_031: GitHub URL mode toggle on UploadPage + handler context_map return"
+    selected_move_roi_reason: "capability_gain 4, integration 5, usability 5, production_quality 4, team_scale 3, cost -2. Completes the user-facing loop — all surfaces now support GitHub URL input."
+    completed_candidates:
+      - "eq_031: Mode toggle (Upload Files / GitHub URL) on UploadPage. analyzeGitHubUrl() in api.ts calls POST /v1/github/analyze. Handler updated to return context_map + repo_profile. DashboardPage shows full results for GitHub repos. commit 834462b"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "209 vitest tests passing across 7 files (unchanged — UI changes, no new test endpoints)"
+      - "apps/web/src/pages/UploadPage.tsx — mode toggle, GitHub URL input field, async fetch handler"
+      - "apps/web/src/api.ts — analyzeGitHubUrl() function"
+      - "apps/api/src/handlers.ts — handleGitHubAnalyze now returns context_map + repo_profile"
+      - "Web bundle: 218.75 KB → 218.75 KB (negligible increase)"
+    verticals_advanced:
+      - "v1_search_context_graph → web UI completes the GitHub URL user-facing surface"
+    blockers_removed:
+      - "Web UI only supported file upload → now supports GitHub URL input"
+    blockers_added: []
+    commit_results: ["834462b"]
+    push_results: ["d619c8b..834462b main → main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
