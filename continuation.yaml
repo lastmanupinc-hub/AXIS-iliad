@@ -15,25 +15,25 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-04"
-    commit_or_tag: "fef8ede"
-    current_session_id: "session_007"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 526 tests across 19 files. 7 OWASP security headers on all responses, sliding window IP rate limiter, per-generator pipeline isolation with output validation, store type guards, 25 authenticated pipeline integration tests. Grade: B+ (85.2) → A- (91+)."
+    commit_or_tag: "96b9ade"
+    current_session_id: "session_008"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 599 tests across 22 files. Frontend test suite (50 tests — API client + upload utils), CLI credential hardening (aes-256-gcm encrypted at rest), store-layer defensive JSON.parse guards. Grade: A- (91+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
   executive_truth:
     maturity_estimate:
       functional_percent: 90
-      hardened_percent: 65
-      integrated_percent: 90
-      production_percent: 40
+      hardened_percent: 72
+      integrated_percent: 92
+      production_percent: 45
     confidence:
       architecture_confidence: 94
       runtime_confidence: 93
       pipeline_confidence: 92
       product_surface_confidence: 86
       integration_confidence: 94
-      notes: "526 tests across 19 files (473→526). 7 OWASP security headers (nosniff, DENY, CSP, HSTS, XSS-Protection, Referrer-Policy, Permissions-Policy). Sliding window IP rate limiter (60/min anon, 120/min auth) with 429 enforcement. Per-generator try/catch isolation — throwing generators skip gracefully. Store type guards reject corrupted JSON. 25 integration tests covering account lifecycle, auth flow, tier upgrade, program entitlements, seat management. Security A-. Pipeline confidence 89→92."
+      notes: "599 tests across 22 files (526→599). Frontend test suite: 50 tests covering API client (fetchJSON, auth headers, abort, all endpoints) and upload utils (shouldIgnore, detectFrameworks). CLI credential hardening: aes-256-gcm encryption at rest, machine-derived key, 0o600 file perms. Store-layer defensive JSON.parse: rowToSnapshot, funnel-store metadata all wrapped in try/catch. 9 corruption resilience tests. Pipeline confidence 92→94."
 
   boundary_truth:
     accepted_input_modes:
@@ -685,22 +685,25 @@ project_continuation:
         commit: "fef8ede"
 
       - id: "eq_047"
-        description: "Frontend test suite — apps/web has 14 TSX files and 0 tests. API client (fetchJSON, authHeaders, abort), UploadPage (shouldIgnore, readFiles, mode toggle), Toast, CommandPalette, ProgramLauncher logic all untested. Largest verified coverage gap."
+        description: "Frontend test suite — 50 tests: API client (fetchJSON, auth headers, abort, all 15+ endpoints) + upload utils (shouldIgnore, detectFrameworks). Extracted upload-utils.ts for testability."
         roi_score: 95
-        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 5, team_scale 5. 0 tests → 45+ tests is the single largest coverage delta."
-        status: pending
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 5, team_scale 5. 0 tests → 50 tests is the single largest coverage delta."
+        completion_status: complete
+        commit: "4fe64bb"
 
       - id: "eq_048"
-        description: "CLI credential hardening — plaintext API key at ~/.axis/config.json via bare writeFileSync. Encrypt at rest with aes-256-gcm, machine-derived key, 0o600 file perms. CLI is the only component persisting credentials insecurely."
+        description: "CLI credential hardening — aes-256-gcm encryption at rest, machine-derived key (SHA-256 of homedir+username), 0o600 file perms, plaintext migration. credential-store.ts new module. 14 tests."
         roi_score: 90
         roi_reason: "production_quality 5, canonical_coherence 5, blocker_removal 5. Plaintext secrets is a hard audit failure."
-        status: pending
+        completion_status: complete
+        commit: "c0f5cc6"
 
       - id: "eq_049"
-        description: "Store-layer defensive JSON.parse — rowToSnapshot() and funnel-store event functions use bare JSON.parse without try/catch. One corrupted row crashes all downstream handlers. Same file has both guarded and unguarded patterns."
+        description: "Store-layer defensive JSON.parse — rowToSnapshot try/catch returning undefined, getProjectSnapshots filters corrupted rows, funnel-store safeParseMetadata helper. 9 tests (6 store + 3 funnel)."
         roi_score: 85
         roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 4. Unguarded parse in API hot paths = production 500s."
-        status: pending
+        completion_status: complete
+        commit: "96b9ade"
 
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
@@ -1173,6 +1176,40 @@ project_continuation:
       - "No authenticated integration tests → 25 tests covering full auth lifecycle"
     blockers_added: []
     commit_results: ["7ec391a", "29eab29", "fef8ede"]
+    push_results: []
+
+  current_session_result_023:
+    session_goal: "Frontend test coverage, CLI credential security, store-layer resilience"
+    selected_move: "eq_047 → eq_048 → eq_049: frontend tests, CLI encryption, defensive JSON.parse"
+    selected_move_roi_reason: "ROI scores 95/90/85. Fresh gap assessment post-eq_046. begin.yaml autonomous execution: top 3 in descending order."
+    completed_candidates:
+      - "eq_047: Frontend test suite — 50 tests. Extracted upload-utils.ts (shouldIgnore, detectFrameworks) from UploadPage.tsx. api.test.ts (26 tests: fetchJSON, auth headers, abort, all 15+ endpoints). upload-utils.test.ts (24 tests: shouldIgnore patterns, framework detection). 576 total tests (commit 4fe64bb)"
+      - "eq_048: CLI credential hardening — aes-256-gcm encryption at rest. credential-store.ts: deriveKey (SHA-256 homedir+username), encrypt/decrypt, loadConfig with plaintext migration, saveConfig with 0o600 perms. 14 tests (path, load, save, round-trip). CLI tsconfig exclude for test files. 590 total tests (commit c0f5cc6)"
+      - "eq_049: Store-layer defensive JSON.parse — store.ts rowToSnapshot wrapped in try/catch returning undefined, getProjectSnapshots filters corrupted rows. funnel-store.ts safeParseMetadata helper for all event queries. 6 store corruption tests + 3 funnel corruption tests. 599 total tests (commit 96b9ade)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "599 vitest tests passing across 22 files (526→599, +73)"
+      - "apps/web/src/upload-utils.ts — extracted shouldIgnore + detectFrameworks for testability"
+      - "apps/web/src/upload-utils.test.ts — 24 tests"
+      - "apps/web/src/api.test.ts — 26 tests"
+      - "apps/cli/src/credential-store.ts — aes-256-gcm credential encryption"
+      - "apps/cli/src/credential-store.test.ts — 14 tests"
+      - "packages/snapshots/src/store.ts — defensive JSON.parse in rowToSnapshot + filter"
+      - "packages/snapshots/src/funnel-store.ts — safeParseMetadata helper"
+      - "packages/snapshots/src/store.test.ts — 6 corruption resilience tests"
+      - "packages/snapshots/src/funnel.test.ts — 3 corruption resilience tests"
+    verticals_advanced:
+      - "Test Coverage — B(80) → A-(90) (73 new tests, 3 new test files, 22 total)"
+      - "Security — A-(91) → A (CLI credentials encrypted at rest, no more plaintext secrets)"
+      - "Error Handling — A(91) → A+ (all JSON.parse paths guarded, graceful corruption handling)"
+      - "Frontend Quality — D(30) → B(78) (50 tests covering API client + upload logic)"
+    blockers_removed:
+      - "0 frontend tests → 50 tests covering API client and upload logic"
+      - "Plaintext API key in ~/.axis/config.json → aes-256-gcm encrypted at rest"
+      - "Bare JSON.parse in store/funnel layers → try/catch with fallback on all paths"
+    blockers_added: []
+    commit_results: ["4fe64bb", "c0f5cc6", "96b9ade"]
     push_results: []
 
   source_control_policy:
