@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "24b797d"
+    commit_or_tag: "5704be2"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 17/17 programs (61 generators), 28 API endpoints, 156 tests, CI pipeline — all programs complete."
+    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 17/17 programs (80 generators incl 19 depth), 28 API endpoints, 175 tests, CI pipeline — depth layer complete."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -31,9 +31,9 @@ project_continuation:
       architecture_confidence: 88
       runtime_confidence: 82
       pipeline_confidence: 70
-      product_surface_confidence: 50
-      integration_confidence: 80
-      notes: "Full-stack application with SQLite persistence and CI: Vite+React frontend, 28 API endpoints, 61 generators across 17 programs (search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic), 156 tests. GitHub Actions CI on Node 20/22. All programs complete. No auth."
+      product_surface_confidence: 55
+      integration_confidence: 82
+      notes: "Full-stack application with SQLite persistence and CI: Vite+React frontend, 28 API endpoints, 80 generators (61 base + 19 depth) across 17 programs, 175 tests. GitHub Actions CI on Node 20/22. All programs complete with depth layer. No auth."
 
   boundary_truth:
     accepted_input_modes:
@@ -551,6 +551,11 @@ project_continuation:
         completion_status: complete
         commit: "24b797d"
 
+      - id: "eq_024"
+        description: "Add 19 depth generators across all 17 programs — dependency-hotspots.md, root-cause-checklist.md, workflow-pack.md, policy-pack.md, layout-patterns.md, ui-audit.md, meta-tag-audit.json, token-budget-plan.md, dark-mode-tokens.json, channel-rulebook.md, ab-test-plan.md, citation-index.json, server-manifest.yaml, template-pack.md, automation-pipeline.yaml, component-library.json, storyboard.md, brand-board.md, variation-matrix.json — 80 generators total, 175 tests"
+        completion_status: complete
+        commit: "5704be2"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -624,6 +629,27 @@ project_continuation:
     blockers_added: []
     commit_results: ["36d7973", "6cb55f4", "24b797d"]
     push_results: []
+
+  current_session_result_008:
+    session_goal: "Add 19 depth generators across all 17 programs — second layer of output per program"
+    selected_move: "Depth generator layer — richer, deeper outputs for every program"
+    selected_move_roi_reason: "Every program had 3-4 base generators; adding depth generators increases per-program output richness without new endpoints or routes"
+    completed_candidates:
+      - "eq_024: 19 depth generators — dependency-hotspots.md, root-cause-checklist.md, workflow-pack.md, policy-pack.md, layout-patterns.md, ui-audit.md, meta-tag-audit.json, token-budget-plan.md, dark-mode-tokens.json, channel-rulebook.md, ab-test-plan.md, citation-index.json, server-manifest.yaml, template-pack.md, automation-pipeline.yaml, component-library.json, storyboard.md, brand-board.md, variation-matrix.json (commit 5704be2)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "packages/generator-core — 80 generators, 19 generator modules (61 base + 19 depth)"
+      - "28 API endpoints live on port 4000 (unchanged — depth outputs served via existing handlers)"
+      - "175 vitest tests passing across 5 test files (156→175, +19)"
+      - "22 files changed, +2552 lines"
+      - "All 17 programs now have 4-5 outputs each instead of 3-4"
+    verticals_advanced:
+      - "All 17 programs — depth layer adds richer analysis per vertical"
+    blockers_removed: []
+    blockers_added: []
+    commit_results: ["5704be2"]
+    push_results: ["33939b3..5704be2 main → main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
