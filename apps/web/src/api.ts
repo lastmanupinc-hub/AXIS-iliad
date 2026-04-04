@@ -153,6 +153,14 @@ export async function runProgram(
   });
 }
 
+export async function analyzeGitHubUrl(githubUrl: string): Promise<SnapshotResponse> {
+  return fetchJSON<SnapshotResponse>("/v1/github/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ github_url: githubUrl }),
+  });
+}
+
 export async function healthCheck(): Promise<{ status: string; version: string }> {
   return fetchJSON("/health");
 }

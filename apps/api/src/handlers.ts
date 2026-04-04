@@ -984,15 +984,18 @@ export async function handleGitHubAnalyze(
       snapshot_id: snapshot.snapshot_id,
       project_id: snapshot.project_id,
       status: "ready",
-      github_url: githubUrl,
-      owner: parsed.owner,
-      repo: parsed.repo,
-      ref: fetchResult.ref,
-      files_fetched: fetchResult.files.length,
-      files_skipped: fetchResult.skipped_count,
-      total_bytes: fetchResult.total_bytes,
+      context_map: contextMap,
+      repo_profile: repoProfile,
       generated_files: generated.files.map(f => ({ path: f.path, program: f.program, description: f.description })),
-      generated_count: generated.files.length,
+      github: {
+        url: githubUrl,
+        owner: parsed.owner,
+        repo: parsed.repo,
+        ref: fetchResult.ref,
+        files_fetched: fetchResult.files.length,
+        files_skipped: fetchResult.skipped_count,
+        total_bytes: fetchResult.total_bytes,
+      },
     });
   } catch (err) {
     updateSnapshotStatus(snapshot.snapshot_id, "failed");

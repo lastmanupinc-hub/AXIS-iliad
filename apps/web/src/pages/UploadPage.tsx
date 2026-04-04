@@ -1,5 +1,5 @@
 import { useState, useRef, type FormEvent, type DragEvent } from "react";
-import { createSnapshot, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
+import { createSnapshot, analyzeGitHubUrl, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
 
 interface Props {
   onComplete: (data: SnapshotResponse) => void;
@@ -47,6 +47,7 @@ function shouldIgnore(path: string): boolean {
 }
 
 export function UploadPage({ onComplete }: Props) {
+  const [mode, setMode] = useState<"upload" | "github">("upload");
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("web_application");
   const [goals, setGoals] = useState("Generate AI context files");
@@ -54,6 +55,7 @@ export function UploadPage({ onComplete }: Props) {
     OUTPUT_OPTIONS.map((o) => o.value),
   );
   const [files, setFiles] = useState<Array<{ path: string; content: string; size: number }>>([]);
+  const [githubUrl, setGithubUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -106,6 +108,25 @@ export function UploadPage({ onComplete }: Props) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+
+    if (mode === "github") {
+      if (!githubUrl.trim()) {
+        setError("Please enter a GitHub repository URL");
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await analyzeGitHubUrl(githubUrl.trim());
+        onComplete(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "GitHub analysis failed");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (files.length === 0) {
       setError("Please select a folder or drop files");
       return;
@@ -148,14 +169,45 @@ export function UploadPage({ onComplete }: Props) {
   return (
     <div>
       <div className="card" style={{ marginBottom: 24, textAlign: "center", padding: "32px 24px" }}>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Upload Your Project</h2>
-        <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto" }}>
-          Drop a project folder or select files to generate AI context maps, governance files,
-          debug playbooks, and frontend rules.
+        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Analyze Your Project</h2>
+        <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto", marginBottom: 16 }}>
+          Upload a project folder or paste a GitHub URL to generate AI context maps, governance files,
+          debug playbooks, and more across 17 programs.
         </p>
+        <div className="flex" style={{ gap: 8, justifyContent: "center" }}>
+          <button
+            type="button"
+            className={`btn ${mode === "upload" ? "btn-primary" : ""}`}
+            onClick={() => { setMode("upload"); setError(null); }}
+          >
+            📁 Upload Files
+          </button>
+          <button
+            type="button"
+            className={`btn ${mode === "github" ? "btn-primary" : ""}`}
+            onClick={() => { setMode("github"); setError(null); }}
+          >
+            🔗 GitHub URL
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>
+        {mode === "github" ? (
+          <div className="card" style={{ marginBottom: 16, padding: "24px" }}>
+            <label>GitHub Repository URL</label>
+            <input
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo"
+              style={{ marginBottom: 12 }}
+            />
+            <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", margin: 0 }}>
+              Supports public repositories. Examples: https://github.com/vercel/next.js or https://github.com/owner/repo/tree/branch
+            </p>
+          </div>
+        ) : (
+          <>
         <div className="grid grid-2" style={{ marginBottom: 16 }}>
           <div className="card">
             <label>Project Name</label>
@@ -267,6 +319,8 @@ export function UploadPage({ onComplete }: Props) {
             </>
           )}
         </div>
+          </>
+        )}
 
         {error && (
           <div className="card" style={{ borderColor: "var(--red)", marginBottom: 16 }}>
@@ -277,8 +331,10 @@ export function UploadPage({ onComplete }: Props) {
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", justifyContent: "center", padding: 12 }}>
           {loading ? (
             <>
-              <span className="spinner" /> Processing...
+              <span className="spinner" /> {mode === "github" ? "Fetching & Analyzing..." : "Processing..."}
             </>
+          ) : mode === "github" ? (
+            "🔗 Analyze GitHub Repo"
           ) : (
             "🚀 Upload & Generate"
           )}
