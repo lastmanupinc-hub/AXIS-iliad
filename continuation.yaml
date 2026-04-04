@@ -684,6 +684,24 @@ project_continuation:
         completion_status: complete
         commit: "fef8ede"
 
+      - id: "eq_047"
+        description: "Frontend test suite — apps/web has 14 TSX files and 0 tests. API client (fetchJSON, authHeaders, abort), UploadPage (shouldIgnore, readFiles, mode toggle), Toast, CommandPalette, ProgramLauncher logic all untested. Largest verified coverage gap."
+        roi_score: 95
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 5, team_scale 5. 0 tests → 45+ tests is the single largest coverage delta."
+        status: pending
+
+      - id: "eq_048"
+        description: "CLI credential hardening — plaintext API key at ~/.axis/config.json via bare writeFileSync. Encrypt at rest with aes-256-gcm, machine-derived key, 0o600 file perms. CLI is the only component persisting credentials insecurely."
+        roi_score: 90
+        roi_reason: "production_quality 5, canonical_coherence 5, blocker_removal 5. Plaintext secrets is a hard audit failure."
+        status: pending
+
+      - id: "eq_049"
+        description: "Store-layer defensive JSON.parse — rowToSnapshot() and funnel-store event functions use bare JSON.parse without try/catch. One corrupted row crashes all downstream handlers. Same file has both guarded and unguarded patterns."
+        roi_score: 85
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 4. Unguarded parse in API hot paths = production 500s."
+        status: pending
+
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
     selected_move: "Implement 3 new programs with generators, handlers, routes, and tests"

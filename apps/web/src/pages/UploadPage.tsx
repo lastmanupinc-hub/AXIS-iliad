@@ -1,6 +1,7 @@
 import { useState, useRef, type FormEvent, type DragEvent } from "react";
 import { createSnapshot, analyzeGitHubUrl, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
 import { useToast } from "../components/Toast.tsx";
+import { shouldIgnore, detectFrameworks } from "../upload-utils.ts";
 
 interface Props {
   onComplete: (data: SnapshotResponse) => void;
@@ -28,24 +29,6 @@ const OUTPUT_OPTIONS = [
   { value: ".ai/frontend-rules.md", label: "Frontend Rules" },
   { value: "component-guidelines.md", label: "Component Guidelines" },
 ];
-
-const IGNORED_PATTERNS = [
-  "node_modules/",
-  ".git/",
-  "dist/",
-  ".next/",
-  "__pycache__/",
-  ".venv/",
-  "target/",
-  ".DS_Store",
-  "package-lock.json",
-  "pnpm-lock.yaml",
-  "yarn.lock",
-];
-
-function shouldIgnore(path: string): boolean {
-  return IGNORED_PATTERNS.some((p) => path.includes(p));
-}
 
 export function UploadPage({ onComplete }: Props) {
   const [mode, setMode] = useState<"upload" | "github">("upload");
@@ -147,30 +130,7 @@ export function UploadPage({ onComplete }: Props) {
     setLoading(true);
     setError(null);
 
-    // Auto-detect frameworks from uploaded file contents
-    const detectedFrameworks: string[] = [];
-    const allContent = files.map(f => f.content).join("\n");
-    const pkgFile = files.find(f => f.path === "package.json");
-    if (pkgFile) {
-      try {
-        const pkg = JSON.parse(pkgFile.content);
-        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-        if (deps.react) detectedFrameworks.push("react");
-        if (deps.vue) detectedFrameworks.push("vue");
-        if (deps.svelte) detectedFrameworks.push("svelte");
-        if (deps.next) detectedFrameworks.push("next");
-        if (deps.vite) detectedFrameworks.push("vite");
-        if (deps.express) detectedFrameworks.push("express");
-        if (deps.tailwindcss) detectedFrameworks.push("tailwind");
-        if (deps.typescript) detectedFrameworks.push("typescript");
-        if (deps["@angular/core"]) detectedFrameworks.push("angular");
-      } catch { /* not valid JSON */ }
-    }
-    if (files.some(f => f.path.endsWith(".py"))) {
-      if (allContent.includes("from flask")) detectedFrameworks.push("flask");
-      if (allContent.includes("from django")) detectedFrameworks.push("django");
-      if (allContent.includes("from fastapi")) detectedFrameworks.push("fastapi");
-    }
+    const detectedFrameworks = detectFrameworks(files);
 
     const payload: SnapshotPayload = {
       input_method: "manual_file_upload",
