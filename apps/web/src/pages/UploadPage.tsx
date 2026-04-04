@@ -1,0 +1,289 @@
+import { useState, useRef, type FormEvent, type DragEvent } from "react";
+import { createSnapshot, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
+
+interface Props {
+  onComplete: (data: SnapshotResponse) => void;
+}
+
+const PROJECT_TYPES = [
+  "web_application",
+  "api_service",
+  "cli_tool",
+  "library",
+  "monorepo",
+  "mobile_app",
+  "desktop_app",
+  "static_site",
+];
+
+const OUTPUT_OPTIONS = [
+  { value: "context-map.json", label: "Context Map" },
+  { value: "AGENTS.md", label: "AGENTS.md" },
+  { value: "CLAUDE.md", label: "CLAUDE.md" },
+  { value: ".cursorrules", label: ".cursorrules" },
+  { value: ".ai/debug-playbook.md", label: "Debug Playbook" },
+  { value: "incident-template.md", label: "Incident Template" },
+  { value: "tracing-rules.md", label: "Tracing Rules" },
+  { value: ".ai/frontend-rules.md", label: "Frontend Rules" },
+  { value: "component-guidelines.md", label: "Component Guidelines" },
+];
+
+const IGNORED_PATTERNS = [
+  "node_modules/",
+  ".git/",
+  "dist/",
+  ".next/",
+  "__pycache__/",
+  ".venv/",
+  "target/",
+  ".DS_Store",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+];
+
+function shouldIgnore(path: string): boolean {
+  return IGNORED_PATTERNS.some((p) => path.includes(p));
+}
+
+export function UploadPage({ onComplete }: Props) {
+  const [projectName, setProjectName] = useState("");
+  const [projectType, setProjectType] = useState("web_application");
+  const [goals, setGoals] = useState("Generate AI context files");
+  const [selectedOutputs, setSelectedOutputs] = useState<string[]>(
+    OUTPUT_OPTIONS.map((o) => o.value),
+  );
+  const [files, setFiles] = useState<Array<{ path: string; content: string; size: number }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function readFiles(fileList: FileList) {
+    const results: Array<{ path: string; content: string; size: number }> = [];
+    for (const file of Array.from(fileList)) {
+      const relativePath =
+        (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+      if (shouldIgnore(relativePath)) continue;
+      if (file.size > 1024 * 1024) continue; // skip files > 1MB
+      try {
+        const content = await file.text();
+        results.push({ path: relativePath, content, size: file.size });
+      } catch {
+        // skip binary files
+      }
+    }
+    return results;
+  }
+
+  async function handleFolderSelect() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    const newFiles = await readFiles(e.target.files);
+    setFiles(newFiles);
+    if (!projectName && newFiles.length > 0) {
+      const first = newFiles[0].path.split("/")[0];
+      if (first && !first.includes(".")) setProjectName(first);
+    }
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (!e.dataTransfer.files.length) return;
+    const newFiles = await readFiles(e.dataTransfer.files);
+    setFiles(newFiles);
+  }
+
+  function toggleOutput(value: string) {
+    setSelectedOutputs((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (files.length === 0) {
+      setError("Please select a folder or drop files");
+      return;
+    }
+    if (!projectName.trim()) {
+      setError("Project name is required");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const payload: SnapshotPayload = {
+      input_method: "manual_file_upload",
+      manifest: {
+        project_name: projectName.trim(),
+        project_type: projectType,
+        frameworks: [],
+        goals: goals
+          .split("\n")
+          .map((g) => g.trim())
+          .filter(Boolean),
+        requested_outputs: selectedOutputs,
+      },
+      files,
+    };
+
+    try {
+      const result = await createSnapshot(payload);
+      onComplete(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const totalSize = files.reduce((s, f) => s + f.size, 0);
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 24, textAlign: "center", padding: "32px 24px" }}>
+        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Upload Your Project</h2>
+        <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto" }}>
+          Drop a project folder or select files to generate AI context maps, governance files,
+          debug playbooks, and frontend rules.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-2" style={{ marginBottom: 16 }}>
+          <div className="card">
+            <label>Project Name</label>
+            <input
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              placeholder="my-project"
+              required
+            />
+          </div>
+          <div className="card">
+            <label>Project Type</label>
+            <select value={projectType} onChange={(e) => setProjectType(e.target.value)}>
+              {PROJECT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: 16 }}>
+          <label>Goals (one per line)</label>
+          <textarea
+            value={goals}
+            onChange={(e) => setGoals(e.target.value)}
+            rows={2}
+            style={{ fontFamily: "var(--font)" }}
+          />
+        </div>
+
+        <div className="card" style={{ marginBottom: 16 }}>
+          <label style={{ marginBottom: 8 }}>Requested Outputs</label>
+          <div className="flex flex-wrap" style={{ gap: 6 }}>
+            {OUTPUT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`badge ${selectedOutputs.includes(opt.value) ? "badge-accent" : ""}`}
+                style={{ cursor: "pointer", padding: "4px 10px", fontSize: "0.8125rem" }}
+                onClick={() => toggleOutput(opt.value)}
+              >
+                {selectedOutputs.includes(opt.value) ? "✓ " : ""}
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div
+          className="card"
+          style={{
+            marginBottom: 16,
+            border: dragOver ? "1px solid var(--accent)" : undefined,
+            cursor: "pointer",
+            textAlign: "center",
+            padding: "40px 24px",
+          }}
+          onClick={handleFolderSelect}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: "none" }}
+            {...({ webkitdirectory: "", directory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
+            multiple
+            onChange={handleFileInputChange}
+          />
+          {files.length === 0 ? (
+            <>
+              <div style={{ fontSize: "2rem", marginBottom: 8 }}>📁</div>
+              <p style={{ color: "var(--text-muted)" }}>
+                Click to select a folder or drag & drop files here
+              </p>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 4 }}>
+                node_modules, .git, dist, and binary files are automatically excluded
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex-between" style={{ marginBottom: 8 }}>
+                <span className="badge badge-green">{files.length} files</span>
+                <span className="badge">{(totalSize / 1024).toFixed(1)} KB</span>
+              </div>
+              <div
+                style={{
+                  maxHeight: 200,
+                  overflow: "auto",
+                  textAlign: "left",
+                  fontSize: "0.8125rem",
+                  fontFamily: "var(--mono)",
+                  color: "var(--text-muted)",
+                }}
+              >
+                {files.slice(0, 50).map((f) => (
+                  <div key={f.path}>{f.path}</div>
+                ))}
+                {files.length > 50 && (
+                  <div style={{ color: "var(--accent)" }}>... and {files.length - 50} more</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {error && (
+          <div className="card" style={{ borderColor: "var(--red)", marginBottom: 16 }}>
+            <p style={{ color: "var(--red)" }}>{error}</p>
+          </div>
+        )}
+
+        <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", justifyContent: "center", padding: 12 }}>
+          {loading ? (
+            <>
+              <span className="spinner" /> Processing...
+            </>
+          ) : (
+            "🚀 Upload & Generate"
+          )}
+        </button>
+      </form>
+    </div>
+  );
+}
