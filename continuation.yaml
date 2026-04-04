@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "06d717b"
+    commit_or_tag: "ef0bc24"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with CLI, GitHub URL intake, 80 generators across 17 programs, 29 API endpoints, 207 tests — all 4 input methods exercised."
+    one_sentence_summary: "Full-stack Axis Toolbox with CLI (local + GitHub URL), 80 generators across 17 programs, 29 API endpoints, 209 tests — shared GitHub fetch module in packages/snapshots."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 85
       product_surface_confidence: 65
       integration_confidence: 90
-      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 29 API endpoints, 80 generators across 17 programs, 207 tests across 7 files. CLI dogfooded on own repo + AXIS-Scalpel. GitHub tarball fetch with custom tar parser. No auth."
+      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 29 API endpoints, 80 generators across 17 programs, 209 tests across 7 files. CLI dogfooded on own repo + AXIS-Scalpel. GitHub tarball fetch shared in packages/snapshots. CLI supports axis github <url>. No auth."
 
   boundary_truth:
     accepted_input_modes:
@@ -582,6 +582,11 @@ project_continuation:
         completion_status: complete
         commit: "06d717b"
 
+      - id: "eq_030"
+        description: "Extract GitHub fetch to shared packages/snapshots + axis github <url> CLI command. 2 new tests. 209 total tests."
+        completion_status: complete
+        commit: "ef0bc24"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -724,6 +729,28 @@ project_continuation:
     blockers_added: []
     commit_results: ["0c0c39d", "06d717b"]
     push_results: ["2ca0ff5..0c0c39d main → main", "0c0c39d..06d717b main → main"]
+
+  current_session_result_011:
+    session_goal: "Extract GitHub fetch to shared package + add CLI github command"
+    selected_move: "eq_030: move github.ts to packages/snapshots, add axis github <url> CLI subcommand"
+    selected_move_roi_reason: "capability_gain 5, integration 5, production_quality 4, team_scale 4 = 18. Eliminates code duplication between API and CLI. Both apps now share the same GitHub fetch module."
+    completed_candidates:
+      - "eq_030: Extracted parseGitHubUrl/fetchGitHubRepo to packages/snapshots/src/github.ts. API re-exports from @axis/snapshots. Added 'axis github <url>' CLI subcommand with full pipeline (fetch → run → write). 2 new tests. commit ef0bc24"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "209 vitest tests passing across 7 files (207→209, +2)"
+      - "packages/snapshots/src/github.ts — shared GitHub fetch module (tarball + tar parser)"
+      - "apps/api/src/github.ts — thin re-export from @axis/snapshots (4 lines)"
+      - "apps/cli/src/cli.ts — axis github <url> subcommand with async fetch, error handling, progress output"
+      - "CLI test: parseGitHubUrl from @axis/snapshots + run() with GitHubFetchResult shape"
+    verticals_advanced:
+      - "v1_search_context_graph → shared modules reduce coupling, CLI gets remote repo capability"
+    blockers_removed:
+      - "GitHub fetch logic duplicated between API and CLI → single shared module"
+    blockers_added: []
+    commit_results: ["ef0bc24"]
+    push_results: ["f99e281..ef0bc24 main → main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
