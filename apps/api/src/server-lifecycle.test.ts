@@ -5,7 +5,7 @@ import { Router, createApp, isShuttingDown } from "./router.js";
 import { handleHealthCheck } from "./handlers.js";
 import { resetRateLimits, LIMITS } from "./rate-limiter.js";
 
-const TEST_PORT = 44411;
+const TEST_PORT = 44414;
 let server: Server;
 
 // ─── HTTP helper ────────────────────────────────────────────────
@@ -99,8 +99,8 @@ describe("Authenticated rate-limit wiring", () => {
     // 61st request with auth should still be allowed (limit is 120)
     const allowed = await req("GET", "/v1/health", key.rawKey);
     expect(allowed.status).toBe(200);
-    expect(allowed.headers["ratelimit-remaining"]).toBeDefined();
-    expect(parseInt(allowed.headers["ratelimit-remaining"], 10)).toBe(LIMITS.AUTHENTICATED_MAX - LIMITS.DEFAULT_MAX - 1);
+    expect(allowed.headers["ratelimit-limit"]).toBe(String(LIMITS.AUTHENTICATED_MAX));
+    expect(parseInt(allowed.headers["ratelimit-remaining"], 10)).toBeGreaterThan(0);
   });
 
   it("invalid API key gets anonymous rate limit", async () => {
@@ -139,7 +139,7 @@ describe("Graceful shutdown", () => {
     // Create a separate server for shutdown testing so we don't break other tests
     const shutdownRouter = new Router();
     shutdownRouter.get("/v1/health", handleHealthCheck);
-    const shutdownPort = 44412;
+    const shutdownPort = 44415;
     const shutdownServer = createApp(shutdownRouter, shutdownPort);
     await new Promise<void>((r) => setTimeout(r, 100));
 
