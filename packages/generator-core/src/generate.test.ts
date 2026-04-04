@@ -413,10 +413,55 @@ describe("superpowers generators content", () => {
   });
 });
 
+describe("marketing generators content", () => {
+  const result = generateFiles(makeInput(["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md"]));
+
+  it("generates all 4 marketing files", () => {
+    const mktFiles = result.files.filter(f => f.program === "marketing");
+    expect(mktFiles.length).toBe(4);
+  });
+
+  it("campaign-brief.md has audience and channels", () => {
+    const file = result.files.find(f => f.path === "campaign-brief.md")!;
+    expect(file.content).toContain("Target Audience");
+    expect(file.content).toContain("Distribution Channels");
+    expect(file.content).toContain("Campaign Timeline");
+    expect(file.content).toContain("test-app");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+
+  it("funnel-map.md has funnel stages", () => {
+    const file = result.files.find(f => f.path === "funnel-map.md")!;
+    expect(file.content).toContain("Awareness");
+    expect(file.content).toContain("Interest");
+    expect(file.content).toContain("Decision");
+    expect(file.content).toContain("Activation");
+    expect(file.content).toContain("Advocacy");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+
+  it("sequence-pack.md has email sequences", () => {
+    const file = result.files.find(f => f.path === "sequence-pack.md")!;
+    expect(file.content).toContain("Welcome Sequence");
+    expect(file.content).toContain("Re-engagement Sequence");
+    expect(file.content).toContain("Contributor Outreach");
+    expect(file.content).toContain("test-app");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+
+  it("cro-playbook.md has conversion events and experiments", () => {
+    const file = result.files.find(f => f.path === "cro-playbook.md")!;
+    expect(file.content).toContain("Core Conversion Events");
+    expect(file.content).toContain("Optimization Experiments");
+    expect(file.content).toContain("Metrics to Track");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+});
+
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(30);
+    expect(generators.length).toBe(34);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/context-map.json");
     expect(paths).toContain("AGENTS.md");
@@ -429,5 +474,9 @@ describe("listAvailableGenerators", () => {
     expect(paths).toContain("workflow-registry.json");
     expect(paths).toContain("test-generation-rules.md");
     expect(paths).toContain("refactor-checklist.md");
+    expect(paths).toContain("campaign-brief.md");
+    expect(paths).toContain("funnel-map.md");
+    expect(paths).toContain("sequence-pack.md");
+    expect(paths).toContain("cro-playbook.md");
   });
 });

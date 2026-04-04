@@ -9,6 +9,7 @@ import { generateOptimizationRules, generatePromptDiffReport, generateCostEstima
 import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap } from "./generators-theme.js";
 import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem } from "./generators-brand.js";
 import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist } from "./generators-superpowers.js";
+import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook } from "./generators-marketing.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile) => GeneratedFile;
 
@@ -43,6 +44,10 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "workflow-registry.json": (ctx, profile) => generateWorkflowRegistry(ctx, profile),
   "test-generation-rules.md": (ctx) => generateTestGenerationRules(ctx),
   "refactor-checklist.md": (ctx) => generateRefactorChecklist(ctx),
+  "campaign-brief.md": (ctx) => generateCampaignBrief(ctx),
+  "funnel-map.md": (ctx) => generateFunnelMap(ctx),
+  "sequence-pack.md": (ctx) => generateSequencePack(ctx),
+  "cro-playbook.md": (ctx) => generateCroPlaybook(ctx),
 };
 
 // Aliases (user may request with different naming)
