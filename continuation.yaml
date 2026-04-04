@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "0760d83"
+    commit_or_tag: "4b5313a"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 11 programs (38 generators), 20 API endpoints, 121 tests, CI pipeline."
+    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 14 programs (49 generators), 24 API endpoints, 138 tests, CI pipeline."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 70
       product_surface_confidence: 50
       integration_confidence: 80
-      notes: "Full-stack application with SQLite persistence and CI: Vite+React frontend, 20 API endpoints, 38 generators across 11 programs (search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook), 121 tests. GitHub Actions CI on Node 20/22. No auth."
+      notes: "Full-stack application with SQLite persistence and CI: Vite+React frontend, 24 API endpoints, 49 generators across 14 programs (search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts), 138 tests. GitHub Actions CI on Node 20/22. No auth."
 
   boundary_truth:
     accepted_input_modes:
@@ -57,13 +57,13 @@ project_continuation:
       frontend_ui_rules: generating
       seo_analysis: generating
       optimization_reports: generating
-      artifacts_components: not_started
+      artifacts_components: generating
       theme_design_tokens: generating
       brand_guidelines: generating
       notebook_research: generating
       marketing_campaigns: generating
-      mcp_connectors: not_started
-      obsidian_skill_packs: not_started
+      mcp_connectors: generating
+      obsidian_skill_packs: generating
       superpowers_workflows: generating
       remotion_video_scripts: not_started
       canvas_design_assets: not_started
@@ -521,6 +521,21 @@ project_continuation:
         completion_status: complete
         commit: "0760d83"
 
+      - id: "eq_018"
+        description: "Add Obsidian program generators — 4 generators (obsidian-skill-pack.md, vault-rules.md, graph-prompt-map.json, linking-policy.md), POST /v1/obsidian/analyze, 6 new tests"
+        completion_status: complete
+        commit: "974ee8a"
+
+      - id: "eq_019"
+        description: "Add MCP program generators — 3 generators (mcp-config.json, connector-map.yaml, capability-registry.json), POST /v1/mcp/provision, 5 new tests"
+        completion_status: complete
+        commit: "429d71e"
+
+      - id: "eq_020"
+        description: "Add Artifacts program generators — 4 generators (generated-component.tsx, dashboard-widget.tsx, embed-snippet.ts, artifact-spec.md), POST /v1/artifacts/generate, 6 new tests"
+        completion_status: complete
+        commit: "4b5313a"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -545,6 +560,30 @@ project_continuation:
     blockers_removed: []
     blockers_added: []
     commit_results: ["fe24331", "51a045a", "0760d83"]
+    push_results: []
+
+  current_session_result_006:
+    session_goal: "Complete wave-4 program generators (obsidian, mcp, artifacts)"
+    selected_move: "Implement 3 new programs with generators, handlers, routes, and tests"
+    selected_move_roi_reason: "Wave-4 programs follow established generator pattern — obsidian ROI 72, MCP ROI 68, artifacts ROI 65"
+    completed_candidates:
+      - "eq_018: Obsidian program — 4 generators (obsidian-skill-pack.md, vault-rules.md, graph-prompt-map.json, linking-policy.md), POST /v1/obsidian/analyze, 6 new tests (commit 974ee8a)"
+      - "eq_019: MCP program — 3 generators (mcp-config.json, connector-map.yaml, capability-registry.json), POST /v1/mcp/provision, 5 new tests (commit 429d71e)"
+      - "eq_020: Artifacts program — 4 generators (generated-component.tsx, dashboard-widget.tsx, embed-snippet.ts, artifact-spec.md), POST /v1/artifacts/generate, 6 new tests (commit 4b5313a)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "packages/generator-core — 49 generators, 15 generator modules"
+      - "24 API endpoints live on port 4000"
+      - "138 vitest tests passing across 5 test files"
+      - "14 programs generating: search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts"
+    verticals_advanced:
+      - "v12_obsidian → generating (functional 70%)"
+      - "v13_mcp → generating (functional 70%)"
+      - "v14_artifacts → generating (functional 70%)"
+    blockers_removed: []
+    blockers_added: []
+    commit_results: ["974ee8a", "429d71e", "4b5313a"]
     push_results: []
 
   source_control_policy:
