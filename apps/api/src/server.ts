@@ -25,6 +25,16 @@ import {
   handleGitHubAnalyze,
   handleHealthCheck,
 } from "./handlers.js";
+import {
+  handleCreateAccount,
+  handleGetAccount,
+  handleCreateApiKey,
+  handleListApiKeys,
+  handleRevokeApiKey,
+  handleGetUsage,
+  handleUpdateTier,
+  handleUpdatePrograms,
+} from "./billing.js";
 
 const router = new Router();
 
@@ -61,6 +71,16 @@ router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
 
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);
+
+// Billing & Account management
+router.post("/v1/accounts", handleCreateAccount);
+router.get("/v1/account", handleGetAccount);
+router.post("/v1/account/keys", handleCreateApiKey);
+router.get("/v1/account/keys", handleListApiKeys);
+router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
+router.get("/v1/account/usage", handleGetUsage);
+router.post("/v1/account/tier", handleUpdateTier);
+router.post("/v1/account/programs", handleUpdatePrograms);
 
 const port = parseInt(process.env.PORT ?? "4000", 10);
 createApp(router, port);

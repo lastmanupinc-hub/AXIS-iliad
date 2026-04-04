@@ -10,6 +10,8 @@ import {
   getRepoProfile,
   saveGeneratorResult,
   getGeneratorResult,
+  recordUsage,
+  checkQuota,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -17,6 +19,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody } from "./router.js";
+import { resolveAuth } from "./billing.js";
 
 export async function handleCreateSnapshot(
   req: IncomingMessage,
@@ -61,6 +64,16 @@ export async function handleCreateSnapshot(
     files,
   };
 
+  // Check quota if authenticated
+  const auth = resolveAuth(req);
+  if (auth.account) {
+    const quota = checkQuota(auth.account.account_id);
+    if (!quota.allowed) {
+      sendJSON(res, 429, { error: quota.reason, tier: quota.tier, usage: quota.usage });
+      return;
+    }
+  }
+
   const snapshot = createSnapshot(input);
 
   // Process synchronously for v1 (production: queue to worker)
@@ -79,6 +92,15 @@ export async function handleCreateSnapshot(
     });
     saveGeneratorResult(snapshot.snapshot_id, generated);
     updateSnapshotStatus(snapshot.snapshot_id, "ready");
+
+    // Record usage per program if authenticated
+    if (auth.account) {
+      const programs = new Set(generated.files.map(f => f.program));
+      for (const program of programs) {
+        const programFiles = generated.files.filter(f => f.program === program);
+        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
+      }
+    }
 
     sendJSON(res, 201, {
       snapshot_id: snapshot.snapshot_id,
@@ -949,6 +971,16 @@ export async function handleGitHubAnalyze(
     return;
   }
 
+  // Check quota if authenticated
+  const auth = resolveAuth(req);
+  if (auth.account) {
+    const quota = checkQuota(auth.account.account_id);
+    if (!quota.allowed) {
+      sendJSON(res, 429, { error: quota.reason, tier: quota.tier, usage: quota.usage });
+      return;
+    }
+  }
+
   // Create snapshot from fetched files
   const input = {
     input_method: "github_repo_url" as const,
@@ -979,6 +1011,16 @@ export async function handleGitHubAnalyze(
     });
     saveGeneratorResult(snapshot.snapshot_id, generated);
     updateSnapshotStatus(snapshot.snapshot_id, "ready");
+
+    // Record usage per program if authenticated
+    if (auth.account) {
+      const programs = new Set(generated.files.map(f => f.program));
+      const totalBytes = fetchResult.files.reduce((s, f) => s + f.size, 0);
+      for (const program of programs) {
+        const programFiles = generated.files.filter(f => f.program === program);
+        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
+      }
+    }
 
     sendJSON(res, 201, {
       snapshot_id: snapshot.snapshot_id,
