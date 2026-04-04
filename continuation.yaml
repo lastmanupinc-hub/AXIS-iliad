@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "834462b"
+    commit_or_tag: "ee8a95d"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with web UI (upload + GitHub URL), CLI, 80 generators across 17 programs, 29 API endpoints, 209 tests — all user-facing surfaces support GitHub URL input."
+    one_sentence_summary: "Full-stack Axis Toolbox with billing system (API keys, per-program metering, 3-tier quotas), web UI, CLI, 80 generators across 17 programs, 37 API endpoints, 241 tests."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 85
       product_surface_confidence: 65
       integration_confidence: 90
-      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 29 API endpoints, 80 generators across 17 programs, 209 tests across 7 files. Web UI has GitHub URL mode toggle. CLI supports axis github <url>. GitHub tarball fetch shared in packages/snapshots. No auth."
+      notes: "Full-stack with all 4 input methods exercised (upload, API, CLI, GitHub URL). 37 API endpoints (29 core + 8 billing), 80 generators across 17 programs, 241 tests across 8 files. Billing: API keys (SHA-256), per-program metering, 3-tier quotas (free/paid/suite). Auth is optional — backward compatible."
 
   boundary_truth:
     accepted_input_modes:
@@ -122,7 +122,7 @@ project_continuation:
         - "E2E: 8 generated files, 0 skipped across all 4 wave-1 programs (commit de5237d)"
         - "70 vitest tests passing across 5 files (commit b9ed465)"
       blockers:
-        - No authentication
+        - No authentication — RESOLVED (billing system with API keys, ee8a95d)
       next_required_move: "Add SEO program generators or GitHub CI pipeline"
 
   subsystem_scorecards:
@@ -592,6 +592,11 @@ project_continuation:
         completion_status: complete
         commit: "834462b"
 
+      - id: "eq_032"
+        description: "Billing token system — API keys (SHA-256), accounts, per-program metering, 3-tier quotas (free/paid/suite), 8 billing handlers, auth middleware, metering wired into core handlers. 32 new tests. 241 total tests, 37 endpoints."
+        completion_status: complete
+        commit: "ee8a95d"
+
     qualifying_candidates: []
 
   current_session_result_005:
@@ -778,6 +783,32 @@ project_continuation:
     blockers_added: []
     commit_results: ["834462b"]
     push_results: ["d619c8b..834462b main → main"]
+
+  current_session_result_013:
+    session_goal: "Develop token system for billing"
+    selected_move: "eq_032: Full billing system — API keys, per-program metering, 3-tier quotas, auth middleware"
+    selected_move_roi_reason: "capability_gain 5, production_quality 5, blocker_removal 5, team_scale 4. Resolves 'No authentication' blocker. Enables future monetization."
+    completed_candidates:
+      - "eq_032: billing-types.ts (BillingTier, Account, ApiKey, TierLimits, TIER_LIMITS, ALL_PROGRAMS), billing-store.ts (accounts CRUD, API key create/resolve/revoke with SHA-256, program entitlements, usage tracking, quota enforcement), billing.ts (resolveAuth/requireAuth middleware, 8 handlers), db.ts (+4 tables), handlers.ts (metering in handleCreateSnapshot + handleGitHubAnalyze), server.ts (+8 routes), billing.test.ts (32 tests). commit ee8a95d"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "241 vitest tests passing across 8 files (209→241, +32)"
+      - "37 API endpoints (29→37, +8 billing)"
+      - "packages/snapshots/src/billing-types.ts — type definitions + tier constants"
+      - "packages/snapshots/src/billing-store.ts — full billing CRUD + quota enforcement"
+      - "apps/api/src/billing.ts — auth middleware + 8 billing handlers"
+      - "4 new DB tables: accounts, api_keys, program_entitlements, usage_records"
+      - "API key format: axis_<32 hex>, SHA-256 hashed in DB, raw key returned once on creation"
+      - "Tiers: free (10 snapshots/mo, 1 project, 3 programs), paid (200/mo, 20 projects), suite (unlimited)"
+      - "Auth is optional — anonymous requests still work (backward compatible)"
+    verticals_advanced:
+      - "v1_search_context_graph → authentication blocker resolved"
+    blockers_removed:
+      - "No authentication → billing system with API keys and 3-tier quotas"
+    blockers_added: []
+    commit_results: ["ee8a95d"]
+    push_results: []
 
   source_control_policy:
     commit_after_each_completed_candidate: true
