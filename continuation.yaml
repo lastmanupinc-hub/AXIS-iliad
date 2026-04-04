@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-03"
-    commit_or_tag: "0eea454"
+    commit_or_tag: "0d4c206"
     current_session_id: "session_004"
-    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 5 program generators (15 total), 13 API endpoints, 84 tests passing."
+    one_sentence_summary: "Full-stack Axis Toolbox with SQLite persistence, 5 programs (15 generators), 13 API endpoints, 84 tests, CI pipeline."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -30,10 +30,10 @@ project_continuation:
     confidence:
       architecture_confidence: 85
       runtime_confidence: 80
-      pipeline_confidence: 30
+      pipeline_confidence: 70
       product_surface_confidence: 40
       integration_confidence: 75
-      notes: "Full-stack application with SQLite persistence: Vite+React frontend, 13 API endpoints, 15 generators across 5 programs, 84 tests. WAL-mode SQLite via better-sqlite3. No auth, no CI."
+      notes: "Full-stack application with SQLite persistence and CI: Vite+React frontend, 13 API endpoints, 15 generators across 5 programs, 84 tests. GitHub Actions CI on Node 20/22. No auth."
 
   boundary_truth:
     accepted_input_modes:
@@ -454,12 +454,12 @@ project_continuation:
         completion_status: complete
         commit: "0eea454"
 
-    qualifying_candidates:
       - id: "eq_011"
-        description: "Add GitHub CI pipeline (.github/workflows/ci.yml)"
-        active_vertical: "platform"
-        total_roi_score: 65
-        execution_rank: 4
+        description: "Add GitHub CI pipeline — .github/workflows/ci.yml, Node 20/22 matrix, build+test+type-check"
+        completion_status: complete
+        commit: "0d4c206"
+
+    qualifying_candidates:
         blocked: false
       - id: "eq_009"
         description: "Add persistent storage (SQLite) for snapshots"
