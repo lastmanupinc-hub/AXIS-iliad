@@ -5,6 +5,7 @@ import { generateAgentsMD, generateClaudeMD, generateCursorRules } from "./gener
 import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules } from "./generators-debug.js";
 import { generateFrontendRules, generateComponentGuidelines } from "./generators-frontend.js";
 import { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit } from "./generators-seo.js";
+import { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate } from "./generators-optimization.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile) => GeneratedFile;
 
@@ -24,6 +25,9 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "schema-recommendations.json": (ctx) => generateSchemaRecommendations(ctx),
   "route-priority-map.md": (ctx) => generateRoutePriorityMap(ctx),
   "content-audit.md": (ctx) => generateContentAudit(ctx),
+  ".ai/optimization-rules.md": (ctx) => generateOptimizationRules(ctx),
+  "prompt-diff-report.md": (ctx, profile) => generatePromptDiffReport(ctx, profile),
+  "cost-estimate.json": (ctx, profile) => generateCostEstimate(ctx, profile),
 };
 
 // Aliases (user may request with different naming)
@@ -35,6 +39,7 @@ const ALIASES: Record<string, string> = {
   "debug-playbook.md": ".ai/debug-playbook.md",
   "frontend-rules.md": ".ai/frontend-rules.md",
   "seo-rules.md": ".ai/seo-rules.md",
+  "optimization-rules.md": ".ai/optimization-rules.md",
 };
 
 export function generateFiles(input: GeneratorInput): GeneratorResult {

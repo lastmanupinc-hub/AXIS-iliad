@@ -234,10 +234,53 @@ describe("seo generators content", () => {
   });
 });
 
+describe("optimization generators content", () => {
+  const result = generateFiles(makeInput([".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json"]));
+
+  it("generates all 3 optimization files", () => {
+    const optFiles = result.files.filter(f => f.program === "optimization");
+    expect(optFiles.length).toBe(3);
+  });
+
+  it("optimization-rules.md has context budget and high-value files", () => {
+    const file = result.files.find(f => f.path === ".ai/optimization-rules.md")!;
+    expect(file.content).toContain("Context Window Budget");
+    expect(file.content).toContain("High-Value Files");
+    expect(file.content).toContain("test-app");
+    expect(file.content.length).toBeGreaterThan(200);
+  });
+
+  it("prompt-diff-report.md has before/after scores", () => {
+    const file = result.files.find(f => f.path === "prompt-diff-report.md")!;
+    expect(file.content).toContain("Score Summary");
+    expect(file.content).toContain("Before");
+    expect(file.content).toContain("After");
+    expect(file.content).toContain("Recommendations");
+    expect(file.content.length).toBeGreaterThan(200);
+  });
+
+  it("cost-estimate.json is valid JSON with cost matrix", () => {
+    const file = result.files.find(f => f.path === "cost-estimate.json")!;
+    const parsed = JSON.parse(file.content);
+    expect(parsed.summary).toBeTruthy();
+    expect(parsed.summary.total_loc).toBeGreaterThan(0);
+    expect(parsed.cost_matrix).toBeTruthy();
+    expect(Array.isArray(parsed.cost_matrix)).toBe(true);
+    expect(parsed.cost_matrix.length).toBeGreaterThan(0);
+    expect(parsed.language_breakdown).toBeTruthy();
+  });
+
+  it("resolves optimization-rules.md alias", () => {
+    const result2 = generateFiles(makeInput(["optimization-rules.md"]));
+    const paths = result2.files.map(f => f.path);
+    expect(paths).toContain(".ai/optimization-rules.md");
+  });
+});
+
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(15);
+    expect(generators.length).toBe(18);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/context-map.json");
     expect(paths).toContain("AGENTS.md");
@@ -245,5 +288,8 @@ describe("listAvailableGenerators", () => {
     expect(paths).toContain(".ai/frontend-rules.md");
     expect(paths).toContain(".ai/seo-rules.md");
     expect(paths).toContain("schema-recommendations.json");
+    expect(paths).toContain(".ai/optimization-rules.md");
+    expect(paths).toContain("prompt-diff-report.md");
+    expect(paths).toContain("cost-estimate.json");
   });
 });

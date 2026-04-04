@@ -5,3 +5,4 @@ export { generateAgentsMD, generateClaudeMD, generateCursorRules } from "./gener
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules } from "./generators-debug.js";
 export { generateFrontendRules, generateComponentGuidelines } from "./generators-frontend.js";
 export { generateSeoRules, generateSchemaRecommendations, generateRoutePriorityMap, generateContentAudit } from "./generators-seo.js";
+export { generateOptimizationRules, generatePromptDiffReport, generateCostEstimate } from "./generators-optimization.js";
