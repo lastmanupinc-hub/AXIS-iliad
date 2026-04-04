@@ -1,0 +1,58 @@
+# ─── Axis Toolbox — Docker Compose ───────────────────────────────
+#
+# Development:  docker compose up
+# Production:   docker compose --profile production up
+
+services:
+  # ── API Server ─────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=4000
+      - DATABASE_PATH=/data/axis.db
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-60000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-60}
+      - RATE_LIMIT_MAX_AUTHENTICATED=${RATE_LIMIT_MAX_AUTHENTICATED:-120}
+      - SHUTDOWN_TIMEOUT_MS=${SHUTDOWN_TIMEOUT_MS:-10000}
+    volumes:
+      - axis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const h=require('http');h.get('http://localhost:4000/v1/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── Development mode (mounts source, uses ts-node) ────────────
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    command: pnpm --filter @axis/api dev
+    ports:
+      - "${PORT:-4000}:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_PATH=/data/axis.db
+      - LOG_LEVEL=debug
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - axis-data:/data
+    profiles:
+      - dev
+
+volumes:
+  axis-data:
+    driver: local
