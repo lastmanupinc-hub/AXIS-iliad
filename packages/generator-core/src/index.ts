@@ -11,3 +11,4 @@ export { generateBrandGuidelines, generateVoiceAndTone, generateContentConstrain
 export { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist } from "./generators-superpowers.js";
 export { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook } from "./generators-marketing.js";
 export { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads } from "./generators-notebook.js";
+export { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy } from "./generators-obsidian.js";

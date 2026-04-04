@@ -502,19 +502,65 @@ describe("notebook generators content", () => {
   });
 });
 
+describe("obsidian generators content", () => {
+  const result = generateFiles(makeInput(["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md"]));
+
+  it("generates all 4 obsidian files", () => {
+    const obFiles = result.files.filter(f => f.program === "obsidian");
+    expect(obFiles.length).toBe(4);
+  });
+
+  it("obsidian-skill-pack.md has templates and prompts", () => {
+    const file = result.files.find(f => f.path === "obsidian-skill-pack.md")!;
+    expect(file.content).toContain("Daily Note Template");
+    expect(file.content).toContain("ADR Template");
+    expect(file.content).toContain("Prompt Snippets");
+    expect(file.content).toContain("test-app");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+
+  it("vault-rules.md has naming and tagging conventions", () => {
+    const file = result.files.find(f => f.path === "vault-rules.md")!;
+    expect(file.content).toContain("Naming Conventions");
+    expect(file.content).toContain("Tagging System");
+    expect(file.content).toContain("Linking Rules");
+    expect(file.content).toContain("Maintenance Rules");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+
+  it("graph-prompt-map.json has nodes and edges", () => {
+    const file = result.files.find(f => f.path === "graph-prompt-map.json")!;
+    const data = JSON.parse(file.content);
+    expect(data.project).toBe("test-app");
+    expect(data.total_nodes).toBeGreaterThanOrEqual(4);
+    expect(data.total_edges).toBeGreaterThanOrEqual(3);
+    expect(data.nodes.length).toBeGreaterThanOrEqual(4);
+    expect(file.content_type).toBe("application/json");
+  });
+
+  it("linking-policy.md has link types and health metrics", () => {
+    const file = result.files.find(f => f.path === "linking-policy.md")!;
+    expect(file.content).toContain("Link Types");
+    expect(file.content).toContain("Mandatory Links");
+    expect(file.content).toContain("Hub Notes");
+    expect(file.content).toContain("Graph Health Metrics");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+});
+
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(38);
+    expect(generators.length).toBe(42);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/context-map.json");
     expect(paths).toContain("AGENTS.md");
-    expect(paths).toContain(".ai/design-tokens.json");
     expect(paths).toContain("superpower-pack.md");
     expect(paths).toContain("campaign-brief.md");
     expect(paths).toContain("notebook-summary.md");
-    expect(paths).toContain("source-map.json");
-    expect(paths).toContain("study-brief.md");
-    expect(paths).toContain("research-threads.md");
+    expect(paths).toContain("obsidian-skill-pack.md");
+    expect(paths).toContain("vault-rules.md");
+    expect(paths).toContain("graph-prompt-map.json");
+    expect(paths).toContain("linking-policy.md");
   });
 });

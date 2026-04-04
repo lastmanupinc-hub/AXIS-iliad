@@ -19,6 +19,7 @@ import {
   handleSuperpowersGenerate,
   handleMarketingGenerate,
   handleNotebookGenerate,
+  handleObsidianAnalyze,
   handleHealthCheck,
 } from "./handlers.js";
 
@@ -97,6 +98,7 @@ beforeAll(async () => {
   router.post("/v1/superpowers/generate", handleSuperpowersGenerate);
   router.post("/v1/marketing/generate", handleMarketingGenerate);
   router.post("/v1/notebook/generate", handleNotebookGenerate);
+  router.post("/v1/obsidian/analyze", handleObsidianAnalyze);
 
   server = createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -299,6 +301,16 @@ describe("API integration", () => {
     expect(files.length).toBe(4);
   });
 
+  it("POST /v1/obsidian/analyze returns obsidian files", async () => {
+    const r = await request(TEST_PORT, "POST", "/v1/obsidian/analyze", { snapshot_id: snapshotId });
+    expect(r.status).toBe(200);
+    const data = r.data as Record<string, unknown>;
+    expect(data.program).toBe("obsidian");
+    const files = data.files as Array<{ path: string; program: string }>;
+    expect(files.every(f => f.program === "obsidian")).toBe(true);
+    expect(files.length).toBe(4);
+  });
+
   it("returns 404 for unknown route", async () => {
     const r = await request(TEST_PORT, "GET", "/v1/nonexistent");
     expect(r.status).toBe(404);
@@ -327,5 +339,7 @@ describe("API integration", () => {
     expect(r10.status).toBe(400);
     const r11 = await request(TEST_PORT, "POST", "/v1/notebook/generate", {});
     expect(r11.status).toBe(400);
+    const r12 = await request(TEST_PORT, "POST", "/v1/obsidian/analyze", {});
+    expect(r12.status).toBe(400);
   });
 });
