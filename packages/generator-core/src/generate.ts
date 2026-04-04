@@ -10,6 +10,7 @@ import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, genera
 import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem } from "./generators-brand.js";
 import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist } from "./generators-superpowers.js";
 import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook } from "./generators-marketing.js";
+import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads } from "./generators-notebook.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile) => GeneratedFile;
 
@@ -48,6 +49,10 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "funnel-map.md": (ctx) => generateFunnelMap(ctx),
   "sequence-pack.md": (ctx) => generateSequencePack(ctx),
   "cro-playbook.md": (ctx) => generateCroPlaybook(ctx),
+  "notebook-summary.md": (ctx) => generateNotebookSummary(ctx),
+  "source-map.json": (ctx) => generateSourceMap(ctx),
+  "study-brief.md": (ctx) => generateStudyBrief(ctx),
+  "research-threads.md": (ctx) => generateResearchThreads(ctx),
 };
 
 // Aliases (user may request with different naming)

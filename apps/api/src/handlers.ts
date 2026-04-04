@@ -621,3 +621,43 @@ export async function handleMarketingGenerate(
     files: marketingFiles,
   });
 }
+
+export async function handleNotebookGenerate(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    sendJSON(res, 400, { error: "Invalid JSON body" });
+    return;
+  }
+
+  const snapshotId = body.snapshot_id as string;
+  if (!snapshotId) {
+    sendJSON(res, 400, { error: "snapshot_id is required" });
+    return;
+  }
+
+  const contextMap = getContextMap(snapshotId) as ContextMap | undefined;
+  const repoProfile = getRepoProfile(snapshotId) as RepoProfile | undefined;
+  if (!contextMap || !repoProfile) {
+    sendJSON(res, 404, { error: "No context for this snapshot — run POST /v1/snapshots first" });
+    return;
+  }
+
+  const result = generateFiles({
+    context_map: contextMap,
+    repo_profile: repoProfile,
+    requested_outputs: ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md"],
+  });
+
+  const notebookFiles = result.files.filter(f => f.program === "notebook");
+  sendJSON(res, 200, {
+    snapshot_id: snapshotId,
+    program: "notebook",
+    files: notebookFiles,
+  });
+}

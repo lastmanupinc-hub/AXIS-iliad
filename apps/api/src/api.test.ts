@@ -18,6 +18,7 @@ import {
   handleBrandGenerate,
   handleSuperpowersGenerate,
   handleMarketingGenerate,
+  handleNotebookGenerate,
   handleHealthCheck,
 } from "./handlers.js";
 
@@ -95,6 +96,7 @@ beforeAll(async () => {
   router.post("/v1/brand/generate", handleBrandGenerate);
   router.post("/v1/superpowers/generate", handleSuperpowersGenerate);
   router.post("/v1/marketing/generate", handleMarketingGenerate);
+  router.post("/v1/notebook/generate", handleNotebookGenerate);
 
   server = createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -287,6 +289,16 @@ describe("API integration", () => {
     expect(files.length).toBe(4);
   });
 
+  it("POST /v1/notebook/generate returns notebook files", async () => {
+    const r = await request(TEST_PORT, "POST", "/v1/notebook/generate", { snapshot_id: snapshotId });
+    expect(r.status).toBe(200);
+    const data = r.data as Record<string, unknown>;
+    expect(data.program).toBe("notebook");
+    const files = data.files as Array<{ path: string; program: string }>;
+    expect(files.every(f => f.program === "notebook")).toBe(true);
+    expect(files.length).toBe(4);
+  });
+
   it("returns 404 for unknown route", async () => {
     const r = await request(TEST_PORT, "GET", "/v1/nonexistent");
     expect(r.status).toBe(404);
@@ -313,5 +325,7 @@ describe("API integration", () => {
     expect(r9.status).toBe(400);
     const r10 = await request(TEST_PORT, "POST", "/v1/marketing/generate", {});
     expect(r10.status).toBe(400);
+    const r11 = await request(TEST_PORT, "POST", "/v1/notebook/generate", {});
+    expect(r11.status).toBe(400);
   });
 });

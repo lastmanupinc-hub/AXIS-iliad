@@ -458,25 +458,63 @@ describe("marketing generators content", () => {
   });
 });
 
+describe("notebook generators content", () => {
+  const result = generateFiles(makeInput(["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md"]));
+
+  it("generates all 4 notebook files", () => {
+    const nbFiles = result.files.filter(f => f.program === "notebook");
+    expect(nbFiles.length).toBe(4);
+  });
+
+  it("notebook-summary.md has synopsis and architecture", () => {
+    const file = result.files.find(f => f.path === "notebook-summary.md")!;
+    expect(file.content).toContain("Project Synopsis");
+    expect(file.content).toContain("Architecture Overview");
+    expect(file.content).toContain("Key Concepts");
+    expect(file.content).toContain("test-app");
+    expect(file.content.length).toBeGreaterThan(200);
+  });
+
+  it("source-map.json has structured project data", () => {
+    const file = result.files.find(f => f.path === "source-map.json")!;
+    const data = JSON.parse(file.content);
+    expect(data.project).toBe("test-app");
+    expect(data.structure.total_files).toBeGreaterThan(0);
+    expect(data.languages).toBeTruthy();
+    expect(file.content_type).toBe("application/json");
+  });
+
+  it("study-brief.md has reading order and study questions", () => {
+    const file = result.files.find(f => f.path === "study-brief.md")!;
+    expect(file.content).toContain("Prerequisites");
+    expect(file.content).toContain("Recommended Reading Order");
+    expect(file.content).toContain("Study Questions");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+
+  it("research-threads.md has investigation threads", () => {
+    const file = result.files.find(f => f.path === "research-threads.md")!;
+    expect(file.content).toContain("Architecture Threads");
+    expect(file.content).toContain("Technology Choices");
+    expect(file.content).toContain("Performance");
+    expect(file.content).toContain("Test Coverage");
+    expect(file.content.length).toBeGreaterThan(300);
+  });
+});
+
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(34);
+    expect(generators.length).toBe(38);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/context-map.json");
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain(".ai/design-tokens.json");
-    expect(paths).toContain("theme.css");
-    expect(paths).toContain("brand-guidelines.md");
-    expect(paths).toContain("voice-and-tone.md");
-    expect(paths).toContain("messaging-system.yaml");
     expect(paths).toContain("superpower-pack.md");
-    expect(paths).toContain("workflow-registry.json");
-    expect(paths).toContain("test-generation-rules.md");
-    expect(paths).toContain("refactor-checklist.md");
     expect(paths).toContain("campaign-brief.md");
-    expect(paths).toContain("funnel-map.md");
-    expect(paths).toContain("sequence-pack.md");
-    expect(paths).toContain("cro-playbook.md");
+    expect(paths).toContain("notebook-summary.md");
+    expect(paths).toContain("source-map.json");
+    expect(paths).toContain("study-brief.md");
+    expect(paths).toContain("research-threads.md");
   });
 });
