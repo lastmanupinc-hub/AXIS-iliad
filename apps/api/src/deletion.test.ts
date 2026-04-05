@@ -62,7 +62,7 @@ afterAll(async () => {
 function createTestSnapshot(projectName: string) {
   return createSnapshot({
     input_method: "api_submission",
-    manifest: { project_name: projectName, project_type: "web_app", goals: [] },
+    manifest: { project_name: projectName, project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] },
     files: [{ path: "index.ts", content: "export default 1;", size: 18 }],
   });
 }
@@ -101,7 +101,7 @@ describe("DELETE /v1/projects/:project_id", () => {
     const snap1 = createTestSnapshot("del-proj-test");
     const snap2 = createSnapshot({
       input_method: "api_submission",
-      manifest: { project_name: "del-proj-test", project_type: "web_app", goals: [] },
+      manifest: { project_name: "del-proj-test", project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "b.ts", content: "b", size: 1 }],
     });
 

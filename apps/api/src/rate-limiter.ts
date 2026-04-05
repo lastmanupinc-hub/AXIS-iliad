@@ -148,6 +148,46 @@ export function checkRateLimit(
   return true;
 }
 
+/** Query the current rate-limit window for a client IP. */
+export function getClientWindow(
+  ip: string,
+  opts?: { authenticated?: boolean },
+): {
+  limit: number;
+  remaining: number;
+  count: number;
+  reset_at: number;
+  reset_in_seconds: number;
+  window_ms: number;
+} {
+  const maxRequests = opts?.authenticated ? AUTHENTICATED_MAX_REQUESTS : DEFAULT_MAX_REQUESTS;
+  const now = Date.now();
+  const entry = windows.get(ip);
+
+  if (!entry || now >= entry.resetAt) {
+    return {
+      limit: maxRequests,
+      remaining: maxRequests,
+      count: 0,
+      reset_at: 0,
+      reset_in_seconds: 0,
+      window_ms: DEFAULT_WINDOW_MS,
+    };
+  }
+
+  const remaining = Math.max(0, maxRequests - entry.count);
+  const resetSeconds = Math.ceil((entry.resetAt - now) / 1000);
+
+  return {
+    limit: maxRequests,
+    remaining,
+    count: entry.count,
+    reset_at: entry.resetAt,
+    reset_in_seconds: resetSeconds,
+    window_ms: DEFAULT_WINDOW_MS,
+  };
+}
+
 /** Reset all rate limit state (for testing) */
 export function resetRateLimits(): void {
   windows.clear();

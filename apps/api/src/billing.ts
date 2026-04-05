@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
+import { getClientWindow, getClientIp } from "./rate-limiter.js";
 import {
   resolveApiKey,
   createAccount,
@@ -369,4 +370,40 @@ export async function handleUpdatePrograms(
 
   const entitlements = getEntitlements(ctx.account!.account_id);
   sendJSON(res, 200, { programs: entitlements.map((e) => e.program) });
+}
+
+/** GET /v1/account/quota — rate-limit + resource quota visibility */
+export async function handleGetQuota(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = resolveAuth(req);
+  const authenticated = !ctx.anonymous;
+  const ip = getClientIp(req);
+  const window = getClientWindow(ip, { authenticated });
+
+  const response: Record<string, unknown> = {
+    rate_limit: {
+      limit: window.limit,
+      remaining: window.remaining,
+      count: window.count,
+      reset_in_seconds: window.reset_in_seconds,
+      window_ms: window.window_ms,
+    },
+    authenticated,
+  };
+
+  if (ctx.account) {
+    const quota = checkQuota(ctx.account.account_id);
+    response.resource_quota = {
+      tier: quota.tier,
+      snapshots_this_month: quota.usage.snapshots_this_month,
+      max_snapshots_per_month: quota.limits.max_snapshots_per_month,
+      project_count: quota.usage.project_count,
+      max_projects: quota.limits.max_projects,
+      max_files_per_snapshot: quota.limits.max_files_per_snapshot,
+    };
+  }
+
+  sendJSON(res, 200, response);
 }

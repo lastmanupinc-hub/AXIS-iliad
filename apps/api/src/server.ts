@@ -43,6 +43,7 @@ import {
   handleGetUsage,
   handleUpdateTier,
   handleUpdatePrograms,
+  handleGetQuota,
 } from "./billing.js";
 import {
   handleGetPlans,
@@ -144,6 +145,7 @@ router.post("/v1/account/keys", handleCreateApiKey);
 router.get("/v1/account/keys", handleListApiKeys);
 router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
 router.get("/v1/account/usage", handleGetUsage);
+router.get("/v1/account/quota", handleGetQuota);
 router.post("/v1/account/tier", handleUpdateTier);
 router.post("/v1/account/programs", handleUpdatePrograms);
 
