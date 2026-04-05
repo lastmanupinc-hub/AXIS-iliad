@@ -797,11 +797,13 @@ known_gaps:
     notes: "Dockerfile exists. No Vercel/Railway/Fly.io deployment config or hosted instance."
 
   rate_limit_dashboard:
-    description: "No user-facing view of rate limit status or remaining quota"
-    grade: D
-    status: partial
+    description: "View current rate limit status, remaining quota, and resource limits via API"
+    grade: A
+    status: complete
     human_priority: 2_important
-    notes: "Rate limiting exists server-side. No UI or API to check remaining quota in real-time."
+    access: [rest_api]
+    tested: true
+    notes: "GET /v1/account/quota — returns rate_limit (limit/remaining/count/reset) + resource_quota for authenticated users. eq_097."
 
   file_diff_and_history:
     description: "No version history or diff view for re-generated outputs"
@@ -822,28 +824,32 @@ known_gaps:
     human_priority: 2_important
 
   project_deletion:
-    description: "No endpoint to delete a project or snapshot"
-    grade: F
-    status: not_started
+    description: "Delete a project or snapshot via API with cascading cleanup of all associated data"
+    grade: A
+    status: complete
     human_priority: 2_important
-    notes: "Data can only be purged via db maintenance with retention days."
+    access: [rest_api]
+    tested: true
+    notes: "DELETE /v1/snapshots/:id and DELETE /v1/projects/:id — transactional cascading delete of search_fts, search_index, generator_results, repo_profiles, context_maps, snapshots, projects. eq_096."
 
   search_in_web_ui:
-    description: "FTS5 search exists in API but no search UI in the web app"
-    grade: D
-    status: partial
+    description: "Full-text search of snapshot code content in the web dashboard"
+    grade: A
+    status: complete
     human_priority: 2_important
-    notes: "API fully functional. Web UI has no search input wired to /v1/search/query."
+    access: [web_ui]
+    tested: true
+    notes: "Search tab in DashboardPage — index button, FTS5 search input, results with file:line:content. eq_098."
 
 # ─── SUMMARY ─────────────────────────────────────────────────────
 
 summary:
   total_capabilities: 67
   grade_distribution:
-    A: 55
+    A: 58
     B: 3
-    D: 2
-    F: 7
+    D: 0
+    F: 6
   by_access_layer:
     web_ui: 18
     cli: 6
@@ -851,8 +857,8 @@ summary:
     ops: 4
   programs: 17
   generators: 80
-  test_files: 58
-  tests: 1285
+  test_files: 60
+  tests: 1298
   coverage: "92%"
 
   human_usability_without_ai:
