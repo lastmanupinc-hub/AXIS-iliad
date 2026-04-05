@@ -15,25 +15,25 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-04"
-    commit_or_tag: "6cda9e6"
-    current_session_id: "session_013"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 989 tests across 41 files. CLI entry point full coverage: parseArgs+routing (19 — defaults, positionals, flags, shorthands, formatBytes B/KB/MB, unknown command), auth+programs (15 — login/logout/status, key prefix, config paths, FREE/PRO tier, pluralization), analyze+github pipelines (15 — scan/run/write flow, error paths, quiet mode, async fetch, programs filter). Grade: A (98+)."
+    commit_or_tag: "ee4f1a8"
+    current_session_id: "session_014"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 1072 tests across 44 files. Parser branch coverage (45 — deployment 8, build tools 7, CI 4, classifyRole 13, package managers 4, extractDeps 3, guessDirPurpose 2, health 4), engine branch coverage (26 — entry points 6, HTTP methods 5, architecture patterns 5, AI warnings 5, conventions 2, hotspots 1, profile 2), generate validation (12 — invalid output shapes, generator errors, try/catch branches). Grade: A (98+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
   executive_truth:
     maturity_estimate:
       functional_percent: 90
-      hardened_percent: 86
+      hardened_percent: 89
       integrated_percent: 96
       production_percent: 58
     confidence:
-      architecture_confidence: 94
+      architecture_confidence: 95
       runtime_confidence: 97
       pipeline_confidence: 99
       product_surface_confidence: 92
       integration_confidence: 97
-      notes: "989 tests across 41 files (940→989). eq_066: CLI parseArgs+routing (19 tests — default analyze, command/target positionals, --output/--program/--quiet flags, --help/-h/--version/-v overrides, formatBytes B/KB/MB, unknown command error). eq_067: CLI auth+programs (15 tests — login saves key, key prefix display, login without axis_ error, logout removes key, status authenticated/not-authenticated/config-path/api-url, programs grouping/FREE-PRO tiers/pluralization). eq_068: CLI pipelines (15 tests — analyze scan→run→write success, empty scan/generated errors, programs filter, github async fetch/error/empty/info/filter). Runtime confidence 96→97, pipeline confidence 99→99."
+      notes: "1072 tests across 44 files (989→1072). eq_069: Parser branches (45 tests — detectDeployment 8 platforms, detectBuildTools 7 tools, detectCI 4 platforms, classifyRole 13 file types, detectPackageManagers 4, extractDependencies 3, guessDirPurpose 2, health indicators 4). eq_070: Engine branches (26 tests — detectEntryPoints 6 patterns, extractHTTPMethods 5, analyzeArchitecture 5 patterns, buildAIContext warnings 5, conventions 2, dependency hotspots 1, buildRepoProfile passthrough 2). eq_071: Generate validation (12 tests — validateGeneratedFile 6 invalid shapes, generator error handling, try/catch, non-Error throw). Architecture confidence 94→95, runtime confidence stays 97."
 
   boundary_truth:
     accepted_input_modes:
@@ -838,6 +838,27 @@ project_continuation:
         completion_status: complete
         commit: "6cda9e6"
 
+      - id: "eq_069"
+        description: "Parser branches — 45 tests covering detectDeployment (8 platforms), detectBuildTools (7 tools), detectCI (4 platforms), classifyRole (13 file types), detectPackageManagers (4), extractDependencies (3 edge cases), guessDirPurpose (2), health indicators (4)."
+        roi_score: 92
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 5. parser.ts had only 11 tests for 300+ lines with 60+ untested conditional branches."
+        completion_status: complete
+        commit: "ee4f1a8"
+
+      - id: "eq_070"
+        description: "Engine branches — 26 tests covering detectEntryPoints (6 patterns), extractHTTPMethods (5 HTTP verbs), analyzeArchitecture (5 patterns), buildAIContext warnings (5 conditions), conventions (2), dependency hotspots (1), buildRepoProfile passthrough (2)."
+        roi_score: 88
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 4. engine.ts had 33 tests but missed HTTP methods, architecture patterns, AI context warnings."
+        completion_status: complete
+        commit: "ee4f1a8"
+
+      - id: "eq_071"
+        description: "Generate validation — 12 tests covering validateGeneratedFile (6 invalid shapes), generator error handling (try/catch, non-Error), output validation and filtering, empty generator list, programs filter edge cases."
+        roi_score: 85
+        roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 4. Generator pipeline error/validation branches had zero tests."
+        completion_status: complete
+        commit: "ee4f1a8"
+
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
     selected_move: "Implement 3 new programs with generators, handlers, routes, and tests"
@@ -1525,6 +1546,34 @@ project_continuation:
     blockers_added: []
     commit_results: ["6cda9e6"]
     push_results: ["95e9817..6cda9e6 → origin/main"]
+
+  current_session_result_030:
+    session_goal: "Deep branch coverage — parser, engine, and generator conditional paths"
+    selected_move: "eq_069 → eq_070 → eq_071: parser branches, engine branches, generate validation"
+    selected_move_roi_reason: "ROI score 92/88/85. parser.ts had only 11 tests for 300+ lines with 60+ untested branches (deployment, build tools, CI, classifyRole, package managers). engine.ts had 33 tests but missed HTTP methods, architecture patterns, AI context warnings. generate.ts validation/error branches had zero coverage."
+    completed_candidates:
+      - "eq_069: Parser branches — 45 tests (detectDeployment 8 platforms, detectBuildTools 7, detectCI 4, classifyRole 13, detectPackageManagers 4, extractDependencies 3, guessDirPurpose 2, health indicators 4). 1034 total (packages/repo-parser/src/parser-branches.test.ts)"
+      - "eq_070: Engine branches — 26 tests (detectEntryPoints 6, extractHTTPMethods 5, analyzeArchitecture 5, buildAIContext warnings 5, conventions 2, hotspots 1, profile passthrough 2). 1060 total (packages/context-engine/src/engine-branches.test.ts)"
+      - "eq_071: Generate validation — 12 tests (validateGeneratedFile 6 invalid shapes, generator error via try/catch, non-Error throw, output validation, empty generator list, programs filter). 1072 total (packages/generator-core/src/generate-validation.test.ts)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "1072 vitest tests passing across 44 files (989→1072, +83)"
+      - "3 new test files: parser-branches.test.ts, engine-branches.test.ts, generate-validation.test.ts"
+      - "packages/repo-parser/src/parser-branches.test.ts — 45 tests, deployment/build/CI/role/package-manager/dep/dir/health branches"
+      - "packages/context-engine/src/engine-branches.test.ts — 26 tests, entry points/HTTP methods/architecture/warnings/conventions/hotspots"
+      - "packages/generator-core/src/generate-validation.test.ts — 12 tests, output validation/generator error handling"
+    verticals_advanced:
+      - "Test Coverage — A+(99) (83 new tests, 3 new test files, 44 total)"
+      - "Architecture Confidence — 94 → 95 (parser+engine conditional branches verified)"
+      - "Hardened Percent — 86 → 89 (deep branch coverage on core analysis modules)"
+    blockers_removed:
+      - "parser.ts had only 11 tests for 300+ lines → 56 total (11+45). detectDeployment, detectBuildTools, classifyRole, detectCI all had zero branch tests"
+      - "engine.ts missed HTTP methods (PUT/DELETE/PATCH), architecture patterns (cqrs/serverless/containerized), AI warnings (no tests/no CI/no lockfile/high deps)"
+      - "generate.ts validation/error branches (validateGeneratedFile, generator try/catch) had zero tests"
+    blockers_added: []
+    commit_results: ["ee4f1a8"]
+    push_results: ["d64e8a2..ee4f1a8 → origin/main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
