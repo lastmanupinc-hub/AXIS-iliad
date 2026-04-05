@@ -14,12 +14,12 @@ project_continuation:
 
   current_identity:
     project_name: "Axis Toolbox"
-    date: "2026-04-05"
-    commit_or_tag: "59cf729"
-    current_session_id: "session_015"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 1129 tests across 47 files. Handler edge cases (21 — manifest type validation 6, getGeneratedFile traversal/fallback 6, program handler flow 3, health 1, context/generated-files boundaries 5), store validation (24 — contextMap validation 7, repoProfile validation 5, generatorResult validation 6, project reuse 3, updateSnapshotStatus 3), export ZIP edge cases (12 — 50-file offset arithmetic 6, multi-byte UTF-8 paths 6). Grade: A (99+)."
+    date: "2025-07-21"
+    commit_or_tag: "1f9473e"
+    current_session_id: "session_016"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 1198 tests across 51 files. eq_075-086: Go ecosystem (go.mod parsing, Chi/Gin/Echo/Fiber detection, Go route extraction, Go import resolution, Go entry points), SQL schema extraction, domain model extraction (Go/TS/Python), multi-signal project type scorer (fixes static_site misclassification), cross-boundary separation scoring with 35-entry layer map, determinism proof. Grade: A (99+)."
     current_status: "building"
-    current_focus_vertical: "quality_hardening_to_a_plus"
+    current_focus_vertical: "static_analysis_determinism"
 
   executive_truth:
     maturity_estimate:
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 92
       integration_confidence: 97
-      notes: "1129 tests across 47 files (1072→1129). eq_072: Handler edge cases (21 tests — manifest type validation 6, getGeneratedFile traversal/fallback 6, program handler successful flow 3, health check 1, context/generated-files boundary conditions 5). eq_073: Store validation (24 tests — contextMap isValid 7 branches, repoProfile isValid 5 branches, generatorResult isValid 6 branches, project reuse 3, updateSnapshotStatus edge 3). eq_074: Export ZIP edge cases (12 tests — 50-file offset arithmetic 6, multi-byte UTF-8 emoji/CJK/accented paths 6). Runtime confidence stays 97."
+      notes: "1198 tests across 51 files (1129→1198). eq_075-086: Go ecosystem integration (go.mod parsing, 5 Go frameworks, Go route extraction, Go import resolution, Go entry points), SQL schema extraction, domain model extraction (Go/TS/Python), multi-signal project type scorer, cross-boundary separation scoring, determinism proof (6 tests). 69 new tests in 4 new test files + additions to 6 existing test files."
 
   boundary_truth:
     accepted_input_modes:
@@ -141,15 +141,20 @@ project_continuation:
       known_truth:
         works:
           - Language detection (60+ extensions with LOC counting)
-          - Framework detection (Next.js, React, Vue, Svelte, Express, Fastify, Tailwind, Prisma, Django, FastAPI)
-          - Import graph resolution and dependency analysis
-          - Route detection (Next.js app router + API routes, Express routes)
-          - Architecture signal analysis (patterns, layers, separation score)
+          - Framework detection (Next.js, React, Vue, Svelte, Express, Fastify, Tailwind, Prisma, Django, FastAPI, Chi, Gin, Echo, Fiber, Go stdlib HTTP)
+          - Import graph resolution and dependency analysis (JS/TS + Go module imports)
+          - Route detection (Next.js app router + API routes, Express routes, Go Chi/Gin/Echo/Fiber routes)
+          - Architecture signal analysis (patterns, layers, separation score with 35-entry cross-boundary measurement)
           - AI context generation (summary, conventions, warnings)
-          - Context-map and repo-profile output generation
+          - Context-map and repo-profile output generation (with domain_models, sql_schema, go_module)
+          - SQL schema extraction from .sql files (tables, columns, foreign keys)
+          - Domain model extraction (Go structs/interfaces, TS interfaces/type aliases/enums, Python classes)
+          - Go ecosystem parsing (go.mod dependencies, entry points, framework detection)
+          - Multi-signal project type classification (prevents static_site misclassification for polyglot repos)
+          - Determinism proof — pipeline produces byte-identical output on consecutive runs
           - Generated file export (.ai/context-map.json, .ai/repo-profile.yaml, architecture-summary.md)
           - POST /v1/search/export API endpoint
-          - 17 context-engine tests + 11 repo-parser tests passing
+          - 26 context-engine tests + 19 repo-parser tests + 22 framework-detector tests + 17 import-resolver tests + 10 SQL extractor tests + 13 domain extractor tests passing
         missing:
           - Full-text search indexing
           - Semantic code search
@@ -1603,6 +1608,48 @@ project_continuation:
     blockers_added: []
     commit_results: ["59cf729"]
     push_results: ["fcf1389..59cf729 → origin/main"]
+
+  current_session_result_032:
+    session_goal: "Static analysis determinism — Go ecosystem, SQL extraction, domain models, multi-signal scorer"
+    selected_move: "eq_075 → eq_086: 12-item static analysis phase from static_analysis_phase.yaml"
+    selected_move_roi_reason: "Demo scan of payment-processing codebase revealed Go blindness, static_site misclassification, separation_score always 0, no SQL/domain model extraction. Highest ROI: fix all detection gaps in one batch."
+    completed_candidates:
+      - "eq_075: extractGoDependencies from go.mod — module path, go version, require blocks, indirect markers (parser.ts)"
+      - "eq_076: Chi/Gin/Echo/Fiber/Go stdlib HTTP in framework-detector.ts (5 new rules). SvelteKit added to runner detectFrameworks."
+      - "eq_077: extractGoRoutes for Chi/Gin/Echo/Fiber/stdlib patterns with deduplication (engine.ts)"
+      - "eq_078: Multi-signal detectProjectType scorer — weighted scoring across 6 types, prevents static_site misclassification. Exported for testing."
+      - "eq_079: Cross-boundary separation scoring — layerCoverage * 0.4 + isolation * 0.6 with 35-entry layer map covering Go/polyglot directories (engine.ts)"
+      - "eq_080: extractSQLSchema — CREATE TABLE parsing with columns, types, nullable, PK, FK, inline REFERENCES, IF NOT EXISTS, quoted identifiers (sql-extractor.ts)"
+      - "eq_081: Go import resolution via module path prefix stripping + known file matching (import-resolver.ts)"
+      - "eq_082: extractDomainModels — Go structs/interfaces, TS interfaces/type_aliases/enums, Python classes. Skips test files and unexported Go types (domain-extractor.ts)"
+      - "eq_083: Go entry point detection — main.go and cmd/*/main.go patterns (engine.ts)"
+      - "eq_084: go_test in test_frameworks, go_modules/task/mage in build_tools (parser.ts)"
+      - "eq_085: Wiring — ContextMap gets domain_models, sql_schema, go_module. RepoProfile accepts optional parsed param. buildAIContext mentions Go conventions."
+      - "eq_086: Determinism proof — 6 tests confirming byte-identical JSON on consecutive runs for contextMap, repoProfile, routes, domain models, SQL schema, separation score (determinism.test.ts)"
+      - "Fixed generate-validation.test.ts fixtures to match current ContextMap/RepoProfile types"
+      - "Fixed MAX_FILES test timeout (5s → 15s) for heavier multi-signal scorer"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "1198 vitest tests passing across 51 files (1129→1198, +69)"
+      - "4 new test files: sql-extractor.test.ts, domain-extractor.test.ts, runner.test.ts, determinism.test.ts"
+      - "2 new source files: sql-extractor.ts (~130 lines), domain-extractor.ts (~190 lines)"
+      - "21 files changed, 2989 insertions, 67 deletions"
+      - "Build clean across all 7 packages"
+      - "static_analysis_phase.yaml — 650+ line handoff-safe development spec"
+    verticals_advanced:
+      - "Search Context Graph — foundation 98% (Go ecosystem, SQL, domain models fully integrated)"
+    blockers_removed:
+      - "Go framework detection (Chi/Gin/Echo/Fiber) — was completely missing"
+      - "Go route extraction — was completely missing"
+      - "Go import resolution — was completely missing"
+      - "SQL schema extraction — was completely missing"
+      - "Domain model extraction — was completely missing"
+      - "static_site misclassification for polyglot repos — fixed with multi-signal scorer"
+      - "separation_score always 0 for non-trivial repos — fixed with cross-boundary measurement"
+    blockers_added: []
+    commit_results: ["1f9473e"]
+    push_results: []
 
   source_control_policy:
     commit_after_each_completed_candidate: true
