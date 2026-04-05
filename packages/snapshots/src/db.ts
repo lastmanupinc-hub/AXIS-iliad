@@ -146,6 +146,17 @@ CREATE INDEX IF NOT EXISTS idx_search_snapshot ON search_index(snapshot_id);
 CREATE INDEX IF NOT EXISTS idx_search_content ON search_index(content);
 `,
   },
+  {
+    version: 4,
+    name: "add_fts5_search",
+    sql: `
+CREATE VIRTUAL TABLE IF NOT EXISTS search_fts USING fts5(
+  content,
+  content='search_index',
+  content_rowid='id'
+);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

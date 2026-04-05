@@ -38,6 +38,11 @@ describe("openMemoryDb", () => {
       "rate_limits",
       "repo_profiles",
       "schema_migrations",
+      "search_fts",
+      "search_fts_config",
+      "search_fts_data",
+      "search_fts_docsize",
+      "search_fts_idx",
       "search_index",
       "seats",
       "snapshots",
@@ -305,14 +310,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(3);
+    expect(getSchemaVersion(db)).toBe(4);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(3);
+    expect(result.current_version).toBe(4);
   });
 
   it("creates rate_limits table via migration", () => {
