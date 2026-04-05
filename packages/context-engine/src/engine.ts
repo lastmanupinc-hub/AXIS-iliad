@@ -26,42 +26,55 @@ export function buildContextMap(snapshot: SnapshotRecord): ContextMap {
     dependency_graph: buildDependencyGraph(parsed),
     entry_points: detectEntryPoints(snapshot, parsed),
     routes: detectRoutes(snapshot),
+    domain_models: parsed.domain_models.map((m) => ({
+      name: m.name,
+      kind: m.kind,
+      language: m.language,
+      field_count: m.fields.length,
+      source_file: m.source_file,
+    })),
+    sql_schema: parsed.sql_schema.map((t) => ({
+      name: t.name,
+      column_count: t.columns.length,
+      foreign_key_count: t.foreign_keys.length,
+      source_file: t.source_file,
+    })),
     architecture_signals: analyzeArchitecture(snapshot, parsed),
     ai_context: buildAIContext(snapshot, parsed),
   };
 }
 
-export function buildRepoProfile(snapshot: SnapshotRecord): RepoProfile {
-  const parsed = parseRepo(snapshot.files);
+export function buildRepoProfile(snapshot: SnapshotRecord, parsed?: ParseResult): RepoProfile {
+  const p = parsed ?? parseRepo(snapshot.files);
   const now = new Date().toISOString();
 
-  const prodDeps = parsed.dependencies.filter((d) => d.type === "production").length;
-  const devDeps = parsed.dependencies.filter((d) => d.type === "development").length;
-  const arch = analyzeArchitecture(snapshot, parsed);
+  const prodDeps = p.dependencies.filter((d) => d.type === "production").length;
+  const devDeps = p.dependencies.filter((d) => d.type === "development").length;
+  const arch = analyzeArchitecture(snapshot, p);
 
   return {
     version: "1.0.0",
     snapshot_id: snapshot.snapshot_id,
     project_id: snapshot.project_id,
     generated_at: now,
-    project: buildProjectIdentity(snapshot, parsed),
+    project: buildProjectIdentity(snapshot, p),
     detection: {
-      languages: parsed.languages,
-      frameworks: parsed.frameworks,
-      build_tools: parsed.build_tools,
-      test_frameworks: parsed.test_frameworks,
-      package_managers: parsed.package_managers,
-      ci_platform: parsed.ci_platform,
-      deployment_target: parsed.deployment_target,
+      languages: p.languages,
+      frameworks: p.frameworks,
+      build_tools: p.build_tools,
+      test_frameworks: p.test_frameworks,
+      package_managers: p.package_managers,
+      ci_platform: p.ci_platform,
+      deployment_target: p.deployment_target,
     },
     structure_summary: {
       total_files: snapshot.file_count,
       total_directories: countDirectories(snapshot),
-      total_loc: parsed.file_annotations.reduce((s, a) => s + a.loc, 0),
-      top_level_dirs: parsed.top_level_dirs,
+      total_loc: p.file_annotations.reduce((s, a) => s + a.loc, 0),
+      top_level_dirs: p.top_level_dirs,
     },
     health: {
-      ...parsed.health,
+      ...p.health,
       dependency_count: prodDeps,
       dev_dependency_count: devDeps,
       architecture_patterns: arch.patterns_detected,
@@ -86,6 +99,7 @@ function buildProjectIdentity(snapshot: SnapshotRecord, parsed: ParseResult): Co
     primary_language: parsed.languages[0]?.name ?? "unknown",
     description: firstLine,
     repo_url: null,
+    go_module: parsed.go_module?.module_path ?? null,
   };
 }
 
@@ -162,6 +176,9 @@ function detectEntryPoints(snapshot: SnapshotRecord, parsed: ParseResult): Conte
     if (f.path === "src/cli.ts" || f.path === "bin/cli.js") {
       entries.push({ path: f.path, type: "cli_command", description: "CLI entry point" });
     }
+    if (f.path === "main.go" || /^cmd\/[^/]+\/main\.go$/.test(f.path)) {
+      entries.push({ path: f.path, type: "app_entry", description: `Go entry: ${f.path}` });
+    }
   }
 
   return entries;
@@ -189,6 +206,11 @@ function detectRoutes(snapshot: SnapshotRecord): ContextMap["routes"] {
     if (f.content.includes("router.get") || f.content.includes("router.post") || f.content.includes("app.get") || f.content.includes("app.post")) {
       const expressRoutes = extractExpressRoutes(f.path, f.content);
       routes.push(...expressRoutes);
+    }
+    // Go routes (Chi, Gin, Echo, Fiber, stdlib)
+    if (f.path.endsWith(".go")) {
+      const goRoutes = extractGoRoutes(f.path, f.content);
+      routes.push(...goRoutes);
     }
   }
 
@@ -219,6 +241,36 @@ function extractExpressRoutes(filePath: string, content: string): ContextMap["ro
   return routes;
 }
 
+function extractGoRoutes(filePath: string, content: string): ContextMap["routes"] {
+  const routes: ContextMap["routes"] = [];
+  const seen = new Set<string>();
+
+  // Chi/Gin/Echo/Fiber style: r.Get("/path", handler)
+  const chiPattern = /(?:r|router|e|app|g|group)\.(Get|Post|Put|Delete|Patch|Head|Options)\s*\(\s*["'`]([^"'`]+)["'`]/gi;
+  let match: RegExpExecArray | null;
+  while ((match = chiPattern.exec(content)) !== null) {
+    const key = `${match[1].toUpperCase()}|${match[2]}|${filePath}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      routes.push({ path: match[2], method: match[1].toUpperCase(), source_file: filePath });
+    }
+  }
+
+  // stdlib mux style: mux.HandleFunc("/path", handler), http.HandleFunc("/path", handler)
+  const muxPattern = /(?:mux|http)\.(HandleFunc|Handle)\s*\(\s*["'`]([^"'`]+)["'`]/gi;
+  while ((match = muxPattern.exec(content)) !== null) {
+    const key = `ANY|${match[2]}|${filePath}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      routes.push({ path: match[2], method: "ANY", source_file: filePath });
+    }
+  }
+
+  return routes.sort((a, b) =>
+    a.method.localeCompare(b.method) || a.path.localeCompare(b.path) || a.source_file.localeCompare(b.source_file),
+  );
+}
+
 function analyzeArchitecture(snapshot: SnapshotRecord, parsed: ParseResult): ContextMap["architecture_signals"] {
   const patterns: string[] = [];
   const layers: Array<{ layer: string; directories: string[] }> = [];
@@ -233,22 +285,49 @@ function analyzeArchitecture(snapshot: SnapshotRecord, parsed: ParseResult): Con
   if (snapshot.files.some((f) => f.path.includes("serverless"))) patterns.push("serverless");
   if (snapshot.files.some((f) => f.path.includes("Dockerfile"))) patterns.push("containerized");
   if (parsed.frameworks.some((f) => f.name === "Next.js")) patterns.push("nextjs_fullstack");
+  if (parsed.go_module?.module_path) patterns.push("go_module");
+  if (dirNames.has("cmd")) patterns.push("go_cmd_layout");
+  if (dirNames.has("internal") && dirNames.has("pkg")) patterns.push("go_standard_layout");
+  if (dirNames.has("frontend") && (dirNames.has("backend") || dirNames.has("server"))) patterns.push("frontend_backend_split");
+  if (dirNames.has("migrations") || dirNames.has("schema")) patterns.push("database_managed");
 
   // Detect layers
   const layerMapping: Record<string, string> = {
     components: "presentation",
     pages: "presentation",
     app: "presentation",
+    frontend: "presentation",
+    web: "presentation",
+    ui: "presentation",
+    cmd: "presentation",
     api: "api",
     server: "api",
+    backend: "api",
+    handlers: "api",
+    handler: "api",
+    routes: "api",
+    controllers: "api",
+    middleware: "api",
     services: "business_logic",
     lib: "business_logic",
+    domain: "business_logic",
+    core: "business_logic",
+    internal: "business_logic",
     utils: "shared",
     helpers: "shared",
+    pkg: "shared",
+    common: "shared",
+    shared: "shared",
+    config: "shared",
+    types: "shared",
     prisma: "data",
     models: "data",
     db: "data",
-    types: "shared",
+    store: "data",
+    repository: "data",
+    repos: "data",
+    schema: "data",
+    migrations: "data",
   };
 
   const layerDirs = new Map<string, string[]>();
@@ -264,14 +343,41 @@ function analyzeArchitecture(snapshot: SnapshotRecord, parsed: ParseResult): Con
     layers.push({ layer, directories: dirs });
   }
 
-  // Compute separation score (rough)
-  const detectedLayers = layers.length;
-  const score = Math.min(detectedLayers / 4, 1);
+  // Separation score: layerCoverage * 0.4 + isolation * 0.6
+  const mappedDirCount = parsed.top_level_dirs.filter(
+    (d) => layerMapping[d.name.toLowerCase()],
+  ).length;
+  const totalDirCount = Math.max(parsed.top_level_dirs.length, 1);
+  const layerCoverage = Math.min(mappedDirCount / totalDirCount, 1);
+
+  // Build file→layer map for cross-boundary measurement
+  const fileLayerMap = new Map<string, string>();
+  for (const f of snapshot.files) {
+    const topDir = f.path.split("/")[0]?.toLowerCase() ?? "";
+    const layer = layerMapping[topDir];
+    if (layer) fileLayerMap.set(f.path, layer);
+  }
+
+  let sameLayerEdges = 0;
+  let crossLayerEdges = 0;
+  for (const edge of parsed.internal_imports) {
+    const srcLayer = fileLayerMap.get(edge.source);
+    const tgtLayer = fileLayerMap.get(edge.target);
+    if (srcLayer && tgtLayer) {
+      if (srcLayer === tgtLayer) sameLayerEdges++;
+      else crossLayerEdges++;
+    }
+  }
+
+  const totalEdges = sameLayerEdges + crossLayerEdges;
+  const isolation = totalEdges > 0 ? sameLayerEdges / totalEdges : 1.0;
+  const rawScore = (layerCoverage * 0.4) + (isolation * 0.6);
+  const score = Math.round(rawScore * 100) / 100;
 
   return {
     patterns_detected: patterns,
     layer_boundaries: layers,
-    separation_score: Math.round(score * 100) / 100,
+    separation_score: score,
   };
 }
 
@@ -280,13 +386,21 @@ function buildAIContext(snapshot: SnapshotRecord, parsed: ParseResult): ContextM
   const frameworkNames = parsed.frameworks.map((f) => f.name).join(", ");
   const type = snapshot.manifest.project_type.replace(/_/g, " ");
 
-  const summary = `${snapshot.manifest.project_name} is a ${type} built with ${primaryLang}${frameworkNames ? ` using ${frameworkNames}` : ""}. It contains ${snapshot.file_count} files across ${parsed.top_level_dirs.length} top-level directories.`;
+  let summary = `${snapshot.manifest.project_name} is a ${type} built with ${primaryLang}${frameworkNames ? ` using ${frameworkNames}` : ""}. It contains ${snapshot.file_count} files across ${parsed.top_level_dirs.length} top-level directories.`;
+  if (parsed.domain_models.length > 0) {
+    summary += ` It defines ${parsed.domain_models.length} domain models.`;
+  }
+  if (parsed.sql_schema.length > 0) {
+    summary += ` The database has ${parsed.sql_schema.length} tables.`;
+  }
 
   const conventions: string[] = [];
   if (parsed.health.has_typescript) conventions.push("TypeScript strict mode");
   if (parsed.health.has_linter) conventions.push("Linter configured");
   if (parsed.health.has_formatter) conventions.push("Formatter configured");
   if (parsed.package_managers.includes("pnpm")) conventions.push("pnpm workspaces");
+  if (parsed.go_module?.module_path) conventions.push("Go modules");
+  if (parsed.build_tools.includes("make")) conventions.push("Makefile build");
 
   const warnings: string[] = [];
   if (!parsed.health.has_tests) warnings.push("No test files detected");

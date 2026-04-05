@@ -12,6 +12,7 @@ export interface ContextMap {
     primary_language: string;
     description: string | null;
     repo_url: string | null;
+    go_module: string | null;
   };
   structure: {
     total_files: number;
@@ -53,6 +54,19 @@ export interface ContextMap {
   routes: Array<{
     path: string;
     method: string;
+    source_file: string;
+  }>;
+  domain_models: Array<{
+    name: string;
+    kind: string;
+    language: string;
+    field_count: number;
+    source_file: string;
+  }>;
+  sql_schema: Array<{
+    name: string;
+    column_count: number;
+    foreign_key_count: number;
     source_file: string;
   }>;
   architecture_signals: {

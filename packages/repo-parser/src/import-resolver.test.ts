@@ -129,4 +129,50 @@ describe("extractImports", () => {
     // Only JS-style import patterns are matched
     expect(edges).toHaveLength(0);
   });
+
+  it("resolves Go internal imports using module path", () => {
+    const files = makeFiles([
+      { path: "cmd/server/main.go", content: 'package main\nimport "github.com/acme/app/internal/handler"' },
+      { path: "internal/handler/user.go", content: "package handler" },
+    ]);
+    const edges = extractImports(files, "github.com/acme/app");
+    expect(edges).toHaveLength(1);
+    expect(edges[0]).toMatchObject({
+      source: "cmd/server/main.go",
+      target: "internal/handler/user.go",
+    });
+  });
+
+  it("skips Go stdlib and external imports", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'package main\nimport (\n\t"fmt"\n\t"net/http"\n\t"github.com/some/external"\n)' },
+    ]);
+    const edges = extractImports(files, "github.com/acme/app");
+    expect(edges).toHaveLength(0);
+  });
+
+  it("does not resolve Go imports without module path", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'package main\nimport "github.com/acme/app/internal/handler"' },
+      { path: "internal/handler/user.go", content: "package handler" },
+    ]);
+    // Without goModulePath, Go files produce no import edges
+    const edges = extractImports(files);
+    expect(edges).toHaveLength(0);
+  });
+
+  it("handles mixed Go and TS files", () => {
+    const files = makeFiles([
+      { path: "src/index.ts", content: 'import { db } from "./db";' },
+      { path: "src/db.ts", content: "export const db = {};" },
+      { path: "cmd/main.go", content: 'package main\nimport "github.com/acme/app/internal/svc"' },
+      { path: "internal/svc/service.go", content: "package svc" },
+    ]);
+    const edges = extractImports(files, "github.com/acme/app");
+    expect(edges).toHaveLength(2);
+    const tsEdge = edges.find(e => e.source === "src/index.ts");
+    expect(tsEdge).toBeTruthy();
+    const goEdge = edges.find(e => e.source === "cmd/main.go");
+    expect(goEdge).toBeTruthy();
+  });
 });

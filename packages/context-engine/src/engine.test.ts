@@ -160,3 +160,99 @@ describe("buildRepoProfile", () => {
     expect(p.goals).toBeNull();
   });
 });
+
+describe("Go ecosystem integration", () => {
+  const goSnapshot = makeSnapshot([
+    { path: "go.mod", content: "module github.com/acme/payments\ngo 1.22\nrequire github.com/go-chi/chi/v5 v5.0.10" },
+    { path: "main.go", content: 'package main\nimport "net/http"\nfunc main() { http.ListenAndServe(":8080", nil) }' },
+    { path: "cmd/api/main.go", content: "package main\nfunc main() {}" },
+    {
+      path: "internal/handler/routes.go",
+      content: `package handler
+
+import "github.com/go-chi/chi/v5"
+
+func Routes(r chi.Router) {
+	r.Get("/users", listUsers)
+	r.Post("/users", createUser)
+	r.Get("/users/{id}", getUser)
+	r.Delete("/users/{id}", deleteUser)
+}`,
+    },
+    { path: "internal/handler/user.go", content: "package handler\nfunc listUsers() {}\nfunc createUser() {}\nfunc getUser() {}\nfunc deleteUser() {}" },
+    { path: "internal/repository/user_repo.go", content: "package repository" },
+    { path: "internal/domain/user.go", content: "package domain\ntype User struct {\n\tID int\n\tName string\n}" },
+    { path: "migrations/001.sql", content: "CREATE TABLE users (id INT PRIMARY KEY, name TEXT NOT NULL);" },
+  ]);
+
+  const ctx = buildContextMap(goSnapshot);
+
+  it("detects Go entry points", () => {
+    const paths = ctx.entry_points.map(e => e.path);
+    expect(paths).toContain("main.go");
+    expect(paths).toContain("cmd/api/main.go");
+  });
+
+  it("extracts Chi routes from Go source", () => {
+    const routes = ctx.routes.filter(r => r.source_file.endsWith(".go"));
+    expect(routes.length).toBeGreaterThanOrEqual(4);
+    const getPaths = routes.filter(r => r.method === "GET").map(r => r.path);
+    expect(getPaths).toContain("/users");
+    expect(getPaths).toContain("/users/{id}");
+    const postPaths = routes.filter(r => r.method === "POST").map(r => r.path);
+    expect(postPaths).toContain("/users");
+  });
+
+  it("includes go_module in project_identity", () => {
+    expect(ctx.project_identity.go_module).toBe("github.com/acme/payments");
+  });
+
+  it("detects go_module architecture pattern", () => {
+    expect(ctx.architecture_signals.patterns_detected).toContain("go_module");
+  });
+
+  it("extracts SQL schema into context map", () => {
+    expect(ctx.sql_schema).toHaveLength(1);
+    expect(ctx.sql_schema[0].name).toBe("users");
+    expect(ctx.sql_schema[0].column_count).toBe(2);
+  });
+
+  it("extracts domain models into context map", () => {
+    expect(ctx.domain_models).toHaveLength(1);
+    expect(ctx.domain_models[0].name).toBe("User");
+    expect(ctx.domain_models[0].language).toBe("Go");
+  });
+
+  it("separation score is non-negative", () => {
+    expect(ctx.architecture_signals.separation_score).toBeGreaterThanOrEqual(0);
+    expect(ctx.architecture_signals.separation_score).toBeLessThanOrEqual(1);
+  });
+
+  it("AI context mentions Go conventions when Go detected", () => {
+    const hasGoConvention = ctx.ai_context.conventions.some(c =>
+      c.toLowerCase().includes("go"),
+    );
+    expect(hasGoConvention).toBe(true);
+  });
+});
+
+describe("architecture separation scoring", () => {
+  it("produces higher score for well-layered projects", () => {
+    const layered = makeSnapshot([
+      { path: "src/controllers/user.ts", content: "export class UserController {}" },
+      { path: "src/services/user.ts", content: "export class UserService {}" },
+      { path: "src/models/user.ts", content: "export interface User { id: string }" },
+      { path: "src/routes/api.ts", content: 'import { UserController } from "../controllers/user"' },
+      { path: "package.json", content: '{"name":"layered"}' },
+    ]);
+    const flat = makeSnapshot([
+      { path: "index.ts", content: "export const x = 1;" },
+      { path: "helpers.ts", content: "export const y = 2;" },
+      { path: "package.json", content: '{"name":"flat"}' },
+    ]);
+    const layeredCtx = buildContextMap(layered);
+    const flatCtx = buildContextMap(flat);
+    expect(layeredCtx.architecture_signals.separation_score)
+      .toBeGreaterThanOrEqual(flatCtx.architecture_signals.separation_score);
+  });
+});

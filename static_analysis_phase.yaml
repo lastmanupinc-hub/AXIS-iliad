@@ -1,0 +1,1345 @@
+static_analysis_phase:
+  version: v1
+  role: deterministic_development_spec
+  created: "2026-04-05"
+  baseline_commit: "236eaae"
+  baseline_tests: 1129
+  baseline_files: 47
+
+  purpose: >
+    Bring static analysis to deterministic parity — byte-identical output
+    regardless of which LLM coding agent runs it. Every function is pure,
+    every output is diffable, every test is exact-match.
+
+  handoff_rules:
+    - Any agent can pick up at any eq_ boundary
+    - Each eq_ is independent after its declared dependencies are merged
+    - Tests are the acceptance criteria — green suite = done
+    - No discretionary improvements — implement exactly what is specified
+    - No stub implementations — every function must return real data
+    - Run "npx vitest run" after each eq_ to confirm green
+
+  validation_protocol:
+    after_each_eq:
+      - "npx vitest run --reporter=verbose 2>&1 | Select-Object -Last 5"
+      - "git add -A; git commit -m '<eq_id>: <description> — <new_total> tests across <new_file_count> files'"
+    after_all_eq:
+      - "Scan payment-processing folder twice → diff output → zero differences"
+      - "Update continuation.yaml evidence_ledger and execution_queue"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 1: GO ECOSYSTEM AWARENESS
+  # Current state: parser.ts extractDependencies() only reads package.json.
+  # framework-detector.ts has 0 Go rules. import-resolver.ts only resolves
+  # JS/TS import patterns. runner.ts detectFrameworks() only reads package.json
+  # deps. detectProjectType() falls through to static_site when no JS framework
+  # is found but .html exists.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_075:
+    id: "eq_075"
+    title: "Go module parsing — extractGoDependencies"
+    depends_on: []
+    files_to_modify:
+      - path: "packages/repo-parser/src/parser.ts"
+        changes:
+          - description: "Add extractGoDependencies function"
+            location: "After extractDependencies (line ~163)"
+            function_signature: |
+              function extractGoDependencies(files: FileEntry[]): {
+                module_path: string | null;
+                go_version: string | null;
+                dependencies: DependencyInfo[];
+              }
+            behavior: |
+              1. Find file where path === "go.mod" OR path ends with "/go.mod"
+                 (for monorepos, take the FIRST one by path sort order)
+              2. If not found, return { module_path: null, go_version: null, dependencies: [] }
+              3. Parse "module <path>" line → module_path
+              4. Parse "go <version>" line → go_version
+              5. Parse require block (single-line and parenthesized):
+                 - "require <path> <version>" → DependencyInfo { name: path, version: version, type: "production" }
+                 - "require (\n  <path> <version>\n  ...\n)" → same for each line
+                 - Lines containing "// indirect" → type: "optional" instead of "production"
+              6. Return { module_path, go_version, dependencies }
+            determinism_notes: >
+              Pure function. Same go.mod content → same output. No network calls.
+              Sort dependencies by name for stable output.
+          - description: "Call extractGoDependencies from parseRepo and merge results"
+            location: "Inside parseRepo function body (line ~30)"
+            behavior: |
+              After the existing extractDependencies call:
+                const goDeps = extractGoDependencies(files);
+                deps.push(...goDeps.dependencies);
+              Also store goDeps.module_path and goDeps.go_version — add them to
+              ParseResult (see types change below).
+
+      - path: "packages/repo-parser/src/types.ts"
+        changes:
+          - description: "Add go_module fields to ParseResult"
+            location: "Inside ParseResult interface"
+            new_fields: |
+              go_module: {
+                module_path: string | null;
+                go_version: string | null;
+              };
+
+    test_file: "packages/repo-parser/src/parser.test.ts"
+    test_cases:
+      - name: "extractGoDependencies parses module path and go version"
+        input: |
+          files: [{ path: "go.mod", content: "module github.com/org/repo\n\ngo 1.22\n", size: 40 }]
+        expected: |
+          { module_path: "github.com/org/repo", go_version: "1.22", dependencies: [] }
+
+      - name: "extractGoDependencies parses single require line"
+        input: |
+          files: [{ path: "go.mod", content: "module example.com/app\n\ngo 1.21\n\nrequire github.com/go-chi/chi/v5 v5.0.12\n", size: 80 }]
+        expected: |
+          dependencies: [{ name: "github.com/go-chi/chi/v5", version: "v5.0.12", type: "production" }]
+
+      - name: "extractGoDependencies parses require block with indirect"
+        input: |
+          files: [{ path: "go.mod", content: "module example.com/app\n\ngo 1.21\n\nrequire (\n\tgithub.com/go-chi/chi/v5 v5.0.12\n\tgithub.com/lib/pq v1.10.9\n\tgolang.org/x/text v0.14.0 // indirect\n)\n", size: 150 }]
+        expected: |
+          dependencies: [
+            { name: "github.com/go-chi/chi/v5", version: "v5.0.12", type: "production" },
+            { name: "github.com/lib/pq", version: "v1.10.9", type: "production" },
+            { name: "golang.org/x/text", version: "v0.14.0", type: "optional" }
+          ]
+          (sorted by name)
+
+      - name: "extractGoDependencies returns nulls when no go.mod"
+        input: |
+          files: [{ path: "package.json", content: "{}", size: 2 }]
+        expected: |
+          { module_path: null, go_version: null, dependencies: [] }
+
+      - name: "extractGoDependencies handles nested go.mod in monorepo"
+        input: |
+          files: [
+            { path: "backend/go.mod", content: "module github.com/org/backend\n\ngo 1.22\n", size: 45 },
+            { path: "services/auth/go.mod", content: "module github.com/org/auth\n\ngo 1.21\n", size: 42 }
+          ]
+        expected: |
+          Uses "backend/go.mod" (first by sort). module_path: "github.com/org/backend"
+
+      - name: "extractGoDependencies ignores replace directives"
+        input: |
+          files: [{ path: "go.mod", content: "module example.com/app\n\ngo 1.21\n\nrequire github.com/foo/bar v1.0.0\n\nreplace github.com/foo/bar => ../local\n", size: 100 }]
+        expected: |
+          dependencies: [{ name: "github.com/foo/bar", version: "v1.0.0", type: "production" }]
+          (replace directives are ignored — they don't affect dependency identity)
+
+    acceptance_criteria:
+      - "All 6 new tests pass"
+      - "Existing 1129 tests still pass"
+      - "parseRepo returns go_module.module_path when go.mod is present"
+
+  eq_076:
+    id: "eq_076"
+    title: "Go framework detection rules"
+    depends_on: ["eq_075"]
+    files_to_modify:
+      - path: "packages/repo-parser/src/framework-detector.ts"
+        changes:
+          - description: "Add Go framework detection rules to the rules array"
+            location: "After the FastAPI rule (line ~101), before the closing bracket"
+            new_rules:
+              - name: "Chi"
+                detect_logic: |
+                  Scan file contents for import "github.com/go-chi/chi" (any version suffix).
+                  confidence: 0.9 if import found.
+                  evidence: ["go import: github.com/go-chi/chi"]
+                  version: extract from go.mod deps if available (pass deps param).
+              - name: "Gin"
+                detect_logic: |
+                  Scan file contents for import "github.com/gin-gonic/gin".
+                  confidence: 0.9 if import found.
+                  evidence: ["go import: github.com/gin-gonic/gin"]
+              - name: "Echo"
+                detect_logic: |
+                  Scan file contents for import "github.com/labstack/echo".
+                  confidence: 0.9 if import found.
+                  evidence: ["go import: github.com/labstack/echo"]
+              - name: "Fiber"
+                detect_logic: |
+                  Scan file contents for import "github.com/gofiber/fiber".
+                  confidence: 0.9 if import found.
+                  evidence: ["go import: github.com/gofiber/fiber"]
+              - name: "Go stdlib HTTP"
+                detect_logic: |
+                  Scan file contents for "net/http" import AND one of:
+                    http.ListenAndServe, http.HandleFunc, http.NewServeMux, http.Handle
+                  confidence: 0.7 if both import and usage found. 0.3 if only import.
+                  evidence: ["go stdlib: net/http with server usage"]
+            implementation_note: >
+              The existing detect signature is (files: FileEntry[], deps: Record<string, string>).
+              Go deps won't be in the deps map (that's package.json deps). The Go rules must
+              scan file.content for Go import statements directly. This is consistent with
+              how Django and FastAPI rules already work (lines 84-101).
+
+      - path: "packages/repo-parser/src/parser.ts"
+        changes:
+          - description: "Add Go-specific entries to guessDirPurpose"
+            location: "guessDirPurpose function (line ~252)"
+            new_entries: |
+              "cmd": "Go CLI entrypoints"
+              "internal": "Go internal packages"
+              "pkg": "Go public packages"
+              "handler": "HTTP handlers"
+              "handlers": "HTTP handlers"
+              "middleware": "HTTP middleware"
+              "repository": "Data access layer"
+              "migrations": "Database migrations"
+
+    test_file: "packages/repo-parser/src/framework-detector.test.ts"
+    test_cases:
+      - name: "detects Chi framework from Go import"
+        input: |
+          files: [{ path: "main.go", content: 'import "github.com/go-chi/chi/v5"', size: 35 }]
+          deps: {}
+        expected: |
+          Result includes { name: "Chi", confidence: 0.9 }
+
+      - name: "detects Gin framework from Go import"
+        input: |
+          files: [{ path: "server.go", content: 'import "github.com/gin-gonic/gin"', size: 35 }]
+          deps: {}
+        expected: |
+          Result includes { name: "Gin", confidence: 0.9 }
+
+      - name: "detects Echo framework from Go import"
+        input: |
+          files: [{ path: "server.go", content: 'import "github.com/labstack/echo/v4"', size: 38 }]
+          deps: {}
+        expected: |
+          Result includes { name: "Echo", confidence: 0.9 }
+
+      - name: "detects Fiber framework from Go import"
+        input: |
+          files: [{ path: "app.go", content: 'import "github.com/gofiber/fiber/v2"', size: 38 }]
+          deps: {}
+        expected: |
+          Result includes { name: "Fiber", confidence: 0.9 }
+
+      - name: "detects Go stdlib HTTP with server usage"
+        input: |
+          files: [{ path: "main.go", content: 'import "net/http"\nfunc main() { http.ListenAndServe(":8080", nil) }', size: 70 }]
+          deps: {}
+        expected: |
+          Result includes { name: "Go stdlib HTTP", confidence: 0.7 }
+
+      - name: "Go stdlib HTTP low confidence without server usage"
+        input: |
+          files: [{ path: "client.go", content: 'import "net/http"\nfunc fetch() { http.Get("https://example.com") }', size: 65 }]
+          deps: {}
+        expected: |
+          Result includes { name: "Go stdlib HTTP", confidence: 0.3 }
+
+      - name: "detects no Go framework from non-Go files"
+        input: |
+          files: [{ path: "index.ts", content: "import express from 'express'", size: 30 }]
+          deps: { "express": "4.18.0" }
+        expected: |
+          Result does NOT include Chi, Gin, Echo, Fiber, or Go stdlib HTTP
+
+      - name: "guessDirPurpose returns Go-specific purposes"
+        # This test goes in parser.test.ts
+        test_file_override: "packages/repo-parser/src/parser.test.ts"
+        input: "guessDirPurpose('cmd')"
+        expected: "'Go CLI entrypoints'"
+
+    acceptance_criteria:
+      - "All 8 new tests pass (7 in framework-detector.test.ts, 1 in parser.test.ts)"
+      - "Existing tests still pass"
+      - "Payment processing scan now shows Chi (or relevant Go framework) in detection.frameworks"
+
+  eq_077:
+    id: "eq_077"
+    title: "Go route extraction from source"
+    depends_on: ["eq_076"]
+    files_to_modify:
+      - path: "packages/context-engine/src/engine.ts"
+        changes:
+          - description: "Add Go route extraction to detectRoutes function"
+            location: "Inside detectRoutes (line ~170), after the Express route block (line ~189)"
+            new_code_block: |
+              // Go Chi routes: r.Get("/path", handler), r.Post("/path", handler), etc.
+              // Also: r.Route("/prefix", func(r chi.Router) { r.Get("/sub", ...) })
+              // Also: mux.HandleFunc("/path", handler) for stdlib
+              if (f.path.endsWith(".go")) {
+                const goRoutes = extractGoRoutes(f.path, f.content);
+                routes.push(...goRoutes);
+              }
+
+          - description: "Add extractGoRoutes function"
+            location: "After extractExpressRoutes (line ~217)"
+            function_signature: |
+              function extractGoRoutes(filePath: string, content: string): ContextMap["routes"]
+            behavior: |
+              1. Match Chi/Gin/Echo/Fiber style:
+                 Pattern: /(?:r|router|e|app|g|group)\.(Get|Post|Put|Delete|Patch|Head|Options)\s*\(\s*["'`]([^"'`]+)["'`]/gi
+                 → { path: match[2], method: match[1].toUpperCase(), source_file: filePath }
+
+              2. Match stdlib mux style:
+                 Pattern: /(?:mux|http)\.(HandleFunc|Handle)\s*\(\s*["'`]([^"'`]+)["'`]/gi
+                 → { path: match[2], method: "ANY", source_file: filePath }
+
+              3. Match Gin group style:
+                 Pattern: /\.Group\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/gi
+                 → Do NOT emit route — groups are prefixes. Only emit leaf routes.
+
+              4. Return deduplicated routes (by path+method+source_file).
+            determinism_notes: >
+              Sort output by (method, path, source_file) for stable ordering.
+
+    test_file: "packages/context-engine/src/engine.test.ts"
+    test_cases:
+      - name: "detectRoutes extracts Chi-style Go routes"
+        input: |
+          file: { path: "routes.go", content: 'r.Get("/api/users", listUsers)\nr.Post("/api/users", createUser)\nr.Delete("/api/users/{id}", deleteUser)' }
+        expected: |
+          routes includes:
+            { path: "/api/users", method: "GET", source_file: "routes.go" }
+            { path: "/api/users", method: "POST", source_file: "routes.go" }
+            { path: "/api/users/{id}", method: "DELETE", source_file: "routes.go" }
+
+      - name: "detectRoutes extracts stdlib HandleFunc routes"
+        input: |
+          file: { path: "main.go", content: 'mux.HandleFunc("/health", healthCheck)\nhttp.HandleFunc("/", rootHandler)' }
+        expected: |
+          routes includes:
+            { path: "/health", method: "ANY", source_file: "main.go" }
+            { path: "/", method: "ANY", source_file: "main.go" }
+
+      - name: "detectRoutes extracts Gin-style routes"
+        input: |
+          file: { path: "router.go", content: 'app.Get("/api/v1/items", getItems)\napp.Post("/api/v1/items", createItem)' }
+        expected: |
+          routes includes:
+            { path: "/api/v1/items", method: "GET", source_file: "router.go" }
+            { path: "/api/v1/items", method: "POST", source_file: "router.go" }
+
+      - name: "detectRoutes deduplicates identical routes"
+        input: |
+          file: { path: "routes.go", content: 'r.Get("/health", check)\nr.Get("/health", check)' }
+        expected: |
+          Only one { path: "/health", method: "GET", source_file: "routes.go" }
+
+      - name: "detectRoutes ignores non-.go files for Go patterns"
+        input: |
+          file: { path: "routes.ts", content: 'r.Get("/api/users", listUsers)' }
+        expected: |
+          No Go routes extracted (Express pattern may match separately — that's fine)
+
+      - name: "Go routes are sorted by method then path"
+        input: |
+          file: { path: "api.go", content: 'r.Post("/b", hB)\nr.Get("/a", hA)\nr.Get("/b", hB2)' }
+        expected: |
+          Order: GET /a, GET /b, POST /b
+
+    acceptance_criteria:
+      - "All 6 new tests pass"
+      - "Existing tests still pass"
+      - "Payment processing scan routes array includes Go-sourced routes"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 2: PROJECT TYPE CLASSIFICATION
+  # Current state: runner.ts detectProjectType() is a JS-framework-first
+  # cascade that falls through to static_site if any .html file exists.
+  # A repo with 1054 Go files and 196 Svelte files was classified as
+  # static_site because Svelte wasn't in the "fullstack" list.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_078:
+    id: "eq_078"
+    title: "Multi-signal project type scoring"
+    depends_on: ["eq_075"]
+    files_to_modify:
+      - path: "apps/cli/src/runner.ts"
+        changes:
+          - description: "Replace detectProjectType with multi-signal scorer"
+            location: "Replace function detectProjectType (lines 139-154)"
+            function_signature: |
+              function detectProjectType(files: FileEntry[], frameworks: string[]): string
+            behavior: |
+              Score each candidate type. Highest score wins. Ties broken by this order:
+              monorepo > fullstack_web > backend_api > frontend_web > native_app > library > static_site
+
+              Scoring rules (additive):
+
+              MONOREPO:
+                +100 if files.some(f => f.path.startsWith("packages/"))
+                +100 if files.some(f => f.path.startsWith("apps/"))
+                +50  if files.some(f => f.path === "pnpm-workspace.yaml" || f.path === "lerna.json" || f.path === "turbo.json")
+                → If score >= 100, return "monorepo" immediately (short-circuit)
+
+              FULLSTACK_WEB:
+                +40  if frameworks includes any of ["Next.js", "Nuxt", "Remix", "Astro", "SvelteKit"]
+                +30  if has both frontend files (.tsx/.jsx/.svelte/.vue) AND backend files (.go with route patterns, or Express/Fastify framework)
+                +20  if has API routes (files matching /api\// path pattern)
+                +10  if has database files (.sql, .prisma, migrations/)
+
+              BACKEND_API:
+                +40  if frameworks includes any of ["Express", "Fastify", "Hono", "Django", "Flask", "FastAPI", "Chi", "Gin", "Echo", "Fiber", "Go stdlib HTTP"]
+                +30  if >50% of source files are .go, .py, .rb, .java, .rs
+                +20  if has route definitions but no frontend files
+                +10  if has Dockerfile
+
+              FRONTEND_WEB:
+                +40  if frameworks includes any of ["React", "Vue", "Svelte", "Angular", "Solid"]
+                +20  if >50% of source files are .tsx/.jsx/.vue/.svelte
+                +10  if has index.html
+
+              NATIVE_APP:
+                +40  if frameworks includes any of ["React Native", "Electron"]
+                +20  if has android/ or ios/ directories
+
+              LIBRARY:
+                +30  if has src/index.ts or src/lib/ but no app entry and no routes
+                +20  if package.json has "main" or "exports" field
+                +10  if has no framework detection at all
+
+              STATIC_SITE:
+                +10  if has .html files but NONE of the above scored > 0
+                (This is the fallback — it should almost never win)
+
+            determinism_notes: >
+              Pure function. Same files + frameworks → same type. The scoring
+              thresholds are fixed constants, not configurable. Framework list
+              comparison is case-sensitive against the canonical names from
+              detectFrameworks().
+
+          - description: "Add SvelteKit to detectFrameworks"
+            location: "Inside detectFrameworks function, in the frameworkMap object (line ~102)"
+            new_entry: |
+              "@sveltejs/kit": "SvelteKit",
+            note: >
+              Also add to the fullstack check. SvelteKit is fullstack, but bare
+              Svelte is frontend. The payment-processing repo has SvelteKit
+              (evidenced by svelte.config.js and @sveltejs/kit dependency).
+
+    test_file: "apps/cli/src/runner.test.ts"
+    test_file_note: "Create this file if it doesn't exist"
+    test_cases:
+      - name: "classifies monorepo when packages/ exists"
+        input: |
+          files: [{ path: "packages/a/index.ts", ... }, { path: "apps/web/index.ts", ... }]
+          frameworks: []
+        expected: "monorepo"
+
+      - name: "classifies fullstack_web with Go backend + Svelte frontend"
+        input: |
+          files: [
+            { path: "backend/main.go", content: 'r.Get("/api/health", check)', ... },
+            { path: "frontend/App.svelte", content: "<script>...</script>", ... },
+            { path: "frontend/src/routes/+page.svelte", content: "...", ... }
+          ]
+          frameworks: ["Svelte", "Chi"]
+        expected: "fullstack_web"
+
+      - name: "classifies backend_api for Go-only project"
+        input: |
+          files: [
+            { path: "main.go", content: 'http.ListenAndServe(":8080", nil)', ... },
+            { path: "handler/users.go", content: "...", ... },
+            { path: "handler/auth.go", content: "...", ... }
+          ]
+          frameworks: ["Go stdlib HTTP"]
+        expected: "backend_api"
+
+      - name: "classifies frontend_web for React SPA"
+        input: |
+          files: [
+            { path: "src/App.tsx", content: "...", ... },
+            { path: "src/index.tsx", content: "...", ... },
+            { path: "index.html", content: "<html>...</html>", ... }
+          ]
+          frameworks: ["React"]
+        expected: "frontend_web"
+
+      - name: "does NOT classify as static_site when backend files present"
+        input: |
+          files: [
+            { path: "index.html", content: "<html>...</html>", ... },
+            { path: "main.go", content: 'r.Get("/", serve)', ... },
+            { path: "handler.go", content: "...", ... }
+          ]
+          frameworks: ["Chi"]
+        expected: "NOT static_site (should be backend_api or fullstack_web)"
+
+      - name: "classifies fullstack_web with SvelteKit framework"
+        input: |
+          files: [
+            { path: "src/routes/+page.svelte", content: "...", ... },
+            { path: "svelte.config.js", content: "...", ... }
+          ]
+          frameworks: ["SvelteKit", "Svelte"]
+        expected: "fullstack_web"
+
+      - name: "classifies library for bare src/index.ts with no routes"
+        input: |
+          files: [
+            { path: "src/index.ts", content: "export function add(a, b) { return a + b; }", ... },
+            { path: "package.json", content: '{"main": "dist/index.js"}', ... }
+          ]
+          frameworks: []
+        expected: "library"
+
+      - name: "classification is deterministic across repeated calls"
+        input: "Same files array called 3 times"
+        expected: "All 3 calls return identical result"
+
+    acceptance_criteria:
+      - "All 8 new tests pass"
+      - "Existing tests still pass"
+      - "Payment processing scan classifies as fullstack_web (not static_site)"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 3: ARCHITECTURE SEPARATION SCORING
+  # Current state: analyzeArchitecture() in engine.ts counts detected
+  # layers and divides by 4. Score 0 means fewer than 1 layer matched
+  # from a JS-centric lookup table. Payment processing scored 0 despite
+  # having clear backend/ vs frontend/ separation.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_079:
+    id: "eq_079"
+    title: "Architecture separation scoring with cross-boundary measurement"
+    depends_on: ["eq_075"]
+    files_to_modify:
+      - path: "packages/context-engine/src/engine.ts"
+        changes:
+          - description: "Expand layerMapping in analyzeArchitecture to include Go/polyglot directories"
+            location: "layerMapping object (lines 233-247)"
+            new_entries: |
+              cmd: "presentation",       // Go CLI entry
+              handlers: "api",            // Go HTTP handlers
+              handler: "api",             // Go HTTP handlers (singular)
+              routes: "api",              // Route registration
+              controllers: "api",        // MVC controllers
+              middleware: "api",          // HTTP middleware
+              frontend: "presentation",  // Frontend directory
+              backend: "api",            // Backend directory
+              web: "presentation",       // Web frontend
+              ui: "presentation",        // UI components
+              store: "data",             // Data stores
+              repository: "data",        // Repository pattern
+              repos: "data",             // Repositories
+              schema: "data",            // DB schema
+              migrations: "data",        // DB migrations
+              domain: "business_logic",  // Domain models
+              core: "business_logic",    // Core logic
+              internal: "business_logic", // Go internal packages
+              pkg: "shared",             // Go public packages
+              common: "shared",          // Common utilities
+              shared: "shared",          // Shared code
+              config: "shared",          // Configuration
+
+          - description: "Replace separation_score formula with cross-boundary measurement"
+            location: "Replace lines 262-268 in analyzeArchitecture"
+            new_formula: |
+              // Separation score = how well code respects layer boundaries
+              // Two signals:
+              //   1. Layer coverage: what fraction of top-level dirs map to known layers (0-1)
+              //   2. Cross-boundary isolation: what fraction of import edges stay within
+              //      their layer vs crossing a boundary (0-1)
+              //
+              // Final score = (layerCoverage * 0.4) + (isolation * 0.6)
+              // If no imports exist, isolation = 1.0 (no evidence of coupling)
+
+              const mappedDirCount = parsed.top_level_dirs.filter(
+                d => layerMapping[d.name.toLowerCase()]
+              ).length;
+              const totalDirCount = Math.max(parsed.top_level_dirs.length, 1);
+              const layerCoverage = Math.min(mappedDirCount / totalDirCount, 1);
+
+              // Build file→layer map from import edges
+              const fileLayerMap = new Map<string, string>();
+              for (const f of snapshot.files) {
+                const topDir = f.path.split("/")[0]?.toLowerCase() ?? "";
+                const layer = layerMapping[topDir];
+                if (layer) fileLayerMap.set(f.path, layer);
+              }
+
+              let sameLayerEdges = 0;
+              let crossLayerEdges = 0;
+              for (const edge of parsed.internal_imports) {
+                const srcLayer = fileLayerMap.get(edge.source);
+                const tgtLayer = fileLayerMap.get(edge.target);
+                if (srcLayer && tgtLayer) {
+                  if (srcLayer === tgtLayer) sameLayerEdges++;
+                  else crossLayerEdges++;
+                }
+              }
+
+              const totalEdges = sameLayerEdges + crossLayerEdges;
+              const isolation = totalEdges > 0 ? sameLayerEdges / totalEdges : 1.0;
+              const rawScore = (layerCoverage * 0.4) + (isolation * 0.6);
+              const score = Math.round(rawScore * 100) / 100;
+            determinism_notes: >
+              Pure arithmetic on deterministic inputs. fileLayerMap is built
+              from sorted file paths (snapshot.files order is scan order, which
+              is deterministic for the same directory).
+
+          - description: "Add Go/polyglot architecture patterns"
+            location: "After line 231 (containerized pattern)"
+            new_patterns: |
+              if (parsed.go_module?.module_path) patterns.push("go_module");
+              if (dirNames.has("cmd")) patterns.push("go_cmd_layout");
+              if (dirNames.has("internal") && dirNames.has("pkg")) patterns.push("go_standard_layout");
+              if (dirNames.has("frontend") && (dirNames.has("backend") || dirNames.has("server"))) patterns.push("frontend_backend_split");
+              if (dirNames.has("migrations") || dirNames.has("schema")) patterns.push("database_managed");
+
+    test_file: "packages/context-engine/src/engine.test.ts"
+    test_cases:
+      - name: "separation_score > 0 when frontend/backend dirs exist"
+        input: |
+          top_level_dirs: [
+            { name: "frontend", purpose: "presentation", file_count: 50 },
+            { name: "backend", purpose: "api", file_count: 80 },
+            { name: "migrations", purpose: "database", file_count: 10 }
+          ]
+          internal_imports: [] (no cross-boundary imports)
+        expected: |
+          separation_score >= 0.4 (layer coverage alone provides signal)
+
+      - name: "separation_score penalizes cross-layer imports"
+        input: |
+          top_level_dirs: [{ name: "frontend", ... }, { name: "backend", ... }]
+          internal_imports: [
+            { source: "frontend/app.ts", target: "backend/handler.ts" },
+            { source: "frontend/util.ts", target: "frontend/lib.ts" }
+          ]
+          files with paths in frontend/ and backend/
+        expected: |
+          isolation = 1/2 = 0.5, so score is lower than pure separation
+
+      - name: "separation_score = 1.0 when all imports stay within layers"
+        input: |
+          top_level_dirs: [{ name: "lib", ... }, { name: "utils", ... }, { name: "services", ... }]
+          internal_imports: [
+            { source: "lib/a.ts", target: "lib/b.ts" },
+            { source: "services/x.ts", target: "services/y.ts" }
+          ]
+        expected: |
+          score close to 1.0 (high coverage + perfect isolation)
+
+      - name: "patterns include go_module when Go module present"
+        input: |
+          parsed.go_module: { module_path: "github.com/org/repo", go_version: "1.22" }
+        expected: |
+          patterns_detected includes "go_module"
+
+      - name: "patterns include frontend_backend_split"
+        input: |
+          top_level_dirs with "frontend" and "backend"
+        expected: |
+          patterns_detected includes "frontend_backend_split"
+
+      - name: "separation_score handles zero top-level dirs gracefully"
+        input: |
+          top_level_dirs: []
+          internal_imports: []
+        expected: |
+          separation_score = 0.6 (0 coverage + 1.0 isolation default)
+          No crash.
+
+    acceptance_criteria:
+      - "All 6 new tests pass"
+      - "Existing tests still pass"
+      - "Payment processing scan shows separation_score > 0"
+      - "patterns_detected includes 'frontend_backend_split' and 'go_module'"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 4: SQL SCHEMA EXTRACTION
+  # Current state: No SQL parsing exists anywhere. .sql files are
+  # scanned and included in file entries but never analyzed.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_080:
+    id: "eq_080"
+    title: "SQL schema extraction — tables, columns, foreign keys"
+    depends_on: []
+    files_to_modify:
+      - path: "packages/repo-parser/src/sql-extractor.ts"
+        create: true
+        changes:
+          - description: "New file: SQL schema extraction from .sql files"
+            function_signature: |
+              export interface SQLTable {
+                name: string;
+                columns: Array<{ name: string; type: string; nullable: boolean; is_pk: boolean }>;
+                foreign_keys: Array<{ column: string; references_table: string; references_column: string }>;
+                source_file: string;
+              }
+
+              export function extractSQLSchema(files: FileEntry[]): SQLTable[]
+            behavior: |
+              1. Filter files to those ending in .sql
+              2. For each file, scan for CREATE TABLE statements:
+                 Pattern: /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?\s*\(/gi
+              3. For each table, extract columns between ( and ):
+                 - Split on commas not inside parentheses
+                 - For each column line: name, type, nullable (NOT NULL → false, else true),
+                   is_pk (PRIMARY KEY in column def or standalone PRIMARY KEY(col))
+              4. Extract FOREIGN KEY constraints:
+                 Pattern: /FOREIGN\s+KEY\s*\(["`]?(\w+)["`]?\)\s*REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)/gi
+              5. Also handle REFERENCES inline in column definitions:
+                 Pattern: /(\w+)\s+.*?REFERENCES\s+["`]?(\w+)["`]?\s*\(["`]?(\w+)["`]?\)/gi
+              6. Sort tables by name. Sort columns by declaration order. Sort FKs by column name.
+              7. Return SQLTable[].
+            determinism_notes: >
+              Pure text parsing. Same .sql content → same output.
+              Case-insensitive pattern matching. Table/column names preserved in original case.
+
+      - path: "packages/repo-parser/src/types.ts"
+        changes:
+          - description: "Add sql_schema field to ParseResult"
+            new_fields: |
+              sql_schema: Array<{
+                name: string;
+                columns: Array<{ name: string; type: string; nullable: boolean; is_pk: boolean }>;
+                foreign_keys: Array<{ column: string; references_table: string; references_column: string }>;
+                source_file: string;
+              }>;
+
+      - path: "packages/repo-parser/src/parser.ts"
+        changes:
+          - description: "Import and call extractSQLSchema in parseRepo"
+            location: "Add import at top, call in parseRepo body"
+            behavior: |
+              import { extractSQLSchema } from "./sql-extractor.js";
+              // In parseRepo, after existing calls:
+              const sqlSchema = extractSQLSchema(files);
+              // Include in return: sql_schema: sqlSchema
+
+    test_file: "packages/repo-parser/src/sql-extractor.test.ts"
+    test_file_note: "Create this new test file"
+    test_cases:
+      - name: "extracts simple CREATE TABLE with columns"
+        input: |
+          files: [{ path: "schema.sql", content: "CREATE TABLE users (\n  id INTEGER PRIMARY KEY,\n  name TEXT NOT NULL,\n  email TEXT\n);", size: 80 }]
+        expected: |
+          [{
+            name: "users",
+            columns: [
+              { name: "id", type: "INTEGER", nullable: false, is_pk: true },
+              { name: "name", type: "TEXT", nullable: false, is_pk: false },
+              { name: "email", type: "TEXT", nullable: true, is_pk: false }
+            ],
+            foreign_keys: [],
+            source_file: "schema.sql"
+          }]
+
+      - name: "extracts FOREIGN KEY constraints"
+        input: |
+          files: [{ path: "schema.sql", content: "CREATE TABLE orders (\n  id INTEGER PRIMARY KEY,\n  user_id INTEGER NOT NULL,\n  FOREIGN KEY (user_id) REFERENCES users(id)\n);", size: 120 }]
+        expected: |
+          foreign_keys: [{ column: "user_id", references_table: "users", references_column: "id" }]
+
+      - name: "extracts inline REFERENCES"
+        input: |
+          files: [{ path: "schema.sql", content: 'CREATE TABLE posts (\n  id INTEGER PRIMARY KEY,\n  author_id INTEGER REFERENCES users(id)\n);', size: 90 }]
+        expected: |
+          foreign_keys: [{ column: "author_id", references_table: "users", references_column: "id" }]
+
+      - name: "handles CREATE TABLE IF NOT EXISTS"
+        input: |
+          files: [{ path: "init.sql", content: 'CREATE TABLE IF NOT EXISTS settings (\n  key TEXT PRIMARY KEY,\n  value TEXT NOT NULL\n);', size: 80 }]
+        expected: |
+          name: "settings", 2 columns
+
+      - name: "handles multiple tables in one file"
+        input: |
+          files: [{ path: "schema.sql", content: "CREATE TABLE a (id INT PRIMARY KEY);\nCREATE TABLE b (id INT PRIMARY KEY, a_id INT REFERENCES a(id));", size: 100 }]
+        expected: |
+          2 tables: "a" and "b" (sorted alphabetically)
+
+      - name: "handles quoted identifiers"
+        input: |
+          files: [{ path: "schema.sql", content: 'CREATE TABLE "user_profiles" (\n  "id" INTEGER PRIMARY KEY,\n  "display_name" TEXT\n);', size: 80 }]
+        expected: |
+          name: "user_profiles" (quotes stripped)
+
+      - name: "returns empty array for non-SQL files"
+        input: |
+          files: [{ path: "main.go", content: "package main", size: 12 }]
+        expected: "[]"
+
+      - name: "handles backtick-quoted MySQL style"
+        input: |
+          files: [{ path: "schema.sql", content: "CREATE TABLE `payments` (\n  `id` INT PRIMARY KEY,\n  `amount` DECIMAL(10,2) NOT NULL\n);", size: 90 }]
+        expected: |
+          name: "payments", columns include { name: "amount", type: "DECIMAL(10,2)" }
+
+    acceptance_criteria:
+      - "All 8 new tests pass"
+      - "Existing tests still pass"
+      - "parseRepo().sql_schema returns tables when .sql files are present"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 5: GO IMPORT RESOLUTION
+  # Current state: import-resolver.ts only matches JS/TS import/require
+  # patterns. Go uses a completely different import syntax.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_081:
+    id: "eq_081"
+    title: "Go import resolution for internal packages"
+    depends_on: ["eq_075"]
+    files_to_modify:
+      - path: "packages/repo-parser/src/import-resolver.ts"
+        changes:
+          - description: "Add Go import pattern matching"
+            location: "After existing IMPORT_PATTERNS array (line ~8)"
+            new_patterns: |
+              // Go imports: import "path" or import ( "path1" \n "path2" )
+              // Only match relative-looking paths that could be internal.
+              // Strategy: if go_module.module_path is known, imports starting
+              // with that prefix are internal.
+            behavior: |
+              Add to extractImports:
+              1. New optional parameter: goModulePath?: string
+              2. For .go files, scan for Go import blocks:
+                 Single: /import\s+"([^"]+)"/g
+                 Block:  /import\s*\(([\s\S]*?)\)/g → extract each "path" line
+              3. For each imported path, check if it starts with goModulePath.
+                 If yes → it's internal. Map to a file by stripping the module prefix
+                 and looking for matching .go files in the known file set.
+              4. Example: module "github.com/org/repo", import "github.com/org/repo/internal/auth"
+                 → target = "internal/auth" → look for files under internal/auth/*.go
+                 → pick the first match (by sort order) as the edge target.
+              5. Stdlib imports (no dots in path) are external — skip them.
+
+      - path: "packages/repo-parser/src/parser.ts"
+        changes:
+          - description: "Pass goModulePath to extractImports"
+            location: "Where extractImports is called in parseRepo"
+            behavior: |
+              const goModule = extractGoDependencies(files);
+              // ... existing code ...
+              const internalImports = extractImports(files, goModule.module_path ?? undefined);
+
+    test_file: "packages/repo-parser/src/import-resolver.test.ts"
+    test_cases:
+      - name: "resolves Go internal imports when module path known"
+        input: |
+          files: [
+            { path: "cmd/server/main.go", content: 'import "github.com/org/repo/internal/auth"', size: 50 },
+            { path: "internal/auth/auth.go", content: "package auth", size: 15 }
+          ]
+          goModulePath: "github.com/org/repo"
+        expected: |
+          edges: [{ source: "cmd/server/main.go", target: "internal/auth/auth.go" }]
+
+      - name: "ignores stdlib imports"
+        input: |
+          files: [{ path: "main.go", content: 'import (\n\t"fmt"\n\t"net/http"\n)', size: 40 }]
+          goModulePath: "github.com/org/repo"
+        expected: "edges: []"
+
+      - name: "resolves multiple Go internal imports from block"
+        input: |
+          files: [
+            { path: "handler/user.go", content: 'import (\n\t"github.com/org/app/model"\n\t"github.com/org/app/store"\n)', size: 70 },
+            { path: "model/user.go", content: "package model", size: 15 },
+            { path: "store/user.go", content: "package store", size: 15 }
+          ]
+          goModulePath: "github.com/org/app"
+        expected: |
+          edges include:
+            { source: "handler/user.go", target: "model/user.go" }
+            { source: "handler/user.go", target: "store/user.go" }
+
+      - name: "ignores external Go dependencies"
+        input: |
+          files: [{ path: "main.go", content: 'import "github.com/go-chi/chi/v5"', size: 40 }]
+          goModulePath: "github.com/org/repo"
+        expected: "edges: [] (chi is external)"
+
+      - name: "handles missing goModulePath gracefully"
+        input: |
+          files: [{ path: "main.go", content: 'import "github.com/org/repo/pkg/util"', size: 50 }]
+          goModulePath: undefined
+        expected: "edges: [] (cannot determine internal vs external without module path)"
+
+    acceptance_criteria:
+      - "All 5 new tests pass"
+      - "Existing import-resolver tests still pass"
+      - "Payment processing scan shows Go internal import edges in dependency_graph"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 6: DOMAIN MODEL EXTRACTION
+  # Current state: No struct/type/interface extraction exists.
+  # The scanner collects .go and .ts files but their type definitions
+  # are invisible to the analysis pipeline.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_082:
+    id: "eq_082"
+    title: "Domain model extraction — structs, types, interfaces"
+    depends_on: []
+    files_to_modify:
+      - path: "packages/repo-parser/src/domain-extractor.ts"
+        create: true
+        changes:
+          - description: "New file: extract domain model definitions from source"
+            function_signature: |
+              export interface DomainModel {
+                name: string;
+                kind: "struct" | "interface" | "type_alias" | "enum" | "class";
+                language: string;
+                fields: Array<{ name: string; type: string }>;
+                source_file: string;
+              }
+
+              export function extractDomainModels(files: FileEntry[]): DomainModel[]
+            behavior: |
+              For .go files:
+                1. Match: /type\s+(\w+)\s+struct\s*\{([^}]*)\}/gs
+                   → kind: "struct", extract fields from body
+                   Fields: each line matching /^\s*(\w+)\s+(\S+)/ → { name, type }
+                   Skip embedded types (lines with only one word — no field name)
+                2. Match: /type\s+(\w+)\s+interface\s*\{([^}]*)\}/gs
+                   → kind: "interface", fields are method signatures
+                   Method lines: /(\w+)\s*\(/ → { name: methodName, type: "method" }
+
+              For .ts / .tsx files:
+                1. Match: /(?:export\s+)?interface\s+(\w+)(?:\s+extends\s+\w+)?\s*\{([^}]*)\}/gs
+                   → kind: "interface", extract fields
+                   Fields: /(\w+)\??:\s*([^;]+)/g → { name, type }
+                2. Match: /(?:export\s+)?type\s+(\w+)\s*=\s*\{([^}]*)\}/gs
+                   → kind: "type_alias", extract fields same way
+                3. Match: /(?:export\s+)?enum\s+(\w+)\s*\{([^}]*)\}/gs
+                   → kind: "enum", members as fields with type: "member"
+
+              For .py files:
+                1. Match: /class\s+(\w+).*?:/g then scan indented block
+                   → kind: "class"
+                   Fields: /self\.(\w+)\s*[:=]\s*(.+)/g → { name, type (if annotated) }
+
+              Sort output by (source_file, name) for stability.
+              Skip models with name starting with lowercase (private/unexported in Go).
+              Skip test files (path contains test or _test).
+
+            determinism_notes: >
+              Pure regex extraction. Same source → same models. No inference.
+
+      - path: "packages/repo-parser/src/types.ts"
+        changes:
+          - description: "Add domain_models field to ParseResult"
+            new_fields: |
+              domain_models: Array<{
+                name: string;
+                kind: "struct" | "interface" | "type_alias" | "enum" | "class";
+                language: string;
+                fields: Array<{ name: string; type: string }>;
+                source_file: string;
+              }>;
+
+      - path: "packages/repo-parser/src/parser.ts"
+        changes:
+          - description: "Import and call extractDomainModels in parseRepo"
+            behavior: |
+              import { extractDomainModels } from "./domain-extractor.js";
+              const domainModels = extractDomainModels(files);
+              // Include in return: domain_models: domainModels
+
+      - path: "packages/context-engine/src/types.ts"
+        changes:
+          - description: "Add domain_models to ContextMap"
+            location: "After routes array, before architecture_signals"
+            new_field: |
+              domain_models: Array<{
+                name: string;
+                kind: string;
+                language: string;
+                field_count: number;
+                source_file: string;
+              }>;
+
+      - path: "packages/context-engine/src/engine.ts"
+        changes:
+          - description: "Populate domain_models in buildContextMap"
+            behavior: |
+              domain_models: parsed.domain_models.map(m => ({
+                name: m.name,
+                kind: m.kind,
+                language: m.language,
+                field_count: m.fields.length,
+                source_file: m.source_file,
+              })),
+
+    test_file: "packages/repo-parser/src/domain-extractor.test.ts"
+    test_file_note: "Create this new test file"
+    test_cases:
+      - name: "extracts Go struct with fields"
+        input: |
+          files: [{ path: "model/user.go", content: "type User struct {\n\tID    int64\n\tName  string\n\tEmail string\n}", size: 60 }]
+        expected: |
+          [{ name: "User", kind: "struct", language: "Go", fields: [
+            { name: "ID", type: "int64" },
+            { name: "Name", type: "string" },
+            { name: "Email", type: "string" }
+          ], source_file: "model/user.go" }]
+
+      - name: "extracts Go interface with methods"
+        input: |
+          files: [{ path: "store/store.go", content: "type UserStore interface {\n\tGetByID(id int64) (*User, error)\n\tCreate(u *User) error\n}", size: 80 }]
+        expected: |
+          [{ name: "UserStore", kind: "interface", language: "Go", fields: [
+            { name: "GetByID", type: "method" },
+            { name: "Create", type: "method" }
+          ], source_file: "store/store.go" }]
+
+      - name: "extracts TypeScript interface"
+        input: |
+          files: [{ path: "src/types.ts", content: "export interface Order {\n  id: string;\n  amount: number;\n  status: 'pending' | 'paid';\n}", size: 80 }]
+        expected: |
+          [{ name: "Order", kind: "interface", language: "TypeScript", fields: [
+            { name: "id", type: "string" },
+            { name: "amount", type: "number" },
+            { name: "status", type: "'pending' | 'paid'" }
+          ], source_file: "src/types.ts" }]
+
+      - name: "extracts TypeScript enum"
+        input: |
+          files: [{ path: "src/enums.ts", content: "export enum Status {\n  Active,\n  Inactive,\n  Suspended\n}", size: 50 }]
+        expected: |
+          [{ name: "Status", kind: "enum", language: "TypeScript" }]
+
+      - name: "skips test files"
+        input: |
+          files: [{ path: "model/user_test.go", content: "type MockUser struct { ID int64 }", size: 40 }]
+        expected: "[]"
+
+      - name: "skips unexported Go types"
+        input: |
+          files: [{ path: "internal/config.go", content: "type config struct { port int }", size: 35 }]
+        expected: "[] (lowercase name = unexported)"
+
+      - name: "extracts Python class"
+        input: |
+          files: [{ path: "models.py", content: "class Payment:\n    def __init__(self):\n        self.id: int = 0\n        self.amount: float = 0.0\n", size: 80 }]
+        expected: |
+          [{ name: "Payment", kind: "class", language: "Python", fields: [
+            { name: "id", type: "int" },
+            { name: "amount", type: "float" }
+          ], source_file: "models.py" }]
+
+      - name: "handles multiple models in one file"
+        input: |
+          files: [{ path: "types.go", content: "type A struct { X int }\ntype B struct { Y string }", size: 50 }]
+        expected: |
+          2 models: A and B, sorted by name
+
+    acceptance_criteria:
+      - "All 8 new tests pass"
+      - "Existing tests still pass"
+      - "parseRepo().domain_models returns models from Go and TS files"
+      - "buildContextMap().domain_models includes field_count per model"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 6B: ENTRY POINT DETECTION FOR GO
+  # Current state: detectEntryPoints in engine.ts only looks for
+  # src/index.ts, src/main.ts, app/layout.tsx, etc. No Go entry point
+  # detection (cmd/*/main.go, main.go at root).
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_083:
+    id: "eq_083"
+    title: "Go entry point detection"
+    depends_on: []
+    files_to_modify:
+      - path: "packages/context-engine/src/engine.ts"
+        changes:
+          - description: "Add Go entry point patterns to detectEntryPoints"
+            location: "Inside detectEntryPoints (line ~146), after existing patterns"
+            new_patterns: |
+              // Go entry points
+              if (f.path === "main.go" || f.path.match(/^cmd\/[^/]+\/main\.go$/)) {
+                entries.push({ path: f.path, type: "app_entry", description: `Go entry: ${f.path}` });
+              }
+              // Go test entrypoints (useful for test runner understanding)
+              // Skip — test files are not entry points
+
+    test_file: "packages/context-engine/src/engine.test.ts"
+    test_cases:
+      - name: "detects main.go at root as entry point"
+        input: |
+          file: { path: "main.go", content: "package main" }
+        expected: |
+          entry_points includes { path: "main.go", type: "app_entry", description: "Go entry: main.go" }
+
+      - name: "detects cmd/server/main.go as entry point"
+        input: |
+          file: { path: "cmd/server/main.go", content: "package main" }
+        expected: |
+          entry_points includes { path: "cmd/server/main.go", type: "app_entry" }
+
+      - name: "detects multiple cmd entries"
+        input: |
+          files: [
+            { path: "cmd/api/main.go", content: "package main" },
+            { path: "cmd/worker/main.go", content: "package main" }
+          ]
+        expected: |
+          entry_points includes both cmd/api/main.go and cmd/worker/main.go
+
+    acceptance_criteria:
+      - "All 3 new tests pass"
+      - "Existing tests still pass"
+      - "Payment processing scan entry_points includes Go entries"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 7: GO TEST FRAMEWORK DETECTION
+  # Current state: detectTestFrameworks in parser.ts only checks for
+  # vitest, jest, mocha, playwright, cypress, pytest. Go test files
+  # (*_test.go) exist but aren't detected as a test framework.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_084:
+    id: "eq_084"
+    title: "Go test framework detection and build tool awareness"
+    depends_on: []
+    files_to_modify:
+      - path: "packages/repo-parser/src/parser.ts"
+        changes:
+          - description: "Add Go test detection to detectTestFrameworks"
+            location: "Inside detectTestFrameworks (line ~192)"
+            new_check: |
+              if (files.some(f => f.path.endsWith("_test.go"))) result.push("go_test");
+
+          - description: "Add Go build tools to detectBuildTools"
+            location: "Inside detectBuildTools (line ~180)"
+            new_checks: |
+              if (files.some(f => f.path === "Makefile")) result.push("make");
+              if (files.some(f => f.path === "go.mod")) result.push("go_modules");
+              if (files.some(f => f.path === "Taskfile.yml" || f.path === "Taskfile.yaml")) result.push("task");
+              if (files.some(f => f.path === "mage.go" || f.path === "magefile.go")) result.push("mage");
+
+    test_file: "packages/repo-parser/src/parser.test.ts"
+    test_cases:
+      - name: "detects go_test framework when _test.go files present"
+        input: |
+          files: [{ path: "handler_test.go", content: "package handler_test", size: 25 }]
+        expected: |
+          test_frameworks includes "go_test"
+
+      - name: "detects go_modules build tool when go.mod present"
+        input: |
+          files: [{ path: "go.mod", content: "module example.com/app\ngo 1.22\n", size: 30 }]
+        expected: |
+          build_tools includes "go_modules"
+
+      - name: "detects make build tool when Makefile present"
+        input: |
+          files: [{ path: "Makefile", content: "build:\n\tgo build ./...", size: 25 }]
+        expected: |
+          build_tools includes "make"
+
+      - name: "detects task build tool when Taskfile.yml present"
+        input: |
+          files: [{ path: "Taskfile.yml", content: "version: 3\ntasks:\n  build:", size: 30 }]
+        expected: |
+          build_tools includes "task"
+
+    acceptance_criteria:
+      - "All 4 new tests pass"
+      - "Existing tests still pass"
+      - "Payment processing scan shows go_test in test_frameworks"
+      - "Payment processing scan shows go_modules in build_tools"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # PHASE 8: WIRING — CONTEXT MAP & REPO PROFILE UPDATES
+  # Ensure all new data flows through to the output files.
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_085:
+    id: "eq_085"
+    title: "Wire new fields through ContextMap and RepoProfile"
+    depends_on: ["eq_075", "eq_080", "eq_082"]
+    files_to_modify:
+      - path: "packages/context-engine/src/types.ts"
+        changes:
+          - description: "Add sql_schema to ContextMap"
+            new_field: |
+              sql_schema: Array<{
+                name: string;
+                column_count: number;
+                foreign_key_count: number;
+                source_file: string;
+              }>;
+
+          - description: "Add go_module to ContextMap.project_identity"
+            new_field: |
+              go_module: string | null;  // e.g. "github.com/org/repo"
+
+      - path: "packages/context-engine/src/engine.ts"
+        changes:
+          - description: "Populate sql_schema in buildContextMap"
+            behavior: |
+              sql_schema: parsed.sql_schema.map(t => ({
+                name: t.name,
+                column_count: t.columns.length,
+                foreign_key_count: t.foreign_keys.length,
+                source_file: t.source_file,
+              })),
+
+          - description: "Populate go_module in buildProjectIdentity"
+            behavior: |
+              go_module: parsed.go_module?.module_path ?? null,
+
+          - description: "Include domain model count and SQL table count in buildAIContext summary"
+            behavior: |
+              Append to summary string:
+              If domain_models.length > 0: " It defines {N} domain models."
+              If sql_schema.length > 0: " The database has {N} tables."
+
+          - description: "Add Go-specific conventions to buildAIContext"
+            behavior: |
+              if (parsed.go_module?.module_path) conventions.push("Go modules");
+              if (parsed.build_tools.includes("make")) conventions.push("Makefile build");
+
+          - description: "Eliminate double parseRepo call"
+            location: "buildRepoProfile (line ~35)"
+            behavior: |
+              Currently buildRepoProfile calls parseRepo(snapshot.files) independently.
+              buildContextMap also calls parseRepo. This is wasteful.
+              Fix: Accept parsed as a parameter, or cache. Simplest fix:
+                export function buildRepoProfile(snapshot: SnapshotRecord, parsed?: ParseResult): RepoProfile
+              If parsed is provided, use it. Otherwise call parseRepo internally.
+              Update runner.ts to pass parsed from buildContextMap.
+
+    test_file: "packages/context-engine/src/engine.test.ts"
+    test_cases:
+      - name: "context map includes sql_schema when SQL tables present"
+        input: |
+          Snapshot with files containing CREATE TABLE statements
+        expected: |
+          contextMap.sql_schema.length > 0
+          Each entry has name, column_count, foreign_key_count, source_file
+
+      - name: "context map includes go_module in project_identity"
+        input: |
+          Snapshot with go.mod file
+        expected: |
+          contextMap.project_identity.go_module === "github.com/org/repo"
+
+      - name: "AI context summary mentions domain models when present"
+        input: |
+          Snapshot with Go struct definitions
+        expected: |
+          contextMap.ai_context.project_summary includes "domain models"
+
+      - name: "RepoProfile works with pre-parsed data (no double parse)"
+        input: |
+          Call buildRepoProfile(snapshot, parsed) with pre-parsed data
+        expected: |
+          Same result as buildRepoProfile(snapshot) but only one parseRepo invocation
+
+    acceptance_criteria:
+      - "All 4 new tests pass"
+      - "Existing tests still pass"
+      - "context-map.json output includes sql_schema, go_module, domain_models"
+      - "No double parseRepo call"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # VALIDATION: DETERMINISM PROOF
+  # ═══════════════════════════════════════════════════════════════════
+
+  eq_086:
+    id: "eq_086"
+    title: "Determinism test — scan twice, diff zero"
+    depends_on: ["eq_075", "eq_076", "eq_077", "eq_078", "eq_079", "eq_080", "eq_081", "eq_082", "eq_083", "eq_084", "eq_085"]
+    files_to_modify:
+      - path: "apps/cli/src/determinism.test.ts"
+        create: true
+        changes:
+          - description: "Integration test: run pipeline twice on same input, assert identical output"
+            behavior: |
+              1. Create a fixture set of FileEntry[] representing a small polyglot project:
+                 - go.mod, main.go, handler/user.go, handler/user_test.go
+                 - package.json, src/App.tsx, src/types.ts
+                 - schema.sql with CREATE TABLE
+                 - Makefile, Dockerfile
+              2. Call run(scanResult, "/fake/project") twice
+              3. JSON.stringify both GeneratorResult.files arrays
+              4. Assert strict equality: result1 === result2
+              5. Also verify: project_type is "fullstack_web" (not "static_site")
+              6. Also verify: context-map.json contains go_module, sql_schema, domain_models
+              7. Also verify: frameworks include at least one Go framework and React
+
+    test_cases:
+      - name: "pipeline produces byte-identical output on repeated runs"
+        expected: "JSON.stringify(run1.files) === JSON.stringify(run2.files)"
+
+      - name: "polyglot fixture classifies as fullstack_web"
+        expected: "project_type === 'fullstack_web'"
+
+      - name: "polyglot fixture detects Go and JS frameworks"
+        expected: "frameworks include 'React' and a Go framework"
+
+      - name: "polyglot fixture has non-zero separation score"
+        expected: "separation_score > 0"
+
+      - name: "polyglot fixture extracts SQL tables"
+        expected: "sql_schema.length > 0"
+
+      - name: "polyglot fixture extracts domain models"
+        expected: "domain_models.length > 0"
+
+    acceptance_criteria:
+      - "All 6 new tests pass"
+      - "Full suite passes: npx vitest run shows all green"
+      - "This is the FINAL gate — do not mark phase complete until this passes"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # SUMMARY
+  # ═══════════════════════════════════════════════════════════════════
+
+  phase_summary:
+    total_eq_items: 12
+    eq_range: "eq_075 — eq_086"
+    estimated_new_tests: 72
+    estimated_new_test_files: 4
+    estimated_modified_files: 11
+    new_files_created: 3
+
+    execution_order:
+      parallel_group_1:
+        - eq_080  # SQL extraction (no dependencies)
+        - eq_082  # Domain model extraction (no dependencies)
+        - eq_083  # Go entry points (no dependencies)
+        - eq_084  # Go test/build detection (no dependencies)
+      then:
+        - eq_075  # Go module parsing (foundation for Go work)
+      parallel_group_2:
+        - eq_076  # Go framework detection (depends: eq_075)
+        - eq_078  # Project type scoring (depends: eq_075)
+        - eq_079  # Separation scoring (depends: eq_075)
+        - eq_081  # Go import resolution (depends: eq_075)
+      then:
+        - eq_077  # Go route extraction (depends: eq_076)
+        - eq_085  # Wire everything through (depends: eq_075, eq_080, eq_082)
+      finally:
+        - eq_086  # Determinism proof (depends: all above)
+
+    handoff_boundary: >
+      Any agent can pick up at any eq_ boundary. The dependency graph above
+      shows which eq_ items can be parallelized. The determinism test (eq_086)
+      is the final gate. Green suite = phase complete.
+
+    success_criteria:
+      - "npx vitest run — all tests pass (baseline 1129 + ~72 new ≈ 1201)"
+      - "eq_086 determinism test passes"
+      - "Payment processing scan: project_type = fullstack_web"
+      - "Payment processing scan: frameworks include Go framework"
+      - "Payment processing scan: separation_score > 0"
+      - "Payment processing scan: sql_schema populated"
+      - "Payment processing scan: domain_models populated"
+      - "Payment processing scan: Go entry points detected"
+      - "Payment processing scan: Go internal import edges present"
+      - "Two consecutive scans of payment processing → diff output → 0 differences"

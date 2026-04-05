@@ -55,4 +55,21 @@ export interface ParseResult {
     has_linter: boolean;
     has_formatter: boolean;
   };
+  go_module: {
+    module_path: string | null;
+    go_version: string | null;
+  };
+  sql_schema: Array<{
+    name: string;
+    columns: Array<{ name: string; type: string; nullable: boolean; is_pk: boolean }>;
+    foreign_keys: Array<{ column: string; references_table: string; references_column: string }>;
+    source_file: string;
+  }>;
+  domain_models: Array<{
+    name: string;
+    kind: "struct" | "interface" | "type_alias" | "enum" | "class";
+    language: string;
+    fields: Array<{ name: string; type: string }>;
+    source_file: string;
+  }>;
 }

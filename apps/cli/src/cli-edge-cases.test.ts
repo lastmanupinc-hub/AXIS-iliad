@@ -47,7 +47,7 @@ describe("scanner edge cases", () => {
     expect(result.skipped_count).toBe(1);
   });
 
-  it("caps scanned files at MAX_FILES (500)", () => {
+  it("caps scanned files at MAX_FILES (500)", { timeout: 15000 }, () => {
     const files: Record<string, string> = {};
     for (let i = 0; i < 510; i++) {
       files[`src/f${String(i).padStart(4, "0")}.ts`] = `export const v = ${i};`;

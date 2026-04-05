@@ -5,36 +5,37 @@ import type { GeneratorInput } from "./types.js";
 // ─── Shared fixtures ──────────────────────────────────────────
 function makeContextMap(overrides: Partial<ContextMap> = {}): ContextMap {
   return {
+    version: "1.0.0",
     snapshot_id: "snap_val",
     project_id: "proj_val",
-    primary_language: "TypeScript",
-    frameworks: ["vitest"],
-    architecture: { style: "monorepo", patterns: [], entry_points: [], layers: [] },
-    structure: { total_files: 1, total_dirs: 1, top_level: ["src/"] },
-    dependencies: { direct: {}, dev: {} },
-    ai_context: { summary: "test", conventions: [], key_abstractions: [], warnings: [] },
-    health_indicators: { has_readme: true, has_tests: true, has_ci: true, has_lockfile: true, has_typescript: true, has_linter: false, has_formatter: false },
+    generated_at: new Date().toISOString(),
+    project_identity: { name: "val-test", type: "library", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
+    structure: { total_files: 1, total_directories: 1, total_loc: 10, file_tree_summary: [], top_level_layout: [] },
+    detection: { languages: { TypeScript: { files: 1, bytes: 100, percentage: 100 } }, frameworks: [{ name: "vitest", confidence: 1 }], build_tools: [], test_frameworks: ["vitest"], package_managers: ["pnpm"], ci_platform: null, deployment_target: null },
+    dependency_graph: { external_dependencies: { direct: {}, dev: {} }, internal_imports: [], hotspots: [] },
+    entry_points: [],
+    routes: [],
+    domain_models: [],
+    sql_schema: [],
+    architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0 },
+    ai_context: { project_summary: "test", key_abstractions: [], conventions: [], warnings: [] },
     ...overrides,
-  };
+  } as ContextMap;
 }
 
 function makeProfile(overrides: Partial<RepoProfile> = {}): RepoProfile {
   return {
-    name: "val-test",
-    primary_language: "TypeScript",
-    frameworks: ["vitest"],
-    build_tools: [],
-    test_frameworks: ["vitest"],
-    package_managers: ["pnpm"],
-    ci_platforms: [],
-    deployment: null,
-    monorepo: false,
-    total_files: 1,
-    total_dirs: 1,
-    languages: { TypeScript: 100 },
-    dependency_count: 1,
+    version: "1.0.0",
+    snapshot_id: "snap_val",
+    project_id: "proj_val",
+    generated_at: new Date().toISOString(),
+    project: { name: "val-test", type: "library", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
+    detection: { languages: { TypeScript: { files: 1, bytes: 100, percentage: 100 } }, frameworks: [{ name: "vitest", confidence: 1 }], build_tools: [], test_frameworks: ["vitest"], package_managers: ["pnpm"], ci_platform: null, deployment_target: null },
+    structure_summary: { total_files: 1, total_directories: 1, total_loc: 10, top_level_dirs: [] },
+    health: { has_readme: true, has_tests: true, has_ci: true, has_lockfile: true, has_typescript: true, has_linter: false, has_formatter: false, dependency_count: 1, dev_dependency_count: 0, architecture_patterns: [], separation_score: 0 },
+    goals: null,
     ...overrides,
-  };
+  } as RepoProfile;
 }
 
 function makeInput(requested: string[] = []): GeneratorInput {

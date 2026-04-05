@@ -145,4 +145,71 @@ describe("detectFrameworks", () => {
     expect(names).toContain("Prisma");
     expect(names).toContain("Tailwind CSS");
   });
+
+  it("detects Chi from go-chi import", () => {
+    const files = makeFiles([
+      { path: "router.go", content: 'import "github.com/go-chi/chi/v5"' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const chi = result.find(f => f.name === "Chi");
+    expect(chi).toBeTruthy();
+    expect(chi!.confidence).toBe(0.9);
+  });
+
+  it("detects Gin from gin-gonic import", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'import "github.com/gin-gonic/gin"\nfunc main() {}' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const gin = result.find(f => f.name === "Gin");
+    expect(gin).toBeTruthy();
+    expect(gin!.confidence).toBe(0.9);
+  });
+
+  it("detects Echo from labstack import", () => {
+    const files = makeFiles([
+      { path: "server.go", content: 'import "github.com/labstack/echo/v4"' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const echo = result.find(f => f.name === "Echo");
+    expect(echo).toBeTruthy();
+  });
+
+  it("detects Fiber from gofiber import", () => {
+    const files = makeFiles([
+      { path: "app.go", content: 'import "github.com/gofiber/fiber/v2"' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const fiber = result.find(f => f.name === "Fiber");
+    expect(fiber).toBeTruthy();
+  });
+
+  it("detects Go stdlib HTTP with ListenAndServe", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'import "net/http"\nfunc main() { http.ListenAndServe(":8080", nil) }' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const stdlib = result.find(f => f.name === "Go stdlib HTTP");
+    expect(stdlib).toBeTruthy();
+    expect(stdlib!.confidence).toBe(0.7);
+  });
+
+  it("detects Go stdlib HTTP without server usage at low confidence", () => {
+    const files = makeFiles([
+      { path: "client.go", content: 'import "net/http"\nfunc fetch() { http.Get("https://example.com") }' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const stdlib = result.find(f => f.name === "Go stdlib HTTP");
+    expect(stdlib).toBeTruthy();
+    expect(stdlib!.confidence).toBe(0.3);
+  });
+
+  it("does not detect Go frameworks from non-.go files", () => {
+    const files = makeFiles([
+      { path: "readme.md", content: 'github.com/go-chi/chi is a great router' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const chi = result.find(f => f.name === "Chi");
+    expect(chi).toBeUndefined();
+  });
 });

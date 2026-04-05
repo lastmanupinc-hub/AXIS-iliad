@@ -99,6 +99,57 @@ const rules: FrameworkRule[] = [
       return null;
     },
   },
+  {
+    name: "Chi",
+    detect: (files) => {
+      if (files.some(f => f.path.endsWith(".go") && f.content.includes("github.com/go-chi/chi"))) {
+        return { confidence: 0.9, version: null, evidence: ["go import: github.com/go-chi/chi"] };
+      }
+      return null;
+    },
+  },
+  {
+    name: "Gin",
+    detect: (files) => {
+      if (files.some(f => f.path.endsWith(".go") && f.content.includes("github.com/gin-gonic/gin"))) {
+        return { confidence: 0.9, version: null, evidence: ["go import: github.com/gin-gonic/gin"] };
+      }
+      return null;
+    },
+  },
+  {
+    name: "Echo",
+    detect: (files) => {
+      if (files.some(f => f.path.endsWith(".go") && f.content.includes("github.com/labstack/echo"))) {
+        return { confidence: 0.9, version: null, evidence: ["go import: github.com/labstack/echo"] };
+      }
+      return null;
+    },
+  },
+  {
+    name: "Fiber",
+    detect: (files) => {
+      if (files.some(f => f.path.endsWith(".go") && f.content.includes("github.com/gofiber/fiber"))) {
+        return { confidence: 0.9, version: null, evidence: ["go import: github.com/gofiber/fiber"] };
+      }
+      return null;
+    },
+  },
+  {
+    name: "Go stdlib HTTP",
+    detect: (files) => {
+      const hasImport = files.some(f => f.path.endsWith(".go") && f.content.includes('"net/http"'));
+      if (!hasImport) return null;
+      const hasServer = files.some(f => f.path.endsWith(".go") && (
+        f.content.includes("http.ListenAndServe") ||
+        f.content.includes("http.HandleFunc") ||
+        f.content.includes("http.NewServeMux") ||
+        f.content.includes("http.Handle(")
+      ));
+      const confidence = hasServer ? 0.7 : 0.3;
+      return { confidence, version: null, evidence: ["go stdlib: net/http" + (hasServer ? " with server usage" : "")] };
+    },
+  },
 ];
 
 export function detectFrameworks(files: FileEntry[], deps: Record<string, string>): FrameworkDetection[] {

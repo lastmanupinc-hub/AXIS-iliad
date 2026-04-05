@@ -8,6 +8,8 @@ import type {
 import { detectLanguage, countLines } from "./language-detector.js";
 import { detectFrameworks } from "./framework-detector.js";
 import { extractImports } from "./import-resolver.js";
+import { extractSQLSchema } from "./sql-extractor.js";
+import { extractDomainModels } from "./domain-extractor.js";
 
 export function parseRepo(files: FileEntry[]): ParseResult {
   const deps = extractDependencies(files);
@@ -15,8 +17,15 @@ export function parseRepo(files: FileEntry[]): ParseResult {
   const languages = computeLanguageStats(files);
   const frameworks = detectFrameworks(files, allDeps);
   const annotations = annotateFiles(files);
-  const imports = extractImports(files);
+  const goModule = extractGoDependencies(files);
+  const imports = extractImports(files, goModule.module_path ?? undefined);
   const topLevelDirs = computeTopLevelDirs(files);
+  const sqlSchema = extractSQLSchema(files);
+  const domainModels = extractDomainModels(files);
+
+  const goDeps = goModule.dependencies;
+  const allFlatDeps = flattenDeps(deps);
+  allFlatDeps.push(...goDeps);
 
   return {
     languages,
@@ -27,7 +36,7 @@ export function parseRepo(files: FileEntry[]): ParseResult {
     ci_platform: detectCI(files),
     deployment_target: detectDeployment(files, allDeps),
     file_annotations: annotations,
-    dependencies: flattenDeps(deps),
+    dependencies: allFlatDeps,
     internal_imports: imports,
     top_level_dirs: topLevelDirs,
     health: {
@@ -52,6 +61,12 @@ export function parseRepo(files: FileEntry[]): ParseResult {
         f.path === ".editorconfig" || f.path.includes("black"),
       ),
     },
+    go_module: {
+      module_path: goModule.module_path,
+      go_version: goModule.go_version,
+    },
+    sql_schema: sqlSchema,
+    domain_models: domainModels,
   };
 }
 
@@ -177,6 +192,57 @@ function flattenDeps(groups: DepGroups): DependencyInfo[] {
   return deps;
 }
 
+function extractGoDependencies(files: FileEntry[]): {
+  module_path: string | null;
+  go_version: string | null;
+  dependencies: DependencyInfo[];
+} {
+  const goModFiles = files
+    .filter((f) => f.path === "go.mod" || f.path.endsWith("/go.mod"))
+    .sort((a, b) => a.path.localeCompare(b.path));
+
+  const goModFile = goModFiles[0];
+  if (!goModFile) return { module_path: null, go_version: null, dependencies: [] };
+
+  const content = goModFile.content;
+  const modulePath = content.match(/^module\s+(\S+)/m)?.[1] ?? null;
+  const goVersion = content.match(/^go\s+(\S+)/m)?.[1] ?? null;
+
+  const dependencies: DependencyInfo[] = [];
+
+  // Single-line requires: require github.com/foo/bar v1.0.0
+  const singleReq = /^require\s+(\S+)\s+(\S+)\s*(\/\/.*)?$/gm;
+  let match: RegExpExecArray | null;
+  while ((match = singleReq.exec(content)) !== null) {
+    const isIndirect = match[3]?.includes("indirect") ?? false;
+    dependencies.push({
+      name: match[1],
+      version: match[2],
+      type: isIndirect ? "optional" : "production",
+    });
+  }
+
+  // Block requires: require ( ... )
+  const blockReq = /^require\s*\(\s*\n([\s\S]*?)\n\s*\)/gm;
+  while ((match = blockReq.exec(content)) !== null) {
+    const block = match[1];
+    const linePattern = /^\s*(\S+)\s+(\S+)\s*(\/\/.*)?$/gm;
+    let lineMatch: RegExpExecArray | null;
+    while ((lineMatch = linePattern.exec(block)) !== null) {
+      const isIndirect = lineMatch[3]?.includes("indirect") ?? false;
+      dependencies.push({
+        name: lineMatch[1],
+        version: lineMatch[2],
+        type: isIndirect ? "optional" : "production",
+      });
+    }
+  }
+
+  dependencies.sort((a, b) => a.name.localeCompare(b.name));
+
+  return { module_path: modulePath, go_version: goVersion, dependencies };
+}
+
 function detectBuildTools(files: FileEntry[], deps: Record<string, string>): string[] {
   const tools: string[] = [];
   if (deps["turbo"] || files.some((f) => f.path === "turbo.json")) tools.push("turbo");
@@ -186,6 +252,9 @@ function detectBuildTools(files: FileEntry[], deps: Record<string, string>): str
   if (deps["rollup"] || files.some((f) => f.path.includes("rollup.config"))) tools.push("rollup");
   if (deps["tsup"]) tools.push("tsup");
   if (files.some((f) => f.path === "Makefile")) tools.push("make");
+  if (files.some((f) => f.path === "go.mod")) tools.push("go_modules");
+  if (files.some((f) => f.path === "Taskfile.yml" || f.path === "Taskfile.yaml")) tools.push("task");
+  if (files.some((f) => f.path === "mage.go" || f.path === "magefile.go")) tools.push("mage");
   return tools;
 }
 
@@ -197,6 +266,7 @@ function detectTestFrameworks(files: FileEntry[], deps: Record<string, string>):
   if (deps["playwright"] || deps["@playwright/test"]) frameworks.push("playwright");
   if (deps["cypress"]) frameworks.push("cypress");
   if (files.some((f) => f.path === "pytest.ini" || f.path === "pyproject.toml" && f.content.includes("[tool.pytest"))) frameworks.push("pytest");
+  if (files.some((f) => f.path.endsWith("_test.go"))) frameworks.push("go_test");
   return frameworks;
 }
 
@@ -280,6 +350,16 @@ function guessDirPurpose(name: string): string {
     middleware: "middleware",
     packages: "monorepo_packages",
     apps: "monorepo_apps",
+    cmd: "go_cli_entrypoints",
+    internal: "go_internal_packages",
+    pkg: "go_public_packages",
+    handler: "http_handlers",
+    handlers: "http_handlers",
+    repository: "data_access_layer",
+    domain: "domain_models",
+    core: "core_logic",
+    common: "shared_utilities",
+    shared: "shared_utilities",
   };
   return purposes[name.toLowerCase()] ?? "project_directory";
 }

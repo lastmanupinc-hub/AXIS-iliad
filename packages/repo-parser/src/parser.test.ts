@@ -126,4 +126,87 @@ describe("parseRepo", () => {
     expect(result.health.has_ci).toBe(true);
     expect(result.health.has_lockfile).toBe(true);
   });
+
+  it("extracts Go module info from go.mod", () => {
+    const result = parseRepo(makeFiles([
+      {
+        path: "go.mod",
+        content: `module github.com/acme/payments
+
+go 1.22
+
+require (
+	github.com/go-chi/chi/v5 v5.0.10
+	github.com/jackc/pgx/v5 v5.4.3 // indirect
+)
+
+require github.com/rs/zerolog v1.31.0
+`,
+      },
+      { path: "main.go", content: "package main\nfunc main() {}" },
+    ]));
+    expect(result.go_module.module_path).toBe("github.com/acme/payments");
+    expect(result.go_module.go_version).toBe("1.22");
+    const depNames = result.dependencies.map(d => d.name);
+    expect(depNames).toContain("github.com/go-chi/chi/v5");
+    expect(depNames).toContain("github.com/rs/zerolog");
+    expect(depNames).toContain("github.com/jackc/pgx/v5");
+    const indirect = result.dependencies.find(d => d.name === "github.com/jackc/pgx/v5");
+    expect(indirect!.type).toBe("optional");
+  });
+
+  it("returns null go_module when no go.mod", () => {
+    const result = parseRepo(makeFiles([
+      { path: "src/index.ts", content: "export const x = 1;" },
+    ]));
+    expect(result.go_module.module_path).toBeNull();
+    expect(result.go_module.go_version).toBeNull();
+  });
+
+  it("detects go_test in test frameworks", () => {
+    const result = parseRepo(makeFiles([
+      { path: "handler_test.go", content: "package handler\nimport \"testing\"\nfunc TestX(t *testing.T) {}" },
+    ]));
+    expect(result.test_frameworks).toContain("go_test");
+  });
+
+  it("detects go_modules and task build tools", () => {
+    const result = parseRepo(makeFiles([
+      { path: "go.mod", content: "module example.com/app\ngo 1.22" },
+      { path: "Taskfile.yml", content: "version: 3" },
+    ]));
+    expect(result.build_tools).toContain("go_modules");
+    expect(result.build_tools).toContain("task");
+  });
+
+  it("classifies Go-specific directories", () => {
+    const result = parseRepo(makeFiles([
+      { path: "cmd/server/main.go", content: "package main" },
+      { path: "internal/repo/user.go", content: "package repo" },
+      { path: "pkg/util/strings.go", content: "package util" },
+    ]));
+    const cmd = result.top_level_dirs.find(d => d.name === "cmd");
+    expect(cmd).toBeTruthy();
+    expect(cmd!.purpose).toBe("go_cli_entrypoints");
+    const internal = result.top_level_dirs.find(d => d.name === "internal");
+    expect(internal!.purpose).toBe("go_internal_packages");
+    const pkg = result.top_level_dirs.find(d => d.name === "pkg");
+    expect(pkg!.purpose).toBe("go_public_packages");
+  });
+
+  it("extracts SQL schema", () => {
+    const result = parseRepo(makeFiles([
+      { path: "migrations/001.sql", content: "CREATE TABLE users (id INT PRIMARY KEY, name TEXT NOT NULL);" },
+    ]));
+    expect(result.sql_schema).toHaveLength(1);
+    expect(result.sql_schema[0].name).toBe("users");
+  });
+
+  it("extracts domain models", () => {
+    const result = parseRepo(makeFiles([
+      { path: "domain/user.go", content: "package domain\ntype User struct {\n\tID int\n\tName string\n}" },
+    ]));
+    expect(result.domain_models).toHaveLength(1);
+    expect(result.domain_models[0].name).toBe("User");
+  });
 });
