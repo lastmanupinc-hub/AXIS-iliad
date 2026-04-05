@@ -14,10 +14,10 @@ project_continuation:
 
   current_identity:
     project_name: "Axis Toolbox"
-    date: "2026-04-04"
-    commit_or_tag: "ee4f1a8"
-    current_session_id: "session_014"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 1072 tests across 44 files. Parser branch coverage (45 — deployment 8, build tools 7, CI 4, classifyRole 13, package managers 4, extractDeps 3, guessDirPurpose 2, health 4), engine branch coverage (26 — entry points 6, HTTP methods 5, architecture patterns 5, AI warnings 5, conventions 2, hotspots 1, profile 2), generate validation (12 — invalid output shapes, generator errors, try/catch branches). Grade: A (98+)."
+    date: "2026-04-05"
+    commit_or_tag: "59cf729"
+    current_session_id: "session_015"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 1129 tests across 47 files. Handler edge cases (21 — manifest type validation 6, getGeneratedFile traversal/fallback 6, program handler flow 3, health 1, context/generated-files boundaries 5), store validation (24 — contextMap validation 7, repoProfile validation 5, generatorResult validation 6, project reuse 3, updateSnapshotStatus 3), export ZIP edge cases (12 — 50-file offset arithmetic 6, multi-byte UTF-8 paths 6). Grade: A (99+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 92
       integration_confidence: 97
-      notes: "1072 tests across 44 files (989→1072). eq_069: Parser branches (45 tests — detectDeployment 8 platforms, detectBuildTools 7 tools, detectCI 4 platforms, classifyRole 13 file types, detectPackageManagers 4, extractDependencies 3, guessDirPurpose 2, health indicators 4). eq_070: Engine branches (26 tests — detectEntryPoints 6 patterns, extractHTTPMethods 5, analyzeArchitecture 5 patterns, buildAIContext warnings 5, conventions 2, dependency hotspots 1, buildRepoProfile passthrough 2). eq_071: Generate validation (12 tests — validateGeneratedFile 6 invalid shapes, generator error handling, try/catch, non-Error throw). Architecture confidence 94→95, runtime confidence stays 97."
+      notes: "1129 tests across 47 files (1072→1129). eq_072: Handler edge cases (21 tests — manifest type validation 6, getGeneratedFile traversal/fallback 6, program handler successful flow 3, health check 1, context/generated-files boundary conditions 5). eq_073: Store validation (24 tests — contextMap isValid 7 branches, repoProfile isValid 5 branches, generatorResult isValid 6 branches, project reuse 3, updateSnapshotStatus edge 3). eq_074: Export ZIP edge cases (12 tests — 50-file offset arithmetic 6, multi-byte UTF-8 emoji/CJK/accented paths 6). Runtime confidence stays 97."
 
   boundary_truth:
     accepted_input_modes:
@@ -1574,6 +1574,35 @@ project_continuation:
     blockers_added: []
     commit_results: ["ee4f1a8"]
     push_results: ["d64e8a2..ee4f1a8 → origin/main"]
+
+  current_session_result_031:
+    session_goal: "Deep edge-case coverage — handler validation, store shape checks, ZIP arithmetic"
+    selected_move: "eq_072 → eq_073 → eq_074: handler edge cases, store validation gaps, export ZIP edge cases"
+    selected_move_roi_reason: "ROI score 90/88/85. handlers.ts had untested manifest type-check branch (project_name as number, frameworks as string), getGeneratedFile path traversal with encoded chars and .ai/ fallback, successful program handler flow. store.ts isValid* functions had zero tests for wrong-shape payloads (null project_identity, numeric version, array data). export.ts ZIP builder never tested with >3 files or multi-byte UTF-8 paths."
+    completed_candidates:
+      - "eq_072: Handler edge cases — 21 tests (manifest type validation 6, getGeneratedFile traversal/fallback 6, makeProgramHandler success 3, health check 1, context/generated-files boundaries 5). 1093 subtotal (apps/api/src/handler-edge-cases.test.ts)"
+      - "eq_073: Store validation — 24 tests (isValidContextMap 7 branches, isValidRepoProfile 5 branches, isValidGeneratorResult 6 branches, project reuse 3, updateSnapshotStatus 3). 1117 subtotal (packages/snapshots/src/store-validation.test.ts)"
+      - "eq_074: Export ZIP edge cases — 12 tests (50-file offset arithmetic 6, multi-byte UTF-8 emoji/CJK/accented paths 6). 1129 total (apps/api/src/export-edge-cases.test.ts)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "1129 vitest tests passing across 47 files (1072→1129, +57)"
+      - "3 new test files: handler-edge-cases.test.ts, store-validation.test.ts, export-edge-cases.test.ts"
+      - "apps/api/src/handler-edge-cases.test.ts — 21 tests, manifest field types, getGeneratedFile encoded traversal + .ai/ fallback, program handler success, health check, context/generated-files boundaries"
+      - "packages/snapshots/src/store-validation.test.ts — 24 tests, contextMap/repoProfile/generatorResult isValid* shape checks, project reuse, status transitions"
+      - "apps/api/src/export-edge-cases.test.ts — 12 tests, 50-file ZIP with round-trip verification, multi-byte UTF-8 (emoji 🚀, CJK 数据, accented café), central directory count, Content-Disposition filename variants"
+    verticals_advanced:
+      - "Test Coverage — A+(99+) (57 new tests, 3 new test files, 47 total)"
+      - "Hardened Percent — 89 → 91 (edge-case branch coverage on handlers, store validation, export ZIP)"
+    blockers_removed:
+      - "handlers.ts manifest type-check branches (project_name as number, frameworks as string) had zero tests"
+      - "getGeneratedFile encoded path traversal (%2e%2e) and .ai/ prefix fallback had zero tests"
+      - "store.ts isValid* functions had zero tests for malformed shapes (null, string, number, array, missing fields)"
+      - "export.ts ZIP builder never tested with more than 3 files — offset arithmetic unverified"
+      - "Multi-byte UTF-8 paths (emoji, CJK, accented Latin) in ZIP never tested beyond single Japanese test"
+    blockers_added: []
+    commit_results: ["59cf729"]
+    push_results: ["fcf1389..59cf729 → origin/main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
