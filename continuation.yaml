@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-21"
-    commit_or_tag: "0aa91c1"
-    current_session_id: "session_018b"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 59+ endpoints, 1285 tests across 58 files. eq_093-095: CHANGELOG + version 0.4.0 harmonization, configurable request timeout (REQUEST_TIMEOUT_MS) + body limits (MAX_BODY_BYTES), SQLite FTS5 search upgrade replacing LIKE with bm25() ranked full-text search. Grade: A (99+)."
+    commit_or_tag: "cf3b431"
+    current_session_id: "session_019"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 63+ endpoints, 1298 tests across 60 files. eq_096-098: project/snapshot deletion API with cascading deletes, rate limit quota visibility endpoint, search UI in web dashboard. Capability inventory: A:58, D:0, F:6. Grade: A (99+)."
     current_status: "building"
     current_focus_vertical: "production_hardening"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 93
       integration_confidence: 97
-      notes: "1285 tests across 58 files (1281→1285). eq_093-095: CHANGELOG + version 0.4.0 harmonization, configurable request timeout (REQUEST_TIMEOUT_MS default 30s) + body limits (MAX_BODY_BYTES default 50MB) with 408 timeout enforcement, SQLite FTS5 full-text search replacing LIKE-based queries with bm25() relevance ranking. 4 new tests in 1 new test file."
+      notes: "1298 tests across 60 files (1285→1298). eq_096-098: deletion API (cascading transactional delete), quota visibility (GET /v1/account/quota), search UI (SearchTab in dashboard). Capability inventory created and updated: A:58, D:0, F:6. 3 gaps closed this session."
 
   boundary_truth:
     accepted_input_modes:
@@ -1718,6 +1718,38 @@ project_continuation:
     blockers_added: []
     commit_results: ["6107f8f", "0aa91c1"]
     push_results: ["c0804d1..0aa91c1 → origin/main"]
+
+  current_session_result_035:
+    session_goal: "Production hardening — capability inventory, deletion API, quota visibility, search UI"
+    selected_move: "eq_096 → eq_097 → eq_098: project/snapshot deletion, rate limit quota API, search UI in web dashboard"
+    selected_move_roi_reason: "Capability inventory identified 67 capabilities with 9 gaps. Prioritized by ROI: deletion (F→A, users can't clean up data), quota visibility (D→A, no client introspection of rate limits), search UI (D→A, FTS5 exists but unusable from web). All three close the last D-grade gaps."
+    completed_candidates:
+      - "capability_inventory.yaml — 67 capabilities enumerated with grades (A:55, B:3, D:2, F:7), completion status, human priority, access layer, test status"
+      - "eq_096: Project + snapshot deletion API — DELETE /v1/snapshots/:id and DELETE /v1/projects/:id with transactional cascading delete (search_fts, search_index, generator_results, repo_profiles, context_maps, snapshots, projects). Router.delete() method added. 9 new tests (5 HTTP + 4 unit)."
+      - "eq_097: Rate limit quota visibility — GET /v1/account/quota returns rate_limit (limit/remaining/count/reset/window_ms) + resource_quota for authenticated users. getClientWindow() added to rate-limiter. 4 new tests."
+      - "eq_098: Search UI in web dashboard — SearchTab component (6th tab) with index button, FTS5 search input, result list showing file:line:content. searchQuery() and indexSnapshot() API functions added to web api.ts."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "1298 vitest tests passing across 60 files (1285→1298, +13)"
+      - "2 new test files: apps/api/src/deletion.test.ts, apps/api/src/quota.test.ts"
+      - "capability_inventory.yaml created with 67 capabilities"
+      - "apps/api/src/router.ts — delete() method"
+      - "packages/snapshots/src/store.ts — deleteSnapshot(), deleteProject()"
+      - "apps/api/src/handlers.ts — handleDeleteSnapshot, handleDeleteProject"
+      - "apps/api/src/rate-limiter.ts — getClientWindow()"
+      - "apps/api/src/billing.ts — handleGetQuota"
+      - "apps/web/src/components/SearchTab.tsx — search UI component"
+      - "apps/web/src/api.ts — searchQuery(), indexSnapshot()"
+    verticals_advanced:
+      - "Production Readiness — deletion endpoints, quota introspection, search UI"
+      - "User Experience — 3 capability gaps closed (A:58, D:0)"
+    blockers_removed:
+      - "No project/snapshot deletion → full cascading delete API"
+      - "No rate limit visibility → GET /v1/account/quota"
+      - "No search UI in web → SearchTab in dashboard"
+    blockers_added: []
+    commit_results: ["7d3f7b6", "ff8c3f4", "1a24b76", "cf3b431"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
