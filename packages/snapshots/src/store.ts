@@ -86,6 +86,40 @@ export function getProjectSnapshots(project_id: string): SnapshotRecord[] {
   return rows.map(rowToSnapshot).filter((r): r is SnapshotRecord => r !== undefined);
 }
 
+/** Delete a snapshot and all associated data (context map, repo profile, generator results, search index). */
+export function deleteSnapshot(snapshot_id: string): boolean {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM search_fts WHERE rowid IN (SELECT id FROM search_index WHERE snapshot_id = ?)").run(snapshot_id);
+    db.prepare("DELETE FROM search_index WHERE snapshot_id = ?").run(snapshot_id);
+    db.prepare("DELETE FROM generator_results WHERE snapshot_id = ?").run(snapshot_id);
+    db.prepare("DELETE FROM repo_profiles WHERE snapshot_id = ?").run(snapshot_id);
+    db.prepare("DELETE FROM context_maps WHERE snapshot_id = ?").run(snapshot_id);
+    const result = db.prepare("DELETE FROM snapshots WHERE snapshot_id = ?").run(snapshot_id);
+    return result.changes > 0;
+  });
+  return tx();
+}
+
+/** Delete a project and ALL its snapshots (cascading). Returns count of snapshots deleted. */
+export function deleteProject(project_id: string): { deleted_snapshots: number } {
+  const db = getDb();
+  const snapshots = db.prepare("SELECT snapshot_id FROM snapshots WHERE project_id = ?").all(project_id) as { snapshot_id: string }[];
+  const tx = db.transaction(() => {
+    for (const { snapshot_id } of snapshots) {
+      db.prepare("DELETE FROM search_fts WHERE rowid IN (SELECT id FROM search_index WHERE snapshot_id = ?)").run(snapshot_id);
+      db.prepare("DELETE FROM search_index WHERE snapshot_id = ?").run(snapshot_id);
+      db.prepare("DELETE FROM generator_results WHERE snapshot_id = ?").run(snapshot_id);
+      db.prepare("DELETE FROM repo_profiles WHERE snapshot_id = ?").run(snapshot_id);
+      db.prepare("DELETE FROM context_maps WHERE snapshot_id = ?").run(snapshot_id);
+      db.prepare("DELETE FROM snapshots WHERE snapshot_id = ?").run(snapshot_id);
+    }
+    db.prepare("DELETE FROM projects WHERE project_id = ?").run(project_id);
+  });
+  tx();
+  return { deleted_snapshots: snapshots.length };
+}
+
 // ─── Context Map persistence ────────────────────────────────────
 
 export function saveContextMap(snapshot_id: string, data: unknown): void {

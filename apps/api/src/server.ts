@@ -29,6 +29,8 @@ import {
   handleSearchStats,
   handleDbStats,
   handleDbMaintenance,
+  handleDeleteSnapshot,
+  handleDeleteProject,
   makeProgramHandler,
   PROGRAM_OUTPUTS,
 } from "./handlers.js";
@@ -78,11 +80,13 @@ router.get("/v1/docs", async (_req, res) => {
 // Snapshot endpoints (per axis_all_tools.yaml api_architecture)
 router.post("/v1/snapshots", handleCreateSnapshot);
 router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
+router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);
 
 // Project context endpoints
 router.get("/v1/projects/:project_id/context", handleGetContext);
 router.get("/v1/projects/:project_id/generated-files", handleGetGeneratedFiles);
 router.get("/v1/projects/:project_id/generated-files/:file_path*", handleGetGeneratedFile);
+router.delete("/v1/projects/:project_id", handleDeleteProject);
 
 // Program endpoints (per axis_master_blueprint.yaml api_architecture)
 router.post("/v1/search/export", handleSearchExport);

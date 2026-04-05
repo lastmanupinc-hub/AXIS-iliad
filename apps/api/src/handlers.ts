@@ -4,6 +4,8 @@ import {
   getSnapshot,
   updateSnapshotStatus,
   getProjectSnapshots,
+  deleteSnapshot,
+  deleteProject,
   saveContextMap,
   getContextMap,
   saveRepoProfile,
@@ -280,6 +282,45 @@ export async function handleGetSnapshot(
     total_size_bytes: snapshot.total_size_bytes,
     status: snapshot.status,
   });
+}
+
+export async function handleDeleteSnapshot(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+): Promise<void> {
+  const { snapshot_id } = params;
+  const snapshot = getSnapshot(snapshot_id);
+  if (!snapshot) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
+    return;
+  }
+  const deleted = deleteSnapshot(snapshot_id);
+  if (!deleted) {
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to delete snapshot");
+    return;
+  }
+  sendJSON(res, 200, { deleted: true, snapshot_id });
+}
+
+export async function handleDeleteProject(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+): Promise<void> {
+  const { project_id } = params;
+  const snapshots = getProjectSnapshots(project_id);
+  if (snapshots.length === 0) {
+    // Check if the project itself exists
+    const db = (await import("@axis/snapshots")).getDb();
+    const project = db.prepare("SELECT project_id FROM projects WHERE project_id = ?").get(project_id);
+    if (!project) {
+      sendError(res, 404, ErrorCode.NOT_FOUND, "Project not found");
+      return;
+    }
+  }
+  const result = deleteProject(project_id);
+  sendJSON(res, 200, { deleted: true, project_id, deleted_snapshots: result.deleted_snapshots });
 }
 
 export async function handleGetContext(

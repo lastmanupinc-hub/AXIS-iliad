@@ -4,6 +4,8 @@ import {
   getSnapshot,
   getProjectSnapshots,
   updateSnapshotStatus,
+  deleteSnapshot,
+  deleteProject,
   saveContextMap,
   getContextMap,
   saveRepoProfile,
@@ -189,5 +191,56 @@ describe("snapshot corruption resilience", () => {
     const snap = createSnapshot(makeInput());
     getDb().prepare("INSERT OR REPLACE INTO generator_results (snapshot_id, data) VALUES (?, ?)").run(snap.snapshot_id, "nope");
     expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+  });
+
+  // ─── Deletion ───────────────────────────────────────────────
+
+  it("deleteSnapshot removes snapshot and all associated data", () => {
+    const snap = createSnapshot(makeInput());
+    saveContextMap(snap.snapshot_id, { version: "1", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project_identity: {} });
+    saveRepoProfile(snap.snapshot_id, { version: "1", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project: {} });
+    saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2024-01-01", files: [] });
+
+    expect(getSnapshot(snap.snapshot_id)).toBeDefined();
+    expect(getContextMap(snap.snapshot_id)).toBeDefined();
+    expect(getRepoProfile(snap.snapshot_id)).toBeDefined();
+    expect(getGeneratorResult(snap.snapshot_id)).toBeDefined();
+
+    const deleted = deleteSnapshot(snap.snapshot_id);
+    expect(deleted).toBe(true);
+
+    expect(getSnapshot(snap.snapshot_id)).toBeUndefined();
+    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+    expect(getRepoProfile(snap.snapshot_id)).toBeUndefined();
+    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+  });
+
+  it("deleteSnapshot returns false for non-existent snapshot", () => {
+    expect(deleteSnapshot("nonexistent")).toBe(false);
+  });
+
+  it("deleteProject removes project and all snapshots", () => {
+    const snap1 = createSnapshot(makeInput());
+    const snap2 = createSnapshot(makeInput()); // same project_name → same project_id
+    expect(snap1.project_id).toBe(snap2.project_id);
+
+    const result = deleteProject(snap1.project_id);
+    expect(result.deleted_snapshots).toBe(2);
+
+    expect(getSnapshot(snap1.snapshot_id)).toBeUndefined();
+    expect(getSnapshot(snap2.snapshot_id)).toBeUndefined();
+    expect(getProjectSnapshots(snap1.project_id)).toEqual([]);
+
+    const proj = getDb().prepare("SELECT * FROM projects WHERE project_id = ?").get(snap1.project_id);
+    expect(proj).toBeUndefined();
+  });
+
+  it("deleteProject handles project with no snapshots", () => {
+    const db = getDb();
+    db.prepare("INSERT INTO projects (project_id, project_name) VALUES (?, ?)").run("orphan", "Orphan");
+    const result = deleteProject("orphan");
+    expect(result.deleted_snapshots).toBe(0);
+    const proj = db.prepare("SELECT * FROM projects WHERE project_id = ?").get("orphan");
+    expect(proj).toBeUndefined();
   });
 });

@@ -25,6 +25,10 @@ export class Router {
     this.addRoute("GET", path, handler);
   }
 
+  delete(path: string, handler: RouteHandler) {
+    this.addRoute("DELETE", path, handler);
+  }
+
   private addRoute(method: string, path: string, handler: RouteHandler) {
     const paramNames: string[] = [];
     const pattern = path.replace(/:(\w+)(\*)?/g, (_, name, wildcard) => {

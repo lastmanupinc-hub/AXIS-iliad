@@ -4,6 +4,8 @@ export {
   getSnapshot,
   updateSnapshotStatus,
   getProjectSnapshots,
+  deleteSnapshot,
+  deleteProject,
   saveContextMap,
   getContextMap,
   saveRepoProfile,
