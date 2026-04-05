@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-04"
-    commit_or_tag: "ea16357"
-    current_session_id: "session_011"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 889 tests across 35 files. DB schema+lifecycle tests (24 — FK enforcement, unique constraints, defaults, idempotent init), rate limiter tests (20 — IP extraction, sliding window, auth tiers, per-IP isolation, header compliance), handler factory validation tests (26 — JSON parsing, manifest validation, file validation, path traversal, factory edge cases, PROGRAM_OUTPUTS). Grade: A (97+)."
+    commit_or_tag: "8fd9b42"
+    current_session_id: "session_012"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 52+ endpoints, 940 tests across 38 files. Funnel edge cases (17 — resolveStage churn_risk/expansion, generateUpgradePrompt paid/churn/engagement, getFunnelMetrics depth), snapshot auth+tier limits (14 — invalid/revoked key 401, quota 429, file count 413, file size 413, tier upgrade, anonymous, retrieval), generator alt profiles (20 — Vue+Sass, Python+Flask, styled-components, CSS modules, minimal project). Grade: A (98+)."
     current_status: "building"
     current_focus_vertical: "quality_hardening_to_a_plus"
 
@@ -29,11 +29,11 @@ project_continuation:
       production_percent: 58
     confidence:
       architecture_confidence: 94
-      runtime_confidence: 95
-      pipeline_confidence: 98
+      runtime_confidence: 96
+      pipeline_confidence: 99
       product_surface_confidence: 92
       integration_confidence: 97
-      notes: "889 tests across 35 files (819→889). DB schema+lifecycle (24 tests — FK enforcement for all FK-constrained tables, unique constraints for projects/accounts/api_keys/seats, defaults for status/tier/role/entitlements, idempotent openMemoryDb, closeDb safety). Rate limiter (20 tests — getClientIp x-forwarded-for parsing/IPv6/remoteAddress fallback/unknown, checkRateLimit sliding window 60/120 limits, per-IP isolation, Retry-After/RateLimit headers, resetRateLimits). Handler factory validation (26 tests — JSON parsing errors, manifest field validation, file array validation, path traversal ../../ + backslash-converted + mid-path, path normalization, makeProgramHandler factory edge cases, PROGRAM_OUTPUTS integrity). Runtime confidence 94→95, pipeline confidence 97→98."
+      notes: "940 tests across 38 files (889→940). eq_063: Funnel edge cases (17 tests — resolveStage churn_risk engaged+14d inactive, expansion paid+program_added, generateUpgradePrompt paid/churn_risk/engagement, getFunnelMetrics activation_rate/conversion_rate). eq_064: Snapshot auth+tier limits (14 tests — invalid/revoked key 401, quota exceeded 429 via seeded usage records, file count/size 413, tier upgrade unlocks, anonymous bypass, retrieval 404/200). eq_065: Generator alt profiles (20 tests — Vue+Sass sass detection, Python+Flask plain-css, styled-components css-in-js, CSS modules, minimal project). Runtime confidence 95→96, pipeline confidence 98→99."
 
   boundary_truth:
     accepted_input_modes:
@@ -1428,7 +1428,35 @@ project_continuation:
       - "Handler factory had zero dedicated tests → 26 tests (path traversal, JSON validation, factory edges)"
     blockers_added: []
     commit_results: ["ea16357"]
-    push_results: []
+    push_results: ["3513d99..ea16357 → origin/main"]
+
+  current_session_result_028:
+    session_goal: "Deepen funnel, HTTP auth/tier, and generator conditional branch coverage"
+    selected_move: "eq_063 → eq_064 → eq_065: funnel edge cases, snapshot auth+tier limits, generator alternate profiles"
+    selected_move_roi_reason: "ROI scores 92/88/85. eq_063 inherited from prior session (uncommitted). eq_064 covers HTTP-level auth/quota/file-limit enforcement (0 prior coverage). eq_065 exercises generator conditional branches with 5 different project profiles (all prior tests used single Next.js+Tailwind profile)."
+    completed_candidates:
+      - "eq_063: Funnel edge cases — 17 tests (resolveStage churn_risk/expansion, generateUpgradePrompt paid/churn/engagement, getFunnelMetrics). 906 total (packages/snapshots/src/funnel-edge-cases.test.ts)"
+      - "eq_064: Snapshot auth+tier limits — 14 tests (invalid/revoked key 401, quota 429, file count/size 413, tier upgrade, anonymous, retrieval). 920 total (apps/api/src/snapshot-auth.test.ts)"
+      - "eq_065: Generator alt profiles — 20 tests (Vue+Sass, Python+Flask, styled-components, CSS modules, minimal). 940 total (packages/generator-core/src/generator-alt-profiles.test.ts)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "940 vitest tests passing across 38 files (889→940, +51)"
+      - "3 new test files: funnel-edge-cases.test.ts, snapshot-auth.test.ts, generator-alt-profiles.test.ts"
+      - "packages/snapshots/src/funnel-edge-cases.test.ts — 17 tests, resolveStage + generateUpgradePrompt + getFunnelMetrics edge cases"
+      - "apps/api/src/snapshot-auth.test.ts — 14 tests, HTTP-level auth/quota/file-limit enforcement with tier upgrade"
+      - "packages/generator-core/src/generator-alt-profiles.test.ts — 20 tests, 5 project profiles exercising styling/framework conditional branches"
+    verticals_advanced:
+      - "Test Coverage — A+(99) (51 new tests, 3 new test files, 38 total)"
+      - "Runtime Confidence — 95 → 96 (HTTP auth enforcement + funnel edge cases verified)"
+      - "Pipeline Confidence — 98 → 99 (generator conditional branches verified across 5 profiles)"
+    blockers_removed:
+      - "Snapshot auth/quota had zero HTTP-level tests → 14 tests (401/429/413 enforcement)"
+      - "Generator conditional branches only tested with 1 profile → 5 profiles (tailwind, sass, css-in-js, css-modules, plain-css)"
+      - "Funnel resolveStage churn_risk/expansion had zero tests → 17 edge case tests"
+    blockers_added: []
+    commit_results: ["8fd9b42"]
+    push_results: ["3513d99..8fd9b42 → origin/main"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
