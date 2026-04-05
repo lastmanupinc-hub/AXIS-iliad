@@ -257,6 +257,37 @@ export async function healthCheck(): Promise<{ status: string; version: string }
   return fetchJSON("/health");
 }
 
+// ─── Search API ─────────────────────────────────────────────────
+
+export interface SearchResult {
+  file_path: string;
+  line_number: number;
+  content: string;
+  rank: number;
+}
+
+export interface SearchResponse {
+  snapshot_id: string;
+  query: string;
+  total_indexed_lines: number;
+  total_indexed_files: number;
+  results: SearchResult[];
+}
+
+export async function searchQuery(snapshotId: string, query: string, limit = 50): Promise<SearchResponse> {
+  return fetchJSON("/v1/search/query", {
+    method: "POST",
+    body: JSON.stringify({ snapshot_id: snapshotId, query, limit }),
+  });
+}
+
+export async function indexSnapshot(snapshotId: string): Promise<{ snapshot_id: string; indexed_files: number; indexed_lines: number }> {
+  return fetchJSON("/v1/search/index", {
+    method: "POST",
+    body: JSON.stringify({ snapshot_id: snapshotId }),
+  });
+}
+
 // ─── Export API ─────────────────────────────────────────────────
 
 export function getExportUrl(projectId: string, program?: string): string {

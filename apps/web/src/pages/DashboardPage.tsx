@@ -6,6 +6,7 @@ import { FilesTab } from "../components/FilesTab.tsx";
 import { GraphTab } from "../components/GraphTab.tsx";
 import { GeneratedTab } from "../components/GeneratedTab.tsx";
 import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
+import { SearchTab } from "../components/SearchTab.tsx";
 import { useToast } from "../components/Toast.tsx";
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
   onGeneratedCountChange?: (count: number) => void;
 }
 
-const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs"] as const;
+const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
 type Tab = (typeof TABS)[number];
 
 export function DashboardPage({ result, onGeneratedCountChange }: Props) {
@@ -144,6 +145,9 @@ export function DashboardPage({ result, onGeneratedCountChange }: Props) {
             generatedFiles={generatedFiles}
             onRun={handleRunProgram}
           />
+        )}
+        {activeTab === "Search" && (
+          <SearchTab snapshotId={result.snapshot_id} />
         )}
       </div>
     </div>
