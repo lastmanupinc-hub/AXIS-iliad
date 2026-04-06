@@ -70,3 +70,19 @@ export {
   generateUpgradePrompt,
   getFunnelMetrics,
 } from "./funnel-store.js";
+
+// Webhooks
+export type { WebhookEventType, Webhook, WebhookDelivery } from "./webhook-store.js";
+export { VALID_WEBHOOK_EVENTS } from "./webhook-store.js";
+export {
+  createWebhook,
+  listWebhooks,
+  getWebhook,
+  deleteWebhook,
+  updateWebhookActive,
+  getActiveWebhooksForEvent,
+  recordDelivery,
+  getDeliveries,
+  signPayload,
+  dispatchWebhookEvent,
+} from "./webhook-store.js";

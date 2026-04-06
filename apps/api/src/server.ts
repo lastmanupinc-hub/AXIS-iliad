@@ -60,6 +60,7 @@ import { handleExportZip } from "./export.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
+import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 
 const router = new Router();
 
@@ -165,6 +166,13 @@ router.get("/v1/funnel/metrics", handleGetFunnelMetrics);
 router.get("/v1/admin/stats", handleAdminStats);
 router.get("/v1/admin/accounts", handleAdminAccounts);
 router.get("/v1/admin/activity", handleAdminActivity);
+
+// Webhooks
+router.post("/v1/account/webhooks", handleCreateWebhook);
+router.get("/v1/account/webhooks", handleListWebhooks);
+router.delete("/v1/account/webhooks/:webhook_id", handleDeleteWebhook);
+router.post("/v1/account/webhooks/:webhook_id/toggle", handleToggleWebhook);
+router.get("/v1/account/webhooks/:webhook_id/deliveries", handleWebhookDeliveries);
 
 const port = parseInt(process.env.PORT ?? "4000", 10);
 createApp(router, port);

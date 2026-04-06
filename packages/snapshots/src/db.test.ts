@@ -47,6 +47,8 @@ describe("openMemoryDb", () => {
       "seats",
       "snapshots",
       "usage_records",
+      "webhook_deliveries",
+      "webhooks",
     ]);
   });
 
@@ -310,14 +312,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(4);
+    expect(getSchemaVersion(db)).toBe(5);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(4);
+    expect(result.current_version).toBe(5);
   });
 
   it("creates rate_limits table via migration", () => {
