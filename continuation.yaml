@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-21"
-    commit_or_tag: "adfc7a7"
-    current_session_id: "session_022"
-    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1621 tests across 71 files, 92.29% stmt / 83.08% branch coverage. eq_111-113: branch coverage offensive — generator branches (+80 tests, 15 fixture profiles), API core branches (+40 tests, funnel+handlers+server.ts), webhook branches (+16 tests, production HTTP paths + cross-account security)."
+    commit_or_tag: "0cafbb4"
+    current_session_id: "session_023"
+    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1688 tests across 75 files, 94.25% stmt / 85.18% branch / 95.01% line coverage. eq_114-116: deep coverage offensive — handlers.ts vi.mock (+28 tests), router.ts+server.ts branches (+29 tests), generators-search.ts funcs (+10 tests)."
     current_status: "building"
     current_focus_vertical: "production_hardening"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "1621 tests across 71 files. eq_111-113: branch coverage offensive — 92.29% stmts, 83.08% branches (was 77.58%), 93.09% lines. 136 new tests targeting conditional paths in generators, API handlers, funnel, webhooks. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
+      notes: "1688 tests across 75 files. eq_114-116: deep coverage offensive — 94.25% stmts, 85.18% branches (was 83.08%), 95.01% lines. 67 new tests targeting handlers.ts vi.mock, router.ts readBody/timeout/edges, server.ts inline handlers, generators-search.ts dependency hotspots. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
 
   boundary_truth:
     accepted_input_modes:
@@ -1878,7 +1878,34 @@ project_continuation:
     commit_results: ["c300eb9", "b6b30e1", "adfc7a7"]
     push_results: ["7dce44f..adfc7a7"]
 
-  current_session_result_038:
+  current_session_result_040:
+    session_goal: "Deep coverage offensive — push stmt coverage past 94% and branch coverage past 85%"
+    selected_move: "eq_114 → eq_115 → eq_116: handlers.ts deep coverage, router.ts+server.ts branches, generators-search.ts funcs"
+    selected_move_roi_reason: "handlers.ts had 76.83% stmts with handleGitHubAnalyze at 0%, server.ts was 0% (never imported), router.ts had 69.56% branches (readBody errors, timeout, sendJSON edges untested), generators-search.ts had 64.28% funcs (generateDependencyHotspots never called)."
+    completed_candidates:
+      - "eq_114: handlers.ts deep coverage — 28 tests via vi.mock for fetchGitHubRepo. Full GitHub analyze path (malformed JSON, missing/invalid URL, 429/403/404 upstream, empty repo, anon+auth success, explicit token, invalid API key), export/skills edge cases, snapshot file limits+quota, get/delete snapshot success, delete project. handlers.ts 76.83%→94.42% stmts, 72.72%→91.44% branches, 87.87%→100% funcs. (commit 0869e9d)"
+      - "eq_115: router.ts + server.ts branches — 29 tests. readBody unit tests (body too large, stream error, premature close), request timeout 408, non-Error exceptions, throw-after-end writableEnded guard, sendJSON null/array error data, security headers on 404/500, log level branches, double shutdown guard, server.ts inline handlers (/v1/docs /v1/programs via dynamic import). router.ts 83.45%→91.36% stmts, 69.56%→81.15% branches. server.ts 0%→100% stmts. (commit 6a415ab)"
+      - "eq_116: generators-search.ts funcs — 10 tests. generateDependencyHotspots with all risk tiers (high/med/low), empty hotspots, medium-only, external deps with pre-1.0 detection. Architecture summary hotspots section. toYAML edge cases (colon-space, hash-start, null, booleans, empty arrays). generators-search.ts 82.08%→96.01% stmts, 69.3%→88.11% branches, 64.28%→92.85% funcs. (commit 0cafbb4)"
+    refused_candidates: []
+    blocked_candidates:
+      - "Payment integration — blocked on No Fate Platform payment processor"
+      - "OAuth login — blocked on OAuth provider integration"
+      - "Email notifications — blocked on email service provider"
+      - "Web hosting deployment — blocked on deployment platform selection"
+    evidence_added:
+      - "1688 vitest tests passing across 75 files (1621→1688 this session)"
+      - "94.25% statement coverage, 85.18% branch coverage, 89.38% func coverage, 95.01% line coverage"
+      - "Branch coverage: 83.08% → 85.18% (+2.1pp)"
+      - "Statement coverage: 92.29% → 94.25% (+1.96pp)"
+      - "3 new test files: handlers-deep.test.ts (28), router-branches.test.ts (19), server-routes.test.ts (10), generators-search-funcs.test.ts (10)"
+      - "server.ts exported app for testability (minimal 1-word change)"
+    verticals_advanced:
+      - "Test Coverage — stmt 92.29%→94.25%, branch 83.08%→85.18%, funcs 88.55%→89.38%, lines 93.09%→95.01%"
+      - "Production Hardening — router readBody errors, request timeout, graceful shutdown all tested"
+    blockers_removed: []
+    blockers_added: []
+    commit_results: ["0869e9d", "6a415ab", "0cafbb4"]
+    push_results: ["30bf56a..0cafbb4"]
     session_goal: "Execute all 5 improvement directions: B→A upgrades, coverage analysis, benchmarks, docs, quality sweep"
     selected_move: "eq_106 → eq_107 → eq_108 → eq_109 → eq_110: B-grade upgrades, coverage gaps, perf benchmarks, documentation, code quality"
     selected_move_roi_reason: "User requested all 5 directions in order. Each builds on prior: B→A fills capability gaps, coverage finds test holes, benchmarks quantify performance, docs capture state, quality sweep hardens for production."
