@@ -4315,4 +4315,282 @@ describe("Layer 6 branch coverage", () => {
       expect(f!.content).not.toContain("Patterns:");
     });
   });
+
+  // ─── Layer 8 — systematic branch inversions ───────────────────
+
+  describe("Layer 8 branch coverage", () => {
+    // --- optimization: convention FALSE + dep FALSE branches ---
+
+    it("prompt-diff-report with no conventions and few deps", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["prompt-diff-report.md"]);
+      inp.context_map.ai_context.conventions = [];
+      inp.context_map.dependency_graph.external_dependencies = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "prompt-diff-report.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("No strong conventions detected");
+      expect(f!.content).toContain("uses existing dependencies");
+    });
+
+    it("cost-estimate with empty project covers zero-LOC branch", () => {
+      const s = snap({ files: [] });
+      const inp = input(s, ["cost-estimate.json"]);
+      const result = generateFiles(inp);
+      const f = getFile(result, "cost-estimate.json");
+      expect(f).toBeDefined();
+    });
+
+    it("token-budget-plan with no languages covers zero-files branch", () => {
+      const s = snap({ files: [] });
+      const inp = input(s, ["token-budget-plan.md"]);
+      inp.context_map.detection.languages = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "token-budget-plan.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("N/A");
+    });
+
+    // --- superpowers: workflow-registry test framework chains ---
+
+    it("workflow-registry detects vitest for test commands", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["workflow-registry.json"]);
+      inp.context_map.detection.test_frameworks = ["vitest"];
+      inp.context_map.detection.package_managers = ["pnpm"];
+      const result = generateFiles(inp);
+      const f = getFile(result, "workflow-registry.json");
+      expect(f).toBeDefined();
+      const data = JSON.parse(f!.content);
+      expect(JSON.stringify(data)).toContain("vitest");
+    });
+
+    it("workflow-registry uses jest fallback when no vitest", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["workflow-registry.json"]);
+      inp.context_map.detection.test_frameworks = ["jest"];
+      const result = generateFiles(inp);
+      const f = getFile(result, "workflow-registry.json");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("jest");
+    });
+
+    it("workflow-registry with no test frameworks", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["workflow-registry.json"]);
+      inp.context_map.detection.test_frameworks = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "workflow-registry.json");
+      expect(f).toBeDefined();
+    });
+
+    // --- debug: hotspots (lines 53-60) ---
+
+    it("debug-playbook lists high-risk hotspot files", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, [".ai/debug-playbook.md"]);
+      inp.context_map.dependency_graph.hotspots.push(
+        { path: "src/critical.ts", risk_score: 0.9, inbound_count: 15, outbound_count: 8 }
+      );
+      const result = generateFiles(inp);
+      const f = getFile(result, ".ai/debug-playbook.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("High-Risk Files");
+      expect(f!.content).toContain("src/critical.ts");
+    });
+
+    // --- skills: description, warnings, Prisma, buildTools ---
+
+    it("AGENTS.md includes project description and warnings", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["AGENTS.md"]);
+      inp.context_map.project_identity.description = "A comprehensive tooling platform";
+      inp.context_map.ai_context.warnings.push("Missing test coverage");
+      const result = generateFiles(inp);
+      const f = getFile(result, "AGENTS.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("comprehensive tooling platform");
+      expect(f!.content).toContain("Missing test coverage");
+    });
+
+    it("CLAUDE.md includes warnings as known issues", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["CLAUDE.md"]);
+      inp.context_map.ai_context.warnings.push("Circular dependency detected");
+      const result = generateFiles(inp);
+      const f = getFile(result, "CLAUDE.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("Circular dependency");
+    });
+
+    it("CLAUDE.md includes Prisma migration command", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["CLAUDE.md"]);
+      inp.context_map.detection.frameworks.push(
+        { name: "Prisma", version: "5.0.0", confidence: 1.0 }
+      );
+      const result = generateFiles(inp);
+      const f = getFile(result, "CLAUDE.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("prisma migrate");
+    });
+
+    it("workflow-pack with build tools and test frameworks", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["workflow-pack.md"]);
+      inp.context_map.detection.build_tools = ["eslint", "vite"];
+      inp.context_map.detection.test_frameworks = ["vitest"];
+      const result = generateFiles(inp);
+      const f = getFile(result, "workflow-pack.md");
+      expect(f).toBeDefined();
+    });
+
+    // --- brand: entry_points in messaging-system (line 371) ---
+
+    it("messaging-system includes entry point statistics", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["messaging-system.yaml"]);
+      inp.context_map.entry_points.push(
+        { path: "src/main.tsx", description: "App entry" }
+      );
+      const result = generateFiles(inp);
+      const f = getFile(result, "messaging-system.yaml");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("entry_points");
+    });
+
+    // --- mcp: capability-registry test commands (lines 280, 305) ---
+
+    it("capability-registry detects vitest and vite capabilities", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["capability-registry.json"]);
+      inp.context_map.detection.test_frameworks = ["vitest"];
+      inp.context_map.detection.build_tools = ["vite"];
+      inp.context_map.detection.package_managers = ["pnpm"];
+      const result = generateFiles(inp);
+      const f = getFile(result, "capability-registry.json");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("vitest");
+      expect(f!.content).toContain("vite");
+    });
+
+    // --- artifacts: component-library fallback framework (lines 458-459) ---
+
+    it("component-library uses primary language when no react/tailwind", () => {
+      const files = [
+        { path: "src/index.ts", content: "export function hello() { return 'world'; }", size: 50 },
+        { path: "package.json", content: '{"name":"test","version":"1.0.0"}', size: 30 },
+      ];
+      const s = snap({ files });
+      const inp = input(s, ["component-library.json"]);
+      inp.context_map.detection.frameworks = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "component-library.json");
+      expect(f).toBeDefined();
+      const data = JSON.parse(f!.content);
+      expect(data.styling).toBe("css-modules");
+    });
+
+    // --- seo: meta-tag-audit root route + description fallback ---
+
+    it("meta-tag-audit uses project name for root route title", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["meta-tag-audit.json"]);
+      inp.context_map.detection.frameworks = [
+        { name: "next", version: "14.0.0", confidence: 1.0 },
+      ];
+      inp.context_map.routes = [
+        { path: "/", method: "GET", source_file: "app/page.tsx" },
+        { path: "/blog", method: "GET", source_file: "app/blog/page.tsx" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "meta-tag-audit.json");
+      expect(f).toBeDefined();
+      const data = JSON.parse(f!.content);
+      const rootAudit = data.per_route_audit.find((r: any) => r.route === "/");
+      expect(rootAudit).toBeDefined();
+    });
+
+    it("meta-tag-audit without next framework uses fallback", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["meta-tag-audit.json"]);
+      inp.context_map.detection.frameworks = [];
+      inp.context_map.routes = [
+        { path: "/home", method: "GET", source_file: "src/Home.tsx" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "meta-tag-audit.json");
+      expect(f).toBeDefined();
+      const data = JSON.parse(f!.content);
+      expect(data.framework).not.toBe("next");
+    });
+
+    // --- marketing: sequence-pack abstractions + funnel-map/cro inversions ---
+
+    it("sequence-pack highlights core abstraction", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["sequence-pack.md"]);
+      inp.context_map.ai_context.key_abstractions = ["ContextEngine", "Generator"];
+      const result = generateFiles(inp);
+      const f = getFile(result, "sequence-pack.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("ContextEngine");
+    });
+
+    it("sequence-pack without abstractions uses fallback copy", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["sequence-pack.md"]);
+      inp.context_map.ai_context.key_abstractions = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "sequence-pack.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("primary use case");
+    });
+
+    it("cro-playbook without routes skips route optimization", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["cro-playbook.md"]);
+      inp.context_map.routes = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "cro-playbook.md");
+      expect(f).toBeDefined();
+      expect(f!.content).not.toContain("Route Optimization");
+    });
+
+    it("funnel-map without entry points/warnings/abstractions", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["funnel-map.md"]);
+      inp.context_map.entry_points = [];
+      inp.context_map.ai_context.warnings = [];
+      inp.context_map.ai_context.key_abstractions = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "funnel-map.md");
+      expect(f).toBeDefined();
+      expect(f!.content).not.toContain("Quickstart showing core entry points");
+      expect(f!.content).not.toContain("Current known issues");
+      expect(f!.content).not.toContain("Key Activation Moments");
+    });
+
+    // --- notebook: warnings FALSE branches ---
+
+    it("notebook-summary without warnings skips warnings section", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["notebook-summary.md"]);
+      inp.context_map.ai_context.warnings = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "notebook-summary.md");
+      expect(f).toBeDefined();
+      expect(f!.content).not.toContain("Warnings & Notes");
+    });
+
+    it("research-threads without warnings skips known issues", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["research-threads.md"]);
+      inp.context_map.ai_context.warnings = [];
+      const result = generateFiles(inp);
+      const f = getFile(result, "research-threads.md");
+      expect(f).toBeDefined();
+      expect(f!.content).not.toContain("Known Issues to Investigate");
+    });
+  });
 });
