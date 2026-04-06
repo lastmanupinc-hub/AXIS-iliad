@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-21"
-    commit_or_tag: "c39459a"
-    current_session_id: "session_019b"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 71+ endpoints, 1341 tests across 63 files. eq_096-102: deletion API, quota visibility, search UI, admin dashboard, docker-compose polish, webhooks, file version history + diff. Capability inventory: A:76, B:2, F:4 (all remaining Fs are external deps). Grade: A (99+)."
+    commit_or_tag: "8ab744f"
+    current_session_id: "session_020"
+    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 71+ endpoints, 1407 tests across 65 files. eq_103-105: webhook retry with exponential backoff + dead-letter queue, OpenAPI 3.1 spec completeness (all 65 endpoints documented), 7-flow E2E integration test suite. Capability inventory: A:76, B:2, F:4 (all remaining Fs are external deps). Grade: A (99+)."
     current_status: "building"
     current_focus_vertical: "production_hardening"
 
@@ -31,9 +31,9 @@ project_continuation:
       architecture_confidence: 95
       runtime_confidence: 97
       pipeline_confidence: 99
-      product_surface_confidence: 93
-      integration_confidence: 97
-      notes: "1341 tests across 63 files (1285→1341). eq_096-102: deletion API, quota visibility, search UI, admin dashboard, docker-compose, webhooks, file version history + diff. Capability inventory: A:76, B:2, F:4. All remaining Fs blocked on external deps (payment processor, OAuth, email, hosting)."
+      product_surface_confidence: 95
+      integration_confidence: 98
+      notes: "1407 tests across 65 files (1341→1407). eq_103-105: webhook retry + dead-letter queue, complete OpenAPI 3.1 spec (all 65 endpoints + 14 new schemas), 7-flow E2E integration tests. Capability inventory: A:76, B:2, F:4. All remaining Fs blocked on external deps."
 
   boundary_truth:
     accepted_input_modes:
@@ -861,6 +861,21 @@ project_continuation:
         roi_reason: "validation_strength 5, production_quality 5, canonical_coherence 4. Generator pipeline error/validation branches had zero tests."
         completion_status: complete
         commit: "ee4f1a8"
+
+      - id: "eq_103"
+        description: "Webhook retry with exponential backoff + dead-letter queue — migration v7, processRetryQueue with 5 attempts, 2s base backoff, dead-lettering for deleted/deactivated webhooks, 18 tests"
+        completion_status: complete
+        commit: "98afd03"
+
+      - id: "eq_104"
+        description: "Complete OpenAPI 3.1 spec — 20 missing endpoints added (health, versions, admin, webhooks, database, quota, docs), 14 new schemas, queryParam helper, 8 new tests"
+        completion_status: complete
+        commit: "68f83eb"
+
+      - id: "eq_105"
+        description: "E2E integration flow tests — 7 cross-endpoint flows (snapshot lifecycle, version history, account lifecycle, admin dashboard, health+infra, webhook lifecycle, project deletion cascade), 40 tests"
+        completion_status: complete
+        commit: "8ab744f"
 
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
@@ -1781,6 +1796,35 @@ project_continuation:
       - "No file version history → version tracking + diff API"
     blockers_added: []
     commit_results: ["87cb34f", "d4d271a", "12636bc", "2e54718", "c39459a"]
+
+  current_session_result_037:
+    session_goal: "Production hardening — webhook retry, OpenAPI completeness, E2E integration tests"
+    selected_move: "eq_103 → eq_104 → eq_105: webhook retry + dead-letter queue, OpenAPI spec completeness, E2E flow tests"
+    selected_move_roi_reason: "All buildable capability gaps closed. Next highest-ROI moves: retry reliability for webhooks, API documentation completeness, cross-endpoint integration test coverage."
+    completed_candidates:
+      - "eq_103: Webhook retry with exponential backoff + dead-letter queue — Migration v7 (attempt_number, next_retry_at, dead_lettered columns + partial index). Retry constants: MAX_RETRY_ATTEMPTS=5, backoff 2s→8s→32s→128s→512s. processRetryQueue() with injectable sendFn, dead-lettering for deleted/deactivated webhooks. 18 new tests."
+      - "eq_104: Complete OpenAPI 3.1 spec — Added 20 missing endpoints (webhooks 5, admin 3, versions 3, health probes 2, metrics 1, db 2, quota 1, deletions 2, docs 1) + 14 new schemas (ReadinessResponse, VersionListResponse, VersionDetailResponse, VersionDiffResponse, QuotaResponse, AdminStatsResponse, AdminAccountsResponse, AdminActivityResponse, CreateWebhookRequest, WebhookResponse, WebhookListResponse, WebhookDeliveryListResponse, DbStatsResponse, DbMaintenanceResponse) + queryParam helper. 8 new tests."
+      - "eq_105: E2E integration flow tests — 7 cross-endpoint flows: (1) snapshot lifecycle with export+delete, (2) version history with seeded data+diff, (3) account lifecycle with key creation+quota+usage, (4) admin dashboard with auth, (5) health probes+metrics+db maintenance, (6) webhook lifecycle with toggle+deliveries+delete, (7) project deletion cascade verification. 40 new tests."
+    refused_candidates: []
+    blocked_candidates:
+      - "Payment integration — blocked on No Fate Platform payment processor"
+      - "OAuth login — blocked on OAuth provider integration"
+      - "Email notifications — blocked on email service provider"
+      - "Web hosting deployment — blocked on deployment platform selection"
+    evidence_added:
+      - "1407 vitest tests passing across 65 files (1341→1407, +66)"
+      - "3 new/modified test files: webhook-retry.test.ts (18), openapi.test.ts (+8), e2e-flows.test.ts (40)"
+      - "Migration v7 (webhook_retry_columns) — schema now at v7"
+      - "OpenAPI spec now documents all 65 registered API endpoints"
+      - "7 E2E integration flow tests covering full cross-endpoint workflows"
+    verticals_advanced:
+      - "Production Readiness — webhook reliability, API documentation, integration test coverage"
+    blockers_removed:
+      - "Webhook delivery fire-and-forget → retry with exponential backoff + dead-letter queue"
+      - "19 endpoints missing from OpenAPI spec → all endpoints documented"
+      - "No cross-endpoint E2E tests → 7 integration flow suites"
+    blockers_added: []
+    commit_results: ["98afd03", "68f83eb", "8ab744f"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
