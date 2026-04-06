@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-21"
-    commit_or_tag: "0cafbb4"
-    current_session_id: "session_023"
-    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1688 tests across 75 files, 94.25% stmt / 85.18% branch / 95.01% line coverage. eq_114-116: deep coverage offensive — handlers.ts vi.mock (+28 tests), router.ts+server.ts branches (+29 tests), generators-search.ts funcs (+10 tests)."
+    commit_or_tag: "2d5f8cd"
+    current_session_id: "session_024"
+    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1727 tests across 76 files, 95.07% stmt / 86.57% branch / 95.82% line coverage. eq_117-119: webhook HTTP production paths, generator branch sweep (hotspots/routes/identity), token-store env key branch."
     current_status: "building"
     current_focus_vertical: "production_hardening"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "1688 tests across 75 files. eq_114-116: deep coverage offensive — 94.25% stmts, 85.18% branches (was 83.08%), 95.01% lines. 67 new tests targeting handlers.ts vi.mock, router.ts readBody/timeout/edges, server.ts inline handlers, generators-search.ts dependency hotspots. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
+      notes: "1727 tests across 76 files. eq_117-119: webhook HTTP production paths (+20), generator branch sweep (+10), remaining branch sweep (+9). 95.07% stmts, 86.57% branches (was 85.18%), 90.21% funcs, 95.82% lines. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
 
   boundary_truth:
     accepted_input_modes:
@@ -1877,6 +1877,34 @@ project_continuation:
     blockers_added: []
     commit_results: ["c300eb9", "b6b30e1", "adfc7a7"]
     push_results: ["7dce44f..adfc7a7"]
+
+  current_session_result_041:
+    session_goal: "Continue coverage offensive — webhook production HTTP paths, generator branch sweep, remaining low-branch files"
+    selected_move: "eq_117 → eq_118 → eq_119: webhook-store HTTP coverage, generator branch sweep, remaining branch sweep"
+    selected_move_roi_reason: "webhook-store.ts at 63.63% stmts / 45.45% branches was biggest single-file coverage gap. Generator branch sweep (remotion 54%, algorithmic 58%, obsidian 66%, brand 71%) had high-density branch wins through hotspot/route/identity data injection. Token-store env key branch was quick win."
+    completed_candidates:
+      - "eq_117: webhook-store production HTTP coverage — 20 tests. Real localhost receiver on port 44491. Covers signPayload (4), getActiveWebhooksForEvent (4), dispatchWebhookEvent fire-and-forget HTTP (6 — success, HMAC sig, 500 response, connection refused, early return, URL parse error), processRetryQueue without sendFn (6 — success with retry headers, HMAC sig, 503, connection refused, URL parse failure, empty queue). webhook-store.ts 63.63%→95.86% stmts, 45.45%→75.75% branches. (commit 0706a81)"
+      - "eq_118: generator branch sweep — 10 tests. Cover hotspot branches in remotion (54→75%), algorithmic (58→67%), obsidian (66→83%), artifacts (70→73%). Cover brand type-classification (CLI, library, generic fallback — 71→87%). withRichContext helper injects hotspots, entry_points, deps, description, routes. (commit 31038a6)"
+      - "eq_119: remaining branch sweep — 9 tests. Frontend route-to-layout mapping (API/Auth/Marketing/Dashboard — 73→78%). Notebook research-threads (high arch score, patterns, hotspots — 76→80%). Token-store AXIS_TOKEN_KEY env branch (68→81%). (commit 2d5f8cd)"
+    refused_candidates: []
+    blocked_candidates:
+      - "Payment integration — blocked on No Fate Platform payment processor"
+      - "OAuth login — blocked on OAuth provider integration"
+      - "Email notifications — blocked on email service provider"
+      - "Web hosting deployment — blocked on deployment platform selection"
+    evidence_added:
+      - "1727 vitest tests passing across 76 files (1708→1727 this session)"
+      - "95.07% statement coverage, 86.57% branch coverage, 90.21% func coverage, 95.82% line coverage"
+      - "Branch coverage: 85.18% → 86.57% (+1.39pp)"
+      - "Statement coverage: 94.25% → 95.07% (+0.82pp)"
+      - "1 new test file: webhook-http.test.ts (20 tests). 2 existing test files extended: generator-branches.test.ts (+18), coverage-gaps.test.ts (+1)"
+    verticals_advanced:
+      - "Test Coverage — stmt 94.25%→95.07%, branch 85.18%→86.57%, funcs 89.38%→90.21%, lines 95.01%→95.82%"
+      - "Production Hardening — webhook production HTTP paths fully tested with real HTTP receiver"
+    blockers_removed: []
+    blockers_added: []
+    commit_results: ["0706a81", "31038a6", "2d5f8cd"]
+    push_results: ["4f6b99d..2d5f8cd"]
 
   current_session_result_040:
     session_goal: "Deep coverage offensive — push stmt coverage past 94% and branch coverage past 85%"
