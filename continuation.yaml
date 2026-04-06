@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-21"
-    commit_or_tag: "2d5f8cd"
-    current_session_id: "session_024"
-    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1727 tests across 76 files, 95.07% stmt / 86.57% branch / 95.82% line coverage. eq_117-119: webhook HTTP production paths, generator branch sweep (hotspots/routes/identity), token-store env key branch."
+    commit_or_tag: "5a5ab08"
+    current_session_id: "session_025"
+    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1770 tests across 76 files, 95.53% stmt / 87.15% branch / 96.26% line coverage. eq_120-122: funnel seat handlers (+27), webhook input validation (+6), web api endpoint functions (+15)."
     current_status: "building"
     current_focus_vertical: "production_hardening"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "1727 tests across 76 files. eq_117-119: webhook HTTP production paths (+20), generator branch sweep (+10), remaining branch sweep (+9). 95.07% stmts, 86.57% branches (was 85.18%), 90.21% funcs, 95.82% lines. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
+      notes: "1770 tests across 76 files. eq_120-122: funnel seat handlers (+27), webhook input validation (+6), web api endpoints (+15). 95.53% stmts, 87.15% branches (was 86.57%), 90.94% funcs, 96.26% lines. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
 
   boundary_truth:
     accepted_input_modes:
@@ -1877,6 +1877,35 @@ project_continuation:
     blockers_added: []
     commit_results: ["c300eb9", "b6b30e1", "adfc7a7"]
     push_results: ["7dce44f..adfc7a7"]
+
+  current_session_result_042:
+    session_goal: "Continue coverage offensive — funnel seat handlers, webhook input validation, web api endpoint functions"
+    selected_move: "eq_120 → eq_121 → eq_122: funnel.ts seat handler HTTP tests, webhooks.ts remaining input validation, api.ts (web) untested endpoint functions"
+    selected_move_roi_reason: "funnel.ts at 84.61% stmts / 78.78% branches had most untested handler branches (seats invite/list/accept/revoke never directly tested). webhooks.ts at 82.71% stmts missing create/toggle JSON validation. api.ts (web) at 65.67% stmts had 7 completely untested functions."
+    completed_candidates:
+      - "eq_120: funnel seat handler HTTP coverage — 27 new tests. Free tier rejection, missing email, invalid role, invalid JSON, duplicate email, seat limit with upgrade_hint, default role. List seats active-only, include_revoked, suite unlimited, count/remaining. Accept seat 404, email mismatch, success, re-accept. Revoke 404, cross-account, success. Dismiss empty/malformed body. Funnel limit capping. funnel.ts 84.61%→97.11% stmts, 78.78%→90.9% branches. (commit 0c37099)"
+      - "eq_121: webhooks.ts remaining input validation — 6 new tests. Invalid JSON body on create and toggle, missing URL field, non-http protocol, events as non-array, non-boolean active field. webhooks.ts 82.71%→95.06% stmts, 84.61%→90.38% branches. (commit 5a5ab08)"
+      - "eq_122: api.ts (web) untested endpoint functions — 15 new tests. getGeneratedFile (text response + error), searchQuery (default + custom limit), indexSnapshot, downloadExport (Content-Disposition parsing, default filename, error), getUpgradePrompt (prompt + null), dismissUpgradePrompt, getFunnelStatus. api.ts 65.67%→97.01% stmts, 70.96%→93.54% branches. (commit 5a5ab08)"
+    refused_candidates: []
+    blocked_candidates:
+      - "Payment integration — blocked on No Fate Platform payment processor"
+      - "OAuth login — blocked on OAuth provider integration"
+      - "Email notifications — blocked on email service provider"
+      - "Web hosting deployment — blocked on deployment platform selection"
+    evidence_added:
+      - "1770 vitest tests passing across 76 files (1727→1770 this session)"
+      - "95.53% statement coverage, 87.15% branch coverage, 90.94% func coverage, 96.26% line coverage"
+      - "Branch coverage: 86.57% → 87.15% (+0.58pp)"
+      - "Statement coverage: 95.07% → 95.53% (+0.46pp)"
+      - "funnel.ts: 84.61%→97.11% stmts, 78.78%→90.9% branches"
+      - "webhooks.ts: 82.71%→95.06% stmts, 84.61%→90.38% branches"
+      - "api.ts (web): 65.67%→97.01% stmts, 70.96%→93.54% branches"
+    verticals_advanced:
+      - "Test Coverage — stmt 95.07%→95.53%, branch 86.57%→87.15%, funcs 90.21%→90.94%, lines 95.82%→96.26%"
+    blockers_removed: []
+    blockers_added: []
+    commit_results: ["0c37099", "5a5ab08"]
+    push_results: ["3564f6c..5a5ab08"]
 
   current_session_result_041:
     session_goal: "Continue coverage offensive — webhook production HTTP paths, generator branch sweep, remaining low-branch files"
