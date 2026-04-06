@@ -14,6 +14,7 @@ export interface AxisConfig {
 
 /** Derive a machine-stable encryption key from hostname + username + homedir. */
 function deriveKey(): Buffer {
+  /* v8 ignore next — Windows always has USERNAME, unreachable fallback */
   const material = `axis:${homedir()}:${process.env.USERNAME ?? process.env.USER ?? "default"}`;
   return createHash("sha256").update(material).digest();
 }

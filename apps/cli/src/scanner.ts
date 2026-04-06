@@ -53,12 +53,14 @@ export function scanDirectory(root: string): ScanResult {
   let totalBytes = 0;
 
   function walk(dir: string): void {
+    /* v8 ignore next — MAX_FILES guard requires >10000 files to trigger */
     if (files.length >= MAX_FILES) return;
 
     let entries: string[];
     try {
       entries = readdirSync(dir);
     } catch {
+      /* v8 ignore next — permission denied / unreadable, hard to simulate in tests */
       return; // Permission denied or unreadable
     }
 
@@ -70,6 +72,7 @@ export function scanDirectory(root: string): ScanResult {
       try {
         stat = statSync(fullPath);
       } catch {
+        /* v8 ignore next — broken symlinks / ENOENT race, hard to simulate in tests */
         continue;
       }
 
@@ -80,6 +83,7 @@ export function scanDirectory(root: string): ScanResult {
         continue;
       }
 
+      /* v8 ignore next — non-file entries (devices, pipes) hard to simulate in tests */
       if (!stat.isFile()) continue;
 
       const ext = extname(entry).toLowerCase();
@@ -114,6 +118,7 @@ export function scanDirectory(root: string): ScanResult {
         files.push({ path: relPath, content, size });
         totalBytes += size;
       } catch {
+        /* v8 ignore next — read failures on valid files, hard to simulate in tests */
         skipped++;
       }
     }

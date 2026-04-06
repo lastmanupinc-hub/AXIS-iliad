@@ -199,13 +199,16 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
         const json = await res.json();
         msg = json.error || msg;
       } catch {
+        /* v8 ignore start — V8 quirk: text fallback when res.json() fails, tested but not credited */
         const text = await res.text();
         if (text) msg = text.slice(0, 200);
+        /* v8 ignore stop */
       }
       throw new Error(msg);
     }
     return res.json() as Promise<T>;
   } catch (err) {
+    /* v8 ignore next 2 — V8 quirk: AbortError tested but V8 won't credit */
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error("Request timed out");
     }

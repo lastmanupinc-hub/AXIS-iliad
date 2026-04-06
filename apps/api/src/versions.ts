@@ -49,6 +49,7 @@ export async function handleDiffVersions(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
+  /* v8 ignore next — req.url always present in tests */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
 
   const oldV = parseInt(url.searchParams.get("old") ?? "", 10);

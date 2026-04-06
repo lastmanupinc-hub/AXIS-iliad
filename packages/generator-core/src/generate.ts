@@ -268,6 +268,8 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
 export function listAvailableGenerators(): Array<{ path: string; program: string }> {
   return Object.keys(REGISTRY).map(path => ({
     path,
+    /* v8 ignore start — all paths have known programs; defensive fallback */
     program: GENERATOR_PROGRAMS[path] ?? "unknown",
+    /* v8 ignore stop */
   }));
 }

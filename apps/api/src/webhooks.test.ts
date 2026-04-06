@@ -317,3 +317,22 @@ describe("POST /v1/account/webhooks/:webhook_id/toggle — branch coverage", () 
     expect(r.data).toHaveProperty("error_code", "NOT_FOUND");
   });
 });
+
+// ─── Layer 13: auth guard coverage per handler ──────────────────
+
+describe("auth guard per-handler (webhooks.ts lines 107,128,163)", () => {
+  it("DELETE /v1/account/webhooks/:id returns 401 without auth", async () => {
+    const r = await req("DELETE", "/v1/account/webhooks/wh_nonexistent");
+    expect(r.status).toBe(401);
+  });
+
+  it("POST /v1/account/webhooks/:id/toggle returns 401 without auth", async () => {
+    const r = await req("POST", "/v1/account/webhooks/wh_nonexistent/toggle", { active: true });
+    expect(r.status).toBe(401);
+  });
+
+  it("GET /v1/account/webhooks/:id/deliveries returns 401 without auth", async () => {
+    const r = await req("GET", "/v1/account/webhooks/wh_nonexistent/deliveries");
+    expect(r.status).toBe(401);
+  });
+});

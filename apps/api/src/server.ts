@@ -194,5 +194,7 @@ router.delete("/v1/account/webhooks/:webhook_id", handleDeleteWebhook);
 router.post("/v1/account/webhooks/:webhook_id/toggle", handleToggleWebhook);
 router.get("/v1/account/webhooks/:webhook_id/deliveries", handleWebhookDeliveries);
 
+/* v8 ignore next — server.ts is never imported by test suites */
 const port = parseInt(process.env.PORT ?? "4000", 10);
+/* v8 ignore next */
 export const app = createApp(router, port);

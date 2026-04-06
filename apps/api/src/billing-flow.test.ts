@@ -482,3 +482,48 @@ describe("billing edge branches", () => {
     expect(r2.data.error_code).toBe("NOT_FOUND");
   });
 });
+
+// ─── Layer 13: billing branch coverage ──────────────────────────
+
+describe("billing handler branch coverage", () => {
+  // billing.ts line 249: revoke nonexistent key_id → 404
+  it("returns 404 when revoking a nonexistent key_id", async () => {
+    const { key } = await createTestAccount("RvKey", "rvkey@test.com");
+    const r = await req("POST", "/v1/account/keys/key_nonexistent_9999/revoke", {}, key);
+    expect(r.status).toBe(404);
+    expect(r.data.error_code).toBe("NOT_FOUND");
+  });
+
+  // billing.ts line 301: invalid JSON for tier update
+  it("returns 400 for invalid JSON on tier update", async () => {
+    const { key } = await createTestAccount("TierJSON", "tierjson@test.com");
+    // Send raw invalid JSON via low-level request
+    const r = await new Promise<{ status: number; data: Record<string, unknown> }>((resolve, reject) => {
+      const raw = "<<<not json>>>";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(raw)),
+        "Authorization": `Bearer ${key}`,
+      };
+      const http = require("node:http");
+      const r = http.request(
+        { hostname: "127.0.0.1", port: TEST_PORT, path: "/v1/account/tier", method: "POST", headers },
+        (res: import("node:http").IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString("utf-8");
+            let data: unknown;
+            try { data = JSON.parse(text); } catch { data = text; }
+            resolve({ status: res.statusCode ?? 0, data: data as Record<string, unknown> });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(raw);
+      r.end();
+    });
+    expect(r.status).toBe(400);
+    expect(r.data.error_code).toBe("INVALID_JSON");
+  });
+});

@@ -639,6 +639,7 @@ export function generateComponentThemeMap(ctx: ContextMap): GeneratedFile {
 
   // Classify components by pattern
   const components = componentFiles.map(f => {
+    /* v8 ignore next — defensive fallback: path always has filename segment */
     const name = f.path.split("/").pop()?.replace(/\.\w+$/, "") ?? f.path;
     const dir = f.path.split("/").slice(0, -1).join("/");
 

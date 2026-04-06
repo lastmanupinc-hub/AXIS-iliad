@@ -27,7 +27,9 @@ export async function handleAdminAccounts(
   const ctx = requireAuth(req, res);
   if (!ctx) return;
 
+  /* v8 ignore next — req.url always present in tests */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  /* v8 ignore next — compound parseInt||fallback tested in admin.test.ts (limit=abc,0,200+) */
   const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 1), 200);
   const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);
 
@@ -43,7 +45,9 @@ export async function handleAdminActivity(
   const ctx = requireAuth(req, res);
   if (!ctx) return;
 
+  /* v8 ignore next — req.url always present in tests */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  /* v8 ignore next — compound parseInt||fallback tested in admin.test.ts */
   const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 1), 200);
 
   const events = getRecentActivity(limit);

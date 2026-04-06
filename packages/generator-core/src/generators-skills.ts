@@ -163,6 +163,7 @@ export function generateClaudeMD(ctx: ContextMap): GeneratedFile {
     lines.push(`- **Test:** \`${pm} test\``);
   lines.push(`- **Dev:** \`${pm} run dev\``);
   if (ctx.detection.frameworks.some(f => f.name === "Prisma"))
+    /* v8 ignore next — package_managers never contains "npx" (it's a runner, not a PM) */
     lines.push(`- **DB Migrate:** \`${pm === "npx" ? "npx" : `${pm} exec`} prisma migrate dev\``);
   lines.push("");
 

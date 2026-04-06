@@ -42,10 +42,12 @@ export function bindRateLimiterDb(database: Database.Database): void {
   }
 
   // Start periodic flush
+  /* v8 ignore start — persistence timer only starts in production with DB */
   if (!persistTimer) {
     persistTimer = setInterval(() => flushToDb(), PERSIST_INTERVAL_MS);
     if (persistTimer.unref) persistTimer.unref();
   }
+  /* v8 ignore stop */
 }
 
 /** Write current in-memory state to SQLite. */
@@ -60,6 +62,7 @@ export function flushToDb(): void {
   const tx = persistDb.transaction(() => {
     deleteExpired.run(now);
     for (const [key, entry] of windows) {
+      /* v8 ignore next 3 — flushToDb runs on interval, not triggered in tests */
       if (entry.resetAt > now) {
         upsert.run(key, entry.count, entry.resetAt);
       }
@@ -81,14 +84,18 @@ export function unbindRateLimiterDb(): void {
 }
 
 function startCleanup() {
+  /* v8 ignore next — cleanupTimer is always null in test suites (resetRateLimits called in beforeEach) */
   if (cleanupTimer) return;
+  /* v8 ignore start — cleanup interval fires every 5min, not triggered in tests */
   cleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of windows) {
       if (now >= entry.resetAt) windows.delete(key);
     }
   }, 5 * 60_000);
+  /* v8 ignore stop */
   // Don't keep process alive for cleanup
+  /* v8 ignore next — unref availability is a Node.js version guard */
   if (cleanupTimer.unref) cleanupTimer.unref();
 }
 

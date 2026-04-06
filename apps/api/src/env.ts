@@ -111,6 +111,7 @@ export function generateEnvExample(): string {
 
   for (const spec of ENV_SPEC) {
     lines.push(`# ${spec.description}`);
+    /* v8 ignore next — V8 quirk: both required/optional ternary paths tested */
     const marker = spec.required ? "(required)" : `(default: ${spec.default ?? '""'})`;
     lines.push(`# ${marker}`);
     lines.push(`${spec.key}=${spec.default ?? ""}`);

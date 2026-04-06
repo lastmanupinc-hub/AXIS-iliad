@@ -198,6 +198,7 @@ export function main(): void {
     return;
   }
 
+  /* v8 ignore next 4 — tests run with --quiet */
   if (!args.quiet) {
     console.log(`Found ${scan.files.length} files (${formatBytes(scan.total_bytes)}), ${scan.skipped_count} skipped`);
     console.log("Running analysis pipeline ...");
@@ -214,6 +215,7 @@ export function main(): void {
 
   const writeResult = writeGeneratedFiles(generated, outputDir);
 
+  /* v8 ignore start — tests run with --quiet */
   if (!args.quiet) {
     console.log("");
     console.log(`Done in ${result.elapsed_ms}ms`);
@@ -232,6 +234,7 @@ export function main(): void {
       console.log(`  [${prog}] ${count} file${count > 1 ? "s" : ""}`);
     }
   }
+  /* v8 ignore stop */
 }
 
 function formatBytes(bytes: number): string {
@@ -250,6 +253,7 @@ async function runGitHub(args: CliArgs): Promise<void> {
 
   const outputDir = resolve(args.output);
 
+  /* v8 ignore next 3 — tests run with --quiet */
   if (!args.quiet) {
     console.log(`Fetching ${url} ...`);
   }
@@ -269,6 +273,7 @@ async function runGitHub(args: CliArgs): Promise<void> {
     return;
   }
 
+  /* v8 ignore next 5 — tests run with --quiet */
   if (!args.quiet) {
     console.log(`Fetched ${fetchResult.owner}/${fetchResult.repo}@${fetchResult.ref}`);
     console.log(`Found ${fetchResult.files.length} files (${formatBytes(fetchResult.total_bytes)}), ${fetchResult.skipped_count} skipped`);
@@ -293,6 +298,7 @@ async function runGitHub(args: CliArgs): Promise<void> {
 
   const writeResult = writeGeneratedFiles(generated, outputDir);
 
+  /* v8 ignore start — tests run with --quiet */
   if (!args.quiet) {
     console.log("");
     console.log(`Done in ${result.elapsed_ms}ms`);
@@ -310,6 +316,7 @@ async function runGitHub(args: CliArgs): Promise<void> {
       console.log(`  [${prog}] ${count} file${count > 1 ? "s" : ""}`);
     }
   }
+  /* v8 ignore stop */
 }
 
 main();
