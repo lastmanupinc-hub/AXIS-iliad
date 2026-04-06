@@ -4,6 +4,7 @@ import { Socket } from "node:net";
 import {
   getClientIp,
   checkRateLimit,
+  getClientWindow,
   resetRateLimits,
   LIMITS,
   bindRateLimiterDb,
@@ -355,5 +356,41 @@ describe("rate limiter persistence", () => {
     const req = makeReq({ "x-forwarded-for": "90.90.90.90" });
     const res = makeRes();
     expect(checkRateLimit(req, res)).toBe(true);
+  });
+});
+
+// ─── getClientWindow ────────────────────────────────────────────
+
+describe("getClientWindow", () => {
+  it("returns zeroed window for unknown IP", () => {
+    const w = getClientWindow("192.168.99.99");
+    expect(w.count).toBe(0);
+    expect(w.remaining).toBe(w.limit);
+    expect(w.reset_at).toBe(0);
+    expect(w.reset_in_seconds).toBe(0);
+  });
+
+  it("reflects active window for IP that has made requests", () => {
+    const ip = "10.20.30.40";
+    const req = makeReq({ "x-forwarded-for": ip });
+    const res = makeRes();
+    checkRateLimit(req, res);
+    checkRateLimit(makeReq({ "x-forwarded-for": ip }), makeRes());
+
+    const w = getClientWindow(ip);
+    expect(w.count).toBe(2);
+    expect(w.remaining).toBe(w.limit - 2);
+    expect(w.reset_at).toBeGreaterThan(0);
+    expect(w.reset_in_seconds).toBeGreaterThan(0);
+  });
+
+  it("applies authenticated limit when option is set", () => {
+    const ip = "10.20.30.41";
+    const req = makeReq({ "x-forwarded-for": ip });
+    checkRateLimit(req, makeRes(), { authenticated: true });
+
+    const w = getClientWindow(ip, { authenticated: true });
+    expect(w.limit).toBe(LIMITS.AUTHENTICATED_MAX);
+    expect(w.count).toBe(1);
   });
 });

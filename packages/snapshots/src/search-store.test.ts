@@ -164,3 +164,20 @@ describe("getSearchIndexStats", () => {
     expect(stats.line_count).toBe(0);
   });
 });
+
+// ─── Empty query branch ─────────────────────────────────────────
+
+describe("searchSnapshotContent empty query", () => {
+  it("returns empty array for whitespace-only query", () => {
+    indexSnapshotContent("snap1", [
+      { path: "a.ts", content: "hello world" },
+    ]);
+    const results = searchSnapshotContent("snap1", "   ");
+    expect(results).toEqual([]);
+  });
+
+  it("returns empty array for empty string query", () => {
+    const results = searchSnapshotContent("snap1", "");
+    expect(results).toEqual([]);
+  });
+});

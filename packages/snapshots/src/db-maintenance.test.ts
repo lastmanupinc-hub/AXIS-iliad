@@ -175,6 +175,13 @@ describe("purgeStaleData", () => {
   });
 });
 
+describe("closeDb edge cases", () => {
+  it("is a no-op when called on an already-closed database", () => {
+    closeDb(); // first close — db is open
+    closeDb(); // second close — db is already null, should not throw
+  });
+});
+
 describe("runMaintenance", () => {
   it("runs all 4 maintenance steps", () => {
     const results = runMaintenance(db);

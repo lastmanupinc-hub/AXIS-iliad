@@ -157,3 +157,22 @@ describe("GET /v1/admin/activity", () => {
     expect((r.data.events as unknown[]).length).toBeLessThanOrEqual(1);
   });
 });
+
+// ─── Auth failure branches ──────────────────────────────────────
+
+describe("Admin auth failure branches", () => {
+  it("stats returns 401 without auth", async () => {
+    const r = await req("GET", "/v1/admin/stats");
+    expect(r.status).toBe(401);
+  });
+
+  it("accounts returns 401 without auth", async () => {
+    const r = await req("GET", "/v1/admin/accounts");
+    expect(r.status).toBe(401);
+  });
+
+  it("activity returns 401 without auth", async () => {
+    const r = await req("GET", "/v1/admin/activity");
+    expect(r.status).toBe(401);
+  });
+});

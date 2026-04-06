@@ -1278,3 +1278,247 @@ describe("Artifacts component-library framework branches", () => {
     expect(data.styling).toBe("css-modules");
   });
 });
+
+// ─── Layer 1: canvas + remotion + superpowers ───────────────────
+
+describe("Canvas empty-data branches", () => {
+  it("brand-board: omits abstractions section when empty", () => {
+    const s = snap({ name: "no-abs", files: [
+      { path: "index.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["brand-board.md"]);
+    inp.context_map.ai_context.key_abstractions = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "brand-board.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Key Abstractions for Branding");
+  });
+
+  it("poster-layouts: omits architecture diagram when patterns and layers empty", () => {
+    const s = snap({ name: "flat-proj", files: [
+      { path: "main.ts", content: "console.log(1)", size: 15, language: null },
+    ]});
+    const inp = input(s, ["poster-layouts.md"]);
+    inp.context_map.architecture_signals.patterns_detected = [];
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "poster-layouts.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Architecture Diagram");
+  });
+
+  it("poster-layouts: shows patterns without layers", () => {
+    const s = snap({ name: "pat-proj", files: [
+      { path: "main.ts", content: "console.log(1)", size: 15, language: null },
+    ]});
+    const inp = input(s, ["poster-layouts.md"]);
+    inp.context_map.architecture_signals.patterns_detected = ["MVC"];
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "poster-layouts.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("Architecture Diagram");
+    expect(f!.content).toContain("MVC");
+  });
+});
+
+describe("Remotion empty abstractions branch", () => {
+  it("storyboard: omits labels line when abstractions empty", () => {
+    const s = snap({ name: "no-abs-rem", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["storyboard.md"]);
+    inp.context_map.ai_context.key_abstractions = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "storyboard.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("**Labels**:");
+  });
+
+  it("scene-plan: shows 'None detected' for empty abstractions", () => {
+    const s = snap({ name: "no-abs-scene", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["scene-plan.md"]);
+    inp.context_map.ai_context.key_abstractions = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "scene-plan.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("None detected");
+  });
+});
+
+describe("Superpowers build/test branches", () => {
+  it("superpower-pack: uses tsc build command", () => {
+    const s = snap({ name: "tsc-proj", files: [
+      { path: "index.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["superpower-pack.md"]);
+    inp.context_map.detection.build_tools = ["tsc"];
+    inp.context_map.detection.test_frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "superpower-pack.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("npx tsc");
+    expect(f!.content).not.toContain("### Testing");
+  });
+
+  it("superpower-pack: uses generic start when no Next.js or vite", () => {
+    const s = snap({ name: "plain-srv", files: [
+      { path: "server.js", content: "require('express')", size: 20, language: null },
+    ]});
+    const inp = input(s, ["superpower-pack.md"]);
+    inp.context_map.detection.build_tools = ["webpack"];
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "superpower-pack.md");
+    expect(f).toBeDefined();
+    // Falls through to `${pkgMgr} start`
+    expect(f!.content).toMatch(/pnpm start|npm start/);
+  });
+
+  it("refactor-checklist: shows 'No dependency hotspots' when empty", () => {
+    const s = snap({ name: "no-hot", files: [
+      { path: "index.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["refactor-checklist.md"]);
+    inp.context_map.dependency_graph.hotspots = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "refactor-checklist.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("No dependency hotspots detected");
+  });
+
+  it("automation-pipeline: uses npm test when no test frameworks", () => {
+    const s = snap({ name: "no-test-fw", files: [
+      { path: "index.js", content: "module.exports={}", size: 20, language: null },
+    ]});
+    const inp = input(s, ["automation-pipeline.yaml"]);
+    inp.context_map.detection.test_frameworks = [];
+    inp.context_map.detection.package_managers = ["npm"];
+    const result = generateFiles(inp);
+    const f = getFile(result, "automation-pipeline.yaml");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("npm test");
+  });
+});
+
+// ─── Layer 2: optimization + notebook + debug branches ──────────
+
+describe("Optimization build-tool fallback branches", () => {
+  it("falls back for unknown build tools (no vite/webpack/tsc/eslint)", () => {
+    const s = snap({ name: "gradle-proj", files: [
+      { path: "build.gradle", content: "apply plugin: 'java'", size: 25, language: null },
+    ]});
+    const inp = input(s, ["optimization-rules.md"]);
+    inp.context_map.detection.build_tools = ["gradle"];
+    inp.context_map.detection.test_frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/optimization-rules.md");
+    expect(f).toBeDefined();
+    // No vite/webpack/tsc/eslint-specific optimization tips
+    expect(f!.content).not.toContain("Vite");
+  });
+});
+
+describe("Notebook empty-data branches", () => {
+  it("omits test section when test_frameworks empty", () => {
+    const s = snap({ name: "no-test-nb", files: [
+      { path: "main.py", content: "print('hi')", size: 12, language: null },
+    ]});
+    const inp = input(s, ["notebook-summary.md"]);
+    inp.context_map.detection.test_frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "notebook-summary.md");
+    expect(f).toBeDefined();
+  });
+
+  it("research-threads: handles low separation score (<4)", () => {
+    const s = snap({ name: "messy-code", files: [
+      { path: "everything.js", content: "// monolith", size: 50, language: null },
+    ]});
+    const inp = input(s, ["research-threads.md"]);
+    inp.context_map.architecture_signals.separation_score = 2;
+    const result = generateFiles(inp);
+    const f = getFile(result, "research-threads.md");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Debug branches without Prisma", () => {
+  it("debug-playbook: excludes Prisma-specific debugging when not present", () => {
+    const s = snap({ name: "no-prisma", files: [
+      { path: "server.ts", content: "import express from 'express'", size: 30, language: null },
+    ]});
+    const inp = input(s, ["debug-playbook.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "express", confidence: 0.9, signals: ["server.ts"] },
+    ];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/debug-playbook.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Prisma");
+  });
+});
+
+// ─── Layer 3: skills + obsidian + frontend branches ─────────────
+
+describe("Skills branches without Next.js", () => {
+  it("generates AGENTS.md for React-only project (no Next.js)", () => {
+    const s = snap({ name: "react-spa", type: "web_app", files: [
+      { path: "App.tsx", content: "export default function App() {}", size: 40, language: null },
+    ]});
+    const inp = input(s, ["AGENTS.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "react", confidence: 0.9, signals: ["App.tsx"] },
+    ];
+    inp.context_map.detection.ci_platform = null as any;
+    const result = generateFiles(inp);
+    const f = getFile(result, "AGENTS.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("react");
+    expect(f!.content).not.toContain("Next.js");
+  });
+});
+
+describe("Obsidian empty frameworks branch", () => {
+  it("omits framework-specific sections when frameworks empty", () => {
+    const s = snap({ name: "obs-plain", files: [
+      { path: "main.py", content: "print(1)", size: 10, language: null },
+    ]});
+    const inp = input(s, ["obsidian-skill-pack.md"]);
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "obsidian-skill-pack.md");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Frontend route and framework branches", () => {
+  it("handles project with no API routes", () => {
+    const s = snap({ name: "static-site", files: [
+      { path: "index.html", content: "<html></html>", size: 15, language: null },
+    ]});
+    const inp = input(s, ["frontend-rules.md"]);
+    inp.context_map.routes = [];
+    inp.context_map.detection.frameworks = [];
+    inp.context_map.detection.test_frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/frontend-rules.md");
+    expect(f).toBeDefined();
+  });
+
+  it("handles project without tailwind", () => {
+    const s = snap({ name: "vue-app", files: [
+      { path: "App.vue", content: "<template></template>", size: 22, language: null },
+    ]});
+    const inp = input(s, ["component-guidelines.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "vue", confidence: 0.9, signals: ["App.vue"] },
+    ];
+    const result = generateFiles(inp);
+    const f = getFile(result, "component-guidelines.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Tailwind");
+  });
+});

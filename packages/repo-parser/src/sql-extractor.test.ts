@@ -124,4 +124,47 @@ describe("extractSQLSchema", () => {
     expect(tables[0].name).toBe("user_data");
     expect(tables[0].columns[0].name).toBe("id");
   });
+
+  it("extracts standalone PRIMARY KEY constraint", () => {
+    const tables = extractSQLSchema([
+      sqlFile("pk.sql", `CREATE TABLE composite (
+        a INTEGER NOT NULL,
+        b INTEGER NOT NULL,
+        PRIMARY KEY(a, b)
+      );`),
+    ]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].columns[0]).toMatchObject({ name: "a", is_pk: true, nullable: false });
+    expect(tables[0].columns[1]).toMatchObject({ name: "b", is_pk: true, nullable: false });
+  });
+
+  it("extracts FOREIGN KEY constraints", () => {
+    const tables = extractSQLSchema([
+      sqlFile("fk.sql", `CREATE TABLE orders (
+        id INTEGER PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+      );`),
+    ]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].foreign_keys).toHaveLength(1);
+    expect(tables[0].foreign_keys[0]).toMatchObject({
+      column: "user_id",
+      references_table: "users",
+      references_column: "id",
+    });
+  });
+
+  it("skips unrecognized constraint types (UNIQUE, CHECK)", () => {
+    const tables = extractSQLSchema([
+      sqlFile("constraints.sql", `CREATE TABLE items (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        UNIQUE(name),
+        CHECK(length(name) > 0)
+      );`),
+    ]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].columns).toHaveLength(2);
+  });
 });
