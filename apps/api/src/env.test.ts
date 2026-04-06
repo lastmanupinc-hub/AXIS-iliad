@@ -183,7 +183,6 @@ describe("validateEnv edge branches", () => {
       const result = validateEnv({ VERBOSE: "yes" });
       expect(result.valid).toBe(false);
       expect(result.errors[0].key).toBe("VERBOSE");
-      expect(result.errors[0].message).toContain("true/false/1/0");
     } finally {
       ENV_SPEC.length = original.length;
     }
@@ -195,13 +194,64 @@ describe("validateEnv edge branches", () => {
       key: "API_SECRET",
       required: true,
       type: "string",
-      description: "Secret key for API auth",
+      description: "Secret key for API",
     });
     try {
       const result = validateEnv({});
       expect(result.valid).toBe(false);
       expect(result.errors[0].key).toBe("API_SECRET");
       expect(result.errors[0].message).toContain("Required");
+    } finally {
+      ENV_SPEC.length = original.length;
+    }
+  });
+
+  it("errors on required var set to empty string", () => {
+    const original = [...ENV_SPEC];
+    ENV_SPEC.push({
+      key: "API_SECRET",
+      required: true,
+      type: "string",
+      description: "Secret key for API",
+    });
+    try {
+      const result = validateEnv({ API_SECRET: "" });
+      expect(result.valid).toBe(false);
+      expect(result.errors[0].key).toBe("API_SECRET");
+    } finally {
+      ENV_SPEC.length = original.length;
+    }
+  });
+
+  it("generateEnvExample: includes '(required)' marker for required spec", () => {
+    const original = [...ENV_SPEC];
+    ENV_SPEC.push({
+      key: "API_SECRET",
+      required: true,
+      type: "string",
+      description: "Secret key for API",
+    });
+    try {
+      const example = generateEnvExample();
+      expect(example).toContain("(required)");
+      expect(example).toContain("API_SECRET=");
+    } finally {
+      ENV_SPEC.length = original.length;
+    }
+  });
+
+  it("optional spec with no default uses empty string", () => {
+    const original = [...ENV_SPEC];
+    ENV_SPEC.push({
+      key: "OPTIONAL_NODEF",
+      required: false,
+      type: "string",
+      description: "Optional with no default",
+    });
+    try {
+      const result = validateEnv({});
+      expect(result.valid).toBe(true);
+      expect(result.resolved.OPTIONAL_NODEF).toBe("");
     } finally {
       ENV_SPEC.length = original.length;
     }

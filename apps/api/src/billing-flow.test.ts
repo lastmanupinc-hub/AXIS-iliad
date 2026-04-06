@@ -389,3 +389,40 @@ describe("cross-cutting security", () => {
     expect(r.data.error_code).toBe("AUTH_REQUIRED");
   });
 });
+
+// ─── 8. Billing edge branches ───────────────────────────────────
+
+describe("billing edge branches", () => {
+  it("rejects enable as non-array in programs update", async () => {
+    const { key } = await createTestAccount("NonArr", "nonarr@test.com");
+    await req("POST", "/v1/account/tier", { tier: "paid" }, key);
+    const r = await req("POST", "/v1/account/programs", { enable: "marketing" }, key);
+    expect(r.status).toBe(400);
+    expect(r.data.error_code).toBe("INVALID_FORMAT");
+  });
+
+  it("rejects disable as non-array in programs update", async () => {
+    const { key } = await createTestAccount("DisNon", "disnon@test.com");
+    await req("POST", "/v1/account/tier", { tier: "paid" }, key);
+    const r = await req("POST", "/v1/account/programs", { disable: 123 }, key);
+    expect(r.status).toBe(400);
+    expect(r.data.error_code).toBe("INVALID_FORMAT");
+  });
+
+  it("returns 409 when revoking an already-revoked key", async () => {
+    const { key } = await createTestAccount("DblRev", "dblrev@test.com");
+    const key2 = await req("POST", "/v1/account/keys", { label: "temp" }, key);
+    const key2_id = key2.data.key_id as string;
+    await req("POST", `/v1/account/keys/${key2_id}/revoke`, {}, key);
+    const r2 = await req("POST", `/v1/account/keys/${key2_id}/revoke`, {}, key);
+    expect(r2.status).toBe(409);
+    expect(r2.data.error_code).toBe("CONFLICT");
+  });
+
+  it("handles same-tier upgrade (no change)", async () => {
+    const { key } = await createTestAccount("SameTier", "sametier@test.com");
+    // Account starts as free, upgrade to free again
+    const r = await req("POST", "/v1/account/tier", { tier: "free" }, key);
+    expect(r.status).toBe(200);
+  });
+});

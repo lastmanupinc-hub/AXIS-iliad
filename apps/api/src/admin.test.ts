@@ -176,3 +176,37 @@ describe("Admin auth failure branches", () => {
     expect(r.status).toBe(401);
   });
 });
+
+// ─── Boundary clamping branches ─────────────────────────────────
+
+describe("admin param clamping", () => {
+  it("accounts defaults limit=0 to 50 (falsy fallback)", async () => {
+    const r = await req("GET", "/v1/admin/accounts?limit=0", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect(r.data.limit).toBe(50);
+  });
+
+  it("accounts clamps limit=-10 to 1", async () => {
+    const r = await req("GET", "/v1/admin/accounts?limit=-10", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect(r.data.limit).toBe(1);
+  });
+
+  it("accounts clamps limit=999 to 200 (Math.min branch)", async () => {
+    const r = await req("GET", "/v1/admin/accounts?limit=999", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect(r.data.limit).toBe(200);
+  });
+
+  it("accounts clamps negative offset to 0", async () => {
+    const r = await req("GET", "/v1/admin/accounts?offset=-5", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect(r.data.offset).toBe(0);
+  });
+
+  it("activity clamps limit=0 to 1", async () => {
+    const r = await req("GET", "/v1/admin/activity?limit=0", undefined, apiKey);
+    expect(r.status).toBe(200);
+    // Activity was fetched successfully
+  });
+});

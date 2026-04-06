@@ -175,4 +175,61 @@ export interface Alpha { a: string }
       expect(models).toEqual([]);
     });
   });
+
+  describe("Go edge cases", () => {
+    it("skips unexported Go interfaces", () => {
+      const models = extractDomainModels([
+        makeFile("internal/handler.go", `package internal
+type handler interface {
+	handle() error
+}
+`),
+      ]);
+      expect(models).toHaveLength(0);
+    });
+
+    it("handles Go struct with embedded types (single-token lines)", () => {
+      const models = extractDomainModels([
+        makeFile("domain/product.go", `package domain
+type Product struct {
+	BaseModel
+	Name  string
+	Price int
+}
+`),
+      ]);
+      expect(models).toHaveLength(1);
+      expect(models[0].fields.some(f => f.name === "Name")).toBe(true);
+      expect(models[0].fields.some(f => f.name === "Price")).toBe(true);
+    });
+  });
+
+  describe("Python edge cases", () => {
+    it("handles Python class with no self assignments", () => {
+      const models = extractDomainModels([
+        makeFile("utils/helper.py", `class EmptyHelper:
+    pass
+
+class NextClass:
+    def __init__(self):
+        self.name = "next"
+`),
+      ]);
+      const empty = models.find(m => m.name === "EmptyHelper");
+      expect(empty).toBeDefined();
+      expect(empty!.fields).toHaveLength(0);
+    });
+
+    it("handles Python class with typed self attributes", () => {
+      const models = extractDomainModels([
+        makeFile("models/user.py", `class User:
+    def __init__(self, name: str, age: int):
+        self.name: str = name
+        self.age: int = age
+`),
+      ]);
+      expect(models).toHaveLength(1);
+      expect(models[0].fields.some(f => f.name === "name" && f.type === "str")).toBe(true);
+    });
+  });
 });

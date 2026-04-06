@@ -1522,3 +1522,471 @@ describe("Frontend route and framework branches", () => {
     expect(f!.content).not.toContain("Tailwind");
   });
 });
+
+// ─── Layer 2: deeper generator branch coverage ──────────────────
+
+describe("Frontend Svelte framework branch (non-React/Next.js)", () => {
+  it("frontend-rules: omits Next.js / React data-fetching tips for Svelte", () => {
+    const s = snap({ name: "svelte-app", files: [
+      { path: "App.svelte", content: "<script>let name='world'</script>", size: 35, language: null },
+    ]});
+    const inp = input(s, [".ai/frontend-rules.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "Svelte", confidence: 0.9, signals: ["App.svelte"] },
+    ];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/frontend-rules.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Server Component");
+    expect(f!.content).not.toContain("Route Handlers");
+  });
+});
+
+describe("Frontend ui-audit empty page routes branch", () => {
+  it("ui-audit: shows 'no page routes' when only API routes exist", () => {
+    const s = snap({ name: "api-only", files: [
+      { path: "server.ts", content: "export {}", size: 10, language: null },
+    ]});
+    const inp = input(s, ["ui-audit.md"]);
+    inp.context_map.routes = [
+      { path: "/api/health", method: "GET", source_file: "health.ts" },
+    ];
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "ui-audit.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("No page routes detected");
+  });
+});
+
+describe("Frontend layout-patterns without tailwind", () => {
+  it("layout-patterns: uses generic breakpoints when no Tailwind", () => {
+    const s = snap({ name: "vue-app", files: [
+      { path: "App.vue", content: "<template></template>", size: 22, language: null },
+    ]});
+    const inp = input(s, ["layout-patterns.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "Vue", confidence: 0.9, signals: ["App.vue"] },
+    ];
+    const result = generateFiles(inp);
+    const f = getFile(result, "layout-patterns.md");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Optimization empty hotspots + entry_points", () => {
+  it("optimization-rules: omits hotspot table when no hotspots", () => {
+    const s = snap({ name: "small-proj", files: [
+      { path: "index.ts", content: "console.log(1)", size: 15, language: null },
+    ]});
+    const inp = input(s, [".ai/optimization-rules.md"]);
+    inp.context_map.dependency_graph.hotspots = [];
+    inp.context_map.entry_points = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/optimization-rules.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Dependency Hotspots");
+    expect(f!.content).not.toContain("Entry Points");
+  });
+
+  it("cost-estimate: produces cost data without language breakdown > 3", () => {
+    const s = snap({ name: "mono-lang", files: [
+      { path: "main.py", content: "print(1)", size: 10, language: null },
+    ]});
+    const inp = input(s, ["cost-estimate.json"]);
+    inp.context_map.dependency_graph.hotspots = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "cost-estimate.json");
+    expect(f).toBeDefined();
+    const parsed = JSON.parse(f!.content);
+    expect(parsed.optimization_opportunities).toBeDefined();
+  });
+
+  it("token-budget-plan: omits config-files optimization when none exist", () => {
+    const s = snap({ name: "no-config", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["token-budget-plan.md"]);
+    inp.context_map.structure.file_tree_summary = [];
+    inp.context_map.dependency_graph.hotspots = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "token-budget-plan.md");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Notebook empty deps + no build_tools", () => {
+  it("notebook-summary: omits dependency table when no external deps", () => {
+    const s = snap({ name: "bare-proj", files: [
+      { path: "main.py", content: "print(1)", size: 10, language: null },
+    ]});
+    const inp = input(s, ["notebook-summary.md"]);
+    inp.context_map.dependency_graph.external_dependencies = [];
+    inp.context_map.detection.build_tools = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "notebook-summary.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Dependency Snapshot");
+  });
+
+  it("research-threads: shows pattern list when patterns > 0", () => {
+    const s = snap({ name: "patterned", files: [
+      { path: "app.ts", content: "export {}", size: 10, language: null },
+    ]});
+    const inp = input(s, ["research-threads.md"]);
+    inp.context_map.architecture_signals.patterns_detected = ["MVC", "Repository"];
+    inp.context_map.architecture_signals.separation_score = 8;
+    const result = generateFiles(inp);
+    const f = getFile(result, "research-threads.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("MVC");
+  });
+});
+
+describe("Canvas empty file_tree_summary", () => {
+  it("social-pack: uses primary_language when frameworks empty", () => {
+    const s = snap({ name: "py-proj", files: [
+      { path: "main.py", content: "print(1)", size: 10, language: null },
+    ]});
+    const inp = input(s, ["social-pack.md"]);
+    inp.context_map.detection.frameworks = [];
+    inp.context_map.architecture_signals.patterns_detected = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "social-pack.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("Custom architecture");
+  });
+
+  it("poster-layouts: omits architecture diagram when no patterns AND no layers", () => {
+    const s = snap({ name: "flat-proj", files: [
+      { path: "index.js", content: "module.exports={}", size: 25, language: null },
+    ]});
+    const inp = input(s, ["poster-layouts.md"]);
+    inp.context_map.architecture_signals.patterns_detected = [];
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "poster-layouts.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Architecture Diagram");
+  });
+});
+
+describe("Debug empty routes + layer boundaries + conventions", () => {
+  it("debug-playbook: omits route map when no routes", () => {
+    const s = snap({ name: "no-routes", files: [
+      { path: "lib.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, [".ai/debug-playbook.md"]);
+    inp.context_map.routes = [];
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    inp.context_map.ai_context.conventions = [];
+    inp.context_map.ai_context.warnings = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/debug-playbook.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Route Map");
+    expect(f!.content).not.toContain("Check Layer Boundaries");
+    expect(f!.content).toContain("No linter configured");
+    expect(f!.content).toContain("No formatter");
+  });
+
+  it("root-cause-checklist: shows 'no high-coupling files' when no hotspots", () => {
+    const s = snap({ name: "simple", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["root-cause-checklist.md"]);
+    inp.context_map.dependency_graph.hotspots = [];
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "root-cause-checklist.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("No high-coupling files detected");
+  });
+
+  it("tracing-rules: generates tracing guidance without Prisma/Express", () => {
+    const s = snap({ name: "plain-svc", files: [
+      { path: "server.ts", content: "import http from 'http'", size: 25, language: null },
+    ]});
+    const inp = input(s, ["tracing-rules.md"]);
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "tracing-rules.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Prisma");
+  });
+});
+
+describe("Algorithmic empty patterns + layers", () => {
+  it("collection-map: omits ridges/strata when no patterns or layers", () => {
+    const s = snap({ name: "flat-code", files: [
+      { path: "main.go", content: "package main", size: 13, language: null },
+    ]});
+    const inp = input(s, ["collection-map.md"]);
+    inp.context_map.architecture_signals.patterns_detected = [];
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "collection-map.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("Ridges:");
+    expect(f!.content).not.toContain("Strata:");
+  });
+
+  it("parameter-pack: uses organic symmetry for low separation score", () => {
+    const s = snap({ name: "messy", files: [
+      { path: "main.js", content: "// monolith", size: 12, language: null },
+    ]});
+    const inp = input(s, ["parameter-pack.json"]);
+    inp.context_map.architecture_signals.separation_score = 20;
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "parameter-pack.json");
+    expect(f).toBeDefined();
+    const parsed = JSON.parse(f!.content);
+    expect(parsed.parameters.structure.symmetry).toBe("organic");
+  });
+});
+
+describe("Brand empty patterns_detected", () => {
+  it("brand-guidelines: omits pattern badges when patterns empty", () => {
+    const s = snap({ name: "no-pattern", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["brand-guidelines.md"]);
+    inp.context_map.architecture_signals.patterns_detected = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "brand-guidelines.md");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Theme without tailwind or PostCSS", () => {
+  it("design-tokens: uses generic CSS variable approach without tailwind", () => {
+    const s = snap({ name: "plain-css", files: [
+      { path: "style.css", content: "body { margin: 0 }", size: 20, language: null },
+    ]});
+    const inp = input(s, ["design-tokens.json"]);
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".ai/design-tokens.json");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Search empty entry_points + routes", () => {
+  it("dependency-hotspots: generates without entry points or routes", () => {
+    const s = snap({ name: "flat-proj", files: [
+      { path: "lib.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["dependency-hotspots.md"]);
+    inp.context_map.entry_points = [];
+    inp.context_map.routes = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "dependency-hotspots.md");
+    expect(f).toBeDefined();
+  });
+});
+
+describe("Marketing empty conventions + non-Next.js", () => {
+  it("sequence-pack: uses generic value prop when key_abstractions empty", () => {
+    const s = snap({ name: "bare-tool", files: [
+      { path: "cli.ts", content: "process.argv", size: 15, language: null },
+    ]});
+    const inp = input(s, ["sequence-pack.md"]);
+    inp.context_map.ai_context.key_abstractions = [];
+    inp.context_map.ai_context.conventions = [];
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "sequence-pack.md");
+    expect(f).toBeDefined();
+  });
+
+  it("ab-test-plan: uses client-side approach without Next.js", () => {
+    const s = snap({ name: "react-spa", files: [
+      { path: "App.tsx", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["ab-test-plan.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "React", confidence: 0.9, signals: ["App.tsx"] },
+    ];
+    const result = generateFiles(inp);
+    const f = getFile(result, "ab-test-plan.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("Client-side feature flag");
+    expect(f!.content).not.toContain("Edge Middleware");
+  });
+});
+
+describe("Skills CLAUDE.md empty arrays", () => {
+  it("CLAUDE.md: omits build/test/CI lines when arrays empty", () => {
+    const s = snap({ name: "bare-lib", files: [
+      { path: "index.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["CLAUDE.md"]);
+    inp.context_map.detection.build_tools = [];
+    inp.context_map.detection.test_frameworks = [];
+    inp.context_map.detection.frameworks = [];
+    inp.context_map.detection.ci_platform = null as any;
+    inp.context_map.detection.deployment_target = null as any;
+    inp.context_map.ai_context.conventions = [];
+    inp.context_map.ai_context.warnings = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "CLAUDE.md");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("**Build:**");
+    expect(f!.content).not.toContain("**Test:**");
+    expect(f!.content).not.toContain("CI:");
+    expect(f!.content).not.toContain("Deploy:");
+    expect(f!.content).not.toContain("## Conventions");
+    expect(f!.content).not.toContain("## Warnings");
+  });
+
+  it("CLAUDE.md: includes Prisma and React-specific rules", () => {
+    const s = snap({ name: "full-app", files: [
+      { path: "app.tsx", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["CLAUDE.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "Prisma", confidence: 0.9, signals: ["schema.prisma"] },
+      { name: "React", confidence: 0.9, signals: ["app.tsx"] },
+    ];
+    inp.context_map.detection.build_tools = ["tsc"];
+    inp.context_map.detection.test_frameworks = ["vitest"];
+    inp.context_map.detection.ci_platform = "GitHub Actions";
+    inp.context_map.detection.deployment_target = "Vercel";
+    inp.context_map.ai_context.conventions = ["Use strict mode"];
+    inp.context_map.ai_context.warnings = ["Large bundle size"];
+    const result = generateFiles(inp);
+    const f = getFile(result, "CLAUDE.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("prisma migrate dev");
+    expect(f!.content).toContain("Do not write raw SQL");
+    expect(f!.content).toContain("Do not use class components");
+    expect(f!.content).toContain("CI: GitHub Actions");
+    expect(f!.content).toContain("Deploy: Vercel");
+    expect(f!.content).toContain("## Conventions");
+    expect(f!.content).toContain("## Warnings");
+  });
+});
+
+describe("Skills .cursorrules framework branches", () => {
+  it(".cursorrules: emits Next.js + React + Tailwind + Prisma + test rules", () => {
+    const s = snap({ name: "full-stack", files: [
+      { path: "app.tsx", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, [".cursorrules"]);
+    inp.context_map.detection.frameworks = [
+      { name: "Next.js", confidence: 0.9, signals: ["next.config.js"] },
+      { name: "React", confidence: 0.9, signals: ["app.tsx"] },
+      { name: "Tailwind CSS", confidence: 0.9, signals: ["tailwind.config.js"] },
+      { name: "Prisma", confidence: 0.9, signals: ["schema.prisma"] },
+    ];
+    inp.context_map.detection.test_frameworks = ["vitest"];
+    inp.context_map.detection.package_managers = ["pnpm"];
+    inp.context_map.detection.ci_platform = "GitHub Actions";
+    inp.context_map.ai_context.conventions = ["Strict null checks"];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".cursorrules");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("Next.js");
+    expect(f!.content).toContain("React");
+    expect(f!.content).toContain("tailwind");
+    expect(f!.content).toContain("prisma");
+    expect(f!.content).toContain("vitest");
+    expect(f!.content).toContain("pnpm");
+    expect(f!.content).toContain("GitHub Actions");
+  });
+
+  it(".cursorrules: plain project with no frameworks/tests/CI", () => {
+    const s = snap({ name: "bare-lib", files: [
+      { path: "lib.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, [".cursorrules"]);
+    inp.context_map.detection.frameworks = [];
+    inp.context_map.detection.test_frameworks = [];
+    inp.context_map.detection.package_managers = [];
+    inp.context_map.detection.ci_platform = null as any;
+    inp.context_map.ai_context.conventions = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, ".cursorrules");
+    expect(f).toBeDefined();
+    expect(f!.content).not.toContain("=== Next.js ===");
+    expect(f!.content).not.toContain("=== React ===");
+    expect(f!.content).not.toContain("=== Styling ===");
+    expect(f!.content).not.toContain("=== Database ===");
+    expect(f!.content).not.toContain("=== Testing ===");
+    expect(f!.content).not.toContain("=== Tooling ===");
+  });
+});
+
+describe("Skills workflow-pack empty arrays", () => {
+  it("workflow-pack: uses fallback text when no frameworks/tests/CI", () => {
+    const s = snap({ name: "minimal", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["workflow-pack.md"]);
+    inp.context_map.detection.frameworks = [];
+    inp.context_map.detection.test_frameworks = [];
+    inp.context_map.detection.build_tools = [];
+    inp.context_map.detection.ci_platform = null as any;
+    const result = generateFiles(inp);
+    const f = getFile(result, "workflow-pack.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("project test framework");
+    expect(f!.content).toContain("Run build and test");
+    expect(f!.content).not.toContain("ci_check");
+  });
+});
+
+describe("Skills policy-pack empty arrays + framework-specific", () => {
+  it("policy-pack: uses fallback for no layers + no warnings", () => {
+    const s = snap({ name: "flat", files: [
+      { path: "app.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["policy-pack.md"]);
+    inp.context_map.architecture_signals.layer_boundaries = [];
+    inp.context_map.ai_context.warnings = [];
+    inp.context_map.detection.frameworks = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "policy-pack.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("no-layers-detected");
+    expect(f!.content).not.toContain("Known Warnings");
+  });
+
+  it("policy-pack: emits framework-specific rules for express + tailwind", () => {
+    const s = snap({ name: "api", files: [
+      { path: "server.ts", content: "import express", size: 20, language: null },
+    ]});
+    const inp = input(s, ["policy-pack.md"]);
+    inp.context_map.detection.frameworks = [
+      { name: "express", confidence: 0.9, signals: ["server.ts"] },
+      { name: "tailwind", confidence: 0.8, signals: ["tailwind.config.js"] },
+    ];
+    inp.context_map.ai_context.warnings = ["Bundle too large"];
+    inp.context_map.architecture_signals.layer_boundaries = [
+      { layer: "api", directories: ["src/routes"] },
+    ];
+    const result = generateFiles(inp);
+    const f = getFile(result, "policy-pack.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("error handling middleware");
+    expect(f!.content).toContain("utility classes");
+    expect(f!.content).toContain("Bundle too large");
+  });
+});
+
+describe("Artifacts empty routes + entry_points", () => {
+  it("artifact-spec: omits entry points and routes tables", () => {
+    const s = snap({ name: "lib-only", files: [
+      { path: "lib.ts", content: "export {}", size: 12, language: null },
+    ]});
+    const inp = input(s, ["artifact-spec.md"]);
+    inp.context_map.entry_points = [];
+    inp.context_map.routes = [];
+    inp.context_map.dependency_graph.hotspots = [];
+    const result = generateFiles(inp);
+    const f = getFile(result, "artifact-spec.md");
+    expect(f).toBeDefined();
+  });
+});
