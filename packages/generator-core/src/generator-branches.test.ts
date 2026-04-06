@@ -891,6 +891,16 @@ function withRichContext(inp: GeneratorInput): GeneratorInput {
     { name: "tailwindcss", version: "3.4.0", type: "development" as const },
   ];
   ctx.project_identity.description = "A full-stack TypeScript platform for developer tooling";
+  ctx.routes = [
+    { path: "/api/users", method: "GET", source_file: "app/api/users/route.ts" },
+    { path: "/login", method: "GET", source_file: "app/login/page.tsx" },
+    { path: "/", method: "GET", source_file: "app/page.tsx" },
+    { path: "/dashboard", method: "GET", source_file: "app/dashboard/page.tsx" },
+    { path: "/settings", method: "GET", source_file: "app/settings/page.tsx" },
+    { path: "/about", method: "GET", source_file: "app/about/page.tsx" },
+  ];
+  ctx.architecture_signals.separation_score = 8;
+  ctx.architecture_signals.patterns_detected = ["MVC", "Repository Pattern", "Dependency Injection"];
   return inp;
 }
 
@@ -984,5 +994,68 @@ describe("Brand type-classification branches", () => {
     const f = getFile(result, "brand-guidelines.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Technical users");
+  });
+});
+
+describe("Frontend route-to-layout branches", () => {
+  const s = snap({ name: "routed-app", type: "web_application", files: RICH_ROUTES_FILES });
+  const result = generateFiles(withRichContext(input(s, [
+    "layout-patterns.md", "ui-audit.md",
+  ])));
+
+  it("layout: API route mapped to N/A", () => {
+    const f = getFile(result, "layout-patterns.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("N/A (API)");
+  });
+
+  it("layout: auth route mapped to AuthLayout", () => {
+    const f = getFile(result, "layout-patterns.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("AuthLayout");
+  });
+
+  it("layout: home route mapped to MarketingLayout", () => {
+    const f = getFile(result, "layout-patterns.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("MarketingLayout");
+  });
+
+  it("layout: dashboard route mapped to DashboardLayout", () => {
+    const f = getFile(result, "layout-patterns.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("DashboardLayout");
+  });
+
+  it("ui-audit: page routes listed in component coverage", () => {
+    const f = getFile(result, "ui-audit.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("/login");
+    expect(f!.content).toContain("/dashboard");
+  });
+});
+
+describe("Notebook research-threads branches", () => {
+  const s = snap({ name: "arch-project", type: "web_application", files: REACT_SPA_FILES });
+  const result = generateFiles(withRichContext(input(s, ["research-threads.md"])));
+
+  it("research: strong architecture message when score >= 7", () => {
+    const f = getFile(result, "research-threads.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("Architecture separation is strong");
+  });
+
+  it("research: renders detected patterns", () => {
+    const f = getFile(result, "research-threads.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("MVC");
+    expect(f!.content).toContain("Repository Pattern");
+  });
+
+  it("research: renders hotspot investigation threads", () => {
+    const f = getFile(result, "research-threads.md");
+    expect(f).toBeDefined();
+    expect(f!.content).toContain("Dependency Hotspots");
+    expect(f!.content).toContain("src/database/connection.ts");
   });
 });

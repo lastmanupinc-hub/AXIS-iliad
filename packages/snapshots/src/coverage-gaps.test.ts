@@ -520,6 +520,23 @@ describe("github-token-store (direct import)", () => {
     expect(tokens[0].last_validated_at).toBeTruthy();
     expect(tokens[0].scopes).toBe("repo,read:org");
   });
+
+  it("uses custom AXIS_TOKEN_KEY when >= 32 chars", () => {
+    const original = process.env.AXIS_TOKEN_KEY;
+    try {
+      process.env.AXIS_TOKEN_KEY = "a]b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6";
+      const aid = seedAccount();
+      const token = saveGitHubToken(aid, "ghp_envkey_test12345678", "envkey", ["repo"]);
+      expect(token.token_id).toBeTruthy();
+
+      // Decrypt must succeed with the same env key
+      const decrypted = getGitHubTokenDecrypted(aid);
+      expect(decrypted).toBe("ghp_envkey_test12345678");
+    } finally {
+      if (original === undefined) delete process.env.AXIS_TOKEN_KEY;
+      else process.env.AXIS_TOKEN_KEY = original;
+    }
+  });
 });
 
 // ─── Direct-import: tier-audit (fix v8 coverage attribution) ────
