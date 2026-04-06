@@ -850,12 +850,12 @@ known_gaps:
 # ─── SUMMARY ─────────────────────────────────────────────────────
 
 summary:
-  total_capabilities: 67
+  total_capabilities: 82
   grade_distribution:
-    A: 61
+    A: 75
     B: 2
     D: 0
-    F: 4
+    F: 5
   by_access_layer:
     web_ui: 18
     cli: 6

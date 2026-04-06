@@ -188,6 +188,23 @@ CREATE INDEX IF NOT EXISTS idx_deliveries_webhook ON webhook_deliveries(webhook_
 CREATE INDEX IF NOT EXISTS idx_deliveries_attempted ON webhook_deliveries(attempted_at);
 `,
   },
+  {
+    version: 6,
+    name: "add_generation_versions",
+    sql: `
+CREATE TABLE IF NOT EXISTS generation_versions (
+  version_id TEXT PRIMARY KEY,
+  snapshot_id TEXT NOT NULL REFERENCES snapshots(snapshot_id),
+  version_number INTEGER NOT NULL,
+  program TEXT,
+  files TEXT NOT NULL,
+  file_count INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gv_snapshot ON generation_versions(snapshot_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gv_snapshot_version ON generation_versions(snapshot_id, version_number);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

@@ -61,6 +61,7 @@ import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
+import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 
 const router = new Router();
 
@@ -84,6 +85,11 @@ router.get("/v1/docs", async (_req, res) => {
 router.post("/v1/snapshots", handleCreateSnapshot);
 router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
 router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);
+
+// Generation version history & diff
+router.get("/v1/snapshots/:snapshot_id/versions", handleListVersions);
+router.get("/v1/snapshots/:snapshot_id/versions/:version_number", handleGetVersion);
+router.get("/v1/snapshots/:snapshot_id/diff", handleDiffVersions);
 
 // Project context endpoints
 router.get("/v1/projects/:project_id/context", handleGetContext);

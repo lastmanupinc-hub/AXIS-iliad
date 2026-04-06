@@ -86,3 +86,12 @@ export {
   signPayload,
   dispatchWebhookEvent,
 } from "./webhook-store.js";
+
+// Generation Versions
+export type { GenerationVersion, VersionFile, FileDiff, VersionDiff } from "./version-store.js";
+export {
+  saveGenerationVersion,
+  listGenerationVersions,
+  getGenerationVersion,
+  diffGenerationVersions,
+} from "./version-store.js";
