@@ -594,3 +594,30 @@ describe("tier-audit (direct import)", () => {
     expect(result.direction).toBe("none");
   });
 });
+
+// ─── getSystemStats — NULL fallback branches (Layer 10) ─────────
+
+describe("getSystemStats empty database fallbacks", () => {
+  it("returns zero counts when database has no accounts or keys", () => {
+    // Empty DB → SUM(CASE ...) returns NULL for all tier counts → ?? 0 triggers
+    const stats = getSystemStats();
+    expect(stats.total_accounts).toBe(0);
+    expect(stats.accounts_by_tier.free).toBe(0);
+    expect(stats.accounts_by_tier.paid).toBe(0);
+    expect(stats.accounts_by_tier.suite).toBe(0);
+    expect(stats.total_snapshots).toBe(0);
+    expect(stats.total_projects).toBe(0);
+    expect(stats.total_usage_records).toBe(0);
+    expect(stats.total_api_keys).toBe(0);
+    expect(stats.active_api_keys).toBe(0);
+  });
+
+  it("returns zero for tiers with no accounts of that type", () => {
+    // Only free accounts → paid_count and suite_count are NULL → ?? 0
+    createAccount("OnlyFree", "free@test.com", "free" as BillingTier);
+    const stats = getSystemStats();
+    expect(stats.accounts_by_tier.free).toBe(1);
+    expect(stats.accounts_by_tier.paid).toBe(0);
+    expect(stats.accounts_by_tier.suite).toBe(0);
+  });
+});

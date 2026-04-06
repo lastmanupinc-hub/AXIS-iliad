@@ -175,4 +175,39 @@ describe("extractImports", () => {
     const goEdge = edges.find(e => e.source === "cmd/main.go");
     expect(goEdge).toBeTruthy();
   });
+
+  // Line 52: FALSE branch — import path starts with "." but not "./" or "../"
+  it("resolves dot-prefixed import that is not relative ./ or ../", () => {
+    const files = makeFiles([
+      { path: "src/app.ts", content: 'import { x } from ".config";' },
+      { path: ".config.ts", content: "export const x = {};" },
+    ]);
+    const edges = extractImports(files);
+    // Path starts with "." (captured by regex) but not "./" or "../"
+    // → base = importPath directly; tries ".config", ".config.ts", etc.
+    expect(edges).toEqual([{ source: "src/app.ts", target: ".config.ts" }]);
+  });
+
+  // Lines 116+128: Go import referencing package path with no matching .go files → null
+  it("produces no edge when Go package path has no .go files", () => {
+    const files = makeFiles([
+      { path: "cmd/main.go", content: 'package main\nimport "github.com/acme/app/internal/empty"' },
+      // internal/empty/ has no .go files — only a README
+      { path: "internal/empty/README.md", content: "# placeholder" },
+    ]);
+    const edges = extractImports(files, "github.com/acme/app");
+    // resolveGoPackage returns null → no edge pushed
+    expect(edges).toHaveLength(0);
+  });
+
+  // Line 128: resolveGoPackage filters out _test.go files
+  it("ignores _test.go files when resolving Go package", () => {
+    const files = makeFiles([
+      { path: "cmd/main.go", content: 'package main\nimport "github.com/acme/app/internal/svc"' },
+      // Only _test.go file exists — should not resolve
+      { path: "internal/svc/handler_test.go", content: "package svc" },
+    ]);
+    const edges = extractImports(files, "github.com/acme/app");
+    expect(edges).toHaveLength(0);
+  });
 });

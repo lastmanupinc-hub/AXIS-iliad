@@ -3,7 +3,7 @@
  * Targets uncovered branches: lines 31 (valid decrypt format), 103-106 (token_id query path)
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb } from "./db.js";
+import { openMemoryDb, closeDb, getDb } from "./db.js";
 import { createAccount } from "./billing-store.js";
 import {
   saveGitHubToken,
@@ -57,5 +57,32 @@ describe("github-token-store branches", () => {
     const raw = "ghp_abcdefgh_rest_of_token_here12345";
     const saved = saveGitHubToken(acct.account_id, raw, "prefix-check");
     expect(saved.token_prefix).toBe("ghp_abcd");
+  });
+
+  // Layer 10: env-based encryption key (TRUE branch of getEncryptionKey)
+  it("encrypts and decrypts with AXIS_TOKEN_KEY env var", () => {
+    const origKey = process.env.AXIS_TOKEN_KEY;
+    try {
+      // Set a 32+ char key to trigger the TRUE branch
+      process.env.AXIS_TOKEN_KEY = "axis-test-encryption-key-32chars!";
+      const acct = createAccount("EnvKeyTest", "envkey@test.com");
+      const raw = "ghp_envkeytesttoken1234567890123456";
+      saveGitHubToken(acct.account_id, raw, "env-key");
+      const decrypted = getGitHubTokenDecrypted(acct.account_id);
+      expect(decrypted).toBe(raw);
+    } finally {
+      if (origKey !== undefined) process.env.AXIS_TOKEN_KEY = origKey;
+      else delete process.env.AXIS_TOKEN_KEY;
+    }
+  });
+
+  // Layer 10: decrypt with corrupted encrypted_token format
+  it("handles corrupted encrypted token in DB gracefully", () => {
+    const acct = createAccount("CorruptTest", "corrupt@test.com");
+    saveGitHubToken(acct.account_id, "ghp_valid_token_1234567890123456", "corrupt");
+    // Corrupt the encrypted_token directly in DB
+    getDb().prepare("UPDATE github_tokens SET encrypted_token = 'not-valid-format' WHERE account_id = ?").run(acct.account_id);
+    // getGitHubTokenDecrypted should throw or return undefined for invalid format
+    expect(() => getGitHubTokenDecrypted(acct.account_id)).toThrow();
   });
 });

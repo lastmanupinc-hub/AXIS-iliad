@@ -289,3 +289,153 @@ describe("updateSnapshotStatus edge cases", () => {
     expect(found.status).toBe("failed");
   });
 });
+
+// ─── isValidContextMap — exhaustive branch inversions (Layer 10) ─────
+
+describe("ContextMap validation — missing field branches", () => {
+  it("rejects context map saved as a primitive string", () => {
+    const snap = createSnapshot(makeInput());
+    // Save a string → JSON.parse gives a string → typeof !== "object" → FALSE
+    saveContextMap(snap.snapshot_id, "not an object");
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects context map saved as null", () => {
+    const snap = createSnapshot(makeInput());
+    // Save null → JSON.parse gives null → typeof null === "object" TRUE, data === null TRUE → FALSE
+    saveContextMap(snap.snapshot_id, null);
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects context map saved as a number", () => {
+    const snap = createSnapshot(makeInput());
+    saveContextMap(snap.snapshot_id, 42);
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects context map with missing version field", () => {
+    const snap = createSnapshot(makeInput());
+    saveContextMap(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      project_identity: { name: "test" },
+    });
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects context map with missing snapshot_id field", () => {
+    const snap = createSnapshot(makeInput());
+    saveContextMap(snap.snapshot_id, {
+      version: "1.0.0",
+      project_id: snap.project_id,
+      project_identity: { name: "test" },
+    });
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects context map with missing project_id field", () => {
+    const snap = createSnapshot(makeInput());
+    saveContextMap(snap.snapshot_id, {
+      version: "1.0.0",
+      snapshot_id: snap.snapshot_id,
+      project_identity: { name: "test" },
+    });
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects context map with numeric version", () => {
+    const snap = createSnapshot(makeInput());
+    saveContextMap(snap.snapshot_id, {
+      version: 123,
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      project_identity: { name: "test" },
+    });
+    const found = getContextMap(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+});
+
+// ─── isValidRepoProfile — exhaustive branch inversions (Layer 10) ────
+
+describe("RepoProfile validation — missing field branches", () => {
+  it("rejects repo profile saved as a primitive string", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, "not an object");
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects repo profile saved as null", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, null);
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects repo profile with missing version field", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, {
+      // version: missing
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      project: { name: "test" },
+    });
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects repo profile with missing snapshot_id field", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, {
+      version: "1.0.0",
+      // snapshot_id: missing
+      project_id: snap.project_id,
+      project: { name: "test" },
+    });
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects repo profile with missing project_id field", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, {
+      version: "1.0.0",
+      snapshot_id: snap.snapshot_id,
+      // project_id: missing
+      project: { name: "test" },
+    });
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects repo profile with null project field", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, {
+      version: "1.0.0",
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      project: null,
+    });
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+
+  it("rejects repo profile with missing project field", () => {
+    const snap = createSnapshot(makeInput());
+    saveRepoProfile(snap.snapshot_id, {
+      version: "1.0.0",
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      // project: missing → typeof undefined !== "object"
+    });
+    const found = getRepoProfile(snap.snapshot_id);
+    expect(found).toBeUndefined();
+  });
+});

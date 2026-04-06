@@ -288,3 +288,59 @@ describe("health indicators", () => {
     expect(r.health.has_linter).toBe(true);
   });
 });
+
+// ─── detectLanguages — zero LOC edge case (Layer 10) ─────────────
+
+describe("detectLanguages — totalLoc === 0", () => {
+  it("returns loc_percent 0 when all files have zero LOC", () => {
+    // Files that ARE recognized as source (.ts) but have empty content → 0 lines
+    const r = parseRepo(makeFiles([
+      { path: "src/a.ts", content: "" },
+      { path: "src/b.ts", content: "" },
+    ]));
+    // loc_percent = totalLoc > 0 ? ... : 0 → takes FALSE branch
+    for (const lang of r.languages) {
+      expect(lang.loc_percent).toBe(0);
+    }
+  });
+});
+
+// ─── SQL extraction — UNIQUE and CHECK constraint skip (Layer 10) ───
+
+describe("sql-extractor constraint branches", () => {
+  it("skips UNIQUE constraint lines in SQL", () => {
+    const r = parseRepo(makeFiles([
+      { path: "schema.sql", content: `CREATE TABLE users (
+        id INTEGER PRIMARY KEY,
+        email TEXT NOT NULL,
+        UNIQUE (email)
+      );` },
+    ]));
+    expect(r.sql_schema).toHaveLength(1);
+    expect(r.sql_schema[0].columns).toHaveLength(2);
+  });
+
+  it("skips CHECK constraint lines in SQL", () => {
+    const r = parseRepo(makeFiles([
+      { path: "schema.sql", content: `CREATE TABLE products (
+        id INTEGER PRIMARY KEY,
+        price REAL NOT NULL,
+        CHECK (price > 0)
+      );` },
+    ]));
+    expect(r.sql_schema).toHaveLength(1);
+    expect(r.sql_schema[0].columns).toHaveLength(2);
+  });
+
+  it("skips CONSTRAINT named constraint lines in SQL", () => {
+    const r = parseRepo(makeFiles([
+      { path: "schema.sql", content: `CREATE TABLE orders (
+        id INTEGER PRIMARY KEY,
+        amount REAL,
+        CONSTRAINT chk_amount CHECK (amount >= 0)
+      );` },
+    ]));
+    expect(r.sql_schema).toHaveLength(1);
+    expect(r.sql_schema[0].columns).toHaveLength(2);
+  });
+});

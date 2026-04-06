@@ -212,4 +212,35 @@ describe("detectFrameworks", () => {
     const chi = result.find(f => f.name === "Chi");
     expect(chi).toBeUndefined();
   });
+
+  // Go stdlib HTTP: alternate server patterns (Layer 10)
+  it("detects Go stdlib HTTP via http.HandleFunc", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'import "net/http"\nfunc main() { http.HandleFunc("/", handler) }' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const stdlib = result.find(f => f.name === "Go stdlib HTTP");
+    expect(stdlib).toBeTruthy();
+    expect(stdlib!.confidence).toBe(0.7);
+  });
+
+  it("detects Go stdlib HTTP via http.NewServeMux", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'import "net/http"\nfunc main() { mux := http.NewServeMux() }' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const stdlib = result.find(f => f.name === "Go stdlib HTTP");
+    expect(stdlib).toBeTruthy();
+    expect(stdlib!.confidence).toBe(0.7);
+  });
+
+  it("detects Go stdlib HTTP via http.Handle(", () => {
+    const files = makeFiles([
+      { path: "main.go", content: 'import "net/http"\nfunc main() { http.Handle("/api", apiHandler) }' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const stdlib = result.find(f => f.name === "Go stdlib HTTP");
+    expect(stdlib).toBeTruthy();
+    expect(stdlib!.confidence).toBe(0.7);
+  });
 });

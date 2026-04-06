@@ -597,4 +597,50 @@ describe("Layer 5 engine branches", () => {
       expect(hubHotspot.outbound_count).toBeGreaterThanOrEqual(5);
     }
   });
+
+  // Line 150: hotspot filter — inbound_count >= 3 (short-circuit TRUE on first OR operand)
+  it("detects hotspot from high inbound imports (>=3)", () => {
+    // shared.ts is imported by a, b, c, d → inbound 4 → qualifies via first OR branch
+    const files = [
+      { path: "src/shared.ts", content: "export const x = 1;" },
+      { path: "src/a.ts", content: "import { x } from './shared';\nexport const a = x;" },
+      { path: "src/b.ts", content: "import { x } from './shared';\nexport const b = x;" },
+      { path: "src/c.ts", content: "import { x } from './shared';\nexport const c = x;" },
+      { path: "src/d.ts", content: "import { x } from './shared';\nexport const d = x;" },
+    ];
+    const snap = makeSnapshot(files);
+    const cm = buildContextMap(snap);
+    const sharedHotspot = cm.dependency_graph.hotspots.find(h => h.path.includes("shared"));
+    expect(sharedHotspot).toBeDefined();
+    expect(sharedHotspot!.inbound_count).toBeGreaterThanOrEqual(3);
+  });
+
+  // Line 150: filter FALSE — items with inbound < 3 AND outbound < 5 are excluded
+  it("excludes files with low inbound and outbound from hotspots", () => {
+    // Two files with 1 import each → neither qualifies
+    const files = [
+      { path: "src/a.ts", content: "import { b } from './b';\nexport const a = 1;" },
+      { path: "src/b.ts", content: "export const b = 2;" },
+    ];
+    const snap = makeSnapshot(files);
+    const cm = buildContextMap(snap);
+    // b.ts has inbound=1 (<3), outbound=0 (<5) → filtered out
+    // a.ts has inbound=0 (<3), outbound=1 (<5) → filtered out
+    expect(cm.dependency_graph.hotspots).toHaveLength(0);
+  });
+
+  // Line 368: srcLayer && tgtLayer FALSE — import between files in unmapped directories
+  it("architecture score ignores imports between unmapped directories", () => {
+    // "scripts" and "tools" are not in layerMapping → srcLayer/tgtLayer undefined
+    const files = [
+      { path: "scripts/build.ts", content: "import { cfg } from '../tools/config';\nexport const x = cfg;" },
+      { path: "tools/config.ts", content: "export const cfg = {};" },
+      { path: "src/app.ts", content: "export const app = 1;" },
+    ];
+    const snap = makeSnapshot(files);
+    const cm = buildContextMap(snap);
+    // Score should still compute (from src/ layer coverage) without crashing
+    expect(cm.architecture_signals.separation_score).toBeGreaterThanOrEqual(0);
+    expect(cm.architecture_signals.separation_score).toBeLessThanOrEqual(1);
+  });
 });
