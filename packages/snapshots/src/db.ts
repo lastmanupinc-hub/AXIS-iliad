@@ -215,6 +215,39 @@ ALTER TABLE webhook_deliveries ADD COLUMN dead_lettered INTEGER NOT NULL DEFAULT
 CREATE INDEX IF NOT EXISTS idx_deliveries_retry ON webhook_deliveries(next_retry_at) WHERE next_retry_at IS NOT NULL AND dead_lettered = 0 AND success = 0;
 `,
   },
+  {
+    version: 8,
+    name: "add_github_tokens_and_tier_changes",
+    sql: `
+CREATE TABLE IF NOT EXISTS github_tokens (
+  token_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  label TEXT NOT NULL DEFAULT 'default',
+  token_prefix TEXT NOT NULL,
+  encrypted_token TEXT NOT NULL,
+  scopes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  expires_at TEXT,
+  last_used_at TEXT,
+  last_validated_at TEXT,
+  valid INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_github_tokens_account ON github_tokens(account_id);
+
+CREATE TABLE IF NOT EXISTS tier_changes (
+  change_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  from_tier TEXT NOT NULL,
+  to_tier TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT 'user_request',
+  proration_amount INTEGER NOT NULL DEFAULT 0,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tier_changes_account ON tier_changes(account_id);
+CREATE INDEX IF NOT EXISTS idx_tier_changes_created ON tier_changes(created_at);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

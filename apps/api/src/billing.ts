@@ -19,6 +19,13 @@ import {
   recordUsage,
   isProgramEnabled,
   trackEvent,
+  saveGitHubToken,
+  getGitHubTokens,
+  getGitHubTokenDecrypted,
+  deleteGitHubToken,
+  logTierChange,
+  getTierHistory,
+  calculateProration,
   type Account,
   type BillingTier,
   ALL_PROGRAMS,
@@ -301,8 +308,12 @@ export async function handleUpdateTier(
     return;
   }
 
+  const previousTier = ctx.account!.tier;
   updateAccountTier(ctx.account!.account_id, tier as BillingTier);
   const updated = getAccount(ctx.account!.account_id);
+
+  // Log tier change to audit trail
+  logTierChange(ctx.account!.account_id, previousTier, tier as BillingTier, "user_request", { source: "api" });
 
   // Track tier change funnel event
   const isUpgrade = (tier === "paid" && ctx.account!.tier === "free") || (tier === "suite");
@@ -406,4 +417,143 @@ export async function handleGetQuota(
   }
 
   sendJSON(res, 200, response);
+}
+
+// ─── GitHub Token Management ────────────────────────────────────
+
+/** POST /v1/account/github-token — store a GitHub token (requires auth) */
+export async function handleSaveGitHubToken(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const token = body.token;
+  if (!token || typeof token !== "string") {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "token is required (GitHub personal access token)");
+    return;
+  }
+
+  if (token.length < 10 || token.length > 500) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "token must be between 10 and 500 characters");
+    return;
+  }
+
+  const label = typeof body.label === "string" ? body.label : "default";
+  const scopes = Array.isArray(body.scopes) ? body.scopes.filter((s: unknown) => typeof s === "string") as string[] : [];
+
+  const saved = saveGitHubToken(ctx.account!.account_id, token, label, scopes);
+
+  sendJSON(res, 201, {
+    token_id: saved.token_id,
+    label: saved.label,
+    token_prefix: saved.token_prefix,
+    scopes: saved.scopes,
+    created_at: saved.created_at,
+    message: "GitHub token stored securely. It will be used automatically for private repo analysis.",
+  });
+}
+
+/** GET /v1/account/github-token — list stored GitHub tokens (requires auth) */
+export async function handleListGitHubTokens(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const tokens = getGitHubTokens(ctx.account!.account_id);
+
+  sendJSON(res, 200, {
+    tokens: tokens.map((t) => ({
+      token_id: t.token_id,
+      label: t.label,
+      token_prefix: t.token_prefix,
+      scopes: t.scopes,
+      created_at: t.created_at,
+      expires_at: t.expires_at,
+      last_used_at: t.last_used_at,
+      valid: t.valid === 1,
+    })),
+  });
+}
+
+/** DELETE /v1/account/github-token/:token_id — remove a stored GitHub token (requires auth) */
+export async function handleDeleteGitHubToken(
+  req: IncomingMessage,
+  res: ServerResponse,
+  params: Record<string, string>,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const { token_id } = params;
+  const deleted = deleteGitHubToken(ctx.account!.account_id, token_id);
+  if (!deleted) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "GitHub token not found");
+    return;
+  }
+
+  sendJSON(res, 200, { token_id, deleted: true });
+}
+
+// ─── Billing History ────────────────────────────────────────────
+
+/** GET /v1/billing/history — get tier change audit trail (requires auth) */
+export async function handleBillingHistory(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const history = getTierHistory(ctx.account!.account_id);
+
+  sendJSON(res, 200, {
+    account_id: ctx.account!.account_id,
+    current_tier: ctx.account!.tier,
+    history: history.map((h) => ({
+      change_id: h.change_id,
+      from_tier: h.from_tier,
+      to_tier: h.to_tier,
+      reason: h.reason,
+      proration_amount: h.proration_amount,
+      created_at: h.created_at,
+    })),
+  });
+}
+
+/** GET /v1/billing/proration — preview proration for a tier change (requires auth) */
+export async function handleProrationPreview(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const targetTier = url.searchParams.get("tier");
+
+  if (!targetTier || !["free", "paid", "suite"].includes(targetTier)) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "tier query parameter required (free, paid, or suite)");
+    return;
+  }
+
+  const proration = calculateProration(ctx.account!.tier, targetTier as BillingTier);
+
+  sendJSON(res, 200, {
+    current_tier: ctx.account!.tier,
+    target_tier: targetTier,
+    ...proration,
+  });
 }

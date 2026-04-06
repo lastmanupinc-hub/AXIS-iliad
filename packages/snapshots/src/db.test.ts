@@ -34,6 +34,7 @@ describe("openMemoryDb", () => {
       "funnel_events",
       "generation_versions",
       "generator_results",
+      "github_tokens",
       "program_entitlements",
       "projects",
       "rate_limits",
@@ -47,6 +48,7 @@ describe("openMemoryDb", () => {
       "search_index",
       "seats",
       "snapshots",
+      "tier_changes",
       "usage_records",
       "webhook_deliveries",
       "webhooks",
@@ -313,14 +315,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(7);
+    expect(getSchemaVersion(db)).toBe(8);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(7);
+    expect(result.current_version).toBe(8);
   });
 
   it("creates rate_limits table via migration", () => {

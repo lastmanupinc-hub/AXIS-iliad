@@ -44,6 +44,11 @@ import {
   handleUpdateTier,
   handleUpdatePrograms,
   handleGetQuota,
+  handleSaveGitHubToken,
+  handleListGitHubTokens,
+  handleDeleteGitHubToken,
+  handleBillingHistory,
+  handleProrationPreview,
 } from "./billing.js";
 import {
   handleGetPlans,
@@ -156,6 +161,15 @@ router.get("/v1/account/usage", handleGetUsage);
 router.get("/v1/account/quota", handleGetQuota);
 router.post("/v1/account/tier", handleUpdateTier);
 router.post("/v1/account/programs", handleUpdatePrograms);
+
+// GitHub Token Management
+router.post("/v1/account/github-token", handleSaveGitHubToken);
+router.get("/v1/account/github-token", handleListGitHubTokens);
+router.delete("/v1/account/github-token/:token_id", handleDeleteGitHubToken);
+
+// Billing
+router.get("/v1/billing/history", handleBillingHistory);
+router.get("/v1/billing/proration", handleProrationPreview);
 
 // Plans & Funnel
 router.get("/v1/plans", handleGetPlans);

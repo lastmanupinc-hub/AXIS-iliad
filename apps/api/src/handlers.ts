@@ -22,6 +22,7 @@ import {
   getSearchIndexStats,
   runMaintenance,
   getDbStats,
+  getGitHubTokenDecrypted,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -565,7 +566,17 @@ export async function handleGitHubAnalyze(
   let fetchResult;
   try {
     const rawToken = body.token;
-    const token = (typeof rawToken === "string" ? rawToken : undefined) ?? process.env.GITHUB_TOKEN;
+    // Priority: 1) explicit token in request, 2) stored token for authenticated user, 3) env var
+    let token = typeof rawToken === "string" ? rawToken : undefined;
+    if (!token) {
+      const auth = resolveAuth(req);
+      if (auth.account) {
+        token = getGitHubTokenDecrypted(auth.account.account_id) ?? undefined;
+      }
+    }
+    if (!token) {
+      token = process.env.GITHUB_TOKEN ?? undefined;
+    }
     fetchResult = await fetchGitHubRepo(githubUrl, token || undefined);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

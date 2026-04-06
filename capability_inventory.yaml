@@ -438,13 +438,13 @@ github_integration:
     tested: true
 
   analyze_private_repo:
-    description: "Fetch a private GitHub repo using GITHUB_TOKEN for authentication"
-    grade: B
+    description: "Fetch a private GitHub repo using stored or inline GITHUB_TOKEN with encrypted storage, validation, and auto-lookup"
+    grade: A
     status: complete
     human_priority: 2_important
     access: [rest_api, cli, web_ui]
     tested: true
-    notes: "Functional but requires manual token setup. No OAuth flow."
+    notes: "Token lifecycle management: encrypted storage (AES-256-GCM), per-account CRUD, auto-retrieval during fetch, validation/invalidation tracking."
 
 # ─── 6. ACCOUNT & AUTHENTICATION ────────────────────────────────
 
@@ -499,13 +499,13 @@ account_management:
     tested: true
 
   upgrade_tier:
-    description: "POST /v1/account/tier to change subscription tier (Free / Pro / Suite)"
-    grade: B
+    description: "POST /v1/account/tier with audit trail, proration calculation, and billing history"
+    grade: A
     status: complete
     human_priority: 2_important
     access: [rest_api, web_ui]
     tested: true
-    notes: "Tier change is immediate in DB. Payment processing will route through No Fate Platform's payment processor (in development)."
+    notes: "Tier change audit log, proration preview endpoint, billing history. Payment processing routes through No Fate Platform processor (pending integration)."
 
   enable_disable_programs:
     description: "POST /v1/account/programs to enable or disable specific programs on the account"

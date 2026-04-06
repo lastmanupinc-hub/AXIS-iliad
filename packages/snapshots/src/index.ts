@@ -100,3 +100,24 @@ export {
   getGenerationVersion,
   diffGenerationVersions,
 } from "./version-store.js";
+
+// GitHub Token Management
+export type { GitHubToken } from "./github-token-store.js";
+export {
+  saveGitHubToken,
+  getGitHubTokens,
+  getGitHubTokenDecrypted,
+  deleteGitHubToken,
+  markTokenUsed,
+  markTokenInvalid,
+  markTokenValidated,
+} from "./github-token-store.js";
+
+// Tier Audit
+export type { TierChange, ProrationResult } from "./tier-audit.js";
+export {
+  logTierChange,
+  getTierHistory,
+  getLastTierChange,
+  calculateProration,
+} from "./tier-audit.js";
