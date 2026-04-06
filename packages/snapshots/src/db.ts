@@ -205,6 +205,16 @@ CREATE INDEX IF NOT EXISTS idx_gv_snapshot ON generation_versions(snapshot_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gv_snapshot_version ON generation_versions(snapshot_id, version_number);
 `,
   },
+  {
+    version: 7,
+    name: "add_webhook_retry_columns",
+    sql: `
+ALTER TABLE webhook_deliveries ADD COLUMN attempt_number INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE webhook_deliveries ADD COLUMN next_retry_at TEXT;
+ALTER TABLE webhook_deliveries ADD COLUMN dead_lettered INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_deliveries_retry ON webhook_deliveries(next_retry_at) WHERE next_retry_at IS NOT NULL AND dead_lettered = 0 AND success = 0;
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

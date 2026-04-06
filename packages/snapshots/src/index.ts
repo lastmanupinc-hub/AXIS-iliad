@@ -72,8 +72,8 @@ export {
 } from "./funnel-store.js";
 
 // Webhooks
-export type { WebhookEventType, Webhook, WebhookDelivery } from "./webhook-store.js";
-export { VALID_WEBHOOK_EVENTS } from "./webhook-store.js";
+export type { WebhookEventType, Webhook, WebhookDelivery, RetryCandidate } from "./webhook-store.js";
+export { VALID_WEBHOOK_EVENTS, MAX_RETRY_ATTEMPTS, RETRY_BACKOFF_BASE_MS } from "./webhook-store.js";
 export {
   createWebhook,
   listWebhooks,
@@ -85,6 +85,11 @@ export {
   getDeliveries,
   signPayload,
   dispatchWebhookEvent,
+  computeNextRetryAt,
+  getPendingRetries,
+  clearRetrySchedule,
+  getDeadLetters,
+  processRetryQueue,
 } from "./webhook-store.js";
 
 // Generation Versions
