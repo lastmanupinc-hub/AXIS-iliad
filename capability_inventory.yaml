@@ -812,10 +812,13 @@ known_gaps:
     human_priority: 3_nice_to_have
 
   webhook_notifications:
-    description: "No webhook callbacks for snapshot completion or generation events"
-    grade: F
-    status: not_started
+    description: "Webhook callbacks for snapshot/project lifecycle and generation events"
+    grade: A
+    status: complete
     human_priority: 3_nice_to_have
+    access: [rest_api]
+    tested: true
+    notes: "POST/GET/DELETE /v1/account/webhooks + toggle + deliveries. Events: snapshot.created/deleted, project.deleted, generation.completed. Fire-and-forget HTTP POST with HMAC-SHA256 signature. Delivery history tracking. eq_101."
 
   admin_dashboard:
     description: "Admin API for system-wide stats, account listing, and activity feed"
@@ -849,10 +852,10 @@ known_gaps:
 summary:
   total_capabilities: 67
   grade_distribution:
-    A: 60
+    A: 61
     B: 2
     D: 0
-    F: 5
+    F: 4
   by_access_layer:
     web_ui: 18
     cli: 6
@@ -860,8 +863,8 @@ summary:
     ops: 4
   programs: 17
   generators: 80
-  test_files: 61
-  tests: 1306
+  test_files: 62
+  tests: 1323
   coverage: "92%"
 
   human_usability_without_ai:
