@@ -369,4 +369,10 @@ describe("Export ZIP handler", () => {
     const res = await rawReq("GET", `/v1/projects/${snap2.project_id}/export`);
     expect(res.status).toBe(404);
   });
+
+  // Layer 12: program filter returns empty (export.ts line 143)
+  it("returns 404 when program filter matches nothing", async () => {
+    const res = await rawReq("GET", `/v1/projects/${projectId}/export?program=nonexistent`);
+    expect(res.status).toBe(404);
+  });
 });

@@ -228,4 +228,59 @@ describe("generateRepoProfileYAML — toYAML edge cases", () => {
     const result = generateRepoProfileYAML(profile);
     expect(result.content).toContain("[]");
   });
+
+  // Layer 12: YAML array-of-objects serialization (generators-search.ts lines 173-176)
+  it("serializes arrays of objects with nested keys", () => {
+    const profile = makeProfile({
+      detection: {
+        languages: { TypeScript: { files: 10, bytes: 5000, percentage: 100 }, Python: { files: 3, bytes: 2000, percentage: 30 } },
+        frameworks: [
+          { name: "express", confidence: 0.9 },
+          { name: "vitest", confidence: 0.8 },
+        ],
+        build_tools: ["tsc", "esbuild"],
+        test_frameworks: ["vitest"],
+        package_managers: ["pnpm"],
+        ci_platform: "github-actions",
+        deployment_target: "vercel",
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    // Array-of-objects should serialize with "- name:" YAML syntax
+    expect(result.content).toContain("- name: express");
+    expect(result.content).toContain("confidence:");
+  });
+
+  // Layer 12: YAML nested object recursion (generators-search.ts line 206)
+  it("serializes deeply nested objects", () => {
+    const profile = makeProfile({
+      structure_summary: {
+        total_files: 50,
+        total_directories: 10,
+        total_loc: 5000,
+        top_level_dirs: [
+          { name: "src", purpose: "source code", file_count: 30 },
+          { name: "tests", purpose: "test suite", file_count: 20 },
+        ],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    expect(result.content).toContain("- name: src");
+    expect(result.content).toContain("purpose:");
+    expect(result.content).toContain("file_count: 30");
+  });
+
+  // Layer 12: YAML multiline string (generators-search.ts line 172-173)
+  it("serializes strings containing newlines as block scalars", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["first line\nsecond line"],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    // Multiline strings should be present in the output
+    expect(result.content).toContain("first line");
+    expect(result.content).toContain("second line");
+  });
 });

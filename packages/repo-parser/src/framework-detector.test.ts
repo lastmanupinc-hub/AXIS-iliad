@@ -243,4 +243,50 @@ describe("detectFrameworks", () => {
     expect(stdlib).toBeTruthy();
     expect(stdlib!.confidence).toBe(0.7);
   });
+
+  // Layer 12: file-based detection signals (lines 18, 45, 69)
+  it("detects Next.js from config file alone (no deps)", () => {
+    const files = makeFiles([
+      { path: "next.config.js", content: "module.exports = {}" },
+      { path: "app/page.tsx", content: "export default function Page() {}" },
+    ]);
+    const result = detectFrameworks(files, {});
+    const next = result.find(f => f.name === "Next.js");
+    expect(next).toBeTruthy();
+    expect(next!.confidence).toBeGreaterThanOrEqual(0.3);
+    expect(next!.evidence).toContain("next.config found");
+  });
+
+  it("detects Vue from .vue files alone (no deps)", () => {
+    const files = makeFiles([
+      { path: "src/App.vue", content: "<template><div>Hello</div></template>" },
+    ]);
+    const result = detectFrameworks(files, {});
+    const vue = result.find(f => f.name === "Vue");
+    expect(vue).toBeTruthy();
+    expect(vue!.confidence).toBe(0.3);
+    expect(vue!.evidence).toContain(".vue files found");
+  });
+
+  it("detects Tailwind CSS from config file alone (no deps)", () => {
+    const files = makeFiles([
+      { path: "tailwind.config.js", content: "module.exports = { content: [] }" },
+    ]);
+    const result = detectFrameworks(files, {});
+    const tw = result.find(f => f.name === "Tailwind CSS");
+    expect(tw).toBeTruthy();
+    expect(tw!.confidence).toBe(0.4);
+    expect(tw!.evidence).toContain("tailwind.config found");
+  });
+
+  it("combines deps + config for Next.js (full confidence)", () => {
+    const files = makeFiles([
+      { path: "next.config.mjs", content: "export default {}" },
+      { path: "pages/index.tsx", content: "" },
+    ]);
+    const result = detectFrameworks(files, { next: "14.0.0" });
+    const next = result.find(f => f.name === "Next.js");
+    expect(next).toBeTruthy();
+    expect(next!.confidence).toBeCloseTo(1.0);
+  });
 });

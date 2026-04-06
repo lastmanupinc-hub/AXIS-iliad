@@ -257,3 +257,63 @@ describe("GET /v1/account/webhooks/:webhook_id/deliveries", () => {
     expect(deliveries[0].success).toBe(true);
   });
 });
+
+// ─── Layer 12: toggle branch coverage ───────────────────────────
+
+describe("POST /v1/account/webhooks/:webhook_id/toggle — branch coverage", () => {
+  let webhookId: string;
+
+  beforeAll(async () => {
+    const create = await req("POST", "/v1/account/webhooks", {
+      url: "https://example.com/toggle-branch",
+      events: ["snapshot.created"],
+    }, apiKey);
+    webhookId = (create.data as any).webhook.webhook_id;
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    // Send raw non-JSON to toggle endpoint
+    const r = await new Promise<Res>((resolve, reject) => {
+      const raw = "<<<not json>>>";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(raw)),
+        "Authorization": `Bearer ${apiKey}`,
+      };
+      const r = require("node:http").request(
+        { hostname: "127.0.0.1", port: TEST_PORT, path: `/v1/account/webhooks/${webhookId}/toggle`, method: "POST", headers },
+        (res: import("node:http").IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString("utf-8");
+            let data: unknown;
+            try { data = JSON.parse(text); } catch { data = text; }
+            resolve({ status: res.statusCode ?? 0, headers: {}, data: data as Record<string, unknown> });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(raw);
+      r.end();
+    });
+    expect(r.status).toBe(400);
+    expect(r.data).toHaveProperty("error_code", "INVALID_JSON");
+  });
+
+  it("returns 400 when active is not a boolean", async () => {
+    const r = await req("POST", `/v1/account/webhooks/${webhookId}/toggle`, { active: "yes" }, apiKey);
+    expect(r.status).toBe(400);
+    expect(r.data).toHaveProperty("error_code", "MISSING_FIELD");
+  });
+
+  it("returns 404 for webhook owned by different account", async () => {
+    // Create a second account
+    const acct2 = await req("POST", "/v1/accounts", { name: "Other Owner", email: "other-wh@test.com" });
+    const otherKey = (acct2.data as any).api_key.raw_key;
+    // Try to toggle first account's webhook with second account's key
+    const r = await req("POST", `/v1/account/webhooks/${webhookId}/toggle`, { active: false }, otherKey);
+    expect(r.status).toBe(404);
+    expect(r.data).toHaveProperty("error_code", "NOT_FOUND");
+  });
+});

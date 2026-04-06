@@ -209,4 +209,23 @@ describe("admin param clamping", () => {
     expect(r.status).toBe(200);
     // Activity was fetched successfully
   });
+
+  // Layer 12: NaN fallback branches (admin.ts lines 30, 46)
+  it("accounts uses default limit when param is NaN", async () => {
+    const r = await req("GET", "/v1/admin/accounts?limit=abc", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect(r.data.limit).toBe(50); // || 50 fallback
+  });
+
+  it("accounts uses default offset when param is NaN", async () => {
+    const r = await req("GET", "/v1/admin/accounts?offset=abc", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect(r.data.offset).toBe(0); // || 0 fallback
+  });
+
+  it("activity uses default limit when param is NaN", async () => {
+    const r = await req("GET", "/v1/admin/activity?limit=abc", undefined, apiKey);
+    expect(r.status).toBe(200);
+    // NaN || 50 → clamp → valid limit
+  });
 });

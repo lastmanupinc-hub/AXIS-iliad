@@ -231,5 +231,43 @@ class NextClass:
       expect(models).toHaveLength(1);
       expect(models[0].fields.some(f => f.name === "name" && f.type === "str")).toBe(true);
     });
+
+    // Layer 12: Python class followed by top-level def → break (line 169)
+    it("stops parsing fields at next top-level def", () => {
+      const models = extractDomainModels([
+        makeFile("models/mixed.py", `class Order:
+    def __init__(self, total: float):
+        self.total: float = total
+
+def process_order(order):
+    pass
+
+class Invoice:
+    def __init__(self, amount: int):
+        self.amount: int = amount
+`),
+      ]);
+      const order = models.find(m => m.name === "Order");
+      expect(order).toBeTruthy();
+      expect(order!.fields).toHaveLength(1);
+      expect(order!.fields[0].name).toBe("total");
+    });
+
+    // Layer 12: Python file with second class after first → break (line 169)
+    it("stops at next class definition", () => {
+      const models = extractDomainModels([
+        makeFile("models/multi.py", `class First:
+    def __init__(self):
+        self.a: str = "a"
+class Second:
+    def __init__(self):
+        self.b: int = 1
+`),
+      ]);
+      expect(models.length).toBeGreaterThanOrEqual(2);
+      const first = models.find(m => m.name === "First");
+      expect(first!.fields).toHaveLength(1);
+      expect(first!.fields[0].name).toBe("a");
+    });
   });
 });
