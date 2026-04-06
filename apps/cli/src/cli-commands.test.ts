@@ -229,4 +229,21 @@ describe("command routing", () => {
     main();
     expect(logSpy).toHaveBeenCalledWith("axis v0.3.0");
   });
+
+  // Layer 11: github command error catch (cli.ts lines 180-181)
+  it("github command logs error when runGitHub rejects", async () => {
+    const { fetchGitHubRepo } = await import("@axis/snapshots");
+    const mockedFetch = vi.mocked(fetchGitHubRepo);
+    mockedFetch.mockResolvedValue({
+      files: [{ path: "x.go", content: "package main", size: 12 }],
+      owner: "o", repo: "r", ref: "HEAD", skipped_count: 0, total_bytes: 12,
+    });
+    mockedRun.mockImplementation(() => { throw new Error("pipeline exploded"); });
+
+    process.argv = ["node", "axis", "github", "https://github.com/owner/repo"];
+    main();
+    // runGitHub is async, wait for the microtask
+    await new Promise((r) => setTimeout(r, 50));
+    expect(errorSpy).toHaveBeenCalledWith("Error: pipeline exploded");
+  });
 });

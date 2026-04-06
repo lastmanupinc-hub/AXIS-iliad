@@ -209,4 +209,14 @@ require github.com/rs/zerolog v1.31.0
     expect(result.domain_models).toHaveLength(1);
     expect(result.domain_models[0].name).toBe("User");
   });
+
+  // Layer 11: go.mod without version line (line 202 — goVersion ?? null)
+  it("parses go.mod without go version line", () => {
+    const result = parseRepo(makeFiles([
+      { path: "go.mod", content: "module github.com/example/myproject\n\nrequire (\n\tgithub.com/gin-gonic/gin v1.9.0\n)" },
+      { path: "main.go", content: 'package main\nimport "fmt"\nfunc main() { fmt.Println("hello") }' },
+    ]));
+    expect(result.go_module.module_path).toBe("github.com/example/myproject");
+    expect(result.go_module.go_version).toBeNull();
+  });
 });

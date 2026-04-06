@@ -425,4 +425,60 @@ describe("billing edge branches", () => {
     const r = await req("POST", "/v1/account/tier", { tier: "free" }, key);
     expect(r.status).toBe(200);
   });
+
+  // Layer 11: invalid tier value (billing.ts line 301-302)
+  it("rejects invalid tier value", async () => {
+    const { key } = await createTestAccount("BadTier", "badtier@test.com");
+    const r = await req("POST", "/v1/account/tier", { tier: "premium" }, key);
+    expect(r.status).toBe(400);
+    expect(r.data.error_code).toBe("INVALID_FORMAT");
+  });
+
+  // Layer 11: paid tier seat limit with upgrade hint (funnel.ts line 95 TRUE)
+  it("returns upgrade hint for paid tier hitting seat limit", async () => {
+    const { key } = await createTestAccount("PdSeat", "pdseat@test.com");
+    // Upgrade to paid
+    await req("POST", "/v1/account/tier", { tier: "paid" }, key);
+    // Fill all 5 paid seats
+    for (let i = 0; i < 5; i++) {
+      await req("POST", "/v1/account/seats", { email: `seat${i}@pdseat.com`, role: "member" }, key);
+    }
+    // 6th invite should fail with seat limit + upgrade hint for paid tier
+    const r = await req("POST", "/v1/account/seats", { email: "overflow@pdseat.com", role: "member" }, key);
+    expect(r.status).toBe(429);
+    expect(r.data.error_code).toBe("SEAT_LIMIT");
+    expect(r.data.upgrade_hint).toBe("Upgrade to Enterprise Suite for unlimited seats");
+  });
+
+  // Layer 11: free tier blocked from inviting seats (funnel.ts line 49)
+  it("returns 403 for free tier trying to invite seats", async () => {
+    const { key } = await createTestAccount("FrSeat", "frseat@test.com");
+    const r = await req("POST", "/v1/account/seats", { email: "one@frseat.com", role: "member" }, key);
+    expect(r.status).toBe(403);
+    expect(r.data.error_code).toBe("TIER_REQUIRED");
+  });
+
+  // Layer 11: revoke non-existent seat (funnel.ts lines 178-179)
+  it("returns 404 when revoking non-existent seat", async () => {
+    const { key } = await createTestAccount("RevNon", "revnon@test.com");
+    const r = await req("POST", "/v1/account/seats/seat_nonexistent/revoke", {}, key);
+    expect(r.status).toBe(404);
+    expect(r.data.error_code).toBe("NOT_FOUND");
+  });
+
+  // Layer 11: revoke already-revoked seat (funnel.ts double-revoke)
+  it("returns 404 when re-revoking a seat", async () => {
+    const { key } = await createTestAccount("DblRevS", "dblrevs@test.com");
+    // Upgrade to paid so we have seat capacity
+    await req("POST", "/v1/account/tier", { tier: "paid" }, key);
+    // Invite and get seat_id
+    const inv = await req("POST", "/v1/account/seats", { email: "revokeme@dblrevs.com", role: "member" }, key);
+    const seatId = (inv.data.seat as Record<string, unknown>).seat_id as string;
+    // First revoke
+    await req("POST", `/v1/account/seats/${seatId}/revoke`, {}, key);
+    // Second revoke should fail
+    const r2 = await req("POST", `/v1/account/seats/${seatId}/revoke`, {}, key);
+    expect(r2.status).toBe(404);
+    expect(r2.data.error_code).toBe("NOT_FOUND");
+  });
 });

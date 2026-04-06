@@ -17,7 +17,7 @@ function makeContextMap(overrides: Partial<ContextMap> = {}): ContextMap {
     project_identity: { name: "search-test", type: "library", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
     structure: { total_files: 10, total_directories: 3, total_loc: 500, file_tree_summary: [], top_level_layout: [{ name: "src", purpose: "source code", file_count: 8 }] },
     detection: { languages: { TypeScript: { files: 10, bytes: 5000, percentage: 100 } }, frameworks: [{ name: "vitest", confidence: 0.95 }], build_tools: ["tsc"], test_frameworks: ["vitest"], package_managers: ["pnpm"], ci_platform: "github-actions", deployment_target: "vercel" },
-    dependency_graph: { external_dependencies: { direct: {}, dev: {} }, internal_imports: [], hotspots: [] },
+    dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
     entry_points: [],
     routes: [],
     domain_models: [],
@@ -37,7 +37,7 @@ function makeProfile(overrides: Partial<RepoProfile> = {}): RepoProfile {
     project: { name: "search-test", type: "library", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
     detection: { languages: { TypeScript: { files: 10, bytes: 5000, percentage: 100 } }, frameworks: [{ name: "vitest", confidence: 0.95 }], build_tools: ["tsc"], test_frameworks: ["vitest"], package_managers: ["pnpm"], ci_platform: "github-actions", deployment_target: "vercel" },
     structure_summary: { total_files: 10, total_directories: 3, total_loc: 500, top_level_dirs: [{ name: "src", purpose: "source code", file_count: 8 }] },
-    health: { has_readme: true, has_tests: true, has_ci: true, has_lockfile: true, has_typescript: true, has_linter: false, has_formatter: false, dependency_count: 3, dev_dependency_count: 2, architecture_patterns: ["layered"], separation_score: 7 },
+    health: { has_readme: true, has_tests: true, test_file_count: 5, has_ci: true, has_lockfile: true, has_typescript: true, has_linter: false, has_formatter: false, dependency_count: 3, dev_dependency_count: 2, architecture_patterns: ["layered"], separation_score: 7 },
     goals: null,
     ...overrides,
   } as RepoProfile;
@@ -140,7 +140,7 @@ describe("generateArchitectureSummary — hotspots section", () => {
   it("includes hotspot table when hotspots exist", () => {
     const ctx = makeContextMap({
       dependency_graph: {
-        external_dependencies: { direct: {}, dev: {} },
+        external_dependencies: [],
         internal_imports: [],
         hotspots: [
           { path: "src/core.ts", inbound_count: 5, outbound_count: 3, risk_score: 6.2 },
@@ -217,7 +217,7 @@ describe("generateRepoProfileYAML — toYAML edge cases", () => {
   it("handles empty arrays and objects", () => {
     const profile = makeProfile({
       health: {
-        has_readme: true, has_tests: false, has_ci: false, has_lockfile: false,
+        has_readme: true, has_tests: false, test_file_count: 0, has_ci: false, has_lockfile: false,
         has_typescript: false, has_linter: false, has_formatter: false,
         dependency_count: 0, dev_dependency_count: 0,
         architecture_patterns: [],

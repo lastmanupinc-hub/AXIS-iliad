@@ -252,4 +252,21 @@ describe("extractSQLSchema", () => {
     expect(tables).toHaveLength(1);
     expect(tables[0].columns).toHaveLength(2);
   });
+
+  // Layer 11: standalone PRIMARY KEY (lines 38, 44)
+  it("handles standalone PRIMARY KEY constraint", () => {
+    const tables = extractSQLSchema([
+      sqlFile("composite.sql", `CREATE TABLE order_items (
+        order_id INTEGER,
+        product_id INTEGER,
+        quantity INTEGER NOT NULL,
+        PRIMARY KEY(order_id, product_id)
+      );`),
+    ]);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].columns).toHaveLength(3);
+    // The standalone PK columns should be detected
+    const pkCols = tables[0].columns.filter(c => c.is_pk);
+    expect(pkCols.length).toBeGreaterThanOrEqual(2);
+  });
 });

@@ -4731,4 +4731,163 @@ describe("Layer 6 branch coverage", () => {
       expect(data.per_route_audit[0].required_tags.title.template).toContain("my post");
     });
   });
+
+  // ─── Layer 11: frontend, optimization, seo gaps ───────────────
+
+  describe("Layer 11 branch coverage", () => {
+
+    // frontend: ui-audit.md with UI deps (line 370 — uiDeps truthy)
+    it("ui-audit detects UI library dependencies", () => {
+      const FILES: FileEntry[] = [
+        { path: "package.json", content: '{"name":"ui-app","dependencies":{"react":"18.0.0","@radix-ui/react-dialog":"1.0.0","@headlessui/react":"2.0.0"},"devDependencies":{"typescript":"5.0.0"}}', size: 160 },
+        { path: "src/App.tsx", content: 'import { Dialog } from "@radix-ui/react-dialog";\nexport default function App() { return <Dialog /> }', size: 100 },
+        { path: "tsconfig.json", content: '{"compilerOptions":{"strict":true}}', size: 34 },
+      ];
+      const s = snap({ files: FILES });
+      const inp = input(s, ["ui-audit.md"]);
+      // Inject lowercase framework for detection
+      inp.context_map.detection.frameworks = [{ name: "react", version: "18.0.0", confidence: 0.95, evidence: ["package.json"] }];
+      // Inject UI-related deps
+      inp.context_map.dependency_graph.external_dependencies = [
+        { name: "@radix-ui/react-dialog", version: "1.0.0", type: "direct" },
+        { name: "@headlessui/react", version: "2.0.0", type: "direct" },
+        { name: "react", version: "18.0.0", type: "direct" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "ui-audit.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("@radix-ui/react-dialog");
+      expect(f!.content).toContain("@headlessui/react");
+    });
+
+    // frontend: ui-audit.md with CSS but no tailwind (line 381 — "CSS/SCSS" path)
+    it("ui-audit shows CSS/SCSS styling when no tailwind", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["ui-audit.md"]);
+      inp.context_map.detection.frameworks = [{ name: "react", version: "18.0.0", confidence: 0.95, evidence: ["package.json"] }];
+      inp.context_map.detection.languages = [
+        { name: "TypeScript", file_count: 5, loc: 200, loc_percent: 80 },
+        { name: "CSS", file_count: 2, loc: 50, loc_percent: 20 },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "ui-audit.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("CSS/SCSS");
+    });
+
+    // frontend: ui-audit.md with page routes (lines 430, 442 — pageRoutes loop)
+    it("ui-audit lists page routes in component coverage", () => {
+      const s = snap({ files: NEXTJS_FILES });
+      const inp = input(s, ["ui-audit.md"]);
+      inp.context_map.detection.frameworks = [{ name: "next", version: "14.0.0", confidence: 0.99, evidence: ["package.json"] }];
+      inp.context_map.routes = [
+        { path: "/", method: "GET", source_file: "app/page.tsx" },
+        { path: "/about", method: "GET", source_file: "app/about/page.tsx" },
+        { path: "/api/users", method: "GET", source_file: "app/api/users/route.ts" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "ui-audit.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("| / |");
+      expect(f!.content).toContain("| /about |");
+      // API route should be excluded from pageRoutes
+      expect(f!.content).not.toContain("| /api/users |");
+    });
+
+    // optimization: optimization-rules.md with warnings (line 147 TRUE)
+    it("optimization-rules includes warnings section when present", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, [".ai/optimization-rules.md"]);
+      inp.context_map.ai_context.warnings = [
+        "No test files detected",
+        "No CI/CD pipeline detected",
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, ".ai/optimization-rules.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("Optimization Warnings");
+      expect(f!.content).toContain("No test files detected");
+      expect(f!.content).toContain("No CI/CD pipeline detected");
+    });
+
+    // optimization: prompt-diff-report.md score summary (line 208 — scores loop)
+    it("prompt-diff-report generates score summary table", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["prompt-diff-report.md"]);
+      inp.context_map.structure.total_files = 100;
+      inp.context_map.dependency_graph.hotspots = [
+        { path: "src/core.ts", inbound_count: 10, outbound_count: 5, risk_score: 8.0 },
+      ];
+      inp.context_map.ai_context.conventions = ["Use ESM imports"];
+      inp.context_map.routes = [
+        { path: "/api/v1/users", method: "GET", source_file: "src/routes.ts" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "prompt-diff-report.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("Score Summary");
+      expect(f!.content).toContain("Context Precision");
+      expect(f!.content).toContain("Delta");
+    });
+
+    // optimization: cost-estimate.json language breakdown with LOC (line 329)
+    it("cost-estimate includes per-language token breakdown", () => {
+      const s = snap({ files: REACT_SPA_FILES });
+      const inp = input(s, ["cost-estimate.json"]);
+      inp.context_map.detection.languages = [
+        { name: "TypeScript", file_count: 10, loc: 500, loc_percent: 80 },
+        { name: "CSS", file_count: 3, loc: 100, loc_percent: 20 },
+      ];
+      inp.context_map.structure.total_loc = 600;
+      inp.context_map.structure.file_tree_summary = [
+        { path: "src/app.ts", type: "file" as const, language: "TypeScript", loc: 300, role: "source" },
+        { path: "src/utils.ts", type: "file" as const, language: "TypeScript", loc: 200, role: "source" },
+        { path: "src/style.css", type: "file" as const, language: "CSS", loc: 100, role: "source" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "cost-estimate.json");
+      expect(f).toBeDefined();
+      const data = JSON.parse(f!.content);
+      expect(data.language_breakdown.length).toBeGreaterThan(0);
+      expect(data.language_breakdown[0].language).toBe("TypeScript");
+      expect(data.language_breakdown[0].loc).toBeGreaterThan(0);
+    });
+
+    // seo: content-audit.md generation (line 347)
+    it("content-audit generates SEO readiness assessment", () => {
+      const s = snap({ files: NEXTJS_FILES });
+      const inp = input(s, ["content-audit.md"]);
+      inp.context_map.detection.frameworks = [
+        { name: "Next.js", version: "14.0.0", confidence: 0.99, evidence: ["package.json"] },
+      ];
+      inp.context_map.routes = [
+        { path: "/", method: "GET", source_file: "app/page.tsx" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "content-audit.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("Content Audit");
+      expect(f!.content).toContain("SEO Readiness Score");
+    });
+
+    // seo: content-audit.md with page files (lines 434-435 TRUE)
+    it("content-audit lists page components when detected", () => {
+      const s = snap({ files: NEXTJS_FILES });
+      const inp = input(s, ["content-audit.md"]);
+      inp.context_map.detection.frameworks = [
+        { name: "Next.js", version: "14.0.0", confidence: 0.99, evidence: ["package.json"] },
+      ];
+      inp.context_map.structure.file_tree_summary = [
+        { path: "app/page.tsx", type: "file" as const, language: "TypeScript", loc: 50, role: "page" },
+        { path: "app/about/page.tsx", type: "file" as const, language: "TypeScript", loc: 30, role: "page" },
+        { path: "src/utils.ts", type: "file" as const, language: "TypeScript", loc: 100, role: "source" },
+      ];
+      const result = generateFiles(inp);
+      const f = getFile(result, "content-audit.md");
+      expect(f).toBeDefined();
+      expect(f!.content).toContain("Page Components");
+      expect(f!.content).toContain("app/page.tsx");
+      expect(f!.content).toContain("Needs meta tags");
+    });
+  });
 });

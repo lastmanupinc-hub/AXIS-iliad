@@ -86,6 +86,66 @@ describe("detectProjectType (multi-signal scorer)", () => {
     const type = detectProjectType(files, ["Express", "React"]);
     expect(type).toBe("fullstack_web");
   });
+
+  // Layer 11: workspace config detection (line 167 TRUE branch)
+  it("detects monorepo from workspace config alone (lerna.json)", () => {
+    const files = [f("lerna.json", "{}"), f("packages/a/index.ts")];
+    expect(detectProjectType(files, [])).toBe("monorepo");
+  });
+
+  it("detects monorepo from pnpm-workspace.yaml + apps", () => {
+    const files = [f("pnpm-workspace.yaml", "packages:\n  - apps/*"), f("apps/web/index.ts")];
+    expect(detectProjectType(files, [])).toBe("monorepo");
+  });
+
+  it("detects monorepo from turbo.json + packages", () => {
+    const files = [f("turbo.json", "{}"), f("packages/ui/index.ts")];
+    expect(detectProjectType(files, [])).toBe("monorepo");
+  });
+
+  // Layer 11: fullstack_web via Go routes + frontend (line 192 hasGoRoutes branch)
+  it("detects fullstack_web from Go routes + frontend files", () => {
+    const files = [
+      f("src/App.tsx"),
+      f("cmd/api/main.go", 'func main() { r.Get("/users", list) }'),
+      f("internal/handler/routes.go", 'r.Post("/api/data", handler)'),
+    ];
+    // No backend framework passed — uses hasGoRoutes path
+    expect(detectProjectType(files, [])).toBe("fullstack_web");
+  });
+
+  // Layer 11: Python backend detection (backendFileCount > 50%)
+  it("detects backend_api for Python-heavy project", () => {
+    const files = [
+      f("app/main.py", "from flask import Flask"),
+      f("app/routes.py", ""),
+      f("app/models.py", ""),
+      f("app/utils.py", ""),
+      f("requirements.txt", "flask"),
+      f("Dockerfile", "FROM python:3.12"),
+    ];
+    expect(detectProjectType(files, ["Flask"])).toBe("backend_api");
+  });
+
+  // Layer 11: Electron native app detection
+  it("detects native_app for Electron project", () => {
+    const files = [
+      f("src/main.ts"),
+      f("src/renderer.tsx"),
+      f("package.json", '{"name":"electron-app","main":"dist/main.js"}'),
+    ];
+    expect(detectProjectType(files, ["Electron"])).toBe("native_app");
+  });
+
+  // Layer 11: static_site edge case with HTML but no frameworks
+  it("detects static_site for HTML+CSS only project", () => {
+    const files = [
+      f("index.html", "<html></html>"),
+      f("about.html", "<html></html>"),
+      f("css/style.css", "body {}"),
+    ];
+    expect(detectProjectType(files, [])).toBe("static_site");
+  });
 });
 
 describe("detectFrameworks (runner-level)", () => {

@@ -229,3 +229,45 @@ describe("handleSearchStats", () => {
     expect(body.line_count).toBe(0);
   });
 });
+
+// ─── Layer 11: Invalid JSON (handlers.ts lines 705-706) ────────
+
+function makeRawReq(rawBody: string): IncomingMessage {
+  const socket = new Socket();
+  const req = new IncomingMessage(socket);
+  req.headers["content-type"] = "application/json";
+  const origOn = req.on.bind(req);
+  const dataCallbacks: Array<(chunk: Buffer) => void> = [];
+  const endCallbacks: Array<() => void> = [];
+  req.on = function (event: string, cb: (...args: unknown[]) => void) {
+    if (event === "data") { dataCallbacks.push(cb as (chunk: Buffer) => void); }
+    else if (event === "end") { endCallbacks.push(cb as () => void); }
+    else { origOn(event, cb); }
+    return req;
+  } as typeof req.on;
+  process.nextTick(() => {
+    for (const cb of dataCallbacks) cb(Buffer.from(rawBody));
+    for (const cb of endCallbacks) cb();
+  });
+  return req;
+}
+
+describe("handleSearchIndex — invalid JSON", () => {
+  it("returns 400 for malformed JSON body", async () => {
+    const req = makeRawReq("{not valid json}}}");
+    const { res, captured } = makeRes();
+    await handleSearchIndex(req, res);
+    expect(captured().statusCode).toBe(400);
+    expect((captured().body as Record<string, unknown>).error_code).toBe("INVALID_JSON");
+  });
+});
+
+describe("handleSearchQuery — invalid JSON", () => {
+  it("returns 400 for malformed JSON body", async () => {
+    const req = makeRawReq("<<<not json>>>");
+    const { res, captured } = makeRes();
+    await handleSearchQuery(req, res);
+    expect(captured().statusCode).toBe(400);
+    expect((captured().body as Record<string, unknown>).error_code).toBe("INVALID_JSON");
+  });
+});

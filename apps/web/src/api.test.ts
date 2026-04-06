@@ -544,3 +544,20 @@ describe("getFunnelStatus", () => {
     expect(fetchFn.mock.calls[0][0]).toBe("/v1/account/funnel");
   });
 });
+
+// ─── Layer 11: AbortError timeout path (api.ts lines 200-203) ───
+
+describe("fetch timeout handling", () => {
+  it("converts AbortError to 'Request timed out'", async () => {
+    const abortErr = new DOMException("The operation was aborted", "AbortError");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortErr));
+
+    await expect(healthCheck()).rejects.toThrow("Request timed out");
+  });
+
+  it("re-throws non-AbortError errors", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+
+    await expect(healthCheck()).rejects.toThrow("Failed to fetch");
+  });
+});
