@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-21"
-    commit_or_tag: "8ab744f"
-    current_session_id: "session_020"
-    one_sentence_summary: "Full-stack Axis Toolbox with 80 generators across 17 programs, 71+ endpoints, 1407 tests across 65 files. eq_103-105: webhook retry with exponential backoff + dead-letter queue, OpenAPI 3.1 spec completeness (all 65 endpoints documented), 7-flow E2E integration test suite. Capability inventory: A:76, B:2, F:4 (all remaining Fs are external deps). Grade: A (99+)."
+    commit_or_tag: "7b9eba3"
+    current_session_id: "session_021"
+    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 1485 tests across 68 files, 91.5% statement coverage. eq_106-110: B→A upgrades (GitHub token management + billing audit trail), coverage gap tests (+43), performance benchmarks, documentation polish, code quality sweep. Migration v8."
     current_status: "building"
     current_focus_vertical: "production_hardening"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "1407 tests across 65 files (1341→1407). eq_103-105: webhook retry + dead-letter queue, complete OpenAPI 3.1 spec (all 65 endpoints + 14 new schemas), 7-flow E2E integration tests. Capability inventory: A:76, B:2, F:4. All remaining Fs blocked on external deps."
+      notes: "1485 tests across 68 files. eq_106-110: all B→A (GitHub token management, billing audit trail), 91.5% stmt coverage, performance benchmarks, docs updated, clean tsc build. Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
 
   boundary_truth:
     accepted_input_modes:
@@ -876,6 +876,31 @@ project_continuation:
         description: "E2E integration flow tests — 7 cross-endpoint flows (snapshot lifecycle, version history, account lifecycle, admin dashboard, health+infra, webhook lifecycle, project deletion cascade), 40 tests"
         completion_status: complete
         commit: "8ab744f"
+
+      - id: "eq_106"
+        description: "Upgrade B-grade capabilities to A — GitHub token management (AES-256-GCM encrypted storage, CRUD endpoints, auto-lookup) + billing audit trail (tier_changes table, proration calc, history endpoint) — migration v8, 35 new tests"
+        completion_status: complete
+        commit: "3774c3d"
+
+      - id: "eq_107"
+        description: "Test coverage analysis — 43 gap-targeted tests, coverage 90.25%→91.55% stmts, 90.92%→92.22% lines. version-store, billing-store, tier-audit, github-token-store all ≥97%. Direct imports fix v8 attribution."
+        completion_status: complete
+        commit: "1e099e4"
+
+      - id: "eq_108"
+        description: "Performance benchmarks — 2 vitest bench suites: repo-parser (parseRepo, detectLanguage, extractImports, extractSQLSchema, extractDomainModels) + snapshots (createSnapshot, FTS5 search, admin queries, webhooks, saveGeneratorResult). All critical paths <100ms for 200-file repos."
+        completion_status: complete
+        commit: "2521308"
+
+      - id: "eq_109"
+        description: "Documentation polish — README (71 endpoints, 1485 tests, coverage/bench stats, new API sections: Search & Versions, Webhooks, Infrastructure), CHANGELOG (0.4.0 entries for token mgmt + audit trail + coverage + benchmarks), CONTRIBUTING (coverage/bench commands)"
+        completion_status: complete
+        commit: "7cafa2b"
+
+      - id: "eq_110"
+        description: "Code quality sweep — fix all tsc strict errors in test/bench files (InputMethod, WebhookEventType, BillingTier union types, recordUsage arity), zero dep vulnerabilities (pnpm audit clean), clean build across all packages"
+        completion_status: complete
+        commit: "7b9eba3"
 
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
@@ -1825,6 +1850,47 @@ project_continuation:
       - "No cross-endpoint E2E tests → 7 integration flow suites"
     blockers_added: []
     commit_results: ["98afd03", "68f83eb", "8ab744f"]
+
+  current_session_result_038:
+    session_goal: "Execute all 5 improvement directions: B→A upgrades, coverage analysis, benchmarks, docs, quality sweep"
+    selected_move: "eq_106 → eq_107 → eq_108 → eq_109 → eq_110: B-grade upgrades, coverage gaps, perf benchmarks, documentation, code quality"
+    selected_move_roi_reason: "User requested all 5 directions in order. Each builds on prior: B→A fills capability gaps, coverage finds test holes, benchmarks quantify performance, docs capture state, quality sweep hardens for production."
+    completed_candidates:
+      - "eq_106: B→A capability upgrades — GitHub token management (AES-256-GCM encrypted store, CRUD, auto-lookup), billing audit trail (tier_changes table, proration, history). Migration v8. 35 new tests. (commit 3774c3d)"
+      - "eq_107: Test coverage analysis — @vitest/coverage-v8, 43 gap-targeted tests. Coverage 90.25%→91.55% stmts, 90.92%→92.22% lines. version-store 0%→100%, billing-store 84%→100%, tier-audit 6%→100%, github-token-store 7%→97.5%. (commit 1e099e4)"
+      - "eq_108: Performance benchmarks — 2 vitest bench suites: parser pipeline (parseRepo 21ms/200 files, extractImports 10ms/200 files) + storage ops (createSnapshot 0.11ms/10 files, FTS5 search <0.2ms, signPayload <0.01ms). (commit 2521308)"
+      - "eq_109: Documentation polish — README updated (71 endpoints, 1485 tests, coverage/bench stats, new API sections), CHANGELOG 0.4.0 entries, CONTRIBUTING bench/coverage commands. (commit 7cafa2b)"
+      - "eq_110: Code quality sweep — Fixed all tsc strict errors (InputMethod/WebhookEventType/BillingTier unions, recordUsage arity), pnpm audit clean, clean build all packages. (commit 7b9eba3)"
+    refused_candidates: []
+    blocked_candidates:
+      - "Payment integration — blocked on No Fate Platform payment processor"
+      - "OAuth login — blocked on OAuth provider integration"
+      - "Email notifications — blocked on email service provider"
+      - "Web hosting deployment — blocked on deployment platform selection"
+    evidence_added:
+      - "1485 vitest tests passing across 68 files (1407→1485, +78)"
+      - "91.55% statement coverage, 92.22% line coverage"
+      - "Capability inventory: A:78, B:0, F:4 (all B→A completed)"
+      - "Performance: parseRepo 200 files in 21ms, FTS5 search <0.2ms, createSnapshot 10 files in 0.11ms"
+      - "Migration v8: github_tokens + tier_changes tables"
+      - "5 new routes: POST/GET/DELETE /v1/account/github-token, GET /v1/billing/history, GET /v1/billing/proration"
+      - "2 new test files: coverage-gaps.test.ts (43 tests), b-grade-upgrade.test.ts (35 tests)"
+      - "2 new bench files: perf.bench.ts (snapshots), perf.bench.ts (repo-parser)"
+      - "README documents all 71 endpoints across 6 categories"
+      - "Clean tsc --noEmit across all packages"
+    verticals_advanced:
+      - "Capability Inventory — B:2→B:0, all internal capabilities at Grade A"
+      - "Test Coverage — 90.25%→91.55% stmts, key modules at 97-100%"
+      - "Documentation — README/CHANGELOG/CONTRIBUTING current with all endpoints and metrics"
+    blockers_removed:
+      - "B-grade analyze_private_repo → A: encrypted token storage with auto-lookup"
+      - "B-grade upgrade_tier → A: audit trail with proration calc"
+      - "version-store 0% coverage → 100%"
+      - "billing-store 84% coverage → 100%"
+      - "tsc strict errors in test/bench files → all resolved"
+    blockers_added: []
+    commit_results: ["3774c3d", "1e099e4", "2521308", "7cafa2b", "7b9eba3"]
+    push_results: ["bc19a1c..7b9eba3"]
 
   source_control_policy:
     commit_after_each_completed_candidate: true
