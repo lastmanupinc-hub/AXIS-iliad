@@ -48,7 +48,7 @@ export interface ContextMap {
   };
   detection: {
     languages: Array<{ name: string; file_count: number; loc: number; loc_percent: number }>;
-    frameworks: Array<{ name: string; confidence: number; signals: string[] }>;
+    frameworks: Array<{ name: string; confidence: number; evidence?: string[] }>;
     build_tools: string[];
     test_frameworks: string[];
     package_managers: string[];
@@ -196,14 +196,14 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
     if (!res.ok) {
       let msg = `${res.status}`;
       try {
-        const json = await res.json();
-        msg = json.error || msg;
-      } catch {
-        /* v8 ignore start — V8 quirk: text fallback when res.json() fails, tested but not credited */
-        const text = await res.text();
-        if (text) msg = text.slice(0, 200);
-        /* v8 ignore stop */
-      }
+        const body = await res.text();
+        try {
+          const json = JSON.parse(body);
+          msg = json.error || msg;
+        } catch {
+          if (body) msg = body.slice(0, 200);
+        }
+      } catch { /* empty body */ }
       throw new Error(msg);
     }
     return res.json() as Promise<T>;
@@ -257,7 +257,7 @@ export async function analyzeGitHubUrl(githubUrl: string): Promise<SnapshotRespo
 }
 
 export async function healthCheck(): Promise<{ status: string; version: string }> {
-  return fetchJSON("/health");
+  return fetchJSON("/v1/health");
 }
 
 // ─── Search API ─────────────────────────────────────────────────

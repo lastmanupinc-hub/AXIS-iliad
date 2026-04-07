@@ -1,7 +1,7 @@
 import { useState, useRef, type FormEvent, type DragEvent } from "react";
 import { createSnapshot, analyzeGitHubUrl, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
 import { useToast } from "../components/Toast.tsx";
-import { shouldIgnore, detectFrameworks } from "../upload-utils.ts";
+import { shouldIgnore, detectFrameworks, extractZip } from "../upload-utils.ts";
 
 interface Props {
   onComplete: (data: SnapshotResponse) => void;
@@ -44,6 +44,7 @@ export function UploadPage({ onComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
   const [skippedCount, setSkippedCount] = useState(0);
   const { toast } = useToast();
 
@@ -66,8 +67,31 @@ export function UploadPage({ onComplete }: Props) {
     return results;
   }
 
+  async function handleZipFile(file: File) {
+    try {
+      const buffer = await file.arrayBuffer();
+      const { files: extracted, skipped } = await extractZip(buffer);
+      setSkippedCount(skipped);
+      setFiles(extracted);
+      if (!projectName && extracted.length > 0) {
+        // Use zip filename without extension as project name
+        const zipName = file.name.replace(/\.zip$/i, "");
+        setProjectName(zipName);
+      }
+      toast("success", `Extracted ${extracted.length} files from ${file.name}${skipped > 0 ? ` (${skipped} skipped)` : ""}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to extract zip";
+      setError(msg);
+      toast("error", msg);
+    }
+  }
+
   async function handleFolderSelect() {
     fileInputRef.current?.click();
+  }
+
+  async function handleZipSelect() {
+    zipInputRef.current?.click();
   }
 
   async function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -80,12 +104,23 @@ export function UploadPage({ onComplete }: Props) {
     }
   }
 
+  async function handleZipInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    await handleZipFile(e.target.files[0]);
+  }
+
   async function handleDrop(e: DragEvent) {
     e.preventDefault();
     setDragOver(false);
     if (!e.dataTransfer.files.length) return;
-    const newFiles = await readFiles(e.dataTransfer.files);
-    setFiles(newFiles);
+    // Check if any dropped file is a .zip
+    const firstFile = e.dataTransfer.files[0];
+    if (firstFile.name.toLowerCase().endsWith(".zip")) {
+      await handleZipFile(firstFile);
+    } else {
+      const newFiles = await readFiles(e.dataTransfer.files);
+      setFiles(newFiles);
+    }
   }
 
   function toggleOutput(value: string) {
@@ -279,12 +314,27 @@ export function UploadPage({ onComplete }: Props) {
             multiple
             onChange={handleFileInputChange}
           />
+          <input
+            ref={zipInputRef}
+            type="file"
+            style={{ display: "none" }}
+            accept=".zip"
+            onChange={handleZipInputChange}
+          />
           {files.length === 0 ? (
             <>
               <div style={{ fontSize: "2rem", marginBottom: 8 }}>📁</div>
               <p style={{ color: "var(--text-muted)" }}>
-                Click to select a folder or drag & drop files here
+                Drag & drop a folder or .zip file here
               </p>
+              <div className="flex" style={{ gap: 8, justifyContent: "center", marginTop: 12 }}>
+                <button type="button" className="btn" onClick={handleFolderSelect} style={{ fontSize: "0.8125rem" }}>
+                  📂 Select Folder
+                </button>
+                <button type="button" className="btn" onClick={handleZipSelect} style={{ fontSize: "0.8125rem" }}>
+                  📦 Upload .zip
+                </button>
+              </div>
               <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 4 }}>
                 node_modules, .git, dist, and binary files are automatically excluded
               </p>

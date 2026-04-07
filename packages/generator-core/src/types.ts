@@ -8,10 +8,17 @@ export interface GeneratedFile {
   description: string;
 }
 
+export interface SourceFile {
+  path: string;
+  content: string;
+  size: number;
+}
+
 export interface GeneratorInput {
   context_map: ContextMap;
   repo_profile: RepoProfile;
   requested_outputs: string[];
+  source_files?: SourceFile[];
 }
 
 export interface GeneratorResult {

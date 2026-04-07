@@ -86,10 +86,12 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     }
 
     const requestedOutputs = (rawOutputs as string[] | undefined) ?? defaultOutputs;
+    const snapshot = getSnapshot(snapshotId);
     const result = generateFiles({
       context_map: contextMap,
       repo_profile: repoProfile,
       requested_outputs: requestedOutputs,
+      source_files: snapshot?.files,
     });
 
     const programFiles = result.files.filter(f => f.program === program);
@@ -223,6 +225,7 @@ export async function handleCreateSnapshot(
       context_map: contextMap,
       repo_profile: repoProfile,
       requested_outputs: snapshot.manifest.requested_outputs,
+      source_files: snapshot.files,
     });
     saveGeneratorResult(snapshot.snapshot_id, generated);
     updateSnapshotStatus(snapshot.snapshot_id, "ready");
@@ -527,10 +530,12 @@ export async function handleSkillsGenerate(
   }
 
   const requestedOutputs = (rawOutputs as string[] | undefined) ?? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"];
+  const snapshot = getSnapshot(snapshotId);
   const result = generateFiles({
     context_map: contextMap,
     repo_profile: repoProfile,
     requested_outputs: requestedOutputs,
+    source_files: snapshot?.files,
   });
 
   const skillsFiles = result.files.filter(f => f.program === "skills");
@@ -653,6 +658,7 @@ export async function handleGitHubAnalyze(
       context_map: contextMap,
       repo_profile: repoProfile,
       requested_outputs: [],
+      source_files: snapshot.files,
     });
     saveGeneratorResult(snapshot.snapshot_id, generated);
     updateSnapshotStatus(snapshot.snapshot_id, "ready");

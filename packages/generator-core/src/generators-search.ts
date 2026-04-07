@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratedFile } from "./types.js";
+import type { GeneratedFile, SourceFile } from "./types.js";
+import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt } from "./file-excerpt-utils.js";
 
 export function generateContextMapJSON(ctx: ContextMap): GeneratedFile {
   return {
@@ -21,7 +22,7 @@ export function generateRepoProfileYAML(profile: RepoProfile): GeneratedFile {
   };
 }
 
-export function generateArchitectureSummary(ctx: ContextMap): GeneratedFile {
+export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const lines: string[] = [];
   const id = ctx.project_identity;
 
@@ -150,6 +151,22 @@ export function generateArchitectureSummary(ctx: ContextMap): GeneratedFile {
       lines.push(`- ⚠️ ${w}`);
     }
     lines.push("");
+  }
+
+  // ─── Source file excerpts ───────────────────────────────────
+  if (files && files.length > 0) {
+    lines.push("## File Tree");
+    lines.push("");
+    lines.push("```");
+    lines.push(fileTree(files));
+    lines.push("```");
+    lines.push("");
+
+    const entries = findEntryPoints(files);
+    lines.push(...renderExcerpts("Entry Points (Source)", entries, 30));
+
+    const configs = findConfigs(files);
+    lines.push(...renderExcerpts("Configuration Files", configs, 25));
   }
 
   lines.push("---");

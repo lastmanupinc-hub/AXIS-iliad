@@ -1,7 +1,8 @@
 import type { ContextMap } from "@axis/context-engine";
-import type { GeneratedFile } from "./types.js";
+import type { GeneratedFile, SourceFile } from "./types.js";
+import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 
-export function generateFrontendRules(ctx: ContextMap): GeneratedFile {
+export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
@@ -120,6 +121,28 @@ export function generateFrontendRules(ctx: ContextMap): GeneratedFile {
     lines.push("- Test user interactions, not implementation details");
     lines.push("- Mock API responses at the network layer");
     lines.push("");
+  }
+
+  // ─── Source file context ───────────────────────────────────
+  if (files && files.length > 0) {
+    const uiFiles = findFiles(files, ["component", ".tsx", ".jsx", ".vue", ".svelte"]);
+    if (uiFiles.length > 0) {
+      lines.push("## Project Components");
+      lines.push("");
+      for (const f of uiFiles.slice(0, 10)) {
+        const exports = extractExports(f.content);
+        if (exports.length > 0) {
+          lines.push(`- **\`${f.path}\`**: ${exports.slice(0, 3).map(e => `\`${e.slice(0, 80)}\``).join(", ")}`);
+        } else {
+          lines.push(`- \`${f.path}\``);
+        }
+      }
+      if (uiFiles.length > 10) lines.push(`- *... and ${uiFiles.length - 10} more*`);
+      lines.push("");
+    }
+
+    const styleFiles = findFiles(files, [".css", ".scss", ".less", "tailwind"]);
+    lines.push(...renderExcerpts("Style Sources", styleFiles.slice(0, 3), 20));
   }
 
   lines.push("---");

@@ -45,6 +45,7 @@ export function run(scan: ScanResult, projectDir: string, programs?: string[]): 
     context_map: contextMap,
     repo_profile: repoProfile,
     requested_outputs: requested,
+    source_files: snapshot.files,
   });
 
   /* v8 ignore next 6 — V8 quirk on return object literal */

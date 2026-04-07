@@ -1,4 +1,4 @@
-export type { GeneratedFile, GeneratorInput, GeneratorResult } from "./types.js";
+export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 export { generateFiles, listAvailableGenerators } from "./generate.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";

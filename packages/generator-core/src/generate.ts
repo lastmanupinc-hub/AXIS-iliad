@@ -1,5 +1,5 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratedFile, GeneratorInput, GeneratorResult } from "./types.js";
+import type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 import { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots } from "./generators-search.js";
 import { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 import { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
@@ -18,19 +18,19 @@ import { generateRemotionScript, generateScenePlan, generateRenderConfig, genera
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
 
-type GeneratorFn = (ctx: ContextMap, profile: RepoProfile) => GeneratedFile;
+type GeneratorFn = (ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]) => GeneratedFile;
 
 const REGISTRY: Record<string, GeneratorFn> = {
   ".ai/context-map.json": (ctx) => generateContextMapJSON(ctx),
   ".ai/repo-profile.yaml": (_ctx, profile) => generateRepoProfileYAML(profile),
-  "architecture-summary.md": (ctx) => generateArchitectureSummary(ctx),
-  "AGENTS.md": (ctx) => generateAgentsMD(ctx),
-  "CLAUDE.md": (ctx) => generateClaudeMD(ctx),
-  ".cursorrules": (ctx) => generateCursorRules(ctx),
-  ".ai/debug-playbook.md": (ctx) => generateDebugPlaybook(ctx),
+  "architecture-summary.md": (ctx, _p, files) => generateArchitectureSummary(ctx, files),
+  "AGENTS.md": (ctx, _p, files) => generateAgentsMD(ctx, files),
+  "CLAUDE.md": (ctx, _p, files) => generateClaudeMD(ctx, files),
+  ".cursorrules": (ctx, _p, files) => generateCursorRules(ctx, files),
+  ".ai/debug-playbook.md": (ctx, _p, files) => generateDebugPlaybook(ctx, files),
   "incident-template.md": (ctx) => generateIncidentTemplate(ctx),
   "tracing-rules.md": (ctx) => generateTracingRules(ctx),
-  ".ai/frontend-rules.md": (ctx) => generateFrontendRules(ctx),
+  ".ai/frontend-rules.md": (ctx, _p, files) => generateFrontendRules(ctx, files),
   "component-guidelines.md": (ctx) => generateComponentGuidelines(ctx),
   ".ai/seo-rules.md": (ctx) => generateSeoRules(ctx),
   "schema-recommendations.json": (ctx) => generateSchemaRecommendations(ctx),
@@ -130,7 +130,7 @@ function validateGeneratedFile(file: unknown, expected_path: string): string | n
 }
 
 export function generateFiles(input: GeneratorInput): GeneratorResult {
-  const { context_map, repo_profile, requested_outputs } = input;
+  const { context_map, repo_profile, requested_outputs, source_files } = input;
   const files: GeneratedFile[] = [];
   const skipped: Array<{ path: string; reason: string }> = [];
 
@@ -146,7 +146,7 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
 
     if (generator) {
       try {
-        const file = generator(context_map, repo_profile);
+        const file = generator(context_map, repo_profile, source_files);
         const validation = validateGeneratedFile(file, resolved);
         if (validation) {
           skipped.push({ path: resolved, reason: validation });

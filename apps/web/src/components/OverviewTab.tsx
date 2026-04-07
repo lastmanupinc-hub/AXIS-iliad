@@ -48,7 +48,7 @@ export function OverviewTab({ ctx, profile }: Props) {
           ) : (
             <table>
               <thead>
-                <tr><th>Name</th><th>Confidence</th><th>Signals</th></tr>
+                <tr><th>Name</th><th>Confidence</th><th>Evidence</th></tr>
               </thead>
               <tbody>
                 {ctx.detection.frameworks.map((fw) => (
@@ -70,7 +70,7 @@ export function OverviewTab({ ctx, profile }: Props) {
                     </td>
                     <td>
                       <div className="flex flex-wrap" style={{ gap: 4 }}>
-                        {fw.signals.slice(0, 3).map((s) => (
+                        {(fw.evidence ?? []).slice(0, 3).map((s) => (
                           <span key={s} className="badge" style={{ fontSize: "0.6875rem" }}>{s}</span>
                         ))}
                       </div>
