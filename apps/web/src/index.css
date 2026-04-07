@@ -199,15 +199,19 @@ pre {
   padding: 6px 14px;
   font-size: 0.8125rem;
   font-weight: 500;
+  font-family: var(--font);
   color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
   cursor: pointer;
   border-radius: calc(var(--radius) - 2px);
-  transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.tab:hover { color: var(--text); background: var(--bg-hover); }
+.tab:hover { color: var(--text); background: var(--bg-hover); border-color: var(--border); }
 .tab.active {
   color: var(--accent);
   background: var(--bg-card);
+  border-color: var(--border);
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
