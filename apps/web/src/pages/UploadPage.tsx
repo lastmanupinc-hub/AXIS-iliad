@@ -318,7 +318,7 @@ export function UploadPage({ onComplete }: Props) {
             ref={zipInputRef}
             type="file"
             style={{ display: "none" }}
-            accept=".zip"
+            accept=".zip,application/zip,application/x-zip-compressed"
             onChange={handleZipInputChange}
           />
           {files.length === 0 ? (
@@ -328,10 +328,10 @@ export function UploadPage({ onComplete }: Props) {
                 Drag & drop a folder or .zip file here
               </p>
               <div className="flex" style={{ gap: 8, justifyContent: "center", marginTop: 12 }}>
-                <button type="button" className="btn" onClick={handleFolderSelect} style={{ fontSize: "0.8125rem" }}>
+                <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); handleFolderSelect(); }} style={{ fontSize: "0.8125rem" }}>
                   📂 Select Folder
                 </button>
-                <button type="button" className="btn" onClick={handleZipSelect} style={{ fontSize: "0.8125rem" }}>
+                <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); handleZipSelect(); }} style={{ fontSize: "0.8125rem" }}>
                   📦 Upload .zip
                 </button>
               </div>
