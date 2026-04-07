@@ -27,10 +27,14 @@ export function DashboardPage({ result, onGeneratedCountChange }: Props) {
     getGeneratedFiles(result.project_id)
       .then((data) => {
         setGeneratedFiles(data.files);
-        onGeneratedCountChange?.(data.files.length);
       })
       .catch(() => {});
-  }, [result.project_id, onGeneratedCountChange]);
+  }, [result.project_id]);
+
+  // Sync generated file count to parent without triggering setState-in-render
+  useEffect(() => {
+    onGeneratedCountChange?.(generatedFiles.length);
+  }, [generatedFiles.length, onGeneratedCountChange]);
 
   // Keyboard shortcuts: Ctrl+1–5 for tabs (only on dashboard)
   useEffect(() => {
@@ -54,9 +58,7 @@ export function DashboardPage({ result, onGeneratedCountChange }: Props) {
       setGeneratedFiles((prev) => {
         const existing = new Map(prev.map((f) => [f.path, f]));
         for (const f of res.files) existing.set(f.path, f);
-        const next = [...existing.values()];
-        onGeneratedCountChange?.(next.length);
-        return next;
+        return [...existing.values()];
       });
       setActiveTab("Generated Files");
       toast("success", `Generated ${res.files.length} files from ${endpoint.split("/")[0]}`);
