@@ -332,7 +332,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
 
 // ─── research-threads.md ────────────────────────────────────────
 
-export function generateResearchThreads(ctx: ContextMap): GeneratedFile {
+export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
@@ -451,6 +451,25 @@ export function generateResearchThreads(ctx: ContextMap): GeneratedFile {
   lines.push(`- Is the ${id.type.replace(/_/g, " ")} architecture suited for the next 6 months of growth?`);
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const entries = findEntryPoints(files);
+    if (entries.length > 0) {
+      lines.push("## Source-Based Threads");
+      lines.push("");
+      lines.push("### Thread 6: Entry Point Complexity");
+      lines.push("");
+      lines.push("Entry points to investigate for complexity and coupling:");
+      lines.push("");
+      for (const ep of entries.slice(0, 5)) {
+        const exports = extractExports(ep.content);
+        const lineCount = ep.content.split("\n").length;
+        lines.push(`- **\`${ep.path}\`** — ${lineCount} lines, exports: ${exports.join(", ") || "default"}`);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "research-threads.md",
     content: lines.join("\n"),
@@ -462,7 +481,7 @@ export function generateResearchThreads(ctx: ContextMap): GeneratedFile {
 
 // ─── citation-index.json ────────────────────────────────────────
 
-export function generateCitationIndex(ctx: ContextMap): GeneratedFile {
+export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const deps = ctx.dependency_graph.external_dependencies;
   const frameworks = ctx.detection.frameworks;
@@ -561,6 +580,13 @@ export function generateCitationIndex(ctx: ContextMap): GeneratedFile {
       source: citations.filter(c => c.type === "source").length,
     },
     citations,
+    // ─── Source File Analysis ──────────────────────────────────
+    source_file_count: files ? files.length : null,
+    source_entry_points: files && files.length > 0 ? findEntryPoints(files).slice(0, 6).map(f => ({
+      path: f.path,
+      exports: extractExports(f.content),
+      lines: f.content.split("\n").length,
+    })) : null,
   };
 
   return {

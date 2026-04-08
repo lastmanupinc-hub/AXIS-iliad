@@ -1,11 +1,11 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, findEntryPoints, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 
 // ─── generated-component.tsx ────────────────────────────────────
 
-export function generateComponent(ctx: ContextMap): GeneratedFile {
+export function generateComponent(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const isReact = hasFw(ctx, "React", "Next.js");
@@ -52,6 +52,22 @@ export function generateComponent(ctx: ContextMap): GeneratedFile {
     lines.push("}");
   }
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const components = findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
+      .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
+    if (components.length > 0) {
+      lines.push("");
+      lines.push("// ─── Reference: existing components found in project ───");
+      for (const c of components.slice(0, 5)) {
+        const exports = extractExports(c.content);
+        if (exports.length > 0) {
+          lines.push(`// ${c.path}: ${exports.join(", ")}`);
+        }
+      }
+    }
+  }
+
   return {
     path: "generated-component.tsx",
     content: lines.join("\n"),
@@ -63,7 +79,7 @@ export function generateComponent(ctx: ContextMap): GeneratedFile {
 
 // ─── dashboard-widget.tsx ──────────────────────────────────────
 
-export function generateDashboardWidget(ctx: ContextMap): GeneratedFile {
+export function generateDashboardWidget(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const languages = ctx.detection.languages;
@@ -142,6 +158,17 @@ export function generateDashboardWidget(ctx: ContextMap): GeneratedFile {
     lines.push("};");
   }
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    lines.push("");
+    lines.push("// Source file metrics");
+    lines.push(`// Total source files scanned: ${files.length}`);
+    const configs = findConfigs(files);
+    if (configs.length > 0) {
+      lines.push(`// Config files: ${configs.map(c => c.path).join(", ")}`);
+    }
+  }
+
   return {
     path: "dashboard-widget.tsx",
     content: lines.join("\n"),
@@ -153,7 +180,7 @@ export function generateDashboardWidget(ctx: ContextMap): GeneratedFile {
 
 // ─── embed-snippet.ts ──────────────────────────────────────────
 
-export function generateEmbedSnippet(ctx: ContextMap): GeneratedFile {
+export function generateEmbedSnippet(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const conventions = ctx.ai_context.conventions;
   const warnings = ctx.ai_context.warnings;
@@ -217,6 +244,20 @@ export function generateEmbedSnippet(ctx: ContextMap): GeneratedFile {
   lines.push("  ];");
   lines.push("  return sections.join(\"\\n\");");
   lines.push("}");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const entries = findEntryPoints(files);
+    if (entries.length > 0) {
+      lines.push("");
+      lines.push("export const ENTRY_POINTS = [");
+      for (const ep of entries.slice(0, 6)) {
+        const exports = extractExports(ep.content);
+        lines.push(`  { path: ${JSON.stringify(ep.path)}, exports: ${JSON.stringify(exports.slice(0, 5))} },`);
+      }
+      lines.push("] as const;");
+    }
+  }
 
   return {
     path: "embed-snippet.ts",
@@ -396,7 +437,7 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
 
 // ─── component-library.json ─────────────────────────────────────
 
-export function generateComponentLibrary(ctx: ContextMap): GeneratedFile {
+export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
@@ -525,6 +566,16 @@ export function generateComponentLibrary(ctx: ContextMap): GeneratedFile {
     total_components: components.length,
     categories: [...new Set(components.map(c => c.category))],
     components,
+    // ─── Source File Analysis ──────────────────────────────────
+    source_components: files && files.length > 0 ? (() => {
+      const compFiles = findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
+        .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
+      return compFiles.slice(0, 12).map(f => ({
+        path: f.path,
+        exports: extractExports(f.content),
+        size: f.size,
+      }));
+    })() : null,
   };
 
   return {
