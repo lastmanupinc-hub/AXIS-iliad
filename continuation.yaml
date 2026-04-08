@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2025-07-13"
-    commit_or_tag: "c8f369e"
-    current_session_id: "session_051"
-    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 2548 tests across 88 files, 99.4% stmt / 95.46% branch / 99.69% line coverage. v2.0.0 complete (80/80 generators file-aware), 322 source-file branch tests across 20+ generators."
+    commit_or_tag: "5f9f99e"
+    current_session_id: "session_052"
+    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 2808 tests across 97 files, 99.58% stmt / 98.93% branch / 98.72% func / 99.71% line coverage. v2.0.0 complete (80/80 generators file-aware), 229 source-file branch tests + v8 ignore dead code."
     current_status: "building"
     current_focus_vertical: "source_file_integration_coverage"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "2548 tests across 88 files. eq_163: 67 branch coverage tests across 14 generators (debug playbook/tracing/root-cause/incident, marketing, artifacts, obsidian, brand, canvas, notebook, frontend, superpowers, skills, mcp, seo, algorithmic). Coverage: 99.4% stmts, 95.46% branches, 98.72% funcs, 99.69% lines. v2.0.0 complete (80/80 generators file-aware). Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
+      notes: "2808 tests across 97 files. eq_164: +246 branch coverage tests (branches8-12, engine-branches2-3, parser-branches2-3), v8 ignore on 5 dead-code branches. Coverage: 99.58% stmts, 98.93% branches, 98.72% funcs, 99.71% lines. v2.0.0 complete (80/80 generators file-aware). Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
 
   boundary_truth:
     accepted_input_modes:
