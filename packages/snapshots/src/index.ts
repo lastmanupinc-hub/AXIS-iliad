@@ -134,3 +134,21 @@ export {
   linkGitHubId,
   upsertAccountByGitHub,
 } from "./oauth-store.js";
+
+// Email Notifications
+export type { EmailTemplate, EmailMessage, EmailDelivery, EmailProvider } from "./email-store.js";
+export {
+  renderTemplate,
+  recordEmailDelivery,
+  getEmailDeliveries,
+  getEmailDelivery,
+  setEmailProvider,
+  getEmailProvider,
+  consoleEmailProvider,
+  sendEmail,
+  sendSeatInvitation,
+  sendWelcomeEmail,
+  sendUpgradeConfirmation,
+  sendUsageAlert,
+  sendApiKeyNotification,
+} from "./email-store.js";

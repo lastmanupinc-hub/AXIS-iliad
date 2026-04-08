@@ -261,6 +261,27 @@ CREATE TABLE IF NOT EXISTS oauth_states (
 );
 `,
   },
+  {
+    version: 10,
+    name: "add_email_deliveries",
+    sql: `
+CREATE TABLE IF NOT EXISTS email_deliveries (
+  delivery_id TEXT PRIMARY KEY,
+  to_email TEXT NOT NULL,
+  template TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  variables TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  provider_id TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  sent_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_email_to ON email_deliveries(to_email);
+CREATE INDEX IF NOT EXISTS idx_email_status ON email_deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_email_created ON email_deliveries(created_at);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

@@ -776,18 +776,22 @@ known_gaps:
     dependency: "No Fate Platform payment processor"
 
   oauth_login:
-    description: "No OAuth / SSO login flow — only API key auth"
-    grade: F
-    status: not_started
+    description: "GitHub OAuth login with API key bridge — sign in via GitHub, auto-provision account and API key"
+    grade: A
+    status: complete
     human_priority: 1_critical
-    notes: "Users must create account via API and manage keys manually. No GitHub/Google OAuth."
+    tested: true
+    notes: "eq_165: Migration v9 (github_id, oauth_states), oauth-store.ts, GET /v1/auth/github + callback, AccountPage.tsx GitHub button. 32 tests. OAuth→API key bridge pattern."
+    access: [web_ui, rest_api]
 
   email_notifications:
-    description: "No email delivery for seat invitations, usage alerts, or account events"
-    grade: F
-    status: not_started
+    description: "Email notification system with 5 templates, delivery tracking, pluggable provider, and convenience senders"
+    grade: A
+    status: complete
     human_priority: 2_important
-    notes: "Seat invitations exist in DB but no email is sent."
+    tested: true
+    notes: "eq_166: Migration v10 (email_deliveries table), email-store.ts with 5 templates (seat_invitation, welcome, upgrade_confirmation, usage_alert, api_key_created), pluggable provider system, console dev provider, delivery tracking with status. 27 tests."
+    access: [rest_api]
 
   web_hosting_deployment:
     description: "No hosted production deployment — requires self-hosting"
@@ -855,10 +859,10 @@ known_gaps:
 summary:
   total_capabilities: 82
   grade_distribution:
-    A: 76
-    B: 2
+    A: 80
+    B: 0
     D: 0
-    F: 4
+    F: 2
   by_access_layer:
     web_ui: 18
     cli: 6
