@@ -16,10 +16,10 @@ project_continuation:
     project_name: "Axis Toolbox"
     date: "2025-07-13"
     commit_or_tag: "5f9f99e"
-    current_session_id: "session_052"
-    one_sentence_summary: "Full-stack Axis Toolbox with 82 capabilities (A:78, B:0, F:4), 71 endpoints, 2813 tests across 97 files, 99.61% stmt / 98.93% branch / 99.14% func / 99.72% line coverage. v2.0.0 complete (80/80 generators file-aware)."
+    current_session_id: "session_053"
+    one_sentence_summary: "Full-stack Axis Toolbox with 83 capabilities (A:79, B:0, F:3), 71 endpoints + 2 OAuth routes, 2845 tests across 98 files, GitHub OAuth login implemented. v2.0.0 complete."
     current_status: "building"
-    current_focus_vertical: "source_file_integration_coverage"
+    current_focus_vertical: "oauth_login"
 
   executive_truth:
     maturity_estimate:
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "2813 tests across 97 files. eq_164: +265 coverage tests (branches8-12, engine-branches2-3, parser-branches2-3), v8 ignore on 5 dead-code branches, function coverage sweep. Coverage: 99.61% stmts, 98.93% branches, 99.14% funcs, 99.72% lines. v2.0.0 complete (80/80 generators file-aware). Capability inventory: A:78, B:0, F:4. All remaining Fs blocked on external deps."
+      notes: "2845 tests across 98 files. eq_165: GitHub OAuth login — full implementation. Migration v9 (github_id, oauth_states), oauth-store.ts, oauth.ts routes, AccountPage.tsx GitHub button. 32 new tests. OAuth Login promoted F→A. Capability inventory: A:79, B:0, F:3."
 
   boundary_truth:
     accepted_input_modes:
@@ -2304,3 +2304,31 @@ project_continuation:
     blockers_added: []
     commit_results: ["5f9f99e", "84813b0"]
     push_results: ["c8f369e..84813b0 → origin/main"]
+
+  current_session_result_053:
+    session_goal: "Implement GitHub OAuth Login — promote from F-grade to A-grade"
+    selected_move: "eq_165: GitHub OAuth login — full implementation"
+    selected_move_roi_reason: "OAuth Login was the highest-ROI unblocked F-grade capability. Enables real user onboarding without manual API key management. Leverages extensive existing infrastructure (account model, API keys, GitHub token store)."
+    completed_candidates:
+      - "eq_165: Migration v9 (github_id on accounts + oauth_states table), oauth-store.ts (state CSRF, GitHub API helpers, account upsert), oauth.ts (2 routes), AccountPage.tsx (GitHub button + redirect handling). 32 new tests, all 2845 passing."
+    refused_candidates: []
+    blocked_candidates:
+      - "Payment integration — blocked on external payment processor"
+      - "Email notifications — blocked on email service provider"
+      - "Web hosting deployment — blocked on deployment platform selection"
+    evidence_added:
+      - "2845 vitest tests passing across 98 files (2813→2845, +32)"
+      - "Migration v9: ALTER TABLE accounts ADD COLUMN github_id TEXT UNIQUE"
+      - "oauth_states table for CSRF protection with 10-minute TTL"
+      - "oauth-store.ts: createOAuthState, consumeOAuthState, getGitHubAuthUrl, exchangeGitHubCode, getGitHubUser, upsertAccountByGitHub"
+      - "GET /v1/auth/github — initiates OAuth flow with state"
+      - "GET /v1/auth/github/callback — validates state, exchanges code, upserts account, issues API key, redirects"
+      - "AccountPage.tsx: 'Sign in with GitHub' button + OAuth redirect callback handling"
+      - "OAuth → API key bridge pattern: GitHub auth → upsert account → issue key → redirect with key"
+    verticals_advanced:
+      - "OAuth Login — F→A grade, full implementation with CSRF protection and 32 tests"
+    blockers_removed:
+      - "OAuth login — no longer blocked, fully implemented"
+    blockers_added: []
+    commit_results: ["c3691e8"]
+    push_results: ["798e148..c3691e8 → origin/main"]
