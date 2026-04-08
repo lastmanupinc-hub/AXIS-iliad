@@ -5,7 +5,7 @@ import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.
 
 // ─── superpower-pack.md ─────────────────────────────────────────
 
-export function generateSuperpowerPack(ctx: ContextMap): GeneratedFile {
+export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
@@ -175,6 +175,18 @@ export function generateSuperpowerPack(ctx: ContextMap): GeneratedFile {
   lines.push("- [potential issue and mitigation]");
   lines.push("```");
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const hotspotPaths = ctx.dependency_graph.hotspots
+      .sort((a, b) => b.risk_score - a.risk_score)
+      .slice(0, 3)
+      .map(h => h.path);
+    const hotspotFiles = files.filter(f => hotspotPaths.some(hp => f.path.endsWith(hp) || f.path.includes(hp)));
+    if (hotspotFiles.length > 0) {
+      lines.push(...renderExcerpts("Key Hotspot Files (for Debugging)", hotspotFiles, 20));
+    }
+  }
 
   return {
     path: "superpower-pack.md",
@@ -523,7 +535,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
 
 // ─── refactor-checklist.md ──────────────────────────────────────
 
-export function generateRefactorChecklist(ctx: ContextMap): GeneratedFile {
+export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const hotspots = ctx.dependency_graph.hotspots;
   const lines: string[] = [];
@@ -651,6 +663,35 @@ export function generateRefactorChecklist(ctx: ContextMap): GeneratedFile {
   lines.push("- [ ] Type coverage maintained or improved");
   lines.push("- [ ] Commit message describes what changed and why");
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const hotspotPaths = hotspots
+      .filter(h => h.risk_score > 5)
+      .sort((a, b) => b.risk_score - a.risk_score)
+      .slice(0, 4)
+      .map(h => h.path);
+    const hotspotFiles = files.filter(f => hotspotPaths.some(hp => f.path.endsWith(hp) || f.path.includes(hp)));
+    if (hotspotFiles.length > 0) {
+      lines.push("## High-Risk File Export Surface");
+      lines.push("");
+      lines.push("Use these exports to identify module split boundaries:");
+      lines.push("");
+      for (const hf of hotspotFiles) {
+        const exports = extractExports(hf.content);
+        if (exports.length > 0) {
+          lines.push(`### \`${hf.path}\``);
+          lines.push("");
+          for (const e of exports.slice(0, 12)) {
+            lines.push(`- \`${e}\``);
+          }
+          lines.push("");
+        }
+      }
+
+      lines.push(...renderExcerpts("High-Risk File Source", hotspotFiles, 25));
+    }
+  }
 
   return {
     path: "refactor-checklist.md",

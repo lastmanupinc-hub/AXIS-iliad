@@ -1,6 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt } from "./file-excerpt-utils.js";
+import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt, extractExports } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 
 export function generateContextMapJSON(ctx: ContextMap): GeneratedFile {
@@ -258,7 +258,7 @@ function serializeValue(v: unknown): string {
 
 // ─── dependency-hotspots.md ─────────────────────────────────────
 
-export function generateDependencyHotspots(ctx: ContextMap): GeneratedFile {
+export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const hotspots = ctx.dependency_graph.hotspots;
   const deps = ctx.dependency_graph.external_dependencies;
@@ -353,6 +353,30 @@ export function generateDependencyHotspots(ctx: ContextMap): GeneratedFile {
   }
   lines.push(`${highRisk.length + medRisk.length > 0 ? highRisk.length + medRisk.length + 1 : 1}. **Review circular dependencies** in the import graph`);
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const sorted = [...hotspots].sort((a, b) => b.risk_score - a.risk_score);
+    const topPaths = sorted.slice(0, 4).map(h => h.path);
+    const topFiles = files.filter(f => topPaths.some(tp => f.path.endsWith(tp) || f.path.includes(tp)));
+    if (topFiles.length > 0) {
+      lines.push("## Hotspot Export Surface");
+      lines.push("");
+      for (const tf of topFiles) {
+        const exports = extractExports(tf.content);
+        if (exports.length > 0) {
+          lines.push(`### \`${tf.path}\``);
+          lines.push("");
+          for (const e of exports.slice(0, 12)) {
+            lines.push(`- \`${e}\``);
+          }
+          lines.push("");
+        }
+      }
+
+      lines.push(...renderExcerpts("Hotspot File Excerpts", topFiles, 25));
+    }
+  }
 
   return {
     path: "dependency-hotspots.md",
