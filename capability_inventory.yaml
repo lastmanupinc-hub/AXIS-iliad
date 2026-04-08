@@ -794,11 +794,13 @@ known_gaps:
     access: [rest_api]
 
   web_hosting_deployment:
-    description: "No hosted production deployment — requires self-hosting"
-    grade: F
-    status: not_started
+    description: "Production deployment pipeline — Render (API + SQLite persistent disk) + Cloudflare Pages (SPA CDN) + GitHub Actions CI/CD"
+    grade: A
+    status: complete
     human_priority: 1_critical
-    notes: "Dockerfile exists. No Vercel/Railway/Fly.io deployment config or hosted instance."
+    tested: true
+    notes: "eq_167: render.yaml (Docker web service, persistent /data disk, health check, env vars), Cloudflare Pages (_redirects SPA routing, _headers security, wrangler deploy), GitHub Actions deploy-api + deploy-web jobs, .env.example with production guidance. 38 tests."
+    access: [ops]
 
   rate_limit_dashboard:
     description: "View current rate limit status, remaining quota, and resource limits via API"
@@ -859,10 +861,10 @@ known_gaps:
 summary:
   total_capabilities: 82
   grade_distribution:
-    A: 80
+    A: 81
     B: 0
     D: 0
-    F: 2
+    F: 1
   by_access_layer:
     web_ui: 18
     cli: 6
@@ -882,6 +884,3 @@ summary:
       - "All 17 programs produce real, downloadable outputs"
     blocked_for_production:
       - "No payment processing — waiting on No Fate Platform payment processor (not Stripe-direct)"
-      - "No OAuth — users must manually manage API keys"
-      - "No hosted deployment — must self-host"
-      - "No email — seat invitations have no delivery mechanism"
