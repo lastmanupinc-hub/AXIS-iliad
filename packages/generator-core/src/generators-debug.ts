@@ -139,6 +139,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
   }
 
   if (hasFw(ctx, "SvelteKit", "sveltekit")) {
+    /* v8 ignore next — getFw is case-insensitive; ?? fallback unreachable */
     const skFw = getFw(ctx, "SvelteKit") ?? getFw(ctx, "sveltekit")!;
     lines.push(`#### SvelteKit ${skFw.version ?? ""}`);
     lines.push("");
@@ -186,6 +187,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
 
   // Go framework debugging
   if (hasFw(ctx, "Echo", "echo")) {
+    /* v8 ignore next — getFw is case-insensitive; ?? fallback unreachable */
     const fw = getFw(ctx, "Echo") ?? getFw(ctx, "echo")!;
     lines.push(`#### Echo ${fw.version ?? ""} (Go HTTP)`);
     lines.push("");
