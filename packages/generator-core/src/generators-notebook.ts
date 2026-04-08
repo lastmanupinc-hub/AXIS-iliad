@@ -196,7 +196,7 @@ export function generateSourceMap(ctx: ContextMap, files?: SourceFile[]): Genera
 
 // ─── study-brief.md ─────────────────────────────────────────────
 
-export function generateStudyBrief(ctx: ContextMap): GeneratedFile {
+export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
@@ -305,6 +305,21 @@ export function generateStudyBrief(ctx: ContextMap): GeneratedFile {
   lines.push("4. What are the key boundaries between modules?");
   lines.push("5. What would break if you renamed the primary entry point?");
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const entries = findEntryPoints(files);
+    if (entries.length > 0) {
+      lines.push("## Key Files to Read");
+      lines.push("");
+      lines.push(...renderExcerpts("Entry Point Source", entries.slice(0, 3), 20));
+    }
+
+    const configs = findConfigs(files);
+    if (configs.length > 0) {
+      lines.push(...renderExcerpts("Configuration Overview", configs.slice(0, 2), 15));
+    }
+  }
 
   return {
     path: "study-brief.md",

@@ -1,10 +1,11 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratedFile } from "./types.js";
+import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
-export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile): GeneratedFile {
+export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const pkgManagers = ctx.detection.package_managers;
@@ -142,6 +143,15 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile): Genera
       denied_patterns: ["node_modules/**", ".env*", "*.key", "*.pem"],
       max_file_size_bytes: 1048576,
     },
+    // ─── Source File Analysis ──────────────────────────────────
+    detected_mcp_files: files && files.length > 0 ? (() => {
+      const mcpFiles = findFiles(files, ["**/.mcp*", "**/mcp.config*", "**/mcp-server*", "**/server.*"]);
+      return mcpFiles.slice(0, 6).map(f => ({
+        path: f.path,
+        exports: extractExports(f.content),
+        size: f.size,
+      }));
+    })() : null,
   };
 
   return {
@@ -155,7 +165,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile): Genera
 
 // ─── connector-map.yaml ─────────────────────────────────────────
 
-export function generateConnectorMap(ctx: ContextMap): GeneratedFile {
+export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
@@ -271,6 +281,20 @@ export function generateConnectorMap(ctx: ContextMap): GeneratedFile {
   }
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const ciFiles = findFiles(files, ["**/.github/workflows/*", "**/Dockerfile*", "**/docker-compose*", "**/.gitlab-ci*", "**/Jenkinsfile*"]);
+    if (ciFiles.length > 0) {
+      lines.push("# Detected CI/Deployment Files");
+      lines.push("detected_configs:");
+      for (const f of ciFiles.slice(0, 8)) {
+        lines.push(`  - path: ${JSON.stringify(f.path)}`);
+        lines.push(`    size: ${f.size}`);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "connector-map.yaml",
     content: lines.join("\n"),
@@ -282,7 +306,7 @@ export function generateConnectorMap(ctx: ContextMap): GeneratedFile {
 
 // ─── capability-registry.json ───────────────────────────────────
 
-export function generateCapabilityRegistry(ctx: ContextMap): GeneratedFile {
+export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const testFws = ctx.detection.test_frameworks;
   const buildTools = ctx.detection.build_tools;
@@ -411,6 +435,15 @@ export function generateCapabilityRegistry(ctx: ContextMap): GeneratedFile {
     total_capabilities: capabilities.length,
     categories: [...new Set(capabilities.map(c => c.category))],
     capabilities,
+    // ─── Source File Analysis ──────────────────────────────────
+    source_scripts: files && files.length > 0 ? (() => {
+      const pkgJson = findFile(files, "package.json");
+      if (!pkgJson) return null;
+      const match = pkgJson.content.match(/"scripts"\s*:\s*\{([^}]+)\}/);
+      if (!match) return null;
+      const scriptLines = match[1].split("\n").map(l => l.trim()).filter(l => l.length > 0);
+      return scriptLines.slice(0, 15).map(l => l.replace(/,$/, ""));
+    })() : null,
   };
 
   return {
@@ -424,7 +457,7 @@ export function generateCapabilityRegistry(ctx: ContextMap): GeneratedFile {
 
 // ─── server-manifest.yaml ───────────────────────────────────────
 
-export function generateServerManifest(ctx: ContextMap, profile: RepoProfile): GeneratedFile {
+export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const routes = ctx.routes;
@@ -556,6 +589,21 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile): G
     lines.push(`      version: ${JSON.stringify(d.version)}`);
   }
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const serverFiles = findFiles(files, ["**/server.*", "**/handler.*", "**/tool.*", "**/mcp*"]);
+    if (serverFiles.length > 0) {
+      lines.push("  # Detected Server/Tool Files");
+      lines.push("  source_files:");
+      for (const f of serverFiles.slice(0, 8)) {
+        const exports = extractExports(f.content);
+        lines.push(`    - path: ${JSON.stringify(f.path)}`);
+        lines.push(`      exports: [${exports.slice(0, 5).map(e => JSON.stringify(e)).join(", ")}]`);
+      }
+      lines.push("");
+    }
+  }
 
   return {
     path: "server-manifest.yaml",

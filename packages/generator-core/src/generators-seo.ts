@@ -636,7 +636,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
 
 // ─── meta-tag-audit.json ────────────────────────────────────────
 
-export function generateMetaTagAudit(ctx: ContextMap): GeneratedFile {
+export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const routes = ctx.routes;
   const frameworks = ctx.detection.frameworks;
@@ -712,6 +712,23 @@ export function generateMetaTagAudit(ctx: ContextMap): GeneratedFile {
       { severity: "warning", check: "Duplicate titles", description: "Each page should have a unique title" },
       { severity: "info", check: "Missing structured data", description: "Add JSON-LD for rich search results" },
     ],
+    // ─── Source File Analysis ──────────────────────────────────
+    source_meta_scan: files && files.length > 0 ? (() => {
+      const pageFiles = findFiles(files, ["**/page.*", "**/index.*", "**/*.html", "**/layout.*", "**/head.*"]);
+      return pageFiles.slice(0, 12).map(f => {
+        const hasTitle = /metadata|<title|useHead|svelte:head|generateMetadata|Head/.test(f.content);
+        const hasOg = /og:|openGraph|opengraph|open_graph/.test(f.content);
+        const hasJsonLd = /application\/ld\+json|JsonLd|jsonLd/.test(f.content);
+        const hasDescription = /description/.test(f.content);
+        return {
+          path: f.path,
+          has_title: hasTitle,
+          has_og_tags: hasOg,
+          has_structured_data: hasJsonLd,
+          has_description: hasDescription,
+        };
+      });
+    })() : null,
   };
 
   return {
