@@ -1,10 +1,11 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratedFile } from "./types.js";
+import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+import { findFiles, findEntryPoints, findConfigs, extractExports } from "./file-excerpt-utils.js";
 
 // ─── obsidian-skill-pack.md ─────────────────────────────────────
 
-export function generateObsidianSkillPack(ctx: ContextMap): GeneratedFile {
+export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
@@ -148,6 +149,19 @@ export function generateObsidianSkillPack(ctx: ContextMap): GeneratedFile {
   lines.push("```");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const configs = findConfigs(files);
+    if (configs.length > 0) {
+      lines.push("## Detected Config Files for Vault Import");
+      lines.push("");
+      for (const c of configs.slice(0, 6)) {
+        lines.push(`- \`${c.path}\``);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "obsidian-skill-pack.md",
     content: lines.join("\n"),
@@ -159,7 +173,7 @@ export function generateObsidianSkillPack(ctx: ContextMap): GeneratedFile {
 
 // ─── vault-rules.md ─────────────────────────────────────────────
 
-export function generateVaultRules(ctx: ContextMap): GeneratedFile {
+export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
@@ -255,6 +269,17 @@ export function generateVaultRules(ctx: ContextMap): GeneratedFile {
   lines.push("- **Per session**: Update daily note with changes made");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const mdFiles = findFiles(files, ["**/*.md"]);
+    if (mdFiles.length > 0) {
+      lines.push("## Existing Markdown Files");
+      lines.push("");
+      lines.push(`Found ${mdFiles.length} markdown files in the project — candidates for vault import.`);
+      lines.push("");
+    }
+  }
+
   return {
     path: "vault-rules.md",
     content: lines.join("\n"),
@@ -266,7 +291,7 @@ export function generateVaultRules(ctx: ContextMap): GeneratedFile {
 
 // ─── graph-prompt-map.json ──────────────────────────────────────
 
-export function generateGraphPromptMap(ctx: ContextMap): GeneratedFile {
+export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const abstractions = ctx.ai_context.key_abstractions;
@@ -351,6 +376,12 @@ export function generateGraphPromptMap(ctx: ContextMap): GeneratedFile {
     total_edges: edges.length,
     nodes,
     edges,
+    // ─── Source File Analysis ──────────────────────────────────
+    source_file_count: files ? files.length : null,
+    source_entry_points: files && files.length > 0 ? findEntryPoints(files).slice(0, 6).map(f => ({
+      path: f.path,
+      exports: extractExports(f.content),
+    })) : null,
   };
 
   return {
@@ -364,7 +395,7 @@ export function generateGraphPromptMap(ctx: ContextMap): GeneratedFile {
 
 // ─── linking-policy.md ──────────────────────────────────────────
 
-export function generateLinkingPolicy(ctx: ContextMap): GeneratedFile {
+export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const hotspots = ctx.dependency_graph.hotspots;
   const lines: string[] = [];
@@ -471,6 +502,20 @@ export function generateLinkingPolicy(ctx: ContextMap): GeneratedFile {
   lines.push("| Notes without tags | 0 | Weekly |");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const entries = findEntryPoints(files);
+    if (entries.length > 0) {
+      lines.push("## Source Entry Points as Hub Note Candidates");
+      lines.push("");
+      for (const ep of entries.slice(0, 5)) {
+        const exports = extractExports(ep.content);
+        lines.push(`- \`${ep.path}\` → exports: ${exports.join(", ") || "default"}`);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "linking-policy.md",
     content: lines.join("\n"),
@@ -482,7 +527,7 @@ export function generateLinkingPolicy(ctx: ContextMap): GeneratedFile {
 
 // ─── template-pack.md ───────────────────────────────────────────
 
-export function generateTemplatePack(ctx: ContextMap): GeneratedFile {
+export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const abstractions = ctx.ai_context.key_abstractions;
@@ -652,6 +697,18 @@ export function generateTemplatePack(ctx: ContextMap): GeneratedFile {
   lines.push("| Tests Added | | |");
   lines.push("```");
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    lines.push("## Source File Summary");
+    lines.push("");
+    lines.push(`Total source files: ${files.length}`);
+    const configs = findConfigs(files);
+    if (configs.length > 0) {
+      lines.push(`Config files: ${configs.map(c => c.path).join(", ")}`);
+    }
+    lines.push("");
+  }
 
   return {
     path: "template-pack.md",

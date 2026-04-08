@@ -1,10 +1,11 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratedFile } from "./types.js";
+import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+import { findFiles, findFile, findEntryPoints, extractExports } from "./file-excerpt-utils.js";
 
 // ─── campaign-brief.md ──────────────────────────────────────────
 
-export function generateCampaignBrief(ctx: ContextMap): GeneratedFile {
+export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
@@ -125,6 +126,27 @@ export function generateCampaignBrief(ctx: ContextMap): GeneratedFile {
   lines.push("| Growth | Ongoing | Community building, content marketing |");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const readmes = findFiles(files, ["**/README*"]);
+    const pkgJson = findFile(files, "package.json");
+    if (readmes.length > 0 || pkgJson) {
+      lines.push("## Source-Derived Messaging");
+      lines.push("");
+      if (pkgJson) {
+        const desc = pkgJson.content.match(/"description"\s*:\s*"([^"]+)"/);
+        if (desc) lines.push(`- **Package description**: ${desc[1]}`);
+        const keywords = pkgJson.content.match(/"keywords"\s*:\s*\[([^\]]+)\]/);
+        if (keywords) lines.push(`- **Keywords**: ${keywords[1].replace(/"/g, "").trim()}`);
+      }
+      for (const r of readmes.slice(0, 2)) {
+        const firstLine = r.content.split("\n").find(l => l.trim().length > 10 && !l.startsWith("#"));
+        if (firstLine) lines.push(`- **README tagline**: ${firstLine.trim().slice(0, 120)}`);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "campaign-brief.md",
     content: lines.join("\n"),
@@ -136,7 +158,7 @@ export function generateCampaignBrief(ctx: ContextMap): GeneratedFile {
 
 // ─── funnel-map.md ──────────────────────────────────────────────
 
-export function generateFunnelMap(ctx: ContextMap): GeneratedFile {
+export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
@@ -270,6 +292,21 @@ export function generateFunnelMap(ctx: ContextMap): GeneratedFile {
   lines.push("- NPS score");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const entries = findEntryPoints(files);
+    if (entries.length > 0) {
+      lines.push("## Detected Product Entry Points");
+      lines.push("");
+      lines.push("Map these to funnel stages — each is a potential conversion surface:");
+      lines.push("");
+      for (const ep of entries.slice(0, 5)) {
+        lines.push(`- \`${ep.path}\``);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "funnel-map.md",
     content: lines.join("\n"),
@@ -281,7 +318,7 @@ export function generateFunnelMap(ctx: ContextMap): GeneratedFile {
 
 // ─── sequence-pack.md ───────────────────────────────────────────
 
-export function generateSequencePack(ctx: ContextMap): GeneratedFile {
+export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
@@ -392,6 +429,19 @@ export function generateSequencePack(ctx: ContextMap): GeneratedFile {
   lines.push("- CTA: Pick up another issue");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const contributing = findFiles(files, ["**/CONTRIBUTING*", "**/CODE_OF_CONDUCT*"]);
+    if (contributing.length > 0) {
+      lines.push("## Detected Contributor Assets");
+      lines.push("");
+      for (const c of contributing) {
+        lines.push(`- \`${c.path}\` (${c.size} bytes)`);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "sequence-pack.md",
     content: lines.join("\n"),
@@ -403,7 +453,7 @@ export function generateSequencePack(ctx: ContextMap): GeneratedFile {
 
 // ─── cro-playbook.md ────────────────────────────────────────────
 
-export function generateCroPlaybook(ctx: ContextMap): GeneratedFile {
+export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const routes = ctx.routes;
   const lines: string[] = [];
@@ -518,6 +568,19 @@ export function generateCroPlaybook(ctx: ContextMap): GeneratedFile {
   lines.push("| Documentation bounce rate | Analytics | < 40% |");
   lines.push("");
 
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const landingFiles = findFiles(files, ["**/landing*", "**/home*", "**/index.html", "**/page.*"]);
+    if (landingFiles.length > 0) {
+      lines.push("## Detected Landing/Conversion Pages");
+      lines.push("");
+      for (const f of landingFiles.slice(0, 6)) {
+        lines.push(`- \`${f.path}\``);
+      }
+      lines.push("");
+    }
+  }
+
   return {
     path: "cro-playbook.md",
     content: lines.join("\n"),
@@ -529,7 +592,7 @@ export function generateCroPlaybook(ctx: ContextMap): GeneratedFile {
 
 // ─── ab-test-plan.md ────────────────────────────────────────────
 
-export function generateAbTestPlan(ctx: ContextMap): GeneratedFile {
+export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const routes = ctx.routes;
   const frameworks = ctx.detection.frameworks;
@@ -649,6 +712,17 @@ export function generateAbTestPlan(ctx: ContextMap): GeneratedFile {
   lines.push("| `experiment_converted` | Primary action completed | variant_id, test_id, value |");
   lines.push("| `experiment_bounced` | Left without action | variant_id, test_id, time_on_page |");
   lines.push("");
+
+  // ─── Source File Analysis ────────────────────────────────────
+  if (files && files.length > 0) {
+    const testFiles = findFiles(files, ["**/*.test.*", "**/*.spec.*", "**/__tests__/**"]);
+    if (testFiles.length > 0) {
+      lines.push("## Existing Test Infrastructure");
+      lines.push("");
+      lines.push(`Found ${testFiles.length} test files — leverage this infrastructure for experiment validation.`);
+      lines.push("");
+    }
+  }
 
   return {
     path: "ab-test-plan.md",
