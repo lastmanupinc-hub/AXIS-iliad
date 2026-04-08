@@ -121,3 +121,16 @@ export {
   getLastTierChange,
   calculateProration,
 } from "./tier-audit.js";
+
+// OAuth
+export type { GitHubTokenResponse, GitHubUser } from "./oauth-store.js";
+export {
+  createOAuthState,
+  consumeOAuthState,
+  getGitHubAuthUrl,
+  exchangeGitHubCode,
+  getGitHubUser,
+  getAccountByGitHubId,
+  linkGitHubId,
+  upsertAccountByGitHub,
+} from "./oauth-store.js";

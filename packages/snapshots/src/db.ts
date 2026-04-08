@@ -248,6 +248,19 @@ CREATE INDEX IF NOT EXISTS idx_tier_changes_account ON tier_changes(account_id);
 CREATE INDEX IF NOT EXISTS idx_tier_changes_created ON tier_changes(created_at);
 `,
   },
+  {
+    version: 9,
+    name: "add_oauth_support",
+    sql: `
+ALTER TABLE accounts ADD COLUMN github_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_github_id ON accounts(github_id) WHERE github_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL
+);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

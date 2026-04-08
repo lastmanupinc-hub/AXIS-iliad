@@ -67,6 +67,7 @@ import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 
 const router = new Router();
 
@@ -186,6 +187,10 @@ router.get("/v1/funnel/metrics", handleGetFunnelMetrics);
 router.get("/v1/admin/stats", handleAdminStats);
 router.get("/v1/admin/accounts", handleAdminAccounts);
 router.get("/v1/admin/activity", handleAdminActivity);
+
+// OAuth
+router.get("/v1/auth/github", handleGitHubOAuthStart);
+router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
 
 // Webhooks
 router.post("/v1/account/webhooks", handleCreateWebhook);
