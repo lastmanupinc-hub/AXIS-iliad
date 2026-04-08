@@ -1,11 +1,13 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── .ai/design-tokens.json ────────────────────────────────────
 
 export function generateDesignTokens(ctx: ContextMap): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
+  const frameworks = ctx.detection.frameworks;
+  const fwNames = frameworks.map(f => f.name);
 
   // Detect styling approach from file tree
   const files = ctx.structure.file_tree_summary;
@@ -84,12 +86,21 @@ export function generateDesignTokens(ctx: ContextMap): GeneratedFile {
     project: id.name,
     generated_at: new Date().toISOString(),
     styling_approach: stylingApproach,
+    project_type: id.type,
+    primary_language: id.primary_language,
     detected_stack: {
-      frameworks: frameworks,
+      frameworks: frameworks.map(f => ({ name: f.name, version: f.version ?? null, confidence: f.confidence })),
       has_tailwind: hasTailwind,
       has_css_modules: hasCssModules,
       has_css_in_js: hasStyledComponents,
       has_sass: hasSass,
+    },
+    languages: ctx.detection.languages.slice(0, 8).map(l => ({ name: l.name, file_count: l.file_count, loc_percent: l.loc_percent })),
+    architecture: {
+      separation_score: ctx.architecture_signals.separation_score,
+      patterns: ctx.architecture_signals.patterns_detected,
+      total_files: ctx.structure.total_files,
+      total_loc: ctx.structure.total_loc,
     },
     colors,
     spacing,
@@ -413,6 +424,40 @@ export function generateThemeGuidelines(ctx: ContextMap): GeneratedFile {
   lines.push(`> Design system rules for a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}`);
   lines.push("");
 
+  // Project Overview
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Overview");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Stack Reference
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
+
+  // Architecture context for theming decisions
+  if (ctx.architecture_signals.layer_boundaries.length > 0) {
+    lines.push("## Architecture Context");
+    lines.push("");
+    lines.push(`Separation score: **${ctx.architecture_signals.separation_score}**/1.0`);
+    lines.push("");
+    lines.push("Theme tokens should be applied consistently across these layers:");
+    lines.push("");
+    for (const l of ctx.architecture_signals.layer_boundaries) {
+      lines.push(`- **${l.layer}**: ${l.directories.join(", ")}`);
+    }
+    lines.push("");
+  }
+
   // Styling Approach
   lines.push("## Styling Approach");
   lines.push("");
@@ -506,8 +551,11 @@ export function generateThemeGuidelines(ctx: ContextMap): GeneratedFile {
   lines.push("");
 
   // Framework-Specific Integration
-  if (frameworks.includes("Next.js") || frameworks.includes("React")) {
+  if (hasFw(ctx, "Next.js", "React")) {
+    const reactFw = getFw(ctx, "React") ?? getFw(ctx, "Next.js");
     lines.push("## React Integration");
+    lines.push("");
+    if (reactFw?.version) lines.push(`> Detected: ${reactFw.name} ${reactFw.version}`);
     lines.push("");
     lines.push("- Import theme.css in `app/layout.tsx` or root `_app.tsx`");
     lines.push("- Use a `ThemeContext` provider for runtime theme switching");
@@ -515,8 +563,11 @@ export function generateThemeGuidelines(ctx: ContextMap): GeneratedFile {
     lines.push("- Support `prefers-color-scheme` + manual toggle for dark mode");
     lines.push("");
   }
-  if (frameworks.includes("Vue")) {
+  if (hasFw(ctx, "Vue")) {
+    const vueFw = getFw(ctx, "Vue");
     lines.push("## Vue Integration");
+    lines.push("");
+    if (vueFw?.version) lines.push(`> Detected: Vue ${vueFw.version}`);
     lines.push("");
     lines.push("- Import theme.css in `main.ts` or `App.vue`");
     lines.push("- Use `provide/inject` for theme context");
@@ -615,6 +666,41 @@ export function generateThemeGuidelines(ctx: ContextMap): GeneratedFile {
   lines.push("- Test with screen readers, keyboard-only navigation, and Windows High Contrast Mode.");
   lines.push("");
 
+  // Route-Aware Theme Zones
+  if (ctx.routes.length > 0) {
+    lines.push("## Route Theme Zones");
+    lines.push("");
+    lines.push("Routes detected — consider zone-based theming:");
+    lines.push("");
+    for (const r of ctx.routes.slice(0, 12)) {
+      lines.push(`- \`${r.path}\` (${r.method}) → ${r.source_file}`);
+    }
+    if (ctx.routes.length > 12) lines.push(`- … and ${ctx.routes.length - 12} more routes`);
+    lines.push("");
+  }
+
+  // Domain-Model-Aware Token Naming
+  if (ctx.domain_models.length > 0) {
+    lines.push("## Domain-Specific Tokens");
+    lines.push("");
+    lines.push("Consider extending the token system for domain entity states:");
+    lines.push("");
+    for (const m of ctx.domain_models.slice(0, 8)) {
+      lines.push(`- **${m.name}** (${m.kind}): ${m.field_count} fields — ${m.source_file}`);
+    }
+    lines.push("");
+  }
+
+  // Warnings
+  if (ctx.ai_context.warnings.length > 0) {
+    lines.push("## Warnings");
+    lines.push("");
+    for (const w of ctx.ai_context.warnings) {
+      lines.push(`> ⚠ ${w}`);
+    }
+    lines.push("");
+  }
+
   return {
     path: "theme-guidelines.md",
     content: lines.join("\n"),
@@ -681,6 +767,12 @@ export function generateComponentThemeMap(ctx: ContextMap): GeneratedFile {
   const themeMap = {
     project: ctx.project_identity.name,
     generated_at: new Date().toISOString(),
+    detected_stack: ctx.detection.frameworks.map(f => ({
+      name: f.name,
+      version: f.version ?? null,
+      confidence: f.confidence,
+    })),
+    primary_language: ctx.project_identity.primary_language,
     summary: {
       total_components: components.length,
       by_type: typeCounts,
@@ -713,13 +805,18 @@ export function generateComponentThemeMap(ctx: ContextMap): GeneratedFile {
 export function generateDarkModeTokens(ctx: ContextMap): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const hasTailwind = frameworks.some(f => f.name === "tailwind");
+  const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
 
   // Generate a full dark mode token set derived from the project context
   const tokens = {
     project: id.name,
     generated_at: new Date().toISOString(),
     scheme: "dark",
+    detected_stack: {
+      frameworks: ctx.detection.frameworks.map(f => `${f.name}${f.version ? " " + f.version : ""}`),
+      primary_language: id.primary_language,
+      project_type: id.type,
+    },
     colors: {
       background: {
         base: "#0f172a",

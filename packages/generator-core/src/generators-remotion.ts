@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── remotion-script.ts ─────────────────────────────────────────
 
@@ -148,6 +149,25 @@ export function generateScenePlan(ctx: ContextMap): GeneratedFile {
   lines.push(`| Resolution | 1920×1080 |`);
   lines.push("");
 
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Summary");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Detected Stack
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
+
   lines.push("## Scene Breakdown");
   lines.push("");
 
@@ -258,6 +278,16 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile): Gen
       architecture_signals: true,
       key_abstractions: true,
       languages: true,
+    },
+    detected_stack: {
+      frameworks: ctx.detection.frameworks.map(f => ({
+        name: f.name,
+        version: f.version ?? null,
+        confidence: f.confidence,
+      })),
+      primary_language: id.primary_language,
+      total_files: ctx.structure.total_files,
+      total_loc: ctx.structure.total_loc,
     },
   };
 

@@ -1,6 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -74,22 +75,22 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
   // Language-specific rules
   if (id.primary_language === "TypeScript" || id.primary_language === "JavaScript") {
     lines.push("- Use strict TypeScript. Avoid `any` types.");
-    if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+    if (hasFw(ctx, "Next.js")) {
       lines.push("- Follow Next.js App Router conventions. Use `app/` directory structure.");
       lines.push("- Server Components by default. Add `'use client'` only when needed.");
     }
-    if (ctx.detection.frameworks.some(f => f.name === "React"))
+    if (hasFw(ctx, "React"))
       lines.push("- Prefer functional components with hooks over class components.");
-    if (ctx.detection.frameworks.some(f => f.name === "Tailwind CSS"))
+    if (hasFw(ctx, "Tailwind CSS", "tailwind"))
       lines.push("- Use Tailwind utility classes. Avoid custom CSS unless extending the design system.");
-    if (ctx.detection.frameworks.some(f => f.name === "Prisma"))
+    if (hasFw(ctx, "Prisma"))
       lines.push("- Use Prisma client for database access. Keep schema.prisma as source of truth.");
   }
   if (id.primary_language === "Python") {
     lines.push("- Follow PEP 8 conventions.");
-    if (ctx.detection.frameworks.some(f => f.name === "Django"))
+    if (hasFw(ctx, "Django"))
       lines.push("- Follow Django project structure conventions.");
-    if (ctx.detection.frameworks.some(f => f.name === "FastAPI"))
+    if (hasFw(ctx, "FastAPI"))
       lines.push("- Use Pydantic models for request/response validation.");
   }
 
@@ -163,7 +164,7 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   if (ctx.detection.test_frameworks.length > 0)
     lines.push(`- **Test:** \`${pm} test\``);
   lines.push(`- **Dev:** \`${pm} run dev\``);
-  if (ctx.detection.frameworks.some(f => f.name === "Prisma"))
+  if (hasFw(ctx, "Prisma"))
     /* v8 ignore next — package_managers never contains "npx" (it's a runner, not a PM) */
     lines.push(`- **DB Migrate:** \`${pm === "npx" ? "npx" : `${pm} exec`} prisma migrate dev\``);
   lines.push("");
@@ -202,9 +203,9 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("- Do not add dependencies without discussion");
   lines.push("- Do not change the framework or architecture pattern");
   lines.push("- Do not bypass TypeScript strict mode");
-  if (ctx.detection.frameworks.some(f => f.name === "Prisma"))
+  if (hasFw(ctx, "Prisma"))
     lines.push("- Do not write raw SQL — use Prisma Client");
-  if (ctx.detection.frameworks.some(f => f.name === "React"))
+  if (hasFw(ctx, "React"))
     lines.push("- Do not use class components");
   lines.push("");
 
@@ -260,7 +261,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   rules.push("");
 
   // Framework-specific rules
-  if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     rules.push("# === Next.js ===");
     rules.push('routing = "app_router"');
     rules.push('default_component_type = "server"');
@@ -268,7 +269,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
     rules.push("");
   }
 
-  if (ctx.detection.frameworks.some(f => f.name === "React")) {
+  if (hasFw(ctx, "React")) {
     rules.push("# === React ===");
     rules.push('component_style = "functional"');
     rules.push('state_management = "hooks"');
@@ -276,7 +277,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
     rules.push("");
   }
 
-  if (ctx.detection.frameworks.some(f => f.name === "Tailwind CSS")) {
+  if (hasFw(ctx, "Tailwind CSS", "tailwind")) {
     rules.push("# === Styling ===");
     rules.push('css_framework = "tailwind"');
     rules.push("custom_css = false");
@@ -284,7 +285,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
     rules.push("");
   }
 
-  if (ctx.detection.frameworks.some(f => f.name === "Prisma")) {
+  if (hasFw(ctx, "Prisma")) {
     rules.push("# === Database ===");
     rules.push('orm = "prisma"');
     rules.push("raw_sql = false");
@@ -558,15 +559,16 @@ export function generatePolicyPack(ctx: ContextMap): GeneratedFile {
   for (const fw of frameworks) {
     lines.push(`### ${fw.name}`);
     lines.push("");
-    if (fw.name === "next" || fw.name === "react") {
+    const n = fw.name.toLowerCase();
+    if (n === "next" || n === "next.js" || n === "react") {
       lines.push("- Use functional components only");
       lines.push("- Prefer server components where possible (Next.js App Router)");
       lines.push("- No inline styles — use design tokens or Tailwind");
-    } else if (fw.name === "express" || fw.name === "fastify") {
+    } else if (n === "express" || n === "fastify") {
       lines.push("- All routes must have error handling middleware");
       lines.push("- Validate request bodies before processing");
       lines.push("- Use async handlers with proper error propagation");
-    } else if (fw.name === "tailwind") {
+    } else if (n === "tailwind" || n === "tailwind css") {
       lines.push("- Use utility classes from the design system");
       lines.push("- No arbitrary values unless design tokens don't cover the case");
     } else {

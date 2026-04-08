@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── brand-guidelines.md ────────────────────────────────────────
 
@@ -12,6 +13,26 @@ export function generateBrandGuidelines(ctx: ContextMap): GeneratedFile {
   lines.push("");
   lines.push(`> Brand identity and communication standards for ${id.name}`);
   lines.push("");
+
+  // Project Overview
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Overview");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Detected Stack
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
 
   // Brand Identity
   lines.push("## Brand Identity");
@@ -99,7 +120,7 @@ export function generateBrandGuidelines(ctx: ContextMap): GeneratedFile {
     lines.push("");
     lines.push(`This project uses: ${frameworks.join(", ")}`);
     lines.push("");
-    if (frameworks.includes("Next.js") || frameworks.includes("React")) {
+    if (hasFw(ctx, "Next.js", "React")) {
       lines.push("- Component names should be descriptive and PascalCase");
       lines.push("- User-facing strings should be extractable for i18n readiness");
       lines.push("- Use aria-labels that match the brand voice (clear, concise)");

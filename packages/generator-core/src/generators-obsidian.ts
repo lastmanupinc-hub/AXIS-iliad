@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── obsidian-skill-pack.md ─────────────────────────────────────
 
@@ -12,6 +13,26 @@ export function generateObsidianSkillPack(ctx: ContextMap): GeneratedFile {
   lines.push("");
   lines.push(`> Vault workflows, templates, and prompt snippets for a ${id.type.replace(/_/g, " ")} project`);
   lines.push("");
+
+  // Project Overview
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Overview");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Detected Stack
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
 
   // Daily Note Template
   lines.push("## Daily Note Template");

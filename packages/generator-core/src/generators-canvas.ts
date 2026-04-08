@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── canvas-spec.json ───────────────────────────────────────────
 
@@ -70,12 +71,23 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile): Gener
       subtitle: id.description,
       type: id.type,
       language: id.primary_language,
-      frameworks,
-      language_stats: languages.map(l => ({ name: l.name, percent: l.loc_percent })),
+      project_summary: ctx.ai_context.project_summary,
+      frameworks: ctx.detection.frameworks.map(f => ({
+        name: f.name,
+        version: f.version ?? null,
+        confidence: f.confidence,
+      })),
+      framework_names: frameworks,
+      language_stats: languages.map(l => ({ name: l.name, percent: l.loc_percent, loc: l.loc })),
       architecture_score: ctx.architecture_signals.separation_score,
       patterns: ctx.architecture_signals.patterns_detected,
+      layer_boundaries: ctx.architecture_signals.layer_boundaries,
       entry_point_count: ctx.entry_points.length,
       hotspot_count: ctx.dependency_graph.hotspots.length,
+      domain_model_count: ctx.domain_models.length,
+      route_count: ctx.routes.length,
+      total_files: ctx.structure.total_files,
+      total_loc: ctx.structure.total_loc,
     },
   };
 
@@ -101,6 +113,25 @@ export function generateSocialPack(ctx: ContextMap): GeneratedFile {
   lines.push("");
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push("");
+
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Summary");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Stack Reference
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
 
   lines.push("## Open Graph Image (1200×630)");
   lines.push("");
@@ -244,10 +275,18 @@ export function generatePosterLayouts(ctx: ContextMap): GeneratedFile {
   }
 
   lines.push("**Framework Badges**");
-  for (const fw of frameworks) {
-    lines.push(`- ${fw}`);
+  for (const fw of ctx.detection.frameworks) {
+    lines.push(`- ${fw.name}${fw.version ? " " + fw.version : ""}`);
   }
   lines.push("");
+
+  if (ctx.domain_models.length > 0) {
+    lines.push("**Domain Models**");
+    for (const m of ctx.domain_models.slice(0, 6)) {
+      lines.push(`- ${m.name} (${m.kind}, ${m.field_count} fields)`);
+    }
+    lines.push("");
+  }
 
   lines.push("## Layout B: Minimal Card (Landscape)");
   lines.push("");
@@ -397,6 +436,13 @@ export function generateBrandBoard(ctx: ContextMap): GeneratedFile {
   lines.push("Comprehensive visual identity reference for all project-branded outputs.");
   lines.push("");
 
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Summary");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
   // Color Palette
   lines.push("## Color Palette");
   lines.push("");
@@ -499,6 +545,26 @@ export function generateBrandBoard(ctx: ContextMap): GeneratedFile {
     lines.push("");
     for (const a of abstractions.slice(0, 5)) {
       lines.push(`- **${a}** — candidate for conceptual branding element`);
+    }
+    lines.push("");
+  }
+
+  if (ctx.domain_models.length > 0) {
+    lines.push("### Domain Models");
+    lines.push("");
+    lines.push("Consider domain-specific iconography for:");
+    lines.push("");
+    for (const m of ctx.domain_models.slice(0, 6)) {
+      lines.push(`- **${m.name}** (${m.kind}) — ${m.field_count} fields, from ${m.source_file}`);
+    }
+    lines.push("");
+  }
+
+  if (ctx.ai_context.warnings.length > 0) {
+    lines.push("### Brand Warnings");
+    lines.push("");
+    for (const w of ctx.ai_context.warnings) {
+      lines.push(`> ⚠ ${w}`);
     }
     lines.push("");
   }

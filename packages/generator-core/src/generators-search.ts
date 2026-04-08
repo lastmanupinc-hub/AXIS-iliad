@@ -1,6 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt } from "./file-excerpt-utils.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 export function generateContextMapJSON(ctx: ContextMap): GeneratedFile {
   return {

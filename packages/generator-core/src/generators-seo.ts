@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── .ai/seo-rules.md ──────────────────────────────────────────
 
@@ -12,6 +13,26 @@ export function generateSeoRules(ctx: ContextMap): GeneratedFile {
   lines.push(`> SEO guidelines for a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}`);
   lines.push("");
 
+  // Project Overview
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Overview");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Detected Stack
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
+
   // Meta & Head
   lines.push("## Meta Tags & Head");
   lines.push("");
@@ -23,10 +44,10 @@ export function generateSeoRules(ctx: ContextMap): GeneratedFile {
   lines.push("");
 
   // Framework-specific SSR/rendering
-  const hasNext = ctx.detection.frameworks.some(f => f.name === "Next.js");
-  const hasReact = ctx.detection.frameworks.some(f => f.name === "React");
-  const hasVue = ctx.detection.frameworks.some(f => f.name === "Vue");
-  const hasSvelte = ctx.detection.frameworks.some(f => f.name === "Svelte");
+  const hasNext = hasFw(ctx, "Next.js");
+  const hasReact = hasFw(ctx, "React");
+  const hasVue = hasFw(ctx, "Vue");
+  const hasSvelte = hasFw(ctx, "Svelte");
 
   lines.push("## Rendering Strategy");
   lines.push("");
@@ -368,9 +389,7 @@ export function generateContentAudit(ctx: ContextMap): GeneratedFile {
   lines.push("");
 
   // SEO Readiness Score
-  const hasSSR = ctx.detection.frameworks.some(f =>
-    f.name === "Next.js" || f.name === "Svelte" || f.name === "Vue",
-  );
+  const hasSSR = hasFw(ctx, "Next.js", "Svelte", "Vue");
   const hasRoutes = ctx.routes.length > 0;
   const hasHealthy = {
     has_ci: ctx.detection.ci_platform !== null,
@@ -488,7 +507,7 @@ export function generateMetaTagAudit(ctx: ContextMap): GeneratedFile {
   const routes = ctx.routes;
   const frameworks = ctx.detection.frameworks;
 
-  const hasNext = frameworks.some(f => f.name === "next");
+  const hasNext = hasFw(ctx, "Next.js", "next");
   const pageRoutes = routes.filter(r => !r.path.startsWith("/api") && r.method === "GET");
 
   const audit = {

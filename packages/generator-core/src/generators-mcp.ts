@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile): Genera
   });
 
   // Framework-specific tools
-  if (frameworks.includes("Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     tools.push({
       name: "nextjs_dev_server",
       description: "Start Next.js development server",
@@ -80,7 +81,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile): Genera
       enabled: true,
     });
   }
-  if (frameworks.includes("Prisma")) {
+  if (hasFw(ctx, "Prisma")) {
     tools.push({
       name: "prisma_studio",
       description: "Open Prisma Studio for database management",
@@ -220,7 +221,7 @@ export function generateConnectorMap(ctx: ContextMap): GeneratedFile {
   }
 
   // Database connectors
-  if (frameworks.includes("Prisma")) {
+  if (hasFw(ctx, "Prisma")) {
     lines.push("  - id: prisma_db");
     lines.push("    name: Prisma Database");
     lines.push("    type: database");

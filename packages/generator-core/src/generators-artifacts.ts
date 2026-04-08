@@ -1,12 +1,13 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── generated-component.tsx ────────────────────────────────────
 
 export function generateComponent(ctx: ContextMap): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
-  const isReact = frameworks.some(f => /react|next/i.test(f));
+  const isReact = hasFw(ctx, "React", "Next.js");
   const componentName = id.name.replace(/[^a-zA-Z0-9]/g, "");
 
   const lines: string[] = [];
@@ -67,7 +68,7 @@ export function generateDashboardWidget(ctx: ContextMap): GeneratedFile {
   const languages = ctx.detection.languages;
   const entryPoints = ctx.entry_points;
   const hotspots = ctx.dependency_graph.hotspots;
-  const isReact = frameworks.some(f => /react|next/i.test(f));
+  const isReact = hasFw(ctx, "React", "Next.js");
 
   const lines: string[] = [];
 
@@ -344,8 +345,8 @@ export function generateComponentLibrary(ctx: ContextMap): GeneratedFile {
   const deps = ctx.dependency_graph.external_dependencies;
   const routes = ctx.routes;
 
-  const hasTailwind = frameworks.some(f => f.name === "tailwind");
-  const hasReact = frameworks.some(f => f.name === "react" || f.name === "next");
+  const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
+  const hasReact = hasFw(ctx, "React", "Next.js");
 
   // Build a component library spec from project context
   const components: Array<{

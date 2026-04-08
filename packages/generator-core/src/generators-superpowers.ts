@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── superpower-pack.md ─────────────────────────────────────────
 
@@ -12,6 +13,26 @@ export function generateSuperpowerPack(ctx: ContextMap): GeneratedFile {
   lines.push("");
   lines.push(`> High-leverage development workflows for a ${id.type.replace(/_/g, " ")} (${id.primary_language})`);
   lines.push("");
+
+  // Project Overview
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Overview");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Detected Stack
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
 
   // Quick Actions
   lines.push("## Quick Actions");
@@ -41,7 +62,7 @@ export function generateSuperpowerPack(ctx: ContextMap): GeneratedFile {
   }
   lines.push("");
   lines.push("# Dev server");
-  if (frameworks.includes("Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     lines.push(`${pkgMgr} run dev`);
   } else if (buildTools.includes("vite")) {
     lines.push(`${pkgMgr} run dev`);
@@ -256,7 +277,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile):
   });
 
   // Framework-specific workflows
-  if (frameworks.includes("Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     workflows.push({
       id: "nextjs-page-creation",
       name: "New Next.js Page",
@@ -273,7 +294,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile):
     });
   }
 
-  if (frameworks.includes("Prisma")) {
+  if (hasFw(ctx, "Prisma")) {
     workflows.push({
       id: "schema-migration",
       name: "Prisma Schema Migration",
@@ -381,7 +402,7 @@ export function generateTestGenerationRules(ctx: ContextMap): GeneratedFile {
   lines.push("- Speed: < 500ms per test");
   lines.push("");
 
-  if (frameworks.includes("Next.js") || frameworks.includes("React")) {
+  if (hasFw(ctx, "Next.js", "React")) {
     lines.push("### Component Tests");
     lines.push("- Use @testing-library/react for component rendering");
     lines.push("- Test user interactions, not implementation details");

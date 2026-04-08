@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── .ai/optimization-rules.md ──────────────────────────────────
 
@@ -90,7 +91,7 @@ export function generateOptimizationRules(ctx: ContextMap): GeneratedFile {
   lines.push("## Prompt Strategy");
   lines.push("");
   const frameworks = ctx.detection.frameworks.map(f => f.name);
-  if (frameworks.includes("Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     lines.push("### Next.js Projects");
     lines.push("");
     lines.push("1. Always include `next.config.*` and `tsconfig.json` for project constraints");
@@ -99,7 +100,7 @@ export function generateOptimizationRules(ctx: ContextMap): GeneratedFile {
     lines.push("4. Reference `package.json` dependencies to prevent hallucinated imports");
     lines.push("");
   }
-  if (frameworks.includes("React")) {
+  if (hasFw(ctx, "React")) {
     lines.push("### React Projects");
     lines.push("");
     lines.push("1. Include component files and their direct imports (1 hop)");
@@ -107,7 +108,7 @@ export function generateOptimizationRules(ctx: ContextMap): GeneratedFile {
     lines.push("3. Include CSS/styling config (tailwind.config, theme files) for style-aware generation");
     lines.push("");
   }
-  if (frameworks.includes("Prisma")) {
+  if (hasFw(ctx, "Prisma")) {
     lines.push("### Prisma / Database");
     lines.push("");
     lines.push("1. Always include `schema.prisma` for any database-related prompts");

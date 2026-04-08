@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── generative-sketch.ts ───────────────────────────────────────
 
@@ -275,6 +276,25 @@ export function generateCollectionMap(ctx: ContextMap): GeneratedFile {
   lines.push(`metrics, and architecture of ${id.name}.`);
   lines.push("");
 
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Summary");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Framework stack reference
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
+
   lines.push("## Pieces");
   lines.push("");
 
@@ -340,6 +360,10 @@ export function generateCollectionMap(ctx: ContextMap): GeneratedFile {
   lines.push(`| Total Pieces | 4 |`);
   lines.push(`| Source Project | ${id.name} |`);
   lines.push(`| Data Points | ${ctx.entry_points.length + hotspots.length + languages.length + patterns.length} |`);
+  lines.push(`| Domain Models | ${ctx.domain_models.length} |`);
+  lines.push(`| Routes | ${ctx.routes.length} |`);
+  lines.push(`| Total Files | ${ctx.structure.total_files} |`);
+  lines.push(`| Total LOC | ${ctx.structure.total_loc} |`);
   lines.push(`| Render Target | Canvas 2D / WebGL |`);
   lines.push(`| Parameter Pack | parameter-pack.json |`);
   lines.push("");

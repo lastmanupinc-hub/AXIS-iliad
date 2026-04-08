@@ -1,13 +1,7 @@
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findEntryPoints, renderExcerpts } from "./file-excerpt-utils.js";
-
-function hasFw(ctx: ContextMap, ...names: string[]): boolean {
-  return ctx.detection.frameworks.some(f => names.some(n => f.name.toLowerCase() === n.toLowerCase()));
-}
-function getFw(ctx: ContextMap, name: string) {
-  return ctx.detection.frameworks.find(f => f.name.toLowerCase() === name.toLowerCase());
-}
+import { hasFw, getFw } from "./fw-helpers.js";
 
 export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;

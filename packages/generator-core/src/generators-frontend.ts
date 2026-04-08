@@ -1,6 +1,7 @@
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -11,30 +12,50 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push(`> UI engineering standards for this ${id.type.replace(/_/g, " ")}`);
   lines.push("");
 
+  // Project Overview
+  if (ctx.ai_context.project_summary) {
+    lines.push("## Project Overview");
+    lines.push("");
+    lines.push(ctx.ai_context.project_summary);
+    lines.push("");
+  }
+
+  // Detected Stack
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("## Detected Stack");
+    lines.push("");
+    lines.push("| Framework | Version | Confidence |");
+    lines.push("|-----------|---------|------------|");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+    }
+    lines.push("");
+  }
+
   // Component conventions
   lines.push("## Component Conventions");
   lines.push("");
 
-  if (ctx.detection.frameworks.some(f => f.name === "React")) {
+  if (hasFw(ctx, "React")) {
     lines.push("- Use functional components with hooks");
     lines.push("- Colocate component, types, and tests in the same directory");
     lines.push("- Export one primary component per file");
     lines.push("- Name files after the component: `DataTable.tsx` exports `DataTable`");
   }
 
-  if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     lines.push("- Use Server Components by default");
     lines.push("- Add `'use client'` only for interactive components (forms, modals, state)");
     lines.push("- Page components in `app/` directory follow file-based routing");
     lines.push("- Shared layouts use `layout.tsx`, loading states use `loading.tsx`");
   }
 
-  if (ctx.detection.frameworks.some(f => f.name === "Vue")) {
+  if (hasFw(ctx, "Vue")) {
     lines.push("- Use `<script setup>` with Composition API");
     lines.push("- Single File Components (`.vue`) with `<template>`, `<script>`, `<style>`");
   }
 
-  if (ctx.detection.frameworks.some(f => f.name === "Svelte")) {
+  if (hasFw(ctx, "Svelte")) {
     lines.push("- Use `.svelte` single file components");
     lines.push("- Prefer reactive declarations (`$:`) over manual subscriptions");
   }
@@ -43,7 +64,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   // Styling
   lines.push("## Styling");
   lines.push("");
-  if (ctx.detection.frameworks.some(f => f.name === "Tailwind CSS")) {
+  if (hasFw(ctx, "Tailwind CSS", "tailwind")) {
     lines.push("- Use Tailwind utility classes exclusively");
     lines.push("- Avoid custom CSS unless extending the design system");
     lines.push("- Use `@apply` sparingly — prefer inline utilities");
@@ -58,11 +79,11 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   // State management
   lines.push("## State Management");
   lines.push("");
-  if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     lines.push("- Server state: fetch in Server Components, revalidate with `revalidatePath()`");
     lines.push("- Client state: `useState` / `useReducer` for local UI state");
     lines.push("- Form state: use Server Actions with `useFormState()` / `useFormStatus()`");
-  } else if (ctx.detection.frameworks.some(f => f.name === "React")) {
+  } else if (hasFw(ctx, "React")) {
     lines.push("- Local state: `useState` / `useReducer`");
     lines.push("- Shared state: Context API or state library");
     lines.push("- Server state: data-fetching library (SWR, React Query, etc.)");
@@ -80,7 +101,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
     }
     lines.push("");
     /* v8 ignore next 4 — V8 quirk: Next.js-specific branch tested with Next.js fixtures */
-    if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+    if (hasFw(ctx, "Next.js")) {
       lines.push("- Prefer Server Component data fetching over client-side `fetch`");
       lines.push("- Use Route Handlers (`app/api/`) for external API consumers");
     }
@@ -100,7 +121,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   // Performance
   lines.push("## Performance");
   lines.push("");
-  if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     lines.push("- Use `next/image` for optimized images");
     lines.push("- Use `next/font` for font loading");
     lines.push("- Lazy load below-the-fold components with `dynamic()`");
@@ -169,7 +190,7 @@ export function generateComponentGuidelines(ctx: ContextMap): GeneratedFile {
   lines.push("## File Structure");
   lines.push("");
   lines.push("```");
-  if (ctx.detection.frameworks.some(f => f.name === "Next.js")) {
+  if (hasFw(ctx, "Next.js")) {
     lines.push("components/");
     lines.push("├── ui/              # Generic UI primitives (Button, Input, Modal)");
     lines.push("├── layout/          # Layout components (Header, Sidebar, Footer)");
@@ -197,7 +218,7 @@ export function generateComponentGuidelines(ctx: ContextMap): GeneratedFile {
   lines.push("## Component Template");
   lines.push("");
 
-  if (ctx.detection.frameworks.some(f => f.name === "React" || f.name === "Next.js")) {
+  if (hasFw(ctx, "React", "Next.js")) {
     lines.push("```tsx");
     lines.push("interface MyComponentProps {");
     lines.push("  title: string;");
@@ -252,9 +273,9 @@ export function generateLayoutPatterns(ctx: ContextMap): GeneratedFile {
   lines.push(`Generated: ${new Date().toISOString()}`);
   lines.push("");
 
-  const hasNext = frameworks.some(f => f.name === "next");
-  const hasReact = frameworks.some(f => f.name === "react");
-  const hasTailwind = frameworks.some(f => f.name === "tailwind");
+  const hasNext = hasFw(ctx, "Next.js", "next");
+  const hasReact = hasFw(ctx, "React", "react");
+  const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
 
   lines.push("## Page Layout Architecture");
   lines.push("");
@@ -402,7 +423,7 @@ export function generateUiAudit(ctx: ContextMap): GeneratedFile {
   lines.push("|--------|----------|");
   lines.push(`| UI Frameworks | ${uiFrameworks.map(f => f.name).join(", ") || "None detected"} |`);
   /* v8 ignore next — V8 quirk: tailwind/CSS ternary tested with fixture variants */
-  lines.push(`| Styling | ${frameworks.some(f => f.name === "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS" : "Unknown"} |`);
+  lines.push(`| Styling | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS" : "Unknown"} |`);
   /* v8 ignore next — V8 quirk: hasTSX ternary tested */
   lines.push(`| TypeScript | ${hasTSX ? "Yes" : "No"} |`);
   /* v8 ignore next — V8 quirk: uiDeps empty check tested */
@@ -454,7 +475,7 @@ export function generateUiAudit(ctx: ContextMap): GeneratedFile {
   let score = 50; // base
   if (uiFrameworks.length > 0) score += 15;
   /* v8 ignore next — V8 quirk: tailwind score branch tested */
-  if (frameworks.some(f => f.name === "tailwind")) score += 10;
+  if (hasFw(ctx, "Tailwind CSS", "tailwind")) score += 10;
   /* v8 ignore next */
   if (hasTSX) score += 10;
   /* v8 ignore next */
@@ -470,7 +491,7 @@ export function generateUiAudit(ctx: ContextMap): GeneratedFile {
   lines.push("|--------|-------|");
   lines.push(`| Framework detection | ${uiFrameworks.length > 0 ? "+15" : "0"} |`);
   /* v8 ignore next — V8 quirk: tailwind score display ternary tested */
-  lines.push(`| Styling system | ${frameworks.some(f => f.name === "tailwind") ? "+10" : "0"} |`);
+  lines.push(`| Styling system | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "+10" : "0"} |`);
   /* v8 ignore next */
   lines.push(`| TypeScript | ${hasTSX ? "+10" : "0"} |`);
   /* v8 ignore next */

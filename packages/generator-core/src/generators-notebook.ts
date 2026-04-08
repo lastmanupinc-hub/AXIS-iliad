@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { hasFw, getFw } from "./fw-helpers.js";
 
 // ─── notebook-summary.md ────────────────────────────────────────
 
@@ -440,16 +441,17 @@ export function generateCitationIndex(ctx: ContextMap): GeneratedFile {
 
   // Framework documentation citations
   for (const fw of frameworks) {
+    const n = fw.name.toLowerCase();
     citations.push({
       id: `fw-${fw.name}`,
       type: "documentation",
       title: `${fw.name} Official Documentation`,
-      source: fw.name === "next" ? "https://nextjs.org/docs" :
-        fw.name === "react" ? "https://react.dev" :
-        fw.name === "vue" ? "https://vuejs.org/guide" :
-        fw.name === "express" ? "https://expressjs.com/en/guide" :
-        fw.name === "tailwind" ? "https://tailwindcss.com/docs" :
-        fw.name === "prisma" ? "https://www.prisma.io/docs" :
+      source: n === "next" || n === "next.js" ? "https://nextjs.org/docs" :
+        n === "react" ? "https://react.dev" :
+        n === "vue" || n === "vue.js" ? "https://vuejs.org/guide" :
+        n === "express" ? "https://expressjs.com/en/guide" :
+        n === "tailwind" || n === "tailwind css" ? "https://tailwindcss.com/docs" :
+        n === "prisma" ? "https://www.prisma.io/docs" :
         `https://www.google.com/search?q=${fw.name}+documentation`,
       relevance: "primary",
       tags: ["framework", fw.name, "documentation"],
