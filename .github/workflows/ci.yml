@@ -138,6 +138,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build all packages
+        env:
+          VITE_API_URL: https://axis-api-6c7z.onrender.com
         run: pnpm -r build
 
       - name: Deploy to Cloudflare Pages
