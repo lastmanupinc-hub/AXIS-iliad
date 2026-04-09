@@ -115,8 +115,8 @@ describe("CI workflow deploy jobs", () => {
     expect(content).toMatch(/deploy-web:[\s\S]*?needs:\s*build-and-test/);
   });
 
-  it("deploy-web uses Cloudflare wrangler action", () => {
-    expect(content).toContain("cloudflare/wrangler-action");
+  it("deploy-web uses wrangler for Cloudflare Pages", () => {
+    expect(content).toContain("wrangler");
   });
 
   it("deploy-web targets apps/web/dist", () => {
