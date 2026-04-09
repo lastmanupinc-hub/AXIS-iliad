@@ -67,13 +67,19 @@ jobs:
 
       - name: Verify Docker health check
         run: |
-          docker run -d --name axis-test -p 4000:4000 axis-api:${{ github.sha }}
+          docker run -d --name axis-test -p 4000:4000 \
+            -e DATABASE_PATH=/tmp/axis.db \
+            -v /tmp/axis-data:/tmp \
+            axis-api:${{ github.sha }}
           for i in 1 2 3 4 5 6; do
             if curl -sf http://localhost:4000/v1/health | grep -q '"status":"ok"'; then
               echo "Health check passed on attempt $i"
               break
             fi
-            echo "Attempt $i failed, retrying in 5s..."
+            if [ "$i" -eq 6 ]; then
+              echo "All attempts failed. Container logs:"
+              docker logs axis-test
+            fi
             sleep 5
           done
           curl -sf http://localhost:4000/v1/health | grep -q '"status":"ok"'
