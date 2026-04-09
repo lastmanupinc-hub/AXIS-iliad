@@ -69,6 +69,9 @@ COPY --from=builder /app/packages/context-engine/dist packages/context-engine/di
 COPY --from=builder /app/packages/generator-core/package.json packages/generator-core/package.json
 COPY --from=builder /app/packages/generator-core/dist packages/generator-core/dist
 
+# Re-link workspace packages so Node can resolve @axis/* imports
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+
 # Environment
 ENV NODE_ENV=production
 ENV PORT=4000
