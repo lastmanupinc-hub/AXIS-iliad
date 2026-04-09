@@ -24,7 +24,6 @@ services:
         value: info
       - key: CORS_ORIGIN
         value: https://toolbox.jonathanarvay.com
-        sync: false
       - key: GITHUB_CLIENT_ID
         sync: false
       - key: GITHUB_CLIENT_SECRET
@@ -33,7 +32,6 @@ services:
         sync: false
       - key: AXIS_WEB_URL
         value: https://toolbox.jonathanarvay.com
-        sync: false
     disk:
       name: axis-data
       mountPath: /data
