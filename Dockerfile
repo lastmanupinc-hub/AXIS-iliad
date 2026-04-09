@@ -42,6 +42,7 @@ RUN pnpm -r build
 FROM node:20-slim AS runner
 WORKDIR /app
 
+ENV CI=true
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Non-root user for security
