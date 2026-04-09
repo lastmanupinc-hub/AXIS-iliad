@@ -4,6 +4,7 @@ import {
   getSnapshot,
   updateSnapshotStatus,
   getProjectSnapshots,
+  getProjectOwner,
   deleteSnapshot,
   deleteProject,
   saveContextMap,
@@ -30,8 +31,41 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
-import { resolveAuth } from "./billing.js";
+import { resolveAuth, requireAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
+
+// ─── Ownership helpers ──────────────────────────────────────────
+
+/** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
+function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
+  if (!snapshot.account_id) return true; // anonymous snapshot — accessible by ID knowledge
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
+    return false;
+  }
+  if (auth.account.account_id !== snapshot.account_id) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
+    return false;
+  }
+  return true;
+}
+
+/** Check if the current user can access a project. Returns true if allowed. */
+function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): boolean {
+  const owner = getProjectOwner(project_id);
+  if (!owner) return true; // anonymous project
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
+    return false;
+  }
+  if (auth.account.account_id !== owner) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Project not found");
+    return false;
+  }
+  return true;
+}
 
 // ─── Per-program default outputs ────────────────────────────────
 
@@ -210,7 +244,7 @@ export async function handleCreateSnapshot(
     }
   }
 
-  const snapshot = createSnapshot(input);
+  const snapshot = createSnapshot(input, auth.account?.account_id);
 
   // Process synchronously for v1 (production: queue to worker)
   try {
@@ -279,6 +313,7 @@ export async function handleGetSnapshot(
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
+  if (!assertSnapshotAccess(_req, res, snapshot)) return;
 
   sendJSON(res, 200, {
     snapshot_id: snapshot.snapshot_id,
@@ -303,6 +338,15 @@ export async function handleDeleteSnapshot(
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
+  // Delete requires auth for owned snapshots
+  if (snapshot.account_id) {
+    const ctx = requireAuth(_req, res);
+    if (!ctx) return;
+    if (ctx.account!.account_id !== snapshot.account_id) {
+      sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
+      return;
+    }
+  }
   const deleted = deleteSnapshot(snapshot_id);
   /* v8 ignore next 3 — deleteSnapshot always succeeds when snapshot exists */
   if (!deleted) {
@@ -318,6 +362,16 @@ export async function handleDeleteProject(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id } = params;
+  // Delete requires auth for owned projects
+  const owner = getProjectOwner(project_id);
+  if (owner) {
+    const ctx = requireAuth(_req, res);
+    if (!ctx) return;
+    if (ctx.account!.account_id !== owner) {
+      sendError(res, 404, ErrorCode.NOT_FOUND, "Project not found");
+      return;
+    }
+  }
   const snapshots = getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     // Check if the project itself exists
@@ -338,6 +392,7 @@ export async function handleGetContext(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id } = params;
+  if (!assertProjectAccess(_req, res, project_id)) return;
   const snapshots = getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
@@ -366,6 +421,7 @@ export async function handleGetGeneratedFiles(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id } = params;
+  if (!assertProjectAccess(_req, res, project_id)) return;
   const snapshots = getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
@@ -432,6 +488,7 @@ export async function handleGetGeneratedFile(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id, file_path } = params;
+  if (!assertProjectAccess(_req, res, project_id)) return;
   const snapshots = getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
@@ -645,7 +702,7 @@ export async function handleGitHubAnalyze(
     github_url: githubUrl,
   };
 
-  const snapshot = createSnapshot(input);
+  const snapshot = createSnapshot(input, auth.account?.account_id);
 
   try {
     const contextMap = buildContextMap(snapshot);
@@ -739,6 +796,7 @@ export async function handleSearchIndex(
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
+  if (!assertSnapshotAccess(req, res, snapshot)) return;
 
   const files = (snapshot.files as Array<{ path: string; content: string }>).filter(
     (f) => typeof f.path === "string" && typeof f.content === "string",
@@ -785,6 +843,10 @@ export async function handleSearchQuery(
 
   const limit = typeof body.limit === "number" ? Math.min(Math.max(1, body.limit), 200) : 50;
 
+  // Ownership check: verify the caller can access this snapshot
+  const snapshot = getSnapshot(snapshotId);
+  if (snapshot && !assertSnapshotAccess(req, res, snapshot)) return;
+
   const results = searchSnapshotContent(snapshotId, query, { limit });
   const stats = getSearchIndexStats(snapshotId);
 
@@ -803,6 +865,8 @@ export async function handleSearchStats(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
+  const snapshot = getSnapshot(snapshot_id);
+  if (snapshot && !assertSnapshotAccess(_req, res, snapshot)) return;
   const stats = getSearchIndexStats(snapshot_id);
 
   sendJSON(res, 200, {

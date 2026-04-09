@@ -306,6 +306,32 @@ CREATE INDEX IF NOT EXISTS idx_ls_customer ON lemon_squeezy_subscriptions(custom
 CREATE INDEX IF NOT EXISTS idx_ls_status ON lemon_squeezy_subscriptions(status);
 `,
   },
+  {
+    version: 12,
+    name: "add_account_id_to_snapshots_and_projects",
+    sql: `
+ALTER TABLE snapshots ADD COLUMN account_id TEXT REFERENCES accounts(account_id);
+CREATE INDEX IF NOT EXISTS idx_snapshots_account ON snapshots(account_id);
+
+-- Rebuild projects table: replace global UNIQUE(project_name) with per-account uniqueness
+PRAGMA foreign_keys=OFF;
+
+CREATE TABLE projects_new (
+  project_id TEXT PRIMARY KEY,
+  project_name TEXT NOT NULL,
+  account_id TEXT REFERENCES accounts(account_id)
+);
+INSERT INTO projects_new (project_id, project_name) SELECT project_id, project_name FROM projects;
+DROP TABLE projects;
+ALTER TABLE projects_new RENAME TO projects;
+
+CREATE INDEX IF NOT EXISTS idx_projects_account ON projects(account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_anon ON projects(project_name) WHERE account_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_account ON projects(project_name, account_id) WHERE account_id IS NOT NULL;
+
+PRAGMA foreign_keys=ON;
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

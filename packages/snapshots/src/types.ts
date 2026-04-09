@@ -43,4 +43,5 @@ export interface SnapshotRecord {
   total_size_bytes: number;
   files: FileEntry[];
   status: SnapshotStatus;
+  account_id: string | null;
 }

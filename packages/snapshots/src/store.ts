@@ -8,16 +8,18 @@ import { getDb } from "./db.js";
 
 // ─── Snapshot CRUD ──────────────────────────────────────────────
 
-export function createSnapshot(input: SnapshotInput): SnapshotRecord {
+export function createSnapshot(input: SnapshotInput, account_id?: string): SnapshotRecord {
   const db = getDb();
   const snapshot_id = randomUUID();
 
-  // Resolve project_id: reuse existing or create new
-  const existingProject = db.prepare("SELECT project_id FROM projects WHERE project_name = ?").get(input.manifest.project_name) as { project_id: string } | undefined;
+  // Resolve project_id: reuse existing or create new (scoped by account to prevent cross-account collisions)
+  const existingProject = account_id
+    ? db.prepare("SELECT project_id FROM projects WHERE project_name = ? AND account_id = ?").get(input.manifest.project_name, account_id) as { project_id: string } | undefined
+    : db.prepare("SELECT project_id FROM projects WHERE project_name = ? AND account_id IS NULL").get(input.manifest.project_name) as { project_id: string } | undefined;
   const project_id = existingProject?.project_id ?? randomUUID();
 
   if (!existingProject) {
-    db.prepare("INSERT INTO projects (project_id, project_name) VALUES (?, ?)").run(project_id, input.manifest.project_name);
+    db.prepare("INSERT INTO projects (project_id, project_name, account_id) VALUES (?, ?, ?)").run(project_id, input.manifest.project_name, account_id ?? null);
   }
 
   const record: SnapshotRecord = {
@@ -30,11 +32,12 @@ export function createSnapshot(input: SnapshotInput): SnapshotRecord {
     total_size_bytes: input.files.reduce((sum, f) => sum + f.size, 0),
     files: input.files,
     status: "processing",
+    account_id: account_id ?? null,
   };
 
   db.prepare(
-    `INSERT INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status, account_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     record.snapshot_id,
     record.project_id,
@@ -45,6 +48,7 @@ export function createSnapshot(input: SnapshotInput): SnapshotRecord {
     record.total_size_bytes,
     JSON.stringify(record.files),
     record.status,
+    record.account_id,
   );
 
   return record;
@@ -62,6 +66,7 @@ function rowToSnapshot(row: Record<string, unknown>): SnapshotRecord | undefined
       total_size_bytes: row.total_size_bytes as number,
       files: JSON.parse(row.files as string),
       status: row.status as SnapshotStatus,
+      account_id: (row.account_id as string) ?? null,
     };
   } catch {
     return undefined;
@@ -84,6 +89,11 @@ export function updateSnapshotStatus(
 export function getProjectSnapshots(project_id: string): SnapshotRecord[] {
   const rows = getDb().prepare("SELECT * FROM snapshots WHERE project_id = ? ORDER BY created_at ASC").all(project_id) as Record<string, unknown>[];
   return rows.map(rowToSnapshot).filter((r): r is SnapshotRecord => r !== undefined);
+}
+
+export function getProjectOwner(project_id: string): string | null {
+  const row = getDb().prepare("SELECT account_id FROM projects WHERE project_id = ?").get(project_id) as { account_id: string | null } | undefined;
+  return row?.account_id ?? null;
 }
 
 /** Delete a snapshot and all associated data (context map, repo profile, generator results, search index). */

@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
-import { getProjectSnapshots, getGeneratorResult } from "@axis/snapshots";
+import { getProjectSnapshots, getProjectOwner, getGeneratorResult } from "@axis/snapshots";
 import { sendJSON, sendError } from "./router.js";
+import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
 
 // ─── Minimal ZIP builder (zero dependencies) ────────────────────
@@ -123,6 +124,19 @@ export async function handleExportZip(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id } = params;
+  // Ownership check
+  const owner = getProjectOwner(project_id);
+  if (owner) {
+    const auth = resolveAuth(_req);
+    if (!auth.account) {
+      sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
+      return;
+    }
+    if (auth.account.account_id !== owner) {
+      sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
+      return;
+    }
+  }
   const snapshots = getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
