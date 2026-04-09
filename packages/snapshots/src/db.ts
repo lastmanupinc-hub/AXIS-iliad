@@ -378,7 +378,7 @@ export function getSchemaVersion(database: Database.Database): number {
 export function getDb(): Database.Database {
   /* v8 ignore start — test suites always call openMemoryDb, production path never runs in tests */
   if (db) return db;
-  const dbPath = process.env.AXIS_DB_PATH ?? join(process.cwd(), "axis.db");
+  const dbPath = process.env.DATABASE_PATH ?? process.env.AXIS_DB_PATH ?? join(process.cwd(), "axis.db");
   db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
