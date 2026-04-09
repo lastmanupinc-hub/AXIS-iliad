@@ -168,9 +168,13 @@ export function createApp(router: Router, port: number): Server {
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
     // CORS
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    const corsOrigin = process.env.CORS_ORIGIN ?? "*";
+    res.setHeader("Access-Control-Allow-Origin", corsOrigin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (corsOrigin !== "*") {
+      res.setHeader("Vary", "Origin");
+    }
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);
@@ -218,6 +222,15 @@ export function createApp(router: Router, port: number): Server {
   server.on("connection", (socket: Socket) => {
     connections.add(socket);
     socket.on("close", () => connections.delete(socket));
+  });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      log("error", "server_start_failed", { port, error: `Port ${port} is already in use` });
+      process.exitCode = 1;
+    } else {
+      log("error", "server_start_failed", { port, error: err.message });
+    }
   });
 
   server.listen(port, () => {

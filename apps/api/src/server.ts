@@ -69,6 +69,19 @@ import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleTog
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 import { handleLemonSqueezyWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./lemonsqueezy.js";
+import { validateEnv } from "./env.js";
+import { log } from "./logger.js";
+
+// ─── Startup env validation (fail-fast) ─────────────────────────
+/* v8 ignore start — server.ts startup block not imported by tests */
+const envResult = validateEnv();
+if (!envResult.valid) {
+  for (const err of envResult.errors) {
+    console.error(`[env] ${err.message}`);
+  }
+  process.exitCode = 1;
+}
+/* v8 ignore stop */
 
 const router = new Router();
 
