@@ -233,6 +233,13 @@ export function createApp(router: Router, port: number): Server {
     }
   });
 
+  // Keep-alive tuning: Render/ALB proxies idle at 60s.
+  // Node default keepAliveTimeout=5s causes premature closes behind LBs.
+  // headersTimeout must exceed keepAliveTimeout (Node enforces this since v19).
+  const keepAliveMs = parseInt(process.env.KEEP_ALIVE_TIMEOUT_MS ?? "65000", 10);
+  server.keepAliveTimeout = keepAliveMs;
+  server.headersTimeout = keepAliveMs + 5000;
+
   server.listen(port, () => {
     log("info", "server_start", { port, service: "axis-api" });
   });
@@ -268,11 +275,23 @@ export function createApp(router: Router, port: number): Server {
   };
 
   // Register signal handlers (skip in test environments)
-  /* v8 ignore start — signal handlers only fire outside test */
+  /* v8 ignore start — signal/crash handlers only fire outside test */
   if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
     const onSignal = () => { shutdown().then(() => process.exit(0)); };
     process.on("SIGTERM", onSignal);
     process.on("SIGINT", onSignal);
+
+    // Crash resilience: log + graceful shutdown on unhandled errors
+    process.on("uncaughtException", (err) => {
+      log("error", "uncaught_exception", { error: err.message, stack: err.stack });
+      shutdown().finally(() => process.exit(1));
+    });
+    process.on("unhandledRejection", (reason) => {
+      const msg = reason instanceof Error ? reason.message : String(reason);
+      const stack = reason instanceof Error ? reason.stack : undefined;
+      log("error", "unhandled_rejection", { error: msg, stack });
+      shutdown().finally(() => process.exit(1));
+    });
   }
   /* v8 ignore stop */
 
