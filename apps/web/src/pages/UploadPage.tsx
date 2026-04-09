@@ -102,11 +102,13 @@ export function UploadPage({ onComplete }: Props) {
       const first = newFiles[0].path.split("/")[0];
       if (first && !first.includes(".")) setProjectName(first);
     }
+    e.target.value = "";
   }
 
   async function handleZipInputChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.length) return;
     await handleZipFile(e.target.files[0]);
+    e.target.value = "";
   }
 
   async function handleDrop(e: DragEvent) {
@@ -294,11 +296,9 @@ export function UploadPage({ onComplete }: Props) {
           style={{
             marginBottom: 16,
             border: dragOver ? "1px solid var(--accent)" : undefined,
-            cursor: "pointer",
             textAlign: "center",
             padding: "40px 24px",
           }}
-          onClick={handleFolderSelect}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
