@@ -75,11 +75,27 @@ export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 // ─── Structured logging ────────────────────────────────────────
 
+type LogLevel = "debug" | "info" | "warn" | "error";
+
+const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+function getMinLevel(): LogLevel {
+  const env = (process.env.LOG_LEVEL ?? "info").toLowerCase() as LogLevel;
+  return LOG_LEVEL_PRIORITY[env] !== undefined ? env : "info";
+}
+
 export function log(
-  level: "info" | "warn" | "error",
+  level: LogLevel,
   message: string,
   data?: Record<string, unknown>,
 ): void {
+  if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[getMinLevel()]) return;
+
   const entry = {
     timestamp: new Date().toISOString(),
     level,

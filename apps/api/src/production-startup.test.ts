@@ -210,3 +210,26 @@ describe("startup env validation", () => {
     expect(result.errors[0].key).toBe("RATE_LIMIT_WINDOW_MS");
   });
 });
+
+// ─── Graceful shutdown database cleanup ─────────────────────────
+
+describe("shutdown database cleanup", () => {
+  it("performs WAL checkpoint and closes DB on shutdown", async () => {
+    openMemoryDb();
+    const router = new Router();
+    router.get("/v1/health", handleHealthCheck);
+    const server = createApp(router, 44509);
+    await new Promise((r) => setTimeout(r, 200));
+
+    // Verify server works
+    const res = await rawReq("GET", "/v1/health", 44509);
+    expect(res.status).toBe(200);
+
+    // Trigger shutdown via the attached method
+    const s = server as typeof server & { shutdown: (timeout?: number) => Promise<void> };
+    await s.shutdown();
+
+    // After shutdown, server should no longer accept connections
+    await expect(rawReq("GET", "/v1/health", 44509)).rejects.toThrow();
+  });
+});

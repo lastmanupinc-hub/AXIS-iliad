@@ -4,6 +4,7 @@ import { initRequest, getRequestId, getRequestStart, log, ErrorCode, type ErrorC
 import { checkRateLimit } from "./rate-limiter.js";
 import { resolveAuth } from "./billing.js";
 import { recordRequest, recordLatency } from "./metrics.js";
+import { walCheckpoint, closeDb } from "@axis/snapshots";
 
 type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<string, string>) => Promise<void>;
 
@@ -270,6 +271,15 @@ export function createApp(router: Router, port: number): Server {
         /* v8 ignore stop */
       ]);
     }
+
+    // WAL checkpoint + close database before exit
+    try {
+      const cpResult = walCheckpoint();
+      log("info", "shutdown_wal_checkpoint", { success: cpResult.success, ...cpResult.details });
+    } catch (err) {
+      log("error", "shutdown_wal_checkpoint_failed", { error: (err as Error).message });
+    }
+    closeDb();
 
     log("info", "shutdown_complete", {});
   };
