@@ -13,8 +13,11 @@
 FROM node:20-slim AS deps
 WORKDIR /app
 
-# pnpm via corepack
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# pnpm via corepack (pinned to match local version)
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+
+# Hoist dependencies in Docker to avoid symlink resolution issues
+RUN echo "node-linker=hoisted" > .npmrc
 
 # Copy lockfile + workspace config first (cache deps layer)
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -43,18 +46,20 @@ FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV CI=true
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # Non-root user for security
 RUN groupadd --gid 1001 axis && \
     useradd --uid 1001 --gid axis --shell /bin/sh --create-home axis
+
+# Ensure runner also uses hoisted deps layout
+RUN echo "node-linker=hoisted" > .npmrc
 
 # Copy built artifacts and production dependencies
 COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/package.json apps/api/package.json
 COPY --from=builder /app/apps/api/dist apps/api/dist
-COPY --from=builder /app/apps/api/node_modules apps/api/node_modules
 COPY --from=builder /app/apps/web/package.json apps/web/package.json
 COPY --from=builder /app/apps/web/dist apps/web/dist
 COPY --from=builder /app/apps/cli/package.json apps/cli/package.json
@@ -62,7 +67,6 @@ COPY --from=builder /app/apps/cli/dist apps/cli/dist
 COPY --from=builder /app/apps/cli/bin apps/cli/bin
 COPY --from=builder /app/packages/snapshots/package.json packages/snapshots/package.json
 COPY --from=builder /app/packages/snapshots/dist packages/snapshots/dist
-COPY --from=builder /app/packages/snapshots/node_modules packages/snapshots/node_modules
 COPY --from=builder /app/packages/repo-parser/package.json packages/repo-parser/package.json
 COPY --from=builder /app/packages/repo-parser/dist packages/repo-parser/dist
 COPY --from=builder /app/packages/context-engine/package.json packages/context-engine/package.json

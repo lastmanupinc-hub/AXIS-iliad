@@ -1,5 +1,5 @@
-node_modules
-dist
+**/node_modules
+**/dist
 .git
 *.db
 *.db-wal
@@ -11,3 +11,10 @@ coverage
 .turbo
 .cache
 .vscode
+*.zip
+*.tar.gz
+vitest-*.txt
+coverage-*.txt
+*.md
+!README.md
+.ai

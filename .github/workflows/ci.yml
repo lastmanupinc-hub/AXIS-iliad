@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build-and-test:
@@ -58,19 +59,33 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Docker image
-        run: docker build -t axis-api:${{ github.sha }} .
+        run: |
+          docker build \
+            -t ghcr.io/lastmanupinc-hub/axis-api:latest \
+            -t ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }} \
+            .
 
       - name: Verify Docker health check
         run: |
           docker run -d --name axis-test -p 4000:4000 \
             -e DATABASE_PATH=/tmp/axis.db \
             -v /tmp/axis-data:/tmp \
-            axis-api:${{ github.sha }}
+            ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }}
           for i in 1 2 3 4 5 6; do
             if curl -sf http://localhost:4000/v1/health | grep -q '"status":"ok"'; then
               echo "Health check passed on attempt $i"
@@ -86,10 +101,15 @@ jobs:
           docker stop axis-test
           docker rm axis-test
 
+      - name: Push to GHCR
+        run: |
+          docker push ghcr.io/lastmanupinc-hub/axis-api:latest
+          docker push ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }}
+
   # ── Deploy API to Render ─────────────────────────────────────
-  # Render auto-deploys from GitHub when the repo is connected.
-  # render.yaml (Infrastructure as Code) defines the service.
-  # No deploy hook or CI job needed — Render watches main branch.
+  # Render pulls the pre-built image from ghcr.io/lastmanupinc-hub/axis-api:latest
+  # Configure Render service to use "Image" deploy with that URL.
+  # No build minutes consumed — image is built by GitHub Actions above.
 
   # ── Deploy Web to Cloudflare Pages ───────────────────────────
   deploy-web:
