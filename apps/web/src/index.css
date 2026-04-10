@@ -46,7 +46,7 @@ body {
 #root {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -236,9 +236,188 @@ pre {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  margin-bottom: 0;
+  padding: 12px 0 12px;
   border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+/* ─── Header brand (logo + badge) ─────────────────────────────── */
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.header-brand h1 {
+  font-size: 1.25rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* ─── Desktop nav (hidden on mobile) ──────────────────────────── */
+
+.nav-desktop {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+/* ─── Mobile controls (theme + hamburger, hidden on desktop) ──── */
+
+.nav-mobile-controls {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ─── Hamburger button ─────────────────────────────────────────── */
+
+.hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.hamburger:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+/* ─── Mobile nav drawer ────────────────────────────────────────── */
+
+.nav-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  animation: slideDown 0.2s ease-out both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nav-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg-card);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.nav-drawer-item:first-child {
+  border-top: 1px solid var(--border);
+  margin-top: 56px; /* clear the fixed header */
+}
+
+.nav-drawer-item:hover {
+  background: var(--bg-hover);
+}
+
+.nav-drawer-item.active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+  border-left: 3px solid var(--accent);
+}
+
+/* ─── Trust / privacy banner ───────────────────────────────────── */
+
+.trust-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  margin-bottom: 20px;
+  background: color-mix(in srgb, var(--green) 8%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--green) 25%, transparent);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+}
+
+.trust-item {
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.trust-item strong {
+  color: var(--text);
+}
+
+.trust-sep {
+  color: var(--border);
+  font-weight: 700;
+  user-select: none;
+}
+
+/* ─── Responsive breakpoints ───────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .nav-desktop {
+    display: none;
+  }
+  .nav-mobile-controls {
+    display: flex;
+  }
+  .header {
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 600px) {
+  #root {
+    padding: 12px;
+  }
+  .trust-banner {
+    font-size: 0.75rem;
+    gap: 6px 12px;
+    padding: 8px 12px;
+  }
+  .trust-sep {
+    display: none;
+  }
+  .trust-item {
+    white-space: normal;
+    text-align: center;
+    width: 100%;
+  }
+  .header-brand h1 {
+    font-size: 1.1rem;
+  }
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; }
 }
 
 .spinner {
