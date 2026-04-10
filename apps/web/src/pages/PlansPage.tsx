@@ -231,5 +231,6 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
 function renderFeatureValue(val: string | boolean | number) {
   if (val === true) return <span style={{ color: "var(--green)" }}>✓</span>;
   if (val === false) return <span style={{ color: "var(--text-muted)" }}>—</span>;
+  if (val === "Coming soon") return <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontStyle: "italic" }}>Coming soon</span>;
   return <span>{String(val)}</span>;
 }

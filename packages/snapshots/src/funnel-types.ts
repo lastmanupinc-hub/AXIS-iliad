@@ -129,7 +129,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
       "Team seats (up to 5)",
       "Priority support",
       "Saved history & automation",
-      "Per-program billing — pay only for what you use",
+      "Per-program billing — coming soon",
     ],
   },
   {
@@ -163,7 +163,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { name: "CLI access",            free: true,                 pro: true,                     suite: true },
   { name: "GitHub URL intake",     free: true,                 pro: true,                     suite: true },
   { name: "Saved snapshot history", free: false,               pro: true,                     suite: true },
-  { name: "Per-program billing",   free: false,                pro: true,                     suite: "Included" },
+  { name: "Per-program billing",   free: false,                pro: "Coming soon",            suite: "Coming soon" },
   { name: "Cross-program workflows", free: false,              pro: false,                    suite: true },
   { name: "Consolidated analytics", free: false,               pro: false,                    suite: true },
   { name: "Priority support",      free: false,                pro: true,                     suite: "Dedicated" },
