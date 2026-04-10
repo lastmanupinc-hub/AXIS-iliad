@@ -353,7 +353,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
                 navigator.clipboard.writeText(revealedKey);
               }}
             >
-              📋 Copy
+              Copy
             </button>
           </div>
         </div>

@@ -284,14 +284,14 @@ export function UploadPage({ onComplete }: Props) {
             className={`btn ${mode === "upload" ? "btn-primary" : ""}`}
             onClick={() => { setMode("upload"); setError(null); }}
           >
-            📁 Upload Files
+            Upload Files
           </button>
           <button
             type="button"
             className={`btn ${mode === "github" ? "btn-primary" : ""}`}
             onClick={() => { setMode("github"); setError(null); }}
           >
-            🔗 GitHub URL
+            GitHub URL
           </button>
         </div>
       </div>
@@ -406,16 +406,16 @@ export function UploadPage({ onComplete }: Props) {
           />
           {files.length === 0 ? (
             <>
-              <div style={{ fontSize: "2rem", marginBottom: 8 }}>📁</div>
+              <div style={{ fontSize: "2rem", marginBottom: 8, color: "var(--text-muted)" }}>[folder]</div>
               <p style={{ color: "var(--text-muted)" }}>
                 Drag & drop a folder or .zip file here
               </p>
               <div className="flex" style={{ gap: 8, justifyContent: "center", marginTop: 12 }}>
                 <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); handleFolderSelect(); }} style={{ fontSize: "0.8125rem" }}>
-                  📂 Select Folder
+                  Select Folder
                 </button>
                 <button type="button" className="btn" onClick={(e) => { e.stopPropagation(); handleZipSelect(); }} style={{ fontSize: "0.8125rem" }}>
-                  📦 Upload .zip
+                  Upload .zip
                 </button>
               </div>
               <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 4 }}>
@@ -468,9 +468,9 @@ export function UploadPage({ onComplete }: Props) {
               <span className="spinner" /> {mode === "github" ? "Fetching & Analyzing..." : "Processing..."}
             </>
           ) : mode === "github" ? (
-            "🔗 Analyze GitHub Repo"
+            "Analyze GitHub Repo"
           ) : (
-            "🚀 Upload & Generate"
+            "Upload & Generate"
           )}
         </button>
       </form>

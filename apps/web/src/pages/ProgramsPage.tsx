@@ -4,7 +4,6 @@ interface ProgramDef {
   id: string;
   name: string;
   tier: "free" | "pro";
-  icon: string;
   tagline: string;
   keywords: string[];
   outputs: string[];
@@ -17,7 +16,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "search",
     name: "Search",
     tier: "free",
-    icon: "🔍",
+
     tagline: "AI codebase analysis & context graph",
     keywords: ["AI codebase analyzer", "repo context map", "AGENTS.md generator", "CLAUDE.md generator", ".cursorrules generator", "architecture summary"],
     outputs: ["AGENTS.md", "CLAUDE.md", ".cursorrules", ".ai/context-map.json", "architecture-summary.md", ".ai/repo-profile.yaml"],
@@ -27,7 +26,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "skills",
     name: "Skills",
     tier: "free",
-    icon: "⚡",
+
     tagline: "AI governance files for every coding assistant",
     keywords: ["GitHub Copilot instructions", "Cursor rules generator", "Claude Code context", "AI coding assistant setup", "developer AI skills file"],
     outputs: ["copilot-instructions.md", "cursor-rules.md", "windsurf-rules.md", "aider-conventions.md", "ai-onboarding.md"],
@@ -37,7 +36,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "debug",
     name: "Debug",
     tier: "free",
-    icon: "🐛",
+
     tagline: "AI-powered debug playbooks from your dependency graph",
     keywords: ["AI debug playbook generator", "dependency hotspot analyzer", "incident template generator", "tracing rules", "code bug analyzer"],
     outputs: [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "dependency-hotspots.md"],
@@ -48,7 +47,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "frontend",
     name: "Frontend",
     tier: "pro",
-    icon: "🎨",
+
     tagline: "AI frontend rules, component guidelines & CSS scaffolding",
     keywords: ["AI frontend rules generator", "React component guidelines", "Vue component generator", "CSS architecture generator", "frontend AI context"],
     outputs: [".ai/frontend-rules.md", "component-guidelines.md", "state-management-guide.md", "accessibility-checklist.md"],
@@ -58,7 +57,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "seo",
     name: "SEO",
     tier: "pro",
-    icon: "📈",
+
     tagline: "Technical SEO rules, schema.org markup & sitemap strategy",
     keywords: ["technical SEO generator", "schema.org markup generator", "ContactPage schema", "SEO rules for Next.js", "structured data generator", "sitemap strategy"],
     outputs: [".ai/seo-rules.md", "schema-recommendations.md", "sitemap-strategy.md", "robots-config.md", "og-template.md"],
@@ -68,7 +67,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "optimization",
     name: "Optimization",
     tier: "pro",
-    icon: "⚙️",
+
     tagline: "AI token budget planner, prompt optimization & cost analysis",
     keywords: ["AI token budget planner", "prompt optimization tool", "context window optimizer", "reduce AI API costs", "prompt diff report"],
     outputs: [".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
@@ -78,7 +77,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "theme",
     name: "Theme",
     tier: "pro",
-    icon: "🌈",
+
     tagline: "CSS design system, design tokens & dark mode theme generator",
     keywords: ["CSS design system generator", "design token generator", "dark mode theme", "AI-generated CSS variables", "component CSS stubs", "brand color system"],
     outputs: ["theme.css", "design-tokens.json", "color-palette.md", "typography-scale.md", "component-styles.md"],
@@ -88,7 +87,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "brand",
     name: "Brand",
     tier: "pro",
-    icon: "🏷️",
+
     tagline: "Brand guidelines, messaging system & channel rulebook",
     keywords: ["developer brand guidelines generator", "messaging system generator", "channel rulebook", "brand voice SaaS", "startup brand identity", "developer marketing copy"],
     outputs: ["brand-guidelines.md", "messaging-system.md", "channel-rulebook.md", "tone-of-voice.md", "brand-positioning.md"],
@@ -98,7 +97,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "superpowers",
     name: "Superpowers",
     tier: "pro",
-    icon: "🦸",
+
     tagline: "AI refactoring checklists, test generation rules & workflow registry",
     keywords: ["AI refactoring checklist", "test generation rules", "automation pipeline generator", "workflow registry AI", "developer superpowers AI"],
     outputs: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"],
@@ -108,7 +107,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "marketing",
     name: "Marketing",
     tier: "pro",
-    icon: "📣",
+
     tagline: "Developer marketing automation — campaigns, funnels, CRO playbooks",
     keywords: ["developer marketing automation", "SaaS conversion funnel generator", "CRO playbook generator", "email sequence for developers", "startup marketing AI"],
     outputs: ["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md", "channel-strategy.md"],
@@ -118,7 +117,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "notebook",
     name: "Notebook",
     tier: "pro",
-    icon: "📓",
+
     tagline: "Developer research notebook, study brief & citation index",
     keywords: ["developer research notebook AI", "code study brief generator", "codebase citation index", "AI generates study guide", "developer knowledge notebook"],
     outputs: ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md", "citation-index.json"],
@@ -128,7 +127,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "obsidian",
     name: "Obsidian",
     tier: "pro",
-    icon: "🗃️",
+
     tagline: "Obsidian vault generator for developer knowledge bases",
     keywords: ["Obsidian vault for developers", "PKM for coding", "developer knowledge graph", "dev research notebook Obsidian", "vault rules generator", "graph prompt map"],
     outputs: ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.md", "linking-policy.md", "template-pack.md"],
@@ -138,7 +137,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "mcp",
     name: "MCP",
     tier: "pro",
-    icon: "🔌",
+
     tagline: "Model Context Protocol config, connector map & tool manifest",
     keywords: ["Model Context Protocol generator", "MCP server setup", "MCP config generator", "AI tool connector map", "LLM resource map", "MCP tool manifest"],
     outputs: ["mcp-config.json", "connector-map.md", "tool-manifest.md", "context-bridge.md"],
@@ -148,7 +147,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "artifacts",
     name: "Artifacts",
     tier: "pro",
-    icon: "🧩",
+
     tagline: "Component library, dashboard widgets & embeddable snippets",
     keywords: ["component library generator", "dashboard widget code generator", "embed snippet generator", "artifact spec from schema", "React component from model", "Vue SFC generator"],
     outputs: ["component.tsx", "dashboard-widget.tsx", "embed-snippet.js", "artifact-spec.md", "component-library.md"],
@@ -158,7 +157,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "remotion",
     name: "Remotion",
     tier: "pro",
-    icon: "🎬",
+
     tagline: "Code visualization video scripts & Remotion templates from your repo",
     keywords: ["code visualization video generator", "dev demo video generator", "Remotion template from codebase", "AI video for product launch", "developer demo automation"],
     outputs: ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
@@ -168,7 +167,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "canvas",
     name: "Canvas",
     tier: "pro",
-    icon: "🖼️",
+
     tagline: "Visual architecture canvas, planning board & dev workflow maps",
     keywords: ["developer planning canvas", "visual architecture canvas", "AI canvas for engineers", "codebase visual map", "architecture diagram generator"],
     outputs: ["canvas-pack.md", "architecture-canvas.md", "flow-diagram.md", "planning-board.md", "system-map.md"],
@@ -178,7 +177,7 @@ const PROGRAMS: ProgramDef[] = [
     id: "algorithmic",
     name: "Algorithmic",
     tier: "pro",
-    icon: "🎲",
+
     tagline: "Generative art, parameter packs & variation matrices from code",
     keywords: ["generative code art", "parameter pack generator", "variation matrix AI", "algorithmic design system", "generative sketch from codebase", "export manifest generator"],
     outputs: ["generative-sketch.js", "parameter-pack.json", "collection-map.md", "export-manifest.json", "variation-matrix.md"],
@@ -286,7 +285,6 @@ function ProgramCard({ program, onAnalyze }: { program: ProgramDef; onAnalyze: (
   return (
     <article className={`program-card program-card-${program.tier}`}>
       <div className="program-card-header">
-        <span className="program-card-icon">{program.icon}</span>
         <div>
           <h3 className="program-card-name">{program.name}</h3>
           <span className={`badge ${program.tier === "free" ? "badge-success" : "badge-accent"}`}>
@@ -311,3 +309,4 @@ function ProgramCard({ program, onAnalyze }: { program: ProgramDef; onAnalyze: (
     </article>
   );
 }
+

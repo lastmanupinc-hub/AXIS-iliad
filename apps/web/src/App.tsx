@@ -139,19 +139,19 @@ export function App() {
   // Command palette actions
   const paletteActions = useMemo<PaletteAction[]>(() => {
     const actions: PaletteAction[] = [
-      { id: "nav-analyze", label: "Go to Analyze", icon: "📤", shortcut: "Ctrl+1", section: "Navigation", onSelect: () => nav("upload") },
-      { id: "nav-programs", label: "Go to Programs", icon: "🧩", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("programs") },
-      { id: "nav-plans", label: "Go to Plans", icon: "💳", shortcut: "Ctrl+3", section: "Navigation", onSelect: () => nav("plans") },
-      { id: "nav-account", label: "Go to Account", icon: "👤", shortcut: "Ctrl+4", section: "Navigation", onSelect: () => nav("account") },
-      { id: "nav-docs", label: "Go to Docs", icon: "📖", shortcut: "Ctrl+5", section: "Navigation", onSelect: () => nav("docs") },
-      { id: "nav-help", label: "Go to Help", icon: "🔧", shortcut: "Ctrl+6", section: "Navigation", onSelect: () => nav("help") },
-      { id: "nav-qa", label: "Go to Q&A", icon: "❓", shortcut: "Ctrl+7", section: "Navigation", onSelect: () => nav("qa") },
+      { id: "nav-analyze", label: "Go to Analyze", icon: "", shortcut: "Ctrl+1", section: "Navigation", onSelect: () => nav("upload") },
+      { id: "nav-programs", label: "Go to Programs", icon: "", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("programs") },
+      { id: "nav-plans", label: "Go to Plans", icon: "", shortcut: "Ctrl+3", section: "Navigation", onSelect: () => nav("plans") },
+      { id: "nav-account", label: "Go to Account", icon: "", shortcut: "Ctrl+4", section: "Navigation", onSelect: () => nav("account") },
+      { id: "nav-docs", label: "Go to Docs", icon: "", shortcut: "Ctrl+5", section: "Navigation", onSelect: () => nav("docs") },
+      { id: "nav-help", label: "Go to Help", icon: "", shortcut: "Ctrl+6", section: "Navigation", onSelect: () => nav("help") },
+      { id: "nav-qa", label: "Go to Q&A", icon: "", shortcut: "Ctrl+7", section: "Navigation", onSelect: () => nav("qa") },
     ];
     if (result) {
       actions.splice(1, 0, {
         id: "nav-dashboard",
         label: "Go to Dashboard",
-        icon: "📊",
+        icon: "",
         shortcut: "Ctrl+2",
         section: "Navigation",
         onSelect: () => nav("dashboard"),
@@ -183,7 +183,7 @@ export function App() {
       <header className="header">
         <div className="header-brand">
           <h1 style={{ margin: 0, cursor: "pointer" }} onClick={handleReset}>
-            ⚡ Axis Toolbox
+            Axis Toolbox
           </h1>
           <span className="badge badge-accent">v0.3.1</span>
         </div>
@@ -200,20 +200,20 @@ export function App() {
           <button className={`btn ${page === "docs" ? "btn-primary" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`btn ${page === "help" ? "btn-primary" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`btn ${page === "qa" ? "btn-primary" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          <button className="btn" onClick={() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true })); }} title="Command Palette (Ctrl+K)" style={{ padding: "8px 10px" }}>⌘</button>
-          <button className="theme-toggle" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "🌙" : "☀️"}</button>
+          <button className="btn" onClick={() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true })); }} title="Command Palette (Ctrl+K)" style={{ padding: "8px 10px" }}>Cmd</button>
+          <button className="theme-toggle" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "Dark" : "Light"}</button>
         </nav>
 
         {/* Mobile controls — right side */}
         <div className="nav-mobile-controls">
-          <button className="theme-toggle" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "🌙" : "☀️"}</button>
+          <button className="theme-toggle" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "Dark" : "Light"}</button>
           <button
             className="hamburger"
             onClick={() => setNavOpen((o) => !o)}
             aria-label={navOpen ? "Close menu" : "Open menu"}
             aria-expanded={navOpen}
           >
-            {navOpen ? "✕" : "☰"}
+            {navOpen ? "Close" : "Menu"}
           </button>
         </div>
       </header>
@@ -221,26 +221,26 @@ export function App() {
       {/* Mobile nav drawer */}
       {navOpen && (
         <nav className="nav-mobile-drawer" onClick={() => setNavOpen(false)}>
-          <button className={`nav-drawer-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}>📤 Analyze</button>
+          <button className={`nav-drawer-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}>Analyze</button>
           {result && (
-            <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>📊 Dashboard</button>
+            <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
           )}
-          <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>🧩 Programs</button>
-          <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>💳 Plans</button>
-          <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>👤 {loggedIn ? "Account" : "Sign Up"}</button>
-          <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>📖 Docs</button>
-          <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>🔧 Help</button>
-          <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>❓ Q&amp;A</button>
+          <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
+          <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
+          <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
+          <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
+          <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
+          <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
         </nav>
       )}
 
       {/* Trust / privacy banner — always visible */}
       <div className="trust-banner" role="note" aria-label="Privacy and IP protection statement">
-        <span className="trust-item">🔒 <strong>Code never stored</strong> — we analyze and discard</span>
+        <span className="trust-item"><strong>Code never stored</strong> — we analyze and discard</span>
         <span className="trust-sep">·</span>
-        <span className="trust-item">🤖 <strong>Never used for AI training</strong></span>
+        <span className="trust-item"><strong>Never used for AI training</strong></span>
         <span className="trust-sep">·</span>
-        <span className="trust-item">🛡️ <strong>Your IP is fully protected</strong></span>
+        <span className="trust-item"><strong>Your IP is fully protected</strong></span>
       </div>
 
       <ErrorBoundary>

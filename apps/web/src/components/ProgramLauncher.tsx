@@ -14,27 +14,26 @@ interface ProgramDef {
   description: string;
   endpoint: string;
   tier: "free" | "pro" | "suite";
-  icon: string;
 }
 
 const PROGRAMS: ProgramDef[] = [
-  { name: "search", label: "Search Context", description: "Context map, project summary, key abstractions for AI search", endpoint: "search/export", tier: "free", icon: "🔍" },
-  { name: "skills", label: "Skills & Agents", description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow & policy packs", endpoint: "skills/generate", tier: "free", icon: "🤖" },
-  { name: "debug", label: "Debug Playbook", description: "Debug playbook, incident template, tracing rules, root-cause checklist", endpoint: "debug/analyze", tier: "free", icon: "🐛" },
-  { name: "frontend", label: "Frontend Audit", description: "Frontend rules, component guidelines, layout patterns, UI audit", endpoint: "frontend/audit", tier: "pro", icon: "🎨" },
-  { name: "seo", label: "SEO Analysis", description: "SEO rules, schema recommendations, route priority map, content audit", endpoint: "seo/analyze", tier: "pro", icon: "📈" },
-  { name: "optimization", label: "Optimization", description: "Optimization rules, prompt diff report, cost estimate, token budget", endpoint: "optimization/analyze", tier: "pro", icon: "⚡" },
-  { name: "theme", label: "Theme & Design", description: "Design tokens, theme CSS, guidelines, dark mode tokens", endpoint: "theme/generate", tier: "pro", icon: "🎭" },
-  { name: "brand", label: "Brand System", description: "Brand guidelines, voice & tone, messaging, channel rulebook", endpoint: "brand/generate", tier: "pro", icon: "📣" },
-  { name: "superpowers", label: "Superpowers", description: "Workflow registry, test generation, refactor checklist, automation", endpoint: "superpowers/generate", tier: "pro", icon: "💪" },
-  { name: "marketing", label: "Marketing", description: "Campaign brief, funnel map, sequence pack, CRO playbook, A/B tests", endpoint: "marketing/generate", tier: "pro", icon: "📊" },
-  { name: "notebook", label: "Notebook", description: "Notebook summary, source map, study brief, research threads", endpoint: "notebook/generate", tier: "pro", icon: "📓" },
-  { name: "obsidian", label: "Obsidian", description: "Skill pack, vault rules, graph prompt map, linking policy, templates", endpoint: "obsidian/analyze", tier: "pro", icon: "💎" },
-  { name: "mcp", label: "MCP Provision", description: "MCP config, connector map, capability registry, server manifest", endpoint: "mcp/provision", tier: "pro", icon: "🔌" },
-  { name: "artifacts", label: "Artifacts", description: "Generated components, dashboard widgets, embed snippets", endpoint: "artifacts/generate", tier: "pro", icon: "🧩" },
-  { name: "remotion", label: "Remotion Video", description: "Remotion script, scene plan, render config, storyboard", endpoint: "remotion/generate", tier: "pro", icon: "🎬" },
-  { name: "canvas", label: "Canvas Design", description: "Canvas spec, social pack, poster layouts, brand board", endpoint: "canvas/generate", tier: "pro", icon: "🖼️" },
-  { name: "algorithmic", label: "Algorithmic Art", description: "Generative sketch, parameter pack, variation matrix", endpoint: "algorithmic/generate", tier: "pro", icon: "🧬" },
+  { name: "search", label: "Search Context", description: "Context map, project summary, key abstractions for AI search", endpoint: "search/export", tier: "free" },
+  { name: "skills", label: "Skills & Agents", description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow & policy packs", endpoint: "skills/generate", tier: "free" },
+  { name: "debug", label: "Debug Playbook", description: "Debug playbook, incident template, tracing rules, root-cause checklist", endpoint: "debug/analyze", tier: "free" },
+  { name: "frontend", label: "Frontend Audit", description: "Frontend rules, component guidelines, layout patterns, UI audit", endpoint: "frontend/audit", tier: "pro" },
+  { name: "seo", label: "SEO Analysis", description: "SEO rules, schema recommendations, route priority map, content audit", endpoint: "seo/analyze", tier: "pro" },
+  { name: "optimization", label: "Optimization", description: "Optimization rules, prompt diff report, cost estimate, token budget", endpoint: "optimization/analyze", tier: "pro" },
+  { name: "theme", label: "Theme & Design", description: "Design tokens, theme CSS, guidelines, dark mode tokens", endpoint: "theme/generate", tier: "pro" },
+  { name: "brand", label: "Brand System", description: "Brand guidelines, voice & tone, messaging, channel rulebook", endpoint: "brand/generate", tier: "pro" },
+  { name: "superpowers", label: "Superpowers", description: "Workflow registry, test generation, refactor checklist, automation", endpoint: "superpowers/generate", tier: "pro" },
+  { name: "marketing", label: "Marketing", description: "Campaign brief, funnel map, sequence pack, CRO playbook, A/B tests", endpoint: "marketing/generate", tier: "pro" },
+  { name: "notebook", label: "Notebook", description: "Notebook summary, source map, study brief, research threads", endpoint: "notebook/generate", tier: "pro" },
+  { name: "obsidian", label: "Obsidian", description: "Skill pack, vault rules, graph prompt map, linking policy, templates", endpoint: "obsidian/analyze", tier: "pro" },
+  { name: "mcp", label: "MCP Provision", description: "MCP config, connector map, capability registry, server manifest", endpoint: "mcp/provision", tier: "pro" },
+  { name: "artifacts", label: "Artifacts", description: "Generated components, dashboard widgets, embed snippets", endpoint: "artifacts/generate", tier: "pro" },
+  { name: "remotion", label: "Remotion Video", description: "Remotion script, scene plan, render config, storyboard", endpoint: "remotion/generate", tier: "pro" },
+  { name: "canvas", label: "Canvas Design", description: "Canvas spec, social pack, poster layouts, brand board", endpoint: "canvas/generate", tier: "pro" },
+  { name: "algorithmic", label: "Algorithmic Art", description: "Generative sketch, parameter pack, variation matrix", endpoint: "algorithmic/generate", tier: "pro" },
 ];
 
 export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
@@ -141,16 +140,15 @@ function ProgramCard({
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
     >
       <div className="flex-between" style={{ marginBottom: 8 }}>
-        <span style={{ fontSize: "1.25rem" }}>{program.icon}</span>
+        <h4 style={{ fontSize: "0.875rem", margin: 0 }}>{program.label}</h4>
         {locked ? (
-          <span className="badge" style={{ fontSize: "0.6875rem", background: "var(--border)" }}>🔒 Pro</span>
+          <span className="badge" style={{ fontSize: "0.6875rem", background: "var(--border)" }}>Pro</span>
         ) : fileCount > 0 ? (
           <span className="badge badge-green" style={{ fontSize: "0.6875rem" }}>
             {fileCount} files
           </span>
         ) : null}
       </div>
-      <h4 style={{ fontSize: "0.875rem", marginBottom: 4 }}>{program.label}</h4>
       <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", lineHeight: 1.4 }}>
         {program.description}
       </p>
@@ -163,3 +161,4 @@ function ProgramCard({
     </div>
   );
 }
+
