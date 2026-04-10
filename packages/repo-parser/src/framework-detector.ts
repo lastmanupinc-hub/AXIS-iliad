@@ -104,14 +104,14 @@ const rules: FrameworkRule[] = [
       let confidence = 0;
       if (files.some(f => f.path === "manage.py")) { confidence += 0.5; evidence.push("manage.py found"); }
       if (files.some(f => f.path.includes("settings.py"))) { confidence += 0.3; evidence.push("settings.py found"); }
-      if (files.some(f => f.content.includes("from django"))) { confidence += 0.2; evidence.push("django import found"); }
+      if (files.some(f => f.path.endsWith(".py") && f.content.includes("from django"))) { confidence += 0.2; evidence.push("django import found"); }
       return confidence > 0 ? { confidence: Math.min(confidence, 1), version: null, evidence } : null;
     },
   },
   {
     name: "FastAPI",
     detect: (files) => {
-      if (files.some(f => f.content.includes("from fastapi") || f.content.includes("import fastapi"))) {
+      if (files.some(f => f.path.endsWith(".py") && (f.content.includes("from fastapi") || f.content.includes("import fastapi")))) {
         return { confidence: 0.9, version: null, evidence: ["fastapi import found"] };
       }
       return null;

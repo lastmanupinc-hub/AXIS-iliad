@@ -663,7 +663,7 @@ describe("remotion generators content", () => {
     expect(data.project).toBe("test-app");
     expect(data.composition.width).toBe(1920);
     expect(data.composition.fps).toBe(30);
-    expect(data.scenes.length).toBe(4);
+    expect(data.scenes.length).toBeGreaterThanOrEqual(3);
     expect(data.render.codec).toBe("h264");
     expect(file.content_type).toBe("application/json");
   });

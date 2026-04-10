@@ -165,16 +165,18 @@ interface DepGroups {
 
 function extractDependencies(files: FileEntry[]): DepGroups {
   const result: DepGroups = { production: {}, development: {}, peer: {} };
-  const pkgFile = files.find((f) => f.path === "package.json");
-  if (!pkgFile) return result;
+  const pkgFiles = files.filter((f) => f.path.endsWith("package.json"));
+  if (pkgFiles.length === 0) return result;
 
-  try {
-    const pkg = JSON.parse(pkgFile.content);
-    result.production = pkg.dependencies ?? {};
-    result.development = pkg.devDependencies ?? {};
-    result.peer = pkg.peerDependencies ?? {};
-  } catch {
-    // invalid JSON — skip
+  for (const pkgFile of pkgFiles) {
+    try {
+      const pkg = JSON.parse(pkgFile.content);
+      Object.assign(result.production, pkg.dependencies ?? {});
+      Object.assign(result.development, pkg.devDependencies ?? {});
+      Object.assign(result.peer, pkg.peerDependencies ?? {});
+    } catch {
+      // invalid JSON — skip
+    }
   }
   return result;
 }

@@ -266,6 +266,45 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const compName = id.name.replace(/[^a-zA-Z0-9]/g, "");
+  const routes = ctx.routes;
+  const models = ctx.domain_models;
+  const hotspots = ctx.dependency_graph.hotspots;
+  const abstractions = ctx.ai_context.key_abstractions;
+  const languages = ctx.detection.languages;
+
+  // Build dynamic scenes based on available data
+  const scenes: { id: string; from: number; duration: number; label: string; data_points: number }[] = [];
+  let frame = 0;
+  const SCENE_DUR = 90;
+
+  scenes.push({ id: "intro", from: frame, duration: SCENE_DUR, label: "Introduction", data_points: 1 });
+  frame += SCENE_DUR;
+
+  scenes.push({ id: "tech-stack", from: frame, duration: SCENE_DUR, label: "Tech Stack", data_points: ctx.detection.frameworks.length + languages.length });
+  frame += SCENE_DUR;
+
+  if (routes.length > 0) {
+    scenes.push({ id: "api-surface", from: frame, duration: SCENE_DUR, label: `API Surface (${routes.length} routes)`, data_points: routes.length });
+    frame += SCENE_DUR;
+  }
+
+  if (models.length > 0) {
+    scenes.push({ id: "data-model", from: frame, duration: SCENE_DUR, label: `Data Model (${models.length} entities)`, data_points: models.length });
+    frame += SCENE_DUR;
+  }
+
+  if (hotspots.length > 0) {
+    scenes.push({ id: "complexity", from: frame, duration: SCENE_DUR, label: `Complexity Hotspots (${hotspots.length})`, data_points: hotspots.length });
+    frame += SCENE_DUR;
+  }
+
+  scenes.push({ id: "architecture", from: frame, duration: SCENE_DUR, label: "Architecture", data_points: ctx.architecture_signals.patterns_detected.length });
+  frame += SCENE_DUR;
+
+  if (abstractions.length > 0) {
+    scenes.push({ id: "abstractions", from: frame, duration: SCENE_DUR, label: "Key Abstractions", data_points: abstractions.length });
+    frame += SCENE_DUR;
+  }
 
   const config = {
     project: id.name,
@@ -275,14 +314,9 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, file
       width: 1920,
       height: 1080,
       fps: 30,
-      durationInFrames: 360,
+      durationInFrames: frame,
     },
-    scenes: [
-      { id: "intro", from: 0, duration: 90, label: "Introduction" },
-      { id: "tech-stack", from: 90, duration: 90, label: "Tech Stack" },
-      { id: "architecture", from: 180, duration: 90, label: "Architecture" },
-      { id: "abstractions", from: 270, duration: 90, label: "Key Abstractions" },
-    ],
+    scenes,
     render: {
       codec: "h264",
       imageFormat: "jpeg",
@@ -298,19 +332,38 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, file
       muted: "#64748b",
       fontFamily: "Inter, system-ui, sans-serif",
     },
-    data_sources: {
-      project_identity: true,
-      frameworks: true,
-      architecture_signals: true,
-      key_abstractions: true,
-      languages: true,
+    scene_data: {
+      tech_stack: {
+        frameworks: ctx.detection.frameworks.map(f => ({
+          name: f.name, version: f.version ?? null, confidence: f.confidence,
+        })),
+        languages: languages.slice(0, 6).map(l => ({
+          name: l.name, loc: l.loc, percent: l.loc_percent,
+        })),
+        build_tools: ctx.detection.build_tools,
+        test_frameworks: ctx.detection.test_frameworks,
+      },
+      api_surface: routes.length > 0 ? {
+        total_routes: routes.length,
+        routes: routes.slice(0, 20).map(r => ({ method: r.method, path: r.path, source: r.source_file })),
+      } : null,
+      data_model: models.length > 0 ? {
+        total_models: models.length,
+        models: models.slice(0, 15).map(m => ({ name: m.name, kind: m.kind, fields: m.field_count })),
+      } : null,
+      hotspots: hotspots.length > 0 ? hotspots.slice(0, 10).map(h => ({
+        path: h.path, inbound: h.inbound_count, outbound: h.outbound_count, risk: h.risk_score,
+      })) : null,
+      architecture: {
+        separation_score: ctx.architecture_signals.separation_score,
+        patterns: ctx.architecture_signals.patterns_detected,
+        layers: ctx.architecture_signals.layer_boundaries.slice(0, 8).map(lb => ({
+          name: lb.layer, dir_count: lb.directories.length,
+        })),
+      },
+      abstractions: abstractions.length > 0 ? abstractions : null,
     },
     detected_stack: {
-      frameworks: ctx.detection.frameworks.map(f => ({
-        name: f.name,
-        version: f.version ?? null,
-        confidence: f.confidence,
-      })),
       primary_language: id.primary_language,
       total_files: ctx.structure.total_files,
       total_loc: ctx.structure.total_loc,

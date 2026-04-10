@@ -39,16 +39,23 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
   lines.push(`- **Separation Score**: ${ctx.architecture_signals.separation_score}/10`);
   lines.push("");
 
-  // Key Concepts
+  // Key Concepts — prefer domain models over folder-path abstractions
   lines.push("## Key Concepts");
   lines.push("");
-  const abstractions = ctx.ai_context.key_abstractions;
-  if (abstractions.length > 0) {
-    for (const a of abstractions) {
-      lines.push(`- ${a}`);
+  const domainModels = ctx.domain_models ?? [];
+  if (domainModels.length > 0) {
+    for (const m of domainModels.slice(0, 10)) {
+      lines.push(`- **\`${m.name}\`** — ${m.kind} (${m.field_count} fields in \`${m.source_file}\`)`);
     }
   } else {
-    lines.push("No key abstractions detected yet.");
+    const abstractions = ctx.ai_context.key_abstractions;
+    if (abstractions.length > 0) {
+      for (const a of abstractions) {
+        lines.push(`- ${a}`);
+      }
+    } else {
+      lines.push("No key abstractions detected yet.");
+    }
   }
   lines.push("");
 
@@ -60,8 +67,15 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
   }
   lines.push("");
 
-  // Warnings & Notes
-  const warnings = ctx.ai_context.warnings;
+  // Warnings & Notes — filter known context-engine false positives
+  const filePaths = (ctx.structure.file_tree_summary ?? []).map((f: { path: string }) => f.path);
+  const hasCiCd = filePaths.some((p: string) => p.includes(".github/workflow") || p.includes("Dockerfile") || p.includes("render.yaml") || p.includes(".travis") || p.includes("gitlab-ci"));
+  const hasLockfile = filePaths.some((p: string) => p.includes("pnpm-lock") || p.includes("package-lock") || p.includes("yarn.lock"));
+  const warnings = (ctx.ai_context.warnings ?? []).filter((w: string) => {
+    if (w.toLowerCase().includes("ci/cd") && hasCiCd) return false;
+    if (w.toLowerCase().includes("lockfile") && hasLockfile) return false;
+    return true;
+  });
   if (warnings.length > 0) {
     lines.push("## Warnings & Notes");
     lines.push("");
@@ -250,10 +264,21 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   }
   lines.push("");
 
-  lines.push("### Phase 3: Core Abstractions");
+  lines.push("### Phase 3: Core Domain Models");
   lines.push("");
   const abstractions = ctx.ai_context.key_abstractions;
-  if (abstractions.length > 0) {
+  if (ctx.domain_models.length > 0) {
+    lines.push("These are the core data structures that define what the system works with:");
+    lines.push("");
+    lines.push("| Model | Kind | Fields | File |");
+    lines.push("|-------|------|--------|------|");
+    for (const m of ctx.domain_models.slice(0, 10)) {
+      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | \`${m.source_file}\` |`);
+    }
+    if (ctx.domain_models.length > 10) {
+      lines.push(`| *(+${ctx.domain_models.length - 10} more)* | | | |`);
+    }
+  } else if (abstractions.length > 0) {
     lines.push("These are the key concepts to understand:");
     lines.push("");
     for (const a of abstractions) {
@@ -304,6 +329,11 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("3. Where is state stored and how is it managed?");
   lines.push("4. What are the key boundaries between modules?");
   lines.push("5. What would break if you renamed the primary entry point?");
+  if (ctx.domain_models.length > 0) {
+    const topModel = [...ctx.domain_models].sort((a, b) => b.field_count - a.field_count)[0];
+    lines.push(`6. Trace the lifecycle of a \`${topModel.name}\` from creation to storage. What touches it?`);
+    lines.push(`7. Which domain model has the most dependencies? Is that appropriate?`);
+  }
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -434,13 +464,46 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("## Future Direction Threads");
   lines.push("");
 
-  const warnings = ctx.ai_context.warnings;
+  // Filter false-positive warnings by cross-checking actual file tree
+  const fileTreePaths = ctx.structure.file_tree_summary.map(f => f.path);
+  const hasCiCd = fileTreePaths.some(p =>
+    p.includes(".github/workflow") || p.includes("Dockerfile") ||
+    p.includes("render.yaml") || p.includes(".travis") || p.includes("Jenkinsfile"),
+  );
+  const hasLockfile = fileTreePaths.some(p =>
+    p.includes("pnpm-lock") || p.includes("package-lock") || p.includes("yarn.lock"),
+  );
+
+  const warnings = ctx.ai_context.warnings.filter(w => {
+    if (w.toLowerCase().includes("ci/cd") && hasCiCd) return false;
+    if (w.toLowerCase().includes("lockfile") && hasLockfile) return false;
+    return true;
+  });
+
   if (warnings.length > 0) {
     lines.push("### Known Issues to Investigate");
     lines.push("");
     for (const w of warnings) {
       lines.push(`- ${w}`);
     }
+    lines.push("");
+  }
+
+  // Domain model complexity thread
+  if (ctx.domain_models.length > 0) {
+    const topModels = [...ctx.domain_models].sort((a, b) => b.field_count - a.field_count).slice(0, 5);
+    lines.push("### Domain Model Complexity");
+    lines.push("");
+    lines.push(`The project defines **${ctx.domain_models.length} domain models**. High field-count models may need documentation or decomposition:`);
+    lines.push("");
+    for (const m of topModels) {
+      lines.push(`- **\`${m.name}\`** — ${m.kind}, ${m.field_count} fields (\`${m.source_file}\`)`);
+    }
+    lines.push("");
+    lines.push("Questions to answer:");
+    lines.push("- Are all field names self-documenting? Do any need JSDoc?");
+    lines.push("- Are there models that could be split into sub-types?");
+    lines.push(`- Do models with zero fields represent empty interfaces or placeholders?`);
     lines.push("");
   }
 

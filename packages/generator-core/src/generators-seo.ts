@@ -108,14 +108,83 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("| Route | Method | SEO Action |");
     lines.push("|-------|--------|------------|");
     for (const r of ctx.routes) {
-      /* v8 ignore next 3 — V8 quirk: GET vs non-GET ternary tested with route fixtures */
-      const action = r.method === "GET"
-        ? "Needs unique title, description, canonical"
-        : "API route — no indexing needed";
+      let action: string;
+      if (r.method !== "GET") {
+        action = "API route — exclude from sitemap";
+      } else if (r.path.includes("/api/") || r.path.includes("/v1/") || r.path.includes("/graphql")) {
+        action = "Exclude from sitemap · add `X-Robots-Tag: noindex`";
+      } else if (r.path.includes("login") || r.path.includes("signin") || r.path.includes("logout") || r.path.includes("oauth")) {
+        action = "Mark `noindex` — auth gate, no crawl value";
+      } else if (r.path.includes("signup") || r.path.includes("register")) {
+        action = "Mark `noindex` + add SoftwareApplication schema";
+      } else if (r.path.includes("dashboard") || r.path.includes("account") || r.path.includes("settings") || r.path.includes("profile")) {
+        action = "Mark `noindex` — user-specific content";
+      } else if (r.path.includes("pricing") || r.path.includes("plan")) {
+        action = "Add Product schema · high crawl priority";
+      } else if (r.path.includes("blog") || r.path.includes("post") || r.path.includes("article")) {
+        action = "Add Article/BlogPosting schema · include in sitemap";
+      } else if (r.path.includes("doc") || r.path.includes("guide") || r.path.includes("help")) {
+        action = "Add TechArticle schema · high crawl priority";
+      } else if (r.path.includes("about") || r.path.includes("team")) {
+        action = "Add Organization schema · include in sitemap";
+      } else if (r.path.includes("faq")) {
+        action = "Add FAQPage schema · high crawl priority";
+      } else if (r.path.includes("contact") || r.path.includes("support") || r.path.includes("feedback") || r.path.includes("help")) {
+        action = "Add ContactPage schema · include in sitemap";
+      } else if (r.path === "/" || r.path === "") {
+        action = "Add WebSite + SearchAction schema · highest priority";
+      } else {
+        /* v8 ignore next -- remaining GET route fallback */
+        action = "Add WebPage schema · unique title + description required";
+      }
       lines.push(`| \`${r.path}\` | ${r.method} | ${action} |`);
     }
     lines.push("");
   }
+
+  // Domain models as content entities
+  if (ctx.domain_models.length > 0) {
+    lines.push("## Domain Models as Content Entities");
+    lines.push("");
+    lines.push("These domain models represent structured content — mapping them to schema types increases indexability:");
+    lines.push("");
+    lines.push("| Model | Kind | Fields | Suggested Schema Type |");
+    lines.push("|-------|------|--------|-----------------------|");
+    for (const model of ctx.domain_models.slice(0, 15)) {
+      const name = model.name.toLowerCase();
+      let schema = "Thing";
+      if (name.includes("user") || name.includes("account") || name.includes("person")) schema = "Person";
+      else if (name.includes("product") || name.includes("item") || name.includes("plan")) schema = "Product";
+      else if (name.includes("order") || name.includes("purchase") || name.includes("transaction")) schema = "Order";
+      else if (name.includes("review") || name.includes("rating") || name.includes("comment")) schema = "Review";
+      else if (name.includes("org") || name.includes("company") || name.includes("team")) schema = "Organization";
+      else if (name.includes("event") || name.includes("meeting") || name.includes("session")) schema = "Event";
+      else if (name.includes("article") || name.includes("post") || name.includes("blog")) schema = "Article";
+      else if (name.includes("doc") || name.includes("guide") || name.includes("tutorial")) schema = "TechArticle";
+      else if (model.kind === "interface" || model.kind === "class") schema = "WebPage";
+      lines.push(`| \`${model.name}\` | ${model.kind} | ${model.field_count} | ${schema} |`);
+    }
+    lines.push("");
+  }
+
+  // Contact & Support SEO
+  const contactRoutes = (ctx.routes ?? []).filter(r =>
+    r.path.includes("contact") || r.path.includes("support") ||
+    r.path.includes("feedback") || r.path.includes("help")
+  );
+  lines.push("## Contact & Support Page SEO");
+  lines.push("");
+  if (contactRoutes.length > 0) {
+    lines.push(`Detected ${contactRoutes.length} contact/support route(s): ${contactRoutes.slice(0, 3).map(r => `\`${r.path}\``).join(", ")}`);
+    lines.push("");
+  }
+  lines.push("- Use `ContactPage` schema with `areaServed`, `availableLanguage`, and `contactType` properties");
+  lines.push("- Include response time expectation in meta description (e.g. \"We respond within 24 hours\")");
+  lines.push("- `mailto:` and `tel:` links must have `aria-label` attributes for crawlability");
+  lines.push("- Contact forms should not be gated behind auth — allow discovery by crawlers");
+  lines.push("- Support/help pages: add FAQ schema (`FAQPage`) if content is Q&A format");
+  lines.push("- Feedback pages: `noindex` if form-only with no unique content value");
+  lines.push("");
 
   // Technical SEO
   lines.push("## Technical SEO");
@@ -247,6 +316,22 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
         fields: ["headline", "author", "datePublished", "proficiencyLevel"],
       });
     }
+  }
+
+  // WebPage fallback for GET routes not matched by any specific pattern
+  const matchedPages = new Set(recommendations.map(r => r.page));
+  const noIndexPatterns = ["login", "signin", "logout", "signup", "register", "dashboard", "account", "settings", "profile", "/api/", "/v1/", "graphql"];
+  const unmatchedPublicRoutes = getRoutes.filter(r =>
+    !matchedPages.has(r.path) &&
+    !noIndexPatterns.some(p => r.path.includes(p)),
+  );
+  for (const route of unmatchedPublicRoutes.slice(0, 15)) {
+    recommendations.push({
+      page: route.path,
+      schema_type: "WebPage",
+      priority: "low",
+      fields: ["name", "url", "description", "breadcrumb"],
+    });
   }
 
   // Always recommend BreadcrumbList for multi-level routes

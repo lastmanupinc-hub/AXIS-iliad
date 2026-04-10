@@ -167,7 +167,9 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
 
 export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
+  const routes = ctx.routes;
+  const models = ctx.domain_models;
+  const deps = ctx.dependency_graph.external_dependencies;
   const lines: string[] = [];
 
   lines.push("# Connector Map");
@@ -239,7 +241,7 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("      - version_check");
   }
 
-  // Database connectors
+  // Database connectors (detected from dependencies)
   if (hasFw(ctx, "Prisma")) {
     lines.push("  - id: prisma_db");
     lines.push("    name: Prisma Database");
@@ -250,6 +252,39 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("      - schema_management");
     lines.push("      - migrations");
     lines.push("      - studio");
+  }
+
+  // Detect external service connectors from dependencies
+  const serviceMap: Record<string, { name: string; type: string; protocol: string; caps: string[] }> = {
+    "better-sqlite3": { name: "SQLite", type: "database", protocol: "sqlite", caps: ["read", "write", "wal_mode"] },
+    pg: { name: "PostgreSQL", type: "database", protocol: "tcp", caps: ["read", "write", "migrations"] },
+    mysql2: { name: "MySQL", type: "database", protocol: "tcp", caps: ["read", "write", "migrations"] },
+    redis: { name: "Redis", type: "cache", protocol: "tcp", caps: ["get", "set", "pub_sub"] },
+    ioredis: { name: "Redis", type: "cache", protocol: "tcp", caps: ["get", "set", "pub_sub", "cluster"] },
+    mongoose: { name: "MongoDB", type: "database", protocol: "tcp", caps: ["read", "write", "aggregation"] },
+    "@aws-sdk/client-s3": { name: "AWS S3", type: "object_storage", protocol: "https", caps: ["upload", "download", "list"] },
+    stripe: { name: "Stripe", type: "payment", protocol: "https", caps: ["charges", "subscriptions", "webhooks"] },
+    "@sendgrid/mail": { name: "SendGrid", type: "email", protocol: "https", caps: ["send_email", "templates"] },
+    amqplib: { name: "RabbitMQ", type: "message_queue", protocol: "amqp", caps: ["publish", "subscribe", "ack"] },
+    kafkajs: { name: "Kafka", type: "message_queue", protocol: "tcp", caps: ["produce", "consume", "admin"] },
+    "socket.io": { name: "Socket.IO", type: "realtime", protocol: "websocket", caps: ["emit", "on", "rooms"] },
+  };
+
+  for (const dep of deps) {
+    const svc = serviceMap[dep.name];
+    if (svc) {
+      const svcId = svc.name.toLowerCase().replace(/[\s.]/g, "_");
+      lines.push(`  - id: ${svcId}`);
+      lines.push(`    name: ${svc.name}`);
+      lines.push(`    type: ${svc.type}`);
+      lines.push(`    protocol: ${svc.protocol}`);
+      lines.push("    status: detected");
+      lines.push(`    version: ${JSON.stringify(dep.version)}`);
+      lines.push("    capabilities:");
+      for (const cap of svc.caps) {
+        lines.push(`      - ${cap}`);
+      }
+    }
   }
 
   // Git connector
@@ -264,6 +299,35 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("      - merge");
   lines.push("      - push");
   lines.push("");
+
+  // ─── MCP Resources (from domain models) ─────────────────────
+  if (models.length > 0) {
+    lines.push("resources:");
+    for (const m of models.slice(0, 15)) {
+      const resId = m.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      lines.push(`  - id: ${resId}`);
+      lines.push(`    name: ${m.name}`);
+      lines.push(`    type: domain_model`);
+      lines.push(`    kind: ${m.kind}`);
+      lines.push(`    fields: ${m.field_count}`);
+      lines.push(`    source: ${m.source_file}`);
+    }
+    lines.push("");
+  }
+
+  // ─── MCP Tools (from API routes) ────────────────────────────
+  if (routes.length > 0) {
+    lines.push("tools:");
+    for (const r of routes.slice(0, 20)) {
+      const toolId = r.path.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+      lines.push(`  - id: ${toolId}`);
+      lines.push(`    name: "${r.method} ${r.path}"`);
+      lines.push(`    method: ${r.method}`);
+      lines.push(`    path: ${r.path}`);
+      lines.push(`    source: ${r.source_file}`);
+    }
+    lines.push("");
+  }
 
   lines.push("integration_flows:");
   lines.push("  - name: development_loop");

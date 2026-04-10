@@ -9,11 +9,48 @@ export function generateComponent(ctx: ContextMap, files?: SourceFile[]): Genera
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const isReact = hasFw(ctx, "React", "Next.js");
+  const isSvelte = hasFw(ctx, "Svelte", "SvelteKit");
+  const isVue = hasFw(ctx, "Vue", "Nuxt");
   const componentName = id.name.replace(/[^a-zA-Z0-9]/g, "");
+  const models = ctx.domain_models;
+  const conventions = ctx.ai_context.conventions;
 
   const lines: string[] = [];
 
-  if (isReact) {
+  if (isSvelte) {
+    // ─── Svelte component ───
+    lines.push(`<!-- Generated component scaffold for ${id.name} -->`);
+    lines.push(`<script lang="ts">`);
+    lines.push(`  export let title = "${id.name}";`);
+    lines.push(`  export let className = "";`);
+    lines.push(`</script>`);
+    lines.push("");
+    lines.push(`<div class="${componentName.toLowerCase()}-container {className}">`);
+    lines.push(`  <h2>{title}</h2>`);
+    lines.push(`  <div class="${componentName.toLowerCase()}-content">`);
+    lines.push(`    <slot />`);
+    lines.push(`  </div>`);
+    lines.push(`</div>`);
+    lines.push("");
+    lines.push(`<style>`);
+    lines.push(`  .${componentName.toLowerCase()}-container { padding: 1rem; }`);
+    lines.push(`</style>`);
+  } else if (isVue) {
+    // ─── Vue SFC ───
+    lines.push(`<!-- Generated component scaffold for ${id.name} -->`);
+    lines.push(`<template>`);
+    lines.push(`  <div :class="['${componentName.toLowerCase()}-container', className]">`);
+    lines.push(`    <h2 v-if="title">{{ title }}</h2>`);
+    lines.push(`    <div class="${componentName.toLowerCase()}-content">`);
+    lines.push(`      <slot />`);
+    lines.push(`    </div>`);
+    lines.push(`  </div>`);
+    lines.push(`</template>`);
+    lines.push("");
+    lines.push(`<script setup lang="ts">`);
+    lines.push(`defineProps<{ title?: string; className?: string }>()`);
+    lines.push(`</script>`);
+  } else if (isReact) {
     lines.push(`import React from "react";`);
     lines.push("");
     lines.push(`interface ${componentName}Props {`);
@@ -36,7 +73,7 @@ export function generateComponent(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push(`export default ${componentName};`);
   } else {
     lines.push(`// Generated component scaffold for ${id.name}`);
-    lines.push(`// Framework: ${frameworks[0] ?? id.primary_language}`);
+    lines.push(`// Language: ${id.primary_language}`);
     lines.push("");
     lines.push(`export interface ${componentName}Config {`);
     lines.push("  title: string;");
@@ -50,6 +87,24 @@ export function generateComponent(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push(`  config.container.appendChild(el);`);
     lines.push(`  return el;`);
     lines.push("}");
+  }
+
+  // ─── Domain Model Interfaces ─────────────────────────────────
+  if (models.length > 0) {
+    lines.push("");
+    lines.push("// ─── Domain Model Types (from project analysis) ───");
+    for (const m of models.slice(0, 8)) {
+      lines.push(`// ${m.name} (${m.kind}, ${m.field_count} fields) — ${m.source_file}`);
+    }
+  }
+
+  // ─── Detected Conventions ────────────────────────────────────
+  if (conventions.length > 0) {
+    lines.push("");
+    lines.push("// ─── Project Conventions ───");
+    for (const c of conventions) {
+      lines.push(`// • ${c}`);
+    }
   }
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -85,6 +140,9 @@ export function generateDashboardWidget(ctx: ContextMap, files?: SourceFile[]): 
   const languages = ctx.detection.languages;
   const entryPoints = ctx.entry_points;
   const hotspots = ctx.dependency_graph.hotspots;
+  const routes = ctx.routes;
+  const models = ctx.domain_models;
+  const signals = ctx.architecture_signals;
   const isReact = hasFw(ctx, "React", "Next.js");
 
   const lines: string[] = [];
@@ -156,6 +214,72 @@ export function generateDashboardWidget(ctx: ContextMap, files?: SourceFile[]): 
     lines.push(`  hotspots: ${hotspots.length},`);
     lines.push(`  frameworks: ${JSON.stringify(frameworks)},`);
     lines.push("};");
+  }
+
+  // ─── Hotspot Risk Table ──────────────────────────────────────
+  if (hotspots.length > 0) {
+    lines.push("");
+    lines.push("// ─── Dependency Hotspots (highest risk) ───");
+    lines.push("// Path | Inbound | Outbound | Risk Score");
+    for (const h of hotspots.slice(0, 10)) {
+      lines.push(`// ${h.path} | ${h.inbound_count} in | ${h.outbound_count} out | risk ${h.risk_score.toFixed(2)}`);
+    }
+  }
+
+  // ─── Entry Points ────────────────────────────────────────────
+  if (entryPoints.length > 0) {
+    lines.push("");
+    lines.push("// ─── Entry Points ───");
+    for (const ep of entryPoints) {
+      lines.push(`// [${ep.type}] ${ep.path} — ${ep.description}`);
+    }
+  }
+
+  // ─── Route Distribution ──────────────────────────────────────
+  if (routes.length > 0) {
+    const methodCounts = new Map<string, number>();
+    for (const r of routes) {
+      methodCounts.set(r.method, (methodCounts.get(r.method) ?? 0) + 1);
+    }
+    lines.push("");
+    lines.push(`// ─── API Surface: ${routes.length} routes ───`);
+    for (const [method, count] of [...methodCounts.entries()].sort((a, b) => b[1] - a[1])) {
+      lines.push(`// ${method}: ${count} endpoints`);
+    }
+  }
+
+  // ─── Domain Models ───────────────────────────────────────────
+  if (models.length > 0) {
+    lines.push("");
+    lines.push(`// ─── Domain Models: ${models.length} entities ───`);
+    for (const m of models.slice(0, 10)) {
+      lines.push(`// ${m.name} (${m.kind}, ${m.field_count} fields) — ${m.source_file}`);
+    }
+  }
+
+  // ─── Architecture Health ─────────────────────────────────────
+  if (signals.patterns_detected.length > 0 || signals.separation_score > 0) {
+    lines.push("");
+    lines.push("// ─── Architecture Health ───");
+    lines.push(`// Separation score: ${signals.separation_score.toFixed(2)}`);
+    if (signals.patterns_detected.length > 0) {
+      lines.push(`// Patterns: ${signals.patterns_detected.join(", ")}`);
+    }
+    if (signals.layer_boundaries.length > 0) {
+      lines.push(`// Layer boundaries: ${signals.layer_boundaries.length}`);
+      for (const lb of signals.layer_boundaries.slice(0, 5)) {
+        lines.push(`//   ${lb.layer} (${lb.directories.length} dirs)`);
+      }
+    }
+  }
+
+  // ─── Warnings ────────────────────────────────────────────────
+  if (ctx.ai_context.warnings.length > 0) {
+    lines.push("");
+    lines.push("// ─── Warnings ───");
+    for (const w of ctx.ai_context.warnings) {
+      lines.push(`// ⚠ ${w}`);
+    }
   }
 
   // ─── Source File Analysis ────────────────────────────────────

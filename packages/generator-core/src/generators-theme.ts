@@ -170,6 +170,28 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("   ========================================================================== */");
   lines.push("");
 
+  // ─── Project snapshot comment ────────────────────────────────
+  const fwStack = ctx.detection.frameworks.slice(0, 4).map(f => f.name).join(", ") || "—";
+  const totalLoc = ctx.detection.languages.reduce((sum, l) => sum + (l.loc ?? 0), 0);
+  const getCount = ctx.routes.filter(r => r.method === "GET").length;
+  const postCount = ctx.routes.filter(r => r.method === "POST").length;
+  lines.push("/* ─── Project Snapshot ──────────────────────────────────────");
+  lines.push(`   Name:        ${ctx.project_identity.name}`);
+  lines.push(`   Type:        ${ctx.project_identity.type.replace(/_/g, " ")}`);
+  lines.push(`   Language:    ${ctx.project_identity.primary_language}`);
+  lines.push(`   Stack:       ${fwStack}`);
+  if (totalLoc > 0) {
+    lines.push(`   Total LOC:   ${totalLoc.toLocaleString()}`);
+  }
+  if (ctx.routes.length > 0) {
+    lines.push(`   Routes:      ${ctx.routes.length} (${getCount} GET · ${postCount} POST)`);
+  }
+  if (ctx.domain_models.length > 0) {
+    lines.push(`   Models:      ${ctx.domain_models.length} domain models`);
+  }
+  lines.push("   ─────────────────────────────────────────────────────── */");
+  lines.push("");
+
   // CSS Custom Properties (light theme)
   lines.push(":root {");
   lines.push("  /* Colors — Primary */");
@@ -404,6 +426,32 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("  clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;");
   lines.push("}");
   lines.push("");
+
+  // ─── Domain-model component stubs ────────────────────────────
+  if (ctx.domain_models.length > 0) {
+    lines.push("/* ─── Domain Model Component Scaffolds ───────────────────── */");
+    lines.push("/*     Auto-derived from project domain models.               */");
+    lines.push("/*     Rename and extend these for your actual components.     */");
+    lines.push("");
+    for (const model of ctx.domain_models.slice(0, 8)) {
+      const slug = model.name
+        .replace(/([a-z])([A-Z])/g, "$1-$2")
+        .toLowerCase();
+      lines.push(`/* ${model.name} — ${model.kind} (${model.field_count} fields) */`);
+      lines.push(`.${slug}-card {`);
+      lines.push("  background: var(--surface-card);");
+      lines.push("  border: 1px solid var(--color-neutral-200);");
+      lines.push("  border-radius: var(--radius-lg);");
+      lines.push("  padding: var(--space-4);");
+      lines.push("}");
+      lines.push(`.${slug}-surface {`);
+      lines.push("  background: var(--surface-elevated);");
+      lines.push("  border-radius: var(--radius-md);");
+      lines.push("  box-shadow: var(--shadow-sm);");
+      lines.push("}");
+      lines.push("");
+    }
+  }
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {

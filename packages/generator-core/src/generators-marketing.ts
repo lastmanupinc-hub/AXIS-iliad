@@ -80,18 +80,39 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   // Key Messages
   lines.push("## Key Messages");
   lines.push("");
-
-  const abstractions = ctx.ai_context.key_abstractions.slice(0, 5);
   lines.push("### Value Propositions");
   lines.push("");
-  lines.push(`1. **Built on ${id.primary_language}** — Production-grade technology choice with strong ecosystem`);
-  if (abstractions.length > 0) {
-    lines.push(`2. **Core Capabilities** — ${abstractions.join(", ")}`);
+
+  let vpIdx = 1;
+  const fwNames = ctx.detection.frameworks.map(f => f.name);
+  if (fwNames.length > 0) {
+    const fwStr = ctx.detection.frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ");
+    lines.push(`${vpIdx++}. **${fwNames.join(" + ")} Stack** — Built on ${fwStr} with stack-native patterns throughout`);
+  } else {
+    lines.push(`${vpIdx++}. **Built on ${id.primary_language}** — Production-grade technology choice with strong ecosystem`);
   }
-  lines.push(`3. **Developer Experience** — Clear conventions and ${ctx.ai_context.conventions.length} enforced standards`);
+  const routes = ctx.routes;
+  if (routes.length > 0) {
+    const methodCounts = new Map<string, number>();
+    for (const r of routes) methodCounts.set(r.method, (methodCounts.get(r.method) ?? 0) + 1);
+    const methodStr = [...methodCounts.entries()].sort((a, b) => b[1] - a[1]).map(([m, c]) => `${c} ${m}`).join(", ");
+    lines.push(`${vpIdx++}. **${routes.length} API Endpoints** — ${methodStr} across ${[...new Set(routes.map(r => r.source_file))].length} source files`);
+  }
+  const models = ctx.domain_models;
+  if (models.length > 0) {
+    const topModels = models.slice(0, 5).map(m => m.name).join(", ");
+    lines.push(`${vpIdx++}. **${models.length} Domain Entities** — ${topModels}${models.length > 5 ? ` and ${models.length - 5} more` : ""}`);
+  }
+  const testFws = ctx.detection.test_frameworks;
+  if (testFws.length > 0) {
+    const testFileCount = ctx.structure.file_tree_summary.filter(f => f.role === "test").length;
+    lines.push(`${vpIdx++}. **Test-Driven Quality** — Verified with ${testFws.join(", ")}${testFileCount > 0 ? ` across ${testFileCount} test files` : ""}`);
+  }
   const archPatterns = ctx.architecture_signals.patterns_detected;
   if (archPatterns.length > 0) {
-    lines.push(`4. **Architecture** — ${archPatterns.join(", ")}`);
+    lines.push(`${vpIdx++}. **Clean Architecture** — ${archPatterns.join(", ")} (${ctx.architecture_signals.separation_score.toFixed(2)} separation score)`);
+  } else if (ctx.ai_context.conventions.length > 0) {
+    lines.push(`${vpIdx++}. **Developer Experience** — ${ctx.ai_context.conventions.length} enforced conventions: ${ctx.ai_context.conventions.slice(0, 2).join("; ")}`);
   }
   lines.push("");
 
@@ -259,11 +280,27 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("**Goal**: User completes a meaningful action and sees value");
   lines.push("");
 
-  const abstractions = ctx.ai_context.key_abstractions.slice(0, 3);
-  if (abstractions.length > 0) {
+  const activationModels = ctx.domain_models.slice(0, 5);
+  const activationAbstractions = ctx.ai_context.key_abstractions.slice(0, 3);
+  if (activationModels.length > 0) {
+    lines.push("### Key Activation Moments (by domain entity)");
+    for (const m of activationModels) {
+      lines.push(`- Works with **${m.name}** (${m.kind}) for the first time`);
+    }
+    lines.push("");
+  } else if (activationAbstractions.length > 0) {
     lines.push("### Key Activation Moments");
-    for (const a of abstractions) {
+    for (const a of activationAbstractions) {
       lines.push(`- Uses **${a}** successfully for the first time`);
+    }
+    lines.push("");
+  }
+
+  const postRoutes = ctx.routes.filter(r => r.method === "POST").slice(0, 5);
+  if (postRoutes.length > 0) {
+    lines.push("### Action Triggers (POST routes)");
+    for (const r of postRoutes) {
+      lines.push(`- \`POST ${r.path}\` — ${r.source_file}`);
     }
     lines.push("");
   }
@@ -277,7 +314,6 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   // Advocacy
   lines.push("## 5. Advocacy");
   lines.push("");
-  lines.push("**Goal**: Turn users into promoters");
   lines.push("");
   lines.push("### Triggers");
   lines.push("- User shares on social media");
@@ -365,9 +401,13 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push(`**Subject**: The one ${id.name} feature everyone uses first`);
   lines.push("");
 
+  const topModels = ctx.domain_models.slice(0, 3);
   const topAbstraction = ctx.ai_context.key_abstractions[0];
   lines.push("**Body**:");
-  if (topAbstraction) {
+  if (topModels.length > 0) {
+    lines.push(`- Highlight the core entities: ${topModels.map(m => `**${m.name}**`).join(", ")}`);
+    lines.push(`- Show how to create and interact with a \`${topModels[0].name}\` end-to-end`);
+  } else if (topAbstraction) {
     lines.push(`- Highlight the core feature: **${topAbstraction}**`);
   } else {
     lines.push("- Highlight the primary use case and core value proposition");
@@ -381,10 +421,12 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push(`**Subject**: Level up your ${id.name} usage`);
   lines.push("");
   lines.push("**Body**:");
-  const conventions = ctx.ai_context.conventions.slice(0, 2);
+  const conventions = ctx.ai_context.conventions.slice(0, 3);
   lines.push("- Advanced tip or lesser-known feature");
   if (conventions.length > 0) {
-    lines.push(`- Pro convention: ${conventions[0]}`);
+    for (const c of conventions) {
+      lines.push(`- Pro convention: ${c}`);
+    }
   }
   lines.push("- Link to documentation or example repo");
   lines.push("- CTA: Explore advanced docs");
@@ -520,37 +562,94 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("");
   }
 
-  // Optimization Experiments
+  // Optimization Experiments — generated from detected routes and patterns
   lines.push("## Optimization Experiments");
   lines.push("");
 
-  lines.push("### Experiment 1: README Quickstart");
-  lines.push("");
-  lines.push("- **Hypothesis**: A 3-step quickstart will increase first-run conversion by 20%");
-  lines.push("- **Metric**: Clone-to-first-run time");
-  lines.push("- **Variants**:");
-  lines.push("  - A: Current README quickstart");
-  lines.push("  - B: Simplified 3-step version with copy-paste commands");
-  lines.push("- **Duration**: 2 weeks");
-  lines.push("");
+  const experimentRoutes = {
+    hasAuth: routes.some(r => r.path.includes("login") || r.path.includes("auth") || r.path.includes("signin")),
+    hasSignup: routes.some(r => r.path.includes("signup") || r.path.includes("register")),
+    hasDashboard: routes.some(r => r.path.includes("dashboard") || r.path.includes("home")),
+    hasApi: routes.some(r => r.path.includes("/api/") || r.path.includes("/v1/")),
+    hasDocs: routes.some(r => r.path.includes("doc") || r.path.includes("help") || r.path.includes("guide")),
+    hasPricing: routes.some(r => r.path.includes("pricing") || r.path.includes("plan")),
+  };
 
-  lines.push("### Experiment 2: Documentation Structure");
-  lines.push("");
-  lines.push("- **Hypothesis**: Task-oriented docs will reduce support issues by 30%");
-  lines.push("- **Metric**: Issue creation rate for \"how to\" questions");
-  lines.push("- **Variants**:");
-  lines.push("  - A: Current documentation structure");
-  lines.push("  - B: Task-oriented guides (\"How to X\")");
-  lines.push("- **Duration**: 4 weeks");
-  lines.push("");
+  let expIdx = 1;
 
-  lines.push("### Experiment 3: Onboarding Flow");
+  if (experimentRoutes.hasSignup) {
+    lines.push(`### Experiment ${expIdx++}: Sign Up Flow`);
+    lines.push("");
+    lines.push("- **Route**: " + routes.filter(r => r.path.includes("signup") || r.path.includes("register")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push("- **Hypothesis**: Reducing signup form fields will increase completion rate by 25%");
+    lines.push("- **Metric**: Signup conversion rate, time to complete");
+    lines.push("- **Variants**: A: Current form | B: Progressive disclosure (email first, rest later)");
+    lines.push("- **Duration**: 2 weeks");
+    lines.push("");
+  }
+
+  if (experimentRoutes.hasAuth && !experimentRoutes.hasSignup) {
+    lines.push(`### Experiment ${expIdx++}: Authentication Flow`);
+    lines.push("");
+    lines.push("- **Route**: " + routes.filter(r => r.path.includes("login") || r.path.includes("auth")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push("- **Hypothesis**: Social OAuth login will increase conversion by 30%");
+    lines.push("- **Metric**: Login success rate, abandonment rate");
+    lines.push("- **Variants**: A: Email/password only | B: OAuth (GitHub, Google) as primary");
+    lines.push("- **Duration**: 2 weeks");
+    lines.push("");
+  }
+
+  if (experimentRoutes.hasDashboard) {
+    lines.push(`### Experiment ${expIdx++}: Dashboard First-Value`);
+    lines.push("");
+    lines.push("- **Route**: " + routes.filter(r => r.path.includes("dashboard") || r.path.includes("home")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push("- **Hypothesis**: Showing key metrics immediately will increase 7-day retention by 20%");
+    lines.push("- **Metric**: Time to first meaningful action, 7-day return rate");
+    lines.push("- **Variants**: A: Current dashboard | B: Pre-populated demo data on first login");
+    lines.push("- **Duration**: 3 weeks");
+    lines.push("");
+  }
+
+  if (experimentRoutes.hasPricing) {
+    lines.push(`### Experiment ${expIdx++}: Pricing Page`);
+    lines.push("");
+    lines.push("- **Route**: " + routes.filter(r => r.path.includes("pricing") || r.path.includes("plan")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push("- **Hypothesis**: Highlighting the most popular plan will increase paid conversion by 15%");
+    lines.push("- **Metric**: Plan selection rate, paid conversion");
+    lines.push("- **Variants**: A: Equal weight pricing table | B: \"Most Popular\" badge on mid-tier");
+    lines.push("- **Duration**: 2 weeks");
+    lines.push("");
+  }
+
+  if (experimentRoutes.hasApi) {
+    lines.push(`### Experiment ${expIdx++}: API First-Call Success`);
+    lines.push("");
+    lines.push(`- **Routes**: ${routes.filter(r => r.path.includes("/api/") || r.path.includes("/v1/")).slice(0, 3).map(r => `\`${r.method} ${r.path}\``).join(", ")}`);
+    lines.push("- **Hypothesis**: An interactive API playground will increase developer activation by 40%");
+    lines.push("- **Metric**: Time to first successful API call, developer satisfaction");
+    lines.push("- **Variants**: A: Static API docs | B: Live try-it-now console in docs");
+    lines.push("- **Duration**: 4 weeks");
+    lines.push("");
+  }
+
+  if (experimentRoutes.hasDocs) {
+    lines.push(`### Experiment ${expIdx++}: Documentation Navigation`);
+    lines.push("");
+    lines.push("- **Route**: " + routes.filter(r => r.path.includes("doc") || r.path.includes("help")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push("- **Hypothesis**: Task-oriented docs will reduce support issues by 30%");
+    lines.push("- **Metric**: Issue creation rate for how-to questions, docs bounce rate");
+    lines.push("- **Variants**: A: Current structure | B: Task-oriented guides (\"How to X\" pattern)");
+    lines.push("- **Duration**: 4 weeks");
+    lines.push("");
+  }
+
+  // Always add a baseline experiment
+  lines.push(`### Experiment ${expIdx++}: Onboarding Flow`);
   lines.push("");
-  lines.push("- **Hypothesis**: Interactive onboarding will increase feature discovery by 40%");
-  lines.push("- **Metric**: Features used in first session");
-  lines.push("- **Variants**:");
-  lines.push("  - A: Static documentation");
-  lines.push("  - B: Interactive tutorial / playground");
+  lines.push("- **Hypothesis**: A guided first-run wizard will increase first-value moment by 35%");
+  lines.push("- **Metric**: Features used in first session, time to first successful output");
+  lines.push(`- **Context**: ${routes.length} API endpoints — users need a path through the complexity`);
+  lines.push("- **Variants**: A: Self-discovery | B: Step-by-step first-run guide with progress indicator");
   lines.push("- **Duration**: 3 weeks");
   lines.push("");
 

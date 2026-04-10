@@ -422,6 +422,11 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
   const id = ctx.project_identity;
   const routes = ctx.routes;
   const entryPoints = ctx.entry_points;
+  const frameworks = ctx.detection.frameworks;
+  const languages = ctx.detection.languages;
+  const models = ctx.domain_models;
+  const abstractions = ctx.ai_context.key_abstractions;
+  const signals = ctx.architecture_signals;
   const lines: string[] = [];
 
   lines.push("# Messaging System");
@@ -435,51 +440,99 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
   lines.push(`  name: "${id.name}"`);
   lines.push(`  type: "${id.type}"`);
   lines.push(`  primary_language: "${id.primary_language}"`);
+  if (frameworks.length > 0) {
+    lines.push(`  stack: "${frameworks.map(f => f.name).join(", ")}"`);
+  }
   lines.push("");
 
-  // Tagline candidates
+  // Project-specific taglines derived from actual data
+  const primaryLang = id.primary_language;
+  const fwNames = frameworks.map(f => f.name).join(" + ");
+  const projectDesc = ctx.ai_context.project_summary?.split("\n")[0] ?? id.name;
   lines.push("taglines:");
-  lines.push("  primary: \"Understand your codebase. Generate what matters.\"");
-  lines.push("  technical: \"From snapshot to structured output in seconds.\"");
-  lines.push("  developer: \"AI-native project intelligence.\"");
+  if (fwNames) {
+    lines.push(`  primary: "${projectDesc}"`);
+    lines.push(`  technical: "${fwNames} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString()} lines of ${primaryLang}"`);
+  } else {
+    lines.push(`  primary: "${projectDesc}"`);
+    lines.push(`  technical: "${primaryLang} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString()} lines"`);
+  }
+  if (abstractions.length > 0) {
+    lines.push(`  conceptual: "Built around ${abstractions.slice(0, 3).join(", ")}"`);
+  }
   lines.push("");
 
-  // Value propositions
+  // Value propositions derived from project features
   lines.push("value_propositions:");
-  lines.push("  - id: speed");
-  lines.push("    headline: \"Instant Project Understanding\"");
-  lines.push("    detail: \"Upload a snapshot, get a complete context map, dependency analysis, and generated outputs.\"");
-  lines.push("  - id: accuracy");
-  lines.push("    headline: \"Real Analysis, Not Guessing\"");
-  lines.push("    detail: \"Every output is derived from actual code parsing — not templates or assumptions.\"");
-  lines.push("  - id: integration");
-  lines.push("    headline: \"Drop-in AI Context Files\"");
-  lines.push("    detail: \"Generated .ai/ files integrate directly with Cursor, Claude, Copilot, and your CI pipeline.\"");
+  if (frameworks.length > 0) {
+    lines.push("  - id: stack");
+    lines.push(`    headline: "${fwNames} Expertise"`);
+    lines.push(`    detail: "Built with ${frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ")} — stack-native patterns throughout."`);
+  }
+  if (routes.length > 0) {
+    lines.push("  - id: api_surface");
+    lines.push(`    headline: "${routes.length} API Endpoints"`);
+    const methods = new Map<string, number>();
+    for (const r of routes) methods.set(r.method, (methods.get(r.method) ?? 0) + 1);
+    const methodStr = [...methods.entries()].map(([m, c]) => `${c} ${m}`).join(", ");
+    lines.push(`    detail: "Complete API with ${methodStr} — ready for integration."`);
+  }
+  if (models.length > 0) {
+    lines.push("  - id: domain_model");
+    lines.push(`    headline: "${models.length} Domain Entities"`);
+    lines.push(`    detail: "Rich domain model with ${models.slice(0, 5).map(m => m.name).join(", ")}${models.length > 5 ? ` and ${models.length - 5} more` : ""}."`);
+  }
+  if (signals.separation_score > 0.5) {
+    lines.push("  - id: architecture");
+    lines.push(`    headline: "Clean Architecture (${signals.separation_score.toFixed(2)} separation)"`);
+    lines.push(`    detail: "${signals.patterns_detected.length > 0 ? signals.patterns_detected.join(", ") : "Well-structured"} with ${signals.layer_boundaries.length} layer boundaries."`);
+  }
+  if (ctx.detection.test_frameworks.length > 0) {
+    lines.push("  - id: quality");
+    lines.push(`    headline: "Test-Driven Quality"`);
+    const testCount = ctx.structure.file_tree_summary?.filter(f => f.role === "test").length ?? 0;
+    lines.push(`    detail: "Tested with ${ctx.detection.test_frameworks.join(", ")}${testCount > 0 ? ` across ${testCount} test files` : ""}."`);
+  }
   lines.push("");
 
-  // Feature messaging
+  // Feature messaging with real data
   lines.push("feature_messages:");
   if (routes.length > 0) {
-    lines.push(`  api_surface:`);
+    lines.push("  api_surface:");
     lines.push(`    count: ${routes.length}`);
     lines.push(`    message: "${routes.length} API endpoints ready for integration"`);
+    lines.push("    routes:");
+    for (const r of routes.slice(0, 10)) {
+      lines.push(`      - "${r.method} ${r.path}"`);
+    }
   }
   if (entryPoints.length > 0) {
-    lines.push(`  entry_points:`);
+    lines.push("  entry_points:");
     lines.push(`    count: ${entryPoints.length}`);
     lines.push(`    message: "${entryPoints.length} detected entry points mapped for context"`);
+    for (const ep of entryPoints) {
+      lines.push(`      - "${ep.path} (${ep.type})"`);
+    }
   }
-  const langCount = ctx.detection.languages.length;
-  if (langCount > 0) {
-    lines.push(`  language_support:`);
-    lines.push(`    count: ${langCount}`);
-    lines.push(`    message: "${langCount} languages detected and analyzed"`);
+  if (languages.length > 0) {
+    lines.push("  language_support:");
+    lines.push(`    count: ${languages.length}`);
+    lines.push(`    message: "${languages.length} languages detected and analyzed"`);
+    lines.push("    breakdown:");
+    for (const lang of languages.slice(0, 5)) {
+      lines.push(`      - "${lang.name}: ${(lang.loc ?? 0).toLocaleString()} lines (${lang.loc_percent}%)"`);
+    }
   }
-  const fwCount = ctx.detection.frameworks.length;
-  if (fwCount > 0) {
-    lines.push(`  framework_detection:`);
-    lines.push(`    count: ${fwCount}`);
-    lines.push(`    message: "${fwCount} frameworks detected with stack-aware output"`);
+  if (frameworks.length > 0) {
+    lines.push("  framework_detection:");
+    lines.push(`    count: ${frameworks.length}`);
+    lines.push(`    message: "${frameworks.length} frameworks detected with stack-aware output"`);
+    lines.push("    detected:");
+    for (const fw of frameworks) {
+      lines.push(`      - name: "${fw.name}"`);
+      lines.push(`        version: ${JSON.stringify(fw.version)}`);
+      lines.push(`        confidence: ${fw.confidence}`);
+    }
   }
   lines.push("");
 
@@ -552,6 +605,13 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("Channel-specific brand and content rules for consistent communication.");
   lines.push("");
 
+  // Key terms: prefer domain model names, fall back to conventions, then project name
+  const keyTerms = ctx.domain_models.length > 0
+    ? ctx.domain_models.slice(0, 5).map(m => m.name).join(", ")
+    : ctx.ai_context.conventions.length > 0
+      ? ctx.ai_context.conventions.slice(0, 4).join(", ")
+      : id.name;
+
   lines.push("## Channel: Documentation");
   lines.push("");
   lines.push("| Rule | Value |");
@@ -560,7 +620,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| Person | Second person (\"you\") |");
   lines.push("| Code examples | Required for every concept |");
   lines.push("| Max paragraph length | 3 sentences |");
-  lines.push(`| Key terms | ${abstractions.slice(0, 5).join(", ") || id.name} |`);
+  lines.push(`| Key terms | ${keyTerms} |`);
   lines.push("| Emoji | None |");
   lines.push("| CTA style | Inline links, \"Learn more\" |");
   lines.push("");
@@ -609,6 +669,26 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| Preview text | < 90 chars, complements subject |");
   lines.push("| CTA | Single primary CTA per email |");
   lines.push("| Unsubscribe | Always visible, one-click |");
+  lines.push("");
+
+  lines.push("## Channel: Contact & Support");
+  lines.push("");
+  lines.push("| Rule | Value |");
+  lines.push("|------|-------|");
+  lines.push("| Tone | Empathetic, direct, solution-first |");
+  lines.push("| Auto-reply SLA | Acknowledge within 5 minutes |");
+  lines.push("| Resolution target | Define tiered SLAs (critical/high/normal) |");
+  lines.push(`| Escalation path | In-app help → GitHub Issues → Email → Direct |`);
+  lines.push("| Error messages | State what failed, why, and next step |");
+  lines.push("| Bug reports | Always acknowledge, provide issue tracker link |");
+  lines.push("| Feature requests | Thank + route to roadmap or GitHub Discussions |");
+  lines.push("| Billing issues | High priority SLA — respond within 2 business hours |");
+  if (ctx.routes.some(r => r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"))) {
+    const supportRoutes = ctx.routes.filter(r =>
+      r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"),
+    );
+    lines.push(`| Detected support routes | ${supportRoutes.slice(0, 3).map(r => `\`${r.path}\``).join(", ")} |`);
+  }
   lines.push("");
 
   lines.push("## Channel: In-App (UI Copy)");

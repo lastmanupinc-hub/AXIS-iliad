@@ -329,4 +329,28 @@ describe("detectFrameworks", () => {
     expect(svelte).toBeTruthy();
     expect(svelte!.confidence).toBe(0.9);
   });
+
+  it("does not detect Python frameworks from non-.py files", () => {
+    const files = makeFiles([
+      { path: "detector.ts", content: 'if (f.content.includes("from django")) { detect(); }' },
+      { path: "utils.ts", content: 'if (content.includes("from fastapi")) { found = true; }' },
+    ]);
+    const result = detectFrameworks(files, {});
+    const django = result.find(f => f.name === "Django");
+    const fastapi = result.find(f => f.name === "FastAPI");
+    expect(django).toBeUndefined();
+    expect(fastapi).toBeUndefined();
+  });
+
+  it("still detects Django and FastAPI from .py files", () => {
+    const files = makeFiles([
+      { path: "views.py", content: "from django.http import HttpResponse" },
+      { path: "app.py", content: "from fastapi import FastAPI\napp = FastAPI()" },
+    ]);
+    const result = detectFrameworks(files, {});
+    const django = result.find(f => f.name === "Django");
+    const fastapi = result.find(f => f.name === "FastAPI");
+    expect(django).toBeTruthy();
+    expect(fastapi).toBeTruthy();
+  });
 });
