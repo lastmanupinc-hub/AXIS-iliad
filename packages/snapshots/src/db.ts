@@ -332,6 +332,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_account ON projects(project_
 PRAGMA foreign_keys=ON;
 `,
   },
+  {
+    version: 13,
+    name: "add_persistence_credits",
+    sql: `
+CREATE TABLE IF NOT EXISTS persistence_credits (
+  credit_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  credits_delta INTEGER NOT NULL,
+  operation TEXT NOT NULL,
+  snapshot_id TEXT REFERENCES snapshots(snapshot_id),
+  balance_after INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pcredits_account ON persistence_credits(account_id);
+CREATE INDEX IF NOT EXISTS idx_pcredits_created ON persistence_credits(created_at);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

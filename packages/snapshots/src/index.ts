@@ -24,9 +24,9 @@ export type { GitHubFetchResult, ParsedGitHubUrl } from "./github.js";
 export { parseGitHubUrl, fetchGitHubRepo } from "./github.js";
 
 // Billing
-export type { Account, ApiKey, BillingTier, ProgramEntitlement, UsageRecord, UsageSummary, TierLimits, ProgramName } from "./billing-types.js";
+export type { Account, ApiKey, BillingTier, ProgramEntitlement, UsageRecord, UsageSummary, TierLimits, ProgramName, PersistenceOp, PersistenceCreditRecord, PersistencePackId } from "./billing-types.js";
 export type { QuotaCheck, SystemStats, AccountSummary, RecentActivity } from "./billing-store.js";
-export { TIER_LIMITS, ALL_PROGRAMS } from "./billing-types.js";
+export { TIER_LIMITS, ALL_PROGRAMS, PERSISTENCE_CREDIT_COSTS, PERSISTENCE_CREDIT_PACKS, PERSISTENCE_MIN_TIER, SUITE_MONTHLY_PERSISTENCE_CREDITS } from "./billing-types.js";
 export {
   createAccount,
   getAccount,
@@ -122,6 +122,17 @@ export {
   getLastTierChange,
   calculateProration,
 } from "./tier-audit.js";
+
+// Persistence metering (add-on, metered on top of paid/suite)
+export type { MeterResult } from "./persistence-metering.js";
+export {
+  getPersistenceBalance,
+  canUsePersistence,
+  addPersistenceCredits,
+  applySuiteMonthlyGrant,
+  meterPersistenceOp,
+  getPersistenceLedger,
+} from "./persistence-metering.js";
 
 // OAuth
 export type { GitHubTokenResponse, GitHubUser } from "./oauth-store.js";
