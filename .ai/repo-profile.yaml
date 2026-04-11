@@ -22,16 +22,16 @@ structure_summary:
   packages: 4 (snapshots, repo-parser, context-engine, generator-core)
   governance_yamls: 12
   programs: 17
-  generators: 80
-  endpoints: 75+
+  generators: 81
+  endpoints: 77+
 
 health:
-  tests: 2910
-  test_files: 101
-  coverage_pct: 91.5
-  capabilities_a: 81
-  capabilities_f: 1
-  capabilities_total: 82
+  tests: 3371
+  test_files: 123
+  coverage_pct: 99.99
+  capabilities_a: 83
+  capabilities_f: 0
+  capabilities_total: 83
   determinism_tests: 6
   runtime_deps: "zero (custom HTTP router, no Express/Fastify)"
 
@@ -46,7 +46,7 @@ architectural_layers:
   - name: snapshots
     role: "SQLite intake (5 tables: snapshots, projects, accounts, billings, webhooks)"
   - name: generator-core
-    role: "Template engine + 80 generators across 17 program modules"
+    role: "Template engine + 81 generators across 17 program modules"
   - name: API server
     role: "Zero-dep HTTP router, 75+ endpoints, API keys, rate limiting, Prometheus metrics"
   - name: CLI

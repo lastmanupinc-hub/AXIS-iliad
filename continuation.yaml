@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis Toolbox"
     date: "2026-04-11"
-    commit_or_tag: "a5397b4"
-    current_session_id: "session_073"
-    one_sentence_summary: "Full-stack Axis Toolbox with 83 capabilities (A:83, B:0, F:0), 77+ endpoints, 3370 tests across 123 files. 81 generators. Branch coverage 100.00% (2231/2231). 100% funcs, 100% lines, 99.99% stmts. Full Stripe migration complete. TermsPage added. stripe.ts 100% branches."
+    commit_or_tag: "fc25f5b"
+    current_session_id: "session_074"
+    one_sentence_summary: "Full-stack Axis Toolbox with 83 capabilities (A:83, B:0, F:0), 77+ endpoints, 3371 tests across 123 files. 81 generators. Branch coverage 100.00% (2231/2231). 100% funcs, 100% lines, 99.99% stmts. billing.ts TS2345 fixed. SearchTab duplicate removed. Port collision fixed. Support email updated."
     current_status: "building"
     current_focus_vertical: "v1_search_context_graph"
 
@@ -2871,3 +2871,44 @@ project_continuation:
     remaining_pre_existing_gaps:
       - "stripe.ts: 1 statement uncovered (errBody variable in Stripe API error path — assigned but unused, pre-existing)"
     local_only: true
+
+  session_result_074:
+    date: "2026-04-11"
+    session_id: "session_074"
+    selected_move: "eq_188: CI stability fixes + web copy accuracy + production 413 repair"
+    completed_candidates:
+      - "eq_188a: Rebuilt all packages and regenerated 81 .ai/ artifacts (432 files scanned, 1.1 MB output) — funnel-types.ts '200 files' corrected to '1,000 files', PlansPage/DocsPage/QAPage web copy updated."
+      - "eq_188b: CLI tests updated from toBe(80) to toBe(81) across cli.test.ts (6 occurrences) and cli-edge-cases.test.ts (14 occurrences) — symbol-index generator was added in session_068 but assertions were never updated."
+      - "eq_188c: Fixed oauth.test.ts port collision — TEST_PORT 44410 → 44412 (44410 was already taken by export.test.ts). Parallel CI runner caused ECONNREFUSED flake."
+      - "eq_188d: Removed duplicate SearchTab implementation — session_067 rewrite left old 128-line implementation (lines 307–434) appended after the new 306-line implementation. Truncated file to 288 lines. tsc --noEmit on CI caught 'Cannot redeclare exported variable SearchTab'."
+      - "eq_188e: Fixed billing.ts TS2345 — addPersistenceCredits call passed String(operation) (type string) where parameter expects 'purchase' | 'suite_monthly_grant'. Added runtime validation with 400 on invalid operation value. Added 'rejects invalid operation value' test to credits-api.test.ts (18 tests)."
+      - "eq_188f: Updated support email from support@lastmanup.com / support@axistoolbox.com to support@jonathanarvay.com in App.tsx footer, index.html JSON-LD, HelpPage.tsx, QAPage.tsx, TermsPage.tsx (2 locations)."
+      - "3371 tests passing across 123 files (+1 vs session_073). 0 failures. 100% branches maintained."
+    evidence_added:
+      - "packages/snapshots/src/funnel-types.ts: '200 files per snapshot' → '1,000 files per snapshot'"
+      - "apps/web/src/pages/PlansPage.tsx: fallback free highlights += '1,000 files per snapshot'"
+      - "apps/web/src/pages/DocsPage.tsx: search generatorCount 4→5, outputFiles += symbol-index.json"
+      - "apps/web/src/pages/QAPage.tsx: free tier '3 projects' → '1 project'"
+      - "apps/cli/src/cli.test.ts: all toBe(80) → toBe(81) (6 occurrences)"
+      - "apps/cli/src/cli-edge-cases.test.ts: all toBe(80) → toBe(81) (14 occurrences)"
+      - "apps/api/src/oauth.test.ts: TEST_PORT 44410 → 44412"
+      - "apps/web/src/components/SearchTab.tsx: truncated from 434 → 288 lines, removed old duplicate implementation"
+      - "apps/api/src/billing.ts: addPersistenceCredits call — String(operation) replaced with runtime-validated CreditOperation type"
+      - "apps/api/src/credits-api.test.ts: added 'rejects invalid operation value' test (17→18 tests)"
+      - "apps/web/src/App.tsx, index.html, HelpPage.tsx, QAPage.tsx, TermsPage.tsx: support email → support@jonathanarvay.com"
+    verticals_advanced: []
+    blockers_removed:
+      - "CI TS2345: billing.ts String(operation) incompatible with 'purchase' | 'suite_monthly_grant' union"
+      - "CI port collision: oauth.test.ts and export.test.ts both used 44410"
+      - "CI TypeScript duplicate: SearchTab declared twice in same file"
+      - "Production 413: origin/main was 3 sessions behind (stuck at 29ba24f), 200-file limit never deployed"
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "stripe.ts: 1 statement uncovered (errBody variable in Stripe API error path — assigned but unused, pre-existing)"
+    local_only: false
+    pushed_commits:
+      - "79b8835: fix: 413 free-tier file limit + CLI 81-generator sync + web copy accuracy"
+      - "9981f55: fix: resolve oauth/export port 44410 collision (oauth → 44412)"
+      - "9b19c39: fix: remove duplicate SearchTab implementation (CI TS error)"
+      - "271baec: fix: validate operation type in addPersistenceCredits call (CI TS2345)"
+      - "fc25f5b: fix: update support email to support@jonathanarvay.com across all web pages"

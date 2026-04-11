@@ -9,8 +9,8 @@
     "companion_repo": "lastmanupinc-hub/Toolbox",
     "runtime": "Node.js >= 20, TypeScript 5.7 strict",
     "package_manager": "pnpm >= 9",
-    "commit": "5f9f99e",
-    "session": "session_055"
+    "commit": "fc25f5b",
+    "session": "session_074"
   },
 
   "architecture": {
@@ -20,7 +20,7 @@
       "packages/repo-parser (language/framework detection)",
       "packages/context-engine (context-map + repo-profile generation)",
       "packages/snapshots (SQLite intake, 5 tables, WAL mode)",
-      "packages/generator-core (80 generators across 17 modules)",
+      "packages/generator-core (81 generators across 17 modules)",
       "apps/api (zero-dep HTTP server, 75+ endpoints, port 4000)",
       "apps/cli (axis analyze / axis github)",
       "apps/web (React 19 + Vite 6 SPA, port 5173)"
@@ -31,15 +31,15 @@
   },
 
   "quantified_metrics": {
-    "capabilities_grade_a": 81,
-    "capabilities_grade_f": 1,
-    "capabilities_total": 82,
+    "capabilities_grade_a": 83,
+    "capabilities_grade_f": 0,
+    "capabilities_total": 83,
     "programs": 17,
-    "generators": 80,
-    "tests": 2910,
-    "test_files": 101,
-    "statement_coverage_pct": 91.5,
-    "api_endpoints": 75,
+    "generators": 81,
+    "tests": 3371,
+    "test_files": 123,
+    "statement_coverage_pct": 99.99,
+    "api_endpoints": 77,
     "languages_detected": 60,
     "frameworks_detected": 10,
     "yaml_governance_files": 12,
@@ -47,7 +47,7 @@
   },
 
   "critical_paths": [
-    "packages/generator-core/src/generators/ — all 80 generators live here",
+    "packages/generator-core/src/generators/ — all 81 generators live here",
     "apps/api/src/handlers.ts — 75+ endpoint handlers",
     "packages/snapshots/src/store.ts — SQLite persistence layer",
     "packages/repo-parser/src/parser.ts — language/framework detection",
