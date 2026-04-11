@@ -52,7 +52,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.2.0] - 2025-07-19
 
 ### Added
-- **17 Programs** — All 17 program generators complete (80 generators total across search, debug, skills, frontend, SEO, optimization, theme, brand, superpowers, marketing, notebook, obsidian, MCP, artifacts, remotion, canvas, algorithmic).
+- **17 Programs** — All 17 program generators complete (81 generators total across search, debug, skills, frontend, SEO, optimization, theme, brand, superpowers, marketing, notebook, obsidian, MCP, artifacts, remotion, canvas, algorithmic).
 - **19 Depth Generators** — Second layer of richer outputs for all programs.
 - **CLI** — `apps/cli` with scanner, runner, writer. `axis analyze .` and `axis github <url>`.
 - **GitHub URL Intake** — Tarball fetch + custom POSIX tar parser + gunzip.

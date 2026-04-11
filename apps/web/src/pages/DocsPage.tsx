@@ -926,7 +926,7 @@ function OutputsSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Output Files Per Program</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Each program produces 4–6 files. Here is the full inventory across all 17 programs (80 generators total).
+          Each program produces 4–6 files. Here is the full inventory across all 17 programs (81 generators total).
         </p>
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <table>

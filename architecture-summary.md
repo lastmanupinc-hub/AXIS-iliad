@@ -38,7 +38,7 @@
                     │  packages/           │
                     │  generator-core      │
                     │  ──────────────      │
-                    │  80 generators       │
+                    │  81 generators       │
                     │  17 program modules  │
                     │  Template engine     │
                     │  Deterministic output│
@@ -54,7 +54,7 @@
               │  MCP │ Artifacts │ Remotion         │
               │  Canvas │ Algorithmic               │
               │  ──────────────────                 │
-              │  80 generators → structured outputs │
+              │  81 generators → structured outputs │
               └────────────────────────────────────┘
 ```
 
@@ -83,7 +83,7 @@
 | 4 | Parse languages/frameworks | packages/repo-parser | parsed_repo_profile |
 | 5 | Build context graph | packages/context-engine | context-map.json + repo-profile.yaml |
 | 6 | Store snapshot | packages/snapshots (SQLite) | Persisted snapshot |
-| 7 | Fire 80 generators | packages/generator-core | 80 structured outputs |
+| 7 | Fire 81 generators | packages/generator-core | 81 structured outputs |
 | 8 | Serve results | apps/api + apps/web | Dashboard + ZIP download |
 
 ## Program Tier Map
@@ -92,7 +92,7 @@
 |------|----------|------------|---------------|
 | Free | Search, Skills, Debug | 13 | Acquisition engine |
 | Pro | 14 paid programs | 67 | Per-program subscription |
-| Bundle | All 17 | 80 | Optional suite pricing |
+| Bundle | All 17 | 81 | Optional suite pricing |
 
 ## Technology Stack
 
@@ -120,7 +120,7 @@ begin.yaml ──reads──→ continuation.yaml ──references──→ axis
      ▼                       ▼                               ▼
 automated_remedial_action    execution_queue              generator-core
      │                       │                               │
-     │ self-audit loop       │ tracks commits                │ 80 generators
+     │ self-audit loop       │ tracks commits                │ 81 generators
      │                       │                               │
      ▼                       ▼                               ▼
 hygiene_and_memory ←── memory_generator ←── capability_inventory

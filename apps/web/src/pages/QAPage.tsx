@@ -29,7 +29,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "general",
     question: "How is this different from other analysis tools?",
-    answer: "Unlike linters or static analyzers, Axis Toolbox generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 80 generators across 17 programs produce files you can drop directly into your project.",
+    answer: "Unlike linters or static analyzers, Axis Toolbox generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 81 generators across 17 programs produce files you can drop directly into your project.",
   },
   {
     category: "general",
