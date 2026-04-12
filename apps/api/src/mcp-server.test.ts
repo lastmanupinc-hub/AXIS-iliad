@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb, createSnapshot } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
-import { handleMcpPost, handleMcpGet, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools } from "./mcp-server.js";
+import { handleMcpPost, handleMcpGet, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools } from "./mcp-server.js";
 import {
   handleCreateAccount,
   handleCreateApiKey,
@@ -90,6 +90,7 @@ beforeAll(async () => {
   const router = new Router();
   router.post("/mcp", handleMcpPost);
   router.get("/mcp", handleMcpGet);
+  router.get("/v1/mcp/server.json", handleMcpServerJson);
   router.post("/v1/accounts", handleCreateAccount);
   router.post("/v1/account/keys", handleCreateApiKey);
 
@@ -1154,3 +1155,113 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
   });
 });
 
+// ─── getMcpServerMeta unit tests ─────────────────────────────────
+
+describe("getMcpServerMeta — shape and content", () => {
+  it("returns an object with required registry fields", () => {
+    const meta = getMcpServerMeta();
+    expect(typeof meta.name).toBe("string");
+    expect(typeof meta.displayName).toBe("string");
+    expect(typeof meta.version).toBe("string");
+    expect(typeof meta.description).toBe("string");
+    expect(typeof meta.endpoint).toBe("string");
+    expect(typeof meta.protocol).toBe("string");
+  });
+
+  it("name is axis-toolbox", () => {
+    expect(getMcpServerMeta().name).toBe("axis-toolbox");
+  });
+
+  it("endpoint points to production MCP HTTP endpoint", () => {
+    expect(getMcpServerMeta().endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
+  });
+
+  it("protocol includes MCP_PROTOCOL_VERSION", () => {
+    expect(String(getMcpServerMeta().protocol)).toContain(MCP_PROTOCOL_VERSION);
+  });
+
+  it("tools array has 7 entries derived from MCP_TOOLS", () => {
+    const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
+    expect(tools).toHaveLength(7);
+    expect(tools.map(t => t.name)).toEqual(MCP_TOOLS.map(t => t.name));
+  });
+
+  it("each tool entry has name and description only", () => {
+    const tools = getMcpServerMeta().tools as Array<Record<string, unknown>>;
+    for (const t of tools) {
+      expect(typeof t.name).toBe("string");
+      expect(typeof t.description).toBe("string");
+      expect(Object.keys(t)).toEqual(["name", "description"]);
+    }
+  });
+
+  it("categories is a non-empty array of strings", () => {
+    const cats = getMcpServerMeta().categories as string[];
+    expect(Array.isArray(cats)).toBe(true);
+    expect(cats.length).toBeGreaterThan(0);
+    for (const c of cats) expect(typeof c).toBe("string");
+  });
+
+  it("tags includes agentic-purchasing and ap2-compliance", () => {
+    const tags = getMcpServerMeta().tags as string[];
+    expect(tags).toContain("agentic-purchasing");
+    expect(tags).toContain("ap2-compliance");
+  });
+
+  it("authentication type is bearer", () => {
+    const auth = getMcpServerMeta().authentication as { type: string };
+    expect(auth.type).toBe("bearer");
+  });
+
+  it("quickstart has step1_discover and step2_analyze keys", () => {
+    const qs = getMcpServerMeta().quickstart as Record<string, string>;
+    expect(typeof qs.step1_discover).toBe("string");
+    expect(typeof qs.step2_analyze).toBe("string");
+  });
+
+  it("returns same structure on repeated calls (deterministic)", () => {
+    expect(JSON.stringify(getMcpServerMeta())).toBe(JSON.stringify(getMcpServerMeta()));
+  });
+});
+
+// ─── GET /v1/mcp/server.json route tests ─────────────────────────
+
+describe("GET /v1/mcp/server.json", () => {
+  it("returns 200 with application/json content-type", async () => {
+    const r = await get("/v1/mcp/server.json");
+    expect(r.status).toBe(200);
+    const ct = r.headers["content-type"] as string;
+    expect(ct).toContain("application/json");
+  });
+
+  it("body contains name=axis-toolbox", async () => {
+    const r = await get("/v1/mcp/server.json");
+    const data = r.data as Record<string, unknown>;
+    expect(data.name).toBe("axis-toolbox");
+  });
+
+  it("body contains endpoint", async () => {
+    const r = await get("/v1/mcp/server.json");
+    const data = r.data as Record<string, unknown>;
+    expect(data.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
+  });
+
+  it("body contains 7 tools", async () => {
+    const r = await get("/v1/mcp/server.json");
+    const data = r.data as Record<string, unknown>;
+    const tools = data.tools as unknown[];
+    expect(tools).toHaveLength(7);
+  });
+
+  it("body contains categories array", async () => {
+    const r = await get("/v1/mcp/server.json");
+    const data = r.data as Record<string, unknown>;
+    expect(Array.isArray(data.categories)).toBe(true);
+  });
+
+  it("body matches getMcpServerMeta output", async () => {
+    const r = await get("/v1/mcp/server.json");
+    const data = r.data as Record<string, unknown>;
+    expect(JSON.stringify(data)).toBe(JSON.stringify(getMcpServerMeta()));
+  });
+});

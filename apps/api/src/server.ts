@@ -72,7 +72,7 @@ import {
   handleGetFunnelMetrics,
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
-import { handleMcpPost, handleMcpGet, runSearchTools } from "./mcp-server.js";
+import { handleMcpPost, handleMcpGet, handleMcpServerJson, runSearchTools } from "./mcp-server.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
@@ -196,6 +196,9 @@ router.get("/v1/programs", async (_req, res) => {
 // MCP Server — Streamable HTTP transport (2025-03-26)
 router.post("/mcp", handleMcpPost);
 router.get("/mcp", handleMcpGet);
+
+// MCP registry metadata — for mcp-publisher CLI and registry crawlers
+router.get("/v1/mcp/server.json", handleMcpServerJson);
 
 // MCP tool discovery via REST
 router.get("/v1/mcp/tools", async (req, res) => {

@@ -69,7 +69,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      "Analyze a GitHub repository and generate 81 structured artifacts across 17 programs — AGENTS.md, .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more. Returns snapshot_id and full artifact listing. Requires authentication.",
+      "Analyze any public GitHub repo and receive 81+ structured AI-context artifacts across 18 programs: AGENTS.md, .cursorrules, CLAUDE.md, architecture map, debug playbook, design tokens, brand guidelines, MCP config, AP2/UCP/Visa compliance checklist, autonomous-checkout rules, and more. Returns snapshot_id to retrieve any artifact with get_artifact. Requires API key.",
     inputSchema: {
       type: "object",
       required: ["github_url"],
@@ -84,7 +84,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_files",
     description:
-      "Analyze source files and generate all 81 AXIS artifacts. Submit raw file content directly. Returns snapshot_id and full artifact listing. Requires authentication.",
+      "Analyze source files directly (no GitHub required) and receive all 81+ AXIS artifacts: AGENTS.md, .cursorrules, architecture map, debug playbook, design tokens, brand guidelines, MCP config, AP2 compliance checklist, autonomous-checkout rules, and more. Pass files as [{path, content}] array. Returns snapshot_id. Use get_artifact to retrieve any specific file. Deterministic: same input → byte-identical output. Requires API key.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -123,13 +123,13 @@ export const MCP_TOOLS = [
   {
     name: "list_programs",
     description:
-      "List all 17 AXIS programs and their 81 generators with tier info (free/pro). No authentication required.",
+      "List all 18 AXIS programs, their 81+ generators, tier (free/pro), and artifact paths. No authentication required. Use search_and_discover_tools for keyword-based discovery; use this for complete enumeration.",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "get_snapshot",
     description:
-      "Retrieve snapshot details and the full list of generated artifacts for a prior analysis. Use the snapshot_id returned by analyze_repo or analyze_files.",
+      "Retrieve status and full artifact listing for a prior analysis by snapshot_id. Use to re-enumerate artifact paths without re-running analysis. Snapshots persist; share snapshot_id between agents to avoid duplicate analysis costs.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],
@@ -144,7 +144,7 @@ export const MCP_TOOLS = [
   {
     name: "get_artifact",
     description:
-      "Retrieve the full content of a specific generated artifact by file path (e.g. 'AGENTS.md', '.cursorrules', '.ai/debug-playbook.md'). Use snapshot_id from a prior analysis.",
+      "Read the full UTF-8 content of any generated artifact by path (e.g. 'AGENTS.md', '.cursorrules', '.ai/debug-playbook.md', '.ai/autonomous-checkout-rules.yaml', '.ai/ap2-compliance-checklist.md', '.ai/negotiation-playbook.md', '.ai/mcp-config.json'). Requires snapshot_id from a prior analyze_repo or analyze_files call. Use the artifacts list from get_snapshot to enumerate all available paths.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id", "path"],
@@ -160,7 +160,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_for_agentic_purchasing",
     description:
-      "Takes any GitHub repo URL or file set and hardens it for autonomous purchasing agents. Chains 8 programs internally, computes a Purchasing Readiness Score (0–100), and returns a structured JSON bundle with compliance checklist, negotiation playbook, secure MCP configs, product schemas, checkout optimizations, and a self-onboarding kit. One call replaces chaining multiple generic analyzers.",
+      "Full purchasing-readiness audit for any codebase. Chains 10 AXIS programs, returns a Purchasing Readiness Score (0–100) via a 7-category weighted rubric (commerce artifacts 20 pts, MCP configs 20 pts, AP2/UCP/Visa compliance checklist 15 pts, negotiation playbook 15 pts, debug playbook 10 pts, optimization rules 10 pts, onboarding docs 10 pts), and a structured JSON bundle: AP2 compliance checklist, autonomous-checkout-rules.yaml, negotiation-playbook.md, payment-mandate-schema.json, AGENTS.md, .cursorrules, mcp-config.json, strengths[], gaps[], how_to_call_axis_again. The single correct first call before any autonomous agent spends money on or with a codebase. Requires API key.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -193,7 +193,7 @@ export const MCP_TOOLS = [
   {
     name: "search_and_discover_tools",
     description:
-      "Search all 18 AXIS programs and 86 generators by keyword or capability tag. Returns ranked programs with artifact paths, capability tags, and example API calls. Use to discover which program handles a specific domain (e.g. 'checkout', 'debug', 'mcp', 'brand') without loading all schemas. No authentication required.",
+      "Keyword search across all 18 AXIS programs and 81+ generators. Returns ranked matches with capability tags, artifact paths, and example API calls. Context-efficient: call this before loading full tool schemas to find the right program without wasting tokens. Examples: 'checkout payment' → agentic-purchasing; 'debug logs' → debug; 'mcp agents' → mcp; 'brand guidelines' → brand. Omit q to list all 18 programs alphabetically. No authentication required.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1017,4 +1017,76 @@ export async function handleMcpGet(
     `data: ${JSON.stringify({ jsonrpc: "2.0", method: "ping" })}\n\n`,
   );
   res.end();
+}
+
+// ─── GET /v1/mcp/server.json  -  MCP registry metadata ──────────
+
+export function getMcpServerMeta(): Record<string, unknown> {
+  return {
+    name: "axis-toolbox",
+    displayName: "AXIS Toolbox \u2014 Agentic Commerce Codebase Intelligence",
+    version: SERVER_VERSION,
+    description:
+      "Drop a GitHub repo URL and receive 81+ structured artifacts across 18 programs: AGENTS.md, .cursorrules, AP2/UCP/Visa compliance checklist, autonomous-checkout rules, negotiation playbook, payment mandate schema, debug playbook, architecture map, design tokens, MCP configs, and more. Computes a Purchasing Readiness Score (0\u2013100). The single correct first call before any autonomous agent spends money on or with a codebase.",
+    author: "Last Man Up Inc.",
+    license: "UNLICENSED",
+    homepage: "https://axis-api-6c7z.onrender.com",
+    endpoint: "https://axis-api-6c7z.onrender.com/v1/mcp",
+    transport: "http",
+    protocol: `mcp-${MCP_PROTOCOL_VERSION}`,
+    categories: [
+      "code-analysis",
+      "agentic-commerce",
+      "developer-tools",
+      "ai-context",
+      "payment-compliance",
+    ],
+    tags: [
+      "codebase-analysis",
+      "agents-md",
+      "cursorrules",
+      "mcp",
+      "ap2-compliance",
+      "agentic-purchasing",
+      "purchasing-readiness",
+      "stripe",
+      "debug-playbook",
+      "architecture",
+      "ai-context",
+      "autonomous-commerce",
+    ],
+    authentication: {
+      type: "bearer",
+      description:
+        "API key in Authorization header: Bearer <api_key>. analyze_files, analyze_repo, and prepare_for_agentic_purchasing require auth. list_programs and search_and_discover_tools are open.",
+    },
+    tools: MCP_TOOLS.map((t) => ({
+      name: t.name,
+      description: t.description,
+    })),
+    quickstart: {
+      step1_discover: "GET https://axis-api-6c7z.onrender.com/v1/mcp/tools?q=checkout",
+      step2_analyze:
+        "POST https://axis-api-6c7z.onrender.com/v1/mcp  {jsonrpc:'2.0', method:'tools/call', params:{name:'prepare_for_agentic_purchasing', arguments:{...}}}",
+      step3_retrieve: "Use snapshot_id from step2 + get_artifact tool to pull any specific file",
+    },
+    llms_txt: "https://axis-api-6c7z.onrender.com/llms.txt",
+    well_known: "https://axis-api-6c7z.onrender.com/.well-known/axis.json",
+    openapi: "https://axis-api-6c7z.onrender.com/v1/openapi",
+    docs: "https://axis-api-6c7z.onrender.com/v1/docs.md",
+    mpp: {
+      protocol: "mppx-0.5.12",
+      description:
+        "When quota is exceeded the server returns HTTP 402 with WWW-Authenticate (RFC 9457). Agents fulfil the challenge and retry with Authorization: <mpp_credential> + X-Axis-Key: <api_key>.",
+      payment_types: ["stripe", "tempo"],
+    },
+  };
+}
+
+export async function handleMcpServerJson(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 200, getMcpServerMeta());
 }

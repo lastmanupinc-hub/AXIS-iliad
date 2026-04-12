@@ -50,7 +50,7 @@ describe("buildOpenApiSpec", () => {
         p.includes("/v1/skills/") ||
         (p.includes("/search/export"))
     );
-    expect(programPaths.length).toBe(18);
+    expect(programPaths.length).toBe(19);
   });
 
   it("includes billing endpoints", () => {

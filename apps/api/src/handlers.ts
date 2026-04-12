@@ -1627,6 +1627,7 @@ export async function handleWellKnown(
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
       mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 7 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing, search_and_discover_tools.",
       search_tools: "GET /v1/mcp/tools?q=<keyword>  -  search all 18 programs and 86 generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.",
+      registry_metadata: "GET /v1/mcp/server.json  -  MCP registry metadata for mcp-publisher CLI and registry crawlers (Glama.ai, Smithery.ai).",
       openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
     },
   });
@@ -1683,6 +1684,7 @@ For autonomous purchasing agents:
 - Plain-text docs: GET /v1/docs.md
 - Discovery manifest: GET /.well-known/axis.json
 - Agent skills: GET /.well-known/skills/index.json
+- MCP registry metadata: GET /v1/mcp/server.json  -  for mcp-publisher CLI and registry crawlers
 `;
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(body);

@@ -1,0 +1,91 @@
+{
+  "name": "axis-toolbox",
+  "displayName": "AXIS Toolbox — Agentic Commerce Codebase Intelligence",
+  "version": "0.4.0",
+  "description": "Drop a GitHub repo URL and receive 81 structured artifacts across 18 programs: AGENTS.md, .cursorrules, AP2/UCP/Visa Intelligent Commerce compliance checklist, negotiation playbook, autonomous checkout rules, debug playbook, architecture map, design tokens, MCP configs, and more. Also exposes a Purchasing Readiness Score (0-100) and a search tool to discover the right program without loading all schemas. The single correct first call before any autonomous agent spends money on or with a codebase.",
+  "author": "Last Man Up Inc.",
+  "license": "UNLICENSED",
+  "homepage": "https://axis-api-6c7z.onrender.com",
+  "repository": "https://github.com/lastmanupinc-hub/Toolbox",
+  "endpoint": "https://axis-api-6c7z.onrender.com/v1/mcp",
+  "transport": "http",
+  "protocol": "mcp-2025-03-26",
+  "categories": [
+    "code-analysis",
+    "agentic-commerce",
+    "developer-tools",
+    "ai-context",
+    "payment-compliance"
+  ],
+  "tags": [
+    "codebase-analysis",
+    "agents-md",
+    "cursorrules",
+    "mcp",
+    "ap2-compliance",
+    "agentic-purchasing",
+    "purchasing-readiness",
+    "stripe",
+    "debug-playbook",
+    "architecture",
+    "ai-context",
+    "autonomous-commerce"
+  ],
+  "authentication": {
+    "type": "bearer",
+    "description": "API key in Authorization header: Bearer <api_key>. Get a free key at https://axis-api-6c7z.onrender.com. analyze_files, analyze_repo, and prepare_for_agentic_purchasing require auth. list_programs and search_and_discover_tools are open."
+  },
+  "tools": [
+    {
+      "name": "prepare_for_agentic_purchasing",
+      "summary": "Full purchasing readiness audit for any codebase. One call. Returns a score (0-100), AP2/UCP/Visa compliance checklist, negotiation playbook, autonomous checkout rules, payment mandate schema, MCP configs, and self-onboarding kit. Use this FIRST before spending money on or with any repo.",
+      "description": "POST /v1/prepare-for-agentic-purchasing — chains 10 AXIS programs, computes a Purchasing Readiness Score (0-100) via a 7-category weighted rubric (commerce artifacts 20pts, MCP configs 20pts, compliance checklist 15pts, negotiation playbook 15pts, debug playbook 10pts, optimization rules 10pts, onboarding docs 10pts), and returns a structured JSON bundle. Output includes: score_breakdown with strengths[], gaps[], interpretation; purchasing_artifacts with full content (AP2 compliance checklist, autonomous-checkout-rules.yaml, negotiation-playbook.md, payment-mandate-schema.json, agentic-purchasing-readiness.md, AGENTS.md, .cursorrules, mcp-config.json); all_artifacts list; and how_to_call_axis_again with REST and MCP usage. Supports GitHub URL via github_url field instead of files[]. Requires API key. Deducts 1 credit per run."
+    },
+    {
+      "name": "analyze_repo",
+      "summary": "Analyze any GitHub public repo. Returns snapshot_id + 81 artifacts (AGENTS.md, .cursorrules, architecture map, debug playbook, design tokens, SEO rules, brand guidelines, MCP configs, etc.). Requires API key.",
+      "description": "POST /v1/mcp with method tools/call, tool analyze_repo — fetches the GitHub tarball, runs the full 18-program pipeline (search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing), and returns a snapshot_id plus a listing of all generated artifact paths and descriptions. Use get_artifact to retrieve any specific file content. Supports public repos; pass a stored GitHub token for private repos. Requires API key."
+    },
+    {
+      "name": "analyze_files",
+      "summary": "Analyze source files directly (no GitHub required). Returns snapshot_id + 81 artifacts. Pass files as [{path, content}] array. Requires API key.",
+      "description": "POST /v1/mcp with method tools/call, tool analyze_files — accepts project_name, project_type (web_application/api_service/cli_tool/library/monorepo), frameworks[], goals[], and files[{path,content}]. Runs the full 18-program pipeline and returns snapshot_id plus all 81 generated artifact paths. Deterministic: same input always produces byte-identical output. Tier limits: free 1000 files/snapshot, pro 1000 files/snapshot. Requires API key."
+    },
+    {
+      "name": "get_artifact",
+      "summary": "Retrieve the full text content of any generated artifact by path (e.g. AGENTS.md, .ai/debug-playbook.md, .ai/autonomous-checkout-rules.yaml). Requires snapshot_id from a prior analysis.",
+      "description": "Returns the UTF-8 text content of the specified artifact. Common paths: AGENTS.md, .cursorrules, CLAUDE.md, .ai/context-map.json, .ai/repo-profile.yaml, .ai/debug-playbook.md, .ai/architecture-summary.md, .ai/autonomous-checkout-rules.yaml, .ai/ap2-compliance-checklist.md, .ai/negotiation-playbook.md, .ai/payment-mandate-schema.json, .ai/mcp-config.json, .ai/design-tokens.json. Use the artifacts list from analyze_repo or analyze_files to enumerate all available paths."
+    },
+    {
+      "name": "get_snapshot",
+      "summary": "Get the status and full artifact listing for a prior analysis by snapshot_id. Use to check if analysis is complete or to re-enumerate artifacts without re-running analysis.",
+      "description": "Returns snapshot metadata (status, project_name, project_type, frameworks, input_method, file_count, created_at) plus the full artifacts array [{path, program, description}]. Snapshots persist across sessions. Share snapshot_id between agents to avoid re-analyzing the same repo."
+    },
+    {
+      "name": "list_programs",
+      "summary": "List all 18 AXIS programs and their 81+ generators with tier info. No auth required. Use to orient before calling analyze_files or to understand what artifacts are available.",
+      "description": "Returns all programs grouped by tier (free: search, skills, debug; pro: 15 programs). Each program entry includes generator_count and outputs[] array of artifact paths. Use search_and_discover_tools for keyword-based discovery; use list_programs for complete enumeration."
+    },
+    {
+      "name": "search_and_discover_tools",
+      "summary": "Keyword search across all 18 programs and 81+ generators. Returns ranked matching programs with capability tags and example API calls. No auth required. Use this to find the right program without loading all schemas.",
+      "description": "Accepts optional q (search query) and optional program (filter to one program). Scores programs by: program name match (+3), capability tag match (+1/token), artifact path match (+2/token). Returns sorted results with program, tier, capability_tags, matching_artifacts, all_artifacts, and example_call. Example queries: 'checkout payment' → agentic-purchasing wins; 'debug logs' → debug wins; 'mcp agents' → mcp wins; 'brand guidelines' → brand wins. Omit q to list all 18 programs ranked alphabetically. No authentication required."
+    }
+  ],
+  "quickstart": {
+    "step1_get_key": "GET https://axis-api-6c7z.onrender.com/v1/auth/github → OAuth flow → returns api_key",
+    "step2_discover": "GET https://axis-api-6c7z.onrender.com/v1/mcp/tools?q=checkout → find relevant programs",
+    "step3_analyze": "POST https://axis-api-6c7z.onrender.com/v1/mcp  {jsonrpc:'2.0', method:'tools/call', params:{name:'prepare_for_agentic_purchasing', arguments:{...}}}",
+    "step4_retrieve": "Use snapshot_id from step3 + get_artifact tool to pull any specific file"
+  },
+  "llms_txt": "https://axis-api-6c7z.onrender.com/llms.txt",
+  "skills_index": "https://axis-api-6c7z.onrender.com/.well-known/skills/index.json",
+  "well_known": "https://axis-api-6c7z.onrender.com/.well-known/axis.json",
+  "openapi": "https://axis-api-6c7z.onrender.com/v1/openapi",
+  "docs": "https://axis-api-6c7z.onrender.com/v1/docs.md",
+  "mpp": {
+    "protocol": "mppx-0.5.12",
+    "description": "When quota is exceeded, the server returns HTTP 402 with a WWW-Authenticate header (RFC 9457). Agents fulfil the challenge and retry with Authorization: <mpp_credential> + X-Axis-Key: <api_key>.",
+    "payment_types": ["stripe", "tempo"]
+  }
+}

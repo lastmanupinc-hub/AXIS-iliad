@@ -323,6 +323,18 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
+      // ── MCP registry metadata ──
+      "/v1/mcp/server.json": {
+        get: {
+          summary: "MCP registry metadata for mcp-publisher CLI and registry crawlers",
+          operationId: "getMcpServerJson",
+          tags: ["MCP"],
+          responses: {
+            200: { description: "MCP server metadata including all tool schemas, endpoint, protocol version, and quickstart" },
+          },
+        },
+      },
+
       // ── Search ──
       "/v1/search/index": {
         post: {
