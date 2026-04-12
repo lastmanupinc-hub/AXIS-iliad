@@ -1,6 +1,6 @@
 # Scene Plan — axis-toolbox
 
-Generated: 2026-04-11T20:14:34.203Z
+Generated: 2026-04-11T22:24:47.551Z
 
 ## Video Overview
 
@@ -14,7 +14,7 @@ Generated: 2026-04-11T20:14:34.203Z
 
 ## Project Summary
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 ## Detected Stack
 
@@ -35,7 +35,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (71.3%), YAML (15.9%), JSON (6.8%), Markdown (4.2%), CSS (0.9%), JavaScript (0.7%), HTML (0.1%), Dockerfile (0.1%)
+- **Languages**: TypeScript (71.2%), YAML (16%), JSON (6.9%), Markdown (4.2%), CSS (0.9%), JavaScript (0.7%), HTML (0.1%), Dockerfile (0.1%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 
@@ -58,7 +58,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 
 - **Content**: Detected domain model entities
 - **Models**: AuthContext (interface, 3 fields); EnvSpec (interface, 5 fields); ValidationError (interface, 2 fields); ValidationResult (interface, 3 fields); ZipEntry (interface, 4 fields); HistogramEntry (interface, 3 fields)
-- **Total**: 132 models detected
+- **Total**: 131 models detected
 - **Animation**: Entity cards fade in with field-count pill badges
 - **Visual**: Grid of entity cards with kind and field count
 

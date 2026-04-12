@@ -49,7 +49,7 @@ function makeInput(requested: string[] = []): GeneratorInput {
   };
 }
 
-// All 80 generators organized by program
+// All 86 generators organized by program
 const PROGRAM_OUTPUTS: Record<string, string[]> = {
   search: [".ai/context-map.json", ".ai/repo-profile.yaml", "architecture-summary.md", "dependency-hotspots.md", ".ai/symbol-index.json"],
   skills: ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"],
@@ -68,15 +68,16 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
   remotion: ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
   canvas: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
   algorithmic: ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
+  "agentic-purchasing": ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json"],
 };
 
-describe("generateFiles — all 17 programs produce valid output", () => {
+describe("generateFiles — all 18 programs produce valid output", () => {
   const input = makeInput(Object.values(PROGRAM_OUTPUTS).flat());
 
-  it("generates 81 files with 0 skipped", () => {
+  it("generates 86 files with 0 skipped", () => {
     const result = generateFiles(input);
     expect(result.skipped).toEqual([]);
-    expect(result.files.length).toBe(81);
+    expect(result.files.length).toBe(86);
   });
 
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -190,9 +191,9 @@ describe("generateFiles — edge cases", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 81 registered generators", () => {
+  it("returns all 86 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(81);
+    expect(generators.length).toBe(86);
   });
 
   it("returns objects with path and program fields", () => {
@@ -205,10 +206,10 @@ describe("listAvailableGenerators", () => {
     }
   });
 
-  it("classifies all 17 programs correctly", () => {
+  it("classifies all 18 programs correctly", () => {
     const generators = listAvailableGenerators();
     const programs = new Set(generators.map(g => g.program));
-    expect(programs.size).toBe(17);
+    expect(programs.size).toBe(18);
     for (const expected of Object.keys(PROGRAM_OUTPUTS)) {
       expect(programs.has(expected), `missing program: ${expected}`).toBe(true);
     }

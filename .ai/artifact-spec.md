@@ -1,10 +1,10 @@
 # Artifact Specification — axis-toolbox
 
-Generated: 2026-04-11T20:14:34.197Z
+Generated: 2026-04-11T22:24:47.534Z
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 ## Detected Stack
 
@@ -23,9 +23,9 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 
 ## Language Distribution
 
-- **TypeScript**: 71.3% ██████████████ (230 files, 66885 LOC)
-- **YAML**: 15.9% ███ (74 files, 14923 LOC)
-- **JSON**: 6.8% █ (52 files, 6426 LOC)
+- **TypeScript**: 71.2% ██████████████ (230 files, 66752 LOC)
+- **YAML**: 16% ███ (74 files, 14963 LOC)
+- **JSON**: 6.9% █ (52 files, 6426 LOC)
 - **Markdown**: 4.2% █ (65 files, 3944 LOC)
 - **CSS**: 0.9% █ (2 files, 849 LOC)
 - **JavaScript**: 0.7% █ (3 files, 673 LOC)
@@ -128,5 +128,5 @@ export { generateGenerativeSketch, generateParameterPack, generateCollectionMap,
 - `apps/web/src/components/GraphTab.tsx`: export function GraphTab({ ... }
 - `apps/web/src/components/OverviewTab.tsx`: export function OverviewTab({ ... }
 - `apps/web/src/components/ProgramLauncher.tsx`: export function ProgramLauncher({ ... }
-- `apps/web/src/components/SearchTab.tsx`: export function SearchTab({ ... }, export function SearchTab({ ... }
+- `apps/web/src/components/SearchTab.tsx`: export function SearchTab({ ... }
 - `apps/web/src/components/SignUpModal.tsx`: export function SignUpModal({ ... }

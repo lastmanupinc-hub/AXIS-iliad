@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-11T20:14:34.204Z",
+  "generated_at": "2026-04-11T22:24:47.554Z",
   "composition": {
     "id": "axistoolboxVideo",
     "width": 1920,
@@ -34,8 +34,8 @@
       "id": "data-model",
       "from": 270,
       "duration": 90,
-      "label": "Data Model (132 entities)",
-      "data_points": 132
+      "label": "Data Model (131 entities)",
+      "data_points": 131
     },
     {
       "id": "complexity",
@@ -86,18 +86,18 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 66885,
-          "percent": 71.3
+          "loc": 66752,
+          "percent": 71.2
         },
         {
           "name": "YAML",
-          "loc": 14923,
-          "percent": 15.9
+          "loc": 14963,
+          "percent": 16
         },
         {
           "name": "JSON",
           "loc": 6426,
-          "percent": 6.8
+          "percent": 6.9
         },
         {
           "name": "Markdown",
@@ -228,7 +228,7 @@
       ]
     },
     "data_model": {
-      "total_models": 132,
+      "total_models": 131,
       "models": [
         {
           "name": "AuthContext",
@@ -372,7 +372,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 432,
-    "total_loc": 95310
+    "total_loc": 95217
   },
   "source_media_files": null
 }

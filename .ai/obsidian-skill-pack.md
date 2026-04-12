@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 ## Detected Stack
 
@@ -98,7 +98,7 @@ I'm working with the following domain models in axis-toolbox:
 - HistogramEntry (interface, 3 fields) — defined in apps/api/src/metrics.ts
 - OpenApiSpec (interface, 6 fields) — defined in apps/api/src/openapi.ts
 - WindowEntry (interface, 2 fields) — defined in apps/api/src/rate-limiter.ts
-  ... and 124 more
+  ... and 123 more
 
 When generating code that uses these types, import from their source files and
 do not redefine them.

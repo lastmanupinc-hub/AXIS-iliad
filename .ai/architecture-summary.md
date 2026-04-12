@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 432 (95310 LOC)
+- **Files:** 432 (95217 LOC)
 - **Directories:** 53
 
 ## Frameworks & Libraries
@@ -463,7 +463,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 
 ## Domain Models
 
-Detected 132 domain models:
+Detected 131 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -492,7 +492,7 @@ Detected 132 domain models:
 | `RepoProfile` | interface | 4 | apps/web/src/api.ts |
 | `SearchResponse` | interface | 5 | apps/web/src/api.ts |
 | `SearchResult` | interface | 4 | apps/web/src/api.ts |
-| *… 107 more* | | | |
+| *… 106 more* | | | |
 
 > **High-complexity models** (8+ fields): `ContextMap`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ProgramDoc`, `ContextMap`, `RepoProfile`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
@@ -531,10 +531,10 @@ apps/api/src/api-layer5.test.ts (10.6 KB)
 apps/api/src/api.test.ts (18.9 KB)
 apps/api/src/b-grade-upgrade.test.ts (8.6 KB)
 apps/api/src/billing-flow.test.ts (24.6 KB)
-apps/api/src/billing.ts (20.5 KB)
+apps/api/src/billing.ts (20.9 KB)
 apps/api/src/checkout-email.test.ts (11.7 KB)
 apps/api/src/crash-resilience.test.ts (6.3 KB)
-apps/api/src/credits-api.test.ts (10.6 KB)
+apps/api/src/credits-api.test.ts (10.9 KB)
 apps/api/src/db-endpoints.test.ts (4.1 KB)
 apps/api/src/deletion.test.ts (5.6 KB)
 apps/api/src/deployment.test.ts (6.9 KB)
@@ -616,7 +616,7 @@ apps/web/src/components/GeneratedTab.tsx (4.1 KB)
 apps/web/src/components/GraphTab.tsx (4.8 KB)
 apps/web/src/components/OverviewTab.tsx (8.8 KB)
 apps/web/src/components/ProgramLauncher.tsx (7.2 KB)
-apps/web/src/components/SearchTab.tsx (16.4 KB)
+apps/web/src/components/SearchTab.tsx (11.1 KB)
 apps/web/src/components/SignUpModal.tsx (3.9 KB)
 apps/web/src/components/StatusBar.tsx (2.3 KB)
 apps/web/src/components/Toast.tsx (3.8 KB)
@@ -624,7 +624,7 @@ apps/web/src/index.css (18.5 KB)
 apps/web/src/main.tsx (0.2 KB)
 apps/web/src/pages/AccountPage.tsx (21.6 KB)
 apps/web/src/pages/DashboardPage.tsx (5.9 KB)
-apps/web/src/pages/DocsPage.tsx (71.1 KB)
+apps/web/src/pages/DocsPage.tsx (71.2 KB)
 apps/web/src/pages/HelpPage.tsx (41.9 KB)
 apps/web/src/pages/PlansPage.tsx (9.3 KB)
 apps/web/src/pages/ProgramsPage.tsx (13.9 KB)
@@ -663,7 +663,7 @@ capability_inventory.yaml (31.7 KB)
 CHANGELOG.md (6.0 KB)
 CLAUDE.md (1.1 KB)
 cloudflare-pages.md (1.5 KB)
-continuation.yaml (213.8 KB)
+continuation.yaml (217.6 KB)
 CONTRIBUTING.md (3.1 KB)
 cov3.txt (19.3 KB)
 cov5.txt (218.4 KB)

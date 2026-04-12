@@ -17,6 +17,7 @@ import { generateComponent, generateDashboardWidget, generateEmbedSnippet, gener
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
+import { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry } from "./generators-agentic-purchasing.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]) => GeneratedFile;
 
@@ -103,6 +104,12 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "storyboard.md": (ctx, _p, files) => generateStoryboard(ctx, files),
   "brand-board.md": (ctx, _p, files) => generateBrandBoard(ctx, files),
   "variation-matrix.json": (ctx, _p, files) => generateVariationMatrix(ctx, files),
+  // ─── agentic purchasing generators ─────────────────────────
+  "agent-purchasing-playbook.md": (ctx, profile, files) => generateAgentPurchasingPlaybook(ctx, profile, files),
+  "product-schema.json":          (ctx, profile, files) => generateProductSchema(ctx, profile, files),
+  "checkout-flow.md":             (ctx, profile, files) => generateCheckoutFlow(ctx, profile, files),
+  "negotiation-rules.md":         (ctx, profile, files) => generateNegotiationRules(ctx, profile, files),
+  "commerce-registry.json":       (ctx, profile, files) => generateCommerceRegistry(ctx, profile, files),
 };
 
 // Aliases (user may request with different naming)
@@ -270,6 +277,11 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "collection-map.md": "algorithmic",
   "export-manifest.yaml": "algorithmic",
   "variation-matrix.json": "algorithmic",
+  "agent-purchasing-playbook.md": "agentic-purchasing",
+  "product-schema.json":          "agentic-purchasing",
+  "checkout-flow.md":             "agentic-purchasing",
+  "negotiation-rules.md":         "agentic-purchasing",
+  "commerce-registry.json":       "agentic-purchasing",
 };
 
 export function listAvailableGenerators(): Array<{ path: string; program: string }> {

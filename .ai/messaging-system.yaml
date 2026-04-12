@@ -1,7 +1,7 @@
 # Messaging System
 # Project: axis-toolbox
-# Generated: 2026-04-11T20:14:34.158Z
-# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+# Generated: 2026-04-11T22:24:47.441Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 product:
   name: "axis-toolbox"
@@ -10,8 +10,8 @@ product:
   stack: "React"
 
 taglines:
-  primary: "axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models."
-  technical: "React monorepo — 432 files, 95,310 lines of TypeScript"
+  primary: "axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models."
+  technical: "React monorepo — 432 files, 95,217 lines of TypeScript"
   conceptual: "Built around packages/ (monorepo_packages), apps/ (monorepo_apps), payment-processing-output/ (project_directory)"
 
 value_propositions:
@@ -22,8 +22,8 @@ value_propositions:
     headline: "387 API Endpoints"
     detail: "Complete API with 202 GET, 165 POST, 20 DELETE — ready for integration."
   - id: domain_model
-    headline: "132 Domain Entities"
-    detail: "Rich domain model with AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 127 more."
+    headline: "131 Domain Entities"
+    detail: "Rich domain model with AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 126 more."
   - id: architecture
     headline: "Clean Architecture (0.64 separation)"
     detail: "monorepo, containerized with 1 layer boundaries."
@@ -50,9 +50,9 @@ feature_messages:
     count: 8
     message: "8 languages detected and analyzed"
     breakdown:
-      - "TypeScript: 66,885 lines (71.3%)"
-      - "YAML: 14,923 lines (15.9%)"
-      - "JSON: 6,426 lines (6.8%)"
+      - "TypeScript: 66,752 lines (71.2%)"
+      - "YAML: 14,963 lines (16%)"
+      - "JSON: 6,426 lines (6.9%)"
       - "Markdown: 3,944 lines (4.2%)"
       - "CSS: 849 lines (0.9%)"
   framework_detection:

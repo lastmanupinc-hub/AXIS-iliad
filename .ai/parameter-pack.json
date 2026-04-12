@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-11T20:14:34.213Z",
+  "generated_at": "2026-04-11T22:24:47.573Z",
   "description": "Parameter sets for generative visualizations derived from project metrics",
   "parameters": {
     "structure": {
@@ -14,23 +14,23 @@
         {
           "name": "TypeScript",
           "hue": 220,
-          "saturation": 74.26,
-          "lightness": 60.695,
-          "weight": 71.3
+          "saturation": 74.24000000000001,
+          "lightness": 60.68,
+          "weight": 71.2
         },
         {
           "name": "YAML",
           "hue": 280,
-          "saturation": 63.18,
-          "lightness": 52.385,
-          "weight": 15.9
+          "saturation": 63.2,
+          "lightness": 52.4,
+          "weight": 16
         },
         {
           "name": "JSON",
           "hue": 340,
-          "saturation": 61.36,
-          "lightness": 51.02,
-          "weight": 6.8
+          "saturation": 61.38,
+          "lightness": 51.035,
+          "weight": 6.9
         },
         {
           "name": "Markdown",

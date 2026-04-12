@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-toolbox
-# Generated: 2026-04-11T20:14:34.411Z
-# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+# Generated: 2026-04-11T22:24:48.193Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 server:
   name: "axis-toolbox-mcp-server"

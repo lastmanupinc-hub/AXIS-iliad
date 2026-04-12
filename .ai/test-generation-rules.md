@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
 
 ## Detected Stack
 
@@ -69,7 +69,7 @@ These models were detected in the codebase. Each should have factory helpers and
 | `RunResult` | interface | 4 | `apps/cli/src/runner.ts` |
 | `ScanResult` | interface | 3 | `apps/cli/src/scanner.ts` |
 | `WriteResult` | interface | 3 | `apps/cli/src/writer.ts` |
-| *... and 117 more* | | | |
+| *... and 116 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -165,7 +165,7 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 | `apps/api/src/billing-flow.test.ts` | 548 |
 | `apps/api/src/checkout-email.test.ts` | 308 |
 | `apps/api/src/crash-resilience.test.ts` | 158 |
-| `apps/api/src/credits-api.test.ts` | 255 |
+| `apps/api/src/credits-api.test.ts` | 262 |
 | `apps/api/src/db-endpoints.test.ts` | 108 |
 | `apps/api/src/deletion.test.ts` | 148 |
 | `apps/api/src/deployment.test.ts` | 208 |

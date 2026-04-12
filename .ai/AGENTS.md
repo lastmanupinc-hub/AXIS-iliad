@@ -444,7 +444,7 @@ AI-native development operating system. Upload or point at any codebase — get 
 | `ContextMap` | interface | 8 | apps/web/src/api.ts |
 | `GeneratedFile` | interface | 5 | apps/web/src/api.ts |
 | `GeneratedFilesResponse` | interface | 6 | apps/web/src/api.ts |
-| *… 112 more* | | | |
+| *… 111 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 

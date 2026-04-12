@@ -283,8 +283,8 @@ describe("successful snapshot flow", () => {
 // ─── PROGRAM_OUTPUTS coverage ───────────────────────────────────
 
 describe("PROGRAM_OUTPUTS", () => {
-  it("has exactly 15 programs", () => {
-    expect(Object.keys(PROGRAM_OUTPUTS).length).toBe(15);
+  it("has exactly 16 programs", () => {
+    expect(Object.keys(PROGRAM_OUTPUTS).length).toBe(16);
   });
 
   it("every program has at least one output file", () => {

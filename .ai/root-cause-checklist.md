@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-toolbox
 
-> monorepo | TypeScript | 432 files | 95,310 LOC
+> monorepo | TypeScript | 432 files | 95,217 LOC
 
 **Stack:** React ^19.1.0
 
@@ -96,7 +96,6 @@ Check these entities for state corruption or relationship violations:
 - [ ] `Props` (interface, 2 fields) — `apps/web/src/components/OverviewTab.tsx`
 - [ ] `ProgramDef` (interface, 5 fields) — `apps/web/src/components/ProgramLauncher.tsx`
 - [ ] `Props` (interface, 3 fields) — `apps/web/src/components/ProgramLauncher.tsx`
-- [ ] `Props` (interface, 1 fields) — `apps/web/src/components/SearchTab.tsx`
 - [ ] `Props` (interface, 1 fields) — `apps/web/src/components/SearchTab.tsx`
 - [ ] `Props` (interface, 3 fields) — `apps/web/src/components/SignUpModal.tsx`
 - [ ] `Props` (interface, 2 fields) — `apps/web/src/components/StatusBar.tsx`

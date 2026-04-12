@@ -87,7 +87,8 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   artifacts:    ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json"],
   remotion:     ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
   canvas:       ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
-  algorithmic:  ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
+  algorithmic:          ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
+  "agentic-purchasing": ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json"],
 };
 
 // ─── Generic program handler factory ────────────────────────────
@@ -158,6 +159,7 @@ export const handleArtifactsGenerate   = makeProgramHandler("artifacts", PROGRAM
 export const handleRemotionGenerate    = makeProgramHandler("remotion", PROGRAM_OUTPUTS.remotion);
 export const handleCanvasGenerate      = makeProgramHandler("canvas", PROGRAM_OUTPUTS.canvas);
 export const handleAlgorithmicGenerate = makeProgramHandler("algorithmic", PROGRAM_OUTPUTS.algorithmic);
+export const handleAgenticPurchasingGenerate = makeProgramHandler("agentic-purchasing", PROGRAM_OUTPUTS["agentic-purchasing"]);
 
 export async function handleCreateSnapshot(
   req: IncomingMessage,

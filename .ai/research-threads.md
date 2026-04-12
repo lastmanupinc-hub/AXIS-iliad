@@ -61,7 +61,7 @@ Open questions:
 
 ### Domain Model Complexity
 
-The project defines **132 domain models**. High field-count models may need documentation or decomposition:
+The project defines **131 domain models**. High field-count models may need documentation or decomposition:
 
 - **`ProgramDoc`** — interface, 13 fields (`apps/web/src/pages/DocsPage.tsx`)
 - **`ParseResult`** — interface, 13 fields (`packages/repo-parser/src/types.ts`)

@@ -1202,6 +1202,7 @@ function programEndpoints(): Record<string, unknown> {
     { path: "/v1/remotion/generate", name: "remotionGenerate", summary: "Generate Remotion video scripts" },
     { path: "/v1/canvas/generate", name: "canvasGenerate", summary: "Generate canvas/poster designs" },
     { path: "/v1/algorithmic/generate", name: "algorithmicGenerate", summary: "Generate algorithmic art" },
+    { path: "/v1/agentic-purchasing/generate", name: "agenticPurchasingGenerate", summary: "Generate agentic purchasing artifacts" },
   ];
 
   const endpoints: Record<string, unknown> = {};

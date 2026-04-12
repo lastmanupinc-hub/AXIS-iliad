@@ -44,7 +44,7 @@ package_manager = "pnpm"
 # ContextMap (interface, 8 fields) @ apps/web/src/api.ts
 # GeneratedFile (interface, 5 fields) @ apps/web/src/api.ts
 # GeneratedFilesResponse (interface, 6 fields) @ apps/web/src/api.ts
-# ... and 112 more
+# ... and 111 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode

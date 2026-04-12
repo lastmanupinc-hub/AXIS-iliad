@@ -1,0 +1,32 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.1.2 [39m[90mC:/Users/lastm/No Fate Platform/AXIS Toolbox[39m
+
+{"timestamp":"2026-04-11T21:06:26.882Z","level":"info","msg":"server_start","port":44410,"service":"axis-api"}
+node.exe : {"timestamp":"2026-04-11T21:06:26.896Z","level":"error","msg":"reque
+st","request_id":"536b1ba9-7931-48f7-8f03-cb681c38fb2f","method":"GET","path":"
+/v1/auth/github","status":503,"duration_ms":4}
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\lastm\AppData\Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ({"timestamp":"2...duration_ms":4} 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+{"timestamp":"2026-04-11T21:06:26.907Z","level":"info","msg":"request","request_id":"12cff968-865b-4970-b8a9-f03bb339f807","method":"GET","path":"/v1/auth/github","status":302,"duration_ms":1}
+{"timestamp":"2026-04-11T21:06:26.914Z","level":"warn","msg":"request","request_id":"b31a4617-b869-4e4a-aca2-3c9092061614","method":"GET","path":"/v1/auth/github/callback","status":400,"duration_ms":1}
+{"timestamp":"2026-04-11T21:06:26.911Z","level":"error","msg":"request","reques
+t_id":"bd7692ce-fe27-4f4e-b3a5-5ccbfef432fa","method":"GET","path":"/v1/auth/gi
+thub/callback?code=abc&state=xyz","status":503,"duration_ms":2}
+{"timestamp":"2026-04-11T21:06:26.919Z","level":"warn","msg":"request","request_id":"c5edc3f0-1005-4af4-8c8e-2fe261db1ce5","method":"GET","path":"/v1/auth/github/callback?code=abc&state=bad-state","status":400,"duration_ms":1}
+{"timestamp":"2026-04-11T21:06:26.923Z","level":"info","msg":"request","request_id":"8bbcfd1e-e463-4d0e-980a-f52208e9bff8","method":"GET","path":"/v1/auth/github/callback?error=access_denied&error_description=User+denied","status":302,"duration_ms":1}
+{"timestamp":"2026-04-11T21:06:26.926Z","level":"info","msg":"request","request_id":"bb93c956-dbe6-455e-94ea-e2f560d0de04","method":"GET","path":"/v1/auth/github/callback?error=access_denied","status":302,"duration_ms":0}
+{"timestamp":"2026-04-11T21:06:26.938Z","level":"info","msg":"request","request_id":"71f6b969-71f5-4ecf-874d-7d8c35576523","method":"GET","path":"/v1/auth/github/callback?code=valid_code&state=4bc7d1ea044768c3060bdaa0f60007e30e425ca4a087a7cd49d3fe1f41279fcf","status":302,"duration_ms":7}
+{"timestamp":"2026-04-11T21:06:26.943Z","level":"info","msg":"request","request_id":"64380954-d2d0-4317-93ac-ce972771ef7b","method":"GET","path":"/v1/auth/github/callback?code=bad_code&state=a675c09e866147f58041f235c33b250775478e9ec840b8ed55ec92cd2ae22f12","status":302,"duration_ms":1}
+{"timestamp":"2026-04-11T21:06:26.947Z","level":"info","msg":"request","request_id":"1f7c4f74-1864-4345-a4d9-a2285da43107","method":"GET","path":"/v1/auth/github/callback?code=x&state=2d4e779c8f60fcbded22a3ad30b4f6fc6fa92f5fba4c517a004d55ff2ec55dda","status":302,"duration_ms":1}
+ [32mΓ£ô[39m apps/api/src/oauth.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 112[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m10 passed[39m[22m[90m (10)[39m
+[2m   Start at [22m 16:06:25
+[2m   Duration [22m 1.26s[2m (transform 462ms, setup 0ms, import 635ms, tests 112ms, environment 0ms)[22m
+

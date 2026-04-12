@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-11T20:14:34.207Z",
+  "generated_at": "2026-04-11T22:24:47.562Z",
   "design_system": {
     "colors": {
       "primary": "#6366f1",
@@ -122,7 +122,7 @@
     "subtitle": "AI-native development operating system. Upload or point at any codebase — get 80 generated artifacts across 17 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
     "type": "monorepo",
     "language": "TypeScript",
-    "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 132 domain models.",
+    "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
     "frameworks": [
       {
         "name": "React",
@@ -136,17 +136,17 @@
     "language_stats": [
       {
         "name": "TypeScript",
-        "percent": 71.3,
-        "loc": 66885
+        "percent": 71.2,
+        "loc": 66752
       },
       {
         "name": "YAML",
-        "percent": 15.9,
-        "loc": 14923
+        "percent": 16,
+        "loc": 14963
       },
       {
         "name": "JSON",
-        "percent": 6.8,
+        "percent": 6.9,
         "loc": 6426
       },
       {
@@ -191,10 +191,10 @@
     ],
     "entry_point_count": 0,
     "hotspot_count": 6,
-    "domain_model_count": 132,
+    "domain_model_count": 131,
     "route_count": 387,
     "total_files": 432,
-    "total_loc": 95310
+    "total_loc": 95217
   },
   "source_asset_files": null
 }

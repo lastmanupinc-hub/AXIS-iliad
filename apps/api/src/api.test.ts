@@ -25,6 +25,7 @@ import {
   handleRemotionGenerate,
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
+  handleAgenticPurchasingGenerate,
   handleGitHubAnalyze,
   handleHealthCheck,
 } from "./handlers.js";
@@ -110,6 +111,7 @@ beforeAll(async () => {
   router.post("/v1/remotion/generate", handleRemotionGenerate);
   router.post("/v1/canvas/generate", handleCanvasGenerate);
   router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
+  router.post("/v1/agentic-purchasing/generate", handleAgenticPurchasingGenerate);
   router.post("/v1/github/analyze", handleGitHubAnalyze);
 
   server = createServer((req, res) => {
@@ -373,6 +375,16 @@ describe("API integration", () => {
     expect(files.length).toBe(5);
   });
 
+  it("POST /v1/agentic-purchasing/generate returns agentic-purchasing files", async () => {
+    const r = await request(TEST_PORT, "POST", "/v1/agentic-purchasing/generate", { snapshot_id: snapshotId });
+    expect(r.status).toBe(200);
+    const data = r.data as Record<string, unknown>;
+    expect(data.program).toBe("agentic-purchasing");
+    const files = data.files as Array<{ path: string; program: string }>;
+    expect(files.every(f => f.program === "agentic-purchasing")).toBe(true);
+    expect(files.length).toBe(5);
+  });
+
   it("returns 404 for unknown route", async () => {
     const r = await request(TEST_PORT, "GET", "/v1/nonexistent");
     expect(r.status).toBe(404);
@@ -413,6 +425,8 @@ describe("API integration", () => {
     expect(r16.status).toBe(400);
     const r17 = await request(TEST_PORT, "POST", "/v1/algorithmic/generate", {});
     expect(r17.status).toBe(400);
+    const r18 = await request(TEST_PORT, "POST", "/v1/agentic-purchasing/generate", {});
+    expect(r18.status).toBe(400);
   });
 
   it("POST /v1/github/analyze rejects missing github_url", async () => {

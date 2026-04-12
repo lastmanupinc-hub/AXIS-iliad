@@ -22,6 +22,7 @@ import {
   handleRemotionGenerate,
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
+  handleAgenticPurchasingGenerate,
   handleGitHubAnalyze,
   handleHealthCheck,
   handleSearchIndex,
@@ -139,6 +140,7 @@ router.post("/v1/artifacts/generate", handleArtifactsGenerate);
 router.post("/v1/remotion/generate", handleRemotionGenerate);
 router.post("/v1/canvas/generate", handleCanvasGenerate);
 router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
+router.post("/v1/agentic-purchasing/generate", handleAgenticPurchasingGenerate);
 
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);

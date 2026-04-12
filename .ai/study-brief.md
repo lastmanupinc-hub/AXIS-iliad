@@ -46,7 +46,7 @@ These are the core data structures that define what the system works with:
 | `WindowEntry` | interface | 2 | `apps/api/src/rate-limiter.ts` |
 | `AppHandle` | interface | 3 | `apps/api/src/router.ts` |
 | `Route` | interface | 4 | `apps/api/src/router.ts` |
-| *(+122 more)* | | | |
+| *(+121 more)* | | | |
 
 ### Phase 4: Data Flow
 

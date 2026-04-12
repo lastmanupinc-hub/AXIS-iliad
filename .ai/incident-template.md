@@ -94,7 +94,6 @@
 - [ ] `ProgramDef` (interface, 5 fields) — apps/web/src/components/ProgramLauncher.tsx
 - [ ] `Props` (interface, 3 fields) — apps/web/src/components/ProgramLauncher.tsx
 - [ ] `Props` (interface, 1 fields) — apps/web/src/components/SearchTab.tsx
-- [ ] `Props` (interface, 1 fields) — apps/web/src/components/SearchTab.tsx
 - [ ] `Props` (interface, 3 fields) — apps/web/src/components/SignUpModal.tsx
 - [ ] `Props` (interface, 2 fields) — apps/web/src/components/StatusBar.tsx
 - [ ] `Toast` (interface, 4 fields) — apps/web/src/components/Toast.tsx

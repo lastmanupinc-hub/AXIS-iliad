@@ -37,7 +37,7 @@ Include route map (387 routes) in prompts when working on API or page code to pr
 
 ## Token Budget Guidance
 
-Estimated full-project tokens: ~428,895
+Estimated full-project tokens: ~428,477
 
 **Selective context required.** Use this priority order:
 1. Active file being modified
