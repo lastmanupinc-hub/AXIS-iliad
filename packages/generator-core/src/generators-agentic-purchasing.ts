@@ -7,17 +7,92 @@ import type { GeneratedFile, SourceFile } from "./types.js";
  * and purchase AXIS analysis programs for any codebase.
  */
 
+// ─── Commerce Signal Detection ────────────────────────────────────
+
+interface CommerceSignals {
+  detected_providers: string[];
+  has_checkout: boolean;
+  has_recurring: boolean;
+  has_sca: boolean;
+  has_dispute_handling: boolean;
+  has_webhooks: boolean;
+  total_payment_files: number;
+}
+
+const PROVIDER_PATTERNS: Record<string, RegExp> = {
+  stripe:     /stripe/i,
+  paypal:     /paypal/i,
+  adyen:      /adyen/i,
+  braintree:  /braintree/i,
+  square:     /squareup|square\.com/i,
+  apple_pay:  /apple.?pay/i,
+  google_pay: /google.?pay/i,
+  amazon_pay: /amazon.?pay/i,
+  klarna:     /klarna/i,
+  affirm:     /affirm/i,
+  afterpay:   /afterpay|clearpay/i,
+};
+
+function detectCommerceSignals(files: SourceFile[] | undefined): CommerceSignals {
+  if (!files || files.length === 0) {
+    return { detected_providers: [], has_checkout: false, has_recurring: false, has_sca: false, has_dispute_handling: false, has_webhooks: false, total_payment_files: 0 };
+  }
+
+  const providers = new Set<string>();
+  const paymentPaths = new Set<string>();
+  let hasCheckout = false;
+  let hasRecurring = false;
+  let hasSCA = false;
+  let hasDispute = false;
+  let hasWebhooks = false;
+
+  for (const file of files) {
+    const combined = `${file.path} ${file.content}`;
+    for (const [name, pat] of Object.entries(PROVIDER_PATTERNS)) {
+      if (pat.test(combined)) { providers.add(name); paymentPaths.add(file.path); }
+    }
+    if (/checkout|cart|basket|order.?total|purchase|buy.?now/i.test(combined)) { hasCheckout = true; paymentPaths.add(file.path); }
+    if (/subscription|recurring|mandate|installment|billing.?cycle|renew/i.test(combined)) hasRecurring = true;
+    if (/3ds|threeds|sca|strong.?auth|challenge|frictionless|psd2/i.test(combined)) hasSCA = true;
+    if (/dispute|chargeback|refund|reversal|return.?policy/i.test(combined)) hasDispute = true;
+    if (/webhook|event.?handler|payment.?event|ipn/i.test(combined)) hasWebhooks = true;
+  }
+
+  return {
+    detected_providers: [...providers].sort(),
+    has_checkout: hasCheckout,
+    has_recurring: hasRecurring,
+    has_sca: hasSCA,
+    has_dispute_handling: hasDispute,
+    has_webhooks: hasWebhooks,
+    total_payment_files: paymentPaths.size,
+  };
+}
+
 // ─── 1. Agent Purchasing Playbook ────────────────────────────────
 
 export function generateAgentPurchasingPlaybook(
   ctx: ContextMap,
   _profile: RepoProfile,
-  _files?: SourceFile[],
+  files?: SourceFile[],
 ): GeneratedFile {
   const name = ctx.project_identity.name;
   const type = ctx.project_identity.type.replace(/_/g, " ");
   const fws = ctx.detection.frameworks.map(f => f.name).join(", ") || "none detected";
   const lang = ctx.project_identity.primary_language;
+  const signals = detectCommerceSignals(files);
+
+  const providerList = signals.detected_providers.length > 0
+    ? signals.detected_providers.map(p => `- **${p}** detected in ${signals.total_payment_files} file(s)`).join("\n")
+    : "- No payment providers detected — repo may not yet be payment-enabled";
+
+  const ap2ProviderRows = signals.detected_providers.length > 0
+    ? signals.detected_providers.map(p => {
+      const tokenized = p === "stripe" || p === "adyen" ? "✅ Supported" : "⚠️ Verify";
+      const mandateType = p === "stripe" ? "single/recurring/setup" : p === "paypal" ? "single/recurring" : "single";
+      return `| ${p} | ${mandateType} | ${tokenized} | Required |`;
+    }).join("\n")
+    : "| (no providers detected) | — | — | — |";
 
   const content = `# AXIS Agent Purchasing Playbook — ${name}
 
@@ -32,6 +107,23 @@ export function generateAgentPurchasingPlaybook(
 | Language | ${lang} |
 | Frameworks | ${fws} |
 | Files | ${ctx.structure.total_files} |
+
+## Repository Commerce Signals
+
+Detection results from \`${ctx.structure.total_files}\` source files:
+
+${providerList}
+- Checkout flow code: ${signals.has_checkout ? "✅ Detected" : "❌ Not detected"}
+- Recurring/mandate billing: ${signals.has_recurring ? "✅ Detected" : "❌ Not detected"}
+- SCA/3DS2 handling: ${signals.has_sca ? "✅ Detected" : "❌ Not detected"}
+- Dispute/refund handling: ${signals.has_dispute_handling ? "✅ Detected" : "❌ Not detected"}
+- Payment webhooks: ${signals.has_webhooks ? "✅ Detected" : "❌ Not detected"}
+
+## AP2 Mandate Requirements for Detected Providers
+
+| Provider | Mandate Types | Network Tokenization | SCA Required |
+|----------|---------------|---------------------|--------------|
+${ap2ProviderRows}
 
 ## What Is AXIS?
 
@@ -117,7 +209,8 @@ An agent SHOULD purchase AXIS programs when:
 An agent SHOULD NOT purchase when:
 1. The snapshot is less than 24 hours old and artifacts are still fresh
 2. The project has fewer than 10 source files
-3. The agent only needs read-only access to an already-analyzed snapshot
+3. The agent is in read-only information gathering mode
+4. Same program was purchased in the last 24 hours for this repo
 `;
 
   return {
@@ -129,19 +222,38 @@ An agent SHOULD NOT purchase when:
   };
 }
 
+
+
 // ─── 2. Product Schema ────────────────────────────────────────────
 
 export function generateProductSchema(
   ctx: ContextMap,
   _profile: RepoProfile,
-  _files?: SourceFile[],
+  files?: SourceFile[],
 ): GeneratedFile {
+  const signals = detectCommerceSignals(files);
   const schema = {
     schema_version: "1.0",
     product: "AXIS Toolbox",
     generated_for: ctx.project_identity.name,
     generated_at: new Date().toISOString().split("T")[0],
     mcp_endpoint: "POST /mcp",
+    repo_commerce_profile: {
+      detected_payment_providers: signals.detected_providers,
+      capabilities: {
+        checkout_flow: signals.has_checkout,
+        recurring_billing: signals.has_recurring,
+        sca_3ds2: signals.has_sca,
+        dispute_handling: signals.has_dispute_handling,
+        payment_webhooks: signals.has_webhooks,
+      },
+      ap2_mandate_compliance: {
+        mandate_data_format: "AP2 Article 2 — standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
+        ucp_settlement_path: "UCP Article 5 — settlement instruction with clearing_system, settlement_currency, value_date",
+        visa_intelligent_commerce: "Visa IC — network tokenization, token service provider (TSP) integration, device binding",
+        ready_for_autonomous_purchase: signals.detected_providers.length > 0 || signals.has_checkout,
+      },
+    },
     programs: [
       { slug: "search",            tier: "free", outputs: 5,  description: "Context map, repo profile, architecture summary, dependency hotspots, symbol index" },
       { slug: "skills",            tier: "free", outputs: 5,  description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack" },
@@ -173,7 +285,7 @@ export function generateProductSchema(
     content: JSON.stringify(schema, null, 2),
     content_type: "application/json",
     program: "agentic-purchasing",
-    description: "Machine-readable AXIS product schema — all 18 programs, tiers, outputs, and purchase endpoints",
+    description: "Machine-readable AXIS product schema — 18 programs, tiers, outputs, repo commerce profile, and AP2/UCP/Visa mandate fields",
   };
 }
 
@@ -182,9 +294,13 @@ export function generateProductSchema(
 export function generateCheckoutFlow(
   ctx: ContextMap,
   _profile: RepoProfile,
-  _files?: SourceFile[],
+  files?: SourceFile[],
 ): GeneratedFile {
   const name = ctx.project_identity.name;
+  const signals = detectCommerceSignals(files);
+  const providerNote = signals.detected_providers.length > 0
+    ? `Detected providers: ${signals.detected_providers.join(", ")}.`
+    : "No payment providers detected — implement provider integration before production.";
 
   const content = `# Autonomous Checkout Flow — ${name}
 
@@ -195,6 +311,10 @@ export function generateCheckoutFlow(
 \`\`\`
 Agent Request → Validate Intent → Check Balance → API Call → Confirm → Return Artifacts
 \`\`\`
+
+## Repository Status
+
+${providerNote}
 
 ## Decision Tree
 
@@ -232,6 +352,66 @@ Step 5: Inject artifacts into agent context window
 - Confirm content is non-empty and valid for the format (JSON, Markdown, YAML)
 - Cache \`snapshot_id\` for re-use within 24 hours
 
+## Payment Mandate Schema (AP2 Fields)
+
+Every autonomous purchase MUST include these AP2 Article 2 mandate fields:
+
+\`\`\`json
+{
+  "mandate": {
+    "mandate_id": "<uuid>",
+    "mandate_type": "single",
+    "payment_method": {
+      "type": "card | ach | sepa_debit",
+      "network_token": "<visa/mc token>",
+      "token_service_provider": "VISA_TSP | MASTERCARD_MDES"
+    },
+    "amount": { "value": 50, "currency": "USD", "minor_units": 2 },
+    "creditor": { "name": "Last Man Up Inc.", "identifier": "AXIS_TOOLBOX" },
+    "sca_exemption": "low_value | trusted_beneficiary | recurring",
+    "ucp_settlement": {
+      "clearing_system": "VISA_NET | MASTERCARD_CLEARING | ACH",
+      "settlement_currency": "USD",
+      "value_date": "<ISO8601>"
+    }
+  }
+}
+\`\`\`
+
+## SCA / 3DS2 Handling
+
+${signals.has_sca ? "✅ SCA/3DS2 code detected in this repository." : "⚠️ No SCA/3DS2 code detected — add challenge flow before processing EU/UK transactions."}
+
+| Scenario | Action | AP2 Field |
+|----------|--------|-----------|
+| Transaction < €30 | Apply low_value exemption | \`sca_exemption: "low_value"\` |
+| Trusted merchant | Apply trusted_beneficiary | \`sca_exemption: "trusted_beneficiary"\` |
+| Recurring fixed | Apply recurring exemption | \`sca_exemption: "recurring"\` |
+| Challenge required | Redirect to 3DS2 ACS | \`challenge_indicator: "04"\` |
+| Frictionless approved | Proceed without redirect | \`challenge_indicator: "03"\` |
+
+**Zero-Click Checkout Rule:** Agents MUST use a stored mandate with SCA pre-authorization.
+Never trigger interactive SCA during an autonomous purchase session.
+
+## Dispute and Return Flow
+
+${signals.has_dispute_handling ? "✅ Dispute/refund handling detected in this repository." : "⚠️ No dispute handling code detected — implement refund logic before production."}
+
+\`\`\`
+Purchase Failed?
+  ├── 402 Payment Required → Follow payment_session_url, retry
+  ├── 404 Snapshot Not Found → Re-analyze, re-purchase
+  ├── 429 Rate Limited → Wait 60s, exponential backoff
+  └── Chargeback Filed?
+        ├── Within 24h → AutoRefund via POST /v1/billing/refund
+        └── After 24h → Escalate to operator, halt agent session
+\`\`\`
+
+**Return Policy for Agent Purchases:**
+- Unused credits: refund within 30 days
+- Failed analysis: automatic re-run at no charge
+- Duplicate purchase (same snapshot_id < 24h): automatic refund
+
 ## Agent Authorization Policy
 - Authentication scheme: bearer token via \`Authorization: Bearer <api_key>\` header
 - Agents with \`tier: pro\` API keys may purchase any program
@@ -242,6 +422,7 @@ Step 5: Inject artifacts into agent context window
 | Error | Recovery Action |
 |-------|----------------|
 | 401 Unauthorized | Refresh API key from vault |
+| 402 Payment Required | Follow \`payment_session_url\` in response body |
 | 429 Rate Limited | Wait 60s, retry with exponential backoff |
 | 404 Snapshot Not Found | Re-run analysis with new snapshot |
 | Quota Exceeded | Upgrade tier or wait for quota reset |
@@ -252,7 +433,7 @@ Step 5: Inject artifacts into agent context window
     content,
     content_type: "text/markdown",
     program: "agentic-purchasing",
-    description: "Autonomous checkout flow specification — decision tree, API sequence, and error recovery for agent purchases",
+    description: "Autonomous checkout flow — zero-click spec, AP2 payment mandate schema, SCA/3DS2 handling, dispute/return flow",
   };
 }
 
@@ -261,13 +442,22 @@ Step 5: Inject artifacts into agent context window
 export function generateNegotiationRules(
   ctx: ContextMap,
   profile: RepoProfile,
-  _files?: SourceFile[],
+  files?: SourceFile[],
 ): GeneratedFile {
   const name = ctx.project_identity.name;
   const fileCount = ctx.structure.total_files;
   const loc = ctx.structure.total_loc;
   const sepScore = profile.health.separation_score;
   const complexity = sepScore < 0.3 ? "high" : sepScore < 0.7 ? "medium" : "low";
+  const signals = detectCommerceSignals(files);
+
+  const mandateRows = signals.detected_providers.length > 0
+    ? signals.detected_providers.map(p => {
+      const riskLevel = (p === "stripe" || p === "adyen") ? "Low" : (p === "paypal") ? "Medium" : "High";
+      const cap = p === "stripe" ? "$50,000" : p === "paypal" ? "$10,000" : "$5,000";
+      return `| ${p} | Per-transaction | Require SCA pre-auth | ${riskLevel} | ${cap} |`;
+    }).join("\n")
+    : "| (none detected) | — | — | — | — |";
 
   const content = `# Agent Negotiation Rules — ${name}
 
@@ -323,10 +513,35 @@ Where \`complexity_score\` = 1 (low) | 2 (medium) | 3 (high).
 
 **Verdict:** AXIS analysis is the optimal approach for codebases > 500 LOC.
 
+## AP2/UCP Mandate Compliance Constraints
+
+Agents must NOT exceed these limits without explicit operator approval:
+
+| Provider | Mandate Scope | Constraint | Risk Level | Max Per-Session Cap |
+|----------|---------------|-----------|-----------|---------------------|
+${mandateRows}
+
+**Hard limits (AP2 Article 6 — Autonomous Agent Spending Rules):**
+1. No single payment > 10% of monthly credit balance without confirmation
+2. No payment to new merchant_id in first 30 minutes of session
+3. All recurring mandates require operator opt-in (agent cannot self-authorize)
+4. SCA pre-authorization MUST be completed before session start on EU/UK transactions
+
+## Autonomous Purchase Bounds
+
+| Condition | Agent May | Agent Must Not |
+|-----------|-----------|----------------|
+| task_budget allocated | Spend up to budget | Exceed budget without re-confirmation |
+| Provider is known | Use stored mandate | Create new vault entry |
+| SCA token present | Use frictionless flow | Trigger interactive 3DS |
+| Dispute rate > 1% | Pause and escalate | Continue autonomous purchasing |
+| Quota exhausted | Retry after reset | Upgrade tier autonomously |
+
 ## Agent Accountability
 - Log all purchases with: snapshot_id, programs, timestamp, cost
 - Verify ROI: did the artifacts improve task completion speed?
 - Report anomalies to operator if purchase is refused 3+ times
+- Audit mandate compliance: every session must produce a spend summary
 `;
 
   return {
@@ -334,7 +549,7 @@ Where \`complexity_score\` = 1 (low) | 2 (medium) | 3 (high).
     content,
     content_type: "text/markdown",
     program: "agentic-purchasing",
-    description: "Agent negotiation rules — value assessment, purchase approval criteria, and ROI comparison for AXIS programs",
+    description: "Agent negotiation rules — value assessment, AP2/UCP mandate constraints, autonomous purchase bounds, and ROI comparison",
   };
 }
 
@@ -343,8 +558,17 @@ Where \`complexity_score\` = 1 (low) | 2 (medium) | 3 (high).
 export function generateCommerceRegistry(
   ctx: ContextMap,
   _profile: RepoProfile,
-  _files?: SourceFile[],
+  files?: SourceFile[],
 ): GeneratedFile {
+  const signals = detectCommerceSignals(files);
+  const ap2ReadyScore =
+    (signals.detected_providers.length > 0 ? 25 : 0) +
+    (signals.has_checkout ? 20 : 0) +
+    (signals.has_recurring ? 15 : 0) +
+    (signals.has_sca ? 20 : 0) +
+    (signals.has_dispute_handling ? 10 : 0) +
+    (signals.has_webhooks ? 10 : 0);
+
   const registry = {
     registry_version: "1.0",
     product: "AXIS Toolbox",
@@ -352,6 +576,32 @@ export function generateCommerceRegistry(
     generated_at: new Date().toISOString().split("T")[0],
     axis_base_url: "https://api.axis-toolbox.com",
     mcp_endpoint: "POST /mcp",
+    repo_commerce_signals: {
+      detected_providers: signals.detected_providers,
+      has_checkout: signals.has_checkout,
+      has_recurring: signals.has_recurring,
+      has_sca: signals.has_sca,
+      has_dispute_handling: signals.has_dispute_handling,
+      has_webhooks: signals.has_webhooks,
+      total_payment_files: signals.total_payment_files,
+    },
+    ap2_compliance_assessment: {
+      readiness_score: ap2ReadyScore,
+      max_score: 100,
+      interpretation: ap2ReadyScore >= 70 ? "production-ready" : ap2ReadyScore >= 40 ? "partially-ready" : "needs-work",
+      gaps: [
+        ...(!signals.detected_providers.length ? ["No payment provider integration detected"] : []),
+        ...(!signals.has_checkout ? ["No checkout flow implementation detected"] : []),
+        ...(!signals.has_sca ? ["SCA/3DS2 handling not detected — required for EU/UK PSD2 compliance"] : []),
+        ...(!signals.has_dispute_handling ? ["No dispute/refund handling — required for AP2 Article 7 compliance"] : []),
+        ...(!signals.has_webhooks ? ["No payment webhooks — required for mandate event processing"] : []),
+      ],
+      visa_intelligent_commerce: {
+        network_tokenization: signals.detected_providers.includes("stripe") || signals.detected_providers.includes("adyen") ? "likely-supported" : "unknown",
+        token_service_provider: "requires-manual-verification",
+        device_binding: "out-of-scope-for-static-analysis",
+      },
+    },
     catalog: [
       {
         id: "free-bundle",
@@ -410,6 +660,6 @@ export function generateCommerceRegistry(
     content: JSON.stringify(registry, null, 2),
     content_type: "application/json",
     program: "agentic-purchasing",
-    description: "Agent commerce registry — catalog of purchasable AXIS bundles, endpoints, and auth spec for zero-click ordering",
+    description: "Agent commerce registry — repo commerce signals, AP2 compliance assessment, Visa IC profile, and AXIS catalog",
   };
 }
