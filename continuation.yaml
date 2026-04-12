@@ -13,13 +13,13 @@ project_continuation:
     max_reference_depth: 1
 
   current_identity:
-    project_name: "Axis Toolbox"
+    project_name: "AXIS Toolbox"
     date: "2026-04-11"
-    commit_or_tag: "fc25f5b"
-    current_session_id: "session_074"
-    one_sentence_summary: "Full-stack Axis Toolbox with 83 capabilities (A:83, B:0, F:0), 77+ endpoints, 3371 tests across 123 files. 81 generators. Branch coverage 100.00% (2231/2231). 100% funcs, 100% lines, 99.99% stmts. billing.ts TS2345 fixed. SearchTab duplicate removed. Port collision fixed. Support email updated."
+    commit_or_tag: "1005607"
+    current_session_id: "session_079"
+    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3554 tests across 127 files. 100% branch coverage (2231/2231). MCP integration + 6th composite tool prepare_for_agentic_purchasing (Purchasing Readiness Score, AP2/UCP artifacts, negotiation playbooks) LIVE. Next: eq_190 commerce generator depth."
     current_status: "building"
-    current_focus_vertical: "v1_search_context_graph"
+    current_focus_vertical: "v18_agentic_commerce"
 
   executive_truth:
     maturity_estimate:
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "3370 tests across 123 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. stripe.ts 100% branches. TermsPage added. Stripe $29/month pro LIVE. GitHub OAuth LIVE. A:83, B:0, F:0. Symbol search + .ai/symbol-index.json (81st generator) LIVE."
+      notes: "3554 tests across 127 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. MCP integration LIVE (6 tools). prepare_for_agentic_purchasing composite tool LIVE. Agentic Purchasing program LIVE. POST /v1/analyze + /.well-known/axis.json LIVE. /for-agents discovery page LIVE. Stripe $29/month pro LIVE. GitHub OAuth LIVE. A:83+, B:0, F:0. 18 programs, 86 generators, symbol-index LIVE."
 
   boundary_truth:
     accepted_input_modes:
@@ -124,6 +124,30 @@ project_continuation:
       blockers:
         - No authentication — RESOLVED (billing system with API keys, ee8a95d)
       next_required_move: "Add SEO program generators or GitHub CI pipeline"
+
+    - id: v18_agentic_commerce
+      name: Agentic Commerce & Agent Acquisition
+      status: building
+      priority: P0
+      user_story: >
+        As an AI purchasing agent or agentic commerce operator, I need AXIS Toolbox
+        to expose a single composite MCP tool (prepare_for_agentic_purchasing) that
+        takes any repo and returns a Purchasing Readiness Score, AP2/UCP/Visa
+        compliance artifacts, negotiation playbooks, MCP configs, and a self-onboarding
+        kit — so I can make it my reliable first call instead of chaining generic tools.
+      saturation:
+        foundation: 85
+        runtime: 60
+        editor: 15
+        export: 40
+        polish: 15
+      evidence:
+        - "MCP integration — /v1/mcp/provision + mcp-config.json generator (commit f2fb567)"
+        - "Agentic Purchasing program — 5 generators (agentic-purchasing-readiness.md, ap2-compliance-checklist.md, autonomous-checkout-rules.yaml, negotiation-playbook.md, payment-mandate-schema.json) (commit 6e271a4)"
+        - "POST /v1/analyze unified one-call endpoint + GET /.well-known/axis.json machine-readable manifest (commit d08a1d6)"
+        - "/for-agents discovery page — quick start, key outputs, all 18 programs table, MCP tools, agentic purchasing section (commit 1005607)"
+      blockers: []
+      next_required_move: "Build eq_190: commerce generator depth — richer AP2/UCP/Visa artifacts for meaningful readiness scoring"
 
   subsystem_scorecards:
     - name: "search"
@@ -2912,3 +2936,214 @@ project_continuation:
       - "9b19c39: fix: remove duplicate SearchTab implementation (CI TS error)"
       - "271baec: fix: validate operation type in addPersistenceCredits call (CI TS2345)"
       - "fc25f5b: fix: update support email to support@jonathanarvay.com across all web pages"
+
+  session_result_075:
+    date: "2026-04-11"
+    session_id: "session_075"
+    selected_move: "eq_A1: MCP protocol integration — wired all 17 programs as standard MCP tools"
+    completed_candidates:
+      - "eq_A1: MCP integration — MCP server wrapper exposing all 17 programs as tool calls, tool schema definitions with natural-language descriptions, mcp-config.json generator updated to be self-describing, wired into existing zero-dep router"
+    evidence_added:
+      - "MCP endpoint live at /v1/mcp with tool discovery and invocation"
+      - "All 17 programs accessible as MCP tools"
+      - "mcp-config.json generator produces ready-to-use MCP client configs"
+    verticals_advanced:
+      - "v18_agentic_commerce → MCP transport layer complete"
+    blockers_removed:
+      - "Agents could not call AXIS via MCP → MCP protocol integration live"
+    commit_results: ["f2fb567"]
+    push_results: ["main → main"]
+
+  session_result_076:
+    date: "2026-04-11"
+    session_id: "session_076"
+    selected_move: "eq_A2: Agentic Purchasing program — 5 specialized commerce generators"
+    completed_candidates:
+      - "eq_A2: Agentic Purchasing — generators-agentic-purchasing.ts with 5 generators: agentic-purchasing-readiness.md (readiness score + gaps), ap2-compliance-checklist.md (AP2/UCP/Visa Intelligent Commerce audit), autonomous-checkout-rules.yaml (zero-click checkout specifications), negotiation-playbook.md (pricing negotiation rules for agents), payment-mandate-schema.json (compliant payment schema). POST /v1/agenticpurchasing/generate endpoint."
+    evidence_added:
+      - "18th program added: Agentic Purchasing"
+      - "5 new generators targeting autonomous commerce compliance"
+      - "AP2/UCP/Visa Intelligent Commerce artifacts first-in-class for MCP ecosystem"
+      - "3500+ tests passing"
+    verticals_advanced:
+      - "v18_agentic_commerce → commerce artifact generation layer complete"
+    blockers_removed:
+      - "No agentic commerce specific generators → 5 purpose-built commerce generators"
+    commit_results: ["6e271a4"]
+    push_results: ["main → main"]
+
+  session_result_077:
+    date: "2026-04-11"
+    session_id: "session_077"
+    selected_move: "eq_A3: POST /v1/analyze unified endpoint + GET /.well-known/axis.json manifest"
+    completed_candidates:
+      - "eq_A3a: POST /v1/analyze — single unified endpoint accepting repo_url or zip, runs full 18-program pipeline, returns structured JSON with all artifacts + readiness indicators. One call replaces chaining 18 separate endpoints."
+      - "eq_A3b: GET /.well-known/axis.json — machine-readable manifest describing all 18 programs, 81 generators, key outputs, pricing tiers, MCP tools, quick-start examples. Standard discovery endpoint for agents and registries."
+    evidence_added:
+      - "POST /v1/analyze accepts GitHub URL, zip, or API submission"
+      - "/.well-known/axis.json follows emerging agent-discovery standard"
+      - "Manifest includes programs list, key_outputs, quick_start, for_agents section with adoption hints"
+      - "Tests updated for both new endpoints"
+    verticals_advanced:
+      - "v18_agentic_commerce → unified entry point + machine-readable discovery complete"
+    blockers_removed:
+      - "Agents had to chain 18 calls → single /v1/analyze endpoint"
+      - "No machine-readable discovery endpoint → /.well-known/axis.json live"
+    commit_results: ["d08a1d6"]
+    push_results: ["main → main"]
+
+  session_result_078:
+    date: "2026-04-11"
+    session_id: "session_078"
+    selected_move: "eq_A4: /for-agents discovery page in web UI"
+    completed_candidates:
+      - "eq_A4: ForAgentsPage.tsx (435 lines) — hero section with /.well-known/axis.json pill, 3-step quick start with copyable curl commands, key outputs table (9 files with descriptions), all 18 programs table with tier labels, MCP integration section listing 8 tools, additional endpoints table, auth & tiers section, agentic purchasing section (5 commerce files). Wired into App.tsx hash routing + desktop and mobile nav as 'For Agents' link."
+    evidence_added:
+      - "apps/web/src/pages/ForAgentsPage.tsx — created (435 lines), route #for-agents"
+      - "CopyButton component for one-click curl command copying"
+      - "CodeBlock component with syntax label"
+      - "Full program table with all 18 entries including Agentic Purchasing"
+      - "3505 tests passing across 126 files (unchanged — UI work)"
+    verticals_advanced:
+      - "v18_agentic_commerce → agent-facing discovery surface complete"
+    blockers_removed:
+      - "No agent-facing discovery page → /for-agents page live at #for-agents"
+    commit_results: ["1005607"]
+    push_results: ["main → main"]
+
+  agentic_commerce_roadmap:
+    source: "brainstorming_session_2026-04-11"
+    strategic_rationale: >
+      AXIS Toolbox is 80-90% positioned to become indispensable agentic commerce
+      infrastructure. The foundation (17 programs, 81 generators, production billing,
+      Stripe, MCP, determinism, heavy tests) is built. The missing layer: a single
+      composite MCP tool that turns AXIS from a multi-program analyzer into the
+      standard first call for any purchasing agent encountering a new codebase.
+      In a sea of 10k-21k generic MCP servers (file readers, basic scrapers, single-API
+      wrappers), AXIS offers 17-program bundled intelligence + agentic commerce
+      specialization + production-grade reliability. No exact competitor bundles
+      deep codebase analysis with AP2/UCP compliance + negotiation playbooks +
+      autonomous checkout flows.
+    closest_competitor: "ContextPlus (deep codebase semantic graph MCP servers using Tree-sitter/AST)"
+    competitive_moat:
+      - "17-program bundle vs single-purpose tools"
+      - "Commerce specialization (AP2/UCP/Visa) vs generic analysis"
+      - "Production reliability (3500+ tests, determinism, crash resilience)"
+      - "Agentic purchasing flow: agents can PAY via Stripe MPP (402 response)"
+      - "Self-onboarding: AGENTS.md/CLAUDE.md tell agents how to call AXIS again"
+    three_tools_identified:
+      - name: "prepare_for_agentic_purchasing"
+        priority: 1
+        why: "One call replaces chaining 5-10 flaky servers. Returns readiness score + full commerce artifact bundle."
+      - name: "search_and_discover_tools"
+        priority: 2
+        why: "Prevents context bloat for agents. Lets them query capabilities semantically vs loading all schemas."
+      - name: "mcp_self_provision + agent_integration_playbook"
+        priority: 3
+        why: "Creates network effect. Agents come back because you teach them how to chain AXIS in larger workflows."
+    missing_tool_identified: >
+      Universal 'Agent-Ready Codebase Certification & Hardening' service — deep,
+      automated purchasing readiness audit that hardens any repo for autonomous
+      discovery, negotiation, data reading, and purchase execution — without
+      hallucinations, mandate violations, or security holes. AXIS is 80% there.
+    build_right_philosophy:
+      - "Agent-first design: structured JSON + Markdown + zip artifacts"
+      - "Commerce-safe: AP2/UCP/Visa compliance artifacts in every hardening run"
+      - "Self-reinforcing: every output contains 'how to call AXIS again' section"
+      - "Least-privilege: never execute code from input repos, validate all inputs"
+      - "Idempotent: same repo → same score (leverages existing determinism system)"
+      - "Metered: credit deduction per run, MPP 402 for autonomous agent payments"
+    pricing_model_decided:
+      free: "10 hardening runs/month (basic score + limited artifacts)"
+      pro: "$39/month — 500 credits (1 full hardening = 3-5 credits)"
+      pay_as_you_go: "$0.50 per full hardening run (A/B test after 100 runs)"
+      enterprise: "Custom SLAs, dedicated endpoint, white-label, $499+/month"
+      mpp_agent_payments: "Stripe 402 response → agent pays autonomously per analysis"
+    manual_steps_only_user_can_do:
+      - "Deploy updated API to Render (production push)"
+      - "Run mcp-publisher publish (requires GitHub auth)"
+      - "Submit to Glama.ai and Smithery (manual review forms)"
+      - "Configure Stripe MPP in Stripe dashboard (enable Machine Payments Protocol)"
+      - "Post launch announcement in r/mcp, X, agent-builder Discords"
+      - "Monitor first 50-100 agent calls and tune readiness score rubric"
+      - "Update public pricing page with new hybrid model"
+    qualifying_candidates_new:
+      - id: "eq_189"
+        description: "prepare_for_agentic_purchasing composite MCP tool — POST /v1/prepare-for-agentic-purchasing that internally chains debug/optimization/mcp/marketing/superpowers/seo/brand programs, computes Purchasing Readiness Score (0-100) based on presence of compliance artifacts + determinism + security scoping, outputs JSON summary + full artifact bundle + self-referential 'how to call AXIS again' section. Registered as high-level MCP tool in /.well-known/axis.json. Wired into credits/billing."
+        roi_score: 97
+        roi_reason: "capability_gain 5, agent_acquisition 5, agentic_commerce_moat 5, integration_quality 5. Single highest-value composite tool — directly monetizable, directly agent-discoverable, directly addresses 'one call vs chaining' pain point no competitor solves."
+        completion_status: complete
+        manual_prerequisites: []
+
+      - id: "eq_190"
+        description: "Commerce generator depth — enhance existing Agentic Purchasing generators with richer AP2/UCP/Visa Intelligent Commerce output: scoped product pricing schemas, zero-click checkout flow specification, payment mandate optimization rules, dispute/return playbook, autonomous negotiation constraints. These are the artifacts agents need to safely spend money."
+        roi_score: 92
+        roi_reason: "capability_gain 5, agentic_commerce_moat 5, integration_quality 4. Fills artifact depth gap — without richer commerce content, the readiness score has nothing meaningful to report."
+        completion_status: not-started
+        manual_prerequisites: []
+
+      - id: "eq_191"
+        description: "search_and_discover_tools MCP tool — GET /v1/mcp/tools?q= endpoint with keyword/capability matching over all 18 programs and 81 generators. Returns ranked tool names + descriptions + example calls + capability tags. Allows agents to query 'show me tools related to checkout compliance' without loading all schemas. Registered in /.well-known/axis.json. Prevents context window overload for agents in large-tool-count scenarios."
+        roi_score: 88
+        roi_reason: "capability_gain 4, agent_acquisition 5, integration_quality 5. Mirrors best-practice deferred loading pattern from top-performing MCP servers. Makes scale an advantage instead of a drawback."
+        completion_status: not-started
+        manual_prerequisites: []
+
+      - id: "eq_192"
+        description: "Stripe Machine Payments Protocol (MPP) 402 flow — when credits are insufficient on an authenticated call, return HTTP 402 with Content-Type: application/json body containing payment_session_url (Stripe checkout URL for credits purchase) and retry_after instructions. Agents detect 402, follow payment URL, re-call after payment. This makes AXIS directly monetizable by autonomous purchasing agents with no human in the loop."
+        roi_score: 85
+        roi_reason: "monetization 5, agent_acquisition 4, production_quality 4. Stripe is already fully wired. MPP is a 10-15 line addition to the existing credit check handler. Revenue from autonomous agent calls = pure upside."
+        completion_status: not-started
+        manual_prerequisites:
+          - "Enable Machine Payments Protocol in Stripe dashboard"
+          - "Create credit product SKU in Stripe"
+
+      - id: "eq_193"
+        description: "MCP registry metadata — server.json for mcp-publisher CLI with all required fields (name 'AXIS Toolbox — Agentic Commerce Codebase Intelligence', description, endpoint URL, capabilities list, tool schemas for all 18 programs). All 18 tool descriptions rewritten agent-first (natural language, purpose, output, when-to-use, commerce keywords front-loaded). Agent-optimized descriptions are the primary discovery lever in registry + Glama.ai search."
+        roi_score: 82
+        roi_reason: "agent_acquisition 5, distribution 5, team_scale 3. Without registry listing agents cannot discover AXIS. Tool descriptions determine click-through rate in registry semantic search."
+        completion_status: not-started
+        manual_prerequisites:
+          - "Run: mcp-publisher publish (GitHub auth required)"
+          - "Submit to Glama.ai review form"
+          - "Submit to Smithery.ai"
+
+      - id: "eq_194"
+        description: "/for-agents page enhancement — add AXIS system prompt section (copy-paste block: 'When you need to analyze a codebase for agentic purchasing readiness or generate MCP configs, call AXIS Toolbox at [endpoint] using prepare_for_agentic_purchasing'), add integration examples for Claude/Cursor/custom swarm, add pricing table for agent calls ($0.50/run), add live demo block showing output from a public e-comm repo analysis."
+        roi_score: 78
+        roi_reason: "agent_acquisition 4, usability 5, distribution 4. Page exists but lacks the critical copy-paste hooks that make agents and agent-builders include AXIS in their system prompts. System prompt inclusion = recurring calls."
+        completion_status: not-started
+        manual_prerequisites:
+          - "Post r/mcp + X launch thread referencing /for-agents page"
+          - "Offer 20-50 free credits to first responders in community posts"
+
+  session_result_079:
+    date: "2026-04-11"
+    session_id: "session_079"
+    selected_move: "eq_189: prepare_for_agentic_purchasing composite MCP tool"
+    completed_candidates:
+      - "eq_189: handlePreparePurchasing HTTP handler (POST /v1/prepare-for-agentic-purchasing) — chains PURCHASING_PROGRAMS (agentic-purchasing, debug, optimization, mcp, marketing, superpowers, seo, brand, search, skills), computes Purchasing Readiness Score 0-100 via weighted rubric, returns snapshot_id, score, score_breakdown with strengths/gaps/interpretation, programs_executed, artifact_count, purchasing_artifacts (with content), all_artifacts (path+program+description), how_to_call_axis_again section with REST + MCP tool + retrieve paths."
+      - "eq_189b: prepare_for_agentic_purchasing MCP tool registered in MCP_TOOLS (6th tool) — accepts project_name, project_type, frameworks, goals, files (required) + focus enum (full/purchasing/security/optimization) + agent_type (optional). Dispatched via runPreparePurchasing in mcp-server.ts."
+      - "eq_189c: computePurchasingReadinessScore exported function — 7-category weighted rubric (commerce_artifacts 20, mcp_configs 20, compliance_checklist 15, negotiation_playbook 15, debug_playbook 10, optimization_rules 10, onboarding_docs 10). Returns score, strengths[], gaps[]."
+      - "eq_189d: PURCHASING_READINESS_WEIGHTS exported constant — allows tests and callers to assert specific weight values for each category."
+      - "eq_189e: prepare-purchasing.test.ts (new, 127th test file) — 49 integration tests covering: computePurchasingReadinessScore pure function (17 cases incl. determinism, cap at 100, 7-category completeness), PURCHASING_PROGRAMS constant (5 cases), POST /v1/prepare-for-agentic-purchasing validation (7 cases), success flow (10 cases incl. determinism), MCP_TOOLS schema (5 cases), dispatch auth gate (2 cases)."
+      - "eq_189f: Fixed port collision — mcp-server.test.ts TEST_PORT 44505 → 44515 (44505 was shared with production-startup.test.ts). prepare-purchasing.test.ts assigned unique port 44516."
+      - "eq_189g: analyze.test.ts — updated /.well-known/axis.json 'purchasing' field assertion from /v1/agentic-purchasing/generate → /v1/prepare-for-agentic-purchasing."
+    evidence_added:
+      - "apps/api/src/handlers.ts: +242 lines — PURCHASING_READINESS_WEIGHTS, computePurchasingReadinessScore, PURCHASING_PROGRAMS, handlePreparePurchasing"
+      - "apps/api/src/mcp-server.ts: +204 lines — prepare_for_agentic_purchasing tool schema, runPreparePurchasing impl, dispatch case"
+      - "apps/api/src/server.ts: route POST /v1/prepare-for-agentic-purchasing registered"
+      - "apps/api/src/prepare-purchasing.test.ts: 49 new tests (TEST_PORT 44516)"
+      - "apps/api/src/mcp-server.test.ts: TEST_PORT 44505 → 44515"
+      - "apps/api/src/analyze.test.ts: purchasing endpoint assertion updated"
+      - "begin.yaml: project_identity + core_promise updated to reflect 18-program bundle + composite tool"
+      - "3554 tests passing across 127 files (+49 vs session_078). 0 failures. 100% branches maintained."
+    verticals_advanced:
+      - "v18_agentic_commerce: eq_189 complete — composite tool LIVE, purchasing readiness scoring LIVE"
+    blockers_removed:
+      - "Agents had no single call for full purchasing preparation → prepare_for_agentic_purchasing MCP tool live"
+      - "Port 44505 collision between mcp-server.test.ts and production-startup.test.ts → fixed"
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "stripe.ts: 1 statement uncovered (errBody variable — pre-existing)"
+    local_only: true

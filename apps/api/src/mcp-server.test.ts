@@ -9,7 +9,7 @@ import {
 } from "./billing.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44505;
+const TEST_PORT = 44515;
 let server: Server;
 let apiKey = "";
 let snapshotId = "";
@@ -204,13 +204,13 @@ describe("POST /mcp — ping", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns all 5 tools", async () => {
+  it("returns all 6 tools", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     expect(tools.length).toBe(MCP_TOOLS.length);
-    expect(tools.length).toBe(5);
+    expect(tools.length).toBe(6);
   });
 
   it("each tool has name, description, inputSchema", async () => {

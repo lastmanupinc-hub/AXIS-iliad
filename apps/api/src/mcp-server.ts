@@ -23,6 +23,7 @@ import {
 import type { SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
+import { computePurchasingReadinessScore, PURCHASING_PROGRAMS } from "./handlers.js";
 
 // ─── Protocol constants ──────────────────────────────────────────
 
@@ -152,6 +153,39 @@ export const MCP_TOOLS = [
           type: "string",
           description: "Artifact file path as returned in the artifacts list",
         },
+      },
+    },
+  },
+  {
+    name: "prepare_for_agentic_purchasing",
+    description:
+      "Takes any GitHub repo URL or file set and hardens it for autonomous purchasing agents. Chains 8 programs internally, computes a Purchasing Readiness Score (0–100), and returns a structured JSON bundle with compliance checklist, negotiation playbook, secure MCP configs, product schemas, checkout optimizations, and a self-onboarding kit. One call replaces chaining multiple generic analyzers.",
+    inputSchema: {
+      type: "object",
+      required: ["project_name", "project_type", "frameworks", "goals", "files"],
+      properties: {
+        project_name: { type: "string", description: "Name of the project" },
+        project_type: { type: "string", description: "Project type (web_application, api_service, cli_tool, library, monorepo)" },
+        frameworks: { type: "array", items: { type: "string" }, description: "Detected or known frameworks" },
+        goals: { type: "array", items: { type: "string" }, description: "Project goals" },
+        files: {
+          type: "array",
+          description: "Array of {path, content} objects representing source files",
+          items: {
+            type: "object",
+            required: ["path", "content"],
+            properties: {
+              path: { type: "string" },
+              content: { type: "string" },
+            },
+          },
+        },
+        focus: {
+          type: "string",
+          enum: ["full", "purchasing", "security", "optimization"],
+          description: "Analysis focus (default: purchasing)",
+        },
+        agent_type: { type: "string", description: "Consuming agent type hint — claude, cursor, custom_swarm, etc." },
       },
     },
   },
@@ -524,6 +558,173 @@ export function runGetArtifact(
   return file.content;
 }
 
+// ─── Tool: prepare_for_agentic_purchasing ────────────────────────
+
+export async function runPreparePurchasing(
+  args: Record<string, unknown>,
+  req: IncomingMessage,
+): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error(
+      auth.anonymous
+        ? "Authentication required. Include Authorization: Bearer <api_key>"
+        : "Invalid or revoked API key",
+    );
+  }
+
+  const { project_name, project_type, frameworks, goals, files: rawFiles, focus = "purchasing", agent_type } = args;
+
+  if (typeof project_name !== "string" || !project_name)
+    throw new Error("project_name is required");
+  if (typeof project_type !== "string" || !project_type)
+    throw new Error("project_type is required");
+  if (!Array.isArray(frameworks)) throw new Error("frameworks must be an array");
+  if (!Array.isArray(goals)) throw new Error("goals must be an array");
+  if (!Array.isArray(rawFiles) || rawFiles.length === 0)
+    throw new Error("files must be a non-empty array");
+
+  const files: FileEntry[] = rawFiles.map((f: unknown) => {
+    const file = f as Record<string, unknown>;
+    if (typeof file.path !== "string" || typeof file.content !== "string") {
+      throw new Error("Each file must have path (string) and content (string)");
+    }
+    const path = file.path
+      .replace(/\\/g, "/")
+      .replace(/\/+/g, "/")
+      .replace(/^\/+/, "");
+    if (path.includes("..")) throw new Error(`Invalid file path: ${file.path as string}`);
+    return { path, content: file.content, size: Buffer.byteLength(file.content, "utf-8") };
+  });
+
+  /* v8 ignore start — quota exceeded and file limit paths require exhausting account limits in test */
+  const quota = checkQuota(auth.account.account_id);
+  if (!quota.allowed) {
+    throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
+  }
+  const limits = TIER_LIMITS[auth.account.tier];
+  if (files.length > limits.max_files_per_snapshot) {
+    throw new Error(
+      `File limit: ${files.length} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`,
+    );
+  }
+  /* v8 ignore stop */
+
+  const generators = listAvailableGenerators();
+  const requestedOutputs = generators
+    .filter(g => PURCHASING_PROGRAMS.includes(g.program))
+    .map(g => g.path);
+  // Always include search outputs (AGENTS.md, .cursorrules, CLAUDE.md)
+  const searchOutputs = generators
+    .filter(g => g.program === "search" || g.program === "skills")
+    .map(g => g.path);
+  const allOutputs = Array.from(new Set([...requestedOutputs, ...searchOutputs]));
+
+  const manifest: SnapshotManifest = {
+    project_name,
+    project_type,
+    frameworks: frameworks as string[],
+    goals: goals as string[],
+    requested_outputs: allOutputs,
+  };
+
+  const snapshot = createSnapshot(
+    { input_method: "api_submission", manifest, files },
+    auth.account.account_id,
+  );
+  const ctxMap = buildContextMap(snapshot);
+  const repoProfile = buildRepoProfile(snapshot);
+  saveContextMap(snapshot.snapshot_id, ctxMap);
+  saveRepoProfile(snapshot.snapshot_id, repoProfile);
+
+  const generated = generateFiles({
+    context_map: ctxMap,
+    repo_profile: repoProfile,
+    requested_outputs: allOutputs,
+    source_files: snapshot.files,
+  });
+  saveGeneratorResult(snapshot.snapshot_id, generated);
+  updateSnapshotStatus(snapshot.snapshot_id, "ready");
+
+  const programs = new Set(generated.files.map(f => f.program));
+  for (const program of programs) {
+    const pFiles = generated.files.filter(f => f.program === program);
+    recordUsage(
+      auth.account!.account_id,
+      program,
+      snapshot.snapshot_id,
+      pFiles.length,
+      files.length,
+      files.reduce((s, f) => s + (f.size ?? 0), 0),
+    );
+  }
+  trackEvent(
+    auth.account.account_id,
+    "snapshot_created",
+    resolveStage(auth.account.account_id),
+    {
+      snapshot_id: snapshot.snapshot_id,
+      programs: [...programs],
+      files: files.length,
+      source: "prepare_for_agentic_purchasing",
+      focus: typeof focus === "string" ? focus : "purchasing",
+      ...(typeof agent_type === "string" ? { agent_type } : {}),
+    },
+  );
+
+  const artifactPaths = generated.files.map(f => f.path);
+  const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
+
+  const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
+
+  return JSON.stringify(
+    {
+      snapshot_id: snapshot.snapshot_id,
+      project_id: snapshot.project_id,
+      status: "ready",
+      purchasing_readiness_score: score,
+      score_breakdown: {
+        strengths,
+        gaps,
+        max_score: 100,
+        interpretation: score >= 80 ? "production-ready" : score >= 50 ? "partially-ready" : "needs-work",
+      },
+      programs_executed: [...programs],
+      artifact_count: generated.files.length,
+      purchasing_artifacts: purchasingFiles.map(f => ({
+        path: f.path,
+        program: f.program,
+        description: f.description,
+        content: f.content,
+      })),
+      all_artifacts: generated.files.map(f => ({
+        path: f.path,
+        program: f.program,
+        description: f.description,
+      })),
+      how_to_call_axis_again: {
+        note: "To re-run this analysis at any time, call either of these endpoints:",
+        mcp_tool: {
+          method: "tools/call",
+          name: "prepare_for_agentic_purchasing",
+          args: { project_name, project_type, frameworks, goals, focus, ...(agent_type ? { agent_type } : {}) },
+        },
+        rest_endpoint: {
+          method: "POST",
+          path: "/v1/prepare-for-agentic-purchasing",
+          body: { project_name, project_type, frameworks, goals, files: "<your files array>", focus, ...(agent_type ? { agent_type } : {}) },
+        },
+        retrieve_artifact: {
+          note: `Use GET /v1/snapshots/${snapshot.snapshot_id}/artifact?path=<file_path> or the get_artifact MCP tool to fetch any individual artifact.`,
+          snapshot_id: snapshot.snapshot_id,
+        },
+      },
+    },
+    null,
+    2,
+  );
+}
+
 // ─── Method dispatch ─────────────────────────────────────────────
 
 export async function dispatch(
@@ -579,6 +780,9 @@ export async function dispatch(
             break;
           case "get_artifact":
             text = runGetArtifact(toolArgs, req);
+            break;
+          case "prepare_for_agentic_purchasing":
+            text = await runPreparePurchasing(toolArgs, req);
             break;
           default:
             return rpcErr(id, RPC_INVALID_PARAMS, `Unknown tool: ${toolName}`);

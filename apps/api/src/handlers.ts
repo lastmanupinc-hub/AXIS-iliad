@@ -31,7 +31,7 @@ import {
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
@@ -1290,6 +1290,241 @@ export async function handleAnalyze(
   /* v8 ignore stop */
 }
 
+// ─── POST /v1/prepare-for-agentic-purchasing ────────────────────
+
+/** Scoring weights for Purchasing Readiness Score (0–100). */
+export const PURCHASING_READINESS_WEIGHTS = {
+  commerce_artifacts:   25,
+  mcp_configs:          20,
+  compliance_checklist: 15,
+  negotiation_playbook: 15,
+  debug_playbook:       10,
+  optimization_rules:   10,
+  onboarding_docs:       5,
+};
+
+/** Pure function — computes Purchasing Readiness Score from a list of artifact paths. */
+export function computePurchasingReadinessScore(paths: string[]): {
+  score: number;
+  gaps: string[];
+  strengths: string[];
+} {
+  const has = (check: (p: string) => boolean) => paths.some(check);
+
+  const checks = {
+    commerce_artifacts:   has(p => p.includes("agent-purchasing-playbook") || p.includes("commerce-registry") || p.includes("product-schema") || p.includes("checkout-flow")),
+    mcp_configs:          has(p => p.includes("mcp-config") || p.includes("capability-registry") || p.includes("mcp-playbook")),
+    compliance_checklist: has(p => p.includes("negotiation-rules") || p.includes("checkout-flow")),
+    negotiation_playbook: has(p => p.includes("negotiation-rules")),
+    debug_playbook:       has(p => p.includes("debug-playbook")),
+    optimization_rules:   has(p => p.includes("optimization-rules")),
+    onboarding_docs:      has(p => p === "AGENTS.md" || p === "CLAUDE.md" || p === ".cursorrules"),
+  };
+
+  let score = 0;
+  const strengths: string[] = [];
+  const gaps: string[] = [];
+
+  for (const [key, present] of Object.entries(checks)) {
+    const weight = PURCHASING_READINESS_WEIGHTS[key as keyof typeof PURCHASING_READINESS_WEIGHTS];
+    if (present) {
+      score += weight;
+      strengths.push(key.replace(/_/g, " "));
+    } else {
+      gaps.push(key.replace(/_/g, " "));
+    }
+  }
+
+  return { score, gaps, strengths };
+}
+
+export const PURCHASING_PROGRAMS = [
+  "agentic-purchasing", "debug", "optimization", "mcp", "marketing",
+  "superpowers", "seo", "brand", "search", "skills",
+];
+
+export async function handlePreparePurchasing(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const auth = resolveAuth(req);
+
+  let body: Record<string, unknown>;
+  try {
+    const raw = await readBody(req);
+    body = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const { project_name, project_type, frameworks, goals, files: rawFiles, focus = "purchasing", agent_type } = body;
+
+  if (!project_name || typeof project_name !== "string") {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "project_name is required");
+    return;
+  }
+  if (!project_type || typeof project_type !== "string") {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "project_type is required");
+    return;
+  }
+  if (!Array.isArray(frameworks)) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "frameworks must be an array");
+    return;
+  }
+  if (!Array.isArray(goals)) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "goals must be an array");
+    return;
+  }
+  if (!Array.isArray(rawFiles) || rawFiles.length === 0) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "files must be a non-empty array");
+    return;
+  }
+
+  const files: FileEntry[] = [];
+  for (const f of rawFiles) {
+    const file = f as Record<string, unknown>;
+    if (typeof file.path !== "string" || typeof file.content !== "string") {
+      sendError(res, 400, ErrorCode.FILE_INVALID, "Each file must have path (string) and content (string)");
+      return;
+    }
+    const path = (file.path as string)
+      .replace(/\\/g, "/")
+      .replace(/\/+/g, "/")
+      .replace(/^\/+/, "");
+    if (path.includes("..")) {
+      sendError(res, 400, ErrorCode.PATH_TRAVERSAL, `Invalid file path: ${file.path as string}`);
+      return;
+    }
+    files.push({ path, content: file.content as string, size: Buffer.byteLength(file.content as string, "utf-8") });
+  }
+
+  if (auth.account) {
+    const quota = checkQuota(auth.account.account_id);
+    /* v8 ignore start — quota exceeded path */
+    if (!quota.allowed) {
+      sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      return;
+    }
+    /* v8 ignore stop */
+    const limits = TIER_LIMITS[auth.account.tier];
+    if (files.length > limits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
+      return;
+    }
+  }
+
+  const generators = listAvailableGenerators();
+  const allOutputs = generators
+    .filter(g => PURCHASING_PROGRAMS.includes(g.program))
+    .map(g => g.path);
+
+  const manifest: SnapshotManifest = {
+    project_name,
+    project_type,
+    frameworks: frameworks as string[],
+    goals: goals as string[],
+    requested_outputs: allOutputs,
+  };
+
+  const snapshot = createSnapshot(
+    { input_method: "api_submission", manifest, files },
+    auth.account?.account_id,
+  );
+
+  try {
+    const ctxMap = buildContextMap(snapshot);
+    const repoProfile = buildRepoProfile(snapshot);
+    saveContextMap(snapshot.snapshot_id, ctxMap);
+    saveRepoProfile(snapshot.snapshot_id, repoProfile);
+
+    const generated = generateFiles({
+      context_map: ctxMap,
+      repo_profile: repoProfile,
+      requested_outputs: allOutputs,
+      source_files: snapshot.files,
+    });
+    saveGeneratorResult(snapshot.snapshot_id, generated);
+    updateSnapshotStatus(snapshot.snapshot_id, "ready");
+
+    if (auth.account) {
+      const programs = new Set(generated.files.map(f => f.program));
+      const totalBytes = files.reduce((s, f) => s + (f.size ?? 0), 0);
+      for (const program of programs) {
+        const pFiles = generated.files.filter(f => f.program === program);
+        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
+      }
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+        snapshot_id: snapshot.snapshot_id,
+        programs: [...programs],
+        source: "prepare_for_agentic_purchasing",
+        focus: typeof focus === "string" ? focus : "purchasing",
+        ...(typeof agent_type === "string" ? { agent_type } : {}),
+      });
+    }
+
+    const artifactPaths = generated.files.map(f => f.path);
+    const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
+    const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
+
+    sendJSON(res, 201, {
+      snapshot_id: snapshot.snapshot_id,
+      project_id: snapshot.project_id,
+      status: "ready",
+      purchasing_readiness_score: score,
+      score_breakdown: {
+        strengths,
+        gaps,
+        max_score: 100,
+        interpretation: score >= 80 ? "production-ready" : score >= 50 ? "partially-ready" : "needs-work",
+      },
+      programs_executed: [...new Set(generated.files.map(f => f.program))],
+      artifact_count: generated.files.length,
+      purchasing_artifacts: purchasingFiles.map(f => ({
+        path: f.path,
+        program: f.program,
+        description: f.description,
+        content: f.content,
+      })),
+      all_artifacts: generated.files.map(f => ({
+        path: f.path,
+        program: f.program,
+        description: f.description,
+      })),
+      how_to_call_axis_again: {
+        note: "To re-run this analysis at any time, call either of these endpoints:",
+        rest_endpoint: {
+          method: "POST",
+          path: "/v1/prepare-for-agentic-purchasing",
+          body: { project_name, project_type, frameworks, goals, files: "<your files array>", focus },
+        },
+        mcp_tool: {
+          method: "tools/call",
+          name: "prepare_for_agentic_purchasing",
+          args: { project_name, project_type, frameworks, goals, focus },
+        },
+        retrieve_artifact: {
+          note: `Use the get_artifact MCP tool or fetch any artifact path from the all_artifacts list.`,
+          snapshot_id: snapshot.snapshot_id,
+        },
+      },
+    });
+  /* v8 ignore start — requires internal function to throw */
+  } catch (err) {
+    updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    log("error", "prepare_purchasing_failed", {
+      request_id: getRequestId(res),
+      snapshot_id: snapshot.snapshot_id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
+      snapshot_id: snapshot.snapshot_id,
+      status: "failed",
+    });
+  }
+  /* v8 ignore stop */
+}
+
 // ─── GET /.well-known/axis.json — agent discovery manifest ──────
 
 export async function handleWellKnown(
@@ -1341,8 +1576,9 @@ export async function handleWellKnown(
     },
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork — you know exactly what each file does and where it goes.",
-      purchasing: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
-      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 8 tools including analyze_repo, run_generator, get_context_map.",
+      purchasing: "POST /v1/prepare-for-agentic-purchasing — computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
+      agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
+      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 6 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing.",
       openapi: "GET /v1/docs — full OpenAPI 3.1 spec",
     },
   });

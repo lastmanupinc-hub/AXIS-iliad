@@ -449,7 +449,7 @@ describe("GET /.well-known/axis.json", () => {
   it("includes for_agents section with MCP and purchasing info", () => {
     const fa = manifest.for_agents as Record<string, string>;
     expect(fa.mcp_discovery).toContain("GET /mcp");
-    expect(fa.purchasing).toContain("/v1/agentic-purchasing/generate");
+    expect(fa.purchasing).toContain("/v1/prepare-for-agentic-purchasing");
     expect(fa.note).toBeTruthy();
   });
 });

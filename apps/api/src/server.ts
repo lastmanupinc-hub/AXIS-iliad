@@ -25,6 +25,7 @@ import {
   handleAgenticPurchasingGenerate,
   handleGitHubAnalyze,
   handleAnalyze,
+  handlePreparePurchasing,
   handleWellKnown,
   handleHealthCheck,
   handleSearchIndex,
@@ -143,6 +144,7 @@ router.post("/v1/remotion/generate", handleRemotionGenerate);
 router.post("/v1/canvas/generate", handleCanvasGenerate);
 router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
 router.post("/v1/agentic-purchasing/generate", handleAgenticPurchasingGenerate);
+router.post("/v1/prepare-for-agentic-purchasing", handlePreparePurchasing);
 
 // Unified one-call analysis endpoint
 router.post("/v1/analyze", handleAnalyze);
