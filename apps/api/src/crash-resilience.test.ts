@@ -4,7 +4,7 @@ import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { handleHealthCheck } from "./handlers.js";
 
-const TEST_PORT = 44507;
+const TEST_PORT = 44530;
 
 interface Res { status: number; headers: Record<string, string>; body: string }
 
