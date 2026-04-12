@@ -24,6 +24,8 @@ import {
   handleAlgorithmicGenerate,
   handleAgenticPurchasingGenerate,
   handleGitHubAnalyze,
+  handleAnalyze,
+  handleWellKnown,
   handleHealthCheck,
   handleSearchIndex,
   handleSearchQuery,
@@ -142,8 +144,14 @@ router.post("/v1/canvas/generate", handleCanvasGenerate);
 router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
 router.post("/v1/agentic-purchasing/generate", handleAgenticPurchasingGenerate);
 
+// Unified one-call analysis endpoint
+router.post("/v1/analyze", handleAnalyze);
+
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);
+
+// Agent discovery manifest
+router.get("/.well-known/axis.json", handleWellKnown);
 
 // File Content Search
 router.post("/v1/search/index", handleSearchIndex);

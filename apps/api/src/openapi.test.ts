@@ -175,9 +175,9 @@ describe("buildOpenApiSpec", () => {
   });
 
   it("all paths start with /v1/ or are root-level MCP paths", () => {
-    const MCP_ROOT_PATHS = new Set(["/mcp"]);
+    const NON_V1_PATHS = new Set(["/mcp", "/.well-known/axis.json"]);
     for (const path of Object.keys(spec.paths)) {
-      expect(path.startsWith("/v1/") || MCP_ROOT_PATHS.has(path)).toBe(true);
+      expect(path.startsWith("/v1/") || NON_V1_PATHS.has(path)).toBe(true);
     }
   });
 

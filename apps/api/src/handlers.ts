@@ -909,3 +909,441 @@ export async function handleSearchSymbols(
     results,
   });
 }
+
+// ─── POST /v1/analyze — unified one-call analysis endpoint ──────
+
+// Per-file adoption hints (deterministic — same input = same output)
+const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string }> = {
+  "AGENTS.md":                { placement: "repo root", adoption_hint: "Place in repo root. Cursor, Copilot, and Claude auto-load this as codebase context — instant AI grounding." },
+  ".cursorrules":             { placement: "repo root", adoption_hint: "Place in repo root. Cursor reads this at the start of every session to understand your codebase." },
+  "CLAUDE.md":                { placement: "repo root or project system prompt", adoption_hint: "Place in repo root, or paste into your Claude project system prompt for persistent context." },
+  "context-map.json":         { placement: ".ai/", adoption_hint: "Machine-readable dependency graph. Reference from CI pipelines, code tools, or agent tooling." },
+  "debug-playbook.md":        { placement: ".ai/", adoption_hint: "Share with your on-call team. Agents use this for automated incident triage and postmortem generation." },
+  "incident-template.md":     { placement: "incident management system", adoption_hint: "Import as a template in PagerDuty, Linear, or your incident tracker." },
+  "tracing-rules.md":         { placement: ".ai/", adoption_hint: "Add to your observability runbook. Governs trace sampling, span naming, and alert routing." },
+  "root-cause-checklist.md":  { placement: ".ai/", adoption_hint: "Reference during postmortems. Systematizes root cause analysis — reduces MTTR." },
+  "skills.json":              { placement: ".ai/", adoption_hint: "Add to your agent's context. Lists every detectable capability in this codebase." },
+  "skill-map.md":             { placement: ".ai/", adoption_hint: "Human-readable capability index. Share with new team members or AI assistants onboarding to the repo." },
+  "component-guidelines.md":  { placement: ".ai/", adoption_hint: "Reference when writing UI components. AI assistants use this to match your design system conventions." },
+  "layout-patterns.md":       { placement: ".ai/", adoption_hint: "Reference for page-level layout decisions. Prevents AI from generating patterns you've already ruled out." },
+  "ui-audit.md":              { placement: ".ai/", adoption_hint: "Review with your design team. Flags inconsistencies in component usage, spacing, and accessibility." },
+  "frontend-rules.md":        { placement: ".ai/", adoption_hint: "Reference in Cursor/Copilot chat when building UI. Locks in your frontend conventions." },
+  "seo-rules.md":             { placement: ".ai/", adoption_hint: "Add to your CMS or content pipeline. Ensures every page follows your SEO governance rules." },
+  "schema-recommendations.json": { placement: ".ai/", adoption_hint: "Add JSON-LD structured data to your pages. Each route gets the right schema type." },
+  "route-priority-map.md":    { placement: ".ai/", adoption_hint: "Use for sitemap generation and crawl budget allocation. Reference in your deployment pipeline." },
+  "content-audit.md":         { placement: ".ai/", adoption_hint: "Review with your content team. Identifies thin content, duplicate metadata, and coverage gaps." },
+  "meta-tag-audit.json":      { placement: ".ai/", adoption_hint: "Feed to your SEO tooling. Per-route meta tag analysis in machine-readable format." },
+  "optimization-rules.md":    { placement: ".ai/", adoption_hint: "Reference in code review. Locks in performance and cost optimization patterns for AI-assisted work." },
+  "prompt-diff-report.md":    { placement: ".ai/", adoption_hint: "Use before/after AI-assisted sessions to measure prompt quality drift and output consistency." },
+  "cost-estimate.json":       { placement: ".ai/", adoption_hint: "Import into your billing dashboard or cost tracking pipeline. Per-operation token cost model." },
+  "token-budget-plan.md":     { placement: ".ai/", adoption_hint: "Reference when designing AI features. Prevents unbounded token spend by establishing per-operation budgets." },
+  "design-tokens.json":       { placement: ".ai/ or design system repo", adoption_hint: "Import into Figma via Token Studio, or your CSS-in-JS token pipeline. Single source of truth for design values." },
+  "theme.css":                { placement: "styles/ or global CSS", adoption_hint: "Import in your global stylesheet. All design tokens as CSS custom properties, ready to use." },
+  "theme-guidelines.md":      { placement: ".ai/", adoption_hint: "Reference when building UI themes. AI assistants use this to stay on-brand." },
+  "component-theme-map.json": { placement: ".ai/", adoption_hint: "Maps each component to its design token set. Feed to your Storybook or design system tooling." },
+  "dark-mode-tokens.json":    { placement: ".ai/ or design system repo", adoption_hint: "Import your dark mode token layer. Works with design-tokens.json as the light-mode base." },
+  "brand-guidelines.md":      { placement: ".ai/ or brand portal", adoption_hint: "Share with copywriters, designers, and AI content tools. Establishes brand voice and usage rules." },
+  "voice-and-tone.md":        { placement: ".ai/", adoption_hint: "Add to your AI writing tool system prompts. Ensures generated copy matches your brand voice." },
+  "content-constraints.md":   { placement: ".ai/", adoption_hint: "Add to AI content generation workflows. Lists banned phrases, required disclaimers, and tone rules." },
+  "messaging-system.yaml":    { placement: ".ai/", adoption_hint: "Machine-readable messaging hierarchy. Reference from CMS, email, and campaign tooling." },
+  "channel-rulebook.md":      { placement: ".ai/", adoption_hint: "Reference per channel when publishing. Governs tone, format, and frequency for each distribution channel." },
+  "superpower-pack.md":       { placement: ".ai/", adoption_hint: "Add to your AI assistant context. Unlocks codebase-specific capabilities not visible from file structure alone." },
+  "workflow-registry.json":   { placement: ".ai/", adoption_hint: "Feed to your CI/CD automation and agent task runners. Machine-readable workflow catalog." },
+  "test-generation-rules.md": { placement: ".ai/", adoption_hint: "Add to your AI test generation workflow. Locks in naming conventions, coverage thresholds, and assertion patterns." },
+  "refactor-checklist.md":    { placement: ".ai/", adoption_hint: "Reference before major refactors. Reduces regression risk by surfacing known coupling and constraint patterns." },
+  "automation-pipeline.yaml": { placement: ".ai/ or .github/workflows/", adoption_hint: "Import into your CI/CD pipeline. Automates the highest-ROI codebase maintenance tasks." },
+  "campaign-brief.md":        { placement: ".ai/", adoption_hint: "Share with your marketing team and AI content tools. Grounds campaigns in real product capabilities." },
+  "funnel-map.md":            { placement: ".ai/", adoption_hint: "Reference in analytics and product work. Maps the actual conversion path derived from your codebase." },
+  "sequence-pack.md":         { placement: ".ai/", adoption_hint: "Import into your email/CRM platform. Triggered sequences derived from your actual user journey." },
+  "cro-playbook.md":          { placement: ".ai/", adoption_hint: "Share with your growth team. Actionable conversion experiments matched to your existing UI patterns." },
+  "ab-test-plan.md":          { placement: ".ai/", adoption_hint: "Import into your A/B testing platform. Tests designed for your specific component set and traffic patterns." },
+  "notebook-summary.md":      { placement: ".ai/", adoption_hint: "Add to your Obsidian vault or Notion knowledge base. Structured summary of codebase knowledge." },
+  "source-map.json":          { placement: ".ai/", adoption_hint: "Machine-readable knowledge source graph. Reference from your personal knowledge management tooling." },
+  "study-brief.md":           { placement: ".ai/", adoption_hint: "Share with new engineers or AI assistants learning the codebase. Accelerates onboarding." },
+  "research-threads.md":      { placement: ".ai/", adoption_hint: "Track open architectural questions and investigations. Add to your team wiki or project backlog." },
+  "citation-index.json":      { placement: ".ai/", adoption_hint: "Machine-readable reference index. Feed to note-taking tools, documentation systems, or research agents." },
+  "obsidian-skill-pack.md":   { placement: "Obsidian vault", adoption_hint: "Place in your Obsidian vault. Provides linked codebase knowledge as Obsidian-compatible nodes." },
+  "vault-rules.md":           { placement: "Obsidian vault", adoption_hint: "Governs your vault structure for this project. Ensures consistent linking and tagging." },
+  "graph-prompt-map.json":    { placement: "Obsidian vault or AI tooling", adoption_hint: "Maps graph relationships to prompt templates. Reference from AI-assisted note generation." },
+  "linking-policy.md":        { placement: "Obsidian vault", adoption_hint: "Enforces consistent backlinking strategy. Prevents knowledge graph fragmentation." },
+  "template-pack.md":         { placement: "Obsidian vault", adoption_hint: "Import as Obsidian templates. Each codebase concept gets a structured note template." },
+  "mcp-config.json":          { placement: "MCP client config", adoption_hint: "Add to your MCP client configuration. Agents discover AXIS capabilities automatically — no manual tool registration." },
+  "connector-map.yaml":       { placement: "agent tooling / .ai/", adoption_hint: "Reference from your agent tool registry. Complete map of AXIS connectors and their input/output contracts." },
+  "capability-registry.json": { placement: "agent tooling", adoption_hint: "Exposes all queryable capabilities to agents. Add to your agent's startup context for zero-configuration capability discovery." },
+  "server-manifest.yaml":     { placement: "MCP infrastructure", adoption_hint: "Deploy alongside your MCP server. Complete description of the tool surface, transport, and auth requirements." },
+  "generated-component.tsx":  { placement: "src/components/", adoption_hint: "Drop into your components directory. Production-ready component generated from your design system and conventions." },
+  "dashboard-widget.tsx":     { placement: "src/components/", adoption_hint: "Drop into your dashboard. Data-connected widget generated from your existing component patterns." },
+  "embed-snippet.ts":         { placement: "public/ or CDN", adoption_hint: "Deploy to your CDN or embed in external surfaces. Zero-dependency, self-contained." },
+  "artifact-spec.md":         { placement: ".ai/", adoption_hint: "Reference when generating new artifacts. Documents the artifact schema and generation constraints." },
+  "component-library.json":   { placement: ".ai/ or Storybook config", adoption_hint: "Machine-readable component catalog. Import into Storybook, Chromatic, or design system tooling." },
+  "remotion-script.ts":       { placement: "remotion/", adoption_hint: "Drop into your Remotion project. Generates video from your actual codebase data — not placeholder content." },
+  "scene-plan.md":            { placement: ".ai/", adoption_hint: "Reference when storyboarding. Shot-by-shot plan derived from your real product architecture." },
+  "render-config.json":       { placement: "remotion/ or CI pipeline", adoption_hint: "Import into your Remotion render pipeline. Configures output resolution, fps, and codec per environment." },
+  "asset-checklist.md":       { placement: ".ai/", adoption_hint: "Use before shipping visual assets. Ensures every export format and size variant is accounted for." },
+  "storyboard.md":            { placement: ".ai/", adoption_hint: "Share with your video team. Detailed shot descriptions derived from your product's actual user journey." },
+  "canvas-spec.json":         { placement: ".ai/ or design tooling", adoption_hint: "Machine-readable canvas layout spec. Import into Fabric.js, Konva, or your generative design pipeline." },
+  "social-pack.md":           { placement: ".ai/", adoption_hint: "Send to your social media team. Per-platform design specs derived from your brand system." },
+  "poster-layouts.md":        { placement: ".ai/", adoption_hint: "Reference when generating marketing visuals. Layout system derived from your actual brand dimensions." },
+  "asset-guidelines.md":      { placement: ".ai/", adoption_hint: "Add to your asset management workflow. Governs file naming, versioning, and export conventions." },
+  "brand-board.md":           { placement: ".ai/ or brand portal", adoption_hint: "Share with external agencies and AI design tools. Complete visual identity reference in one document." },
+  "generative-sketch.ts":     { placement: "src/ or sketches/", adoption_hint: "Run with p5.js or your generative art toolchain. Parameters tuned to your brand's visual identity." },
+  "parameter-pack.json":      { placement: ".ai/ or generative tooling", adoption_hint: "Machine-readable parameter space. Feed to your generative art pipeline for constrained randomness." },
+  "collection-map.md":        { placement: ".ai/", adoption_hint: "Reference when building NFT or generative art collections. Maps trait layers to your brand values." },
+  "export-manifest.yaml":     { placement: ".ai/ or CI pipeline", adoption_hint: "Import into your export pipeline. Governs output formats, metadata, and delivery targets." },
+  "variation-matrix.json":    { placement: ".ai/ or generative tooling", adoption_hint: "Machine-readable variation system. Feed to your generative pipeline to produce constrained, on-brand variants." },
+  "agent-purchasing-playbook.md": { placement: "purchasing agent system prompt", adoption_hint: "Add to your purchasing agent's system prompt. Enables authorized, structured procurement against your product catalog." },
+  "product-schema.json":      { placement: "agent tooling", adoption_hint: "Reference from your agent's tool definitions. Validates product structure before any purchase is initiated." },
+  "checkout-flow.md":         { placement: "purchasing agent context", adoption_hint: "Step-by-step purchase protocol for agents. Prevents checkout errors and unauthorized transactions." },
+  "negotiation-rules.md":     { placement: "purchasing agent context", adoption_hint: "Governs agent-to-agent pricing negotiation. Add to your automated procurement context." },
+  "commerce-registry.json":   { placement: "agent tooling / /.well-known/", adoption_hint: "Register with your purchasing agent to enable product discovery, bearer auth, and commerce endpoint routing." },
+};
+
+/** Return placement and adoption hint for a given generated file path. Deterministic. */
+export function adoptionHint(filePath: string): { placement: string; adoption_hint: string } {
+  const basename = filePath.replace(/^.*[\\/]/, "");
+  return ADOPTION_HINTS[basename] ?? ADOPTION_HINTS[filePath] ?? {
+    placement: ".ai/",
+    adoption_hint: "Add to your project's .ai/ directory for AI assistant context.",
+  };
+}
+
+/** Top-priority next steps based on which files were generated. Deterministic (fixed priority order). */
+export function buildNextSteps(files: Array<{ path: string }>): string[] {
+  const paths = new Set(files.map(f => f.path.replace(/^.*[\\/]/, "")));
+  const priority: Array<{ file: string; step: string }> = [
+    { file: "AGENTS.md",           step: "Place AGENTS.md in your repo root — AI coding assistants auto-load codebase context" },
+    { file: ".cursorrules",        step: "Place .cursorrules in your repo root — Cursor reads it at the start of every session" },
+    { file: "CLAUDE.md",           step: "Add CLAUDE.md to your Claude project system prompt for persistent context" },
+    { file: "mcp-config.json",     step: "Add mcp-config.json to your MCP client — agents discover AXIS tools automatically" },
+    { file: "commerce-registry.json", step: "Add commerce-registry.json to your purchasing agent context for structured procurement" },
+    { file: "debug-playbook.md",   step: "Share debug-playbook.md with your on-call team to enable AI-assisted incident triage" },
+    { file: "design-tokens.json",  step: "Import design-tokens.json into your design system pipeline (Figma Token Studio, CSS custom properties)" },
+    { file: "brand-guidelines.md", step: "Share brand-guidelines.md with AI writing and design tools for on-brand generation" },
+  ];
+  const steps: string[] = [];
+  for (const { file, step } of priority) {
+    if (paths.has(file)) steps.push(step);
+    if (steps.length === 3) break;
+  }
+  return steps;
+}
+
+/** Extract project name from package.json or README heading. Returns null if not detectable. */
+export function detectProjectName(files: Array<{ path: string; content: string }>): string | null {
+  const pkg = files.find(f => f.path === "package.json" || f.path.endsWith("/package.json") && !f.path.includes("node_modules"));
+  if (pkg) {
+    try {
+      const parsed = JSON.parse(pkg.content) as Record<string, unknown>;
+      if (typeof parsed.name === "string" && parsed.name.length > 0) return parsed.name;
+    } catch { /* ignore */ }
+  }
+  const readme = files.find(f => f.path === "README.md" || f.path === "readme.md");
+  if (readme) {
+    const match = readme.content.match(/^#\s+(.+)/m);
+    if (match) return match[1].trim().slice(0, 64);
+  }
+  return null;
+}
+
+export async function handleAnalyze(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const githubUrl = body.github_url as string | undefined;
+  const rawFiles = body.files as FileEntry[] | undefined;
+
+  if (!githubUrl && !rawFiles) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "github_url or files is required");
+    return;
+  }
+  if (githubUrl && rawFiles) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Provide github_url or files, not both");
+    return;
+  }
+
+  const rawPrograms = body.programs;
+  if (rawPrograms !== undefined && !Array.isArray(rawPrograms)) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "programs must be an array of strings");
+    return;
+  }
+  const requestedPrograms = rawPrograms as string[] | undefined;
+
+  const inlineContent = body.inline_content !== false;
+
+  const auth = resolveAuth(req);
+  if (!auth.anonymous && !auth.account) {
+    sendError(res, 401, ErrorCode.INVALID_KEY, "Invalid or revoked API key");
+    return;
+  }
+
+  let files: FileEntry[];
+  let inputMethod: SnapshotInput["input_method"];
+  let githubMeta: Record<string, unknown> | undefined;
+
+  if (githubUrl) {
+    const { fetchGitHubRepo, parseGitHubUrl } = await import("./github.js");
+    let parsed;
+    try {
+      parsed = parseGitHubUrl(githubUrl);
+    } catch {
+      sendError(res, 400, ErrorCode.INVALID_FORMAT, "Invalid GitHub URL. Expected: https://github.com/owner/repo");
+      return;
+    }
+    let fetchResult;
+    try {
+      let token = typeof body.token === "string" ? body.token : undefined;
+      if (!token && auth.account) {
+        token = getGitHubTokenDecrypted(auth.account.account_id) ?? undefined;
+      }
+      if (!token) token = process.env.GITHUB_TOKEN ?? undefined;
+      fetchResult = await fetchGitHubRepo(githubUrl, token || undefined);
+    /* v8 ignore start — github fetch errors: tested in handlers-deep.test.ts */
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      const statusMatch = message.match(/returned (\d{3})/);
+      const upstreamStatus = statusMatch ? parseInt(statusMatch[1], 10) : 0;
+      if (upstreamStatus === 429 || upstreamStatus === 403) {
+        sendError(res, 429, ErrorCode.RATE_LIMITED, "GitHub API rate limit reached. Try again later or provide a token.", { retry_after: 60 });
+      } else if (upstreamStatus === 404) {
+        sendError(res, 404, ErrorCode.NOT_FOUND, "GitHub repository not found");
+      } else {
+        sendError(res, 502, ErrorCode.UPSTREAM_ERROR, `Failed to fetch GitHub repo: ${message}`);
+      }
+      return;
+    }
+    /* v8 ignore stop */
+    if (fetchResult.files.length === 0) {
+      sendError(res, 422, ErrorCode.UNPROCESSABLE, "No source files found in repository");
+      return;
+    }
+    files = fetchResult.files;
+    inputMethod = "github_repo_url";
+    githubMeta = {
+      url: githubUrl,
+      owner: parsed.owner,
+      repo: parsed.repo,
+      ref: fetchResult.ref,
+      files_fetched: fetchResult.files.length,
+      files_skipped: fetchResult.skipped_count,
+      total_bytes: fetchResult.total_bytes,
+    };
+  } else {
+    // Direct files mode
+    files = rawFiles!;
+    if (!Array.isArray(files) || files.length === 0) {
+      sendError(res, 400, ErrorCode.MISSING_FIELD, "files array must not be empty");
+      return;
+    }
+    for (const file of files) {
+      if (!file.path || typeof file.content !== "string") {
+        sendError(res, 400, ErrorCode.FILE_INVALID, "Each file must have path (string) and content (string)");
+        return;
+      }
+      file.path = file.path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/+/, "");
+      if (file.path.includes("..")) {
+        sendError(res, 400, ErrorCode.PATH_TRAVERSAL, `Invalid file path: ${file.path}`);
+        return;
+      }
+      file.size = file.size ?? Buffer.byteLength(file.content, "utf-8");
+    }
+    inputMethod = "api_submission";
+    githubMeta = undefined;
+  }
+
+  if (auth.account) {
+    const quota = checkQuota(auth.account.account_id);
+    /* v8 ignore start — quota exceeded path */
+    if (!quota.allowed) {
+      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
+      sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      return;
+    }
+    /* v8 ignore stop */
+    const limits = TIER_LIMITS[auth.account.tier];
+    if (files.length > limits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
+      return;
+    }
+    for (const file of files) {
+      if (file.size > limits.max_file_size_bytes) {
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`);
+        return;
+      }
+    }
+  }
+
+  const projectName = detectProjectName(files) ?? (githubMeta ? `${githubMeta.owner}/${githubMeta.repo}` : "unnamed-project");
+
+  const skillsOutputs = !requestedPrograms || requestedPrograms.includes("skills")
+    ? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"]
+    : [];
+  const allOutputs = [
+    ...skillsOutputs,
+    ...Object.entries(PROGRAM_OUTPUTS)
+      .filter(([prog]) => !requestedPrograms || requestedPrograms.includes(prog))
+      .flatMap(([, outputs]) => outputs),
+  ];
+
+  const input: SnapshotInput = {
+    input_method: inputMethod,
+    manifest: {
+      project_name: projectName as string,
+      project_type: "unknown",
+      frameworks: [],
+      goals: ["analyze", "generate"],
+      requested_outputs: allOutputs,
+    },
+    files,
+    ...(githubUrl ? { github_url: githubUrl } : {}),
+  };
+
+  const snapshot = createSnapshot(input, auth.account?.account_id);
+
+  try {
+    const contextMap = buildContextMap(snapshot);
+    const repoProfile = buildRepoProfile(snapshot);
+
+    saveContextMap(snapshot.snapshot_id, contextMap);
+    saveRepoProfile(snapshot.snapshot_id, repoProfile);
+
+    const generated = generateFiles({
+      context_map: contextMap,
+      repo_profile: repoProfile,
+      requested_outputs: allOutputs,
+      source_files: snapshot.files,
+    });
+    saveGeneratorResult(snapshot.snapshot_id, generated);
+    updateSnapshotStatus(snapshot.snapshot_id, "ready");
+
+    if (auth.account) {
+      const programs = new Set(generated.files.map(f => f.program));
+      const totalBytes = files.reduce((s, f) => s + (f.size ?? 0), 0);
+      for (const program of programs) {
+        const programFiles = generated.files.filter(f => f.program === program);
+        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
+      }
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+        snapshot_id: snapshot.snapshot_id,
+        programs: [...programs],
+        source: "analyze",
+        ...(githubUrl ? { github_url: githubUrl } : {}),
+      });
+    }
+
+    const enrichedFiles = generated.files
+      .filter(f => !requestedPrograms || requestedPrograms.includes(f.program))
+      .map(f => {
+      const hint = adoptionHint(f.path);
+      return {
+        path: f.path,
+        program: f.program,
+        description: f.description,
+        placement: hint.placement,
+        adoption_hint: hint.adoption_hint,
+        ...(inlineContent ? { content: f.content } : {}),
+      };
+    });
+
+    const nextSteps = buildNextSteps(generated.files);
+
+    sendJSON(res, 201, {
+      snapshot_id: snapshot.snapshot_id,
+      project_id: snapshot.project_id,
+      status: "ready",
+      analysis: {
+        project_name: projectName,
+        language: contextMap.project_identity.primary_language,
+        frameworks: contextMap.detection.frameworks.map(fw => fw.name),
+        file_count: files.length,
+        routes_detected: contextMap.routes.length,
+        domain_models_detected: contextMap.domain_models.length,
+        separation_score: repoProfile.health.separation_score,
+      },
+      files: enrichedFiles,
+      programs_run: new Set(enrichedFiles.map(f => f.program)).size,
+      total_files: enrichedFiles.length,
+      next_steps: nextSteps,
+      ...(githubMeta ? { github: githubMeta } : {}),
+    });
+  /* v8 ignore start — requires internal function to throw */
+  } catch (err) {
+    updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    log("error", "analyze_failed", {
+      request_id: getRequestId(res),
+      snapshot_id: snapshot.snapshot_id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    sendError(res, 500, ErrorCode.PROCESS_FAILED, "Processing failed", {
+      snapshot_id: snapshot.snapshot_id,
+      status: "failed",
+    });
+  }
+  /* v8 ignore stop */
+}
+
+// ─── GET /.well-known/axis.json — agent discovery manifest ──────
+
+export async function handleWellKnown(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    name: "AXIS Toolbox",
+    tagline: "Analyze any codebase. Generate 86 structured artifacts across 18 programs.",
+    version: "0.4.0",
+    description: "Submit source files or a GitHub URL. AXIS returns structured AI context files — AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more — each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
+    analyze_endpoint: {
+      method: "POST",
+      path: "/v1/analyze",
+      accepts: ["application/json"],
+      body_options: [
+        { field: "github_url", type: "string", description: "Public GitHub repo URL (https://github.com/owner/repo)" },
+        { field: "files", type: "array", description: "Array of {path, content} objects — your source files directly" },
+      ],
+      optional_fields: [
+        { field: "programs", type: "string[]", description: "Filter to specific programs (e.g. [\"search\",\"mcp\"]). Defaults to all." },
+        { field: "inline_content", type: "boolean", description: "Include file content in response (default: true)" },
+        { field: "token", type: "string", description: "GitHub personal access token for private repos" },
+      ],
+      authentication: {
+        type: "bearer",
+        header: "Authorization: Bearer <api_key>",
+        obtain: "POST /v1/accounts — creates an account and returns raw_key",
+        note: "Anonymous requests are accepted on the free tier",
+      },
+    },
+    programs: 18,
+    generators: 86,
+    key_outputs: [
+      { path: "AGENTS.md",           program: "search",             purpose: "Codebase context for AI coding assistants (Cursor, Copilot, Claude)" },
+      { path: ".cursorrules",        program: "search",             purpose: "Cursor IDE session rules — loaded before every conversation" },
+      { path: "CLAUDE.md",           program: "search",             purpose: "Claude project system prompt context" },
+      { path: "mcp-config.json",     program: "mcp",                purpose: "MCP server configuration — agents discover AXIS tools automatically" },
+      { path: "commerce-registry.json", program: "agentic-purchasing", purpose: "Product catalog and commerce endpoints for purchasing agents" },
+      { path: "agent-purchasing-playbook.md", program: "agentic-purchasing", purpose: "Authorized procurement protocol for autonomous agents" },
+      { path: "debug-playbook.md",   program: "debug",              purpose: "Incident triage and postmortem generation context" },
+      { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens — import into Figma, CSS, or component library" },
+    ],
+    quick_start: {
+      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key",
+      step_2: "POST /v1/analyze with {github_url: 'https://github.com/your/repo'} and Authorization: Bearer <raw_key>",
+      step_3: "Read adoption_hint on each returned file to know exactly where to place it",
+      step_4: "Place AGENTS.md in repo root — AI assistants auto-load it immediately",
+    },
+    for_agents: {
+      note: "Every file in the response includes placement and adoption_hint fields. No guesswork — you know exactly what each file does and where it goes.",
+      purchasing: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
+      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 8 tools including analyze_repo, run_generator, get_context_map.",
+      openapi: "GET /v1/docs — full OpenAPI 3.1 spec",
+    },
+  });
+}

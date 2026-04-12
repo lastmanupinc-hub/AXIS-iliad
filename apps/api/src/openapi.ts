@@ -231,6 +231,25 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // ── Programs ──
       ...programEndpoints(),
 
+      // ── Analyze (unified one-call endpoint) ──
+      "/v1/analyze": {
+        post: {
+          summary: "Analyze a codebase — one call returns all AI context files with adoption hints",
+          operationId: "analyze",
+          tags: ["Analyze"],
+          requestBody: jsonBody(ref("AnalyzeRequest")),
+          responses: {
+            201: { description: "Analysis complete — files with content, placement, and adoption_hint", content: jsonContent(ref("AnalyzeResponse")) },
+            400: { description: "Validation error", content: jsonContent(ref("ErrorResponse")) },
+            401: { description: "Invalid or revoked API key" },
+            413: { description: "File count or size limit exceeded" },
+            422: { description: "No source files found" },
+            429: { description: "Rate limit or quota exceeded" },
+            502: { description: "GitHub upstream error" },
+          },
+        },
+      },
+
       // ── GitHub ──
       "/v1/github/analyze": {
         post: {
@@ -242,6 +261,18 @@ export function buildOpenApiSpec(): OpenApiSpec {
             201: { description: "Snapshot created from GitHub repo" },
             400: { description: "Invalid GitHub URL" },
             404: { description: "Repository not found or inaccessible" },
+          },
+        },
+      },
+
+      // ── Agent discovery manifest ──
+      "/.well-known/axis.json": {
+        get: {
+          summary: "Agent discovery manifest — describes how to use AXIS programmatically",
+          operationId: "getWellKnown",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Machine-readable AXIS capability manifest" },
           },
         },
       },
@@ -832,6 +863,58 @@ export function buildOpenApiSpec(): OpenApiSpec {
           required: ["github_url"],
           properties: {
             github_url: { type: "string", format: "uri", description: "GitHub repository URL (https://github.com/owner/repo)" },
+          },
+        },
+        AnalyzeRequest: {
+          type: "object",
+          properties: {
+            github_url: { type: "string", format: "uri", description: "Public GitHub repo URL. Provide this or files, not both." },
+            files: {
+              type: "array",
+              items: { type: "object", required: ["path", "content"], properties: { path: { type: "string" }, content: { type: "string" }, size: { type: "integer" } } },
+              description: "Source files array. Provide this or github_url, not both.",
+            },
+            programs: { type: "array", items: { type: "string" }, description: "Filter to specific programs. Omit for all entitled programs." },
+            inline_content: { type: "boolean", default: true, description: "Include file content in response (default: true)" },
+            token: { type: "string", description: "GitHub personal access token for private repos" },
+          },
+        },
+        AnalyzeResponse: {
+          type: "object",
+          properties: {
+            snapshot_id: { type: "string" },
+            project_id: { type: "string" },
+            status: { type: "string", enum: ["ready"] },
+            analysis: {
+              type: "object",
+              properties: {
+                project_name: { type: "string" },
+                language: { type: "string" },
+                frameworks: { type: "array", items: { type: "string" } },
+                file_count: { type: "integer" },
+                routes_detected: { type: "integer" },
+                domain_models_detected: { type: "integer" },
+                separation_score: { type: "number", minimum: 0, maximum: 1 },
+              },
+            },
+            files: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  path: { type: "string" },
+                  program: { type: "string" },
+                  description: { type: "string" },
+                  placement: { type: "string" },
+                  adoption_hint: { type: "string" },
+                  content: { type: "string", description: "File content (present when inline_content is true)" },
+                },
+              },
+            },
+            programs_run: { type: "integer" },
+            total_files: { type: "integer" },
+            next_steps: { type: "array", items: { type: "string" }, description: "Top 3 highest-impact things to do with these files right now" },
+            github: { type: "object", description: "Present only when github_url was used" },
           },
         },
         ProgramRequest: {
