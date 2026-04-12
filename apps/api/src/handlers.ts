@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createMppPaymentUrl, sendPaymentRequired } from "./stripe.js";
+import { chargeMpp } from "./mpp.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -38,11 +38,11 @@ import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 
-// ─── Ownership helpers ──────────────────────────────────────────
+// â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
 function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
-  if (!snapshot.account_id) return true; // anonymous snapshot — accessible by ID knowledge
+  if (!snapshot.account_id) return true; // anonymous snapshot  -  accessible by ID knowledge
   const auth = resolveAuth(req);
   if (!auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
@@ -71,7 +71,7 @@ function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_
   return true;
 }
 
-// ─── Per-program default outputs ────────────────────────────────
+// â”€â”€â”€ Per-program default outputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug:        [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
@@ -92,7 +92,7 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   "agentic-purchasing": ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json"],
 };
 
-// ─── Generic program handler factory ────────────────────────────
+// â”€â”€â”€ Generic program handler factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   return async function (req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -143,7 +143,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   };
 }
 
-// ─── Program handlers (generated from PROGRAM_OUTPUTS) ──────────
+// â”€â”€â”€ Program handlers (generated from PROGRAM_OUTPUTS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const handleDebugAnalyze        = makeProgramHandler("debug", PROGRAM_OUTPUTS.debug);
 export const handleFrontendAudit       = makeProgramHandler("frontend", PROGRAM_OUTPUTS.frontend);
@@ -228,16 +228,22 @@ export async function handleCreateSnapshot(
   // Check quota if authenticated
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore start — quota exceeded path tested but V8 won't credit compound ternary */
+    /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
-      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
-      if (paymentUrl) {
-        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
-      } else {
+      const mppResult = await chargeMpp(req, res, {
+        amount: auth.account.tier === "free" ? "39.00" : "0.50",
+        currency: "usd",
+        decimals: 2,
+        description: auth.account.tier === "free"
+          ? "AXIS Toolbox Pro  -  $39/month"
+          : "AXIS API Credit  -  $0.50",
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+      });
+      if (mppResult === null) {
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
       }
-      return;
+      if (mppResult === null || mppResult.status === 402) return;
     }
     /* v8 ignore stop */
 
@@ -297,7 +303,7 @@ export async function handleCreateSnapshot(
       repo_profile: repoProfile,
       generated_files: generated.files.map(f => ({ path: f.path, program: f.program, description: f.description })),
     });
-  /* v8 ignore start — requires internal processing function to throw */
+  /* v8 ignore start  -  requires internal processing function to throw */
   } catch (err) {
     updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "snapshot_processing_failed", {
@@ -359,7 +365,7 @@ export async function handleDeleteSnapshot(
     }
   }
   const deleted = deleteSnapshot(snapshot_id);
-  /* v8 ignore next 3 — deleteSnapshot always succeeds when snapshot exists */
+  /* v8 ignore next 3  -  deleteSnapshot always succeeds when snapshot exists */
   if (!deleted) {
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to delete snapshot");
     return;
@@ -415,7 +421,7 @@ export async function handleGetContext(
   const repoProfile = getRepoProfile(latest.snapshot_id);
 
   if (!contextMap || !repoProfile) {
-    sendError(res, 404, ErrorCode.CONTEXT_PENDING, "Context not yet available — snapshot may still be processing");
+    sendError(res, 404, ErrorCode.CONTEXT_PENDING, "Context not yet available  -  snapshot may still be processing");
     return;
   }
 
@@ -444,7 +450,7 @@ export async function handleGetGeneratedFiles(
   const repoProfile = getRepoProfile(latest.snapshot_id);
 
   const generated = getGeneratorResult(latest.snapshot_id) as GeneratorResult | undefined;
-  /* v8 ignore next 3 — V8 quirk: tested but V8 won't credit */
+  /* v8 ignore next 3  -  V8 quirk: tested but V8 won't credit */
   if (!generated) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No generated files available yet");
     return;
@@ -464,7 +470,7 @@ export async function handleHealthCheck(
   res: ServerResponse,
 ): Promise<void> {
   const ready = !isShuttingDown();
-  /* v8 ignore start — shutdown path not tested in unit tests */
+  /* v8 ignore start  -  shutdown path not tested in unit tests */
   sendJSON(res, ready ? 200 : 503, {
     status: ready ? "ok" : "shutting_down",
     service: "axis-api",
@@ -479,7 +485,7 @@ export async function handleDbStats(
   res: ServerResponse,
 ): Promise<void> {
   const stats = getDbStats();
-  /* v8 ignore next — V8 quirk: stats always succeed in test DB */
+  /* v8 ignore next  -  V8 quirk: stats always succeed in test DB */
   sendJSON(res, stats.success ? 200 : 500, stats);
 }
 
@@ -489,7 +495,7 @@ export async function handleDbMaintenance(
 ): Promise<void> {
   const results = runMaintenance();
   const allOk = results.every((r) => r.success);
-  /* v8 ignore next — V8 quirk: maintenance always succeeds in test DB */
+  /* v8 ignore next  -  V8 quirk: maintenance always succeeds in test DB */
   sendJSON(res, allOk ? 200 : 500, { results, success: allOk });
 }
 
@@ -508,13 +514,13 @@ export async function handleGetGeneratedFile(
 
   const latest = snapshots[snapshots.length - 1];
   const generated = getGeneratorResult(latest.snapshot_id) as GeneratorResult | undefined;
-  /* v8 ignore next 3 — V8 quirk: no-generated check tested but V8 won't credit */
+  /* v8 ignore next 3  -  V8 quirk: no-generated check tested but V8 won't credit */
   if (!generated) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No generated files available yet");
     return;
   }
 
-  // Match by path — handle both "AGENTS.md" and ".ai/context-map.json" style
+  // Match by path  -  handle both "AGENTS.md" and ".ai/context-map.json" style
   const decoded = decodeURIComponent(file_path);
   if (decoded.includes("..") || decoded.startsWith("/")) {
     sendError(res, 400, ErrorCode.PATH_TRAVERSAL, "Invalid file path");
@@ -552,7 +558,7 @@ export async function handleSearchExport(
 
   const generated = getGeneratorResult(snapshotId) as GeneratorResult | undefined;
   if (!generated) {
-    sendError(res, 404, ErrorCode.NOT_FOUND, "No results for this snapshot — run POST /v1/snapshots first");
+    sendError(res, 404, ErrorCode.NOT_FOUND, "No results for this snapshot  -  run POST /v1/snapshots first");
     return;
   }
 
@@ -615,7 +621,7 @@ export async function handleSkillsGenerate(
   });
 }
 
-// ─── GitHub URL intake ──────────────────────────────────────────
+// â”€â”€â”€ GitHub URL intake â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleGitHubAnalyze(
   req: IncomingMessage,
@@ -662,7 +668,7 @@ export async function handleGitHubAnalyze(
       token = process.env.GITHUB_TOKEN ?? undefined;
     }
     fetchResult = await fetchGitHubRepo(githubUrl, token || undefined);
-  /* v8 ignore start — GitHub fetch error handling: tested but V8 won't credit all branches */
+  /* v8 ignore start  -  GitHub fetch error handling: tested but V8 won't credit all branches */
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     const statusMatch = message.match(/returned (\d{3})/);
@@ -691,16 +697,22 @@ export async function handleGitHubAnalyze(
   }
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore next 7 — requires exhausting rate quota in tests */
+    /* v8 ignore next 7  -  requires exhausting rate quota in tests */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
-      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
-      if (paymentUrl) {
-        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
-      } else {
+      const mppResult = await chargeMpp(req, res, {
+        amount: auth.account.tier === "free" ? "39.00" : "0.50",
+        currency: "usd",
+        decimals: 2,
+        description: auth.account.tier === "free"
+          ? "AXIS Toolbox Pro  -  $39/month"
+          : "AXIS API Credit  -  $0.50",
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+      });
+      if (mppResult === null) {
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
       }
-      return;
+      if (mppResult === null || mppResult.status === 402) return;
     }
   }
 
@@ -769,7 +781,7 @@ export async function handleGitHubAnalyze(
         total_bytes: fetchResult.total_bytes,
       },
     });
-  /* v8 ignore start — requires internal function to throw during processing */
+  /* v8 ignore start  -  requires internal function to throw during processing */
   } catch (err) {
     updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "github_snapshot_processing_failed", {
@@ -786,7 +798,7 @@ export async function handleGitHubAnalyze(
   /* v8 ignore stop */
 }
 
-// ─── File Content Search API ────────────────────────────────────
+// â”€â”€â”€ File Content Search API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleSearchIndex(
   req: IncomingMessage,
@@ -921,18 +933,18 @@ export async function handleSearchSymbols(
   });
 }
 
-// ─── POST /v1/analyze — unified one-call analysis endpoint ──────
+// â”€â”€â”€ POST /v1/analyze  -  unified one-call analysis endpoint â”€â”€â”€â”€â”€â”€
 
-// Per-file adoption hints (deterministic — same input = same output)
+// Per-file adoption hints (deterministic  -  same input = same output)
 const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string }> = {
-  "AGENTS.md":                { placement: "repo root", adoption_hint: "Place in repo root. Cursor, Copilot, and Claude auto-load this as codebase context — instant AI grounding." },
+  "AGENTS.md":                { placement: "repo root", adoption_hint: "Place in repo root. Cursor, Copilot, and Claude auto-load this as codebase context  -  instant AI grounding." },
   ".cursorrules":             { placement: "repo root", adoption_hint: "Place in repo root. Cursor reads this at the start of every session to understand your codebase." },
   "CLAUDE.md":                { placement: "repo root or project system prompt", adoption_hint: "Place in repo root, or paste into your Claude project system prompt for persistent context." },
   "context-map.json":         { placement: ".ai/", adoption_hint: "Machine-readable dependency graph. Reference from CI pipelines, code tools, or agent tooling." },
   "debug-playbook.md":        { placement: ".ai/", adoption_hint: "Share with your on-call team. Agents use this for automated incident triage and postmortem generation." },
   "incident-template.md":     { placement: "incident management system", adoption_hint: "Import as a template in PagerDuty, Linear, or your incident tracker." },
   "tracing-rules.md":         { placement: ".ai/", adoption_hint: "Add to your observability runbook. Governs trace sampling, span naming, and alert routing." },
-  "root-cause-checklist.md":  { placement: ".ai/", adoption_hint: "Reference during postmortems. Systematizes root cause analysis — reduces MTTR." },
+  "root-cause-checklist.md":  { placement: ".ai/", adoption_hint: "Reference during postmortems. Systematizes root cause analysis  -  reduces MTTR." },
   "skills.json":              { placement: ".ai/", adoption_hint: "Add to your agent's context. Lists every detectable capability in this codebase." },
   "skill-map.md":             { placement: ".ai/", adoption_hint: "Human-readable capability index. Share with new team members or AI assistants onboarding to the repo." },
   "component-guidelines.md":  { placement: ".ai/", adoption_hint: "Reference when writing UI components. AI assistants use this to match your design system conventions." },
@@ -978,7 +990,7 @@ const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string 
   "graph-prompt-map.json":    { placement: "Obsidian vault or AI tooling", adoption_hint: "Maps graph relationships to prompt templates. Reference from AI-assisted note generation." },
   "linking-policy.md":        { placement: "Obsidian vault", adoption_hint: "Enforces consistent backlinking strategy. Prevents knowledge graph fragmentation." },
   "template-pack.md":         { placement: "Obsidian vault", adoption_hint: "Import as Obsidian templates. Each codebase concept gets a structured note template." },
-  "mcp-config.json":          { placement: "MCP client config", adoption_hint: "Add to your MCP client configuration. Agents discover AXIS capabilities automatically — no manual tool registration." },
+  "mcp-config.json":          { placement: "MCP client config", adoption_hint: "Add to your MCP client configuration. Agents discover AXIS capabilities automatically  -  no manual tool registration." },
   "connector-map.yaml":       { placement: "agent tooling / .ai/", adoption_hint: "Reference from your agent tool registry. Complete map of AXIS connectors and their input/output contracts." },
   "capability-registry.json": { placement: "agent tooling", adoption_hint: "Exposes all queryable capabilities to agents. Add to your agent's startup context for zero-configuration capability discovery." },
   "server-manifest.yaml":     { placement: "MCP infrastructure", adoption_hint: "Deploy alongside your MCP server. Complete description of the tool surface, transport, and auth requirements." },
@@ -987,7 +999,7 @@ const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string 
   "embed-snippet.ts":         { placement: "public/ or CDN", adoption_hint: "Deploy to your CDN or embed in external surfaces. Zero-dependency, self-contained." },
   "artifact-spec.md":         { placement: ".ai/", adoption_hint: "Reference when generating new artifacts. Documents the artifact schema and generation constraints." },
   "component-library.json":   { placement: ".ai/ or Storybook config", adoption_hint: "Machine-readable component catalog. Import into Storybook, Chromatic, or design system tooling." },
-  "remotion-script.ts":       { placement: "remotion/", adoption_hint: "Drop into your Remotion project. Generates video from your actual codebase data — not placeholder content." },
+  "remotion-script.ts":       { placement: "remotion/", adoption_hint: "Drop into your Remotion project. Generates video from your actual codebase data  -  not placeholder content." },
   "scene-plan.md":            { placement: ".ai/", adoption_hint: "Reference when storyboarding. Shot-by-shot plan derived from your real product architecture." },
   "render-config.json":       { placement: "remotion/ or CI pipeline", adoption_hint: "Import into your Remotion render pipeline. Configures output resolution, fps, and codec per environment." },
   "asset-checklist.md":       { placement: ".ai/", adoption_hint: "Use before shipping visual assets. Ensures every export format and size variant is accounted for." },
@@ -1022,10 +1034,10 @@ export function adoptionHint(filePath: string): { placement: string; adoption_hi
 export function buildNextSteps(files: Array<{ path: string }>): string[] {
   const paths = new Set(files.map(f => f.path.replace(/^.*[\\/]/, "")));
   const priority: Array<{ file: string; step: string }> = [
-    { file: "AGENTS.md",           step: "Place AGENTS.md in your repo root — AI coding assistants auto-load codebase context" },
-    { file: ".cursorrules",        step: "Place .cursorrules in your repo root — Cursor reads it at the start of every session" },
+    { file: "AGENTS.md",           step: "Place AGENTS.md in your repo root  -  AI coding assistants auto-load codebase context" },
+    { file: ".cursorrules",        step: "Place .cursorrules in your repo root  -  Cursor reads it at the start of every session" },
     { file: "CLAUDE.md",           step: "Add CLAUDE.md to your Claude project system prompt for persistent context" },
-    { file: "mcp-config.json",     step: "Add mcp-config.json to your MCP client — agents discover AXIS tools automatically" },
+    { file: "mcp-config.json",     step: "Add mcp-config.json to your MCP client  -  agents discover AXIS tools automatically" },
     { file: "commerce-registry.json", step: "Add commerce-registry.json to your purchasing agent context for structured procurement" },
     { file: "debug-playbook.md",   step: "Share debug-playbook.md with your on-call team to enable AI-assisted incident triage" },
     { file: "design-tokens.json",  step: "Import design-tokens.json into your design system pipeline (Figma Token Studio, CSS custom properties)" },
@@ -1117,7 +1129,7 @@ export async function handleAnalyze(
       }
       if (!token) token = process.env.GITHUB_TOKEN ?? undefined;
       fetchResult = await fetchGitHubRepo(githubUrl, token || undefined);
-    /* v8 ignore start — github fetch errors: tested in handlers-deep.test.ts */
+    /* v8 ignore start  -  github fetch errors: tested in handlers-deep.test.ts */
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       const statusMatch = message.match(/returned (\d{3})/);
@@ -1172,16 +1184,22 @@ export async function handleAnalyze(
 
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore start — quota exceeded path */
+    /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
-      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
-      if (paymentUrl) {
-        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
-      } else {
+      const mppResult = await chargeMpp(req, res, {
+        amount: auth.account.tier === "free" ? "39.00" : "0.50",
+        currency: "usd",
+        decimals: 2,
+        description: auth.account.tier === "free"
+          ? "AXIS Toolbox Pro  -  $39/month"
+          : "AXIS API Credit  -  $0.50",
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+      });
+      if (mppResult === null) {
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
       }
-      return;
+      if (mppResult === null || mppResult.status === 402) return;
     }
     /* v8 ignore stop */
     const limits = TIER_LIMITS[auth.account.tier];
@@ -1290,7 +1308,7 @@ export async function handleAnalyze(
       next_steps: nextSteps,
       ...(githubMeta ? { github: githubMeta } : {}),
     });
-  /* v8 ignore start — requires internal function to throw */
+  /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
     updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "analyze_failed", {
@@ -1306,9 +1324,9 @@ export async function handleAnalyze(
   /* v8 ignore stop */
 }
 
-// ─── POST /v1/prepare-for-agentic-purchasing ────────────────────
+// â”€â”€â”€ POST /v1/prepare-for-agentic-purchasing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/** Scoring weights for Purchasing Readiness Score (0–100). */
+/** Scoring weights for Purchasing Readiness Score (0â€“100). */
 export const PURCHASING_READINESS_WEIGHTS = {
   commerce_artifacts:   25,
   mcp_configs:          20,
@@ -1319,7 +1337,7 @@ export const PURCHASING_READINESS_WEIGHTS = {
   onboarding_docs:       5,
 };
 
-/** Pure function — computes Purchasing Readiness Score from a list of artifact paths. */
+/** Pure function  -  computes Purchasing Readiness Score from a list of artifact paths. */
 export function computePurchasingReadinessScore(paths: string[]): {
   score: number;
   gaps: string[];
@@ -1417,15 +1435,21 @@ export async function handlePreparePurchasing(
 
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore start — quota exceeded path */
+    /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
-      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
-      if (paymentUrl) {
-        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
-      } else {
+      const mppResult = await chargeMpp(req, res, {
+        amount: auth.account.tier === "free" ? "39.00" : "0.50",
+        currency: "usd",
+        decimals: 2,
+        description: auth.account.tier === "free"
+          ? "AXIS Toolbox Pro  -  $39/month"
+          : "AXIS API Credit  -  $0.50",
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+      });
+      if (mppResult === null) {
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
       }
-      return;
+      if (mppResult === null || mppResult.status === 402) return;
     }
     /* v8 ignore stop */
     const limits = TIER_LIMITS[auth.account.tier];
@@ -1530,7 +1554,7 @@ export async function handlePreparePurchasing(
         },
       },
     });
-  /* v8 ignore start — requires internal function to throw */
+  /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
     updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "prepare_purchasing_failed", {
@@ -1546,7 +1570,7 @@ export async function handlePreparePurchasing(
   /* v8 ignore stop */
 }
 
-// ─── GET /.well-known/axis.json — agent discovery manifest ──────
+// â”€â”€â”€ GET /.well-known/axis.json  -  agent discovery manifest â”€â”€â”€â”€â”€â”€
 
 export async function handleWellKnown(
   _req: IncomingMessage,
@@ -1556,14 +1580,14 @@ export async function handleWellKnown(
     name: "AXIS Toolbox",
     tagline: "Analyze any codebase. Generate 86 structured artifacts across 18 programs.",
     version: "0.4.0",
-    description: "Submit source files or a GitHub URL. AXIS returns structured AI context files — AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more — each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
+    description: "Submit source files or a GitHub URL. AXIS returns structured AI context files  -  AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more  -  each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
     analyze_endpoint: {
       method: "POST",
       path: "/v1/analyze",
       accepts: ["application/json"],
       body_options: [
         { field: "github_url", type: "string", description: "Public GitHub repo URL (https://github.com/owner/repo)" },
-        { field: "files", type: "array", description: "Array of {path, content} objects — your source files directly" },
+        { field: "files", type: "array", description: "Array of {path, content} objects  -  your source files directly" },
       ],
       optional_fields: [
         { field: "programs", type: "string[]", description: "Filter to specific programs (e.g. [\"search\",\"mcp\"]). Defaults to all." },
@@ -1573,7 +1597,7 @@ export async function handleWellKnown(
       authentication: {
         type: "bearer",
         header: "Authorization: Bearer <api_key>",
-        obtain: "POST /v1/accounts — creates an account and returns raw_key",
+        obtain: "POST /v1/accounts  -  creates an account and returns raw_key",
         note: "Anonymous requests are accepted on the free tier",
       },
     },
@@ -1581,34 +1605,34 @@ export async function handleWellKnown(
     generators: 86,
     key_outputs: [
       { path: "AGENTS.md",           program: "search",             purpose: "Codebase context for AI coding assistants (Cursor, Copilot, Claude)" },
-      { path: ".cursorrules",        program: "search",             purpose: "Cursor IDE session rules — loaded before every conversation" },
+      { path: ".cursorrules",        program: "search",             purpose: "Cursor IDE session rules  -  loaded before every conversation" },
       { path: "CLAUDE.md",           program: "search",             purpose: "Claude project system prompt context" },
-      { path: "mcp-config.json",     program: "mcp",                purpose: "MCP server configuration — agents discover AXIS tools automatically" },
+      { path: "mcp-config.json",     program: "mcp",                purpose: "MCP server configuration  -  agents discover AXIS tools automatically" },
       { path: "commerce-registry.json", program: "agentic-purchasing", purpose: "Product catalog and commerce endpoints for purchasing agents" },
       { path: "agent-purchasing-playbook.md", program: "agentic-purchasing", purpose: "Authorized procurement protocol for autonomous agents" },
       { path: "debug-playbook.md",   program: "debug",              purpose: "Incident triage and postmortem generation context" },
-      { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens — import into Figma, CSS, or component library" },
+      { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens  -  import into Figma, CSS, or component library" },
     ],
     quick_start: {
-      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key",
+      step_1: "POST /v1/accounts with {email, name, tier: 'free'} â†’ get raw_key",
       step_2: "POST /v1/analyze with {github_url: 'https://github.com/your/repo'} and Authorization: Bearer <raw_key>",
       step_3: "Read adoption_hint on each returned file to know exactly where to place it",
-      step_4: "Place AGENTS.md in repo root — AI assistants auto-load it immediately",
+      step_4: "Place AGENTS.md in repo root  -  AI assistants auto-load it immediately",
     },
-    llms_txt: "GET /llms.txt — plain-text instructions for AI tools on how to interact with AXIS",
-    skills: "GET /.well-known/skills/index.json — agent skills index following the agentskills.io standard",
+    llms_txt: "GET /llms.txt  -  plain-text instructions for AI tools on how to interact with AXIS",
+    skills: "GET /.well-known/skills/index.json  -  agent skills index following the agentskills.io standard",
     for_agents: {
-      note: "Every file in the response includes placement and adoption_hint fields. No guesswork — you know exactly what each file does and where it goes.",
-      purchasing: "POST /v1/prepare-for-agentic-purchasing — computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
+      note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
+      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0â€“100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
       mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 7 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing, search_and_discover_tools.",
-      search_tools: "GET /v1/mcp/tools?q=<keyword> — search all 18 programs and 86 generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.",
-      openapi: "GET /v1/docs — full OpenAPI 3.1 spec",
+      search_tools: "GET /v1/mcp/tools?q=<keyword>  -  search all 18 programs and 86 generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.",
+      openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
     },
   });
 }
 
-// ─── GET /llms.txt — llmstxt.org standard ───────────────────────
+// â”€â”€â”€ GET /llms.txt  -  llmstxt.org standard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function handleLlmsTxt(
   _req: IncomingMessage,
@@ -1618,14 +1642,14 @@ export function handleLlmsTxt(
 
 > Analyze any codebase. Generate 86 structured AI context artifacts across 18 programs. Makes any repo immediately legible to AI coding assistants, autonomous agents, and purchasing agents.
 
-AXIS Toolbox is an API that accepts source files (or a GitHub URL) and returns structured files — AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, MCP configs, commerce artifacts, brand guidelines, design tokens, and more — each calibrated to the specific codebase.
+AXIS Toolbox is an API that accepts source files (or a GitHub URL) and returns structured files  -  AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, MCP configs, commerce artifacts, brand guidelines, design tokens, and more  -  each calibrated to the specific codebase.
 
 ## Quick Start
 
-- POST /v1/accounts — create account, get API key (free tier available, no auth required)
-- POST /v1/analyze — submit {github_url} or {files:[{path,content}]} → returns 86 artifacts
-- GET /.well-known/axis.json — machine-readable capability manifest
-- GET /v1/mcp/tools?q= — search programs by keyword (no auth required)
+- POST /v1/accounts  -  create account, get API key (free tier available, no auth required)
+- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} â†’ returns 86 artifacts
+- GET /.well-known/axis.json  -  machine-readable capability manifest
+- GET /v1/mcp/tools?q=  -  search programs by keyword (no auth required)
 
 ## MCP Integration
 
@@ -1633,7 +1657,7 @@ Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
 - 7 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools
-- No installation required — connect any MCP-compatible agent to https://axis-api.onrender.com/mcp
+- No installation required  -  connect any MCP-compatible agent to https://axis-api.onrender.com/mcp
 
 ## Programs (18 total)
 
@@ -1644,7 +1668,7 @@ Pro tier: frontend, seo, optimization, theme, brand, superpowers, marketing, not
 
 For autonomous purchasing agents:
 
-- POST /v1/prepare-for-agentic-purchasing — one-call hardener. Chains 8 programs, computes Purchasing Readiness Score (0-100), returns AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow, dispute handling, and self-onboarding kit.
+- POST /v1/prepare-for-agentic-purchasing  -  one-call hardener. Chains 8 programs, computes Purchasing Readiness Score (0-100), returns AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow, dispute handling, and self-onboarding kit.
 - The Purchasing Readiness Score measures: commerce_artifacts (20pts), mcp_configs (20pts), compliance_checklist (15pts), negotiation_playbook (15pts), debug_playbook (10pts), optimization_rules (10pts), onboarding_docs (10pts).
 
 ## Authentication
@@ -1664,7 +1688,7 @@ For autonomous purchasing agents:
   res.end(body);
 }
 
-// ─── GET /.well-known/skills/index.json — agent skills registry ──
+// â”€â”€â”€ GET /.well-known/skills/index.json  -  agent skills registry â”€â”€
 
 export function handleSkillsIndex(
   _req: IncomingMessage,
@@ -1738,13 +1762,13 @@ export function handleSkillsIndex(
   });
 }
 
-// ─── GET /v1/docs.md — plain-text OpenAPI summary ───────────────
+// â”€â”€â”€ GET /v1/docs.md  -  plain-text OpenAPI summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function handleDocsMd(
   _req: IncomingMessage,
   res: ServerResponse,
 ): void {
-  const body = `# AXIS Toolbox API — Plain Text Reference
+  const body = `# AXIS Toolbox API  -  Plain Text Reference
 
 Version: 0.4.0 | Base URL: https://axis-api.onrender.com
 
@@ -1774,41 +1798,41 @@ List all programs with generator counts and output paths. No auth required.
 
 ## Account Management
 
-- \`POST /v1/accounts\` — create account (returns raw_key)
-- \`GET /v1/account\` — get account info (auth required)
-- \`POST /v1/account/keys\` — create additional API keys
-- \`GET /v1/account/keys\` — list keys
-- \`POST /v1/account/keys/:key_id/revoke\` — revoke a key
-- \`GET /v1/account/usage\` — usage stats
-- \`GET /v1/account/quota\` — quota limits
+- \`POST /v1/accounts\`  -  create account (returns raw_key)
+- \`GET /v1/account\`  -  get account info (auth required)
+- \`POST /v1/account/keys\`  -  create additional API keys
+- \`GET /v1/account/keys\`  -  list keys
+- \`POST /v1/account/keys/:key_id/revoke\`  -  revoke a key
+- \`GET /v1/account/usage\`  -  usage stats
+- \`GET /v1/account/quota\`  -  quota limits
 
 ## Snapshot Endpoints (batch workflow)
 
-1. \`POST /v1/snapshots\` — create snapshot with files
-2. \`POST /v1/<program>/generate\` or \`analyze\` — run a specific program
-3. \`GET /v1/projects/:project_id/generated-files\` — retrieve results
-4. \`GET /v1/projects/:project_id/export\` — download ZIP
+1. \`POST /v1/snapshots\`  -  create snapshot with files
+2. \`POST /v1/<program>/generate\` or \`analyze\`  -  run a specific program
+3. \`GET /v1/projects/:project_id/generated-files\`  -  retrieve results
+4. \`GET /v1/projects/:project_id/export\`  -  download ZIP
 
 ## MCP (Model Context Protocol)
 
-- \`POST /mcp\` — Streamable HTTP transport (2025-03-26 spec)
-- \`GET /mcp\` — SSE stream for long-running operations
+- \`POST /mcp\`  -  Streamable HTTP transport (2025-03-26 spec)
+- \`GET /mcp\`  -  SSE stream for long-running operations
 - 7 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools
 
 ## Search & Indexing
 
-- \`POST /v1/search/index\` — build full-text index for a snapshot
-- \`POST /v1/search/query\` — query indexed content
-- \`GET /v1/search/:snapshot_id/stats\` — index statistics
-- \`GET /v1/search/:snapshot_id/symbols\` — symbol list
+- \`POST /v1/search/index\`  -  build full-text index for a snapshot
+- \`POST /v1/search/query\`  -  query indexed content
+- \`GET /v1/search/:snapshot_id/stats\`  -  index statistics
+- \`GET /v1/search/:snapshot_id/symbols\`  -  symbol list
 
 ## Discovery
 
-- \`GET /.well-known/axis.json\` — machine-readable capability manifest
-- \`GET /.well-known/skills/index.json\` — agent skills registry (agentskills.io standard)
-- \`GET /llms.txt\` — plain-text AI tool instructions (llmstxt.org standard)
-- \`GET /v1/docs\` — full OpenAPI 3.1 spec (JSON)
-- \`GET /v1/docs.md\` — this document
+- \`GET /.well-known/axis.json\`  -  machine-readable capability manifest
+- \`GET /.well-known/skills/index.json\`  -  agent skills registry (agentskills.io standard)
+- \`GET /llms.txt\`  -  plain-text AI tool instructions (llmstxt.org standard)
+- \`GET /v1/docs\`  -  full OpenAPI 3.1 spec (JSON)
+- \`GET /v1/docs.md\`  -  this document
 
 ## Programs (18)
 

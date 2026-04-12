@@ -58,13 +58,22 @@ export function resolveAuth(req: IncomingMessage): AuthContext {
   if (cached) return cached;
 
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
+  // MPP retries send the payment credential in Authorization; API key goes in X-Axis-Key
+  const xAxisKey = req.headers["x-axis-key"];
+
+  let rawKey: string | null = null;
+  if (authHeader?.startsWith("Bearer ")) {
+    rawKey = authHeader.slice(7);
+  } else if (typeof xAxisKey === "string" && xAxisKey) {
+    rawKey = xAxisKey;
+  }
+
+  if (!rawKey) {
     const ctx: AuthContext = { account: null, key_id: null, anonymous: true };
     AUTH_CONTEXT.set(req, ctx);
     return ctx;
   }
 
-  const rawKey = authHeader.slice(7);
   const resolved = resolveApiKey(rawKey);
   if (!resolved) {
     // Key was provided but is invalid/revoked — mark as invalid, not anonymous

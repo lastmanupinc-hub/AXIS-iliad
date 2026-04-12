@@ -13,7 +13,8 @@
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
     "@axis/repo-parser": "workspace:*",
-    "@axis/snapshots": "workspace:*"
+    "@axis/snapshots": "workspace:*",
+    "mppx": "^0.5.12"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

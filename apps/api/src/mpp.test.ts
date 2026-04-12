@@ -1,252 +1,243 @@
 /**
- * Tests for eq_192 Machine Payments Protocol (MPP) implementation:
- *   createMppPaymentUrl — generates Stripe Checkout URL for 402 responses
- *   sendPaymentRequired — sends HTTP 402 with MPP-compliant JSON body
+ * Tests for mpp.ts — mppx Machine Payments Protocol integration
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { ServerResponse } from "node:http";
-import { createMppPaymentUrl, sendPaymentRequired } from "./stripe.js";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import http from "node:http";
+import { chargeMpp, resetMppxCache } from "./mpp.js";
+import { resolveAuth } from "./billing.js";
+import { ErrorCode } from "./logger.js";
 
-// ─── createMppPaymentUrl ─────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Minimal HTTP server helpers
+// ---------------------------------------------------------------------------
 
-describe("createMppPaymentUrl", () => {
-  const ORIG_ENV = { ...process.env };
-
-  beforeEach(() => {
-    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key";
-    process.env.STRIPE_PRICE_ID_PAID = "price_paid_test";
-    process.env.STRIPE_PRICE_ID_CREDITS = "price_credits_test";
-    process.env.CORS_ORIGIN = "https://test.axistoolbox.com";
+function startServer(): Promise<http.Server> {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      chargeMpp(req, res, {
+        amount: "1.00",
+        currency: "usd",
+        decimals: 2,
+        description: "AXIS Toolbox - $1.00",
+        meta: { test: "true" },
+      }).then((result) => {
+        if (!result || result.status === 402) return;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      });
+    });
+    server.listen(0, "127.0.0.1", () => resolve(server)); // OS-assigned port
   });
+}
 
-  afterEach(() => {
-    for (const key of Object.keys(process.env)) {
-      if (!(key in ORIG_ENV)) delete process.env[key];
-    }
-    Object.assign(process.env, ORIG_ENV);
-    vi.restoreAllMocks();
+function stopServer(server: http.Server): Promise<void> {
+  return new Promise((resolve) => {
+    server.closeAllConnections();
+    server.close(() => resolve());
+  });
+}
+
+function serverPort(server: http.Server): number {
+  const addr = server.address();
+  if (!addr || typeof addr === "string") throw new Error("no address");
+  return addr.port;
+}
+
+interface FetchOptions {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+}
+
+async function fetchFrom(
+  server: http.Server,
+  path: string,
+  opts?: FetchOptions,
+): Promise<{ status: number; headers: Headers; body: unknown }> {
+  const port = serverPort(server);
+  const url = "http://127.0.0.1:" + port + path;
+  const method = opts?.method ?? "POST";
+  const hasBody = method !== "GET" && method !== "HEAD";
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json", ...(opts?.headers ?? {}) },
+    ...(hasBody ? { body: opts?.body ?? JSON.stringify({ repo_url: "https://github.com/test/repo" }) } : {}),
+  });
+  const ct = res.headers.get("content-type") ?? "";
+  const body =
+    ct.includes("application/json") || ct.includes("problem+json")
+      ? await res.json()
+      : await res.text();
+  return { status: res.status, headers: res.headers, body };
+}
+
+// ---------------------------------------------------------------------------
+// chargeMpp - no STRIPE_SECRET_KEY
+// ---------------------------------------------------------------------------
+
+describe("chargeMpp -- no STRIPE_SECRET_KEY", () => {
+  beforeEach(() => {
+    delete process.env.STRIPE_SECRET_KEY;
+    resetMppxCache();
   });
 
   it("returns null when STRIPE_SECRET_KEY is not set", async () => {
+    const req = { headers: {}, method: "POST" } as unknown as http.IncomingMessage;
+    const res = { writeHead: () => {}, end: () => {} } as unknown as http.ServerResponse;
+    const result = await chargeMpp(req, res, {
+      amount: "1.00",
+      currency: "usd",
+      decimals: 2,
+      description: "test",
+      meta: {},
+    });
+    expect(result).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// chargeMpp - with STRIPE_SECRET_KEY (Stripe SPT)
+// ---------------------------------------------------------------------------
+
+describe("chargeMpp -- with STRIPE_SECRET_KEY (Stripe SPT)", () => {
+  let server: http.Server;
+
+  beforeEach(async () => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_mpp_tests";
+    delete process.env.TEMPO_RECIPIENT_ADDRESS;
+    resetMppxCache();
+    server = await startServer();
+  });
+
+  afterEach(async () => {
+    await stopServer(server);
     delete process.env.STRIPE_SECRET_KEY;
-    const result = await createMppPaymentUrl("acc_1", "free");
-    expect(result).toBeNull();
+    resetMppxCache();
   });
 
-  it("returns null when STRIPE_PRICE_ID_PAID is not set (free tier)", async () => {
-    delete process.env.STRIPE_PRICE_ID_PAID;
-    const result = await createMppPaymentUrl("acc_1", "free");
-    expect(result).toBeNull();
+  it("returns HTTP 402 when no payment credential is presented", async () => {
+    const { status } = await fetchFrom(server, "/analyze");
+    expect(status).toBe(402);
   });
 
-  it("returns null when STRIPE_PRICE_ID_CREDITS is not set (paid tier)", async () => {
-    delete process.env.STRIPE_PRICE_ID_CREDITS;
-    const result = await createMppPaymentUrl("acc_1", "paid");
-    expect(result).toBeNull();
+  it("response body follows MPP RFC 9457 format (paymentauth.org)", async () => {
+    const { body } = await fetchFrom(server, "/analyze");
+    expect((body as Record<string, unknown>).type).toBe(
+      "https://paymentauth.org/problems/payment-required",
+    );
+    expect((body as Record<string, unknown>).title).toBe("Payment Required");
+    expect((body as Record<string, unknown>).status).toBe(402);
   });
 
-  it("calls Stripe checkout sessions API for free tier (subscription mode)", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: "cs_test_123", url: "https://checkout.stripe.com/c/pay/cs_test_123" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const result = await createMppPaymentUrl("acc_free_1", "free");
-
-    expect(result).toBe("https://checkout.stripe.com/c/pay/cs_test_123");
-    expect(mockFetch).toHaveBeenCalledOnce();
-    const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://api.stripe.com/v1/checkout/sessions");
-    expect(opts.method).toBe("POST");
-    const body = decodeURIComponent(opts.body as string);
-    expect(body).toContain("mode=subscription");
-    expect(body).toContain("price_paid_test");
-    expect(body).toContain("acc_free_1");
-    expect(body).toContain("metadata[tier]=paid");
+  it("response body includes a challengeId", async () => {
+    const { body } = await fetchFrom(server, "/analyze");
+    expect(typeof (body as Record<string, unknown>).challengeId).toBe("string");
+    expect(((body as Record<string, unknown>).challengeId as string).length).toBeGreaterThan(0);
   });
 
-  it("calls Stripe checkout sessions API for paid tier (payment mode / credit top-up)", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: "cs_test_456", url: "https://checkout.stripe.com/c/pay/cs_test_456" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const result = await createMppPaymentUrl("acc_paid_1", "paid");
-
-    expect(result).toBe("https://checkout.stripe.com/c/pay/cs_test_456");
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-    const body = opts.body as string;
-    expect(body).toContain("mode=payment");
-    expect(body).toContain("price_credits_test");
-    expect(body).toContain("acc_paid_1");
-    // subscription_data should NOT appear for one-time payment
-    expect(body).not.toContain("subscription_data");
+  it("response Content-Type is application/problem+json (RFC 9457)", async () => {
+    const { headers } = await fetchFrom(server, "/analyze");
+    const ct = headers.get("content-type") ?? "";
+    expect(ct).toContain("problem+json");
   });
 
-  it("includes mpp_402 source metadata in request", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ url: "https://checkout.stripe.com/c/pay/cs_test" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    await createMppPaymentUrl("acc_1", "free");
-
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-    expect(decodeURIComponent(opts.body as string)).toContain("metadata[source]=mpp_402");
+  it("response includes WWW-Authenticate header with stripe scheme", async () => {
+    const { headers } = await fetchFrom(server, "/analyze");
+    const auth = headers.get("www-authenticate") ?? "";
+    expect(auth.toLowerCase()).toContain("stripe");
   });
 
-  it("uses CORS_ORIGIN for success/cancel URLs", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ url: "https://checkout.stripe.com/c/pay/cs_test" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    await createMppPaymentUrl("acc_1", "paid");
-
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-    const body = opts.body as string;
-    expect(body).toContain("test.axistoolbox.com");
+  it("returns a new unique challengeId on each request", async () => {
+    const { body: b1 } = await fetchFrom(server, "/analyze");
+    const { body: b2 } = await fetchFrom(server, "/analyze");
+    const id1 = (b1 as Record<string, unknown>).challengeId;
+    const id2 = (b2 as Record<string, unknown>).challengeId;
+    expect(id1).not.toBe(id2);
   });
 
-  it("returns null when Stripe API returns non-ok response", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const result = await createMppPaymentUrl("acc_1", "free");
-    expect(result).toBeNull();
-  });
-
-  it("returns null when session URL is missing from response", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: "cs_test_no_url" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    const result = await createMppPaymentUrl("acc_1", "paid");
-    expect(result).toBeNull();
-  });
-
-  it("uses Authorization Bearer header", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ url: "https://checkout.stripe.com/c/pay/cs_test" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    await createMppPaymentUrl("acc_1", "free");
-
-    const [, opts] = mockFetch.mock.calls[0] as [string, RequestInit];
-    const headers = opts.headers as Record<string, string>;
-    expect(headers["Authorization"]).toBe("Bearer sk_test_fake_key");
+  it("GET requests also return 402 challenge", async () => {
+    const { status } = await fetchFrom(server, "/analyze", { method: "GET", body: undefined });
+    expect(status).toBe(402);
   });
 });
 
-// ─── sendPaymentRequired ─────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// chargeMpp - with TEMPO_RECIPIENT_ADDRESS
+// ---------------------------------------------------------------------------
 
-describe("sendPaymentRequired", () => {
-  function makeMockRes() {
-    const writtenHead: { statusCode: number; headers: Record<string, string> }[] = [];
-    const writtenBody: string[] = [];
-    const res = {
-      writeHead(code: number, headers: Record<string, string>) {
-        writtenHead.push({ statusCode: code, headers });
-      },
-      end(body: string) {
-        writtenBody.push(body);
-      },
-    } as unknown as ServerResponse;
-    return {
-      res,
-      getStatus: () => writtenHead[0]?.statusCode,
-      getHeaders: () => writtenHead[0]?.headers,
-      getBody: () => JSON.parse(writtenBody[0] ?? "{}") as Record<string, unknown>,
-    };
-  }
+describe("chargeMpp -- with TEMPO_RECIPIENT_ADDRESS", () => {
+  let server: http.Server;
 
-  it("sends HTTP 402 status", () => {
-    const { res, getStatus } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "free");
-    expect(getStatus()).toBe(402);
+  beforeEach(async () => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake_key_for_mpp_tests";
+    process.env.TEMPO_RECIPIENT_ADDRESS = "0xDeAdBeEf00000000000000000000000000000001";
+    resetMppxCache();
+    server = await startServer();
   });
 
-  it("sets Content-Type application/json", () => {
-    const { res, getHeaders } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "free");
-    expect(getHeaders()["Content-Type"]).toBe("application/json");
+  afterEach(async () => {
+    await stopServer(server);
+    delete process.env.STRIPE_SECRET_KEY;
+    delete process.env.TEMPO_RECIPIENT_ADDRESS;
+    resetMppxCache();
   });
 
-  it("body contains payment_session_url", () => {
-    const { res, getBody } = makeMockRes();
-    const url = "https://checkout.stripe.com/pay/test_abc";
-    sendPaymentRequired(res, url, "free");
-    expect(getBody().payment_session_url).toBe(url);
-  });
-
-  it("body type is subscription_upgrade for free tier", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "free");
-    const payment = getBody().payment as Record<string, string>;
-    expect(payment.type).toBe("subscription_upgrade");
-    expect(payment.description).toContain("$39/month");
-  });
-
-  it("body type is credit_topup for paid tier", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "paid");
-    const payment = getBody().payment as Record<string, string>;
-    expect(payment.type).toBe("credit_topup");
-    expect(payment.description).toContain("$0.50");
-  });
-
-  it("body type is credit_topup for suite tier", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "suite");
-    const payment = getBody().payment as Record<string, string>;
-    expect(payment.type).toBe("credit_topup");
-  });
-
-  it("body contains error_code PAYMENT_REQUIRED", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "free");
-    expect(getBody().error_code).toBe("PAYMENT_REQUIRED");
-  });
-
-  it("body contains current_tier", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "paid");
-    expect(getBody().current_tier).toBe("paid");
-  });
-
-  it("uses provided reason as message", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "free", "Monthly snapshot limit reached");
-    expect(getBody().message).toBe("Monthly snapshot limit reached");
-  });
-
-  it("uses default message when no reason provided", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "free");
-    expect(typeof getBody().message).toBe("string");
-    expect(String(getBody().message).length).toBeGreaterThan(0);
-  });
-
-  it("body contains retry_after instruction", () => {
-    const { res, getBody } = makeMockRes();
-    sendPaymentRequired(res, "https://checkout.stripe.com/pay/x", "paid");
-    expect(typeof getBody().retry_after).toBe("string");
+  it("returns 402 with both stripe and tempo in WWW-Authenticate", async () => {
+    const { headers } = await fetchFrom(server, "/analyze");
+    const auth = (headers.get("www-authenticate") ?? "").toLowerCase();
+    expect(auth).toContain("stripe");
+    expect(auth).toContain("tempo");
   });
 });
 
-// ─── ErrorCode.PAYMENT_REQUIRED ──────────────────────────────────
+// ---------------------------------------------------------------------------
+// resolveAuth - X-Axis-Key fallback
+// ---------------------------------------------------------------------------
+
+describe("resolveAuth -- X-Axis-Key fallback", () => {
+  it("returns anonymous when neither Authorization nor X-Axis-Key is present", () => {
+    const req = { headers: {} } as unknown as http.IncomingMessage;
+    const result = resolveAuth(req);
+    expect(result.anonymous).toBe(true);
+  });
+
+  it("returns invalid (not anonymous) when X-Axis-Key contains an invalid key", () => {
+    const req = {
+      headers: { "x-axis-key": "invalid_key_that_does_not_exist" },
+    } as unknown as http.IncomingMessage;
+    const result = resolveAuth(req);
+    expect(result.anonymous).toBe(false);
+    expect(result.account).toBeNull();
+  });
+
+  it("returns anonymous when X-Axis-Key is empty string", () => {
+    const req = {
+      headers: { "x-axis-key": "" },
+    } as unknown as http.IncomingMessage;
+    const result = resolveAuth(req);
+    expect(result.anonymous).toBe(true);
+  });
+
+  it("prefers Authorization: Bearer over X-Axis-Key when both present", () => {
+    const req = {
+      headers: {
+        authorization: "Bearer invalid_bearer_token",
+        "x-axis-key": "also_invalid",
+      },
+    } as unknown as http.IncomingMessage;
+    const result = resolveAuth(req);
+    // Authorization header takes precedence; invalid key -> not anonymous
+    expect(result.anonymous).toBe(false);
+    expect(result.account).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ErrorCode enum
+// ---------------------------------------------------------------------------
 
 describe("ErrorCode.PAYMENT_REQUIRED", () => {
-  it("is defined and equals PAYMENT_REQUIRED string", async () => {
-    const { ErrorCode } = await import("./logger.js");
+  it("is defined and equals PAYMENT_REQUIRED string", () => {
     expect(ErrorCode.PAYMENT_REQUIRED).toBe("PAYMENT_REQUIRED");
   });
 });
