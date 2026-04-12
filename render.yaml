@@ -35,6 +35,12 @@ services:
         sync: false
       - key: AXIS_WEB_URL
         value: https://toolbox.jonathanarvay.com
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: MPP_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
     disk:
       name: axis-data
       mountPath: /data
