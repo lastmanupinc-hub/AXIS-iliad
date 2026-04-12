@@ -265,7 +265,37 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
-      // ── Agent discovery manifest ──
+      // ── AI tool discovery standards ──
+      "/llms.txt": {
+        get: {
+          summary: "Plain-text AI tool instructions (llmstxt.org standard)",
+          operationId: "getLlmsTxt",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Plain-text AXIS API instructions for AI tools", content: { "text/plain": { schema: { type: "string" } } } },
+          },
+        },
+      },
+      "/.well-known/skills/index.json": {
+        get: {
+          summary: "Agent skills registry (agentskills.io standard)",
+          operationId: "getSkillsIndex",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "AXIS skill definitions for AI coding assistants" },
+          },
+        },
+      },
+      "/v1/docs.md": {
+        get: {
+          summary: "Plain-text API reference (Markdown)",
+          operationId: "getDocsMd",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Markdown plain-text API summary", content: { "text/plain": { schema: { type: "string" } } } },
+          },
+        },
+      },
       "/.well-known/axis.json": {
         get: {
           summary: "Agent discovery manifest — describes how to use AXIS programmatically",

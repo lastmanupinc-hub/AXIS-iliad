@@ -1574,6 +1574,8 @@ export async function handleWellKnown(
       step_3: "Read adoption_hint on each returned file to know exactly where to place it",
       step_4: "Place AGENTS.md in repo root — AI assistants auto-load it immediately",
     },
+    llms_txt: "GET /llms.txt — plain-text instructions for AI tools on how to interact with AXIS",
+    skills: "GET /.well-known/skills/index.json — agent skills index following the agentskills.io standard",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork — you know exactly what each file does and where it goes.",
       purchasing: "POST /v1/prepare-for-agentic-purchasing — computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
@@ -1583,4 +1585,233 @@ export async function handleWellKnown(
       openapi: "GET /v1/docs — full OpenAPI 3.1 spec",
     },
   });
+}
+
+// ─── GET /llms.txt — llmstxt.org standard ───────────────────────
+
+export function handleLlmsTxt(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  const body = `# AXIS Toolbox
+
+> Analyze any codebase. Generate 86 structured AI context artifacts across 18 programs. Makes any repo immediately legible to AI coding assistants, autonomous agents, and purchasing agents.
+
+AXIS Toolbox is an API that accepts source files (or a GitHub URL) and returns structured files — AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, MCP configs, commerce artifacts, brand guidelines, design tokens, and more — each calibrated to the specific codebase.
+
+## Quick Start
+
+- POST /v1/accounts — create account, get API key (free tier available, no auth required)
+- POST /v1/analyze — submit {github_url} or {files:[{path,content}]} → returns 86 artifacts
+- GET /.well-known/axis.json — machine-readable capability manifest
+- GET /v1/mcp/tools?q= — search programs by keyword (no auth required)
+
+## MCP Integration
+
+Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
+
+- Endpoint: POST /mcp
+- 7 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools
+- No installation required — connect any MCP-compatible agent to https://api.axistoolbox.com/mcp
+
+## Programs (18 total)
+
+Free tier: search (AGENTS.md, .cursorrules, CLAUDE.md, symbol-index), skills, debug
+Pro tier: frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing
+
+## Agentic Commerce
+
+For autonomous purchasing agents:
+
+- POST /v1/prepare-for-agentic-purchasing — one-call hardener. Chains 8 programs, computes Purchasing Readiness Score (0-100), returns AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow, dispute handling, and self-onboarding kit.
+- The Purchasing Readiness Score measures: commerce_artifacts (20pts), mcp_configs (20pts), compliance_checklist (15pts), negotiation_playbook (15pts), debug_playbook (10pts), optimization_rules (10pts), onboarding_docs (10pts).
+
+## Authentication
+
+- Bearer token: Authorization: Bearer <api_key>
+- Obtain key: POST /v1/accounts with {email, name, tier: "free"}
+- Free tier: unlimited on search/skills/debug programs, 3 snapshots/day on pro programs
+
+## Docs
+
+- Full OpenAPI 3.1 spec: GET /v1/docs
+- Plain-text docs: GET /v1/docs.md
+- Discovery manifest: GET /.well-known/axis.json
+- Agent skills: GET /.well-known/skills/index.json
+`;
+  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end(body);
+}
+
+// ─── GET /.well-known/skills/index.json — agent skills registry ──
+
+export function handleSkillsIndex(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  sendJSON(res, 200, {
+    version: "1.0",
+    publisher: "AXIS Toolbox / Last Man Up Inc.",
+    updated: "2026-04-12",
+    skills: [
+      {
+        name: "axis-analyze",
+        version: "1.0.0",
+        description: "Analyze a codebase and generate structured AI context artifacts (AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, and more). Works with GitHub URLs or raw file uploads.",
+        tags: ["codebase-analysis", "ai-context", "agents-md", "mcp", "debugging"],
+        endpoint: "POST /v1/analyze",
+        auth_required: false,
+        input_schema: {
+          oneOf: [
+            { required: ["github_url"], properties: { github_url: { type: "string", description: "Public GitHub repo URL" } } },
+            { required: ["files"], properties: { files: { type: "array", description: "Array of {path, content} source files" } } },
+          ],
+        },
+        example: { github_url: "https://github.com/your/repo" },
+      },
+      {
+        name: "axis-prepare-for-agentic-purchasing",
+        version: "1.0.0",
+        description: "Harden a codebase for autonomous purchasing agents. Computes Purchasing Readiness Score (0-100), generates AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow mandate, and self-onboarding kit in a single call.",
+        tags: ["agentic-commerce", "ap2", "visa", "ucp", "purchasing", "compliance", "checkout", "negotiation"],
+        endpoint: "POST /v1/prepare-for-agentic-purchasing",
+        auth_required: true,
+        input_schema: {
+          required: ["project_name", "project_type", "frameworks", "goals", "files"],
+          properties: {
+            project_name: { type: "string" },
+            project_type: { type: "string", enum: ["web_application", "api_service", "cli_tool", "library", "monorepo"] },
+            frameworks: { type: "array", items: { type: "string" } },
+            goals: { type: "array", items: { type: "string" } },
+            files: { type: "array", items: { required: ["path", "content"], properties: { path: { type: "string" }, content: { type: "string" } } } },
+            focus: { type: "string", enum: ["full", "purchasing", "security", "optimization"] },
+          },
+        },
+        example: { project_name: "my-shop", project_type: "api_service", frameworks: ["stripe", "node"], goals: ["harden for agent purchasing"], files: [] },
+      },
+      {
+        name: "axis-search-tools",
+        version: "1.0.0",
+        description: "Search all 18 AXIS programs and 86 generators by keyword or capability tag. Returns ranked results with artifact paths and example API calls. Use to discover which program handles a specific domain without loading all schemas.",
+        tags: ["discovery", "search", "tool-selection", "programs"],
+        endpoint: "GET /v1/mcp/tools",
+        auth_required: false,
+        input_schema: {
+          properties: {
+            q: { type: "string", description: "Search keyword (e.g. 'checkout', 'debug', 'brand')" },
+            program: { type: "string", description: "Filter by program name" },
+          },
+        },
+        example_url: "/v1/mcp/tools?q=checkout",
+      },
+      {
+        name: "axis-mcp",
+        version: "1.0.0",
+        description: "Connect to AXIS via Model Context Protocol (Streamable HTTP, 2025-03-26). Provides 7 tools for codebase analysis, artifact retrieval, and agentic commerce hardening.",
+        tags: ["mcp", "ai-agents", "protocol", "integration"],
+        endpoint: "POST /mcp",
+        auth_required: false,
+        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_for_agentic_purchasing", "search_and_discover_tools"],
+      },
+    ],
+  });
+}
+
+// ─── GET /v1/docs.md — plain-text OpenAPI summary ───────────────
+
+export function handleDocsMd(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  const body = `# AXIS Toolbox API — Plain Text Reference
+
+Version: 0.4.0 | Base URL: https://api.axistoolbox.com
+
+## Authentication
+
+All endpoints accept \`Authorization: Bearer <api_key>\` header.
+Free tier endpoints work without authentication.
+Obtain a key: \`POST /v1/accounts\` with \`{email, name, tier: "free"}\`.
+
+## Core Endpoints
+
+### POST /v1/analyze
+Analyze a codebase. Accepts \`{github_url}\` or \`{files: [{path, content}]}\`.
+Returns 86 structured artifacts across 18 programs, each with \`path\`, \`content\`, \`program\`, \`placement\`, and \`adoption_hint\`.
+
+### POST /v1/prepare-for-agentic-purchasing
+One-call commerce hardener for autonomous purchasing agents.
+Body: \`{project_name, project_type, frameworks, goals, files, focus?, agent_type?}\`
+Returns: \`{score, score_breakdown, purchasing_artifacts, all_artifacts, how_to_call_axis_again}\`
+
+### GET /v1/mcp/tools?q=&program=
+Search 18 programs / 86 generators by keyword or capability tag.
+Returns: \`{total_matches, results: [{program, tier, score, capability_tags, matching_artifacts, example_call}]}\`
+
+### GET /v1/programs
+List all programs with generator counts and output paths. No auth required.
+
+## Account Management
+
+- \`POST /v1/accounts\` — create account (returns raw_key)
+- \`GET /v1/account\` — get account info (auth required)
+- \`POST /v1/account/keys\` — create additional API keys
+- \`GET /v1/account/keys\` — list keys
+- \`POST /v1/account/keys/:key_id/revoke\` — revoke a key
+- \`GET /v1/account/usage\` — usage stats
+- \`GET /v1/account/quota\` — quota limits
+
+## Snapshot Endpoints (batch workflow)
+
+1. \`POST /v1/snapshots\` — create snapshot with files
+2. \`POST /v1/<program>/generate\` or \`analyze\` — run a specific program
+3. \`GET /v1/projects/:project_id/generated-files\` — retrieve results
+4. \`GET /v1/projects/:project_id/export\` — download ZIP
+
+## MCP (Model Context Protocol)
+
+- \`POST /mcp\` — Streamable HTTP transport (2025-03-26 spec)
+- \`GET /mcp\` — SSE stream for long-running operations
+- 7 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools
+
+## Search & Indexing
+
+- \`POST /v1/search/index\` — build full-text index for a snapshot
+- \`POST /v1/search/query\` — query indexed content
+- \`GET /v1/search/:snapshot_id/stats\` — index statistics
+- \`GET /v1/search/:snapshot_id/symbols\` — symbol list
+
+## Discovery
+
+- \`GET /.well-known/axis.json\` — machine-readable capability manifest
+- \`GET /.well-known/skills/index.json\` — agent skills registry (agentskills.io standard)
+- \`GET /llms.txt\` — plain-text AI tool instructions (llmstxt.org standard)
+- \`GET /v1/docs\` — full OpenAPI 3.1 spec (JSON)
+- \`GET /v1/docs.md\` — this document
+
+## Programs (18)
+
+| Program | Tier | Key Output |
+|---------|------|-----------|
+| search | free | AGENTS.md, .cursorrules, CLAUDE.md |
+| skills | free | skills.json |
+| debug | free | debug-playbook.md |
+| frontend | pro | component-audit.md |
+| seo | pro | seo-checklist.md |
+| optimization | pro | optimization-report.md |
+| theme | pro | design-tokens.json |
+| brand | pro | brand-guidelines.md |
+| superpowers | pro | superpower-pack.md |
+| marketing | pro | marketing-kit.md |
+| notebook | pro | research-notebook.md |
+| obsidian | pro | obsidian-vault.md |
+| mcp | pro | mcp-config.json |
+| artifacts | pro | .cursorrules, CLAUDE.md |
+| remotion | pro | remotion-script.tsx |
+| canvas | pro | canvas-design.md |
+| algorithmic | pro | algorithm-spec.md |
+| agentic-purchasing | pro | commerce-registry.json, agent-purchasing-playbook.md |
+`;
+  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end(body);
 }

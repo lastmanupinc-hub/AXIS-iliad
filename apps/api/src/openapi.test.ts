@@ -47,7 +47,7 @@ describe("buildOpenApiSpec", () => {
         p.includes("/remotion/") ||
         p.includes("/canvas/") ||
         p.includes("/algorithmic/") ||
-        p.includes("/skills/") ||
+        p.includes("/v1/skills/") ||
         (p.includes("/search/export"))
     );
     expect(programPaths.length).toBe(18);
@@ -175,7 +175,7 @@ describe("buildOpenApiSpec", () => {
   });
 
   it("all paths start with /v1/ or are root-level MCP paths", () => {
-    const NON_V1_PATHS = new Set(["/mcp", "/.well-known/axis.json"]);
+    const NON_V1_PATHS = new Set(["/mcp", "/.well-known/axis.json", "/llms.txt", "/.well-known/skills/index.json"]);
     for (const path of Object.keys(spec.paths)) {
       expect(path.startsWith("/v1/") || NON_V1_PATHS.has(path)).toBe(true);
     }

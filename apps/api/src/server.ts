@@ -27,6 +27,9 @@ import {
   handleAnalyze,
   handlePreparePurchasing,
   handleWellKnown,
+  handleLlmsTxt,
+  handleSkillsIndex,
+  handleDocsMd,
   handleHealthCheck,
   handleSearchIndex,
   handleSearchQuery,
@@ -154,6 +157,13 @@ router.post("/v1/github/analyze", handleGitHubAnalyze);
 
 // Agent discovery manifest
 router.get("/.well-known/axis.json", handleWellKnown);
+
+// AI tool discovery standards (llmstxt.org + agentskills.io)
+router.get("/llms.txt", handleLlmsTxt);
+router.get("/.well-known/skills/index.json", handleSkillsIndex);
+
+// Plain-text API docs (Stripe-style .md suffix)
+router.get("/v1/docs.md", handleDocsMd);
 
 // File Content Search
 router.post("/v1/search/index", handleSearchIndex);
