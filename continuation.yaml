@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "AXIS Toolbox"
     date: "2026-04-12"
-    commit_or_tag: "08b8368"
-    current_session_id: "session_083"
-    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3690 tests across 129 files. 100% branch coverage. MPP 402 flow LIVE: quota-exceeded returns HTTP 402 + payment_session_url (sub upgrade $39/mo or credit top-up $0.50). Next: eq_193 MCP registry metadata or eq_194 /for-agents page."
+    commit_or_tag: "1e3997d"
+    current_session_id: "session_084"
+    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3682 passing / 3690 total tests (8 skipped) across 129 files. 100% branch coverage. MPP upgraded to mppx v0.5.12: RFC 9457 402 challenge/credential protocol — agents retry with Authorization header + X-Axis-Key, no human redirect. Next: push origin + MCP registry metadata (eq_193)."
 
   executive_truth:
     maturity_estimate:
@@ -31,7 +31,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "3690 tests across 129 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. MCP integration LIVE (7 tools). prepare_for_agentic_purchasing composite tool LIVE. AP2/UCP/Visa Intelligent Commerce content LIVE. search_and_discover_tools LIVE. AI discoverability trio LIVE: GET /llms.txt, GET /.well-known/skills/index.json, GET /v1/docs.md. MPP 402 flow LIVE: all 4 quota-exceeded handlers upgraded — HTTP 402 + payment_session_url (subscription $39/mo for free tier, credits $0.50 for paid tier). createMppPaymentUrl + sendPaymentRequired in stripe.ts. 22 new tests in mpp.test.ts. Requires STRIPE_PRICE_ID_CREDITS in prod env. 18 programs, 86 generators."
+      notes: "3682 passing / 3690 total (8 skipped) across 129 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. MCP integration LIVE (7 tools). prepare_for_agentic_purchasing composite tool LIVE. AP2/UCP/Visa Intelligent Commerce content LIVE. search_and_discover_tools LIVE. AI discoverability trio LIVE: GET /llms.txt, GET /.well-known/skills/index.json, GET /v1/docs.md. MPP upgraded to mppx v0.5.12: RFC 9457 challenge/credential protocol — chargeMpp() in mpp.ts (NEW FILE), Stripe SPT + optional Tempo crypto, agents retry with Authorization: <credential> + X-Axis-Key: <api_key>. 14 tests in mpp.test.ts. billing.ts: X-Axis-Key fallback in resolveAuth(). Requires STRIPE_SECRET_KEY in prod env. 18 programs, 86 generators."
 
   boundary_truth:
     accepted_input_modes:
@@ -943,6 +943,11 @@ project_continuation:
         description: "MPP 402 flow — HTTP 402 + payment_session_url on quota exceeded. createMppPaymentUrl (stripe.ts): tier='free' → subscription checkout $39/mo, tier!='free' → one-time $0.50, mpp_402 metadata, graceful null on missing config. sendPaymentRequired (stripe.ts): HTTP 402 JSON body per MPP spec. All 4 quota-exceeded handlers upgraded (handleCreateSnapshot, handleGitHubAnalyze, handleAnalyze, handlePreparePurchasing). 22 new tests in mpp.test.ts. Requires STRIPE_PRICE_ID_CREDITS in prod."
         completion_status: complete
         commit: "08b8368"
+
+      - id: "eq_193b_mppx"
+        description: "MPP upgrade — replace Stripe Checkout 402 redirect with mppx v0.5.12 RFC 9457 challenge/credential protocol. apps/api/src/mpp.ts NEW FILE: chargeMpp(req, res, options) + resetMppxCache(). Builds mppx instance from env (STRIPE_SECRET_KEY + optional TEMPO_RECIPIENT_ADDRESS). Returns null (no STRIPE_SECRET_KEY → fallback 429), {status:402} (challenge written, caller returns), {status:200} (payment validated, continue). stripe.ts: removed createMppPaymentUrl + sendPaymentRequired. handlers.ts: all 4 quota blocks use chargeMpp(); em-dash mojibake (â€") replaced with ASCII ' - '. billing.ts: resolveAuth() accepts X-Axis-Key header as API key fallback (Authorization taken by MPP credential on retry). mpp.test.ts: 14 tests (null with no key, RFC 9457 402 body, challengeId uniqueness, Content-Type application/problem+json, WWW-Authenticate stripe scheme, GET 402, Tempo WWW-Authenticate, X-Axis-Key fallback ×4, ErrorCode.PAYMENT_REQUIRED). 3682 passing / 3690 total across 129 files. 100% branch coverage maintained."
+        completion_status: complete
+        commit: "1e3997d"
 
   current_session_result_005:
     session_goal: "Complete wave-3 program generators (superpowers, marketing, notebook)"
@@ -3266,3 +3271,40 @@ project_continuation:
     remaining_pre_existing_gaps:
       - "stripe.ts: 1 statement uncovered (errBody variable — pre-existing)"
     local_only: false
+
+  session_result_084:
+    date: "2026-04-12"
+    session_id: "session_084"
+    selected_move: "eq_193b_mppx: Upgrade MPP 402 from Stripe Checkout redirect to mppx v0.5.12 RFC 9457 challenge/credential protocol"
+    selected_move_roi_reason: "mppx implements the real Machine Payments Protocol — RFC 9457 402 body with challengeId, WWW-Authenticate header, deterministic HMAC binding. Agents retry without any human interaction (no browser redirect required). Proper MPP vs payment-page redirect."
+    completed_candidates:
+      - "apps/api/src/mpp.ts: NEW FILE — chargeMpp(req, res, options) + resetMppxCache(). Builds mppx instance from env vars. Returns null (no STRIPE_SECRET_KEY → caller falls back to 429), {status:402} (challenge written, 402 sent), or {status:200} (payment validated)."
+      - "apps/api/src/stripe.ts: removed createMppPaymentUrl() and sendPaymentRequired() — both replaced by chargeMpp()."
+      - "apps/api/src/handlers.ts: all 4 quota-exceeded blocks (handleCreateSnapshot, handleGitHubAnalyze, handleAnalyze, handlePreparePurchasing) use chargeMpp(). Em-dash mojibake (â€") replaced with ASCII ' - ' in all description strings."
+      - "apps/api/src/billing.ts: resolveAuth() updated — accepts X-Axis-Key header as API key fallback when Authorization header is taken by mppx credential on agent retry."
+      - "apps/api/src/mpp.test.ts: 14 tests across 5 describe blocks — null when no STRIPE_SECRET_KEY, RFC 9457 402 body format, challengeId unique per request, Content-Type application/problem+json, WWW-Authenticate stripe scheme, GET 402 unchanged, Tempo WWW-Authenticate (TEMPO_RECIPIENT_ADDRESS), X-Axis-Key fallback (4 tests), ErrorCode.PAYMENT_REQUIRED exists."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "apps/api/src/mpp.ts: NEW FILE (14 tests, all passing)"
+      - "apps/api/package.json: mppx@0.5.12 added"
+      - "pnpm-lock.yaml: mppx lockfile entries added"
+      - "3682 vitest tests passing / 3690 total (8 skipped) across 129 files — no regressions"
+      - "100.00% branch coverage (2231/2231) maintained"
+      - "mppx API used: inst['stripe/charge']({amount, currency, decimals, description, meta}) for Stripe SPT"
+      - "mppx API used: inst.compose([inst.tempo.charge, {...}]) with TEMPO_RECIPIENT_ADDRESS for crypto"
+      - "Agents retry with: Authorization: <mpp_credential> + X-Axis-Key: <axis_api_key>"
+    verticals_advanced:
+      - "v18_agentic_commerce: MPP protocol upgraded from Stripe Checkout redirect to proper RFC 9457 challenge/credential — agents can autonomously fulfill payment challenges without human interaction"
+    blockers_removed:
+      - "Stripe Checkout redirect required human browser → mppx issues machine-readable 402 challenge agents fulfil autonomously"
+      - "Mojibake em-dashes (â€") in handler description strings caused ByteString HTTP header encoding issues → fixed"
+      - "X-Axis-Key not accepted when Authorization header was taken by MPP credential → billing.ts resolveAuth() fallback added"
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "stripe.ts: 1 statement uncovered (errBody variable — pre-existing)"
+      - "STRIPE_SECRET_KEY required for any MPP functionality (production env var)"
+      - "MPP_SECRET_KEY recommended for HMAC stability across restarts: openssl rand -base64 32"
+      - "TEMPO_RECIPIENT_ADDRESS optional — enables crypto USDC payment channel"
+    commit_results: ["1e3997d"]
+    push_results: []
