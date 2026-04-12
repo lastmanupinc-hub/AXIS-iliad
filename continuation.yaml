@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "AXIS Toolbox"
     date: "2026-04-11"
-    commit_or_tag: "208840b"
-    current_session_id: "session_080"
-    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3606 tests across 127 files. 100% branch coverage. prepare_for_agentic_purchasing composite MCP tool + AP2/UCP/Visa Intelligent Commerce content (commerce signal detection, SCA/3DS2 spec, mandate schema, dispute flow) all LIVE. Next: eq_191 search_and_discover_tools MCP tool."
+    commit_or_tag: "5ee7a9c"
+    current_session_id: "session_081"
+    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3632 tests across 127 files. 100% branch coverage. AP2/Visa commerce depth + search_and_discover_tools (7th MCP tool, GET /v1/mcp/tools) LIVE. Next: eq_192 Stripe MPP 402 flow."
     current_status: "building"
     current_focus_vertical: "v18_agentic_commerce"
 
@@ -33,7 +33,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 95
       integration_confidence: 98
-      notes: "3606 tests across 127 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. MCP integration LIVE (6 tools). prepare_for_agentic_purchasing composite tool LIVE. AP2/UCP/Visa Intelligent Commerce content LIVE (commerce signal detection, SCA/3DS2, mandate schema, dispute flow, compliance assessment). 18 programs, 86 generators, symbol-index LIVE."
+      notes: "3632 tests across 127 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. MCP integration LIVE (7 tools). prepare_for_agentic_purchasing composite tool LIVE. AP2/UCP/Visa Intelligent Commerce content LIVE (commerce signal detection, SCA/3DS2, mandate schema, dispute flow, compliance assessment). search_and_discover_tools LIVE (GET /v1/mcp/tools, keyword+capability ranking over 18 programs/86 generators). 18 programs, 86 generators, symbol-index LIVE."
 
   boundary_truth:
     accepted_input_modes:
@@ -147,7 +147,7 @@ project_continuation:
         - "POST /v1/analyze unified one-call endpoint + GET /.well-known/axis.json machine-readable manifest (commit d08a1d6)"
         - "/for-agents discovery page — quick start, key outputs, all 18 programs table, MCP tools, agentic purchasing section (commit 1005607)"
       blockers: []
-      next_required_move: "Build eq_191: search_and_discover_tools MCP tool — GET /v1/mcp/tools?q= endpoint returning ranked program/generator matches by keyword or capability tag"
+      next_required_move: "Build eq_192: Stripe MPP 402 flow — return HTTP 402 with payment_session_url on insufficient credits so autonomous agents can pay and retry"
 
   subsystem_scorecards:
     - name: "search"
@@ -3086,7 +3086,7 @@ project_continuation:
         description: "search_and_discover_tools MCP tool — GET /v1/mcp/tools?q= endpoint with keyword/capability matching over all 18 programs and 81 generators. Returns ranked tool names + descriptions + example calls + capability tags. Allows agents to query 'show me tools related to checkout compliance' without loading all schemas. Registered in /.well-known/axis.json. Prevents context window overload for agents in large-tool-count scenarios."
         roi_score: 88
         roi_reason: "capability_gain 4, agent_acquisition 5, integration_quality 5. Mirrors best-practice deferred loading pattern from top-performing MCP servers. Makes scale an advantage instead of a drawback."
-        completion_status: not-started
+        completion_status: complete
         manual_prerequisites: []
 
       - id: "eq_192"
@@ -3170,6 +3170,38 @@ project_continuation:
     blockers_removed:
       - "Agentic purchasing generators produced empty/shallow AP2 content — full mandate schema, SCA spec, negotiation constraints LIVE"
       - "No provider detection in generators — detectCommerceSignals scans SourceFile[] for 11 payment providers"
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "stripe.ts: 1 statement uncovered (errBody variable — pre-existing)"
+    local_only: false
+
+  session_result_081:
+    date: "2026-04-12"
+    session_id: "session_081"
+    selected_move: "eq_191: search_and_discover_tools — GET /v1/mcp/tools + 7th MCP tool"
+    completed_candidates:
+      - "eq_191a: runSearchTools(args) exported function — accepts q (keyword, optional) + program (filter, optional). Groups all 86 generators by program, scores each against query tokens (program name match +3, capability tag match +1/token, artifact path match +2/token). Returns sorted JSON {query, program_filter, total_matches, results[{program,tier,score,capability_tags,matching_artifacts,all_artifacts,example_call}]}."
+      - "eq_191b: PROGRAM_CAPABILITY_TAGS — static map of 18 programs to domain keywords (e.g. agentic-purchasing: purchasing/commerce/stripe/checkout/payment/ap2/visa/ucp/negotiation/mandate)."
+      - "eq_191c: PROGRAM_ENDPOINTS — static override map for 3 programs with non-standard endpoint paths (search→/v1/search/index, mcp→/v1/mcp/provision, agentic-purchasing→/v1/agentic-purchasing/generate). All others use fallback /v1/{program}/generate."
+      - "eq_191d: search_and_discover_tools added as 7th MCP tool in MCP_TOOLS with full inputSchema (q: string optional, program: string optional). Dispatch case added to switch."
+      - "eq_191e: GET /v1/mcp/tools route in server.ts — parses ?q= and ?program= from URL searchParams, calls runSearchTools, returns JSON. Calls runSearchTools synchronously (no async needed)."
+      - "eq_191f: GET /v1/mcp/tools added to OpenAPI spec (openapi.ts) with GET method, tags: [MCP], q and program query params documented."
+      - "eq_191g: handleWellKnown updated — mcp_discovery now mentions 7 tools + search_and_discover_tools; new search_tools field added with usage example."
+      - "eq_191h: 26 new tests across 4 describe blocks in mcp-server.test.ts — runSearchTools no-query (6), keyword ranking (8), program filter (5), PROGRAM_ENDPOINTS coverage (4), MCP dispatch (3). All tool count assertions updated from 6→7 across mcp-server.test.ts, prepare-purchasing.test.ts, and openapi.test.ts."
+    evidence_added:
+      - "apps/api/src/mcp-server.ts: runSearchTools + PROGRAM_CAPABILITY_TAGS + PROGRAM_ENDPOINTS + 7th MCP tool + dispatch case"
+      - "apps/api/src/server.ts: GET /v1/mcp/tools route + import runSearchTools"
+      - "apps/api/src/handlers.ts: handleWellKnown updated (7 tools, search_tools field)"
+      - "apps/api/src/openapi.ts: /v1/mcp/tools GET endpoint added"
+      - "apps/api/src/mcp-server.test.ts: 7→tool count, import runSearchTools, 26 new tests"
+      - "apps/api/src/prepare-purchasing.test.ts: toBe(6)→toBe(7)"
+      - "apps/api/src/openapi.test.ts: programPaths 17→18"
+      - "commit 5ee7a9c: feat(api): eq_191 search_and_discover_tools"
+      - "3632 tests passing across 127 files (+26 vs session_080). 0 failures."
+    verticals_advanced:
+      - "v18_agentic_commerce: eq_191 complete — agent tool discovery LIVE"
+    blockers_removed:
+      - "Agents loading all tool schemas caused context window overload at scale — search_and_discover_tools allows targeted capability discovery"
     blockers_added: []
     remaining_pre_existing_gaps:
       - "stripe.ts: 1 statement uncovered (errBody variable — pre-existing)"
