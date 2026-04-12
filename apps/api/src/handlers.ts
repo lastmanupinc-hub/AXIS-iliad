@@ -1578,7 +1578,8 @@ export async function handleWellKnown(
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork — you know exactly what each file does and where it goes.",
       purchasing: "POST /v1/prepare-for-agentic-purchasing — computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
-      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 6 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing.",
+      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 7 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing, search_and_discover_tools.",
+      search_tools: "GET /v1/mcp/tools?q=<keyword> — search all 18 programs and 86 generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.",
       openapi: "GET /v1/docs — full OpenAPI 3.1 spec",
     },
   });

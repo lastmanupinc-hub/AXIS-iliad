@@ -69,7 +69,7 @@ import {
   handleGetFunnelMetrics,
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
-import { handleMcpPost, handleMcpGet } from "./mcp-server.js";
+import { handleMcpPost, handleMcpGet, runSearchTools } from "./mcp-server.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
@@ -186,6 +186,16 @@ router.get("/v1/programs", async (_req, res) => {
 // MCP Server — Streamable HTTP transport (2025-03-26)
 router.post("/mcp", handleMcpPost);
 router.get("/mcp", handleMcpGet);
+
+// MCP tool discovery via REST
+router.get("/v1/mcp/tools", async (req, res) => {
+  const { sendJSON } = await import("./router.js");
+  const url = new URL(req.url ?? "/", "http://localhost");
+  const q = url.searchParams.get("q") ?? undefined;
+  const program = url.searchParams.get("program") ?? undefined;
+  const result = runSearchTools({ q, program });
+  sendJSON(res, 200, JSON.parse(result));
+});
 
 // Billing & Account management
 router.post("/v1/accounts", handleCreateAccount);

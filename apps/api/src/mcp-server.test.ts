@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb, createSnapshot } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
-import { handleMcpPost, handleMcpGet, MCP_TOOLS, MCP_PROTOCOL_VERSION } from "./mcp-server.js";
+import { handleMcpPost, handleMcpGet, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools } from "./mcp-server.js";
 import {
   handleCreateAccount,
   handleCreateApiKey,
@@ -204,13 +204,13 @@ describe("POST /mcp — ping", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns all 6 tools", async () => {
+  it("returns all 7 tools", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     expect(tools.length).toBe(MCP_TOOLS.length);
-    expect(tools.length).toBe(6);
+    expect(tools.length).toBe(7);
   });
 
   it("each tool has name, description, inputSchema", async () => {
@@ -949,6 +949,208 @@ describe("POST /mcp — branch coverage: anonymous snapshots", () => {
     expect(result.isError).toBe(true);
     const content = result.content as Array<{ text: string }>;
     expect(content[0].text).toContain("No generated artifacts");
+  });
+});
+
+// ─── runSearchTools unit tests ───────────────────────────────────
+
+describe("runSearchTools — no query returns all programs", () => {
+  it("returns all 18 programs when q is omitted", () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    expect(parsed.total_matches).toBe(18);
+    expect(Array.isArray(parsed.results)).toBe(true);
+  });
+
+  it("query is null when no q provided", () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    expect(parsed.query).toBeNull();
+  });
+
+  it("program_filter is null when no program provided", () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    expect(parsed.program_filter).toBeNull();
+  });
+
+  it("every result has program, tier, capability_tags, all_artifacts, example_call", () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    for (const r of parsed.results as Array<Record<string, unknown>>) {
+      expect(typeof r.program).toBe("string");
+      expect(r.tier === "free" || r.tier === "pro").toBe(true);
+      expect(Array.isArray(r.capability_tags)).toBe(true);
+      expect(Array.isArray(r.all_artifacts)).toBe(true);
+      expect(typeof r.example_call).toBe("string");
+    }
+  });
+
+  it("free programs (search, skills, debug) have tier free", () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    const results = parsed.results as Array<{ program: string; tier: string }>;
+    for (const name of ["search", "skills", "debug"]) {
+      const r = results.find(p => p.program === name);
+      expect(r?.tier).toBe("free");
+    }
+  });
+
+  it("agentic-purchasing has pro tier", () => {
+    const parsed = JSON.parse(runSearchTools({}));
+    const results = parsed.results as Array<{ program: string; tier: string }>;
+    const r = results.find(p => p.program === "agentic-purchasing");
+    expect(r?.tier).toBe("pro");
+  });
+});
+
+describe("runSearchTools — keyword query ranking", () => {
+  it("q=checkout returns agentic-purchasing as top match", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "checkout" }));
+    expect(parsed.total_matches).toBeGreaterThan(0);
+    const top = (parsed.results as Array<{ program: string }>)[0];
+    expect(top.program).toBe("agentic-purchasing");
+  });
+
+  it("q=checkout annotates matching_artifacts with checkout-flow.md", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "checkout" }));
+    const r = (parsed.results as Array<{ program: string; matching_artifacts: string[] }>)
+      .find(p => p.program === "agentic-purchasing");
+    expect(r?.matching_artifacts).toContain("checkout-flow.md");
+  });
+
+  it("q=debug returns debug program with score > 0", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "debug" }));
+    const r = (parsed.results as Array<{ program: string; score: number }>)
+      .find(p => p.program === "debug");
+    expect(r).toBeDefined();
+    expect(r!.score).toBeGreaterThan(0);
+  });
+
+  it("q=mcp returns mcp program with program match score", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "mcp" }));
+    const r = (parsed.results as Array<{ program: string; score: number }>)
+      .find(p => p.program === "mcp");
+    expect(r).toBeDefined();
+    expect(r!.score).toBeGreaterThanOrEqual(3);
+  });
+
+  it("results are sorted by score descending", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "agents" }));
+    const scores = (parsed.results as Array<{ score: number }>).map(r => r.score);
+    for (let i = 1; i < scores.length; i++) {
+      expect(scores[i - 1]).toBeGreaterThanOrEqual(scores[i]);
+    }
+  });
+
+  it("q=xxxxnothing returns 0 matches", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "xxxxnothing" }));
+    expect(parsed.total_matches).toBe(0);
+    expect(parsed.results).toEqual([]);
+  });
+
+  it("query is echoed back in response", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "checkout" }));
+    expect(parsed.query).toBe("checkout");
+  });
+
+  it("q is trimmed and lowercased", () => {
+    const parsed = JSON.parse(runSearchTools({ q: "  CHECKOUT  " }));
+    expect(parsed.query).toBe("checkout");
+    expect(parsed.total_matches).toBeGreaterThan(0);
+  });
+});
+
+describe("runSearchTools — program filter", () => {
+  it("program=debug returns only debug program", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "debug" }));
+    const programs = (parsed.results as Array<{ program: string }>).map(r => r.program);
+    expect(programs.every(p => p.includes("debug"))).toBe(true);
+    expect(parsed.total_matches).toBeGreaterThanOrEqual(1);
+  });
+
+  it("program=mcp with no q returns mcp program results", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "mcp" }));
+    const programs = (parsed.results as Array<{ program: string }>).map(r => r.program);
+    expect(programs).toContain("mcp");
+  });
+
+  it("program filter is case-insensitive", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "MCP" }));
+    const programs = (parsed.results as Array<{ program: string }>).map(r => r.program);
+    expect(programs).toContain("mcp");
+  });
+
+  it("program=nonexistent returns 0 matches", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "nonexistent-program" }));
+    expect(parsed.total_matches).toBe(0);
+  });
+
+  it("program_filter is echoed in response", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "debug" }));
+    expect(parsed.program_filter).toBe("debug");
+  });
+});
+
+describe("runSearchTools — PROGRAM_ENDPOINTS coverage", () => {
+  it("search program example_call uses /v1/search/index", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "search" }));
+    const r = (parsed.results as Array<{ program: string; example_call: string }>)
+      .find(p => p.program === "search");
+    expect(r?.example_call).toBe("POST /v1/search/index");
+  });
+
+  it("mcp program example_call uses /v1/mcp/provision", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "mcp" }));
+    const r = (parsed.results as Array<{ program: string; example_call: string }>)
+      .find(p => p.program === "mcp");
+    expect(r?.example_call).toBe("POST /v1/mcp/provision");
+  });
+
+  it("agentic-purchasing example_call uses /v1/agentic-purchasing/generate", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "agentic-purchasing" }));
+    const r = (parsed.results as Array<{ program: string; example_call: string }>)
+      .find(p => p.program === "agentic-purchasing");
+    expect(r?.example_call).toBe("POST /v1/agentic-purchasing/generate");
+  });
+
+  it("debug program example_call uses fallback /v1/debug/generate", () => {
+    const parsed = JSON.parse(runSearchTools({ program: "debug" }));
+    const r = (parsed.results as Array<{ program: string; example_call: string }>)
+      .find(p => p.program === "debug");
+    expect(r?.example_call).toBe("POST /v1/debug/generate");
+  });
+});
+
+describe("POST /mcp — tools/call search_and_discover_tools", () => {
+  it("returns results for keyword search (no auth required)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 50,
+      method: "tools/call",
+      params: { name: "search_and_discover_tools", arguments: { q: "checkout" } },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.total_matches).toBeGreaterThan(0);
+  });
+
+  it("returns all programs when no q arg provided", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 51,
+      method: "tools/call",
+      params: { name: "search_and_discover_tools", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.total_matches).toBe(18);
+  });
+
+  it("tool name appears in MCP_TOOLS", () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("search_and_discover_tools");
   });
 });
 

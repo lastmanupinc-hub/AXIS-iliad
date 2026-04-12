@@ -414,8 +414,8 @@ describe("MCP_TOOLS — prepare_for_agentic_purchasing", () => {
     expect(focusProp?.enum).toContain("optimization");
   });
 
-  it("lists 6 total MCP tools", () => {
-    expect(MCP_TOOLS.length).toBe(6);
+  it("lists 7 total MCP tools", () => {
+    expect(MCP_TOOLS.length).toBe(7);
   });
 });
 

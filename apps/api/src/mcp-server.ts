@@ -189,6 +189,24 @@ export const MCP_TOOLS = [
       },
     },
   },
+  {
+    name: "search_and_discover_tools",
+    description:
+      "Search all 18 AXIS programs and 86 generators by keyword or capability tag. Returns ranked programs with artifact paths, capability tags, and example API calls. Use to discover which program handles a specific domain (e.g. 'checkout', 'debug', 'mcp', 'brand') without loading all schemas. No authentication required.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        q: {
+          type: "string",
+          description: "Search query — keyword or phrase (e.g. 'checkout payment', 'debug logs', 'mcp agents'). Omit to list all programs.",
+        },
+        program: {
+          type: "string",
+          description: "Optional: filter results to a specific program name (e.g. 'mcp', 'debug', 'agentic-purchasing').",
+        },
+      },
+    },
+  },
 ];
 
 // ─── Response builders ───────────────────────────────────────────
@@ -448,6 +466,110 @@ export async function runAnalyzeRepo(
   /* v8 ignore stop */
 }
 
+// ─── Tool: search_and_discover_tools ────────────────────────────
+
+const FREE_PROGRAMS_SEARCH = new Set(["search", "skills", "debug"]);
+
+const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
+  search:               ["search", "discovery", "findability", "semantic", "agents-md", "cursorrules"],
+  skills:               ["skills", "team", "competencies", "capabilities", "readme"],
+  debug:                ["debug", "error", "troubleshoot", "breakpoints", "logs", "postmortem"],
+  frontend:             ["ui", "components", "react", "vue", "css", "html", "audit"],
+  seo:                  ["seo", "meta", "robots", "sitemap", "structured-data", "opengraph"],
+  optimization:         ["performance", "speed", "caching", "bundle", "optimize", "metrics"],
+  theme:                ["design", "colors", "typography", "tokens", "palette", "figma"],
+  brand:                ["brand", "identity", "logo", "voice", "style", "guidelines"],
+  superpowers:          ["automation", "workflow", "ci", "testing", "scripts", "refactor"],
+  marketing:            ["marketing", "copy", "landing", "conversion", "growth", "campaigns"],
+  notebook:             ["notebook", "documentation", "guides", "tutorials", "onboarding"],
+  obsidian:             ["obsidian", "knowledge", "notes", "graph", "vault", "second-brain"],
+  mcp:                  ["mcp", "tools", "agents", "integration", "protocol", "server", "connectors"],
+  artifacts:            ["artifacts", "context", "ai-context", "cursorrules", "agents-md", "claude-md"],
+  remotion:             ["remotion", "video", "animation", "motion", "react-video"],
+  canvas:               ["canvas", "diagram", "architecture", "visual", "flowchart", "c4"],
+  algorithmic:          ["algorithm", "data-structure", "complexity", "sorting", "trees", "graphs"],
+  "agentic-purchasing": ["purchasing", "commerce", "stripe", "checkout", "payment", "ap2", "visa", "ucp", "negotiation", "mandate"],
+};
+
+const PROGRAM_ENDPOINTS: Record<string, string> = {
+  search:               "/v1/search/index",
+  mcp:                  "/v1/mcp/provision",
+  "agentic-purchasing": "/v1/agentic-purchasing/generate",
+};
+
+export function runSearchTools(args: Record<string, unknown>): string {
+  const q = typeof args.q === "string" ? args.q.trim().toLowerCase() : "";
+  const programFilter = typeof args.program === "string" ? args.program.trim().toLowerCase() : "";
+
+  const generators = listAvailableGenerators();
+  const programMap = new Map<string, string[]>();
+  for (const g of generators) {
+    const list = programMap.get(g.program) ?? [];
+    list.push(g.path);
+    programMap.set(g.program, list);
+  }
+
+  const queryTokens = q ? q.split(/[\s\-_/]+/).filter(t => t.length > 0) : [];
+
+  const results: Array<{
+    program: string;
+    tier: string;
+    score: number;
+    capability_tags: string[];
+    matching_artifacts: string[];
+    all_artifacts: string[];
+    example_call: string;
+  }> = [];
+
+  for (const [program, artifacts] of programMap) {
+    if (programFilter && !program.includes(programFilter)) continue;
+
+    const tags = PROGRAM_CAPABILITY_TAGS[program] ?? [];
+    const tier = FREE_PROGRAMS_SEARCH.has(program) ? "free" : "pro";
+    const example_call = `POST ${PROGRAM_ENDPOINTS[program] ?? `/v1/${program}/generate`}`;
+
+    if (queryTokens.length === 0) {
+      results.push({ program, tier, score: 0, capability_tags: tags, matching_artifacts: artifacts, all_artifacts: artifacts, example_call });
+      continue;
+    }
+
+    let score = 0;
+    const matchingArtifacts: string[] = [];
+
+    for (const token of queryTokens) {
+      if (program.includes(token)) score += 3;
+
+      for (const tag of tags) {
+        if (tag.includes(token)) { score += 1; break; }
+      }
+
+      for (const artifact of artifacts) {
+        if (artifact.toLowerCase().includes(token) && !matchingArtifacts.includes(artifact)) {
+          score += 2;
+          matchingArtifacts.push(artifact);
+        }
+      }
+    }
+
+    if (score > 0) {
+      results.push({ program, tier, score, capability_tags: tags, matching_artifacts: matchingArtifacts, all_artifacts: artifacts, example_call });
+    }
+  }
+
+  results.sort((a, b) => b.score - a.score || a.program.localeCompare(b.program));
+
+  return JSON.stringify(
+    {
+      query: q || null,
+      program_filter: programFilter || null,
+      total_matches: results.length,
+      results,
+    },
+    null,
+    2,
+  );
+}
+
 // ─── Tool: list_programs ─────────────────────────────────────────
 
 export function runListPrograms(): string {
@@ -481,6 +603,7 @@ export function runListPrograms(): string {
 }
 
 // ─── Tool: get_snapshot ──────────────────────────────────────────
+
 
 export function runGetSnapshot(
   args: Record<string, unknown>,
@@ -783,6 +906,9 @@ export async function dispatch(
             break;
           case "prepare_for_agentic_purchasing":
             text = await runPreparePurchasing(toolArgs, req);
+            break;
+          case "search_and_discover_tools":
+            text = runSearchTools(toolArgs);
             break;
           default:
             return rpcErr(id, RPC_INVALID_PARAMS, `Unknown tool: ${toolName}`);

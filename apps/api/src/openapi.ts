@@ -277,6 +277,22 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
       },
 
+      // ── MCP tool discovery ──
+      "/v1/mcp/tools": {
+        get: {
+          summary: "Search AXIS programs and generators by keyword or capability tag",
+          operationId: "searchMcpTools",
+          tags: ["MCP"],
+          parameters: [
+            { name: "q", in: "query", schema: { type: "string" }, description: "Search keyword (e.g. 'checkout', 'debug', 'mcp')" },
+            { name: "program", in: "query", schema: { type: "string" }, description: "Filter by program name" },
+          ],
+          responses: {
+            200: { description: "Ranked program and generator matches" },
+          },
+        },
+      },
+
       // ── Search ──
       "/v1/search/index": {
         post: {
