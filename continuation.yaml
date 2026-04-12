@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "AXIS Toolbox"
     date: "2026-04-11"
-    commit_or_tag: "1005607"
+    commit_or_tag: "0db3733"
     current_session_id: "session_079"
     one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3554 tests across 127 files. 100% branch coverage (2231/2231). MCP integration + 6th composite tool prepare_for_agentic_purchasing (Purchasing Readiness Score, AP2/UCP artifacts, negotiation playbooks) LIVE. Next: eq_190 commerce generator depth."
     current_status: "building"
