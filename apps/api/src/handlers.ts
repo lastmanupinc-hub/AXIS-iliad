@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { createMppPaymentUrl, sendPaymentRequired } from "./stripe.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -230,7 +231,12 @@ export async function handleCreateSnapshot(
     /* v8 ignore start — quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
-      sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
+      if (paymentUrl) {
+        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
+      } else {
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      }
       return;
     }
     /* v8 ignore stop */
@@ -685,10 +691,15 @@ export async function handleGitHubAnalyze(
   }
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore next 4 — requires exhausting rate quota in tests */
+    /* v8 ignore next 7 — requires exhausting rate quota in tests */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
-      sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
+      if (paymentUrl) {
+        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
+      } else {
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      }
       return;
     }
   }
@@ -1164,7 +1175,12 @@ export async function handleAnalyze(
     /* v8 ignore start — quota exceeded path */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
-      sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
+      if (paymentUrl) {
+        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
+      } else {
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      }
       return;
     }
     /* v8 ignore stop */
@@ -1403,7 +1419,12 @@ export async function handlePreparePurchasing(
     const quota = checkQuota(auth.account.account_id);
     /* v8 ignore start — quota exceeded path */
     if (!quota.allowed) {
-      sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      const paymentUrl = await createMppPaymentUrl(auth.account.account_id, auth.account.tier);
+      if (paymentUrl) {
+        sendPaymentRequired(res, paymentUrl, auth.account.tier, quota.reason);
+      } else {
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      }
       return;
     }
     /* v8 ignore stop */
