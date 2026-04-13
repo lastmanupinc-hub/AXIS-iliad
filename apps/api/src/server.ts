@@ -27,6 +27,7 @@ import {
   handleAnalyze,
   handlePreparePurchasing,
   handleWellKnown,
+  handleCapabilities,
   handleLlmsTxt,
   handleSkillsIndex,
   handleDocsMd,
@@ -157,6 +158,7 @@ router.post("/v1/github/analyze", handleGitHubAnalyze);
 
 // Agent discovery manifest
 router.get("/.well-known/axis.json", handleWellKnown);
+router.get("/.well-known/capabilities.json", handleCapabilities);
 
 // AI tool discovery standards (llmstxt.org + agentskills.io)
 router.get("/llms.txt", handleLlmsTxt);

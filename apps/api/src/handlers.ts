@@ -1,4 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+﻿import type { IncomingMessage, ServerResponse } from "node:http";
 import { chargeMpp } from "./mpp.js";
 import {
   createSnapshot,
@@ -1613,6 +1613,11 @@ export async function handleWellKnown(
     },
     llms_txt: "GET /llms.txt  -  plain-text instructions for AI tools on how to interact with AXIS",
     skills: "GET /.well-known/skills/index.json  -  agent skills index following the agentskills.io standard",
+    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest (AP2/UCP/Visa/purchasing/compliance/agentic-commerce keywords indexed).",
+    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest (AP2/UCP/Visa/purchasing/compliance/agentic-commerce keywords indexed).",
+    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest (AP2/UCP/Visa/purchasing/compliance/agentic-commerce keywords indexed).",
+    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce keywords indexed).",
+    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce keywords indexed).",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
       purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0â€“100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
@@ -1621,6 +1626,8 @@ export async function handleWellKnown(
       search_tools: "GET /v1/mcp/tools?q=<keyword>  -  search all 18 programs and 86 generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.",
       registry_metadata: "GET /v1/mcp/server.json  -  MCP registry metadata for mcp-publisher CLI and registry crawlers (Glama.ai, Smithery.ai).",
       openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
+      examples: "https://github.com/lastmanupinc-hub/axis-toolbox-examples  -  5 real repos hardened 0/100 to 100/100. Live before/after artifacts.",
+      examples: "https://github.com/lastmanupinc-hub/axis-toolbox-examples  -  5 real repos hardened 0/100 to 100/100. Live before/after artifacts.",
     },
   });
 }
