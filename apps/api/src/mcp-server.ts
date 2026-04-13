@@ -784,6 +784,19 @@ export async function runPreparePurchasing(
     return { path, content: file.content, size: Buffer.byteLength(file.content, "utf-8") };
   });
 
+  const generators = listAvailableGenerators();
+
+  // Check entitlements for purchasing programs BEFORE quota —
+  // entitlement failures tell the user to pay, quota is rate limiting.
+  const purchasingBlocked = PURCHASING_PROGRAMS.filter(
+    p => !MCP_FREE_PROGRAMS.has(p) && !isProgramEnabled(auth.account!.account_id, p),
+  );
+  if (purchasingBlocked.length > 0) {
+    throw new Error(
+      `Pro programs require a paid plan or per-call payment ($0.50/call): ${purchasingBlocked.join(", ")}. Upgrade at toolbox.jonathanarvay.com/billing.`,
+    );
+  }
+
   /* v8 ignore start — quota exceeded and file limit paths require exhausting account limits in test */
   const quota = checkQuota(auth.account.account_id);
   if (!quota.allowed) {
@@ -796,18 +809,6 @@ export async function runPreparePurchasing(
     );
   }
   /* v8 ignore stop */
-
-  const generators = listAvailableGenerators();
-
-  // Check entitlements for purchasing programs
-  const purchasingBlocked = PURCHASING_PROGRAMS.filter(
-    p => !MCP_FREE_PROGRAMS.has(p) && !isProgramEnabled(auth.account!.account_id, p),
-  );
-  if (purchasingBlocked.length > 0) {
-    throw new Error(
-      `Pro programs require a paid plan or per-call payment ($0.50/call): ${purchasingBlocked.join(", ")}. Upgrade at toolbox.jonathanarvay.com/billing.`,
-    );
-  }
 
   const requestedOutputs = generators
     .filter(g => PURCHASING_PROGRAMS.includes(g.program))

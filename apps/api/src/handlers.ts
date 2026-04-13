@@ -1241,25 +1241,7 @@ export async function handleAnalyze(
   }
 
   if (auth.account) {
-    const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore start  -  quota exceeded path */
-    if (!quota.allowed) {
-      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
-      const mppResult = await chargeMpp(req, res, {
-        amount: "50",
-        currency: "usd",
-        decimals: 2,
-        description: "AXIS API Credit  -  $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
-      });
-      if (mppResult === null) {
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
-      }
-      if (mppResult === null || mppResult.status === 402) return;
-    }
-    /* v8 ignore stop */
-
-    // Enforce program-level billing: check which pro programs the user lacks access to
+    // Enforce program-level billing FIRST: check which pro programs the user lacks access to
     if (requestedPrograms) {
       const blockedPrograms = requestedPrograms.filter(
         p => !FREE_PROGRAMS.has(p) && !isProgramEnabled(auth.account!.account_id, p),
@@ -1282,6 +1264,25 @@ export async function handleAnalyze(
         if (mppResult === null || mppResult.status === 402) return;
       }
     }
+
+    const quota = checkQuota(auth.account.account_id);
+    /* v8 ignore start  -  quota exceeded path */
+    if (!quota.allowed) {
+      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
+      const mppResult = await chargeMpp(req, res, {
+        amount: "50",
+        currency: "usd",
+        decimals: 2,
+        description: "AXIS API Credit  -  $0.50 per run",
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+      });
+      if (mppResult === null) {
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+      }
+      if (mppResult === null || mppResult.status === 402) return;
+    }
+    /* v8 ignore stop */
+
     const limits = TIER_LIMITS[auth.account.tier];
     if (files.length > limits.max_files_per_snapshot) {
       sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
