@@ -15,6 +15,8 @@ import {
   handleSkillsIndex,
   handleDocsMd,
   handleWellKnown,
+  handleForAgents,
+  handleInstall,
 } from "./handlers.js";
 
 // ─── HTTP helper ─────────────────────────────────────────────────
@@ -57,6 +59,9 @@ beforeAll(async () => {
   router.get("/.well-known/skills/index.json", handleSkillsIndex);
   router.get("/v1/docs.md", handleDocsMd);
   router.get("/.well-known/axis.json", handleWellKnown);
+  router.get("/for-agents", handleForAgents);
+  router.get("/v1/install", handleInstall);
+  router.get("/v1/install/:platform", handleInstall);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -288,5 +293,144 @@ describe("GET /.well-known/axis.json — new fields", () => {
   it("includes skills field", () => {
     expect(typeof data.skills).toBe("string");
     expect(String(data.skills)).toContain("/.well-known/skills/index.json");
+  });
+});
+
+// ─── GET /for-agents ──────────────────────────────────────────
+
+describe("GET /for-agents", () => {
+  let status: number;
+  let data: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/for-agents");
+    status = r.status;
+    data = JSON.parse(r.body) as Record<string, unknown>;
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns name and version", () => {
+    expect(data.name).toBe("AXIS Toolbox");
+    expect(data.version).toBe("0.4.0");
+  });
+
+  it("includes install section with mcp_endpoint", () => {
+    const install = data.install as Record<string, unknown>;
+    expect(install).toBeDefined();
+    expect(typeof install.mcp_endpoint).toBe("string");
+    expect(String(install.mcp_endpoint)).toContain("/mcp");
+  });
+
+  it("includes platform configs for claude-desktop, cursor, vscode", () => {
+    const install = data.install as Record<string, unknown>;
+    const platforms = install.platforms as Record<string, unknown>;
+    expect(platforms["claude-desktop"]).toBeDefined();
+    expect(platforms["cursor"]).toBeDefined();
+    expect(platforms["vscode"]).toBeDefined();
+    expect(platforms["claude-code"]).toBeDefined();
+  });
+
+  it("includes tools array with 7 tools", () => {
+    const tools = data.tools as Array<unknown>;
+    expect(tools).toHaveLength(7);
+  });
+
+  it("includes first_action hint", () => {
+    expect(typeof data.first_action).toBe("string");
+    expect(String(data.first_action)).toContain("search_and_discover_tools");
+  });
+
+  it("includes discovery URLs", () => {
+    const discovery = data.discovery as Record<string, unknown>;
+    expect(discovery).toBeDefined();
+    expect(typeof discovery.well_known).toBe("string");
+    expect(typeof discovery.install).toBe("string");
+  });
+
+  it("mentions self-propagation", () => {
+    expect(typeof data.propagation).toBe("string");
+    expect(String(data.propagation)).toContain("AGENTS.md");
+  });
+});
+
+// ─── GET /v1/install ──────────────────────────────────────────
+
+describe("GET /v1/install", () => {
+  let status: number;
+  let data: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/v1/install");
+    status = r.status;
+    data = JSON.parse(r.body) as Record<string, unknown>;
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns all platform configs", () => {
+    const platforms = data.platforms as Record<string, unknown>;
+    expect(platforms).toBeDefined();
+    expect(Object.keys(platforms)).toContain("claude-desktop");
+    expect(Object.keys(platforms)).toContain("cursor");
+    expect(Object.keys(platforms)).toContain("vscode");
+    expect(Object.keys(platforms)).toContain("claude-code");
+  });
+
+  it("includes mcp_endpoint", () => {
+    expect(typeof data.mcp_endpoint).toBe("string");
+    expect(String(data.mcp_endpoint)).toContain("/mcp");
+  });
+
+  it("includes instructions", () => {
+    expect(typeof data.instructions).toBe("string");
+  });
+});
+
+// ─── GET /v1/install/:platform ──────────────────────────────
+
+describe("GET /v1/install/:platform", () => {
+  it("returns claude-desktop config", async () => {
+    const r = await req("/v1/install/claude-desktop");
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.platform).toBe("claude-desktop");
+    expect(data.config.mcpServers["axis-toolbox"]).toBeDefined();
+  });
+
+  it("returns cursor config", async () => {
+    const r = await req("/v1/install/cursor");
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.platform).toBe("cursor");
+    expect(data.config.mcpServers["axis-toolbox"]).toBeDefined();
+  });
+
+  it("returns vscode config", async () => {
+    const r = await req("/v1/install/vscode");
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.platform).toBe("vscode");
+    expect(data.config.servers["axis-toolbox"]).toBeDefined();
+  });
+
+  it("returns claude-code config", async () => {
+    const r = await req("/v1/install/claude-code");
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.platform).toBe("claude-code");
+    expect(data.config.command).toContain("claude mcp add");
+  });
+
+  it("returns 404 for unknown platform", async () => {
+    const r = await req("/v1/install/unknown-platform");
+    expect(r.status).toBe(404);
+    const data = JSON.parse(r.body);
+    expect(data.error).toBe("unknown_platform");
+    expect(data.available).toContain("cursor");
   });
 });

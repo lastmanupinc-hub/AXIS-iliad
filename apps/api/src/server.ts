@@ -32,6 +32,8 @@ import {
   handleRobotsTxt,
   handleSkillsIndex,
   handleDocsMd,
+  handleForAgents,
+  handleInstall,
   handleHealthCheck,
   handleSearchIndex,
   handleSearchQuery,
@@ -186,6 +188,11 @@ router.get("/.well-known/skills/index.json", handleSkillsIndex);
 
 // Plain-text API docs (Stripe-style .md suffix)
 router.get("/v1/docs.md", handleDocsMd);
+
+// Agent onboarding — machine-readable manifest + install configs
+router.get("/for-agents", handleForAgents);
+router.get("/v1/install", handleInstall);
+router.get("/v1/install/:platform", handleInstall);
 
 // File Content Search
 router.post("/v1/search/index", handleSearchIndex);
