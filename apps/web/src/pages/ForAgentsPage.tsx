@@ -127,6 +127,9 @@ const MCP_TOOLS = [
   { tool: "get_artifact",                  auth: false, desc: "Read full content of any artifact by path (AGENTS.md, .ai/debug-playbook.md, etc.)." },
   { tool: "prepare_for_agentic_purchasing",auth: true,  desc: "Full purchasing-readiness audit. Returns score 0â€“100, AP2/Visa compliance, playbooks, checkout rules, MCP config." },
   { tool: "search_and_discover_tools",     auth: false, desc: "Keyword search across all 18 programs. Use before loading full schemas." },
+  { tool: "discover_agentic_commerce_tools",auth: false, desc: "Free overview of all AXIS tools with pricing, install configs, and shareable manifest." },
+  { tool: "improve_my_agent_with_axis",     auth: true,  desc: "Analyze your agent's codebase, get improvement plan + missing context files + MCP config." },
+  { tool: "discover_agentic_purchasing_needs", auth: false, desc: "Describe your commerce/compliance need — get tailored AXIS tool recommendations. Free intent probe." },
 ];
 
 // â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -562,101 +565,196 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
           Score â‰¥70 = production-ready for autonomous purchasing. Score &lt;40 = needs work before agent transactions are safe.
         </p>
       </div>
-
-      {/* -- AP2 & UCP Compliance for Agents -- */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <SectionHeader
-          title="AP2 & UCP Compliance for Agents"
-          subtitle="What Article 2 of the UN CISG (AP2), UCP Article 5, and Visa Intelligent Commerce mean for autonomous purchasing agents."
-          tag="Compliance"
-        />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-          {[
-            {
-              term: "AP2 â€” Article 2 (UN CISG)",
-              color: "var(--green)",
-              what: "The framework governing automated agent-to-agent commerce transactions. Requires spending caps, revocation mechanisms, principal-agent binding scope, and documented authorization chains.",
-              forAgents: "Your codebase must declare AP2 fields: spending_limit, revocation_endpoint, agent_scope, and principal_did. Missing fields = blocked transactions.",
-            },
-            {
-              term: "UCP Article 5 â€” Documentary Credits",
-              color: "var(--accent)",
-              what: "Uniform Customs and Practice for Documentary Credits. UCP 600 Article 5 governs the independence of credits from underlying contracts â€” critical for agent-initiated B2B procurement.",
-              forAgents: "Agents issuing purchase orders against documentary credit systems need UCP-compliant payment terms in their commerce-registry.json. AXIS generates these automatically.",
-            },
-            {
-              term: "Visa Intelligent Commerce",
-              color: "#f59e0b",
-              what: "Visa's framework for AI agents to autonomously initiate card payments. Requires token delegation, spending authorization telemetry, SCA compliance, and zero-click checkout flow documentation.",
-              forAgents: "Visa IC readiness score is one of 7 rubric categories. A score below 10/15 means your agent cannot complete Visa-gated checkout without human approval.",
-            },
-          ].map(item => (
-            <div key={item.term} style={{ padding: "14px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg)" }}>
-              <div style={{ fontSize: "0.78rem", fontWeight: 700, color: item.color, marginBottom: 8 }}>{item.term}</div>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 8, lineHeight: 1.6 }}><strong style={{ color: "var(--text)" }}>What it is: </strong>{item.what}</p>
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6 }}><strong style={{ color: "var(--text)" }}>For agents: </strong>{item.forAgents}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ padding: "10px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg)", fontSize: "0.73rem", color: "var(--text-muted)" }}>
-          <code style={{ fontFamily: "var(--mono)", color: "var(--accent)" }}>prepare_for_agentic_purchasing</code> checks AP2, UCP, and Visa IC compliance automatically and returns a per-provider checklist with exact missing fields and fix instructions.
-        </div>
-      </div>
-
-      {/* -- Purchasing Readiness Score Explained -- */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <SectionHeader
-          title="Purchasing Readiness Score Explained"
-          subtitle="0-100 weighted rubric. Score â‰¥70 = production-ready for autonomous commerce. Each gap is an exact remediation item."
-          tag="Score"
-        />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div>
-            <p style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>7 scored categories</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {[
-                { cat: "Commerce Artifacts",   pts: 25, gap: "Missing commerce-registry.json, product schema, or checkout flow docs." },
-                { cat: "MCP Configs",          pts: 20, gap: "No mcp-config.json or tool discovery metadata present." },
-                { cat: "Compliance Checklist", pts: 15, gap: "AP2/UCP/Visa IC fields unaddressed or absent." },
-                { cat: "Negotiation Playbook", pts: 15, gap: "No price-anchor, BATNA, or escalation rules documented." },
-                { cat: "Debug Playbook",       pts: 10, gap: "No incident triage or error taxonomy for agent error recovery." },
-                { cat: "Optimization Rules",   pts: 10, gap: "No performance budget or retry-backoff strategy documented." },
-                { cat: "Onboarding Docs",      pts:  5, gap: "AGENTS.md or .cursorrules missing or generic." },
-              ].map(({ cat, pts, gap }) => (
-                <div key={cat} style={{ padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <span style={{ fontSize: "0.73rem", fontWeight: 600 }}>{cat}</span>
-                    <span style={{ fontSize: "0.73rem", fontWeight: 700, color: "var(--accent)" }}>{pts}pts</span>
-                  </div>
-                  <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{gap}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>Score thresholds</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                { range: "90 - 100", label: "Fully autonomous",   color: "var(--green)",  desc: "Agent can initiate, negotiate, and complete purchases without human approval on all supported providers." },
-                { range: "70 - 89",  label: "Production-ready",   color: "#22c55e",       desc: "Core commerce flow complete. Minor gaps â€” typically 1-2 missing artifacts. Approve for standard purchasing workflows." },
-                { range: "50 - 69",  label: "Partial autonomy",   color: "#f59e0b",       desc: "Significant gaps. Agent can research and negotiate but checkout may require human confirmation for some providers." },
-                { range: "< 50",     label: "Not ready",          color: "var(--red)",    desc: "Critical commerce artifacts missing. Agent transactions will fail or require full human supervision." },
-              ].map(item => (
-                <div key={item.range} style={{ padding: "10px 12px", border: `1px solid ${item.color}33`, borderRadius: "var(--radius)", background: `${item.color}08` }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: item.color }}>{item.range}</span>
-                    <span style={{ fontSize: "0.73rem", fontWeight: 600 }}>{item.label}</span>
-                  </div>
-                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{item.desc}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: "0.72rem", color: "var(--text-muted)" }}>
-              <strong style={{ color: "var(--text)" }}>Re-score anytime: </strong>call <code style={{ fontFamily: "var(--mono)", color: "var(--accent)" }}>prepare_for_agentic_purchasing</code> again after adding artifacts. Score is deterministic â€” same input always yields same score.
-            </div>
-          </div>
-        </div>
-      </div>
+
+
+      {/* -- AP2 & UCP Compliance for Agents -- */}
+
+      <div className="card" style={{ marginBottom: 24 }}>
+
+        <SectionHeader
+
+          title="AP2 & UCP Compliance for Agents"
+
+          subtitle="What Article 2 of the UN CISG (AP2), UCP Article 5, and Visa Intelligent Commerce mean for autonomous purchasing agents."
+
+          tag="Compliance"
+
+        />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+
+          {[
+
+            {
+
+              term: "AP2 â€” Article 2 (UN CISG)",
+
+              color: "var(--green)",
+
+              what: "The framework governing automated agent-to-agent commerce transactions. Requires spending caps, revocation mechanisms, principal-agent binding scope, and documented authorization chains.",
+
+              forAgents: "Your codebase must declare AP2 fields: spending_limit, revocation_endpoint, agent_scope, and principal_did. Missing fields = blocked transactions.",
+
+            },
+
+            {
+
+              term: "UCP Article 5 â€” Documentary Credits",
+
+              color: "var(--accent)",
+
+              what: "Uniform Customs and Practice for Documentary Credits. UCP 600 Article 5 governs the independence of credits from underlying contracts â€” critical for agent-initiated B2B procurement.",
+
+              forAgents: "Agents issuing purchase orders against documentary credit systems need UCP-compliant payment terms in their commerce-registry.json. AXIS generates these automatically.",
+
+            },
+
+            {
+
+              term: "Visa Intelligent Commerce",
+
+              color: "#f59e0b",
+
+              what: "Visa's framework for AI agents to autonomously initiate card payments. Requires token delegation, spending authorization telemetry, SCA compliance, and zero-click checkout flow documentation.",
+
+              forAgents: "Visa IC readiness score is one of 7 rubric categories. A score below 10/15 means your agent cannot complete Visa-gated checkout without human approval.",
+
+            },
+
+          ].map(item => (
+
+            <div key={item.term} style={{ padding: "14px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg)" }}>
+
+              <div style={{ fontSize: "0.78rem", fontWeight: 700, color: item.color, marginBottom: 8 }}>{item.term}</div>
+
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 8, lineHeight: 1.6 }}><strong style={{ color: "var(--text)" }}>What it is: </strong>{item.what}</p>
+
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.6 }}><strong style={{ color: "var(--text)" }}>For agents: </strong>{item.forAgents}</p>
+
+            </div>
+
+          ))}
+
+        </div>
+
+        <div style={{ padding: "10px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg)", fontSize: "0.73rem", color: "var(--text-muted)" }}>
+
+          <code style={{ fontFamily: "var(--mono)", color: "var(--accent)" }}>prepare_for_agentic_purchasing</code> checks AP2, UCP, and Visa IC compliance automatically and returns a per-provider checklist with exact missing fields and fix instructions.
+
+        </div>
+
+      </div>
+
+
+
+      {/* -- Purchasing Readiness Score Explained -- */}
+
+      <div className="card" style={{ marginBottom: 24 }}>
+
+        <SectionHeader
+
+          title="Purchasing Readiness Score Explained"
+
+          subtitle="0-100 weighted rubric. Score â‰¥70 = production-ready for autonomous commerce. Each gap is an exact remediation item."
+
+          tag="Score"
+
+        />
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+          <div>
+
+            <p style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>7 scored categories</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+
+              {[
+
+                { cat: "Commerce Artifacts",   pts: 25, gap: "Missing commerce-registry.json, product schema, or checkout flow docs." },
+
+                { cat: "MCP Configs",          pts: 20, gap: "No mcp-config.json or tool discovery metadata present." },
+
+                { cat: "Compliance Checklist", pts: 15, gap: "AP2/UCP/Visa IC fields unaddressed or absent." },
+
+                { cat: "Negotiation Playbook", pts: 15, gap: "No price-anchor, BATNA, or escalation rules documented." },
+
+                { cat: "Debug Playbook",       pts: 10, gap: "No incident triage or error taxonomy for agent error recovery." },
+
+                { cat: "Optimization Rules",   pts: 10, gap: "No performance budget or retry-backoff strategy documented." },
+
+                { cat: "Onboarding Docs",      pts:  5, gap: "AGENTS.md or .cursorrules missing or generic." },
+
+              ].map(({ cat, pts, gap }) => (
+
+                <div key={cat} style={{ padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+
+                    <span style={{ fontSize: "0.73rem", fontWeight: 600 }}>{cat}</span>
+
+                    <span style={{ fontSize: "0.73rem", fontWeight: 700, color: "var(--accent)" }}>{pts}pts</span>
+
+                  </div>
+
+                  <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{gap}</div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          </div>
+
+          <div>
+
+            <p style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: 10 }}>Score thresholds</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+              {[
+
+                { range: "90 - 100", label: "Fully autonomous",   color: "var(--green)",  desc: "Agent can initiate, negotiate, and complete purchases without human approval on all supported providers." },
+
+                { range: "70 - 89",  label: "Production-ready",   color: "#22c55e",       desc: "Core commerce flow complete. Minor gaps â€” typically 1-2 missing artifacts. Approve for standard purchasing workflows." },
+
+                { range: "50 - 69",  label: "Partial autonomy",   color: "#f59e0b",       desc: "Significant gaps. Agent can research and negotiate but checkout may require human confirmation for some providers." },
+
+                { range: "< 50",     label: "Not ready",          color: "var(--red)",    desc: "Critical commerce artifacts missing. Agent transactions will fail or require full human supervision." },
+
+              ].map(item => (
+
+                <div key={item.range} style={{ padding: "10px 12px", border: `1px solid ${item.color}33`, borderRadius: "var(--radius)", background: `${item.color}08` }}>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+
+                    <span style={{ fontSize: "0.8rem", fontWeight: 700, color: item.color }}>{item.range}</span>
+
+                    <span style={{ fontSize: "0.73rem", fontWeight: 600 }}>{item.label}</span>
+
+                  </div>
+
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{item.desc}</div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+            <div style={{ marginTop: 10, padding: "10px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: "0.72rem", color: "var(--text-muted)" }}>
+
+              <strong style={{ color: "var(--text)" }}>Re-score anytime: </strong>call <code style={{ fontFamily: "var(--mono)", color: "var(--accent)" }}>prepare_for_agentic_purchasing</code> again after adding artifacts. Score is deterministic â€” same input always yields same score.
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
 
 
       {/* â”€â”€ MCP Tools â”€â”€ */}
@@ -762,7 +860,7 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
           {[
             { method: "POST", path: "/v1/prepare-for-agentic-purchasing", desc: "Full purchasing-readiness audit â€” score + AP2/Visa compliance + playbooks" },
             { method: "POST", path: "/v1/analyze",                        desc: "Analyze GitHub URL or inline files â†’ 81 artifacts" },
-            { method: "POST", path: "/mcp",                               desc: "MCP server â€” Streamable HTTP transport, 2025-03-26 spec, 7 tools" },
+            { method: "POST", path: "/mcp",                               desc: "MCP server — Streamable HTTP transport, 2025-03-26 spec, 9 tools" },
             { method: "GET",  path: "/v1/mcp/tools?q=",                   desc: "Search 18 programs by keyword â€” no auth required" },
             { method: "GET",  path: "/v1/mcp/server.json",                desc: "MCP registry metadata for mcp-publisher CLI and registry crawlers" },
             { method: "POST", path: "/v1/accounts",                       desc: "Create account, get raw_key" },

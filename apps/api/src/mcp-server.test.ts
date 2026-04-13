@@ -234,13 +234,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns all 7 tools", async () => {
+  it("returns all 10 tools", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     expect(tools.length).toBe(MCP_TOOLS.length);
-    expect(tools.length).toBe(7);
+    expect(tools.length).toBe(10);
   });
 
   it("each tool has name, description, inputSchema", async () => {
@@ -1209,9 +1209,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(getMcpServerMeta().protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array has 7 entries derived from MCP_TOOLS", () => {
+  it("tools array has 10 entries derived from MCP_TOOLS", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(7);
+    expect(tools).toHaveLength(10);
     expect(tools.map(t => t.name)).toEqual(MCP_TOOLS.map(t => t.name));
   });
 
@@ -1275,11 +1275,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(data.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 7 tools", async () => {
+  it("body contains 10 tools", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(7);
+    expect(tools).toHaveLength(10);
   });
 
   it("body contains categories array", async () => {
@@ -1292,5 +1292,180 @@ describe("GET /v1/mcp/server.json", () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     expect(JSON.stringify(data)).toBe(JSON.stringify(getMcpServerMeta()));
+  });
+});
+
+// ─── POST /mcp — tools/call discover_agentic_commerce_tools ─────
+
+describe("POST /mcp — tools/call discover_agentic_commerce_tools", () => {
+  it("returns tool overview with install configs (no auth required)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 60,
+      method: "tools/call",
+      params: { name: "discover_agentic_commerce_tools", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.axis_toolbox).toBeDefined();
+    expect(parsed.tools).toBeDefined();
+    expect(Array.isArray(parsed.tools)).toBe(true);
+    expect(parsed.tools.length).toBe(10);
+  });
+
+  it("includes free_tools array", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 61,
+      method: "tools/call",
+      params: { name: "discover_agentic_commerce_tools", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(Array.isArray(parsed.free_tools)).toBe(true);
+    expect(parsed.free_tools).toContain("discover_agentic_commerce_tools");
+  });
+
+  it("includes install section with platform configs", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 62,
+      method: "tools/call",
+      params: { name: "discover_agentic_commerce_tools", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.install).toBeDefined();
+    expect(parsed.install.platforms["claude-desktop"]).toBeDefined();
+    expect(parsed.install.platforms.cursor).toBeDefined();
+    expect(parsed.install.platforms.vscode).toBeDefined();
+  });
+
+  it("includes shareable_manifest and system_prompt_snippet", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 63,
+      method: "tools/call",
+      params: { name: "discover_agentic_commerce_tools", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.shareable_manifest).toBeDefined();
+    expect(typeof parsed.system_prompt_snippet).toBe("string");
+    expect(parsed.shareable_manifest.tools).toBe(10);
+  });
+
+  it("tool name appears in MCP_TOOLS", () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("discover_agentic_commerce_tools");
+  });
+});
+
+// ─── POST /mcp — tools/call improve_my_agent_with_axis ──────────
+
+describe("POST /mcp — tools/call improve_my_agent_with_axis", () => {
+  it("requires authentication", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 70,
+      method: "tools/call",
+      params: {
+        name: "improve_my_agent_with_axis",
+        arguments: {
+          project_name: "test-agent",
+          files: [{ path: "index.ts", content: "export const x = 1;" }],
+        },
+      },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("Authentication required");
+  });
+
+  it("tool name appears in MCP_TOOLS", () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("improve_my_agent_with_axis");
+  });
+});
+
+// ─── POST /mcp — tools/call discover_agentic_purchasing_needs ────
+
+describe("POST /mcp — tools/call discover_agentic_purchasing_needs", () => {
+  it("returns matched capabilities for purchasing intent (no auth required)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 80,
+      method: "tools/call",
+      params: {
+        name: "discover_agentic_purchasing_needs",
+        arguments: {
+          task_description: "I need to harden my checkout flow for autonomous purchasing agents with Visa compliance",
+        },
+      },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.matched_capabilities).toBeDefined();
+    expect(Array.isArray(parsed.matched_capabilities)).toBe(true);
+    expect(parsed.matched_capabilities.length).toBeGreaterThan(0);
+    expect(parsed.recommended_next_step).toBeDefined();
+  });
+
+  it("returns results with focus_areas filtering", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 81,
+      method: "tools/call",
+      params: {
+        name: "discover_agentic_purchasing_needs",
+        arguments: {
+          task_description: "compliance audit for payment processing",
+          focus_areas: ["compliance", "checkout"],
+        },
+      },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.scoring_methodology).toBeDefined();
+  });
+
+  it("returns fewer capabilities for unrelated task", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 82,
+      method: "tools/call",
+      params: {
+        name: "discover_agentic_purchasing_needs",
+        arguments: {
+          task_description: "xyz zzz qqq zxcvb",
+        },
+      },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    // Unrelated text should match fewer capabilities than a targeted query
+    expect(parsed.matched_capabilities.length).toBeLessThanOrEqual(2);
+  });
+
+  it("tool name appears in MCP_TOOLS", () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("discover_agentic_purchasing_needs");
   });
 });

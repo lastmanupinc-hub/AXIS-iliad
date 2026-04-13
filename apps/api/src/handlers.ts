@@ -1,5 +1,6 @@
-﻿import type { IncomingMessage, ServerResponse } from "node:http";
-import { chargeMpp } from "./mpp.js";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { chargeMpp, parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import { classifyProbe, captureIntent } from "./mcp-server.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -29,6 +30,14 @@ import {
   runMaintenance,
   getDbStats,
   getGitHubTokenDecrypted,
+  buildIncentivesSummary,
+  lookupReferralCode,
+  recordReferralConversion,
+  createReferralCode,
+  getReferralCredits,
+  applyReferralDiscount,
+  consumeFreeCall,
+  initFreeCallGrant,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -39,7 +48,7 @@ import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 
-// â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ownership helpers ──────────────────────────────────────────
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
 function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
@@ -72,7 +81,7 @@ function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_
   return true;
 }
 
-// â”€â”€â”€ Per-program default outputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Per-program default outputs ────────────────────────────────
 
 export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug:        [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
@@ -93,7 +102,7 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   "agentic-purchasing": ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json"],
 };
 
-// â”€â”€â”€ Generic program handler factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Generic program handler factory ────────────────────────────
 
 const FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
 
@@ -101,7 +110,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   const isPro = !FREE_PROGRAMS.has(program);
 
   return async function (req: IncomingMessage, res: ServerResponse): Promise<void> {
-    // Billing gate for pro programs — $0.50 per call
+    // Billing gate for pro programs � $0.50 per call
     if (isPro) {
       const auth = resolveAuth(req);
 
@@ -118,27 +127,33 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
           source: "program_handler",
         });
 
-        // Offer 402 MPP payment ($0.50 per call)
+        const budget = parseAgentBudget(req);
+        const mode = resolveAgentMode(req);
+        const pricing = getPricingTier(program);
+        const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
+        // Offer 402 MPP payment (budget-aware)
         const mppResult = await chargeMpp(req, res, {
-          amount: "50",
+          amount: String(amountCents),
           currency: "usd",
           decimals: 2,
-          description: `AXIS ${program} - $0.50 per run`,
-          meta: { account_id: auth.account.account_id, tier: auth.account.tier, program },
+          description: `AXIS ${program} - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+          meta: { account_id: auth.account.account_id, tier: auth.account.tier, program, mode },
         });
 
         if (mppResult === null) {
-          // MPP not configured — return 402 with upgrade instructions
+          // MPP not configured � return 402 with negotiation data
           sendError(res, 402, ErrorCode.TIER_REQUIRED, `${program} requires a paid plan or per-call payment. Upgrade at toolbox.jonathanarvay.com/billing.`, {
             program,
             tier: auth.account.tier,
-            price_per_call: "$0.50",
+            price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+            ...build402NegotiationBody(program, budget),
           });
         }
-        // 402 challenge issued or payment failed — stop processing
+        // 402 challenge issued or payment failed � stop processing
         if (mppResult === null || mppResult.status === 402) return;
 
-        // mppResult.status === 200 — payment accepted, continue to generation
+        // mppResult.status === 200 � payment accepted, continue to generation
       }
     }
 
@@ -205,7 +220,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   };
 }
 
-// â”€â”€â”€ Program handlers (generated from PROGRAM_OUTPUTS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Program handlers (generated from PROGRAM_OUTPUTS) ──────────
 
 export const handleDebugAnalyze        = makeProgramHandler("debug", PROGRAM_OUTPUTS.debug);
 export const handleFrontendAudit       = makeProgramHandler("frontend", PROGRAM_OUTPUTS.frontend);
@@ -293,15 +308,23 @@ export async function handleCreateSnapshot(
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier("analyze_repo");
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
       const mppResult = await chargeMpp(req, res, {
-        amount: "50",
+        amount: String(amountCents),
         currency: "usd",
         decimals: 2,
-        description: "AXIS API Credit  -  $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+        description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode },
       });
       if (mppResult === null) {
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
+          tier: quota.tier,
+          usage: quota.usage,
+          ...build402NegotiationBody("analyze_repo", budget),
+        });
       }
       if (mppResult === null || mppResult.status === 402) return;
     }
@@ -681,7 +704,7 @@ export async function handleSkillsGenerate(
   });
 }
 
-// â”€â”€â”€ GitHub URL intake â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GitHub URL intake ──────────────────────────────────────────
 
 export async function handleGitHubAnalyze(
   req: IncomingMessage,
@@ -757,18 +780,26 @@ export async function handleGitHubAnalyze(
   }
   if (auth.account) {
     const quota = checkQuota(auth.account.account_id);
-    /* v8 ignore next 7  -  requires exhausting rate quota in tests */
+    /* v8 ignore next 11  -  requires exhausting rate quota in tests */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier("analyze_repo");
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
       const mppResult = await chargeMpp(req, res, {
-        amount: "50",
+        amount: String(amountCents),
         currency: "usd",
         decimals: 2,
-        description: "AXIS API Credit  -  $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+        description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode },
       });
       if (mppResult === null) {
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
+          tier: quota.tier,
+          usage: quota.usage,
+          ...build402NegotiationBody("analyze_repo", budget),
+        });
       }
       if (mppResult === null || mppResult.status === 402) return;
     }
@@ -856,7 +887,7 @@ export async function handleGitHubAnalyze(
   /* v8 ignore stop */
 }
 
-// â”€â”€â”€ File Content Search API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── File Content Search API ────────────────────────────────────
 
 export async function handleSearchIndex(
   req: IncomingMessage,
@@ -991,7 +1022,7 @@ export async function handleSearchSymbols(
   });
 }
 
-// â”€â”€â”€ POST /v1/analyze  -  unified one-call analysis endpoint â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/analyze  -  unified one-call analysis endpoint ──────
 
 // Per-file adoption hints (deterministic  -  same input = same output)
 const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string }> = {
@@ -1247,18 +1278,23 @@ export async function handleAnalyze(
         p => !FREE_PROGRAMS.has(p) && !isProgramEnabled(auth.account!.account_id, p),
       );
       if (blockedPrograms.length > 0) {
+        const budget = parseAgentBudget(req);
+        const mode = resolveAgentMode(req);
+        const pricing = getPricingTier("analyze_repo");
+        const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
         const mppResult = await chargeMpp(req, res, {
-          amount: "50",
+          amount: String(amountCents),
           currency: "usd",
           decimals: 2,
-          description: `AXIS pro programs - $0.50 per run (${blockedPrograms.join(", ")})`,
-          meta: { account_id: auth.account.account_id, tier: auth.account.tier, programs: blockedPrograms.join(",") },
+          description: `AXIS pro programs - $${(amountCents / 100).toFixed(2)} per run (${blockedPrograms.join(", ")})`,
+          meta: { account_id: auth.account.account_id, tier: auth.account.tier, programs: blockedPrograms.join(","), mode },
         });
         if (mppResult === null) {
           sendError(res, 402, ErrorCode.TIER_REQUIRED, `Pro programs require a paid plan or per-call payment: ${blockedPrograms.join(", ")}. Upgrade at toolbox.jonathanarvay.com/billing.`, {
             blocked_programs: blockedPrograms,
             tier: auth.account.tier,
-            price_per_call: "$0.50",
+            price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+            ...build402NegotiationBody("analyze_repo", budget),
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
@@ -1269,15 +1305,23 @@ export async function handleAnalyze(
     /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier("analyze_repo");
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
       const mppResult = await chargeMpp(req, res, {
-        amount: "50",
+        amount: String(amountCents),
         currency: "usd",
         decimals: 2,
-        description: "AXIS API Credit  -  $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+        description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode },
       });
       if (mppResult === null) {
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
+          tier: quota.tier,
+          usage: quota.usage,
+          ...build402NegotiationBody("analyze_repo", budget),
+        });
       }
       if (mppResult === null || mppResult.status === 402) return;
     }
@@ -1405,9 +1449,9 @@ export async function handleAnalyze(
   /* v8 ignore stop */
 }
 
-// â”€â”€â”€ POST /v1/prepare-for-agentic-purchasing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── POST /v1/prepare-for-agentic-purchasing ────────────────────
 
-/** Scoring weights for Purchasing Readiness Score (0â€“100). */
+/** Scoring weights for Purchasing Readiness Score (0–100). */
 export const PURCHASING_READINESS_WEIGHTS = {
   commerce_artifacts:   25,
   mcp_configs:          20,
@@ -1453,6 +1497,64 @@ export function computePurchasingReadinessScore(paths: string[]): {
   return { score, gaps, strengths };
 }
 
+/** Evidence-based sub-checks for deeper scoring granularity. */
+const EVIDENCE_CHECKS: Record<string, { pattern: (p: string) => boolean; label: string }[]> = {
+  commerce_artifacts: [
+    { pattern: p => p.includes("agent-purchasing-playbook"), label: "Agent purchasing playbook" },
+    { pattern: p => p.includes("commerce-registry"), label: "Commerce registry" },
+    { pattern: p => p.includes("product-schema"), label: "Product schema" },
+    { pattern: p => p.includes("checkout-flow"), label: "Checkout flow" },
+  ],
+  mcp_configs: [
+    { pattern: p => p.includes("mcp-config"), label: "MCP configuration" },
+    { pattern: p => p.includes("capability-registry"), label: "Capability registry" },
+    { pattern: p => p.includes("mcp-playbook"), label: "MCP playbook" },
+  ],
+  compliance_checklist: [
+    { pattern: p => p.includes("negotiation-rules"), label: "Negotiation rules (AP2/UCP)" },
+    { pattern: p => p.includes("checkout-flow"), label: "Checkout flow rules" },
+  ],
+  negotiation_playbook: [
+    { pattern: p => p.includes("negotiation-rules"), label: "Negotiation playbook" },
+  ],
+  debug_playbook: [
+    { pattern: p => p.includes("debug-playbook"), label: "Debug playbook" },
+  ],
+  optimization_rules: [
+    { pattern: p => p.includes("optimization-rules"), label: "Optimization rules" },
+  ],
+  onboarding_docs: [
+    { pattern: p => p === "AGENTS.md", label: "AGENTS.md" },
+    { pattern: p => p === "CLAUDE.md", label: "CLAUDE.md" },
+    { pattern: p => p === ".cursorrules", label: ".cursorrules" },
+  ],
+};
+
+export function computePurchasingReadinessEvidence(paths: string[]): {
+  evidence: { category: string; label: string; found: boolean }[];
+  category_scores: Record<string, { weight: number; earned: number; artifacts_found: string[] }>;
+} {
+  const evidence: { category: string; label: string; found: boolean }[] = [];
+  const category_scores: Record<string, { weight: number; earned: number; artifacts_found: string[] }> = {};
+
+  for (const [category, subChecks] of Object.entries(EVIDENCE_CHECKS)) {
+    const weight = PURCHASING_READINESS_WEIGHTS[category as keyof typeof PURCHASING_READINESS_WEIGHTS];
+    const found: string[] = [];
+    for (const sub of subChecks) {
+      const matched = paths.some(sub.pattern);
+      evidence.push({ category, label: sub.label, found: matched });
+      if (matched) found.push(sub.label);
+    }
+    category_scores[category] = {
+      weight,
+      earned: found.length > 0 ? weight : 0,
+      artifacts_found: found,
+    };
+  }
+
+  return { evidence, category_scores };
+}
+
 export const PURCHASING_PROGRAMS = [
   "agentic-purchasing", "debug", "optimization", "mcp", "marketing",
   "superpowers", "seo", "brand", "search", "skills",
@@ -1473,7 +1575,7 @@ export async function handlePreparePurchasing(
     return;
   }
 
-  const { project_name, project_type, frameworks, goals, files: rawFiles, focus = "purchasing", agent_type } = body;
+  const { project_name, project_type, frameworks, goals, files: rawFiles, focus = "purchasing", agent_type, focus_areas, budget_per_run_cents, spending_window: bodySpendingWindow, referral_token } = body;
 
   if (!project_name || typeof project_name !== "string") {
     sendError(res, 400, ErrorCode.MISSING_FIELD, "project_name is required");
@@ -1514,7 +1616,7 @@ export async function handlePreparePurchasing(
     files.push({ path, content: file.content as string, size: Buffer.byteLength(file.content as string, "utf-8") });
   }
 
-  // Billing gate — the hardener runs pro programs, so require auth + entitlement
+  // Billing gate � the hardener runs pro programs, so require auth + entitlement
   const proPrograms = PURCHASING_PROGRAMS.filter(p => !FREE_PROGRAMS.has(p));
   if (proPrograms.length > 0) {
     if (auth.anonymous || !auth.account) {
@@ -1529,19 +1631,25 @@ export async function handlePreparePurchasing(
         source: "prepare_for_agentic_purchasing",
       });
 
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier("prepare_for_agentic_purchasing");
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
       const mppResult = await chargeMpp(req, res, {
-        amount: "50",
+        amount: String(amountCents),
         currency: "usd",
         decimals: 2,
-        description: "AXIS Toolbox - prepare_for_agentic_purchasing - $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier, tool: "prepare_for_agentic_purchasing" },
+        description: `AXIS Toolbox - prepare_for_agentic_purchasing - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, tool: "prepare_for_agentic_purchasing", mode },
       });
 
       if (mppResult === null) {
         sendError(res, 402, ErrorCode.TIER_REQUIRED, `prepare_for_agentic_purchasing requires a paid plan or per-call payment. Upgrade at toolbox.jonathanarvay.com/billing.`, {
           blocked_programs: blockedPrograms,
           tier: auth.account.tier,
-          price_per_call: "$0.50",
+          price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+          ...build402NegotiationBody("prepare_for_agentic_purchasing", budget),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1552,15 +1660,24 @@ export async function handlePreparePurchasing(
     const quota = checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier("prepare_for_agentic_purchasing");
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
       const mppResult = await chargeMpp(req, res, {
-        amount: "50",
+        amount: String(amountCents),
         currency: "usd",
         decimals: 2,
-        description: "AXIS Toolbox - prepare_for_agentic_purchasing - $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier, tool: "prepare_for_agentic_purchasing" },
+        description: `AXIS Toolbox - prepare_for_agentic_purchasing - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, tool: "prepare_for_agentic_purchasing", mode },
       });
       if (mppResult === null) {
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
+        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
+          tier: quota.tier,
+          usage: quota.usage,
+          ...build402NegotiationBody("prepare_for_agentic_purchasing", budget),
+        });
       }
       if (mppResult === null || mppResult.status === 402) return;
     }
@@ -1619,11 +1736,61 @@ export async function handlePreparePurchasing(
         focus: typeof focus === "string" ? focus : "purchasing",
         ...(typeof agent_type === "string" ? { agent_type } : {}),
       });
+
+      // ── Referral tracking ──────────────────────────────────────
+      if (typeof referral_token === "string" && referral_token.length > 0) {
+        const referral = lookupReferralCode(referral_token as string);
+        if (referral && referral.account_id !== auth.account.account_id) {
+          recordReferralConversion(referral.account_id, auth.account.account_id);
+        }
+      }
+      initFreeCallGrant(auth.account.account_id);
     }
+
+    // Generate referral code for authenticated users
+    const myReferralCode = auth.account ? createReferralCode(auth.account.account_id) : null;
+    const myCredits = auth.account ? getReferralCredits(auth.account.account_id) : null;
 
     const artifactPaths = generated.files.map(f => f.path);
     const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
+    const { evidence, category_scores } = computePurchasingReadinessEvidence(artifactPaths);
     const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
+
+    const budget = parseAgentBudget(req);
+    const agentMode = resolveAgentMode(req);
+
+    // Allow budget from request body to override header-based budget
+    const effectiveBudgetCents = typeof budget_per_run_cents === "number" ? (budget_per_run_cents as number) : budget?.budget_per_run_cents;
+    const effectiveWindow = typeof bodySpendingWindow === "string" ? bodySpendingWindow : budget?.spending_window;
+
+    // Parse focus areas from request body
+    const validFocusAreas = new Set(["sca", "dispute", "mandate", "tap", "tokenization"]);
+    const parsedFocusAreas: string[] | "all" = Array.isArray(focus_areas) && (focus_areas as string[]).length > 0
+      ? (focus_areas as string[]).filter(a => typeof a === "string" && validFocusAreas.has(a))
+      : "all";
+
+    // -- Budget-aware compliance depth -----------------------------
+    const complianceDepth: "full" | "standard" | "summary" =
+      agentMode === "lite"
+        ? "summary"
+        : effectiveWindow === "per_call" && effectiveBudgetCents !== undefined && effectiveBudgetCents < 50
+          ? "standard"
+          : "full";
+
+    const complianceSection = {
+      compliance_depth: complianceDepth,
+      compliance_depth_reason:
+        complianceDepth === "summary"
+          ? "Lite mode � top gaps and score only. Upgrade to standard for full evidence."
+          : complianceDepth === "standard"
+            ? "Budget-constrained � core compliance included, detailed TAP/dispute evidence abbreviated."
+            : "Full compliance suite � all evidence, TAP interop, dispute flows, and verification proofs included.",
+      ...(complianceDepth === "full"
+        ? { category_scores, evidence }
+        : complianceDepth === "standard"
+          ? { category_scores, evidence_summary: `${Object.keys(evidence).length} evidence checks available. Send X-Agent-Mode: standard or increase budget for full details.` }
+          : { top_gaps: gaps.slice(0, 3), upgrade_hint: "Send X-Agent-Mode: standard for category scores and evidence." }),
+    };
 
     sendJSON(res, 201, {
       snapshot_id: snapshot.snapshot_id,
@@ -1635,6 +1802,13 @@ export async function handlePreparePurchasing(
         gaps,
         max_score: 100,
         interpretation: score >= 80 ? "production-ready" : score >= 50 ? "partially-ready" : "needs-work",
+        ...complianceSection,
+        evidence,
+        focus_areas: parsedFocusAreas,
+        ...(effectiveBudgetCents !== undefined ? { effective_budget_cents: effectiveBudgetCents } : {}),
+        recommended_next_action: gaps.length > 0
+          ? `Focus on: ${gaps[0]}. This category adds ${PURCHASING_READINESS_WEIGHTS[gaps[0].replace(/ /g, "_") as keyof typeof PURCHASING_READINESS_WEIGHTS] ?? 0} points.`
+          : "All categories covered. Consider running improve_my_agent_with_axis for deeper optimization.",
       },
       programs_executed: [...new Set(generated.files.map(f => f.program))],
       artifact_count: generated.files.length,
@@ -1665,7 +1839,24 @@ export async function handlePreparePurchasing(
           note: `Use the get_artifact MCP tool or fetch any artifact path from the all_artifacts list.`,
           snapshot_id: snapshot.snapshot_id,
         },
+        budget_negotiation: {
+          note: "On 402, send X-Agent-Budget header to negotiate pricing. Lite mode from $0.25/run.",
+          header: "X-Agent-Budget",
+          schema: { budget_per_run_cents: "number", spending_window: "per_call | hourly | daily | monthly" },
+          lite_mode: "X-Agent-Mode: lite",
+        },
       },
+      ...(budget ? { agent_budget_acknowledged: budget } : {}),
+      ...(myReferralCode ? {
+        incentives: {
+          your_referral_token: myReferralCode.code,
+          share_instruction: "Pass this referral_token to other agents. When they include it in their first paid call, you earn $0.001 off future calls (cap $0.20, 30-day rolling).",
+          earned_credits_millicents: myCredits!.earned_credits_millicents,
+          earned_discount: `$${(myCredits!.earned_credits_millicents / 100_000).toFixed(3)}`,
+          lifetime_referrals: myCredits!.lifetime_referrals,
+          free_calls_remaining: myCredits!.free_calls_remaining,
+        },
+      } : {}),
     });
   /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
@@ -1683,7 +1874,7 @@ export async function handlePreparePurchasing(
   /* v8 ignore stop */
 }
 
-// â”€â”€â”€ GET /.well-known/axis.json  -  agent discovery manifest â”€â”€â”€â”€â”€â”€
+// ─── GET /.well-known/axis.json  -  agent discovery manifest ──────
 
 export async function handleWellKnown(
   _req: IncomingMessage,
@@ -1691,6 +1882,12 @@ export async function handleWellKnown(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "AXIS Toolbox",
+    incentives: {
+      share_to_earn: "$0.001 per referral (cap $0.20/call, 30-day rolling)",
+      fifth_call_free: "New agents get their 5th paid call free",
+      referral_field: "referral_token in prepare_for_agentic_purchasing args",
+      details: "GET /for-agents?intent=referral",
+    },
     tagline: "Analyze any codebase. Generate 86 structured artifacts across 18 programs.",
     version: "0.4.0",
     description: "Submit source files or a GitHub URL. AXIS returns structured AI context files  -  AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more  -  each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
@@ -1727,20 +1924,21 @@ export async function handleWellKnown(
       { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens  -  import into Figma, CSS, or component library" },
     ],
     quick_start: {
-      step_1: "POST /v1/accounts with {email, name, tier: 'free'} â†’ get raw_key",
+      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key",
       step_2: "POST /v1/analyze with {github_url: 'https://github.com/your/repo'} and Authorization: Bearer <raw_key>",
       step_3: "Read adoption_hint on each returned file to know exactly where to place it",
       step_4: "Place AGENTS.md in repo root  -  AI assistants auto-load it immediately",
     },
     llms_txt: "GET /llms.txt  -  plain-text instructions for AI tools on how to interact with AXIS",
     skills: "GET /.well-known/skills/index.json  -  agent skills index following the agentskills.io standard",
-    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce keywords indexed).",
+    capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce/CE3.0/win-probability/lighter-SCA keywords indexed).",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
-      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0â€“100), chains 8 programs, returns commerce artifacts + compliance checklist + negotiation playbook + self-onboarding kit in a single call.",
+      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence + win probability model + lighter SCA paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
-      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 7 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing, search_and_discover_tools.",
+      mcp_discovery: "GET /mcp (Streamable HTTP transport, 2025-03-26 spec). 10 tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_for_agentic_purchasing, search_and_discover_tools, discover_agentic_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs.",
       search_tools: "GET /v1/mcp/tools?q=<keyword>  -  search all 18 programs and 86 generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.",
+      intent_probe: "POST /probe-intent  -  lightweight intent matching. Send {intent: 'your need'} and get ranked AXIS tool recommendations. Free, no auth, no API key needed.",
       registry_metadata: "GET /v1/mcp/server.json  -  MCP registry metadata for mcp-publisher CLI and registry crawlers (Glama.ai, Smithery.ai).",
       openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
       examples: "https://github.com/lastmanupinc-hub/axis-toolbox-examples  -  5 real repos hardened 0/100 to 100/100. Live before/after artifacts.",
@@ -1748,9 +1946,9 @@ export async function handleWellKnown(
   });
 }
 
-// â”€â”€â”€ GET /llms.txt  -  llmstxt.org standard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /llms.txt  -  llmstxt.org standard ───────────────────────
 
-// ─── GET /.well-known/capabilities.json ─────────────────────────
+// --- GET /.well-known/capabilities.json -------------------------
 
 export async function handleCapabilities(
   _req: IncomingMessage,
@@ -1771,12 +1969,18 @@ export async function handleCapabilities(
       "code-review", "repo-analysis", "github-analysis", "ai-coding-assistant",
       "copilot-context", "cursor-rules", "context-generation", "agent-tools",
       "commerce-readiness", "codebase-intelligence",
+      "SCA", "PSD2", "PCI-DSS", "fraud-detection", "dispute-flow",
+      "intent-discovery", "probe-intent", "checkout-flow", "payment-gateway",
+      "agent-onboarding", "self-onboarding", "purchasing-needs",
+      "CE3.0", "compelling-evidence", "dispute-win-probability", "SCA-exemption",
+      "TAP", "VROL", "CDRN", "RDR", "lighter-SCA", "win-probability-model",
+      "network-tokenization", "VTS", "MDES", "focus-areas",
     ],
     capabilities: {
       purchasing_readiness: {
         endpoint: "POST /v1/prepare-for-agentic-purchasing",
         mcp_tool: "prepare_for_agentic_purchasing",
-        description: "Computes Purchasing Readiness Score (0-100) across 7 categories. Returns AP2, UCP, Visa IC compliance checklist, negotiation playbook, autonomous checkout rules, MCP self-onboarding config.",
+        description: "Computes Purchasing Readiness Score (0-100) across 7 categories. Returns AP2, UCP, Visa IC compliance checklist, CE 3.0 dispute evidence auto-assembly, win probability model, lighter SCA exemption paths, negotiation playbook, autonomous checkout rules, MCP self-onboarding config. Focus areas: sca, dispute, mandate, tap, tokenization.",
         score_rubric: {
           commerce_artifacts: 25,
           mcp_configs: 20,
@@ -1793,6 +1997,12 @@ export async function handleCapabilities(
         description: "Keyword search across all 18 programs. No auth required.",
         auth_required: false,
       },
+      intent_probe: {
+        endpoint: "POST /probe-intent",
+        mcp_tool: "discover_agentic_purchasing_needs",
+        description: "Lightweight intent matching � describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations. Free, no auth.",
+        auth_required: false,
+      },
       analysis: {
         endpoint: "POST /v1/analyze",
         mcp_tool: "analyze_repo",
@@ -1806,6 +2016,8 @@ export async function handleCapabilities(
       tools: [
         "analyze_repo", "analyze_files", "get_snapshot", "get_artifact",
         "list_programs", "prepare_for_agentic_purchasing", "search_and_discover_tools",
+        "discover_agentic_commerce_tools", "improve_my_agent_with_axis",
+        "discover_agentic_purchasing_needs",
       ],
     },
     examples_repo: "https://github.com/lastmanupinc-hub/axis-toolbox-examples",
@@ -1814,7 +2026,7 @@ export async function handleCapabilities(
   });
 }
 
-// ─── GET /llms.txt  -  llmstxt.org standard ─────────────────────────────────
+// --- GET /llms.txt  -  llmstxt.org standard ---------------------------------
 
 export async function handleLlmsTxt(
   _req: IncomingMessage,
@@ -1829,7 +2041,7 @@ AXIS Toolbox is an API that accepts source files (or a GitHub URL) and returns s
 ## Quick Start
 
 - POST /v1/accounts  -  create account, get API key (free tier available, no auth required)
-- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} â†’ returns 86 artifacts
+- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} → returns 86 artifacts
 - GET /.well-known/axis.json  -  machine-readable capability manifest
 - GET /v1/mcp/tools?q=  -  search programs by keyword (no auth required)
 
@@ -1838,7 +2050,7 @@ AXIS Toolbox is an API that accepts source files (or a GitHub URL) and returns s
 Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
-- 7 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools
+- 10 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools, discover_agentic_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs
 - No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
 
 ## Programs (18 total)
@@ -1871,7 +2083,7 @@ For autonomous purchasing agents:
   res.end(body);
 }
 
-// â”€â”€â”€ GET /.well-known/skills/index.json  -  agent skills registry â”€â”€
+// ─── GET /.well-known/skills/index.json  -  agent skills registry ──
 
 export async function handleRobotsTxt(
   _req: IncomingMessage,
@@ -1969,17 +2181,17 @@ export async function handleSkillsIndex(
       {
         name: "axis-mcp",
         version: "1.0.0",
-        description: "Connect to AXIS via Model Context Protocol (Streamable HTTP, 2025-03-26). Provides 7 tools for codebase analysis, artifact retrieval, and agentic commerce hardening.",
+        description: "Connect to AXIS via Model Context Protocol (Streamable HTTP, 2025-03-26). Provides 10 tools for codebase analysis, artifact retrieval, and agentic commerce hardening.",
         tags: ["mcp", "ai-agents", "protocol", "integration"],
         endpoint: "POST /mcp",
         auth_required: false,
-        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_for_agentic_purchasing", "search_and_discover_tools"],
+        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_for_agentic_purchasing", "search_and_discover_tools", "discover_agentic_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs"],
       },
     ],
   });
 }
 
-// â”€â”€â”€ GET /v1/docs.md  -  plain-text OpenAPI summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/docs.md  -  plain-text OpenAPI summary ───────────────
 
 export async function handleDocsMd(
   _req: IncomingMessage,
@@ -2034,7 +2246,7 @@ List all programs with generator counts and output paths. No auth required.
 
 - \`POST /mcp\`  -  Streamable HTTP transport (2025-03-26 spec)
 - \`GET /mcp\`  -  SSE stream for long-running operations
-- 7 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools
+- 10 tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools, discover_agentic_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs
 
 ## Search & Indexing
 
@@ -2081,17 +2293,61 @@ List all programs with generator counts and output paths. No auth required.
   res.end(body);
 }
 
-// ─── GET /for-agents — agent-first onboarding manifest ──────────
+// --- GET /for-agents � agent-first onboarding manifest ----------
 
 const AXIS_API_BASE = "https://axis-api-6c7z.onrender.com";
 
 export async function handleForAgents(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  const url = new URL(req.url ?? "/", "http://localhost");
+  const intent = url.searchParams.get("intent") ?? "";
+
+  if (intent) {
+    const agentUA = req.headers["user-agent"] ?? "unknown";
+    const probeClass = classifyProbe(agentUA);
+    captureIntent("for_agents", intent, agentUA);
+    log("info", "for_agents_intent", {
+      intent,
+      user_agent: agentUA,
+      probe_class: probeClass,
+      referer: req.headers["referer"] ?? req.headers["referrer"] ?? null,
+    });
+  }
+
+  const allTools = [
+      { name: "analyze_repo",                   auth: true,  description: "Analyze any public GitHub repo. Returns snapshot_id + 81 artifacts." },
+      { name: "analyze_files",                  auth: true,  description: "Analyze inline files [{path,content}]. Returns snapshot_id + 81 artifacts." },
+      { name: "list_programs",                  auth: false, description: "List all 18 programs and their generators." },
+      { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
+      { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
+      { name: "prepare_for_agentic_purchasing", auth: true,  description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence, win probability model, lighter SCA paths, playbooks. Focus areas: sca, dispute, mandate, tap, tokenization." },
+      { name: "search_and_discover_tools",      auth: false, description: "Keyword search across all 18 programs. START HERE if unsure." },
+      { name: "discover_agentic_commerce_tools",auth: false, description: "Free overview of all AXIS tools with pricing, install configs, and shareable manifest." },
+      { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files." },
+      { name: "discover_agentic_purchasing_needs", auth: false, description: "Describe your commerce/compliance task and get tailored AXIS tool recommendations. Free intent probe." },
+    ];
+
+  // If intent is provided, filter/rank tools by relevance
+  const intentLower = intent.toLowerCase();
+  let tools = allTools;
+  if (intentLower) {
+    const scored = allTools.map(t => {
+      let score = 0;
+      const haystack = `${t.name} ${t.description}`.toLowerCase();
+      for (const word of intentLower.split(/\s+/)) {
+        if (word.length >= 3 && haystack.includes(word)) score += 1;
+      }
+      return { ...t, relevance: score };
+    });
+    scored.sort((a, b) => b.relevance - a.relevance);
+    tools = scored.map(({ relevance: _r, ...rest }) => rest);
+  }
   sendJSON(res, 200, {
     name: "AXIS Toolbox",
     version: "0.4.0",
+    incentives: buildIncentivesSummary(),
     purpose: "Codebase intelligence API. Analyzes any repo, generates 81+ structured artifacts across 18 programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.",
     install: {
       mcp_endpoint: `${AXIS_API_BASE}/mcp`,
@@ -2143,20 +2399,28 @@ export async function handleForAgents(
         },
       },
     },
-    tools: [
-      { name: "analyze_repo",                   auth: true,  description: "Analyze any public GitHub repo. Returns snapshot_id + 81 artifacts." },
-      { name: "analyze_files",                  auth: true,  description: "Analyze inline files [{path,content}]. Returns snapshot_id + 81 artifacts." },
-      { name: "list_programs",                  auth: false, description: "List all 18 programs and their generators." },
-      { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
-      { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
-      { name: "prepare_for_agentic_purchasing", auth: true,  description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, playbooks." },
-      { name: "search_and_discover_tools",      auth: false, description: "Keyword search across all 18 programs. START HERE if unsure." },
-    ],
+    tools,
     first_action: "Call search_and_discover_tools with q=<your task keyword> to find the right program. No auth needed.",
     payment: {
       protocol: "mppx-0.5.12",
-      per_run: "$0.50 USD",
-      flow: "HTTP 402 → parse WWW-Authenticate mppx challenge → pay via Stripe → retry with credential",
+      per_run: "$0.50 USD (standard) / $0.15-$0.25 USD (lite)",
+      flow: "HTTP 402 ? parse WWW-Authenticate mppx challenge ? pay via Stripe ? retry with credential",
+      budget_negotiation: {
+        header: "X-Agent-Budget",
+        schema: {
+          budget_per_run_cents: "number � your max spend per call in cents",
+          spending_window: "per_call | hourly | daily | monthly",
+          max_monthly_cents: "number � optional monthly cap",
+          wallet_id: "string � optional wallet/org identifier",
+          agent_type: "string � e.g. claude, cursor, custom_swarm",
+        },
+        modes: {
+          standard: "Full artifact bundle at $0.50/run",
+          lite: "Reduced output at $0.15-$0.25/run (tool-dependent)",
+        },
+        mode_header: "X-Agent-Mode: lite � explicitly request lite mode for lower price",
+        example: 'curl -H \'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}\' -H \'X-Agent-Mode: lite\' ...',
+      },
     },
     discovery: {
       well_known: `${AXIS_API_BASE}/.well-known/axis.json`,
@@ -2171,7 +2435,7 @@ export async function handleForAgents(
   });
 }
 
-// ─── GET /v1/install — platform-specific MCP configs ────────────
+// --- GET /v1/install � platform-specific MCP configs ------------
 
 const INSTALL_CONFIGS: Record<string, { file: string; description: string; config: object }> = {
   "claude-desktop": {
@@ -2226,7 +2490,7 @@ export async function handleInstall(
 ): Promise<void> {
   const url = new URL(req.url ?? "/", "http://localhost");
   const segments = url.pathname.split("/").filter(Boolean);
-  // /v1/install/:platform → segments = ["v1", "install", "<platform>"]
+  // /v1/install/:platform ? segments = ["v1", "install", "<platform>"]
   const platform = segments.length >= 3 ? segments[2] : null;
 
   if (platform) {
@@ -2248,12 +2512,123 @@ export async function handleInstall(
     return;
   }
 
-  // No platform specified — return all
+  // No platform specified � return all
   sendJSON(res, 200, {
-    name: "AXIS Toolbox — MCP Install Configs",
+    name: "AXIS Toolbox � MCP Install Configs",
     mcp_endpoint: `${AXIS_API_BASE}/mcp`,
     get_api_key: `POST ${AXIS_API_BASE}/v1/accounts with {email, name, tier: 'free'}`,
     platforms: INSTALL_CONFIGS,
     instructions: "Replace ${AXIS_API_KEY} with your actual API key. Get one free at POST /v1/accounts.",
+  });
+}
+
+// --- POST /probe-intent � lightweight intent capture ------------
+
+export async function handleProbeIntent(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  let body: string;
+  try {
+    body = await readBody(req);
+  } catch {
+    sendJSON(res, 400, { error: "invalid_body", message: "Request body too large or malformed" });
+    return;
+  }
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(body) as Record<string, unknown>;
+  } catch {
+    sendJSON(res, 400, { error: "invalid_json", message: "Body must be valid JSON" });
+    return;
+  }
+
+  const description = typeof parsed.description === "string" ? parsed.description.trim().slice(0, 500) : "";
+  const focusAreas = Array.isArray(parsed.focus_areas)
+    ? (parsed.focus_areas as string[]).slice(0, 10).map(f => String(f).slice(0, 50))
+    : [];
+
+  if (!description) {
+    sendJSON(res, 400, { error: "missing_description", message: "Provide description (string, max 500 chars)" });
+    return;
+  }
+
+  // Log intent for analytics
+  const userAgent = req.headers["user-agent"] ?? "unknown";
+  const probeClass = classifyProbe(userAgent);
+  captureIntent("probe_intent", description, userAgent);
+  log("info", "probe_intent", {
+    description_length: description.length,
+    focus_areas: focusAreas,
+    user_agent: userAgent,
+    probe_class: probeClass,
+    referer: req.headers["referer"] ?? req.headers["referrer"] ?? null,
+  });
+
+  // Match intent to recommendations
+  const descLower = description.toLowerCase();
+  const focusLower = focusAreas.map(f => f.toLowerCase());
+  const allTerms = [descLower, ...focusLower].join(" ");
+
+  const recommendations: Array<{ tool: string; reason: string; auth: boolean; pricing: string }> = [];
+
+  if (/purchas|commerce|checkout|payment|stripe|visa|ap2|ucp|compliance|negotiat/.test(allTerms)) {
+    recommendations.push({
+      tool: "prepare_for_agentic_purchasing",
+      reason: "Full purchasing readiness audit � Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
+      auth: true,
+      pricing: "$0.50/call via MPP or included in Pro plan",
+    });
+  }
+  if (/analyz|codebase|repo|context|agents\.md|cursorrules/.test(allTerms)) {
+    recommendations.push({
+      tool: "analyze_repo",
+      reason: "Full codebase analysis � generates 81+ artifacts including AGENTS.md, .cursorrules, CLAUDE.md",
+      auth: true,
+      pricing: "$0.50/call via MPP or included in Pro plan",
+    });
+  }
+  if (/discover|search|find|what tool|explore|browse/.test(allTerms)) {
+    recommendations.push({
+      tool: "search_and_discover_tools",
+      reason: "Keyword search across all 18 programs � find the right tool for your task",
+      auth: false,
+      pricing: "free",
+    });
+  }
+  if (/improv|harden|better|missing|gap|upgrade/.test(allTerms)) {
+    recommendations.push({
+      tool: "improve_my_agent_with_axis",
+      reason: "Analyze your agent's codebase and get an improvement plan with missing context files",
+      auth: true,
+      pricing: "free (uses free-tier programs)",
+    });
+  }
+
+  // Always include discovery as fallback
+  if (recommendations.length === 0) {
+    recommendations.push({
+      tool: "discover_agentic_purchasing_needs",
+      reason: "Describe your commerce/compliance task and get tailored AXIS tool recommendations",
+      auth: false,
+      pricing: "free",
+    });
+    recommendations.push({
+      tool: "search_and_discover_tools",
+      reason: "Keyword search across all 18 programs",
+      auth: false,
+      pricing: "free",
+    });
+  }
+
+  sendJSON(res, 200, {
+    intent: description,
+    probe_class: probeClass,
+    recommendations,
+    call_next: recommendations[0]?.tool ?? "search_and_discover_tools",
+    mcp_endpoint: `${AXIS_API_BASE}/mcp`,
+    install: `${AXIS_API_BASE}/v1/install`,
+    for_agents: `${AXIS_API_BASE}/for-agents`,
   });
 }

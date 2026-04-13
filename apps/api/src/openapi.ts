@@ -21,10 +21,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
     openapi: "3.1.0",
     info: {
       title: "AXIS Toolbox API",
-      version: "0.4.0",
+      version: "0.4.1",
       description:
         "AXIS Toolbox provides AI-powered code analysis, context mapping, and multi-program file generation. " +
-        "Submit a codebase snapshot and AXIS produces tailored configuration files, analysis reports, and generator outputs across 17+ programs.",
+        "Submit a codebase snapshot and AXIS produces tailored configuration files, analysis reports, and generator outputs across 18 programs (86 artifacts).",
       contact: {
         name: "AXIS Platform",
         url: "https://github.com/no-fate-platform/axis-toolbox",
@@ -831,6 +831,49 @@ export function buildOpenApiSpec(): OpenApiSpec {
           tags: ["Docs"],
           responses: {
             200: { description: "OpenAPI specification", content: jsonContent({ type: "object" }) },
+          },
+        },
+      },
+
+      // ── Agent Discovery ──
+      "/for-agents": {
+        get: {
+          summary: "Agent onboarding manifest — tools, install configs, system prompts, and getting-started guide for autonomous agents",
+          operationId: "getForAgents",
+          tags: ["Discovery"],
+          parameters: [
+            { name: "intent", in: "query", schema: { type: "string" }, description: "Optional intent string — tools are sorted by relevance to the intent" },
+          ],
+          responses: {
+            200: { description: "Complete agent onboarding payload with tools, install configs, and system prompts" },
+          },
+        },
+      },
+      "/v1/install": {
+        get: {
+          summary: "Install configs for every MCP-compatible IDE and agent (Cursor, Windsurf, Claude, VS Code, etc.)",
+          operationId: "getInstallConfigs",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Platform-keyed install config objects ready to write to disk" },
+          },
+        },
+      },
+      "/probe-intent": {
+        post: {
+          summary: "Lightweight intent probe — describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations",
+          operationId: "probeIntent",
+          tags: ["Discovery"],
+          requestBody: jsonBody({
+            type: "object",
+            required: ["intent"],
+            properties: {
+              intent: { type: "string", description: "Natural language description of what the agent needs (e.g. 'PCI-DSS checkout flow', 'debug flaky tests')" },
+            },
+          }),
+          responses: {
+            200: { description: "Ranked tool recommendations with relevance scores and next-step instructions" },
+            400: { description: "Missing intent field" },
           },
         },
       },

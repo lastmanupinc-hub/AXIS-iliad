@@ -164,7 +164,7 @@ export function InstallPage() {
         <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 12 }}>What Your Agent Gets</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {[
-            { label: "7 MCP Tools", desc: "analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools" },
+            { label: "10 MCP Tools", desc: "analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_for_agentic_purchasing, search_and_discover_tools, discover_agentic_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs" },
             { label: "18 Programs", desc: "search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing" },
             { label: "81 Generators", desc: "AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and 75 more" },
             { label: "Autonomous Payment", desc: "HTTP 402 → MPP challenge → Stripe payment → retry. $0.50/run. No human needed." },

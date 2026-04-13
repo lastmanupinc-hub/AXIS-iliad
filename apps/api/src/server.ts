@@ -34,6 +34,7 @@ import {
   handleDocsMd,
   handleForAgents,
   handleInstall,
+  handleProbeIntent,
   handleHealthCheck,
   handleSearchIndex,
   handleSearchQuery,
@@ -110,9 +111,9 @@ router.get("/", async (_req, res) => {
     health: "/v1/health",
     llms: "/llms.txt",
     mcp: "/mcp",
-    endpoints: 75,
-    programs: 17,
-    generators: 81,
+    endpoints: 76,
+    programs: 18,
+    generators: 86,
   });
 });
 
@@ -191,6 +192,7 @@ router.get("/v1/docs.md", handleDocsMd);
 
 // Agent onboarding — machine-readable manifest + install configs
 router.get("/for-agents", handleForAgents);
+router.post("/probe-intent", handleProbeIntent);
 router.get("/v1/install", handleInstall);
 router.get("/v1/install/:platform", handleInstall);
 

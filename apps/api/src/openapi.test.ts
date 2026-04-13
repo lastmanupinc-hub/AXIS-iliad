@@ -7,7 +7,7 @@ describe("buildOpenApiSpec", () => {
   it("returns valid OpenAPI 3.1 spec", () => {
     expect(spec.openapi).toBe("3.1.0");
     expect(spec.info.title).toBe("AXIS Toolbox API");
-    expect(spec.info.version).toBe("0.4.0");
+    expect(spec.info.version).toBe("0.4.1");
   });
 
   it("includes all major route groups", () => {
@@ -175,7 +175,7 @@ describe("buildOpenApiSpec", () => {
   });
 
   it("all paths start with /v1/ or are root-level MCP paths", () => {
-    const NON_V1_PATHS = new Set(["/mcp", "/.well-known/axis.json", "/llms.txt", "/.well-known/skills/index.json"]);
+    const NON_V1_PATHS = new Set(["/mcp", "/.well-known/axis.json", "/llms.txt", "/.well-known/skills/index.json", "/for-agents", "/probe-intent"]);
     for (const path of Object.keys(spec.paths)) {
       expect(path.startsWith("/v1/") || NON_V1_PATHS.has(path)).toBe(true);
     }

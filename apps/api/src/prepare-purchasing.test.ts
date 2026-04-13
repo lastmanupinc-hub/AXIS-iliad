@@ -420,8 +420,38 @@ describe("MCP_TOOLS — prepare_for_agentic_purchasing", () => {
     expect(focusProp?.enum).toContain("optimization");
   });
 
-  it("lists 7 total MCP tools", () => {
-    expect(MCP_TOOLS.length).toBe(7);
+  it("has focus_areas as optional array property with compliance areas", () => {
+    const props = tool?.inputSchema.properties as Record<string, Record<string, unknown>>;
+    const fa = props?.focus_areas;
+    expect(fa?.type).toBe("array");
+    const items = fa?.items as Record<string, unknown>;
+    expect(items?.enum).toContain("sca");
+    expect(items?.enum).toContain("dispute");
+    expect(items?.enum).toContain("mandate");
+    expect(items?.enum).toContain("tap");
+    expect(items?.enum).toContain("tokenization");
+  });
+
+  it("has budget_per_run_cents as optional number property", () => {
+    const props = tool?.inputSchema.properties as Record<string, Record<string, unknown>>;
+    const bpc = props?.budget_per_run_cents;
+    expect(bpc?.type).toBe("number");
+  });
+
+  it("has spending_window as optional enum property", () => {
+    const props = tool?.inputSchema.properties as Record<string, Record<string, unknown>>;
+    const sw = props?.spending_window;
+    expect(sw?.enum).toContain("per_call");
+    expect(sw?.enum).toContain("monthly");
+  });
+
+  it("description mentions CE 3.0 and win probability", () => {
+    expect(tool!.description).toContain("Compelling Evidence 3.0");
+    expect(tool!.description).toContain("win-probability");
+  });
+
+  it("lists 10 total MCP tools", () => {
+    expect(MCP_TOOLS.length).toBe(10);
   });
 });
 

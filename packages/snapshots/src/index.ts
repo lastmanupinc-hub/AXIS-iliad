@@ -178,3 +178,21 @@ export {
   deleteSubscription,
   getActiveSubscriptionTier,
 } from "./stripe-store.js";
+
+// Referral System
+export type { ReferralCode, ReferralConversion, ReferralCredits } from "./referral-store.js";
+export {
+  REWARD_MILLICENTS,
+  MAX_EARNED_MILLICENTS,
+  CREDIT_WINDOW_MS,
+  createReferralCode,
+  lookupReferralCode,
+  getReferralCodes,
+  recordReferralConversion,
+  getReferralConversionCount,
+  getReferralCredits,
+  initFreeCallGrant,
+  consumeFreeCall,
+  applyReferralDiscount,
+  buildIncentivesSummary,
+} from "./referral-store.js";

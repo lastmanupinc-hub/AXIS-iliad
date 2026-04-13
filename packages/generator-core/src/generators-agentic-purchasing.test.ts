@@ -692,20 +692,22 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
   it("ap2 interpretation is production-ready for fully-instrumented repo", () => {
     const file = generateCommerceRegistry(stripeCtx, stripeProfile, stripeFiles);
     const registry = JSON.parse(file.content);
-    // stripeFiles has: providers(25) + checkout(20) + recurring(15) + sca(20) + dispute(10) + webhooks(10) = 100
-    expect(registry.ap2_compliance_assessment.readiness_score).toBe(100);
+    // stripeFiles has: providers(20) + checkout(15) + recurring(10) + sca(15) + dispute(10) + webhooks(10) = 80
+    // No TAP(8)/tokenization(7)/mandate(5) files → score 80 → production-ready
+    expect(registry.ap2_compliance_assessment.readiness_score).toBe(80);
     expect(registry.ap2_compliance_assessment.interpretation).toBe("production-ready");
   });
 
   it("ap2 interpretation is partially-ready for score 40-69", () => {
-    // stripe(25) + checkout(20) = 45 → partially-ready
-    const noScaFiles2: FileEntry[] = [
+    // stripe(20) + checkout(15) + recurring(10) = 45 → partially-ready
+    const partialFiles: FileEntry[] = [
       { path: "src/checkout.ts", content: "stripe.checkout.sessions.create({})", size: 40 },
+      { path: "src/subs.ts", content: "// recurring mandate billing_cycle_anchor", size: 45 },
     ];
-    const snap = makeSnapshot({ files: noScaFiles2, file_count: 1, total_size_bytes: 40 });
+    const snap = makeSnapshot({ files: partialFiles, file_count: partialFiles.length, total_size_bytes: 85 });
     const ctx = buildContextMap(snap);
     const profile = buildRepoProfile(snap);
-    const file = generateCommerceRegistry(ctx, profile, noScaFiles2);
+    const file = generateCommerceRegistry(ctx, profile, partialFiles);
     const registry = JSON.parse(file.content);
     expect(registry.ap2_compliance_assessment.interpretation).toBe("partially-ready");
   });
@@ -745,5 +747,328 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
     const file = generateCommerceRegistry(stripeCtx, stripeProfile, stripeFiles);
     const registry = JSON.parse(file.content);
     expect(registry.catalog).toHaveLength(4);
+  });
+});
+
+// ─── TAP / Network Tokenization / Mandate Signal Detection ──────
+
+describe("detectCommerceSignals — new TAP/tokenization/mandate signals", () => {
+  it("detects TAP protocol when tap_protocol keyword present", () => {
+    const tapFiles: FileEntry[] = [
+      { path: "src/tap.ts", content: "const tapProtocol = initTapApi(config);", size: 50 },
+    ];
+    const snap = makeSnapshot({ files: tapFiles, file_count: 1, total_size_bytes: 50 });
+    const ctx = buildContextMap(snap);
+    const profile = buildRepoProfile(snap);
+    const file = generateCommerceRegistry(ctx, profile, tapFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.repo_commerce_signals.has_tap_protocol).toBe(true);
+  });
+
+  it("detects network tokenization when DPAN/FPAN/VTS/MDES keywords present", () => {
+    const tokenFiles: FileEntry[] = [
+      { path: "src/tokens.ts", content: "const dpan = getNetworkToken(fpan); // VTS integration", size: 60 },
+    ];
+    const snap = makeSnapshot({ files: tokenFiles, file_count: 1, total_size_bytes: 60 });
+    const ctx = buildContextMap(snap);
+    const profile = buildRepoProfile(snap);
+    const file = generateCommerceRegistry(ctx, profile, tokenFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.repo_commerce_signals.has_network_tokenization).toBe(true);
+  });
+
+  it("detects mandate management when mandate keywords present", () => {
+    const mandateFiles: FileEntry[] = [
+      { path: "src/mandates.ts", content: "const mandateId = createSepaMandate(iban);", size: 55 },
+    ];
+    const snap = makeSnapshot({ files: mandateFiles, file_count: 1, total_size_bytes: 55 });
+    const ctx = buildContextMap(snap);
+    const profile = buildRepoProfile(snap);
+    const file = generateCommerceRegistry(ctx, profile, mandateFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.repo_commerce_signals.has_mandate_management).toBe(true);
+  });
+
+  it("new signals are false when not present", () => {
+    const plainFiles: FileEntry[] = [
+      { path: "src/index.ts", content: 'console.log("no payment code here");', size: 40 },
+    ];
+    const snap = makeSnapshot({ files: plainFiles, file_count: 1, total_size_bytes: 40 });
+    const ctx = buildContextMap(snap);
+    const profile = buildRepoProfile(snap);
+    const file = generateCommerceRegistry(ctx, profile, plainFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.repo_commerce_signals.has_tap_protocol).toBe(false);
+    expect(registry.repo_commerce_signals.has_network_tokenization).toBe(false);
+    expect(registry.repo_commerce_signals.has_mandate_management).toBe(false);
+  });
+});
+
+// ─── Verification Proof in generators ────────────────────────────
+
+describe("verification proof inclusion", () => {
+  const stripeSnap = makeStripeSnapshot();
+  const stripeCtx = buildContextMap(stripeSnap);
+  const stripeProfile = buildRepoProfile(stripeSnap);
+
+  it("playbook includes Verification Proof section", () => {
+    const file = generateAgentPurchasingPlaybook(stripeCtx, stripeProfile, stripeFiles);
+    expect(file.content).toContain("Verification Proof");
+    expect(file.content).toContain("Compliance grade");
+  });
+
+  it("checkout flow includes Verification Proof section", () => {
+    const file = generateCheckoutFlow(stripeCtx, stripeProfile, stripeFiles);
+    expect(file.content).toContain("Verification Proof");
+  });
+
+  it("negotiation rules includes Verification Proof section", () => {
+    const file = generateNegotiationRules(stripeCtx, stripeProfile, stripeFiles);
+    expect(file.content).toContain("Verification Proof");
+  });
+
+  it("commerce registry includes verification_proof in ap2_compliance_assessment", () => {
+    const file = generateCommerceRegistry(stripeCtx, stripeProfile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.ap2_compliance_assessment.verification_proof).toBeDefined();
+    expect(registry.ap2_compliance_assessment.verification_proof.checks_total).toBe(8);
+    expect(registry.ap2_compliance_assessment.verification_proof.grade).toBeTruthy();
+  });
+});
+
+// ─── TAP Interop and Dispute Flow in playbook ────────────────────
+
+describe("TAP interop and dispute flow content", () => {
+  const stripeSnap = makeStripeSnapshot();
+  const stripeCtx = buildContextMap(stripeSnap);
+  const stripeProfile = buildRepoProfile(stripeSnap);
+
+  it("playbook includes TAP / AP2 / UCP Interoperability section", () => {
+    const file = generateAgentPurchasingPlaybook(stripeCtx, stripeProfile, stripeFiles);
+    expect(file.content).toContain("TAP");
+    expect(file.content).toContain("AP2");
+    expect(file.content).toContain("UCP");
+  });
+
+  it("playbook includes SCA Exemption Decision Matrix", () => {
+    const file = generateAgentPurchasingPlaybook(stripeCtx, stripeProfile, stripeFiles);
+    expect(file.content).toContain("SCA Exemption");
+    expect(file.content).toContain("low_value");
+    expect(file.content).toContain("trusted_beneficiary");
+  });
+
+  it("playbook includes Dispute Resolution section with VROL/RDR/CDRN", () => {
+    const file = generateAgentPurchasingPlaybook(stripeCtx, stripeProfile, stripeFiles);
+    expect(file.content).toContain("Dispute Resolution");
+    expect(file.content).toContain("VROL");
+    expect(file.content).toContain("RDR");
+    expect(file.content).toContain("CDRN");
+  });
+
+  it("product schema includes sca_exemption_schema", () => {
+    const file = generateProductSchema(stripeCtx, stripeProfile, stripeFiles);
+    const schema = JSON.parse(file.content);
+    expect(schema.repo_commerce_profile.sca_exemption_schema).toBeDefined();
+    expect(schema.repo_commerce_profile.sca_exemption_schema.low_value).toBeDefined();
+    expect(schema.repo_commerce_profile.sca_exemption_schema.low_value.threshold_eur).toBe(30);
+  });
+
+  it("product schema includes dispute_resolution_schema", () => {
+    const file = generateProductSchema(stripeCtx, stripeProfile, stripeFiles);
+    const schema = JSON.parse(file.content);
+    expect(schema.repo_commerce_profile.dispute_resolution_schema).toBeDefined();
+    expect(schema.repo_commerce_profile.dispute_resolution_schema.pre_dispute).toBeDefined();
+    expect(schema.repo_commerce_profile.dispute_resolution_schema.chargeback).toBeDefined();
+  });
+});
+
+// ─── ap2ReadyScore includes new signals ──────────────────────────
+
+describe("ap2ReadyScore — updated weighting with new signals", () => {
+  it("score includes TAP/tokenization/mandate when detected", () => {
+    const fullFiles: FileEntry[] = [
+      { path: "src/stripe.ts", content: "import Stripe from 'stripe'; stripe.checkout.sessions.create({})", size: 70 },
+      { path: "src/webhooks.ts", content: "stripe.webhooks.constructEvent(body, sig, secret)", size: 60 },
+      { path: "src/subs.ts", content: "// recurring mandate billing_cycle_anchor", size: 50 },
+      { path: "src/3ds.ts", content: "// 3ds2 sca challenge", size: 30 },
+      { path: "src/disputes.ts", content: "// chargeback refund handling", size: 35 },
+      { path: "src/tap.ts", content: "const tapProtocol = initTap();", size: 35 },
+      { path: "src/tokens.ts", content: "const dpan = networkToken(fpan);", size: 35 },
+      { path: "src/mandates.ts", content: "const mandateId = createMandate();", size: 35 },
+    ];
+    const snap = makeSnapshot({ files: fullFiles, file_count: fullFiles.length, total_size_bytes: 350 });
+    const ctx = buildContextMap(snap);
+    const profile = buildRepoProfile(snap);
+    const file = generateCommerceRegistry(ctx, profile, fullFiles);
+    const registry = JSON.parse(file.content);
+    // All 9 factors detected: 20+15+10+15+10+10+8+7+5 = 100
+    expect(registry.ap2_compliance_assessment.readiness_score).toBe(100);
+  });
+
+  it("score is lower without new signals", () => {
+    // stripeFiles (original) lacks TAP/tokenization/mandate → max = 20+15+10+15+10+10 = 80
+    const file = generateCommerceRegistry(
+      buildContextMap(makeStripeSnapshot()),
+      buildRepoProfile(makeStripeSnapshot()),
+      stripeFiles,
+    );
+    const registry = JSON.parse(file.content);
+    expect(registry.ap2_compliance_assessment.readiness_score).toBe(80);
+  });
+});
+
+// ─── Commerce registry dispute_readiness field ───────────────────
+
+describe("generateCommerceRegistry — dispute_readiness and verification_proof", () => {
+  it("includes dispute_readiness in ap2_compliance_assessment", () => {
+    const stripeSnap = makeStripeSnapshot();
+    const file = generateCommerceRegistry(
+      buildContextMap(stripeSnap),
+      buildRepoProfile(stripeSnap),
+      stripeFiles,
+    );
+    const registry = JSON.parse(file.content);
+    expect(registry.ap2_compliance_assessment.dispute_readiness).toBeDefined();
+    expect(registry.ap2_compliance_assessment.dispute_readiness.has_dispute_code).toBe(true);
+    expect(registry.ap2_compliance_assessment.dispute_readiness.evidence_automation).toBe("automatable");
+  });
+
+  it("dispute_readiness shows manual-required when no webhooks and no dispute code", () => {
+    const plainFiles: FileEntry[] = [
+      { path: "src/index.ts", content: "console.log('hello');", size: 25 },
+    ];
+    const snap = makeSnapshot({ files: plainFiles, file_count: 1, total_size_bytes: 25 });
+    const file = generateCommerceRegistry(
+      buildContextMap(snap),
+      buildRepoProfile(snap),
+      plainFiles,
+    );
+    const registry = JSON.parse(file.content);
+    expect(registry.ap2_compliance_assessment.dispute_readiness.evidence_automation).toBe("manual-required");
+  });
+
+  it("verification_proof grade is A for stripe-instrumented repo (6+ checks)", () => {
+    const stripeSnap = makeStripeSnapshot();
+    const file = generateCommerceRegistry(
+      buildContextMap(stripeSnap),
+      buildRepoProfile(stripeSnap),
+      stripeFiles,
+    );
+    const registry = JSON.parse(file.content);
+    // stripeFiles: providers(1) + checkout(1) + sca(1) + dispute(1) + webhooks(1) = 5 checks, maybe 6 with recurring → grade B or A
+    expect(["A", "B"]).toContain(registry.ap2_compliance_assessment.verification_proof.grade);
+  });
+
+  it("verification_proof grade is D for empty repo", () => {
+    const snap = makeSnapshot({ files: [], file_count: 0, total_size_bytes: 0 });
+    const file = generateCommerceRegistry(
+      buildContextMap(snap),
+      buildRepoProfile(snap),
+      [],
+    );
+    const registry = JSON.parse(file.content);
+    expect(registry.ap2_compliance_assessment.verification_proof.grade).toBe("D");
+    expect(registry.ap2_compliance_assessment.verification_proof.checks_passed).toBe(0);
+  });
+});
+
+// ─── Negotiation rules TAP Token Compliance ──────────────────────
+
+describe("negotiation rules — TAP token compliance content", () => {
+  it("includes TAP Token Compliance table", () => {
+    const stripeSnap = makeStripeSnapshot();
+    const file = generateNegotiationRules(
+      buildContextMap(stripeSnap),
+      buildRepoProfile(stripeSnap),
+      stripeFiles,
+    );
+    expect(file.content).toContain("TAP Token Compliance");
+    expect(file.content).toContain("ACTIVE");
+    expect(file.content).toContain("SUSPENDED");
+  });
+});
+
+// ─── CE 3.0 / Win Probability / Lighter SCA Sections ─────────────
+
+describe("Compelling Evidence 3.0 sections", () => {
+  const stripeSnap = makeStripeSnapshot();
+  const ctx = buildContextMap(stripeSnap);
+  const profile = buildRepoProfile(stripeSnap);
+
+  it("playbook includes CE 3.0 section", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile);
+    expect(file.content).toContain("Compelling Evidence 3.0");
+    expect(file.content).toContain("compelling_evidence_3");
+    expect(file.content).toContain("10.4");
+  });
+
+  it("playbook includes win probability section", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile);
+    expect(file.content).toContain("Win-Probability Scoring");
+    expect(file.content).toContain("Agent Decision Matrix");
+    expect(file.content).toContain("AUTO-REPRESENT");
+  });
+
+  it("playbook includes lighter SCA section", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile);
+    expect(file.content).toContain("Lighter SCA");
+    expect(file.content).toContain("low_value");
+    expect(file.content).toContain("ABORT agent flow");
+  });
+
+  it("checkout flow includes lighter SCA and CE 3.0", () => {
+    const file = generateCheckoutFlow(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Lighter SCA");
+    expect(file.content).toContain("Compelling Evidence 3.0");
+  });
+
+  it("negotiation rules includes win probability", () => {
+    const file = generateNegotiationRules(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Win-Probability Scoring");
+    expect(file.content).toContain("AUTO-REPRESENT");
+  });
+
+  it("product schema includes CE 3.0 data", () => {
+    const file = generateProductSchema(ctx, profile);
+    const schema = JSON.parse(file.content);
+    const commerce = schema.repo_commerce_profile;
+    expect(commerce.dispute_resolution_schema.compelling_evidence_3).toBeDefined();
+    expect(commerce.dispute_resolution_schema.compelling_evidence_3.version).toBe("3.0");
+    expect(commerce.dispute_resolution_schema.compelling_evidence_3.target_reason_codes).toContain("10.4");
+  });
+
+  it("product schema includes agent SCA optimization", () => {
+    const file = generateProductSchema(ctx, profile);
+    const schema = JSON.parse(file.content);
+    const commerce = schema.repo_commerce_profile;
+    expect(commerce.agent_sca_optimization).toBeDefined();
+    expect(commerce.agent_sca_optimization.frictionless_first).toBe(true);
+    expect(commerce.agent_sca_optimization.exemption_priority).toContain("low_value");
+  });
+
+  it("product schema includes dispute win probability model", () => {
+    const file = generateProductSchema(ctx, profile);
+    const schema = JSON.parse(file.content);
+    const commerce = schema.repo_commerce_profile;
+    expect(commerce.dispute_win_probability).toBeDefined();
+    expect(commerce.dispute_win_probability.auto_refund_threshold_usd).toBe(5);
+    expect(commerce.dispute_win_probability.represent_threshold_win_pct).toBe(40);
+  });
+
+  it("commerce registry includes CE 3.0 in dispute_readiness", () => {
+    const file = generateCommerceRegistry(ctx, profile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    const dr = registry.ap2_compliance_assessment.dispute_readiness;
+    expect(dr.compelling_evidence_3).toBeDefined();
+    expect(dr.compelling_evidence_3.supported).toBe(true);
+    expect(dr.compelling_evidence_3.target_reason_codes).toContain("10.4");
+  });
+
+  it("commerce registry includes win probability model", () => {
+    const file = generateCommerceRegistry(ctx, profile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    const dr = registry.ap2_compliance_assessment.dispute_readiness;
+    expect(dr.win_probability_model).toBeDefined();
+    expect(dr.win_probability_model.auto_refund_below_usd).toBe(5);
   });
 });

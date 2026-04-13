@@ -17,6 +17,7 @@ import {
   handleWellKnown,
   handleForAgents,
   handleInstall,
+  handleProbeIntent,
 } from "./handlers.js";
 
 // ─── HTTP helper ─────────────────────────────────────────────────
@@ -49,6 +50,37 @@ async function req(
   });
 }
 
+async function postReq(
+  path: string,
+  body: unknown,
+): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: string }> {
+  const data = JSON.stringify(body);
+  return new Promise((resolve, reject) => {
+    const r = require("node:http").request(
+      {
+        hostname: "127.0.0.1",
+        port: TEST_PORT,
+        path,
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(data) },
+      },
+      (res: import("node:http").IncomingMessage) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers as Record<string, string | string[] | undefined>,
+            body: Buffer.concat(chunks).toString("utf-8"),
+          });
+        });
+      },
+    );
+    r.on("error", reject);
+    r.end(data);
+  });
+}
+
 const TEST_PORT = 44517;
 let server: Server;
 
@@ -62,6 +94,7 @@ beforeAll(async () => {
   router.get("/for-agents", handleForAgents);
   router.get("/v1/install", handleInstall);
   router.get("/v1/install/:platform", handleInstall);
+  router.post("/probe-intent", handleProbeIntent);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -110,8 +143,8 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("POST /mcp");
   });
 
-  it("contains 7 MCP tools count", () => {
-    expect(body).toContain("7 tools");
+  it("contains 10 MCP tools count", () => {
+    expect(body).toContain("10 tools");
   });
 
   it("contains the 18 programs count", () => {
@@ -202,11 +235,11 @@ describe("GET /.well-known/skills/index.json", () => {
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists 7 tools", () => {
+  it("axis-mcp skill lists 10 tools", () => {
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
-    expect(mcp!.tools!.length).toBe(7);
+    expect(mcp!.tools!.length).toBe(10);
   });
 
   it("axis-analyze has tags array", () => {
@@ -333,9 +366,9 @@ describe("GET /for-agents", () => {
     expect(platforms["claude-code"]).toBeDefined();
   });
 
-  it("includes tools array with 7 tools", () => {
+  it("includes tools array with 10 tools", () => {
     const tools = data.tools as Array<unknown>;
-    expect(tools).toHaveLength(7);
+    expect(tools).toHaveLength(10);
   });
 
   it("includes first_action hint", () => {
@@ -432,5 +465,94 @@ describe("GET /v1/install/:platform", () => {
     const data = JSON.parse(r.body);
     expect(data.error).toBe("unknown_platform");
     expect(data.available).toContain("cursor");
+  });
+});
+
+// ─── POST /probe-intent ─────────────────────────────────────────
+
+describe("POST /probe-intent", () => {
+  it("returns 200 with recommendations for valid description", async () => {
+    const r = await postReq("/probe-intent", { description: "I need to harden my checkout for autonomous agents" });
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.intent).toBeDefined();
+    expect(Array.isArray(data.recommendations)).toBe(true);
+    expect(data.recommendations.length).toBeGreaterThan(0);
+    expect(data.call_next).toBeDefined();
+    expect(data.mcp_endpoint).toContain("/mcp");
+  });
+
+  it("returns 400 when description is missing", async () => {
+    const r = await postReq("/probe-intent", { focus_areas: ["checkout"] });
+    expect(r.status).toBe(400);
+    const data = JSON.parse(r.body);
+    expect(data.error).toBe("missing_description");
+  });
+
+  it("returns 400 for invalid JSON body", async () => {
+    return new Promise<void>((resolve, reject) => {
+      const cr = require("node:http").request(
+        {
+          hostname: "127.0.0.1",
+          port: TEST_PORT,
+          path: "/probe-intent",
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Content-Length": 11 },
+        },
+        (res: import("node:http").IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            expect(res.statusCode).toBe(400);
+            resolve();
+          });
+        },
+      );
+      cr.on("error", reject);
+      cr.end("not-valid{}");
+    });
+  });
+
+  it("includes focus_areas in matching when provided", async () => {
+    const r = await postReq("/probe-intent", {
+      description: "help with agent tools",
+      focus_areas: ["purchasing", "compliance"],
+    });
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it("returns fallback recommendations for unknown intent", async () => {
+    const r = await postReq("/probe-intent", { description: "xyz zzz qqq completely unrelated gibberish" });
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.recommendations.length).toBeGreaterThan(0);
+    expect(data.call_next).toBeDefined();
+  });
+});
+
+// ─── GET /for-agents?intent= ────────────────────────────────────
+
+describe("GET /for-agents?intent=", () => {
+  it("returns tools sorted by relevance when intent is provided", async () => {
+    const r = await req("/for-agents?intent=purchasing+compliance+checkout");
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(Array.isArray(data.tools)).toBe(true);
+    expect(data.tools.length).toBe(10);
+    // purchasing-related tools should be ranked higher
+    const names = data.tools.map((t: { name: string }) => t.name);
+    const purchasingIdx = names.indexOf("prepare_for_agentic_purchasing");
+    const listIdx = names.indexOf("list_programs");
+    expect(purchasingIdx).toBeLessThan(listIdx);
+  });
+
+  it("returns all tools without intent param (unchanged behavior)", async () => {
+    const r = await req("/for-agents");
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(Array.isArray(data.tools)).toBe(true);
+    expect(data.tools.length).toBe(10);
   });
 });

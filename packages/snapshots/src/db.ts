@@ -390,6 +390,35 @@ CREATE INDEX IF NOT EXISTS idx_stripe_customer ON stripe_subscriptions(customer_
 CREATE INDEX IF NOT EXISTS idx_stripe_status ON stripe_subscriptions(status);
 `,
   },
+  {
+    version: 16,
+    name: "add_referral_system",
+    sql: `
+CREATE TABLE IF NOT EXISTS referral_codes (
+  code TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_account ON referral_codes(account_id);
+
+CREATE TABLE IF NOT EXISTS referral_conversions (
+  conversion_id TEXT PRIMARY KEY,
+  referrer_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  referee_account_id TEXT NOT NULL UNIQUE,
+  converted_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_referral_conversions_referrer ON referral_conversions(referrer_account_id);
+
+CREATE TABLE IF NOT EXISTS referral_credits (
+  account_id TEXT PRIMARY KEY REFERENCES accounts(account_id),
+  earned_credits_millicents INTEGER NOT NULL DEFAULT 0,
+  lifetime_referrals INTEGER NOT NULL DEFAULT 0,
+  free_calls_remaining INTEGER NOT NULL DEFAULT 0,
+  last_reset_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {
