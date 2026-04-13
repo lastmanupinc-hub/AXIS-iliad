@@ -100,6 +100,11 @@ export type MppResult = { status: 402 | 200 };
  *   - `null`          — MPP not configured (no STRIPE_SECRET_KEY).
  *                        Caller should fall back to HTTP 429.
  */
+/** Strip non-ASCII characters that break HTTP ByteString headers (undici). */
+function toAscii(str: string): string {
+  return str.replace(/[–—]/g, "-").replace(/[""'']/g, '"').replace(/…/g, "...");
+}
+
 export async function chargeMpp(
   req: IncomingMessage,
   res: ServerResponse,
@@ -107,6 +112,13 @@ export async function chargeMpp(
 ): Promise<MppResult | null> {
   const inst = getMppx();
   if (!inst) return null;
+
+  // Sanitise all string fields — mppx embeds these into HTTP headers
+  // which require ASCII-only ByteString values.
+  const safeDescription = options.description ? toAscii(options.description) : undefined;
+  const safeMeta = options.meta
+    ? Object.fromEntries(Object.entries(options.meta).map(([k, v]) => [k, toAscii(v)]))
+    : undefined;
 
   const tempoRecipient = process.env.TEMPO_RECIPIENT_ADDRESS;
   const testnet = process.env.TEMPO_TESTNET === "true";
@@ -121,15 +133,15 @@ export async function chargeMpp(
         amount: options.amount,
         currency: options.currency,
         decimals: options.decimals,
-        description: options.description,
-        meta: options.meta,
+        description: safeDescription,
+        meta: safeMeta,
       }],
       [inst.tempo.charge, {
         amount: options.amount,
         currency: tempoCurrency,
         decimals: 6,          // USDC uses 6 decimals
         recipient: tempoRecipient,
-        description: options.description,
+        description: safeDescription,
       }],
     ) as (req: globalThis.Request) => Promise<MppResult>;
   } else {
@@ -137,8 +149,8 @@ export async function chargeMpp(
       amount: options.amount,
       currency: options.currency,
       decimals: options.decimals,
-      description: options.description,
-      meta: options.meta,
+      description: safeDescription,
+      meta: safeMeta,
     }) as (req: globalThis.Request) => Promise<MppResult>;
   }
 
@@ -147,14 +159,14 @@ export async function chargeMpp(
   try {
     result = await (Mppx.toNodeListener(handler as any)(req, res) as Promise<MppResult>);
   } catch (err) {
-    console.error(`[MPP] charge failed — ${options.description ?? "AXIS API credit"}:`, err);
+    console.error(`[MPP] charge failed - ${safeDescription ?? "AXIS API credit"}:`, err);
     return null;          // treat MPP failure as "not configured" so caller sends 402
   }
   /* v8 ignore next 6 */
   if (result.status === 402) {
-    console.log(`[MPP] 402 challenge issued — ${options.description ?? "AXIS API credit"}`);
+    console.log(`[MPP] 402 challenge issued - ${safeDescription ?? "AXIS API credit"}`);
   } else if (result.status === 200) {
-    console.log(`[MPP] 200 payment validated — ${options.description ?? "AXIS API credit"}`);
+    console.log(`[MPP] 200 payment validated - ${safeDescription ?? "AXIS API credit"}`);
   }
   return result;
 }

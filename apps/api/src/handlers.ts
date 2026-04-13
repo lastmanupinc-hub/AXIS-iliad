@@ -123,7 +123,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
           amount: "50",
           currency: "usd",
           decimals: 2,
-          description: `AXIS ${program} — $0.50 per run`,
+          description: `AXIS ${program} - $0.50 per run`,
           meta: { account_id: auth.account.account_id, tier: auth.account.tier, program },
         });
 
@@ -1269,7 +1269,7 @@ export async function handleAnalyze(
           amount: "50",
           currency: "usd",
           decimals: 2,
-          description: `AXIS pro programs — $0.50 per run (${blockedPrograms.join(", ")})`,
+          description: `AXIS pro programs - $0.50 per run (${blockedPrograms.join(", ")})`,
           meta: { account_id: auth.account.account_id, tier: auth.account.tier, programs: blockedPrograms.join(",") },
         });
         if (mppResult === null) {
@@ -1758,7 +1758,7 @@ export async function handleCapabilities(
       analysis: {
         endpoint: "POST /v1/analyze",
         mcp_tool: "analyze_repo",
-        description: "Full repo analysis — 81 artifacts across 18 programs.",
+        description: "Full repo analysis - 81 artifacts across 18 programs.",
         auth_required: true,
       },
     },
