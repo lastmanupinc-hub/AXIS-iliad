@@ -232,7 +232,7 @@ export async function handleCreateSnapshot(
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
       const mppResult = await chargeMpp(req, res, {
-        amount: "0.50",
+        amount: "50",
         currency: "usd",
         decimals: 2,
         description: "AXIS API Credit  -  $0.50 per run",
@@ -699,7 +699,7 @@ export async function handleGitHubAnalyze(
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
       const mppResult = await chargeMpp(req, res, {
-        amount: "0.50",
+        amount: "50",
         currency: "usd",
         decimals: 2,
         description: "AXIS API Credit  -  $0.50 per run",
@@ -1184,7 +1184,7 @@ export async function handleAnalyze(
     if (!quota.allowed) {
       trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
       const mppResult = await chargeMpp(req, res, {
-        amount: "0.50",
+        amount: "50",
         currency: "usd",
         decimals: 2,
         description: "AXIS API Credit  -  $0.50 per run",
@@ -1432,11 +1432,11 @@ export async function handlePreparePurchasing(
     /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
       const mppResult = await chargeMpp(req, res, {
-        amount: "0.50",
+        amount: "50",
         currency: "usd",
         decimals: 2,
-        description: "AXIS API Credit  -  $0.50 per run",
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier },
+        description: "AXIS Toolbox - prepare_for_agentic_purchasing - $0.50 per run",
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, tool: "prepare_for_agentic_purchasing" },
       });
       if (mppResult === null) {
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", { tier: quota.tier, usage: quota.usage });
@@ -1637,7 +1637,7 @@ export async function handleCapabilities(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "AXIS Toolbox",
-    version: "0.4.0",
+    version: "0.4.1",
     description: "Semantic capability manifest for agent tool discovery. Analyzes codebases, generates 81+ artifacts across 18 programs. Full agentic commerce hardening including AP2/UCP/Visa IC compliance.",
     keywords: [
       "AP2", "AP2-compliance", "Article-2", "UN-CISG",

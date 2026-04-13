@@ -15,7 +15,7 @@ function startServer(): Promise<http.Server> {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       chargeMpp(req, res, {
-        amount: "1.00",
+        amount: "100",
         currency: "usd",
         decimals: 2,
         description: "AXIS Toolbox - $1.00",

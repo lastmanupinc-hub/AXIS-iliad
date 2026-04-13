@@ -30,7 +30,7 @@ import { computePurchasingReadinessScore, PURCHASING_PROGRAMS } from "./handlers
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "axis-toolbox";
-const SERVER_VERSION = "0.4.0";
+const SERVER_VERSION = "0.4.1";
 
 // ─── In-memory call counters (reset on process restart) ──────────
 

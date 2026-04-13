@@ -75,11 +75,12 @@ function getMppx(): AnyMppx | null {
 // ─── Public API ───────────────────────────────────────────────────
 
 export type ChargeOptions = {
-  /** Amount as a decimal string, e.g. "0.50" or "39.00". */
+  /** Amount in smallest currency unit as a string, e.g. "50" for $0.50 USD, "3900" for $39.00 USD.
+   *  Stripe receives this as Number(amount) — must be a non-zero positive integer (cents for USD). */
   amount: string;
   /** ISO 4217 currency code, e.g. "usd". */
   currency: string;
-  /** Decimal precision (2 for USD). */
+  /** Decimal precision for display (2 for USD). */
   decimals: number;
   /** Human-readable payment description shown to the payer. */
   description?: string;

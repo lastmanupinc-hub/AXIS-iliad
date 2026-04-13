@@ -1,6 +1,6 @@
 {
   "name": "axis-toolbox",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Axis — The operating system for AI-native development",
   "scripts": {
