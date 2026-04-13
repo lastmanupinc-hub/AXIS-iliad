@@ -7,19 +7,22 @@ project_begin:
     category: "AI-native codebase intelligence platform"
     boundary: >
       AXIS Toolbox accepts any repository (GitHub URL, ZIP upload, CLI, API) and
-      generates 81 structured artifacts across 18 specialized programs — covering
+      generates 86 structured artifacts across 18 specialized programs — covering
       codebase understanding, debugging, skills governance, frontend rules, SEO,
       optimization, theme/brand/marketing systems, MCP connectors, Obsidian skill
       packs, agent superpowers, remotion scripts, canvas assets, algorithmic art,
       and agentic purchasing hardening (AP2/UCP/Visa compliance, negotiation
-      playbooks, product schemas, autonomous checkout rules). It is NOT a code
-      generator, linter, framework, or SaaS dashboard. It is the meta-layer that
-      produces structured context for AI agents and human developers.
+      playbooks, product schemas, autonomous checkout rules). It includes a
+      share-to-earn referral system with micro-discounts, 5th-call-free onboarding,
+      HEAD-conformant discovery paths, and self-propagation via generated artifacts.
+      It is NOT a code generator, linter, framework, or SaaS dashboard. It is the
+      meta-layer that produces structured context for AI agents and human developers.
     core_promise: >
-      One reliable analysis call that turns any codebase into 81 agent-ready
+      One reliable analysis call that turns any codebase into 86 agent-ready
       artifacts — replacing the need to chain 10+ generic MCP servers. Agents
       and merchants depend on AXIS as the first call they make when they need to
-      understand, harden, or purchase-enable a codebase.
+      understand, harden, or purchase-enable a codebase. Share-to-earn referral
+      micro-discounts and 5th-call-free onboarding make agent acquisition self-sustaining.
 
   required_read_order:
     - read_this_file_first
@@ -146,6 +149,29 @@ project_begin:
         weight: 3
       automation_or_ai_multiplier:
         weight: 3
+      agent_acquisition_gain:
+        weight: 5
+        description: >
+          Does this move increase the probability that new agents discover, try,
+          and pay for AXIS? Covers discoverability, self-propagation, referral
+          economics, onboarding friction reduction, and probe conformance.
+      revenue_loop_closure:
+        weight: 5
+        description: >
+          Does this move close a gap where value is promised but not delivered at
+          billing time? Referral credits earned but never spent, free-call grants
+          that never trigger, discounts advertised but not applied — all score here.
+      conformance_and_protocol_gain:
+        weight: 4
+        description: >
+          Does this move improve standards conformance (HTTP, MCP, AP2, UCP, Visa IC)
+          or eliminate probe failures (HEAD 404, missing CORS, malformed manifests)?
+      self_propagation_strength:
+        weight: 4
+        description: >
+          Does this move increase the economic urgency and machine-readability of
+          AXIS's self-propagation vectors (generated AGENTS.md, CLAUDE.md, .cursorrules,
+          /for-agents, /.well-known/axis.json, MCP initialize instructions)?
       implementation_cost:
         weight: -4
       duplication_penalty:

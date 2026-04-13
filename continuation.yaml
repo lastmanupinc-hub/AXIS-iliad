@@ -14,24 +14,24 @@ project_continuation:
 
   current_identity:
     project_name: "AXIS Toolbox"
-    date: "2026-04-12"
-    commit_or_tag: "1e3997d"
-    current_session_id: "session_084"
-    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3682 passing / 3690 total tests (8 skipped) across 129 files. 100% branch coverage. MPP upgraded to mppx v0.5.12: RFC 9457 402 challenge/credential protocol — agents retry with Authorization header + X-Axis-Key, no human redirect. Next: push origin + MCP registry metadata (eq_193)."
+    date: "2026-04-13"
+    commit_or_tag: "907fed6"
+    current_session_id: "session_085"
+    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3891 passing / 3899 total tests (8 skipped) across 131 files. 100% branch coverage. Referral micro-discount system LIVE: chargeWithDiscounts() wraps consumeFreeCall → applyReferralDiscount → chargeMpp across all 7 charge sites. HEAD 404 fixed. MCP initialize instructions include incentives. Self-propagation strengthened."
 
   executive_truth:
     maturity_estimate:
       functional_percent: 97
-      hardened_percent: 89
-      integrated_percent: 96
-      production_percent: 85
+      hardened_percent: 91
+      integrated_percent: 97
+      production_percent: 87
     confidence:
-      architecture_confidence: 95
-      runtime_confidence: 97
+      architecture_confidence: 96
+      runtime_confidence: 98
       pipeline_confidence: 99
-      product_surface_confidence: 95
+      product_surface_confidence: 96
       integration_confidence: 98
-      notes: "3682 passing / 3690 total (8 skipped) across 129 files. 100.00% branch coverage (2231/2231). 100% funcs, 100% lines, 99.99% stmts. MCP integration LIVE (7 tools). prepare_for_agentic_purchasing composite tool LIVE. AP2/UCP/Visa Intelligent Commerce content LIVE. search_and_discover_tools LIVE. AI discoverability trio LIVE: GET /llms.txt, GET /.well-known/skills/index.json, GET /v1/docs.md. MPP upgraded to mppx v0.5.12: RFC 9457 challenge/credential protocol — chargeMpp() in mpp.ts (NEW FILE), Stripe SPT + optional Tempo crypto, agents retry with Authorization: <credential> + X-Axis-Key: <api_key>. 14 tests in mpp.test.ts. billing.ts: X-Axis-Key fallback in resolveAuth(). Requires STRIPE_SECRET_KEY in prod env. 18 programs, 86 generators."
+      notes: "3891 passing / 3899 total (8 skipped) across 131 files. 100.00% branch coverage (2231/2231). MCP integration LIVE (10 tools). prepare_for_agentic_purchasing composite tool LIVE with referral_token input. Referral system LIVE: 3 SQLite tables (migration v16), 12 exported functions, chargeWithDiscounts() wired at all 7 billing sites. consumeFreeCall() + applyReferralDiscount() execute before every MPP charge. HEAD→GET aliasing in router. CORS includes HEAD. Self-propagation in AGENTS.md/CLAUDE.md/.cursorrules with micro-discount ROI framing. Agent discoverability: GET /llms.txt, GET /.well-known/axis.json (incentives in first 200 bytes), GET /for-agents (buildIncentivesSummary), MCP initialize (incentives in instructions). 18 programs, 86 generators."
 
   boundary_truth:
     accepted_input_modes:
@@ -134,18 +134,23 @@ project_continuation:
         compliance artifacts, negotiation playbooks, MCP configs, and a self-onboarding
         kit — so I can make it my reliable first call instead of chaining generic tools.
       saturation:
-        foundation: 85
-        runtime: 60
-        editor: 15
-        export: 40
-        polish: 15
+        foundation: 90
+        runtime: 75
+        editor: 20
+        export: 50
+        polish: 25
       evidence:
         - "MCP integration — /v1/mcp/provision + mcp-config.json generator (commit f2fb567)"
-        - "Agentic Purchasing program — 5 generators (agentic-purchasing-readiness.md, ap2-compliance-checklist.md, autonomous-checkout-rules.yaml, negotiation-playbook.md, payment-mandate-schema.json) (commit 6e271a4)"
-        - "POST /v1/analyze unified one-call endpoint + GET /.well-known/axis.json machine-readable manifest (commit d08a1d6)"
-        - "/for-agents discovery page — quick start, key outputs, all 18 programs table, MCP tools, agentic purchasing section (commit 1005607)"
+        - "Agentic Purchasing program — 5 generators (commit 6e271a4)"
+        - "POST /v1/analyze unified one-call endpoint + GET /.well-known/axis.json manifest (commit d08a1d6)"
+        - "/for-agents discovery page with buildIncentivesSummary() (commit 2a9a1fe)"
+        - "Referral system — 3 SQLite tables, 12 functions, share-to-earn micro-discounts (commit 74e6d80)"
+        - "chargeWithDiscounts() — consumeFreeCall + applyReferralDiscount wired at all 7 billing sites (commit 907fed6)"
+        - "HEAD 404 fix — router HEAD→GET aliasing, CORS includes HEAD (commit c669895)"
+        - "MCP initialize instructions include incentives in first 200 bytes (commit 907fed6)"
+        - "Self-propagation in generators with micro-discount ROI framing (commit 907fed6)"
       blockers: []
-      next_required_move: "Build eq_193: MCP registry metadata (server.json for mcp-publisher CLI, agent-first tool descriptions) — requires: mcp-publisher publish, Glama.ai review form, Smithery.ai"
+      next_required_move: "Deepen compliance generators to A+ (TAP/AP2/UCP interop, budget-aware adaptation, win-probability scoring, self-verifying schemas)"
 
   subsystem_scorecards:
     - name: "search"

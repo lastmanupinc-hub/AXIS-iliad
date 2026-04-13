@@ -1072,3 +1072,120 @@ describe("Compelling Evidence 3.0 sections", () => {
     expect(dr.win_probability_model.auto_refund_below_usd).toBe(5);
   });
 });
+
+// ─── Deepened content: cost-to-represent, AP2 scoring, provider SCA thresholds ──
+
+describe("deepened compliance content", () => {
+  const stripeSnap = makeStripeSnapshot();
+  const ctx = buildContextMap(stripeSnap);
+  const profile = buildRepoProfile(stripeSnap);
+
+  it("playbook includes Cost-to-Represent Formula", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Cost-to-Represent Formula");
+    expect(file.content).toContain("representment_cost");
+    expect(file.content).toContain("net_payoff");
+  });
+
+  it("negotiation rules include Cost-to-Represent via win probability", () => {
+    const file = generateNegotiationRules(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Cost-to-Represent Formula");
+  });
+
+  it("playbook includes AP2 Compliance Scoring article-level assessment", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
+    expect(file.content).toContain("AP2 Compliance Scoring");
+    expect(file.content).toContain("Art. 2");
+    expect(file.content).toContain("Art. 6");
+    expect(file.content).toContain("Art. 7");
+    expect(file.content).toContain("Art. 11");
+    expect(file.content).toContain("Compliance Risk");
+  });
+
+  it("playbook includes Provider-Specific SCA Thresholds", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Provider-Specific SCA Thresholds");
+    expect(file.content).toContain("Visa");
+    expect(file.content).toContain("Mastercard");
+    expect(file.content).toContain("Amex");
+  });
+
+  it("checkout flow includes Provider-Specific SCA Thresholds", () => {
+    const file = generateCheckoutFlow(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Provider-Specific SCA Thresholds");
+  });
+
+  it("product schema includes $schema field", () => {
+    const file = generateProductSchema(ctx, profile, stripeFiles);
+    const schema = JSON.parse(file.content);
+    expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+  });
+
+  it("product schema includes agent_quotas", () => {
+    const file = generateProductSchema(ctx, profile, stripeFiles);
+    const schema = JSON.parse(file.content);
+    expect(schema.agent_quotas).toBeDefined();
+    expect(schema.agent_quotas.per_session_limit_cents).toBe(10000);
+    expect(schema.agent_quotas.tiers.free.calls_per_month).toBe(3);
+    expect(schema.agent_quotas.tiers.pro.budget_cents).toBe(500000);
+  });
+
+  it("commerce registry catalog includes price_cents", () => {
+    const file = generateCommerceRegistry(ctx, profile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    const freeBundle = registry.catalog.find((c: { id: string }) => c.id === "free-bundle");
+    const proAll = registry.catalog.find((c: { id: string }) => c.id === "pro-all");
+    expect(freeBundle.price_cents).toBe(0);
+    expect(proAll.price_cents).toBe(5000);
+  });
+
+  it("commerce registry includes agent_quotas", () => {
+    const file = generateCommerceRegistry(ctx, profile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.agent_quotas).toBeDefined();
+    expect(registry.agent_quotas.per_session_limit_cents).toBe(10000);
+  });
+
+  it("commerce registry includes mandate_lifecycle_events", () => {
+    const file = generateCommerceRegistry(ctx, profile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.mandate_lifecycle_events).toBeDefined();
+    expect(registry.mandate_lifecycle_events).toHaveLength(7);
+    expect(registry.mandate_lifecycle_events[0].event).toBe("CREATE");
+    expect(registry.mandate_lifecycle_events[6].event).toBe("CANCEL");
+  });
+
+  it("commerce registry includes liability_risk", () => {
+    const file = generateCommerceRegistry(ctx, profile, stripeFiles);
+    const registry = JSON.parse(file.content);
+    expect(registry.liability_risk).toBeDefined();
+    expect(registry.liability_risk.ap2_non_compliance_fine_usd_month).toBe(50000);
+    expect(registry.liability_risk.risk_level).toBeTruthy();
+  });
+
+  it("negotiation rules include commerce_signal_bonus in formula", () => {
+    const file = generateNegotiationRules(ctx, profile, stripeFiles);
+    expect(file.content).toContain("commerce_signal_bonus");
+  });
+
+  it("negotiation rules include ROI Computation section", () => {
+    const file = generateNegotiationRules(ctx, profile, stripeFiles);
+    expect(file.content).toContain("ROI Computation");
+    expect(file.content).toContain("axis_cost");
+    expect(file.content).toContain("manual_token_cost");
+    expect(file.content).toContain("savings");
+  });
+
+  it("checkout flow includes Frictionless Approval Metrics", () => {
+    const file = generateCheckoutFlow(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Frictionless Approval Metrics");
+    expect(file.content).toContain("Frictionless approval rate");
+  });
+
+  it("checkout flow includes Network Token Payload section", () => {
+    const file = generateCheckoutFlow(ctx, profile, stripeFiles);
+    expect(file.content).toContain("Network Token Payload");
+    expect(file.content).toContain("dpan");
+    expect(file.content).toContain("token_service_provider");
+  });
+});
