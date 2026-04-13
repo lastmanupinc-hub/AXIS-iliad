@@ -189,6 +189,8 @@ describe("POST /mcp — initialize", () => {
     const info = result.serverInfo as Record<string, unknown>;
     expect(info.name).toBe("axis-toolbox");
     expect(result.instructions).toContain("analyze");
+    expect(result.instructions).toContain("Incentives");
+    expect(result.instructions).toContain("referral_token");
   });
 
   it("includes Mcp-Session-Id header on initialize", async () => {

@@ -48,6 +48,22 @@ import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 
+// ─── Referral discount wrapper ──────────────────────────────────
+
+/** Apply referral benefits (free call + earned discount) before charging MPP. */
+async function chargeWithDiscounts(
+  req: IncomingMessage,
+  res: ServerResponse,
+  accountId: string,
+  amountCents: number,
+  opts: { currency: string; decimals: number; description?: string; meta?: Record<string, string> },
+): Promise<{ status: 402 | 200 } | null> {
+  if (consumeFreeCall(accountId)) return { status: 200 };
+  const discount = applyReferralDiscount(accountId, amountCents);
+  if (discount.final_cents <= 0) return { status: 200 };
+  return chargeMpp(req, res, { ...opts, amount: String(discount.final_cents) });
+}
+
 // ─── Ownership helpers ──────────────────────────────────────────
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
@@ -132,9 +148,8 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
         const pricing = getPricingTier(program);
         const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
 
-        // Offer 402 MPP payment (budget-aware)
-        const mppResult = await chargeMpp(req, res, {
-          amount: String(amountCents),
+        // Offer 402 MPP payment (budget-aware, referral discounts applied)
+        const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
           currency: "usd",
           decimals: 2,
           description: `AXIS ${program} - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
@@ -312,8 +327,7 @@ export async function handleCreateSnapshot(
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier("analyze_repo");
       const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-      const mppResult = await chargeMpp(req, res, {
-        amount: String(amountCents),
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
         currency: "usd",
         decimals: 2,
         description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
@@ -787,8 +801,7 @@ export async function handleGitHubAnalyze(
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier("analyze_repo");
       const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-      const mppResult = await chargeMpp(req, res, {
-        amount: String(amountCents),
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
         currency: "usd",
         decimals: 2,
         description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
@@ -1282,8 +1295,7 @@ export async function handleAnalyze(
         const mode = resolveAgentMode(req);
         const pricing = getPricingTier("analyze_repo");
         const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-        const mppResult = await chargeMpp(req, res, {
-          amount: String(amountCents),
+        const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
           currency: "usd",
           decimals: 2,
           description: `AXIS pro programs - $${(amountCents / 100).toFixed(2)} per run (${blockedPrograms.join(", ")})`,
@@ -1309,8 +1321,7 @@ export async function handleAnalyze(
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier("analyze_repo");
       const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-      const mppResult = await chargeMpp(req, res, {
-        amount: String(amountCents),
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
         currency: "usd",
         decimals: 2,
         description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
@@ -1636,8 +1647,7 @@ export async function handlePreparePurchasing(
       const pricing = getPricingTier("prepare_for_agentic_purchasing");
       const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
 
-      const mppResult = await chargeMpp(req, res, {
-        amount: String(amountCents),
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
         currency: "usd",
         decimals: 2,
         description: `AXIS Toolbox - prepare_for_agentic_purchasing - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
@@ -1665,8 +1675,7 @@ export async function handlePreparePurchasing(
       const pricing = getPricingTier("prepare_for_agentic_purchasing");
       const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
 
-      const mppResult = await chargeMpp(req, res, {
-        amount: String(amountCents),
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
         currency: "usd",
         decimals: 2,
         description: `AXIS Toolbox - prepare_for_agentic_purchasing - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
