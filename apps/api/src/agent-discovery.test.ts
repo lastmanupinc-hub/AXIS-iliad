@@ -463,7 +463,7 @@ describe("GET /v1/install/:platform", () => {
     const r = await req("/v1/install/unknown-platform");
     expect(r.status).toBe(404);
     const data = JSON.parse(r.body);
-    expect(data.error).toBe("unknown_platform");
+    expect(data.error_code).toBe("NOT_FOUND");
     expect(data.available).toContain("cursor");
   });
 });
@@ -486,7 +486,7 @@ describe("POST /probe-intent", () => {
     const r = await postReq("/probe-intent", { focus_areas: ["checkout"] });
     expect(r.status).toBe(400);
     const data = JSON.parse(r.body);
-    expect(data.error).toBe("missing_description");
+    expect(data.error_code).toBe("MISSING_FIELD");
   });
 
   it("returns 400 for invalid JSON body", async () => {

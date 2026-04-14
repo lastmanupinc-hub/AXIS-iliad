@@ -575,14 +575,12 @@ export async function handleHealthCheck(
   res: ServerResponse,
 ): Promise<void> {
   const ready = !isShuttingDown();
-  /* v8 ignore start  -  shutdown path not tested in unit tests */
   sendJSON(res, ready ? 200 : 503, {
     status: ready ? "ok" : "shutting_down",
     service: "axis-api",
     version: "0.4.0",
     timestamp: new Date().toISOString(),
   });
-  /* v8 ignore stop */
 }
 
 export async function handleDbStats(
@@ -2581,11 +2579,7 @@ export async function handleInstall(
   if (platform) {
     const cfg = INSTALL_CONFIGS[platform];
     if (!cfg) {
-      sendJSON(res, 404, {
-        error: "unknown_platform",
-        message: `Unknown platform '${platform}'. Available: ${Object.keys(INSTALL_CONFIGS).join(", ")}`,
-        available: Object.keys(INSTALL_CONFIGS),
-      });
+      sendError(res, 404, ErrorCode.NOT_FOUND, `Unknown platform '${platform}'. Available: ${Object.keys(INSTALL_CONFIGS).join(", ")}`, { available: Object.keys(INSTALL_CONFIGS) });
       return;
     }
     sendJSON(res, 200, {
@@ -2617,7 +2611,7 @@ export async function handleProbeIntent(
   try {
     body = await readBody(req);
   } catch {
-    sendJSON(res, 400, { error: "invalid_body", message: "Request body too large or malformed" });
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Request body too large or malformed");
     return;
   }
 
@@ -2625,7 +2619,7 @@ export async function handleProbeIntent(
   try {
     parsed = JSON.parse(body) as Record<string, unknown>;
   } catch {
-    sendJSON(res, 400, { error: "invalid_json", message: "Body must be valid JSON" });
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Body must be valid JSON");
     return;
   }
 
@@ -2635,7 +2629,7 @@ export async function handleProbeIntent(
     : [];
 
   if (!description) {
-    sendJSON(res, 400, { error: "missing_description", message: "Provide description (string, max 500 chars)" });
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "Provide description (string, max 500 chars)");
     return;
   }
 

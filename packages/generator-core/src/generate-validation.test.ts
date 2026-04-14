@@ -1,6 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratorInput } from "./types.js";
+import type { GeneratorInput, GeneratedFile } from "./types.js";
+
+// ─── Mock generators-search to control generateContextMapJSON ───
+// vi.mock is hoisted before all imports.  Every other generator module
+// stays real — only the context-map generator is wrapped in vi.fn so
+// we can override its return value per-test without the vi.doMock hang.
+vi.mock("./generators-search.js", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("./generators-search.js")>();
+  return {
+    ...orig,
+    generateContextMapJSON: vi.fn(orig.generateContextMapJSON),
+  };
+});
+
+import { generateFiles, listAvailableGenerators } from "./generate.js";
+import { generateContextMapJSON } from "./generators-search.js";
 
 // ─── Shared fixtures ──────────────────────────────────────────
 function makeContextMap(overrides: Partial<ContextMap> = {}): ContextMap {
@@ -49,128 +64,81 @@ function makeInput(requested: string[] = []): GeneratorInput {
 // ─── validateGeneratedFile branches (tested through generateFiles) ──
 describe("generateFiles validation branches", () => {
   beforeEach(() => {
-    vi.resetModules();
-    vi.restoreAllMocks();
+    vi.mocked(generateContextMapJSON).mockRestore();
   });
 
-  it.skip("skips generator that returns non-object (null)", async () => {
-    // Mock a generator to return null
-    // FIXME: vi.doMock hangs indefinitely — mock setup issue
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return { ...orig, generateContextMapJSON: () => null as any };
-    });
-    const { generateFiles } = await import("./generate.js");
+  it("skips generator that returns non-object (null)", () => {
+    vi.mocked(generateContextMapJSON).mockReturnValue(null as unknown as GeneratedFile);
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Generator returned non-object");
   });
 
-  it.skip("skips generator that returns empty path", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => ({
-          path: "",
-          content: "data",
-          content_type: "application/json",
-          program: "search",
-          description: "desc",
-        }),
-      };
+  it("skips generator that returns empty path", () => {
+    vi.mocked(generateContextMapJSON).mockReturnValue({
+      path: "",
+      content: "data",
+      content_type: "application/json",
+      program: "search",
+      description: "desc",
     });
-    const { generateFiles } = await import("./generate.js");
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing or empty 'path'");
   });
 
-  it.skip("skips generator that returns empty content", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => ({
-          path: ".ai/context-map.json",
-          content: "",
-          content_type: "application/json",
-          program: "search",
-          description: "desc",
-        }),
-      };
+  it("skips generator that returns empty content", () => {
+    vi.mocked(generateContextMapJSON).mockReturnValue({
+      path: ".ai/context-map.json",
+      content: "",
+      content_type: "application/json",
+      program: "search",
+      description: "desc",
     });
-    const { generateFiles } = await import("./generate.js");
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Empty content for .ai/context-map.json");
   });
 
-  it.skip("skips generator that returns missing content_type", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => ({
-          path: ".ai/context-map.json",
-          content: "data",
-          content_type: "",
-          program: "search",
-          description: "desc",
-        }),
-      };
+  it("skips generator that returns missing content_type", () => {
+    vi.mocked(generateContextMapJSON).mockReturnValue({
+      path: ".ai/context-map.json",
+      content: "data",
+      content_type: "",
+      program: "search",
+      description: "desc",
     });
-    const { generateFiles } = await import("./generate.js");
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing 'content_type'");
   });
 
-  it.skip("skips generator that returns missing program", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => ({
-          path: ".ai/context-map.json",
-          content: "data",
-          content_type: "application/json",
-          program: "",
-          description: "desc",
-        }),
-      };
+  it("skips generator that returns missing program", () => {
+    vi.mocked(generateContextMapJSON).mockReturnValue({
+      path: ".ai/context-map.json",
+      content: "data",
+      content_type: "application/json",
+      program: "",
+      description: "desc",
     });
-    const { generateFiles } = await import("./generate.js");
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing 'program'");
   });
 
-  it.skip("skips generator that returns missing description", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => ({
-          path: ".ai/context-map.json",
-          content: "data",
-          content_type: "application/json",
-          program: "search",
-          description: "",
-        }),
-      };
+  it("skips generator that returns missing description", () => {
+    vi.mocked(generateContextMapJSON).mockReturnValue({
+      path: ".ai/context-map.json",
+      content: "data",
+      content_type: "application/json",
+      program: "search",
+      description: "",
     });
-    const { generateFiles } = await import("./generate.js");
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
@@ -181,36 +149,19 @@ describe("generateFiles validation branches", () => {
 // ─── generateFiles error handling branches ────────────────────
 describe("generateFiles error handling", () => {
   beforeEach(() => {
-    vi.resetModules();
-    vi.restoreAllMocks();
+    vi.mocked(generateContextMapJSON).mockRestore();
   });
 
-  it.skip("catches Error instance and uses err.message", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => { throw new Error("parse explosion"); },
-      };
-    });
-    const { generateFiles } = await import("./generate.js");
+  it("catches Error instance and uses err.message", () => {
+    vi.mocked(generateContextMapJSON).mockImplementation(() => { throw new Error("parse explosion"); });
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Generator error: parse explosion");
   });
 
-  it.skip("catches non-Error throw and uses String()", async () => {
-    // FIXME: vi.doMock hangs indefinitely
-    vi.doMock("./generators-search.js", async (importOriginal) => {
-      const orig = await importOriginal<typeof import("./generators-search.js")>();
-      return {
-        ...orig,
-        generateContextMapJSON: () => { throw "string error"; },
-      };
-    });
-    const { generateFiles } = await import("./generate.js");
+  it("catches non-Error throw and uses String()", () => {
+    vi.mocked(generateContextMapJSON).mockImplementation(() => { throw "string error"; });
     const result = generateFiles(makeInput([]));
     const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
     expect(skip).toBeDefined();
@@ -221,18 +172,15 @@ describe("generateFiles error handling", () => {
 // ─── generateFiles deduplication and alias edge cases ─────────
 describe("generateFiles edge cases", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.resetModules();
+    vi.mocked(generateContextMapJSON).mockRestore();
   });
 
-  it("result includes generated_at ISO timestamp", async () => {
-    const { generateFiles } = await import("./generate.js");
+  it("result includes generated_at ISO timestamp", () => {
     const result = generateFiles(makeInput([]));
     expect(result.generated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it("result includes snapshot_id and project_id from context_map", async () => {
-    const { generateFiles } = await import("./generate.js");
+  it("result includes snapshot_id and project_id from context_map", () => {
     const result = generateFiles(makeInput([]));
     expect(result.snapshot_id).toBe("snap_val");
     expect(result.project_id).toBe("proj_val");
@@ -241,10 +189,9 @@ describe("generateFiles edge cases", () => {
 
 // ─── listAvailableGenerators edge cases ───────────────────────
 describe("listAvailableGenerators", () => {
-  it("returns program for every registered generator", async () => {
-    const { listAvailableGenerators } = await import("./generate.js");
+  it("returns program for every registered generator", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBeGreaterThan(70); // 80 generators registered
+    expect(generators.length).toBeGreaterThan(70);
     for (const g of generators) {
       expect(g.path).toBeTruthy();
       expect(g.program).toBeTruthy();
@@ -252,8 +199,7 @@ describe("listAvailableGenerators", () => {
     }
   });
 
-  it("all generator paths are unique", async () => {
-    const { listAvailableGenerators } = await import("./generate.js");
+  it("all generator paths are unique", () => {
     const generators = listAvailableGenerators();
     const paths = generators.map(g => g.path);
     expect(new Set(paths).size).toBe(paths.length);

@@ -47,6 +47,9 @@ jobs:
       - name: Type-check
         run: pnpm -r exec tsc --noEmit
 
+      - name: Artifact freshness gate
+        run: npx tsx scripts/check-artifact-freshness.ts
+
       - name: Upload coverage report
         if: matrix.node-version == 22
         uses: actions/upload-artifact@v6

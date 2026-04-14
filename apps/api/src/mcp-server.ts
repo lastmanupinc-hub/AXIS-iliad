@@ -177,6 +177,13 @@ export const MCP_TOOLS = [
         },
       },
     },
+    examples: [
+      {
+        name: "Analyze a GitHub repo",
+        input: { github_url: "https://github.com/expressjs/express" },
+        output: '{"snapshot_id":"abc-123","artifacts":["AGENTS.md",".cursorrules","CLAUDE.md",".ai/debug-playbook.md"],"programs_executed":["search","skills","debug","theme"]}',
+      },
+    ],
   },
   {
     name: "analyze_files",
@@ -216,12 +223,35 @@ export const MCP_TOOLS = [
         },
       },
     },
+    examples: [
+      {
+        name: "Analyze a Node.js project",
+        input: {
+          project_name: "my-api",
+          project_type: "api_service",
+          frameworks: ["express", "node"],
+          goals: ["Generate AI context"],
+          files: [
+            { path: "package.json", content: "{\"name\":\"my-api\",\"version\":\"1.0.0\"}" },
+            { path: "src/index.ts", content: "import express from 'express';" },
+          ],
+        },
+        output: '{"snapshot_id":"def-456","artifacts":["AGENTS.md",".cursorrules","CLAUDE.md"],"programs_executed":["search","skills","debug"]}',
+      },
+    ],
   },
   {
     name: "list_programs",
     description:
       "List all 18 AXIS programs, their 86 generators, tier (free/pro), and artifact paths. No authentication required. Use search_and_discover_tools for keyword-based discovery; use this for complete enumeration.",
     inputSchema: { type: "object", properties: {} },
+    examples: [
+      {
+        name: "List all programs",
+        input: {},
+        output: '{"programs":[{"name":"search","tier":"free","generators":["AGENTS.md",".cursorrules","CLAUDE.md"]},{"name":"debug","tier":"free","generators":[".ai/debug-playbook.md"]}]}',
+      },
+    ],
   },
   {
     name: "get_snapshot",
@@ -237,6 +267,13 @@ export const MCP_TOOLS = [
         },
       },
     },
+    examples: [
+      {
+        name: "Get a snapshot",
+        input: { snapshot_id: "abc-123" },
+        output: '{"snapshot_id":"abc-123","status":"complete","artifact_count":86,"artifacts":["AGENTS.md",".cursorrules","CLAUDE.md"]}',
+      },
+    ],
   },
   {
     name: "get_artifact",
@@ -253,6 +290,13 @@ export const MCP_TOOLS = [
         },
       },
     },
+    examples: [
+      {
+        name: "Get an AGENTS.md artifact",
+        input: { snapshot_id: "abc-123", path: "AGENTS.md" },
+        output: '"# AGENTS.md — my-project\\n\\n## Project Context\\n..."',
+      },
+    ],
   },
   {
     name: "prepare_for_agentic_purchasing",
@@ -315,6 +359,18 @@ export const MCP_TOOLS = [
         q: {
           type: "string",
           description: "Search query — keyword or phrase (e.g. 'checkout payment', 'debug logs', 'mcp agents'). Omit to list all programs.",
+    examples: [
+      {
+        name: "Search for debug tools",
+        input: { q: "debug playbook" },
+        output: '{"matches":[{"program":"debug","generators":[".ai/debug-playbook.md",".ai/incident-template.md",".ai/tracing-rules.md"],"tier":"free"}]}',
+      },
+      {
+        name: "List all programs",
+        input: {},
+        output: '{"programs":["search","skills","debug","theme","frontend","seo","optimization","brand","superpowers","marketing","notebook","obsidian","mcp","artifacts","remotion","canvas","algorithmic","agentic-purchasing"]}',
+      },
+    ],
         },
         program: {
           type: "string",
@@ -478,7 +534,7 @@ export async function runAnalyzeFiles(
     return { path, content: file.content, size: Buffer.byteLength(file.content, "utf-8") };
   });
 
-  /* v8 ignore start — quota exceeded and file limit paths require exhausting account limits in test */
+  /* quota exceeded and file limit paths — tested in quota-guardrails.test.ts */
   const quota = checkQuota(auth.account.account_id);
   if (!quota.allowed) {
     throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
@@ -489,7 +545,6 @@ export async function runAnalyzeFiles(
       `File limit: ${files.length} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`,
     );
   }
-  /* v8 ignore stop */
 
   const generators = listAvailableGenerators();
   const { allowed: allowedGenerators, blocked: blockedPrograms } = filterGeneratorsByEntitlement(generators, auth.account.account_id);
@@ -594,13 +649,10 @@ export async function runAnalyzeRepo(
   if (!quota.allowed) throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   /* v8 ignore stop */
 
-  /* v8 ignore start — account GitHub token and env var branches require external state */
   const token =
     getGitHubTokenDecrypted(auth.account.account_id) ??
     (process.env.GITHUB_TOKEN ?? undefined);
-  /* v8 ignore stop */
 
-  /* v8 ignore start — GitHub network I/O; tested via integration */
   let fetchResult: Awaited<ReturnType<typeof fetchGitHubRepo>>;
   try {
     fetchResult = await fetchGitHubRepo(github_url, token || undefined);
@@ -681,7 +733,6 @@ export async function runAnalyzeRepo(
     null,
     2,
   );
-  /* v8 ignore stop */
 }
 
 // ─── Tool: search_and_discover_tools ────────────────────────────
@@ -1708,11 +1759,9 @@ export async function dispatch(
           case "analyze_files":
             text = await runAnalyzeFiles(toolArgs, req);
             break;
-          /* v8 ignore start — analyze_repo success path requires live GitHub network; error path tested */
           case "analyze_repo":
             text = await runAnalyzeRepo(toolArgs, req);
             break;
-          /* v8 ignore stop */
           case "list_programs":
             text = runListPrograms();
             break;
