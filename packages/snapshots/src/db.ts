@@ -419,6 +419,13 @@ CREATE TABLE IF NOT EXISTS referral_credits (
 );
 `,
   },
+  {
+    version: 17,
+    name: "add_initial_grant_given",
+    sql: `
+ALTER TABLE referral_credits ADD COLUMN initial_grant_given INTEGER NOT NULL DEFAULT 0;
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

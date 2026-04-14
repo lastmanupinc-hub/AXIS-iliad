@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14T13:11:12.083Z",
+  "generated_at": "2026-04-14T13:38:18.894Z",
   "total_symbols": 1651,
   "file_count": 222,
   "symbols": {
@@ -7309,67 +7309,67 @@
       {
         "name": "ensureMigrationsTable",
         "type": "function",
-        "line": 424
+        "line": 431
       },
       {
         "name": "runMigrations",
         "type": "function",
-        "line": 434
+        "line": 441
       },
       {
         "name": "getSchemaVersion",
         "type": "function",
-        "line": 458
+        "line": 465
       },
       {
         "name": "getDb",
         "type": "function",
-        "line": 465
+        "line": 472
       },
       {
         "name": "openMemoryDb",
         "type": "function",
-        "line": 479
+        "line": 486
       },
       {
         "name": "closeDb",
         "type": "function",
-        "line": 488
+        "line": 495
       },
       {
         "name": "DbMaintenanceResult",
         "type": "interface",
-        "line": 497
+        "line": 504
       },
       {
         "name": "walCheckpoint",
         "type": "function",
-        "line": 504
+        "line": 511
       },
       {
         "name": "vacuum",
         "type": "function",
-        "line": 518
+        "line": 525
       },
       {
         "name": "integrityCheck",
         "type": "function",
-        "line": 526
+        "line": 533
       },
       {
         "name": "getDbStats",
         "type": "function",
-        "line": 539
+        "line": 546
       },
       {
         "name": "purgeStaleData",
         "type": "function",
-        "line": 580
+        "line": 587
       },
       {
         "name": "runMaintenance",
         "type": "function",
-        "line": 608
+        "line": 615
       }
     ],
     "packages/snapshots/src/email-store.test.ts": [
@@ -7958,77 +7958,77 @@
       {
         "name": "generateCode",
         "type": "function",
-        "line": 42
+        "line": 43
       },
       {
         "name": "createReferralCode",
         "type": "function",
-        "line": 47
+        "line": 48
       },
       {
         "name": "code",
         "type": "const",
-        "line": 52
+        "line": 53
       },
       {
         "name": "lookupReferralCode",
         "type": "function",
-        "line": 62
+        "line": 63
       },
       {
         "name": "getReferralCodes",
         "type": "function",
-        "line": 67
+        "line": 68
       },
       {
         "name": "recordReferralConversion",
         "type": "function",
-        "line": 74
+        "line": 75
       },
       {
         "name": "conversion",
         "type": "const",
-        "line": 84
+        "line": 85
       },
       {
         "name": "getReferralConversionCount",
         "type": "function",
-        "line": 110
+        "line": 111
       },
       {
         "name": "ensureReferralCredits",
         "type": "function",
-        "line": 118
+        "line": 119
       },
       {
         "name": "getReferralCredits",
         "type": "function",
-        "line": 128
+        "line": 129
       },
       {
         "name": "initFreeCallGrant",
         "type": "function",
-        "line": 134
+        "line": 135
       },
       {
         "name": "consumeFreeCall",
         "type": "function",
-        "line": 147
+        "line": 145
       },
       {
         "name": "applyReferralDiscount",
         "type": "function",
-        "line": 154
+        "line": 152
       },
       {
         "name": "buildIncentivesSummary",
         "type": "function",
-        "line": 187
+        "line": 185
       },
       {
         "name": "base",
         "type": "const",
-        "line": 188
+        "line": 186
       }
     ],
     "packages/snapshots/src/search-store.ts": [

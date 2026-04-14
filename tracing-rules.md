@@ -580,7 +580,7 @@ State transitions on these entities should be logged:
 - `GitHubUser` (interface, 4 fields) — `packages/snapshots/src/oauth-store.ts`
 - `ReferralCode` (interface, 3 fields) — `packages/snapshots/src/referral-store.ts`
 - `ReferralConversion` (interface, 4 fields) — `packages/snapshots/src/referral-store.ts`
-- `ReferralCredits` (interface, 6 fields) — `packages/snapshots/src/referral-store.ts`
+- `ReferralCredits` (interface, 7 fields) — `packages/snapshots/src/referral-store.ts`
 - `CodeSymbol` (interface, 6 fields) — `packages/snapshots/src/search-store.ts`
 - `SearchIndexEntry` (interface, 3 fields) — `packages/snapshots/src/search-store.ts`
 - `SearchResult` (interface, 4 fields) — `packages/snapshots/src/search-store.ts`

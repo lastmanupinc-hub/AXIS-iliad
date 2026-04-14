@@ -19,14 +19,14 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | pnpm |
-| Files | 500 files, 114,751 LOC |
+| Files | 500 files, 114,770 LOC |
 | Separation Score | 0.64/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 250 | 78,844 | 69.6% |
+| TypeScript | 250 | 78,863 | 69.6% |
 | JSON | 63 | 12,643 | 11.2% |
 | YAML | 68 | 10,876 | 9.6% |
 | Markdown | 106 | 9,235 | 8.1% |
@@ -224,7 +224,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GitHubUser | interface | TypeScript | 4 | `packages/snapshots/src/oauth-store.ts` |
 | ReferralCode | interface | TypeScript | 3 | `packages/snapshots/src/referral-store.ts` |
 | ReferralConversion | interface | TypeScript | 4 | `packages/snapshots/src/referral-store.ts` |
-| ReferralCredits | interface | TypeScript | 6 | `packages/snapshots/src/referral-store.ts` |
+| ReferralCredits | interface | TypeScript | 7 | `packages/snapshots/src/referral-store.ts` |
 | CodeSymbol | interface | TypeScript | 6 | `packages/snapshots/src/search-store.ts` |
 | SearchIndexEntry | interface | TypeScript | 3 | `packages/snapshots/src/search-store.ts` |
 | SearchResult | interface | TypeScript | 4 | `packages/snapshots/src/search-store.ts` |

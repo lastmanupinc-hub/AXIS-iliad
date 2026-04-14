@@ -327,14 +327,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(16);
+    expect(getSchemaVersion(db)).toBe(17);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(16);
+    expect(result.current_version).toBe(17);
   });
 
   it("creates rate_limits table via migration", () => {

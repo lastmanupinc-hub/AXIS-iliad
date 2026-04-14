@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T13:11:11.977Z",
+  "generated_at": "2026-04-14T13:38:18.747Z",
   "composition": {
     "id": "axistoolboxVideo",
     "width": 1920,
@@ -86,7 +86,7 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 78844,
+          "loc": 78863,
           "percent": 69.6
         },
         {
@@ -372,7 +372,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 114751
+    "total_loc": 114770
   },
   "source_media_files": null
 }

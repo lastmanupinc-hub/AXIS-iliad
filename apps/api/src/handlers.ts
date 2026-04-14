@@ -1900,7 +1900,7 @@ export async function handleWellKnown(
         how: "referral_token in prepare_for_agentic_purchasing args",
       },
       onboarding: {
-        fifth_paid_call_free: true,
+        free_call_on_signup: true,
       },
       details: "GET /for-agents?intent=referral",
     },

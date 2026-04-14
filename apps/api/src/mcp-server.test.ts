@@ -902,7 +902,7 @@ describe("GET /mcp — JSON manifest with incentives-first", () => {
     expect(referral.cap_cents_per_call).toBe(20);
     expect(referral.reset_days).toBe(30);
     const onboarding = inc.onboarding as Record<string, unknown>;
-    expect(onboarding.fifth_paid_call_free).toBe(true);
+    expect(onboarding.free_call_on_signup).toBe(true);
   });
 });
 

@@ -54,14 +54,19 @@ describe("E2E Referral Lifecycle", () => {
     expect(credits.earned_credits_millicents).toBe(REWARD_MILLICENTS * 5);
     expect(credits.lifetime_referrals).toBe(5);
 
-    // ── Step 4: Free-call grant (5th-call-free onboarding) ──────
-    // Agent A has never had a free call grant yet
+    // ── Step 4: Free-call grant (one-time onboarding) ────────────
+    // Agent A has never had a free call grant yet — should succeed even with referrals
     initFreeCallGrant(agentA.account_id);
-    // Grant should NOT apply because credits row was already touched by conversions
-    // (updated_at !== last_reset_at after recordReferralConversion)
     const afterGrant = getReferralCredits(agentA.account_id);
-    // Free calls should still be 0 — grant only works on fresh rows
-    expect(afterGrant.free_calls_remaining).toBe(0);
+    expect(afterGrant.free_calls_remaining).toBe(1);
+
+    // Consume it — one time only
+    expect(consumeFreeCall(agentA.account_id)).toBe(true);
+    expect(getReferralCredits(agentA.account_id).free_calls_remaining).toBe(0);
+
+    // Re-calling initFreeCallGrant must NOT re-grant (initial_grant_given = 1)
+    initFreeCallGrant(agentA.account_id);
+    expect(getReferralCredits(agentA.account_id).free_calls_remaining).toBe(0);
 
     // ── Step 5: A brand-new agent gets the free call ────────────
     const newAgent = createAccount("Brand-New", "new@agents.io");
@@ -100,7 +105,7 @@ describe("E2E Referral Lifecycle", () => {
     // ── Step 8: Incentives summary reflects full state ───────────
     const summary = buildIncentivesSummary(agentA.account_id);
     expect(summary.share_to_earn).toBeDefined();
-    expect(summary.fifth_call_free).toBeDefined();
+    expect(summary.free_call).toBeDefined();
 
     const status = summary.your_status as Record<string, unknown>;
     expect(status.referral_code).toBe(code.code);
@@ -200,7 +205,7 @@ describe("E2E Referral Lifecycle", () => {
     const disc1 = applyReferralDiscount(agent.account_id, baseCents);
     expect(disc1.final_cents).toBe(50); // would go to chargeMpp
 
-    // ── Grant free call (simulating 5th-call-free trigger) ──────
+    // ── Grant free call (simulating one-time onboarding trigger) ──────
     initFreeCallGrant(agent.account_id);
 
     // ── Call 2: Free call consumed → no charge at all ───────────

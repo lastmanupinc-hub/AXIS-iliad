@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-toolbox
 
-> monorepo | TypeScript | 500 files | 114,751 LOC
+> monorepo | TypeScript | 500 files | 114,770 LOC
 
 **Stack:** React ^19.1.0
 
@@ -182,7 +182,7 @@ Check these entities for state corruption or relationship violations:
 - [ ] `GitHubUser` (interface, 4 fields) — `packages/snapshots/src/oauth-store.ts`
 - [ ] `ReferralCode` (interface, 3 fields) — `packages/snapshots/src/referral-store.ts`
 - [ ] `ReferralConversion` (interface, 4 fields) — `packages/snapshots/src/referral-store.ts`
-- [ ] `ReferralCredits` (interface, 6 fields) — `packages/snapshots/src/referral-store.ts`
+- [ ] `ReferralCredits` (interface, 7 fields) — `packages/snapshots/src/referral-store.ts`
 - [ ] `CodeSymbol` (interface, 6 fields) — `packages/snapshots/src/search-store.ts`
 - [ ] `SearchIndexEntry` (interface, 3 fields) — `packages/snapshots/src/search-store.ts`
 - [ ] `SearchResult` (interface, 4 fields) — `packages/snapshots/src/search-store.ts`

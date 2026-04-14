@@ -222,7 +222,7 @@ export function build402NegotiationBody(tool: string, budget?: AgentBudget): Rec
         how: "Include referral_token in prepare_for_agentic_purchasing args",
       },
       onboarding: {
-        fifth_paid_call_free: true,
+        free_call_on_signup: true,
       },
     },
   };

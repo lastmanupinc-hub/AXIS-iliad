@@ -109,7 +109,7 @@ describe("Referral Conversions", () => {
   });
 });
 
-// ─── Free Call Grant (5th Call Free) ────────────────────────────
+// ─── Free Call Grant (One-Time Onboarding) ─────────────────────────────
 
 describe("Free Call Grant", () => {
   it("grants one free call on first init", () => {
@@ -125,6 +125,16 @@ describe("Free Call Grant", () => {
     initFreeCallGrant(acct.account_id);
     const credits = getReferralCredits(acct.account_id);
     expect(credits.free_calls_remaining).toBe(1);
+  });
+
+  it("does not re-grant after free call is consumed", () => {
+    const acct = createAccount("New", "new@example.com");
+    initFreeCallGrant(acct.account_id);
+    expect(consumeFreeCall(acct.account_id)).toBe(true);
+    expect(getReferralCredits(acct.account_id).free_calls_remaining).toBe(0);
+    // Re-calling initFreeCallGrant must NOT re-grant
+    initFreeCallGrant(acct.account_id);
+    expect(getReferralCredits(acct.account_id).free_calls_remaining).toBe(0);
   });
 
   it("consumeFreeCall returns true and decrements", () => {
@@ -191,7 +201,7 @@ describe("Incentives Summary", () => {
   it("returns base summary without account", () => {
     const summary = buildIncentivesSummary();
     expect(summary.share_to_earn).toBeDefined();
-    expect(summary.fifth_call_free).toBeDefined();
+    expect(summary.free_call).toBeDefined();
     expect(summary.referral_token_field).toBeDefined();
     expect(summary).not.toHaveProperty("your_status");
   });

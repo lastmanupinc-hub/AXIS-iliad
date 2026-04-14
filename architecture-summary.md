@@ -16,7 +16,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (114751 LOC)
+- **Files:** 500 (114770 LOC)
 - **Directories:** 61
 
 ## Frameworks & Libraries
@@ -560,7 +560,7 @@ Detected 152 domain models:
 .gitignore (0.2 KB)
 ab-test-plan.md (2.8 KB)
 agent-purchasing-playbook.md (16.9 KB)
-AGENTS.md (14.2 KB)
+AGENTS.md (14.3 KB)
 algorithmic-pack.json (7.9 KB)
 algorithmic/begin.yaml (1.8 KB)
 algorithmic/continuation.yaml (2.4 KB)
@@ -910,7 +910,7 @@ packages/snapshots/src/billing.test.ts (12.2 KB)
 packages/snapshots/src/coverage-gaps.test.ts (22.8 KB)
 packages/snapshots/src/db-maintenance.test.ts (6.7 KB)
 packages/snapshots/src/db.test.ts (15.8 KB)
-packages/snapshots/src/db.ts (20.7 KB)
+packages/snapshots/src/db.ts (20.9 KB)
 packages/snapshots/src/email-store.test.ts (10.7 KB)
 packages/snapshots/src/email-store.ts (9.0 KB)
 packages/snapshots/src/funnel-edge-cases.test.ts (10.7 KB)
@@ -929,9 +929,9 @@ packages/snapshots/src/oauth-store.ts (4.6 KB)
 packages/snapshots/src/perf.bench.ts (6.9 KB)
 packages/snapshots/src/persistence-metering.test.ts (9.9 KB)
 packages/snapshots/src/persistence-metering.ts (4.9 KB)
-packages/snapshots/src/referral-e2e.test.ts (10.2 KB)
-packages/snapshots/src/referral-store.test.ts (9.8 KB)
-packages/snapshots/src/referral-store.ts (9.8 KB)
+packages/snapshots/src/referral-e2e.test.ts (10.4 KB)
+packages/snapshots/src/referral-store.test.ts (10.2 KB)
+packages/snapshots/src/referral-store.ts (9.6 KB)
 packages/snapshots/src/search-store.test.ts (6.8 KB)
 packages/snapshots/src/search-store.ts (9.7 KB)
 packages/snapshots/src/search-symbols.test.ts (9.3 KB)
