@@ -36,9 +36,18 @@ export interface AnalyzeRepoInput {
   github_url: string;
 }
 
+export interface ArtifactEntry {
+  path: string;
+  program: string;
+  description: string;
+}
+
 export interface SnapshotResult {
   snapshot_id: string;
-  artifacts: string[];
+  project_id: string;
+  status: string;
+  artifact_count: number;
+  artifacts: ArtifactEntry[];
   programs_executed: string[];
   [key: string]: unknown;
 }
@@ -89,9 +98,8 @@ export class AxisClient {
     path: string,
     body?: unknown,
   ): Promise<T> {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
     if (this.apiKey) headers["Authorization"] = `Bearer ${this.apiKey}`;
 
     const res = await fetch(`${this.base}${path}`, {

@@ -5,7 +5,7 @@ import { Router, createApp } from "./router.js";
 import { handleMcpPost } from "./mcp-server.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44530;
+const TEST_PORT = 44532;
 let server: Server;
 let apiKey = "";
 

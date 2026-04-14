@@ -49,7 +49,7 @@ beforeAll(async () => {
   const mod = await import("./server.js");
   appServer = mod.app as Server & { shutdown?: (t?: number) => Promise<void> };
   await new Promise<void>((r) => setTimeout(r, 200));
-});
+}, 30_000);
 
 afterAll(async () => {
   if (appServer?.shutdown) await appServer.shutdown(2000);

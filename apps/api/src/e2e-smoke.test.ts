@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
-const BASE = "https://axis-api-6c7z.onrender.com";
+const BASE = process.env.AXIS_E2E_BASE ?? "https://axis-api-6c7z.onrender.com";
 let reachable = false;
 
 // Skip in CI unless AXIS_E2E is set

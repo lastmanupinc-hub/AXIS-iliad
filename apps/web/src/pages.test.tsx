@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 
 // ─── Zero-prop page smoke tests ─────────────────────────────────
 // Each test renders the page and verifies it mounts without throwing.

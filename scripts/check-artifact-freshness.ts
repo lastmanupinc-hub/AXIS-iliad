@@ -66,7 +66,6 @@ const modelCountMatch = claudeMd.match(/defines\s+(\d+)\s+domain\s+models/i);
 const claimedModels = modelCountMatch ? parseInt(modelCountMatch[1], 10) : 0;
 
 // Count interfaces + type aliases in source
-const apiSrcDir = join(ROOT, "apps/api/src");
 const pkgDirs = ["packages/context-engine/src", "packages/generator-core/src", "packages/repo-parser/src", "packages/snapshots/src"];
 let actualModels = 0;
 const countPattern = /\b(interface|type)\s+[A-Z]\w+/g;
