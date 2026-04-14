@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T03:15:00.672Z",
+  "generated_at": "2026-04-14T03:53:42.704Z",
   "description": "Parameter sets for generative visualizations derived from project metrics",
   "parameters": {
     "structure": {
@@ -14,9 +14,9 @@
         {
           "name": "TypeScript",
           "hue": 220,
-          "saturation": 73.9,
-          "lightness": 60.425,
-          "weight": 69.5
+          "saturation": 73.92,
+          "lightness": 60.44,
+          "weight": 69.6
         },
         {
           "name": "JSON",

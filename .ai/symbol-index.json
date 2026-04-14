@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-04-14T03:15:00.784Z",
-  "total_symbols": 1644,
+  "generated_at": "2026-04-14T03:53:42.797Z",
+  "total_symbols": 1646,
   "file_count": 222,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -17,19 +17,24 @@
     ],
     "apps/api/src/admin.ts": [
       {
+        "name": "requireAdmin",
+        "type": "function",
+        "line": 15
+      },
+      {
         "name": "handleAdminStats",
         "type": "function",
-        "line": 11
+        "line": 36
       },
       {
         "name": "handleAdminAccounts",
         "type": "function",
-        "line": 23
+        "line": 48
       },
       {
         "name": "handleAdminActivity",
         "type": "function",
-        "line": 41
+        "line": 66
       }
     ],
     "apps/api/src/agent-discovery.test.ts": [
@@ -421,7 +426,7 @@
       {
         "name": "uniquePayload",
         "type": "const",
-        "line": 481
+        "line": 486
       }
     ],
     "apps/api/src/env.test.ts": [
@@ -440,27 +445,27 @@
       {
         "name": "ValidationError",
         "type": "interface",
-        "line": 34
+        "line": 36
       },
       {
         "name": "ValidationResult",
         "type": "interface",
-        "line": 39
+        "line": 41
       },
       {
         "name": "validateEnv",
         "type": "function",
-        "line": 49
+        "line": 51
       },
       {
         "name": "requireValidEnv",
         "type": "function",
-        "line": 97
+        "line": 99
       },
       {
         "name": "generateEnvExample",
         "type": "function",
-        "line": 111
+        "line": 113
       }
     ],
     "apps/api/src/export-edge-cases.test.ts": [
@@ -1133,237 +1138,237 @@
       {
         "name": "result",
         "type": "function",
-        "line": 262
+        "line": 263
       },
       {
         "name": "result",
         "type": "function",
-        "line": 273
+        "line": 274
       },
       {
         "name": "result",
         "type": "function",
-        "line": 293
+        "line": 294
       },
       {
         "name": "result",
         "type": "function",
-        "line": 310
+        "line": 311
       },
       {
         "name": "result",
         "type": "function",
-        "line": 342
+        "line": 343
       },
       {
         "name": "result",
         "type": "function",
-        "line": 369
+        "line": 370
       },
       {
         "name": "result",
         "type": "function",
-        "line": 396
+        "line": 397
       },
       {
         "name": "result",
         "type": "function",
-        "line": 421
+        "line": 422
       },
       {
         "name": "result",
         "type": "function",
-        "line": 441
+        "line": 442
       },
       {
         "name": "result",
         "type": "function",
-        "line": 467
+        "line": 468
       },
       {
         "name": "result",
         "type": "function",
-        "line": 491
+        "line": 492
       },
       {
         "name": "result",
         "type": "function",
-        "line": 515
+        "line": 516
       },
       {
         "name": "result",
         "type": "function",
-        "line": 541
+        "line": 542
       },
       {
         "name": "result",
         "type": "function",
-        "line": 560
+        "line": 561
       },
       {
         "name": "result",
         "type": "function",
-        "line": 576
+        "line": 577
       },
       {
         "name": "result",
         "type": "function",
-        "line": 587
+        "line": 588
       },
       {
         "name": "result",
         "type": "function",
-        "line": 601
+        "line": 602
       },
       {
         "name": "result",
         "type": "function",
-        "line": 622
+        "line": 623
       },
       {
         "name": "result",
         "type": "function",
-        "line": 642
+        "line": 643
       },
       {
         "name": "result",
         "type": "function",
-        "line": 656
+        "line": 657
       },
       {
         "name": "result",
         "type": "function",
-        "line": 667
+        "line": 668
       },
       {
         "name": "result",
         "type": "function",
-        "line": 680
+        "line": 681
       },
       {
         "name": "result",
         "type": "function",
-        "line": 691
+        "line": 692
       },
       {
         "name": "result",
         "type": "function",
-        "line": 704
+        "line": 705
       },
       {
         "name": "result",
         "type": "function",
-        "line": 721
+        "line": 722
       },
       {
         "name": "result",
         "type": "function",
-        "line": 738
+        "line": 739
       },
       {
         "name": "result",
         "type": "function",
-        "line": 756
+        "line": 757
       },
       {
         "name": "result",
         "type": "function",
-        "line": 875
+        "line": 876
       },
       {
         "name": "result",
         "type": "function",
-        "line": 894
+        "line": 895
       },
       {
         "name": "result",
         "type": "function",
-        "line": 923
+        "line": 924
       },
       {
         "name": "result",
         "type": "function",
-        "line": 978
+        "line": 979
       },
       {
         "name": "result",
         "type": "function",
-        "line": 996
+        "line": 997
       },
       {
         "name": "top",
         "type": "function",
-        "line": 1054
+        "line": 1055
       },
       {
         "name": "scores",
         "type": "function",
-        "line": 1083
+        "line": 1084
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1110
+        "line": 1111
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1117
+        "line": 1118
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1123
+        "line": 1124
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1177
+        "line": 1178
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1192
+        "line": 1193
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1327
+        "line": 1328
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1344
+        "line": 1345
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1358
+        "line": 1359
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1374
+        "line": 1375
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1405
+        "line": 1406
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1433
+        "line": 1434
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1457
+        "line": 1458
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1477
+        "line": 1478
       }
     ],
     "apps/api/src/mcp-server.ts": [
@@ -1540,37 +1545,37 @@
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 1607
+        "line": 1623
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 1613
+        "line": 1629
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 1678
+        "line": 1694
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 1747
+        "line": 1763
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 1777
+        "line": 1801
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 1823
+        "line": 1848
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 1906
+        "line": 1940
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [
@@ -2084,12 +2089,12 @@
       {
         "name": "fn",
         "type": "function",
-        "line": 291
+        "line": 290
       },
       {
         "name": "fn",
         "type": "function",
-        "line": 311
+        "line": 310
       }
     ],
     "apps/api/src/router.test.ts": [
@@ -2106,74 +2111,79 @@
       {
         "name": "nested",
         "type": "const",
-        "line": 311
+        "line": 310
       },
       {
         "name": "mockRes",
         "type": "const",
-        "line": 351
+        "line": 350
       },
       {
         "name": "mockReq",
         "type": "const",
-        "line": 357
+        "line": 356
       }
     ],
     "apps/api/src/router.ts": [
       {
         "name": "RouteHandler",
         "type": "type",
-        "line": 9
+        "line": 13
       },
       {
         "name": "Route",
         "type": "interface",
-        "line": 11
+        "line": 15
       },
       {
         "name": "Router",
         "type": "class",
-        "line": 18
+        "line": 22
       },
       {
         "name": "sendJSON",
         "type": "function",
-        "line": 84
+        "line": 88
       },
       {
         "name": "sendError",
         "type": "function",
-        "line": 97
+        "line": 114
       },
       {
         "name": "readBody",
         "type": "function",
-        "line": 107
+        "line": 124
       },
       {
         "name": "AppHandle",
         "type": "interface",
-        "line": 132
+        "line": 149
       },
       {
         "name": "isShuttingDown",
         "type": "function",
-        "line": 139
+        "line": 174
       },
       {
         "name": "createApp",
         "type": "function",
-        "line": 141
+        "line": 176
+      },
+      {
+        "name": "path",
+        "type": "function",
+        "line": 265
       },
       {
         "name": "shutdown",
         "type": "function",
-        "line": 254
+        "line": 298
       },
       {
         "name": "onSignal",
         "type": "function",
-        "line": 297
+        "line": 341
       }
     ],
     "apps/api/src/search-api.test.ts": [

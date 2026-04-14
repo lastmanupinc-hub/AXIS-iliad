@@ -36,7 +36,7 @@ export function DashboardWidget() {
         <StatCard label="Language" value={data.language} />
         <StatCard label="Entry Points" value={data.entryPoints} />
         <StatCard label="Hotspots" value={data.hotspots} />
-        <StatCard label="TypeScript" value={`${69.5}%`} />
+        <StatCard label="TypeScript" value={`${69.6}%`} />
         <StatCard label="JSON" value={`${11.1}%`} />
         <StatCard label="YAML" value={`${9.6}%`} />
       </div>

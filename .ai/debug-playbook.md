@@ -19,17 +19,17 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | pnpm |
-| Files | 500 files, 114,224 LOC |
+| Files | 500 files, 114,357 LOC |
 | Separation Score | 0.64/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 249 | 78,445 | 69.5% |
-| JSON | 63 | 12,501 | 11.1% |
+| TypeScript | 249 | 78,562 | 69.6% |
+| JSON | 63 | 12,512 | 11.1% |
 | YAML | 68 | 10,876 | 9.6% |
-| Markdown | 107 | 9,249 | 8.2% |
+| Markdown | 107 | 9,254 | 8.2% |
 | CSS | 2 | 849 | 0.8% |
 | JavaScript | 3 | 673 | 0.6% |
 | HTML | 1 | 120 | 0.1% |

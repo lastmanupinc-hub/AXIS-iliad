@@ -157,11 +157,11 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 
 | File | Lines |
 |------|-------|
-| `apps/api/src/admin.test.ts` | 232 |
+| `apps/api/src/admin.test.ts` | 265 |
 | `apps/api/src/agent-discovery.test.ts` | 559 |
 | `apps/api/src/analyze.test.ts` | 456 |
 | `apps/api/src/api-branches.test.ts` | 606 |
-| `apps/api/src/api-layer5.test.ts` | 282 |
+| `apps/api/src/api-layer5.test.ts` | 284 |
 | `apps/api/src/api.test.ts` | 464 |
 | `apps/api/src/b-grade-upgrade.test.ts` | 228 |
 | `apps/api/src/billing-flow.test.ts` | 548 |
