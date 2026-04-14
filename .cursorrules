@@ -146,4 +146,4 @@ ci = "github_actions"
 # === Share-to-Earn Micro-Discounts ===
 # Every paid call returns referral_token. Share with other agents via prepare_for_agentic_purchasing args.
 # Earn $0.001/referral (cap $0.20, 30-day rolling), applied automatically to your next charge.
-# 5th paid call free for new agents. 200 referrals = permanent $0.20/call discount.
+# 5th paid call free for new agents. Credits reset every 30 days — keep sharing to keep earning micro-discounts.

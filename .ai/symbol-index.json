@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14T05:22:15.079Z",
+  "generated_at": "2026-04-14T13:11:12.083Z",
   "total_symbols": 1651,
   "file_count": 222,
   "symbols": {
@@ -970,42 +970,42 @@
       {
         "name": "handleCapabilities",
         "type": "function",
-        "line": 1962
+        "line": 1969
       },
       {
         "name": "handleLlmsTxt",
         "type": "function",
-        "line": 2040
+        "line": 2047
       },
       {
         "name": "handleRobotsTxt",
         "type": "function",
-        "line": 2097
+        "line": 2104
       },
       {
         "name": "handleSkillsIndex",
         "type": "function",
-        "line": 2131
+        "line": 2138
       },
       {
         "name": "handleDocsMd",
         "type": "function",
-        "line": 2205
+        "line": 2212
       },
       {
         "name": "handleForAgents",
         "type": "function",
-        "line": 2309
+        "line": 2316
       },
       {
         "name": "handleInstall",
         "type": "function",
-        "line": 2496
+        "line": 2503
       },
       {
         "name": "handleProbeIntent",
         "type": "function",
-        "line": 2536
+        "line": 2543
       }
     ],
     "apps/api/src/latency-histogram.test.ts": [
@@ -1133,252 +1133,252 @@
       {
         "name": "result",
         "type": "function",
-        "line": 250
+        "line": 251
       },
       {
         "name": "result",
         "type": "function",
-        "line": 264
+        "line": 266
       },
       {
         "name": "result",
         "type": "function",
-        "line": 275
+        "line": 277
       },
       {
         "name": "result",
         "type": "function",
-        "line": 287
+        "line": 289
       },
       {
         "name": "result",
         "type": "function",
-        "line": 301
+        "line": 303
       },
       {
         "name": "result",
         "type": "function",
-        "line": 319
+        "line": 321
       },
       {
         "name": "result",
         "type": "function",
-        "line": 336
+        "line": 338
       },
       {
         "name": "result",
         "type": "function",
-        "line": 368
+        "line": 370
       },
       {
         "name": "result",
         "type": "function",
-        "line": 395
+        "line": 397
       },
       {
         "name": "result",
         "type": "function",
-        "line": 422
+        "line": 424
       },
       {
         "name": "result",
         "type": "function",
-        "line": 447
+        "line": 449
       },
       {
         "name": "result",
         "type": "function",
-        "line": 467
+        "line": 469
       },
       {
         "name": "result",
         "type": "function",
-        "line": 493
+        "line": 495
       },
       {
         "name": "result",
         "type": "function",
-        "line": 517
+        "line": 519
       },
       {
         "name": "result",
         "type": "function",
-        "line": 541
+        "line": 543
       },
       {
         "name": "result",
         "type": "function",
-        "line": 567
+        "line": 569
       },
       {
         "name": "result",
         "type": "function",
-        "line": 586
+        "line": 588
       },
       {
         "name": "result",
         "type": "function",
-        "line": 602
+        "line": 604
       },
       {
         "name": "result",
         "type": "function",
-        "line": 613
+        "line": 615
       },
       {
         "name": "result",
         "type": "function",
-        "line": 627
+        "line": 629
       },
       {
         "name": "result",
         "type": "function",
-        "line": 648
+        "line": 650
       },
       {
         "name": "result",
         "type": "function",
-        "line": 668
+        "line": 670
       },
       {
         "name": "result",
         "type": "function",
-        "line": 682
+        "line": 684
       },
       {
         "name": "result",
         "type": "function",
-        "line": 693
+        "line": 695
       },
       {
         "name": "result",
         "type": "function",
-        "line": 706
+        "line": 708
       },
       {
         "name": "result",
         "type": "function",
-        "line": 717
+        "line": 719
       },
       {
         "name": "result",
         "type": "function",
-        "line": 730
+        "line": 732
       },
       {
         "name": "result",
         "type": "function",
-        "line": 747
+        "line": 749
       },
       {
         "name": "result",
         "type": "function",
-        "line": 764
+        "line": 766
       },
       {
         "name": "result",
         "type": "function",
-        "line": 782
+        "line": 784
       },
       {
         "name": "result",
         "type": "function",
-        "line": 938
+        "line": 949
       },
       {
         "name": "result",
         "type": "function",
-        "line": 957
+        "line": 968
       },
       {
         "name": "result",
         "type": "function",
-        "line": 986
+        "line": 997
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1041
+        "line": 1052
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1059
+        "line": 1070
       },
       {
         "name": "top",
         "type": "function",
-        "line": 1117
+        "line": 1128
       },
       {
         "name": "scores",
         "type": "function",
-        "line": 1146
+        "line": 1157
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1173
+        "line": 1184
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1180
+        "line": 1191
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1186
+        "line": 1197
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1240
+        "line": 1251
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1255
+        "line": 1266
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1390
+        "line": 1402
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1407
+        "line": 1419
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1421
+        "line": 1433
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1437
+        "line": 1449
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1468
+        "line": 1480
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1496
+        "line": 1508
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1520
+        "line": 1532
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1540
+        "line": 1552
       }
     ],
     "apps/api/src/mcp-server.ts": [
@@ -1535,72 +1535,72 @@
       {
         "name": "runListPrograms",
         "type": "function",
-        "line": 1243
+        "line": 1241
       },
       {
         "name": "runGetSnapshot",
         "type": "function",
-        "line": 1281
+        "line": 1279
       },
       {
         "name": "runGetArtifact",
         "type": "function",
-        "line": 1324
+        "line": 1322
       },
       {
         "name": "runPreparePurchasing",
         "type": "function",
-        "line": 1359
+        "line": 1357
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1431
+        "line": 1429
       },
       {
         "name": "dispatch",
         "type": "function",
-        "line": 1660
+        "line": 1658
       },
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 1691
+        "line": 1689
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 1697
+        "line": 1695
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 1768
+        "line": 1766
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 1837
+        "line": 1835
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 1875
+        "line": 1878
       },
       {
         "name": "handleMcpDocs",
         "type": "function",
-        "line": 1884
+        "line": 1887
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 1931
+        "line": 1934
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 2023
+        "line": 2006
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [
@@ -1810,32 +1810,32 @@
       {
         "name": "parseAgentBudget",
         "type": "function",
-        "line": 224
+        "line": 231
       },
       {
         "name": "budget",
         "type": "const",
-        "line": 229
+        "line": 236
       },
       {
         "name": "resolveAgentMode",
         "type": "function",
-        "line": 252
+        "line": 259
       },
       {
         "name": "toAscii",
         "type": "function",
-        "line": 268
+        "line": 275
       },
       {
         "name": "chargeMpp",
         "type": "function",
-        "line": 272
+        "line": 279
       },
       {
         "name": "resetMppxCache",
         "type": "function",
-        "line": 339
+        "line": 346
       }
     ],
     "apps/api/src/multi-tenancy.test.ts": [

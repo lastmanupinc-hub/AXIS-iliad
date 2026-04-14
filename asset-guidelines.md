@@ -1,6 +1,6 @@
 # Asset Guidelines — axis-toolbox
 
-Generated: 2026-04-14T05:22:14.978Z
+Generated: 2026-04-14T13:11:11.982Z
 
 ## Color System
 

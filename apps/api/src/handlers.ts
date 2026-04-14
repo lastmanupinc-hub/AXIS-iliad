@@ -1892,9 +1892,16 @@ export async function handleWellKnown(
   sendJSON(res, 200, {
     name: "AXIS Toolbox",
     incentives: {
-      share_to_earn: "$0.001 per referral (cap $0.20/call, 30-day rolling)",
-      fifth_call_free: "New agents get their 5th paid call free",
-      referral_field: "referral_token in prepare_for_agentic_purchasing args",
+      referral: {
+        enabled: true,
+        earn_cents_per_unique_share: 0.1,
+        cap_cents_per_call: 20,
+        reset_days: 30,
+        how: "referral_token in prepare_for_agentic_purchasing args",
+      },
+      onboarding: {
+        fifth_paid_call_free: true,
+      },
       details: "GET /for-agents?intent=referral",
     },
     tagline: "Analyze any codebase. Generate 86 structured artifacts across 18 programs.",

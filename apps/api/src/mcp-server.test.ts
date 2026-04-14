@@ -192,8 +192,9 @@ describe("POST /mcp — initialize", () => {
     expect(result.instructions).toContain("analyze");
     // incentives + monetization + axis_capabilities injected by serialization layer into every success result
     const incentives = result.incentives as Record<string, unknown>;
-    expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(incentives.description as string).toContain("referral_token");
+    const referral = incentives.referral as Record<string, unknown>;
+    expect(referral.enabled).toBe(true);
+    expect(referral.reset_days).toBe(30);
     const axisCaps = result.axis_capabilities as Record<string, unknown>;
     expect(axisCaps.artifact_count).toBe(86);
     expect(axisCaps.programs).toBe(18);
@@ -253,8 +254,9 @@ describe("POST /mcp — tools/list", () => {
     expect(tools.length).toBe(12);
     // incentives injected into every success result
     const incentives = result.incentives as Record<string, unknown>;
-    expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(incentives.description as string).toContain("referral_token");
+    const referral = incentives.referral as Record<string, unknown>;
+    expect(referral.enabled).toBe(true);
+    expect(referral.reset_days).toBe(30);
     const axisCaps = result.axis_capabilities as Record<string, unknown>;
     expect(axisCaps.artifact_count).toBe(86);
   });
@@ -866,11 +868,12 @@ describe("GET /mcp — JSON manifest with incentives-first", () => {
     expect(ct).toContain("application/json");
   });
 
-  it("incentives key is the first key in the result object", async () => {
+  it("incentives key is the first key after server in the result object", async () => {
     const r = await get("/mcp");
     const data = r.data as Record<string, unknown>;
     const keys = Object.keys(data);
-    expect(keys[0]).toBe("incentives");
+    expect(keys[0]).toBe("server");
+    expect(keys[1]).toBe("incentives");
   });
 
   it("incentives appear within the first 200 bytes of the JSON body", async () => {
@@ -884,14 +887,22 @@ describe("GET /mcp — JSON manifest with incentives-first", () => {
   it("contains required manifest fields", async () => {
     const r = await get("/mcp");
     const data = r.data as Record<string, unknown>;
+    expect(data.server).toBeDefined();
     expect(data.incentives).toBeDefined();
-    expect(data.monetization).toBeDefined();
-    expect(data.name).toBe("axis-toolbox");
     expect(data.tools).toBeDefined();
-    expect(data.endpoint).toBeDefined();
+    expect(data._meta).toBeDefined();
+    const server = data.server as Record<string, unknown>;
+    expect(server.name).toBe("axis-toolbox");
+    expect(server.endpoint).toBeDefined();
     const inc = data.incentives as Record<string, unknown>;
-    expect(inc.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect((inc.description as string)).toContain("referral_token");
+    const referral = inc.referral as Record<string, unknown>;
+    expect(referral.enabled).toBe(true);
+    expect(referral.token_returned_on_paid_success).toBe(true);
+    expect(referral.earn_cents_per_unique_share).toBe(0.1);
+    expect(referral.cap_cents_per_call).toBe(20);
+    expect(referral.reset_days).toBe(30);
+    const onboarding = inc.onboarding as Record<string, unknown>;
+    expect(onboarding.fifth_paid_call_free).toBe(true);
   });
 });
 
@@ -1270,24 +1281,25 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
 describe("getMcpServerMeta — shape and content", () => {
   it("returns an object with required registry fields", () => {
     const meta = getMcpServerMeta();
-    expect(typeof meta.name).toBe("string");
-    expect(typeof meta.displayName).toBe("string");
-    expect(typeof meta.version).toBe("string");
-    expect(typeof meta.description).toBe("string");
-    expect(typeof meta.endpoint).toBe("string");
-    expect(typeof meta.protocol).toBe("string");
+    const server = meta.server as Record<string, unknown>;
+    expect(typeof server.name).toBe("string");
+    expect(typeof server.version).toBe("string");
+    expect(typeof server.endpoint).toBe("string");
   });
 
-  it("name is axis-toolbox", () => {
-    expect(getMcpServerMeta().name).toBe("axis-toolbox");
+  it("server.name is axis-toolbox", () => {
+    const server = getMcpServerMeta().server as Record<string, unknown>;
+    expect(server.name).toBe("axis-toolbox");
   });
 
-  it("endpoint points to production MCP HTTP endpoint", () => {
-    expect(getMcpServerMeta().endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
+  it("server.endpoint points to production MCP HTTP endpoint", () => {
+    const server = getMcpServerMeta().server as Record<string, unknown>;
+    expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("protocol includes MCP_PROTOCOL_VERSION", () => {
-    expect(String(getMcpServerMeta().protocol)).toContain(MCP_PROTOCOL_VERSION);
+  it("_meta.protocol includes MCP_PROTOCOL_VERSION", () => {
+    const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
+    expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
   it("tools array has 12 entries derived from MCP_TOOLS", () => {
@@ -1305,26 +1317,23 @@ describe("getMcpServerMeta — shape and content", () => {
     }
   });
 
-  it("categories is a non-empty array of strings", () => {
-    const cats = getMcpServerMeta().categories as string[];
+  it("_meta.categories is a non-empty array of strings", () => {
+    const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
+    const cats = _meta.categories as string[];
     expect(Array.isArray(cats)).toBe(true);
     expect(cats.length).toBeGreaterThan(0);
     for (const c of cats) expect(typeof c).toBe("string");
   });
 
-  it("tags includes agentic-purchasing and ap2-compliance", () => {
-    const tags = getMcpServerMeta().tags as string[];
-    expect(tags).toContain("agentic-purchasing");
-    expect(tags).toContain("ap2-compliance");
-  });
-
-  it("authentication type is bearer", () => {
-    const auth = getMcpServerMeta().authentication as { type: string };
+  it("_meta.authentication type is bearer", () => {
+    const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
+    const auth = _meta.authentication as { type: string };
     expect(auth.type).toBe("bearer");
   });
 
-  it("quickstart has step1_discover and step2_analyze keys", () => {
-    const qs = getMcpServerMeta().quickstart as Record<string, string>;
+  it("_meta.quickstart has step1_discover and step2_analyze keys", () => {
+    const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
+    const qs = _meta.quickstart as Record<string, string>;
     expect(typeof qs.step1_discover).toBe("string");
     expect(typeof qs.step2_analyze).toBe("string");
   });
@@ -1344,16 +1353,18 @@ describe("GET /v1/mcp/server.json", () => {
     expect(ct).toContain("application/json");
   });
 
-  it("body contains name=axis-toolbox", async () => {
+  it("body contains server.name=axis-toolbox", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
-    expect(data.name).toBe("axis-toolbox");
+    const server = data.server as Record<string, unknown>;
+    expect(server.name).toBe("axis-toolbox");
   });
 
-  it("body contains endpoint", async () => {
+  it("body contains server.endpoint", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
-    expect(data.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
+    const server = data.server as Record<string, unknown>;
+    expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
   it("body contains 12 tools", async () => {
@@ -1363,10 +1374,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(tools).toHaveLength(12);
   });
 
-  it("body contains categories array", async () => {
+  it("body contains _meta.categories array", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
-    expect(Array.isArray(data.categories)).toBe(true);
+    const _meta = data._meta as Record<string, unknown>;
+    expect(Array.isArray(_meta.categories)).toBe(true);
   });
 
   it("body matches getMcpServerMeta output", async () => {

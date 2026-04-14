@@ -7,7 +7,7 @@
 | Signal | Value | Weight |
 |--------|-------|--------|
 | File count | 500 files | Medium |
-| Lines of code | 114741 LOC | High |
+| Lines of code | 114751 LOC | High |
 | Complexity estimate | medium | High |
 | Separation score | 0.64 / 1.0 | High |
 

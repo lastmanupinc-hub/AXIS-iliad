@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 114,741 |
-| Average LOC / file | 229 |
-| Estimated token count | ~516,335 |
+| Total LOC | 114,751 |
+| Average LOC / file | 230 |
+| Estimated token count | ~516,380 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -200,18 +200,18 @@ apps/api/src/github.ts (0.2 KB)
 apps/api/src/handler-edge-cases.test.ts (11.8 KB)
 apps/api/src/handler-validation.test.ts (11.4 KB)
 apps/api/src/handlers-deep.test.ts (18.7 KB)
-apps/api/src/handlers.ts (121.8 KB)
+apps/api/src/handlers.ts (121.9 KB)
 apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.5 KB)
 apps/api/src/logger.ts (2.9 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (58.2 KB)
-apps/api/src/mcp-server.ts (88.4 KB)
+apps/api/src/mcp-server.test.ts (58.9 KB)
+apps/api/src/mcp-server.ts (87.5 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.4 KB)
 apps/api/src/mpp.test.ts (8.5 KB)
-apps/api/src/mpp.ts (13.5 KB)
+apps/api/src/mpp.ts (13.6 KB)
 apps/api/src/multi-tenancy.test.ts (20.0 KB)
 apps/api/src/oauth.test.ts (8.0 KB)
 apps/api/src/oauth.ts (3.4 KB)
@@ -476,7 +476,7 @@ packages/generator-core/src/generators-remotion.ts (32.1 KB)
 packages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)
 packages/generator-core/src/generators-search.ts (17.9 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
-packages/generator-core/src/generators-skills.ts (42.5 KB)
+packages/generator-core/src/generators-skills.ts (42.6 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (45.9 KB)
 packages/generator-core/src/index.ts (2.9 KB)
