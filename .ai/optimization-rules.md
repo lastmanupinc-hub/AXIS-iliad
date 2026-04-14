@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 114,537 |
+| Total LOC | 114,670 |
 | Average LOC / file | 229 |
-| Estimated token count | ~515,417 |
+| Estimated token count | ~516,015 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -205,7 +205,7 @@ apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.5 KB)
 apps/api/src/logger.ts (2.9 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (55.5 KB)
+apps/api/src/mcp-server.test.ts (56.7 KB)
 apps/api/src/mcp-server.ts (88.1 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
@@ -340,7 +340,7 @@ connector-map.yaml (6.7 KB)
 content-audit.md (3.8 KB)
 content-constraints.md (2.9 KB)
 CONTRIBUTING.md (3.1 KB)
-cost-estimate.json (5.9 KB)
+cost-estimate.json (6.0 KB)
 cov3.txt (19.3 KB)
 cov5.txt (218.4 KB)
 cro-playbook.md (33.1 KB)
@@ -371,7 +371,8 @@ examples/04-slate-certification/README.md (0.7 KB)
 examples/05-ruuuun/generated/AGENTS.md (1.8 KB)
 examples/05-ruuuun/generated/CLAUDE.md (0.8 KB)
 examples/05-ruuuun/README.md (0.8 KB)
-examples/README.md (3.2 KB)
+examples/README.json (5.6 KB)
+examples/README.md (3.9 KB)
 export-manifest.yaml (2.2 KB)
 frontend/begin.yaml (3.6 KB)
 frontend/continuation.yaml (2.4 KB)
@@ -475,7 +476,7 @@ packages/generator-core/src/generators-remotion.ts (32.1 KB)
 packages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)
 packages/generator-core/src/generators-search.ts (17.9 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
-packages/generator-core/src/generators-skills.ts (42.4 KB)
+packages/generator-core/src/generators-skills.ts (42.5 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (45.9 KB)
 packages/generator-core/src/index.ts (2.9 KB)
@@ -532,7 +533,7 @@ packages/snapshots/src/persistence-metering.test.ts (9.9 KB)
 packages/snapshots/src/persistence-metering.ts (4.9 KB)
 packages/snapshots/src/referral-e2e.test.ts (10.2 KB)
 packages/snapshots/src/referral-store.test.ts (9.8 KB)
-packages/snapshots/src/referral-store.ts (10.0 KB)
+packages/snapshots/src/referral-store.ts (9.8 KB)
 packages/snapshots/src/search-store.test.ts (6.8 KB)
 packages/snapshots/src/search-store.ts (9.7 KB)
 packages/snapshots/src/search-symbols.test.ts (9.3 KB)
@@ -657,7 +658,6 @@ search/schemas/repo-profile.schema.yaml (6.7 KB)
 seo/begin.yaml (3.6 KB)
 seo/continuation.yaml (2.4 KB)
 seo/MEMORY.yaml (5.8 KB)
-seo/schemas/output-contract.schema.json (1.8 KB)
 ```
 
 ## Hotspot File Excerpts

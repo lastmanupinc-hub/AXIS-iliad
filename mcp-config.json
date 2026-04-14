@@ -1,7 +1,7 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T04:24:50.882Z",
+  "generated_at": "2026-04-14T05:01:49.029Z",
   "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.",
   "detected_stack": [
     {
@@ -362,7 +362,7 @@
     {
       "path": "apps/api/src/mcp-server.test.ts",
       "exports": [],
-      "size": 56872
+      "size": 58046
     },
     {
       "path": "apps/api/src/mcp-server.ts",

@@ -16,8 +16,8 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (114537 LOC)
-- **Directories:** 62
+- **Files:** 500 (114670 LOC)
+- **Directories:** 61
 
 ## Frameworks & Libraries
 
@@ -474,7 +474,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 - `packages/` — monorepo_packages (131 files)
 - `apps/` — monorepo_apps (127 files)
 - `payment-processing-output/` — project_directory (72 files)
-- `examples/` — project_directory (16 files)
+- `examples/` — project_directory (17 files)
 - `search/` — project_directory (6 files)
 - `algorithmic/` — project_directory (4 files)
 - `artifacts/` — project_directory (4 files)
@@ -488,7 +488,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 - `obsidian/` — project_directory (4 files)
 - `optimization/` — project_directory (4 files)
 - `remotion/` — project_directory (4 files)
-- `seo/` — project_directory (4 files)
+- `seo/` — project_directory (3 files)
 - `scripts/` — build_scripts (2 files)
 - `.github/` — project_directory (1 files)
 
@@ -601,7 +601,7 @@ apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.5 KB)
 apps/api/src/logger.ts (2.9 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (55.5 KB)
+apps/api/src/mcp-server.test.ts (56.7 KB)
 apps/api/src/mcp-server.ts (88.1 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
@@ -767,7 +767,8 @@ examples/04-slate-certification/README.md (0.7 KB)
 examples/05-ruuuun/generated/AGENTS.md (1.8 KB)
 examples/05-ruuuun/generated/CLAUDE.md (0.8 KB)
 examples/05-ruuuun/README.md (0.8 KB)
-examples/README.md (3.2 KB)
+examples/README.json (5.6 KB)
+examples/README.md (3.9 KB)
 export-manifest.yaml (2.2 KB)
 frontend/begin.yaml (3.6 KB)
 frontend/continuation.yaml (2.4 KB)
@@ -928,7 +929,7 @@ packages/snapshots/src/persistence-metering.test.ts (9.9 KB)
 packages/snapshots/src/persistence-metering.ts (4.9 KB)
 packages/snapshots/src/referral-e2e.test.ts (10.2 KB)
 packages/snapshots/src/referral-store.test.ts (9.8 KB)
-packages/snapshots/src/referral-store.ts (10.0 KB)
+packages/snapshots/src/referral-store.ts (9.8 KB)
 packages/snapshots/src/search-store.test.ts (6.8 KB)
 packages/snapshots/src/search-store.ts (9.7 KB)
 packages/snapshots/src/search-symbols.test.ts (9.3 KB)
@@ -1053,7 +1054,6 @@ search/schemas/repo-profile.schema.yaml (6.7 KB)
 seo/begin.yaml (3.6 KB)
 seo/continuation.yaml (2.4 KB)
 seo/MEMORY.yaml (5.8 KB)
-seo/schemas/output-contract.schema.json (1.8 KB)
 ```
 
 ## Entry Points (Source)

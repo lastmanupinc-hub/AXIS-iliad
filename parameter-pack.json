@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T04:24:50.928Z",
+  "generated_at": "2026-04-14T05:01:49.046Z",
   "description": "Parameter sets for generative visualizations derived from project metrics",
   "parameters": {
     "structure": {
@@ -35,16 +35,16 @@
         {
           "name": "Markdown",
           "hue": 160,
-          "saturation": 61.64,
-          "lightness": 51.23,
-          "weight": 8.2
+          "saturation": 61.62,
+          "lightness": 51.215,
+          "weight": 8.1
         },
         {
           "name": "CSS",
           "hue": 40,
-          "saturation": 60.16,
-          "lightness": 50.12,
-          "weight": 0.8
+          "saturation": 60.14,
+          "lightness": 50.105,
+          "weight": 0.7
         }
       ],
       "background": {

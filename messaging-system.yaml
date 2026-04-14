@@ -1,6 +1,6 @@
 # Messaging System
 # Project: axis-toolbox
-# Generated: 2026-04-14T04:24:50.819Z
+# Generated: 2026-04-14T05:01:49.009Z
 # Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 product:
@@ -11,7 +11,7 @@ product:
 
 taglines:
   primary: "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models."
-  technical: "React monorepo — 500 files, 114,537 lines of TypeScript"
+  technical: "React monorepo — 500 files, 114,670 lines of TypeScript"
   conceptual: "Built around packages/ (monorepo_packages), apps/ (monorepo_apps), payment-processing-output/ (project_directory)"
 
 value_propositions:
@@ -50,11 +50,11 @@ feature_messages:
     count: 10
     message: "10 languages detected and analyzed"
     breakdown:
-      - "TypeScript: 78,771 lines (69.6%)"
-      - "JSON: 12,512 lines (11.1%)"
+      - "TypeScript: 78,792 lines (69.6%)"
+      - "JSON: 12,620 lines (11.1%)"
       - "YAML: 10,876 lines (9.6%)"
-      - "Markdown: 9,225 lines (8.2%)"
-      - "CSS: 849 lines (0.8%)"
+      - "Markdown: 9,229 lines (8.1%)"
+      - "CSS: 849 lines (0.7%)"
   framework_detection:
     count: 1
     message: "1 frameworks detected with stack-aware output"

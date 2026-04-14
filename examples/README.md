@@ -1,6 +1,6 @@
 # AXIS Toolbox — Example Repos
 
-> 5 real codebases analyzed by AXIS Toolbox. Each went from **0 AI context files** to **75 structured artifacts** across 17 programs.
+> 5 real codebases analyzed by AXIS Toolbox. Each example shows the **3 free-tier artifacts** (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates **86 artifacts across 18 programs** — upgrade to Pro to unlock all of them.
 
 ## The Examples
 
@@ -12,16 +12,24 @@
 | 04 | [Slate](04-slate-certification/) | Python + YAML | Certification System | 575 | Gate 1–9 pipeline, .axp format, 12 components |
 | 05 | [RUUUUN!!!](05-ruuuun/) | Lua | Roblox Game | 90 | Procedural maze gen, loot tables, server/client |
 
-## What Gets Generated
+## What's Shown Here
 
-Every repo receives **75 artifacts** across 17 specialized programs:
+Each example includes the **free-tier Search program** output:
 
-### Free Programs (3)
+- **AGENTS.md** — Project structure, routes, architecture layers, agent instructions
+- **CLAUDE.md** — 10-point condensed cheat sheet for fast onboarding
+- **.cursorrules** — Domain-specific coding conventions and constraints
+
+> **Want the full 86 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, and 70+ more files. [Try it →](https://toolbox.jonathanarvay.com)
+
+## Full AXIS Output (86 artifacts across 18 programs)
+
+### Free Programs (3) — included in these examples
 - **Search** — AGENTS.md, CLAUDE.md, .cursorrules, context-map.json
 - **Skills** — copilot-instructions.md, cursor-rules.md, windsurf-rules.md
 - **Debug** — debug-playbook.md, incident-template.md, tracing-rules.md, dependency-hotspots.md
 
-### Pro Programs (14)
+### Pro Programs (15) — available with Pro tier
 - **Frontend** — frontend-rules.md, component-guidelines.md, layout-patterns.md, ui-audit.md
 - **SEO** — seo-rules.md, schema-recommendations.json, route-priority-map.md, content-audit.md
 - **Theme** — design-tokens.json, theme.css, theme-guidelines.md, component-theme-map.json
@@ -36,13 +44,13 @@ Every repo receives **75 artifacts** across 17 specialized programs:
 - **Remotion** — remotion-script.ts, scene-plan.md, render-config.json, asset-checklist.md
 - **Canvas** — canvas-spec.json, social-pack.md, poster-layouts.md, asset-guidelines.md
 - **Algorithmic** — generative-sketch.ts, parameter-pack.json, collection-map.md, export-manifest.yaml
+- **Agentic Purchasing** — commerce-registry.json, product-schema.json
 
 ## How to Use These Examples
 
-1. Browse any example directory to see the before/after
-2. Open the `generated/` folder to read the actual artifacts
-3. Compare the `AGENTS.md` across projects to see how AXIS adapts to each stack
-4. Try it on your own repo: [toolbox.jonathanarvay.com](https://toolbox.jonathanarvay.com)
+1. Browse any example's `generated/` folder to see the free-tier artifacts
+2. Compare `AGENTS.md` across projects to see how AXIS adapts to each stack
+3. Try it on your own repo: [toolbox.jonathanarvay.com](https://toolbox.jonathanarvay.com)
 
 ## Try It
 

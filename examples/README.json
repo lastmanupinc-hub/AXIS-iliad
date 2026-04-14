@@ -1,0 +1,165 @@
+{
+  "title": "AXIS Toolbox — Example Repos",
+  "summary": "5 real codebases analyzed by AXIS Toolbox. Each example shows the 3 free-tier artifacts (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates 86 artifacts across 18 programs — upgrade to Pro to unlock all of them.",
+  "examples": [
+    {
+      "id": "01",
+      "name": "PAI'D",
+      "path": "01-paid-platform/",
+      "language": "Go + Svelte",
+      "type": "Fintech Platform",
+      "files": 3314,
+      "key_insight": "689 routes, 8 provider adapters, dual-system arch"
+    },
+    {
+      "id": "02",
+      "name": "AXIS Scalpel",
+      "path": "02-axis-scalpel/",
+      "language": "Python + TS",
+      "type": "Medical Device",
+      "files": 20,
+      "key_insight": "Gate 9 certified, 12 refusal conditions, 186 tests"
+    },
+    {
+      "id": "03",
+      "name": "SpaceY",
+      "path": "03-spacey/",
+      "language": "Node.js + React",
+      "type": "Enterprise Platform",
+      "files": 56,
+      "key_insight": "Babble DSL compiler, 4-outcome auth model"
+    },
+    {
+      "id": "04",
+      "name": "Slate",
+      "path": "04-slate-certification/",
+      "language": "Python + YAML",
+      "type": "Certification System",
+      "files": 575,
+      "key_insight": "Gate 1–9 pipeline, .axp format, 12 components"
+    },
+    {
+      "id": "05",
+      "name": "RUUUUN!!!",
+      "path": "05-ruuuun/",
+      "language": "Lua",
+      "type": "Roblox Game",
+      "files": 90,
+      "key_insight": "Procedural maze gen, loot tables, server/client"
+    }
+  ],
+  "shown_artifacts": {
+    "description": "Each example includes the free-tier Search program output",
+    "files": [
+      { "name": "AGENTS.md", "purpose": "Project structure, routes, architecture layers, agent instructions" },
+      { "name": "CLAUDE.md", "purpose": "10-point condensed cheat sheet for fast onboarding" },
+      { "name": ".cursorrules", "purpose": "Domain-specific coding conventions and constraints" }
+    ]
+  },
+  "full_output": {
+    "total_artifacts": 86,
+    "total_programs": 18,
+    "free_programs": [
+      {
+        "name": "Search",
+        "tier": "free",
+        "included_in_examples": true,
+        "outputs": ["AGENTS.md", "CLAUDE.md", ".cursorrules", "context-map.json"]
+      },
+      {
+        "name": "Skills",
+        "tier": "free",
+        "included_in_examples": false,
+        "outputs": ["copilot-instructions.md", "cursor-rules.md", "windsurf-rules.md"]
+      },
+      {
+        "name": "Debug",
+        "tier": "free",
+        "included_in_examples": false,
+        "outputs": ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "dependency-hotspots.md"]
+      }
+    ],
+    "pro_programs": [
+      {
+        "name": "Frontend",
+        "tier": "pro",
+        "outputs": ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"]
+      },
+      {
+        "name": "SEO",
+        "tier": "pro",
+        "outputs": ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md"]
+      },
+      {
+        "name": "Theme",
+        "tier": "pro",
+        "outputs": ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json"]
+      },
+      {
+        "name": "Brand",
+        "tier": "pro",
+        "outputs": ["brand-guidelines.md", "voice-and-tone.md", "messaging-system.yaml", "channel-rulebook.md"]
+      },
+      {
+        "name": "Optimization",
+        "tier": "pro",
+        "outputs": ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"]
+      },
+      {
+        "name": "MCP",
+        "tier": "pro",
+        "outputs": ["mcp-config.json", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"]
+      },
+      {
+        "name": "Superpowers",
+        "tier": "pro",
+        "outputs": ["superpower-pack.md", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"]
+      },
+      {
+        "name": "Marketing",
+        "tier": "pro",
+        "outputs": ["campaign-brief.md", "funnel-map.md", "cro-playbook.md", "sequence-pack.md"]
+      },
+      {
+        "name": "Notebook",
+        "tier": "pro",
+        "outputs": ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md"]
+      },
+      {
+        "name": "Obsidian",
+        "tier": "pro",
+        "outputs": ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md"]
+      },
+      {
+        "name": "Artifacts",
+        "tier": "pro",
+        "outputs": ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md"]
+      },
+      {
+        "name": "Remotion",
+        "tier": "pro",
+        "outputs": ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md"]
+      },
+      {
+        "name": "Canvas",
+        "tier": "pro",
+        "outputs": ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md"]
+      },
+      {
+        "name": "Algorithmic",
+        "tier": "pro",
+        "outputs": ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml"]
+      },
+      {
+        "name": "Agentic Purchasing",
+        "tier": "pro",
+        "outputs": ["commerce-registry.json", "product-schema.json"]
+      }
+    ]
+  },
+  "try_it": {
+    "web": "https://toolbox.jonathanarvay.com",
+    "cli": "axis analyze ./your-project",
+    "github": "axis github https://github.com/you/your-repo"
+  }
+}

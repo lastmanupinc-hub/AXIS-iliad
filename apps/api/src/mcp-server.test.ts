@@ -280,6 +280,30 @@ describe("POST /mcp — tools/list", () => {
     expect(names).toContain("get_snapshot");
     expect(names).toContain("get_artifact");
   });
+
+  it("incentives keys appear before tools key in serialized result", async () => {
+    const r = await post("/mcp", { jsonrpc: "2.0", id: 7, method: "tools/list" });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const keys = Object.keys(result);
+    const incentivesIdx = keys.indexOf("incentives");
+    const toolsIdx = keys.indexOf("tools");
+    expect(incentivesIdx).toBeLessThan(toolsIdx);
+    expect(keys.indexOf("monetization")).toBeLessThan(toolsIdx);
+    expect(keys.indexOf("axis_capabilities")).toBeLessThan(toolsIdx);
+  });
+
+  it("tools/call result has incentives before content key", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 7, method: "tools/call",
+      params: { name: "list_programs", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const keys = Object.keys(result);
+    const incentivesIdx = keys.indexOf("incentives");
+    const contentIdx = keys.indexOf("content");
+    expect(incentivesIdx).toBeGreaterThanOrEqual(0);
+    expect(incentivesIdx).toBeLessThan(contentIdx);
+  });
 });
 
 describe("POST /mcp — tools/call list_programs", () => {

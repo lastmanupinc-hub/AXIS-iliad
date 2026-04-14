@@ -1,6 +1,6 @@
 # Poster Layouts — axis-toolbox
 
-Generated: 2026-04-14T04:24:50.922Z
+Generated: 2026-04-14T05:01:49.043Z
 
 ## Layout A: Tech Overview (A4 Portrait)
 
@@ -36,11 +36,11 @@ Generated: 2026-04-14T04:24:50.922Z
 - Dependencies: 20
 
 **Language Breakdown**
-- TypeScript: 69.6% (78771 LOC)
-- JSON: 11.1% (12512 LOC)
+- TypeScript: 69.6% (78792 LOC)
+- JSON: 11.1% (12620 LOC)
 - YAML: 9.6% (10876 LOC)
-- Markdown: 8.2% (9225 LOC)
-- CSS: 0.8% (849 LOC)
+- Markdown: 8.1% (9229 LOC)
+- CSS: 0.7% (849 LOC)
 - JavaScript: 0.6% (673 LOC)
 - HTML: 0.1% (120 LOC)
 - Dockerfile: 0% (49 LOC)

@@ -1,7 +1,7 @@
 version: 1.0.0
-snapshot_id: b494aeb2-8c2e-4f23-a94c-e38112968ef3
-project_id: 6720a3bc-629b-430d-a7cb-49a142b44ea1
-generated_at: "2026-04-14T04:32:35.050Z"
+snapshot_id: 2453805c-497c-47e6-b18b-060d33960628
+project_id: cc8dc1ac-095f-4e7d-bd7e-f8cbc94c1717
+generated_at: "2026-04-14T05:01:48.934Z"
 project:
   name: axis-toolbox
   type: monorepo
@@ -14,11 +14,11 @@ detection:
   languages:
     - name: TypeScript
       file_count: 250
-      loc: 78771
+      loc: 78792
       loc_percent: 69.6
     - name: JSON
       file_count: 63
-      loc: 12512
+      loc: 12620
       loc_percent: 11.1
     - name: YAML
       file_count: 68
@@ -26,12 +26,12 @@ detection:
       loc_percent: 9.6
     - name: Markdown
       file_count: 106
-      loc: 9225
-      loc_percent: 8.2
+      loc: 9229
+      loc_percent: 8.1
     - name: CSS
       file_count: 2
       loc: 849
-      loc_percent: 0.8
+      loc_percent: 0.7
     - name: JavaScript
       file_count: 3
       loc: 673
@@ -75,8 +75,8 @@ detection:
 
 structure_summary:
   total_files: 500
-  total_directories: 62
-  total_loc: 114537
+  total_directories: 61
+  total_loc: 114670
   top_level_dirs:
     - name: packages
       purpose: monorepo_packages
@@ -89,7 +89,7 @@ structure_summary:
       file_count: 72
     - name: examples
       purpose: project_directory
-      file_count: 16
+      file_count: 17
     - name: search
       purpose: project_directory
       file_count: 6
@@ -131,7 +131,7 @@ structure_summary:
       file_count: 4
     - name: seo
       purpose: project_directory
-      file_count: 4
+      file_count: 3
     - name: scripts
       purpose: build_scripts
       file_count: 2
@@ -214,7 +214,7 @@ apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.5 KB)
 apps/api/src/logger.ts (2.9 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (55.5 KB)
+apps/api/src/mcp-server.test.ts (56.7 KB)
 apps/api/src/mcp-server.ts (88.1 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
@@ -380,7 +380,8 @@ examples/04-slate-certification/README.md (0.7 KB)
 examples/05-ruuuun/generated/AGENTS.md (1.8 KB)
 examples/05-ruuuun/generated/CLAUDE.md (0.8 KB)
 examples/05-ruuuun/README.md (0.8 KB)
-examples/README.md (3.2 KB)
+examples/README.json (5.6 KB)
+examples/README.md (3.9 KB)
 export-manifest.yaml (2.2 KB)
 frontend/begin.yaml (3.6 KB)
 frontend/continuation.yaml (2.4 KB)
@@ -541,7 +542,7 @@ packages/snapshots/src/persistence-metering.test.ts (9.9 KB)
 packages/snapshots/src/persistence-metering.ts (4.9 KB)
 packages/snapshots/src/referral-e2e.test.ts (10.2 KB)
 packages/snapshots/src/referral-store.test.ts (9.8 KB)
-packages/snapshots/src/referral-store.ts (10.0 KB)
+packages/snapshots/src/referral-store.ts (9.8 KB)
 packages/snapshots/src/search-store.test.ts (6.8 KB)
 packages/snapshots/src/search-store.ts (9.7 KB)
 packages/snapshots/src/search-symbols.test.ts (9.3 KB)
@@ -665,5 +666,4 @@ search/schemas/output-contract.schema.json (1.8 KB)
 search/schemas/repo-profile.schema.yaml (6.7 KB)
 seo/begin.yaml (3.6 KB)
 seo/continuation.yaml (2.4 KB)
-seo/MEMORY.yaml (5.8 KB)
-seo/schemas/output-contract.schema.json (1.8 KB)"
+seo/MEMORY.yaml (5.8 KB)"

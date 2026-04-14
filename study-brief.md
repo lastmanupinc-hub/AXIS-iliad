@@ -20,7 +20,7 @@ Before diving into this codebase, you should be comfortable with:
    - `packages` — monorepo_packages (131 files)
    - `apps` — monorepo_apps (127 files)
    - `payment-processing-output` — project_directory (72 files)
-   - `examples` — project_directory (16 files)
+   - `examples` — project_directory (17 files)
    - `search` — project_directory (6 files)
    - `algorithmic` — project_directory (4 files)
    - `artifacts` — project_directory (4 files)

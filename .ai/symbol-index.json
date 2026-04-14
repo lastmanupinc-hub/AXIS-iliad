@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-04-14T04:32:35.163Z",
-  "total_symbols": 1648,
+  "generated_at": "2026-04-14T05:01:49.133Z",
+  "total_symbols": 1650,
   "file_count": 222,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -1148,42 +1148,47 @@
       {
         "name": "result",
         "type": "function",
-        "line": 294
+        "line": 286
       },
       {
         "name": "result",
         "type": "function",
-        "line": 311
+        "line": 300
       },
       {
         "name": "result",
         "type": "function",
-        "line": 343
+        "line": 318
       },
       {
         "name": "result",
         "type": "function",
-        "line": 370
+        "line": 335
       },
       {
         "name": "result",
         "type": "function",
-        "line": 397
+        "line": 367
       },
       {
         "name": "result",
         "type": "function",
-        "line": 422
+        "line": 394
       },
       {
         "name": "result",
         "type": "function",
-        "line": 442
+        "line": 421
       },
       {
         "name": "result",
         "type": "function",
-        "line": 468
+        "line": 446
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 466
       },
       {
         "name": "result",
@@ -1198,47 +1203,42 @@
       {
         "name": "result",
         "type": "function",
-        "line": 542
+        "line": 540
       },
       {
         "name": "result",
         "type": "function",
-        "line": 561
+        "line": 566
       },
       {
         "name": "result",
         "type": "function",
-        "line": 577
+        "line": 585
       },
       {
         "name": "result",
         "type": "function",
-        "line": 588
+        "line": 601
       },
       {
         "name": "result",
         "type": "function",
-        "line": 602
+        "line": 612
       },
       {
         "name": "result",
         "type": "function",
-        "line": 623
+        "line": 626
       },
       {
         "name": "result",
         "type": "function",
-        "line": 643
+        "line": 647
       },
       {
         "name": "result",
         "type": "function",
-        "line": 657
-      },
-      {
-        "name": "result",
-        "type": "function",
-        "line": 668
+        "line": 667
       },
       {
         "name": "result",
@@ -1258,107 +1258,112 @@
       {
         "name": "result",
         "type": "function",
-        "line": 722
+        "line": 716
       },
       {
         "name": "result",
         "type": "function",
-        "line": 739
+        "line": 729
       },
       {
         "name": "result",
         "type": "function",
-        "line": 757
+        "line": 746
       },
       {
         "name": "result",
         "type": "function",
-        "line": 876
+        "line": 763
       },
       {
         "name": "result",
         "type": "function",
-        "line": 895
+        "line": 781
       },
       {
         "name": "result",
         "type": "function",
-        "line": 924
+        "line": 900
       },
       {
         "name": "result",
         "type": "function",
-        "line": 979
+        "line": 919
       },
       {
         "name": "result",
         "type": "function",
-        "line": 997
+        "line": 948
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1003
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1021
       },
       {
         "name": "top",
         "type": "function",
-        "line": 1055
+        "line": 1079
       },
       {
         "name": "scores",
         "type": "function",
-        "line": 1084
+        "line": 1108
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1111
+        "line": 1135
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1118
+        "line": 1142
       },
       {
         "name": "programs",
         "type": "function",
-        "line": 1124
+        "line": 1148
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1178
+        "line": 1202
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1193
+        "line": 1217
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1328
+        "line": 1352
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1345
+        "line": 1369
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1359
+        "line": 1383
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1375
+        "line": 1399
       },
       {
         "name": "result",
         "type": "function",
-        "line": 1406
-      },
-      {
-        "name": "result",
-        "type": "function",
-        "line": 1434
+        "line": 1430
       },
       {
         "name": "result",
@@ -1368,7 +1373,12 @@
       {
         "name": "result",
         "type": "function",
-        "line": 1478
+        "line": 1482
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1502
       }
     ],
     "apps/api/src/mcp-server.ts": [
@@ -7998,22 +8008,22 @@
       {
         "name": "consumeFreeCall",
         "type": "function",
-        "line": 149
+        "line": 147
       },
       {
         "name": "applyReferralDiscount",
         "type": "function",
-        "line": 156
+        "line": 154
       },
       {
         "name": "buildIncentivesSummary",
         "type": "function",
-        "line": 189
+        "line": 187
       },
       {
         "name": "base",
         "type": "const",
-        "line": 190
+        "line": 188
       }
     ],
     "packages/snapshots/src/search-store.ts": [
