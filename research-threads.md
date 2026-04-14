@@ -41,7 +41,7 @@ Investigation areas:
 
 - What is the baseline performance metric for axis-toolbox?
 - Are there obvious bottlenecks in the critical path?
-- Which of the 428 routes are most latency-sensitive?
+- Which of the 429 routes are most latency-sensitive?
 - What caching strategies would have the highest impact?
 
 ### Thread 5: Test Coverage
@@ -57,7 +57,7 @@ Open questions:
 
 ### Domain Model Complexity
 
-The project defines **151 domain models**. High field-count models may need documentation or decomposition:
+The project defines **152 domain models**. High field-count models may need documentation or decomposition:
 
 - **`ProgramDoc`** — interface, 13 fields (`apps/web/src/pages/DocsPage.tsx`)
 - **`ParseResult`** — interface, 13 fields (`packages/repo-parser/src/types.ts`)
@@ -82,7 +82,7 @@ Questions to answer:
 
 Entry points to investigate for complexity and coupling:
 
-- **`apps/api/src/server.ts`** — 321 lines, exports: export const app = ...
+- **`apps/api/src/server.ts`** — 322 lines, exports: export const app = ...
 - **`apps/web/src/App.tsx`** — 326 lines, exports: export function App() { ... }
 - **`apps/web/src/main.tsx`** — 11 lines, exports: default
 - **`packages/context-engine/src/index.ts`** — 3 lines, exports: export type { ... }, export { ... }

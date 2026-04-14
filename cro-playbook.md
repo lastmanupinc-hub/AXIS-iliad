@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 ## Detected Stack
 
@@ -347,6 +347,7 @@ Detected routes that are candidates for conversion optimization:
 | `/v1/github/analyze` | POST | Track API adoption rate per endpoint |
 | `/.well-known/axis.json` | GET | Monitor usage metrics |
 | `/.well-known/capabilities.json` | GET | Monitor usage metrics |
+| `/.well-known/mcp.json` | GET | Monitor usage metrics |
 | `/robots.txt` | GET | Monitor usage metrics |
 | `/llms.txt` | GET | Monitor usage metrics |
 | `/.well-known/skills/index.json` | GET | Monitor usage metrics |
@@ -496,7 +497,7 @@ Detected routes that are candidates for conversion optimization:
 
 - **Hypothesis**: A guided first-run wizard will increase first-value moment by 35%
 - **Metric**: Features used in first session, time to first successful output
-- **Context**: 428 API endpoints — users need a path through the complexity
+- **Context**: 429 API endpoints — users need a path through the complexity
 - **Variants**: A: Self-discovery | B: Step-by-step first-run guide with progress indicator
 - **Duration**: 3 weeks
 

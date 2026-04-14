@@ -1,7 +1,7 @@
 // InstallPage — one-click MCP install configs for every platform
 import { useState } from "react";
 
-const API_BASE = "https://axis-api-6c7z.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://axis-api-6c7z.onrender.com";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);

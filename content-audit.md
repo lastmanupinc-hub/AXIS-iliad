@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 ## Detected Stack
 
@@ -20,7 +20,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | Primary Language | TypeScript |
 | Frameworks | React |
 | Total Files | 500 |
-| Total LOC | 114151 |
+| Total LOC | 114224 |
 
 ## SEO Readiness Score
 
@@ -48,7 +48,7 @@ These files likely render as individual pages:
 
 | File | Language | LOC | SEO Action |
 |------|----------|-----|------------|
-| `apps/web/src/pages/AccountPage.tsx` | TypeScript | 542 | Needs meta tags |
+| `apps/web/src/pages/AccountPage.tsx` | TypeScript | 591 | Needs meta tags |
 | `apps/web/src/pages/DashboardPage.tsx` | TypeScript | 160 | Needs meta tags |
 | `apps/web/src/pages/DocsPage.tsx` | TypeScript | 1248 | Needs meta tags |
 | `apps/web/src/pages/ExamplesPage.tsx` | TypeScript | 479 | Needs meta tags |
@@ -81,7 +81,7 @@ These files likely render as individual pages:
 - `ab-test-plan.md` (91 lines)
 - `agent-purchasing-playbook.md` (443 lines)
 - `AGENTS.md` (333 lines)
-- `apps/web/index.html` (124 lines)
+- `apps/web/index.html` (128 lines)
 - `architecture-summary.md` (1602 lines)
 - `artifact-spec.md` (136 lines)
 - `asset-checklist.md` (50 lines)
@@ -95,7 +95,7 @@ These files likely render as individual pages:
 
 | Component | Has Meta | Lines |
 |-----------|----------|-------|
-| `apps/web/src/pages/AccountPage.tsx` | **Missing** | 573 |
+| `apps/web/src/pages/AccountPage.tsx` | **Missing** | 623 |
 | `apps/web/src/pages/DashboardPage.tsx` | **Missing** | 180 |
 | `apps/web/src/pages/DocsPage.tsx` | **Missing** | 1292 |
 | `apps/web/src/pages/ExamplesPage.tsx` | Yes | 505 |

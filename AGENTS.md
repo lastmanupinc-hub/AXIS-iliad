@@ -73,6 +73,7 @@ AI-native development operating system. Upload or point at any codebase — get 
 - `POST /v1/github/analyze` → apps/api/src/server.ts
 - `GET /.well-known/axis.json` → apps/api/src/server.ts
 - `GET /.well-known/capabilities.json` → apps/api/src/server.ts
+- `GET /.well-known/mcp.json` → apps/api/src/server.ts
 - `GET /robots.txt` → apps/api/src/server.ts
 - `GET /llms.txt` → apps/api/src/server.ts
 - `GET /.well-known/skills/index.json` → apps/api/src/server.ts
@@ -81,8 +82,7 @@ AI-native development operating system. Upload or point at any codebase — get 
 - `POST /probe-intent` → apps/api/src/server.ts
 - `GET /v1/install` → apps/api/src/server.ts
 - `GET /v1/install/:platform` → apps/api/src/server.ts
-- `POST /v1/search/index` → apps/api/src/server.ts
-- *… 53 more (see OpenAPI spec or `/v1/docs`)*
+- *… 54 more (see OpenAPI spec or `/v1/docs`)*
 
 ### Domain Models
 
@@ -108,7 +108,7 @@ AI-native development operating system. Upload or point at any codebase — get 
 | `WindowEntry` | interface | 2 | apps/api/src/rate-limiter.ts |
 | `AppHandle` | interface | 3 | apps/api/src/router.ts |
 | `Route` | interface | 4 | apps/api/src/router.ts |
-| *… 131 more* | | | |
+| *… 132 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 

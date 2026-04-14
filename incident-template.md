@@ -80,6 +80,7 @@
 - [ ] `Account` (interface, 5 fields) — apps/web/src/api.ts
 - [ ] `ApiKeyInfo` (interface, 5 fields) — apps/web/src/api.ts
 - [ ] `ContextMap` (interface, 8 fields) — apps/web/src/api.ts
+- [ ] `CreditsInfo` (interface, 7 fields) — apps/web/src/api.ts
 - [ ] `GeneratedFile` (interface, 5 fields) — apps/web/src/api.ts
 - [ ] `GeneratedFilesResponse` (interface, 6 fields) — apps/web/src/api.ts
 - [ ] `PlanDefinition` (interface, 6 fields) — apps/web/src/api.ts
@@ -260,7 +261,7 @@ export interface SnapshotResponse {
   generated_files: Array<{ path: string; program: string; description: string }>;
 }
 
-... (446 more lines)
+... (461 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -350,7 +351,7 @@ import {
   handleNotebookGenerate,
   handleObsidianAnalyze,
   handleMcpProvision,
-... (301 more lines)
+... (302 more lines)
 ```
 
 ### `apps/web/src/App.tsx`

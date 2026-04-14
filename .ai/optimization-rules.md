@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 114,151 |
+| Total LOC | 114,224 |
 | Average LOC / file | 228 |
-| Estimated token count | ~513,680 |
+| Estimated token count | ~514,008 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -206,7 +206,7 @@ apps/api/src/logger.test.ts (3.5 KB)
 apps/api/src/logger.ts (2.9 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (55.4 KB)
-apps/api/src/mcp-server.ts (82.3 KB)
+apps/api/src/mcp-server.ts (82.6 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.4 KB)
@@ -258,11 +258,11 @@ apps/cli/src/runner.ts (11.2 KB)
 apps/cli/src/scanner.ts (4.3 KB)
 apps/cli/src/writer.ts (0.9 KB)
 apps/cli/tsconfig.json (0.4 KB)
-apps/web/index.html (6.6 KB)
+apps/web/index.html (6.9 KB)
 apps/web/package.json (0.5 KB)
 apps/web/public/robots.txt (0.8 KB)
 apps/web/src/api.test.ts (23.7 KB)
-apps/web/src/api.ts (15.5 KB)
+apps/web/src/api.ts (16.1 KB)
 apps/web/src/App.tsx (16.1 KB)
 apps/web/src/components/AxisIcons.tsx (8.9 KB)
 apps/web/src/components/CommandPalette.tsx (6.6 KB)
@@ -277,13 +277,13 @@ apps/web/src/components/StatusBar.tsx (2.3 KB)
 apps/web/src/components/Toast.tsx (3.8 KB)
 apps/web/src/index.css (18.5 KB)
 apps/web/src/main.tsx (0.2 KB)
-apps/web/src/pages/AccountPage.tsx (21.6 KB)
+apps/web/src/pages/AccountPage.tsx (23.8 KB)
 apps/web/src/pages/DashboardPage.tsx (7.5 KB)
 apps/web/src/pages/DocsPage.tsx (71.2 KB)
 apps/web/src/pages/ExamplesPage.tsx (24.1 KB)
-apps/web/src/pages/ForAgentsPage.tsx (49.7 KB)
+apps/web/src/pages/ForAgentsPage.tsx (49.8 KB)
 apps/web/src/pages/HelpPage.tsx (41.9 KB)
-apps/web/src/pages/InstallPage.tsx (8.3 KB)
+apps/web/src/pages/InstallPage.tsx (8.4 KB)
 apps/web/src/pages/PlansPage.tsx (9.3 KB)
 apps/web/src/pages/ProgramsPage.tsx (13.9 KB)
 apps/web/src/pages/QAPage.tsx (23.7 KB)
@@ -690,7 +690,7 @@ export interface SnapshotResponse {
   generated_files: Array<{ path: string; program: string; description: string }>;
 }
 
-... (446 more lines)
+... (461 more lines)
 ```
 
 ### `apps/web/src/App.tsx`

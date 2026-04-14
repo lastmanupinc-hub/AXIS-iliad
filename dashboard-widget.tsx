@@ -60,12 +60,12 @@ export default DashboardWidget;
 // apps/web/src/components/AxisIcons.tsx | 3 in | 0 out | risk 0.15
 // apps/web/src/upload-utils.ts | 3 in | 0 out | risk 0.15
 
-// ─── API Surface: 428 routes ───
-// GET: 229 endpoints
+// ─── API Surface: 429 routes ───
+// GET: 230 endpoints
 // POST: 179 endpoints
 // DELETE: 20 endpoints
 
-// ─── Domain Models: 151 entities ───
+// ─── Domain Models: 152 entities ───
 // AuthContext (interface, 3 fields) — apps/api/src/billing.ts
 // EnvSpec (interface, 5 fields) — apps/api/src/env.ts
 // ValidationError (interface, 2 fields) — apps/api/src/env.ts

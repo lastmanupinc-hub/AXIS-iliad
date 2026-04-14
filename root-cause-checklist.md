@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-toolbox
 
-> monorepo | TypeScript | 500 files | 114,151 LOC
+> monorepo | TypeScript | 500 files | 114,224 LOC
 
 **Stack:** React ^19.1.0
 
@@ -82,6 +82,7 @@ Check these entities for state corruption or relationship violations:
 - [ ] `Account` (interface, 5 fields) — `apps/web/src/api.ts`
 - [ ] `ApiKeyInfo` (interface, 5 fields) — `apps/web/src/api.ts`
 - [ ] `ContextMap` (interface, 8 fields) — `apps/web/src/api.ts`
+- [ ] `CreditsInfo` (interface, 7 fields) — `apps/web/src/api.ts`
 - [ ] `GeneratedFile` (interface, 5 fields) — `apps/web/src/api.ts`
 - [ ] `GeneratedFilesResponse` (interface, 6 fields) — `apps/web/src/api.ts`
 - [ ] `PlanDefinition` (interface, 6 fields) — `apps/web/src/api.ts`
@@ -264,7 +265,7 @@ import {
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
   handleAgenticPurchasingGenerate,
-... (296 more lines)
+... (297 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -367,7 +368,7 @@ export interface SnapshotResponse {
   generated_files: Array<{ path: string; program: string; description: string }>;
 }
 
-... (446 more lines)
+... (461 more lines)
 ```
 
 ### `apps/web/src/App.tsx`

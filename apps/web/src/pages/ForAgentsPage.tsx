@@ -1,7 +1,7 @@
 ﻿// ForAgentsPage â€” discovery landing for AI agents and API-first integrations
 import { useState } from "react";
 
-const API_BASE = "https://axis-api-6c7z.onrender.com";
+const API_BASE = import.meta.env.VITE_API_URL || "https://axis-api-6c7z.onrender.com";
 
 // â”€â”€â”€ Copy button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

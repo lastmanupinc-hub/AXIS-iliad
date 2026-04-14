@@ -1,7 +1,7 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T02:57:57.863Z",
-  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.",
+  "generated_at": "2026-04-14T03:15:00.647Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -9,8 +9,8 @@
       "confidence": 0.95
     }
   ],
-  "total_nodes": 165,
-  "total_edges": 164,
+  "total_nodes": 166,
+  "total_edges": 165,
   "nodes": [
     {
       "id": "project",
@@ -249,110 +249,110 @@
     {
       "id": "model_28",
       "type": "domain_model",
+      "label": "CreditsInfo",
+      "note_path": "Projects/axis-toolbox/Models/CreditsInfo.md"
+    },
+    {
+      "id": "model_29",
+      "type": "domain_model",
       "label": "GeneratedFile",
       "note_path": "Projects/axis-toolbox/Models/GeneratedFile.md"
     },
     {
-      "id": "model_29",
+      "id": "model_30",
       "type": "domain_model",
       "label": "GeneratedFilesResponse",
       "note_path": "Projects/axis-toolbox/Models/GeneratedFilesResponse.md"
     },
     {
-      "id": "model_30",
+      "id": "model_31",
       "type": "domain_model",
       "label": "PlanDefinition",
       "note_path": "Projects/axis-toolbox/Models/PlanDefinition.md"
     },
     {
-      "id": "model_31",
+      "id": "model_32",
       "type": "domain_model",
       "label": "PlanFeature",
       "note_path": "Projects/axis-toolbox/Models/PlanFeature.md"
     },
     {
-      "id": "model_32",
+      "id": "model_33",
       "type": "domain_model",
       "label": "RepoProfile",
       "note_path": "Projects/axis-toolbox/Models/RepoProfile.md"
     },
     {
-      "id": "model_33",
+      "id": "model_34",
       "type": "domain_model",
       "label": "SearchResponse",
       "note_path": "Projects/axis-toolbox/Models/SearchResponse.md"
     },
     {
-      "id": "model_34",
+      "id": "model_35",
       "type": "domain_model",
       "label": "SearchResult",
       "note_path": "Projects/axis-toolbox/Models/SearchResult.md"
     },
     {
-      "id": "model_35",
+      "id": "model_36",
       "type": "domain_model",
       "label": "Seat",
       "note_path": "Projects/axis-toolbox/Models/Seat.md"
     },
     {
-      "id": "model_36",
+      "id": "model_37",
       "type": "domain_model",
       "label": "SnapshotPayload",
       "note_path": "Projects/axis-toolbox/Models/SnapshotPayload.md"
     },
     {
-      "id": "model_37",
+      "id": "model_38",
       "type": "domain_model",
       "label": "SnapshotResponse",
       "note_path": "Projects/axis-toolbox/Models/SnapshotResponse.md"
     },
     {
-      "id": "model_38",
+      "id": "model_39",
       "type": "domain_model",
       "label": "SubscriptionInfo",
       "note_path": "Projects/axis-toolbox/Models/SubscriptionInfo.md"
     },
     {
-      "id": "model_39",
+      "id": "model_40",
       "type": "domain_model",
       "label": "SymbolResult",
       "note_path": "Projects/axis-toolbox/Models/SymbolResult.md"
     },
     {
-      "id": "model_40",
+      "id": "model_41",
       "type": "domain_model",
       "label": "SymbolsResponse",
       "note_path": "Projects/axis-toolbox/Models/SymbolsResponse.md"
     },
     {
-      "id": "model_41",
+      "id": "model_42",
       "type": "domain_model",
       "label": "UpgradePrompt",
       "note_path": "Projects/axis-toolbox/Models/UpgradePrompt.md"
     },
     {
-      "id": "model_42",
+      "id": "model_43",
       "type": "domain_model",
       "label": "UsageSummary",
       "note_path": "Projects/axis-toolbox/Models/UsageSummary.md"
     },
     {
-      "id": "model_43",
+      "id": "model_44",
       "type": "domain_model",
       "label": "IconProps",
       "note_path": "Projects/axis-toolbox/Models/IconProps.md"
     },
     {
-      "id": "model_44",
+      "id": "model_45",
       "type": "domain_model",
       "label": "PaletteAction",
       "note_path": "Projects/axis-toolbox/Models/PaletteAction.md"
-    },
-    {
-      "id": "model_45",
-      "type": "domain_model",
-      "label": "Props",
-      "note_path": "Projects/axis-toolbox/Models/Props.md"
     },
     {
       "id": "model_46",
@@ -381,14 +381,14 @@
     {
       "id": "model_50",
       "type": "domain_model",
-      "label": "ProgramDef",
-      "note_path": "Projects/axis-toolbox/Models/ProgramDef.md"
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
     },
     {
       "id": "model_51",
       "type": "domain_model",
-      "label": "Props",
-      "note_path": "Projects/axis-toolbox/Models/Props.md"
+      "label": "ProgramDef",
+      "note_path": "Projects/axis-toolbox/Models/ProgramDef.md"
     },
     {
       "id": "model_52",
@@ -411,575 +411,581 @@
     {
       "id": "model_55",
       "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_56",
+      "type": "domain_model",
       "label": "Toast",
       "note_path": "Projects/axis-toolbox/Models/Toast.md"
     },
     {
-      "id": "model_56",
+      "id": "model_57",
       "type": "domain_model",
       "label": "ToastContextValue",
       "note_path": "Projects/axis-toolbox/Models/ToastContextValue.md"
     },
     {
-      "id": "model_57",
+      "id": "model_58",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-toolbox/Models/Props.md"
     },
     {
-      "id": "model_58",
+      "id": "model_59",
       "type": "domain_model",
       "label": "ProgramDoc",
       "note_path": "Projects/axis-toolbox/Models/ProgramDoc.md"
     },
     {
-      "id": "model_59",
+      "id": "model_60",
       "type": "domain_model",
       "label": "Example",
       "note_path": "Projects/axis-toolbox/Models/Example.md"
     },
     {
-      "id": "model_60",
+      "id": "model_61",
       "type": "domain_model",
       "label": "Step",
       "note_path": "Projects/axis-toolbox/Models/Step.md"
     },
     {
-      "id": "model_61",
+      "id": "model_62",
       "type": "domain_model",
       "label": "TroubleshootItem",
       "note_path": "Projects/axis-toolbox/Models/TroubleshootItem.md"
     },
     {
-      "id": "model_62",
+      "id": "model_63",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-toolbox/Models/Props.md"
     },
     {
-      "id": "model_63",
+      "id": "model_64",
       "type": "domain_model",
       "label": "ProgramDef",
       "note_path": "Projects/axis-toolbox/Models/ProgramDef.md"
     },
     {
-      "id": "model_64",
+      "id": "model_65",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-toolbox/Models/Props.md"
     },
     {
-      "id": "model_65",
+      "id": "model_66",
       "type": "domain_model",
       "label": "QAItem",
       "note_path": "Projects/axis-toolbox/Models/QAItem.md"
     },
     {
-      "id": "model_66",
+      "id": "model_67",
       "type": "domain_model",
       "label": "Section",
       "note_path": "Projects/axis-toolbox/Models/Section.md"
     },
     {
-      "id": "model_67",
+      "id": "model_68",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-toolbox/Models/Props.md"
     },
     {
-      "id": "model_68",
+      "id": "model_69",
       "type": "domain_model",
       "label": "ImportMeta",
       "note_path": "Projects/axis-toolbox/Models/ImportMeta.md"
     },
     {
-      "id": "model_69",
+      "id": "model_70",
       "type": "domain_model",
       "label": "ImportMetaEnv",
       "note_path": "Projects/axis-toolbox/Models/ImportMetaEnv.md"
     },
     {
-      "id": "model_70",
+      "id": "model_71",
       "type": "domain_model",
       "label": "DashboardData",
       "note_path": "Projects/axis-toolbox/Models/DashboardData.md"
     },
     {
-      "id": "model_71",
+      "id": "model_72",
       "type": "domain_model",
       "label": "axistoolboxProps",
       "note_path": "Projects/axis-toolbox/Models/axistoolboxProps.md"
     },
     {
-      "id": "model_72",
+      "id": "model_73",
       "type": "domain_model",
       "label": "PaletteAction",
       "note_path": "Projects/axis-toolbox/Models/PaletteAction.md"
     },
     {
-      "id": "model_73",
+      "id": "model_74",
       "type": "domain_model",
       "label": "Edge",
       "note_path": "Projects/axis-toolbox/Models/Edge.md"
     },
     {
-      "id": "model_74",
+      "id": "model_75",
       "type": "domain_model",
       "label": "Node",
       "note_path": "Projects/axis-toolbox/Models/Node.md"
     },
     {
-      "id": "model_75",
+      "id": "model_76",
       "type": "domain_model",
       "label": "ContextMap",
       "note_path": "Projects/axis-toolbox/Models/ContextMap.md"
     },
     {
-      "id": "model_76",
+      "id": "model_77",
       "type": "domain_model",
       "label": "RepoProfile",
       "note_path": "Projects/axis-toolbox/Models/RepoProfile.md"
     },
     {
-      "id": "model_77",
+      "id": "model_78",
       "type": "domain_model",
       "label": "CommerceSignals",
       "note_path": "Projects/axis-toolbox/Models/CommerceSignals.md"
     },
     {
-      "id": "model_78",
+      "id": "model_79",
       "type": "domain_model",
       "label": "Edge",
       "note_path": "Projects/axis-toolbox/Models/Edge.md"
     },
     {
-      "id": "model_79",
+      "id": "model_80",
       "type": "domain_model",
       "label": "Node",
       "note_path": "Projects/axis-toolbox/Models/Node.md"
     },
     {
-      "id": "model_80",
+      "id": "model_81",
       "type": "domain_model",
       "label": "DashboardData",
       "note_path": "Projects/axis-toolbox/Models/DashboardData.md"
     },
     {
-      "id": "model_81",
+      "id": "model_82",
       "type": "domain_model",
       "label": "MyComponentProps",
       "note_path": "Projects/axis-toolbox/Models/MyComponentProps.md"
     },
     {
-      "id": "model_82",
+      "id": "model_83",
       "type": "domain_model",
       "label": "RemotionTheme",
       "note_path": "Projects/axis-toolbox/Models/RemotionTheme.md"
     },
     {
-      "id": "model_83",
+      "id": "model_84",
       "type": "domain_model",
       "label": "GeneratedFile",
       "note_path": "Projects/axis-toolbox/Models/GeneratedFile.md"
     },
     {
-      "id": "model_84",
+      "id": "model_85",
       "type": "domain_model",
       "label": "GeneratorInput",
       "note_path": "Projects/axis-toolbox/Models/GeneratorInput.md"
     },
     {
-      "id": "model_85",
+      "id": "model_86",
       "type": "domain_model",
       "label": "GeneratorResult",
       "note_path": "Projects/axis-toolbox/Models/GeneratorResult.md"
     },
     {
-      "id": "model_86",
+      "id": "model_87",
       "type": "domain_model",
       "label": "SourceFile",
       "note_path": "Projects/axis-toolbox/Models/SourceFile.md"
     },
     {
-      "id": "model_87",
+      "id": "model_88",
       "type": "domain_model",
       "label": "DomainModel",
       "note_path": "Projects/axis-toolbox/Models/DomainModel.md"
     },
     {
-      "id": "model_88",
+      "id": "model_89",
       "type": "domain_model",
       "label": "FrameworkRule",
       "note_path": "Projects/axis-toolbox/Models/FrameworkRule.md"
     },
     {
-      "id": "model_89",
+      "id": "model_90",
       "type": "domain_model",
       "label": "DepGroups",
       "note_path": "Projects/axis-toolbox/Models/DepGroups.md"
     },
     {
-      "id": "model_90",
+      "id": "model_91",
       "type": "domain_model",
       "label": "CreateUserRequest",
       "note_path": "Projects/axis-toolbox/Models/CreateUserRequest.md"
     },
     {
-      "id": "model_91",
+      "id": "model_92",
       "type": "domain_model",
       "label": "SQLTable",
       "note_path": "Projects/axis-toolbox/Models/SQLTable.md"
     },
     {
-      "id": "model_92",
+      "id": "model_93",
       "type": "domain_model",
       "label": "DependencyInfo",
       "note_path": "Projects/axis-toolbox/Models/DependencyInfo.md"
     },
     {
-      "id": "model_93",
+      "id": "model_94",
       "type": "domain_model",
       "label": "FileAnnotation",
       "note_path": "Projects/axis-toolbox/Models/FileAnnotation.md"
     },
     {
-      "id": "model_94",
+      "id": "model_95",
       "type": "domain_model",
       "label": "FrameworkDetection",
       "note_path": "Projects/axis-toolbox/Models/FrameworkDetection.md"
     },
     {
-      "id": "model_95",
+      "id": "model_96",
       "type": "domain_model",
       "label": "ImportEdge",
       "note_path": "Projects/axis-toolbox/Models/ImportEdge.md"
     },
     {
-      "id": "model_96",
+      "id": "model_97",
       "type": "domain_model",
       "label": "LanguageStats",
       "note_path": "Projects/axis-toolbox/Models/LanguageStats.md"
     },
     {
-      "id": "model_97",
+      "id": "model_98",
       "type": "domain_model",
       "label": "ParseResult",
       "note_path": "Projects/axis-toolbox/Models/ParseResult.md"
     },
     {
-      "id": "model_98",
+      "id": "model_99",
       "type": "domain_model",
       "label": "AccountSummary",
       "note_path": "Projects/axis-toolbox/Models/AccountSummary.md"
     },
     {
-      "id": "model_99",
+      "id": "model_100",
       "type": "domain_model",
       "label": "QuotaCheck",
       "note_path": "Projects/axis-toolbox/Models/QuotaCheck.md"
     },
     {
-      "id": "model_100",
+      "id": "model_101",
       "type": "domain_model",
       "label": "RecentActivity",
       "note_path": "Projects/axis-toolbox/Models/RecentActivity.md"
     },
     {
-      "id": "model_101",
+      "id": "model_102",
       "type": "domain_model",
       "label": "SystemStats",
       "note_path": "Projects/axis-toolbox/Models/SystemStats.md"
     },
     {
-      "id": "model_102",
+      "id": "model_103",
       "type": "domain_model",
       "label": "Account",
       "note_path": "Projects/axis-toolbox/Models/Account.md"
     },
     {
-      "id": "model_103",
+      "id": "model_104",
       "type": "domain_model",
       "label": "ApiKey",
       "note_path": "Projects/axis-toolbox/Models/ApiKey.md"
     },
     {
-      "id": "model_104",
+      "id": "model_105",
       "type": "domain_model",
       "label": "PersistenceCreditRecord",
       "note_path": "Projects/axis-toolbox/Models/PersistenceCreditRecord.md"
     },
     {
-      "id": "model_105",
+      "id": "model_106",
       "type": "domain_model",
       "label": "ProgramEntitlement",
       "note_path": "Projects/axis-toolbox/Models/ProgramEntitlement.md"
     },
     {
-      "id": "model_106",
+      "id": "model_107",
       "type": "domain_model",
       "label": "TierLimits",
       "note_path": "Projects/axis-toolbox/Models/TierLimits.md"
     },
     {
-      "id": "model_107",
+      "id": "model_108",
       "type": "domain_model",
       "label": "UsageRecord",
       "note_path": "Projects/axis-toolbox/Models/UsageRecord.md"
     },
     {
-      "id": "model_108",
+      "id": "model_109",
       "type": "domain_model",
       "label": "UsageSummary",
       "note_path": "Projects/axis-toolbox/Models/UsageSummary.md"
     },
     {
-      "id": "model_109",
+      "id": "model_110",
       "type": "domain_model",
       "label": "DbMaintenanceResult",
       "note_path": "Projects/axis-toolbox/Models/DbMaintenanceResult.md"
     },
     {
-      "id": "model_110",
+      "id": "model_111",
       "type": "domain_model",
       "label": "Migration",
       "note_path": "Projects/axis-toolbox/Models/Migration.md"
     },
     {
-      "id": "model_111",
+      "id": "model_112",
       "type": "domain_model",
       "label": "EmailDelivery",
       "note_path": "Projects/axis-toolbox/Models/EmailDelivery.md"
     },
     {
-      "id": "model_112",
+      "id": "model_113",
       "type": "domain_model",
       "label": "EmailMessage",
       "note_path": "Projects/axis-toolbox/Models/EmailMessage.md"
     },
     {
-      "id": "model_113",
+      "id": "model_114",
       "type": "domain_model",
       "label": "FunnelMetrics",
       "note_path": "Projects/axis-toolbox/Models/FunnelMetrics.md"
     },
     {
-      "id": "model_114",
+      "id": "model_115",
       "type": "domain_model",
       "label": "FunnelEvent",
       "note_path": "Projects/axis-toolbox/Models/FunnelEvent.md"
     },
     {
-      "id": "model_115",
+      "id": "model_116",
       "type": "domain_model",
       "label": "PlanDefinition",
       "note_path": "Projects/axis-toolbox/Models/PlanDefinition.md"
     },
     {
-      "id": "model_116",
+      "id": "model_117",
       "type": "domain_model",
       "label": "PlanFeature",
       "note_path": "Projects/axis-toolbox/Models/PlanFeature.md"
     },
     {
-      "id": "model_117",
+      "id": "model_118",
       "type": "domain_model",
       "label": "Seat",
       "note_path": "Projects/axis-toolbox/Models/Seat.md"
     },
     {
-      "id": "model_118",
+      "id": "model_119",
       "type": "domain_model",
       "label": "UpgradePrompt",
       "note_path": "Projects/axis-toolbox/Models/UpgradePrompt.md"
     },
     {
-      "id": "model_119",
+      "id": "model_120",
       "type": "domain_model",
       "label": "GitHubToken",
       "note_path": "Projects/axis-toolbox/Models/GitHubToken.md"
     },
     {
-      "id": "model_120",
+      "id": "model_121",
       "type": "domain_model",
       "label": "GitHubFetchResult",
       "note_path": "Projects/axis-toolbox/Models/GitHubFetchResult.md"
     },
     {
-      "id": "model_121",
+      "id": "model_122",
       "type": "domain_model",
       "label": "ParsedGitHubUrl",
       "note_path": "Projects/axis-toolbox/Models/ParsedGitHubUrl.md"
     },
     {
-      "id": "model_122",
+      "id": "model_123",
       "type": "domain_model",
       "label": "TarParseResult",
       "note_path": "Projects/axis-toolbox/Models/TarParseResult.md"
     },
     {
-      "id": "model_123",
+      "id": "model_124",
       "type": "domain_model",
       "label": "GitHubTokenResponse",
       "note_path": "Projects/axis-toolbox/Models/GitHubTokenResponse.md"
     },
     {
-      "id": "model_124",
+      "id": "model_125",
       "type": "domain_model",
       "label": "GitHubUser",
       "note_path": "Projects/axis-toolbox/Models/GitHubUser.md"
     },
     {
-      "id": "model_125",
+      "id": "model_126",
       "type": "domain_model",
       "label": "ReferralCode",
       "note_path": "Projects/axis-toolbox/Models/ReferralCode.md"
     },
     {
-      "id": "model_126",
+      "id": "model_127",
       "type": "domain_model",
       "label": "ReferralConversion",
       "note_path": "Projects/axis-toolbox/Models/ReferralConversion.md"
     },
     {
-      "id": "model_127",
+      "id": "model_128",
       "type": "domain_model",
       "label": "ReferralCredits",
       "note_path": "Projects/axis-toolbox/Models/ReferralCredits.md"
     },
     {
-      "id": "model_128",
+      "id": "model_129",
       "type": "domain_model",
       "label": "CodeSymbol",
       "note_path": "Projects/axis-toolbox/Models/CodeSymbol.md"
     },
     {
-      "id": "model_129",
+      "id": "model_130",
       "type": "domain_model",
       "label": "SearchIndexEntry",
       "note_path": "Projects/axis-toolbox/Models/SearchIndexEntry.md"
     },
     {
-      "id": "model_130",
+      "id": "model_131",
       "type": "domain_model",
       "label": "SearchResult",
       "note_path": "Projects/axis-toolbox/Models/SearchResult.md"
     },
     {
-      "id": "model_131",
+      "id": "model_132",
       "type": "domain_model",
       "label": "SymbolSearchResult",
       "note_path": "Projects/axis-toolbox/Models/SymbolSearchResult.md"
     },
     {
-      "id": "model_132",
+      "id": "model_133",
       "type": "domain_model",
       "label": "StripeSubscription",
       "note_path": "Projects/axis-toolbox/Models/StripeSubscription.md"
     },
     {
-      "id": "model_133",
+      "id": "model_134",
       "type": "domain_model",
       "label": "ProrationResult",
       "note_path": "Projects/axis-toolbox/Models/ProrationResult.md"
     },
     {
-      "id": "model_134",
+      "id": "model_135",
       "type": "domain_model",
       "label": "TierChange",
       "note_path": "Projects/axis-toolbox/Models/TierChange.md"
     },
     {
-      "id": "model_135",
+      "id": "model_136",
       "type": "domain_model",
       "label": "FileEntry",
       "note_path": "Projects/axis-toolbox/Models/FileEntry.md"
     },
     {
-      "id": "model_136",
+      "id": "model_137",
       "type": "domain_model",
       "label": "SnapshotInput",
       "note_path": "Projects/axis-toolbox/Models/SnapshotInput.md"
     },
     {
-      "id": "model_137",
+      "id": "model_138",
       "type": "domain_model",
       "label": "SnapshotManifest",
       "note_path": "Projects/axis-toolbox/Models/SnapshotManifest.md"
     },
     {
-      "id": "model_138",
+      "id": "model_139",
       "type": "domain_model",
       "label": "SnapshotRecord",
       "note_path": "Projects/axis-toolbox/Models/SnapshotRecord.md"
     },
     {
-      "id": "model_139",
+      "id": "model_140",
       "type": "domain_model",
       "label": "FileDiff",
       "note_path": "Projects/axis-toolbox/Models/FileDiff.md"
     },
     {
-      "id": "model_140",
+      "id": "model_141",
       "type": "domain_model",
       "label": "GenerationVersion",
       "note_path": "Projects/axis-toolbox/Models/GenerationVersion.md"
     },
     {
-      "id": "model_141",
+      "id": "model_142",
       "type": "domain_model",
       "label": "VersionDiff",
       "note_path": "Projects/axis-toolbox/Models/VersionDiff.md"
     },
     {
-      "id": "model_142",
+      "id": "model_143",
       "type": "domain_model",
       "label": "VersionFile",
       "note_path": "Projects/axis-toolbox/Models/VersionFile.md"
     },
     {
-      "id": "model_143",
+      "id": "model_144",
       "type": "domain_model",
       "label": "VersionRow",
       "note_path": "Projects/axis-toolbox/Models/VersionRow.md"
     },
     {
-      "id": "model_144",
+      "id": "model_145",
       "type": "domain_model",
       "label": "RetryCandidate",
       "note_path": "Projects/axis-toolbox/Models/RetryCandidate.md"
     },
     {
-      "id": "model_145",
+      "id": "model_146",
       "type": "domain_model",
       "label": "Webhook",
       "note_path": "Projects/axis-toolbox/Models/Webhook.md"
     },
     {
-      "id": "model_146",
+      "id": "model_147",
       "type": "domain_model",
       "label": "WebhookDelivery",
       "note_path": "Projects/axis-toolbox/Models/WebhookDelivery.md"
     },
     {
-      "id": "model_147",
+      "id": "model_148",
       "type": "domain_model",
       "label": "WebhookRow",
       "note_path": "Projects/axis-toolbox/Models/WebhookRow.md"
     },
     {
-      "id": "model_148",
+      "id": "model_149",
       "type": "domain_model",
       "label": "averypayplatformConfig",
       "note_path": "Projects/axis-toolbox/Models/averypayplatformConfig.md"
     },
     {
-      "id": "model_149",
+      "id": "model_150",
       "type": "domain_model",
       "label": "Edge",
       "note_path": "Projects/axis-toolbox/Models/Edge.md"
     },
     {
-      "id": "model_150",
+      "id": "model_151",
       "type": "domain_model",
       "label": "Node",
       "note_path": "Projects/axis-toolbox/Models/Node.md"
@@ -1807,6 +1813,11 @@
     {
       "from": "architecture",
       "to": "model_150",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_151",
       "relationship": "has_model"
     },
     {

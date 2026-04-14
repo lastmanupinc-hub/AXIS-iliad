@@ -25,6 +25,7 @@ import {
   createReferralCode,
   getReferralCredits,
   buildIncentivesSummary,
+  getPersistenceBalance,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -1649,7 +1650,14 @@ export async function dispatch(
           default:
             return rpcErr(id, RPC_INVALID_PARAMS, `Unknown tool: ${toolName}`);
         }
-        return rpcOk(id, toolOk(text));
+        return rpcOk(id, {
+          ...toolOk(text),
+          _usage: {
+            tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
+            credits_remaining: auth.account ? getPersistenceBalance(auth.account.account_id) : null,
+            tool: toolName,
+          },
+        });
       } catch (err) {
         return rpcOk(
           id,

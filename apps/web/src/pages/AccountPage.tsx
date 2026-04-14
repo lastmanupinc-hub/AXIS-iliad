@@ -6,6 +6,7 @@ import {
   listApiKeys,
   revokeApiKey,
   getUsage,
+  getCredits,
   createCheckout,
   getSubscription,
   cancelSubscription,
@@ -18,6 +19,7 @@ import {
   type BillingTier,
   type Seat,
   type SubscriptionInfo,
+  type CreditsInfo,
 } from "../api.ts";
 
 export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
@@ -26,6 +28,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [usage, setUsage] = useState<{ tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] } | null>(null);
   const [seats, setSeats] = useState<{ seats: Seat[]; count: number; limit: number; remaining: number } | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const [credits, setCredits] = useState<CreditsInfo | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,18 +65,20 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
       return;
     }
     try {
-      const [acct, keysData, usageData, seatsData, subData] = await Promise.all([
+      const [acct, keysData, usageData, seatsData, subData, creditsData] = await Promise.all([
         getAccount(),
         listApiKeys(),
         getUsage(),
         listSeats(),
         getSubscription().catch(() => null),
+        getCredits().catch(() => null),
       ]);
       setAccount(acct);
       setKeys(keysData.keys);
       setUsage(usageData);
       setSeats(seatsData);
       setSubscription(subData);
+      setCredits(creditsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load account");
     } finally {
@@ -131,6 +136,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     setKeys([]);
     setUsage(null);
     setRevealedKey(null);
+    setCredits(null);
     setLoading(false);
     onAuthChange?.();
   }
@@ -389,6 +395,50 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
             </div>
             <div className="stat-label">Files Generated</div>
           </div>
+        </div>
+      )}
+
+      {/* Credits Balance */}
+      {credits && (
+        <div className="card" style={{ marginTop: 0 }}>
+          <h3 style={{ marginBottom: 12 }}>Persistence Credits</h3>
+          <div className="grid grid-3">
+            <div style={{ textAlign: "center" }}>
+              <div className="stat-value">{credits.balance}</div>
+              <div className="stat-label">Credits Remaining</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div className="stat-value">{credits.ledger.length}</div>
+              <div className="stat-label">Transactions</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div className="stat-value" style={{ fontSize: "0.9rem" }}>{credits.tier}</div>
+              <div className="stat-label">Tier</div>
+            </div>
+          </div>
+          {credits.ledger.length > 0 && (
+            <details style={{ marginTop: 12 }}>
+              <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}>Recent transactions</summary>
+              <table style={{ marginTop: 8 }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th style={{ textAlign: "right" }}>Amount</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {credits.ledger.slice(0, 10).map((e) => (
+                    <tr key={e.entry_id}>
+                      <td style={{ fontSize: "0.8rem" }}>{new Date(e.created_at).toLocaleDateString()}</td>
+                      <td style={{ textAlign: "right", color: e.delta >= 0 ? "var(--success)" : "var(--danger)" }}>{e.delta >= 0 ? "+" : ""}{e.delta}</td>
+                      <td style={{ fontSize: "0.85rem" }}>{e.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
         </div>
       )}
 

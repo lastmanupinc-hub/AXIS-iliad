@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 ## Detected Stack
 
@@ -154,6 +154,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | `/v1/projects/:project_id/generated-files/:file_path*` | 0.5 | monthly | Yes | Standard page |
 | `/.well-known/axis.json` | 0.5 | monthly | Yes | Standard page |
 | `/.well-known/capabilities.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/mcp.json` | 0.5 | monthly | Yes | Standard page |
 | `/robots.txt` | 0.5 | monthly | Yes | Standard page |
 | `/llms.txt` | 0.5 | monthly | Yes | Standard page |
 | `/.well-known/skills/index.json` | 0.5 | monthly | Yes | Standard page |
@@ -248,8 +249,8 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 
 ## Summary
 
-- **Total routes:** 229
-- **Indexable:** 167
+- **Total routes:** 230
+- **Indexable:** 168
 - **Noindex:** 62
 
 ## API Routes (Excluded)
@@ -539,7 +540,7 @@ Sitemap: https://yoursite.com/sitemap.xml
 |------|---------|-------|
 | `apps/api/src/handlers.ts` | export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze        = ..., export const handleFrontendAudit       = ..., export const handleSeoAnalyze          = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate       = ..., export const handleBrandGenerate       = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate   = ..., export const handleNotebookGenerate    = ..., export const handleObsidianAnalyze     = ..., export const handleMcpProvision        = ..., export const handleArtifactsGenerate   = ..., export const handleRemotionGenerate    = ..., export const handleCanvasGenerate      = ..., export const handleAlgorithmicGenerate = ..., export const handleAgenticPurchasingGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats(, export async function handleDbMaintenance(, export async function handleGetGeneratedFile(, export async function handleSearchExport(, export async function handleSkillsGenerate( | 2644 |
 | `apps/api/src/router.ts` | export class Router { ... }, export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }, export function sendError(, export async function readBody(req: IncomingMessage): Promise<string> { ... }, export interface AppHandle { ... }, export function isShuttingDown(): boolean { ... }, export function createApp(router: Router, port: number): Server { ... } | 320 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 573 |
+| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 623 |
 | `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 180 |
 | `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1292 |
 | `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 505 |

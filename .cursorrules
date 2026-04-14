@@ -45,7 +45,7 @@ ci = "github_actions"
 # WindowEntry (interface, 2 fields) @ apps/api/src/rate-limiter.ts
 # AppHandle (interface, 3 fields) @ apps/api/src/router.ts
 # Route (interface, 4 fields) @ apps/api/src/router.ts
-# ... and 131 more
+# ... and 132 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode

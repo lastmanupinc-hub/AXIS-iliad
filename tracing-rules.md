@@ -334,6 +334,7 @@ All API routes should log: request method, path, status code, duration (ms).
 | POST | `/v1/github/analyze` | apps/api/src/server.ts | NORMAL |
 | GET | `/.well-known/axis.json` | apps/api/src/server.ts | NORMAL |
 | GET | `/.well-known/capabilities.json` | apps/api/src/server.ts | NORMAL |
+| GET | `/.well-known/mcp.json` | apps/api/src/server.ts | NORMAL |
 | GET | `/robots.txt` | apps/api/src/server.ts | NORMAL |
 | GET | `/llms.txt` | apps/api/src/server.ts | NORMAL |
 | GET | `/.well-known/skills/index.json` | apps/api/src/server.ts | NORMAL |
@@ -477,6 +478,7 @@ State transitions on these entities should be logged:
 - `Account` (interface, 5 fields) — `apps/web/src/api.ts`
 - `ApiKeyInfo` (interface, 5 fields) — `apps/web/src/api.ts`
 - `ContextMap` (interface, 8 fields) — `apps/web/src/api.ts`
+- `CreditsInfo` (interface, 7 fields) — `apps/web/src/api.ts`
 - `GeneratedFile` (interface, 5 fields) — `apps/web/src/api.ts`
 - `GeneratedFilesResponse` (interface, 6 fields) — `apps/web/src/api.ts`
 - `PlanDefinition` (interface, 6 fields) — `apps/web/src/api.ts`
@@ -677,7 +679,7 @@ import {
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
   handleAgenticPurchasingGenerate,
-... (296 more lines)
+... (297 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -736,7 +738,7 @@ export interface SnapshotResponse {
   snapshot_id: string;
   project_id: string;
   status: string;
-... (451 more lines)
+... (466 more lines)
 ```
 
 ### `apps/web/src/App.tsx`

@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 ## Quick Reference
 
@@ -19,20 +19,20 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | pnpm |
-| Files | 500 files, 114,151 LOC |
+| Files | 500 files, 114,224 LOC |
 | Separation Score | 0.64/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 249 | 78,376 | 69.5% |
+| TypeScript | 249 | 78,445 | 69.5% |
 | JSON | 63 | 12,501 | 11.1% |
 | YAML | 68 | 10,876 | 9.6% |
 | Markdown | 107 | 9,249 | 8.2% |
 | CSS | 2 | 849 | 0.8% |
 | JavaScript | 3 | 673 | 0.6% |
-| HTML | 1 | 116 | 0.1% |
+| HTML | 1 | 120 | 0.1% |
 | Dockerfile | 1 | 49 | 0% |
 | PowerShell | 1 | 21 | 0% |
 | Shell | 1 | 14 | 0% |
@@ -124,6 +124,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Account | interface | TypeScript | 5 | `apps/web/src/api.ts` |
 | ApiKeyInfo | interface | TypeScript | 5 | `apps/web/src/api.ts` |
 | ContextMap | interface | TypeScript | 8 | `apps/web/src/api.ts` |
+| CreditsInfo | interface | TypeScript | 7 | `apps/web/src/api.ts` |
 | GeneratedFile | interface | TypeScript | 5 | `apps/web/src/api.ts` |
 | GeneratedFilesResponse | interface | TypeScript | 6 | `apps/web/src/api.ts` |
 | PlanDefinition | interface | TypeScript | 6 | `apps/web/src/api.ts` |
@@ -570,6 +571,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | POST | `/v1/github/analyze` | apps/api/src/server.ts |
 | GET | `/.well-known/axis.json` | apps/api/src/server.ts |
 | GET | `/.well-known/capabilities.json` | apps/api/src/server.ts |
+| GET | `/.well-known/mcp.json` | apps/api/src/server.ts |
 | GET | `/robots.txt` | apps/api/src/server.ts |
 | GET | `/llms.txt` | apps/api/src/server.ts |
 | GET | `/.well-known/skills/index.json` | apps/api/src/server.ts |
@@ -750,7 +752,7 @@ import {
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
   handleAgenticPurchasingGenerate,
-... (296 more lines)
+... (297 more lines)
 ```
 
 ### `apps/web/src/App.tsx`

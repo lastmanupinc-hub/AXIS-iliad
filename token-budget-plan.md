@@ -1,27 +1,27 @@
 # Token Budget Plan — axis-toolbox
 
-Generated: 2026-04-14T02:57:58.019Z
+Generated: 2026-04-14T03:15:00.798Z
 
 ## Project Token Profile
 
 | Metric | Value |
 |--------|-------|
-| Total LOC | 112,724 |
+| Total LOC | 112,797 |
 | Total Files | 496 |
-| Est. Total Tokens | 507,258 |
+| Est. Total Tokens | 507,587 |
 | Avg Tokens/File | 1,023 |
 
 ## Token Budget by Language
 
 | Language | LOC | Tokens | % of Budget |
 |----------|-----|--------|-------------|
-| TypeScript | 78,376 | 352,692 | 69.5% |
+| TypeScript | 78,445 | 353,003 | 69.5% |
 | JSON | 12,501 | 56,255 | 11.1% |
 | YAML | 10,876 | 48,942 | 9.6% |
 | Markdown | 9,249 | 41,621 | 8.2% |
 | CSS | 849 | 3,821 | 0.8% |
 | JavaScript | 673 | 3,029 | 0.6% |
-| HTML | 116 | 522 | 0.1% |
+| HTML | 120 | 540 | 0.1% |
 | Dockerfile | 49 | 221 | 0.0% |
 | PowerShell | 21 | 95 | 0.0% |
 | Shell | 14 | 63 | 0.0% |
@@ -59,15 +59,15 @@ Generated: 2026-04-14T02:57:58.019Z
 | Operation | Input | Output | Daily | Monthly Cost (GPT-4o) |
 |-----------|-------|--------|-------|----------------------|
 | Code review (1 file) | 1,500 | 500 | 10 | $1.93 |
-| API endpoint work (428 routes detected) | 8,000 | 2,000 | 5 | $4.40 |
-| Hotspot refactor (6 hotspots, avg 923 tok each) | 12,000 | 1,500 | 3 | $2.97 |
-| Domain model change (151 models) | 8,000 | 2,500 | 2 | $1.98 |
-| Documentation | 25,363 | 1,500 | 2 | $3.45 |
+| API endpoint work (429 routes detected) | 8,000 | 2,000 | 5 | $4.40 |
+| Hotspot refactor (6 hotspots, avg 932 tok each) | 12,000 | 1,500 | 3 | $2.97 |
+| Domain model change (152 models) | 8,000 | 2,500 | 2 | $1.98 |
+| Documentation | 25,379 | 1,500 | 2 | $3.45 |
 
 > Token estimates derived from detected project signals: routes, hotspots, domain models, and average file size.
 
 ## Source-Verified Token Estimate
 
 - Source files scanned: 500
-- Total source lines: 135,220
-- Estimated tokens: ~608,490
+- Total source lines: 135,298
+- Estimated tokens: ~608,841

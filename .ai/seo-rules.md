@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 ## Detected Stack
 
@@ -359,6 +359,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | `/v1/github/analyze` | POST | API route — exclude from sitemap |
 | `/.well-known/axis.json` | GET | Add WebPage schema · unique title + description required |
 | `/.well-known/capabilities.json` | GET | Add WebPage schema · unique title + description required |
+| `/.well-known/mcp.json` | GET | Add WebPage schema · unique title + description required |
 | `/robots.txt` | GET | Add WebPage schema · unique title + description required |
 | `/llms.txt` | GET | Add WebPage schema · unique title + description required |
 | `/.well-known/skills/index.json` | GET | Add WebPage schema · unique title + description required |
@@ -558,7 +559,7 @@ Allow: /v1/
 ```yaml
 # Export Manifest
 # Project: axis-toolbox
-# Generated: 2026-04-14T02:33:20.444Z
+# Generated: 2026-04-14T02:57:57.885Z
 
 manifest:
   project: "axis-toolbox"
@@ -609,8 +610,8 @@ manifest:
 
 | Page | Exports | Lines |
 |------|---------|-------|
-| `apps/web/index.html` | default | 124 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 573 |
+| `apps/web/index.html` | default | 128 |
+| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 623 |
 | `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 180 |
 | `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1292 |
 | `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 505 |

@@ -179,6 +179,7 @@ router.post("/v1/github/analyze", handleGitHubAnalyze);
 // Agent discovery manifest
 router.get("/.well-known/axis.json", handleWellKnown);
 router.get("/.well-known/capabilities.json", handleCapabilities);
+router.get("/.well-known/mcp.json", handleMcpServerJson);
 
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);

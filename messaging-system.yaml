@@ -1,7 +1,7 @@
 # Messaging System
 # Project: axis-toolbox
-# Generated: 2026-04-14T02:57:57.835Z
-# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+# Generated: 2026-04-14T03:15:00.623Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 product:
   name: "axis-toolbox"
@@ -10,8 +10,8 @@ product:
   stack: "React"
 
 taglines:
-  primary: "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models."
-  technical: "React monorepo — 500 files, 114,151 lines of TypeScript"
+  primary: "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models."
+  technical: "React monorepo — 500 files, 114,224 lines of TypeScript"
   conceptual: "Built around packages/ (monorepo_packages), apps/ (monorepo_apps), payment-processing-output/ (project_directory)"
 
 value_propositions:
@@ -19,11 +19,11 @@ value_propositions:
     headline: "React Expertise"
     detail: "Built with React ^19.1.0 — stack-native patterns throughout."
   - id: api_surface
-    headline: "428 API Endpoints"
-    detail: "Complete API with 229 GET, 179 POST, 20 DELETE — ready for integration."
+    headline: "429 API Endpoints"
+    detail: "Complete API with 230 GET, 179 POST, 20 DELETE — ready for integration."
   - id: domain_model
-    headline: "151 Domain Entities"
-    detail: "Rich domain model with AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 146 more."
+    headline: "152 Domain Entities"
+    detail: "Rich domain model with AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 147 more."
   - id: architecture
     headline: "Clean Architecture (0.64 separation)"
     detail: "monorepo, containerized with 1 layer boundaries."
@@ -33,8 +33,8 @@ value_propositions:
 
 feature_messages:
   api_surface:
-    count: 428
-    message: "428 API endpoints ready for integration"
+    count: 429
+    message: "429 API endpoints ready for integration"
     routes:
       - "GET /v1/health"
       - "POST /v1/accounts"
@@ -50,7 +50,7 @@ feature_messages:
     count: 10
     message: "10 languages detected and analyzed"
     breakdown:
-      - "TypeScript: 78,376 lines (69.5%)"
+      - "TypeScript: 78,445 lines (69.5%)"
       - "JSON: 12,501 lines (11.1%)"
       - "YAML: 10,876 lines (9.6%)"
       - "Markdown: 9,249 lines (8.2%)"

@@ -46,7 +46,7 @@ These are the core data structures that define what the system works with:
 | `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
 | `RpcError` | interface | 5 | `apps/api/src/mcp-server.ts` |
 | `RpcSuccess` | interface | 3 | `apps/api/src/mcp-server.ts` |
-| *(+141 more)* | | | |
+| *(+142 more)* | | | |
 
 ### Phase 4: Data Flow
 
@@ -107,7 +107,7 @@ import {
   handleNotebookGenerate,
   handleObsidianAnalyze,
   handleMcpProvision,
-... (301 more lines)
+... (302 more lines)
 ```
 
 ### `apps/web/src/App.tsx`

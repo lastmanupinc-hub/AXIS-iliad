@@ -1,6 +1,6 @@
 # Scene Plan — axis-toolbox
 
-Generated: 2026-04-14T02:57:57.876Z
+Generated: 2026-04-14T03:15:00.662Z
 
 ## Video Overview
 
@@ -14,7 +14,7 @@ Generated: 2026-04-14T02:57:57.876Z
 
 ## Project Summary
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 152 domain models.
 
 ## Detected Stack
 
@@ -58,7 +58,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 
 - **Content**: Detected domain model entities
 - **Models**: AuthContext (interface, 3 fields); EnvSpec (interface, 5 fields); ValidationError (interface, 2 fields); ValidationResult (interface, 3 fields); ZipEntry (interface, 4 fields); IntentCapture (interface, 5 fields)
-- **Total**: 151 models detected
+- **Total**: 152 models detected
 - **Animation**: Entity cards fade in with field-count pill badges
 - **Visual**: Grid of entity cards with kind and field count
 

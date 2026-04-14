@@ -402,6 +402,21 @@ export async function dismissUpgradePrompt(): Promise<void> {
   await fetchJSON("/v1/account/upgrade-prompt/dismiss", { method: "POST" });
 }
 
+// ─── Credits API ────────────────────────────────────────────────
+
+export interface CreditsInfo {
+  account_id: string;
+  tier: BillingTier;
+  balance: number;
+  credit_costs: Record<string, number>;
+  credit_packs: Array<{ pack_id: string; credits: number; price_cents: number }>;
+  ledger: Array<{ entry_id: string; delta: number; reason: string; created_at: string }>;
+}
+
+export async function getCredits(): Promise<CreditsInfo> {
+  return fetchJSON("/v1/account/credits");
+}
+
 // ─── Seats API ──────────────────────────────────────────────────
 
 export interface Seat {
