@@ -1556,3 +1556,348 @@ describe("POST /mcp — tools/call discover_agentic_purchasing_needs", () => {
     expect(names).toContain("discover_agentic_purchasing_needs");
   });
 });
+
+// ─── POST /mcp — tools/call get_referral_code ───────────────────
+
+describe("POST /mcp — tools/call get_referral_code", () => {
+  it("requires authentication", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 90,
+      method: "tools/call",
+      params: { name: "get_referral_code", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.error).toContain("Authentication required");
+  });
+
+  it("returns referral_token and earnings when authenticated", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 91,
+      method: "tools/call",
+      params: { name: "get_referral_code", arguments: {} },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(typeof parsed.referral_token).toBe("string");
+    expect(parsed.referral_token.length).toBeGreaterThan(0);
+    expect(parsed.share_instruction).toContain("referral_token");
+    expect(parsed.current_earnings).toBeDefined();
+    expect(typeof parsed.current_earnings.earned_credits_millicents).toBe("number");
+    expect(typeof parsed.current_earnings.lifetime_referrals).toBe("number");
+    expect(typeof parsed.current_earnings.free_calls_remaining).toBe("number");
+    expect(typeof parsed.current_earnings.paid_call_count).toBe("number");
+    expect(parsed.cost).toContain("free");
+  });
+
+  it("returns stable referral_token across calls", async () => {
+    const r1 = await post("/mcp", {
+      jsonrpc: "2.0", id: 92, method: "tools/call",
+      params: { name: "get_referral_code", arguments: {} },
+    }, apiKey);
+    const r2 = await post("/mcp", {
+      jsonrpc: "2.0", id: 93, method: "tools/call",
+      params: { name: "get_referral_code", arguments: {} },
+    }, apiKey);
+    const c1 = ((r1.data as Record<string, unknown>).result as Record<string, unknown>).content as Array<{ text: string }>;
+    const c2 = ((r2.data as Record<string, unknown>).result as Record<string, unknown>).content as Array<{ text: string }>;
+    const p1 = JSON.parse(c1[0].text);
+    const p2 = JSON.parse(c2[0].text);
+    expect(p1.referral_token).toBe(p2.referral_token);
+  });
+
+  it("tool name appears in MCP_TOOLS", () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("get_referral_code");
+  });
+});
+
+// ─── POST /mcp — tools/call check_referral_credits ──────────────
+
+describe("POST /mcp — tools/call check_referral_credits", () => {
+  it("requires authentication", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 100,
+      method: "tools/call",
+      params: { name: "check_referral_credits", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.error).toContain("Authentication required");
+  });
+
+  it("returns full credit breakdown when authenticated", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 101,
+      method: "tools/call",
+      params: { name: "check_referral_credits", arguments: {} },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(typeof parsed.referral_token).toBe("string");
+    expect(typeof parsed.earned_credits_millicents).toBe("number");
+    expect(typeof parsed.earned_discount).toBe("string");
+    expect(typeof parsed.lifetime_referrals).toBe("number");
+    expect(typeof parsed.free_calls_remaining).toBe("number");
+    expect(typeof parsed.paid_call_count).toBe("number");
+    expect(typeof parsed.persistence_credits_remaining).toBe("number");
+    expect(typeof parsed.tier).toBe("string");
+    expect(typeof parsed.discount_active).toBe("boolean");
+    expect(parsed.cost).toContain("free");
+  });
+
+  it("returns fifth_call_free milestone info", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 102,
+      method: "tools/call",
+      params: { name: "check_referral_credits", arguments: {} },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.fifth_call_free).toBeDefined();
+    expect(parsed.next_milestone).toBeDefined();
+  });
+
+  it("tool name appears in MCP_TOOLS", () => {
+    const names = MCP_TOOLS.map(t => t.name);
+    expect(names).toContain("check_referral_credits");
+  });
+});
+
+// ─── POST /mcp — tools/call improve_my_agent_with_axis success ──
+
+describe("POST /mcp — tools/call improve_my_agent_with_axis (success path)", () => {
+  let improveKey = "";
+
+  it("setup — create fresh account for quota", async () => {
+    const create = await post("/v1/accounts", { name: "Improve Test", email: `improve-${Date.now()}@test.com` });
+    const key = (create.data as Record<string, unknown>).api_key as Record<string, string>;
+    improveKey = key.raw_key;
+    expect(improveKey).toBeTruthy();
+  });
+
+  it("returns improvement plan with analysis and recommendations", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 110,
+      method: "tools/call",
+      params: {
+        name: "improve_my_agent_with_axis",
+        arguments: {
+          project_name: "test-agent-improvement",
+          files: [
+            { path: "src/index.ts", content: "import express from 'express';\nconst app = express();\napp.get('/', (req, res) => res.json({ ok: true }));\napp.listen(3000);" },
+            { path: "package.json", content: JSON.stringify({ name: "test", dependencies: { express: "^4.0.0" } }) },
+          ],
+        },
+      },
+    }, improveKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    // improve_my_agent runs free-tier programs only — if entitlement/quota blocks, diagnose
+    if (result.isError) {
+      throw new Error(`improve_my_agent returned error: ${content[0].text}`);
+    }
+    expect(result.isError).toBe(false);
+    const parsed = JSON.parse(content[0].text);
+    // Analysis section
+    expect(parsed.analysis).toBeDefined();
+    expect(parsed.analysis.files_analyzed).toBe(2);
+    expect(Array.isArray(parsed.analysis.languages)).toBe(true);
+    expect(parsed.analysis.free_artifacts_generated).toBeGreaterThan(0);
+    expect(Array.isArray(parsed.analysis.artifacts)).toBe(true);
+    // Improvement plan
+    expect(parsed.improvement_plan).toBeDefined();
+    expect(Array.isArray(parsed.improvement_plan.missing_context_files)).toBe(true);
+    expect(parsed.improvement_plan.missing_context_files).toContain("AGENTS.md");
+    expect(Array.isArray(parsed.improvement_plan.recommended_pro_programs)).toBe(true);
+    expect(parsed.improvement_plan.recommended_pro_programs.length).toBeGreaterThan(0);
+    // Call again section
+    expect(parsed.call_again).toBeDefined();
+    expect(parsed.call_again.full_analysis.tool).toBe("analyze_files");
+    expect(parsed.call_again.purchasing.tool).toBe("prepare_for_agentic_purchasing");
+  });
+
+  it("validates project_name is required", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 111,
+      method: "tools/call",
+      params: {
+        name: "improve_my_agent_with_axis",
+        arguments: { files: [{ path: "x.ts", content: "x" }] },
+      },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("project_name");
+  });
+
+  it("validates files is required", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 112,
+      method: "tools/call",
+      params: {
+        name: "improve_my_agent_with_axis",
+        arguments: { project_name: "test" },
+      },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("files");
+  });
+});
+
+// ─── POST /mcp — tools/call prepare_for_agentic_purchasing (MCP) ─
+
+describe("POST /mcp — tools/call prepare_for_agentic_purchasing (MCP transport)", () => {
+  it("returns isError=true without auth", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 120,
+      method: "tools/call",
+      params: {
+        name: "prepare_for_agentic_purchasing",
+        arguments: {
+          project_name: "test-purchasing",
+          project_type: "web_application",
+          frameworks: ["express"],
+          goals: ["secure checkout"],
+          files: [{ path: "index.ts", content: "export const x = 1;" }],
+        },
+      },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("Authentication required");
+  });
+
+  it("validates required fields through MCP transport", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 121,
+      method: "tools/call",
+      params: {
+        name: "prepare_for_agentic_purchasing",
+        arguments: {
+          project_name: "",
+          project_type: "web_application",
+          frameworks: [],
+          goals: [],
+          files: [{ path: "i.ts", content: "x" }],
+        },
+      },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("project_name");
+  });
+
+  it("validates frameworks must be an array", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 122,
+      method: "tools/call",
+      params: {
+        name: "prepare_for_agentic_purchasing",
+        arguments: {
+          project_name: "test",
+          project_type: "web",
+          frameworks: "not-array",
+          goals: [],
+          files: [{ path: "i.ts", content: "x" }],
+        },
+      },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("frameworks");
+  });
+});
+
+// ─── _usage field in tools/call responses ────────────────────────
+
+describe("tools/call responses include _usage field", () => {
+  it("anonymous call includes _usage with tier=anonymous", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 130,
+      method: "tools/call",
+      params: { name: "list_programs", arguments: {} },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result._usage).toBeDefined();
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.tier).toBe("anonymous");
+    expect(usage.credits_remaining).toBeNull();
+    expect(usage.tool).toBe("list_programs");
+  });
+
+  it("authenticated call includes _usage with tier and credits", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 131,
+      method: "tools/call",
+      params: { name: "list_programs", arguments: {} },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result._usage).toBeDefined();
+    const usage = result._usage as Record<string, unknown>;
+    expect(typeof usage.tier).toBe("string");
+    expect(usage.tier).not.toBe("anonymous");
+    expect(typeof usage.credits_remaining).toBe("number");
+    expect(usage.tool).toBe("list_programs");
+  });
+
+  it("_usage.tool matches the invoked tool name", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 132,
+      method: "tools/call",
+      params: { name: "search_and_discover_tools", arguments: { q: "mcp" } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.tool).toBe("search_and_discover_tools");
+  });
+});
+
+// ─── Batch JSON-RPC ──────────────────────────────────────────────
+
+describe("POST /mcp — batch JSON-RPC (array of requests)", () => {
+  it("rejects batch requests with parse error", async () => {
+    const r = await post("/mcp", [
+      { jsonrpc: "2.0", id: 140, method: "ping" },
+      { jsonrpc: "2.0", id: 141, method: "tools/list" },
+    ]);
+    // Batch is not supported — should return error (invalid request or parse error)
+    expect(r.status).toBe(400);
+  });
+});
