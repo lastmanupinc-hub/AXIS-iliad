@@ -1,6 +1,6 @@
 # Collection Map — axis-toolbox
 
-Generated: 2026-04-14T02:25:34.558Z
+Generated: 2026-04-14T02:33:20.443Z
 
 ## Collection Overview
 
@@ -77,7 +77,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | Domain Models | 151 |
 | Routes | 428 |
 | Total Files | 500 |
-| Total LOC | 114121 |
+| Total LOC | 114124 |
 | Render Target | Canvas 2D / WebGL |
 | Parameter Pack | parameter-pack.json |
 

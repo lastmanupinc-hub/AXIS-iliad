@@ -558,7 +558,7 @@ Allow: /v1/
 ```yaml
 # Export Manifest
 # Project: axis-toolbox
-# Generated: 2026-04-14T02:07:26.463Z
+# Generated: 2026-04-14T02:25:34.558Z
 
 manifest:
   project: "axis-toolbox"
@@ -609,7 +609,7 @@ manifest:
 
 | Page | Exports | Lines |
 |------|---------|-------|
-| `apps/web/index.html` | default | 121 |
+| `apps/web/index.html` | default | 124 |
 | `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 573 |
 | `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 180 |
 | `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1292 |

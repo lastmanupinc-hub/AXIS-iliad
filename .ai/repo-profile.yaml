@@ -1,7 +1,7 @@
 version: 1.0.0
-snapshot_id: 48c7359e-c6e5-4c4e-95e1-7b30d38360e3
-project_id: 7926851b-c075-4408-9277-5c3195c6c8d7
-generated_at: "2026-04-14T02:25:34.360Z"
+snapshot_id: 9befa564-2a38-47ce-97f4-b7f836ad8849
+project_id: 66b66577-aa6e-448c-aca6-86349e4433a9
+generated_at: "2026-04-14T02:33:20.326Z"
 project:
   name: axis-toolbox
   type: monorepo
@@ -38,7 +38,7 @@ detection:
       loc_percent: 0.6
     - name: HTML
       file_count: 1
-      loc: 113
+      loc: 116
       loc_percent: 0.1
     - name: Dockerfile
       file_count: 1
@@ -76,7 +76,7 @@ detection:
 structure_summary:
   total_files: 500
   total_directories: 62
-  total_loc: 114121
+  total_loc: 114124
   top_level_dirs:
     - name: packages
       purpose: monorepo_packages
@@ -267,7 +267,7 @@ apps/cli/src/runner.ts (11.2 KB)
 apps/cli/src/scanner.ts (4.3 KB)
 apps/cli/src/writer.ts (0.9 KB)
 apps/cli/tsconfig.json (0.4 KB)
-apps/web/index.html (6.4 KB)
+apps/web/index.html (6.6 KB)
 apps/web/package.json (0.5 KB)
 apps/web/public/robots.txt (0.8 KB)
 apps/web/src/api.test.ts (23.7 KB)

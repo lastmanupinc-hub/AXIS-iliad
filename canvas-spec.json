@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T02:25:34.551Z",
+  "generated_at": "2026-04-14T02:33:20.438Z",
   "design_system": {
     "colors": {
       "primary": "#6366f1",
@@ -167,7 +167,7 @@
       {
         "name": "HTML",
         "percent": 0.1,
-        "loc": 113
+        "loc": 116
       },
       {
         "name": "Dockerfile",
@@ -204,7 +204,7 @@
     "domain_model_count": 151,
     "route_count": 428,
     "total_files": 500,
-    "total_loc": 114121
+    "total_loc": 114124
   },
   "source_asset_files": null
 }

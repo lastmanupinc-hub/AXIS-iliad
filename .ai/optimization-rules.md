@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 114,121 |
+| Total LOC | 114,124 |
 | Average LOC / file | 228 |
-| Estimated token count | ~513,545 |
+| Estimated token count | ~513,558 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -258,7 +258,7 @@ apps/cli/src/runner.ts (11.2 KB)
 apps/cli/src/scanner.ts (4.3 KB)
 apps/cli/src/writer.ts (0.9 KB)
 apps/cli/tsconfig.json (0.4 KB)
-apps/web/index.html (6.4 KB)
+apps/web/index.html (6.6 KB)
 apps/web/package.json (0.5 KB)
 apps/web/public/robots.txt (0.8 KB)
 apps/web/src/api.test.ts (23.7 KB)
