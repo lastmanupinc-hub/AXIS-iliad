@@ -181,7 +181,7 @@ export const MCP_TOOLS = [
       {
         name: "Analyze a GitHub repo",
         input: { github_url: "https://github.com/expressjs/express" },
-        output: '{"snapshot_id":"abc-123","artifacts":["AGENTS.md",".cursorrules","CLAUDE.md",".ai/debug-playbook.md"],"programs_executed":["search","skills","debug","theme"]}',
+        output: '{"snapshot_id":"abc-123","artifacts":[{"path":"AGENTS.md","program":"search","description":"Agent instructions"},{"path":".cursorrules","program":"search","description":"Cursor rules"},{"path":"CLAUDE.md","program":"search","description":"Claude context"}],"programs_executed":["search","skills","debug","theme"]}',
       },
     ],
   },
@@ -236,7 +236,7 @@ export const MCP_TOOLS = [
             { path: "src/index.ts", content: "import express from 'express';" },
           ],
         },
-        output: '{"snapshot_id":"def-456","artifacts":["AGENTS.md",".cursorrules","CLAUDE.md"],"programs_executed":["search","skills","debug"]}',
+        output: '{"snapshot_id":"def-456","artifacts":[{"path":"AGENTS.md","program":"search","description":"Agent instructions"},{"path":".cursorrules","program":"search","description":"Cursor rules"}],"programs_executed":["search","skills","debug"]}',
       },
     ],
   },
@@ -271,7 +271,7 @@ export const MCP_TOOLS = [
       {
         name: "Get a snapshot",
         input: { snapshot_id: "abc-123" },
-        output: '{"snapshot_id":"abc-123","status":"complete","artifact_count":86,"artifacts":["AGENTS.md",".cursorrules","CLAUDE.md"]}',
+        output: '{"snapshot_id":"abc-123","status":"complete","artifact_count":86,"artifacts":[{"path":"AGENTS.md","program":"search","description":"Agent instructions"}]}',
       },
     ],
   },
@@ -359,6 +359,13 @@ export const MCP_TOOLS = [
         q: {
           type: "string",
           description: "Search query — keyword or phrase (e.g. 'checkout payment', 'debug logs', 'mcp agents'). Omit to list all programs.",
+        },
+        program: {
+          type: "string",
+          description: "Optional: filter results to a specific program name (e.g. 'mcp', 'debug', 'agentic-purchasing').",
+        },
+      },
+    },
     examples: [
       {
         name: "Search for debug tools",
@@ -371,13 +378,6 @@ export const MCP_TOOLS = [
         output: '{"programs":["search","skills","debug","theme","frontend","seo","optimization","brand","superpowers","marketing","notebook","obsidian","mcp","artifacts","remotion","canvas","algorithmic","agentic-purchasing"]}',
       },
     ],
-        },
-        program: {
-          type: "string",
-          description: "Optional: filter results to a specific program name (e.g. 'mcp', 'debug', 'agentic-purchasing').",
-        },
-      },
-    },
   },
   {
     name: "discover_agentic_commerce_tools",

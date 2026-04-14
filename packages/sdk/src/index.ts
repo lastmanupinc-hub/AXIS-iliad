@@ -128,17 +128,25 @@ export class AxisClient {
     args: Record<string, unknown>,
   ): Promise<McpToolCallResult> {
     const rpc = await this.request<{
-      result: {
+      result?: {
         content: Array<{ text: string }>;
         isError?: boolean;
         _usage?: McpToolCallResult["_usage"];
       };
+      error?: { code: number; message: string };
     }>("POST", "/mcp", {
       jsonrpc: "2.0",
       id: 1,
       method: "tools/call",
       params: { name: toolName, arguments: args },
     });
+
+    if (rpc.error) {
+      throw new Error(rpc.error.message ?? `JSON-RPC error ${rpc.error.code}`);
+    }
+    if (!rpc.result) {
+      throw new Error("Unexpected MCP response: missing result");
+    }
 
     return {
       isError: !!rpc.result.isError,
@@ -214,7 +222,7 @@ export class AxisClient {
 
   // ── Probe ───────────────────────────────────────────────────
 
-  async probeIntent(intent: string, description: string): Promise<Record<string, unknown>> {
-    return this.request("POST", "/probe-intent", { intent, description });
+  async probeIntent(description: string, focusAreas?: string[]): Promise<Record<string, unknown>> {
+    return this.request("POST", "/probe-intent", { description, focus_areas: focusAreas });
   }
 }
