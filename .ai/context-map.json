@@ -20,8 +20,8 @@
       "packages/repo-parser (language/framework detection)",
       "packages/context-engine (context-map + repo-profile generation)",
       "packages/snapshots (SQLite intake, 5 tables, WAL mode)",
-      "packages/generator-core (81 generators across 17 modules)",
-      "apps/api (zero-dep HTTP server, 75+ endpoints, port 4000)",
+      "packages/generator-core (87 generators across 18 modules)",
+      "apps/api (zero-dep HTTP server, 102 endpoints, port 4000)",
       "apps/cli (axis analyze / axis github)",
       "apps/web (React 19 + Vite 6 SPA, port 5173)"
     ],
@@ -34,12 +34,12 @@
     "capabilities_grade_a": 83,
     "capabilities_grade_f": 0,
     "capabilities_total": 83,
-    "programs": 17,
-    "generators": 81,
-    "tests": 3371,
-    "test_files": 123,
+    "programs": 18,
+    "generators": 87,
+    "tests": 3906,
+    "test_files": 131,
     "statement_coverage_pct": 99.99,
-    "api_endpoints": 77,
+    "api_endpoints": 102,
     "languages_detected": 60,
     "frameworks_detected": 10,
     "yaml_governance_files": 12,
@@ -47,8 +47,8 @@
   },
 
   "critical_paths": [
-    "packages/generator-core/src/generators/ — all 81 generators live here",
-    "apps/api/src/handlers.ts — 75+ endpoint handlers",
+    "packages/generator-core/src/generators/ — all 87 generators live here",
+    "apps/api/src/handlers.ts — 102 endpoint handlers",
     "packages/snapshots/src/store.ts — SQLite persistence layer",
     "packages/repo-parser/src/parser.ts — language/framework detection",
     "packages/context-engine/src/context-map.ts — context graph builder",
@@ -102,11 +102,11 @@
     { "name": "snapshots", "role": "Intake, SQLite persistence, billing state, funnel tracking" },
     { "name": "repo-parser", "role": "Language detection (60+), framework detection (10+), import resolution" },
     { "name": "context-engine", "role": "Context map builder, repo-profile builder, route extraction, architecture analysis" },
-    { "name": "generator-core", "role": "Template engine + 80 generators (17 modules, one per program)" }
+    { "name": "generator-core", "role": "Template engine + 87 generators (18 modules, one per program)" }
   ],
 
   "apps": [
-    { "name": "api", "role": "Node.js HTTP server, zero-dep router, 75+ endpoints, port 4000" },
+    { "name": "api", "role": "Node.js HTTP server, zero-dep router, 102 endpoints, port 4000" },
     { "name": "cli", "role": "Command-line tool: axis analyze <dir>, axis github <url>" },
     { "name": "web", "role": "React 19 SPA, dark theme, upload + dashboard, port 5173" }
   ]

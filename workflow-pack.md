@@ -29,7 +29,7 @@
 7. Write vitest test in apps/api/src/__tests__/
 8. Update OpenAPI spec (/v1/docs output)
 9. Run: npx vitest run
-10. Verify 75+ endpoint count updated
+10. Verify 102 endpoint count updated
 ```
 
 ### Workflow 3: Add Language Detection
@@ -174,10 +174,10 @@ Work style from begin.yaml: finish one vertical completely before opening new on
 No capability can be graded A without evidence: code reference, passing tests, exported artifact, and integration proof. Claims without evidence are refused.
 
 ### Policy 7: Per-Program Billing
-Each of the 17 programs is a separate SKU. Users can buy individual programs. Suite bundle pricing is optional, not required. Usage is metered per program independently.
+Each of the 18 programs is a separate SKU. Users can buy individual programs. Suite bundle pricing is optional, not required. Usage is metered per program independently.
 
 ### Policy 8: Snapshot as Single Source
-All 80 generators consume the snapshot output (context-map + repo-profile). No generator re-parses the repo. No generator calls external APIs. Snapshot is read-only input.
+All 87 generators consume the snapshot output (context-map + repo-profile). No generator re-parses the repo. No generator calls external APIs. Snapshot is read-only input.
 
 ### Policy 9: Session Gate (8 Conditions)
 Every work item must pass 8 conditions (begin.yaml). If any condition fails, the work is refused. No exceptions. The gate exists to prevent entropy.

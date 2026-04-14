@@ -99,9 +99,9 @@
 
 ```html
 <title>AXIS Toolbox — The Operating System for AI-Native Development</title>
-<meta name="description" content="Analyze any codebase and generate 80 structured artifacts across 17 programs. Make AI coding tools measurably more effective. Free tier available." />
+<meta name="description" content="Analyze any codebase and generate 87 structured artifacts across 18 programs. Make AI coding tools measurably more effective. Free tier available." />
 <meta property="og:title" content="AXIS Toolbox" />
-<meta property="og:description" content="80 generators. 17 programs. One upload. AI-native development intelligence." />
+<meta property="og:description" content="87 generators. 18 programs. One upload. AI-native development intelligence." />
 <meta property="og:type" content="website" />
 <meta property="og:image" content="https://axis.domain.com/og-image.png" />
 ```
@@ -115,10 +115,10 @@
   "name": "AXIS Toolbox",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Web",
-  "description": "AI-native development OS that analyzes repos and generates 80 structured artifacts across 17 programs",
+  "description": "AI-native development OS that analyzes repos and generates 87 structured artifacts across 18 programs",
   "offers": [
     { "@type": "Offer", "name": "Free Tier", "price": "0", "priceCurrency": "USD", "description": "Search, Skills, Debug — 13 generators" },
-    { "@type": "Offer", "name": "Pro", "description": "All 17 programs — 80 generators" }
+    { "@type": "Offer", "name": "Pro", "description": "All 18 programs — 87 generators" }
   ],
   "creator": { "@type": "Organization", "name": "Last Man Up Inc." }
 }

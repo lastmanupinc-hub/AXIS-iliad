@@ -81,7 +81,7 @@
     "totalEdges": 31,
     "maxDepth": 4,
     "highestCentrality": { "node": "generator-core", "score": 0.95 },
-    "bottleneck": "generator-core (all 80 generators funnel through single package)",
+    "bottleneck": "generator-core (all 87 generators funnel through single package)",
     "orphanNodes": 0,
     "cyclicDependencies": 0,
     "governanceConnections": 7,

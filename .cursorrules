@@ -6,8 +6,8 @@
 # Architecture: monorepo — apps/ (api, cli, web) + packages/ (snapshots, repo-parser, context-engine, generator-core)
 # Frontend: React 19 + Vite 6, vanilla CSS dark theme, NO Tailwind
 # Backend: Zero-dep HTTP router (NO Express/Fastify), SQLite (better-sqlite3 WAL, NO Prisma)
-# Testing: Vitest 4.1, 3371 tests, 99.99% coverage, 6 determinism tests
-# Generators: 81 generators across 17 programs — all must be pure functions (same input = byte-identical output)
+# Testing: Vitest 4.1, 3906 tests, 99.99% coverage, 6 determinism tests
+# Generators: 87 generators across 18 programs — all must be pure functions (same input = byte-identical output)
 #
 # 12 YAML governance files control development policy:
 #   begin.yaml (session gate) → continuation.yaml (state ledger) → axis_all_tools.yaml (program specs)

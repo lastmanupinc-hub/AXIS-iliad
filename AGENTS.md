@@ -17,7 +17,7 @@
 
 ## What This Project Is
 
-AXIS Toolbox analyzes codebases and generates 81 structured artifacts across 17 specialized programs. Users upload a repo (ZIP, GitHub URL, CLI), the system detects languages/frameworks, builds a context graph, fires 81 generators, and produces governance files that make AI coding tools measurably more effective.
+AXIS Toolbox analyzes codebases and generates 87 structured artifacts across 18 specialized programs. Users upload a repo (ZIP, GitHub URL, CLI), the system detects languages/frameworks, builds a context graph, fires 87 generators, and produces governance files that make AI coding tools measurably more effective.
 
 **It is NOT**: a code generator, a linter, a framework, or a SaaS dashboard. It is the meta-layer that produces structured context for AI agents.
 
@@ -27,8 +27,8 @@ AXIS Toolbox analyzes codebases and generates 81 structured artifacts across 17 
 2. **repo-parser** (`packages/repo-parser/`): Language detection (60+), framework detection (10+), import resolution
 3. **context-engine** (`packages/context-engine/`): Context map builder, repo-profile builder, route extraction
 4. **snapshots** (`packages/snapshots/`): SQLite (5 tables, WAL mode), intake, billing state, funnel tracking
-5. **generator-core** (`packages/generator-core/`): Template engine + 81 generators across 17 program modules
-6. **API** (`apps/api/`): Zero-dep HTTP router, 75+ endpoints, API keys, rate limiting, Prometheus metrics
+5. **generator-core** (`packages/generator-core/`): Template engine + 87 generators across 18 program modules
+6. **API** (`apps/api/`): Zero-dep HTTP router, 102 endpoints, API keys, rate limiting, Prometheus metrics
 7. **Web** (`apps/web/`): React 19 + Vite 6 SPA, dark theme, upload + dashboard
 8. **CLI** (`apps/cli/`): `axis analyze <dir>`, `axis github <url>`
 
@@ -49,7 +49,7 @@ AXIS Toolbox analyzes codebases and generates 81 structured artifacts across 17 
 
 ```
 apps/
-├── api/           → Zero-dep HTTP server, 75+ endpoints, port 4000
+├── api/           → Zero-dep HTTP server, 102 endpoints, port 4000
 ├── cli/           → Command-line tool (axis analyze, axis github)
 └── web/           → React 19 + Vite 6 SPA, port 5173
 
@@ -57,7 +57,7 @@ packages/
 ├── snapshots/     → SQLite persistence, intake, billing
 ├── repo-parser/   → Language/framework detection, imports
 ├── context-engine/→ Context-map + repo-profile generation
-└── generator-core/→ 81 generators across 17 programs
+└── generator-core/→ 87 generators across 18 programs
 ```
 
 ## Style Rules
@@ -68,7 +68,7 @@ packages/
 - **Database**: SQLite via better-sqlite3 (WAL mode)
 - **Testing**: Vitest 4.1 — every new function gets a test
 - **Determinism**: Same input must produce byte-identical output
-- **Coverage**: Maintain >= 100% branch coverage, >= 99.99% statement coverage (3,370 tests, 123 files)
+- **Coverage**: Maintain >= 100% branch coverage, >= 99.99% statement coverage (3,906 tests, 131 files)
 - **Naming**: `camelCase` for functions/variables, `PascalCase` for types/classes
 - **Imports**: Explicit, no barrel files, no circular imports
 
@@ -116,12 +116,12 @@ axis github https://github.com/user/repo
 
 1. `begin.yaml` — Session gate, optimization policy (read FIRST)
 2. `continuation.yaml` — Live state ledger (read SECOND)
-3. `axis_all_tools.yaml` — 17 program specs (canonical source of truth)
+3. `axis_all_tools.yaml` — 18 program specs (canonical source of truth)
 4. Other files as needed for specific tasks
 
-## The 17 Programs
+## The 18 Programs
 
 | Tier | Programs |
 |------|----------|
-| Free | Search (4 outputs), Skills (5), Debug (4) |
-| Pro | Frontend (4), SEO (5), Optimization (4), Theme (5), Brand (5), Superpowers (5), Marketing (5), Notebook (5), Obsidian (5), MCP (4), Artifacts (5), Remotion (5), Canvas (5), Algorithmic (5) |
+| Free | Search (5 outputs), Skills (5), Debug (4) |
+| Pro | Frontend (4), SEO (5), Optimization (4), Theme (5), Brand (5), Superpowers (5), Marketing (5), Notebook (5), Obsidian (5), MCP (4), Artifacts (5), Remotion (5), Canvas (5), Algorithmic (5), Agentic Purchasing (5) |

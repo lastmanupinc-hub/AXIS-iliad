@@ -4,11 +4,11 @@
   "type": "interactive-component",
   "language": "vanilla-javascript",
   "dependencies": [],
-  "description": "Interactive dashboard component visualizing the AXIS Toolbox 17-program × 80-generator pipeline. Zero dependencies.",
+  "description": "Interactive dashboard component visualizing the AXIS Toolbox 18-program × 87-generator pipeline. Zero dependencies.",
   "entryPoint": "ProgramPipeline.js",
   "mountTarget": "#pipeline",
   "features": [
-    "17 program cards with tier badges and grade indicators",
+    "18 program cards with tier badges and grade indicators",
     "Filter by tier (All / Free / Pro)",
     "Click-to-expand generator output list per program",
     "Animated execution pipeline flow diagram",

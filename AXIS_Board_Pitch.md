@@ -1,17 +1,17 @@
 # AXIS Toolbox — Board & Investor Pitch
 
 > **The AI-Powered Developer Intelligence Platform**
-> 17 programs. 81 generators. One snapshot. Every output a developer needs — before they write a single line of code.
+> 18 programs. 87 generators. One snapshot. Every output a developer needs — before they write a single line of code.
 
 ---
 
 ## Executive Summary
 
-AXIS Toolbox transforms any codebase into a comprehensive intelligence layer. Upload a repository (or paste a GitHub URL), and AXIS produces structured, AI-ready outputs across 17 specialized programs — from architecture maps and debugging playbooks to brand guidelines and marketing funnels.
+AXIS Toolbox transforms any codebase into a comprehensive intelligence layer. Upload a repository (or paste a GitHub URL), and AXIS produces structured, AI-ready outputs across 18 specialized programs — from architecture maps and debugging playbooks to brand guidelines and marketing funnels.
 
 Unlike tools that write code *for* developers, AXIS produces the **context, governance, strategy, and creative assets** that surround code. Every AI coding tool (Cursor, Claude, Copilot, Windsurf) performs better when given structured project context. AXIS is the factory that produces that context at scale.
 
-**Current State:** 83 of 83 capabilities at Grade A. 3,371 tests. 123 test files. Production-ready deployment pipeline. Payment processing is a known gap blocked on an external platform dependency (No Fate Platform).
+**Current State:** 83 of 83 capabilities at Grade A. 3,906 tests. 131 test files. Production-ready deployment pipeline. Payment processing is a known gap blocked on an external platform dependency (No Fate Platform).
 
 ---
 
@@ -42,7 +42,7 @@ Every AI code editor becomes measurably more effective when given structured `.a
 
 ---
 
-## The 17 Programs
+## The 18 Programs
 
 ### Tier 1: Free — Developer Acquisition Engine
 
@@ -100,7 +100,7 @@ These programs are permanently free. They solve universal developer problems and
 
 ### Tier 2: Pro — Revenue Engine
 
-14 programs at $X/month per seat. Each solves a distinct professional workflow problem.
+15 programs at $X/month per seat. Each solves a distinct professional workflow problem.
 
 ---
 
@@ -336,8 +336,8 @@ These programs are permanently free. They solve universal developer problems and
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌─────────┐    ┌──────────────┐    ┌───────────────┐  │
-│  │  Upload  │───▶│  Snapshot     │───▶│  17 Programs  │  │
-│  │  Repo    │    │  Engine       │    │  81 Generators│  │
+│  │  Upload  │───▶│  Snapshot     │───▶│  18 Programs  │  │
+│  │  Repo    │    │  Engine       │    │  87 Generators│  │
 │  └─────────┘    └──────────────┘    └───────┬───────┘  │
 │                                             │           │
 │  ┌─────────┐    ┌──────────────┐    ┌───────▼───────┐  │
@@ -360,11 +360,11 @@ These programs are permanently free. They solve universal developer problems and
 
 | Metric | Value |
 |--------|-------|
-| Total Programs | 17 |
-| Total Generators | 81 |
-| API Endpoints | 75 |
-| Test Count | 3,371 |
-| Test Files | 123 |
+| Total Programs | 18 |
+| Total Generators | 87 |
+| API Endpoints | 102 |
+| Test Count | 3,906 |
+| Test Files | 131 |
 | Code Coverage | 99.99% statements |
 | Capability Grade A | 83 / 83 |
 | Database Migrations | 10 |
@@ -386,7 +386,7 @@ These programs are permanently free. They solve universal developer problems and
 
 ### AXIS's Moat
 
-1. **Multi-program platform** — Competitors solve one problem. AXIS solves 17 from a single snapshot.
+1. **Multi-program platform** — Competitors solve one problem. AXIS solves 18 from a single snapshot.
 2. **Context-aware generation** — Every output is derived from the actual codebase, not generic templates.
 3. **AI governance positioning** — First to automate `.cursorrules`, `AGENTS.md`, and MCP configuration.
 4. **Free tier flywheel** — Search + Skills + Debug drive adoption. Pro programs capture revenue.
@@ -398,7 +398,7 @@ These programs are permanently free. They solve universal developer problems and
 | Tier | Price | Programs | Target |
 |------|-------|----------|--------|
 | **Free** | $0 | Search, Skills, Debug | Individual developers |
-| **Pro** | $29/seat/month | All 17 programs | Teams, startups |
+| **Pro** | $29/seat/month | All 18 programs | Teams, startups |
 | **Enterprise** | Custom | All + SSO + audit + SLA | Companies with AI governance requirements |
 
 ### Revenue Projections (Conservative)
@@ -491,7 +491,7 @@ These programs are permanently free. They solve universal developer problems and
 
 ## The Ask
 
-AXIS Toolbox is the intelligence layer between code and every AI tool developers use. The platform is built, tested (2,910 tests), and deployed. What remains is market execution.
+AXIS Toolbox is the intelligence layer between code and every AI tool developers use. The platform is built, tested (3,906 tests), and deployed. What remains is market execution.
 
 **We are the context factory that makes AI work better.**
 
@@ -499,5 +499,5 @@ Every AI coding tool writes code. None of them understand the project first. AXI
 
 ---
 
-*Prepared April 2026 · AXIS Toolbox v2.0.0 · 81/82 capabilities at Grade A*
+*Prepared April 2026 · AXIS Toolbox v2.0.0 · 83/83 capabilities at Grade A*
 *Contact: No Fate Platform · [github.com/lastmanupinc-hub/Toolbox](https://github.com/lastmanupinc-hub/Toolbox)*

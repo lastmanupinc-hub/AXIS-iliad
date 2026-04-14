@@ -19,7 +19,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 **Primary Language**: TypeScript
 **Framework Stack**: React
 
-**Description**: AI-native development operating system. Upload or point at any codebase — get 80 generated artifacts across 17 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
+**Description**: AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
 
 ## Target Audience
 
@@ -38,7 +38,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 1. **React Stack** — Built on React ^19.1.0 with stack-native patterns throughout
 2. **387 API Endpoints** — 202 GET, 165 POST, 20 DELETE across 46 source files
 3. **131 Domain Entities** — AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 126 more
-4. **Test-Driven Quality** — Verified with vitest across 123 test files
+4. **Test-Driven Quality** — Verified with vitest across 131 test files
 5. **Clean Architecture** — monorepo, containerized (0.64 separation score)
 
 ## Distribution Channels
@@ -62,4 +62,4 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 432 fi
 
 ## Source-Derived Messaging
 
-- **README tagline**: AI-native development operating system. Upload or point at any codebase — get 80 generated artifacts across 17 specializ
+- **README tagline**: AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specializ

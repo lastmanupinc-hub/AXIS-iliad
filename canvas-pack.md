@@ -31,7 +31,7 @@
 │  │  #e6edf3  ██ │  │  base █     │  │  Signal      │  │  [Su][Re][Ca]      │  │
 │  │  #58a6ff  ██ │  │  sm   ▪     │  │              │  │  [Al][P]            │  │
 │  │  #d29922  ██ │  │  xs   ·     │  │  Green  ●    │  │                     │  │
-│  │  #3fb950  ██ │  │              │  │  Pass        │  │  81/82 Grade A      │  │
+│  │  #3fb950  ██ │  │              │  │  Pass        │  │  83/83 Grade A      │  │
 │  │  #f85149  ██ │  │  JetBrains  │  │              │  │                     │  │
 │  │              │  │  Mono (code) │  │  Red    ●    │  │                     │  │
 │  │              │  │              │  │  Fail        │  │                     │  │
@@ -42,7 +42,7 @@
 │  │  (cols 1-6)                  │  │  (cols 7-12)                         │   │
 │  │                              │  │                                      │   │
 │  │  Upload → Parse → Context    │  │  ┌────┐ ┌────┐ ┌────┐ ┌──────┐     │   │
-│  │    → Generate → 80 Artifacts │  │  │ 17 │ │ 80 │ │2910│ │91.5% │     │   │
+│  │    → Generate → 87 Artifacts │  │  │ 18 │ │ 87 │ │3906│ │99.99%│     │   │
 │  │                              │  │  │prog│ │ gen│ │test│ │ cov  │     │   │
 │  └──────────────────────────────┘  │  └────┘ └────┘ └────┘ └──────┘     │   │
 │                                     └──────────────────────────────────────┘   │
@@ -176,12 +176,12 @@ Show a mini example: two buttons (one cyan hover state, one green confirmed stat
 [ Super  ] [Remotion] [ Canvas ]
 [ Algo   ] [Payment*]               * Grade F, red border
 ```
-Corner badge on each: generator count. Bottom label: "81/82 Grade A"
+Corner badge on each: generator count. Bottom label: "83/83 Grade A"
 
 ### Pipeline Flow (Cols 1-6, Row 3)
 Horizontal flow: 5 connected nodes with arrows:
 ```
-[Upload] → [repo-parser] → [context-engine] → [generator-core] → [80 Artifacts]
+[Upload] → [repo-parser] → [context-engine] → [generator-core] → [87 Artifacts]
 ```
 Each node: surface-colored pill with cyan border. Arrow: cyan line with arrowhead. Below the arrow between generator-core and Artifacts: "deterministic" label in xs text.
 
@@ -189,10 +189,10 @@ Each node: surface-colored pill with cyan border. Arrow: cyan line with arrowhea
 4 metric cards in a row:
 | Card | Value | Label | Accent |
 |------|-------|-------|--------|
-| 1 | 17 | Programs | Cyan |
-| 2 | 80 | Generators | Cyan |
-| 3 | 2,910 | Tests | Green |
-| 4 | 91.5% | Coverage | Green |
+| 1 | 18 | Programs | Cyan |
+| 2 | 87 | Generators | Cyan |
+| 3 | 3,906 | Tests | Green |
+| 4 | 99.99% | Coverage | Green |
 
 Each card: surface background, large bold number (3xl), small label below (xs, muted), left accent stripe in indicated color.
 

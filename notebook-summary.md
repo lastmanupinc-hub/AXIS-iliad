@@ -6,14 +6,14 @@
 ```
 axis-toolbox/
 ├── apps/
-│   ├── api/          → HTTP server, 75+ endpoints, zero-dep router
+│   ├── api/          → HTTP server, 102 endpoints, zero-dep router
 │   ├── cli/          → axis analyze / axis github commands
 │   └── web/          → React 19 + Vite 6 SPA dashboard
 ├── packages/
 │   ├── snapshots/    → SQLite WAL, 5 tables, intake pipeline
 │   ├── repo-parser/  → 60+ languages, 10+ frameworks, import resolution
 │   ├── context-engine/ → Context map builder, repo profile, route extraction
-│   └── generator-core/ → 80 generators, 17 program modules
+│   └── generator-core/ → 87 generators, 18 program modules
 ├── governance/       → 12 YAML constitutional files
 ├── .github/          → Actions CI (Node 20/22 matrix)
 └── Dockerfile        → Render deployment
@@ -29,9 +29,9 @@ axis-toolbox/
 | packages/snapshots | ~10 | TypeScript | SQLite schema, intake, billing |
 | packages/repo-parser | ~15 | TypeScript | Language maps, framework detectors, AST |
 | packages/context-engine | ~10 | TypeScript | Context map, repo profile, analysis |
-| packages/generator-core | ~25 | TypeScript | 80 generator implementations |
+| `packages/generator-core/` | ~25 | TypeScript | 87 generator implementations |
 | governance | 12 | YAML | Constitutional control layer |
-| tests | 101 files | TypeScript | 2,910 test cases |
+| tests | 131 files | TypeScript | 3,906 test cases |
 | config | ~5 | JSON/YAML/TOML | tsconfig, vitest, pnpm-workspace |
 
 **Estimated Total**: ~120 source files + 101 test files + 12 YAML governance files
@@ -40,8 +40,8 @@ axis-toolbox/
 
 | File | Centrality | Why It Matters |
 |------|-----------|---------------|
-| `packages/generator-core/src/index.ts` | 9.5/10 | All 80 generators route through here |
-| `apps/api/src/handlers.ts` | 9.0/10 | All 75+ endpoints defined here |
+| `packages/generator-core/src/index.ts` | 9.5/10 | All 87 generators route through here |
+| `apps/api/src/handlers.ts` | 9.0/10 | All 102 endpoints defined here |
 | `packages/snapshots/src/store.ts` | 8.5/10 | Database access layer, every read/write |
 | `continuation.yaml` | 8.0/10 | Live state truth — 2000+ lines |
 | `axis_all_tools.yaml` | 7.5/10 | Canonical program definitions |
@@ -65,7 +65,7 @@ axis-toolbox/
 - Self-audit termination condition: `focus_scores ≤ 35` across all categories
 - This pattern is novel: no other open-source project uses YAML as a constitutional control layer for AI behavior
 
-**Open Questions**: How does the governance scale with additional programs beyond 17? What happens when YAML files conflict (e.g., begin.yaml gates vs. continuation.yaml state)?
+**Open Questions**: How does the governance scale with additional programs beyond 18? What happens when YAML files conflict (e.g., begin.yaml gates vs. continuation.yaml state)?
 
 ---
 
@@ -91,7 +91,7 @@ axis-toolbox/
 - Core invariant: "Zero external runtime HTTP dependencies"
 - The router uses Node.js native `http.createServer()` with a custom routing table
 - Pattern matching for routes, middleware chain for auth/rate-limiting/CORS
-- 75+ endpoints across: snapshots CRUD, projects, accounts, billing, webhooks, generated files, health, metrics
+- 102 endpoints across: snapshots CRUD, projects, accounts, billing, webhooks, generated files, health, metrics
 - Rate limiting: 60 req/min standard, 120 req/min for auth endpoints
 - Prometheus metrics endpoint for observability
 - OpenAPI 3.1 spec generated from route definitions
@@ -102,13 +102,13 @@ axis-toolbox/
 ---
 
 ### Thread 4: Snapshot Pipeline Architecture
-**Question**: How does a repo go from upload to 80 generated artifacts?
+**Question**: How does a repo go from upload to 87 generated artifacts?
 
 **Findings**:
 - **5 input methods**: ZIP upload, GitHub URL, local directory (CLI), API POST, webhook trigger
-- **Pipeline**: Input → Validation → Extraction → repo-parser (language/framework detection) → context-engine (context map + repo profile) → generator-core (80 generators) → Output (individual files or ZIP export)
+- **Pipeline**: Input → Validation → Extraction → repo-parser (language/framework detection) → context-engine (context map + repo profile) → generator-core (87 generators) → Output (individual files or ZIP export)
 - **Storage**: SQLite WAL mode, 5 tables: snapshots, projects, accounts, billings, webhooks
-- **Billing**: Per-program SKU. Free tier: Search + Skills + Debug (13 generators). Pro: all 80
+- **Billing**: Per-program SKU. Free tier: Search + Skills + Debug (14 generators). Pro: all 87
 - **Output contract**: Each generator produces a specific file at a specific path with a specific format
 - The pipeline is synchronous per snapshot — no job queue. This is a design choice, not a limitation (keeps complexity low)
 
@@ -159,12 +159,12 @@ axis-toolbox/
 | Metric | Value | Source |
 |--------|-------|--------|
 | Total tests | 2,910 | vitest |
-| Test files | 101 | vitest |
-| Statement coverage | 91.5% | vitest --coverage |
-| Capabilities Grade A | 81/82 | capability_inventory.yaml |
-| Programs | 17 | axis_all_tools.yaml |
-| Generators | 80 | generator-core |
-| API endpoints | 75+ | apps/api handlers |
+| Test files | 131 | vitest |
+| Statement coverage | 99.99% | vitest --coverage |
+| Capabilities Grade A | 83/83 | capability_inventory.yaml |
+| Programs | 18 | axis_all_tools.yaml |
+| Generators | 87 | generator-core |
+| API endpoints | 102 | apps/api handlers |
 | Languages detected | 60+ | repo-parser |
 | Frameworks detected | 10+ | repo-parser |
 | YAML governance files | 12 | governance/ |

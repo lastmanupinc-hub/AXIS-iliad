@@ -273,11 +273,11 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Hero value prop ────────────────────────────────────── */}
       <section className="upload-hero">
         <h1 className="upload-hero-title">
-          Turn any codebase into 80 structured AI artifacts.
+          Turn any codebase into 87 structured AI artifacts.
         </h1>
         <p className="upload-hero-sub">
           Upload a repo and instantly generate AGENTS.md, CLAUDE.md, .cursorrules, MCP configs,
-          SEO rules, brand guidelines, debug playbooks, and 73 more files — one scan across 17 programs.
+          SEO rules, brand guidelines, debug playbooks, and 80 more files — one scan across 18 programs.
         </p>
         <div className="upload-hero-pills">
           {["AGENTS.md", "CLAUDE.md", ".cursorrules", "MCP Config", "SEO Rules", "Brand Guidelines", "Debug Playbook", "Design Tokens", "Obsidian Vault", "Remotion Script"].map((label) => (
@@ -286,9 +286,9 @@ export function UploadPage({ onComplete }: Props) {
         </div>
       </section>
 
-      {/* ── 17 Programs listing ──────────────────────────────────── */}
+      {/* ── 18 Programs listing ──────────────────────────────────── */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>17 Programs — 3 free · 14 pro</p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>18 Programs — 3 free · 15 pro</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
           {[
             { name: "Search", free: true }, { name: "Skills", free: true }, { name: "Debug", free: true },
@@ -297,6 +297,7 @@ export function UploadPage({ onComplete }: Props) {
             { name: "Marketing", free: false }, { name: "Notebook", free: false }, { name: "Obsidian", free: false },
             { name: "MCP", free: false }, { name: "Artifacts", free: false }, { name: "Remotion", free: false },
             { name: "Canvas", free: false }, { name: "Algorithmic", free: false },
+            { name: "Agentic Purchasing", free: false },
           ].map(({ name, free }) => (
             <span key={name} className={`badge ${free ? "badge-green" : "badge-accent"}`} style={{ fontSize: "0.78rem" }}>
               {name}
@@ -308,7 +309,7 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Go Pro top banner ──────────────────────────────────────── */}
       <div className="gopro-banner">
         <div>
-          <strong>Go Pro — unlock all 17 programs and 80 artifacts.</strong>
+          <strong>Go Pro — unlock all 18 programs and 87 artifacts.</strong>
           <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>$29/month · cancel anytime · no credit card to start</span>
         </div>
         <button className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => { window.location.hash = "plans"; }}>
@@ -320,7 +321,7 @@ export function UploadPage({ onComplete }: Props) {
         <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Analyze Your Project</h2>
         <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto", marginBottom: 16 }}>
           Upload a project folder or paste a GitHub URL to generate AI context maps, governance files,
-          debug playbooks, and more across 17 programs.
+          debug playbooks, and more across 18 programs.
         </p>
         <div className="flex" style={{ gap: 8, justifyContent: "center" }}>
           <button
@@ -522,8 +523,8 @@ export function UploadPage({ onComplete }: Props) {
         {/* ── Go Pro bottom banner ───────────────────────────────── */}
         <div className="gopro-banner" style={{ marginTop: 24 }}>
           <div>
-            <strong>Ready for all 17 programs?</strong>
-            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>Go Pro for $29/month — all 80 artifacts, unlimited analysis, priority support.</span>
+            <strong>Ready for all 18 programs?</strong>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>Go Pro for $29/month — all 87 artifacts, unlimited analysis, priority support.</span>
           </div>
           <button type="button" className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => { window.location.hash = "plans"; }}>
             Go Pro

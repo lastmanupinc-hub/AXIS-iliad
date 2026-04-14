@@ -68,7 +68,7 @@ code_analysis_and_generation:
     access: [rest_api]
     tested: true
 
-# ─── 2. PROGRAM OUTPUTS (17 PROGRAMS, 81 GENERATORS) ────────────
+# ─── 2. PROGRAM OUTPUTS (18 PROGRAMS, 87 GENERATORS) ────────────
 
 programs:
 
@@ -374,7 +374,7 @@ file_operations:
     tested: true
 
   list_all_programs:
-    description: "GET /v1/programs to list all 17 programs with generator counts and tier requirements"
+    description: "GET /v1/programs to list all 18 programs with generator counts and tier requirements"
     grade: A
     status: complete
     human_priority: 2_important
@@ -870,10 +870,10 @@ summary:
     cli: 6
     rest_api: 40
     ops: 4
-  programs: 17
-  generators: 81
-  test_files: 123
-  tests: 3371
+  programs: 18
+  generators: 87
+  test_files: 131
+  tests: 3906
   coverage: "99.99%"
 
   human_usability_without_ai:
@@ -881,6 +881,6 @@ summary:
       - "CLI: axis analyze, axis github, axis auth — fully functional for humans"
       - "Web UI: upload folder, paste GitHub URL, browse outputs, export ZIP"
       - "API: full REST API with OpenAPI docs at /v1/docs"
-      - "All 17 programs produce real, downloadable outputs"
+      - "All 18 programs produce real, downloadable outputs"
     blocked_for_production:
       - "No payment processing — waiting on No Fate Platform payment processor (not Stripe-direct)"

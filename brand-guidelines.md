@@ -9,7 +9,7 @@
 *The operating system for AI-native development.*
 
 ### One-Liner
-Analyze any codebase. Generate 80 structured artifacts across 17 programs. Make AI coding tools measurably more effective.
+Analyze any codebase. Generate 87 structured artifacts across 18 programs. Make AI coding tools measurably more effective.
 
 ### What AXIS Toolbox IS
 - A development intelligence platform
@@ -34,8 +34,8 @@ The voice of AXIS Toolbox is **operator-grade**: precise, authoritative, unadorn
 
 | Attribute | Description |
 |-----------|-------------|
-| **Precise** | Numbers over adjectives. "91.5% coverage" not "really well tested" |
-| **Authoritative** | Earned through 2,910 tests and 81/82 Grade A capabilities |
+| **Precise** | Numbers over adjectives. "99.99% coverage" not "really well tested" |
+| **Authoritative** | Earned through 3,906 tests and 83/83 Grade A capabilities |
 | **Direct** | Commands, not suggestions. "Run `axis analyze .`" not "You might want to try..." |
 | **Technical** | Respects the intelligence of the audience. No dumbing down |
 | **Restrained** | No exclamation marks in product copy. No emoji in docs. Power is quiet |
@@ -44,10 +44,10 @@ The voice of AXIS Toolbox is **operator-grade**: precise, authoritative, unadorn
 
 | Context | Wrong | Right |
 |---------|-------|-------|
-| Feature description | "Our amazing AI-powered analysis engine!" | "Snapshot ingestion: 5 input methods, 80 generators, deterministic output." |
+| Feature description | "Our amazing AI-powered analysis engine!" | "Snapshot ingestion: 5 input methods, 87 generators, deterministic output." |
 | Error message | "Oops! Something went wrong" | "Snapshot ingestion failed: missing package.json at project root" |
-| Marketing headline | "Supercharge your development workflow!" | "80 generators. 17 programs. One upload." |
-| Capability claim | "Best-in-class code analysis" | "81 of 82 capabilities at Grade A. Evidence-verified." |
+| Marketing headline | "Supercharge your development workflow!" | "87 generators. 18 programs. One upload." |
+| Capability claim | "Best-in-class code analysis" | "83 of 83 capabilities at Grade A. Evidence-verified." |
 
 ### Vocabulary
 
@@ -82,7 +82,7 @@ The voice of AXIS Toolbox is **operator-grade**: precise, authoritative, unadorn
 AXIS Toolbox sits in a category it's creating: **AI Development Intelligence**. Not DevOps. Not DevTools. Not AI coding assistants. The layer *beneath* all of those.
 
 ### Positioning Statement
-For developers and AI-native teams who need structured context from their codebases, AXIS Toolbox is the development intelligence platform that analyzes repositories and generates 80 specialized artifacts across 17 programs. Unlike static analysis tools that find bugs, or AI assistants that write code, AXIS Toolbox produces the structured knowledge that makes every other tool in the chain more effective.
+For developers and AI-native teams who need structured context from their codebases, AXIS Toolbox is the development intelligence platform that analyzes repositories and generates 87 specialized artifacts across 18 programs. Unlike static analysis tools that find bugs, or AI assistants that write code, AXIS Toolbox produces the structured knowledge that makes every other tool in the chain more effective.
 
 ### Competitive Landscape
 
@@ -90,7 +90,7 @@ For developers and AI-native teams who need structured context from their codeba
 |----------|--------------|-----------------|
 | AI Code Assistants | Copilot, Cursor, Cody | AXIS feeds these. It generates the context files they consume |
 | Static Analysis | ESLint, SonarQube | AXIS analyzes architecture, not syntax. Programs > rules |
-| Documentation | Mintlify, ReadMe | AXIS generates 80 artifact types, not just docs |
+| Documentation | Mintlify, ReadMe | AXIS generates 87 artifact types, not just docs |
 | DevOps Intelligence | LinearB, Sleuth | AXIS operates at repo level, not workflow/deployment level |
 | Code Search | Sourcegraph, grep.app | AXIS produces structured outputs, not search results |
 
@@ -101,8 +101,8 @@ For developers and AI-native teams who need structured context from their codeba
 | Self-governing AI system | 12 YAML constitutional files enforce behavior at every layer |
 | Deterministic generators | 6 dedicated determinism tests verify byte-identical output |
 | Zero external runtime dependencies | Custom HTTP router, no Express/Fastify/Koa. Verified in package.json |
-| Quantified quality | 81/82 capabilities at Grade A, continuous self-audit via automated_remedial_action.yaml |
-| Comprehensive generation | 80 generators across 17 programs, each with specific output contract |
+| Quantified quality | 83/83 capabilities at Grade A, continuous self-audit via automated_remedial_action.yaml |
+| Comprehensive generation | 87 generators across 18 programs, each with specific output contract |
 
 ---
 

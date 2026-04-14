@@ -6,7 +6,7 @@
 **Category**: AI Development Intelligence Platform
 **Tagline**: The operating system for AI-native development
 **Owner**: Last Man Up Inc.
-**Model**: Freemium SaaS — Free tier (3 programs, 13 generators) → Pro tier (17 programs, 80 generators)
+**Model**: Freemium SaaS — Free tier (3 programs, 14 generators) → Pro tier (18 programs, 87 generators)
 
 ---
 
@@ -18,19 +18,19 @@
 |----------|---------|------------|---------------|
 | AI Code Assistants | GitHub Copilot, Cursor, Cody, Tabnine | $2B+ (2024) | **Upstream enabler** — AXIS feeds context to these tools |
 | Static Analysis | SonarQube, ESLint, Semgrep, CodeClimate | $800M | **Different axis** — AXIS analyzes architecture, not lint rules |
-| Code Intelligence | Sourcegraph, Codeium, Codacy | $500M | **Deeper output** — 80 artifacts vs. search results |
+| Code Intelligence | Sourcegraph, Codeium, Codacy | $500M | **Deeper output** — 87 artifacts vs. search results |
 | DevOps Intelligence | LinearB, Sleuth, Faros AI | $300M | **Repo-level** — AXIS operates at code level, not workflow |
-| Documentation | Mintlify, ReadMe, GitBook | $200M | **Broader scope** — docs are 1 of 17 program outputs |
+| Documentation | Mintlify, ReadMe, GitBook | $200M | **Broader scope** — docs are 1 of 18 program outputs |
 | AI Dev Tools (new) | Devin, SWE-Agent, OpenHands | $1B+ (projected) | **Infrastructure layer** — AXIS provides the context these agents need |
 
 ### Competitive Advantages (Evidence-Backed)
 
 | Advantage | Evidence | Defensibility |
 |-----------|---------|---------------|
-| 80 generators across 17 programs | axis_all_tools.yaml canonical spec | High — breadth creates switching cost |
+| 87 generators across 18 programs | axis_all_tools.yaml canonical spec | High — breadth creates switching cost |
 | Self-governing YAML constitution | 12 governance files, automated_remedial_action.yaml | Very High — novel architecture |
 | Zero runtime HTTP dependencies | Custom router, verified in package.json | Medium — engineering discipline |
-| 91.5% test coverage (2,910 tests) | vitest --coverage output | High — quality compounds |
+| 99.99% test coverage (3,906 tests) | vitest --coverage output | High — quality compounds |
 | Deterministic output | 6 byte-identical determinism tests | High — unique in category |
 | 81/82 capabilities Grade A | capability_inventory.yaml with evidence | High — continuous self-audit |
 
@@ -38,7 +38,7 @@
 
 | Feature | AXIS Toolbox | Sourcegraph | SonarQube | Devin |
 |---------|-------------|-------------|-----------|-------|
-| Repo analysis | ✅ 80 artifacts | ✅ Search + navigation | ✅ Quality gates | ✅ Task completion |
+| Repo analysis | ✅ 87 artifacts | ✅ Search + navigation | ✅ Quality gates | ✅ Task completion |
 | Agent instructions gen | ✅ AGENTS.md, CLAUDE.md | ❌ | ❌ | ❌ |
 | Design tokens gen | ✅ Theme program | ❌ | ❌ | ❌ |
 | Brand guidelines gen | ✅ Brand program | ❌ | ❌ | ❌ |
@@ -87,9 +87,9 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | # | Title | Format | Channel | Goal |
 |---|-------|--------|---------|------|
 | 1 | "Why Your AI Coding Assistant Needs Better Context" | Blog post (2,000 words) | Blog, HN, Dev.to | Problem awareness |
-| 2 | "80 Artifacts From One Upload: How AXIS Toolbox Works" | Technical deep-dive | Blog, YouTube | Product understanding |
+| 2 | "87 Artifacts From One Upload: How AXIS Toolbox Works" | Technical deep-dive | Blog, YouTube | Product understanding |
 | 3 | "The YAML Constitution: How We Built a Self-Governing AI System" | Architecture blog | Blog, HN | Technical credibility |
-| 4 | "From 0 to 91.5% Coverage: Testing a 17-Program Generator" | Engineering blog | Blog, Dev.to | Developer respect |
+| 4 | "From 0 to 99.99% Coverage: Testing an 18-Program Generator" | Engineering blog | Blog, Dev.to | Developer respect |
 | 5 | "Zero Dependencies: Why We Built Our Own HTTP Router" | Opinion piece | Blog, HN, Reddit | Philosophy alignment |
 
 ### Social Content Calendar (Monthly)
@@ -131,7 +131,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 
 | Day | Subject | Content |
 |-----|---------|---------|
-| 0 | You just unlocked 67 more generators | Welcome to Pro. Guide to all 17 programs. |
+| 0 | You just unlocked 73 more generators | Welcome to Pro. Guide to all 18 programs. |
 | 3 | Your brand guidelines are generated | Highlight Brand program output. "Share with your designer." |
 | 7 | Ship a video about your project | Remotion storyboard walkthrough |
 | 14 | Your optimization rules are saving tokens | Cost savings report from Optimization program |
@@ -150,7 +150,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 ## Landing Page Copy
 
 ### Hero Section
-**Headline**: 80 generators. 17 programs. One upload.
+**Headline**: 87 generators. 18 programs. One upload.
 **Subhead**: AXIS Toolbox analyzes your codebase and generates structured intelligence — from agent instructions to brand guidelines to video storyboards.
 **CTA**: Analyze your repo free →
 
@@ -159,13 +159,13 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 | Column | Headline | Body |
 |--------|----------|------|
 | 1 | Make AI tools smarter | Generate AGENTS.md, CLAUDE.md, and .cursorrules that give your AI assistant real context about your codebase. |
-| 2 | 80 artifacts, zero effort | From architecture diagrams to marketing copy to design tokens — all generated from a single snapshot of your repo. |
-| 3 | Self-auditing quality | 81 of 82 capabilities at Grade A. 2,910 tests. 91.5% coverage. A system that checks its own work. |
+| 2 | 87 artifacts, zero effort | From architecture diagrams to marketing copy to design tokens — all generated from a single snapshot of your repo. |
+| 3 | Self-auditing quality | 83 of 83 capabilities at Grade A. 3,906 tests. 99.99% coverage. A system that checks its own work. |
 
 ### Social Proof Section
-- "2,910 tests passing"
-- "91.5% statement coverage"
-- "81/82 capabilities at Grade A"
+- "3,906 tests passing"
+- "99.99% statement coverage"
+- "83/83 capabilities at Grade A"
 - "60+ languages detected"
 - "0 external HTTP dependencies"
 
@@ -173,8 +173,8 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 
 | | Free | Pro |
 |-|------|-----|
-| Programs | Search, Debug, Skills | All 17 programs |
-| Generators | 13 | 80 |
+| Programs | Search, Debug, Skills | All 18 programs |
+| Generators | 14 | 87 |
 | Outputs | AGENTS.md, debug playbook, context map | + Theme, Brand, Marketing, MCP, Obsidian, Remotion... |
 | Snapshots | 5/month | Unlimited |
 | Price | $0 | Per-program pricing |

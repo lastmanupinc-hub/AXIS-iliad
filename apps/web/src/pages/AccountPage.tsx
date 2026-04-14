@@ -270,9 +270,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
         <div className="card" style={{ borderColor: "var(--accent)", marginTop: 0 }}>
           <div className="flex-between">
             <div>
-              <h3 style={{ color: "var(--accent)" }}>Unlock All 17 Programs</h3>
+              <h3 style={{ color: "var(--accent)" }}>Unlock All 18 Programs</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Upgrade to Pro for 200 snapshots/month, 20 projects, 5 team seats, and all 14 Pro programs.
+                Upgrade to Pro for 200 snapshots/month, 20 projects, 5 team seats, and all 15 Pro programs.
               </p>
             </div>
             <button className="btn btn-primary" onClick={() => handleUpgrade("paid")}>

@@ -16,7 +16,7 @@
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐
 │   apps/web       │  │   apps/api       │  │   apps/cli           │
 │   React 19       │  │   Zero-dep HTTP  │  │   axis analyze <dir> │
-│   Vite 6         │→ │   75+ endpoints  │←─│   axis github <url>  │
+│   Vite 6         │→ │   102 endpoints  │←─│   axis github <url>  │
 │   Dark theme     │  │   Port 4000      │  │                      │
 │   Port 5173      │  │   SQLite bind    │  │                      │
 └──────────────────┘  └────────┬─────────┘  └──────────────────────┘
@@ -38,23 +38,24 @@
                     │  packages/           │
                     │  generator-core      │
                     │  ──────────────      │
-                    │  81 generators       │
-                    │  17 program modules  │
+                    │  87 generators       │
+                    │  18 program modules  │
                     │  Template engine     │
                     │  Deterministic output│
                     └──────────────────────┘
                                │
                                ▼
               ┌────────────────────────────────────┐
-              │         17 AXIS PROGRAMS           │
+              │         18 AXIS PROGRAMS           │
               │  Search │ Skills │ Debug            │
               │  Frontend │ SEO │ Optimization      │
               │  Theme │ Brand │ Superpowers        │
               │  Marketing │ Notebook │ Obsidian    │
               │  MCP │ Artifacts │ Remotion         │
               │  Canvas │ Algorithmic               │
+              │  Agentic Purchasing                  │
               │  ──────────────────                 │
-              │  81 generators → structured outputs │
+              │  87 generators → structured outputs │
               └────────────────────────────────────┘
 ```
 
@@ -83,16 +84,16 @@
 | 4 | Parse languages/frameworks | packages/repo-parser | parsed_repo_profile |
 | 5 | Build context graph | packages/context-engine | context-map.json + repo-profile.yaml |
 | 6 | Store snapshot | packages/snapshots (SQLite) | Persisted snapshot |
-| 7 | Fire 81 generators | packages/generator-core | 81 structured outputs |
+| 7 | Fire 87 generators | packages/generator-core | 87 structured outputs |
 | 8 | Serve results | apps/api + apps/web | Dashboard + ZIP download |
 
 ## Program Tier Map
 
 | Tier | Programs | Generators | Revenue Model |
 |------|----------|------------|---------------|
-| Free | Search, Skills, Debug | 13 | Acquisition engine |
-| Pro | 14 paid programs | 67 | Per-program subscription |
-| Bundle | All 17 | 81 | Optional suite pricing |
+| Free | Search, Skills, Debug | 14 | Acquisition engine |
+| Pro | 15 paid programs | 73 | Per-program subscription |
+| Bundle | All 18 | 87 | Optional suite pricing |
 
 ## Technology Stack
 
@@ -120,7 +121,7 @@ begin.yaml ──reads──→ continuation.yaml ──references──→ axis
      ▼                       ▼                               ▼
 automated_remedial_action    execution_queue              generator-core
      │                       │                               │
-     │ self-audit loop       │ tracks commits                │ 81 generators
+     │ self-audit loop       │ tracks commits                │ 87 generators
      │                       │                               │
      ▼                       ▼                               ▼
 hygiene_and_memory ←── memory_generator ←── capability_inventory

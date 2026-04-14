@@ -1,6 +1,6 @@
 # AXIS Toolbox
 
-AI-native development operating system. Upload or point at any codebase — get 80 generated artifacts across 17 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
+AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
 
 ## Quickstart
 
@@ -25,18 +25,18 @@ node apps/cli/dist/cli.js github https://github.com/owner/repo
 ```
 axis-toolbox/
 ├── apps/
-│   ├── api/          → Zero-dependency HTTP server (port 4000, 71 endpoints)
+│   ├── api/          → Zero-dependency HTTP server (port 4000, 102 endpoints)
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/
 │   ├── snapshots/    → Snapshot intake, SQLite persistence, billing, funnel
 │   ├── repo-parser/  → Language detection (60+), framework detection (10), import graph
 │   ├── context-engine/ → Context map builder, repo profile, route/architecture analysis
-│   └── generator-core/ → 80 generators across 17 programs
+    └── generator-core/ → 87 generators across 18 programs
 └── vitest.config.ts  → Shared test config
 ```
 
-## Programs (17)
+## Programs (18)
 
 | Program | Outputs | Tier |
 |---------|---------|------|
@@ -57,6 +57,7 @@ axis-toolbox/
 | **Remotion** | remotion-script.ts, scene-plan.md, render-config.json, asset-checklist.md, storyboard.md | Pro |
 | **Canvas** | canvas-spec.json, social-pack.md, poster-layouts.md, asset-guidelines.md, brand-board.md | Pro |
 | **Algorithmic** | generative-sketch.ts, parameter-pack.json, collection-map.md, export-manifest.yaml, variation-matrix.json | Pro |
+| **Agentic Purchasing** | agent-purchasing-playbook.md, product-schema.json, checkout-flow.md, negotiation-rules.md, commerce-registry.json | Pro |
 
 ## API Endpoints
 
@@ -84,6 +85,7 @@ axis-toolbox/
 | POST | `/v1/remotion/generate` | Run remotion program |
 | POST | `/v1/canvas/generate` | Run canvas program |
 | POST | `/v1/algorithmic/generate` | Run algorithmic program |
+| POST | `/v1/agentic-purchasing/generate` | Run agentic purchasing program |
 | GET | `/v1/programs` | List all programs with generator counts |
 | GET | `/v1/projects/:id/generated-files/:path` | Download individual generated file |
 | GET | `/v1/projects/:id/export` | Download ZIP of generated files |

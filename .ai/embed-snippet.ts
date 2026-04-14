@@ -8,7 +8,7 @@ export const PROJECT_CONTEXT = {
   name: "axis-toolbox",
   type: "monorepo",
   language: "TypeScript",
-  description: "AI-native development operating system. Upload or point at any codebase — get 80 generated artifacts across 17 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
+  description: "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
 } as const;
 
 export const CONVENTIONS = [

@@ -270,7 +270,7 @@ function OverviewSection() {
           Axis is the umbrella platform for AI-native development — a multi-program system
           that turns project snapshots into diagnostics, governed outputs, and build-integrated
           tooling. It provides shared identity, snapshot intake, project context, and a unified
-          design system across 17 separately billable programs organized into 6 categories:
+          design system across 18 separately billable programs organized into 6 categories:
           Repo Intelligence, Governance, Engineering Delivery, Growth &amp; Content,
           Knowledge &amp; Context, Design System, and Creative Generation.
         </p>
@@ -302,7 +302,7 @@ function OverviewSection() {
             <div style={{ fontSize: "2rem", marginBottom: 8 }}><Icon name="toolbox" /></div>
             <h4 style={{ marginBottom: 4 }}>3. Generate</h4>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
-              Run any of 17 programs to produce specialized output files — rules, configs, docs, and more.
+              Run any of 18 programs to produce specialized output files — rules, configs, docs, and more.
             </p>
           </div>
         </div>
@@ -312,16 +312,16 @@ function OverviewSection() {
         <h3 style={{ marginBottom: 12 }}>Quick Stats</h3>
         <div className="grid grid-4">
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">17</div>
+            <div className="stat-value">18</div>
             <div className="stat-label">Programs</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">80</div>
+            <div className="stat-value">87</div>
             <div className="stat-label">Generators</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div className="stat-value">3 Free</div>
-            <div className="stat-label">14 Pro</div>
+            <div className="stat-label">15 Pro</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div className="stat-value">6</div>
@@ -401,7 +401,7 @@ function OverviewSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Program Categories</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
-          The 17 programs are organized into 6 functional categories. Each category addresses
+          The 18 programs are organized into 6 functional categories. Each category addresses
           a different dimension of the development lifecycle.
         </p>
         <div className="grid grid-3" style={{ gap: 12 }}>
@@ -926,7 +926,7 @@ function OutputsSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Output Files Per Program</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Each program produces 4–6 files. Here is the full inventory across all 17 programs (81 generators total).
+          Each program produces 4–6 files. Here is the full inventory across all 18 programs (87 generators total).
         </p>
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <table>
@@ -1103,7 +1103,7 @@ function CliSection() {
             </tr>
             <tr>
               <td className="mono" style={{ fontSize: "0.8125rem" }}>list-programs</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Show all 17 programs with tier and category</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Show all 18 programs with tier and category</td>
             </tr>
             <tr>
               <td className="mono" style={{ fontSize: "0.8125rem" }}>auth</td>

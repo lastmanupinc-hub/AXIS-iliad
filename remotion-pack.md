@@ -4,7 +4,7 @@
 
 | Property | Value |
 |----------|-------|
-| Title | "AXIS Toolbox: From Upload to 80 Artifacts" |
+| Title | "AXIS Toolbox: From Upload to 87 Artifacts" |
 | Duration | 60 seconds |
 | Resolution | 1920 × 1080 (16:9) |
 | FPS | 30 |

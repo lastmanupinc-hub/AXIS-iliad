@@ -11,6 +11,9 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Billing Audit Trail** — `tier_changes` table, `logTierChange()` with proration calculation, `GET /v1/billing/history`, `GET /v1/billing/proration` preview endpoint.
 - **DB Migration v8** — `github_tokens` table (encrypted storage, scopes, validity, usage timestamps) + `tier_changes` table (from/to tier, reason, proration, metadata).
 - **Test Coverage Analysis** — @vitest/coverage-v8, 43 gap-targeted tests bringing coverage to 91.5% statements, 92.2% lines. version-store, billing-store, tier-audit, github-token-store all at 97%+.
+- **Agentic Purchasing Program** — 18th program with 5 generators: agent-purchasing-playbook.md, product-schema.json, checkout-flow.md, negotiation-rules.md, commerce-registry.json. AP2/UCP/Visa IC compliance, SCA thresholds, network tokenization, commerce registry with graduated readiness scoring. 87 total generators.
+- **Referral System** — 3 SQLite tables, 12 functions, chargeWithDiscounts() at all 7 billing sites.
+- **HEAD Conformance** — Router HEAD→GET aliasing for all routes.
 - **Performance Benchmarks** — 2 vitest bench suites (parser pipeline + storage operations) covering parseRepo, FTS5 search/index, snapshot creation, webhook HMAC, generator storage. All critical paths <100ms for 200-file repos.
 - **CI Pipeline Hardening** — Coverage reporting (vitest/coverage-v8, 92%+ line coverage), dependency audit (`pnpm audit`), Docker build validation job with health check verification.
 - **Database Maintenance** — `walCheckpoint`, `vacuum`, `integrityCheck`, `getDbStats`, `purgeStaleData`, `runMaintenance` utilities. `GET /v1/db/stats` and `POST /v1/db/maintenance` API endpoints.
@@ -19,7 +22,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **DB Migration Framework** — `schema_migrations` table, versioned SQL migrations, `runMigrations`/`getSchemaVersion` functions.
 - **Persistent Rate Limiter** — SQLite-backed sliding window with in-memory hot path, `bindRateLimiterDb`/`flushToDb`/`unbindRateLimiterDb`.
 - **File Content Search API** — `POST /v1/search/index`, `POST /v1/search/query`, `GET /v1/search/:id/stats` with ranked LIKE matching.
-- **OpenAPI 3.1 Specification** — `GET /v1/docs` serving complete spec for all 59+ endpoints.
+- **OpenAPI 3.1 Specification** — `GET /v1/docs` serving complete spec for all 102 endpoints.
 - **Static Analysis** — Go ecosystem (go.mod, Chi/Gin/Echo/Fiber), SQL schema extraction, domain model extraction (Go/TS/Python), multi-signal project type scorer, cross-boundary separation scoring.
 - **Determinism Proof** — Pipeline produces byte-identical output on consecutive runs (6 determinism tests).
 
@@ -52,7 +55,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [0.2.0] - 2025-07-19
 
 ### Added
-- **17 Programs** — All 17 program generators complete (81 generators total across search, debug, skills, frontend, SEO, optimization, theme, brand, superpowers, marketing, notebook, obsidian, MCP, artifacts, remotion, canvas, algorithmic).
+- **17 Programs** — All 17 program generators complete (81 generators total across search, debug, skills, frontend, SEO, optimization, theme, brand, superpowers, marketing, notebook, obsidian, MCP, artifacts, remotion, canvas, algorithmic). 18th program (Agentic Purchasing) added in v0.4.0.
 - **19 Depth Generators** — Second layer of richer outputs for all programs.
 - **CLI** — `apps/cli` with scanner, runner, writer. `axis analyze .` and `axis github <url>`.
 - **GitHub URL Intake** — Tarball fetch + custom POSIX tar parser + gunzip.

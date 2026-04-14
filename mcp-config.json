@@ -121,7 +121,7 @@
   "resources": [
     {
       "name": "axis://programs",
-      "description": "Complete program catalog: all 17 programs with generators, tiers, grades, and output specifications",
+      "description": "Complete program catalog: all 18 programs with generators, tiers, grades, and output specifications",
       "mimeType": "application/json",
       "uri": "axis://programs"
     },

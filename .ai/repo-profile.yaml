@@ -46,9 +46,9 @@ architectural_layers:
   - name: snapshots
     role: "SQLite intake (5 tables: snapshots, projects, accounts, billings, webhooks)"
   - name: generator-core
-    role: "Template engine + 81 generators across 17 program modules"
+    role: "Template engine + 87 generators across 18 program modules"
   - name: API server
-    role: "Zero-dep HTTP router, 75+ endpoints, API keys, rate limiting, Prometheus metrics"
+    role: "Zero-dep HTTP router, 102 endpoints, API keys, rate limiting, Prometheus metrics"
   - name: CLI
     role: "axis analyze <dir>, axis github <url>"
   - name: Web SPA

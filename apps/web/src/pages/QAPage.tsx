@@ -14,7 +14,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "general",
     question: "What is Axis Toolbox?",
-    answer: "Axis Toolbox is a codebase analysis platform with 17 specialized programs organized into 6 categories: Repo Intelligence, Governance, Engineering Delivery, Growth & Content, Knowledge & Context, and Creative Generation. Upload your source code and it generates tailored documentation, rules, configurations, and other artifacts specific to your project's architecture, frameworks, and patterns. Each program has 4–5 generators that produce distinct output files.",
+    answer: "Axis Toolbox is a codebase analysis platform with 18 specialized programs organized into 7 categories: Repo Intelligence, Governance, Engineering Delivery, Growth & Content, Knowledge & Context, Creative Generation, and Agentic Commerce. Upload your source code and it generates tailored documentation, rules, configurations, and other artifacts specific to your project's architecture, frameworks, and patterns. Each program has 4–5 generators that produce distinct output files.",
   },
   {
     category: "general",
@@ -29,7 +29,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "general",
     question: "How is this different from other analysis tools?",
-    answer: "Unlike linters or static analyzers, Axis Toolbox generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 81 generators across 17 programs produce files you can drop directly into your project.",
+    answer: "Unlike linters or static analyzers, Axis Toolbox generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 87 generators across 18 programs produce files you can drop directly into your project.",
   },
   {
     category: "general",
@@ -50,8 +50,8 @@ const QA_ITEMS: QAItem[] = [
   },
   {
     category: "programs",
-    question: "What do the 14 Pro programs include?",
-    answer: "Pro programs span 5 categories: Engineering Delivery (Frontend Audit, Superpowers, MCP, Artifacts), Growth & Content (SEO, Brand, Marketing), Knowledge & Context (Notebook, Obsidian), Design System (Theme), and Creative Generation (Remotion, Canvas, Algorithmic). Plus Optimization from Repo Intelligence. Each produces 4–5 specialized files — design tokens, video scripts, marketing campaigns, and more.",
+    question: "What do the 15 Pro programs include?",
+    answer: "Pro programs span 6 categories: Engineering Delivery (Frontend Audit, Superpowers, MCP, Artifacts), Growth & Content (SEO, Brand, Marketing), Knowledge & Context (Notebook, Obsidian), Design System (Theme), Creative Generation (Remotion, Canvas, Algorithmic), and Agentic Commerce (Agentic Purchasing). Plus Optimization from Repo Intelligence. Each produces 4–5 specialized files — design tokens, video scripts, marketing campaigns, commerce registries, and more.",
   },
   {
     category: "programs",
@@ -88,7 +88,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "api",
     question: "What is the API base URL?",
-    answer: "The production API runs at https://axis-api-6c7z.onrender.com with all endpoints prefixed under /v1. For example: POST /v1/snapshots to create a snapshot, GET /v1/health for status checks. There are 17 documented endpoints covering snapshots, programs, generated files, search, accounts, API keys, team seats, and billing.",
+    answer: "The production API runs at https://axis-api-6c7z.onrender.com with all endpoints prefixed under /v1. For example: POST /v1/snapshots to create a snapshot, GET /v1/health for status checks. There are 100+ endpoints covering snapshots, programs, generated files, search, accounts, API keys, team seats, billing, webhooks, and agentic commerce.",
   },
   {
     category: "api",
@@ -108,7 +108,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "api",
     question: "Is there an OpenAPI specification?",
-    answer: "The API follows REST conventions with JSON request/response bodies. Check the Docs page (Ctrl+5) for the full 17-endpoint reference including request formats, response shapes, error codes, and 5 annotated curl examples with request/response bodies.",
+    answer: "The API follows REST conventions with JSON request/response bodies. Check the Docs page (Ctrl+5) for the full endpoint reference including request formats, response shapes, error codes, and 5 annotated curl examples with request/response bodies.",
   },
   {
     category: "api",
@@ -125,7 +125,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "How much does Pro cost?",
-    answer: "Pro is $29/month or $279/year (save 20% with annual billing). It includes all 17 programs, 200 snapshots/month, 20 projects, 5 team seats, and 300 requests/minute API rate limit. Each program can be purchased individually if you only need specific capabilities.",
+    answer: "Pro is $29/month or $279/year (save 20% with annual billing). It includes all 18 programs, 200 snapshots/month, 20 projects, 5 team seats, and 300 requests/minute API rate limit. Each program can be purchased individually if you only need specific capabilities.",
   },
   {
     category: "billing",
@@ -150,7 +150,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Do programs have individual pricing?",
-    answer: "Yes. Each of the 17 programs is separately billable — you can purchase only the programs you need instead of the full Pro plan. Visit the Plans page for individual program pricing. The Suite bundle (all 17) is discounted compared to purchasing programs individually.",
+    answer: "Yes. Each of the 18 programs is separately billable — you can purchase only the programs you need instead of the full Pro plan. Visit the Plans page for individual program pricing. The Suite bundle (all 18) is discounted compared to purchasing programs individually.",
   },
 
   // Technical

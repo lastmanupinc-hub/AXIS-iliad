@@ -4,11 +4,11 @@
 
 | Rank | File/Module | Hotspot Score | Risk | Why |
 |------|------------|---------------|------|-----|
-| 1 | `packages/generator-core/` | 9.5 | Critical | All 80 generators depend on this engine. Template change = 17 programs affected |
-| 2 | `apps/api/src/handlers.ts` | 9.0 | Critical | 75+ endpoint handlers in single file. Every API feature change touches this |
+| 1 | `packages/generator-core/` | 9.5 | Critical | All 87 generators depend on this engine. Template change = 18 programs affected |
+| 2 | `apps/api/src/handlers.ts` | 9.0 | Critical | 102 endpoint handlers in single file. Every API feature change touches this |
 | 3 | `packages/snapshots/src/store.ts` | 8.5 | Critical | SQLite persistence — all data reads/writes flow through here |
 | 4 | `continuation.yaml` | 8.0 | High | Ground truth for all session state. Every session reads AND writes |
-| 5 | `axis_all_tools.yaml` | 7.5 | High | Golden source for all 17 program specs. Adding/changing any program starts here |
+| 5 | `axis_all_tools.yaml` | 7.5 | High | Golden source for all 18 program specs. Adding/changing any program starts here |
 | 6 | `packages/repo-parser/src/parser.ts` | 7.0 | High | 60+ language detection rules. All snapshot intake depends on correct parsing |
 | 7 | `packages/context-engine/src/context-map.ts` | 6.5 | High | Context graph builder — all generators consume its output |
 | 8 | `begin.yaml` | 6.0 | Medium | Session gate + optimization policy. Changes affect all development behavior |
@@ -60,10 +60,10 @@
 ## Architectural Risks
 
 ### 1. handlers.ts Monolith
-75+ endpoint handlers in a single file. High cognitive load, merge conflict risk, and difficulty in isolating endpoint-specific tests. **Recommendation**: Split into route-grouped handler modules (auth, billing, program endpoints, admin, webhooks).
+102 endpoint handlers in a single file. High cognitive load, merge conflict risk, and difficulty in isolating endpoint-specific tests. **Recommendation**: Split into route-grouped handler modules (auth, billing, program endpoints, admin, webhooks).
 
 ### 2. Generator-Core Single Point
-All 80 generators pass through one template engine. A regression in the engine affects all 17 programs simultaneously. **Recommendation**: Per-program integration tests that validate output structure.
+All 87 generators pass through one template engine. A regression in the engine affects all 18 programs simultaneously. **Recommendation**: Per-program integration tests that validate output structure.
 
 ### 3. SQLite Single-Writer
 WAL mode helps reads but writes are still serialized. Under load, snapshot ingestion could bottleneck. **Recommendation**: Acceptable for current scale (single instance on Render). Monitor write latency as usage grows.

@@ -152,7 +152,7 @@ class ProgramPipeline {
   }
 
   renderPipelineFlow() {
-    const steps = ['Upload / CLI', 'Validation', 'repo-parser', 'context-engine', 'generator-core', '80 Artifacts'];
+    const steps = ['Upload / CLI', 'Validation', 'repo-parser', 'context-engine', 'generator-core', '87 Artifacts'];
     return `
       <div class="ax-pipeline-flow">
         <div class="ax-flow-label">Execution Pipeline</div>

@@ -194,7 +194,7 @@ Session behavior is wrong or inconsistent
 ### B — Generator Core
 - [ ] B1: Generator template resolves all variables
 - [ ] B2: Generator output matches determinism test (byte-identical)
-- [ ] B3: All 80 generators complete without error
+- [ ] B3: All 87 generators complete without error
 - [ ] B4: Output files are valid format (JSON parseable, YAML valid, MD renderable)
 - [ ] B5: No generator depends on runtime state (must be pure function)
 

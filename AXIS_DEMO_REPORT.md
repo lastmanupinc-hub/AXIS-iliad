@@ -8,7 +8,7 @@
 | Repository | lastmanupinc-hub/AXIS-Scalpel |
 | Runtime | Node.js ≥ 20 · TypeScript 5.7 strict · pnpm workspaces |
 | Description | The operating system for AI-native development |
-| Programs Run | 17 / 17 |
+| Programs Run | 18 / 18 |
 | Files Generated | 25 |
 | Analysis Type | Full self-referential (Toolbox analyzing itself) |
 
@@ -17,7 +17,7 @@
 ## Programs Executed
 
 ### Program 1: Search (FREE)
-**Generators**: 4 · **Grade**: A
+**Generators**: 5 · **Grade**: A
 
 | # | Output | Path | Format |
 |---|--------|------|--------|
@@ -25,6 +25,7 @@
 | 2 | Repo Profile | `.ai/repo-profile.yaml` | YAML |
 | 3 | Architecture Summary | `architecture-summary.md` | Markdown |
 | 4 | Dependency Hotspots | `dependency-hotspots.md` | Markdown |
+| 5 | Symbol Index | `.ai/symbol-index.json` | JSON |
 
 **Key Findings**: Monorepo with 3 apps + 4 packages. generator-core is highest centrality node (9.5/10). 10 core invariants identified. Zero circular dependencies.
 
@@ -85,7 +86,7 @@
 |---|--------|------|--------|
 | 1 | Brand Guidelines | `brand-guidelines.md` | Markdown |
 
-**Key Findings**: Operator-grade voice (precise, authoritative, direct, restrained). Preferred vocabulary (snapshot vs. scan, generator vs. template). Banned terms (AI-powered, revolutionary, seamlessly). Full product hierarchy (17 programs by tier). Visual identity: midnight_command theme, no gradients, no decorative elements. Content guidelines for docs, errors, changelogs, commits.
+**Key Findings**: Operator-grade voice (precise, authoritative, direct, restrained). Preferred vocabulary (snapshot vs. scan, generator vs. template). Banned terms (AI-powered, revolutionary, seamlessly). Full product hierarchy (18 programs by tier). Visual identity: midnight_command theme, no gradients, no decorative elements. Content guidelines for docs, errors, changelogs, commits.
 
 ---
 
@@ -96,7 +97,7 @@
 |---|--------|------|--------|
 | 1 | Notebook Summary | `notebook-summary.md` | Markdown |
 
-**Key Findings**: Source map covering ~120 source files + 101 test files + 12 YAML governance. 10 critical path files ranked by centrality. 6 research threads: YAML governance architecture, deterministic generation, zero-dep HTTP router, snapshot pipeline, testing strategy (2,910 tests), monorepo package architecture. Key metrics dashboard with 12 system metrics.
+**Key Findings**: Source map covering ~120 source files + 131 test files + 12 YAML governance. 10 critical path files ranked by centrality. 6 research threads: YAML governance architecture, deterministic generation, zero-dep HTTP router, snapshot pipeline, testing strategy (3,906 tests), monorepo package architecture. Key metrics dashboard with 12 system metrics.
 
 ---
 
@@ -108,7 +109,7 @@
 | 1 | Pipeline Dashboard | `ProgramPipeline.js` | JavaScript |
 | 2 | Artifact Spec | `artifact-spec.md` | JSON (in MD) |
 
-**Key Findings**: Interactive vanilla JS component (zero dependencies) visualizing 17 programs × 81 generators. Filter by tier, click-to-expand outputs, animated pipeline flow. midnight_command theme with CSS-in-JS. Full data model and interaction spec.
+**Key Findings**: Interactive vanilla JS component (zero dependencies) visualizing 18 programs × 87 generators. Filter by tier, click-to-expand outputs, animated pipeline flow. midnight_command theme with CSS-in-JS. Full data model and interaction spec.
 
 ---
 
@@ -197,14 +198,14 @@
 | 1 | Pipeline Topology | `algorithmic-pack.json` | JSON |
 | 2 | Generative Sketch | `generative-sketch.js` | JavaScript |
 
-**Key Findings**: DAG topology analysis: 36 nodes (4 packages, 3 apps, 17 programs, 12 governance files), 31 edges, max depth 4. Highest centrality: generator-core (0.95). Zero cyclic dependencies. Canvas-based particle visualization: packages orbit inner ring, programs orbit outer ring, particles flow along edges showing data movement. midnight_command color palette.
+**Key Findings**: DAG topology analysis: 37 nodes (4 packages, 3 apps, 18 programs, 12 governance files), 31 edges, max depth 4. Highest centrality: generator-core (0.95). Zero cyclic dependencies. Canvas-based particle visualization: packages orbit inner ring, programs orbit outer ring, particles flow along edges showing data movement. midnight_command color palette.
 
 ---
 
 ### Program 17: Payment (PRO — KNOWN GAP)
 **Generators**: 0 of 4 · **Grade**: pending
 
-Payment processing is a known gap blocked on an external dependency (No Fate Platform payment processor, not Stripe-direct). All 83 tracked capabilities are Grade A. The payment program generators are not counted in the 81 generator total.
+Payment processing is a known gap blocked on an external dependency (No Fate Platform payment processor, not Stripe-direct). All 83 tracked capabilities are Grade A. The payment program generators are not counted in the 87 generator total.
 
 ---
 
@@ -212,7 +213,7 @@ Payment processing is a known gap blocked on an external dependency (No Fate Pla
 
 | Metric | Value |
 |--------|-------|
-| Programs executed | 17 |
+| Programs executed | 18 |
 | Programs with output | 16 (Payment = known gap, pending external dependency) |
 | Total files generated | 25 |
 | Total generators fired | 23 |
@@ -254,13 +255,13 @@ Payment processing is a known gap blocked on an external dependency (No Fate Pla
 ## Self-Referential Observations
 
 This is the third complete AXIS Toolbox demo:
-1. **Payment Engine** — 17 programs, 30 files (external project)
-2. **Avatar Foundry** — 17 programs, 25 files (AI project)
-3. **AXIS Toolbox** — 17 programs, 25 files (self-referential)
+1. **Payment Engine** — 18 programs, 30 files (external project)
+2. **Avatar Foundry** — 18 programs, 25 files (AI project)
+3. **AXIS Toolbox** — 18 programs, 25 files (self-referential)
 
 The self-referential demo proves:
 - The system can analyze its own architecture and produce accurate outputs
-- 81 generators described in axis_all_tools.yaml are real and produce real artifacts
+- 87 generators described in axis_all_tools.yaml are real and produce real artifacts
 - The midnight_command design system is consistent across all visual outputs
 - YAML governance data is correctly surfaced in context maps, debug playbooks, and agent instructions
 - The determinism claim is demonstrated: every artifact is derived from the same snapshot data
@@ -269,4 +270,4 @@ The self-referential demo proves:
 
 ---
 
-*Generated by AXIS Toolbox · 17 programs · 81 generators · v0.4.0*
+*Generated by AXIS Toolbox · 18 programs · 87 generators · v0.4.0*
