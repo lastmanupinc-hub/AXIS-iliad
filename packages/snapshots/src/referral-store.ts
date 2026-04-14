@@ -135,11 +135,9 @@ export function initFreeCallGrant(account_id: string): void {
   ensureReferralCredits(account_id);
   const db = getDb();
   const credits = db.prepare("SELECT free_calls_remaining, lifetime_referrals FROM referral_credits WHERE account_id = ?").get(account_id) as { free_calls_remaining: number; lifetime_referrals: number };
-  // Only grant if never used (lifetime_referrals tracks this was never touched as referrer,
-  // but free_calls_remaining === 0 with no prior grants is the real check).
-  // We use a flag: if free_calls_remaining === 0 and updated_at === last_reset_at, it's fresh.
-  const row = db.prepare("SELECT updated_at, last_reset_at FROM referral_credits WHERE account_id = ?").get(account_id) as { updated_at: string; last_reset_at: string };
-  if (credits.free_calls_remaining === 0 && row.updated_at === row.last_reset_at) {
+  // Only grant if the account is completely fresh: never referred anyone and has no pending free call.
+  // Previous timestamp comparison (updated_at === last_reset_at) was fragile under sub-ms execution.
+  if (credits.free_calls_remaining === 0 && credits.lifetime_referrals === 0) {
     const now = new Date().toISOString();
     db.prepare("UPDATE referral_credits SET free_calls_remaining = 1, updated_at = ? WHERE account_id = ?").run(now, account_id);
   }
