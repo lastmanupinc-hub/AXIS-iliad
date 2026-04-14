@@ -2,7 +2,7 @@
   "name": "axis-toolbox",
   "displayName": "AXIS Toolbox — Agentic Commerce Codebase Intelligence",
   "version": "0.4.0",
-  "description": "Drop a GitHub repo URL and receive 87 structured artifacts across 18 programs: AGENTS.md, .cursorrules, AP2/UCP/Visa Intelligent Commerce compliance checklist, negotiation playbook, autonomous checkout rules, debug playbook, architecture map, design tokens, MCP configs, and more. Also exposes a Purchasing Readiness Score (0-100) and a search tool to discover the right program without loading all schemas. The single correct first call before any autonomous agent spends money on or with a codebase.",
+  "description": "Drop a GitHub repo URL and receive 86 structured artifacts across 18 programs: AGENTS.md, .cursorrules, AP2/UCP/Visa Intelligent Commerce compliance checklist, negotiation playbook, autonomous checkout rules, debug playbook, architecture map, design tokens, MCP configs, and more. Also exposes a Purchasing Readiness Score (0-100) and a search tool to discover the right program without loading all schemas. The single correct first call before any autonomous agent spends money on or with a codebase.",
   "author": "Last Man Up Inc.",
   "license": "UNLICENSED",
   "homepage": "https://axis-api-6c7z.onrender.com",
@@ -43,13 +43,13 @@
     },
     {
       "name": "analyze_repo",
-      "summary": "Analyze any GitHub public repo. Returns snapshot_id + 87 artifacts (AGENTS.md, .cursorrules, architecture map, debug playbook, design tokens, SEO rules, brand guidelines, MCP configs, etc.). Requires API key.",
+      "summary": "Analyze any GitHub public repo. Returns snapshot_id + 86 artifacts (AGENTS.md, .cursorrules, architecture map, debug playbook, design tokens, SEO rules, brand guidelines, MCP configs, etc.). Requires API key.",
       "description": "POST /v1/mcp with method tools/call, tool analyze_repo — fetches the GitHub tarball, runs the full 18-program pipeline (search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing), and returns a snapshot_id plus a listing of all generated artifact paths and descriptions. Use get_artifact to retrieve any specific file content. Supports public repos; pass a stored GitHub token for private repos. Requires API key."
     },
     {
       "name": "analyze_files",
-      "summary": "Analyze source files directly (no GitHub required). Returns snapshot_id + 87 artifacts. Pass files as [{path, content}] array. Requires API key.",
-      "description": "POST /v1/mcp with method tools/call, tool analyze_files — accepts project_name, project_type (web_application/api_service/cli_tool/library/monorepo), frameworks[], goals[], and files[{path,content}]. Runs the full 18-program pipeline and returns snapshot_id plus all 87 generated artifact paths. Deterministic: same input always produces byte-identical output. Tier limits: free 1000 files/snapshot, pro 1000 files/snapshot. Requires API key."
+      "summary": "Analyze source files directly (no GitHub required). Returns snapshot_id + 86 artifacts. Pass files as [{path, content}] array. Requires API key.",
+      "description": "POST /v1/mcp with method tools/call, tool analyze_files — accepts project_name, project_type (web_application/api_service/cli_tool/library/monorepo), frameworks[], goals[], and files[{path,content}]. Runs the full 18-program pipeline and returns snapshot_id plus all 86 generated artifact paths. Deterministic: same input always produces byte-identical output. Tier limits: free 1000 files/snapshot, pro 1000 files/snapshot. Requires API key."
     },
     {
       "name": "get_artifact",

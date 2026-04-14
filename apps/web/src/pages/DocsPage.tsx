@@ -316,7 +316,7 @@ function OverviewSection() {
             <div className="stat-label">Programs</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">87</div>
+            <div className="stat-value">86</div>
             <div className="stat-label">Generators</div>
           </div>
           <div style={{ textAlign: "center" }}>
@@ -926,7 +926,7 @@ function OutputsSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Output Files Per Program</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Each program produces 4–6 files. Here is the full inventory across all 18 programs (87 generators total).
+          Each program produces 4–6 files. Here is the full inventory across all 18 programs (86 generators total).
         </p>
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <table>

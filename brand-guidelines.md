@@ -17,7 +17,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 **Product Name:** axis-toolbox
 **Category:** monorepo
 **Primary Technology:** TypeScript
-**Description:** AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
+**Description:** AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
 
 ## Positioning
 

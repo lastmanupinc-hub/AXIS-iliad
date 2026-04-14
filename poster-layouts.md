@@ -1,6 +1,6 @@
 # Poster Layouts — axis-toolbox
 
-Generated: 2026-04-14T00:47:02.615Z
+Generated: 2026-04-14T01:13:38.054Z
 
 ## Layout A: Tech Overview (A4 Portrait)
 
@@ -26,7 +26,7 @@ Generated: 2026-04-14T00:47:02.615Z
 
 **Hero Zone**
 - Title: axis-toolbox
-- Subtitle: AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
+- Subtitle: AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
 - Type Badge: monorepo
 
 **Stats Grid**

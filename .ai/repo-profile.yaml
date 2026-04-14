@@ -1,12 +1,12 @@
 version: 1.0.0
-snapshot_id: 5aa0d3a6-dfe4-4bc9-ab7f-8d615ae24ddb
-project_id: 4e5b8eab-e1da-4978-ba15-136e3594e868
-generated_at: "2026-04-14T00:47:02.476Z"
+snapshot_id: 27c640de-2e3c-4d98-93ff-6076cf510e00
+project_id: 37af2866-b644-4018-ab3a-7879eb747958
+generated_at: "2026-04-14T01:13:37.941Z"
 project:
   name: axis-toolbox
   type: monorepo
   primary_language: TypeScript
-  description: "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more."
+  description: "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more."
   repo_url: null
   go_module: null
 

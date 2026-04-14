@@ -14,10 +14,10 @@ project_continuation:
 
   current_identity:
     project_name: "AXIS Toolbox"
-    date: "2026-04-13"
-    commit_or_tag: "907fed6"
-    current_session_id: "session_085"
-    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3891 passing / 3899 total tests (8 skipped) across 131 files. 100% branch coverage. Referral micro-discount system LIVE: chargeWithDiscounts() wraps consumeFreeCall → applyReferralDiscount → chargeMpp across all 7 charge sites. HEAD 404 fixed. MCP initialize instructions include incentives. Self-propagation strengthened."
+    date: "2026-04-14"
+    commit_or_tag: "pending"
+    current_session_id: "session_091"
+    one_sentence_summary: "AXIS Toolbox v0.4.0 — 18 programs, 86 generators, 3906 passing / 3914 total tests (8 skipped) across 131 files. 100% branch coverage. Artifact count corrected 87→86 across all source files + README.md (root description source). .ai/.ai/ nested duplicates removed. Full dogfood regeneration with corrected count."
 
   executive_truth:
     maturity_estimate:
@@ -31,7 +31,7 @@ project_continuation:
       pipeline_confidence: 99
       product_surface_confidence: 96
       integration_confidence: 98
-      notes: "3891 passing / 3899 total (8 skipped) across 131 files. 100.00% branch coverage (2231/2231). MCP integration LIVE (10 tools). prepare_for_agentic_purchasing composite tool LIVE with referral_token input. Referral system LIVE: 3 SQLite tables (migration v16), 12 exported functions, chargeWithDiscounts() wired at all 7 billing sites. consumeFreeCall() + applyReferralDiscount() execute before every MPP charge. HEAD→GET aliasing in router. CORS includes HEAD. Self-propagation in AGENTS.md/CLAUDE.md/.cursorrules with micro-discount ROI framing. Agent discoverability: GET /llms.txt, GET /.well-known/axis.json (incentives in first 200 bytes), GET /for-agents (buildIncentivesSummary), MCP initialize (incentives in instructions). 18 programs, 86 generators."
+      notes: "3906 passing / 3914 total (8 skipped) across 131 files. 100.00% branch coverage (2231/2231). MCP integration LIVE (10 tools). prepare_for_agentic_purchasing composite tool LIVE with referral_token input. Referral system LIVE: 3 SQLite tables (migration v16), 12 exported functions, chargeWithDiscounts() wired at all 7 billing sites. HEAD→GET aliasing in router. CORS includes HEAD. Self-propagation in AGENTS.md/CLAUDE.md/.cursorrules. Artifact count corrected 87→86 across all source files + README.md. .ai/.ai/ nested duplicates removed. 18 programs, 86 generators."
 
   boundary_truth:
     accepted_input_modes:
@@ -3313,3 +3313,152 @@ project_continuation:
       - "TEMPO_RECIPIENT_ADDRESS optional — enables crypto USDC payment channel"
     commit_results: ["1e3997d"]
     push_results: []
+
+  session_result_085:
+    date: "2026-04-13"
+    session_id: "session_085"
+    selected_move: "eq_referral: Wire referral discounts into charging flow + strengthen self-propagation"
+    selected_move_roi_reason: "chargeWithDiscounts() wrapper chains consumeFreeCall → applyReferralDiscount → chargeMpp at all 7 billing sites. MCP initialize instructions include incentives. Generator text uses micro-discount ROI framing."
+    completed_candidates:
+      - "chargeWithDiscounts() wired at all 7 chargeMpp call sites"
+      - "MCP initialize instructions include incentives in first 200 bytes"
+      - "AGENTS.md/CLAUDE.md/.cursorrules use 'Micro-Discounts' language with ROI framing"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "3891 passing / 3899 total across 131 files"
+    verticals_advanced:
+      - "v18_agentic_commerce: referral micro-discounts LIVE"
+    blockers_removed: []
+    blockers_added: []
+    remaining_pre_existing_gaps: []
+    commit_results: ["907fed6"]
+    push_results: []
+
+  session_result_086:
+    date: "2026-04-13"
+    session_id: "session_086"
+    selected_move: "eq_head_fix: HEAD 404s on discovery paths — router treats HEAD as GET"
+    selected_move_roi_reason: "HEAD requests are standard HTTP — agents and proxies send them. 404 on HEAD breaks monitoring and agent discovery."
+    completed_candidates:
+      - "Router handle() aliases HEAD→GET so HEAD requests match all GET routes"
+      - "CORS Access-Control-Allow-Methods now includes HEAD"
+      - "6 new tests: status, headers, params, 404, POST-only guard, CORS"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "6 new tests passing"
+    verticals_advanced:
+      - "v0_core_platform: HTTP conformance"
+    blockers_removed:
+      - "HEAD requests returned 404 on all GET routes"
+    blockers_added: []
+    remaining_pre_existing_gaps: []
+    commit_results: ["c669895"]
+    push_results: []
+
+  session_result_087:
+    date: "2026-04-13"
+    session_id: "session_087"
+    selected_move: "eq_compliance_depth: Deepen compliance generators B/B+ → A-/A"
+    selected_move_roi_reason: "Compliance generators had gaps: no cost-to-represent formulas, no AP2 article scoring, no provider-specific SCA thresholds, no graduated readiness scoring, no mandate lifecycle, no ROI computation, no network token payload detail."
+    completed_candidates:
+      - "cost-to-represent formulas, AP2 article scoring, provider SCA thresholds"
+      - "Graduated readiness scoring, mandate lifecycle, ROI computation"
+      - "Network token payload detail"
+      - "15 new tests added"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "3906 passing / 3914 total across 131 files (+15 new)"
+    verticals_advanced:
+      - "v18_agentic_commerce: compliance generators A-/A grade"
+    blockers_removed: []
+    blockers_added: []
+    remaining_pre_existing_gaps: []
+    commit_results: ["b35d3f9"]
+    push_results: []
+
+  session_result_088:
+    date: "2026-04-13"
+    session_id: "session_088"
+    selected_move: "eq_stale_sweep: Update stale metrics across 44 files to current ground truth"
+    selected_move_roi_reason: "44+ files had stale test counts, coverage numbers, and generator counts. Every external probe reads wrong data."
+    completed_candidates:
+      - "44 files updated with current ground truth (3906 tests, 131 files, 86 generators)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "44 files corrected"
+    verticals_advanced:
+      - "v0_core_platform: canonical coherence"
+    blockers_removed:
+      - "Stale metrics across 44 files"
+    blockers_added: []
+    remaining_pre_existing_gaps: []
+    commit_results: ["69f5a29"]
+    push_results: []
+
+  session_result_089:
+    date: "2026-04-13"
+    session_id: "session_089"
+    selected_move: "eq_dogfood_cycle: Regenerate all 86 artifacts from full Pro toolbox dogfood run"
+    selected_move_roi_reason: "Dogfood cycle regenerates all artifacts with current source truth. Required after any source change."
+    completed_candidates:
+      - "86 artifacts regenerated from 500 files (4 dogfood runs)"
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "86 files regenerated across 18 programs"
+    verticals_advanced:
+      - "v0_core_platform: self-dogfooding"
+    blockers_removed: []
+    blockers_added: []
+    remaining_pre_existing_gaps: []
+    commit_results: ["54df746", "5a5ec5e", "6fbe4bc", "7e12181"]
+    push_results: ["pushed to origin/main"]
+
+  session_result_090:
+    date: "2026-04-14"
+    session_id: "session_090"
+    selected_move: "eq_87_fix: begin.yaml ROI selection — fix artifact count 87→86 across all source files"
+    selected_move_roi_reason: "begin.yaml protocol scored this highest ROI (17 net). README.md line 3 is the ROOT SOURCE — context engine reads it and propagates '87' to ALL 86 generated artifacts. Every external probe, every MCP description, every HTML meta tag, every generated AGENTS.md/CLAUDE.md carried the wrong count. 32 instances fixed across 14 source files."
+    completed_candidates:
+      - "README.md: root description source fixed (87→86)"
+      - "handlers.ts: 6 instances in description/purpose strings"
+      - "UploadPage.tsx: 3 instances (hero, banner, bottom)"
+      - "DocsPage.tsx: 2 instances (stat, generator count)"
+      - "QAPage.tsx: 1 instance"
+      - "index.html: 5 instances (title, meta, og, twitter, JSON-LD)"
+      - "mcp-server.json: 4 instances"
+      - "CONTRIBUTING.md: 1 instance"
+      - "AXIS_Board_Pitch.md: 2 instances"
+      - "capability_inventory.yaml: 1 instance"
+      - "algorithmic-pack.json: 1 instance"
+      - "CHANGELOG.md: 1 instance"
+      - "canvas-pack.md: 3 instances"
+      - "canvas-spec.json: 1 instance"
+      - "AXIS_DEMO_REPORT.md: 4 instances"
+      - ".ai/.ai/ nested duplicates removed (8 stale files)"
+      - "Full dogfood regeneration with corrected '86' count — all generated artifacts now correct"
+    refused_candidates:
+      - "eq_193 MCP registry metadata (ROI 10 — lower than 87→86 fix)"
+      - "eq_194 /for-agents enhancement (ROI 10 — lower than 87→86 fix)"
+    blocked_candidates: []
+    evidence_added:
+      - "README.md line 3 identified as root description source (context engine buildProjectIdentity reads first non-heading README line)"
+      - "86 artifacts regenerated with corrected '86' count"
+      - "grep confirms no '87' in any non-continuation source file"
+      - ".ai/.ai/ nested directory deleted (context-map.json, debug-playbook.md, repo-profile.yaml, design-tokens.json, frontend-rules.md, optimization-rules.md, seo-rules.md, symbol-index.json)"
+    verticals_advanced:
+      - "v0_core_platform: canonical coherence — every generated artifact, every probe response, every web page now shows correct count"
+    blockers_removed:
+      - "Propagating factual error: '87' hardcoded in README.md (root source) + 13 other source files → ALL generated artifacts carried wrong count"
+      - ".ai/.ai/ nested duplicates: stale copies of 8 generated artifacts in nested .ai/.ai/ directory"
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "eq_193: MCP registry metadata (Glama, Smithery, mcp-index) — not started"
+      - "eq_194: /for-agents page enhancement — not started"
+      - "continuation.yaml: sessions 085-090 were not recorded until this session"
+    commit_results: ["pending"]
+    push_results: ["pending"]

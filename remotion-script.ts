@@ -16,7 +16,7 @@ function IntroScene() {
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, justifyContent: "center", alignItems: "center" }}>
       <h1 style={{ color: THEME.fg, fontSize: 72, opacity }}>axis-toolbox</h1>
-      <p style={{ color: THEME.muted, fontSize: 28, opacity }}>AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.</p>
+      <p style={{ color: THEME.muted, fontSize: 28, opacity }}>AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.</p>
     </AbsoluteFill>
   );
 }

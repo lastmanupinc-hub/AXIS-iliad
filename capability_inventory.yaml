@@ -68,7 +68,7 @@ code_analysis_and_generation:
     access: [rest_api]
     tested: true
 
-# ─── 2. PROGRAM OUTPUTS (18 PROGRAMS, 87 GENERATORS) ────────────
+# ─── 2. PROGRAM OUTPUTS (18 PROGRAMS, 86 GENERATORS) ────────────
 
 programs:
 

@@ -1,7 +1,7 @@
 # AXIS Toolbox — Board & Investor Pitch
 
 > **The AI-Powered Developer Intelligence Platform**
-> 18 programs. 87 generators. One snapshot. Every output a developer needs — before they write a single line of code.
+> 18 programs. 86 generators. One snapshot. Every output a developer needs — before they write a single line of code.
 
 ---
 
@@ -337,7 +337,7 @@ These programs are permanently free. They solve universal developer problems and
 │                                                         │
 │  ┌─────────┐    ┌──────────────┐    ┌───────────────┐  │
 │  │  Upload  │───▶│  Snapshot     │───▶│  18 Programs  │  │
-│  │  Repo    │    │  Engine       │    │  87 Generators│  │
+│  │  Repo    │    │  Engine       │    │  86 Generators│  │
 │  └─────────┘    └──────────────┘    └───────┬───────┘  │
 │                                             │           │
 │  ┌─────────┐    ┌──────────────┐    ┌───────▼───────┐  │

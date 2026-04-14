@@ -1966,7 +1966,7 @@ export async function handleCapabilities(
   sendJSON(res, 200, {
     name: "AXIS Toolbox",
     version: "0.4.1",
-    description: "Semantic capability manifest for agent tool discovery. Analyzes codebases, generates 87 artifacts across 18 programs. Full agentic commerce hardening including AP2/UCP/Visa IC compliance.",
+    description: "Semantic capability manifest for agent tool discovery. Analyzes codebases, generates 86 artifacts across 18 programs. Full agentic commerce hardening including AP2/UCP/Visa IC compliance.",
     keywords: [
       "AP2", "AP2-compliance", "Article-2", "UN-CISG",
       "UCP", "UCP-600", "UCP-Article-5", "documentary-credits",
@@ -2015,7 +2015,7 @@ export async function handleCapabilities(
       analysis: {
         endpoint: "POST /v1/analyze",
         mcp_tool: "analyze_repo",
-        description: "Full repo analysis - 87 artifacts across 18 programs.",
+        description: "Full repo analysis - 86 artifacts across 18 programs.",
         auth_required: true,
       },
     },
@@ -2326,8 +2326,8 @@ export async function handleForAgents(
   }
 
   const allTools = [
-      { name: "analyze_repo",                   auth: true,  description: "Analyze any public GitHub repo. Returns snapshot_id + 87 artifacts." },
-      { name: "analyze_files",                  auth: true,  description: "Analyze inline files [{path,content}]. Returns snapshot_id + 87 artifacts." },
+      { name: "analyze_repo",                   auth: true,  description: "Analyze any public GitHub repo. Returns snapshot_id + 86 artifacts." },
+      { name: "analyze_files",                  auth: true,  description: "Analyze inline files [{path,content}]. Returns snapshot_id + 86 artifacts." },
       { name: "list_programs",                  auth: false, description: "List all 18 programs and their generators." },
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
@@ -2357,7 +2357,7 @@ export async function handleForAgents(
     name: "AXIS Toolbox",
     version: "0.4.0",
     incentives: buildIncentivesSummary(),
-    purpose: "Codebase intelligence API. Analyzes any repo, generates 87 structured artifacts across 18 programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.",
+    purpose: "Codebase intelligence API. Analyzes any repo, generates 86 structured artifacts across 18 programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.",
     install: {
       mcp_endpoint: `${AXIS_API_BASE}/mcp`,
       transport: "Streamable HTTP (2025-03-26 spec)",
@@ -2593,7 +2593,7 @@ export async function handleProbeIntent(
   if (/analyz|codebase|repo|context|agents\.md|cursorrules/.test(allTerms)) {
     recommendations.push({
       tool: "analyze_repo",
-      reason: "Full codebase analysis — generates 87 artifacts including AGENTS.md, .cursorrules, CLAUDE.md",
+      reason: "Full codebase analysis — generates 86 artifacts including AGENTS.md, .cursorrules, CLAUDE.md",
       auth: true,
       pricing: "$0.50/call via MPP or included in Pro plan",
     });

@@ -273,7 +273,7 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Hero value prop ────────────────────────────────────── */}
       <section className="upload-hero">
         <h1 className="upload-hero-title">
-          Turn any codebase into 87 structured AI artifacts.
+          Turn any codebase into 86 structured AI artifacts.
         </h1>
         <p className="upload-hero-sub">
           Upload a repo and instantly generate AGENTS.md, CLAUDE.md, .cursorrules, MCP configs,
@@ -309,7 +309,7 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Go Pro top banner ──────────────────────────────────────── */}
       <div className="gopro-banner">
         <div>
-          <strong>Go Pro — unlock all 18 programs and 87 artifacts.</strong>
+          <strong>Go Pro — unlock all 18 programs and 86 artifacts.</strong>
           <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>$29/month · cancel anytime · no credit card to start</span>
         </div>
         <button className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => { window.location.hash = "plans"; }}>
@@ -524,7 +524,7 @@ export function UploadPage({ onComplete }: Props) {
         <div className="gopro-banner" style={{ marginTop: 24 }}>
           <div>
             <strong>Ready for all 18 programs?</strong>
-            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>Go Pro for $29/month — all 87 artifacts, unlimited analysis, priority support.</span>
+            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>Go Pro for $29/month — all 86 artifacts, unlimited analysis, priority support.</span>
           </div>
           <button type="button" className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => { window.location.hash = "plans"; }}>
             Go Pro

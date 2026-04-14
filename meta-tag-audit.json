@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T00:47:02.737Z",
+  "generated_at": "2026-04-14T01:13:38.159Z",
   "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.",
   "detected_stack": [
     {
@@ -48,7 +48,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -104,7 +104,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -160,7 +160,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -216,7 +216,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -272,7 +272,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -328,7 +328,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -384,7 +384,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -440,7 +440,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -496,7 +496,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -552,7 +552,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -608,7 +608,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -664,7 +664,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -720,7 +720,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -776,7 +776,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },
@@ -832,7 +832,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context",
           "max_length": 160,
           "status": "verify"
         },

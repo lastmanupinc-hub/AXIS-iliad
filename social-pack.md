@@ -1,6 +1,6 @@
 # Social Pack — axis-toolbox
 
-Generated: 2026-04-14T00:47:02.614Z
+Generated: 2026-04-14T01:13:38.053Z
 
 ## Project Summary
 
@@ -31,7 +31,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 ### Copy Variants
 
 1. **Technical**: "axis-toolbox — monorepo built with TypeScript"
-2. **Marketing**: "axis-toolbox: AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more."
+2. **Marketing**: "axis-toolbox: AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more."
 3. **Minimal**: "axis-toolbox"
 
 ## Square Post (1080×1080)

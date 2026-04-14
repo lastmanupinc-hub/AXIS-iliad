@@ -11,7 +11,7 @@ This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Billing Audit Trail** — `tier_changes` table, `logTierChange()` with proration calculation, `GET /v1/billing/history`, `GET /v1/billing/proration` preview endpoint.
 - **DB Migration v8** — `github_tokens` table (encrypted storage, scopes, validity, usage timestamps) + `tier_changes` table (from/to tier, reason, proration, metadata).
 - **Test Coverage Analysis** — @vitest/coverage-v8, 43 gap-targeted tests bringing coverage to 91.5% statements, 92.2% lines. version-store, billing-store, tier-audit, github-token-store all at 97%+.
-- **Agentic Purchasing Program** — 18th program with 5 generators: agent-purchasing-playbook.md, product-schema.json, checkout-flow.md, negotiation-rules.md, commerce-registry.json. AP2/UCP/Visa IC compliance, SCA thresholds, network tokenization, commerce registry with graduated readiness scoring. 87 total generators.
+- **Agentic Purchasing Program** — 18th program with 5 generators: agent-purchasing-playbook.md, product-schema.json, checkout-flow.md, negotiation-rules.md, commerce-registry.json. AP2/UCP/Visa IC compliance, SCA thresholds, network tokenization, commerce registry with graduated readiness scoring. 86 total generators.
 - **Referral System** — 3 SQLite tables, 12 functions, chargeWithDiscounts() at all 7 billing sites.
 - **HEAD Conformance** — Router HEAD→GET aliasing for all routes.
 - **Performance Benchmarks** — 2 vitest bench suites (parser pipeline + storage operations) covering parseRepo, FTS5 search/index, snapshot creation, webhook HMAC, generator storage. All critical paths <100ms for 200-file repos.

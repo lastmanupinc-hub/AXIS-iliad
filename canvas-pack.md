@@ -42,7 +42,7 @@
 │  │  (cols 1-6)                  │  │  (cols 7-12)                         │   │
 │  │                              │  │                                      │   │
 │  │  Upload → Parse → Context    │  │  ┌────┐ ┌────┐ ┌────┐ ┌──────┐     │   │
-│  │    → Generate → 87 Artifacts │  │  │ 18 │ │ 87 │ │3906│ │99.99%│     │   │
+│  │    → Generate → 86 Artifacts │  │  │ 18 │ │ 86 │ │3906│ │99.99%│     │   │
 │  │                              │  │  │prog│ │ gen│ │test│ │ cov  │     │   │
 │  └──────────────────────────────┘  │  └────┘ └────┘ └────┘ └──────┘     │   │
 │                                     └──────────────────────────────────────┘   │
@@ -181,7 +181,7 @@ Corner badge on each: generator count. Bottom label: "83/83 Grade A"
 ### Pipeline Flow (Cols 1-6, Row 3)
 Horizontal flow: 5 connected nodes with arrows:
 ```
-[Upload] → [repo-parser] → [context-engine] → [generator-core] → [87 Artifacts]
+[Upload] → [repo-parser] → [context-engine] → [generator-core] → [86 Artifacts]
 ```
 Each node: surface-colored pill with cyan border. Arrow: cyan line with arrowhead. Below the arrow between generator-core and Artifacts: "deterministic" label in xs text.
 
@@ -190,7 +190,7 @@ Each node: surface-colored pill with cyan border. Arrow: cyan line with arrowhea
 | Card | Value | Label | Accent |
 |------|-------|-------|--------|
 | 1 | 18 | Programs | Cyan |
-| 2 | 87 | Generators | Cyan |
+| 2 | 86 | Generators | Cyan |
 | 3 | 3,906 | Tests | Green |
 | 4 | 99.99% | Coverage | Green |
 
