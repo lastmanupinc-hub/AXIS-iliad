@@ -1,145 +1,158 @@
-# AXIS Toolbox — Frontend + SEO Rules
+# Frontend Rules — axis-toolbox
 
-## Tech Stack
+> UI engineering standards for this monorepo
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Framework | React | 19 |
-| Bundler | Vite | 6 |
-| Language | TypeScript | 5.7 strict |
-| CSS | Vanilla CSS | Custom properties, dark theme |
-| Testing | Vitest | 4.1 |
-| Hosting | Cloudflare Pages | Static build |
+## Project Overview
 
-## Design System
+axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.
 
-### Color Palette
+## Detected Stack
 
-| Role | Token | Value | Usage |
-|------|-------|-------|-------|
-| Background | `--ax-bg` | `#0d1117` | Page canvas |
-| Surface | `--ax-surface` | `#161b22` | Cards, panels |
-| Elevated | `--ax-elevated` | `#21262d` | Modals, dropdowns |
-| Border | `--ax-border` | `#30363d` | Card borders, dividers |
-| Text Primary | `--ax-text` | `#e6edf3` | Headlines, body |
-| Text Secondary | `--ax-text-muted` | `#8b949e` | Labels, captions |
-| Accent Cyan | `--ax-cyan` | `#58a6ff` | Links, interactive elements |
-| Accent Orange | `--ax-orange` | `#d29922` | Warnings, signals, accent |
-| Success | `--ax-success` | `#3fb950` | Pass states, confirmations |
-| Danger | `--ax-danger` | `#f85149` | Errors, failures |
+| Framework | Version | Confidence |
+|-----------|---------|------------|
+| React | ^19.1.0 | 95% |
 
-### Visual Themes (from axis_all_tools.yaml)
-- **midnight_command**: Dark, command-center aesthetic — primary theme
-- **precision_white**: Light variant for print/export contexts
-- **Characteristics**: control_room_clarity, premium_restraint, modular_surfaces, disciplined_cyan_orange_signaling
+## Component Conventions
 
-### Typography
-- System font stack: `system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`
-- Monospace: `'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace`
-- No custom web fonts — zero external font dependencies
+- Use functional components with hooks
+- Colocate component, types, and tests in the same directory
+- Export one primary component per file
+- Name files after the component: `DataTable.tsx` exports `DataTable`
 
-## Application Structure
+## Styling
 
-### Dashboard Tabs
-| Tab | Component | API Endpoint | Purpose |
-|-----|-----------|-------------|---------|
-| Upload | `UploadForm.tsx` | POST /v1/snapshots | Repo upload (ZIP, GitHub URL) |
-| Analytics | `AnalyticsView.tsx` | GET /v1/account/usage | Usage stats, quota |
-| Files | `FilesView.tsx` | GET /v1/projects/:id/generated-files | Generated file browser with syntax highlight |
-| Settings | `SettingsView.tsx` | /v1/account/keys, /v1/account/github-token | API keys, GitHub token, preferences |
+- Follow the project's established styling pattern
+- Use CSS modules or scoped styles to avoid global namespace collisions
 
-### Key UI Components
-- **CommandPalette** (`Ctrl+K`): Quick navigation across dashboard
-- **FileViewer**: Syntax-highlighted code viewer for generated artifacts
-- **ProgressIndicator**: Upload + generation progress
-- **ToastNotifications**: Action feedback (success, error, info)
+## State Management
 
-### File Viewer Behavior
-- Syntax highlighting for: TypeScript, JavaScript, JSON, YAML, Markdown, CSS
-- Tab navigation between generated files
-- Download individual file or full ZIP (POST /v1/projects/:id/export)
-- Version diff between snapshot generations
+- Local state: `useState` / `useReducer`
+- Shared state: Context API or state library
+- Server state: data-fetching library (SWR, React Query, etc.)
 
-## Frontend Audit Findings
+## Data Fetching
 
-| # | Finding | Severity | Recommendation |
-|---|---------|----------|----------------|
-| 1 | No Tailwind — vanilla CSS | Non-issue | By design. Maintains zero-framework CSS dependency |
-| 2 | Dark theme only in dashboard | Minor | precision_white theme exists but not yet togglable in UI |
-| 3 | No loading skeleton states | Minor | Add skeleton UI for File tab while generators run |
-| 4 | Command palette is keyboard-only access | Minor | Add visible trigger button for discoverability |
-| 5 | No responsive mobile layout documented | Medium | Dashboard is desktop-first; verify tablet/mobile breakpoints |
-| 6 | File viewer memory on large repos | Medium | Consider virtualized list for repos with 80+ generated files |
-| 7 | No WebSocket for live generation progress | Strategic | Currently polling. WebSocket would improve UX for long-running generations |
+Available API routes:
 
-## SEO Analysis
+- `GET /api/health` → packages/context-engine/src/engine-branches.test.ts
+- `POST /api/users` → packages/context-engine/src/engine-branches.test.ts
+- `GET /api/users` → packages/context-engine/src/engine-edge.test.ts
+- `POST /api/users` → packages/context-engine/src/engine-edge.test.ts
+- `DELETE /api/users/:id` → packages/context-engine/src/engine-edge.test.ts
+- `GET /api/health` → packages/generator-core/src/generator-branches.test.ts
+- `GET /api/users` → packages/generator-core/src/generator-branches.test.ts
+- `POST /api/users` → packages/generator-core/src/generator-branches.test.ts
+- `GET /api/health` → packages/generator-core/src/generator-sourcefile-branches6.test.ts
 
-### Current State
-- **Hosting**: Cloudflare Pages (static React SPA)
-- **SPA Rendering**: Client-side only (CSR)
-- **Meta Tags**: Minimal — React Helmet or equivalent not observed
-- **Sitemap**: None
-- **robots.txt**: None
-- **Schema.org**: None
 
-### Critical Missing Elements
+## UI Data Types
 
-| Element | Status | Impact |
-|---------|--------|--------|
-| `<title>` per route | Missing | Browser tab shows generic title |
-| `<meta name="description">` | Missing | No search snippet optimization |
-| Open Graph tags | Missing | Social sharing shows blank preview |
-| `<link rel="canonical">` | Missing | Duplicate content risk |
-| sitemap.xml | Missing | Search engine crawl guidance |
-| robots.txt | Missing | Crawl control |
-| Schema.org JSON-LD | Missing | Rich snippet eligibility |
-| SSR/SSG | Not implemented | SPA is invisible to crawlers without JS |
+These domain models were detected in the codebase. Use their type names in component props and state:
 
-### Recommended Meta
+| Type | Kind | Fields | Source |
+|------|------|--------|--------|
+| `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
+| `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
+| `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
+| `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
+| `IntentCapture` | interface | 5 | `apps/api/src/mcp-server.ts` |
+| `JsonRpcRequest` | interface | 4 | `apps/api/src/mcp-server.ts` |
+| `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
+| `RpcError` | interface | 5 | `apps/api/src/mcp-server.ts` |
+| `RpcSuccess` | interface | 3 | `apps/api/src/mcp-server.ts` |
+| `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
+| `AgentBudget` | interface | 5 | `apps/api/src/mpp.ts` |
+| *... and 134 more* | | | |
 
-```html
-<title>AXIS Toolbox — The Operating System for AI-Native Development</title>
-<meta name="description" content="Analyze any codebase and generate 87 structured artifacts across 18 programs. Make AI coding tools measurably more effective. Free tier available." />
-<meta property="og:title" content="AXIS Toolbox" />
-<meta property="og:description" content="87 generators. 18 programs. One upload. AI-native development intelligence." />
-<meta property="og:type" content="website" />
-<meta property="og:image" content="https://axis.domain.com/og-image.png" />
-```
+**Rule**: Component prop types must reference these detected types, not re-define them. Import from the canonical source file.
 
-### Schema.org JSON-LD
+## Accessibility
 
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  "name": "AXIS Toolbox",
-  "applicationCategory": "DeveloperApplication",
-  "operatingSystem": "Web",
-  "description": "AI-native development OS that analyzes repos and generates 87 structured artifacts across 18 programs",
-  "offers": [
-    { "@type": "Offer", "name": "Free Tier", "price": "0", "priceCurrency": "USD", "description": "Search, Skills, Debug — 13 generators" },
-    { "@type": "Offer", "name": "Pro", "description": "All 18 programs — 87 generators" }
-  ],
-  "creator": { "@type": "Organization", "name": "Last Man Up Inc." }
+- All interactive elements must be keyboard accessible
+- Images require `alt` text
+- Form inputs require associated `<label>` elements
+- Use semantic HTML: `<nav>`, `<main>`, `<section>`, `<article>`
+- Color contrast must meet WCAG 2.1 AA (4.5:1 minimum)
+
+## Performance
+
+- Minimize client-side JavaScript — prefer server rendering
+- Avoid layout shift — specify dimensions for images and embeds
+
+## Testing
+
+- Unit test components with vitest
+- Test user interactions, not implementation details
+- Mock API responses at the network layer
+
+## Project Components
+
+- **`apps/web/src/App.tsx`**: `export function App() { ... }`
+- **`apps/web/src/components/AxisIcons.tsx`**: `export function Icon({ ... }`
+- **`apps/web/src/components/CommandPalette.tsx`**: `export interface PaletteAction { ... }`, `export function CommandPalette({ ... }`
+- **`apps/web/src/components/FilesTab.tsx`**: `export function FilesTab({ ... }`
+- **`apps/web/src/components/GeneratedTab.tsx`**: `export function GeneratedTab({ ... }`
+- **`apps/web/src/components/GraphTab.tsx`**: `export function GraphTab({ ... }`
+- **`apps/web/src/components/OverviewTab.tsx`**: `export function OverviewTab({ ... }`
+- **`apps/web/src/components/ProgramLauncher.tsx`**: `export function ProgramLauncher({ ... }`
+- **`apps/web/src/components/SearchTab.tsx`**: `export function SearchTab({ ... }`
+- **`apps/web/src/components/SignUpModal.tsx`**: `export function SignUpModal({ ... }`
+- *... and 20 more*
+
+## Style Sources
+
+### `apps/web/src/index.css`
+
+```css
+:root {
+  --bg: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-hover: #f0f1f3;
+  --border: #d1d5db;
+  --text: #1a1a2e;
+  --text-muted: #6b7280;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --green: #16a34a;
+  --yellow: #ca8a04;
+  --red: #dc2626;
+  --blue: #2563eb;
+  --radius: 8px;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
+
+[data-theme="dark"] {
+... (750 more lines)
 ```
 
-### Route Priority Map
+### `payment-processing-output/theme.css`
 
-| Route | Priority | Change Frequency | Notes |
-|-------|----------|-----------------|-------|
-| `/` | 1.0 | Monthly | Landing / marketing page |
-| `/dashboard` | 0.8 | Weekly | Main app surface (requires auth) |
-| `/dashboard/upload` | 0.7 | Weekly | Upload entry point |
-| `/dashboard/files` | 0.7 | Weekly | Generated file browser |
-| `/docs` | 0.9 | Monthly | API documentation (OpenAPI 3.1) |
-| `/pricing` | 0.8 | Monthly | Tier comparison |
-| `/dashboard/settings` | 0.3 | Rarely | User settings |
+```css
+/* ==========================================================================
+   Theme — avery-pay-platform
+   Auto-generated by Axis Theme. Edit tokens, not this file.
+   ========================================================================== */
 
-### SEO Strategy Note
-As a React SPA on Cloudflare Pages, the app is client-side rendered by default. For SEO to work, either:
-1. Pre-render marketing pages at build time (recommended)
-2. Use Cloudflare Workers for SSR on marketing routes
-3. Maintain a separate static marketing site
+:root {
+  /* Colors — Primary */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
 
-The dashboard itself doesn't need SEO (authenticated, behind login). Focus SEO efforts on: landing page, pricing, docs, blog.
+  /* Colors — Neutral */
+  --color-neutral-50: #fafafa;
+... (206 more lines)
+```
+
+---
+*Generated by Axis Frontend*

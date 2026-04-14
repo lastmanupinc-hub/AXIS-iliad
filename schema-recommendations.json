@@ -1,0 +1,315 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.110Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "total_recommendations": 26,
+  "recommendations": [
+    {
+      "page": "/",
+      "schema_type": "WebSite",
+      "priority": "high",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "potentialAction (SearchAction)"
+      ]
+    },
+    {
+      "page": "/v1/docs.md",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/v1/docs",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/v1/plans",
+      "schema_type": "Product",
+      "priority": "medium",
+      "fields": [
+        "name",
+        "description",
+        "offers.price",
+        "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/v1/plans",
+      "schema_type": "Product",
+      "priority": "medium",
+      "fields": [
+        "name",
+        "description",
+        "offers.price",
+        "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/v1/plans",
+      "schema_type": "Product",
+      "priority": "medium",
+      "fields": [
+        "name",
+        "description",
+        "offers.price",
+        "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/users/:userId/posts/:postId",
+      "schema_type": "Article",
+      "priority": "high",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "dateModified",
+        "image"
+      ]
+    },
+    {
+      "page": "/v1/docs",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/v1/docs.md",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/v1/plans",
+      "schema_type": "Product",
+      "priority": "medium",
+      "fields": [
+        "name",
+        "description",
+        "offers.price",
+        "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/llms.txt",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/skills/index.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/axis.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/for-agents",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/axis.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/health",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/for-agents",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/health",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/mcp",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/ping",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/slow",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/throw-string",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/throw-after-end",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/null-error",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/array-error",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "(all deep routes)",
+      "schema_type": "BreadcrumbList",
+      "priority": "medium",
+      "fields": [
+        "itemListElement[].name",
+        "itemListElement[].item"
+      ]
+    }
+  ],
+  "source_page_files": [
+    "apps/web/index.html",
+    "apps/web/src/pages/AccountPage.tsx",
+    "apps/web/src/pages/DashboardPage.tsx",
+    "apps/web/src/pages/DocsPage.tsx",
+    "apps/web/src/pages/ExamplesPage.tsx",
+    "apps/web/src/pages/ForAgentsPage.tsx",
+    "apps/web/src/pages/HelpPage.tsx",
+    "apps/web/src/pages/InstallPage.tsx",
+    "apps/web/src/pages/PlansPage.tsx",
+    "apps/web/src/pages/ProgramsPage.tsx",
+    "apps/web/src/pages/QAPage.tsx",
+    "apps/web/src/pages/TermsPage.tsx",
+    "apps/web/src/pages/UploadPage.tsx"
+  ]
+}

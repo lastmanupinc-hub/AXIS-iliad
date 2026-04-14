@@ -1,0 +1,264 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.356Z",
+  "total_citations": 16,
+  "by_type": {
+    "documentation": 1,
+    "reference": 3,
+    "pattern": 2,
+    "library": 10,
+    "source": 0
+  },
+  "citations": [
+    {
+      "id": "fw-React",
+      "type": "documentation",
+      "title": "React Official Documentation",
+      "source": "https://react.dev",
+      "relevance": "primary",
+      "tags": [
+        "framework",
+        "React",
+        "documentation"
+      ]
+    },
+    {
+      "id": "lang-typescript",
+      "type": "reference",
+      "title": "TypeScript Language Reference",
+      "source": "https://www.typescriptlang.org/docs",
+      "relevance": "primary",
+      "tags": [
+        "language",
+        "typescript"
+      ]
+    },
+    {
+      "id": "lang-yaml",
+      "type": "reference",
+      "title": "YAML Language Reference",
+      "source": "https://www.google.com/search?q=YAML+reference",
+      "relevance": "secondary",
+      "tags": [
+        "language",
+        "yaml"
+      ]
+    },
+    {
+      "id": "lang-json",
+      "type": "reference",
+      "title": "JSON Language Reference",
+      "source": "https://www.google.com/search?q=JSON+reference",
+      "relevance": "secondary",
+      "tags": [
+        "language",
+        "json"
+      ]
+    },
+    {
+      "id": "pattern-monorepo",
+      "type": "pattern",
+      "title": "monorepo Pattern Reference",
+      "source": "Architecture pattern detected in project",
+      "relevance": "contextual",
+      "tags": [
+        "architecture",
+        "pattern",
+        "monorepo"
+      ]
+    },
+    {
+      "id": "pattern-containerized",
+      "type": "pattern",
+      "title": "containerized Pattern Reference",
+      "source": "Architecture pattern detected in project",
+      "relevance": "contextual",
+      "tags": [
+        "architecture",
+        "pattern",
+        "containerized"
+      ]
+    },
+    {
+      "id": "dep-@axis/context-engine",
+      "type": "library",
+      "title": "@axis/context-engine @ workspace:*",
+      "source": "https://www.npmjs.com/package/@axis/context-engine",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "@axis/context-engine"
+      ]
+    },
+    {
+      "id": "dep-@axis/generator-core",
+      "type": "library",
+      "title": "@axis/generator-core @ workspace:*",
+      "source": "https://www.npmjs.com/package/@axis/generator-core",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "@axis/generator-core"
+      ]
+    },
+    {
+      "id": "dep-@axis/repo-parser",
+      "type": "library",
+      "title": "@axis/repo-parser @ workspace:*",
+      "source": "https://www.npmjs.com/package/@axis/repo-parser",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "@axis/repo-parser"
+      ]
+    },
+    {
+      "id": "dep-@axis/snapshots",
+      "type": "library",
+      "title": "@axis/snapshots @ workspace:*",
+      "source": "https://www.npmjs.com/package/@axis/snapshots",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "@axis/snapshots"
+      ]
+    },
+    {
+      "id": "dep-mppx",
+      "type": "library",
+      "title": "mppx @ ^0.5.12",
+      "source": "https://www.npmjs.com/package/mppx",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "mppx"
+      ]
+    },
+    {
+      "id": "dep-jszip",
+      "type": "library",
+      "title": "jszip @ ^3.10.1",
+      "source": "https://www.npmjs.com/package/jszip",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "jszip"
+      ]
+    },
+    {
+      "id": "dep-react",
+      "type": "library",
+      "title": "react @ ^19.1.0",
+      "source": "https://www.npmjs.com/package/react",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "react"
+      ]
+    },
+    {
+      "id": "dep-react-dom",
+      "type": "library",
+      "title": "react-dom @ ^19.1.0",
+      "source": "https://www.npmjs.com/package/react-dom",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "react-dom"
+      ]
+    },
+    {
+      "id": "dep-better-sqlite3",
+      "type": "library",
+      "title": "better-sqlite3 @ ^12.8.0",
+      "source": "https://www.npmjs.com/package/better-sqlite3",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "better-sqlite3"
+      ]
+    },
+    {
+      "id": "dep-uuid",
+      "type": "library",
+      "title": "uuid @ ^11.1.0",
+      "source": "https://www.npmjs.com/package/uuid",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "uuid"
+      ]
+    }
+  ],
+  "source_file_count": 466,
+  "source_entry_points": [
+    {
+      "path": "apps/api/src/server.ts",
+      "exports": [
+        "export const app = ..."
+      ],
+      "lines": 321
+    },
+    {
+      "path": "apps/web/src/App.tsx",
+      "exports": [
+        "export function App() { ... }"
+      ],
+      "lines": 318
+    },
+    {
+      "path": "apps/web/src/main.tsx",
+      "exports": [],
+      "lines": 11
+    },
+    {
+      "path": "packages/context-engine/src/index.ts",
+      "exports": [
+        "export type { ... }",
+        "export { ... }"
+      ],
+      "lines": 3
+    },
+    {
+      "path": "packages/generator-core/src/index.ts",
+      "exports": [
+        "export type { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }"
+      ],
+      "lines": 21
+    },
+    {
+      "path": "packages/repo-parser/src/index.ts",
+      "exports": [
+        "export type { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export type { ... }",
+        "export { ... }",
+        "export type { ... }"
+      ],
+      "lines": 10
+    }
+  ]
+}

@@ -1,0 +1,329 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.146Z",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "primary_language": "TypeScript",
+  "summary": {
+    "total_components": 27,
+    "by_type": {
+      "custom": 13,
+      "decorative": 1,
+      "overlay": 1,
+      "page": 12
+    }
+  },
+  "components": [
+    {
+      "name": "App",
+      "path": "apps/web/src/App.tsx",
+      "directory": "apps/web/src",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "AxisIcons",
+      "path": "apps/web/src/components/AxisIcons.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "decorative",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "CommandPalette",
+      "path": "apps/web/src/components/CommandPalette.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "FilesTab",
+      "path": "apps/web/src/components/FilesTab.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "GeneratedTab",
+      "path": "apps/web/src/components/GeneratedTab.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "GraphTab",
+      "path": "apps/web/src/components/GraphTab.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "OverviewTab",
+      "path": "apps/web/src/components/OverviewTab.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ProgramLauncher",
+      "path": "apps/web/src/components/ProgramLauncher.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "SearchTab",
+      "path": "apps/web/src/components/SearchTab.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "SignUpModal",
+      "path": "apps/web/src/components/SignUpModal.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "overlay",
+      "token_categories": [
+        "colors",
+        "typography",
+        "z_index",
+        "shadows",
+        "border_radius"
+      ]
+    },
+    {
+      "name": "StatusBar",
+      "path": "apps/web/src/components/StatusBar.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "Toast",
+      "path": "apps/web/src/components/Toast.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "main",
+      "path": "apps/web/src/main.tsx",
+      "directory": "apps/web/src",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "AccountPage",
+      "path": "apps/web/src/pages/AccountPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "DashboardPage",
+      "path": "apps/web/src/pages/DashboardPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "DocsPage",
+      "path": "apps/web/src/pages/DocsPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ExamplesPage",
+      "path": "apps/web/src/pages/ExamplesPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ForAgentsPage",
+      "path": "apps/web/src/pages/ForAgentsPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "HelpPage",
+      "path": "apps/web/src/pages/HelpPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "InstallPage",
+      "path": "apps/web/src/pages/InstallPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "PlansPage",
+      "path": "apps/web/src/pages/PlansPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ProgramsPage",
+      "path": "apps/web/src/pages/ProgramsPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "QAPage",
+      "path": "apps/web/src/pages/QAPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "TermsPage",
+      "path": "apps/web/src/pages/TermsPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "UploadPage",
+      "path": "apps/web/src/pages/UploadPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "dashboard-widget",
+      "path": "payment-processing-output/dashboard-widget.tsx",
+      "directory": "payment-processing-output",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "generated-component",
+      "path": "payment-processing-output/generated-component.tsx",
+      "directory": "payment-processing-output",
+      "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    }
+  ],
+  "token_usage_guidance": {
+    "interactive": "Use primary colors for CTAs, neutral for secondary. Apply spacing-2/3 for padding, radius-md.",
+    "form": "Use neutral borders, radius-base, consistent spacing-2 for padding. Error states use error-500.",
+    "container": "Use neutral backgrounds, shadow-base/md for elevation, radius-lg, spacing-4 padding.",
+    "layout": "Use breakpoint tokens for responsive behavior, z-index for stacking, spacing-4+ for margins.",
+    "overlay": "Use high z-index values, shadow-lg, radius-xl. Backdrop with neutral-900/50 opacity.",
+    "data-display": "Use neutral colors for grids/tables, spacing-2 cell padding, radius-base for cells.",
+    "decorative": "Use restrained color from primary palette. Keep size consistent with typography scale.",
+    "page": "Use section-level spacing (space-8+), neutral backgrounds, full breakpoint responsiveness.",
+    "custom": "Apply tokens based on the component's actual role. Default to neutral palette."
+  },
+  "source_component_files": [
+    "apps/web/src/App.tsx",
+    "apps/web/src/components/AxisIcons.tsx",
+    "apps/web/src/components/CommandPalette.tsx",
+    "apps/web/src/components/FilesTab.tsx",
+    "apps/web/src/components/GeneratedTab.tsx",
+    "apps/web/src/components/GraphTab.tsx",
+    "apps/web/src/components/OverviewTab.tsx",
+    "apps/web/src/components/ProgramLauncher.tsx",
+    "apps/web/src/components/SearchTab.tsx",
+    "apps/web/src/components/SignUpModal.tsx",
+    "apps/web/src/components/StatusBar.tsx",
+    "apps/web/src/components/Toast.tsx",
+    "apps/web/src/main.tsx",
+    "apps/web/src/pages/AccountPage.tsx",
+    "apps/web/src/pages/DashboardPage.tsx",
+    "apps/web/src/pages/DocsPage.tsx",
+    "apps/web/src/pages/ExamplesPage.tsx",
+    "apps/web/src/pages/ForAgentsPage.tsx",
+    "apps/web/src/pages/HelpPage.tsx",
+    "apps/web/src/pages/InstallPage.tsx"
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.197Z",
+  "design_system": {
+    "colors": {
+      "primary": "#6366f1",
+      "secondary": "#8b5cf6",
+      "accent": "#06b6d4",
+      "background": "#0f172a",
+      "surface": "#1e293b",
+      "text": "#f8fafc",
+      "muted": "#94a3b8"
+    },
+    "typography": {
+      "heading": {
+        "family": "Inter",
+        "weight": 700,
+        "sizes": [
+          48,
+          36,
+          28,
+          24
+        ]
+      },
+      "body": {
+        "family": "Inter",
+        "weight": 400,
+        "sizes": [
+          16,
+          14,
+          12
+        ]
+      },
+      "code": {
+        "family": "JetBrains Mono",
+        "weight": 400,
+        "sizes": [
+          14,
+          12
+        ]
+      }
+    },
+    "spacing": {
+      "unit": 8,
+      "scale": [
+        4,
+        8,
+        12,
+        16,
+        24,
+        32,
+        48,
+        64
+      ]
+    },
+    "border_radius": {
+      "sm": 4,
+      "md": 8,
+      "lg": 12,
+      "xl": 16
+    }
+  },
+  "templates": [
+    {
+      "id": "social-og",
+      "name": "Open Graph Image",
+      "width": 1200,
+      "height": 630,
+      "use_case": "Social media sharing (Twitter, LinkedIn, Facebook)",
+      "layers": [
+        "background",
+        "logo",
+        "title",
+        "subtitle",
+        "tech-badges"
+      ]
+    },
+    {
+      "id": "social-square",
+      "name": "Square Social Post",
+      "width": 1080,
+      "height": 1080,
+      "use_case": "Instagram, social media feeds",
+      "layers": [
+        "background",
+        "header",
+        "stats-grid",
+        "footer"
+      ]
+    },
+    {
+      "id": "poster-a4",
+      "name": "A4 Poster",
+      "width": 2480,
+      "height": 3508,
+      "use_case": "Print-ready poster, presentations",
+      "layers": [
+        "background",
+        "hero",
+        "architecture-diagram",
+        "stats",
+        "footer"
+      ]
+    },
+    {
+      "id": "banner-wide",
+      "name": "Wide Banner",
+      "width": 1920,
+      "height": 480,
+      "use_case": "GitHub readme, website hero",
+      "layers": [
+        "background",
+        "gradient",
+        "title",
+        "description",
+        "badges"
+      ]
+    }
+  ],
+  "data_bindings": {
+    "title": "axis-toolbox",
+    "subtitle": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
+    "type": "monorepo",
+    "language": "TypeScript",
+    "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+    "frameworks": [
+      {
+        "name": "React",
+        "version": "^19.1.0",
+        "confidence": 0.95
+      }
+    ],
+    "framework_names": [
+      "React"
+    ],
+    "language_stats": [
+      {
+        "name": "TypeScript",
+        "percent": 73.7,
+        "loc": 77996
+      },
+      {
+        "name": "YAML",
+        "percent": 14.5,
+        "loc": 15388
+      },
+      {
+        "name": "JSON",
+        "percent": 6.2,
+        "loc": 6549
+      },
+      {
+        "name": "Markdown",
+        "percent": 3.9,
+        "loc": 4155
+      },
+      {
+        "name": "CSS",
+        "percent": 0.8,
+        "loc": 849
+      },
+      {
+        "name": "JavaScript",
+        "percent": 0.6,
+        "loc": 673
+      },
+      {
+        "name": "HTML",
+        "percent": 0.1,
+        "loc": 113
+      },
+      {
+        "name": "Dockerfile",
+        "percent": 0,
+        "loc": 49
+      }
+    ],
+    "architecture_score": 0.64,
+    "patterns": [
+      "monorepo",
+      "containerized"
+    ],
+    "layer_boundaries": [
+      {
+        "layer": "presentation",
+        "directories": [
+          "apps",
+          "frontend"
+        ]
+      }
+    ],
+    "entry_point_count": 0,
+    "hotspot_count": 6,
+    "domain_model_count": 146,
+    "route_count": 428,
+    "total_files": 466,
+    "total_loc": 107233
+  },
+  "source_asset_files": null
+}

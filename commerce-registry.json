@@ -1,0 +1,199 @@
+{
+  "registry_version": "1.0",
+  "product": "AXIS Toolbox",
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14",
+  "axis_base_url": "https://api.axis-toolbox.com",
+  "mcp_endpoint": "POST /mcp",
+  "repo_commerce_signals": {
+    "detected_providers": [
+      "adyen",
+      "affirm",
+      "afterpay",
+      "amazon_pay",
+      "apple_pay",
+      "braintree",
+      "google_pay",
+      "klarna",
+      "paypal",
+      "square",
+      "stripe"
+    ],
+    "has_checkout": true,
+    "has_recurring": true,
+    "has_sca": true,
+    "has_dispute_handling": true,
+    "has_webhooks": true,
+    "has_tap_protocol": true,
+    "has_network_tokenization": true,
+    "has_mandate_management": true,
+    "total_payment_files": 65
+  },
+  "ap2_compliance_assessment": {
+    "readiness_score": 100,
+    "max_score": 100,
+    "interpretation": "production-ready",
+    "gaps": [],
+    "visa_intelligent_commerce": {
+      "network_tokenization": "detected",
+      "token_service_provider": "integration-detected",
+      "device_binding": "out-of-scope-for-static-analysis",
+      "tap_protocol": "detected"
+    },
+    "dispute_readiness": {
+      "has_dispute_code": true,
+      "pre_dispute_mechanism": "CDRN-capable",
+      "rapid_dispute_resolution": "requires-enrollment-verification",
+      "evidence_automation": "automatable",
+      "compelling_evidence_3": {
+        "supported": true,
+        "auto_assembly_ready": true,
+        "target_reason_codes": [
+          "10.2",
+          "10.3",
+          "10.4"
+        ],
+        "estimated_win_rate_lift": "25-42 percentage points on CNP fraud disputes"
+      },
+      "win_probability_model": {
+        "10.4_cnp_fraud": {
+          "base_pct": 30,
+          "with_ce3_pct": 72
+        },
+        "13.1_not_received": {
+          "base_pct": 70,
+          "with_ce3_pct": 75
+        },
+        "auto_refund_below_usd": 5,
+        "represent_above_win_pct": 40
+      }
+    },
+    "verification_proof": {
+      "checks_passed": 8,
+      "checks_total": 8,
+      "grade": "A"
+    }
+  },
+  "catalog": [
+    {
+      "id": "free-bundle",
+      "name": "Free Analysis Bundle",
+      "programs": [
+        "search",
+        "skills",
+        "debug"
+      ],
+      "outputs": 14,
+      "tier": "free",
+      "description": "Context map, AGENTS.md, debug playbook, and 11 more artifacts — no purchase required",
+      "api_call": {
+        "method": "tools/call",
+        "tool": "analyze_repo",
+        "requires_auth": true
+      }
+    },
+    {
+      "id": "pro-all",
+      "name": "Pro Complete (All 18 Programs)",
+      "programs": [
+        "search",
+        "skills",
+        "debug",
+        "frontend",
+        "seo",
+        "optimization",
+        "theme",
+        "brand",
+        "superpowers",
+        "marketing",
+        "notebook",
+        "obsidian",
+        "mcp",
+        "artifacts",
+        "remotion",
+        "canvas",
+        "algorithmic",
+        "agentic-purchasing"
+      ],
+      "outputs": 87,
+      "tier": "pro",
+      "description": "All 87 structured artifacts across 18 programs — full AI-native governance layer",
+      "api_call": {
+        "method": "tools/call",
+        "tool": "analyze_repo",
+        "requires_auth": true
+      }
+    },
+    {
+      "id": "dev-essentials",
+      "name": "Developer Essentials",
+      "programs": [
+        "search",
+        "skills",
+        "debug",
+        "frontend",
+        "optimization",
+        "superpowers"
+      ],
+      "outputs": 27,
+      "tier": "pro",
+      "description": "Core development artifacts: context, AI rules, debug, frontend, optimization, and superpowers",
+      "api_call": {
+        "method": "tools/call",
+        "tool": "analyze_repo",
+        "requires_auth": true
+      }
+    },
+    {
+      "id": "brand-marketing",
+      "name": "Brand & Marketing Suite",
+      "programs": [
+        "brand",
+        "marketing",
+        "seo",
+        "canvas"
+      ],
+      "outputs": 19,
+      "tier": "pro",
+      "description": "Brand guidelines, marketing playbooks, SEO rules, and visual design artifacts",
+      "api_call": {
+        "method": "tools/call",
+        "tool": "analyze_repo",
+        "requires_auth": true
+      }
+    }
+  ],
+  "agent_endpoints": [
+    {
+      "path": "/mcp",
+      "method": "POST",
+      "description": "MCP Streamable HTTP — primary agent interface (JSON-RPC 2.0)"
+    },
+    {
+      "path": "/mcp",
+      "method": "GET",
+      "description": "MCP SSE — server-initiated messages"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "description": "Create account and get API key"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "description": "Get current account info (requires auth)"
+    },
+    {
+      "path": "/v1/programs",
+      "method": "GET",
+      "description": "List all programs and their outputs"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "header": "Authorization",
+    "format": "Bearer <raw_key>",
+    "obtain": "POST /v1/accounts → api_key.raw_key"
+  }
+}

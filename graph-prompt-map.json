@@ -1,0 +1,1838 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.180Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "total_nodes": 160,
+  "total_edges": 159,
+  "nodes": [
+    {
+      "id": "project",
+      "type": "project",
+      "label": "axis-toolbox",
+      "note_path": "Projects/axis-toolbox/Overview.md"
+    },
+    {
+      "id": "architecture",
+      "type": "concept",
+      "label": "Architecture",
+      "note_path": "Projects/axis-toolbox/Architecture.md"
+    },
+    {
+      "id": "fw_0",
+      "type": "technology",
+      "label": "React",
+      "note_path": "References/React.md"
+    },
+    {
+      "id": "abs_0",
+      "type": "concept",
+      "label": "packages/ (monorepo_packages)",
+      "note_path": "Projects/axis-toolbox/Concepts/packages/-(monorepo_packages).md"
+    },
+    {
+      "id": "abs_1",
+      "type": "concept",
+      "label": "apps/ (monorepo_apps)",
+      "note_path": "Projects/axis-toolbox/Concepts/apps/-(monorepo_apps).md"
+    },
+    {
+      "id": "abs_2",
+      "type": "concept",
+      "label": "payment-processing-output/ (project_directory)",
+      "note_path": "Projects/axis-toolbox/Concepts/payment-processing-output/-(project_directory).md"
+    },
+    {
+      "id": "abs_3",
+      "type": "concept",
+      "label": "examples/ (project_directory)",
+      "note_path": "Projects/axis-toolbox/Concepts/examples/-(project_directory).md"
+    },
+    {
+      "id": "abs_4",
+      "type": "concept",
+      "label": "search/ (project_directory)",
+      "note_path": "Projects/axis-toolbox/Concepts/search/-(project_directory).md"
+    },
+    {
+      "id": "abs_5",
+      "type": "concept",
+      "label": "algorithmic/ (project_directory)",
+      "note_path": "Projects/axis-toolbox/Concepts/algorithmic/-(project_directory).md"
+    },
+    {
+      "id": "abs_6",
+      "type": "concept",
+      "label": "artifacts/ (project_directory)",
+      "note_path": "Projects/axis-toolbox/Concepts/artifacts/-(project_directory).md"
+    },
+    {
+      "id": "abs_7",
+      "type": "concept",
+      "label": "brand/ (project_directory)",
+      "note_path": "Projects/axis-toolbox/Concepts/brand/-(project_directory).md"
+    },
+    {
+      "id": "model_0",
+      "type": "domain_model",
+      "label": "AuthContext",
+      "note_path": "Projects/axis-toolbox/Models/AuthContext.md"
+    },
+    {
+      "id": "model_1",
+      "type": "domain_model",
+      "label": "EnvSpec",
+      "note_path": "Projects/axis-toolbox/Models/EnvSpec.md"
+    },
+    {
+      "id": "model_2",
+      "type": "domain_model",
+      "label": "ValidationError",
+      "note_path": "Projects/axis-toolbox/Models/ValidationError.md"
+    },
+    {
+      "id": "model_3",
+      "type": "domain_model",
+      "label": "ValidationResult",
+      "note_path": "Projects/axis-toolbox/Models/ValidationResult.md"
+    },
+    {
+      "id": "model_4",
+      "type": "domain_model",
+      "label": "ZipEntry",
+      "note_path": "Projects/axis-toolbox/Models/ZipEntry.md"
+    },
+    {
+      "id": "model_5",
+      "type": "domain_model",
+      "label": "IntentCapture",
+      "note_path": "Projects/axis-toolbox/Models/IntentCapture.md"
+    },
+    {
+      "id": "model_6",
+      "type": "domain_model",
+      "label": "JsonRpcRequest",
+      "note_path": "Projects/axis-toolbox/Models/JsonRpcRequest.md"
+    },
+    {
+      "id": "model_7",
+      "type": "domain_model",
+      "label": "McpCallCounters",
+      "note_path": "Projects/axis-toolbox/Models/McpCallCounters.md"
+    },
+    {
+      "id": "model_8",
+      "type": "domain_model",
+      "label": "RpcError",
+      "note_path": "Projects/axis-toolbox/Models/RpcError.md"
+    },
+    {
+      "id": "model_9",
+      "type": "domain_model",
+      "label": "RpcSuccess",
+      "note_path": "Projects/axis-toolbox/Models/RpcSuccess.md"
+    },
+    {
+      "id": "model_10",
+      "type": "domain_model",
+      "label": "HistogramEntry",
+      "note_path": "Projects/axis-toolbox/Models/HistogramEntry.md"
+    },
+    {
+      "id": "model_11",
+      "type": "domain_model",
+      "label": "AgentBudget",
+      "note_path": "Projects/axis-toolbox/Models/AgentBudget.md"
+    },
+    {
+      "id": "model_12",
+      "type": "domain_model",
+      "label": "CacheKey",
+      "note_path": "Projects/axis-toolbox/Models/CacheKey.md"
+    },
+    {
+      "id": "model_13",
+      "type": "domain_model",
+      "label": "ChargeOptions",
+      "note_path": "Projects/axis-toolbox/Models/ChargeOptions.md"
+    },
+    {
+      "id": "model_14",
+      "type": "domain_model",
+      "label": "MppResult",
+      "note_path": "Projects/axis-toolbox/Models/MppResult.md"
+    },
+    {
+      "id": "model_15",
+      "type": "domain_model",
+      "label": "PricingTier",
+      "note_path": "Projects/axis-toolbox/Models/PricingTier.md"
+    },
+    {
+      "id": "model_16",
+      "type": "domain_model",
+      "label": "OpenApiSpec",
+      "note_path": "Projects/axis-toolbox/Models/OpenApiSpec.md"
+    },
+    {
+      "id": "model_17",
+      "type": "domain_model",
+      "label": "WindowEntry",
+      "note_path": "Projects/axis-toolbox/Models/WindowEntry.md"
+    },
+    {
+      "id": "model_18",
+      "type": "domain_model",
+      "label": "AppHandle",
+      "note_path": "Projects/axis-toolbox/Models/AppHandle.md"
+    },
+    {
+      "id": "model_19",
+      "type": "domain_model",
+      "label": "Route",
+      "note_path": "Projects/axis-toolbox/Models/Route.md"
+    },
+    {
+      "id": "model_20",
+      "type": "domain_model",
+      "label": "CliArgs",
+      "note_path": "Projects/axis-toolbox/Models/CliArgs.md"
+    },
+    {
+      "id": "model_21",
+      "type": "domain_model",
+      "label": "AxisConfig",
+      "note_path": "Projects/axis-toolbox/Models/AxisConfig.md"
+    },
+    {
+      "id": "model_22",
+      "type": "domain_model",
+      "label": "RunResult",
+      "note_path": "Projects/axis-toolbox/Models/RunResult.md"
+    },
+    {
+      "id": "model_23",
+      "type": "domain_model",
+      "label": "ScanResult",
+      "note_path": "Projects/axis-toolbox/Models/ScanResult.md"
+    },
+    {
+      "id": "model_24",
+      "type": "domain_model",
+      "label": "WriteResult",
+      "note_path": "Projects/axis-toolbox/Models/WriteResult.md"
+    },
+    {
+      "id": "model_25",
+      "type": "domain_model",
+      "label": "Account",
+      "note_path": "Projects/axis-toolbox/Models/Account.md"
+    },
+    {
+      "id": "model_26",
+      "type": "domain_model",
+      "label": "ApiKeyInfo",
+      "note_path": "Projects/axis-toolbox/Models/ApiKeyInfo.md"
+    },
+    {
+      "id": "model_27",
+      "type": "domain_model",
+      "label": "ContextMap",
+      "note_path": "Projects/axis-toolbox/Models/ContextMap.md"
+    },
+    {
+      "id": "model_28",
+      "type": "domain_model",
+      "label": "GeneratedFile",
+      "note_path": "Projects/axis-toolbox/Models/GeneratedFile.md"
+    },
+    {
+      "id": "model_29",
+      "type": "domain_model",
+      "label": "GeneratedFilesResponse",
+      "note_path": "Projects/axis-toolbox/Models/GeneratedFilesResponse.md"
+    },
+    {
+      "id": "model_30",
+      "type": "domain_model",
+      "label": "PlanDefinition",
+      "note_path": "Projects/axis-toolbox/Models/PlanDefinition.md"
+    },
+    {
+      "id": "model_31",
+      "type": "domain_model",
+      "label": "PlanFeature",
+      "note_path": "Projects/axis-toolbox/Models/PlanFeature.md"
+    },
+    {
+      "id": "model_32",
+      "type": "domain_model",
+      "label": "RepoProfile",
+      "note_path": "Projects/axis-toolbox/Models/RepoProfile.md"
+    },
+    {
+      "id": "model_33",
+      "type": "domain_model",
+      "label": "SearchResponse",
+      "note_path": "Projects/axis-toolbox/Models/SearchResponse.md"
+    },
+    {
+      "id": "model_34",
+      "type": "domain_model",
+      "label": "SearchResult",
+      "note_path": "Projects/axis-toolbox/Models/SearchResult.md"
+    },
+    {
+      "id": "model_35",
+      "type": "domain_model",
+      "label": "Seat",
+      "note_path": "Projects/axis-toolbox/Models/Seat.md"
+    },
+    {
+      "id": "model_36",
+      "type": "domain_model",
+      "label": "SnapshotPayload",
+      "note_path": "Projects/axis-toolbox/Models/SnapshotPayload.md"
+    },
+    {
+      "id": "model_37",
+      "type": "domain_model",
+      "label": "SnapshotResponse",
+      "note_path": "Projects/axis-toolbox/Models/SnapshotResponse.md"
+    },
+    {
+      "id": "model_38",
+      "type": "domain_model",
+      "label": "SubscriptionInfo",
+      "note_path": "Projects/axis-toolbox/Models/SubscriptionInfo.md"
+    },
+    {
+      "id": "model_39",
+      "type": "domain_model",
+      "label": "SymbolResult",
+      "note_path": "Projects/axis-toolbox/Models/SymbolResult.md"
+    },
+    {
+      "id": "model_40",
+      "type": "domain_model",
+      "label": "SymbolsResponse",
+      "note_path": "Projects/axis-toolbox/Models/SymbolsResponse.md"
+    },
+    {
+      "id": "model_41",
+      "type": "domain_model",
+      "label": "UpgradePrompt",
+      "note_path": "Projects/axis-toolbox/Models/UpgradePrompt.md"
+    },
+    {
+      "id": "model_42",
+      "type": "domain_model",
+      "label": "UsageSummary",
+      "note_path": "Projects/axis-toolbox/Models/UsageSummary.md"
+    },
+    {
+      "id": "model_43",
+      "type": "domain_model",
+      "label": "IconProps",
+      "note_path": "Projects/axis-toolbox/Models/IconProps.md"
+    },
+    {
+      "id": "model_44",
+      "type": "domain_model",
+      "label": "PaletteAction",
+      "note_path": "Projects/axis-toolbox/Models/PaletteAction.md"
+    },
+    {
+      "id": "model_45",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_46",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_47",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_48",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_49",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_50",
+      "type": "domain_model",
+      "label": "ProgramDef",
+      "note_path": "Projects/axis-toolbox/Models/ProgramDef.md"
+    },
+    {
+      "id": "model_51",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_52",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_53",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_54",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_55",
+      "type": "domain_model",
+      "label": "Toast",
+      "note_path": "Projects/axis-toolbox/Models/Toast.md"
+    },
+    {
+      "id": "model_56",
+      "type": "domain_model",
+      "label": "ToastContextValue",
+      "note_path": "Projects/axis-toolbox/Models/ToastContextValue.md"
+    },
+    {
+      "id": "model_57",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_58",
+      "type": "domain_model",
+      "label": "ProgramDoc",
+      "note_path": "Projects/axis-toolbox/Models/ProgramDoc.md"
+    },
+    {
+      "id": "model_59",
+      "type": "domain_model",
+      "label": "Example",
+      "note_path": "Projects/axis-toolbox/Models/Example.md"
+    },
+    {
+      "id": "model_60",
+      "type": "domain_model",
+      "label": "Step",
+      "note_path": "Projects/axis-toolbox/Models/Step.md"
+    },
+    {
+      "id": "model_61",
+      "type": "domain_model",
+      "label": "TroubleshootItem",
+      "note_path": "Projects/axis-toolbox/Models/TroubleshootItem.md"
+    },
+    {
+      "id": "model_62",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_63",
+      "type": "domain_model",
+      "label": "ProgramDef",
+      "note_path": "Projects/axis-toolbox/Models/ProgramDef.md"
+    },
+    {
+      "id": "model_64",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_65",
+      "type": "domain_model",
+      "label": "QAItem",
+      "note_path": "Projects/axis-toolbox/Models/QAItem.md"
+    },
+    {
+      "id": "model_66",
+      "type": "domain_model",
+      "label": "Section",
+      "note_path": "Projects/axis-toolbox/Models/Section.md"
+    },
+    {
+      "id": "model_67",
+      "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-toolbox/Models/Props.md"
+    },
+    {
+      "id": "model_68",
+      "type": "domain_model",
+      "label": "ImportMeta",
+      "note_path": "Projects/axis-toolbox/Models/ImportMeta.md"
+    },
+    {
+      "id": "model_69",
+      "type": "domain_model",
+      "label": "ImportMetaEnv",
+      "note_path": "Projects/axis-toolbox/Models/ImportMetaEnv.md"
+    },
+    {
+      "id": "model_70",
+      "type": "domain_model",
+      "label": "ContextMap",
+      "note_path": "Projects/axis-toolbox/Models/ContextMap.md"
+    },
+    {
+      "id": "model_71",
+      "type": "domain_model",
+      "label": "RepoProfile",
+      "note_path": "Projects/axis-toolbox/Models/RepoProfile.md"
+    },
+    {
+      "id": "model_72",
+      "type": "domain_model",
+      "label": "CommerceSignals",
+      "note_path": "Projects/axis-toolbox/Models/CommerceSignals.md"
+    },
+    {
+      "id": "model_73",
+      "type": "domain_model",
+      "label": "Edge",
+      "note_path": "Projects/axis-toolbox/Models/Edge.md"
+    },
+    {
+      "id": "model_74",
+      "type": "domain_model",
+      "label": "Node",
+      "note_path": "Projects/axis-toolbox/Models/Node.md"
+    },
+    {
+      "id": "model_75",
+      "type": "domain_model",
+      "label": "DashboardData",
+      "note_path": "Projects/axis-toolbox/Models/DashboardData.md"
+    },
+    {
+      "id": "model_76",
+      "type": "domain_model",
+      "label": "MyComponentProps",
+      "note_path": "Projects/axis-toolbox/Models/MyComponentProps.md"
+    },
+    {
+      "id": "model_77",
+      "type": "domain_model",
+      "label": "RemotionTheme",
+      "note_path": "Projects/axis-toolbox/Models/RemotionTheme.md"
+    },
+    {
+      "id": "model_78",
+      "type": "domain_model",
+      "label": "GeneratedFile",
+      "note_path": "Projects/axis-toolbox/Models/GeneratedFile.md"
+    },
+    {
+      "id": "model_79",
+      "type": "domain_model",
+      "label": "GeneratorInput",
+      "note_path": "Projects/axis-toolbox/Models/GeneratorInput.md"
+    },
+    {
+      "id": "model_80",
+      "type": "domain_model",
+      "label": "GeneratorResult",
+      "note_path": "Projects/axis-toolbox/Models/GeneratorResult.md"
+    },
+    {
+      "id": "model_81",
+      "type": "domain_model",
+      "label": "SourceFile",
+      "note_path": "Projects/axis-toolbox/Models/SourceFile.md"
+    },
+    {
+      "id": "model_82",
+      "type": "domain_model",
+      "label": "DomainModel",
+      "note_path": "Projects/axis-toolbox/Models/DomainModel.md"
+    },
+    {
+      "id": "model_83",
+      "type": "domain_model",
+      "label": "FrameworkRule",
+      "note_path": "Projects/axis-toolbox/Models/FrameworkRule.md"
+    },
+    {
+      "id": "model_84",
+      "type": "domain_model",
+      "label": "DepGroups",
+      "note_path": "Projects/axis-toolbox/Models/DepGroups.md"
+    },
+    {
+      "id": "model_85",
+      "type": "domain_model",
+      "label": "CreateUserRequest",
+      "note_path": "Projects/axis-toolbox/Models/CreateUserRequest.md"
+    },
+    {
+      "id": "model_86",
+      "type": "domain_model",
+      "label": "SQLTable",
+      "note_path": "Projects/axis-toolbox/Models/SQLTable.md"
+    },
+    {
+      "id": "model_87",
+      "type": "domain_model",
+      "label": "DependencyInfo",
+      "note_path": "Projects/axis-toolbox/Models/DependencyInfo.md"
+    },
+    {
+      "id": "model_88",
+      "type": "domain_model",
+      "label": "FileAnnotation",
+      "note_path": "Projects/axis-toolbox/Models/FileAnnotation.md"
+    },
+    {
+      "id": "model_89",
+      "type": "domain_model",
+      "label": "FrameworkDetection",
+      "note_path": "Projects/axis-toolbox/Models/FrameworkDetection.md"
+    },
+    {
+      "id": "model_90",
+      "type": "domain_model",
+      "label": "ImportEdge",
+      "note_path": "Projects/axis-toolbox/Models/ImportEdge.md"
+    },
+    {
+      "id": "model_91",
+      "type": "domain_model",
+      "label": "LanguageStats",
+      "note_path": "Projects/axis-toolbox/Models/LanguageStats.md"
+    },
+    {
+      "id": "model_92",
+      "type": "domain_model",
+      "label": "ParseResult",
+      "note_path": "Projects/axis-toolbox/Models/ParseResult.md"
+    },
+    {
+      "id": "model_93",
+      "type": "domain_model",
+      "label": "AccountSummary",
+      "note_path": "Projects/axis-toolbox/Models/AccountSummary.md"
+    },
+    {
+      "id": "model_94",
+      "type": "domain_model",
+      "label": "QuotaCheck",
+      "note_path": "Projects/axis-toolbox/Models/QuotaCheck.md"
+    },
+    {
+      "id": "model_95",
+      "type": "domain_model",
+      "label": "RecentActivity",
+      "note_path": "Projects/axis-toolbox/Models/RecentActivity.md"
+    },
+    {
+      "id": "model_96",
+      "type": "domain_model",
+      "label": "SystemStats",
+      "note_path": "Projects/axis-toolbox/Models/SystemStats.md"
+    },
+    {
+      "id": "model_97",
+      "type": "domain_model",
+      "label": "Account",
+      "note_path": "Projects/axis-toolbox/Models/Account.md"
+    },
+    {
+      "id": "model_98",
+      "type": "domain_model",
+      "label": "ApiKey",
+      "note_path": "Projects/axis-toolbox/Models/ApiKey.md"
+    },
+    {
+      "id": "model_99",
+      "type": "domain_model",
+      "label": "PersistenceCreditRecord",
+      "note_path": "Projects/axis-toolbox/Models/PersistenceCreditRecord.md"
+    },
+    {
+      "id": "model_100",
+      "type": "domain_model",
+      "label": "ProgramEntitlement",
+      "note_path": "Projects/axis-toolbox/Models/ProgramEntitlement.md"
+    },
+    {
+      "id": "model_101",
+      "type": "domain_model",
+      "label": "TierLimits",
+      "note_path": "Projects/axis-toolbox/Models/TierLimits.md"
+    },
+    {
+      "id": "model_102",
+      "type": "domain_model",
+      "label": "UsageRecord",
+      "note_path": "Projects/axis-toolbox/Models/UsageRecord.md"
+    },
+    {
+      "id": "model_103",
+      "type": "domain_model",
+      "label": "UsageSummary",
+      "note_path": "Projects/axis-toolbox/Models/UsageSummary.md"
+    },
+    {
+      "id": "model_104",
+      "type": "domain_model",
+      "label": "DbMaintenanceResult",
+      "note_path": "Projects/axis-toolbox/Models/DbMaintenanceResult.md"
+    },
+    {
+      "id": "model_105",
+      "type": "domain_model",
+      "label": "Migration",
+      "note_path": "Projects/axis-toolbox/Models/Migration.md"
+    },
+    {
+      "id": "model_106",
+      "type": "domain_model",
+      "label": "EmailDelivery",
+      "note_path": "Projects/axis-toolbox/Models/EmailDelivery.md"
+    },
+    {
+      "id": "model_107",
+      "type": "domain_model",
+      "label": "EmailMessage",
+      "note_path": "Projects/axis-toolbox/Models/EmailMessage.md"
+    },
+    {
+      "id": "model_108",
+      "type": "domain_model",
+      "label": "FunnelMetrics",
+      "note_path": "Projects/axis-toolbox/Models/FunnelMetrics.md"
+    },
+    {
+      "id": "model_109",
+      "type": "domain_model",
+      "label": "FunnelEvent",
+      "note_path": "Projects/axis-toolbox/Models/FunnelEvent.md"
+    },
+    {
+      "id": "model_110",
+      "type": "domain_model",
+      "label": "PlanDefinition",
+      "note_path": "Projects/axis-toolbox/Models/PlanDefinition.md"
+    },
+    {
+      "id": "model_111",
+      "type": "domain_model",
+      "label": "PlanFeature",
+      "note_path": "Projects/axis-toolbox/Models/PlanFeature.md"
+    },
+    {
+      "id": "model_112",
+      "type": "domain_model",
+      "label": "Seat",
+      "note_path": "Projects/axis-toolbox/Models/Seat.md"
+    },
+    {
+      "id": "model_113",
+      "type": "domain_model",
+      "label": "UpgradePrompt",
+      "note_path": "Projects/axis-toolbox/Models/UpgradePrompt.md"
+    },
+    {
+      "id": "model_114",
+      "type": "domain_model",
+      "label": "GitHubToken",
+      "note_path": "Projects/axis-toolbox/Models/GitHubToken.md"
+    },
+    {
+      "id": "model_115",
+      "type": "domain_model",
+      "label": "GitHubFetchResult",
+      "note_path": "Projects/axis-toolbox/Models/GitHubFetchResult.md"
+    },
+    {
+      "id": "model_116",
+      "type": "domain_model",
+      "label": "ParsedGitHubUrl",
+      "note_path": "Projects/axis-toolbox/Models/ParsedGitHubUrl.md"
+    },
+    {
+      "id": "model_117",
+      "type": "domain_model",
+      "label": "TarParseResult",
+      "note_path": "Projects/axis-toolbox/Models/TarParseResult.md"
+    },
+    {
+      "id": "model_118",
+      "type": "domain_model",
+      "label": "GitHubTokenResponse",
+      "note_path": "Projects/axis-toolbox/Models/GitHubTokenResponse.md"
+    },
+    {
+      "id": "model_119",
+      "type": "domain_model",
+      "label": "GitHubUser",
+      "note_path": "Projects/axis-toolbox/Models/GitHubUser.md"
+    },
+    {
+      "id": "model_120",
+      "type": "domain_model",
+      "label": "ReferralCode",
+      "note_path": "Projects/axis-toolbox/Models/ReferralCode.md"
+    },
+    {
+      "id": "model_121",
+      "type": "domain_model",
+      "label": "ReferralConversion",
+      "note_path": "Projects/axis-toolbox/Models/ReferralConversion.md"
+    },
+    {
+      "id": "model_122",
+      "type": "domain_model",
+      "label": "ReferralCredits",
+      "note_path": "Projects/axis-toolbox/Models/ReferralCredits.md"
+    },
+    {
+      "id": "model_123",
+      "type": "domain_model",
+      "label": "CodeSymbol",
+      "note_path": "Projects/axis-toolbox/Models/CodeSymbol.md"
+    },
+    {
+      "id": "model_124",
+      "type": "domain_model",
+      "label": "SearchIndexEntry",
+      "note_path": "Projects/axis-toolbox/Models/SearchIndexEntry.md"
+    },
+    {
+      "id": "model_125",
+      "type": "domain_model",
+      "label": "SearchResult",
+      "note_path": "Projects/axis-toolbox/Models/SearchResult.md"
+    },
+    {
+      "id": "model_126",
+      "type": "domain_model",
+      "label": "SymbolSearchResult",
+      "note_path": "Projects/axis-toolbox/Models/SymbolSearchResult.md"
+    },
+    {
+      "id": "model_127",
+      "type": "domain_model",
+      "label": "StripeSubscription",
+      "note_path": "Projects/axis-toolbox/Models/StripeSubscription.md"
+    },
+    {
+      "id": "model_128",
+      "type": "domain_model",
+      "label": "ProrationResult",
+      "note_path": "Projects/axis-toolbox/Models/ProrationResult.md"
+    },
+    {
+      "id": "model_129",
+      "type": "domain_model",
+      "label": "TierChange",
+      "note_path": "Projects/axis-toolbox/Models/TierChange.md"
+    },
+    {
+      "id": "model_130",
+      "type": "domain_model",
+      "label": "FileEntry",
+      "note_path": "Projects/axis-toolbox/Models/FileEntry.md"
+    },
+    {
+      "id": "model_131",
+      "type": "domain_model",
+      "label": "SnapshotInput",
+      "note_path": "Projects/axis-toolbox/Models/SnapshotInput.md"
+    },
+    {
+      "id": "model_132",
+      "type": "domain_model",
+      "label": "SnapshotManifest",
+      "note_path": "Projects/axis-toolbox/Models/SnapshotManifest.md"
+    },
+    {
+      "id": "model_133",
+      "type": "domain_model",
+      "label": "SnapshotRecord",
+      "note_path": "Projects/axis-toolbox/Models/SnapshotRecord.md"
+    },
+    {
+      "id": "model_134",
+      "type": "domain_model",
+      "label": "FileDiff",
+      "note_path": "Projects/axis-toolbox/Models/FileDiff.md"
+    },
+    {
+      "id": "model_135",
+      "type": "domain_model",
+      "label": "GenerationVersion",
+      "note_path": "Projects/axis-toolbox/Models/GenerationVersion.md"
+    },
+    {
+      "id": "model_136",
+      "type": "domain_model",
+      "label": "VersionDiff",
+      "note_path": "Projects/axis-toolbox/Models/VersionDiff.md"
+    },
+    {
+      "id": "model_137",
+      "type": "domain_model",
+      "label": "VersionFile",
+      "note_path": "Projects/axis-toolbox/Models/VersionFile.md"
+    },
+    {
+      "id": "model_138",
+      "type": "domain_model",
+      "label": "VersionRow",
+      "note_path": "Projects/axis-toolbox/Models/VersionRow.md"
+    },
+    {
+      "id": "model_139",
+      "type": "domain_model",
+      "label": "RetryCandidate",
+      "note_path": "Projects/axis-toolbox/Models/RetryCandidate.md"
+    },
+    {
+      "id": "model_140",
+      "type": "domain_model",
+      "label": "Webhook",
+      "note_path": "Projects/axis-toolbox/Models/Webhook.md"
+    },
+    {
+      "id": "model_141",
+      "type": "domain_model",
+      "label": "WebhookDelivery",
+      "note_path": "Projects/axis-toolbox/Models/WebhookDelivery.md"
+    },
+    {
+      "id": "model_142",
+      "type": "domain_model",
+      "label": "WebhookRow",
+      "note_path": "Projects/axis-toolbox/Models/WebhookRow.md"
+    },
+    {
+      "id": "model_143",
+      "type": "domain_model",
+      "label": "averypayplatformConfig",
+      "note_path": "Projects/axis-toolbox/Models/averypayplatformConfig.md"
+    },
+    {
+      "id": "model_144",
+      "type": "domain_model",
+      "label": "Edge",
+      "note_path": "Projects/axis-toolbox/Models/Edge.md"
+    },
+    {
+      "id": "model_145",
+      "type": "domain_model",
+      "label": "Node",
+      "note_path": "Projects/axis-toolbox/Models/Node.md"
+    },
+    {
+      "id": "prompt_context",
+      "type": "prompt",
+      "label": "Context Preamble",
+      "note_path": "Prompts/Context Preamble.md"
+    },
+    {
+      "id": "prompt_review",
+      "type": "prompt",
+      "label": "Code Review",
+      "note_path": "Prompts/Code Review.md"
+    },
+    {
+      "id": "prompt_debug",
+      "type": "prompt",
+      "label": "Bug Investigation",
+      "note_path": "Prompts/Bug Investigation.md"
+    }
+  ],
+  "edges": [
+    {
+      "from": "project",
+      "to": "architecture",
+      "relationship": "has_architecture"
+    },
+    {
+      "from": "project",
+      "to": "fw_0",
+      "relationship": "uses_technology"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_0",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_1",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_2",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_3",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_4",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_5",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_6",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "abs_7",
+      "relationship": "contains_concept"
+    },
+    {
+      "from": "architecture",
+      "to": "model_0",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_1",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_2",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_3",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_4",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_5",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_6",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_7",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_8",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_9",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_10",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_11",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_12",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_13",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_14",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_15",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_16",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_17",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_18",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_19",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_20",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_21",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_22",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_23",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_24",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_25",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_26",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_27",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_28",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_29",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_30",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_31",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_32",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_33",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_34",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_35",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_36",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_37",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_38",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_39",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_40",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_41",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_42",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_43",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_44",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_45",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_46",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_47",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_48",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_49",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_50",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_51",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_52",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_53",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_54",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_55",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_56",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_57",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_58",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_59",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_60",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_61",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_62",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_63",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_64",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_65",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_66",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_67",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_68",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_69",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_70",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_71",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_72",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_73",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_74",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_75",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_76",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_77",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_78",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_79",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_80",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_81",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_82",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_83",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_84",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_85",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_86",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_87",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_88",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_89",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_90",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_91",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_92",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_93",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_94",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_95",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_96",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_97",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_98",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_99",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_100",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_101",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_102",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_103",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_104",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_105",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_106",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_107",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_108",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_109",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_110",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_111",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_112",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_113",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_114",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_115",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_116",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_117",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_118",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_119",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_120",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_121",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_122",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_123",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_124",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_125",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_126",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_127",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_128",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_129",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_130",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_131",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_132",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_133",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_134",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_135",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_136",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_137",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_138",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_139",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_140",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_141",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_142",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_143",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_144",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_145",
+      "relationship": "has_model"
+    },
+    {
+      "from": "project",
+      "to": "prompt_context",
+      "relationship": "has_prompt"
+    },
+    {
+      "from": "project",
+      "to": "prompt_review",
+      "relationship": "has_prompt"
+    },
+    {
+      "from": "project",
+      "to": "prompt_debug",
+      "relationship": "has_prompt"
+    }
+  ],
+  "source_file_count": 466,
+  "source_entry_points": [
+    {
+      "path": "apps/api/src/server.ts",
+      "exports": [
+        "export const app = ..."
+      ]
+    },
+    {
+      "path": "apps/web/src/App.tsx",
+      "exports": [
+        "export function App() { ... }"
+      ]
+    },
+    {
+      "path": "apps/web/src/main.tsx",
+      "exports": []
+    },
+    {
+      "path": "packages/context-engine/src/index.ts",
+      "exports": [
+        "export type { ... }",
+        "export { ... }"
+      ]
+    },
+    {
+      "path": "packages/generator-core/src/index.ts",
+      "exports": [
+        "export type { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }"
+      ]
+    },
+    {
+      "path": "packages/repo-parser/src/index.ts",
+      "exports": [
+        "export type { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export type { ... }",
+        "export { ... }",
+        "export type { ... }"
+      ]
+    }
+  ]
+}

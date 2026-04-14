@@ -1,0 +1,2234 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.174Z",
+  "structure": {
+    "total_files": 466,
+    "total_directories": 65,
+    "total_loc": 107233
+  },
+  "languages": {
+    "TypeScript": {
+      "files": 245,
+      "percentage": 73.7
+    },
+    "YAML": {
+      "files": 74,
+      "percentage": 14.5
+    },
+    "JSON": {
+      "files": 54,
+      "percentage": 6.2
+    },
+    "Markdown": {
+      "files": 81,
+      "percentage": 3.9
+    },
+    "CSS": {
+      "files": 2,
+      "percentage": 0.8
+    },
+    "JavaScript": {
+      "files": 3,
+      "percentage": 0.6
+    },
+    "HTML": {
+      "files": 1,
+      "percentage": 0.1
+    },
+    "Dockerfile": {
+      "files": 1,
+      "percentage": 0
+    }
+  },
+  "layers": {
+    "presentation": [
+      "apps",
+      "frontend"
+    ]
+  },
+  "entry_points": [],
+  "routes": [
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/admin.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/admin.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/admin.test.ts"
+    },
+    {
+      "path": "/v1/admin/stats",
+      "method": "GET",
+      "source": "apps/api/src/admin.test.ts"
+    },
+    {
+      "path": "/v1/admin/accounts",
+      "method": "GET",
+      "source": "apps/api/src/admin.test.ts"
+    },
+    {
+      "path": "/v1/admin/activity",
+      "method": "GET",
+      "source": "apps/api/src/admin.test.ts"
+    },
+    {
+      "path": "/llms.txt",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/.well-known/skills/index.json",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/v1/docs.md",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/.well-known/axis.json",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/for-agents",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/v1/install",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/v1/install/:platform",
+      "method": "GET",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/probe-intent",
+      "method": "POST",
+      "source": "apps/api/src/agent-discovery.test.ts"
+    },
+    {
+      "path": "/v1/analyze",
+      "method": "POST",
+      "source": "apps/api/src/analyze.test.ts"
+    },
+    {
+      "path": "/.well-known/axis.json",
+      "method": "GET",
+      "source": "apps/api/src/analyze.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "DELETE",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id",
+      "method": "DELETE",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/db/stats",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/db/maintenance",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/search/index",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/search/query",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/search/:snapshot_id/stats",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/docs",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/programs",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/accept",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/upgrade-prompt",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/upgrade-prompt/dismiss",
+      "method": "POST",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/funnel",
+      "method": "GET",
+      "source": "apps/api/src/api-branches.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "GET",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id",
+      "method": "DELETE",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/toggle",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/deliveries",
+      "method": "GET",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/search/query",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/programs",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/github-token",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/admin/stats",
+      "method": "GET",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/admin/accounts",
+      "method": "GET",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/v1/admin/activity",
+      "method": "GET",
+      "source": "apps/api/src/api-layer5.test.ts"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path",
+      "method": "GET",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/search/export",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/skills/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/frontend/audit",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/seo/analyze",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/optimization/analyze",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/theme/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/brand/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/superpowers/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/marketing/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/notebook/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/obsidian/analyze",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/mcp/provision",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/artifacts/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/remotion/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/canvas/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/algorithmic/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/agentic-purchasing/generate",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/github/analyze",
+      "method": "POST",
+      "source": "apps/api/src/api.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/account/github-token",
+      "method": "POST",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/account/github-token",
+      "method": "GET",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/account/github-token/:token_id",
+      "method": "DELETE",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/billing/history",
+      "method": "GET",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/billing/proration",
+      "method": "GET",
+      "source": "apps/api/src/b-grade-upgrade.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path*",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/search/export",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/export",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/keys/:key_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/usage",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/programs",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/credits",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/plans",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "GET",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/accept",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/billing-flow.test.ts"
+    },
+    {
+      "path": "/for-agents",
+      "method": "GET",
+      "source": "apps/api/src/budget-probe.test.ts"
+    },
+    {
+      "path": "/probe-intent",
+      "method": "POST",
+      "source": "apps/api/src/budget-probe.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "GET",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/plans",
+      "method": "GET",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/webhooks/stripe",
+      "method": "POST",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/checkout",
+      "method": "POST",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/account/subscription",
+      "method": "GET",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/account/subscription/cancel",
+      "method": "POST",
+      "source": "apps/api/src/checkout-email.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/crash-resilience.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/crash-resilience.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/account/credits",
+      "method": "GET",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/account/credits",
+      "method": "POST",
+      "source": "apps/api/src/credits-api.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/db-endpoints.test.ts"
+    },
+    {
+      "path": "/v1/db/stats",
+      "method": "GET",
+      "source": "apps/api/src/db-endpoints.test.ts"
+    },
+    {
+      "path": "/v1/db/maintenance",
+      "method": "POST",
+      "source": "apps/api/src/db-endpoints.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/deletion.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "DELETE",
+      "source": "apps/api/src/deletion.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id",
+      "method": "DELETE",
+      "source": "apps/api/src/deletion.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/health/live",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/health/ready",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/metrics",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/db/stats",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/db/maintenance",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "DELETE",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/versions",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/versions/:version_number",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/diff",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id",
+      "method": "DELETE",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/export",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/search/export",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/keys/:key_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/usage",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/quota",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/admin/stats",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/admin/accounts",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/admin/activity",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id",
+      "method": "DELETE",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/toggle",
+      "method": "POST",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/deliveries",
+      "method": "GET",
+      "source": "apps/api/src/e2e-flows.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/export",
+      "method": "GET",
+      "source": "apps/api/src/export-edge-cases.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/export",
+      "method": "GET",
+      "source": "apps/api/src/export.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/plans",
+      "method": "GET",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "GET",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/accept",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/upgrade-prompt",
+      "method": "GET",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/upgrade-prompt/dismiss",
+      "method": "POST",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/funnel",
+      "method": "GET",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/funnel/metrics",
+      "method": "GET",
+      "source": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/handler-edge-cases.test.ts"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "source": "apps/api/src/handler-edge-cases.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/handler-edge-cases.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/handler-edge-cases.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path",
+      "method": "GET",
+      "source": "apps/api/src/handler-edge-cases.test.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/handler-edge-cases.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/handler-validation.test.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/handler-validation.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "DELETE",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id",
+      "method": "DELETE",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path",
+      "method": "GET",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/search/export",
+      "method": "POST",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/skills/generate",
+      "method": "POST",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/github/analyze",
+      "method": "POST",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/handlers-deep.test.ts"
+    },
+    {
+      "path": "/v1/health/live",
+      "method": "GET",
+      "source": "apps/api/src/latency-histogram.test.ts"
+    },
+    {
+      "path": "/v1/metrics",
+      "method": "GET",
+      "source": "apps/api/src/latency-histogram.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/logging.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/logging.test.ts"
+    },
+    {
+      "path": "/mcp",
+      "method": "POST",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/mcp",
+      "method": "GET",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/v1/mcp/server.json",
+      "method": "GET",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/v1/stats",
+      "method": "GET",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/ping",
+      "method": "GET",
+      "source": "apps/api/src/mcp-server.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/metrics.test.ts"
+    },
+    {
+      "path": "/v1/health/live",
+      "method": "GET",
+      "source": "apps/api/src/metrics.test.ts"
+    },
+    {
+      "path": "/v1/health/ready",
+      "method": "GET",
+      "source": "apps/api/src/metrics.test.ts"
+    },
+    {
+      "path": "/v1/metrics",
+      "method": "GET",
+      "source": "apps/api/src/metrics.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "DELETE",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id",
+      "method": "DELETE",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path*",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/export",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/search/index",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/search/query",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/search/:snapshot_id/stats",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account/keys/:key_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account/usage",
+      "method": "GET",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/account/programs",
+      "method": "POST",
+      "source": "apps/api/src/multi-tenancy.test.ts"
+    },
+    {
+      "path": "/v1/auth/github",
+      "method": "GET",
+      "source": "apps/api/src/oauth.test.ts"
+    },
+    {
+      "path": "/v1/auth/github/callback",
+      "method": "GET",
+      "source": "apps/api/src/oauth.test.ts"
+    },
+    {
+      "path": "/v1/prepare-for-agentic-purchasing",
+      "method": "POST",
+      "source": "apps/api/src/prepare-purchasing.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/production-startup.test.ts"
+    },
+    {
+      "path": "/v1/programs",
+      "method": "GET",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/account/usage",
+      "method": "GET",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/account/programs",
+      "method": "POST",
+      "source": "apps/api/src/programs-billing.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/quota.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/quota.test.ts"
+    },
+    {
+      "path": "/v1/account/quota",
+      "method": "GET",
+      "source": "apps/api/src/quota.test.ts"
+    },
+    {
+      "path": "/v1/test/fast",
+      "method": "GET",
+      "source": "apps/api/src/request-limits.test.ts"
+    },
+    {
+      "path": "/v1/test/slow",
+      "method": "GET",
+      "source": "apps/api/src/request-limits.test.ts"
+    },
+    {
+      "path": "/slow",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/throw-string",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/throw-after-end",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/null-error",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/array-error",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/ok",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/manual-500",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/manual-422",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/up",
+      "method": "GET",
+      "source": "apps/api/src/router-branches.test.ts"
+    },
+    {
+      "path": "/echo",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/echo",
+      "method": "POST",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/items/:id",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/users/:userId/posts/:postId",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/files/:path*",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/throws",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/status/:code",
+      "method": "POST",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/error-shape",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/",
+      "method": "GET",
+      "source": "apps/api/src/router.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/security.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/security.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/server-lifecycle.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/server-lifecycle.test.ts"
+    },
+    {
+      "path": "/",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/health/live",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/health/ready",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/metrics",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/db/stats",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/db/maintenance",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/docs",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "DELETE",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/versions",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/versions/:version_number",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/diff",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/context",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/generated-files/:file_path*",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id",
+      "method": "DELETE",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/search/export",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/skills/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/frontend/audit",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/seo/analyze",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/optimization/analyze",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/theme/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/brand/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/superpowers/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/marketing/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/notebook/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/obsidian/analyze",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/mcp/provision",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/artifacts/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/remotion/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/canvas/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/algorithmic/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/agentic-purchasing/generate",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/prepare-for-agentic-purchasing",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/analyze",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/github/analyze",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/.well-known/axis.json",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/.well-known/capabilities.json",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/robots.txt",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/llms.txt",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/.well-known/skills/index.json",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/docs.md",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/for-agents",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/probe-intent",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/install",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/install/:platform",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/search/index",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/search/query",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/search/:snapshot_id/stats",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/search/:snapshot_id/symbols",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/projects/:project_id/export",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/programs",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/mcp",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/mcp",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/stats",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/mcp/server.json",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/mcp/tools",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/keys",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/keys/:key_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/usage",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/quota",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/programs",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/github-token",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/github-token",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/github-token/:token_id",
+      "method": "DELETE",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/billing/history",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/billing/proration",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/credits",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/credits",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/plans",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/accept",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/seats/:seat_id/revoke",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/upgrade-prompt",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/upgrade-prompt/dismiss",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/funnel",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/funnel/metrics",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/admin/stats",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/admin/accounts",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/admin/activity",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/auth/github",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/auth/github/callback",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id",
+      "method": "DELETE",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/toggle",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/deliveries",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/webhooks/stripe",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/checkout",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/subscription",
+      "method": "GET",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/subscription/cancel",
+      "method": "POST",
+      "source": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/snapshot-auth.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id",
+      "method": "GET",
+      "source": "apps/api/src/snapshot-auth.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/snapshot-auth.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/snapshot-auth.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/stripe-branches.test.ts"
+    },
+    {
+      "path": "/v1/webhooks/stripe",
+      "method": "POST",
+      "source": "apps/api/src/stripe-branches.test.ts"
+    },
+    {
+      "path": "/v1/checkout",
+      "method": "POST",
+      "source": "apps/api/src/stripe-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/subscription",
+      "method": "GET",
+      "source": "apps/api/src/stripe-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/subscription/cancel",
+      "method": "POST",
+      "source": "apps/api/src/stripe-branches.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/stripe.test.ts"
+    },
+    {
+      "path": "/v1/webhooks/stripe",
+      "method": "POST",
+      "source": "apps/api/src/stripe.test.ts"
+    },
+    {
+      "path": "/v1/account/subscription",
+      "method": "GET",
+      "source": "apps/api/src/stripe.test.ts"
+    },
+    {
+      "path": "/v1/snapshots",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/search/export",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/skills/generate",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/debug/analyze",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/account/tier",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/account/programs",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/account/seats",
+      "method": "POST",
+      "source": "apps/api/src/validation.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/versions.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/versions",
+      "method": "GET",
+      "source": "apps/api/src/versions.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/versions/:version_number",
+      "method": "GET",
+      "source": "apps/api/src/versions.test.ts"
+    },
+    {
+      "path": "/v1/snapshots/:snapshot_id/diff",
+      "method": "GET",
+      "source": "apps/api/src/versions.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "POST",
+      "source": "apps/api/src/webhook-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "GET",
+      "source": "apps/api/src/webhook-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id",
+      "method": "DELETE",
+      "source": "apps/api/src/webhook-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/toggle",
+      "method": "POST",
+      "source": "apps/api/src/webhook-branches.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/deliveries",
+      "method": "GET",
+      "source": "apps/api/src/webhook-branches.test.ts"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/v1/accounts",
+      "method": "POST",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "POST",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks",
+      "method": "GET",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id",
+      "method": "DELETE",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/toggle",
+      "method": "POST",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/v1/account/webhooks/:webhook_id/deliveries",
+      "method": "GET",
+      "source": "apps/api/src/webhooks.test.ts"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "source": "e2e_ui_audit.yaml"
+    },
+    {
+      "path": "/v1/health",
+      "method": "GET",
+      "source": "e2e_ui_audit.yaml"
+    },
+    {
+      "path": "/api/health",
+      "method": "GET",
+      "source": "packages/context-engine/src/engine-branches.test.ts"
+    },
+    {
+      "path": "/api/users",
+      "method": "POST",
+      "source": "packages/context-engine/src/engine-branches.test.ts"
+    },
+    {
+      "path": "/api/users",
+      "method": "GET",
+      "source": "packages/context-engine/src/engine-edge.test.ts"
+    },
+    {
+      "path": "/api/users",
+      "method": "POST",
+      "source": "packages/context-engine/src/engine-edge.test.ts"
+    },
+    {
+      "path": "/api/users/:id",
+      "method": "DELETE",
+      "source": "packages/context-engine/src/engine-edge.test.ts"
+    },
+    {
+      "path": "/api/health",
+      "method": "GET",
+      "source": "packages/generator-core/src/generator-branches.test.ts"
+    },
+    {
+      "path": "/api/users",
+      "method": "GET",
+      "source": "packages/generator-core/src/generator-branches.test.ts"
+    },
+    {
+      "path": "/api/users",
+      "method": "POST",
+      "source": "packages/generator-core/src/generator-branches.test.ts"
+    },
+    {
+      "path": "/",
+      "method": "GET",
+      "source": "packages/generator-core/src/generator-branches.test.ts"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "source": "packages/generator-core/src/generator-sourcefile-branches.test.ts"
+    },
+    {
+      "path": "/api/health",
+      "method": "GET",
+      "source": "packages/generator-core/src/generator-sourcefile-branches6.test.ts"
+    },
+    {
+      "path": "/webhook",
+      "method": "POST",
+      "source": "packages/generator-core/src/generators-agentic-purchasing.test.ts"
+    },
+    {
+      "path": "/users/:id",
+      "method": "GET",
+      "source": "packages/repo-parser/src/perf.bench.ts"
+    },
+    {
+      "path": "/users",
+      "method": "POST",
+      "source": "packages/repo-parser/src/perf.bench.ts"
+    }
+  ],
+  "hotspots": [
+    {
+      "path": "apps/web/src/App.tsx",
+      "risk_score": 0.9,
+      "inbound": 1,
+      "outbound": 17
+    },
+    {
+      "path": "apps/web/src/api.ts",
+      "risk_score": 0.8,
+      "inbound": 16,
+      "outbound": 0
+    },
+    {
+      "path": "apps/web/src/pages/DashboardPage.tsx",
+      "risk_score": 0.5,
+      "inbound": 1,
+      "outbound": 9
+    },
+    {
+      "path": "apps/web/src/components/Toast.tsx",
+      "risk_score": 0.15,
+      "inbound": 3,
+      "outbound": 0
+    },
+    {
+      "path": "apps/web/src/components/AxisIcons.tsx",
+      "risk_score": 0.15,
+      "inbound": 3,
+      "outbound": 0
+    },
+    {
+      "path": "apps/web/src/upload-utils.ts",
+      "risk_score": 0.15,
+      "inbound": 3,
+      "outbound": 0
+    }
+  ],
+  "internal_import_count": 48,
+  "external_dependency_count": 20,
+  "source_file_count": 466,
+  "file_tree": ".gitignore (0.2 KB)\nAGENTS.md (5.6 KB)\nalgorithmic-pack.json (7.9 KB)\nalgorithmic/begin.yaml (1.8 KB)\nalgorithmic/continuation.yaml (2.4 KB)\nalgorithmic/MEMORY.yaml (2.9 KB)\nalgorithmic/schemas/output-contract.schema.json (1.8 KB)\napps/api/mcp-server.json (8.1 KB)\napps/api/package.json (0.6 KB)\napps/api/src/admin.test.ts (8.8 KB)\napps/api/src/admin.ts (2.0 KB)\napps/api/src/agent-discovery.test.ts (18.6 KB)\napps/api/src/analyze.test.ts (16.2 KB)\napps/api/src/api-branches.test.ts (22.0 KB)\napps/api/src/api-layer5.test.ts (10.6 KB)\napps/api/src/api.test.ts (20.7 KB)\napps/api/src/b-grade-upgrade.test.ts (8.6 KB)\napps/api/src/billing-flow.test.ts (24.6 KB)\napps/api/src/billing.ts (21.2 KB)\napps/api/src/budget-probe.test.ts (33.2 KB)\napps/api/src/checkout-email.test.ts (11.7 KB)\napps/api/src/crash-resilience.test.ts (6.3 KB)\napps/api/src/credits-api.test.ts (10.9 KB)\napps/api/src/db-endpoints.test.ts (4.1 KB)\napps/api/src/deletion.test.ts (5.6 KB)\napps/api/src/deployment.test.ts (6.9 KB)\napps/api/src/e2e-flows.test.ts (22.4 KB)\napps/api/src/env.test.ts (8.3 KB)\napps/api/src/env.ts (5.5 KB)\napps/api/src/export-edge-cases.test.ts (9.9 KB)\napps/api/src/export.test.ts (13.4 KB)\napps/api/src/export.ts (6.7 KB)\napps/api/src/funnel-api.test.ts (28.0 KB)\napps/api/src/funnel.ts (8.9 KB)\napps/api/src/github.test.ts (6.0 KB)\napps/api/src/github.ts (0.2 KB)\napps/api/src/handler-edge-cases.test.ts (11.8 KB)\napps/api/src/handler-validation.test.ts (11.4 KB)\napps/api/src/handlers-deep.test.ts (18.7 KB)\napps/api/src/handlers.ts (121.8 KB)\napps/api/src/latency-histogram.test.ts (9.1 KB)\napps/api/src/logger.test.ts (3.5 KB)\napps/api/src/logger.ts (2.9 KB)\napps/api/src/logging.test.ts (8.5 KB)\napps/api/src/mcp-server.test.ts (54.5 KB)\napps/api/src/mcp-server.ts (79.3 KB)\napps/api/src/metrics-branches.test.ts (2.5 KB)\napps/api/src/metrics.test.ts (4.3 KB)\napps/api/src/metrics.ts (6.4 KB)\napps/api/src/mpp.test.ts (8.5 KB)\napps/api/src/mpp.ts (13.5 KB)\napps/api/src/multi-tenancy.test.ts (20.0 KB)\napps/api/src/oauth.test.ts (8.0 KB)\napps/api/src/oauth.ts (3.4 KB)\napps/api/src/openapi.test.ts (15.0 KB)\napps/api/src/openapi.ts (59.1 KB)\napps/api/src/prepare-purchasing.test.ts (19.1 KB)\napps/api/src/production-startup.test.ts (8.5 KB)\napps/api/src/programs-billing.test.ts (12.8 KB)\napps/api/src/quota.test.ts (4.5 KB)\napps/api/src/rate-limiter.test.ts (13.8 KB)\napps/api/src/rate-limiter.ts (6.5 KB)\napps/api/src/request-limits.test.ts (3.9 KB)\napps/api/src/router-branches.test.ts (12.6 KB)\napps/api/src/router.test.ts (15.0 KB)\napps/api/src/router.ts (11.6 KB)\napps/api/src/search-api.test.ts (13.8 KB)\napps/api/src/security.test.ts (7.2 KB)\napps/api/src/server-lifecycle.test.ts (7.0 KB)\napps/api/src/server-routes.test.ts (5.2 KB)\napps/api/src/server.ts (11.8 KB)\napps/api/src/snapshot-auth.test.ts (12.4 KB)\napps/api/src/stripe-branches.test.ts (38.6 KB)\napps/api/src/stripe.test.ts (10.1 KB)\napps/api/src/stripe.ts (15.8 KB)\napps/api/src/validation.test.ts (8.1 KB)\napps/api/src/versions.test.ts (8.1 KB)\napps/api/src/versions.ts (2.5 KB)\napps/api/src/webhook-branches.test.ts (16.3 KB)\napps/api/src/webhooks.test.ts (13.6 KB)\napps/api/src/webhooks.ts (5.4 KB)\napps/api/tsconfig.json (0.2 KB)\napps/cli/package.json (0.5 KB)\napps/cli/src/cli-auth.test.ts (7.6 KB)\napps/cli/src/cli-commands.test.ts (8.7 KB)\napps/cli/src/cli-edge-cases.test.ts (14.4 KB)\napps/cli/src/cli-pipeline.test.ts (9.3 KB)\napps/cli/src/cli.test.ts (13.3 KB)\napps/cli/src/cli.ts (9.7 KB)\napps/cli/src/credential-store.test.ts (8.2 KB)\napps/cli/src/credential-store.ts (3.2 KB)\napps/cli/src/determinism.test.ts (5.0 KB)\napps/cli/src/runner.test.ts (6.5 KB)\napps/cli/src/runner.ts (11.2 KB)\napps/cli/src/scanner.ts (3.8 KB)\napps/cli/src/writer.ts (0.9 KB)\napps/cli/tsconfig.json (0.4 KB)\napps/web/index.html (6.4 KB)\napps/web/package.json (0.5 KB)\napps/web/public/robots.txt (0.8 KB)\napps/web/src/api.test.ts (23.7 KB)\napps/web/src/api.ts (15.5 KB)\napps/web/src/App.tsx (15.7 KB)\napps/web/src/components/AxisIcons.tsx (8.9 KB)\napps/web/src/components/CommandPalette.tsx (6.6 KB)\napps/web/src/components/FilesTab.tsx (4.7 KB)\napps/web/src/components/GeneratedTab.tsx (4.1 KB)\napps/web/src/components/GraphTab.tsx (4.8 KB)\napps/web/src/components/OverviewTab.tsx (8.8 KB)\napps/web/src/components/ProgramLauncher.tsx (7.2 KB)\napps/web/src/components/SearchTab.tsx (11.1 KB)\napps/web/src/components/SignUpModal.tsx (3.9 KB)\napps/web/src/components/StatusBar.tsx (2.3 KB)\napps/web/src/components/Toast.tsx (3.8 KB)\napps/web/src/index.css (18.5 KB)\napps/web/src/main.tsx (0.2 KB)\napps/web/src/pages/AccountPage.tsx (21.6 KB)\napps/web/src/pages/DashboardPage.tsx (7.5 KB)\napps/web/src/pages/DocsPage.tsx (71.2 KB)\napps/web/src/pages/ExamplesPage.tsx (24.1 KB)\napps/web/src/pages/ForAgentsPage.tsx (49.7 KB)\napps/web/src/pages/HelpPage.tsx (41.9 KB)\napps/web/src/pages/InstallPage.tsx (8.3 KB)\napps/web/src/pages/PlansPage.tsx (9.3 KB)\napps/web/src/pages/ProgramsPage.tsx (13.9 KB)\napps/web/src/pages/QAPage.tsx (23.7 KB)\napps/web/src/pages/TermsPage.tsx (19.4 KB)\napps/web/src/pages/UploadPage.tsx (23.6 KB)\napps/web/src/upload-utils-zip.test.ts (9.0 KB)\napps/web/src/upload-utils.test.ts (5.7 KB)\napps/web/src/upload-utils.ts (4.1 KB)\napps/web/src/vite-env.d.ts (0.2 KB)\napps/web/tsconfig.json (0.5 KB)\napps/web/vite.config.ts (0.2 KB)\narchitecture-summary.md (8.9 KB)\nartifact-spec.md (1.6 KB)\nartifacts/begin.yaml (1.8 KB)\nartifacts/continuation.yaml (2.4 KB)\nartifacts/MEMORY.yaml (3.1 KB)\nartifacts/schemas/output-contract.schema.json (1.8 KB)\nautomated remedial action.yaml (7.5 KB)\naxis_all_tools.yaml (22.6 KB)\nAXIS_Board_Pitch.md (30.7 KB)\nAXIS_DEMO_REPORT.md (12.3 KB)\naxis_master_blueprint.yaml (9.6 KB)\nbegin.yaml (12.9 KB)\nbrand-guidelines.md (7.7 KB)\nbrand/begin.yaml (1.8 KB)\nbrand/continuation.yaml (2.4 KB)\nbrand/MEMORY.yaml (3.0 KB)\nbrand/schemas/output-contract.schema.json (1.8 KB)\ncanvas-pack.md (9.7 KB)\ncanvas/begin.yaml (1.8 KB)\ncanvas/continuation.yaml (2.4 KB)\ncanvas/MEMORY.yaml (2.8 KB)\ncanvas/schemas/output-contract.schema.json (1.8 KB)\ncapability_inventory.yaml (31.7 KB)\nCHANGELOG.md (6.6 KB)\nCLAUDE.md (1.1 KB)\ncloudflare-pages.md (1.5 KB)\ncontinuation.yaml (253.9 KB)\nCONTRIBUTING.md (3.1 KB)\ncov3.txt (19.3 KB)\ncov5.txt (218.4 KB)\ndebug/begin.yaml (3.6 KB)\ndebug/continuation.yaml (2.4 KB)\ndebug/MEMORY.yaml (5.5 KB)\ndebug/schemas/output-contract.schema.json (1.8 KB)\ndependency-hotspots.md (5.1 KB)\ndocker-compose.yml (2.0 KB)\nDockerfile (4.0 KB)\ne2e_round2.mjs (15.1 KB)\ne2e_ui_audit.yaml (39.3 KB)\nexamples/01-paid-platform/generated/AGENTS.md (1.9 KB)\nexamples/01-paid-platform/generated/CLAUDE.md (0.9 KB)\nexamples/01-paid-platform/README.md (0.9 KB)\nexamples/02-axis-scalpel/generated/AGENTS.md (1.4 KB)\nexamples/02-axis-scalpel/generated/CLAUDE.md (0.8 KB)\nexamples/02-axis-scalpel/README.md (0.7 KB)\nexamples/03-spacey/generated/AGENTS.md (1.4 KB)\nexamples/03-spacey/generated/CLAUDE.md (0.8 KB)\nexamples/03-spacey/README.md (0.7 KB)\nexamples/04-slate-certification/generated/AGENTS.md (1.7 KB)\nexamples/04-slate-certification/generated/CLAUDE.md (0.7 KB)\nexamples/04-slate-certification/README.md (0.7 KB)\nexamples/05-ruuuun/generated/AGENTS.md (1.8 KB)\nexamples/05-ruuuun/generated/CLAUDE.md (0.8 KB)\nexamples/05-ruuuun/README.md (0.8 KB)\nexamples/README.md (3.2 KB)\nfrontend/begin.yaml (3.6 KB)\nfrontend/continuation.yaml (2.4 KB)\nfrontend/MEMORY.yaml (5.8 KB)\nfrontend/schemas/output-contract.schema.json (1.8 KB)\ngenerative-sketch.js (8.3 KB)\nhuman user audt.yaml (24.9 KB)\nhygiene and memory.yaml (8.7 KB)\nmarketing-pack.md (9.7 KB)\nmarketing/begin.yaml (1.8 KB)\nmarketing/continuation.yaml (2.4 KB)\nmarketing/MEMORY.yaml (2.8 KB)\nmarketing/schemas/output-contract.schema.json (1.8 KB)\nmcp-config.json (7.6 KB)\nmcp/begin.yaml (1.8 KB)\nmcp/continuation.yaml (2.4 KB)\nmcp/MEMORY.yaml (2.7 KB)\nmcp/schemas/output-contract.schema.json (1.8 KB)\nmemory generator.yaml (7.6 KB)\nnotebook-summary.md (9.9 KB)\nnotebook/begin.yaml (1.8 KB)\nnotebook/continuation.yaml (2.4 KB)\nnotebook/MEMORY.yaml (2.9 KB)\nnotebook/schemas/output-contract.schema.json (1.8 KB)\nobsidian-vault-pack.md (9.3 KB)\nobsidian/begin.yaml (1.8 KB)\nobsidian/continuation.yaml (2.4 KB)\nobsidian/MEMORY.yaml (2.8 KB)\nobsidian/schemas/output-contract.schema.json (1.8 KB)\noptimization-rules.md (6.3 KB)\noptimization/begin.yaml (2.5 KB)\noptimization/continuation.yaml (2.4 KB)\noptimization/MEMORY.yaml (3.7 KB)\noptimization/schemas/output-contract.schema.json (1.8 KB)\npackage.json (0.5 KB)\npackages/context-engine/package.json (0.4 KB)\npackages/context-engine/src/engine-branches.test.ts (27.5 KB)\npackages/context-engine/src/engine-branches2.test.ts (7.6 KB)\npackages/context-engine/src/engine-branches3.test.ts (7.5 KB)\npackages/context-engine/src/engine-edge.test.ts (8.7 KB)\npackages/context-engine/src/engine.test.ts (13.8 KB)\npackages/context-engine/src/engine.ts (19.0 KB)\npackages/context-engine/src/index.ts (0.1 KB)\npackages/context-engine/src/types.ts (2.7 KB)\npackages/context-engine/tsconfig.json (0.2 KB)\npackages/generator-core/package.json (0.4 KB)\npackages/generator-core/src/file-excerpt-utils.ts (5.4 KB)\npackages/generator-core/src/fw-helpers.ts (0.5 KB)\npackages/generator-core/src/generate-programs.test.ts (11.8 KB)\npackages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)\npackages/generator-core/src/generate-validation.test.ts (10.9 KB)\npackages/generator-core/src/generate.test.ts (42.2 KB)\npackages/generator-core/src/generate.ts (17.2 KB)\npackages/generator-core/src/generator-alt-profiles.test.ts (17.0 KB)\npackages/generator-core/src/generator-branches.test.ts (217.7 KB)\npackages/generator-core/src/generator-sourcefile-branches.test.ts (20.9 KB)\npackages/generator-core/src/generator-sourcefile-branches10.test.ts (34.2 KB)\npackages/generator-core/src/generator-sourcefile-branches11.test.ts (21.4 KB)\npackages/generator-core/src/generator-sourcefile-branches12.test.ts (16.3 KB)\npackages/generator-core/src/generator-sourcefile-branches13.test.ts (10.5 KB)\npackages/generator-core/src/generator-sourcefile-branches14.test.ts (13.8 KB)\npackages/generator-core/src/generator-sourcefile-branches15.test.ts (9.2 KB)\npackages/generator-core/src/generator-sourcefile-branches16.test.ts (22.5 KB)\npackages/generator-core/src/generator-sourcefile-branches17.test.ts (15.9 KB)\npackages/generator-core/src/generator-sourcefile-branches18.test.ts (28.8 KB)\npackages/generator-core/src/generator-sourcefile-branches19.test.ts (12.6 KB)\npackages/generator-core/src/generator-sourcefile-branches2.test.ts (23.9 KB)\npackages/generator-core/src/generator-sourcefile-branches20.test.ts (9.5 KB)\npackages/generator-core/src/generator-sourcefile-branches3.test.ts (31.0 KB)\npackages/generator-core/src/generator-sourcefile-branches4.test.ts (24.7 KB)\npackages/generator-core/src/generator-sourcefile-branches5.test.ts (29.0 KB)\npackages/generator-core/src/generator-sourcefile-branches6.test.ts (26.0 KB)\npackages/generator-core/src/generator-sourcefile-branches7.test.ts (36.7 KB)\npackages/generator-core/src/generator-sourcefile-branches8.test.ts (49.1 KB)\npackages/generator-core/src/generator-sourcefile-branches9.test.ts (33.5 KB)\npackages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)\npackages/generator-core/src/generators-agentic-purchasing.ts (59.8 KB)\npackages/generator-core/src/generators-algorithmic.ts (26.2 KB)\npackages/generator-core/src/generators-artifacts.ts (28.2 KB)\npackages/generator-core/src/generators-brand.ts (32.2 KB)\npackages/generator-core/src/generators-canvas.ts (27.1 KB)\npackages/generator-core/src/generators-debug.ts (42.0 KB)\npackages/generator-core/src/generators-frontend.ts (27.6 KB)\npackages/generator-core/src/generators-marketing.ts (35.4 KB)\npackages/generator-core/src/generators-mcp.ts (26.7 KB)\npackages/generator-core/src/generators-notebook.ts (24.9 KB)\npackages/generator-core/src/generators-obsidian.ts (28.5 KB)\npackages/generator-core/src/generators-optimization.ts (26.1 KB)\npackages/generator-core/src/generators-remotion.ts (32.1 KB)\npackages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)\npackages/generator-core/src/generators-search.ts (17.9 KB)\npackages/generator-core/src/generators-seo.ts (35.8 KB)\npackages/generator-core/src/generators-skills.ts (42.1 KB)\npackages/generator-core/src/generators-superpowers.ts (37.4 KB)\npackages/generator-core/src/generators-theme.ts (45.9 KB)\npackages/generator-core/src/index.ts (2.9 KB)\npackages/generator-core/src/pipeline.test.ts (9.7 KB)\npackages/generator-core/src/types.ts (0.6 KB)\npackages/generator-core/tsconfig.json (0.2 KB)\npackages/repo-parser/package.json (0.4 KB)\npackages/repo-parser/src/domain-extractor.test.ts (7.7 KB)\npackages/repo-parser/src/domain-extractor.ts (6.7 KB)\npackages/repo-parser/src/framework-detector.test.ts (13.7 KB)\npackages/repo-parser/src/framework-detector.ts (7.7 KB)\npackages/repo-parser/src/import-resolver.test.ts (8.6 KB)\npackages/repo-parser/src/import-resolver.ts (3.8 KB)\npackages/repo-parser/src/index.ts (0.6 KB)\npackages/repo-parser/src/language-detector.test.ts (3.7 KB)\npackages/repo-parser/src/language-detector.ts (1.7 KB)\npackages/repo-parser/src/parser-branches.test.ts (13.2 KB)\npackages/repo-parser/src/parser-branches2.test.ts (7.1 KB)\npackages/repo-parser/src/parser-branches3.test.ts (10.1 KB)\npackages/repo-parser/src/parser.test.ts (9.1 KB)\npackages/repo-parser/src/parser.ts (14.5 KB)\npackages/repo-parser/src/perf.bench.ts (6.1 KB)\npackages/repo-parser/src/sql-extractor.test.ts (8.9 KB)\npackages/repo-parser/src/sql-extractor.ts (4.3 KB)\npackages/repo-parser/src/types.ts (2.0 KB)\npackages/repo-parser/tsconfig.json (0.2 KB)\npackages/snapshots/package.json (0.4 KB)\npackages/snapshots/src/b-grade-upgrade.test.ts (8.4 KB)\npackages/snapshots/src/billing-edge-cases.test.ts (14.5 KB)\npackages/snapshots/src/billing-store.ts (13.1 KB)\npackages/snapshots/src/billing-types.ts (3.9 KB)\npackages/snapshots/src/billing.test.ts (12.2 KB)\npackages/snapshots/src/coverage-gaps.test.ts (22.8 KB)\npackages/snapshots/src/db-maintenance.test.ts (6.7 KB)\npackages/snapshots/src/db.test.ts (15.8 KB)\npackages/snapshots/src/db.ts (20.7 KB)\npackages/snapshots/src/email-store.test.ts (10.7 KB)\npackages/snapshots/src/email-store.ts (9.0 KB)\npackages/snapshots/src/funnel-edge-cases.test.ts (10.7 KB)\npackages/snapshots/src/funnel-store.test.ts (3.8 KB)\npackages/snapshots/src/funnel-store.ts (15.1 KB)\npackages/snapshots/src/funnel-types.ts (7.0 KB)\npackages/snapshots/src/funnel.test.ts (17.4 KB)\npackages/snapshots/src/github-http.test.ts (12.7 KB)\npackages/snapshots/src/github-tarball.test.ts (13.2 KB)\npackages/snapshots/src/github-token-branches.test.ts (3.8 KB)\npackages/snapshots/src/github-token-store.ts (5.1 KB)\npackages/snapshots/src/github.ts (7.7 KB)\npackages/snapshots/src/index.ts (5.8 KB)\npackages/snapshots/src/oauth-store.test.ts (8.5 KB)\npackages/snapshots/src/oauth-store.ts (4.6 KB)\npackages/snapshots/src/perf.bench.ts (6.9 KB)\npackages/snapshots/src/persistence-metering.test.ts (9.9 KB)\npackages/snapshots/src/persistence-metering.ts (4.9 KB)\npackages/snapshots/src/referral-store.test.ts (9.8 KB)\npackages/snapshots/src/referral-store.ts (10.0 KB)\npackages/snapshots/src/search-store.test.ts (6.8 KB)\npackages/snapshots/src/search-store.ts (9.7 KB)\npackages/snapshots/src/search-symbols.test.ts (9.3 KB)\npackages/snapshots/src/store-layer5.test.ts (4.0 KB)\npackages/snapshots/src/store-validation.test.ts (15.6 KB)\npackages/snapshots/src/store.test.ts (10.8 KB)\npackages/snapshots/src/store.ts (9.3 KB)\npackages/snapshots/src/stripe-store.test.ts (8.5 KB)\npackages/snapshots/src/stripe-store.ts (5.1 KB)\npackages/snapshots/src/tier-audit.ts (3.8 KB)\npackages/snapshots/src/types.ts (1.1 KB)\npackages/snapshots/src/version-store.ts (5.1 KB)\npackages/snapshots/src/webhook-http.test.ts (13.3 KB)\npackages/snapshots/src/webhook-retry.test.ts (16.6 KB)\npackages/snapshots/src/webhook-store.ts (14.2 KB)\npackages/snapshots/tsconfig.json (0.2 KB)\npayment-processing-output/ab-test-plan.md (2.4 KB)\npayment-processing-output/AGENTS.md (2.0 KB)\npayment-processing-output/architecture-summary.md (3.2 KB)\npayment-processing-output/artifact-spec.md (2.2 KB)\npayment-processing-output/asset-checklist.md (1.2 KB)\npayment-processing-output/asset-guidelines.md (1.7 KB)\npayment-processing-output/automation-pipeline.yaml (2.1 KB)\npayment-processing-output/brand-board.md (4.0 KB)\npayment-processing-output/brand-guidelines.md (2.5 KB)\npayment-processing-output/campaign-brief.md (1.6 KB)\npayment-processing-output/canvas-spec.json (3.5 KB)\npayment-processing-output/capability-registry.json (1.8 KB)\npayment-processing-output/channel-rulebook.md (2.6 KB)\npayment-processing-output/citation-index.json (2.6 KB)\npayment-processing-output/CLAUDE.md (0.9 KB)\npayment-processing-output/collection-map.md (2.2 KB)\npayment-processing-output/component-guidelines.md (0.8 KB)\npayment-processing-output/component-library.json (5.6 KB)\npayment-processing-output/component-theme-map.json (58.8 KB)\npayment-processing-output/connector-map.yaml (0.9 KB)\npayment-processing-output/content-audit.md (4.4 KB)\npayment-processing-output/content-constraints.md (2.4 KB)\npayment-processing-output/cost-estimate.json (6.5 KB)\npayment-processing-output/cro-playbook.md (3.0 KB)\npayment-processing-output/dark-mode-tokens.json (2.8 KB)\npayment-processing-output/dashboard-widget.tsx (0.2 KB)\npayment-processing-output/dependency-hotspots.md (2.3 KB)\npayment-processing-output/embed-snippet.ts (1.4 KB)\npayment-processing-output/export-manifest.yaml (2.2 KB)\npayment-processing-output/funnel-map.md (2.2 KB)\npayment-processing-output/generated-component.tsx (0.5 KB)\npayment-processing-output/generative-sketch.ts (3.9 KB)\npayment-processing-output/graph-prompt-map.json (4.2 KB)\npayment-processing-output/incident-template.md (1.1 KB)\npayment-processing-output/layout-patterns.md (1.8 KB)\npayment-processing-output/linking-policy.md (3.0 KB)\npayment-processing-output/mcp-config.json (2.7 KB)\npayment-processing-output/messaging-system.yaml (1.5 KB)\npayment-processing-output/meta-tag-audit.json (7.3 KB)\npayment-processing-output/notebook-summary.md (1.2 KB)\npayment-processing-output/obsidian-skill-pack.md (2.0 KB)\npayment-processing-output/parameter-pack.json (2.2 KB)\npayment-processing-output/policy-pack.md (1.4 KB)\npayment-processing-output/poster-layouts.md (2.8 KB)\npayment-processing-output/prompt-diff-report.md (1.4 KB)\npayment-processing-output/refactor-checklist.md (2.0 KB)\npayment-processing-output/remotion-script.ts (3.5 KB)\npayment-processing-output/render-config.json (1.2 KB)\npayment-processing-output/research-threads.md (2.3 KB)\npayment-processing-output/root-cause-checklist.md (2.9 KB)\npayment-processing-output/route-priority-map.md (1.0 KB)\npayment-processing-output/scene-plan.md (2.1 KB)\npayment-processing-output/schema-recommendations.json (0.5 KB)\npayment-processing-output/sequence-pack.md (1.7 KB)\npayment-processing-output/server-manifest.yaml (2.8 KB)\npayment-processing-output/social-pack.md (1.6 KB)\npayment-processing-output/source-map.json (4.8 KB)\npayment-processing-output/storyboard.md (4.5 KB)\npayment-processing-output/study-brief.md (2.4 KB)\npayment-processing-output/superpower-pack.md (1.9 KB)\npayment-processing-output/template-pack.md (2.1 KB)\npayment-processing-output/test-generation-rules.md (2.0 KB)\npayment-processing-output/theme-guidelines.md (5.6 KB)\npayment-processing-output/theme.css (6.4 KB)\npayment-processing-output/token-budget-plan.md (2.3 KB)\npayment-processing-output/tracing-rules.md (1.4 KB)\npayment-processing-output/ui-audit.md (2.2 KB)\npayment-processing-output/variation-matrix.json (6.9 KB)\npayment-processing-output/vault-rules.md (2.1 KB)\npayment-processing-output/voice-and-tone.md (2.5 KB)\npayment-processing-output/workflow-pack.md (2.0 KB)\npayment-processing-output/workflow-registry.json (1.8 KB)\npnpm-workspace.yaml (0.1 KB)\nProgramPipeline.js (11.3 KB)\nREADME.md (9.2 KB)\nremotion-pack.md (9.2 KB)\nremotion/begin.yaml (1.8 KB)\nremotion/continuation.yaml (2.4 KB)\nremotion/MEMORY.yaml (2.8 KB)\nremotion/schemas/output-contract.schema.json (1.8 KB)\nrender.yaml (1.3 KB)\nrepo_snapshot.yaml (80.7 KB)\nrules to compile snapshot.yaml (19.4 KB)\nsearch/begin.yaml (3.7 KB)\nsearch/continuation.yaml (2.4 KB)\nsearch/MEMORY.yaml (5.9 KB)\nsearch/schemas/context-map.schema.json (10.9 KB)\nsearch/schemas/output-contract.schema.json (1.8 KB)\nsearch/schemas/repo-profile.schema.yaml (6.7 KB)\nseo/begin.yaml (3.6 KB)\nseo/continuation.yaml (2.4 KB)\nseo/MEMORY.yaml (5.8 KB)\nseo/schemas/output-contract.schema.json (1.8 KB)\nserver.json (0.9 KB)\nskills/begin.yaml (3.6 KB)\nskills/continuation.yaml (2.4 KB)\nskills/MEMORY.yaml (6.0 KB)\nskills/schemas/output-contract.schema.json (1.8 KB)\nsnapshot_protocol.yaml (8.3 KB)\nstalling fix.txt (2.6 KB)\nstatic_analysis_phase.yaml (65.4 KB)\nsuperpowers-pack.md (9.8 KB)\nsuperpowers/begin.yaml (1.9 KB)\nsuperpowers/continuation.yaml (2.5 KB)\nsuperpowers/MEMORY.yaml (3.0 KB)\nsuperpowers/schemas/output-contract.schema.json (1.8 KB)\ntheme/begin.yaml (1.8 KB)\ntheme/continuation.yaml (2.4 KB)\ntheme/MEMORY.yaml (3.0 KB)\ntheme/schemas/output-contract.schema.json (1.8 KB)\ntsconfig.base.json (0.4 KB)\nvitest.config.ts (0.6 KB)\nworkflow-pack.md (7.2 KB)"
+}

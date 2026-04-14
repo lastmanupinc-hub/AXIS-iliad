@@ -1,0 +1,8531 @@
+{
+  "generated_at": "2026-04-14T00:32:39.316Z",
+  "total_symbols": 1618,
+  "file_count": 217,
+  "symbols": {
+    "apps/api/src/admin.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 15
+      }
+    ],
+    "apps/api/src/admin.ts": [
+      {
+        "name": "handleAdminStats",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "handleAdminAccounts",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "handleAdminActivity",
+        "type": "function",
+        "line": 41
+      }
+    ],
+    "apps/api/src/agent-discovery.test.ts": [
+      {
+        "name": "req",
+        "type": "function",
+        "line": 25
+      },
+      {
+        "name": "postReq",
+        "type": "function",
+        "line": 53
+      }
+    ],
+    "apps/api/src/analyze.test.ts": [
+      {
+        "name": "req",
+        "type": "function",
+        "line": 19
+      }
+    ],
+    "apps/api/src/api-branches.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 56
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 63
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 531
+      }
+    ],
+    "apps/api/src/api-layer5.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 45
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 50
+      }
+    ],
+    "apps/api/src/api.test.ts": [
+      {
+        "name": "request",
+        "type": "function",
+        "line": 34
+      },
+      {
+        "name": "testPayload",
+        "type": "const",
+        "line": 72
+      }
+    ],
+    "apps/api/src/b-grade-upgrade.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 21
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "createAuth",
+        "type": "function",
+        "line": 80
+      }
+    ],
+    "apps/api/src/billing-flow.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 16
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 18
+      },
+      {
+        "name": "SNAPSHOT_BODY",
+        "type": "const",
+        "line": 94
+      },
+      {
+        "name": "createTestAccount",
+        "type": "function",
+        "line": 108
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 304
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 319
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 477
+      }
+    ],
+    "apps/api/src/billing.ts": [
+      {
+        "name": "AuthContext",
+        "type": "interface",
+        "line": 43
+      },
+      {
+        "name": "resolveAuth",
+        "type": "function",
+        "line": 56
+      },
+      {
+        "name": "ctx",
+        "type": "const",
+        "line": 72
+      },
+      {
+        "name": "ctx",
+        "type": "const",
+        "line": 80
+      },
+      {
+        "name": "ctx",
+        "type": "const",
+        "line": 85
+      },
+      {
+        "name": "requireAuth",
+        "type": "function",
+        "line": 98
+      },
+      {
+        "name": "handleCreateAccount",
+        "type": "function",
+        "line": 110
+      },
+      {
+        "name": "tier",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "handleGetAccount",
+        "type": "function",
+        "line": 185
+      },
+      {
+        "name": "handleCreateApiKey",
+        "type": "function",
+        "line": 210
+      },
+      {
+        "name": "handleListApiKeys",
+        "type": "function",
+        "line": 241
+      },
+      {
+        "name": "handleRevokeApiKey",
+        "type": "function",
+        "line": 263
+      },
+      {
+        "name": "handleGetUsage",
+        "type": "function",
+        "line": 292
+      },
+      {
+        "name": "handleUpdateTier",
+        "type": "function",
+        "line": 320
+      },
+      {
+        "name": "isUpgrade",
+        "type": "function",
+        "line": 351
+      },
+      {
+        "name": "handleUpdatePrograms",
+        "type": "function",
+        "line": 361
+      },
+      {
+        "name": "handleGetQuota",
+        "type": "function",
+        "line": 419
+      },
+      {
+        "name": "handleSaveGitHubToken",
+        "type": "function",
+        "line": 457
+      },
+      {
+        "name": "handleListGitHubTokens",
+        "type": "function",
+        "line": 500
+      },
+      {
+        "name": "handleDeleteGitHubToken",
+        "type": "function",
+        "line": 525
+      },
+      {
+        "name": "handleBillingHistory",
+        "type": "function",
+        "line": 547
+      },
+      {
+        "name": "handleProrationPreview",
+        "type": "function",
+        "line": 571
+      },
+      {
+        "name": "handleGetCredits",
+        "type": "function",
+        "line": 600
+      },
+      {
+        "name": "handleAddCredits",
+        "type": "function",
+        "line": 629
+      },
+      {
+        "name": "CreditOperation",
+        "type": "type",
+        "line": 654
+      }
+    ],
+    "apps/api/src/budget-probe.test.ts": [
+      {
+        "name": "postReq",
+        "type": "function",
+        "line": 37
+      },
+      {
+        "name": "getReq",
+        "type": "function",
+        "line": 73
+      },
+      {
+        "name": "makeReq",
+        "type": "function",
+        "line": 323
+      },
+      {
+        "name": "makeReq",
+        "type": "function",
+        "line": 427
+      },
+      {
+        "name": "bn",
+        "type": "function",
+        "line": 784
+      },
+      {
+        "name": "bn",
+        "type": "function",
+        "line": 796
+      },
+      {
+        "name": "bn",
+        "type": "function",
+        "line": 804
+      }
+    ],
+    "apps/api/src/checkout-email.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 23
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 25
+      },
+      {
+        "name": "signStripePayload",
+        "type": "function",
+        "line": 57
+      }
+    ],
+    "apps/api/src/crash-resilience.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 9
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 11
+      }
+    ],
+    "apps/api/src/credits-api.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 21
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "createAccountAndKey",
+        "type": "function",
+        "line": 76
+      },
+      {
+        "name": "upgradeTier",
+        "type": "function",
+        "line": 84
+      }
+    ],
+    "apps/api/src/db-endpoints.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 12
+      },
+      {
+        "name": "tables",
+        "type": "function",
+        "line": 70
+      }
+    ],
+    "apps/api/src/deletion.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 22
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 24
+      },
+      {
+        "name": "createTestSnapshot",
+        "type": "function",
+        "line": 62
+      }
+    ],
+    "apps/api/src/deployment.test.ts": [
+      {
+        "name": "readRoot",
+        "type": "function",
+        "line": 9
+      }
+    ],
+    "apps/api/src/e2e-flows.test.ts": [
+      {
+        "name": "req",
+        "type": "function",
+        "line": 35
+      },
+      {
+        "name": "testPayload",
+        "type": "const",
+        "line": 70
+      },
+      {
+        "name": "files",
+        "type": "function",
+        "line": 188
+      },
+      {
+        "name": "uniquePayload",
+        "type": "const",
+        "line": 481
+      }
+    ],
+    "apps/api/src/env.test.ts": [
+      {
+        "name": "msg",
+        "type": "function",
+        "line": 113
+      }
+    ],
+    "apps/api/src/env.ts": [
+      {
+        "name": "EnvSpec",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "ValidationError",
+        "type": "interface",
+        "line": 34
+      },
+      {
+        "name": "ValidationResult",
+        "type": "interface",
+        "line": 39
+      },
+      {
+        "name": "validateEnv",
+        "type": "function",
+        "line": 49
+      },
+      {
+        "name": "requireValidEnv",
+        "type": "function",
+        "line": 97
+      },
+      {
+        "name": "generateEnvExample",
+        "type": "function",
+        "line": 111
+      }
+    ],
+    "apps/api/src/export-edge-cases.test.ts": [
+      {
+        "name": "RawRes",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 19
+      },
+      {
+        "name": "ZipFileEntry",
+        "type": "interface",
+        "line": 42
+      },
+      {
+        "name": "parseZip",
+        "type": "function",
+        "line": 50
+      }
+    ],
+    "apps/api/src/export.test.ts": [
+      {
+        "name": "RawRes",
+        "type": "interface",
+        "line": 15
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 21
+      },
+      {
+        "name": "ZipFileEntry",
+        "type": "interface",
+        "line": 44
+      },
+      {
+        "name": "parseZip",
+        "type": "function",
+        "line": 52
+      }
+    ],
+    "apps/api/src/export.ts": [
+      {
+        "name": "ZipEntry",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "crc32",
+        "type": "function",
+        "line": 24
+      },
+      {
+        "name": "writeU16",
+        "type": "function",
+        "line": 30
+      },
+      {
+        "name": "writeU32",
+        "type": "function",
+        "line": 33
+      },
+      {
+        "name": "buildZip",
+        "type": "function",
+        "line": 37
+      },
+      {
+        "name": "handleExportZip",
+        "type": "function",
+        "line": 121
+      }
+    ],
+    "apps/api/src/funnel-api.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 29
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "createAuthenticatedAccount",
+        "type": "function",
+        "line": 102
+      },
+      {
+        "name": "plans",
+        "type": "function",
+        "line": 123
+      },
+      {
+        "name": "plans",
+        "type": "function",
+        "line": 131
+      },
+      {
+        "name": "features",
+        "type": "function",
+        "line": 139
+      },
+      {
+        "name": "prompt",
+        "type": "function",
+        "line": 195
+      },
+      {
+        "name": "prompt",
+        "type": "function",
+        "line": 208
+      },
+      {
+        "name": "events",
+        "type": "function",
+        "line": 230
+      },
+      {
+        "name": "events",
+        "type": "function",
+        "line": 274
+      },
+      {
+        "name": "metrics",
+        "type": "function",
+        "line": 299
+      },
+      {
+        "name": "seat",
+        "type": "function",
+        "line": 368
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 407
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 420
+      },
+      {
+        "name": "seats",
+        "type": "function",
+        "line": 425
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 467
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 479
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 490
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 517
+      },
+      {
+        "name": "seatId",
+        "type": "function",
+        "line": 529
+      }
+    ],
+    "apps/api/src/funnel.ts": [
+      {
+        "name": "handleGetPlans",
+        "type": "function",
+        "line": 29
+      },
+      {
+        "name": "handleInviteSeat",
+        "type": "function",
+        "line": 42
+      },
+      {
+        "name": "handleListSeats",
+        "type": "function",
+        "line": 111
+      },
+      {
+        "name": "handleAcceptSeat",
+        "type": "function",
+        "line": 146
+      },
+      {
+        "name": "handleRevokeSeat",
+        "type": "function",
+        "line": 173
+      },
+      {
+        "name": "handleGetUpgradePrompt",
+        "type": "function",
+        "line": 198
+      },
+      {
+        "name": "handleDismissUpgradePrompt",
+        "type": "function",
+        "line": 223
+      },
+      {
+        "name": "handleGetFunnelStatus",
+        "type": "function",
+        "line": 242
+      },
+      {
+        "name": "handleGetFunnelMetrics",
+        "type": "function",
+        "line": 270
+      }
+    ],
+    "apps/api/src/github.test.ts": [
+      {
+        "name": "buildTarEntry",
+        "type": "function",
+        "line": 66
+      },
+      {
+        "name": "buildTar",
+        "type": "function",
+        "line": 102
+      }
+    ],
+    "apps/api/src/handler-edge-cases.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 30
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 37
+      },
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 149
+      }
+    ],
+    "apps/api/src/handler-validation.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 18
+      },
+      {
+        "name": "validManifest",
+        "type": "function",
+        "line": 67
+      },
+      {
+        "name": "validSnapshot",
+        "type": "function",
+        "line": 78
+      }
+    ],
+    "apps/api/src/handlers-deep.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 54
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 60
+      }
+    ],
+    "apps/api/src/handlers.ts": [
+      {
+        "name": "chargeWithDiscounts",
+        "type": "function",
+        "line": 54
+      },
+      {
+        "name": "assertSnapshotAccess",
+        "type": "function",
+        "line": 70
+      },
+      {
+        "name": "assertProjectAccess",
+        "type": "function",
+        "line": 85
+      },
+      {
+        "name": "makeProgramHandler",
+        "type": "function",
+        "line": 125
+      },
+      {
+        "name": "requestedOutputs",
+        "type": "function",
+        "line": 203
+      },
+      {
+        "name": "handleCreateSnapshot",
+        "type": "function",
+        "line": 257
+      },
+      {
+        "name": "input",
+        "type": "const",
+        "line": 308
+      },
+      {
+        "name": "handleGetSnapshot",
+        "type": "function",
+        "line": 419
+      },
+      {
+        "name": "handleDeleteSnapshot",
+        "type": "function",
+        "line": 444
+      },
+      {
+        "name": "handleDeleteProject",
+        "type": "function",
+        "line": 473
+      },
+      {
+        "name": "db",
+        "type": "function",
+        "line": 492
+      },
+      {
+        "name": "handleGetContext",
+        "type": "function",
+        "line": 503
+      },
+      {
+        "name": "handleGetGeneratedFiles",
+        "type": "function",
+        "line": 532
+      },
+      {
+        "name": "handleHealthCheck",
+        "type": "function",
+        "line": 565
+      },
+      {
+        "name": "handleDbStats",
+        "type": "function",
+        "line": 580
+      },
+      {
+        "name": "handleDbMaintenance",
+        "type": "function",
+        "line": 589
+      },
+      {
+        "name": "handleGetGeneratedFile",
+        "type": "function",
+        "line": 599
+      },
+      {
+        "name": "handleSearchExport",
+        "type": "function",
+        "line": 637
+      },
+      {
+        "name": "handleSkillsGenerate",
+        "type": "function",
+        "line": 670
+      },
+      {
+        "name": "requestedOutputs",
+        "type": "function",
+        "line": 703
+      },
+      {
+        "name": "handleGitHubAnalyze",
+        "type": "function",
+        "line": 723
+      },
+      {
+        "name": "input",
+        "type": "const",
+        "line": 822
+      },
+      {
+        "name": "handleSearchIndex",
+        "type": "function",
+        "line": 905
+      },
+      {
+        "name": "files",
+        "type": "function",
+        "line": 931
+      },
+      {
+        "name": "handleSearchQuery",
+        "type": "function",
+        "line": 946
+      },
+      {
+        "name": "handleSearchStats",
+        "type": "function",
+        "line": 994
+      },
+      {
+        "name": "handleSearchSymbols",
+        "type": "function",
+        "line": 1010
+      },
+      {
+        "name": "adoptionHint",
+        "type": "function",
+        "line": 1127
+      },
+      {
+        "name": "buildNextSteps",
+        "type": "function",
+        "line": 1136
+      },
+      {
+        "name": "detectProjectName",
+        "type": "function",
+        "line": 1157
+      },
+      {
+        "name": "handleAnalyze",
+        "type": "function",
+        "line": 1173
+      },
+      {
+        "name": "input",
+        "type": "const",
+        "line": 1366
+      },
+      {
+        "name": "PURCHASING_READINESS_WEIGHTS",
+        "type": "const",
+        "line": 1466
+      },
+      {
+        "name": "computePurchasingReadinessScore",
+        "type": "function",
+        "line": 1477
+      },
+      {
+        "name": "has",
+        "type": "function",
+        "line": 1482
+      },
+      {
+        "name": "checks",
+        "type": "const",
+        "line": 1484
+      },
+      {
+        "name": "computePurchasingReadinessEvidence",
+        "type": "function",
+        "line": 1544
+      },
+      {
+        "name": "handlePreparePurchasing",
+        "type": "function",
+        "line": 1574
+      },
+      {
+        "name": "path",
+        "type": "function",
+        "line": 1619
+      },
+      {
+        "name": "manifest",
+        "type": "const",
+        "line": 1706
+      },
+      {
+        "name": "complianceSection",
+        "type": "const",
+        "line": 1789
+      },
+      {
+        "name": "handleWellKnown",
+        "type": "function",
+        "line": 1888
+      },
+      {
+        "name": "handleCapabilities",
+        "type": "function",
+        "line": 1962
+      },
+      {
+        "name": "handleLlmsTxt",
+        "type": "function",
+        "line": 2040
+      },
+      {
+        "name": "handleRobotsTxt",
+        "type": "function",
+        "line": 2097
+      },
+      {
+        "name": "handleSkillsIndex",
+        "type": "function",
+        "line": 2131
+      },
+      {
+        "name": "handleDocsMd",
+        "type": "function",
+        "line": 2205
+      },
+      {
+        "name": "handleForAgents",
+        "type": "function",
+        "line": 2309
+      },
+      {
+        "name": "handleInstall",
+        "type": "function",
+        "line": 2496
+      },
+      {
+        "name": "handleProbeIntent",
+        "type": "function",
+        "line": 2536
+      }
+    ],
+    "apps/api/src/latency-histogram.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 136
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 138
+      }
+    ],
+    "apps/api/src/logger.ts": [
+      {
+        "name": "initRequest",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "getRequestId",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "getRequestStart",
+        "type": "function",
+        "line": 20
+      },
+      {
+        "name": "ErrorCode",
+        "type": "const",
+        "line": 26
+      },
+      {
+        "name": "ErrorCodeValue",
+        "type": "type",
+        "line": 77
+      },
+      {
+        "name": "LogLevel",
+        "type": "type",
+        "line": 81
+      },
+      {
+        "name": "getMinLevel",
+        "type": "function",
+        "line": 90
+      },
+      {
+        "name": "env",
+        "type": "function",
+        "line": 91
+      },
+      {
+        "name": "log",
+        "type": "function",
+        "line": 95
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 102
+      }
+    ],
+    "apps/api/src/logging.test.ts": [
+      {
+        "name": "fakeRes",
+        "type": "const",
+        "line": 14
+      },
+      {
+        "name": "fakeRes",
+        "type": "const",
+        "line": 23
+      },
+      {
+        "name": "r1",
+        "type": "const",
+        "line": 28
+      },
+      {
+        "name": "r2",
+        "type": "const",
+        "line": 29
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 82
+      }
+    ],
+    "apps/api/src/mcp-server.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 19
+      },
+      {
+        "name": "post",
+        "type": "function",
+        "line": 25
+      },
+      {
+        "name": "get",
+        "type": "function",
+        "line": 60
+      },
+      {
+        "name": "key",
+        "type": "function",
+        "line": 118
+      },
+      {
+        "name": "err",
+        "type": "function",
+        "line": 166
+      },
+      {
+        "name": "err",
+        "type": "function",
+        "line": 173
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 242
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 250
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 261
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 281
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 298
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 330
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 357
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 384
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 409
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 429
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 455
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 479
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 503
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 529
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 548
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 564
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 575
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 589
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 610
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 630
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 644
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 655
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 668
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 679
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 692
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 709
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 726
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 744
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 860
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 879
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 908
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 962
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 980
+      },
+      {
+        "name": "top",
+        "type": "function",
+        "line": 1038
+      },
+      {
+        "name": "scores",
+        "type": "function",
+        "line": 1067
+      },
+      {
+        "name": "programs",
+        "type": "function",
+        "line": 1094
+      },
+      {
+        "name": "programs",
+        "type": "function",
+        "line": 1101
+      },
+      {
+        "name": "programs",
+        "type": "function",
+        "line": 1107
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1161
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1176
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1311
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1328
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1342
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1358
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1389
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1417
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1441
+      },
+      {
+        "name": "result",
+        "type": "function",
+        "line": 1461
+      }
+    ],
+    "apps/api/src/mcp-server.ts": [
+      {
+        "name": "McpCallCounters",
+        "type": "interface",
+        "line": 44
+      },
+      {
+        "name": "_counters",
+        "type": "const",
+        "line": 52
+      },
+      {
+        "name": "ProbeClass",
+        "type": "type",
+        "line": 62
+      },
+      {
+        "name": "classifyProbe",
+        "type": "function",
+        "line": 72
+      },
+      {
+        "name": "IntentCapture",
+        "type": "interface",
+        "line": 81
+      },
+      {
+        "name": "captureIntent",
+        "type": "function",
+        "line": 92
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 93
+      },
+      {
+        "name": "getIntentLog",
+        "type": "function",
+        "line": 104
+      },
+      {
+        "name": "logMcpCall",
+        "type": "function",
+        "line": 110
+      },
+      {
+        "name": "getMcpCallCounters",
+        "type": "function",
+        "line": 127
+      },
+      {
+        "name": "JsonRpcRequest",
+        "type": "interface",
+        "line": 141
+      },
+      {
+        "name": "RpcSuccess",
+        "type": "interface",
+        "line": 148
+      },
+      {
+        "name": "RpcError",
+        "type": "interface",
+        "line": 154
+      },
+      {
+        "name": "RpcResponse",
+        "type": "type",
+        "line": 160
+      },
+      {
+        "name": "rpcOk",
+        "type": "function",
+        "line": 386
+      },
+      {
+        "name": "rpcErr",
+        "type": "function",
+        "line": 390
+      },
+      {
+        "name": "toolOk",
+        "type": "function",
+        "line": 398
+      },
+      {
+        "name": "toolErr",
+        "type": "function",
+        "line": 402
+      },
+      {
+        "name": "filterGeneratorsByEntitlement",
+        "type": "function",
+        "line": 409
+      },
+      {
+        "name": "runAnalyzeFiles",
+        "type": "function",
+        "line": 425
+      },
+      {
+        "name": "manifest",
+        "type": "const",
+        "line": 478
+      },
+      {
+        "name": "runAnalyzeRepo",
+        "type": "function",
+        "line": 548
+      },
+      {
+        "name": "manifest",
+        "type": "const",
+        "line": 605
+      },
+      {
+        "name": "runSearchTools",
+        "type": "function",
+        "line": 699
+      },
+      {
+        "name": "runDiscoverAgenticCommerceTools",
+        "type": "function",
+        "line": 777
+      },
+      {
+        "name": "runImproveMyAgent",
+        "type": "function",
+        "line": 828
+      },
+      {
+        "name": "manifest",
+        "type": "const",
+        "line": 869
+      },
+      {
+        "name": "runDiscoverAgenticPurchasingNeeds",
+        "type": "function",
+        "line": 1036
+      },
+      {
+        "name": "runListPrograms",
+        "type": "function",
+        "line": 1165
+      },
+      {
+        "name": "runGetSnapshot",
+        "type": "function",
+        "line": 1198
+      },
+      {
+        "name": "runGetArtifact",
+        "type": "function",
+        "line": 1241
+      },
+      {
+        "name": "runPreparePurchasing",
+        "type": "function",
+        "line": 1276
+      },
+      {
+        "name": "manifest",
+        "type": "const",
+        "line": 1348
+      },
+      {
+        "name": "dispatch",
+        "type": "function",
+        "line": 1577
+      },
+      {
+        "name": "toolArgs",
+        "type": "function",
+        "line": 1606
+      },
+      {
+        "name": "ip",
+        "type": "function",
+        "line": 1612
+      },
+      {
+        "name": "handleMcpPost",
+        "type": "function",
+        "line": 1670
+      },
+      {
+        "name": "handleMcpGet",
+        "type": "function",
+        "line": 1742
+      },
+      {
+        "name": "getMcpServerMeta",
+        "type": "function",
+        "line": 1759
+      },
+      {
+        "name": "handleMcpServerJson",
+        "type": "function",
+        "line": 1837
+      }
+    ],
+    "apps/api/src/metrics-branches.test.ts": [
+      {
+        "name": "mockRes",
+        "type": "function",
+        "line": 22
+      },
+      {
+        "name": "res",
+        "type": "const",
+        "line": 23
+      },
+      {
+        "name": "mockReq",
+        "type": "const",
+        "line": 36
+      }
+    ],
+    "apps/api/src/metrics.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 11
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 13
+      }
+    ],
+    "apps/api/src/metrics.ts": [
+      {
+        "name": "recordRequest",
+        "type": "function",
+        "line": 13
+      },
+      {
+        "name": "HistogramEntry",
+        "type": "interface",
+        "line": 24
+      },
+      {
+        "name": "normalizeRoute",
+        "type": "function",
+        "line": 32
+      },
+      {
+        "name": "recordLatency",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "getLatencyStats",
+        "type": "function",
+        "line": 62
+      },
+      {
+        "name": "resetLatencyStats",
+        "type": "function",
+        "line": 66
+      },
+      {
+        "name": "handleLiveness",
+        "type": "function",
+        "line": 72
+      },
+      {
+        "name": "handleReadiness",
+        "type": "function",
+        "line": 81
+      },
+      {
+        "name": "handleMetrics",
+        "type": "function",
+        "line": 104
+      },
+      {
+        "name": "tables",
+        "type": "function",
+        "line": 111
+      }
+    ],
+    "apps/api/src/mpp.test.ts": [
+      {
+        "name": "startServer",
+        "type": "function",
+        "line": 14
+      },
+      {
+        "name": "stopServer",
+        "type": "function",
+        "line": 33
+      },
+      {
+        "name": "serverPort",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "FetchOptions",
+        "type": "interface",
+        "line": 46
+      },
+      {
+        "name": "fetchFrom",
+        "type": "function",
+        "line": 52
+      },
+      {
+        "name": "req",
+        "type": "const",
+        "line": 85
+      },
+      {
+        "name": "res",
+        "type": "const",
+        "line": 86
+      },
+      {
+        "name": "id1",
+        "type": "function",
+        "line": 153
+      },
+      {
+        "name": "id2",
+        "type": "function",
+        "line": 154
+      },
+      {
+        "name": "auth",
+        "type": "function",
+        "line": 187
+      },
+      {
+        "name": "req",
+        "type": "const",
+        "line": 199
+      },
+      {
+        "name": "req",
+        "type": "const",
+        "line": 205
+      },
+      {
+        "name": "req",
+        "type": "const",
+        "line": 214
+      },
+      {
+        "name": "req",
+        "type": "const",
+        "line": 222
+      }
+    ],
+    "apps/api/src/mpp.ts": [
+      {
+        "name": "AnyMppx",
+        "type": "type",
+        "line": 33
+      },
+      {
+        "name": "CacheKey",
+        "type": "type",
+        "line": 35
+      },
+      {
+        "name": "getMppx",
+        "type": "function",
+        "line": 38
+      },
+      {
+        "name": "ChargeOptions",
+        "type": "type",
+        "line": 77
+      },
+      {
+        "name": "MppResult",
+        "type": "type",
+        "line": 91
+      },
+      {
+        "name": "AgentBudget",
+        "type": "interface",
+        "line": 95
+      },
+      {
+        "name": "PricingTier",
+        "type": "interface",
+        "line": 103
+      },
+      {
+        "name": "getPricingTier",
+        "type": "function",
+        "line": 143
+      },
+      {
+        "name": "negotiatePrice",
+        "type": "function",
+        "line": 147
+      },
+      {
+        "name": "build402NegotiationBody",
+        "type": "function",
+        "line": 173
+      },
+      {
+        "name": "parseAgentBudget",
+        "type": "function",
+        "line": 224
+      },
+      {
+        "name": "budget",
+        "type": "const",
+        "line": 229
+      },
+      {
+        "name": "resolveAgentMode",
+        "type": "function",
+        "line": 252
+      },
+      {
+        "name": "toAscii",
+        "type": "function",
+        "line": 268
+      },
+      {
+        "name": "chargeMpp",
+        "type": "function",
+        "line": 272
+      },
+      {
+        "name": "resetMppxCache",
+        "type": "function",
+        "line": 339
+      }
+    ],
+    "apps/api/src/multi-tenancy.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 36
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 38
+      },
+      {
+        "name": "createTestAccount",
+        "type": "function",
+        "line": 112
+      },
+      {
+        "name": "snapshotBody",
+        "type": "function",
+        "line": 123
+      }
+    ],
+    "apps/api/src/oauth.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 15
+      }
+    ],
+    "apps/api/src/oauth.ts": [
+      {
+        "name": "getOAuthConfig",
+        "type": "function",
+        "line": 14
+      },
+      {
+        "name": "handleGitHubOAuthStart",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "handleGitHubOAuthCallback",
+        "type": "function",
+        "line": 40
+      }
+    ],
+    "apps/api/src/openapi.ts": [
+      {
+        "name": "OpenApiSpec",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "buildOpenApiSpec",
+        "type": "function",
+        "line": 19
+      },
+      {
+        "name": "ref",
+        "type": "function",
+        "line": 1350
+      },
+      {
+        "name": "jsonContent",
+        "type": "function",
+        "line": 1354
+      },
+      {
+        "name": "jsonBody",
+        "type": "function",
+        "line": 1358
+      },
+      {
+        "name": "pathParam",
+        "type": "function",
+        "line": 1362
+      },
+      {
+        "name": "queryParam",
+        "type": "function",
+        "line": 1366
+      },
+      {
+        "name": "programEndpoints",
+        "type": "function",
+        "line": 1370
+      }
+    ],
+    "apps/api/src/prepare-purchasing.test.ts": [
+      {
+        "name": "req",
+        "type": "function",
+        "line": 20
+      },
+      {
+        "name": "validBody",
+        "type": "const",
+        "line": 67
+      },
+      {
+        "name": "paths1",
+        "type": "function",
+        "line": 387
+      },
+      {
+        "name": "paths2",
+        "type": "function",
+        "line": 388
+      },
+      {
+        "name": "focusProp",
+        "type": "function",
+        "line": 416
+      },
+      {
+        "name": "fakeReq",
+        "type": "const",
+        "line": 462
+      },
+      {
+        "name": "fakeReq",
+        "type": "const",
+        "line": 484
+      }
+    ],
+    "apps/api/src/production-startup.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 9
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 11
+      }
+    ],
+    "apps/api/src/programs-billing.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 14
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "makeAuth",
+        "type": "function",
+        "line": 51
+      }
+    ],
+    "apps/api/src/quota.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 12
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 14
+      },
+      {
+        "name": "rawKey",
+        "type": "function",
+        "line": 85
+      }
+    ],
+    "apps/api/src/rate-limiter.test.ts": [
+      {
+        "name": "makeReq",
+        "type": "function",
+        "line": 18
+      },
+      {
+        "name": "makeRes",
+        "type": "function",
+        "line": 27
+      }
+    ],
+    "apps/api/src/rate-limiter.ts": [
+      {
+        "name": "WindowEntry",
+        "type": "interface",
+        "line": 8
+      },
+      {
+        "name": "bindRateLimiterDb",
+        "type": "function",
+        "line": 30
+      },
+      {
+        "name": "flushToDb",
+        "type": "function",
+        "line": 54
+      },
+      {
+        "name": "unbindRateLimiterDb",
+        "type": "function",
+        "line": 75
+      },
+      {
+        "name": "startCleanup",
+        "type": "function",
+        "line": 86
+      },
+      {
+        "name": "getClientIp",
+        "type": "function",
+        "line": 102
+      },
+      {
+        "name": "checkRateLimit",
+        "type": "function",
+        "line": 115
+      },
+      {
+        "name": "getClientWindow",
+        "type": "function",
+        "line": 159
+      },
+      {
+        "name": "resetRateLimits",
+        "type": "function",
+        "line": 199
+      },
+      {
+        "name": "LIMITS",
+        "type": "const",
+        "line": 204
+      }
+    ],
+    "apps/api/src/request-limits.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "rawReq",
+        "type": "function",
+        "line": 12
+      },
+      {
+        "name": "slowReq",
+        "type": "function",
+        "line": 36
+      }
+    ],
+    "apps/api/src/router-branches.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "httpReq",
+        "type": "function",
+        "line": 17
+      },
+      {
+        "name": "fn",
+        "type": "function",
+        "line": 161
+      },
+      {
+        "name": "fn",
+        "type": "function",
+        "line": 291
+      },
+      {
+        "name": "fn",
+        "type": "function",
+        "line": 311
+      }
+    ],
+    "apps/api/src/router.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 14
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 21
+      },
+      {
+        "name": "nested",
+        "type": "const",
+        "line": 311
+      },
+      {
+        "name": "mockRes",
+        "type": "const",
+        "line": 351
+      },
+      {
+        "name": "mockReq",
+        "type": "const",
+        "line": 357
+      }
+    ],
+    "apps/api/src/router.ts": [
+      {
+        "name": "RouteHandler",
+        "type": "type",
+        "line": 9
+      },
+      {
+        "name": "Route",
+        "type": "interface",
+        "line": 11
+      },
+      {
+        "name": "Router",
+        "type": "class",
+        "line": 18
+      },
+      {
+        "name": "sendJSON",
+        "type": "function",
+        "line": 84
+      },
+      {
+        "name": "sendError",
+        "type": "function",
+        "line": 97
+      },
+      {
+        "name": "readBody",
+        "type": "function",
+        "line": 107
+      },
+      {
+        "name": "AppHandle",
+        "type": "interface",
+        "line": 132
+      },
+      {
+        "name": "isShuttingDown",
+        "type": "function",
+        "line": 139
+      },
+      {
+        "name": "createApp",
+        "type": "function",
+        "line": 141
+      },
+      {
+        "name": "shutdown",
+        "type": "function",
+        "line": 254
+      },
+      {
+        "name": "onSignal",
+        "type": "function",
+        "line": 297
+      }
+    ],
+    "apps/api/src/search-api.test.ts": [
+      {
+        "name": "makeReq",
+        "type": "function",
+        "line": 15
+      },
+      {
+        "name": "makeGetReq",
+        "type": "function",
+        "line": 44
+      },
+      {
+        "name": "CapturedResponse",
+        "type": "interface",
+        "line": 51
+      },
+      {
+        "name": "makeRes",
+        "type": "function",
+        "line": 57
+      },
+      {
+        "name": "seedSnapshot",
+        "type": "function",
+        "line": 96
+      },
+      {
+        "name": "makeRawReq",
+        "type": "function",
+        "line": 238
+      },
+      {
+        "name": "seedSnapshotWithCode",
+        "type": "function",
+        "line": 280
+      }
+    ],
+    "apps/api/src/security.test.ts": [
+      {
+        "name": "req",
+        "type": "function",
+        "line": 11
+      }
+    ],
+    "apps/api/src/server-lifecycle.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 15
+      },
+      {
+        "name": "fn",
+        "type": "function",
+        "line": 161
+      }
+    ],
+    "apps/api/src/server-routes.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 11
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 18
+      }
+    ],
+    "apps/api/src/snapshot-auth.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 14
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 19
+      },
+      {
+        "name": "validSnapshot",
+        "type": "function",
+        "line": 77
+      },
+      {
+        "name": "createTestAccount",
+        "type": "function",
+        "line": 90
+      }
+    ],
+    "apps/api/src/stripe-branches.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 38
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "signStripePayload",
+        "type": "function",
+        "line": 72
+      },
+      {
+        "name": "buildCheckoutEvent",
+        "type": "function",
+        "line": 116
+      },
+      {
+        "name": "buildSubscriptionEvent",
+        "type": "function",
+        "line": 131
+      },
+      {
+        "name": "seedSubscription",
+        "type": "function",
+        "line": 157
+      }
+    ],
+    "apps/api/src/stripe.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 16
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 18
+      },
+      {
+        "name": "signStripePayload",
+        "type": "function",
+        "line": 50
+      },
+      {
+        "name": "createTestAccount",
+        "type": "function",
+        "line": 86
+      },
+      {
+        "name": "buildCheckoutSessionPayload",
+        "type": "function",
+        "line": 97
+      },
+      {
+        "name": "buildSubscriptionPayload",
+        "type": "function",
+        "line": 112
+      }
+    ],
+    "apps/api/src/stripe.ts": [
+      {
+        "name": "verifyStripeSignature",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "tsToISO",
+        "type": "function",
+        "line": 73
+      },
+      {
+        "name": "syncTierFromStripeSubscription",
+        "type": "function",
+        "line": 80
+      },
+      {
+        "name": "handleCheckoutCompleted",
+        "type": "function",
+        "line": 125
+      },
+      {
+        "name": "accountId",
+        "type": "function",
+        "line": 127
+      },
+      {
+        "name": "tier",
+        "type": "function",
+        "line": 134
+      },
+      {
+        "name": "handleSubscriptionEvent",
+        "type": "function",
+        "line": 165
+      },
+      {
+        "name": "status",
+        "type": "function",
+        "line": 171
+      },
+      {
+        "name": "handleInvoicePaymentFailed",
+        "type": "function",
+        "line": 208
+      },
+      {
+        "name": "handleStripeWebhook",
+        "type": "function",
+        "line": 217
+      },
+      {
+        "name": "handleCreateCheckout",
+        "type": "function",
+        "line": 282
+      },
+      {
+        "name": "handleGetSubscription",
+        "type": "function",
+        "line": 379
+      },
+      {
+        "name": "handleCancelSubscription",
+        "type": "function",
+        "line": 411
+      }
+    ],
+    "apps/api/src/validation.test.ts": [
+      {
+        "name": "req",
+        "type": "function",
+        "line": 22
+      }
+    ],
+    "apps/api/src/versions.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 21
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "versions",
+        "type": "function",
+        "line": 155
+      },
+      {
+        "name": "version",
+        "type": "function",
+        "line": 171
+      },
+      {
+        "name": "diff",
+        "type": "function",
+        "line": 191
+      }
+    ],
+    "apps/api/src/versions.ts": [
+      {
+        "name": "handleListVersions",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "handleGetVersion",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "handleDiffVersions",
+        "type": "function",
+        "line": 46
+      }
+    ],
+    "apps/api/src/webhook-branches.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 49
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 54
+      },
+      {
+        "name": "whId",
+        "type": "function",
+        "line": 301
+      },
+      {
+        "name": "whId",
+        "type": "function",
+        "line": 312
+      },
+      {
+        "name": "whId",
+        "type": "function",
+        "line": 323
+      },
+      {
+        "name": "whId",
+        "type": "function",
+        "line": 387
+      },
+      {
+        "name": "whId",
+        "type": "function",
+        "line": 412
+      }
+    ],
+    "apps/api/src/webhooks.test.ts": [
+      {
+        "name": "Res",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "req",
+        "type": "function",
+        "line": 15
+      },
+      {
+        "name": "wh",
+        "type": "function",
+        "line": 159
+      },
+      {
+        "name": "webhooks",
+        "type": "function",
+        "line": 195
+      },
+      {
+        "name": "webhookId",
+        "type": "function",
+        "line": 210
+      },
+      {
+        "name": "webhookId",
+        "type": "function",
+        "line": 229
+      },
+      {
+        "name": "webhookId",
+        "type": "function",
+        "line": 247
+      },
+      {
+        "name": "deliveries",
+        "type": "function",
+        "line": 254
+      },
+      {
+        "name": "otherKey",
+        "type": "function",
+        "line": 313
+      }
+    ],
+    "apps/api/src/webhooks.ts": [
+      {
+        "name": "handleCreateWebhook",
+        "type": "function",
+        "line": 17
+      },
+      {
+        "name": "handleListWebhooks",
+        "type": "function",
+        "line": 83
+      },
+      {
+        "name": "handleDeleteWebhook",
+        "type": "function",
+        "line": 102
+      },
+      {
+        "name": "handleToggleWebhook",
+        "type": "function",
+        "line": 123
+      },
+      {
+        "name": "handleWebhookDeliveries",
+        "type": "function",
+        "line": 158
+      }
+    ],
+    "apps/cli/src/cli-commands.test.ts": [
+      {
+        "name": "setupSuccessPath",
+        "type": "function",
+        "line": 46
+      }
+    ],
+    "apps/cli/src/cli-edge-cases.test.ts": [
+      {
+        "name": "makeTempDir",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "writeFixture",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 130
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 145
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 160
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 176
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 192
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 208
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 225
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 240
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 257
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 273
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 289
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 304
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 319
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 342
+      }
+    ],
+    "apps/cli/src/cli-pipeline.test.ts": [
+      {
+        "name": "flush",
+        "type": "function",
+        "line": 49
+      },
+      {
+        "name": "setupAnalyzeSuccess",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "setupGitHubSuccess",
+        "type": "function",
+        "line": 73
+      }
+    ],
+    "apps/cli/src/cli.test.ts": [
+      {
+        "name": "makeTempDir",
+        "type": "function",
+        "line": 13
+      },
+      {
+        "name": "writeFixture",
+        "type": "function",
+        "line": 19
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 143
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 164
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 178
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 191
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 207
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 223
+      },
+      {
+        "name": "githubScan",
+        "type": "const",
+        "line": 361
+      }
+    ],
+    "apps/cli/src/cli.ts": [
+      {
+        "name": "CliArgs",
+        "type": "interface",
+        "line": 9
+      },
+      {
+        "name": "parseArgs",
+        "type": "function",
+        "line": 17
+      },
+      {
+        "name": "result",
+        "type": "const",
+        "line": 19
+      },
+      {
+        "name": "printHelp",
+        "type": "function",
+        "line": 58
+      },
+      {
+        "name": "printVersion",
+        "type": "function",
+        "line": 87
+      },
+      {
+        "name": "printPrograms",
+        "type": "function",
+        "line": 91
+      },
+      {
+        "name": "handleAuth",
+        "type": "function",
+        "line": 114
+      },
+      {
+        "name": "main",
+        "type": "function",
+        "line": 151
+      },
+      {
+        "name": "formatBytes",
+        "type": "function",
+        "line": 240
+      },
+      {
+        "name": "runGitHub",
+        "type": "function",
+        "line": 246
+      },
+      {
+        "name": "scan",
+        "type": "const",
+        "line": 283
+      }
+    ],
+    "apps/cli/src/credential-store.ts": [
+      {
+        "name": "AxisConfig",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "deriveKey",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "encrypt",
+        "type": "function",
+        "line": 22
+      },
+      {
+        "name": "decrypt",
+        "type": "function",
+        "line": 32
+      },
+      {
+        "name": "loadConfig",
+        "type": "function",
+        "line": 44
+      },
+      {
+        "name": "config",
+        "type": "const",
+        "line": 48
+      },
+      {
+        "name": "saveConfig",
+        "type": "function",
+        "line": 69
+      },
+      {
+        "name": "getConfigDir",
+        "type": "function",
+        "line": 87
+      },
+      {
+        "name": "getConfigFile",
+        "type": "function",
+        "line": 91
+      }
+    ],
+    "apps/cli/src/determinism.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "Routes",
+        "type": "function",
+        "line": 50
+      }
+    ],
+    "apps/cli/src/runner.test.ts": [
+      {
+        "name": "pkg",
+        "type": "const",
+        "line": 153
+      }
+    ],
+    "apps/cli/src/runner.ts": [
+      {
+        "name": "RunResult",
+        "type": "interface",
+        "line": 8
+      },
+      {
+        "name": "run",
+        "type": "function",
+        "line": 21
+      },
+      {
+        "name": "buildInMemorySnapshot",
+        "type": "function",
+        "line": 61
+      },
+      {
+        "name": "detectManifest",
+        "type": "function",
+        "line": 77
+      },
+      {
+        "name": "detectFrameworks",
+        "type": "function",
+        "line": 104
+      },
+      {
+        "name": "allDeps",
+        "type": "const",
+        "line": 106
+      },
+      {
+        "name": "detectProjectType",
+        "type": "function",
+        "line": 163
+      },
+      {
+        "name": "detectPrimaryLanguage",
+        "type": "function",
+        "line": 255
+      }
+    ],
+    "apps/cli/src/scanner.ts": [
+      {
+        "name": "ScanResult",
+        "type": "interface",
+        "line": 40
+      },
+      {
+        "name": "scanDirectory",
+        "type": "function",
+        "line": 46
+      },
+      {
+        "name": "walk",
+        "type": "function",
+        "line": 55
+      }
+    ],
+    "apps/cli/src/writer.ts": [
+      {
+        "name": "WriteResult",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "writeGeneratedFiles",
+        "type": "function",
+        "line": 15
+      }
+    ],
+    "apps/web/src/api.test.ts": [
+      {
+        "name": "storageMock",
+        "type": "const",
+        "line": 37
+      },
+      {
+        "name": "mockFetch",
+        "type": "function",
+        "line": 46
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 150
+      },
+      {
+        "name": "payload",
+        "type": "const",
+        "line": 154
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 172
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 184
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 200
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 216
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 402
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 426
+      },
+      {
+        "name": "fakeAnchor",
+        "type": "const",
+        "line": 443
+      },
+      {
+        "name": "fakeAnchor",
+        "type": "const",
+        "line": 474
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 506
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 541
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 573
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 583
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 599
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 618
+      },
+      {
+        "name": "response",
+        "type": "const",
+        "line": 650
+      }
+    ],
+    "apps/web/src/api.ts": [
+      {
+        "name": "SnapshotPayload",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "SnapshotResponse",
+        "type": "interface",
+        "line": 17
+      },
+      {
+        "name": "ContextMap",
+        "type": "interface",
+        "line": 26
+      },
+      {
+        "name": "RepoProfile",
+        "type": "interface",
+        "line": 78
+      },
+      {
+        "name": "GeneratedFile",
+        "type": "interface",
+        "line": 104
+      },
+      {
+        "name": "GeneratedFilesResponse",
+        "type": "interface",
+        "line": 112
+      },
+      {
+        "name": "BillingTier",
+        "type": "type",
+        "line": 122
+      },
+      {
+        "name": "Account",
+        "type": "interface",
+        "line": 124
+      },
+      {
+        "name": "ApiKeyInfo",
+        "type": "interface",
+        "line": 132
+      },
+      {
+        "name": "UsageSummary",
+        "type": "interface",
+        "line": 140
+      },
+      {
+        "name": "PlanDefinition",
+        "type": "interface",
+        "line": 150
+      },
+      {
+        "name": "PlanFeature",
+        "type": "interface",
+        "line": 159
+      },
+      {
+        "name": "UpgradePrompt",
+        "type": "interface",
+        "line": 166
+      },
+      {
+        "name": "authHeaders",
+        "type": "function",
+        "line": 180
+      },
+      {
+        "name": "fetchJSON",
+        "type": "function",
+        "line": 187
+      },
+      {
+        "name": "createSnapshot",
+        "type": "function",
+        "line": 226
+      },
+      {
+        "name": "getGeneratedFiles",
+        "type": "function",
+        "line": 233
+      },
+      {
+        "name": "getGeneratedFile",
+        "type": "function",
+        "line": 237
+      },
+      {
+        "name": "runProgram",
+        "type": "function",
+        "line": 245
+      },
+      {
+        "name": "analyzeGitHubUrl",
+        "type": "function",
+        "line": 255
+      },
+      {
+        "name": "healthCheck",
+        "type": "function",
+        "line": 262
+      },
+      {
+        "name": "SearchResult",
+        "type": "interface",
+        "line": 268
+      },
+      {
+        "name": "SearchResponse",
+        "type": "interface",
+        "line": 275
+      },
+      {
+        "name": "searchQuery",
+        "type": "function",
+        "line": 283
+      },
+      {
+        "name": "indexSnapshot",
+        "type": "function",
+        "line": 290
+      },
+      {
+        "name": "SymbolResult",
+        "type": "interface",
+        "line": 297
+      },
+      {
+        "name": "SymbolsResponse",
+        "type": "interface",
+        "line": 305
+      },
+      {
+        "name": "searchSymbols",
+        "type": "function",
+        "line": 311
+      },
+      {
+        "name": "getExportUrl",
+        "type": "function",
+        "line": 325
+      },
+      {
+        "name": "downloadExport",
+        "type": "function",
+        "line": 330
+      },
+      {
+        "name": "createAccount",
+        "type": "function",
+        "line": 347
+      },
+      {
+        "name": "getAccount",
+        "type": "function",
+        "line": 354
+      },
+      {
+        "name": "createApiKey",
+        "type": "function",
+        "line": 359
+      },
+      {
+        "name": "listApiKeys",
+        "type": "function",
+        "line": 366
+      },
+      {
+        "name": "revokeApiKey",
+        "type": "function",
+        "line": 370
+      },
+      {
+        "name": "getUsage",
+        "type": "function",
+        "line": 374
+      },
+      {
+        "name": "updateTier",
+        "type": "function",
+        "line": 384
+      },
+      {
+        "name": "getPlans",
+        "type": "function",
+        "line": 393
+      },
+      {
+        "name": "getUpgradePrompt",
+        "type": "function",
+        "line": 397
+      },
+      {
+        "name": "dismissUpgradePrompt",
+        "type": "function",
+        "line": 401
+      },
+      {
+        "name": "Seat",
+        "type": "interface",
+        "line": 407
+      },
+      {
+        "name": "listSeats",
+        "type": "function",
+        "line": 417
+      },
+      {
+        "name": "inviteSeat",
+        "type": "function",
+        "line": 421
+      },
+      {
+        "name": "revokeSeat",
+        "type": "function",
+        "line": 428
+      },
+      {
+        "name": "getFunnelStatus",
+        "type": "function",
+        "line": 434
+      },
+      {
+        "name": "SubscriptionInfo",
+        "type": "interface",
+        "line": 440
+      },
+      {
+        "name": "createCheckout",
+        "type": "function",
+        "line": 457
+      },
+      {
+        "name": "getSubscription",
+        "type": "function",
+        "line": 464
+      },
+      {
+        "name": "cancelSubscription",
+        "type": "function",
+        "line": 468
+      }
+    ],
+    "apps/web/src/App.tsx": [
+      {
+        "name": "ErrorBoundary",
+        "type": "class",
+        "line": 22
+      },
+      {
+        "name": "Page",
+        "type": "type",
+        "line": 42
+      },
+      {
+        "name": "getInitialPage",
+        "type": "function",
+        "line": 44
+      },
+      {
+        "name": "loadPersistedResult",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "App",
+        "type": "function",
+        "line": 59
+      },
+      {
+        "name": "toggleTheme",
+        "type": "function",
+        "line": 80
+      },
+      {
+        "name": "onHash",
+        "type": "function",
+        "line": 85
+      },
+      {
+        "name": "handler",
+        "type": "function",
+        "line": 190
+      }
+    ],
+    "apps/web/src/components/AxisIcons.tsx": [
+      {
+        "name": "IconProps",
+        "type": "interface",
+        "line": 77
+      },
+      {
+        "name": "Icon",
+        "type": "function",
+        "line": 85
+      }
+    ],
+    "apps/web/src/components/CommandPalette.tsx": [
+      {
+        "name": "PaletteAction",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 12
+      },
+      {
+        "name": "CommandPalette",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "handler",
+        "type": "function",
+        "line": 24
+      }
+    ],
+    "apps/web/src/components/FilesTab.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "SortKey",
+        "type": "type",
+        "line": 8
+      },
+      {
+        "name": "FilesTab",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "handleSort",
+        "type": "function",
+        "line": 32
+      }
+    ],
+    "apps/web/src/components/GeneratedTab.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "GeneratedTab",
+        "type": "function",
+        "line": 17
+      },
+      {
+        "name": "handleCopy",
+        "type": "function",
+        "line": 24
+      }
+    ],
+    "apps/web/src/components/GraphTab.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "GraphTab",
+        "type": "function",
+        "line": 7
+      }
+    ],
+    "apps/web/src/components/OverviewTab.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "OverviewTab",
+        "type": "function",
+        "line": 8
+      }
+    ],
+    "apps/web/src/components/ProgramLauncher.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "ProgramDef",
+        "type": "interface",
+        "line": 11
+      },
+      {
+        "name": "ProgramLauncher",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "handleRun",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "ProgramCard",
+        "type": "function",
+        "line": 116
+      }
+    ],
+    "apps/web/src/components/SearchTab.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "SearchMode",
+        "type": "type",
+        "line": 9
+      },
+      {
+        "name": "SearchTab",
+        "type": "function",
+        "line": 13
+      },
+      {
+        "name": "handleKeyDown",
+        "type": "function",
+        "line": 92
+      }
+    ],
+    "apps/web/src/components/SignUpModal.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "SignUpModal",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "handleSubmit",
+        "type": "function",
+        "line": 17
+      },
+      {
+        "name": "handlePasteKey",
+        "type": "function",
+        "line": 36
+      }
+    ],
+    "apps/web/src/components/StatusBar.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "StatusBar",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "check",
+        "type": "function",
+        "line": 14
+      }
+    ],
+    "apps/web/src/components/Toast.tsx": [
+      {
+        "name": "ToastLevel",
+        "type": "type",
+        "line": 5
+      },
+      {
+        "name": "Toast",
+        "type": "interface",
+        "line": 7
+      },
+      {
+        "name": "ToastContextValue",
+        "type": "interface",
+        "line": 14
+      },
+      {
+        "name": "useToast",
+        "type": "function",
+        "line": 22
+      },
+      {
+        "name": "ToastProvider",
+        "type": "function",
+        "line": 30
+      },
+      {
+        "name": "ToastRail",
+        "type": "function",
+        "line": 72
+      }
+    ],
+    "apps/web/src/pages/AccountPage.tsx": [
+      {
+        "name": "AccountPage",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "handleSignUp",
+        "type": "function",
+        "line": 88
+      },
+      {
+        "name": "handleCreateKey",
+        "type": "function",
+        "line": 104
+      },
+      {
+        "name": "handleRevoke",
+        "type": "function",
+        "line": 118
+      },
+      {
+        "name": "handleLogout",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "handleUpgrade",
+        "type": "function",
+        "line": 138
+      },
+      {
+        "name": "handleCancelSubscription",
+        "type": "function",
+        "line": 148
+      }
+    ],
+    "apps/web/src/pages/DashboardPage.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 12
+      },
+      {
+        "name": "Tab",
+        "type": "type",
+        "line": 18
+      },
+      {
+        "name": "NextStepsCard",
+        "type": "function",
+        "line": 20
+      },
+      {
+        "name": "DashboardPage",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "handler",
+        "type": "function",
+        "line": 61
+      },
+      {
+        "name": "handleRunProgram",
+        "type": "function",
+        "line": 74
+      },
+      {
+        "name": "handleDownloadAll",
+        "type": "function",
+        "line": 91
+      }
+    ],
+    "apps/web/src/pages/DocsPage.tsx": [
+      {
+        "name": "DocSection",
+        "type": "type",
+        "line": 4
+      },
+      {
+        "name": "ProgramDoc",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "DocsPage",
+        "type": "function",
+        "line": 220
+      },
+      {
+        "name": "OverviewSection",
+        "type": "function",
+        "line": 264
+      },
+      {
+        "name": "ProgramsSection",
+        "type": "function",
+        "line": 469
+      },
+      {
+        "name": "ProgramDocCard",
+        "type": "function",
+        "line": 514
+      },
+      {
+        "name": "ApiSection",
+        "type": "function",
+        "line": 635
+      },
+      {
+        "name": "OutputsSection",
+        "type": "function",
+        "line": 879
+      },
+      {
+        "name": "CliSection",
+        "type": "function",
+        "line": 1068
+      }
+    ],
+    "apps/web/src/pages/ExamplesPage.tsx": [
+      {
+        "name": "Example",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "ArtifactCount",
+        "type": "function",
+        "line": 239
+      },
+      {
+        "name": "CodePreview",
+        "type": "function",
+        "line": 254
+      },
+      {
+        "name": "ExampleCard",
+        "type": "function",
+        "line": 274
+      },
+      {
+        "name": "ExamplesPage",
+        "type": "function",
+        "line": 378
+      },
+      {
+        "name": "toggle",
+        "type": "function",
+        "line": 381
+      }
+    ],
+    "apps/web/src/pages/ForAgentsPage.tsx": [
+      {
+        "name": "CopyButton",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "handleCopy",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "CodeBlock",
+        "type": "function",
+        "line": 35
+      },
+      {
+        "name": "SectionHeader",
+        "type": "function",
+        "line": 61
+      },
+      {
+        "name": "TabBar",
+        "type": "function",
+        "line": 81
+      },
+      {
+        "name": "ForAgentsPage",
+        "type": "function",
+        "line": 137
+      }
+    ],
+    "apps/web/src/pages/HelpPage.tsx": [
+      {
+        "name": "HelpSection",
+        "type": "type",
+        "line": 4
+      },
+      {
+        "name": "Step",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "TroubleshootItem",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "HelpPage",
+        "type": "function",
+        "line": 49
+      },
+      {
+        "name": "GettingStartedSection",
+        "type": "function",
+        "line": 92
+      },
+      {
+        "name": "UploadGuideSection",
+        "type": "function",
+        "line": 200
+      },
+      {
+        "name": "ProgramsGuideSection",
+        "type": "function",
+        "line": 261
+      },
+      {
+        "name": "DashboardGuideSection",
+        "type": "function",
+        "line": 395
+      },
+      {
+        "name": "AccountGuideSection",
+        "type": "function",
+        "line": 521
+      },
+      {
+        "name": "TroubleshootingSection",
+        "type": "function",
+        "line": 686
+      }
+    ],
+    "apps/web/src/pages/InstallPage.tsx": [
+      {
+        "name": "CopyButton",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "handleCopy",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "ConfigBlock",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "InstallPage",
+        "type": "function",
+        "line": 108
+      }
+    ],
+    "apps/web/src/pages/PlansPage.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "formatPrice",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "PlansPage",
+        "type": "function",
+        "line": 15
+      },
+      {
+        "name": "handlePlanSelect",
+        "type": "function",
+        "line": 25
+      },
+      {
+        "name": "renderFeatureValue",
+        "type": "function",
+        "line": 236
+      }
+    ],
+    "apps/web/src/pages/ProgramsPage.tsx": [
+      {
+        "name": "ProgramDef",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 188
+      },
+      {
+        "name": "ProgramsPage",
+        "type": "function",
+        "line": 192
+      },
+      {
+        "name": "ProgramCard",
+        "type": "function",
+        "line": 284
+      }
+    ],
+    "apps/web/src/pages/QAPage.tsx": [
+      {
+        "name": "QACategory",
+        "type": "type",
+        "line": 4
+      },
+      {
+        "name": "QAItem",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "QAPage",
+        "type": "function",
+        "line": 264
+      }
+    ],
+    "apps/web/src/pages/TermsPage.tsx": [
+      {
+        "name": "Section",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "TermsPage",
+        "type": "function",
+        "line": 26
+      },
+      {
+        "name": "scrollTo",
+        "type": "function",
+        "line": 27
+      }
+    ],
+    "apps/web/src/pages/UploadPage.tsx": [
+      {
+        "name": "Props",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "UploadPage",
+        "type": "function",
+        "line": 90
+      },
+      {
+        "name": "readFiles",
+        "type": "function",
+        "line": 109
+      },
+      {
+        "name": "handleZipFile",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "handleFolderSelect",
+        "type": "function",
+        "line": 147
+      },
+      {
+        "name": "handleZipSelect",
+        "type": "function",
+        "line": 151
+      },
+      {
+        "name": "handleFileInputChange",
+        "type": "function",
+        "line": 155
+      },
+      {
+        "name": "handleZipInputChange",
+        "type": "function",
+        "line": 166
+      },
+      {
+        "name": "handleDrop",
+        "type": "function",
+        "line": 172
+      },
+      {
+        "name": "toggleOutput",
+        "type": "function",
+        "line": 186
+      },
+      {
+        "name": "handleSubmit",
+        "type": "function",
+        "line": 192
+      },
+      {
+        "name": "payload",
+        "type": "const",
+        "line": 236
+      }
+    ],
+    "apps/web/src/upload-utils-zip.test.ts": [
+      {
+        "name": "buildZip",
+        "type": "function",
+        "line": 7
+      }
+    ],
+    "apps/web/src/upload-utils.ts": [
+      {
+        "name": "isBinaryPath",
+        "type": "function",
+        "line": 29
+      },
+      {
+        "name": "ext",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "extractZip",
+        "type": "function",
+        "line": 36
+      },
+      {
+        "name": "findCommonPrefix",
+        "type": "function",
+        "line": 78
+      },
+      {
+        "name": "shouldIgnore",
+        "type": "function",
+        "line": 89
+      },
+      {
+        "name": "detectFrameworks",
+        "type": "function",
+        "line": 93
+      },
+      {
+        "name": "deps",
+        "type": "const",
+        "line": 102
+      }
+    ],
+    "apps/web/src/vite-env.d.ts": [
+      {
+        "name": "ImportMetaEnv",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "ImportMeta",
+        "type": "interface",
+        "line": 7
+      }
+    ],
+    "e2e_round2.mjs": [
+      {
+        "name": "go",
+        "type": "function",
+        "line": 14
+      },
+      {
+        "name": "opts",
+        "type": "const",
+        "line": 15
+      },
+      {
+        "name": "main",
+        "type": "function",
+        "line": 27
+      },
+      {
+        "name": "auth",
+        "type": "const",
+        "line": 43
+      },
+      {
+        "name": "payload",
+        "type": "const",
+        "line": 97
+      },
+      {
+        "name": "opts",
+        "type": "const",
+        "line": 150
+      },
+      {
+        "name": "opts",
+        "type": "const",
+        "line": 162
+      },
+      {
+        "name": "tmAuth",
+        "type": "const",
+        "line": 205
+      },
+      {
+        "name": "hackerAuth",
+        "type": "const",
+        "line": 221
+      },
+      {
+        "name": "dblAuth",
+        "type": "const",
+        "line": 315
+      },
+      {
+        "name": "opts",
+        "type": "const",
+        "line": 333
+      }
+    ],
+    "generative-sketch.js": [
+      {
+        "name": "COLORS",
+        "type": "const",
+        "line": 22
+      },
+      {
+        "name": "spawnParticle",
+        "type": "function",
+        "line": 75
+      },
+      {
+        "name": "update",
+        "type": "function",
+        "line": 91
+      },
+      {
+        "name": "lerp",
+        "type": "function",
+        "line": 138
+      },
+      {
+        "name": "draw",
+        "type": "function",
+        "line": 142
+      },
+      {
+        "name": "drawEdge",
+        "type": "function",
+        "line": 232
+      },
+      {
+        "name": "drawNode",
+        "type": "function",
+        "line": 239
+      },
+      {
+        "name": "loop",
+        "type": "function",
+        "line": 268
+      }
+    ],
+    "packages/context-engine/src/engine-branches.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/context-engine/src/engine-branches2.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/context-engine/src/engine-branches3.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 5
+      },
+      {
+        "name": "goMain",
+        "type": "const",
+        "line": 32
+      },
+      {
+        "name": "deepPage",
+        "type": "const",
+        "line": 58
+      },
+      {
+        "name": "shallowPage",
+        "type": "const",
+        "line": 63
+      },
+      {
+        "name": "pkg",
+        "type": "const",
+        "line": 68
+      },
+      {
+        "name": "readme",
+        "type": "const",
+        "line": 88
+      },
+      {
+        "name": "eslint",
+        "type": "const",
+        "line": 118
+      },
+      {
+        "name": "pkg",
+        "type": "const",
+        "line": 123
+      },
+      {
+        "name": "goFile",
+        "type": "const",
+        "line": 140
+      },
+      {
+        "name": "sqlFile",
+        "type": "const",
+        "line": 165
+      },
+      {
+        "name": "layout",
+        "type": "const",
+        "line": 182
+      },
+      {
+        "name": "otherPage",
+        "type": "const",
+        "line": 187
+      },
+      {
+        "name": "pkg",
+        "type": "const",
+        "line": 192
+      }
+    ],
+    "packages/context-engine/src/engine-edge.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/context-engine/src/engine.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "Routes",
+        "type": "function",
+        "line": 176
+      }
+    ],
+    "packages/context-engine/src/engine.ts": [
+      {
+        "name": "buildContextMap",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "buildRepoProfile",
+        "type": "function",
+        "line": 47
+      },
+      {
+        "name": "buildProjectIdentity",
+        "type": "function",
+        "line": 92
+      },
+      {
+        "name": "buildStructure",
+        "type": "function",
+        "line": 107
+      },
+      {
+        "name": "countDirectories",
+        "type": "function",
+        "line": 117
+      },
+      {
+        "name": "buildDependencyGraph",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "detectEntryPoints",
+        "type": "function",
+        "line": 163
+      },
+      {
+        "name": "detectRoutes",
+        "type": "function",
+        "line": 212
+      },
+      {
+        "name": "extractHTTPMethods",
+        "type": "function",
+        "line": 245
+      },
+      {
+        "name": "extractExpressRoutes",
+        "type": "function",
+        "line": 255
+      },
+      {
+        "name": "extractGoRoutes",
+        "type": "function",
+        "line": 269
+      },
+      {
+        "name": "isLikelyRoute",
+        "type": "function",
+        "line": 306
+      },
+      {
+        "name": "analyzeArchitecture",
+        "type": "function",
+        "line": 313
+      },
+      {
+        "name": "resolveLayer",
+        "type": "function",
+        "line": 374
+      },
+      {
+        "name": "rawScore",
+        "type": "function",
+        "line": 426
+      },
+      {
+        "name": "buildAIContext",
+        "type": "function",
+        "line": 436
+      }
+    ],
+    "packages/context-engine/src/types.ts": [
+      {
+        "name": "ContextMap",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "RepoProfile",
+        "type": "interface",
+        "line": 85
+      }
+    ],
+    "packages/generator-core/src/file-excerpt-utils.ts": [
+      {
+        "name": "findFiles",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "findFile",
+        "type": "function",
+        "line": 24
+      },
+      {
+        "name": "excerpt",
+        "type": "function",
+        "line": 35
+      },
+      {
+        "name": "fileTree",
+        "type": "function",
+        "line": 47
+      },
+      {
+        "name": "sizeKB",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "findEntryPoints",
+        "type": "function",
+        "line": 60
+      },
+      {
+        "name": "findConfigs",
+        "type": "function",
+        "line": 80
+      },
+      {
+        "name": "renderExcerpts",
+        "type": "function",
+        "line": 98
+      },
+      {
+        "name": "extractExports",
+        "type": "function",
+        "line": 127
+      },
+      {
+        "name": "basename",
+        "type": "function",
+        "line": 145
+      },
+      {
+        "name": "extname",
+        "type": "function",
+        "line": 151
+      }
+    ],
+    "packages/generator-core/src/fw-helpers.ts": [
+      {
+        "name": "hasFw",
+        "type": "function",
+        "line": 4
+      },
+      {
+        "name": "getFw",
+        "type": "function",
+        "line": 9
+      }
+    ],
+    "packages/generator-core/src/generate-programs.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 7
+      },
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 43
+      }
+    ],
+    "packages/generator-core/src/generate-symbol-index.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 18
+      },
+      {
+        "name": "gInput",
+        "type": "function",
+        "line": 39
+      }
+    ],
+    "packages/generator-core/src/generate-validation.test.ts": [
+      {
+        "name": "makeContextMap",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "makeProfile",
+        "type": "function",
+        "line": 26
+      },
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 41
+      }
+    ],
+    "packages/generator-core/src/generate.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 7
+      },
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 43
+      }
+    ],
+    "packages/generator-core/src/generate.ts": [
+      {
+        "name": "GeneratorFn",
+        "type": "type",
+        "line": 22
+      },
+      {
+        "name": "validateGeneratedFile",
+        "type": "function",
+        "line": 129
+      },
+      {
+        "name": "generateFiles",
+        "type": "function",
+        "line": 142
+      },
+      {
+        "name": "listAvailableGenerators",
+        "type": "function",
+        "line": 287
+      }
+    ],
+    "packages/generator-core/src/generator-alt-profiles.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 37
+      },
+      {
+        "name": "vueSassFiles",
+        "type": "function",
+        "line": 47
+      },
+      {
+        "name": "pythonFlaskFiles",
+        "type": "function",
+        "line": 64
+      },
+      {
+        "name": "styledComponentsFiles",
+        "type": "function",
+        "line": 79
+      },
+      {
+        "name": "cssModulesFiles",
+        "type": "function",
+        "line": 92
+      },
+      {
+        "name": "minimalFiles",
+        "type": "function",
+        "line": 108
+      }
+    ],
+    "packages/generator-core/src/generator-branches.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 45
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "makeLargeFiles",
+        "type": "function",
+        "line": 177
+      },
+      {
+        "name": "withRichContext",
+        "type": "function",
+        "line": 882
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "withHotspots",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 53
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches10.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "INERT",
+        "type": "const",
+        "line": 57
+      },
+      {
+        "name": "apiFile",
+        "type": "const",
+        "line": 276
+      },
+      {
+        "name": "bigRoute",
+        "type": "const",
+        "line": 292
+      },
+      {
+        "name": "noExportComp",
+        "type": "const",
+        "line": 322
+      },
+      {
+        "name": "shortLayout",
+        "type": "const",
+        "line": 338
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 373
+      },
+      {
+        "name": "testSrc",
+        "type": "const",
+        "line": 378
+      },
+      {
+        "name": "noExport",
+        "type": "const",
+        "line": 392
+      },
+      {
+        "name": "hotspotSrc",
+        "type": "const",
+        "line": 406
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 574
+      },
+      {
+        "name": "routeFile",
+        "type": "const",
+        "line": 611
+      },
+      {
+        "name": "noExt",
+        "type": "const",
+        "line": 645
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 663
+      },
+      {
+        "name": "util",
+        "type": "const",
+        "line": 668
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 688
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 706
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 724
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 742
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 760
+      },
+      {
+        "name": "ciFile",
+        "type": "const",
+        "line": 779
+      },
+      {
+        "name": "readme",
+        "type": "const",
+        "line": 797
+      },
+      {
+        "name": "cfg",
+        "type": "const",
+        "line": 816
+      },
+      {
+        "name": "cfg",
+        "type": "const",
+        "line": 834
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches11.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "ENTRY_EXPORTS",
+        "type": "const",
+        "line": 58
+      },
+      {
+        "name": "ENTRY_NO_EXPORTS",
+        "type": "const",
+        "line": 65
+      },
+      {
+        "name": "CONFIG_FILE",
+        "type": "const",
+        "line": 72
+      },
+      {
+        "name": "CSS_FILE",
+        "type": "const",
+        "line": 79
+      },
+      {
+        "name": "MEDIA_FILE",
+        "type": "const",
+        "line": 86
+      },
+      {
+        "name": "CI_FILE",
+        "type": "const",
+        "line": 93
+      },
+      {
+        "name": "README_FILE",
+        "type": "const",
+        "line": 100
+      },
+      {
+        "name": "CONTRIBUTING_FILE",
+        "type": "const",
+        "line": 107
+      },
+      {
+        "name": "landing",
+        "type": "const",
+        "line": 313
+      },
+      {
+        "name": "apiRoute",
+        "type": "const",
+        "line": 413
+      },
+      {
+        "name": "pageRoute",
+        "type": "const",
+        "line": 418
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 437
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 457
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 506
+      },
+      {
+        "name": "test",
+        "type": "const",
+        "line": 511
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches12.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "INERT",
+        "type": "const",
+        "line": 101
+      },
+      {
+        "name": "routeFile",
+        "type": "const",
+        "line": 264
+      },
+      {
+        "name": "shortRoute",
+        "type": "const",
+        "line": 282
+      },
+      {
+        "name": "hotspot",
+        "type": "const",
+        "line": 301
+      },
+      {
+        "name": "addHotspots",
+        "type": "function",
+        "line": 317
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 339
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 353
+      },
+      {
+        "name": "sqlFile",
+        "type": "const",
+        "line": 373
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches13.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "withModels",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "modelUris",
+        "type": "function",
+        "line": 98
+      },
+      {
+        "name": "userResource",
+        "type": "function",
+        "line": 109
+      },
+      {
+        "name": "uris",
+        "type": "function",
+        "line": 144
+      },
+      {
+        "name": "modelUris",
+        "type": "function",
+        "line": 161
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches14.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 32
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 44
+      },
+      {
+        "name": "addLang",
+        "type": "function",
+        "line": 48
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches15.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "withModels",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "withSchema",
+        "type": "function",
+        "line": 58
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches16.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "withRoutes",
+        "type": "function",
+        "line": 44
+      },
+      {
+        "name": "withDomainModels",
+        "type": "function",
+        "line": 52
+      },
+      {
+        "name": "utilFile",
+        "type": "const",
+        "line": 281
+      },
+      {
+        "name": "noExportHandler",
+        "type": "const",
+        "line": 301
+      },
+      {
+        "name": "bigHandler",
+        "type": "const",
+        "line": 327
+      },
+      {
+        "name": "pageFile",
+        "type": "const",
+        "line": 388
+      },
+      {
+        "name": "richPage",
+        "type": "const",
+        "line": 421
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches17.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "setLang",
+        "type": "function",
+        "line": 48
+      },
+      {
+        "name": "withRoutes",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "withModels",
+        "type": "function",
+        "line": 61
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches18.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "setLang",
+        "type": "function",
+        "line": 48
+      },
+      {
+        "name": "withRoutes",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "withModels",
+        "type": "function",
+        "line": 61
+      },
+      {
+        "name": "withHotspots",
+        "type": "function",
+        "line": 75
+      },
+      {
+        "name": "withSqlSchema",
+        "type": "function",
+        "line": 83
+      },
+      {
+        "name": "withKeyAbstractions",
+        "type": "function",
+        "line": 91
+      },
+      {
+        "name": "withWarnings",
+        "type": "function",
+        "line": 96
+      },
+      {
+        "name": "withSeparationScore",
+        "type": "function",
+        "line": 101
+      },
+      {
+        "name": "withProjectSummary",
+        "type": "function",
+        "line": 106
+      },
+      {
+        "name": "withEntryPoints",
+        "type": "function",
+        "line": 111
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches19.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "withModels",
+        "type": "function",
+        "line": 48
+      },
+      {
+        "name": "withRoutes",
+        "type": "function",
+        "line": 62
+      },
+      {
+        "name": "withHotspots",
+        "type": "function",
+        "line": 70
+      },
+      {
+        "name": "main",
+        "type": "function",
+        "line": 230
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches2.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "withHotspots",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 52
+      },
+      {
+        "name": "PKG_JSON",
+        "type": "const",
+        "line": 125
+      },
+      {
+        "name": "CODE_OF_CONDUCT",
+        "type": "const",
+        "line": 175
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches20.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 21
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 52
+      },
+      {
+        "name": "withHotspots",
+        "type": "function",
+        "line": 56
+      },
+      {
+        "name": "noExportSrc",
+        "type": "const",
+        "line": 105
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches3.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "withHotspots",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 52
+      },
+      {
+        "name": "PKG_WITH_SCRIPTS",
+        "type": "const",
+        "line": 498
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches4.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "snapMinimal",
+        "type": "function",
+        "line": 33
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 54
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 63
+      },
+      {
+        "name": "shortFile",
+        "type": "const",
+        "line": 110
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches5.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "snapMinimal",
+        "type": "function",
+        "line": 32
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 62
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches6.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 40
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches7.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 41
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 52
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches8.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "ENTRY_SRC",
+        "type": "const",
+        "line": 56
+      },
+      {
+        "name": "CONFIG_SRC",
+        "type": "const",
+        "line": 63
+      },
+      {
+        "name": "README_SRC",
+        "type": "const",
+        "line": 70
+      },
+      {
+        "name": "PKG_SRC",
+        "type": "const",
+        "line": 77
+      },
+      {
+        "name": "DOC_MD",
+        "type": "const",
+        "line": 84
+      },
+      {
+        "name": "CONTRIBUTING_SRC",
+        "type": "const",
+        "line": 91
+      },
+      {
+        "name": "VUE_SRC",
+        "type": "const",
+        "line": 98
+      },
+      {
+        "name": "LAYOUT_SRC",
+        "type": "const",
+        "line": 105
+      },
+      {
+        "name": "MEDIA_SRC",
+        "type": "const",
+        "line": 112
+      },
+      {
+        "name": "CI_YML",
+        "type": "const",
+        "line": 119
+      },
+      {
+        "name": "SVELTE_PAGE",
+        "type": "const",
+        "line": 126
+      },
+      {
+        "name": "PAGE_NO_META",
+        "type": "const",
+        "line": 133
+      },
+      {
+        "name": "hotspotFile",
+        "type": "function",
+        "line": 140
+      },
+      {
+        "name": "landing",
+        "type": "const",
+        "line": 201
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 282
+      },
+      {
+        "name": "eslint",
+        "type": "const",
+        "line": 316
+      },
+      {
+        "name": "logo",
+        "type": "const",
+        "line": 329
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 357
+      },
+      {
+        "name": "style",
+        "type": "const",
+        "line": 362
+      },
+      {
+        "name": "noConfig",
+        "type": "const",
+        "line": 666
+      },
+      {
+        "name": "noExports",
+        "type": "const",
+        "line": 680
+      },
+      {
+        "name": "serverFile",
+        "type": "const",
+        "line": 713
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 762
+      },
+      {
+        "name": "style",
+        "type": "const",
+        "line": 767
+      },
+      {
+        "name": "cssFile",
+        "type": "const",
+        "line": 818
+      },
+      {
+        "name": "imgFile",
+        "type": "const",
+        "line": 844
+      },
+      {
+        "name": "svgFile",
+        "type": "const",
+        "line": 927
+      },
+      {
+        "name": "srcFile",
+        "type": "const",
+        "line": 990
+      },
+      {
+        "name": "serverFile",
+        "type": "const",
+        "line": 1072
+      }
+    ],
+    "packages/generator-core/src/generator-sourcefile-branches9.test.ts": [
+      {
+        "name": "snap",
+        "type": "function",
+        "line": 9
+      },
+      {
+        "name": "input",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "addFw",
+        "type": "function",
+        "line": 40
+      },
+      {
+        "name": "getFile",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "pkg",
+        "type": "const",
+        "line": 92
+      },
+      {
+        "name": "pkg",
+        "type": "const",
+        "line": 107
+      },
+      {
+        "name": "readme",
+        "type": "const",
+        "line": 122
+      },
+      {
+        "name": "other",
+        "type": "const",
+        "line": 136
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 146
+      },
+      {
+        "name": "doc",
+        "type": "const",
+        "line": 187
+      },
+      {
+        "name": "withMeta",
+        "type": "const",
+        "line": 198
+      },
+      {
+        "name": "noMeta",
+        "type": "const",
+        "line": 203
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 325
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 340
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 351
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 390
+      },
+      {
+        "name": "comp",
+        "type": "const",
+        "line": 446
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 481
+      },
+      {
+        "name": "readme",
+        "type": "const",
+        "line": 491
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 505
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 515
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 529
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 569
+      },
+      {
+        "name": "entry",
+        "type": "const",
+        "line": 626
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 677
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 713
+      },
+      {
+        "name": "svg",
+        "type": "const",
+        "line": 744
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 771
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 786
+      },
+      {
+        "name": "src",
+        "type": "const",
+        "line": 804
+      }
+    ],
+    "packages/generator-core/src/generators-agentic-purchasing.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 12
+      },
+      {
+        "name": "flaggedProfile",
+        "type": "const",
+        "line": 255
+      },
+      {
+        "name": "flaggedProfile",
+        "type": "const",
+        "line": 262
+      },
+      {
+        "name": "makeStripeSnapshot",
+        "type": "function",
+        "line": 344
+      }
+    ],
+    "packages/generator-core/src/generators-agentic-purchasing.ts": [
+      {
+        "name": "CommerceSignals",
+        "type": "interface",
+        "line": 12
+      },
+      {
+        "name": "detectCommerceSignals",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "buildVerificationProof",
+        "type": "function",
+        "line": 86
+      },
+      {
+        "name": "FocusArea",
+        "type": "type",
+        "line": 118
+      },
+      {
+        "name": "parseFocusAreas",
+        "type": "function",
+        "line": 120
+      },
+      {
+        "name": "shouldExpand",
+        "type": "function",
+        "line": 127
+      },
+      {
+        "name": "buildAP2ComplianceScoring",
+        "type": "function",
+        "line": 132
+      },
+      {
+        "name": "art2",
+        "type": "function",
+        "line": 133
+      },
+      {
+        "name": "art6",
+        "type": "function",
+        "line": 134
+      },
+      {
+        "name": "art7",
+        "type": "function",
+        "line": 135
+      },
+      {
+        "name": "art11",
+        "type": "function",
+        "line": 136
+      },
+      {
+        "name": "buildCompellingEvidence3Section",
+        "type": "function",
+        "line": 163
+      },
+      {
+        "name": "buildWinProbabilitySection",
+        "type": "function",
+        "line": 222
+      },
+      {
+        "name": "buildLighterScaSection",
+        "type": "function",
+        "line": 274
+      },
+      {
+        "name": "buildTapInteropSection",
+        "type": "function",
+        "line": 330
+      },
+      {
+        "name": "buildDisputeFlowSection",
+        "type": "function",
+        "line": 399
+      },
+      {
+        "name": "generateAgentPurchasingPlaybook",
+        "type": "function",
+        "line": 459
+      },
+      {
+        "name": "generateProductSchema",
+        "type": "function",
+        "line": 631
+      },
+      {
+        "name": "schema",
+        "type": "const",
+        "line": 637
+      },
+      {
+        "name": "generateCheckoutFlow",
+        "type": "function",
+        "line": 746
+      },
+      {
+        "name": "generateNegotiationRules",
+        "type": "function",
+        "line": 932
+      },
+      {
+        "name": "riskLevel",
+        "type": "function",
+        "line": 946
+      },
+      {
+        "name": "generateCommerceRegistry",
+        "type": "function",
+        "line": 1080
+      },
+      {
+        "name": "registry",
+        "type": "const",
+        "line": 1097
+      }
+    ],
+    "packages/generator-core/src/generators-algorithmic.ts": [
+      {
+        "name": "generateGenerativeSketch",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generateParameterPack",
+        "type": "function",
+        "line": 193
+      },
+      {
+        "name": "pack",
+        "type": "const",
+        "line": 199
+      },
+      {
+        "name": "generateCollectionMap",
+        "type": "function",
+        "line": 276
+      },
+      {
+        "name": "generateExportManifest",
+        "type": "function",
+        "line": 412
+      },
+      {
+        "name": "generateVariationMatrix",
+        "type": "function",
+        "line": 536
+      },
+      {
+        "name": "matrix",
+        "type": "const",
+        "line": 644
+      }
+    ],
+    "packages/generator-core/src/generators-artifacts.ts": [
+      {
+        "name": "generateComponent",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generateDashboardWidget",
+        "type": "function",
+        "line": 137
+      },
+      {
+        "name": "generateEmbedSnippet",
+        "type": "function",
+        "line": 307
+      },
+      {
+        "name": "generateArtifactSpec",
+        "type": "function",
+        "line": 397
+      },
+      {
+        "name": "generateComponentLibrary",
+        "type": "function",
+        "line": 564
+      },
+      {
+        "name": "library",
+        "type": "const",
+        "line": 679
+      }
+    ],
+    "packages/generator-core/src/generators-brand.ts": [
+      {
+        "name": "generateBrandGuidelines",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generateVoiceAndTone",
+        "type": "function",
+        "line": 169
+      },
+      {
+        "name": "generateContentConstraints",
+        "type": "function",
+        "line": 299
+      },
+      {
+        "name": "generateMessagingSystem",
+        "type": "function",
+        "line": 421
+      },
+      {
+        "name": "generateChannelRulebook",
+        "type": "function",
+        "line": 579
+      }
+    ],
+    "packages/generator-core/src/generators-canvas.ts": [
+      {
+        "name": "generateCanvasSpec",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "brandColors",
+        "type": "const",
+        "line": 13
+      },
+      {
+        "name": "spec",
+        "type": "const",
+        "line": 23
+      },
+      {
+        "name": "generateSocialPack",
+        "type": "function",
+        "line": 115
+      },
+      {
+        "name": "generatePosterLayouts",
+        "type": "function",
+        "line": 233
+      },
+      {
+        "name": "generateCanvasAssetGuidelines",
+        "type": "function",
+        "line": 368
+      },
+      {
+        "name": "generateBrandBoard",
+        "type": "function",
+        "line": 475
+      }
+    ],
+    "packages/generator-core/src/generators-debug.ts": [
+      {
+        "name": "generateDebugPlaybook",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "generateIncidentTemplate",
+        "type": "function",
+        "line": 385
+      },
+      {
+        "name": "generateTracingRules",
+        "type": "function",
+        "line": 539
+      },
+      {
+        "name": "generateRootCauseChecklist",
+        "type": "function",
+        "line": 772
+      }
+    ],
+    "packages/generator-core/src/generators-frontend.ts": [
+      {
+        "name": "generateFrontendRules",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "generateComponentGuidelines",
+        "type": "function",
+        "line": 214
+      },
+      {
+        "name": "generateLayoutPatterns",
+        "type": "function",
+        "line": 342
+      },
+      {
+        "name": "generateUiAudit",
+        "type": "function",
+        "line": 517
+      }
+    ],
+    "packages/generator-core/src/generators-marketing.ts": [
+      {
+        "name": "generateCampaignBrief",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generateFunnelMap",
+        "type": "function",
+        "line": 182
+      },
+      {
+        "name": "generateSequencePack",
+        "type": "function",
+        "line": 357
+      },
+      {
+        "name": "generateCroPlaybook",
+        "type": "function",
+        "line": 498
+      },
+      {
+        "name": "experimentRoutes",
+        "type": "const",
+        "line": 569
+      },
+      {
+        "name": "generateAbTestPlan",
+        "type": "function",
+        "line": 694
+      }
+    ],
+    "packages/generator-core/src/generators-mcp.ts": [
+      {
+        "name": "generateMcpConfig",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "config",
+        "type": "const",
+        "line": 94
+      },
+      {
+        "name": "generateConnectorMap",
+        "type": "function",
+        "line": 192
+      },
+      {
+        "name": "generateCapabilityRegistry",
+        "type": "function",
+        "line": 397
+      },
+      {
+        "name": "registry",
+        "type": "const",
+        "line": 514
+      },
+      {
+        "name": "generateServerManifest",
+        "type": "function",
+        "line": 548
+      }
+    ],
+    "packages/generator-core/src/generators-notebook.ts": [
+      {
+        "name": "generateNotebookSummary",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "filePaths",
+        "type": "function",
+        "line": 73
+      },
+      {
+        "name": "warnings",
+        "type": "function",
+        "line": 77
+      },
+      {
+        "name": "generateSourceMap",
+        "type": "function",
+        "line": 155
+      },
+      {
+        "name": "sourceMap",
+        "type": "const",
+        "line": 178
+      },
+      {
+        "name": "generateStudyBrief",
+        "type": "function",
+        "line": 216
+      },
+      {
+        "name": "generateResearchThreads",
+        "type": "function",
+        "line": 368
+      },
+      {
+        "name": "generateCitationIndex",
+        "type": "function",
+        "line": 551
+      },
+      {
+        "name": "index",
+        "type": "const",
+        "line": 638
+      }
+    ],
+    "packages/generator-core/src/generators-obsidian.ts": [
+      {
+        "name": "generateObsidianSkillPack",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generateVaultRules",
+        "type": "function",
+        "line": 193
+      },
+      {
+        "name": "generateGraphPromptMap",
+        "type": "function",
+        "line": 311
+      },
+      {
+        "name": "graphMap",
+        "type": "const",
+        "line": 423
+      },
+      {
+        "name": "generateLinkingPolicy",
+        "type": "function",
+        "line": 455
+      },
+      {
+        "name": "generateTemplatePack",
+        "type": "function",
+        "line": 587
+      }
+    ],
+    "packages/generator-core/src/generators-optimization.ts": [
+      {
+        "name": "generateOptimizationRules",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generatePromptDiffReport",
+        "type": "function",
+        "line": 195
+      },
+      {
+        "name": "generateCostEstimate",
+        "type": "function",
+        "line": 358
+      },
+      {
+        "name": "estimate",
+        "type": "const",
+        "line": 450
+      },
+      {
+        "name": "generateTokenBudgetPlan",
+        "type": "function",
+        "line": 484
+      },
+      {
+        "name": "monthlyCost",
+        "type": "function",
+        "line": 610
+      }
+    ],
+    "packages/generator-core/src/generators-remotion.ts": [
+      {
+        "name": "RemotionTheme",
+        "type": "interface",
+        "line": 8
+      },
+      {
+        "name": "deriveRemotionTheme",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "generateRemotionScript",
+        "type": "function",
+        "line": 48
+      },
+      {
+        "name": "generateScenePlan",
+        "type": "function",
+        "line": 181
+      },
+      {
+        "name": "generateRenderConfig",
+        "type": "function",
+        "line": 320
+      },
+      {
+        "name": "config",
+        "type": "const",
+        "line": 363
+      },
+      {
+        "name": "generateAssetChecklist",
+        "type": "function",
+        "line": 450
+      },
+      {
+        "name": "generateStoryboard",
+        "type": "function",
+        "line": 545
+      }
+    ],
+    "packages/generator-core/src/generators-search-funcs.test.ts": [
+      {
+        "name": "makeContextMap",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "makeProfile",
+        "type": "function",
+        "line": 31
+      }
+    ],
+    "packages/generator-core/src/generators-search.ts": [
+      {
+        "name": "generateContextMapJSON",
+        "type": "function",
+        "line": 7
+      },
+      {
+        "name": "generateRepoProfileYAML",
+        "type": "function",
+        "line": 24
+      },
+      {
+        "name": "generateArchitectureSummary",
+        "type": "function",
+        "line": 42
+      },
+      {
+        "name": "toYAML",
+        "type": "function",
+        "line": 253
+      },
+      {
+        "name": "serializeValue",
+        "type": "function",
+        "line": 301
+      },
+      {
+        "name": "generateDependencyHotspots",
+        "type": "function",
+        "line": 312
+      },
+      {
+        "name": "generateSymbolIndex",
+        "type": "function",
+        "line": 443
+      },
+      {
+        "name": "output",
+        "type": "const",
+        "line": 460
+      }
+    ],
+    "packages/generator-core/src/generators-seo.ts": [
+      {
+        "name": "generateSeoRules",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "contactRoutes",
+        "type": "function",
+        "line": 172
+      },
+      {
+        "name": "generateSchemaRecommendations",
+        "type": "function",
+        "line": 249
+      },
+      {
+        "name": "output",
+        "type": "const",
+        "line": 349
+      },
+      {
+        "name": "generateRoutePriorityMap",
+        "type": "function",
+        "line": 383
+      },
+      {
+        "name": "generateContentAudit",
+        "type": "function",
+        "line": 543
+      },
+      {
+        "name": "hasHealthy",
+        "type": "const",
+        "line": 585
+      },
+      {
+        "name": "generateMetaTagAudit",
+        "type": "function",
+        "line": 725
+      },
+      {
+        "name": "audit",
+        "type": "const",
+        "line": 733
+      }
+    ],
+    "packages/generator-core/src/generators-skills.ts": [
+      {
+        "name": "generateAgentsMD",
+        "type": "function",
+        "line": 6
+      },
+      {
+        "name": "generateClaudeMD",
+        "type": "function",
+        "line": 328
+      },
+      {
+        "name": "generateCursorRules",
+        "type": "function",
+        "line": 500
+      },
+      {
+        "name": "generateWorkflowPack",
+        "type": "function",
+        "line": 667
+      },
+      {
+        "name": "generatePolicyPack",
+        "type": "function",
+        "line": 790
+      }
+    ],
+    "packages/generator-core/src/generators-superpowers.ts": [
+      {
+        "name": "generateSuperpowerPack",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "generateWorkflowRegistry",
+        "type": "function",
+        "line": 202
+      },
+      {
+        "name": "registry",
+        "type": "const",
+        "line": 327
+      },
+      {
+        "name": "generateTestGenerationRules",
+        "type": "function",
+        "line": 361
+      },
+      {
+        "name": "generateRefactorChecklist",
+        "type": "function",
+        "line": 628
+      },
+      {
+        "name": "generateAutomationPipeline",
+        "type": "function",
+        "line": 836
+      }
+    ],
+    "packages/generator-core/src/generators-theme.ts": [
+      {
+        "name": "generateDesignTokens",
+        "type": "function",
+        "line": 8
+      },
+      {
+        "name": "spacing",
+        "type": "const",
+        "line": 44
+      },
+      {
+        "name": "typography",
+        "type": "const",
+        "line": 51
+      },
+      {
+        "name": "borderRadius",
+        "type": "const",
+        "line": 73
+      },
+      {
+        "name": "shadows",
+        "type": "const",
+        "line": 78
+      },
+      {
+        "name": "tokens",
+        "type": "const",
+        "line": 85
+      },
+      {
+        "name": "generateThemeCss",
+        "type": "function",
+        "line": 164
+      },
+      {
+        "name": "generateThemeGuidelines",
+        "type": "function",
+        "line": 482
+      },
+      {
+        "name": "generateComponentThemeMap",
+        "type": "function",
+        "line": 816
+      },
+      {
+        "name": "themeMap",
+        "type": "const",
+        "line": 868
+      },
+      {
+        "name": "generateDarkModeTokens",
+        "type": "function",
+        "line": 916
+      },
+      {
+        "name": "tokens",
+        "type": "const",
+        "line": 922
+      }
+    ],
+    "packages/generator-core/src/pipeline.test.ts": [
+      {
+        "name": "makeSnapshot",
+        "type": "function",
+        "line": 20
+      },
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 49
+      },
+      {
+        "name": "makeSnap",
+        "type": "function",
+        "line": 144
+      },
+      {
+        "name": "validCtx",
+        "type": "const",
+        "line": 160
+      },
+      {
+        "name": "validProfile",
+        "type": "const",
+        "line": 184
+      },
+      {
+        "name": "validResult",
+        "type": "const",
+        "line": 204
+      }
+    ],
+    "packages/generator-core/src/types.ts": [
+      {
+        "name": "GeneratedFile",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "SourceFile",
+        "type": "interface",
+        "line": 11
+      },
+      {
+        "name": "GeneratorInput",
+        "type": "interface",
+        "line": 17
+      },
+      {
+        "name": "GeneratorResult",
+        "type": "interface",
+        "line": 24
+      }
+    ],
+    "packages/repo-parser/src/domain-extractor.test.ts": [
+      {
+        "name": "makeFile",
+        "type": "function",
+        "line": 5
+      },
+      {
+        "name": "User",
+        "type": "struct",
+        "line": 15
+      },
+      {
+        "name": "cacheEntry",
+        "type": "struct",
+        "line": 37
+      },
+      {
+        "name": "Config",
+        "type": "struct",
+        "line": 42
+      },
+      {
+        "name": "UserRepository",
+        "type": "interface",
+        "line": 55
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 114
+      },
+      {
+        "name": "Service",
+        "type": "class",
+        "line": 131
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 132
+      },
+      {
+        "name": "TestUser",
+        "type": "struct",
+        "line": 145
+      },
+      {
+        "name": "User",
+        "type": "struct",
+        "line": 150
+      },
+      {
+        "name": "Alpha",
+        "type": "interface",
+        "line": 160
+      },
+      {
+        "name": "handler",
+        "type": "interface",
+        "line": 183
+      },
+      {
+        "name": "Product",
+        "type": "struct",
+        "line": 194
+      },
+      {
+        "name": "NextClass",
+        "type": "class",
+        "line": 213
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 214
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 226
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 239
+      },
+      {
+        "name": "process_order",
+        "type": "function",
+        "line": 242
+      },
+      {
+        "name": "Invoice",
+        "type": "class",
+        "line": 245
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 246
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 260
+      },
+      {
+        "name": "Second",
+        "type": "class",
+        "line": 262
+      },
+      {
+        "name": "__init__",
+        "type": "function",
+        "line": 263
+      }
+    ],
+    "packages/repo-parser/src/domain-extractor.ts": [
+      {
+        "name": "DomainModel",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "extractDomainModels",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "isTestFile",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "extractGoModels",
+        "type": "function",
+        "line": 39
+      },
+      {
+        "name": "parseGoFields",
+        "type": "function",
+        "line": 64
+      },
+      {
+        "name": "parseGoMethods",
+        "type": "function",
+        "line": 83
+      },
+      {
+        "name": "extractTSModels",
+        "type": "function",
+        "line": 98
+      },
+      {
+        "name": "parseTSFields",
+        "type": "function",
+        "line": 133
+      },
+      {
+        "name": "extractPyModels",
+        "type": "function",
+        "line": 143
+      },
+      {
+        "name": "parsePyFields",
+        "type": "function",
+        "line": 163
+      }
+    ],
+    "packages/repo-parser/src/framework-detector.test.ts": [
+      {
+        "name": "makeFiles",
+        "type": "function",
+        "line": 5
+      },
+      {
+        "name": "deps",
+        "type": "const",
+        "line": 19
+      },
+      {
+        "name": "deps",
+        "type": "const",
+        "line": 127
+      },
+      {
+        "name": "deps",
+        "type": "const",
+        "line": 140
+      }
+    ],
+    "packages/repo-parser/src/framework-detector.ts": [
+      {
+        "name": "FrameworkRule",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "detectFrameworks",
+        "type": "function",
+        "line": 173
+      }
+    ],
+    "packages/repo-parser/src/import-resolver.test.ts": [
+      {
+        "name": "makeFiles",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/repo-parser/src/import-resolver.ts": [
+      {
+        "name": "extractImports",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "isSourceFile",
+        "type": "function",
+        "line": 42
+      },
+      {
+        "name": "resolveImportPath",
+        "type": "function",
+        "line": 46
+      },
+      {
+        "name": "normalizePath",
+        "type": "function",
+        "line": 73
+      },
+      {
+        "name": "extractGoImports",
+        "type": "function",
+        "line": 87
+      },
+      {
+        "name": "resolveGoPackage",
+        "type": "function",
+        "line": 124
+      }
+    ],
+    "packages/repo-parser/src/language-detector.ts": [
+      {
+        "name": "detectLanguage",
+        "type": "function",
+        "line": 57
+      },
+      {
+        "name": "countLines",
+        "type": "function",
+        "line": 63
+      }
+    ],
+    "packages/repo-parser/src/parser-branches.test.ts": [
+      {
+        "name": "makeFiles",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/repo-parser/src/parser.test.ts": [
+      {
+        "name": "makeFiles",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/repo-parser/src/parser.ts": [
+      {
+        "name": "parseRepo",
+        "type": "function",
+        "line": 14
+      },
+      {
+        "name": "allDeps",
+        "type": "const",
+        "line": 16
+      },
+      {
+        "name": "computeLanguageStats",
+        "type": "function",
+        "line": 75
+      },
+      {
+        "name": "annotateFiles",
+        "type": "function",
+        "line": 100
+      },
+      {
+        "name": "classifyRole",
+        "type": "function",
+        "line": 110
+      },
+      {
+        "name": "isTestFile",
+        "type": "function",
+        "line": 121
+      },
+      {
+        "name": "isConfigFile",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "isDocFile",
+        "type": "function",
+        "line": 138
+      },
+      {
+        "name": "isBuildFile",
+        "type": "function",
+        "line": 142
+      },
+      {
+        "name": "isAssetFile",
+        "type": "function",
+        "line": 147
+      },
+      {
+        "name": "isGeneratedFile",
+        "type": "function",
+        "line": 151
+      },
+      {
+        "name": "isSourceFile",
+        "type": "function",
+        "line": 157
+      },
+      {
+        "name": "DepGroups",
+        "type": "interface",
+        "line": 161
+      },
+      {
+        "name": "extractDependencies",
+        "type": "function",
+        "line": 167
+      },
+      {
+        "name": "result",
+        "type": "const",
+        "line": 168
+      },
+      {
+        "name": "flattenDeps",
+        "type": "function",
+        "line": 185
+      },
+      {
+        "name": "extractGoDependencies",
+        "type": "function",
+        "line": 199
+      },
+      {
+        "name": "detectBuildTools",
+        "type": "function",
+        "line": 253
+      },
+      {
+        "name": "detectTestFrameworks",
+        "type": "function",
+        "line": 268
+      },
+      {
+        "name": "detectPackageManagers",
+        "type": "function",
+        "line": 280
+      },
+      {
+        "name": "detectCI",
+        "type": "function",
+        "line": 292
+      },
+      {
+        "name": "detectDeployment",
+        "type": "function",
+        "line": 300
+      },
+      {
+        "name": "computeTopLevelDirs",
+        "type": "function",
+        "line": 310
+      },
+      {
+        "name": "guessDirPurpose",
+        "type": "function",
+        "line": 329
+      }
+    ],
+    "packages/repo-parser/src/perf.bench.ts": [
+      {
+        "name": "TS_FILE",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "PY_FILE",
+        "type": "function",
+        "line": 51
+      },
+      {
+        "name": "GO_FILE",
+        "type": "function",
+        "line": 74
+      },
+      {
+        "name": "PKG_JSON",
+        "type": "const",
+        "line": 102
+      },
+      {
+        "name": "SQL_FILE",
+        "type": "const",
+        "line": 111
+      }
+    ],
+    "packages/repo-parser/src/sql-extractor.test.ts": [
+      {
+        "name": "sqlFile",
+        "type": "function",
+        "line": 5
+      }
+    ],
+    "packages/repo-parser/src/sql-extractor.ts": [
+      {
+        "name": "SQLTable",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "extractSQLSchema",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "extractTablesFromSQL",
+        "type": "function",
+        "line": 22
+      },
+      {
+        "name": "splitColumnDefs",
+        "type": "function",
+        "line": 116
+      }
+    ],
+    "packages/repo-parser/src/types.ts": [
+      {
+        "name": "LanguageStats",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "FrameworkDetection",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "FileAnnotation",
+        "type": "interface",
+        "line": 17
+      },
+      {
+        "name": "DependencyInfo",
+        "type": "interface",
+        "line": 25
+      },
+      {
+        "name": "ImportEdge",
+        "type": "interface",
+        "line": 31
+      },
+      {
+        "name": "ParseResult",
+        "type": "interface",
+        "line": 36
+      }
+    ],
+    "packages/snapshots/src/billing-edge-cases.test.ts": [
+      {
+        "name": "makeSnapshotInput",
+        "type": "function",
+        "line": 25
+      }
+    ],
+    "packages/snapshots/src/billing-store.ts": [
+      {
+        "name": "hashKey",
+        "type": "function",
+        "line": 16
+      },
+      {
+        "name": "generateRawKey",
+        "type": "function",
+        "line": 20
+      },
+      {
+        "name": "createAccount",
+        "type": "function",
+        "line": 27
+      },
+      {
+        "name": "account",
+        "type": "const",
+        "line": 28
+      },
+      {
+        "name": "getAccount",
+        "type": "function",
+        "line": 50
+      },
+      {
+        "name": "getAccountByEmail",
+        "type": "function",
+        "line": 54
+      },
+      {
+        "name": "updateAccountTier",
+        "type": "function",
+        "line": 58
+      },
+      {
+        "name": "createApiKey",
+        "type": "function",
+        "line": 71
+      },
+      {
+        "name": "apiKey",
+        "type": "const",
+        "line": 73
+      },
+      {
+        "name": "resolveApiKey",
+        "type": "function",
+        "line": 90
+      },
+      {
+        "name": "apiKey",
+        "type": "const",
+        "line": 98
+      },
+      {
+        "name": "account",
+        "type": "const",
+        "line": 107
+      },
+      {
+        "name": "revokeApiKey",
+        "type": "function",
+        "line": 118
+      },
+      {
+        "name": "listApiKeys",
+        "type": "function",
+        "line": 123
+      },
+      {
+        "name": "enableProgram",
+        "type": "function",
+        "line": 129
+      },
+      {
+        "name": "disableProgram",
+        "type": "function",
+        "line": 135
+      },
+      {
+        "name": "getEntitlements",
+        "type": "function",
+        "line": 141
+      },
+      {
+        "name": "isProgramEnabled",
+        "type": "function",
+        "line": 147
+      },
+      {
+        "name": "recordUsage",
+        "type": "function",
+        "line": 171
+      },
+      {
+        "name": "record",
+        "type": "const",
+        "line": 179
+      },
+      {
+        "name": "getUsageSummary",
+        "type": "function",
+        "line": 201
+      },
+      {
+        "name": "getMonthlySnapshotCount",
+        "type": "function",
+        "line": 210
+      },
+      {
+        "name": "getProjectCount",
+        "type": "function",
+        "line": 223
+      },
+      {
+        "name": "QuotaCheck",
+        "type": "interface",
+        "line": 237
+      },
+      {
+        "name": "checkQuota",
+        "type": "function",
+        "line": 245
+      },
+      {
+        "name": "usage",
+        "type": "const",
+        "line": 261
+      },
+      {
+        "name": "SystemStats",
+        "type": "interface",
+        "line": 276
+      },
+      {
+        "name": "getSystemStats",
+        "type": "function",
+        "line": 286
+      },
+      {
+        "name": "snapCount",
+        "type": "function",
+        "line": 292
+      },
+      {
+        "name": "projCount",
+        "type": "function",
+        "line": 293
+      },
+      {
+        "name": "usageCount",
+        "type": "function",
+        "line": 294
+      },
+      {
+        "name": "AccountSummary",
+        "type": "interface",
+        "line": 314
+      },
+      {
+        "name": "listAllAccounts",
+        "type": "function",
+        "line": 324
+      },
+      {
+        "name": "total",
+        "type": "function",
+        "line": 326
+      },
+      {
+        "name": "RecentActivity",
+        "type": "interface",
+        "line": 340
+      },
+      {
+        "name": "getRecentActivity",
+        "type": "function",
+        "line": 348
+      }
+    ],
+    "packages/snapshots/src/billing-types.ts": [
+      {
+        "name": "BillingTier",
+        "type": "type",
+        "line": 1
+      },
+      {
+        "name": "ApiKey",
+        "type": "interface",
+        "line": 3
+      },
+      {
+        "name": "Account",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "ProgramEntitlement",
+        "type": "interface",
+        "line": 21
+      },
+      {
+        "name": "UsageRecord",
+        "type": "interface",
+        "line": 27
+      },
+      {
+        "name": "UsageSummary",
+        "type": "interface",
+        "line": 38
+      },
+      {
+        "name": "TierLimits",
+        "type": "interface",
+        "line": 47
+      },
+      {
+        "name": "ProgramName",
+        "type": "type",
+        "line": 86
+      },
+      {
+        "name": "PersistenceOp",
+        "type": "type",
+        "line": 91
+      },
+      {
+        "name": "PersistencePackId",
+        "type": "type",
+        "line": 110
+      },
+      {
+        "name": "PersistenceCreditRecord",
+        "type": "interface",
+        "line": 113
+      }
+    ],
+    "packages/snapshots/src/billing.test.ts": [
+      {
+        "name": "input",
+        "type": "const",
+        "line": 253
+      },
+      {
+        "name": "input2",
+        "type": "const",
+        "line": 262
+      }
+    ],
+    "packages/snapshots/src/coverage-gaps.test.ts": [
+      {
+        "name": "seedSnapshot",
+        "type": "function",
+        "line": 78
+      },
+      {
+        "name": "seedAccount",
+        "type": "function",
+        "line": 190
+      },
+      {
+        "name": "seedAccount",
+        "type": "function",
+        "line": 350
+      },
+      {
+        "name": "seedAccount",
+        "type": "function",
+        "line": 456
+      },
+      {
+        "name": "seedAccount",
+        "type": "function",
+        "line": 545
+      }
+    ],
+    "packages/snapshots/src/db.ts": [
+      {
+        "name": "Migration",
+        "type": "interface",
+        "line": 115
+      },
+      {
+        "name": "ensureMigrationsTable",
+        "type": "function",
+        "line": 424
+      },
+      {
+        "name": "runMigrations",
+        "type": "function",
+        "line": 434
+      },
+      {
+        "name": "getSchemaVersion",
+        "type": "function",
+        "line": 458
+      },
+      {
+        "name": "getDb",
+        "type": "function",
+        "line": 465
+      },
+      {
+        "name": "openMemoryDb",
+        "type": "function",
+        "line": 479
+      },
+      {
+        "name": "closeDb",
+        "type": "function",
+        "line": 488
+      },
+      {
+        "name": "DbMaintenanceResult",
+        "type": "interface",
+        "line": 497
+      },
+      {
+        "name": "walCheckpoint",
+        "type": "function",
+        "line": 504
+      },
+      {
+        "name": "vacuum",
+        "type": "function",
+        "line": 518
+      },
+      {
+        "name": "integrityCheck",
+        "type": "function",
+        "line": 526
+      },
+      {
+        "name": "getDbStats",
+        "type": "function",
+        "line": 539
+      },
+      {
+        "name": "purgeStaleData",
+        "type": "function",
+        "line": 580
+      },
+      {
+        "name": "runMaintenance",
+        "type": "function",
+        "line": 608
+      }
+    ],
+    "packages/snapshots/src/email-store.test.ts": [
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 87
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 96
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 104
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 113
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 123
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 132
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 142
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 187
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 194
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 202
+      },
+      {
+        "name": "msg",
+        "type": "const",
+        "line": 210
+      }
+    ],
+    "packages/snapshots/src/email-store.ts": [
+      {
+        "name": "EmailTemplate",
+        "type": "type",
+        "line": 6
+      },
+      {
+        "name": "EmailMessage",
+        "type": "interface",
+        "line": 13
+      },
+      {
+        "name": "EmailDelivery",
+        "type": "interface",
+        "line": 20
+      },
+      {
+        "name": "EmailProvider",
+        "type": "type",
+        "line": 33
+      },
+      {
+        "name": "renderTemplate",
+        "type": "function",
+        "line": 111
+      },
+      {
+        "name": "interpolate",
+        "type": "function",
+        "line": 116
+      },
+      {
+        "name": "recordEmailDelivery",
+        "type": "function",
+        "line": 126
+      },
+      {
+        "name": "delivery",
+        "type": "const",
+        "line": 127
+      },
+      {
+        "name": "getEmailDeliveries",
+        "type": "function",
+        "line": 152
+      },
+      {
+        "name": "getEmailDelivery",
+        "type": "function",
+        "line": 163
+      },
+      {
+        "name": "setEmailProvider",
+        "type": "function",
+        "line": 173
+      },
+      {
+        "name": "getEmailProvider",
+        "type": "function",
+        "line": 177
+      },
+      {
+        "name": "consoleEmailProvider",
+        "type": "function",
+        "line": 182
+      },
+      {
+        "name": "sendEmail",
+        "type": "function",
+        "line": 193
+      },
+      {
+        "name": "WEB_URL",
+        "type": "function",
+        "line": 211
+      },
+      {
+        "name": "sendSeatInvitation",
+        "type": "function",
+        "line": 213
+      },
+      {
+        "name": "sendWelcomeEmail",
+        "type": "function",
+        "line": 234
+      },
+      {
+        "name": "sendUpgradeConfirmation",
+        "type": "function",
+        "line": 247
+      },
+      {
+        "name": "sendUsageAlert",
+        "type": "function",
+        "line": 263
+      },
+      {
+        "name": "sendApiKeyNotification",
+        "type": "function",
+        "line": 278
+      }
+    ],
+    "packages/snapshots/src/funnel-store.ts": [
+      {
+        "name": "inviteSeat",
+        "type": "function",
+        "line": 24
+      },
+      {
+        "name": "seat",
+        "type": "const",
+        "line": 42
+      },
+      {
+        "name": "acceptSeat",
+        "type": "function",
+        "line": 62
+      },
+      {
+        "name": "revokeSeat",
+        "type": "function",
+        "line": 75
+      },
+      {
+        "name": "getSeat",
+        "type": "function",
+        "line": 87
+      },
+      {
+        "name": "getActiveSeats",
+        "type": "function",
+        "line": 91
+      },
+      {
+        "name": "getAllSeats",
+        "type": "function",
+        "line": 97
+      },
+      {
+        "name": "getSeatByEmail",
+        "type": "function",
+        "line": 103
+      },
+      {
+        "name": "getSeatCount",
+        "type": "function",
+        "line": 109
+      },
+      {
+        "name": "trackEvent",
+        "type": "function",
+        "line": 118
+      },
+      {
+        "name": "event",
+        "type": "const",
+        "line": 124
+      },
+      {
+        "name": "safeParseMetadata",
+        "type": "function",
+        "line": 141
+      },
+      {
+        "name": "getAccountEvents",
+        "type": "function",
+        "line": 149
+      },
+      {
+        "name": "getLatestEvent",
+        "type": "function",
+        "line": 157
+      },
+      {
+        "name": "getEventsByType",
+        "type": "function",
+        "line": 166
+      },
+      {
+        "name": "resolveStage",
+        "type": "function",
+        "line": 177
+      },
+      {
+        "name": "daysSince",
+        "type": "function",
+        "line": 202
+      },
+      {
+        "name": "generateUpgradePrompt",
+        "type": "function",
+        "line": 218
+      },
+      {
+        "name": "FunnelMetrics",
+        "type": "interface",
+        "line": 355
+      },
+      {
+        "name": "getFunnelMetrics",
+        "type": "function",
+        "line": 367
+      }
+    ],
+    "packages/snapshots/src/funnel-types.ts": [
+      {
+        "name": "FunnelStage",
+        "type": "type",
+        "line": 5
+      },
+      {
+        "name": "FunnelEventType",
+        "type": "type",
+        "line": 18
+      },
+      {
+        "name": "FunnelEvent",
+        "type": "interface",
+        "line": 38
+      },
+      {
+        "name": "SeatRole",
+        "type": "type",
+        "line": 49
+      },
+      {
+        "name": "Seat",
+        "type": "interface",
+        "line": 51
+      },
+      {
+        "name": "PlanFeature",
+        "type": "interface",
+        "line": 64
+      },
+      {
+        "name": "PlanDefinition",
+        "type": "interface",
+        "line": 71
+      },
+      {
+        "name": "UpgradePrompt",
+        "type": "interface",
+        "line": 80
+      }
+    ],
+    "packages/snapshots/src/github-http.test.ts": [
+      {
+        "name": "buildTarEntry",
+        "type": "function",
+        "line": 17
+      },
+      {
+        "name": "buildTar",
+        "type": "function",
+        "line": 37
+      },
+      {
+        "name": "makeGzippedTarball",
+        "type": "function",
+        "line": 43
+      },
+      {
+        "name": "MockRes",
+        "type": "interface",
+        "line": 53
+      },
+      {
+        "name": "makeRes",
+        "type": "function",
+        "line": 59
+      },
+      {
+        "name": "makeReq",
+        "type": "function",
+        "line": 67
+      },
+      {
+        "name": "msg",
+        "type": "function",
+        "line": 316
+      }
+    ],
+    "packages/snapshots/src/github-tarball.test.ts": [
+      {
+        "name": "buildTarEntry",
+        "type": "function",
+        "line": 7
+      },
+      {
+        "name": "buildTar",
+        "type": "function",
+        "line": 50
+      }
+    ],
+    "packages/snapshots/src/github-token-store.ts": [
+      {
+        "name": "getEncryptionKey",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "encrypt",
+        "type": "function",
+        "line": 19
+      },
+      {
+        "name": "decrypt",
+        "type": "function",
+        "line": 29
+      },
+      {
+        "name": "GitHubToken",
+        "type": "interface",
+        "line": 43
+      },
+      {
+        "name": "saveGitHubToken",
+        "type": "function",
+        "line": 58
+      },
+      {
+        "name": "token",
+        "type": "const",
+        "line": 70
+      },
+      {
+        "name": "getGitHubTokens",
+        "type": "function",
+        "line": 96
+      },
+      {
+        "name": "getGitHubTokenDecrypted",
+        "type": "function",
+        "line": 102
+      },
+      {
+        "name": "deleteGitHubToken",
+        "type": "function",
+        "line": 112
+      },
+      {
+        "name": "markTokenUsed",
+        "type": "function",
+        "line": 119
+      },
+      {
+        "name": "markTokenInvalid",
+        "type": "function",
+        "line": 125
+      },
+      {
+        "name": "markTokenValidated",
+        "type": "function",
+        "line": 131
+      }
+    ],
+    "packages/snapshots/src/github.ts": [
+      {
+        "name": "GitHubFetchResult",
+        "type": "interface",
+        "line": 28
+      },
+      {
+        "name": "ParsedGitHubUrl",
+        "type": "interface",
+        "line": 37
+      },
+      {
+        "name": "parseGitHubUrl",
+        "type": "function",
+        "line": 50
+      },
+      {
+        "name": "fetchGitHubRepo",
+        "type": "function",
+        "line": 71
+      },
+      {
+        "name": "httpGetBuffer",
+        "type": "function",
+        "line": 87
+      },
+      {
+        "name": "doRequest",
+        "type": "function",
+        "line": 97
+      },
+      {
+        "name": "TarParseResult",
+        "type": "interface",
+        "line": 145
+      },
+      {
+        "name": "parseTarball",
+        "type": "function",
+        "line": 152
+      },
+      {
+        "name": "shouldInclude",
+        "type": "function",
+        "line": 201
+      },
+      {
+        "name": "ext",
+        "type": "function",
+        "line": 222
+      }
+    ],
+    "packages/snapshots/src/oauth-store.ts": [
+      {
+        "name": "createOAuthState",
+        "type": "function",
+        "line": 10
+      },
+      {
+        "name": "consumeOAuthState",
+        "type": "function",
+        "line": 18
+      },
+      {
+        "name": "getGitHubAuthUrl",
+        "type": "function",
+        "line": 31
+      },
+      {
+        "name": "GitHubTokenResponse",
+        "type": "interface",
+        "line": 41
+      },
+      {
+        "name": "exchangeGitHubCode",
+        "type": "function",
+        "line": 47
+      },
+      {
+        "name": "data",
+        "type": "function",
+        "line": 69
+      },
+      {
+        "name": "GitHubUser",
+        "type": "interface",
+        "line": 77
+      },
+      {
+        "name": "getGitHubUser",
+        "type": "function",
+        "line": 84
+      },
+      {
+        "name": "getAccountByGitHubId",
+        "type": "function",
+        "line": 101
+      },
+      {
+        "name": "linkGitHubId",
+        "type": "function",
+        "line": 107
+      },
+      {
+        "name": "upsertAccountByGitHub",
+        "type": "function",
+        "line": 119
+      }
+    ],
+    "packages/snapshots/src/perf.bench.ts": [
+      {
+        "name": "MANIFEST",
+        "type": "const",
+        "line": 51
+      }
+    ],
+    "packages/snapshots/src/persistence-metering.ts": [
+      {
+        "name": "getPersistenceBalance",
+        "type": "function",
+        "line": 13
+      },
+      {
+        "name": "canUsePersistence",
+        "type": "function",
+        "line": 26
+      },
+      {
+        "name": "addPersistenceCredits",
+        "type": "function",
+        "line": 36
+      },
+      {
+        "name": "applySuiteMonthlyGrant",
+        "type": "function",
+        "line": 54
+      },
+      {
+        "name": "MeterResult",
+        "type": "type",
+        "line": 73
+      },
+      {
+        "name": "meterPersistenceOp",
+        "type": "function",
+        "line": 81
+      },
+      {
+        "name": "getPersistenceLedger",
+        "type": "function",
+        "line": 128
+      }
+    ],
+    "packages/snapshots/src/referral-store.ts": [
+      {
+        "name": "ReferralCode",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "ReferralConversion",
+        "type": "interface",
+        "line": 12
+      },
+      {
+        "name": "ReferralCredits",
+        "type": "interface",
+        "line": 19
+      },
+      {
+        "name": "generateCode",
+        "type": "function",
+        "line": 42
+      },
+      {
+        "name": "createReferralCode",
+        "type": "function",
+        "line": 47
+      },
+      {
+        "name": "code",
+        "type": "const",
+        "line": 52
+      },
+      {
+        "name": "lookupReferralCode",
+        "type": "function",
+        "line": 62
+      },
+      {
+        "name": "getReferralCodes",
+        "type": "function",
+        "line": 67
+      },
+      {
+        "name": "recordReferralConversion",
+        "type": "function",
+        "line": 74
+      },
+      {
+        "name": "conversion",
+        "type": "const",
+        "line": 84
+      },
+      {
+        "name": "getReferralConversionCount",
+        "type": "function",
+        "line": 110
+      },
+      {
+        "name": "ensureReferralCredits",
+        "type": "function",
+        "line": 118
+      },
+      {
+        "name": "getReferralCredits",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "initFreeCallGrant",
+        "type": "function",
+        "line": 134
+      },
+      {
+        "name": "consumeFreeCall",
+        "type": "function",
+        "line": 149
+      },
+      {
+        "name": "applyReferralDiscount",
+        "type": "function",
+        "line": 156
+      },
+      {
+        "name": "buildIncentivesSummary",
+        "type": "function",
+        "line": 189
+      },
+      {
+        "name": "base",
+        "type": "const",
+        "line": 190
+      }
+    ],
+    "packages/snapshots/src/search-store.ts": [
+      {
+        "name": "SearchIndexEntry",
+        "type": "interface",
+        "line": 5
+      },
+      {
+        "name": "SearchResult",
+        "type": "interface",
+        "line": 11
+      },
+      {
+        "name": "indexSnapshotContent",
+        "type": "function",
+        "line": 23
+      },
+      {
+        "name": "searchSnapshotContent",
+        "type": "function",
+        "line": 65
+      },
+      {
+        "name": "clearSearchIndex",
+        "type": "function",
+        "line": 101
+      },
+      {
+        "name": "getSearchIndexStats",
+        "type": "function",
+        "line": 108
+      },
+      {
+        "name": "SymbolType",
+        "type": "type",
+        "line": 120
+      },
+      {
+        "name": "CodeSymbol",
+        "type": "interface",
+        "line": 122
+      },
+      {
+        "name": "SymbolSearchResult",
+        "type": "interface",
+        "line": 131
+      },
+      {
+        "name": "extractSymbols",
+        "type": "function",
+        "line": 164
+      },
+      {
+        "name": "indexSymbols",
+        "type": "function",
+        "line": 203
+      },
+      {
+        "name": "searchSymbols",
+        "type": "function",
+        "line": 228
+      },
+      {
+        "name": "clearSymbols",
+        "type": "function",
+        "line": 257
+      },
+      {
+        "name": "getSymbolStats",
+        "type": "function",
+        "line": 263
+      }
+    ],
+    "packages/snapshots/src/store-validation.test.ts": [
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 17
+      }
+    ],
+    "packages/snapshots/src/store.test.ts": [
+      {
+        "name": "makeInput",
+        "type": "function",
+        "line": 21
+      },
+      {
+        "name": "ctx",
+        "type": "const",
+        "line": 102
+      },
+      {
+        "name": "profile",
+        "type": "const",
+        "line": 116
+      },
+      {
+        "name": "result",
+        "type": "const",
+        "line": 130
+      }
+    ],
+    "packages/snapshots/src/store.ts": [
+      {
+        "name": "createSnapshot",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "record",
+        "type": "const",
+        "line": 25
+      },
+      {
+        "name": "rowToSnapshot",
+        "type": "function",
+        "line": 57
+      },
+      {
+        "name": "getSnapshot",
+        "type": "function",
+        "line": 76
+      },
+      {
+        "name": "updateSnapshotStatus",
+        "type": "function",
+        "line": 81
+      },
+      {
+        "name": "getProjectSnapshots",
+        "type": "function",
+        "line": 89
+      },
+      {
+        "name": "getProjectOwner",
+        "type": "function",
+        "line": 94
+      },
+      {
+        "name": "deleteSnapshot",
+        "type": "function",
+        "line": 100
+      },
+      {
+        "name": "deleteProject",
+        "type": "function",
+        "line": 115
+      },
+      {
+        "name": "saveContextMap",
+        "type": "function",
+        "line": 135
+      },
+      {
+        "name": "isValidContextMap",
+        "type": "function",
+        "line": 142
+      },
+      {
+        "name": "getContextMap",
+        "type": "function",
+        "line": 151
+      },
+      {
+        "name": "saveRepoProfile",
+        "type": "function",
+        "line": 164
+      },
+      {
+        "name": "isValidRepoProfile",
+        "type": "function",
+        "line": 171
+      },
+      {
+        "name": "getRepoProfile",
+        "type": "function",
+        "line": 180
+      },
+      {
+        "name": "saveGeneratorResult",
+        "type": "function",
+        "line": 193
+      },
+      {
+        "name": "isValidGeneratorResult",
+        "type": "function",
+        "line": 200
+      },
+      {
+        "name": "getGeneratorResult",
+        "type": "function",
+        "line": 208
+      }
+    ],
+    "packages/snapshots/src/stripe-store.test.ts": [
+      {
+        "name": "makeSub",
+        "type": "function",
+        "line": 28
+      }
+    ],
+    "packages/snapshots/src/stripe-store.ts": [
+      {
+        "name": "StripeSubscriptionStatus",
+        "type": "type",
+        "line": 11
+      },
+      {
+        "name": "StripeSubscription",
+        "type": "interface",
+        "line": 21
+      },
+      {
+        "name": "priceToTier",
+        "type": "function",
+        "line": 42
+      },
+      {
+        "name": "upsertSubscription",
+        "type": "function",
+        "line": 50
+      },
+      {
+        "name": "getSubscription",
+        "type": "function",
+        "line": 85
+      },
+      {
+        "name": "getSubscriptionByAccount",
+        "type": "function",
+        "line": 93
+      },
+      {
+        "name": "getActiveSubscriptionByAccount",
+        "type": "function",
+        "line": 101
+      },
+      {
+        "name": "updateSubscriptionStatus",
+        "type": "function",
+        "line": 109
+      },
+      {
+        "name": "listSubscriptionsByAccount",
+        "type": "function",
+        "line": 120
+      },
+      {
+        "name": "deleteSubscription",
+        "type": "function",
+        "line": 127
+      },
+      {
+        "name": "getActiveSubscriptionTier",
+        "type": "function",
+        "line": 139
+      }
+    ],
+    "packages/snapshots/src/tier-audit.ts": [
+      {
+        "name": "TierChange",
+        "type": "interface",
+        "line": 8
+      },
+      {
+        "name": "ProrationResult",
+        "type": "interface",
+        "line": 19
+      },
+      {
+        "name": "calculateProration",
+        "type": "function",
+        "line": 37
+      },
+      {
+        "name": "logTierChange",
+        "type": "function",
+        "line": 63
+      },
+      {
+        "name": "change",
+        "type": "const",
+        "line": 72
+      },
+      {
+        "name": "getTierHistory",
+        "type": "function",
+        "line": 95
+      },
+      {
+        "name": "getLastTierChange",
+        "type": "function",
+        "line": 101
+      }
+    ],
+    "packages/snapshots/src/types.ts": [
+      {
+        "name": "InputMethod",
+        "type": "type",
+        "line": 1
+      },
+      {
+        "name": "SnapshotStatus",
+        "type": "type",
+        "line": 8
+      },
+      {
+        "name": "SnapshotManifest",
+        "type": "interface",
+        "line": 10
+      },
+      {
+        "name": "FileEntry",
+        "type": "interface",
+        "line": 23
+      },
+      {
+        "name": "SnapshotInput",
+        "type": "interface",
+        "line": 29
+      },
+      {
+        "name": "SnapshotRecord",
+        "type": "interface",
+        "line": 36
+      }
+    ],
+    "packages/snapshots/src/version-store.ts": [
+      {
+        "name": "GenerationVersion",
+        "type": "interface",
+        "line": 6
+      },
+      {
+        "name": "VersionFile",
+        "type": "interface",
+        "line": 16
+      },
+      {
+        "name": "FileDiff",
+        "type": "interface",
+        "line": 21
+      },
+      {
+        "name": "VersionDiff",
+        "type": "interface",
+        "line": 28
+      },
+      {
+        "name": "VersionRow",
+        "type": "interface",
+        "line": 43
+      },
+      {
+        "name": "rowToVersion",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "saveGenerationVersion",
+        "type": "function",
+        "line": 61
+      },
+      {
+        "name": "version_number",
+        "type": "function",
+        "line": 74
+      },
+      {
+        "name": "listGenerationVersions",
+        "type": "function",
+        "line": 86
+      },
+      {
+        "name": "getGenerationVersion",
+        "type": "function",
+        "line": 95
+      },
+      {
+        "name": "diffGenerationVersions",
+        "type": "function",
+        "line": 104
+      },
+      {
+        "name": "order",
+        "type": "const",
+        "line": 144
+      }
+    ],
+    "packages/snapshots/src/webhook-retry.test.ts": [
+      {
+        "name": "sendFn",
+        "type": "function",
+        "line": 185
+      },
+      {
+        "name": "sendFn",
+        "type": "function",
+        "line": 261
+      },
+      {
+        "name": "sendFn",
+        "type": "function",
+        "line": 280
+      },
+      {
+        "name": "sendFn",
+        "type": "function",
+        "line": 314
+      },
+      {
+        "name": "sendFn",
+        "type": "function",
+        "line": 338
+      }
+    ],
+    "packages/snapshots/src/webhook-store.ts": [
+      {
+        "name": "WebhookEventType",
+        "type": "type",
+        "line": 6
+      },
+      {
+        "name": "Webhook",
+        "type": "interface",
+        "line": 19
+      },
+      {
+        "name": "WebhookDelivery",
+        "type": "interface",
+        "line": 30
+      },
+      {
+        "name": "WebhookRow",
+        "type": "interface",
+        "line": 51
+      },
+      {
+        "name": "rowToWebhook",
+        "type": "function",
+        "line": 62
+      },
+      {
+        "name": "createWebhook",
+        "type": "function",
+        "line": 70
+      },
+      {
+        "name": "listWebhooks",
+        "type": "function",
+        "line": 97
+      },
+      {
+        "name": "getWebhook",
+        "type": "function",
+        "line": 105
+      },
+      {
+        "name": "deleteWebhook",
+        "type": "function",
+        "line": 111
+      },
+      {
+        "name": "updateWebhookActive",
+        "type": "function",
+        "line": 117
+      },
+      {
+        "name": "getActiveWebhooksForEvent",
+        "type": "function",
+        "line": 128
+      },
+      {
+        "name": "computeNextRetryAt",
+        "type": "function",
+        "line": 137
+      },
+      {
+        "name": "recordDelivery",
+        "type": "function",
+        "line": 142
+      },
+      {
+        "name": "getDeliveries",
+        "type": "function",
+        "line": 173
+      },
+      {
+        "name": "RetryCandidate",
+        "type": "interface",
+        "line": 183
+      },
+      {
+        "name": "getPendingRetries",
+        "type": "function",
+        "line": 192
+      },
+      {
+        "name": "clearRetrySchedule",
+        "type": "function",
+        "line": 208
+      },
+      {
+        "name": "getDeadLetters",
+        "type": "function",
+        "line": 214
+      },
+      {
+        "name": "processRetryQueue",
+        "type": "function",
+        "line": 223
+      },
+      {
+        "name": "signPayload",
+        "type": "function",
+        "line": 328
+      },
+      {
+        "name": "dispatchWebhookEvent",
+        "type": "function",
+        "line": 332
+      }
+    ],
+    "payment-processing-output/dashboard-widget.tsx": [
+      {
+        "name": "dashboardData",
+        "type": "const",
+        "line": 3
+      }
+    ],
+    "payment-processing-output/embed-snippet.ts": [
+      {
+        "name": "PROJECT_CONTEXT",
+        "type": "const",
+        "line": 7
+      },
+      {
+        "name": "embedProjectContext",
+        "type": "function",
+        "line": 38
+      }
+    ],
+    "payment-processing-output/generated-component.tsx": [
+      {
+        "name": "averypayplatformConfig",
+        "type": "interface",
+        "line": 4
+      },
+      {
+        "name": "createaverypayplatform",
+        "type": "function",
+        "line": 9
+      }
+    ],
+    "payment-processing-output/generative-sketch.ts": [
+      {
+        "name": "Node",
+        "type": "interface",
+        "line": 7
+      },
+      {
+        "name": "Edge",
+        "type": "interface",
+        "line": 17
+      },
+      {
+        "name": "CONFIG",
+        "type": "const",
+        "line": 23
+      },
+      {
+        "name": "createNodes",
+        "type": "function",
+        "line": 35
+      },
+      {
+        "name": "createEdges",
+        "type": "function",
+        "line": 52
+      },
+      {
+        "name": "simulate",
+        "type": "function",
+        "line": 65
+      },
+      {
+        "name": "renderSketch",
+        "type": "function",
+        "line": 103
+      },
+      {
+        "name": "frame",
+        "type": "function",
+        "line": 110
+      }
+    ],
+    "payment-processing-output/remotion-script.ts": [
+      {
+        "name": "THEME",
+        "type": "const",
+        "line": 6
+      },
+      {
+        "name": "IntroScene",
+        "type": "function",
+        "line": 13
+      },
+      {
+        "name": "TechStackScene",
+        "type": "function",
+        "line": 24
+      },
+      {
+        "name": "ArchitectureScene",
+        "type": "function",
+        "line": 45
+      },
+      {
+        "name": "AbstractionsScene",
+        "type": "function",
+        "line": 62
+      },
+      {
+        "name": "averypayplatformVideo",
+        "type": "function",
+        "line": 79
+      }
+    ],
+    "ProgramPipeline.js": [
+      {
+        "name": "ProgramPipeline",
+        "type": "class",
+        "line": 11
+      },
+      {
+        "name": "colors",
+        "type": "const",
+        "line": 47
+      }
+    ]
+  }
+}

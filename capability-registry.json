@@ -1,0 +1,108 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.187Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "total_capabilities": 10,
+  "categories": [
+    "build",
+    "testing",
+    "analysis",
+    "setup",
+    "version_control"
+  ],
+  "capabilities": [
+    {
+      "id": "build",
+      "name": "Build Project",
+      "category": "build",
+      "provider": "vite",
+      "command": "pnpm run build",
+      "available": true
+    },
+    {
+      "id": "dev",
+      "name": "Start Dev Server",
+      "category": "build",
+      "provider": "vite",
+      "command": "pnpm run dev",
+      "available": true
+    },
+    {
+      "id": "test",
+      "name": "Run Tests",
+      "category": "testing",
+      "provider": "vitest",
+      "command": "npx vitest run",
+      "available": true
+    },
+    {
+      "id": "test_watch",
+      "name": "Run Tests (Watch)",
+      "category": "testing",
+      "provider": "vitest",
+      "command": "npx vitest",
+      "available": true
+    },
+    {
+      "id": "typecheck",
+      "name": "Type Check",
+      "category": "analysis",
+      "provider": "tsc",
+      "command": "npx tsc --noEmit",
+      "available": true
+    },
+    {
+      "id": "lint",
+      "name": "Lint Code",
+      "category": "analysis",
+      "provider": "eslint",
+      "command": "pnpm run lint",
+      "available": false
+    },
+    {
+      "id": "format",
+      "name": "Format Code",
+      "category": "analysis",
+      "provider": "prettier",
+      "command": "pnpm run format",
+      "available": false
+    },
+    {
+      "id": "install",
+      "name": "Install Dependencies",
+      "category": "setup",
+      "provider": "pnpm",
+      "command": "pnpm install",
+      "available": true
+    },
+    {
+      "id": "git_status",
+      "name": "Git Status",
+      "category": "version_control",
+      "provider": "git",
+      "command": "git status",
+      "available": true
+    },
+    {
+      "id": "git_commit",
+      "name": "Git Commit",
+      "category": "version_control",
+      "provider": "git",
+      "command": "git add -A && git commit -m \"<message>\"",
+      "available": true
+    }
+  ],
+  "source_scripts": [
+    "\"dev\": \"tsx watch src/server.ts\"",
+    "\"build\": \"tsc\"",
+    "\"start\": \"node dist/server.js\"",
+    "\"test\": \"node --test dist/**/*.test.js\""
+  ]
+}

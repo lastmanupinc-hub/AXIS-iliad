@@ -1,0 +1,355 @@
+# MCP Server Manifest
+# Project: axis-toolbox
+# Generated: 2026-04-14T00:32:39.357Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.
+
+server:
+  name: "axis-toolbox-mcp-server"
+  version: "1.0.0"
+  description: "MCP server for axis-toolbox project integration"
+  protocol: "mcp"
+  transport: "stdio"
+
+  capabilities:
+    tools: true
+    resources: true
+    prompts: true
+
+  tools:
+    - name: analyze_project
+      description: Run full project analysis and return context map
+      input_schema:
+        type: object
+        properties:
+          depth:
+            type: string
+            enum: [quick, standard, deep]
+            default: standard
+
+    - name: search_code
+      description: Search project codebase by pattern or semantic query
+      input_schema:
+        type: object
+        required: [query]
+        properties:
+          query:
+            type: string
+          file_pattern:
+            type: string
+
+    - name: generate_files
+      description: Generate output files for a specific program
+      input_schema:
+        type: object
+        required: [program]
+        properties:
+          program:
+            type: string
+            enum: [search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic]
+
+    - name: list_routes
+      description: List all 428 detected routes
+      input_schema:
+        type: object
+        properties:
+          method:
+            type: string
+            enum: [GET, POST, PUT, DELETE, PATCH]
+
+    - name: query_authcontext
+      description: Query AuthContext records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for AuthContext
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_envspec
+      description: Query EnvSpec records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EnvSpec
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_validationerror
+      description: Query ValidationError records (interface, 2 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ValidationError
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_validationresult
+      description: Query ValidationResult records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ValidationResult
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_zipentry
+      description: Query ZipEntry records (interface, 4 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ZipEntry
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_intentcapture
+      description: Query IntentCapture records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for IntentCapture
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_jsonrpcrequest
+      description: Query JsonRpcRequest records (interface, 4 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for JsonRpcRequest
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_mcpcallcounters
+      description: Query McpCallCounters records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for McpCallCounters
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_rpcerror
+      description: Query RpcError records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for RpcError
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_rpcsuccess
+      description: Query RpcSuccess records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for RpcSuccess
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_histogramentry
+      description: Query HistogramEntry records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for HistogramEntry
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_agentbudget
+      description: Query AgentBudget records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for AgentBudget
+          filter:
+            type: object
+            description: Optional filter criteria
+
+  resources:
+    - uri: project://context-map
+      name: Project Context Map
+      mime_type: application/json
+      description: Full project context including structure, detection, and architecture signals
+
+    - uri: project://repo-profile
+      name: Repository Profile
+      mime_type: application/yaml
+      description: Repository health, structure summary, and detection results
+
+    - uri: project://architecture-summary
+      name: Architecture Summary
+      mime_type: text/markdown
+      description: Human-readable architecture overview
+
+    - uri: model://AuthContext
+      name: AuthContext
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/billing.ts)
+
+    - uri: model://EnvSpec
+      name: EnvSpec
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/env.ts)
+
+    - uri: model://ValidationError
+      name: ValidationError
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/env.ts)
+
+    - uri: model://ValidationResult
+      name: ValidationResult
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/env.ts)
+
+    - uri: model://ZipEntry
+      name: ZipEntry
+      mime_type: application/json
+      description: interface with 4 fields (apps/api/src/export.ts)
+
+    - uri: model://IntentCapture
+      name: IntentCapture
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/mcp-server.ts)
+
+    - uri: model://JsonRpcRequest
+      name: JsonRpcRequest
+      mime_type: application/json
+      description: interface with 4 fields (apps/api/src/mcp-server.ts)
+
+    - uri: model://McpCallCounters
+      name: McpCallCounters
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/mcp-server.ts)
+
+    - uri: model://RpcError
+      name: RpcError
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/mcp-server.ts)
+
+    - uri: model://RpcSuccess
+      name: RpcSuccess
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/mcp-server.ts)
+
+    - uri: model://HistogramEntry
+      name: HistogramEntry
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/metrics.ts)
+
+    - uri: model://AgentBudget
+      name: AgentBudget
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/mpp.ts)
+
+    - uri: model://CacheKey
+      name: CacheKey
+      mime_type: application/json
+      description: type_alias with 2 fields (apps/api/src/mpp.ts)
+
+    - uri: model://ChargeOptions
+      name: ChargeOptions
+      mime_type: application/json
+      description: type_alias with 5 fields (apps/api/src/mpp.ts)
+
+    - uri: model://MppResult
+      name: MppResult
+      mime_type: application/json
+      description: type_alias with 1 field (apps/api/src/mpp.ts)
+
+  prompts:
+    - name: review_code
+      description: Review code following axis-toolbox conventions
+      arguments:
+        - name: file_path
+          type: string
+          required: true
+
+    - name: debug_issue
+      description: Debug an issue using project-specific playbooks
+      arguments:
+        - name: error_message
+          type: string
+          required: true
+        - name: stack_trace
+          type: string
+
+  runtime:
+    language: TypeScript
+    entry: "src/index.ts"
+    env:
+      - name: AXIS_PROJECT_ID
+        required: true
+      - name: AXIS_API_URL
+        default: "http://localhost:4000"
+
+  dependencies:
+    - name: @axis/context-engine
+      version: "workspace:*"
+    - name: @axis/generator-core
+      version: "workspace:*"
+    - name: @axis/repo-parser
+      version: "workspace:*"
+    - name: @axis/snapshots
+      version: "workspace:*"
+    - name: mppx
+      version: "^0.5.12"
+    - name: jszip
+      version: "^3.10.1"
+    - name: react
+      version: "^19.1.0"
+    - name: react-dom
+      version: "^19.1.0"
+
+  # Detected Server/Tool Files
+  source_files:
+    - path: "apps/api/mcp-server.json"
+      exports: []
+    - path: "apps/api/src/mcp-server.test.ts"
+      exports: []
+    - path: "apps/api/src/mcp-server.ts"
+      exports: ["export const MCP_PROTOCOL_VERSION = ...", "export type ProbeClass = ...", "export function classifyProbe(userAgent: string): ProbeClass { ... }", "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }", "export function getIntentLog(): IntentCapture[] { ... }"]
+    - path: "apps/api/src/server.ts"
+      exports: ["export const app = ..."]
+    - path: "mcp/begin.yaml"
+      exports: []
+    - path: "mcp/continuation.yaml"
+      exports: []
+    - path: "mcp/MEMORY.yaml"
+      exports: []
+    - path: "mcp/schemas/output-contract.schema.json"
+      exports: []

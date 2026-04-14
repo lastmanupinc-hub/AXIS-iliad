@@ -1,0 +1,107 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.203Z",
+  "description": "Parameter sets for generative visualizations derived from project metrics",
+  "parameters": {
+    "structure": {
+      "node_count": 12,
+      "edge_density": 0.0064,
+      "cluster_count": 1,
+      "symmetry": "organic"
+    },
+    "color": {
+      "palette": [
+        {
+          "name": "TypeScript",
+          "hue": 220,
+          "saturation": 74.74,
+          "lightness": 61.055,
+          "weight": 73.7
+        },
+        {
+          "name": "YAML",
+          "hue": 280,
+          "saturation": 62.9,
+          "lightness": 52.175,
+          "weight": 14.5
+        },
+        {
+          "name": "JSON",
+          "hue": 340,
+          "saturation": 61.24,
+          "lightness": 50.93,
+          "weight": 6.2
+        },
+        {
+          "name": "Markdown",
+          "hue": 160,
+          "saturation": 60.78,
+          "lightness": 50.585,
+          "weight": 3.9
+        },
+        {
+          "name": "CSS",
+          "hue": 40,
+          "saturation": 60.16,
+          "lightness": 50.12,
+          "weight": 0.8
+        }
+      ],
+      "background": {
+        "h": 220,
+        "s": 40,
+        "l": 8
+      },
+      "accent": {
+        "h": 240,
+        "s": 80,
+        "l": 65
+      }
+    },
+    "motion": {
+      "speed": 1,
+      "dampening": 0.98,
+      "attraction": 0.001,
+      "repulsion": 500,
+      "turbulence": 0.3
+    },
+    "render": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 60,
+      "trail_opacity": 0.1,
+      "node_min_radius": 3,
+      "node_max_radius": 12,
+      "edge_opacity": 0.3,
+      "glow": true,
+      "anti_alias": true
+    }
+  },
+  "presets": [
+    {
+      "name": "calm",
+      "overrides": {
+        "motion.speed": 0.3,
+        "motion.turbulence": 0.05,
+        "render.trail_opacity": 0.05
+      }
+    },
+    {
+      "name": "energetic",
+      "overrides": {
+        "motion.speed": 1.5,
+        "motion.turbulence": 0.5,
+        "render.trail_opacity": 0.2
+      }
+    },
+    {
+      "name": "minimal",
+      "overrides": {
+        "structure.node_count": 10,
+        "render.edge_opacity": 0.1,
+        "render.glow": false
+      }
+    }
+  ],
+  "source_files_count": 466
+}

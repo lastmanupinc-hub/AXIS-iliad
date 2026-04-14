@@ -1,185 +1,409 @@
 {
   "mcpVersion": "1.0",
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.182Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
   "server": {
-    "name": "axis-toolbox",
-    "version": "0.4.0",
-    "description": "AXIS Toolbox MCP Server — exposes codebase analysis, generator execution, and governance query capabilities as MCP tools and resources.",
-    "vendor": "Last Man Up Inc."
+    "name": "axis-toolbox-mcp",
+    "version": "0.1.0",
+    "description": "MCP server configuration for axis-toolbox"
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": true
   },
   "tools": [
     {
-      "name": "analyze_repo",
-      "description": "Run a full AXIS Toolbox snapshot analysis on a codebase. Accepts a local directory path or GitHub URL. Returns the context map, repo profile, and architecture summary.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "source": { "type": "string", "description": "Local directory path or GitHub repository URL" },
-          "programs": { "type": "array", "items": { "type": "string" }, "description": "List of programs to run (default: all unlocked). Values: search, debug, skills, frontend, theme, brand, notebook, artifacts, optimization, marketing, mcp, obsidian, superpowers, remotion, canvas, algorithmic" },
-          "outputFormat": { "type": "string", "enum": ["files", "json", "zip"], "description": "Output format for generated artifacts", "default": "json" }
-        },
-        "required": ["source"]
-      }
+      "name": "read_file",
+      "description": "Read source files from the project",
+      "category": "filesystem",
+      "enabled": true
     },
     {
-      "name": "run_generator",
-      "description": "Execute a single generator from a specific program against an existing snapshot. Useful for regenerating individual artifacts.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "snapshotId": { "type": "string", "description": "ID of an existing snapshot" },
-          "program": { "type": "string", "description": "Program name (e.g., 'search', 'debug', 'skills')" },
-          "generator": { "type": "string", "description": "Generator name within the program (e.g., 'context-map', 'debug-playbook')" }
-        },
-        "required": ["snapshotId", "program", "generator"]
-      }
+      "name": "list_directory",
+      "description": "List directory contents",
+      "category": "filesystem",
+      "enabled": true
     },
     {
-      "name": "get_context_map",
-      "description": "Retrieve the context map for a project. The context map contains project identity, architecture layers, quantified metrics, critical paths, and invariants.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "projectId": { "type": "string", "description": "Project ID or snapshot ID" }
-        },
-        "required": ["projectId"]
-      }
+      "name": "search_files",
+      "description": "Search for files by pattern",
+      "category": "filesystem",
+      "enabled": true
     },
     {
-      "name": "get_repo_profile",
-      "description": "Retrieve the repo profile for a project. Contains language detection results, framework detection, structure summary, and health assessment.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "projectId": { "type": "string", "description": "Project ID or snapshot ID" }
-        },
-        "required": ["projectId"]
-      }
+      "name": "run_build",
+      "description": "Execute pnpm build",
+      "category": "build",
+      "enabled": true
     },
     {
-      "name": "query_capabilities",
-      "description": "Query the capability inventory. Returns grade (A/B/F) and evidence for each capability.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "filter": { "type": "string", "enum": ["all", "gradeA", "gradeB", "gradeF"], "default": "all" },
-          "category": { "type": "string", "description": "Optional category filter (e.g., 'detection', 'generation', 'api', 'governance')" }
-        }
-      }
+      "name": "run_tests",
+      "description": "Execute test suite via vitest",
+      "category": "build",
+      "enabled": true
     },
     {
-      "name": "get_generated_file",
-      "description": "Retrieve a specific generated artifact from a snapshot's output.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "snapshotId": { "type": "string", "description": "Snapshot ID" },
-          "filePath": { "type": "string", "description": "Relative path of the generated file (e.g., '.ai/context-map.json', 'AGENTS.md')" }
-        },
-        "required": ["snapshotId", "filePath"]
-      }
+      "name": "type_check",
+      "description": "Run TypeScript type checking (tsc --noEmit)",
+      "category": "build",
+      "enabled": true
     },
     {
-      "name": "list_programs",
-      "description": "List all 17 AXIS programs with their generator counts, tiers, grades, and output file specifications.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "tier": { "type": "string", "enum": ["all", "free", "pro"], "default": "all" }
-        }
-      }
+      "name": "git_status",
+      "description": "Check repository status",
+      "category": "git",
+      "enabled": true
     },
     {
-      "name": "query_governance",
-      "description": "Query the YAML governance layer. Returns the content and interpretation of any of the 12 constitutional YAML files.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "file": {
-            "type": "string",
-            "enum": [
-              "begin",
-              "continuation",
-              "axis_all_tools",
-              "snapshot_protocol",
-              "rules_to_compile_snapshot",
-              "automated_remedial_action",
-              "hygiene_and_memory",
-              "memory_generator",
-              "capability_inventory",
-              "human_user_audt",
-              "static_analysis_phase",
-              "render"
-            ],
-            "description": "Name of the governance YAML file to query"
-          },
-          "section": { "type": "string", "description": "Optional: specific section within the YAML to return" }
-        },
-        "required": ["file"]
-      }
+      "name": "git_diff",
+      "description": "Show changes in working directory",
+      "category": "git",
+      "enabled": true
+    },
+    {
+      "name": "git_log",
+      "description": "Show recent commit history",
+      "category": "git",
+      "enabled": true
     }
   ],
   "resources": [
     {
-      "name": "axis://programs",
-      "description": "Complete program catalog: all 18 programs with generators, tiers, grades, and output specifications",
-      "mimeType": "application/json",
-      "uri": "axis://programs"
+      "uri": "project://axis-toolbox/context-map",
+      "name": "Context Map",
+      "description": "Full project context map with structure, detection, and AI context",
+      "mimeType": "application/json"
     },
     {
-      "name": "axis://capabilities",
-      "description": "Full capability inventory: 82 capabilities with grades (A/B/F) and evidence",
-      "mimeType": "application/json",
-      "uri": "axis://capabilities"
+      "uri": "project://axis-toolbox/repo-profile",
+      "name": "Repository Profile",
+      "description": "Repository health profile with detection and goals",
+      "mimeType": "application/yaml"
     },
     {
-      "name": "axis://governance/{file}",
-      "description": "Individual YAML governance file content. Replace {file} with: begin, continuation, axis_all_tools, etc.",
-      "mimeType": "application/yaml",
-      "uri": "axis://governance/{file}"
+      "uri": "model://axis-toolbox/AuthContext",
+      "name": "AuthContext",
+      "description": "interface with 3 fields (apps/api/src/billing.ts)",
+      "mimeType": "application/json"
     },
     {
-      "name": "axis://snapshot/{id}",
-      "description": "Full snapshot data including context map, repo profile, and all generated artifacts for a given snapshot ID",
-      "mimeType": "application/json",
-      "uri": "axis://snapshot/{id}"
+      "uri": "model://axis-toolbox/EnvSpec",
+      "name": "EnvSpec",
+      "description": "interface with 5 fields (apps/api/src/env.ts)",
+      "mimeType": "application/json"
     },
     {
-      "name": "axis://health",
-      "description": "System health: test counts, coverage, capability grades, uptime",
-      "mimeType": "application/json",
-      "uri": "axis://health"
+      "uri": "model://axis-toolbox/ValidationError",
+      "name": "ValidationError",
+      "description": "interface with 2 fields (apps/api/src/env.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/ValidationResult",
+      "name": "ValidationResult",
+      "description": "interface with 3 fields (apps/api/src/env.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/ZipEntry",
+      "name": "ZipEntry",
+      "description": "interface with 4 fields (apps/api/src/export.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/IntentCapture",
+      "name": "IntentCapture",
+      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/JsonRpcRequest",
+      "name": "JsonRpcRequest",
+      "description": "interface with 4 fields (apps/api/src/mcp-server.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/McpCallCounters",
+      "name": "McpCallCounters",
+      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/RpcError",
+      "name": "RpcError",
+      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/RpcSuccess",
+      "name": "RpcSuccess",
+      "description": "interface with 3 fields (apps/api/src/mcp-server.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/HistogramEntry",
+      "name": "HistogramEntry",
+      "description": "interface with 3 fields (apps/api/src/metrics.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/AgentBudget",
+      "name": "AgentBudget",
+      "description": "interface with 5 fields (apps/api/src/mpp.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/CacheKey",
+      "name": "CacheKey",
+      "description": "type_alias with 2 fields (apps/api/src/mpp.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/ChargeOptions",
+      "name": "ChargeOptions",
+      "description": "type_alias with 5 fields (apps/api/src/mpp.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-toolbox/MppResult",
+      "name": "MppResult",
+      "description": "type_alias with 1 field (apps/api/src/mpp.ts)",
+      "mimeType": "application/json"
     }
   ],
   "prompts": [
     {
-      "name": "analyze_and_improve",
-      "description": "Analyze a codebase with AXIS Toolbox and provide improvement recommendations based on the generated artifacts.",
-      "arguments": [
-        { "name": "source", "description": "Repository path or GitHub URL", "required": true },
-        { "name": "focus", "description": "Focus area: architecture, testing, documentation, performance, security", "required": false }
-      ]
+      "name": "project-context",
+      "description": "Inject axis-toolbox project context into the conversation",
+      "arguments": []
     },
     {
-      "name": "generate_agent_context",
-      "description": "Generate optimized context files (AGENTS.md, CLAUDE.md, .cursorrules) for a codebase to improve AI assistant effectiveness.",
+      "name": "code-review",
+      "description": "Review code changes against project conventions",
       "arguments": [
-        { "name": "source", "description": "Repository path or GitHub URL", "required": true },
-        { "name": "targetAgent", "description": "Target AI assistant: copilot, claude, cursor, cody", "required": false }
+        {
+          "name": "file_path",
+          "description": "Path to the file to review",
+          "required": true
+        }
       ]
     }
   ],
-  "transport": {
-    "type": "stdio",
-    "command": "axis",
-    "args": ["mcp-server"],
-    "env": {
-      "AXIS_API_KEY": "${AXIS_API_KEY}",
-      "AXIS_DATA_DIR": "${AXIS_DATA_DIR:-./data}"
-    }
+  "security": {
+    "allowed_directories": [
+      "."
+    ],
+    "denied_patterns": [
+      "node_modules/**",
+      ".env*",
+      "*.key",
+      "*.pem"
+    ],
+    "max_file_size_bytes": 1048576
   },
-  "authentication": {
-    "type": "api-key",
-    "header": "X-API-Key",
-    "description": "API key from AXIS Toolbox dashboard (Settings → API Keys)"
-  }
+  "domain_models": [
+    {
+      "name": "AuthContext",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/billing.ts",
+      "resource_uri": "model://axis-toolbox/AuthContext"
+    },
+    {
+      "name": "EnvSpec",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/env.ts",
+      "resource_uri": "model://axis-toolbox/EnvSpec"
+    },
+    {
+      "name": "ValidationError",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/env.ts",
+      "resource_uri": "model://axis-toolbox/ValidationError"
+    },
+    {
+      "name": "ValidationResult",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/env.ts",
+      "resource_uri": "model://axis-toolbox/ValidationResult"
+    },
+    {
+      "name": "ZipEntry",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/export.ts",
+      "resource_uri": "model://axis-toolbox/ZipEntry"
+    },
+    {
+      "name": "IntentCapture",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-toolbox/IntentCapture"
+    },
+    {
+      "name": "JsonRpcRequest",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-toolbox/JsonRpcRequest"
+    },
+    {
+      "name": "McpCallCounters",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-toolbox/McpCallCounters"
+    },
+    {
+      "name": "RpcError",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-toolbox/RpcError"
+    },
+    {
+      "name": "RpcSuccess",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-toolbox/RpcSuccess"
+    },
+    {
+      "name": "HistogramEntry",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/metrics.ts",
+      "resource_uri": "model://axis-toolbox/HistogramEntry"
+    },
+    {
+      "name": "AgentBudget",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-toolbox/AgentBudget"
+    },
+    {
+      "name": "CacheKey",
+      "kind": "type_alias",
+      "field_count": 2,
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-toolbox/CacheKey"
+    },
+    {
+      "name": "ChargeOptions",
+      "kind": "type_alias",
+      "field_count": 5,
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-toolbox/ChargeOptions"
+    },
+    {
+      "name": "MppResult",
+      "kind": "type_alias",
+      "field_count": 1,
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-toolbox/MppResult"
+    },
+    {
+      "name": "PricingTier",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-toolbox/PricingTier"
+    },
+    {
+      "name": "OpenApiSpec",
+      "kind": "interface",
+      "field_count": 6,
+      "source_file": "apps/api/src/openapi.ts",
+      "resource_uri": "model://axis-toolbox/OpenApiSpec"
+    },
+    {
+      "name": "WindowEntry",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/rate-limiter.ts",
+      "resource_uri": "model://axis-toolbox/WindowEntry"
+    },
+    {
+      "name": "AppHandle",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/router.ts",
+      "resource_uri": "model://axis-toolbox/AppHandle"
+    },
+    {
+      "name": "Route",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/router.ts",
+      "resource_uri": "model://axis-toolbox/Route"
+    }
+  ],
+  "sql_schema": null,
+  "detected_mcp_files": [
+    {
+      "path": "apps/api/mcp-server.json",
+      "exports": [],
+      "size": 8336
+    },
+    {
+      "path": "apps/api/src/mcp-server.test.ts",
+      "exports": [],
+      "size": 55770
+    },
+    {
+      "path": "apps/api/src/mcp-server.ts",
+      "exports": [
+        "export const MCP_PROTOCOL_VERSION = ...",
+        "export type ProbeClass = ...",
+        "export function classifyProbe(userAgent: string): ProbeClass { ... }",
+        "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }",
+        "export function getIntentLog(): IntentCapture[] { ... }",
+        "export function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string",
+        "export function getMcpCallCounters(): McpCallCounters { ... }",
+        "export const MCP_TOOLS = ...",
+        "export async function runAnalyzeFiles(",
+        "export async function runAnalyzeRepo(",
+        "export function runSearchTools(args: Record<string, unknown>): string { ... }",
+        "export function runDiscoverAgenticCommerceTools(): string { ... }",
+        "export async function runImproveMyAgent(",
+        "export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>): string { ... }",
+        "export function runListPrograms(): string { ... }",
+        "export function runGetSnapshot(",
+        "export function runGetArtifact(",
+        "export async function runPreparePurchasing(",
+        "export async function dispatch(",
+        "export async function handleMcpPost(",
+        "export async function handleMcpGet(",
+        "export function getMcpServerMeta(): Record<string, unknown> { ... }",
+        "export async function handleMcpServerJson("
+      ],
+      "size": 81189
+    },
+    {
+      "path": "apps/api/src/server.ts",
+      "exports": [
+        "export const app = ..."
+      ],
+      "size": 12052
+    },
+    {
+      "path": "server.json",
+      "exports": [],
+      "size": 921
+    }
+  ]
 }

@@ -1,0 +1,236 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.124Z",
+  "summary": {
+    "total_files": 466,
+    "total_loc": 107233,
+    "estimated_total_tokens": 482549,
+    "primary_language": "TypeScript"
+  },
+  "language_breakdown": [
+    {
+      "language": "TypeScript",
+      "files": 245,
+      "loc": 77996,
+      "estimated_tokens": 350982,
+      "percentage": 73
+    },
+    {
+      "language": "YAML",
+      "files": 74,
+      "loc": 15388,
+      "estimated_tokens": 69246,
+      "percentage": 14
+    },
+    {
+      "language": "JSON",
+      "files": 54,
+      "loc": 6549,
+      "estimated_tokens": 29471,
+      "percentage": 6
+    },
+    {
+      "language": "Markdown",
+      "files": 81,
+      "loc": 4155,
+      "estimated_tokens": 18698,
+      "percentage": 4
+    },
+    {
+      "language": "CSS",
+      "files": 2,
+      "loc": 849,
+      "estimated_tokens": 3821,
+      "percentage": 1
+    },
+    {
+      "language": "JavaScript",
+      "files": 3,
+      "loc": 673,
+      "estimated_tokens": 3029,
+      "percentage": 1
+    },
+    {
+      "language": "HTML",
+      "files": 1,
+      "loc": 113,
+      "estimated_tokens": 509,
+      "percentage": 0
+    },
+    {
+      "language": "Dockerfile",
+      "files": 1,
+      "loc": 49,
+      "estimated_tokens": 221,
+      "percentage": 0
+    }
+  ],
+  "cost_matrix": [
+    {
+      "operation": "full_project_context",
+      "description": "Include entire project source as context",
+      "input_tokens": 482549,
+      "output_tokens": 2000,
+      "costs": [
+        {
+          "model": "GPT-4o",
+          "input_cost": 1.2064,
+          "output_cost": 0.02,
+          "total_cost": 1.2264
+        },
+        {
+          "model": "GPT-4o-mini",
+          "input_cost": 0.0724,
+          "output_cost": 0.0012,
+          "total_cost": 0.0736
+        },
+        {
+          "model": "Claude Sonnet 4",
+          "input_cost": 1.4476,
+          "output_cost": 0.03,
+          "total_cost": 1.4776
+        },
+        {
+          "model": "Claude Haiku 3.5",
+          "input_cost": 0.386,
+          "output_cost": 0.008,
+          "total_cost": 0.394
+        },
+        {
+          "model": "Gemini 2.5 Pro",
+          "input_cost": 0.6032,
+          "output_cost": 0.02,
+          "total_cost": 0.6232
+        }
+      ]
+    },
+    {
+      "operation": "selective_context",
+      "description": "Include top 10 files + config as context",
+      "input_tokens": 120637,
+      "output_tokens": 2000,
+      "costs": [
+        {
+          "model": "GPT-4o",
+          "input_cost": 0.3016,
+          "output_cost": 0.02,
+          "total_cost": 0.3216
+        },
+        {
+          "model": "GPT-4o-mini",
+          "input_cost": 0.0181,
+          "output_cost": 0.0012,
+          "total_cost": 0.0193
+        },
+        {
+          "model": "Claude Sonnet 4",
+          "input_cost": 0.3619,
+          "output_cost": 0.03,
+          "total_cost": 0.3919
+        },
+        {
+          "model": "Claude Haiku 3.5",
+          "input_cost": 0.0965,
+          "output_cost": 0.008,
+          "total_cost": 0.1045
+        },
+        {
+          "model": "Gemini 2.5 Pro",
+          "input_cost": 0.1508,
+          "output_cost": 0.02,
+          "total_cost": 0.1708
+        }
+      ]
+    },
+    {
+      "operation": "single_file_edit",
+      "description": "Edit one file with minimal context",
+      "input_tokens": 5000,
+      "output_tokens": 1500,
+      "costs": [
+        {
+          "model": "GPT-4o",
+          "input_cost": 0.0125,
+          "output_cost": 0.015,
+          "total_cost": 0.0275
+        },
+        {
+          "model": "GPT-4o-mini",
+          "input_cost": 0.0008,
+          "output_cost": 0.0009,
+          "total_cost": 0.0016
+        },
+        {
+          "model": "Claude Sonnet 4",
+          "input_cost": 0.015,
+          "output_cost": 0.0225,
+          "total_cost": 0.0375
+        },
+        {
+          "model": "Claude Haiku 3.5",
+          "input_cost": 0.004,
+          "output_cost": 0.006,
+          "total_cost": 0.01
+        },
+        {
+          "model": "Gemini 2.5 Pro",
+          "input_cost": 0.0063,
+          "output_cost": 0.015,
+          "total_cost": 0.0212
+        }
+      ]
+    },
+    {
+      "operation": "code_review",
+      "description": "Review a diff with project context",
+      "input_tokens": 193020,
+      "output_tokens": 3000,
+      "costs": [
+        {
+          "model": "GPT-4o",
+          "input_cost": 0.4825,
+          "output_cost": 0.03,
+          "total_cost": 0.5125
+        },
+        {
+          "model": "GPT-4o-mini",
+          "input_cost": 0.029,
+          "output_cost": 0.0018,
+          "total_cost": 0.0308
+        },
+        {
+          "model": "Claude Sonnet 4",
+          "input_cost": 0.5791,
+          "output_cost": 0.045,
+          "total_cost": 0.6241
+        },
+        {
+          "model": "Claude Haiku 3.5",
+          "input_cost": 0.1544,
+          "output_cost": 0.012,
+          "total_cost": 0.1664
+        },
+        {
+          "model": "Gemini 2.5 Pro",
+          "input_cost": 0.2413,
+          "output_cost": 0.03,
+          "total_cost": 0.2713
+        }
+      ]
+    }
+  ],
+  "optimization_opportunities": [
+    "Use selective context — full project exceeds most context windows",
+    "Focus on 6 dependency hotspots for efficient context selection",
+    "Filter context by language when working in a specific tech stack layer",
+    "Include 20 config files (low token cost, high constraint value)"
+  ],
+  "notes": [
+    "Token estimates use ~4.5 tokens/line empirical average",
+    "Actual costs vary by prompt structure and model behavior",
+    "Output token estimates are approximate for typical operations",
+    "Costs are per-operation — multiply by expected daily/weekly frequency"
+  ],
+  "source_file_count": 466,
+  "source_total_lines": 127165
+}

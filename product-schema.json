@@ -1,0 +1,257 @@
+{
+  "schema_version": "1.0",
+  "product": "AXIS Toolbox",
+  "generated_for": "axis-toolbox",
+  "generated_at": "2026-04-14",
+  "mcp_endpoint": "POST /mcp",
+  "repo_commerce_profile": {
+    "detected_payment_providers": [
+      "adyen",
+      "affirm",
+      "afterpay",
+      "amazon_pay",
+      "apple_pay",
+      "braintree",
+      "google_pay",
+      "klarna",
+      "paypal",
+      "square",
+      "stripe"
+    ],
+    "capabilities": {
+      "checkout_flow": true,
+      "recurring_billing": true,
+      "sca_3ds2": true,
+      "dispute_handling": true,
+      "payment_webhooks": true,
+      "tap_protocol": true,
+      "network_tokenization": true,
+      "mandate_management": true
+    },
+    "ap2_mandate_compliance": {
+      "mandate_data_format": "AP2 Article 2 — standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
+      "mandate_lifecycle": "CREATE → AUTHORIZE (SCA) → ACTIVE → COLLECT → AMEND → CANCEL",
+      "ucp_settlement_path": "UCP Article 5 — settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
+      "visa_intelligent_commerce": "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding",
+      "tap_interop": "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens",
+      "ready_for_autonomous_purchase": true
+    },
+    "sca_exemption_schema": {
+      "low_value": {
+        "threshold_eur": 30,
+        "legal_basis": "AP2 Art. 16(a)",
+        "auto_apply": true
+      },
+      "trusted_beneficiary": {
+        "legal_basis": "AP2 Art. 16(b)",
+        "requires_prior_sca": true
+      },
+      "recurring_fixed": {
+        "legal_basis": "PSD2 Art. 14(2)",
+        "sca_on_first": true
+      },
+      "merchant_initiated": {
+        "legal_basis": "AP2 Art. 18",
+        "requires_original_sca_ref": true
+      },
+      "transaction_risk_analysis": {
+        "max_threshold_eur": 500,
+        "legal_basis": "AP2 Art. 16(c)"
+      }
+    },
+    "dispute_resolution_schema": {
+      "pre_dispute": {
+        "mechanism": "CDRN/RDR",
+        "sla_hours": 72
+      },
+      "chargeback": {
+        "evidence_deadline_days": 30,
+        "reason_code_families": [
+          "10.x fraud",
+          "13.x consumer"
+        ]
+      },
+      "representment": {
+        "window_days": 45,
+        "evidence_types": [
+          "receipt",
+          "delivery_proof",
+          "3ds_auth_log",
+          "communication"
+        ]
+      },
+      "arbitration": {
+        "filing_fee_usd": 500,
+        "finality": "binding"
+      },
+      "compelling_evidence_3": {
+        "version": "3.0",
+        "match_criteria": [
+          "ip_address",
+          "device_fingerprint",
+          "shipping_address"
+        ],
+        "min_prior_transactions": 2,
+        "lookback_days": 365,
+        "target_reason_codes": [
+          "10.2",
+          "10.3",
+          "10.4"
+        ],
+        "estimated_win_rate_lift_pp": 35,
+        "auto_assembly_ready": true
+      }
+    },
+    "agent_sca_optimization": {
+      "exemption_priority": [
+        "low_value",
+        "trusted_beneficiary",
+        "recurring_fixed",
+        "merchant_initiated",
+        "secure_corporate",
+        "transaction_risk_analysis"
+      ],
+      "frictionless_first": true,
+      "challenge_escalation": "abort_agent_flow_escalate_to_operator",
+      "axis_advantage": "Pre-computed decision tree — 0 API calls, 0 PCI scope, included in $0.50 hardening"
+    },
+    "dispute_win_probability": {
+      "10.4_cnp_fraud": {
+        "base": 0.3,
+        "with_ce3": 0.72
+      },
+      "10.2_no_auth": {
+        "base": 0.25,
+        "with_ce3": 0.65
+      },
+      "13.1_not_received": {
+        "base": 0.7,
+        "with_ce3": 0.75
+      },
+      "13.2_cancelled_recurring": {
+        "base": 0.4,
+        "with_ce3": 0.45
+      },
+      "auto_refund_threshold_usd": 5,
+      "represent_threshold_win_pct": 40
+    }
+  },
+  "programs": [
+    {
+      "slug": "search",
+      "tier": "free",
+      "outputs": 5,
+      "description": "Context map, repo profile, architecture summary, dependency hotspots, symbol index"
+    },
+    {
+      "slug": "skills",
+      "tier": "free",
+      "outputs": 5,
+      "description": "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack"
+    },
+    {
+      "slug": "debug",
+      "tier": "free",
+      "outputs": 4,
+      "description": "Debug playbook, incident template, tracing rules, root cause checklist"
+    },
+    {
+      "slug": "frontend",
+      "tier": "pro",
+      "outputs": 4,
+      "description": "Frontend rules, component guidelines, layout patterns, UI audit"
+    },
+    {
+      "slug": "seo",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "SEO rules, schema recommendations, route priority map, content audit, meta tag audit"
+    },
+    {
+      "slug": "optimization",
+      "tier": "pro",
+      "outputs": 4,
+      "description": "Optimization rules, prompt diff report, cost estimate, token budget plan"
+    },
+    {
+      "slug": "theme",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Design tokens, theme CSS, theme guidelines, component theme map, dark mode tokens"
+    },
+    {
+      "slug": "brand",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Brand guidelines, voice and tone, content constraints, messaging system, channel rulebook"
+    },
+    {
+      "slug": "superpowers",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Superpower pack, workflow registry, test generation rules, refactor checklist, automation pipeline"
+    },
+    {
+      "slug": "marketing",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Campaign brief, funnel map, sequence pack, CRO playbook, A/B test plan"
+    },
+    {
+      "slug": "notebook",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Notebook summary, source map, study brief, research threads, citation index"
+    },
+    {
+      "slug": "obsidian",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Obsidian skill pack, vault rules, graph prompt map, linking policy, template pack"
+    },
+    {
+      "slug": "mcp",
+      "tier": "pro",
+      "outputs": 4,
+      "description": "MCP config, connector map, capability registry, server manifest"
+    },
+    {
+      "slug": "artifacts",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Generated component, dashboard widget, embed snippet, artifact spec, component library"
+    },
+    {
+      "slug": "remotion",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Remotion script, scene plan, render config, asset checklist, storyboard"
+    },
+    {
+      "slug": "canvas",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Canvas spec, social pack, poster layouts, asset guidelines, brand board"
+    },
+    {
+      "slug": "algorithmic",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Generative sketch, parameter pack, collection map, export manifest, variation matrix"
+    },
+    {
+      "slug": "agentic-purchasing",
+      "tier": "pro",
+      "outputs": 5,
+      "description": "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry"
+    }
+  ],
+  "purchase_endpoint": "POST /v1/billing/purchase",
+  "auth": {
+    "type": "bearer",
+    "header": "Authorization",
+    "format": "Bearer <api_key>"
+  },
+  "total_programs": 18,
+  "total_outputs": 87
+}

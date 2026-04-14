@@ -1,0 +1,378 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.195Z",
+  "composition": {
+    "id": "axistoolboxVideo",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 630
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "from": 0,
+      "duration": 90,
+      "label": "Introduction",
+      "data_points": 1
+    },
+    {
+      "id": "tech-stack",
+      "from": 90,
+      "duration": 90,
+      "label": "Tech Stack",
+      "data_points": 9
+    },
+    {
+      "id": "api-surface",
+      "from": 180,
+      "duration": 90,
+      "label": "API Surface (428 routes)",
+      "data_points": 428
+    },
+    {
+      "id": "data-model",
+      "from": 270,
+      "duration": 90,
+      "label": "Data Model (146 entities)",
+      "data_points": 146
+    },
+    {
+      "id": "complexity",
+      "from": 360,
+      "duration": 90,
+      "label": "Complexity Hotspots (6)",
+      "data_points": 6
+    },
+    {
+      "id": "architecture",
+      "from": 450,
+      "duration": 90,
+      "label": "Architecture",
+      "data_points": 2
+    },
+    {
+      "id": "abstractions",
+      "from": 540,
+      "duration": 90,
+      "label": "Key Abstractions",
+      "data_points": 8
+    }
+  ],
+  "render": {
+    "codec": "h264",
+    "imageFormat": "jpeg",
+    "quality": 80,
+    "outputLocation": "out/axistoolbox.mp4",
+    "concurrency": 4,
+    "overwrite": true
+  },
+  "theme": {
+    "background": "#0d1117",
+    "foreground": "#c9d1d9",
+    "accent": "#61dafb",
+    "muted": "#30363d",
+    "fontFamily": "Inter, system-ui, sans-serif"
+  },
+  "scene_data": {
+    "tech_stack": {
+      "frameworks": [
+        {
+          "name": "React",
+          "version": "^19.1.0",
+          "confidence": 0.95
+        }
+      ],
+      "languages": [
+        {
+          "name": "TypeScript",
+          "loc": 77996,
+          "percent": 73.7
+        },
+        {
+          "name": "YAML",
+          "loc": 15388,
+          "percent": 14.5
+        },
+        {
+          "name": "JSON",
+          "loc": 6549,
+          "percent": 6.2
+        },
+        {
+          "name": "Markdown",
+          "loc": 4155,
+          "percent": 3.9
+        },
+        {
+          "name": "CSS",
+          "loc": 849,
+          "percent": 0.8
+        },
+        {
+          "name": "JavaScript",
+          "loc": 673,
+          "percent": 0.6
+        }
+      ],
+      "build_tools": [
+        "vite"
+      ],
+      "test_frameworks": [
+        "vitest"
+      ]
+    },
+    "api_surface": {
+      "total_routes": 428,
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/v1/health",
+          "source": "apps/api/src/admin.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/accounts",
+          "source": "apps/api/src/admin.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/snapshots",
+          "source": "apps/api/src/admin.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/admin/stats",
+          "source": "apps/api/src/admin.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/admin/accounts",
+          "source": "apps/api/src/admin.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/admin/activity",
+          "source": "apps/api/src/admin.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/llms.txt",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/.well-known/skills/index.json",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/docs.md",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/.well-known/axis.json",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/for-agents",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/install",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/install/:platform",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/probe-intent",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/analyze",
+          "source": "apps/api/src/analyze.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/.well-known/axis.json",
+          "source": "apps/api/src/analyze.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/snapshots",
+          "source": "apps/api/src/api-branches.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/snapshots/:snapshot_id",
+          "source": "apps/api/src/api-branches.test.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/v1/snapshots/:snapshot_id",
+          "source": "apps/api/src/api-branches.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/projects/:project_id/context",
+          "source": "apps/api/src/api-branches.test.ts"
+        }
+      ]
+    },
+    "data_model": {
+      "total_models": 146,
+      "models": [
+        {
+          "name": "AuthContext",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "EnvSpec",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "ValidationError",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "ValidationResult",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "ZipEntry",
+          "kind": "interface",
+          "fields": 4
+        },
+        {
+          "name": "IntentCapture",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "JsonRpcRequest",
+          "kind": "interface",
+          "fields": 4
+        },
+        {
+          "name": "McpCallCounters",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "RpcError",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "RpcSuccess",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "HistogramEntry",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "AgentBudget",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "CacheKey",
+          "kind": "type_alias",
+          "fields": 2
+        },
+        {
+          "name": "ChargeOptions",
+          "kind": "type_alias",
+          "fields": 5
+        },
+        {
+          "name": "MppResult",
+          "kind": "type_alias",
+          "fields": 1
+        }
+      ]
+    },
+    "hotspots": [
+      {
+        "path": "apps/web/src/App.tsx",
+        "inbound": 1,
+        "outbound": 17,
+        "risk": 0.9
+      },
+      {
+        "path": "apps/web/src/api.ts",
+        "inbound": 16,
+        "outbound": 0,
+        "risk": 0.8
+      },
+      {
+        "path": "apps/web/src/pages/DashboardPage.tsx",
+        "inbound": 1,
+        "outbound": 9,
+        "risk": 0.5
+      },
+      {
+        "path": "apps/web/src/components/Toast.tsx",
+        "inbound": 3,
+        "outbound": 0,
+        "risk": 0.15
+      },
+      {
+        "path": "apps/web/src/components/AxisIcons.tsx",
+        "inbound": 3,
+        "outbound": 0,
+        "risk": 0.15
+      },
+      {
+        "path": "apps/web/src/upload-utils.ts",
+        "inbound": 3,
+        "outbound": 0,
+        "risk": 0.15
+      }
+    ],
+    "architecture": {
+      "separation_score": 0.64,
+      "patterns": [
+        "monorepo",
+        "containerized"
+      ],
+      "layers": [
+        {
+          "name": "presentation",
+          "dir_count": 2
+        }
+      ]
+    },
+    "abstractions": [
+      "packages/ (monorepo_packages)",
+      "apps/ (monorepo_apps)",
+      "payment-processing-output/ (project_directory)",
+      "examples/ (project_directory)",
+      "search/ (project_directory)",
+      "algorithmic/ (project_directory)",
+      "artifacts/ (project_directory)",
+      "brand/ (project_directory)"
+    ]
+  },
+  "detected_stack": {
+    "primary_language": "TypeScript",
+    "total_files": 466,
+    "total_loc": 107233
+  },
+  "source_media_files": null
+}

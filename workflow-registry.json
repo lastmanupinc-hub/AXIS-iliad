@@ -1,0 +1,99 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.152Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "total_workflows": 5,
+  "workflows": [
+    {
+      "id": "full-build-verify",
+      "name": "Full Build & Verify",
+      "category": "build",
+      "trigger": "Before commit / Before PR",
+      "steps": [
+        "pnpm install",
+        "pnpm run build",
+        "npx vitest run",
+        "npx tsc --noEmit"
+      ],
+      "applicable": true
+    },
+    {
+      "id": "quick-test",
+      "name": "Quick Test Loop",
+      "category": "testing",
+      "trigger": "During development",
+      "steps": [
+        "npx vitest --changed"
+      ],
+      "applicable": true
+    },
+    {
+      "id": "dependency-audit",
+      "name": "Dependency Audit",
+      "category": "maintenance",
+      "trigger": "Weekly / Before release",
+      "steps": [
+        "pnpm audit",
+        "pnpm outdated",
+        "Review dependency hotspots in optimization-rules.md"
+      ],
+      "applicable": true
+    },
+    {
+      "id": "new-feature",
+      "name": "New Feature Workflow",
+      "category": "planning",
+      "trigger": "Starting a new feature",
+      "steps": [
+        "Create branch from main",
+        "Write failing test first",
+        "Implement minimum viable change",
+        "Run full test suite",
+        "Review against code review checklist",
+        "Commit with descriptive message",
+        "Open PR"
+      ],
+      "applicable": true
+    },
+    {
+      "id": "hotfix",
+      "name": "Hotfix Workflow",
+      "category": "incident",
+      "trigger": "Production issue detected",
+      "steps": [
+        "Create hotfix branch from main",
+        "Write test that reproduces the bug",
+        "Apply minimal fix",
+        "Run full test suite",
+        "Fast-track review",
+        "Merge and deploy",
+        "Update incident log"
+      ],
+      "applicable": true
+    }
+  ],
+  "source_config_files": [
+    "algorithmic/begin.yaml",
+    "algorithmic/continuation.yaml",
+    "algorithmic/MEMORY.yaml",
+    "algorithmic/schemas/output-contract.schema.json",
+    "algorithmic-pack.json",
+    "apps/api/mcp-server.json",
+    "apps/api/package.json",
+    "apps/api/tsconfig.json",
+    "apps/cli/package.json",
+    "apps/cli/tsconfig.json",
+    "apps/web/package.json",
+    "apps/web/tsconfig.json",
+    "artifacts/begin.yaml",
+    "artifacts/continuation.yaml",
+    "artifacts/MEMORY.yaml"
+  ]
+}

@@ -1,0 +1,119 @@
+# Automation Pipeline
+# Project: axis-toolbox
+# Generated: 2026-04-14T00:32:39.360Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.
+
+pipeline:
+  name: "axis-toolbox-automation"
+  ci_platform: github-actions
+  package_manager: pnpm
+
+  stages:
+
+    - name: install
+      description: Install dependencies
+      commands:
+        - pnpm install
+      cache:
+        key: dependencies
+        paths: [~/.pnpm-store]
+
+    - name: lint
+      description: Static analysis and linting
+      depends_on: [install]
+      commands:
+        - pnpm tsc --noEmit
+      fail_fast: true
+
+    - name: test
+      description: Run test suite
+      depends_on: [install]
+      parallel_with: [lint]
+      commands:
+        - pnpm vitest run
+      coverage:
+        minimum: 80
+        report_format: lcov
+
+    - name: build
+      description: Build production artifacts
+      depends_on: [lint, test]
+      commands:
+        - pnpm -r build
+      artifacts:
+        paths: [dist/, build/]
+        retention: 30d
+
+    - name: security_scan
+      description: Dependency vulnerability audit
+      depends_on: [install]
+      parallel_with: [lint, test]
+      commands:
+        - pnpm audit --audit-level=high
+      allow_failure: true
+
+    - name: deploy_staging
+      description: Deploy to staging environment
+      depends_on: [build]
+      trigger: branch:main
+      environment: staging
+      commands:
+        - echo "Deploy to staging"
+      rollback:
+        automatic: true
+        on_failure: revert_to_previous
+
+    - name: deploy_production
+      description: Deploy to production
+      depends_on: [deploy_staging]
+      trigger: manual
+      environment: production
+      approval_required: true
+      commands:
+        - echo "Deploy to production"
+      rollback:
+        automatic: false
+        runbook: "See incident-template.md"
+
+  notifications:
+    on_failure:
+      - channel: slack
+        message: "Pipeline failed on {{branch}} — {{stage}}"
+    on_success:
+      - channel: slack
+        message: "{{branch}} deployed to {{environment}}"
+
+  schedules:
+    - name: nightly_security
+      cron: "0 2 * * *"
+      stages: [install, security_scan]
+    - name: weekly_full
+      cron: "0 4 * * 1"
+      stages: [install, lint, test, build]
+
+  # ─── Detected CI / Config Files ─────────────────────
+  source_files:
+    - path: "algorithmic/begin.yaml"
+      lines: 27
+    - path: "algorithmic/continuation.yaml"
+      lines: 83
+    - path: "algorithmic/MEMORY.yaml"
+      lines: 41
+    - path: "artifacts/begin.yaml"
+      lines: 27
+    - path: "artifacts/continuation.yaml"
+      lines: 83
+    - path: "artifacts/MEMORY.yaml"
+      lines: 43
+    - path: "automated remedial action.yaml"
+      lines: 106
+    - path: "axis_all_tools.yaml"
+      lines: 840
+    - path: "axis_master_blueprint.yaml"
+      lines: 415
+    - path: "begin.yaml"
+      lines: 334
+    - path: "brand/begin.yaml"
+      lines: 27
+    - path: "brand/continuation.yaml"
+      lines: 83

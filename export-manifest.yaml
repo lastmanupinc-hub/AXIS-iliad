@@ -1,0 +1,86 @@
+# Export Manifest
+# Project: axis-toolbox
+# Generated: 2026-04-14T00:32:39.204Z
+
+manifest:
+  project: "axis-toolbox"
+  version: "1.0"
+  total_artifacts: 4
+
+  artifacts:
+    - id: generative-sketch
+      file: generative-sketch.ts
+      type: code
+      format: typescript
+      description: Force-directed graph animation
+      exports:
+        - format: html
+          resolution: 1920x1080
+          self_contained: true
+        - format: mp4
+          resolution: 1920x1080
+          duration: 30s
+          fps: 60
+        - format: gif
+          resolution: 800x450
+          duration: 5s
+        - format: png_sequence
+          resolution: 1920x1080
+          frame_count: 300
+
+    - id: parameter-pack
+      file: parameter-pack.json
+      type: data
+      format: json
+      description: Tunable parameters for all generative pieces
+      exports:
+        - format: json
+          description: Raw parameter data
+        - format: yaml
+          description: Human-readable parameter data
+
+    - id: collection-map
+      file: collection-map.md
+      type: documentation
+      format: markdown
+      description: Collection overview with piece descriptions
+      exports:
+        - format: md
+          description: Markdown document
+        - format: pdf
+          description: Print-ready catalog
+
+    - id: export-manifest
+      file: export-manifest.yaml
+      type: metadata
+      format: yaml
+      description: This manifest file
+
+  render_pipeline:
+    steps:
+      - name: load_parameters
+        input: parameter-pack.json
+        description: Load and validate parameter sets
+      - name: generate_frames
+        input: generative-sketch.ts
+        description: Run simulation and capture frames
+      - name: encode_video
+        codec: h264
+        description: Encode frame sequence to video
+      - name: export_stills
+        frames: [0, 60, 150, 299]
+        description: Export key frames as PNG stills
+
+  dependencies:
+    runtime:
+      - name: canvas
+        version: ">=2.0"
+        purpose: Server-side Canvas rendering
+      - name: ffmpeg
+        version: ">=5.0"
+        purpose: Video encoding
+    optional:
+      - name: sharp
+        purpose: Image optimization
+      - name: puppeteer
+        purpose: Browser-based rendering

@@ -1,0 +1,371 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.361Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "framework": "react",
+  "styling": "css-modules",
+  "total_components": 10,
+  "categories": [
+    "primitives",
+    "layout",
+    "overlay",
+    "data-display",
+    "pages"
+  ],
+  "components": [
+    {
+      "name": "Button",
+      "category": "primitives",
+      "props": [
+        {
+          "name": "variant",
+          "type": "'primary' | 'secondary' | 'ghost' | 'danger'",
+          "required": false
+        },
+        {
+          "name": "size",
+          "type": "'sm' | 'md' | 'lg'",
+          "required": false
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true
+        }
+      ],
+      "variants": [
+        "primary",
+        "secondary",
+        "ghost",
+        "danger"
+      ],
+      "usage": "Primary actions, form submissions, navigation triggers"
+    },
+    {
+      "name": "Input",
+      "category": "primitives",
+      "props": [
+        {
+          "name": "type",
+          "type": "'text' | 'email' | 'password' | 'number'",
+          "required": false
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "error",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "variants": [
+        "default",
+        "error",
+        "disabled"
+      ],
+      "usage": "Form fields, search inputs, data entry"
+    },
+    {
+      "name": "Card",
+      "category": "layout",
+      "props": [
+        {
+          "name": "title",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "padding",
+          "type": "'sm' | 'md' | 'lg'",
+          "required": false
+        },
+        {
+          "name": "hoverable",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true
+        }
+      ],
+      "variants": [
+        "default",
+        "elevated",
+        "bordered",
+        "interactive"
+      ],
+      "usage": "Content containers, list items, dashboard widgets"
+    },
+    {
+      "name": "Badge",
+      "category": "primitives",
+      "props": [
+        {
+          "name": "variant",
+          "type": "'info' | 'success' | 'warning' | 'error' | 'neutral'",
+          "required": false
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true
+        }
+      ],
+      "variants": [
+        "info",
+        "success",
+        "warning",
+        "error",
+        "neutral"
+      ],
+      "usage": "Status indicators, labels, counts"
+    },
+    {
+      "name": "Modal",
+      "category": "overlay",
+      "props": [
+        {
+          "name": "open",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "onClose",
+          "type": "() => void",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "children",
+          "type": "ReactNode",
+          "required": true
+        }
+      ],
+      "variants": [
+        "default",
+        "danger",
+        "fullscreen"
+      ],
+      "usage": "Confirmations, forms, detail views"
+    },
+    {
+      "name": "Table",
+      "category": "data-display",
+      "props": [
+        {
+          "name": "columns",
+          "type": "Column[]",
+          "required": true
+        },
+        {
+          "name": "data",
+          "type": "Row[]",
+          "required": true
+        },
+        {
+          "name": "sortable",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "loading",
+          "type": "boolean",
+          "required": false
+        }
+      ],
+      "variants": [
+        "default",
+        "compact",
+        "striped"
+      ],
+      "usage": "Data listings, reports, admin views"
+    },
+    {
+      "name": "V1HealthPage",
+      "category": "pages",
+      "props": [
+        {
+          "name": "params",
+          "type": "Record<string, string>",
+          "required": false
+        }
+      ],
+      "variants": [
+        "default",
+        "loading",
+        "error"
+      ],
+      "usage": "Page component for route /v1/health"
+    },
+    {
+      "name": "V1AdminStatsPage",
+      "category": "pages",
+      "props": [
+        {
+          "name": "params",
+          "type": "Record<string, string>",
+          "required": false
+        }
+      ],
+      "variants": [
+        "default",
+        "loading",
+        "error"
+      ],
+      "usage": "Page component for route /v1/admin/stats"
+    },
+    {
+      "name": "V1AdminAccountsPage",
+      "category": "pages",
+      "props": [
+        {
+          "name": "params",
+          "type": "Record<string, string>",
+          "required": false
+        }
+      ],
+      "variants": [
+        "default",
+        "loading",
+        "error"
+      ],
+      "usage": "Page component for route /v1/admin/accounts"
+    },
+    {
+      "name": "V1AdminActivityPage",
+      "category": "pages",
+      "props": [
+        {
+          "name": "params",
+          "type": "Record<string, string>",
+          "required": false
+        }
+      ],
+      "variants": [
+        "default",
+        "loading",
+        "error"
+      ],
+      "usage": "Page component for route /v1/admin/activity"
+    }
+  ],
+  "source_components": [
+    {
+      "path": "apps/web/src/App.tsx",
+      "exports": [
+        "export function App() { ... }"
+      ],
+      "size": 16060
+    },
+    {
+      "path": "apps/web/src/components/AxisIcons.tsx",
+      "exports": [
+        "export function Icon({ ... }"
+      ],
+      "size": 9096
+    },
+    {
+      "path": "apps/web/src/components/CommandPalette.tsx",
+      "exports": [
+        "export interface PaletteAction { ... }",
+        "export function CommandPalette({ ... }"
+      ],
+      "size": 6773
+    },
+    {
+      "path": "apps/web/src/components/FilesTab.tsx",
+      "exports": [
+        "export function FilesTab({ ... }"
+      ],
+      "size": 4774
+    },
+    {
+      "path": "apps/web/src/components/GeneratedTab.tsx",
+      "exports": [
+        "export function GeneratedTab({ ... }"
+      ],
+      "size": 4237
+    },
+    {
+      "path": "apps/web/src/components/GraphTab.tsx",
+      "exports": [
+        "export function GraphTab({ ... }"
+      ],
+      "size": 4890
+    },
+    {
+      "path": "apps/web/src/components/OverviewTab.tsx",
+      "exports": [
+        "export function OverviewTab({ ... }"
+      ],
+      "size": 8987
+    },
+    {
+      "path": "apps/web/src/components/ProgramLauncher.tsx",
+      "exports": [
+        "export function ProgramLauncher({ ... }"
+      ],
+      "size": 7324
+    },
+    {
+      "path": "apps/web/src/components/SearchTab.tsx",
+      "exports": [
+        "export function SearchTab({ ... }"
+      ],
+      "size": 11321
+    },
+    {
+      "path": "apps/web/src/components/SignUpModal.tsx",
+      "exports": [
+        "export function SignUpModal({ ... }"
+      ],
+      "size": 4008
+    },
+    {
+      "path": "apps/web/src/components/StatusBar.tsx",
+      "exports": [
+        "export function StatusBar({ ... }"
+      ],
+      "size": 2376
+    },
+    {
+      "path": "apps/web/src/components/Toast.tsx",
+      "exports": [
+        "export function useToast() { ... }",
+        "export function ToastProvider({ ... }"
+      ],
+      "size": 3860
+    }
+  ]
+}

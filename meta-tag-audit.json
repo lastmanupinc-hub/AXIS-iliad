@@ -1,0 +1,1037 @@
+{
+  "project": "axis-toolbox",
+  "generated_at": "2026-04-14T00:32:39.334Z",
+  "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "framework": "React",
+  "global_meta": {
+    "charset": {
+      "required": true,
+      "value": "utf-8",
+      "status": "verify"
+    },
+    "viewport": {
+      "required": true,
+      "value": "width=device-width, initial-scale=1",
+      "status": "verify"
+    },
+    "robots": {
+      "required": true,
+      "value": "index, follow",
+      "status": "verify"
+    },
+    "theme-color": {
+      "required": false,
+      "recommended": true,
+      "value": "#0f172a"
+    },
+    "format-detection": {
+      "required": false,
+      "recommended": true,
+      "value": "telephone=no"
+    }
+  },
+  "per_route_audit": [
+    {
+      "route": "/v1/health",
+      "source_file": "apps/api/src/admin.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "health | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/health",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/admin/stats",
+      "source_file": "apps/api/src/admin.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "stats | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/admin/stats",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/admin/accounts",
+      "source_file": "apps/api/src/admin.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "accounts | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/admin/accounts",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/admin/activity",
+      "source_file": "apps/api/src/admin.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "activity | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/admin/activity",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/llms.txt",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "llms.txt | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/llms.txt",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/.well-known/skills/index.json",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "index.json | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/.well-known/skills/index.json",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/docs.md",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "docs.md | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/docs.md",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/.well-known/axis.json",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "axis.json | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/.well-known/axis.json",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/for-agents",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "for agents | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/for-agents",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/install",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "install | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/install",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/install/:platform",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": ":platform | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/install/:platform",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/.well-known/axis.json",
+      "source_file": "apps/api/src/analyze.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "axis.json | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/.well-known/axis.json",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/snapshots/:snapshot_id",
+      "source_file": "apps/api/src/api-branches.test.ts",
+      "required_tags": {
+        "title": {
+          "template": ":snapshot id | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/snapshots/:snapshot_id",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/projects/:project_id/context",
+      "source_file": "apps/api/src/api-branches.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "context | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/projects/:project_id/context",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/projects/:project_id/generated-files",
+      "source_file": "apps/api/src/api-branches.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "generated files | axis-toolbox",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/projects/:project_id/generated-files",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-toolbox"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    }
+  ],
+  "structured_data_recommendations": [
+    {
+      "route": "/v1/health",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/v1/admin/stats",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/v1/admin/accounts",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/v1/admin/activity",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/llms.txt",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/.well-known/skills/index.json",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/v1/docs.md",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    },
+    {
+      "route": "/.well-known/axis.json",
+      "schema_type": "WebPage",
+      "priority": "medium"
+    }
+  ],
+  "issues": [
+    {
+      "severity": "error",
+      "check": "Missing title tags",
+      "description": "Every page must have a unique <title>"
+    },
+    {
+      "severity": "error",
+      "check": "Missing meta description",
+      "description": "Every page must have a meta description under 160 chars"
+    },
+    {
+      "severity": "warning",
+      "check": "Missing OG image",
+      "description": "Pages without og:image get poor social sharing"
+    },
+    {
+      "severity": "warning",
+      "check": "Duplicate titles",
+      "description": "Each page should have a unique title"
+    },
+    {
+      "severity": "info",
+      "check": "Missing structured data",
+      "description": "Add JSON-LD for rich search results"
+    }
+  ],
+  "source_meta_scan": [
+    {
+      "path": "apps/web/index.html",
+      "has_title": true,
+      "has_og_tags": true,
+      "has_structured_data": true,
+      "has_description": true
+    },
+    {
+      "path": "apps/web/src/index.css",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
+      "path": "apps/web/src/pages/AccountPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
+      "path": "apps/web/src/pages/DashboardPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
+      "path": "apps/web/src/pages/DocsPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": true
+    },
+    {
+      "path": "apps/web/src/pages/ExamplesPage.tsx",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": true
+    },
+    {
+      "path": "apps/web/src/pages/ForAgentsPage.tsx",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": true
+    },
+    {
+      "path": "apps/web/src/pages/HelpPage.tsx",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": true
+    },
+    {
+      "path": "apps/web/src/pages/InstallPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
+      "path": "apps/web/src/pages/PlansPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
+      "path": "apps/web/src/pages/ProgramsPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
+      "path": "apps/web/src/pages/QAPage.tsx",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    }
+  ]
+}

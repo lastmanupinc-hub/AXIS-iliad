@@ -1,0 +1,340 @@
+{
+  "project": "axis-toolbox",
+  "generated": "2026-04-14T00:32:39.365Z",
+  "parameters": [
+    {
+      "name": "primary_hue",
+      "type": "color",
+      "values": [
+        "#3178C6",
+        "#64748B",
+        "#64748B",
+        "#64748B"
+      ],
+      "description": "Base color derived from project language palette"
+    },
+    {
+      "name": "complexity",
+      "type": "float",
+      "range": [
+        0.1,
+        1
+      ],
+      "steps": 5,
+      "values": [
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1
+      ],
+      "description": "Visual complexity scaling factor"
+    },
+    {
+      "name": "element_count",
+      "type": "integer",
+      "values": [
+        50,
+        100,
+        200,
+        400
+      ],
+      "description": "Element density based on project scale (461 files)"
+    },
+    {
+      "name": "layout",
+      "type": "enum",
+      "values": [
+        "grid",
+        "radial",
+        "force-directed",
+        "treemap",
+        "component-tree"
+      ],
+      "description": "Spatial arrangement algorithm"
+    },
+    {
+      "name": "seed",
+      "type": "integer",
+      "values": [
+        1299,
+        2556,
+        3813,
+        5070,
+        6327,
+        7584
+      ],
+      "description": "Deterministic seeds derived from project name \"axis-toolbox\""
+    }
+  ],
+  "variation_count": 12,
+  "variations": [
+    {
+      "id": "var_001",
+      "params": {
+        "primary_hue": "#3178C6",
+        "complexity": 0.3,
+        "element_count": 200,
+        "layout": "grid",
+        "seed": 2556
+      },
+      "thumbnail": "thumbnails/var_001.png",
+      "tags": [
+        "minimal",
+        "grid"
+      ]
+    },
+    {
+      "id": "var_002",
+      "params": {
+        "primary_hue": "#3178C6",
+        "complexity": 0.3,
+        "element_count": 200,
+        "layout": "radial",
+        "seed": 3813
+      },
+      "thumbnail": "thumbnails/var_002.png",
+      "tags": [
+        "minimal",
+        "radial"
+      ]
+    },
+    {
+      "id": "var_003",
+      "params": {
+        "primary_hue": "#3178C6",
+        "complexity": 0.3,
+        "element_count": 200,
+        "layout": "force-directed",
+        "seed": 5070
+      },
+      "thumbnail": "thumbnails/var_003.png",
+      "tags": [
+        "minimal",
+        "force-directed"
+      ]
+    },
+    {
+      "id": "var_004",
+      "params": {
+        "primary_hue": "#3178C6",
+        "complexity": 0.7,
+        "element_count": 200,
+        "layout": "grid",
+        "seed": 6327
+      },
+      "thumbnail": "thumbnails/var_004.png",
+      "tags": [
+        "complex",
+        "grid"
+      ]
+    },
+    {
+      "id": "var_005",
+      "params": {
+        "primary_hue": "#3178C6",
+        "complexity": 0.7,
+        "element_count": 200,
+        "layout": "radial",
+        "seed": 7584
+      },
+      "thumbnail": "thumbnails/var_005.png",
+      "tags": [
+        "complex",
+        "radial"
+      ]
+    },
+    {
+      "id": "var_006",
+      "params": {
+        "primary_hue": "#3178C6",
+        "complexity": 0.7,
+        "element_count": 200,
+        "layout": "force-directed",
+        "seed": 1299
+      },
+      "thumbnail": "thumbnails/var_006.png",
+      "tags": [
+        "complex",
+        "force-directed"
+      ]
+    },
+    {
+      "id": "var_007",
+      "params": {
+        "primary_hue": "#64748B",
+        "complexity": 0.3,
+        "element_count": 200,
+        "layout": "grid",
+        "seed": 2556
+      },
+      "thumbnail": "thumbnails/var_007.png",
+      "tags": [
+        "minimal",
+        "grid"
+      ]
+    },
+    {
+      "id": "var_008",
+      "params": {
+        "primary_hue": "#64748B",
+        "complexity": 0.3,
+        "element_count": 200,
+        "layout": "radial",
+        "seed": 3813
+      },
+      "thumbnail": "thumbnails/var_008.png",
+      "tags": [
+        "minimal",
+        "radial"
+      ]
+    },
+    {
+      "id": "var_009",
+      "params": {
+        "primary_hue": "#64748B",
+        "complexity": 0.3,
+        "element_count": 200,
+        "layout": "force-directed",
+        "seed": 5070
+      },
+      "thumbnail": "thumbnails/var_009.png",
+      "tags": [
+        "minimal",
+        "force-directed"
+      ]
+    },
+    {
+      "id": "var_010",
+      "params": {
+        "primary_hue": "#64748B",
+        "complexity": 0.7,
+        "element_count": 200,
+        "layout": "grid",
+        "seed": 6327
+      },
+      "thumbnail": "thumbnails/var_010.png",
+      "tags": [
+        "complex",
+        "grid"
+      ]
+    },
+    {
+      "id": "var_011",
+      "params": {
+        "primary_hue": "#64748B",
+        "complexity": 0.7,
+        "element_count": 200,
+        "layout": "radial",
+        "seed": 7584
+      },
+      "thumbnail": "thumbnails/var_011.png",
+      "tags": [
+        "complex",
+        "radial"
+      ]
+    },
+    {
+      "id": "var_012",
+      "params": {
+        "primary_hue": "#64748B",
+        "complexity": 0.7,
+        "element_count": 200,
+        "layout": "force-directed",
+        "seed": 1299
+      },
+      "thumbnail": "thumbnails/var_012.png",
+      "tags": [
+        "complex",
+        "force-directed"
+      ]
+    }
+  ],
+  "feature_highlights": [
+    {
+      "source_file": "apps/web/src/App.tsx",
+      "risk_score": 0.9,
+      "visual_weight": 0.09,
+      "suggested_emphasis": "subtle"
+    },
+    {
+      "source_file": "apps/web/src/api.ts",
+      "risk_score": 0.8,
+      "visual_weight": 0.08,
+      "suggested_emphasis": "subtle"
+    },
+    {
+      "source_file": "apps/web/src/pages/DashboardPage.tsx",
+      "risk_score": 0.5,
+      "visual_weight": 0.05,
+      "suggested_emphasis": "subtle"
+    },
+    {
+      "source_file": "apps/web/src/components/Toast.tsx",
+      "risk_score": 0.15,
+      "visual_weight": 0.015,
+      "suggested_emphasis": "subtle"
+    },
+    {
+      "source_file": "apps/web/src/components/AxisIcons.tsx",
+      "risk_score": 0.15,
+      "visual_weight": 0.015,
+      "suggested_emphasis": "subtle"
+    }
+  ],
+  "label_overlays": [
+    {
+      "text": "packages/ (monorepo_packages)",
+      "position": "top",
+      "style": "hero"
+    },
+    {
+      "text": "apps/ (monorepo_apps)",
+      "position": "top",
+      "style": "caption"
+    },
+    {
+      "text": "payment-processing-output/ (project_directory)",
+      "position": "top",
+      "style": "caption"
+    },
+    {
+      "text": "examples/ (project_directory)",
+      "position": "bottom",
+      "style": "caption"
+    },
+    {
+      "text": "search/ (project_directory)",
+      "position": "bottom",
+      "style": "caption"
+    },
+    {
+      "text": "algorithmic/ (project_directory)",
+      "position": "bottom",
+      "style": "caption"
+    }
+  ],
+  "render_config": {
+    "output_format": "png",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "thumbnail_size": {
+      "width": 320,
+      "height": 180
+    },
+    "anti_aliasing": true,
+    "background": "transparent"
+  },
+  "batch_export": {
+    "parallel": 4,
+    "naming": "var_{id}_{layout}_{complexity}",
+    "formats": [
+      "png",
+      "svg",
+      "webp"
+    ]
+  },
+  "source_file_count": 466
+}

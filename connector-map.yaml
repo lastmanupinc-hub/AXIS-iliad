@@ -1,0 +1,266 @@
+# Connector Map
+# Project: axis-toolbox
+# Generated: 2026-04-14T00:32:39.185Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.
+
+connectors:
+  - id: vscode
+    name: VS Code
+    type: ide
+    protocol: mcp
+    status: available
+    capabilities:
+      - file_editing
+      - terminal_execution
+      - diagnostics
+      - code_actions
+  - id: cursor
+    name: Cursor
+    type: ide
+    protocol: mcp
+    status: available
+    capabilities:
+      - file_editing
+      - terminal_execution
+      - ai_chat
+  - id: npm_registry
+    name: npm Registry
+    type: package_registry
+    protocol: https
+    status: available
+    capabilities:
+      - package_publish
+      - version_check
+      - audit
+  - id: sqlite
+    name: SQLite
+    type: database
+    protocol: sqlite
+    status: detected
+    version: "^12.8.0"
+    capabilities:
+      - read
+      - write
+      - wal_mode
+  - id: git
+    name: Git
+    type: version_control
+    protocol: git
+    status: available
+    capabilities:
+      - commit
+      - branch
+      - merge
+      - push
+
+resources:
+  - id: authcontext
+    name: AuthContext
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/billing.ts
+  - id: envspec
+    name: EnvSpec
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/env.ts
+  - id: validationerror
+    name: ValidationError
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/env.ts
+  - id: validationresult
+    name: ValidationResult
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/env.ts
+  - id: zipentry
+    name: ZipEntry
+    type: domain_model
+    kind: interface
+    fields: 4
+    source: apps/api/src/export.ts
+  - id: intentcapture
+    name: IntentCapture
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/mcp-server.ts
+  - id: jsonrpcrequest
+    name: JsonRpcRequest
+    type: domain_model
+    kind: interface
+    fields: 4
+    source: apps/api/src/mcp-server.ts
+  - id: mcpcallcounters
+    name: McpCallCounters
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/mcp-server.ts
+  - id: rpcerror
+    name: RpcError
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/mcp-server.ts
+  - id: rpcsuccess
+    name: RpcSuccess
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/mcp-server.ts
+  - id: histogramentry
+    name: HistogramEntry
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/metrics.ts
+  - id: agentbudget
+    name: AgentBudget
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/mpp.ts
+  - id: cachekey
+    name: CacheKey
+    type: domain_model
+    kind: type_alias
+    fields: 2
+    source: apps/api/src/mpp.ts
+  - id: chargeoptions
+    name: ChargeOptions
+    type: domain_model
+    kind: type_alias
+    fields: 5
+    source: apps/api/src/mpp.ts
+  - id: mppresult
+    name: MppResult
+    type: domain_model
+    kind: type_alias
+    fields: 1
+    source: apps/api/src/mpp.ts
+
+tools:
+  - id: v1_health
+    name: "GET /v1/health"
+    method: GET
+    path: /v1/health
+    source: apps/api/src/admin.test.ts
+  - id: v1_accounts
+    name: "POST /v1/accounts"
+    method: POST
+    path: /v1/accounts
+    source: apps/api/src/admin.test.ts
+  - id: v1_snapshots
+    name: "POST /v1/snapshots"
+    method: POST
+    path: /v1/snapshots
+    source: apps/api/src/admin.test.ts
+  - id: v1_admin_stats
+    name: "GET /v1/admin/stats"
+    method: GET
+    path: /v1/admin/stats
+    source: apps/api/src/admin.test.ts
+  - id: v1_admin_accounts
+    name: "GET /v1/admin/accounts"
+    method: GET
+    path: /v1/admin/accounts
+    source: apps/api/src/admin.test.ts
+  - id: v1_admin_activity
+    name: "GET /v1/admin/activity"
+    method: GET
+    path: /v1/admin/activity
+    source: apps/api/src/admin.test.ts
+  - id: llms_txt
+    name: "GET /llms.txt"
+    method: GET
+    path: /llms.txt
+    source: apps/api/src/agent-discovery.test.ts
+  - id: well_known_skills_index_json
+    name: "GET /.well-known/skills/index.json"
+    method: GET
+    path: /.well-known/skills/index.json
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_docs_md
+    name: "GET /v1/docs.md"
+    method: GET
+    path: /v1/docs.md
+    source: apps/api/src/agent-discovery.test.ts
+  - id: well_known_axis_json
+    name: "GET /.well-known/axis.json"
+    method: GET
+    path: /.well-known/axis.json
+    source: apps/api/src/agent-discovery.test.ts
+  - id: for_agents
+    name: "GET /for-agents"
+    method: GET
+    path: /for-agents
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_install
+    name: "GET /v1/install"
+    method: GET
+    path: /v1/install
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_install__platform
+    name: "GET /v1/install/:platform"
+    method: GET
+    path: /v1/install/:platform
+    source: apps/api/src/agent-discovery.test.ts
+  - id: probe_intent
+    name: "POST /probe-intent"
+    method: POST
+    path: /probe-intent
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_analyze
+    name: "POST /v1/analyze"
+    method: POST
+    path: /v1/analyze
+    source: apps/api/src/analyze.test.ts
+  - id: well_known_axis_json
+    name: "GET /.well-known/axis.json"
+    method: GET
+    path: /.well-known/axis.json
+    source: apps/api/src/analyze.test.ts
+  - id: v1_snapshots
+    name: "POST /v1/snapshots"
+    method: POST
+    path: /v1/snapshots
+    source: apps/api/src/api-branches.test.ts
+  - id: v1_snapshots__snapshot_id
+    name: "GET /v1/snapshots/:snapshot_id"
+    method: GET
+    path: /v1/snapshots/:snapshot_id
+    source: apps/api/src/api-branches.test.ts
+  - id: v1_snapshots__snapshot_id
+    name: "DELETE /v1/snapshots/:snapshot_id"
+    method: DELETE
+    path: /v1/snapshots/:snapshot_id
+    source: apps/api/src/api-branches.test.ts
+  - id: v1_projects__project_id_context
+    name: "GET /v1/projects/:project_id/context"
+    method: GET
+    path: /v1/projects/:project_id/context
+    source: apps/api/src/api-branches.test.ts
+
+integration_flows:
+  - name: development_loop
+    description: Standard development workflow
+    steps:
+      - connector: vscode
+        action: edit_files
+      - connector: vscode
+        action: run_tests
+      - connector: git
+        action: commit
+
+# Detected CI/Deployment Files
+detected_configs:
+  - path: "docker-compose.yml"
+    size: 2017
+  - path: "Dockerfile"
+    size: 4112

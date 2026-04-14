@@ -1,72 +1,250 @@
-# AXIS Toolbox — Dependency Hotspots
+# Dependency Hotspots — axis-toolbox
 
-## Ranked Hotspot Index
+Generated: 2026-04-14T00:32:39.205Z
 
-| Rank | File/Module | Hotspot Score | Risk | Why |
-|------|------------|---------------|------|-----|
-| 1 | `packages/generator-core/` | 9.5 | Critical | All 87 generators depend on this engine. Template change = 18 programs affected |
-| 2 | `apps/api/src/handlers.ts` | 9.0 | Critical | 102 endpoint handlers in single file. Every API feature change touches this |
-| 3 | `packages/snapshots/src/store.ts` | 8.5 | Critical | SQLite persistence — all data reads/writes flow through here |
-| 4 | `continuation.yaml` | 8.0 | High | Ground truth for all session state. Every session reads AND writes |
-| 5 | `axis_all_tools.yaml` | 7.5 | High | Golden source for all 18 program specs. Adding/changing any program starts here |
-| 6 | `packages/repo-parser/src/parser.ts` | 7.0 | High | 60+ language detection rules. All snapshot intake depends on correct parsing |
-| 7 | `packages/context-engine/src/context-map.ts` | 6.5 | High | Context graph builder — all generators consume its output |
-| 8 | `begin.yaml` | 6.0 | Medium | Session gate + optimization policy. Changes affect all development behavior |
-| 9 | `apps/web/src/App.tsx` | 5.5 | Medium | SPA entry point. All UI features route through here |
-| 10 | `automated_remedial_action.yaml` | 5.0 | Medium | Self-audit loop — governs remediation priority for entire project |
+## Project Overview
 
-## Coupling Map
+axis-toolbox is a monorepo built with TypeScript using React. It contains 466 files across 21 top-level directories. It defines 146 domain models.
 
+## Detected Stack
+
+| Framework | Version | Confidence |
+|-----------|---------|------------|
+| React | ^19.1.0 | 95% |
+
+## Risk Summary
+
+| Severity | Count |
+|----------|-------|
+| High (>7) | 0 |
+| Medium (4–7) | 0 |
+| Low (≤4) | 6 |
+| **Total** | **6** |
+
+## Hotspot Files
+
+| File | Risk | Inbound | Outbound | Total Connections |
+|------|------|---------|----------|-------------------|
+| `apps/web/src/App.tsx` | 🟢 0.9 | 1 | 17 | 18 |
+| `apps/web/src/api.ts` | 🟢 0.8 | 16 | 0 | 16 |
+| `apps/web/src/pages/DashboardPage.tsx` | 🟢 0.5 | 1 | 9 | 10 |
+| `apps/web/src/components/Toast.tsx` | 🟢 0.1 | 3 | 0 | 3 |
+| `apps/web/src/components/AxisIcons.tsx` | 🟢 0.1 | 3 | 0 | 3 |
+| `apps/web/src/upload-utils.ts` | 🟢 0.1 | 3 | 0 | 3 |
+
+## Coupling Analysis
+
+### `apps/web/src/App.tsx`
+
+- **Risk Score**: 0.9/10
+- **Inbound**: 1 files depend on this
+- **Outbound**: 17 dependencies
+- **Refactor Priority**: LOW — acceptable coupling
+
+### `apps/web/src/api.ts`
+
+- **Risk Score**: 0.8/10
+- **Inbound**: 16 files depend on this
+- **Outbound**: 0 dependencies
+- **Refactor Priority**: LOW — acceptable coupling
+
+### `apps/web/src/pages/DashboardPage.tsx`
+
+- **Risk Score**: 0.5/10
+- **Inbound**: 1 files depend on this
+- **Outbound**: 9 dependencies
+- **Refactor Priority**: LOW — acceptable coupling
+
+### `apps/web/src/components/Toast.tsx`
+
+- **Risk Score**: 0.1/10
+- **Inbound**: 3 files depend on this
+- **Outbound**: 0 dependencies
+- **Refactor Priority**: LOW — acceptable coupling
+
+### `apps/web/src/components/AxisIcons.tsx`
+
+- **Risk Score**: 0.1/10
+- **Inbound**: 3 files depend on this
+- **Outbound**: 0 dependencies
+- **Refactor Priority**: LOW — acceptable coupling
+
+## External Dependency Risk
+
+| Package | Version | Risk Factor |
+|---------|---------|-------------|
+| @axis/context-engine | workspace:* | Stable |
+| @axis/generator-core | workspace:* | Stable |
+| @axis/repo-parser | workspace:* | Stable |
+| @axis/snapshots | workspace:* | Stable |
+| mppx | ^0.5.12 | Pre-1.0 — unstable API |
+| jszip | ^3.10.1 | Stable |
+| react | ^19.1.0 | Stable |
+| react-dom | ^19.1.0 | Stable |
+| better-sqlite3 | ^12.8.0 | Stable |
+| uuid | ^11.1.0 | Stable |
+| @types/better-sqlite3 | ^7.6.13 | Stable |
+| @types/node | ^22.0.0 | Stable |
+| ts-node | ^10.9.2 | Stable |
+| typescript | ^5.7.0 | Stable |
+| @types/react | ^19.1.2 | Stable |
+
+## Recommendations
+
+1. **Review circular dependencies** in the import graph
+
+## Hotspot Export Surface
+
+### `apps/web/src/api.ts`
+
+- `export interface SnapshotPayload { ... }`
+- `export interface SnapshotResponse { ... }`
+- `export interface ContextMap { ... }`
+- `export interface RepoProfile { ... }`
+- `export interface GeneratedFile { ... }`
+- `export interface GeneratedFilesResponse { ... }`
+- `export type BillingTier = ...`
+- `export interface Account { ... }`
+- `export interface ApiKeyInfo { ... }`
+- `export interface UsageSummary { ... }`
+- `export interface PlanDefinition { ... }`
+- `export interface PlanFeature { ... }`
+
+### `apps/web/src/App.tsx`
+
+- `export function App() { ... }`
+
+### `apps/web/src/components/Toast.tsx`
+
+- `export function useToast() { ... }`
+- `export function ToastProvider({ ... }`
+
+### `apps/web/src/pages/DashboardPage.tsx`
+
+- `export function DashboardPage({ ... }`
+
+## Hotspot File Excerpts
+
+### `apps/web/src/api.ts`
+
+```typescript
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
+// ─── Snapshot types ─────────────────────────────────────────────
+
+export interface SnapshotPayload {
+  input_method: string;
+  manifest: {
+    project_name: string;
+    project_type: string;
+    frameworks: string[];
+    goals: string[];
+    requested_outputs: string[];
+  };
+  files: Array<{ path: string; content: string; size: number }>;
+}
+
+export interface SnapshotResponse {
+  snapshot_id: string;
+  project_id: string;
+  status: string;
+  context_map: ContextMap;
+  repo_profile: RepoProfile;
+  generated_files: Array<{ path: string; program: string; description: string }>;
+}
+
+... (446 more lines)
 ```
-                    ┌─────────────────────┐
-                    │  axis_all_tools.yaml │ (program definitions)
-                    └────────┬────────────┘
-                             │ defines
-          ┌──────────────────┼──────────────────┐
-          ▼                  ▼                   ▼
-┌──────────────────┐  ┌──────────────┐  ┌──────────────────┐
-│ generator-core   │  │ apps/api     │  │ apps/web         │
-│ (80 generators)  │  │ (endpoints)  │  │ (UI surfaces)    │
-└────────┬─────────┘  └──────┬───────┘  └──────────────────┘
-         │ reads              │ queries
-         ▼                    ▼
-┌──────────────────┐  ┌──────────────┐
-│ context-engine   │  │ snapshots    │
-│ (context graph)  │→ │ (SQLite)     │
-└────────┬─────────┘  └──────────────┘
-         │ parses from
-         ▼
-┌──────────────────┐
-│ repo-parser      │
-│ (lang detection) │
-└──────────────────┘
+
+### `apps/web/src/App.tsx`
+
+```tsx
+import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
+import { UploadPage } from "./pages/UploadPage.tsx";
+import { DashboardPage } from "./pages/DashboardPage.tsx";
+import { PlansPage } from "./pages/PlansPage.tsx";
+import { AccountPage } from "./pages/AccountPage.tsx";
+import { DocsPage } from "./pages/DocsPage.tsx";
+import { HelpPage } from "./pages/HelpPage.tsx";
+import { QAPage } from "./pages/QAPage.tsx";
+import { ProgramsPage } from "./pages/ProgramsPage.tsx";
+import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { ToastProvider } from "./components/Toast.tsx";
+import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
+import { StatusBar } from "./components/StatusBar.tsx";
+import { SignUpModal } from "./components/SignUpModal.tsx";
+import type { SnapshotResponse } from "./api.ts";
+
+// ─── Error Boundary ─────────────────────────────────────────────
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { console.error("UI crash:", error); }
+... (293 more lines)
 ```
 
-## Change Frequency Risk Matrix
+### `apps/web/src/components/Toast.tsx`
 
-| Component | Change Frequency | Coupling Breadth | Risk = Freq × Breadth |
-|-----------|-----------------|------------------|----------------------|
-| generator-core | High (new generators, template changes) | 17 programs × 80 generators | **Critical** |
-| handlers.ts | High (new endpoints per feature) | 75+ routes | **Critical** |
-| store.ts | Medium (schema changes) | All data consumers | **High** |
-| continuation.yaml | Very High (every session) | Session continuity | **High** |
-| repo-parser | Medium (new languages/frameworks) | All snapshot intake | **High** |
-| context-engine | Low-Medium (architecture stable) | All generators | **Medium** |
-| begin.yaml | Low (policy rarely changes) | Development methodology | **Medium** |
-| apps/web | Medium (UI features) | User-facing only | **Medium** |
-| render.yaml | Very Low (deployment stable) | Production infra | **Low** |
-| capability_inventory | Low (grade changes only) | Audit/tracking | **Low** |
+```tsx
+import { useState, useEffect, useCallback, useRef, createContext, useContext, type ReactNode } from "react";
 
-## Architectural Risks
+// ─── Types ──────────────────────────────────────────────────────
 
-### 1. handlers.ts Monolith
-102 endpoint handlers in a single file. High cognitive load, merge conflict risk, and difficulty in isolating endpoint-specific tests. **Recommendation**: Split into route-grouped handler modules (auth, billing, program endpoints, admin, webhooks).
+type ToastLevel = "info" | "success" | "error" | "warning";
 
-### 2. Generator-Core Single Point
-All 87 generators pass through one template engine. A regression in the engine affects all 18 programs simultaneously. **Recommendation**: Per-program integration tests that validate output structure.
+interface Toast {
+  id: number;
+  level: ToastLevel;
+  message: string;
+  expiresAt: number;
+}
 
-### 3. SQLite Single-Writer
-WAL mode helps reads but writes are still serialized. Under load, snapshot ingestion could bottleneck. **Recommendation**: Acceptable for current scale (single instance on Render). Monitor write latency as usage grows.
+interface ToastContextValue {
+  toast: (level: ToastLevel, message: string, durationMs?: number) => void;
+}
 
-### 4. YAML Governance Coupling
-12 YAML files with cross-references create a knowledge graph that only works if read in the right order (begin → continuation → axis_all_tools). **Recommendation**: Document the read order in a single index file. The begin.yaml `required_read_order` partially addresses this.
+const ToastContext = createContext<ToastContextValue>({
+  toast: () => {},
+});
+
+export function useToast() {
+  return useContext(ToastContext);
+}
+
+... (90 more lines)
+```
+
+### `apps/web/src/pages/DashboardPage.tsx`
+
+```tsx
+import { useState, useEffect } from "react";
+import type { SnapshotResponse, GeneratedFile } from "../api.ts";
+import { getGeneratedFiles, runProgram, downloadExport } from "../api.ts";
+import { OverviewTab } from "../components/OverviewTab.tsx";
+import { FilesTab } from "../components/FilesTab.tsx";
+import { GraphTab } from "../components/GraphTab.tsx";
+import { GeneratedTab } from "../components/GeneratedTab.tsx";
+import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
+import { SearchTab } from "../components/SearchTab.tsx";
+import { useToast } from "../components/Toast.tsx";
+
+interface Props {
+  result: SnapshotResponse;
+  onGeneratedCountChange?: (count: number) => void;
+}
+
+const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
+type Tab = (typeof TABS)[number];
+
+function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: number; onDownload: () => void; downloading: boolean }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed || fileCount === 0) return null;
+
+  return (
+    <div className="card" style={{ marginBottom: 16, borderLeft: "3px solid var(--accent)", padding: "16px 20px" }}>
+... (155 more lines)
+```
