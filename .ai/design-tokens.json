@@ -1,7 +1,7 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T01:13:38.008Z",
+  "generated_at": "2026-04-14T01:46:20.406Z",
   "styling_approach": "plain-css",
   "project_type": "monorepo",
   "primary_language": "TypeScript",
@@ -22,27 +22,27 @@
     {
       "name": "TypeScript",
       "file_count": 249,
-      "loc_percent": 67.3
-    },
-    {
-      "name": "YAML",
-      "file_count": 69,
-      "loc_percent": 12.3
+      "loc_percent": 69.4
     },
     {
       "name": "JSON",
-      "file_count": 64,
-      "loc_percent": 10.7
+      "file_count": 63,
+      "loc_percent": 11
+    },
+    {
+      "name": "YAML",
+      "file_count": 68,
+      "loc_percent": 9.6
     },
     {
       "name": "Markdown",
       "file_count": 107,
-      "loc_percent": 8.2
+      "loc_percent": 8.5
     },
     {
       "name": "CSS",
       "file_count": 2,
-      "loc_percent": 0.7
+      "loc_percent": 0.8
     },
     {
       "name": "JavaScript",
@@ -67,7 +67,7 @@
       "containerized"
     ],
     "total_files": 500,
-    "total_loc": 117670
+    "total_loc": 114288
   },
   "colors": {
     "primary": {

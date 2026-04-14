@@ -55,10 +55,6 @@ Open questions:
 
 ## Future Direction Threads
 
-### Known Issues to Investigate
-
-- No lockfile found — dependency versions may be inconsistent
-
 ### Domain Model Complexity
 
 The project defines **151 domain models**. High field-count models may need documentation or decomposition:
@@ -87,7 +83,7 @@ Questions to answer:
 Entry points to investigate for complexity and coupling:
 
 - **`apps/api/src/server.ts`** — 321 lines, exports: export const app = ...
-- **`apps/web/src/App.tsx`** — 318 lines, exports: export function App() { ... }
+- **`apps/web/src/App.tsx`** — 326 lines, exports: export function App() { ... }
 - **`apps/web/src/main.tsx`** — 11 lines, exports: default
 - **`packages/context-engine/src/index.ts`** — 3 lines, exports: export type { ... }, export { ... }
 - **`packages/generator-core/src/index.ts`** — 21 lines, exports: export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }

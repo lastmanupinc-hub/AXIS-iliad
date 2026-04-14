@@ -1,6 +1,6 @@
 # Storyboard — axis-toolbox
 
-Generated: 2026-04-14T01:13:38.184Z
+Generated: 2026-04-14T01:46:20.608Z
 
 Frame-by-frame storyboard for a 60-second project showcase video.
 
@@ -28,9 +28,9 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 │  └──────┘ └──────┘ └──────┘       │
 │                                    │
 │  Languages:                        │
-│    TypeScript   █████████████ 67%     │
-│    YAML         ██ 12%     │
+│    TypeScript   ██████████████ 69%     │
 │    JSON         ██ 11%     │
+│    YAML         ██ 10%     │
 └────────────────────────────────────┘
 ```
 

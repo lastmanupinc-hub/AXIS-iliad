@@ -340,6 +340,24 @@ IF reason_code IN [10.4, 10.2, 10.3] AND ce3_evidence_available:
   → ALWAYS REPRESENT (CE 3.0 lifts win rate 25-42pp)
 ```
 
+### Cost-to-Represent Formula
+
+```
+representment_cost = $5.50 (evidence assembly + submission)
+dispute_amount    = <transaction_amount>
+win_probability   = <from_table_above>
+expected_recovery = dispute_amount × win_probability
+net_payoff        = expected_recovery - representment_cost
+
+IF net_payoff > $0  → REPRESENT
+IF net_payoff ≤ $0  → AUTO-REFUND (cheaper than fighting)
+
+Examples:
+  $200 × 72% = $144 recovery, net $138.50 → REPRESENT  (10.4 + CE3)
+  $10  × 25% = $2.50 recovery, net -$3.00 → REFUND     (10.2 no CE3)
+  $50  × 40% = $20   recovery, net $14.50 → REPRESENT  (13.2)
+```
+
 ## Lighter SCA Paths — Agent-Optimized Flow
 
 Goal: minimize friction for autonomous agent purchases. Prefer exemptions over challenges.
@@ -371,6 +389,16 @@ Transaction arrives:
 | 6 | transaction_risk_analysis | €500 | Check TRA eligibility | 3DS2 frictionless |
 | 7 | 3ds2_frictionless | Unlimited | Request frictionless | Escalate to human |
 
+### Provider-Specific SCA Thresholds
+
+| Network | Low-Value Threshold | TRA / MCSC Cap | Frictionless Approval Rate |
+|---------|--------------------|-----------------|-----------------------------|
+| Visa | €30 | €500 (TRA) | ~85% |
+| Mastercard | €30 | €100 (MCSC) | ~80% |
+| Amex | €30 | €250 (SafeKey) | ~75% |
+
+> Agent optimization: For €30–€100, prefer Visa/Amex TRA (higher cap). For €100–€500, only Visa TRA avoids challenge.
+
 ### AXIS Advantage Over Visa IC
 
 | Metric | Visa IC Pilot (April 2026) | AXIS Toolbox |
@@ -381,6 +409,20 @@ Transaction arrives:
 | Cost per decision | Per-API-call pricing | Included in $0.50 hardening |
 | Coverage | TAP-enrolled merchants only | Any codebase, any provider |
 | Your repo | ✅ SCA code detected | Pre-configured decision tree |
+
+## AP2 Compliance Scoring — Article-Level Assessment
+
+| AP2 Article | Focus | Score | Max | Details |
+|-------------|-------|-------|-----|---------|
+| Art. 2 — Mandate Format | Payment structure | 15/15 | 15 | Mandate schema detected |
+| Art. 6 — Agent Rules | Spending limits | 15/15 | 15 | SCA + recurring + mandate |
+| Art. 7 — Dispute Handling | Evidence + resolution | 15/15 | 15 | Full dispute automation |
+| Art. 11 — Token Lifecycle | TAP + tokenization | 15/15 | 15 | TAP + network tokens active |
+| **Total** | | **60/60** | **60** | **Grade: A** |
+
+### Compliance Risk
+
+> ✅ **COMPLIANT** — Full AP2 coverage detected. Maintain compliance through regular AXIS re-analysis.
 
 ## Verification Proof
 

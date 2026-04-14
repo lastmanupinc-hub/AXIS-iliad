@@ -23,6 +23,9 @@ const INCLUDE_EXTENSIONS = new Set([
   ".sql", ".graphql", ".gql", ".prisma",
 ]);
 
+/** Dot-directories that should still be scanned (e.g. CI, configs) */
+const ALLOW_DOT_DIRS = new Set([".github", ".circleci"]);
+
 /** Directories to always skip */
 const SKIP_DIRS = new Set([
   "node_modules", ".git", "dist", "build", "out", ".next", ".nuxt",
@@ -77,7 +80,7 @@ export function scanDirectory(root: string): ScanResult {
       }
 
       if (stat.isDirectory()) {
-        if (!SKIP_DIRS.has(entry) && !entry.startsWith(".")) {
+        if (!SKIP_DIRS.has(entry) && (!entry.startsWith(".") || ALLOW_DOT_DIRS.has(entry))) {
           walk(fullPath);
         }
         continue;
@@ -85,6 +88,14 @@ export function scanDirectory(root: string): ScanResult {
 
       /* v8 ignore next — non-file entries (devices, pipes) hard to simulate in tests */
       if (!stat.isFile()) continue;
+
+      // Include lockfiles as marker entries (empty content — parser only checks existence)
+      if (entry === "package-lock.json" || entry === "pnpm-lock.yaml" || entry === "yarn.lock" ||
+          entry === "Gemfile.lock" || entry === "poetry.lock" || entry === "Cargo.lock" || entry === "go.sum") {
+        const relPath = relative(root, fullPath).replace(/\\/g, "/");
+        files.push({ path: relPath, content: "", size: 0 });
+        continue;
+      }
 
       const ext = extname(entry).toLowerCase();
 
@@ -101,12 +112,6 @@ export function scanDirectory(root: string): ScanResult {
       }
 
       if (stat.size > MAX_FILE_SIZE) {
-        skipped++;
-        continue;
-      }
-
-      // Skip lockfiles
-      if (entry === "package-lock.json" || entry === "pnpm-lock.yaml" || entry === "yarn.lock") {
         skipped++;
         continue;
       }

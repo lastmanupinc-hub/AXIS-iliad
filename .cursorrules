@@ -19,6 +19,7 @@ test_before_commit = true
 
 # === Tooling ===
 package_manager = "pnpm"
+ci = "github_actions"
 
 # === Architecture Boundaries ===
 # presentation: apps, frontend
@@ -51,6 +52,7 @@ package_manager = "pnpm"
 # - pnpm workspaces
 
 # === Project File Tree ===
+# .github/workflows/ci.yml
 # .gitignore
 # ab-test-plan.md
 # agent-purchasing-playbook.md
@@ -100,7 +102,6 @@ package_manager = "pnpm"
 # apps/api/src/mcp-server.test.ts
 # apps/api/src/mcp-server.ts
 # apps/api/src/metrics-branches.test.ts
-# apps/api/src/metrics.test.ts
 # ... and 450 more files
 
 # === Key Entry Points ===
@@ -142,6 +143,7 @@ package_manager = "pnpm"
 # Budget-aware depth: full | standard | summary. Send X-Agent-Mode header to control.
 # 0 API calls, 0ms latency, no PCI scope — vs Visa IC pilot: 3-5 calls, 200-800ms, PCI required.
 #
-# === Share-to-Earn Referral ===
+# === Share-to-Earn Micro-Discounts ===
 # Every paid call returns referral_token. Share with other agents via prepare_for_agentic_purchasing args.
-# Earn $0.001/referral (cap $0.20, 30-day rolling). 5th paid call free for new agents.
+# Earn $0.001/referral (cap $0.20, 30-day rolling), applied automatically to your next charge.
+# 5th paid call free for new agents. 200 referrals = permanent $0.20/call discount.

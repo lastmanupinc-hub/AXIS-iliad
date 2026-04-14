@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Detected Stack
 
@@ -145,7 +145,7 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-... (298 more lines)
+... (306 more lines)
 ```
 
 ### `apps/web/src/pages/DashboardPage.tsx`

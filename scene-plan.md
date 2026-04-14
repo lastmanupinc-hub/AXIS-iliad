@@ -1,6 +1,6 @@
 # Scene Plan — axis-toolbox
 
-Generated: 2026-04-14T01:13:38.048Z
+Generated: 2026-04-14T01:46:20.451Z
 
 ## Video Overview
 
@@ -14,7 +14,7 @@ Generated: 2026-04-14T01:13:38.048Z
 
 ## Project Summary
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Detected Stack
 
@@ -35,7 +35,7 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (67.3%), YAML (12.3%), JSON (10.7%), Markdown (8.2%), CSS (0.7%), JavaScript (0.6%), HTML (0.1%), Dockerfile (0%)
+- **Languages**: TypeScript (69.4%), JSON (11%), YAML (9.6%), Markdown (8.5%), CSS (0.8%), JavaScript (0.6%), HTML (0.1%), Dockerfile (0%), PowerShell (0%), Shell (0%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 

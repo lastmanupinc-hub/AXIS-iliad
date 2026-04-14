@@ -85,6 +85,8 @@
       ],
       "outputs": 14,
       "tier": "free",
+      "price_cents": 0,
+      "price_interval": "per_call",
       "description": "Context map, AGENTS.md, debug playbook, and 11 more artifacts — no purchase required",
       "api_call": {
         "method": "tools/call",
@@ -117,6 +119,8 @@
       ],
       "outputs": 87,
       "tier": "pro",
+      "price_cents": 5000,
+      "price_interval": "per_call",
       "description": "All 87 structured artifacts across 18 programs — full AI-native governance layer",
       "api_call": {
         "method": "tools/call",
@@ -137,6 +141,8 @@
       ],
       "outputs": 27,
       "tier": "pro",
+      "price_cents": 2500,
+      "price_interval": "per_call",
       "description": "Core development artifacts: context, AI rules, debug, frontend, optimization, and superpowers",
       "api_call": {
         "method": "tools/call",
@@ -155,6 +161,8 @@
       ],
       "outputs": 19,
       "tier": "pro",
+      "price_cents": 2000,
+      "price_interval": "per_call",
       "description": "Brand guidelines, marketing playbooks, SEO rules, and visual design artifacts",
       "api_call": {
         "method": "tools/call",
@@ -195,5 +203,55 @@
     "header": "Authorization",
     "format": "Bearer <raw_key>",
     "obtain": "POST /v1/accounts → api_key.raw_key"
+  },
+  "agent_quotas": {
+    "per_session_limit_cents": 10000,
+    "per_month_limit_cents": 50000,
+    "tiers": {
+      "free": {
+        "calls_per_month": 3,
+        "budget_cents": 0
+      },
+      "pro": {
+        "calls_per_month": null,
+        "budget_cents": 500000
+      }
+    }
+  },
+  "mandate_lifecycle_events": [
+    {
+      "event": "CREATE",
+      "description": "Mandate ID assigned, status=pending_authorization"
+    },
+    {
+      "event": "AUTHORIZE",
+      "description": "SCA challenge completed, status=active"
+    },
+    {
+      "event": "COLLECT",
+      "description": "Payment collected via UCP Art. 5 clearing"
+    },
+    {
+      "event": "AMEND",
+      "description": "Amount or schedule changed, re-SCA if material"
+    },
+    {
+      "event": "SUSPEND",
+      "description": "Temporarily paused, no collections"
+    },
+    {
+      "event": "RESUME",
+      "description": "Reactivated after suspension"
+    },
+    {
+      "event": "CANCEL",
+      "description": "Terminated, no further collections"
+    }
+  ],
+  "liability_risk": {
+    "ap2_non_compliance_fine_usd_month": 50000,
+    "visa_ic_enrollment_deadline": "2026-10-01",
+    "psd2_sca_enforcement": "active",
+    "risk_level": "low"
   }
 }

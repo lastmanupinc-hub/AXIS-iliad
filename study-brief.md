@@ -133,7 +133,7 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-... (298 more lines)
+... (306 more lines)
 ```
 
 ### `apps/web/src/main.tsx`

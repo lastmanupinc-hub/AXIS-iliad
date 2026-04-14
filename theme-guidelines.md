@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Detected Stack
 
@@ -193,11 +193,6 @@ Consider extending the token system for domain entity states:
 - **JsonRpcRequest** (interface): 4 fields — apps/api/src/mcp-server.ts
 - **McpCallCounters** (interface): 5 fields — apps/api/src/mcp-server.ts
 
-## Warnings
-
-> ⚠ No CI/CD pipeline detected
-> ⚠ No lockfile found — dependency versions may be inconsistent
-
 ## Detected Style Files
 
 - `apps/web/src/index.css` (770 lines)
@@ -244,7 +239,7 @@ Consider extending the token system for domain entity states:
 ```json
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T00:47:02.569Z",
+  "generated_at": "2026-04-14T01:13:38.014Z",
   "detected_stack": [
     {
       "name": "React",
@@ -270,7 +265,7 @@ Consider extending the token system for domain entity states:
 ```json
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T00:47:02.754Z",
+  "generated_at": "2026-04-14T01:13:38.175Z",
   "scheme": "dark",
   "detected_stack": {
     "frameworks": [
@@ -295,7 +290,7 @@ Consider extending the token system for domain entity states:
 
 | Component | Exports | Lines |
 |-----------|---------|-------|
-| `apps/web/src/App.tsx` | export function App() { ... } | 318 |
+| `apps/web/src/App.tsx` | export function App() { ... } | 326 |
 | `apps/web/src/components/AxisIcons.tsx` | export function Icon({ ... } | 111 |
 | `apps/web/src/components/CommandPalette.tsx` | export interface PaletteAction { ... }, export function CommandPalette({ ... } | 214 |
 | `apps/web/src/components/FilesTab.tsx` | export function FilesTab({ ... } | 126 |

@@ -1,12 +1,12 @@
 # Brand Board — axis-toolbox
 
-Generated: 2026-04-14T01:13:38.185Z
+Generated: 2026-04-14T01:46:20.609Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
 ## Project Summary
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Color Palette
 
@@ -85,9 +85,9 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 ### Stack Badge Bar
 
 - `React`
-- `TypeScript` — 67% of codebase
-- `YAML` — 12% of codebase
+- `TypeScript` — 69% of codebase
 - `JSON` — 11% of codebase
+- `YAML` — 10% of codebase
 
 ### Key Abstractions for Branding
 
@@ -107,11 +107,6 @@ Consider domain-specific iconography for:
 - **ValidationResult** (interface) — 3 fields, from apps/api/src/env.ts
 - **ZipEntry** (interface) — 4 fields, from apps/api/src/export.ts
 - **IntentCapture** (interface) — 5 fields, from apps/api/src/mcp-server.ts
-
-### Brand Warnings
-
-> ⚠ No CI/CD pipeline detected
-> ⚠ No lockfile found — dependency versions may be inconsistent
 
 ## Spacing & Layout Tokens
 

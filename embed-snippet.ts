@@ -17,8 +17,6 @@ export const CONVENTIONS = [
 ] as const;
 
 export const WARNINGS = [
-  "No CI/CD pipeline detected",
-  "No lockfile found — dependency versions may be inconsistent",
 ] as const;
 
 export const KEY_ABSTRACTIONS = [

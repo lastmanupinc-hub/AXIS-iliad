@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-04-14T01:13:38.149Z",
-  "total_symbols": 1640,
+  "generated_at": "2026-04-14T01:46:20.571Z",
+  "total_symbols": 1641,
   "file_count": 222,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -2679,22 +2679,17 @@
       {
         "name": "scan",
         "type": "const",
-        "line": 143
+        "line": 159
       },
       {
         "name": "scan",
         "type": "const",
-        "line": 164
+        "line": 180
       },
       {
         "name": "scan",
         "type": "const",
-        "line": 178
-      },
-      {
-        "name": "scan",
-        "type": "const",
-        "line": 191
+        "line": 194
       },
       {
         "name": "scan",
@@ -2707,9 +2702,14 @@
         "line": 223
       },
       {
+        "name": "scan",
+        "type": "const",
+        "line": 239
+      },
+      {
         "name": "githubScan",
         "type": "const",
-        "line": 361
+        "line": 377
       }
     ],
     "apps/cli/src/cli.ts": [
@@ -2881,17 +2881,17 @@
       {
         "name": "ScanResult",
         "type": "interface",
-        "line": 40
+        "line": 43
       },
       {
         "name": "scanDirectory",
         "type": "function",
-        "line": 46
+        "line": 49
       },
       {
         "name": "walk",
         "type": "function",
-        "line": 55
+        "line": 58
       }
     ],
     "apps/cli/src/writer.ts": [
@@ -3252,44 +3252,49 @@
     ],
     "apps/web/src/App.tsx": [
       {
-        "name": "ErrorBoundary",
+        "name": "ErrorCatcher",
         "type": "class",
-        "line": 22
+        "line": 24
+      },
+      {
+        "name": "ErrorBoundary",
+        "type": "function",
+        "line": 34
       },
       {
         "name": "Page",
         "type": "type",
-        "line": 42
+        "line": 50
       },
       {
         "name": "getInitialPage",
         "type": "function",
-        "line": 44
+        "line": 52
       },
       {
         "name": "loadPersistedResult",
         "type": "function",
-        "line": 51
+        "line": 59
       },
       {
         "name": "App",
         "type": "function",
-        "line": 59
+        "line": 67
       },
       {
         "name": "toggleTheme",
         "type": "function",
-        "line": 80
+        "line": 88
       },
       {
         "name": "onHash",
         "type": "function",
-        "line": 85
+        "line": 93
       },
       {
         "name": "handler",
         "type": "function",
-        "line": 190
+        "line": 198
       }
     ],
     "apps/web/src/components/AxisIcons.tsx": [
@@ -6316,22 +6321,22 @@
       {
         "name": "generateClaudeMD",
         "type": "function",
-        "line": 328
+        "line": 334
       },
       {
         "name": "generateCursorRules",
         "type": "function",
-        "line": 500
+        "line": 506
       },
       {
         "name": "generateWorkflowPack",
         "type": "function",
-        "line": 667
+        "line": 673
       },
       {
         "name": "generatePolicyPack",
         "type": "function",
-        "line": 790
+        "line": 796
       }
     ],
     "packages/generator-core/src/generators-superpowers.ts": [

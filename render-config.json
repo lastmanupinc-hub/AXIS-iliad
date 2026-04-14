@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T01:13:38.049Z",
+  "generated_at": "2026-04-14T01:46:20.452Z",
   "composition": {
     "id": "axistoolboxVideo",
     "width": 1920,
@@ -21,7 +21,7 @@
       "from": 90,
       "duration": 90,
       "label": "Tech Stack",
-      "data_points": 9
+      "data_points": 11
     },
     {
       "id": "api-surface",
@@ -86,28 +86,28 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 78281,
-          "percent": 67.3
-        },
-        {
-          "name": "YAML",
-          "loc": 14287,
-          "percent": 12.3
+          "loc": 78309,
+          "percent": 69.4
         },
         {
           "name": "JSON",
-          "loc": 12432,
-          "percent": 10.7
+          "loc": 12409,
+          "percent": 11
+        },
+        {
+          "name": "YAML",
+          "loc": 10865,
+          "percent": 9.6
         },
         {
           "name": "Markdown",
           "loc": 9559,
-          "percent": 8.2
+          "percent": 8.5
         },
         {
           "name": "CSS",
           "loc": 849,
-          "percent": 0.7
+          "percent": 0.8
         },
         {
           "name": "JavaScript",
@@ -372,7 +372,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 117670
+    "total_loc": 114288
   },
   "source_media_files": null
 }

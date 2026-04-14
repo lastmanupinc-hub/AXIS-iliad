@@ -1,10 +1,10 @@
 # Dependency Hotspots — axis-toolbox
 
-Generated: 2026-04-14T01:13:38.059Z
+Generated: 2026-04-14T01:46:20.462Z
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Detected Stack
 
@@ -179,12 +179,12 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-... (293 more lines)
+... (301 more lines)
 ```
 
 ### `apps/web/src/components/Toast.tsx`

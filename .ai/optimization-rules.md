@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 117,670 |
-| Average LOC / file | 235 |
-| Estimated token count | ~529,515 |
+| Total LOC | 114,288 |
+| Average LOC / file | 229 |
+| Estimated token count | ~514,296 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -62,11 +62,6 @@ Reference these patterns in prompts for architectural consistency:
 
 - monorepo
 - containerized
-
-## Optimization Warnings
-
-- ⚠️ No CI/CD pipeline detected
-- ⚠️ No lockfile found — dependency versions may be inconsistent
 
 ## Configuration Files (Include in Prompts)
 
@@ -163,6 +158,7 @@ Reference these patterns in prompts for architectural consistency:
 ## File Tree
 
 ```
+.github/workflows/ci.yml (4.4 KB)
 .gitignore (0.2 KB)
 ab-test-plan.md (2.8 KB)
 agent-purchasing-playbook.md (15.2 KB)
@@ -252,14 +248,14 @@ apps/cli/src/cli-auth.test.ts (7.6 KB)
 apps/cli/src/cli-commands.test.ts (8.7 KB)
 apps/cli/src/cli-edge-cases.test.ts (14.4 KB)
 apps/cli/src/cli-pipeline.test.ts (9.3 KB)
-apps/cli/src/cli.test.ts (13.3 KB)
+apps/cli/src/cli.test.ts (13.9 KB)
 apps/cli/src/cli.ts (9.7 KB)
 apps/cli/src/credential-store.test.ts (8.2 KB)
 apps/cli/src/credential-store.ts (3.2 KB)
 apps/cli/src/determinism.test.ts (5.0 KB)
 apps/cli/src/runner.test.ts (6.5 KB)
 apps/cli/src/runner.ts (11.2 KB)
-apps/cli/src/scanner.ts (3.8 KB)
+apps/cli/src/scanner.ts (4.3 KB)
 apps/cli/src/writer.ts (0.9 KB)
 apps/cli/tsconfig.json (0.4 KB)
 apps/web/index.html (6.4 KB)
@@ -267,7 +263,7 @@ apps/web/package.json (0.5 KB)
 apps/web/public/robots.txt (0.8 KB)
 apps/web/src/api.test.ts (23.7 KB)
 apps/web/src/api.ts (15.5 KB)
-apps/web/src/App.tsx (15.7 KB)
+apps/web/src/App.tsx (16.1 KB)
 apps/web/src/components/AxisIcons.tsx (8.9 KB)
 apps/web/src/components/CommandPalette.tsx (6.6 KB)
 apps/web/src/components/FilesTab.tsx (4.7 KB)
@@ -343,7 +339,6 @@ component-theme-map.json (9.2 KB)
 connector-map.yaml (6.4 KB)
 content-audit.md (3.8 KB)
 content-constraints.md (2.9 KB)
-continuation.yaml (253.9 KB)
 CONTRIBUTING.md (3.1 KB)
 cost-estimate.json (5.7 KB)
 cov3.txt (19.3 KB)
@@ -422,7 +417,7 @@ optimization/begin.yaml (2.5 KB)
 optimization/continuation.yaml (2.4 KB)
 optimization/MEMORY.yaml (3.7 KB)
 optimization/schemas/output-contract.schema.json (1.8 KB)
-package.json (0.5 KB)
+package.json (0.6 KB)
 packages/context-engine/package.json (0.4 KB)
 packages/context-engine/src/engine-branches.test.ts (27.5 KB)
 packages/context-engine/src/engine-branches2.test.ts (7.6 KB)
@@ -480,7 +475,7 @@ packages/generator-core/src/generators-remotion.ts (32.1 KB)
 packages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)
 packages/generator-core/src/generators-search.ts (17.9 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
-packages/generator-core/src/generators-skills.ts (42.1 KB)
+packages/generator-core/src/generators-skills.ts (42.4 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (45.9 KB)
 packages/generator-core/src/index.ts (2.9 KB)
@@ -626,6 +621,7 @@ payment-processing-output/vault-rules.md (2.1 KB)
 payment-processing-output/voice-and-tone.md (2.5 KB)
 payment-processing-output/workflow-pack.md (2.0 KB)
 payment-processing-output/workflow-registry.json (1.8 KB)
+pnpm-lock.yaml (0.0 KB)
 pnpm-workspace.yaml (0.1 KB)
 policy-pack.md (2.8 KB)
 poster-layouts.md (3.1 KB)
@@ -649,6 +645,8 @@ route-priority-map.md (27.9 KB)
 rules to compile snapshot.yaml (19.4 KB)
 scene-plan.md (2.7 KB)
 schema-recommendations.json (6.3 KB)
+scripts/regenerate.ps1 (1.4 KB)
+scripts/regenerate.sh (0.8 KB)
 search/begin.yaml (3.7 KB)
 search/continuation.yaml (2.4 KB)
 search/MEMORY.yaml (5.9 KB)
@@ -660,9 +658,6 @@ seo/continuation.yaml (2.4 KB)
 seo/MEMORY.yaml (5.8 KB)
 seo/schemas/output-contract.schema.json (1.8 KB)
 sequence-pack.md (2.1 KB)
-server-manifest.yaml (10.6 KB)
-server.json (0.9 KB)
-skills/begin.yaml (3.6 KB)
 ```
 
 ## Hotspot File Excerpts
@@ -721,12 +716,12 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-... (293 more lines)
+... (301 more lines)
 ```
 
 ### `apps/web/src/pages/DashboardPage.tsx`

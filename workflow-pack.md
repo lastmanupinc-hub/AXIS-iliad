@@ -56,6 +56,8 @@ steps:
     action: Ensure new code has tests
   - name: dependency_check
     action: Check dependency-hotspots.md for coupling increase
+  - name: ci_check
+    action: Verify github_actions pipeline passes
 ```
 
 ## Workflow: Refactor
@@ -85,7 +87,7 @@ steps:
 - `apps/web/package.json` (24 lines)
 - `apps/web/tsconfig.json` (19 lines)
 - `apps/web/vite.config.ts` (13 lines)
-- `package.json` (26 lines)
+- `package.json` (28 lines)
 - `packages/context-engine/package.json` (22 lines)
 - `packages/context-engine/tsconfig.json` (10 lines)
 
@@ -140,7 +142,7 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-... (298 more lines)
+... (306 more lines)
 ```
 
 ### `apps/web/src/main.tsx`

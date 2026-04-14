@@ -1,11 +1,11 @@
 # Automation Pipeline
 # Project: axis-toolbox
-# Generated: 2026-04-14T01:13:38.182Z
-# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+# Generated: 2026-04-14T01:46:20.605Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 pipeline:
   name: "axis-toolbox-automation"
-  ci_platform: github-actions
+  ci_platform: github_actions
   package_manager: pnpm
 
   stages:
@@ -93,6 +93,8 @@ pipeline:
 
   # ─── Detected CI / Config Files ─────────────────────
   source_files:
+    - path: ".github/workflows/ci.yml"
+      lines: 151
     - path: "algorithmic/begin.yaml"
       lines: 27
     - path: "algorithmic/continuation.yaml"
@@ -115,5 +117,3 @@ pipeline:
       lines: 415
     - path: "begin.yaml"
       lines: 334
-    - path: "brand/begin.yaml"
-      lines: 27

@@ -66,7 +66,18 @@ describe("scanner", () => {
     expect(result.files[0].path).toBe("src/app.ts");
   });
 
-  it("skips lockfiles", () => {
+  it("scans .github/workflows for CI detection", () => {
+    writeFixture(tmp, {
+      "src/app.ts": "console.log('app');",
+      ".github/workflows/ci.yml": "name: CI\non: push",
+    });
+
+    const result = scanDirectory(tmp);
+    expect(result.files.length).toBe(2);
+    expect(result.files.find(f => f.path === ".github/workflows/ci.yml")).toBeTruthy();
+  });
+
+  it("includes lockfiles as marker entries with empty content", () => {
     writeFixture(tmp, {
       "package.json": '{ "name": "test" }',
       "pnpm-lock.yaml": "lockfileVersion: 9",
@@ -75,9 +86,14 @@ describe("scanner", () => {
     });
 
     const result = scanDirectory(tmp);
-    expect(result.files.length).toBe(1);
-    expect(result.files[0].path).toBe("package.json");
-    expect(result.skipped_count).toBe(3);
+    expect(result.files.length).toBe(4);
+    expect(result.files.find(f => f.path === "package.json")!.content).toBe('{ "name": "test" }');
+    const lockfiles = result.files.filter(f => f.path !== "package.json");
+    for (const lf of lockfiles) {
+      expect(lf.content).toBe("");
+      expect(lf.size).toBe(0);
+    }
+    expect(result.skipped_count).toBe(0);
   });
 
   it("skips unsupported file extensions", () => {

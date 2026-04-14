@@ -1,6 +1,6 @@
 # Collection Map — axis-toolbox
 
-Generated: 2026-04-14T01:13:38.057Z
+Generated: 2026-04-14T01:46:20.461Z
 
 ## Collection Overview
 
@@ -9,7 +9,7 @@ metrics, and architecture of axis-toolbox.
 
 ## Project Summary
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Detected Stack
 
@@ -32,14 +32,16 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 
 - **Type**: Concentric ring visualization
 - **Rings**: One per language, radius ∝ LOC percentage
-  - TypeScript: 67.3% → radius 202px
-  - YAML: 12.3% → radius 37px
-  - JSON: 10.7% → radius 32px
-  - Markdown: 8.2% → radius 25px
-  - CSS: 0.7% → radius 2px
+  - TypeScript: 69.4% → radius 208px
+  - JSON: 11% → radius 33px
+  - YAML: 9.6% → radius 29px
+  - Markdown: 8.5% → radius 26px
+  - CSS: 0.8% → radius 2px
   - JavaScript: 0.6% → radius 2px
   - HTML: 0.1% → radius 0px
   - Dockerfile: 0% → radius 0px
+  - PowerShell: 0% → radius 0px
+  - Shell: 0% → radius 0px
 - **Animation**: Slow rotation, pulse on interaction
 
 ### 3. Architecture Terrain
@@ -71,11 +73,11 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 |----------|-------|
 | Total Pieces | 4 |
 | Source Project | axis-toolbox |
-| Data Points | 16 |
+| Data Points | 18 |
 | Domain Models | 151 |
 | Routes | 428 |
 | Total Files | 500 |
-| Total LOC | 117670 |
+| Total LOC | 114288 |
 | Render Target | Canvas 2D / WebGL |
 | Parameter Pack | parameter-pack.json |
 
@@ -86,26 +88,25 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 g
 i
 t
-i
-g
-n
+h
+u
+b
+/
+w
 o
 r
-e
- 
-(
-0
+k
+f
+l
+o
+w
+s
+/
+c
+i
 .
-2
+y
+m
+l
  
-K
-B
-)
-
-
-a
-b
--
-t
-e
 ```

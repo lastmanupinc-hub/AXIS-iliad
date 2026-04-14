@@ -1,6 +1,6 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T01:13:38.178Z",
+  "generated_at": "2026-04-14T01:46:20.601Z",
   "total_citations": 16,
   "by_type": {
     "documentation": 1,
@@ -34,17 +34,6 @@
       ]
     },
     {
-      "id": "lang-yaml",
-      "type": "reference",
-      "title": "YAML Language Reference",
-      "source": "https://www.google.com/search?q=YAML+reference",
-      "relevance": "secondary",
-      "tags": [
-        "language",
-        "yaml"
-      ]
-    },
-    {
       "id": "lang-json",
       "type": "reference",
       "title": "JSON Language Reference",
@@ -53,6 +42,17 @@
       "tags": [
         "language",
         "json"
+      ]
+    },
+    {
+      "id": "lang-yaml",
+      "type": "reference",
+      "title": "YAML Language Reference",
+      "source": "https://www.google.com/search?q=YAML+reference",
+      "relevance": "secondary",
+      "tags": [
+        "language",
+        "yaml"
       ]
     },
     {
@@ -204,7 +204,7 @@
       "exports": [
         "export function App() { ... }"
       ],
-      "lines": 318
+      "lines": 326
     },
     {
       "path": "apps/web/src/main.tsx",

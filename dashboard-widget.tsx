@@ -36,9 +36,9 @@ export function DashboardWidget() {
         <StatCard label="Language" value={data.language} />
         <StatCard label="Entry Points" value={data.entryPoints} />
         <StatCard label="Hotspots" value={data.hotspots} />
-        <StatCard label="TypeScript" value={`${67.3}%`} />
-        <StatCard label="YAML" value={`${12.3}%`} />
-        <StatCard label="JSON" value={`${10.7}%`} />
+        <StatCard label="TypeScript" value={`${69.4}%`} />
+        <StatCard label="JSON" value={`${11}%`} />
+        <StatCard label="YAML" value={`${9.6}%`} />
       </div>
       <div className="framework-tags">
         {data.frameworks.map(f => (
@@ -82,10 +82,6 @@ export default DashboardWidget;
 // Patterns: monorepo, containerized
 // Layer boundaries: 1
 //   presentation (2 dirs)
-
-// ─── Warnings ───
-// ⚠ No CI/CD pipeline detected
-// ⚠ No lockfile found — dependency versions may be inconsistent
 
 // Source file metrics
 // Total source files scanned: 500

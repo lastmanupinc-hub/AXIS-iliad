@@ -7,7 +7,7 @@
 | Signal | Value | Weight |
 |--------|-------|--------|
 | File count | 500 files | Medium |
-| Lines of code | 117670 LOC | High |
+| Lines of code | 114288 LOC | High |
 | Complexity estimate | medium | High |
 | Separation score | 0.64 / 1.0 | High |
 
@@ -17,11 +17,27 @@
 value_score = (loc / 1000) * 0.4
             + (file_count / 10) * 0.3
             + (complexity_score) * 0.3
+            + (commerce_signal_bonus)
 ```
 
 Where `complexity_score` = 1 (low) | 2 (medium) | 3 (high).
+Where `commerce_signal_bonus` = detected_providers × 0.15 + (has_sca ? 0.10 : 0) + (has_dispute ? 0.10 : 0).
 
-**Estimated value score for axis-toolbox:** 62.67
+**Estimated value score for axis-toolbox:** 63.17
+
+## ROI Computation
+
+```
+axis_cost          = $0.50 per program (pro tier)
+manual_token_cost  = ~8,000 tokens × $0.003/1k = $0.024 per file
+files_in_project   = 500
+manual_total       = $12.00
+axis_total         = $0.50 (all 500 files in one call)
+ROI                = (manual_total - axis_total) / axis_total
+                   = 2300% savings
+```
+
+> **Verdict:** AXIS saves $11.50 per analysis cycle.
 
 ## Purchase Rules
 
@@ -132,6 +148,24 @@ IF win_probability < 40% OR amount < $5:
   → AUTO-REFUND (cost of representment exceeds expected recovery)
 IF reason_code IN [10.4, 10.2, 10.3] AND ce3_evidence_available:
   → ALWAYS REPRESENT (CE 3.0 lifts win rate 25-42pp)
+```
+
+### Cost-to-Represent Formula
+
+```
+representment_cost = $5.50 (evidence assembly + submission)
+dispute_amount    = <transaction_amount>
+win_probability   = <from_table_above>
+expected_recovery = dispute_amount × win_probability
+net_payoff        = expected_recovery - representment_cost
+
+IF net_payoff > $0  → REPRESENT
+IF net_payoff ≤ $0  → AUTO-REFUND (cheaper than fighting)
+
+Examples:
+  $200 × 72% = $144 recovery, net $138.50 → REPRESENT  (10.4 + CE3)
+  $10  × 25% = $2.50 recovery, net -$3.00 → REFUND     (10.2 no CE3)
+  $50  × 40% = $20   recovery, net $14.50 → REPRESENT  (13.2)
 ```
 
 ## Verification Proof

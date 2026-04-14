@@ -7,6 +7,7 @@
 | Project | axis-toolbox (monorepo) |
 | Language | TypeScript |
 | Stack | React ^19.1.0 |
+| CI | github_actions |
 | Deployment | docker |
 
 ## Summary
@@ -285,12 +286,12 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-... (293 more lines)
+... (301 more lines)
 ```
 
 ### `apps/web/src/pages/DashboardPage.tsx`
@@ -375,7 +376,7 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-... (298 more lines)
+... (306 more lines)
 ```
 
 ### `apps/web/src/main.tsx`

@@ -25,7 +25,7 @@ const CONFIG = {
   height: 1080,
   nodeCount: 12,
   complexity: 0.01,
-  palette: [{"name":"TypeScript","hue":220,"weight":67.3},{"name":"YAML","hue":280,"weight":12.3},{"name":"JSON","hue":340,"weight":10.7},{"name":"Markdown","hue":160,"weight":8.2},{"name":"CSS","hue":40,"weight":0.7}],
+  palette: [{"name":"TypeScript","hue":220,"weight":69.4},{"name":"JSON","hue":280,"weight":11},{"name":"YAML","hue":340,"weight":9.6},{"name":"Markdown","hue":160,"weight":8.5},{"name":"CSS","hue":40,"weight":0.8}],
   dampening: 0.98,
   attractionStrength: 0.001,
   repulsionStrength: 500,
@@ -145,19 +145,19 @@ export { CONFIG, createNodes, createEdges, simulate };
 // g
 // i
 // t
-// i
-// g
-// n
+// h
+// u
+// b
+// /
+// w
 // o
 // r
-// e
-//  
-// (
-// 0
-// .
-// 2
-//  
-// K
-// B
-// )
-// 
+// k
+// f
+// l
+// o
+// w
+// s
+// /
+// c
+// i

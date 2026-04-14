@@ -56,12 +56,18 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("");
   }
 
-  // Routes
+  // Routes (deduplicated — prefer source files over test files, capped at 50)
   if (ctx.routes.length > 0) {
+    const sourceRoutes = ctx.routes.filter((r) => !r.source_file.includes(".test."));
+    const display = sourceRoutes.length > 0 ? sourceRoutes : ctx.routes;
+    const capped = display.slice(0, 50);
     lines.push("### Routes");
     lines.push("");
-    for (const r of ctx.routes) {
+    for (const r of capped) {
       lines.push(`- \`${r.method} ${r.path}\` → ${r.source_file}`);
+    }
+    if (display.length > 50) {
+      lines.push(`- *… ${display.length - 50} more (see OpenAPI spec or \`/v1/docs\`)*`);
     }
     lines.push("");
   }

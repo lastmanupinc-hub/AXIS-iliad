@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schema_version": "1.0",
   "product": "AXIS Toolbox",
   "generated_for": "axis-toolbox",
@@ -251,6 +252,20 @@
     "type": "bearer",
     "header": "Authorization",
     "format": "Bearer <api_key>"
+  },
+  "agent_quotas": {
+    "per_session_limit_cents": 10000,
+    "per_month_limit_cents": 50000,
+    "tiers": {
+      "free": {
+        "calls_per_month": 3,
+        "budget_cents": 0
+      },
+      "pro": {
+        "calls_per_month": null,
+        "budget_cents": 500000
+      }
+    }
   },
   "total_programs": 18,
   "total_outputs": 87

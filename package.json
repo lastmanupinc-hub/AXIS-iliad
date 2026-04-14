@@ -7,7 +7,9 @@
     "dev": "pnpm --filter @axis/api dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint"
+    "lint": "pnpm -r lint",
+    "regenerate": "pwsh scripts/regenerate.ps1",
+    "regenerate:sh": "bash scripts/regenerate.sh"
   },
   "engines": {
     "node": ">=20"

@@ -56,13 +56,6 @@ rules:
   - test_frameworks: [vitest]
 ```
 
-## Policy: Known Warnings
-
-These project-specific warnings must be addressed in all AI-generated code:
-
-- ⚠️ No CI/CD pipeline detected
-- ⚠️ No lockfile found — dependency versions may be inconsistent
-
 ## Policy: Framework-Specific Rules
 
 ### React

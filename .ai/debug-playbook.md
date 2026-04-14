@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 ## Quick Reference
 
@@ -16,24 +16,26 @@ axis-toolbox is a monorepo built with TypeScript using React. It contains 500 fi
 | Frameworks | React ^19.1.0 (95%) |
 | Test Runner | vitest |
 | Build Tools | vite |
-| CI | none |
+| CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | pnpm |
-| Files | 500 files, 117,670 LOC |
+| Files | 500 files, 114,288 LOC |
 | Separation Score | 0.64/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 249 | 78,281 | 67.3% |
-| YAML | 69 | 14,287 | 12.3% |
-| JSON | 64 | 12,432 | 10.7% |
-| Markdown | 107 | 9,559 | 8.2% |
-| CSS | 2 | 849 | 0.7% |
+| TypeScript | 249 | 78,309 | 69.4% |
+| JSON | 63 | 12,409 | 11% |
+| YAML | 68 | 10,865 | 9.6% |
+| Markdown | 107 | 9,559 | 8.5% |
+| CSS | 2 | 849 | 0.8% |
 | JavaScript | 3 | 673 | 0.6% |
 | HTML | 1 | 113 | 0.1% |
 | Dockerfile | 1 | 49 | 0% |
+| PowerShell | 1 | 21 | 0% |
+| Shell | 1 | 14 | 0% |
 
 ## Detected Stack (with evidence)
 
@@ -698,8 +700,6 @@ Bugs often occur at layer boundaries. Verify data flow between:
 
 ## Common Traps
 
-- ⚠️ No CI/CD pipeline detected
-- ⚠️ No lockfile found — dependency versions may be inconsistent
 - ✅ TypeScript strict mode
 - ✅ pnpm workspaces
 - ⚠️ No linter configured
@@ -776,12 +776,12 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-... (293 more lines)
+... (301 more lines)
 ```
 
 ### `apps/web/src/main.tsx`

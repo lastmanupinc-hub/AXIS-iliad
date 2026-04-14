@@ -1,7 +1,7 @@
 # Connector Map
 # Project: axis-toolbox
-# Generated: 2026-04-14T01:13:38.039Z
-# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 19 top-level directories. It defines 151 domain models.
+# Generated: 2026-04-14T01:46:20.441Z
+# Summary: axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 20 top-level directories. It defines 151 domain models.
 
 connectors:
   - id: vscode
@@ -23,6 +23,15 @@ connectors:
       - file_editing
       - terminal_execution
       - ai_chat
+  - id: ci_github_actions
+    name: github_actions
+    type: ci_cd
+    protocol: webhook
+    status: detected
+    capabilities:
+      - build_trigger
+      - test_execution
+      - deployment
   - id: npm_registry
     name: npm Registry
     type: package_registry
@@ -257,9 +266,13 @@ integration_flows:
         action: run_tests
       - connector: git
         action: commit
+      - connector: ci_github_actions
+        action: build_and_test
 
 # Detected CI/Deployment Files
 detected_configs:
+  - path: ".github/workflows/ci.yml"
+    size: 4484
   - path: "docker-compose.yml"
     size: 2017
   - path: "Dockerfile"

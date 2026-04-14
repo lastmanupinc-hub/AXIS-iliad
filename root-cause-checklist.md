@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-toolbox
 
-> monorepo | TypeScript | 500 files | 117,670 LOC
+> monorepo | TypeScript | 500 files | 114,288 LOC
 
 **Stack:** React ^19.1.0
 
@@ -225,6 +225,7 @@ High-coupling files are more likely to be involved in cross-cutting bugs:
 - [ ] Do all existing tests still pass? (`pnpm test`)
 - [ ] Is a new test added for this specific failure mode?
 - [ ] Has the fix been reviewed for side effects on 6 coupled hotspot files?
+- [ ] Does CI pass? (github_actions)
 
 ## Step 7: Prevention
 
@@ -232,7 +233,6 @@ High-coupling files are more likely to be involved in cross-cutting bugs:
 - [ ] Add monitoring/alerting for this failure class
 - [ ] Update incident template if this is a new category
 - [ ] Document root cause in team knowledge base
-- [ ] ⚠️ **No CI detected** — consider adding automated checks to catch regressions
 
 ## Entry Point Source (for Step 2 Isolation)
 
@@ -290,12 +290,12 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-... (293 more lines)
+... (301 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -393,12 +393,12 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-... (293 more lines)
+... (301 more lines)
 ```
 
 ### `apps/web/src/pages/DashboardPage.tsx`

@@ -1,33 +1,33 @@
 {
   "project": "axis-toolbox",
-  "generated_at": "2026-04-14T01:13:37.996Z",
+  "generated_at": "2026-04-14T01:46:20.392Z",
   "summary": {
     "total_files": 500,
-    "total_loc": 117670,
-    "estimated_total_tokens": 529515,
+    "total_loc": 114288,
+    "estimated_total_tokens": 514296,
     "primary_language": "TypeScript"
   },
   "language_breakdown": [
     {
       "language": "TypeScript",
       "files": 249,
-      "loc": 78281,
-      "estimated_tokens": 352265,
-      "percentage": 67
-    },
-    {
-      "language": "YAML",
-      "files": 69,
-      "loc": 14287,
-      "estimated_tokens": 64292,
-      "percentage": 12
+      "loc": 78309,
+      "estimated_tokens": 352391,
+      "percentage": 69
     },
     {
       "language": "JSON",
-      "files": 64,
-      "loc": 12432,
-      "estimated_tokens": 55944,
+      "files": 63,
+      "loc": 12409,
+      "estimated_tokens": 55841,
       "percentage": 11
+    },
+    {
+      "language": "YAML",
+      "files": 68,
+      "loc": 10865,
+      "estimated_tokens": 48893,
+      "percentage": 10
     },
     {
       "language": "Markdown",
@@ -63,82 +63,96 @@
       "loc": 49,
       "estimated_tokens": 221,
       "percentage": 0
+    },
+    {
+      "language": "PowerShell",
+      "files": 1,
+      "loc": 21,
+      "estimated_tokens": 95,
+      "percentage": 0
+    },
+    {
+      "language": "Shell",
+      "files": 1,
+      "loc": 14,
+      "estimated_tokens": 63,
+      "percentage": 0
     }
   ],
   "cost_matrix": [
     {
       "operation": "full_project_context",
       "description": "Include entire project source as context",
-      "input_tokens": 529515,
+      "input_tokens": 514296,
       "output_tokens": 2000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 1.3238,
+          "input_cost": 1.2857,
           "output_cost": 0.02,
-          "total_cost": 1.3438
+          "total_cost": 1.3057
         },
         {
           "model": "GPT-4o-mini",
-          "input_cost": 0.0794,
+          "input_cost": 0.0771,
           "output_cost": 0.0012,
-          "total_cost": 0.0806
+          "total_cost": 0.0783
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 1.5885,
+          "input_cost": 1.5429,
           "output_cost": 0.03,
-          "total_cost": 1.6185
+          "total_cost": 1.5729
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.4236,
+          "input_cost": 0.4114,
           "output_cost": 0.008,
-          "total_cost": 0.4316
+          "total_cost": 0.4194
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.6619,
+          "input_cost": 0.6429,
           "output_cost": 0.02,
-          "total_cost": 0.6819
+          "total_cost": 0.6629
         }
       ]
     },
     {
       "operation": "selective_context",
       "description": "Include top 10 files + config as context",
-      "input_tokens": 132379,
+      "input_tokens": 128574,
       "output_tokens": 2000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 0.3309,
+          "input_cost": 0.3214,
           "output_cost": 0.02,
-          "total_cost": 0.3509
+          "total_cost": 0.3414
         },
         {
           "model": "GPT-4o-mini",
-          "input_cost": 0.0199,
+          "input_cost": 0.0193,
           "output_cost": 0.0012,
-          "total_cost": 0.0211
+          "total_cost": 0.0205
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 0.3971,
+          "input_cost": 0.3857,
           "output_cost": 0.03,
-          "total_cost": 0.4271
+          "total_cost": 0.4157
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.1059,
+          "input_cost": 0.1029,
           "output_cost": 0.008,
-          "total_cost": 0.1139
+          "total_cost": 0.1109
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.1655,
+          "input_cost": 0.1607,
           "output_cost": 0.02,
-          "total_cost": 0.1855
+          "total_cost": 0.1807
         }
       ]
     },
@@ -183,38 +197,38 @@
     {
       "operation": "code_review",
       "description": "Review a diff with project context",
-      "input_tokens": 211806,
+      "input_tokens": 205718,
       "output_tokens": 3000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 0.5295,
+          "input_cost": 0.5143,
           "output_cost": 0.03,
-          "total_cost": 0.5595
+          "total_cost": 0.5443
         },
         {
           "model": "GPT-4o-mini",
-          "input_cost": 0.0318,
+          "input_cost": 0.0309,
           "output_cost": 0.0018,
-          "total_cost": 0.0336
+          "total_cost": 0.0327
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 0.6354,
+          "input_cost": 0.6172,
           "output_cost": 0.045,
-          "total_cost": 0.6804
+          "total_cost": 0.6622
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.1694,
+          "input_cost": 0.1646,
           "output_cost": 0.012,
-          "total_cost": 0.1814
+          "total_cost": 0.1766
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.2648,
+          "input_cost": 0.2571,
           "output_cost": 0.03,
-          "total_cost": 0.2948
+          "total_cost": 0.2871
         }
       ]
     }
@@ -223,7 +237,7 @@
     "Use selective context — full project exceeds most context windows",
     "Focus on 6 dependency hotspots for efficient context selection",
     "Filter context by language when working in a specific tech stack layer",
-    "Include 18 config files (low token cost, high constraint value)"
+    "Include 19 config files (low token cost, high constraint value)"
   ],
   "notes": [
     "Token estimates use ~4.5 tokens/line empirical average",
@@ -232,5 +246,5 @@
     "Costs are per-operation — multiply by expected daily/weekly frequency"
   ],
   "source_file_count": 500,
-  "source_total_lines": 138880
+  "source_total_lines": 135331
 }

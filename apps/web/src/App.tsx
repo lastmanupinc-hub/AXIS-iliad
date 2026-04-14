@@ -18,25 +18,33 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
+// React requires a class for getDerivedStateFromError; this thin wrapper
+// keeps the rest of the codebase class-free per .cursorrules.
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
   static getDerivedStateFromError(error: Error) { return { error }; }
   componentDidCatch(error: Error) { console.error("UI crash:", error); }
   render() {
-    if (this.state.error) {
-      return (
-        <div className="card" style={{ margin: 40, textAlign: "center", padding: 32 }}>
-          <h2>Something went wrong</h2>
-          <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>{this.state.error.message}</p>
-          <button className="btn btn-primary" onClick={() => { this.setState({ error: null }); location.hash = ""; }}>
-            Reload
-          </button>
-        </div>
-      );
-    }
+    if (this.state.error) return this.props.fallback(this.state.error, () => this.setState({ error: null }));
     return this.props.children;
   }
+}
+
+function ErrorBoundary({ children }: { children: ReactNode }) {
+  return (
+    <ErrorCatcher fallback={(error, reset) => (
+      <div className="card" style={{ margin: 40, textAlign: "center", padding: 32 }}>
+        <h2>Something went wrong</h2>
+        <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>{error.message}</p>
+        <button className="btn btn-primary" onClick={() => { reset(); location.hash = ""; }}>
+          Reload
+        </button>
+      </div>
+    )}>
+      {children}
+    </ErrorCatcher>
+  );
 }
 
 type Page = "upload" | "dashboard" | "plans" | "account" | "docs" | "help" | "qa" | "programs" | "terms" | "for-agents" | "examples" | "install";
