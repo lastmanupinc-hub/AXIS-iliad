@@ -508,7 +508,7 @@ function categorizeError(msg: string): { code: ErrorCategory; retryable: boolean
     return { code: "quota", retryable: true };
   if (/file limit.*exceeds.*tier|exceeds max.*tier/i.test(msg))
     return { code: "tier_limit", retryable: false };
-  if (/is required|must be|invalid.*path|invalid.*url|must have|not found/i.test(msg))
+  if (/is required|must be|invalid.*path|invalid.*url|must have|not found|exceeds max/i.test(msg))
     return { code: "validation", retryable: false };
   if (/fetch failed|github.*failed/i.test(msg))
     return { code: "external", retryable: true };
@@ -516,6 +516,11 @@ function categorizeError(msg: string): { code: ErrorCategory; retryable: boolean
 }
 
 const MCP_FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
+
+/** Per-file content size limit (5 MB) — prevents oversized payloads. */
+const MAX_FILE_CONTENT_BYTES = 5 * 1024 * 1024;
+/** Max length for short string inputs (project_name, project_type). */
+const MAX_SHORT_STRING_LENGTH = 500;
 
 /** Filter generators to only include programs the account has access to. */
 function filterGeneratorsByEntitlement(
@@ -551,8 +556,12 @@ export async function runAnalyzeFiles(
 
   if (typeof project_name !== "string" || !project_name)
     throw new Error("project_name is required");
+  if (project_name.length > MAX_SHORT_STRING_LENGTH)
+    throw new Error(`project_name exceeds max length (${MAX_SHORT_STRING_LENGTH})`);
   if (typeof project_type !== "string" || !project_type)
     throw new Error("project_type is required");
+  if (project_type.length > MAX_SHORT_STRING_LENGTH)
+    throw new Error(`project_type exceeds max length (${MAX_SHORT_STRING_LENGTH})`);
   if (!Array.isArray(frameworks)) throw new Error("frameworks must be an array");
   if (!Array.isArray(goals)) throw new Error("goals must be an array");
   if (!Array.isArray(rawFiles) || rawFiles.length === 0)
@@ -568,7 +577,10 @@ export async function runAnalyzeFiles(
       .replace(/\/+/g, "/")
       .replace(/^\/+/, "");
     if (path.includes("..")) throw new Error(`Invalid file path: ${file.path as string}`);
-    return { path, content: file.content, size: Buffer.byteLength(file.content, "utf-8") };
+    const size = Buffer.byteLength(file.content, "utf-8");
+    if (size > MAX_FILE_CONTENT_BYTES)
+      throw new Error(`File ${path} exceeds max content size (${MAX_FILE_CONTENT_BYTES / 1024 / 1024} MB)`);
+    return { path, content: file.content, size };
   });
 
   /* quota exceeded and file limit paths — tested in quota-guardrails.test.ts */
@@ -948,6 +960,8 @@ export async function runImproveMyAgent(
   const { project_name, files: rawFiles } = args;
   if (typeof project_name !== "string" || !project_name)
     throw new Error("project_name is required");
+  if (project_name.length > MAX_SHORT_STRING_LENGTH)
+    throw new Error(`project_name exceeds max length (${MAX_SHORT_STRING_LENGTH})`);
   if (!Array.isArray(rawFiles) || rawFiles.length === 0)
     throw new Error("files must be a non-empty array");
 
@@ -958,7 +972,10 @@ export async function runImproveMyAgent(
     }
     const path = file.path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/+/, "");
     if (path.includes("..")) throw new Error(`Invalid file path: ${file.path as string}`);
-    return { path, content: file.content, size: Buffer.byteLength(file.content, "utf-8") };
+    const size = Buffer.byteLength(file.content, "utf-8");
+    if (size > MAX_FILE_CONTENT_BYTES)
+      throw new Error(`File ${path} exceeds max content size (${MAX_FILE_CONTENT_BYTES / 1024 / 1024} MB)`);
+    return { path, content: file.content, size };
   });
 
   /* v8 ignore start — quota paths */
@@ -1143,7 +1160,9 @@ const PURCHASING_INTENT_MAP: Array<{
 export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>): string {
   const taskDescription = typeof args.task_description === "string" ? args.task_description.trim() : "";
   const currentReadiness = typeof args.current_readiness === "number" ? args.current_readiness : null;
-  const focusAreas = Array.isArray(args.focus_areas) ? (args.focus_areas as string[]) : [];
+  const focusAreas: string[] = Array.isArray(args.focus_areas)
+    ? (args.focus_areas as unknown[]).filter((f): f is string => typeof f === "string")
+    : [];
 
   // Log intent for analytics (structured, no PII)
   log("info", "intent_probe", {
@@ -1432,6 +1451,7 @@ export function runGetArtifact(
   if (!generated) throw new Error("No generated artifacts for this snapshot");
 
   const normalized = filePath.replace(/^\.\//, "");
+  if (normalized.includes("..")) throw new Error(`Invalid artifact path: ${filePath}`);
   const file = generated.files.find(
     f => f.path === normalized || f.path === filePath,
   );
@@ -1461,8 +1481,12 @@ export async function runPreparePurchasing(
 
   if (typeof project_name !== "string" || !project_name)
     throw new Error("project_name is required");
+  if (project_name.length > MAX_SHORT_STRING_LENGTH)
+    throw new Error(`project_name exceeds max length (${MAX_SHORT_STRING_LENGTH})`);
   if (typeof project_type !== "string" || !project_type)
     throw new Error("project_type is required");
+  if (project_type.length > MAX_SHORT_STRING_LENGTH)
+    throw new Error(`project_type exceeds max length (${MAX_SHORT_STRING_LENGTH})`);
   if (!Array.isArray(frameworks)) throw new Error("frameworks must be an array");
   if (!Array.isArray(goals)) throw new Error("goals must be an array");
   if (!Array.isArray(rawFiles) || rawFiles.length === 0)
@@ -1478,7 +1502,10 @@ export async function runPreparePurchasing(
       .replace(/\/+/g, "/")
       .replace(/^\/+/, "");
     if (path.includes("..")) throw new Error(`Invalid file path: ${file.path as string}`);
-    return { path, content: file.content, size: Buffer.byteLength(file.content, "utf-8") };
+    const size = Buffer.byteLength(file.content, "utf-8");
+    if (size > MAX_FILE_CONTENT_BYTES)
+      throw new Error(`File ${path} exceeds max content size (${MAX_FILE_CONTENT_BYTES / 1024 / 1024} MB)`);
+    return { path, content: file.content, size };
   });
 
   const generators = listAvailableGenerators();

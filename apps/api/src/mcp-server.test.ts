@@ -756,6 +756,61 @@ describe("POST /mcp — tools/call get_artifact", () => {
   });
 });
 
+// ─── Input-validation hardening tests (eq_202) ──────────────────
+describe("POST /mcp — input validation hardening", () => {
+  it("rejects get_artifact with path traversal", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 950,
+      method: "tools/call",
+      params: { name: "get_artifact", arguments: { snapshot_id: snapshotId, path: "../../etc/passwd" } },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ text: string }>;
+    expect(content[0].text).toContain("Invalid artifact path");
+    const err = result._error as Record<string, unknown>;
+    expect(err.code).toBe("validation");
+  });
+
+  it("rejects analyze_files when project_name exceeds max length", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 951,
+      method: "tools/call",
+      params: { name: "analyze_files", arguments: { project_name: "x".repeat(501), project_type: "web", frameworks: [], goals: [], files: [{ path: "a.ts", content: "x" }] } },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ text: string }>;
+    expect(content[0].text).toContain("exceeds max length");
+    const err = result._error as Record<string, unknown>;
+    expect(err.code).toBe("validation");
+  });
+
+  it("rejects analyze_files with oversized file content", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 952,
+      method: "tools/call",
+      params: { name: "analyze_files", arguments: { project_name: "t", project_type: "web", frameworks: [], goals: [], files: [{ path: "big.ts", content: "x".repeat(5 * 1024 * 1024 + 1) }] } },
+    }, apiKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ text: string }>;
+    expect(content[0].text).toContain("exceeds max content size");
+  });
+
+  it("discover_agentic_purchasing_needs handles non-string focus_areas elements", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 953,
+      method: "tools/call",
+      params: { name: "discover_agentic_purchasing_needs", arguments: { task_description: "test", focus_areas: [42, null, "sca", { bad: true }] } },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    // Should succeed without crashing — non-strings are filtered out
+    expect(result.isError).toBe(false);
+  });
+});
+
 describe("POST /mcp — tools/call analyze_repo", () => {
   it("returns isError:true without auth", async () => {
     const r = await post("/mcp", {
