@@ -393,16 +393,35 @@ export async function handleCreateSnapshot(
     }
     if (requestedPro.size > 0) {
       const proList = [...requestedPro].sort();
-      sendError(res, 402, ErrorCode.TIER_REQUIRED,
-        `Free tier includes 3 programs (search, skills, debug). Upgrade to Pro to unlock: ${proList.join(", ")}.`,
-        {
-          blocked_programs: proList,
-          allowed_programs: [...allowedPrograms].sort(),
-          upgrade_url: "https://toolbox.jonathanarvay.com/#plans",
-          tier: auth.account.tier,
-        },
-      );
-      return;
+
+      // Offer MPP per-call payment before returning static 402
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier("analyze_repo");
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `AXIS pro programs - $${(amountCents / 100).toFixed(2)} per run (${proList.join(", ")})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, programs: proList.join(","), mode },
+      });
+
+      if (mppResult === null) {
+        // MPP not configured — return 402 with negotiation data
+        sendError(res, 402, ErrorCode.TIER_REQUIRED,
+          `Free tier includes 3 programs (search, skills, debug). Upgrade to Pro to unlock: ${proList.join(", ")}.`,
+          {
+            blocked_programs: proList,
+            allowed_programs: [...allowedPrograms].sort(),
+            upgrade_url: "https://toolbox.jonathanarvay.com/#plans",
+            tier: auth.account.tier,
+            price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+            ...build402NegotiationBody("analyze_repo", budget),
+          },
+        );
+      }
+      if (mppResult === null || mppResult.status === 402) return;
+      // mppResult.status === 200 — payment accepted, continue to generation
     }
   } else if (auth.anonymous) {
     // Anonymous users get free-tier program limits
@@ -418,6 +437,10 @@ export async function handleCreateSnapshot(
     }
     if (anonPro.size > 0) {
       const proList = [...anonPro].sort();
+      const budget = parseAgentBudget(req);
+      const pricing = getPricingTier("analyze_repo");
+      const mode = resolveAgentMode(req);
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
       sendError(res, 402, ErrorCode.TIER_REQUIRED,
         `Free tier includes 3 programs (search, skills, debug). Sign up or upgrade to Pro to unlock: ${proList.join(", ")}.`,
         {
@@ -425,6 +448,9 @@ export async function handleCreateSnapshot(
           allowed_programs: [...anonAllowed].sort(),
           upgrade_url: "https://toolbox.jonathanarvay.com/#plans",
           tier: "anonymous",
+          price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+          create_account_url: "https://axis-api-6c7z.onrender.com/v1/accounts",
+          ...build402NegotiationBody("analyze_repo", budget),
         },
       );
       return;
