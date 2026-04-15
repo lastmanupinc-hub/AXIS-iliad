@@ -87,6 +87,20 @@ function validSnapshot(projectName?: string) {
   };
 }
 
+/** Snapshot requesting a pro-tier output so quota limits actually trigger */
+function proSnapshot(projectName?: string) {
+  return {
+    manifest: {
+      project_name: projectName ?? `proj-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      project_type: "saas_web_app",
+      frameworks: ["react"],
+      goals: ["test"],
+      requested_outputs: [".ai/frontend-rules.md"],
+    },
+    files: [{ path: "index.ts", content: "export const x = 1;", size: 20 }],
+  };
+}
+
 async function createTestAccount(name?: string, email?: string) {
   const n = name ?? `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const e = email ?? `${n}@test.com`;
@@ -120,7 +134,7 @@ describe("auth — invalid key", () => {
 // ─── Quota exceeded ─────────────────────────────────────────────
 
 describe("auth — quota exceeded", () => {
-  it("returns 429 QUOTA_EXCEEDED when free tier exhausts monthly snapshots", async () => {
+  it("returns 429 QUOTA_EXCEEDED when free tier exhausts monthly snapshots with pro outputs", async () => {
     const { key, accountId } = await createTestAccount("quota", "quota@test.com");
     // Seed 9 usage records with fake snapshot_ids (won't create real projects)
     for (let i = 0; i < 9; i++) {
@@ -129,22 +143,33 @@ describe("auth — quota exceeded", () => {
     // 10th snapshot via real HTTP — should succeed (monthly count = 9 < 10)
     const ok = await req("POST", "/v1/snapshots", validSnapshot("quota-project"), key);
     expect(ok.status).toBe(201);
-    // 11th snapshot — should be blocked (monthly count = 10 >= 10)
-    const r = await req("POST", "/v1/snapshots", validSnapshot("quota-project"), key);
+    // 11th snapshot with pro outputs — should be blocked (monthly count = 10 >= 10)
+    const r = await req("POST", "/v1/snapshots", proSnapshot("quota-project"), key);
     expect(r.status).toBe(429);
     expect(r.data.error_code).toBe("QUOTA_EXCEEDED");
     expect(r.data.tier).toBe("free");
     expect(r.data.usage).toBeTruthy();
   });
 
-  it("returns 429 when free tier exceeds project limit", async () => {
+  it("allows free-program-only requests even when quota exceeded", async () => {
+    const { key, accountId } = await createTestAccount("freequota", "freequota@test.com");
+    // Exhaust quota
+    for (let i = 0; i < 10; i++) {
+      recordUsage(accountId, "search", `fake-snap-${i}`, 1, 1, 100);
+    }
+    // Free-only request should still succeed
+    const r = await req("POST", "/v1/snapshots", validSnapshot("free-project"), key);
+    expect(r.status).toBe(201);
+  });
+
+  it("returns 429 when free tier exceeds project limit with pro outputs", async () => {
     const { key, accountId } = await createTestAccount("projlimit", "projlimit@test.com");
     // Free tier allows 1 project — first snapshot creates a project
     const r1 = await req("POST", "/v1/snapshots", validSnapshot("first-project"), key);
     expect(r1.status).toBe(201);
 
-    // Second snapshot with DIFFERENT project name should fail (2nd project)
-    const r2 = await req("POST", "/v1/snapshots", validSnapshot("second-project"), key);
+    // Second snapshot with DIFFERENT project name + pro output should fail (2nd project)
+    const r2 = await req("POST", "/v1/snapshots", proSnapshot("second-project"), key);
     expect(r2.status).toBe(429);
     expect(r2.data.error_code).toBe("QUOTA_EXCEEDED");
   });

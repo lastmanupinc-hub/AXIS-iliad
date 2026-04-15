@@ -343,34 +343,28 @@ export async function handleCreateSnapshot(
         [...requestedProgramsFromOutputs].every(p => FREE_PROGRAMS.has(p));
 
       if (onlyFreePrograms) {
-        // Free-program-only requests: enforce quota limit but don't invoke MPP
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
-          tier: quota.tier,
-          usage: quota.usage,
-          upgrade_url: "https://toolbox.jonathanarvay.com/#plans",
+        // Free-program-only requests bypass quota entirely — free programs are always available
+      } else {
+        trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
+        const budget = parseAgentBudget(req);
+        const mode = resolveAgentMode(req);
+        const pricing = getPricingTier("analyze_repo");
+        const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+        const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+          currency: "usd",
+          decimals: 2,
+          description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+          meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode },
         });
-        return;
+        if (mppResult === null) {
+          sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
+            tier: quota.tier,
+            usage: quota.usage,
+            ...build402NegotiationBody("analyze_repo", budget),
+          });
+        }
+        if (mppResult === null || mppResult.status === 402) return;
       }
-
-      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
-      const budget = parseAgentBudget(req);
-      const mode = resolveAgentMode(req);
-      const pricing = getPricingTier("analyze_repo");
-      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
-        currency: "usd",
-        decimals: 2,
-        description: `AXIS API Credit - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode },
-      });
-      if (mppResult === null) {
-        sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
-          tier: quota.tier,
-          usage: quota.usage,
-          ...build402NegotiationBody("analyze_repo", budget),
-        });
-      }
-      if (mppResult === null || mppResult.status === 402) return;
     }
     /* v8 ignore stop */
 
