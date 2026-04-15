@@ -46,6 +46,11 @@ import {
   handleDeleteProject,
   makeProgramHandler,
   PROGRAM_OUTPUTS,
+  handleSecurityTxt,
+  handleAgentJson,
+  handleHealthRedirect,
+  handleDocsRedirect,
+  handleOpenApiJson,
 } from "./handlers.js";
 import {
   handleCreateAccount,
@@ -180,9 +185,16 @@ router.post("/v1/github/analyze", handleGitHubAnalyze);
 router.get("/.well-known/axis.json", handleWellKnown);
 router.get("/.well-known/capabilities.json", handleCapabilities);
 router.get("/.well-known/mcp.json", handleMcpServerJson);
+router.get("/.well-known/security.txt", handleSecurityTxt);
+router.get("/.well-known/agent.json", handleAgentJson);
 
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);
+
+// Scanner-friendly root-level aliases
+router.get("/health", handleHealthRedirect);
+router.get("/docs", handleDocsRedirect);
+router.get("/openapi.json", handleOpenApiJson);
 
 // AI tool discovery standards (llmstxt.org + agentskills.io)
 router.get("/llms.txt", handleLlmsTxt);

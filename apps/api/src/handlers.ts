@@ -2036,8 +2036,11 @@ export async function handleWellKnown(
       step_4: "Place AGENTS.md in repo root  -  AI assistants auto-load it immediately",
     },
     llms_txt: "GET /llms.txt  -  plain-text instructions for AI tools on how to interact with AXIS",
+    security_txt: "GET /.well-known/security.txt  -  RFC 9116 security contact (Contact, Expires, Policy, Canonical)",
+    agent_json: "GET /.well-known/agent.json  -  AgentSEO/MCP scanner agent manifest (name, version, capabilities, endpoints)",
     skills: "GET /.well-known/skills/index.json  -  agent skills index following the agentskills.io standard",
     capabilities: "GET /.well-known/capabilities.json  -  semantic capability manifest for agent tool discovery (AP2/UCP/Visa/purchasing/compliance/agentic-commerce/CE3.0/win-probability/lighter-SCA keywords indexed).",
+    openapi_json: "GET /openapi.json  -  OpenAPI 3.1 spec alias",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
       purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence + win probability model + lighter SCA paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
@@ -2075,6 +2078,7 @@ export async function handleCapabilities(
       "code-review", "repo-analysis", "github-analysis", "ai-coding-assistant",
       "copilot-context", "cursor-rules", "context-generation", "agent-tools",
       "commerce-readiness", "codebase-intelligence",
+      "security-txt", "RFC-9116", "vulnerability-disclosure",
       "SCA", "PSD2", "PCI-DSS", "fraud-detection", "dispute-flow",
       "intent-discovery", "probe-intent", "checkout-flow", "payment-gateway",
       "agent-onboarding", "self-onboarding", "purchasing-needs",
@@ -2126,6 +2130,7 @@ export async function handleCapabilities(
         "discover_agentic_purchasing_needs", "get_referral_code", "check_referral_credits",
       ],
     },
+    security_txt: "https://axis-api-6c7z.onrender.com/.well-known/security.txt",
     examples_repo: "https://github.com/lastmanupinc-hub/axis-toolbox-examples",
     for_agents: "https://axis-api-6c7z.onrender.com/for-agents",
     openapi: "https://axis-api-6c7z.onrender.com/v1/docs",
@@ -2177,16 +2182,51 @@ For autonomous purchasing agents:
 - Obtain key: POST /v1/accounts with {email, name, tier: "free"}
 - Free tier: unlimited on search/skills/debug programs, 3 snapshots/day on pro programs
 
+## Instructions for LLM Agents
+
+When integrating with AXIS Toolbox as an LLM agent:
+
+- Always use POST /v1/analyze as the primary entry point for codebase analysis.
+- Prefer MCP transport (POST /mcp) over REST when your runtime supports Model Context Protocol.
+- Do NOT embed API keys in generated artifacts or share them in client-side code.
+- Free programs (search, skills, debug) never require auth or payment. Do not prompt for auth when calling only free programs.
+- For paid programs, handle 402 responses by reading the negotiation body: it includes pricing, budget headers, lite-mode alternatives, and free fallbacks.
+- When receiving a 429 (quota exceeded), retry after the window resets or switch to free-only programs.
+- The referral_token in paid responses can be forwarded to other agents for micro-discounts. Do not discard it.
+- Use GET /.well-known/axis.json for machine-readable capability discovery, not the OpenAPI spec.
+- Use POST /probe-intent with {intent: "your need"} for lightweight intent matching (free, no auth).
+- Always check the adoption_hint field on returned artifacts to know where to place each file.
+
 ## Docs
 
 - Full OpenAPI 3.1 spec: GET /v1/docs
 - Plain-text docs: GET /v1/docs.md
 - Discovery manifest: GET /.well-known/axis.json
+- Security policy: GET /.well-known/security.txt
 - Agent skills: GET /.well-known/skills/index.json
 - MCP registry metadata: GET /v1/mcp/server.json  -  for mcp-publisher CLI and registry crawlers
 `;
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(body);
+}
+
+// ─── GET /.well-known/security.txt  -  RFC 9116 ────────────────────
+
+export async function handleSecurityTxt(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const lines = [
+    "Contact: mailto:security@jonathanarvay.com",
+    "Contact: https://github.com/lastmanupinc-hub/Toolbox/security/advisories",
+    "Expires: 2027-04-15T00:00:00.000Z",
+    "Preferred-Languages: en",
+    "Canonical: https://axis-api-6c7z.onrender.com/.well-known/security.txt",
+    "Policy: https://github.com/lastmanupinc-hub/Toolbox/security/policy",
+    "Hiring: https://github.com/lastmanupinc-hub",
+  ];
+  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end(lines.join("\n") + "\n");
 }
 
 // ─── GET /.well-known/skills/index.json  -  agent skills registry ──
@@ -2201,25 +2241,38 @@ export async function handleRobotsTxt(
     "",
     "User-agent: *",
     "Allow: /",
-    "",
-    "# Special directives for AI / MCP / agent probes",
-    "User-agent: GPTBot",
-    "User-agent: OAI-SearchBot",
-    "User-agent: Google-Extended",
-    "User-agent: 402.ad-mcp-probe",
-    "User-agent: *",
-    "Disallow: /private/",
+    "Allow: /.well-known/",
     "Allow: /mcp",
     "Allow: /for-agents",
     "Allow: /v1/",
+    "Allow: /llms.txt",
+    "Allow: /robots.txt",
+    "Disallow: /private/",
     "",
-    "# This is the AXIS Toolbox MCP server (io.github.lastmanupinc-hub/axis-toolbox)",
+    "# AI / MCP / agent crawler directives",
+    "User-agent: GPTBot",
+    "Allow: /",
+    "",
+    "User-agent: OAI-SearchBot",
+    "Allow: /",
+    "",
+    "User-agent: Google-Extended",
+    "Allow: /",
+    "",
+    "User-agent: ClaudeBot",
+    "Allow: /",
+    "",
+    "User-agent: Amazonbot",
+    "Allow: /",
+    "",
+    "# AXIS Toolbox MCP server (io.github.lastmanupinc-hub/axis-toolbox)",
     "# Primary tool: prepare_for_agentic_purchasing",
     "# Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)",
     "# Pay-per-run: $0.50 via Stripe MPP",
-    "# Full documentation: https://toolbox.jonathanarvay.com/for-agents",
+    "# Full documentation: https://axis-api-6c7z.onrender.com/for-agents",
+    "# Security: https://axis-api-6c7z.onrender.com/.well-known/security.txt",
     "",
-    "Sitemap: https://toolbox.jonathanarvay.com/sitemap.xml",
+    "# Discovery endpoints: GET /.well-known/axis.json, GET /.well-known/agent.json, GET /openapi.json",
   ];
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(lines.join("\n"));
@@ -2232,7 +2285,7 @@ export async function handleSkillsIndex(
   sendJSON(res, 200, {
     version: "1.0",
     publisher: "AXIS Toolbox / Last Man Up Inc.",
-    updated: "2026-04-12",
+    updated: "2026-04-15",
     skills: [
       {
         name: "axis-analyze",
@@ -2305,7 +2358,7 @@ export async function handleDocsMd(
 ): Promise<void> {
   const body = `# AXIS Toolbox API  -  Plain Text Reference
 
-Version: 0.4.0 | Base URL: https://axis-api-6c7z.onrender.com
+Version: 0.5.0 | Base URL: https://axis-api-6c7z.onrender.com
 
 ## Authentication
 
@@ -2801,4 +2854,81 @@ export async function handleProbeIntent(
     install: `${AXIS_API_BASE}/v1/install`,
     for_agents: `${AXIS_API_BASE}/for-agents`,
   });
+}
+
+// ─── GET /.well-known/agent.json  -  AgentSEO / MCP scanner standard ──
+
+export async function handleAgentJson(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    name: "AXIS Toolbox",
+    version: "0.5.0",
+    description: "Deterministic snapshot-based generation of 86+ artifacts across 18 specialized programs",
+    capabilities: {
+      core: "AI-native development operating system",
+      input: "repository snapshot or URL",
+      output: "86+ structured, deterministic artifacts",
+      programs: 18,
+      artifacts: 86,
+    },
+    monetization: {
+      model: "usage-based MPP ($0.50 per run)",
+      pro: "$29/month — unlimited + all features",
+    },
+    homepage: "https://toolbox.jonathanarvay.com",
+    mcp_endpoint: "/mcp",
+    endpoints: {
+      analyze: "POST /v1/analyze",
+      health: "GET /v1/health",
+      docs: "GET /v1/docs",
+      openapi: "GET /openapi.json",
+      llms: "GET /llms.txt",
+      robots: "GET /robots.txt",
+      security: "GET /.well-known/security.txt",
+      capabilities: "GET /.well-known/capabilities.json",
+      skills: "GET /.well-known/skills/index.json",
+      for_agents: "GET /for-agents",
+    },
+  });
+}
+
+// ─── GET /health  -  scanner-friendly health probe ────────────────
+
+export async function handleHealthRedirect(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    status: "healthy",
+    version: "0.5.0",
+    timestamp: new Date().toISOString(),
+    uptime: "OK",
+    details: "/v1/health for full health check",
+  });
+}
+
+// ─── GET /docs  -  redirect to API docs ──────────────────────────
+
+export async function handleDocsRedirect(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    docs: "https://toolbox.jonathanarvay.com/docs",
+    openapi: "/v1/docs",
+    markdown: "/v1/docs.md",
+    description: "AXIS Toolbox documentation and API reference",
+  });
+}
+
+// ─── GET /openapi.json  -  OpenAPI spec alias ────────────────────
+
+export async function handleOpenApiJson(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { buildOpenApiSpec } = await import("./openapi.js");
+  sendJSON(res, 200, buildOpenApiSpec());
 }
