@@ -264,6 +264,13 @@ export function createApp(router: Router, port: number): Server {
       return;
     }
 
+    // MCP endpoint only accepts GET and POST — reject other methods cleanly
+    if (req.url?.startsWith("/mcp") && req.method !== "GET" && req.method !== "POST") {
+      res.writeHead(405, { "Allow": "GET, POST" });
+      res.end();
+      return;
+    }
+
     // Log after response completes
     /* v8 ignore start — V8 quirk: finish callback ternaries for duration/status/level */
     res.on("finish", () => {
