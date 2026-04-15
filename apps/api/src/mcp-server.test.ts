@@ -1606,9 +1606,11 @@ describe("POST /mcp — tools/call get_referral_code", () => {
     });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
     const content = result.content as Array<{ type: string; text: string }>;
-    const parsed = JSON.parse(content[0].text);
-    expect(parsed.error).toContain("Authentication required");
+    expect(content[0].text).toContain("Authentication required");
+    const err = result._error as Record<string, unknown>;
+    expect(err.code).toBe("auth");
   });
 
   it("returns referral_token and earnings when authenticated", async () => {
@@ -1668,9 +1670,11 @@ describe("POST /mcp — tools/call check_referral_credits", () => {
     });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
     const content = result.content as Array<{ type: string; text: string }>;
-    const parsed = JSON.parse(content[0].text);
-    expect(parsed.error).toContain("Authentication required");
+    expect(content[0].text).toContain("Authentication required");
+    const err = result._error as Record<string, unknown>;
+    expect(err.code).toBe("auth");
   });
 
   it("returns full credit breakdown when authenticated", async () => {

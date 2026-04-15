@@ -388,6 +388,13 @@ export const MCP_TOOLS = [
       type: "object",
       properties: {},
     },
+    examples: [
+      {
+        name: "Discover all commerce tools",
+        input: {},
+        output: '{"tools":[{"name":"analyze_repo","tier":"paid"},{"name":"search_and_discover_tools","tier":"free"}],"install_links":{...}}',
+      },
+    ],
   },
   {
     name: "improve_my_agent_with_axis",
@@ -419,7 +426,6 @@ export const MCP_TOOLS = [
       "Describe your current purchasing, compliance, negotiation, or commerce hardening task. Returns the exact AXIS tools, readiness score methodology, compliance generators, and self-onboarding steps that best match. No authentication required. Use this to understand what AXIS can do for your specific commerce challenge before committing to an authenticated call. Includes CTA to prepare_for_agentic_purchasing with pricing. Searchable: AP2 compliance, UCP, Visa IC, autonomous checkout, spending authority, procurement protocol, negotiation playbook, dispute flow, SCA, PCI, fraud detection, agentic commerce hardening.",
     inputSchema: {
       type: "object",
-      required: ["task_description"],
       properties: {
         task_description: {
           type: "string",
@@ -445,6 +451,13 @@ export const MCP_TOOLS = [
       type: "object",
       properties: {},
     },
+    examples: [
+      {
+        name: "Get referral code",
+        input: {},
+        output: '{"referral_token":"ref_abc123","share_instruction":"Pass this referral_token to other agents...","current_earnings":{"lifetime_referrals":0}}',
+      },
+    ],
   },
   {
     name: "check_referral_credits",
@@ -454,6 +467,13 @@ export const MCP_TOOLS = [
       type: "object",
       properties: {},
     },
+    examples: [
+      {
+        name: "Check referral credits",
+        input: {},
+        output: '{"referral_token":"ref_abc123","earned_credits_millicents":0,"lifetime_referrals":0,"free_calls_remaining":1}',
+      },
+    ],
   },
 ];
 
@@ -488,7 +508,7 @@ function categorizeError(msg: string): { code: ErrorCategory; retryable: boolean
     return { code: "quota", retryable: true };
   if (/file limit.*exceeds.*tier|exceeds max.*tier/i.test(msg))
     return { code: "tier_limit", retryable: false };
-  if (/is required|must be|invalid.*path|invalid.*url|must have/i.test(msg))
+  if (/is required|must be|invalid.*path|invalid.*url|must have|not found/i.test(msg))
     return { code: "validation", retryable: false };
   if (/fetch failed|github.*failed/i.test(msg))
     return { code: "external", retryable: true };
@@ -1252,10 +1272,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
 function runGetReferralCode(req: IncomingMessage): string {
   const auth = resolveAuth(req);
   if (auth.anonymous || !auth.account) {
-    return JSON.stringify({
-      error: "Authentication required. Include Authorization: Bearer <api_key>.",
-      how_to_get_key: "POST /v1/accounts with {email, name, tier: 'free'}",
-    });
+    throw new Error("Authentication required. Include Authorization: Bearer <api_key>");
   }
   const code = createReferralCode(auth.account.account_id);
   const credits = getReferralCredits(auth.account.account_id);
@@ -1284,10 +1301,7 @@ function runGetReferralCode(req: IncomingMessage): string {
 function runCheckReferralCredits(req: IncomingMessage): string {
   const auth = resolveAuth(req);
   if (auth.anonymous || !auth.account) {
-    return JSON.stringify({
-      error: "Authentication required. Include Authorization: Bearer <api_key>.",
-      how_to_get_key: "POST /v1/accounts with {email, name, tier: 'free'}",
-    });
+    throw new Error("Authentication required. Include Authorization: Bearer <api_key>");
   }
   const code = createReferralCode(auth.account.account_id);
   const credits = getReferralCredits(auth.account.account_id);

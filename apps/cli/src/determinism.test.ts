@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
+import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { SnapshotRecord, FileEntry } from "@axis/snapshots";
 
 /**
@@ -127,5 +128,56 @@ describe("determinism proof (eq_086)", () => {
       buildContextMap(polyglotFixture).architecture_signals.separation_score,
     );
     expect(new Set(scores).size).toBe(1);
+  });
+});
+
+describe("generator determinism proof", () => {
+  /** Strip ISO timestamps from content so sub-ms variance doesn't break byte-comparison. */
+  function stripTimestamps(s: string): string {
+    return s.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[.\d]*Z?/g, "TIMESTAMP");
+  }
+
+  function runFullPipeline() {
+    const ctxMap = buildContextMap(polyglotFixture);
+    const repoProfile = buildRepoProfile(polyglotFixture);
+    const allOutputs = listAvailableGenerators().map(g => g.path);
+    const result = generateFiles({
+      context_map: ctxMap,
+      repo_profile: repoProfile,
+      requested_outputs: allOutputs,
+      source_files: polyglotFixture.files.map(f => ({ path: f.path, content: f.content })),
+    });
+    // Normalize top-level timestamp
+    result.generated_at = "FIXED";
+    return result;
+  }
+
+  it("generateFiles produces identical output on consecutive runs (modulo timestamps)", () => {
+    const a = runFullPipeline();
+    const b = runFullPipeline();
+    expect(stripTimestamps(JSON.stringify(a))).toBe(stripTimestamps(JSON.stringify(b)));
+  });
+
+  it("artifact file order is deterministic", () => {
+    const a = runFullPipeline();
+    const b = runFullPipeline();
+    const aPaths = a.files.map(f => f.path);
+    const bPaths = b.files.map(f => f.path);
+    expect(aPaths).toEqual(bPaths);
+  });
+
+  it("artifact content is identical per file (modulo timestamps)", () => {
+    const a = runFullPipeline();
+    const b = runFullPipeline();
+    for (let i = 0; i < a.files.length; i++) {
+      expect(a.files[i].path).toBe(b.files[i].path);
+      expect(stripTimestamps(a.files[i].content)).toBe(stripTimestamps(b.files[i].content));
+    }
+  });
+
+  it("skipped list is deterministic", () => {
+    const a = runFullPipeline();
+    const b = runFullPipeline();
+    expect(JSON.stringify(a.skipped)).toBe(JSON.stringify(b.skipped));
   });
 });
