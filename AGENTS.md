@@ -82,7 +82,7 @@ AI-native development operating system. Upload or point at any codebase — get 
 - `POST /probe-intent` → apps/api/src/server.ts
 - `GET /v1/install` → apps/api/src/server.ts
 - `GET /v1/install/:platform` → apps/api/src/server.ts
-- *… 55 more (see OpenAPI spec or `/v1/docs`)*
+- *… 57 more (see OpenAPI spec or `/v1/docs`)*
 
 ### Domain Models
 
@@ -144,7 +144,7 @@ Respect these layer separations:
 ```json
 {
   "name": "@axis/api",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -180,7 +180,7 @@ Respect these layer separations:
 ```json
 {
   "name": "@axis/cli",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "bin": {

@@ -50,7 +50,7 @@ describe("buildOpenApiSpec", () => {
         p.includes("/v1/skills/") ||
         (p.includes("/search/export"))
     );
-    expect(programPaths.length).toBe(19);
+    expect(programPaths.length).toBe(20);
   });
 
   it("includes billing endpoints", () => {
@@ -175,7 +175,7 @@ describe("buildOpenApiSpec", () => {
   });
 
   it("all paths start with /v1/ or are root-level MCP paths", () => {
-    const NON_V1_PATHS = new Set(["/mcp", "/.well-known/axis.json", "/.well-known/capabilities.json", "/.well-known/security.txt", "/.well-known/agent.json", "/.well-known/skills/index.json", "/llms.txt", "/robots.txt", "/sitemap.xml", "/for-agents", "/probe-intent", "/health", "/docs", "/openapi.json"]);
+    const NON_V1_PATHS = new Set(["/", "/mcp", "/.well-known/axis.json", "/.well-known/capabilities.json", "/.well-known/security.txt", "/.well-known/agent.json", "/.well-known/mcp.json", "/.well-known/skills/index.json", "/llms.txt", "/robots.txt", "/sitemap.xml", "/for-agents", "/probe-intent", "/health", "/docs", "/openapi.json", "/mcp/docs"]);
     for (const path of Object.keys(spec.paths)) {
       expect(path.startsWith("/v1/") || NON_V1_PATHS.has(path)).toBe(true);
     }

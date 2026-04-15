@@ -249,6 +249,20 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/prepare-for-agentic-purchasing": {
+        post: {
+          summary: "Generate agentic purchasing readiness assessment — AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
+          operationId: "prepareForAgenticPurchasing",
+          tags: ["Analyze", "Agentic Commerce"],
+          requestBody: jsonBody(ref("AnalyzeRequest")),
+          responses: {
+            201: { description: "Purchasing readiness score + compliance artifacts" },
+            400: { description: "Validation error" },
+            401: { description: "Invalid or revoked API key" },
+            429: { description: "Rate limit or quota exceeded" },
+          },
+        },
+      },
 
       // ── GitHub ──
       "/v1/github/analyze": {
@@ -414,6 +428,26 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/.well-known/mcp.json": {
+        get: {
+          summary: "MCP server discovery manifest (alternate well-known path for registry crawlers)",
+          operationId: "getWellKnownMcpJson",
+          tags: ["MCP", "Discovery"],
+          responses: {
+            200: { description: "Same as /v1/mcp/server.json — MCP server metadata" },
+          },
+        },
+      },
+      "/mcp/docs": {
+        get: {
+          summary: "Human-readable MCP integration documentation page",
+          operationId: "getMcpDocs",
+          tags: ["MCP", "Discovery"],
+          responses: {
+            200: { description: "MCP documentation with tool list, usage examples, and install configs" },
+          },
+        },
+      },
 
       // ── Search ──
       "/v1/search/index": {
@@ -448,6 +482,17 @@ export function buildOpenApiSpec(): OpenApiSpec {
           parameters: [pathParam("snapshot_id", "Snapshot identifier")],
           responses: {
             200: { description: "Index stats", content: jsonContent(ref("SearchStatsResponse")) },
+          },
+        },
+      },
+      "/v1/search/{snapshot_id}/symbols": {
+        get: {
+          summary: "Get extracted symbols (functions, classes, exports) from a snapshot's search index",
+          operationId: "searchSymbols",
+          tags: ["Search"],
+          parameters: [pathParam("snapshot_id", "Snapshot identifier")],
+          responses: {
+            200: { description: "Extracted symbols list" },
           },
         },
       },
@@ -936,6 +981,42 @@ export function buildOpenApiSpec(): OpenApiSpec {
           tags: ["Discovery"],
           responses: {
             200: { description: "Platform-keyed install config objects ready to write to disk" },
+          },
+        },
+      },
+      "/v1/install/{platform}": {
+        get: {
+          summary: "Platform-specific install config (e.g. cursor, windsurf, claude-desktop, vscode)",
+          operationId: "getInstallPlatform",
+          tags: ["Discovery"],
+          parameters: [pathParam("platform", "Target platform identifier (cursor, windsurf, claude-desktop, vscode, claude-code)")],
+          responses: {
+            200: { description: "Platform-specific install configuration" },
+            404: { description: "Unknown platform" },
+          },
+        },
+      },
+
+      // ── Stats ──
+      "/v1/stats": {
+        get: {
+          summary: "Anonymous MCP call counters — today/total calls, top tools, process uptime",
+          operationId: "getStats",
+          tags: ["Health"],
+          responses: {
+            200: { description: "Aggregated call statistics and top-tools ranking" },
+          },
+        },
+      },
+
+      // ── Root ──
+      "/": {
+        get: {
+          summary: "API landing page — name, version, docs/health/mcp links, endpoint count",
+          operationId: "getRoot",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "API identity and navigation links" },
           },
         },
       },
