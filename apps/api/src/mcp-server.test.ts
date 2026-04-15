@@ -305,6 +305,19 @@ describe("POST /mcp — tools/list", () => {
     expect(incentivesIdx).toBeGreaterThanOrEqual(0);
     expect(incentivesIdx).toBeLessThan(contentIdx);
   });
+
+  it("every tool schema has examples array", () => {
+    for (const tool of MCP_TOOLS) {
+      expect(
+        (tool as Record<string, unknown>).examples,
+        `${tool.name} missing examples`,
+      ).toBeDefined();
+      expect(
+        Array.isArray((tool as Record<string, unknown>).examples),
+        `${tool.name} examples is not an array`,
+      ).toBe(true);
+    }
+  });
 });
 
 describe("POST /mcp — tools/call list_programs", () => {

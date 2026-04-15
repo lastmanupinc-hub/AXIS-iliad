@@ -445,9 +445,9 @@ describe("MCP_TOOLS — prepare_for_agentic_purchasing", () => {
     expect(sw?.enum).toContain("monthly");
   });
 
-  it("description mentions CE 3.0 and win probability", () => {
-    expect(tool!.description).toContain("Compelling Evidence 3.0");
-    expect(tool!.description).toContain("win-probability");
+  it("description mentions CE 3.0 and dispute capabilities", () => {
+    expect(tool!.description).toContain("CE 3.0");
+    expect(tool!.description).toContain("dispute");
   });
 
   it("lists 12 total MCP tools", () => {
