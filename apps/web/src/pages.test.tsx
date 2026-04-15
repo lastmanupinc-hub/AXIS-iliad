@@ -83,7 +83,7 @@ describe("Page smoke tests — pages with required props", () => {
 
 import { Icon } from "./components/AxisIcons";
 import { StatusBar } from "./components/StatusBar";
-import { Toast, ToastProvider } from "./components/Toast";
+import { ToastProvider } from "./components/Toast";
 import { SignUpModal } from "./components/SignUpModal";
 
 describe("Component smoke tests", () => {
