@@ -122,7 +122,7 @@
     "subtitle": "AI-native development operating system. Upload or point at any codebase — get 86 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
     "type": "monorepo",
     "language": "TypeScript",
-    "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 162 domain models.",
+    "project_summary": "axis-toolbox is a monorepo built with TypeScript using React. It contains 550+ files across 17 top-level directories. It defines 128 domain models.",
     "frameworks": [
       {
         "name": "React",
