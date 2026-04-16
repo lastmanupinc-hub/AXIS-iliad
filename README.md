@@ -2,7 +2,7 @@
 
 > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
 
-> **Evolution note:** Axis' Iliad is the new name for Axis' Iliad. The platform, APIs, and MCP endpoint remain active while docs and ecosystem references converge on the new brand.
+> **Canonical name:** Axis' Iliad. Use this name consistently across docs, registries, and integrations.
 
 [![Tests](https://img.shields.io/badge/tests-4076%20passing-brightgreen)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Coverage](https://img.shields.io/badge/coverage-91.5%25-green)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
