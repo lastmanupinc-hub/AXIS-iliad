@@ -8,10 +8,28 @@ import { sendJSON, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
 import type { Account } from "@axis/snapshots";
 
-// JWT configuration - read from .pem files in project root
-const JWT_PRIVATE_KEY = fs.readFileSync(path.join(process.cwd(), "..", "..", "private-key.pem"), "utf8");
-const JWT_PUBLIC_KEY = fs.readFileSync(path.join(process.cwd(), "..", "..", "public-key.pem"), "utf8");
+// JWT configuration - read from .pem files in project root, with fallback for tests
+let JWT_PRIVATE_KEY: string;
+let JWT_PUBLIC_KEY: string;
 const JWT_ALGORITHM = "RS256";
+
+try {
+  JWT_PRIVATE_KEY = fs.readFileSync(path.join(process.cwd(), "..", "..", "private-key.pem"), "utf8");
+  JWT_PUBLIC_KEY = fs.readFileSync(path.join(process.cwd(), "..", "..", "public-key.pem"), "utf8");
+} catch (error) {
+  // Fallback for test environments - generate temporary keys
+  if (process.env.NODE_ENV === "test") {
+    const { privateKey, publicKey } = require("crypto").generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    });
+    JWT_PRIVATE_KEY = privateKey;
+    JWT_PUBLIC_KEY = publicKey;
+  } else {
+    throw error;
+  }
+}
 
 // Simple OAuth server implementation
 
