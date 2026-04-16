@@ -347,6 +347,8 @@ router.get("/v1/mcp/tools", async (req, res) => {
 
 // Billing & Account management
 router.post("/v1/accounts", handleCreateAccount);
+// Backward-compatible alias for clients that call unversioned account creation.
+router.post("/accounts", handleCreateAccount);
 router.get("/v1/account", handleGetAccount);
 router.post("/v1/account/keys", handleCreateApiKey);
 router.get("/v1/account/keys", handleListApiKeys);

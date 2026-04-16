@@ -564,6 +564,15 @@ export function buildOpenApiSpec(): OpenApiSpec {
           responses: { 201: { description: "Account created" }, 400: { description: "Validation error" } },
         },
       },
+      "/accounts": {
+        post: {
+          summary: "Create a new account (alias)",
+          operationId: "createAccountAlias",
+          tags: ["Billing"],
+          requestBody: jsonBody(ref("CreateAccountRequest")),
+          responses: { 201: { description: "Account created" }, 400: { description: "Validation error" } },
+        },
+      },
       "/v1/account": {
         get: {
           summary: "Get current account details (requires API key)",
