@@ -89,13 +89,11 @@ const OUTPUT_OPTIONS = [
 const ESSENTIALS = ["context-map.json", "AGENTS.md", "CLAUDE.md", ".cursorrules", "copilot-instructions.md"];
 
 export function UploadPage({ onComplete }: Props) {
-  const [mode, setMode] = useState<"upload" | "github">("upload");
+  const [mode, setMode] = useState<"upload" | "github">("github");
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("web_application");
   const [goals, setGoals] = useState("Generate AI context files");
-  const [selectedOutputs, setSelectedOutputs] = useState<string[]>(
-    OUTPUT_OPTIONS.map((o) => o.value),
-  );
+  const [selectedOutputs, setSelectedOutputs] = useState<string[]>(ESSENTIALS);
   const [files, setFiles] = useState<Array<{ path: string; content: string; size: number }>>([]);
   const [githubUrl, setGithubUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -362,16 +360,40 @@ export function UploadPage({ onComplete }: Props) {
         </div>
       </div>
 
-      {/* ── Go Pro top banner ──────────────────────────────────────── */}
-      <div className="gopro-banner">
-        <div>
-          <strong>Go Pro — unlock all 18 programs and 86 artifacts.</strong>
-          <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>$29/month · cancel anytime · no credit card to start</span>
-        </div>
-        <button className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => { window.location.hash = "plans"; }}>
-          See Plans
-        </button>
-      </div>
+      {/* ── Example output preview ─────────────────────────────── */}
+      <details style={{ marginBottom: 20, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 16px" }}>
+        <summary style={{ cursor: "pointer", fontSize: "0.875rem", color: "var(--text-muted)", userSelect: "none" }}>
+          See example output → <code>AGENTS.md</code>
+        </summary>
+        <pre style={{ marginTop: 12, fontSize: "0.75rem", lineHeight: 1.6, color: "var(--text-muted)", overflow: "auto", maxHeight: 280, background: "var(--bg)", borderRadius: 4, padding: "12px 14px" }}>{`# AGENTS.md — my-project
+
+## Project Context
+Web application built with TypeScript + React 19.
+Upload or point at any codebase — get 86 generated artifacts.
+
+### Stack
+- React ^19.1.0
+
+### Architecture
+- monorepo  · containerized
+
+### Routes
+- \`GET /\` → apps/api/src/server.ts
+- \`POST /v1/snapshots\` → apps/api/src/server.ts
+- *… 107 more (see OpenAPI spec or \`/v1/docs\`)*
+
+### Domain Models
+| Model | Kind | Fields | Source |
+|-------|------|--------|--------|
+| \`AuthContext\` | interface | 3 | apps/api/src/billing.ts |
+| \`SnapshotRow\` | interface | 8 | apps/api/src/db.ts |
+| *… 127 more* | | | |
+
+## Agent Instructions
+- Use strict TypeScript. Avoid \`any\` types.
+- Run tests with vitest before committing.
+- Use \`pnpm\` for dependency management.`}</pre>
+      </details>
 
       <div className="card" style={{ marginBottom: 24, textAlign: "center", padding: "32px 24px" }}>
         <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Analyze Your Project</h2>
@@ -445,7 +467,7 @@ export function UploadPage({ onComplete }: Props) {
           />
           {files.length === 0 ? (
             <>
-              <div style={{ fontSize: "2rem", marginBottom: 8, color: "var(--text-muted)" }}>[folder]</div>
+              <div style={{ fontSize: "2rem", marginBottom: 8 }}>📁</div>
               <p style={{ color: "var(--text-muted)" }}>
                 Drag &amp; drop a folder or .zip file here
               </p>
@@ -602,16 +624,9 @@ export function UploadPage({ onComplete }: Props) {
           )}
         </button>
 
-        {/* ── Go Pro bottom banner ───────────────────────────────── */}
-        <div className="gopro-banner" style={{ marginTop: 24 }}>
-          <div>
-            <strong>Ready for all 18 programs?</strong>
-            <span style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginLeft: 8 }}>Go Pro for $29/month — all 86 artifacts, unlimited analysis, priority support.</span>
-          </div>
-          <button type="button" className="btn btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => { window.location.hash = "plans"; }}>
-            Go Pro
-          </button>
-        </div>
+        <p style={{ textAlign: "center", marginTop: 20, color: "var(--text-muted)", fontSize: "0.8125rem" }}>
+          Free: 3 programs · <button type="button" className="btn" style={{ padding: "2px 10px", fontSize: "0.8125rem" }} onClick={() => { window.location.hash = "plans"; }}>Go Pro</button> to unlock all 18
+        </p>
       </form>
 
       {/* ── Upsell modal (full-screen overlay) ────────────────────── */}

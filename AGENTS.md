@@ -82,7 +82,7 @@ AI-native development operating system. Upload or point at any codebase — get 
 - `GET /docs` → apps/api/src/server.ts
 - `GET /openapi.json` → apps/api/src/server.ts
 - `GET /llms.txt` → apps/api/src/server.ts
-- *… 61 more (see OpenAPI spec or `/v1/docs`)*
+- *… 79 more (see OpenAPI spec or `/v1/docs`)*
 
 ### Domain Models
 
