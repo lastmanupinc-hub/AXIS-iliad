@@ -48,6 +48,7 @@ import {
   PROGRAM_OUTPUTS,
   handleSecurityTxt,
   handleAgentJson,
+  handleOAuthAuthorizationServer,
   handleHealthRedirect,
   handleDocsRedirect,
   handleOpenApiJson,
@@ -84,12 +85,14 @@ import {
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
+import { requireBearerToken } from "./oauth-server.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
+import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
@@ -189,6 +192,7 @@ router.get("/.well-known/capabilities.json", handleCapabilities);
 router.get("/.well-known/mcp.json", handleMcpServerJson);
 router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/agent.json", handleAgentJson);
+router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
 
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);
@@ -241,7 +245,10 @@ router.get("/v1/programs", async (_req, res) => {
 });
 
 // MCP Server — Streamable HTTP transport (2025-03-26)
-router.post("/mcp", handleMcpPost);
+router.post("/mcp", async (req, res) => {
+  if (!(await requireBearerToken(req, res))) return;
+  return handleMcpPost(req, res);
+});
 router.get("/mcp", handleMcpGet);
 router.get("/mcp/docs", handleMcpDocs);
 
@@ -317,6 +324,12 @@ router.get("/v1/admin/activity", handleAdminActivity);
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);
 router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
+
+// OAuth 2.0 Authorization Server
+router.get("/oauth/authorize", handleOAuthAuthorize);
+router.post("/oauth/token", handleOAuthToken);
+router.get("/oauth/jwks", handleOAuthJwks);
+router.post("/oauth/introspect", handleOAuthIntrospect);
 
 // Webhooks
 router.post("/v1/account/webhooks", handleCreateWebhook);

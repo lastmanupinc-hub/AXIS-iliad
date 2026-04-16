@@ -2396,6 +2396,26 @@ export async function handleSkillsIndex(
   });
 }
 
+// ─── GET /.well-known/oauth-authorization-server ──────────────────
+export async function handleOAuthAuthorizationServer(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    issuer: "https://axis-api-6c7z.onrender.com",
+    authorization_endpoint: "https://axis-api-6c7z.onrender.com/oauth/authorize",
+    token_endpoint: "https://axis-api-6c7z.onrender.com/oauth/token",
+    jwks_uri: "https://axis-api-6c7z.onrender.com/oauth/jwks",
+    introspection_endpoint: "https://axis-api-6c7z.onrender.com/oauth/introspect",
+    scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code", "refresh_token"],
+    token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post"],
+    service_documentation: "https://axis-api-6c7z.onrender.com/for-agents",
+    ui_locales_supported: ["en"],
+  });
+}
+
 // ─── GET /v1/docs.md  -  plain-text OpenAPI summary ───────────────
 
 export async function handleDocsMd(

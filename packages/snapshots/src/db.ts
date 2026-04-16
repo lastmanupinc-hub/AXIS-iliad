@@ -350,6 +350,66 @@ CREATE INDEX IF NOT EXISTS idx_pcredits_created ON persistence_credits(created_a
 `,
   },
   {
+    version: 19,
+    name: "add_oauth_tables",
+    sql: `
+CREATE TABLE IF NOT EXISTS oauth_clients (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  secret TEXT NOT NULL,
+  redirect_uris TEXT NOT NULL, -- JSON array
+  scopes TEXT NOT NULL DEFAULT '[]', -- JSON array
+  grant_types TEXT NOT NULL DEFAULT '["authorization_code"]', -- JSON array
+  is_confidential INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS oauth_authorization_codes (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(id),
+  user_id TEXT NOT NULL REFERENCES accounts(account_id),
+  code TEXT UNIQUE NOT NULL,
+  code_challenge TEXT,
+  code_challenge_method TEXT,
+  redirect_uri TEXT NOT NULL,
+  scopes TEXT NOT NULL, -- JSON array
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_client ON oauth_authorization_codes(client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_user ON oauth_authorization_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_code ON oauth_authorization_codes(code);
+
+CREATE TABLE IF NOT EXISTS oauth_access_tokens (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(id),
+  user_id TEXT NOT NULL REFERENCES accounts(account_id),
+  access_token TEXT UNIQUE NOT NULL,
+  refresh_token_id TEXT REFERENCES oauth_refresh_tokens(id),
+  scopes TEXT NOT NULL, -- JSON array
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_client ON oauth_access_tokens(client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_user ON oauth_access_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_token ON oauth_access_tokens(access_token);
+
+CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(id),
+  user_id TEXT NOT NULL REFERENCES accounts(account_id),
+  refresh_token TEXT UNIQUE NOT NULL,
+  scopes TEXT NOT NULL, -- JSON array
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_client ON oauth_refresh_tokens(client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_user ON oauth_refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_token ON oauth_refresh_tokens(refresh_token);
+`,
+  },
+  {
     version: 14,
     name: "add_code_symbols",
     sql: `

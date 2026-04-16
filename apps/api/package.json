@@ -14,10 +14,13 @@
     "@axis/generator-core": "workspace:*",
     "@axis/repo-parser": "workspace:*",
     "@axis/snapshots": "workspace:*",
+    "@jmondi/oauth2-server": "^4.2.2",
+    "jsonwebtoken": "^9.0.3",
     "mppx": "^0.5.12"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.0"
