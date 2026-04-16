@@ -4,6 +4,7 @@ import { EventEmitter } from "node:events";
 
 // Mock node:https before importing the module under test
 vi.mock("node:https", () => ({
+  default: {},
   get: vi.fn(),
 }));
 

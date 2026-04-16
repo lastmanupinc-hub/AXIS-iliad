@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment happy-dom
+ */
+
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
 import { extractZip } from "./upload-utils.ts";

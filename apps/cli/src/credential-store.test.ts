@@ -5,6 +5,14 @@ import { homedir } from "node:os";
 
 // We test the module by importing it after mocking fs
 vi.mock("node:fs", () => ({
+  default: {
+    existsSync: vi.fn(),
+    readFileSync: vi.fn(),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    chmodSync: vi.fn(),
+    constants: {},
+  },
   existsSync: vi.fn(),
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
