@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { scanDirectory } from "./scanner.js";
 import { run } from "./runner.js";
 import { writeGeneratedFiles } from "./writer.js";
@@ -319,4 +320,8 @@ async function runGitHub(args: CliArgs): Promise<void> {
   /* v8 ignore stop */
 }
 
-main();
+const entryFile = process.argv[1] ? resolve(process.argv[1]) : null;
+
+if (entryFile === fileURLToPath(import.meta.url)) {
+  main();
+}

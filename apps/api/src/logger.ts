@@ -92,11 +92,16 @@ function getMinLevel(): LogLevel {
   return LOG_LEVEL_PRIORITY[env] !== undefined ? env : "info";
 }
 
+export function shouldEmitRuntimeLogs(): boolean {
+  return process.env.VITEST !== "true" || process.env.AXIS_ENABLE_TEST_LOGS === "1";
+}
+
 export function log(
   level: LogLevel,
   message: string,
   data?: Record<string, unknown>,
 ): void {
+  if (!shouldEmitRuntimeLogs()) return;
   if (LOG_LEVEL_PRIORITY[level] < LOG_LEVEL_PRIORITY[getMinLevel()]) return;
 
   const entry = {

@@ -22,6 +22,7 @@
 import crypto from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Mppx, stripe, tempo } from "mppx/server";
+import { shouldEmitRuntimeLogs } from "./logger.js";
 
 // USDC on Tempo network
 const TEMPO_USDC_MAINNET = "0x20c000000000000000000000b9537d11c60e8b50";
@@ -330,14 +331,20 @@ export async function chargeMpp(
   try {
     result = await (Mppx.toNodeListener(handler as any)(req, res) as Promise<MppResult>);
   } catch (err) {
-    console.error(`[MPP] charge failed - ${safeDescription ?? "AXIS API credit"}:`, err);
+    if (shouldEmitRuntimeLogs()) {
+      console.error(`[MPP] charge failed - ${safeDescription ?? "AXIS API credit"}:`, err);
+    }
     return null;          // treat MPP failure as "not configured" so caller sends 402
   }
   /* v8 ignore next 6 */
   if (result.status === 402) {
-    console.log(`[MPP] 402 challenge issued - ${safeDescription ?? "AXIS API credit"}`);
+    if (shouldEmitRuntimeLogs()) {
+      console.log(`[MPP] 402 challenge issued - ${safeDescription ?? "AXIS API credit"}`);
+    }
   } else if (result.status === 200) {
-    console.log(`[MPP] 200 payment validated - ${safeDescription ?? "AXIS API credit"}`);
+    if (shouldEmitRuntimeLogs()) {
+      console.log(`[MPP] 200 payment validated - ${safeDescription ?? "AXIS API credit"}`);
+    }
   }
   return result;
 }

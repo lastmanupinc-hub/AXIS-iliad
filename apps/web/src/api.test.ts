@@ -38,6 +38,7 @@ import {
 // ─── Mock infrastructure ────────────────────────────────────────
 
 let mockStorage: Record<string, string> = {};
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 const storageMock = {
   getItem: (key: string) => mockStorage[key] ?? null,
   setItem: (key: string, val: string) => { mockStorage[key] = val; },
@@ -66,9 +67,11 @@ beforeEach(() => {
     signal = {};
     abort() {}
   });
+  consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
+  consoleErrorSpy.mockRestore();
   vi.restoreAllMocks();
 });
 

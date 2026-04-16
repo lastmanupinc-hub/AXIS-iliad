@@ -1,9 +1,14 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { log } from "./logger.js";
 
 describe("LOG_LEVEL filtering", () => {
+  beforeEach(() => {
+    process.env.AXIS_ENABLE_TEST_LOGS = "1";
+  });
+
   afterEach(() => {
     delete process.env.LOG_LEVEL;
+    delete process.env.AXIS_ENABLE_TEST_LOGS;
     vi.restoreAllMocks();
   });
 

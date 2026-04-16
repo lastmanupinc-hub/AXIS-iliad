@@ -2,8 +2,8 @@
  * @vitest-environment happy-dom
  */
 
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render } from "@testing-library/react";
 
 // ─── Zero-prop page smoke tests ─────────────────────────────────
 // Each test renders the page and verifies it mounts without throwing.
@@ -15,6 +15,39 @@ import { HelpPage } from "./pages/HelpPage";
 import { InstallPage } from "./pages/InstallPage";
 import { QAPage } from "./pages/QAPage";
 import { TermsPage } from "./pages/TermsPage";
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url.endsWith("/v1/plans")) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ plans: [], features: [] }),
+      } satisfies Partial<Response> as Response;
+    }
+
+    if (url.endsWith("/v1/health")) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ status: "ok", version: "test" }),
+      } satisfies Partial<Response> as Response;
+    }
+
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+    } satisfies Partial<Response> as Response;
+  }));
+});
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("Page smoke tests — zero-prop pages", () => {
   it("DocsPage renders without crashing", () => {

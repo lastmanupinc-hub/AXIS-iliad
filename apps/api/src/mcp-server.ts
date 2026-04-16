@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
-import { log } from "./logger.js";
+import { log, shouldEmitRuntimeLogs } from "./logger.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -123,7 +123,9 @@ export function logMcpCall(toolName: string, userId: string | null, ip: string, 
   const ref = headers?.["referer"] ?? headers?.["referrer"] ?? "none";
   const probeClass = classifyProbe(typeof ua === "string" ? ua : "");
   captureIntent(toolName, null, typeof ua === "string" ? ua : "");
-  console.log(`[MCP CALL] tool=${toolName} user=${userId ?? "anonymous"} ip=${ip} probe=${probeClass} ua=${ua} ref=${ref} time=${now.toISOString()}`);
+  if (shouldEmitRuntimeLogs()) {
+    console.log(`[MCP CALL] tool=${toolName} user=${userId ?? "anonymous"} ip=${ip} probe=${probeClass} ua=${ua} ref=${ref} time=${now.toISOString()}`);
+  }
 }
 
 export function getMcpCallCounters(): McpCallCounters {
