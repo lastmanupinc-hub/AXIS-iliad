@@ -850,7 +850,7 @@ export function runSearchTools(args: Record<string, unknown>): string {
   const q = typeof args.q === "string" ? args.q.trim().toLowerCase() : "";
   const programFilter = typeof args.program === "string" ? args.program.trim().toLowerCase() : "";
 
-  let generators = [];
+  let generators: Array<{ path: string; program: string }> = [];
   try {
     generators = listAvailableGenerators();
   } catch {
