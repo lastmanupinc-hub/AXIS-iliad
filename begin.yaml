@@ -91,6 +91,32 @@ project_begin:
       continuation ledger explicitly promotes a new one.
     allowed_verticals: []
 
+  qualifying_candidates:
+    status: all_completed
+    completed_candidates:
+      - "OAuth 2.0 Authorization Server implementation (JWT-based with RS256 tokens)"
+      - "MCP protocol integration with 12 tools including prepare_for_agentic_purchasing"
+      - "81 generators across 18 programs for code analysis and artifact generation"
+      - "Billing system with Stripe integration, 3-tier pricing, API keys, usage metering"
+      - "Web frontend with React SPA (upload, dashboard, plans, account, for-agents pages)"
+      - "CLI tool for local analysis with GitHub URL support"
+      - "Database with SQLite, 18 migrations, FTS5 search, multi-tenancy"
+      - "Production deployment with Docker, Render, health probes, Prometheus metrics"
+      - "Agentic commerce features: AP2/UCP/Visa compliance, purchasing readiness scoring"
+      - "Referral system with micro-discounts, 5th-call-free onboarding, share-to-earn"
+      - "MCP registry metadata enrichment for Glama.ai, Smithery.ai, mcp-index"
+      - "/for-agents page enhancement with system prompt snippets, integration examples"
+      - "Position improvement coherence sweep (12 tools, 86 artifacts, 18 programs)"
+      - "OpenAPI spec completeness (107 routes), SDK test suite (25 tests)"
+      - "Version coherence updates (0.4.0→0.5.0), artifact regeneration"
+      - "HTTP conformance (HEAD support, CORS), MPP protocol upgrade"
+      - "Branch coverage offensive (100% coverage maintained)"
+      - "Production hardening (startup validation, graceful shutdown, observability)"
+      - "Multi-tenancy implementation, email notifications, deployment automation"
+      - "Unified analyze endpoint, composite MCP tool, commerce depth enhancements"
+      - "Search tools integration, AI discoverability improvements"
+    remaining_candidates: []
+
   highest_roi_definition:
     meaning: >
       The next valid move inside the project boundary that most increases durable
