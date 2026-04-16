@@ -53,6 +53,8 @@ import {
   handleDocsRedirect,
   handleOpenApiJson,
   handleSitemapXml,
+  handlePerformance,
+  handlePerformanceReputation,
 } from "./handlers.js";
 import {
   handleCreateAccount,
@@ -133,6 +135,10 @@ router.get("/v1/health/live", handleLiveness);
 router.get("/v1/health/ready", handleReadiness);
 router.get("/v1/metrics", handleMetrics);
 
+// Performance monitoring (AgentSEO/trust signals)
+router.get("/performance", handlePerformance);
+router.get("/performance/reputation", handlePerformanceReputation);
+
 // Database maintenance
 router.get("/v1/db/stats", handleDbStats);
 router.post("/v1/db/maintenance", handleDbMaintenance);
@@ -194,6 +200,10 @@ router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/agent.json", handleAgentJson);
 router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
 
+// MCP discovery under prefixed paths (for compatibility)
+router.get("/mcp/.well-known/mcp.json", handleMcpServerJson);
+router.get("/mcp/.well-known/agent.json", handleAgentJson);
+
 // Crawler + agent probe directives
 router.get("/robots.txt", handleRobotsTxt);
 router.get("/sitemap.xml", handleSitemapXml);
@@ -246,11 +256,63 @@ router.get("/v1/programs", async (_req, res) => {
 
 // MCP Server — Streamable HTTP transport (2025-03-26)
 router.post("/mcp", async (req, res) => {
-  if (!(await requireBearerToken(req, res))) return;
-  return handleMcpPost(req, res);
+  // Check if this is a free tool call that doesn't require authentication
+  const { readBody } = await import("./router.js");
+  let raw: string;
+  try {
+    raw = await readBody(req);
+  } catch {
+    const { sendJSON } = await import("./router.js");
+    sendJSON(res, 400, { error: "Request body too large" });
+    return;
+  }
+
+  let msg: any;
+  try {
+    msg = JSON.parse(raw);
+  } catch {
+    const { sendJSON } = await import("./router.js");
+    sendJSON(res, 400, { error: "Invalid JSON" });
+    return;
+  }
+
+  // Free tools that don't require authentication
+  const FREE_TOOLS = ["list_programs", "search_and_discover_tools", "discover_agentic_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "check_referral_credits"];
+
+  const isFreeTool = msg.method === "tools/call" &&
+                     msg.params?.name &&
+                     FREE_TOOLS.includes(msg.params.name);
+
+  // Require authentication for non-free tools
+  if (!isFreeTool && !(await requireBearerToken(req, res))) return;
+
+  // Pass the raw body to handleMcpPost to avoid double-reading
+  return handleMcpPost(req, res, raw);
 });
 router.get("/mcp", handleMcpGet);
 router.get("/mcp/docs", handleMcpDocs);
+
+// Clean 404/405 handlers for SSE and sub-path noise
+router.get("/mcp/sse", async (_req, res) => {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 404, { error: "SSE endpoint not available. Use POST /mcp for MCP protocol." });
+});
+router.post("/mcp/sse", async (_req, res) => {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 405, { error: "Method not allowed. Use POST /mcp for MCP protocol." });
+});
+router.get("/mcp/mcp/*", async (_req, res) => {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 404, { error: "Invalid MCP sub-path. Use /mcp for MCP protocol." });
+});
+router.post("/mcp/mcp/*", async (_req, res) => {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 404, { error: "Invalid MCP sub-path. Use /mcp for MCP protocol." });
+});
+router.delete("/mcp/mcp/*", async (_req, res) => {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 404, { error: "Invalid MCP sub-path. Use /mcp for MCP protocol." });
+});
 
 // Anonymous call stats (no auth required)
 router.get("/v1/stats", async (_req, res) => {

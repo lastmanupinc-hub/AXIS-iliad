@@ -2,6 +2,7 @@
   "name": "axis-toolbox",
   "version": "0.5.0",
   "private": true,
+  "type": "module",
   "description": "Axis — The operating system for AI-native development",
   "scripts": {
     "dev": "pnpm --filter @axis/api dev",
@@ -9,6 +10,10 @@
     "test": "pnpm -r test",
     "test:coverage": "npx vitest run --coverage",
     "lint": "pnpm -r lint",
+    "generate-posts": "node scripts/generate-posts.js",
+    "post-content": "node scripts/post-content.js",
+    "test-webhook": "node scripts/test-webhook-server.js",
+    "setup-posting": "node scripts/setup-posting.js",
     "regenerate": "pwsh scripts/regenerate.ps1",
     "regenerate:sh": "bash scripts/regenerate.sh"
   },

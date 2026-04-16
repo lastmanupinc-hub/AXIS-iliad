@@ -22,6 +22,8 @@ import {
   handleHealthRedirect,
   handleDocsRedirect,
   handleOpenApiJson,
+  handlePerformance,
+  handlePerformanceReputation,
 } from "./handlers.js";
 
 // ─── HTTP helper ─────────────────────────────────────────────────
@@ -68,6 +70,8 @@ beforeAll(async () => {
   router.get("/health", handleHealthRedirect);
   router.get("/docs", handleDocsRedirect);
   router.get("/openapi.json", handleOpenApiJson);
+  router.get("/performance", handlePerformance);
+  router.get("/performance/reputation", handlePerformanceReputation);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -300,7 +304,7 @@ describe("GET /sitemap.xml", () => {
   });
 
   it("includes the base URL", () => {
-    expect(body).toContain("https://axis-api-6c7z.onrender.com");
+    expect(body).toContain("https://toolbox.jonathanarvay.com");
   });
 });
 
@@ -421,5 +425,108 @@ describe("GET /openapi.json", () => {
     expect(json.paths).toBeDefined();
     expect(typeof json.paths).toBe("object");
     expect(Object.keys(json.paths as object).length).toBeGreaterThan(0);
+  });
+});
+
+// ─── GET /performance ─────────────────────────────────────────────
+
+describe("GET /performance", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let body: string;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/performance");
+    status = r.status;
+    headers = r.headers;
+    body = r.body;
+    json = JSON.parse(body);
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns application/json content-type", () => {
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("contains status: ok", () => {
+    expect(json.status).toBe("ok");
+  });
+
+  it("contains version field", () => {
+    expect(json.version).toBe("0.5.0");
+  });
+
+  it("contains timestamp", () => {
+    expect(json.timestamp).toBeDefined();
+    expect(typeof json.timestamp).toBe("string");
+  });
+
+  it("contains metrics object", () => {
+    expect(json.metrics).toBeDefined();
+    expect(typeof json.metrics).toBe("object");
+  });
+
+  it("contains endpoints object", () => {
+    expect(json.endpoints).toBeDefined();
+    expect(typeof json.endpoints).toBe("object");
+  });
+});
+
+// ─── GET /performance/reputation ──────────────────────────────────
+
+describe("GET /performance/reputation", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let body: string;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/performance/reputation");
+    status = r.status;
+    headers = r.headers;
+    body = r.body;
+    json = JSON.parse(body);
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns application/json content-type", () => {
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("contains status: ok", () => {
+    expect(json.status).toBe("ok");
+  });
+
+  it("contains reputation_score", () => {
+    expect(json.reputation_score).toBeDefined();
+    expect(typeof json.reputation_score).toBe("number");
+    expect(json.reputation_score).toBeGreaterThanOrEqual(0);
+    expect(json.reputation_score).toBeLessThanOrEqual(100);
+  });
+
+  it("contains trust_signals object", () => {
+    expect(json.trust_signals).toBeDefined();
+    expect(typeof json.trust_signals).toBe("object");
+  });
+
+  it("contains chiark_compatibility", () => {
+    expect(json.chiark_compatibility).toBeDefined();
+  });
+
+  it("contains last_probe timestamp", () => {
+    expect(json.last_probe).toBeDefined();
+    expect(typeof json.last_probe).toBe("string");
+  });
+
+  it("contains notes", () => {
+    expect(json.notes).toBeDefined();
+    expect(typeof json.notes).toBe("string");
   });
 });

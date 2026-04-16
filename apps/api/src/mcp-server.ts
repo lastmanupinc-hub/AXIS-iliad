@@ -1916,19 +1916,24 @@ export async function dispatch(
 export async function handleMcpPost(
   req: IncomingMessage,
   res: ServerResponse,
+  preReadBody?: string,
 ): Promise<void> {
   let raw: string;
-  /* v8 ignore start — readBody throws only on >50MB bodies */
-  try {
-    raw = await readBody(req);
-  } catch {
-    res.writeHead(400, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify(rpcErr(null, RPC_PARSE_ERROR, "Parse error: body too large")),
-    );
-    return;
+  if (preReadBody) {
+    raw = preReadBody;
+  } else {
+    /* v8 ignore start — readBody throws only on >50MB bodies */
+    try {
+      raw = await readBody(req);
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify(rpcErr(null, RPC_PARSE_ERROR, "Parse error: body too large")),
+      );
+      return;
+    }
+    /* v8 ignore stop */
   }
-  /* v8 ignore stop */
 
   let msg: JsonRpcRequest;
   try {
