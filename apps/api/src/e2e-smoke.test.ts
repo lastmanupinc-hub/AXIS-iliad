@@ -6,18 +6,18 @@
  * skip gracefully if the API is unreachable.
  *
  * Run manually:  npx vitest run apps/api/src/e2e-smoke.test.ts
- * In CI, add:    AXIS_E2E=1 to enable (skipped by default in CI).
+ * In all environments, set AXIS_E2E=1 to enable.
  */
 import { describe, it, expect, beforeAll } from "vitest";
 
 const BASE = process.env.AXIS_E2E_BASE ?? "https://axis-api-6c7z.onrender.com";
 let reachable = false;
 
-// Skip in CI unless AXIS_E2E is set
-const ciSkip = !!(process.env.CI && !process.env.AXIS_E2E);
+// Live-network E2E tests are opt-in to keep default suites deterministic.
+const e2eEnabled = process.env.AXIS_E2E === "1";
 
 beforeAll(async () => {
-  if (ciSkip) return;
+  if (!e2eEnabled) return;
   try {
     const r = await fetch(`${BASE}/v1/health/live`, { signal: AbortSignal.timeout(10_000) });
     reachable = r.ok;
@@ -27,7 +27,7 @@ beforeAll(async () => {
 });
 
 function guard() {
-  if (ciSkip || !reachable) {
+  if (!e2eEnabled || !reachable) {
     return true; // caller should return early
   }
   return false;

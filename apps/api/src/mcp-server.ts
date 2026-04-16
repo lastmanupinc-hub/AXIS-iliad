@@ -850,12 +850,20 @@ export function runSearchTools(args: Record<string, unknown>): string {
   const q = typeof args.q === "string" ? args.q.trim().toLowerCase() : "";
   const programFilter = typeof args.program === "string" ? args.program.trim().toLowerCase() : "";
 
-  const generators = listAvailableGenerators();
+  let generators = [];
+  try {
+    generators = listAvailableGenerators();
+  } catch {
+    // fallback to empty
+  }
+
   const programMap = new Map<string, string[]>();
   for (const g of generators) {
-    const list = programMap.get(g.program) ?? [];
-    list.push(g.path);
-    programMap.set(g.program, list);
+    if (g && typeof g.program === 'string' && typeof g.path === 'string') {
+      const list = programMap.get(g.program) ?? [];
+      list.push(g.path);
+      programMap.set(g.program, list);
+    }
   }
 
   const queryTokens = q ? q.split(/[\s\-_/]+/).filter(t => t.length > 0) : [];
@@ -918,8 +926,6 @@ export function runSearchTools(args: Record<string, unknown>): string {
     2,
   );
 }
-
-// ─── Tool: discover_agentic_commerce_tools ───────────────────────
 
 const AXIS_MCP_ENDPOINT = "https://axis-api-6c7z.onrender.com/mcp";
 const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
@@ -1916,34 +1922,37 @@ export async function dispatch(
 export async function handleMcpPost(
   req: IncomingMessage,
   res: ServerResponse,
-  preReadBody?: string,
+  _params?: Record<string, string>,
+  preReadBody?: string | object,
 ): Promise<void> {
-  let raw: string;
+  let msg: JsonRpcRequest;
   if (preReadBody) {
-    raw = preReadBody;
+    if (typeof preReadBody === 'string') {
+      try {
+        msg = JSON.parse(preReadBody) as JsonRpcRequest;
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(rpcErr(null, RPC_PARSE_ERROR, "Parse error: invalid JSON")),
+        );
+        return;
+      }
+    } else {
+      msg = preReadBody as JsonRpcRequest;
+    }
   } else {
     /* v8 ignore start — readBody throws only on >50MB bodies */
     try {
-      raw = await readBody(req);
+      const raw = await readBody(req);
+      msg = JSON.parse(raw) as JsonRpcRequest;
     } catch {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(
-        JSON.stringify(rpcErr(null, RPC_PARSE_ERROR, "Parse error: body too large")),
+        JSON.stringify(rpcErr(null, RPC_PARSE_ERROR, "Parse error: body too large or invalid JSON")),
       );
       return;
     }
     /* v8 ignore stop */
-  }
-
-  let msg: JsonRpcRequest;
-  try {
-    msg = JSON.parse(raw) as JsonRpcRequest;
-  } catch {
-    res.writeHead(400, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify(rpcErr(null, RPC_PARSE_ERROR, "Parse error: invalid JSON")),
-    );
-    return;
   }
 
   if (msg.jsonrpc !== "2.0" || typeof msg.method !== "string") {

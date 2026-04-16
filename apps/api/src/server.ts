@@ -87,7 +87,7 @@ import {
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
-import { requireBearerToken } from "./oauth-server.js";
+import { requireAuth } from "./billing.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
@@ -283,11 +283,13 @@ router.post("/mcp", async (req, res) => {
                      msg.params?.name &&
                      FREE_TOOLS.includes(msg.params.name);
 
-  // Require authentication for non-free tools
-  if (!isFreeTool && !(await requireBearerToken(req, res))) return;
+  // Require authentication for paid tools only
+  if (msg.method === "tools/call" && !isFreeTool) {
+    if (!requireAuth(req, res)) return;
+  }
 
-  // Pass the raw body to handleMcpPost to avoid double-reading
-  return handleMcpPost(req, res, raw);
+  // Pass route params placeholder and parsed body to avoid double-parsing
+  return handleMcpPost(req, res, {}, msg);
 });
 router.get("/mcp", handleMcpGet);
 router.get("/mcp/docs", handleMcpDocs);
