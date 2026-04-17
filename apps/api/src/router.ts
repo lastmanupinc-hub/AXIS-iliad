@@ -187,6 +187,7 @@ const CACHE_CONTROL: Record<string, string> = {
   "/.well-known/axis.json": "public, max-age=86400",
   "/.well-known/capabilities.json": "public, max-age=86400",
   "/.well-known/mcp.json": "public, max-age=86400",
+  "/.well-known/glama.json": "public, max-age=86400",
   "/.well-known/oauth-authorization-server": "public, max-age=86400",
   "/mcp/.well-known/mcp.json": "public, max-age=86400",
   "/mcp/.well-known/agent.json": "public, max-age=86400",

@@ -335,6 +335,14 @@ describe("POST /mcp — tools/list", () => {
     }
   });
 
+  it("every tool outputSchema has top-level object type", () => {
+    for (const tool of MCP_TOOLS as Array<Record<string, unknown>>) {
+      const outputSchema = tool.outputSchema as Record<string, unknown>;
+      expect(outputSchema).toBeDefined();
+      expect(outputSchema.type, `${String(tool.name)} outputSchema.type must be object`).toBe("object");
+    }
+  });
+
   it("canonical analyze_repo metadata stays optimized for registry scoring", () => {
     const analyzeRepo = MCP_TOOLS.find(tool => tool.name === "analyze_repo");
     expect(analyzeRepo).toBeDefined();

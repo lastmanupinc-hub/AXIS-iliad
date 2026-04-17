@@ -1,6 +1,7 @@
 /**
- * Tests for 8 previously-untested discovery & well-known handlers (eq_197):
+ * Tests for discovery & well-known handlers (eq_197):
  *   GET /.well-known/agent.json       — handleAgentJson
+ *   GET /.well-known/glama.json       — handleGlamaJson
  *   GET /.well-known/security.txt     — handleSecurityTxt
  *   GET /.well-known/capabilities.json — handleCapabilities
  *   GET /robots.txt                    — handleRobotsTxt
@@ -15,6 +16,7 @@ import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import {
   handleAgentJson,
+  handleGlamaJson,
   handleSecurityTxt,
   handleCapabilities,
   handleRobotsTxt,
@@ -63,6 +65,7 @@ beforeAll(async () => {
   openMemoryDb();
   const router = new Router();
   router.get("/.well-known/agent.json", handleAgentJson);
+  router.get("/.well-known/glama.json", handleGlamaJson);
   router.get("/.well-known/security.txt", handleSecurityTxt);
   router.get("/.well-known/capabilities.json", handleCapabilities);
   router.get("/robots.txt", handleRobotsTxt);
@@ -130,6 +133,35 @@ describe("GET /.well-known/agent.json", () => {
   it("contains endpoints object", () => {
     expect(json.endpoints).toBeDefined();
     expect(typeof json.endpoints).toBe("object");
+  });
+});
+
+// ─── GET /.well-known/glama.json ────────────────────────────────
+
+describe("GET /.well-known/glama.json", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/.well-known/glama.json");
+    status = r.status;
+    headers = r.headers;
+    json = JSON.parse(r.body);
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns application/json content-type", () => {
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("contains mcp endpoint and description", () => {
+    expect(typeof json.mcp_endpoint).toBe("string");
+    expect(String(json.mcp_endpoint)).toContain("/v1/mcp");
+    expect(typeof json.description).toBe("string");
   });
 });
 

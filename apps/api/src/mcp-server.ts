@@ -354,15 +354,21 @@ export const MCP_TOOLS = [
       },
     },
     outputSchema: {
-      type: "string",
-      description: "UTF-8 artifact content",
+      type: "object",
+      properties: {
+        content: {
+          type: "string",
+          description: "UTF-8 artifact content",
+        },
+      },
+      required: ["content"],
     },
     annotations: toolAnnotations("Get Artifact", true, true),
     examples: [
       {
         name: "Get an AGENTS.md artifact",
         input: { snapshot_id: "abc-123", path: "AGENTS.md" },
-        output: '"# AGENTS.md — my-project\\n\\n## Project Context\\n..."',
+        output: '{"content":"# AGENTS.md — my-project\\n\\n## Project Context\\n..."}',
       },
     ],
   },

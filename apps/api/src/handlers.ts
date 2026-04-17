@@ -2864,46 +2864,88 @@ export async function handleProbeIntent(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  const requestId = getRequestId(res) ?? null;
   let body: string;
   try {
     body = await readBody(req);
-  } catch {
-    sendError(res, 400, ErrorCode.INVALID_JSON, "Request body too large or malformed");
+  } catch (err) {
+    log("warn", "probe_intent_invalid_body", {
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err),
+      user_agent: req.headers["user-agent"] ?? "unknown",
+      content_type: req.headers["content-type"] ?? null,
+    });
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Request body too large or malformed", {
+      details: "Send JSON body with at least an intent or description string",
+    });
     return;
   }
 
   let parsed: Record<string, unknown>;
   try {
     parsed = JSON.parse(body) as Record<string, unknown>;
-  } catch {
-    sendError(res, 400, ErrorCode.INVALID_JSON, "Body must be valid JSON");
+  } catch (err) {
+    log("warn", "probe_intent_invalid_json", {
+      request_id: requestId,
+      error: err instanceof Error ? err.message : String(err),
+      body_length: body.length,
+      body_preview: body.slice(0, 500),
+      user_agent: req.headers["user-agent"] ?? "unknown",
+      content_type: req.headers["content-type"] ?? null,
+    });
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Body must be valid JSON", {
+      details: "Expected application/json payload",
+    });
     return;
   }
 
+  const intent = typeof parsed.intent === "string" ? parsed.intent.trim().slice(0, 500) : "";
   const description = typeof parsed.description === "string" ? parsed.description.trim().slice(0, 500) : "";
+  const normalizedIntent = intent || description;
   const focusAreas = Array.isArray(parsed.focus_areas)
     ? (parsed.focus_areas as string[]).slice(0, 10).map(f => String(f).slice(0, 50))
     : [];
 
-  if (!description) {
-    sendError(res, 400, ErrorCode.MISSING_FIELD, "Provide description (string, max 500 chars)");
+  if (!normalizedIntent) {
+    const receivedFields = Object.keys(parsed);
+    const userAgent = Array.isArray(req.headers["user-agent"])
+      ? req.headers["user-agent"].join(" ")
+      : (req.headers["user-agent"] ?? "unknown");
+    log("warn", "probe_intent_validation_failed", {
+      request_id: requestId,
+      reason: "missing_intent",
+      received_fields: receivedFields,
+      body_length: body.length,
+      body_preview: body.slice(0, 500),
+      user_agent: userAgent,
+      content_type: req.headers["content-type"] ?? null,
+    });
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "missing 'intent' field (or 'description')", {
+      details: "Provide intent or description as a non-empty string (max 500 chars)",
+      expected_fields: ["intent", "description", "focus_areas"],
+      received_fields: receivedFields,
+    });
     return;
   }
 
   // Log intent for analytics
-  const userAgent = req.headers["user-agent"] ?? "unknown";
+  const userAgent = Array.isArray(req.headers["user-agent"])
+    ? req.headers["user-agent"].join(" ")
+    : (req.headers["user-agent"] ?? "unknown");
   const probeClass = classifyProbe(userAgent);
-  captureIntent("probe_intent", description, userAgent);
+  captureIntent("probe_intent", normalizedIntent, userAgent);
   log("info", "probe_intent", {
-    description_length: description.length,
+    intent_length: normalizedIntent.length,
     focus_areas: focusAreas,
     user_agent: userAgent,
     probe_class: probeClass,
     referer: req.headers["referer"] ?? req.headers["referrer"] ?? null,
+    body_length: body.length,
+    received_fields: Object.keys(parsed),
   });
 
   // Match intent to recommendations
-  const descLower = description.toLowerCase();
+  const descLower = normalizedIntent.toLowerCase();
   const focusLower = focusAreas.map(f => f.toLowerCase());
   const allTerms = [descLower, ...focusLower].join(" ");
 
@@ -2959,13 +3001,29 @@ export async function handleProbeIntent(
   }
 
   sendJSON(res, 200, {
-    intent: description,
+    intent: normalizedIntent,
     probe_class: probeClass,
     recommendations,
     call_next: recommendations[0]?.tool ?? "search_and_discover_tools",
     mcp_endpoint: `${AXIS_API_BASE}/mcp`,
     install: `${AXIS_API_BASE}/v1/install`,
     for_agents: `${AXIS_API_BASE}/for-agents`,
+  });
+}
+
+// ─── GET /.well-known/glama.json  -  Glama registry hint ─────────────
+
+export async function handleGlamaJson(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    name: "Axis' Iliad",
+    slug: "axis-iliad",
+    description: `Deterministic MCP server for ${ARTIFACT_COUNT} artifacts across ${PROGRAM_COUNT} programs`,
+    mcp_endpoint: "https://axis-api-6c7z.onrender.com/v1/mcp",
+    docs_url: "https://axis-api-6c7z.onrender.com/v1/docs.md",
+    website: "https://axis-api-6c7z.onrender.com",
   });
 }
 

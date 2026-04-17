@@ -48,6 +48,7 @@ import {
   makeProgramHandler,
   PROGRAM_OUTPUTS,
   handleSecurityTxt,
+  handleGlamaJson,
   handleAgentJson,
   handleOAuthAuthorizationServer,
   handleHealthRedirect,
@@ -198,6 +199,7 @@ router.get("/.well-known/axis.json", handleWellKnown);
 router.get("/.well-known/capabilities.json", handleCapabilities);
 router.get("/.well-known/mcp.json", handleMcpServerJson);
 router.get("/.well-known/security.txt", handleSecurityTxt);
+router.get("/.well-known/glama.json", handleGlamaJson);
 router.get("/.well-known/agent.json", handleAgentJson);
 router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
 

@@ -482,11 +482,20 @@ describe("POST /probe-intent", () => {
     expect(data.mcp_endpoint).toContain("/mcp");
   });
 
+  it("accepts intent field as an alias for description", async () => {
+    const r = await postReq("/probe-intent", { intent: "analyze my repository for context" });
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(typeof data.intent).toBe("string");
+    expect(String(data.intent)).toContain("analyze my repository");
+  });
+
   it("returns 400 when description is missing", async () => {
     const r = await postReq("/probe-intent", { focus_areas: ["checkout"] });
     expect(r.status).toBe(400);
     const data = JSON.parse(r.body);
     expect(data.error_code).toBe("MISSING_FIELD");
+    expect(String(data.error)).toContain("missing 'intent' field");
   });
 
   it("returns 400 for invalid JSON body", async () => {
