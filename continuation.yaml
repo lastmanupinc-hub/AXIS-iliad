@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-04-17"
-    commit_or_tag: "36ac8ab"
-    current_session_id: "session_098"
-    one_sentence_summary: "Axis' Iliad v0.5.2 — 18 programs, 86 generators, 12 MCP tools, 4084 passing tests across 140 files (11 skipped). Version coherence sweep complete: source/test/registry/root manifest refs updated to 0.5.2, API dist rebuilt, full suite re-verified green."
+    commit_or_tag: "39e3622"
+    current_session_id: "session_099"
+    one_sentence_summary: "Axis' Iliad v0.5.2 — 18 programs, 86 generators, 12 MCP tools. Session 099 strengthens analyze_repo metadata on the canonical MCP, registry, and discovery surfaces so registries receive explicit auth, pricing, error, output, and tool-selection guidance."
 
   executive_truth:
     maturity_estimate:
@@ -3733,6 +3733,34 @@ project_continuation:
       - "Agent-facing endpoints and manifests advertised 0.5.1 while workspace packages were already 0.5.2"
       - "API dist output lagged source version after the package bump"
       - "3 stale version assertions in well-known-handlers.test.ts blocked the full suite"
+    blockers_added: []
+    local_only: true
+    commit_results: []
+    push_results: []
+
+  session_result_099:
+    date: "2026-04-17"
+    session_id: "session_099"
+    selected_move: "eq_200: maximize analyze_repo registry/tool-description quality for MCP registries and first-call agents"
+    selected_move_roi_reason: "High agent-acquisition and self-propagation ROI. Glama-style scoring exposed a real weakness in the canonical analyze_repo description: it sold breadth but under-disclosed auth, payment, failure modes, output usage, and tool-selection guidance. Strengthening the canonical MCP description improves first-attempt success for registries and agents without adding surface area."
+    completed_candidates:
+      - "Canonical MCP metadata: rewrote MCP_TOOLS.analyze_repo description in apps/api/src/mcp-server.ts to disclose outputs, retrieval flow, auth, pricing path, failure modes, private-repo token requirement, and when to use analyze_repo vs analyze_files vs list_programs/search_and_discover_tools."
+      - "Published registry manifest: upgraded apps/api/mcp-server.json analyze_repo summary and description with explicit output contract, auth requirements, paid-path behavior, common failures, and tool-choice guidance."
+      - "Agent discovery surface: upgraded /for-agents allTools analyze_repo description in handlers.ts so the discovery manifest matches the canonical message."
+      - "Guardrail tests: added assertions in mcp-server.test.ts that analyze_repo metadata continues to disclose auth, payment, errors, alternatives, and registry-scoring-critical guidance."
+      - "Ledger header advanced from session_098 / commit 36ac8ab to session_099 / baseline commit 39e3622 before commit creation."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Targeted MCP validation: apps/api/src/mcp-server.test.ts passed 141/141 tests (exit 0, duration 8.27s)."
+      - "Artifact freshness: npx tsx scripts/check-artifact-freshness.ts . returned 0 errors, 0 warnings (route delta 4, domain-model delta 5, both within tolerance)."
+      - "Static validation: no errors in mcp-server.ts, handlers.ts, mcp-server.test.ts, mcp-server.json, or continuation.yaml after edits."
+    verticals_advanced:
+      - "v18_agentic_commerce: stronger registry/discovery copy for analyze_repo improves agent onboarding and first-call success"
+      - "position_improvement: canonical tool descriptions now better disclose operational constraints and tool selection"
+    blockers_removed:
+      - "Canonical analyze_repo description lacked explicit auth syntax, paid-path disclosure, error conditions, and alternative-tool guidance"
+      - "Registry manifest and /for-agents discovery copy were too shallow to maximize external tool-definition scoring"
     blockers_added: []
     local_only: true
     commit_results: []

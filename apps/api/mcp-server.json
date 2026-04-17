@@ -43,8 +43,8 @@
     },
     {
       "name": "analyze_repo",
-      "summary": "Analyze any GitHub public repo. Returns snapshot_id + 86 artifacts (AGENTS.md, .cursorrules, architecture map, debug playbook, design tokens, SEO rules, brand guidelines, MCP configs, etc.). Requires API key.",
-      "description": "POST /v1/mcp with method tools/call, tool analyze_repo — fetches the GitHub tarball, runs the full 18-program pipeline (search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing), and returns a snapshot_id plus a listing of all generated artifact paths and descriptions. Use get_artifact to retrieve any specific file content. Supports public repos; pass a stored GitHub token for private repos. Requires API key."
+      "summary": "Analyze a GitHub repo URL and return snapshot_id plus 86 structured artifacts. Use this for repository URLs; use analyze_files for inline file payloads. Requires API key and the full-analysis path is paid.",
+      "description": "POST /v1/mcp with method tools/call, tool analyze_repo — fetches the GitHub tarball, runs the full 18-program pipeline (search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing), and returns snapshot_id plus an artifacts listing with paths and descriptions. Call get_artifact to read any generated file and get_snapshot to re-enumerate outputs without re-running analysis. Use this when the input is a GitHub repository URL; use analyze_files for direct file content, and use list_programs or search_and_discover_tools if you are still selecting a workflow. Requires Authorization: Bearer <api_key>. The full 86-artifact analysis path is paid ($0.50 standard, $0.15 lite budget mode). Public GitHub repos work directly; private repos require a stored GitHub token on the AXIS account. Common failures include invalid GitHub URL, authentication failure, quota exhaustion, payment-required responses, and upstream GitHub fetch errors."
     },
     {
       "name": "analyze_files",

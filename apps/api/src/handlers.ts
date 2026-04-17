@@ -2589,7 +2589,7 @@ export async function handleForAgents(
   }
 
   const allTools = [
-      { name: "analyze_repo",                   auth: true,  description: `Analyze any public GitHub repo. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts.` },
+      { name: "analyze_repo",                   auth: true,  description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid and private repos require a stored GitHub token.` },
       { name: "analyze_files",                  auth: true,  description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts.` },
       { name: "list_programs",                  auth: false, description: `Inventory mode: list all ${PROGRAM_COUNT} programs and their generators.` },
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },

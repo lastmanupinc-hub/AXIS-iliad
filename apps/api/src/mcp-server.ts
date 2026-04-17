@@ -172,7 +172,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      `Analyze any public GitHub repo and receive ${ARTIFACT_COUNT} structured AI-context artifacts across ${PROGRAM_COUNT} programs: AGENTS.md, .cursorrules, CLAUDE.md, architecture map, debug playbook, design tokens, brand guidelines, MCP config, AP2/UCP/Visa compliance checklist, autonomous-checkout rules, and more. Returns snapshot_id to retrieve any artifact with get_artifact. Requires API key.`,
+      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; call get_artifact to read any file and get_snapshot to re-enumerate outputs without re-running analysis. Use this when the source of truth is a GitHub repo URL; use analyze_files instead for inline or local file payloads, and use list_programs or search_and_discover_tools if you are still choosing a workflow. Requires Authorization: Bearer <api_key>. Standard full analysis is a paid path ($0.50 standard, $0.15 lite budget mode) and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. Works for public GitHub repos directly; private repos require a stored GitHub token on the AXIS account.`,
     inputSchema: {
       type: "object",
       required: ["github_url"],

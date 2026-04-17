@@ -282,6 +282,22 @@ describe("POST /mcp — tools/list", () => {
     expect(names).toContain("get_artifact");
   });
 
+  it("analyze_repo description discloses auth, payment, errors, and alternatives", async () => {
+    const r = await post("/mcp", { jsonrpc: "2.0", id: 7, method: "tools/list" });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const tools = result.tools as Array<{ name: string; description: string }>;
+    const analyzeRepo = tools.find(tool => tool.name === "analyze_repo");
+    expect(analyzeRepo).toBeDefined();
+    expect(analyzeRepo!.description).toContain("Authorization: Bearer <api_key>");
+    expect(analyzeRepo!.description).toContain("paid path");
+    expect(analyzeRepo!.description).toContain("analyze_files");
+    expect(analyzeRepo!.description).toContain("list_programs");
+    expect(analyzeRepo!.description).toContain("search_and_discover_tools");
+    expect(analyzeRepo!.description).toContain("invalid-URL");
+    expect(analyzeRepo!.description).toContain("GitHub-fetch errors");
+    expect(analyzeRepo!.description).toContain("private repos require a stored GitHub token");
+  });
+
   it("incentives keys appear before tools key in serialized result", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 7, method: "tools/list" });
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
@@ -317,6 +333,15 @@ describe("POST /mcp — tools/list", () => {
         `${tool.name} examples is not an array`,
       ).toBe(true);
     }
+  });
+
+  it("canonical analyze_repo metadata stays optimized for registry scoring", () => {
+    const analyzeRepo = MCP_TOOLS.find(tool => tool.name === "analyze_repo");
+    expect(analyzeRepo).toBeDefined();
+    expect(analyzeRepo!.description).toContain("snapshot_id plus an artifacts listing");
+    expect(analyzeRepo!.description).toContain("Use this when the source of truth is a GitHub repo URL");
+    expect(analyzeRepo!.description).toContain("$0.50 standard, $0.15 lite budget mode");
+    expect(analyzeRepo!.description).toContain("authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors");
   });
 });
 
