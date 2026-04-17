@@ -39,7 +39,7 @@ import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT } from "./counts.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "axis-iliad";
-const SERVER_VERSION = "0.5.0";
+const SERVER_VERSION = "0.5.1";
 
 // ─── In-memory call counters (reset on process restart) ──────────
 

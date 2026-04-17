@@ -115,7 +115,7 @@ describe("GET /.well-known/agent.json", () => {
   });
 
   it("contains version field", () => {
-    expect(json.version).toBe("0.5.0");
+    expect(json.version).toBe("0.5.1");
   });
 
   it("contains capabilities object", () => {
@@ -337,7 +337,7 @@ describe("GET /health", () => {
   });
 
   it("contains version field", () => {
-    expect(json.version).toBe("0.5.0");
+    expect(json.version).toBe("0.5.1");
   });
 
   it("contains timestamp", () => {
@@ -457,7 +457,7 @@ describe("GET /performance", () => {
   });
 
   it("contains version field", () => {
-    expect(json.version).toBe("0.5.0");
+    expect(json.version).toBe("0.5.1");
   });
 
   it("contains timestamp", () => {

@@ -347,7 +347,7 @@ describe("GET /for-agents", () => {
 
   it("returns name and version", () => {
     expect(data.name).toBe("Axis' Iliad");
-    expect(data.version).toBe("0.5.0");
+    expect(data.version).toBe("0.5.1");
   });
 
   it("includes install section with mcp_endpoint", () => {

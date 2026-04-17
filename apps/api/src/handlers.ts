@@ -670,7 +670,7 @@ export async function handleHealthCheck(
   sendJSON(res, ready ? 200 : 503, {
     status: ready ? "ok" : "shutting_down",
     service: "axis-api",
-    version: "0.5.0",
+    version: "0.5.1",
     timestamp: new Date().toISOString(),
   });
 }
@@ -1996,7 +1996,7 @@ export async function handleWellKnown(
       details: "GET /for-agents?intent=referral",
     },
     tagline: `Analyze any codebase. Generate ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.`,
-    version: "0.5.0",
+    version: "0.5.1",
     description: "Submit source files or a GitHub URL. AXIS returns structured AI context files  -  AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more  -  each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
     analyze_endpoint: {
       method: "POST",
@@ -2066,7 +2066,7 @@ export async function handleCapabilities(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.0",
+    version: "0.5.1",
     description: `Semantic capability manifest for agent tool discovery. Analyzes codebases, generates ${ARTIFACT_COUNT} artifacts across ${PROGRAM_COUNT} programs. Full agentic commerce hardening including AP2/UCP/Visa IC compliance.`,
     keywords: [
       "AP2", "AP2-compliance", "Article-2", "UN-CISG",
@@ -2425,7 +2425,7 @@ export async function handleDocsMd(
 ): Promise<void> {
   const body = `# Axis' Iliad API  -  Plain Text Reference
 
-Version: 0.5.0 | Base URL: https://axis-api-6c7z.onrender.com
+Version: 0.5.1 | Base URL: https://axis-api-6c7z.onrender.com
 
 ## Authentication
 
@@ -2574,7 +2574,7 @@ export async function handleForAgents(
   }
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.0",
+    version: "0.5.1",
     incentives: buildIncentivesSummary(),
     purpose: `Codebase intelligence API. Analyzes any repo, generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.`,
     install: {
@@ -2931,7 +2931,7 @@ export async function handleAgentJson(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.0",
+    version: "0.5.1",
     description: `Deterministic snapshot-based generation of ${ARTIFACT_COUNT}+ artifacts across ${PROGRAM_COUNT} specialized programs`,
     capabilities: {
       core: "AI-native development operating system",
@@ -2969,7 +2969,7 @@ export async function handleHealthRedirect(
 ): Promise<void> {
   sendJSON(res, 200, {
     status: "healthy",
-    version: "0.5.0",
+    version: "0.5.1",
     timestamp: new Date().toISOString(),
     uptime: "OK",
     details: "/v1/health for full health check",
@@ -3043,7 +3043,7 @@ export async function handlePerformance(
 
   sendJSON(res, 200, {
     status: "ok",
-    version: "0.5.0",
+    version: "0.5.1",
     timestamp: new Date().toISOString(),
     metrics: {
       uptime_seconds: uptimeSeconds,

@@ -78,7 +78,7 @@ describe("health endpoints", () => {
   });
 
   it("health() calls GET /v1/health", async () => {
-    const f = mockFetch(200, { status: "healthy", version: "0.5.0" });
+    const f = mockFetch(200, { status: "healthy", version: "0.5.1" });
     const res = await client.health();
     expect(f).toHaveBeenCalledWith("http://test:4000/v1/health", expect.objectContaining({ method: "GET" }));
     expect(res.status).toBe("healthy");
@@ -241,7 +241,7 @@ describe("REST-based methods", () => {
   });
 
   it("docs() calls GET /v1/docs and returns OpenAPI spec", async () => {
-    const spec = { openapi: "3.1.0", info: { title: "AXIS", version: "0.5.0" }, paths: {} };
+    const spec = { openapi: "3.1.0", info: { title: "AXIS", version: "0.5.1" }, paths: {} };
     const f = mockFetch(200, spec);
     const res = await client.docs();
     expect(f).toHaveBeenCalledWith("http://test:4000/v1/docs", expect.objectContaining({ method: "GET" }));

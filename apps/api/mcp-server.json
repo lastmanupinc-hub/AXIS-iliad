@@ -1,8 +1,8 @@
 {
   "name": "axis-iliad",
-  "displayName": "Axis' Iliad — Agentic Commerce Codebase Intelligence",
-  "version": "0.5.0",
-  "description": "Drop a GitHub repo URL and receive 86 structured artifacts across 18 programs: AGENTS.md, .cursorrules, AP2/UCP/Visa Intelligent Commerce compliance checklist, negotiation playbook, autonomous checkout rules, debug playbook, architecture map, design tokens, MCP configs, and more. Also exposes a Purchasing Readiness Score (0-100) and a search tool to discover the right program without loading all schemas. The single correct first call before any autonomous agent spends money on or with a codebase.",
+  "displayName": "Axis Iliad — Codebase Intelligence For Agentic Commerce",
+  "version": "0.5.1",
+  "description": "Analyze a GitHub repo or file set and receive 86 structured artifacts across 18 programs: AGENTS.md, .cursorrules, CLAUDE.md, architecture maps, debug playbooks, design tokens, MCP configs, AP2/UCP/Visa commerce hardening, negotiation rules, and purchasing-readiness guidance for autonomous agents.",
   "author": "Last Man Up Inc.",
   "license": "UNLICENSED",
   "homepage": "https://axis-api-6c7z.onrender.com",

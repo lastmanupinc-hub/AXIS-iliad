@@ -417,7 +417,7 @@ describe("GET /.well-known/axis.json", () => {
 
   it("returns name and version", () => {
     expect(manifest.name).toBe("Axis' Iliad");
-    expect(manifest.version).toBe("0.5.0");
+    expect(manifest.version).toBe("0.5.1");
   });
 
   it("describes the analyze_endpoint", () => {

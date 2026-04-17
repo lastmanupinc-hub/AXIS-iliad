@@ -22,7 +22,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
     openapi: "3.1.0",
     info: {
       title: "Axis' Iliad API",
-      version: "0.5.0",
+      version: "0.5.1",
       description:
         "Axis' Iliad provides AI-powered code analysis, context mapping, and multi-program file generation. " +
         `Submit a codebase snapshot and AXIS produces tailored configuration files, analysis reports, and generator outputs across ${PROGRAM_COUNT} programs (${ARTIFACT_COUNT} artifacts).`,
