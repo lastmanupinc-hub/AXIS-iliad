@@ -87,7 +87,7 @@ These project-specific warnings must be addressed in all AI-generated code:
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -123,7 +123,7 @@ These project-specific warnings must be addressed in all AI-generated code:
 ```json
 {
   "name": "@axis/cli",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "bin": {

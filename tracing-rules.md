@@ -506,6 +506,7 @@ State transitions on these entities should be logged:
 - `RpcSuccess` (interface, 3 fields) — `apps/api/src/mcp-server.ts`
 - `HistogramEntry` (interface, 3 fields) — `apps/api/src/metrics.ts`
 - `AgentBudget` (interface, 5 fields) — `apps/api/src/mpp.ts`
+- `Build402Options` (interface, 2 fields) — `apps/api/src/mpp.ts`
 - `CacheKey` (type_alias, 2 fields) — `apps/api/src/mpp.ts`
 - `ChargeOptions` (type_alias, 5 fields) — `apps/api/src/mpp.ts`
 - `MppResult` (type_alias, 1 fields) — `apps/api/src/mpp.ts`

@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-16T18:58:44.857Z",
+  "generated_at": "2026-04-17T13:25:42.744Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
@@ -34,8 +34,8 @@
       "id": "data-model",
       "from": 270,
       "duration": 90,
-      "label": "Data Model (162 entities)",
-      "data_points": 162
+      "label": "Data Model (163 entities)",
+      "data_points": 163
     },
     {
       "id": "complexity",
@@ -86,23 +86,23 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 82214,
-          "percent": 73.1
+          "loc": 82527,
+          "percent": 73.3
         },
         {
           "name": "JSON",
-          "loc": 11408,
-          "percent": 10.1
+          "loc": 11291,
+          "percent": 10
         },
         {
           "name": "YAML",
-          "loc": 8558,
+          "loc": 8549,
           "percent": 7.6
         },
         {
           "name": "Markdown",
-          "loc": 8020,
-          "percent": 7.1
+          "loc": 7878,
+          "percent": 7
         },
         {
           "name": "JavaScript",
@@ -228,7 +228,7 @@
       ]
     },
     "data_model": {
-      "total_models": 162,
+      "total_models": 163,
       "models": [
         {
           "name": "AuthContext",
@@ -291,6 +291,11 @@
           "fields": 5
         },
         {
+          "name": "Build402Options",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
           "name": "CacheKey",
           "kind": "type_alias",
           "fields": 2
@@ -299,11 +304,6 @@
           "name": "ChargeOptions",
           "kind": "type_alias",
           "fields": 5
-        },
-        {
-          "name": "MppResult",
-          "kind": "type_alias",
-          "fields": 1
         }
       ]
     },
@@ -378,7 +378,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 123223
+    "total_loc": 123671
   },
   "source_media_files": null
 }

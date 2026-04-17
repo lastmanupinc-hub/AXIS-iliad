@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 162 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 163 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (123223 LOC)
+- **Files:** 500 (123671 LOC)
 - **Directories:** 57
 
 ## Frameworks & Libraries
@@ -517,7 +517,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - `apps/` — monorepo_apps (141 files)
 - `packages/` — monorepo_packages (135 files)
-- `payment-processing-output/` — project_directory (72 files)
+- `payment-processing-output/` — project_directory (67 files)
 - `examples/` — project_directory (17 files)
 - `algorithmic/` — project_directory (4 files)
 - `artifacts/` — project_directory (4 files)
@@ -546,7 +546,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Domain Models
 
-Detected 162 domain models:
+Detected 163 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -562,6 +562,7 @@ Detected 162 domain models:
 | `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `AgentBudget` | interface | 5 | apps/api/src/mpp.ts |
+| `Build402Options` | interface | 2 | apps/api/src/mpp.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
 | `ChargeOptions` | type_alias | 5 | apps/api/src/mpp.ts |
 | `MppResult` | type_alias | 1 | apps/api/src/mpp.ts |
@@ -574,8 +575,7 @@ Detected 162 domain models:
 | `AxisConfig` | interface | 2 | apps/cli/src/credential-store.ts |
 | `RunResult` | interface | 4 | apps/cli/src/runner.ts |
 | `ScanResult` | interface | 3 | apps/cli/src/scanner.ts |
-| `WriteResult` | interface | 3 | apps/cli/src/writer.ts |
-| *… 137 more* | | | |
+| *… 138 more* | | | |
 
 > **High-complexity models** (8+ fields): `ContextMap`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ProgramDoc`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
@@ -601,7 +601,11 @@ Detected 162 domain models:
 .gitignore (0.2 KB)
 .tmp_changed_count.txt (0.0 KB)
 .tmp_toolbox_grouped.txt (0.0 KB)
+.tmp-glama-servers.json (20.9 KB)
 .vitest-e2e.json (13.0 KB)
+.vitest-mcp-server-verbose.txt (78.0 KB)
+.vitest-monetization.json (203.9 KB)
+.vitest-targeted.json (102.1 KB)
 ab-test-plan.md (2.8 KB)
 agent-purchasing-playbook.md (16.9 KB)
 AGENTS.md (14.1 KB)
@@ -613,20 +617,20 @@ algorithmic/schemas/output-contract.schema.json (1.8 KB)
 apps/api/check-table.js (0.3 KB)
 apps/api/gen-keys.js (0.3 KB)
 apps/api/keys.env (4.3 KB)
-apps/api/mcp-server.json (10.1 KB)
+apps/api/mcp-server.json (9.9 KB)
 apps/api/package.json (0.7 KB)
 apps/api/src/admin.test.ts (10.0 KB)
 apps/api/src/admin.ts (2.8 KB)
 apps/api/src/agent-discovery.test.ts (18.6 KB)
 apps/api/src/analyze-repo-success.test.ts (5.0 KB)
-apps/api/src/analyze.test.ts (16.2 KB)
+apps/api/src/analyze.test.ts (17.6 KB)
 apps/api/src/api-branches.test.ts (22.0 KB)
 apps/api/src/api-layer5.test.ts (10.6 KB)
 apps/api/src/api.test.ts (20.7 KB)
 apps/api/src/b-grade-upgrade.test.ts (8.6 KB)
 apps/api/src/billing-flow.test.ts (24.6 KB)
 apps/api/src/billing.ts (21.2 KB)
-apps/api/src/budget-probe.test.ts (33.2 KB)
+apps/api/src/budget-probe.test.ts (34.4 KB)
 apps/api/src/checkout-email.test.ts (11.7 KB)
 apps/api/src/counts.ts (0.2 KB)
 apps/api/src/crash-resilience.test.ts (6.3 KB)
@@ -649,18 +653,18 @@ apps/api/src/handler-edge-cases.test.ts (11.8 KB)
 apps/api/src/handler-shutdown.test.ts (2.8 KB)
 apps/api/src/handler-validation.test.ts (11.4 KB)
 apps/api/src/handlers-deep.test.ts (18.7 KB)
-apps/api/src/handlers.ts (145.3 KB)
+apps/api/src/handlers.ts (147.8 KB)
 apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (77.8 KB)
-apps/api/src/mcp-server.ts (95.0 KB)
+apps/api/src/mcp-server.test.ts (79.4 KB)
+apps/api/src/mcp-server.ts (98.8 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
 apps/api/src/mpp.test.ts (8.5 KB)
-apps/api/src/mpp.ts (13.8 KB)
+apps/api/src/mpp.ts (15.7 KB)
 apps/api/src/multi-tenancy.test.ts (20.0 KB)
 apps/api/src/oauth-server-simple.ts (5.7 KB)
 apps/api/src/oauth-server.ts (8.1 KB)
@@ -668,10 +672,10 @@ apps/api/src/oauth.test.ts (8.0 KB)
 apps/api/src/oauth.ts (3.4 KB)
 apps/api/src/openapi.test.ts (15.2 KB)
 apps/api/src/openapi.ts (65.3 KB)
-apps/api/src/prepare-purchasing.test.ts (19.1 KB)
+apps/api/src/prepare-purchasing.test.ts (19.4 KB)
 apps/api/src/production-startup.test.ts (8.5 KB)
 apps/api/src/programs-billing.test.ts (12.8 KB)
-apps/api/src/quota-guardrails.test.ts (5.8 KB)
+apps/api/src/quota-guardrails.test.ts (7.4 KB)
 apps/api/src/quota.test.ts (4.5 KB)
 apps/api/src/rate-limit-integration.test.ts (3.2 KB)
 apps/api/src/rate-limiter.test.ts (13.8 KB)
@@ -766,7 +770,7 @@ AXIS_Board_Pitch.md (30.7 KB)
 AXIS_DEMO_REPORT.md (12.3 KB)
 axis_master_blueprint.yaml (9.6 KB)
 begin.yaml (14.7 KB)
-brand-board.md (5.0 KB)
+brand-board.md (5.1 KB)
 brand-guidelines.md (3.0 KB)
 brand/begin.yaml (1.8 KB)
 brand/continuation.yaml (2.4 KB)
@@ -785,16 +789,16 @@ CHANGELOG.md (7.8 KB)
 channel-rulebook.md (3.6 KB)
 checkout-flow.md (10.5 KB)
 citation-index.json (6.1 KB)
-CLAUDE.md (10.0 KB)
+CLAUDE.md (9.9 KB)
 cloudflare-pages.md (1.5 KB)
 collection-map.md (2.4 KB)
 commerce-registry.json (6.3 KB)
 component-guidelines.md (3.3 KB)
 component-library.json (7.9 KB)
 component-theme-map.json (9.5 KB)
-connector-map.yaml (6.6 KB)
+connector-map.yaml (6.5 KB)
 content-audit.md (3.8 KB)
-content-constraints.md (2.9 KB)
+content-constraints.md (2.8 KB)
 CONTRIBUTING.md (3.1 KB)
 cost-estimate.json (5.7 KB)
 cov.txt (210.1 KB)
@@ -808,14 +812,14 @@ coverage-full.txt (249.9 KB)
 cro-playbook.md (35.7 KB)
 daily-maintenance-runbook.yaml (6.2 KB)
 dark-mode-tokens.json (3.3 KB)
-dashboard-widget.tsx (3.4 KB)
+dashboard-widget.tsx (3.5 KB)
 debug/begin.yaml (3.6 KB)
 debug/continuation.yaml (2.4 KB)
 debug/MEMORY.yaml (5.5 KB)
 debug/schemas/output-contract.schema.json (1.8 KB)
-dependency-hotspots.md (8.1 KB)
+dependency-hotspots.md (8.0 KB)
 docker-compose.yml (2.0 KB)
-Dockerfile (4.3 KB)
+Dockerfile (4.4 KB)
 e2e_round2.mjs (15.1 KB)
 e2e_ui_audit.yaml (39.3 KB)
 e2e_wiring_audit.mjs (46.9 KB)
@@ -843,12 +847,13 @@ frontend/begin.yaml (3.6 KB)
 frontend/continuation.yaml (2.4 KB)
 frontend/MEMORY.yaml (5.8 KB)
 frontend/schemas/output-contract.schema.json (1.8 KB)
-funnel-map.md (2.9 KB)
+funnel-map.md (3.0 KB)
 generate-keys.js (0.6 KB)
 generated-component.tsx (1.6 KB)
 generated-posts.json (2.3 KB)
 generative-sketch.js (8.3 KB)
 generative-sketch.ts (4.1 KB)
+glama.json (0.1 KB)
 graph-prompt-map.json (47.0 KB)
 human user audt.yaml (24.9 KB)
 hygiene and memory.yaml (8.7 KB)
@@ -872,7 +877,7 @@ memory generator.yaml (7.6 KB)
 messaging-system.yaml (2.5 KB)
 meta-tag-audit.json (24.5 KB)
 negotiation-rules.md (7.6 KB)
-notebook-summary.md (3.6 KB)
+notebook-summary.md (3.7 KB)
 notebook/begin.yaml (1.8 KB)
 notebook/continuation.yaml (2.4 KB)
 notebook/MEMORY.yaml (2.9 KB)
@@ -1092,11 +1097,6 @@ payment-processing-output/theme.css (6.4 KB)
 payment-processing-output/token-budget-plan.md (2.3 KB)
 payment-processing-output/tracing-rules.md (1.4 KB)
 payment-processing-output/ui-audit.md (2.2 KB)
-payment-processing-output/variation-matrix.json (6.9 KB)
-payment-processing-output/vault-rules.md (2.1 KB)
-payment-processing-output/voice-and-tone.md (2.5 KB)
-payment-processing-output/workflow-pack.md (2.0 KB)
-payment-processing-output/workflow-registry.json (1.8 KB)
 ```
 
 ## Entry Points (Source)
@@ -1317,7 +1317,7 @@ export {
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -1363,7 +1363,7 @@ export {
 ```json
 {
   "name": "@axis/cli",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "bin": {
@@ -1415,7 +1415,7 @@ export {
 {
   "name": "@axis/web",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.5.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -1486,7 +1486,7 @@ export default defineConfig({
 ```json
 {
   "name": "axis-iliad",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "description": "Axis — The operating system for AI-native development",
@@ -1517,7 +1517,7 @@ export default defineConfig({
 ```json
 {
   "name": "@axis/context-engine",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "exports": {
@@ -1559,7 +1559,7 @@ export default defineConfig({
 ```json
 {
   "name": "@axis/generator-core",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -1599,7 +1599,7 @@ export default defineConfig({
 ```json
 {
   "name": "@axis/repo-parser",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "exports": {
@@ -1640,7 +1640,7 @@ export default defineConfig({
 ```json
 {
   "name": "@axis/sdk",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
@@ -1682,7 +1682,7 @@ export default defineConfig({
 ```json
 {
   "name": "@axis/snapshots",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "exports": {
@@ -1721,4 +1721,4 @@ export default defineConfig({
 ```
 
 ---
-*Generated by Axis Search — 2026-04-16*
+*Generated by Axis Search — 2026-04-17*

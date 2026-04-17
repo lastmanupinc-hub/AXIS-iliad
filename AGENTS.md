@@ -98,6 +98,7 @@ This is a **monorepo** built with **TypeScript**.
 | `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `AgentBudget` | interface | 5 | apps/api/src/mpp.ts |
+| `Build402Options` | interface | 2 | apps/api/src/mpp.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
 | `ChargeOptions` | type_alias | 5 | apps/api/src/mpp.ts |
 | `MppResult` | type_alias | 1 | apps/api/src/mpp.ts |
@@ -105,8 +106,7 @@ This is a **monorepo** built with **TypeScript**.
 | `OpenApiSpec` | interface | 6 | apps/api/src/openapi.ts |
 | `WindowEntry` | interface | 2 | apps/api/src/rate-limiter.ts |
 | `AppHandle` | interface | 3 | apps/api/src/router.ts |
-| `Route` | interface | 4 | apps/api/src/router.ts |
-| *… 142 more* | | | |
+| *… 143 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 
@@ -145,7 +145,7 @@ Respect these layer separations:
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -181,7 +181,7 @@ Respect these layer separations:
 ```json
 {
   "name": "@axis/cli",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "bin": {

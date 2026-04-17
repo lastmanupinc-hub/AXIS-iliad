@@ -33,6 +33,7 @@ test_before_commit = true
 # RpcSuccess (interface, 3 fields) @ apps/api/src/mcp-server.ts
 # HistogramEntry (interface, 3 fields) @ apps/api/src/metrics.ts
 # AgentBudget (interface, 5 fields) @ apps/api/src/mpp.ts
+# Build402Options (interface, 2 fields) @ apps/api/src/mpp.ts
 # CacheKey (type_alias, 2 fields) @ apps/api/src/mpp.ts
 # ChargeOptions (type_alias, 5 fields) @ apps/api/src/mpp.ts
 # MppResult (type_alias, 1 fields) @ apps/api/src/mpp.ts
@@ -40,8 +41,7 @@ test_before_commit = true
 # OpenApiSpec (interface, 6 fields) @ apps/api/src/openapi.ts
 # WindowEntry (interface, 2 fields) @ apps/api/src/rate-limiter.ts
 # AppHandle (interface, 3 fields) @ apps/api/src/router.ts
-# Route (interface, 4 fields) @ apps/api/src/router.ts
-# ... and 142 more
+# ... and 143 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode
@@ -49,9 +49,13 @@ test_before_commit = true
 # === Project File Tree ===
 # .github/workflows/ci.yml
 # .gitignore
+# .tmp-glama-servers.json
 # .tmp_changed_count.txt
 # .tmp_toolbox_grouped.txt
 # .vitest-e2e.json
+# .vitest-mcp-server-verbose.txt
+# .vitest-monetization.json
+# .vitest-targeted.json
 # ab-test-plan.md
 # agent-purchasing-playbook.md
 # AGENTS.md
@@ -93,10 +97,6 @@ test_before_commit = true
 # apps/api/src/export.ts
 # apps/api/src/funnel-api.test.ts
 # apps/api/src/funnel.ts
-# apps/api/src/github.test.ts
-# apps/api/src/github.ts
-# apps/api/src/handler-edge-cases.test.ts
-# apps/api/src/handler-shutdown.test.ts
 # ... and 450 more files
 
 # === Key Entry Points ===

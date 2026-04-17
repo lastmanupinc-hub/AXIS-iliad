@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 162 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 163 domain models.
 
 ## Detected Stack
 
@@ -66,10 +66,10 @@ These models were detected in the codebase. Each should have factory helpers and
 | `RpcSuccess` | interface | 3 | `apps/api/src/mcp-server.ts` |
 | `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
 | `AgentBudget` | interface | 5 | `apps/api/src/mpp.ts` |
+| `Build402Options` | interface | 2 | `apps/api/src/mpp.ts` |
 | `CacheKey` | type_alias | 2 | `apps/api/src/mpp.ts` |
 | `ChargeOptions` | type_alias | 5 | `apps/api/src/mpp.ts` |
-| `MppResult` | type_alias | 1 | `apps/api/src/mpp.ts` |
-| *... and 147 more* | | | |
+| *... and 148 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -160,13 +160,13 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 | `apps/api/src/admin.test.ts` | 265 |
 | `apps/api/src/agent-discovery.test.ts` | 559 |
 | `apps/api/src/analyze-repo-success.test.ts` | 137 |
-| `apps/api/src/analyze.test.ts` | 456 |
+| `apps/api/src/analyze.test.ts` | 487 |
 | `apps/api/src/api-branches.test.ts` | 606 |
 | `apps/api/src/api-layer5.test.ts` | 284 |
 | `apps/api/src/api.test.ts` | 464 |
 | `apps/api/src/b-grade-upgrade.test.ts` | 228 |
 | `apps/api/src/billing-flow.test.ts` | 548 |
-| `apps/api/src/budget-probe.test.ts` | 809 |
+| `apps/api/src/budget-probe.test.ts` | 833 |
 | `apps/api/src/checkout-email.test.ts` | 308 |
 | `apps/api/src/crash-resilience.test.ts` | 158 |
 
@@ -223,4 +223,3 @@ describe("handleHealthCheck shutdown path", () => {
 These source files export functions without matching test files:
 
 - `apps/api/src/counts.ts` — export const ARTIFACT_COUNT = ..., export const PROGRAM_COUNT = ..., export const MCP_TOOL_COUNT = ..., export const ENDPOINT_COUNT = ...
-- `apps/api/src/oauth-server-simple.ts` — export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }, export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }, export function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ...

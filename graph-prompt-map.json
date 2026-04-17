@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-16T18:58:44.845Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 162 domain models.",
+  "generated_at": "2026-04-17T13:25:42.669Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 163 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -9,8 +9,8 @@
       "confidence": 0.95
     }
   ],
-  "total_nodes": 176,
-  "total_edges": 175,
+  "total_nodes": 177,
+  "total_edges": 176,
   "nodes": [
     {
       "id": "project",
@@ -153,212 +153,212 @@
     {
       "id": "model_12",
       "type": "domain_model",
+      "label": "Build402Options",
+      "note_path": "Projects/axis-iliad/Models/Build402Options.md"
+    },
+    {
+      "id": "model_13",
+      "type": "domain_model",
       "label": "CacheKey",
       "note_path": "Projects/axis-iliad/Models/CacheKey.md"
     },
     {
-      "id": "model_13",
+      "id": "model_14",
       "type": "domain_model",
       "label": "ChargeOptions",
       "note_path": "Projects/axis-iliad/Models/ChargeOptions.md"
     },
     {
-      "id": "model_14",
+      "id": "model_15",
       "type": "domain_model",
       "label": "MppResult",
       "note_path": "Projects/axis-iliad/Models/MppResult.md"
     },
     {
-      "id": "model_15",
+      "id": "model_16",
       "type": "domain_model",
       "label": "PricingTier",
       "note_path": "Projects/axis-iliad/Models/PricingTier.md"
     },
     {
-      "id": "model_16",
+      "id": "model_17",
       "type": "domain_model",
       "label": "OpenApiSpec",
       "note_path": "Projects/axis-iliad/Models/OpenApiSpec.md"
     },
     {
-      "id": "model_17",
+      "id": "model_18",
       "type": "domain_model",
       "label": "WindowEntry",
       "note_path": "Projects/axis-iliad/Models/WindowEntry.md"
     },
     {
-      "id": "model_18",
+      "id": "model_19",
       "type": "domain_model",
       "label": "AppHandle",
       "note_path": "Projects/axis-iliad/Models/AppHandle.md"
     },
     {
-      "id": "model_19",
+      "id": "model_20",
       "type": "domain_model",
       "label": "Route",
       "note_path": "Projects/axis-iliad/Models/Route.md"
     },
     {
-      "id": "model_20",
+      "id": "model_21",
       "type": "domain_model",
       "label": "CliArgs",
       "note_path": "Projects/axis-iliad/Models/CliArgs.md"
     },
     {
-      "id": "model_21",
+      "id": "model_22",
       "type": "domain_model",
       "label": "AxisConfig",
       "note_path": "Projects/axis-iliad/Models/AxisConfig.md"
     },
     {
-      "id": "model_22",
+      "id": "model_23",
       "type": "domain_model",
       "label": "RunResult",
       "note_path": "Projects/axis-iliad/Models/RunResult.md"
     },
     {
-      "id": "model_23",
+      "id": "model_24",
       "type": "domain_model",
       "label": "ScanResult",
       "note_path": "Projects/axis-iliad/Models/ScanResult.md"
     },
     {
-      "id": "model_24",
+      "id": "model_25",
       "type": "domain_model",
       "label": "WriteResult",
       "note_path": "Projects/axis-iliad/Models/WriteResult.md"
     },
     {
-      "id": "model_25",
+      "id": "model_26",
       "type": "domain_model",
       "label": "Account",
       "note_path": "Projects/axis-iliad/Models/Account.md"
     },
     {
-      "id": "model_26",
+      "id": "model_27",
       "type": "domain_model",
       "label": "ApiKeyInfo",
       "note_path": "Projects/axis-iliad/Models/ApiKeyInfo.md"
     },
     {
-      "id": "model_27",
+      "id": "model_28",
       "type": "domain_model",
       "label": "ContextMap",
       "note_path": "Projects/axis-iliad/Models/ContextMap.md"
     },
     {
-      "id": "model_28",
+      "id": "model_29",
       "type": "domain_model",
       "label": "CreditsInfo",
       "note_path": "Projects/axis-iliad/Models/CreditsInfo.md"
     },
     {
-      "id": "model_29",
+      "id": "model_30",
       "type": "domain_model",
       "label": "GeneratedFile",
       "note_path": "Projects/axis-iliad/Models/GeneratedFile.md"
     },
     {
-      "id": "model_30",
+      "id": "model_31",
       "type": "domain_model",
       "label": "GeneratedFilesResponse",
       "note_path": "Projects/axis-iliad/Models/GeneratedFilesResponse.md"
     },
     {
-      "id": "model_31",
+      "id": "model_32",
       "type": "domain_model",
       "label": "PlanDefinition",
       "note_path": "Projects/axis-iliad/Models/PlanDefinition.md"
     },
     {
-      "id": "model_32",
+      "id": "model_33",
       "type": "domain_model",
       "label": "PlanFeature",
       "note_path": "Projects/axis-iliad/Models/PlanFeature.md"
     },
     {
-      "id": "model_33",
+      "id": "model_34",
       "type": "domain_model",
       "label": "RepoProfile",
       "note_path": "Projects/axis-iliad/Models/RepoProfile.md"
     },
     {
-      "id": "model_34",
+      "id": "model_35",
       "type": "domain_model",
       "label": "SearchResponse",
       "note_path": "Projects/axis-iliad/Models/SearchResponse.md"
     },
     {
-      "id": "model_35",
+      "id": "model_36",
       "type": "domain_model",
       "label": "SearchResult",
       "note_path": "Projects/axis-iliad/Models/SearchResult.md"
     },
     {
-      "id": "model_36",
+      "id": "model_37",
       "type": "domain_model",
       "label": "Seat",
       "note_path": "Projects/axis-iliad/Models/Seat.md"
     },
     {
-      "id": "model_37",
+      "id": "model_38",
       "type": "domain_model",
       "label": "SnapshotPayload",
       "note_path": "Projects/axis-iliad/Models/SnapshotPayload.md"
     },
     {
-      "id": "model_38",
+      "id": "model_39",
       "type": "domain_model",
       "label": "SnapshotResponse",
       "note_path": "Projects/axis-iliad/Models/SnapshotResponse.md"
     },
     {
-      "id": "model_39",
+      "id": "model_40",
       "type": "domain_model",
       "label": "SubscriptionInfo",
       "note_path": "Projects/axis-iliad/Models/SubscriptionInfo.md"
     },
     {
-      "id": "model_40",
+      "id": "model_41",
       "type": "domain_model",
       "label": "SymbolResult",
       "note_path": "Projects/axis-iliad/Models/SymbolResult.md"
     },
     {
-      "id": "model_41",
+      "id": "model_42",
       "type": "domain_model",
       "label": "SymbolsResponse",
       "note_path": "Projects/axis-iliad/Models/SymbolsResponse.md"
     },
     {
-      "id": "model_42",
+      "id": "model_43",
       "type": "domain_model",
       "label": "UpgradePrompt",
       "note_path": "Projects/axis-iliad/Models/UpgradePrompt.md"
     },
     {
-      "id": "model_43",
+      "id": "model_44",
       "type": "domain_model",
       "label": "UsageSummary",
       "note_path": "Projects/axis-iliad/Models/UsageSummary.md"
     },
     {
-      "id": "model_44",
+      "id": "model_45",
       "type": "domain_model",
       "label": "IconProps",
       "note_path": "Projects/axis-iliad/Models/IconProps.md"
     },
     {
-      "id": "model_45",
+      "id": "model_46",
       "type": "domain_model",
       "label": "PaletteAction",
       "note_path": "Projects/axis-iliad/Models/PaletteAction.md"
-    },
-    {
-      "id": "model_46",
-      "type": "domain_model",
-      "label": "Props",
-      "note_path": "Projects/axis-iliad/Models/Props.md"
     },
     {
       "id": "model_47",
@@ -387,14 +387,14 @@
     {
       "id": "model_51",
       "type": "domain_model",
-      "label": "ProgramDef",
-      "note_path": "Projects/axis-iliad/Models/ProgramDef.md"
+      "label": "Props",
+      "note_path": "Projects/axis-iliad/Models/Props.md"
     },
     {
       "id": "model_52",
       "type": "domain_model",
-      "label": "Props",
-      "note_path": "Projects/axis-iliad/Models/Props.md"
+      "label": "ProgramDef",
+      "note_path": "Projects/axis-iliad/Models/ProgramDef.md"
     },
     {
       "id": "model_53",
@@ -417,20 +417,20 @@
     {
       "id": "model_56",
       "type": "domain_model",
-      "label": "Toast",
-      "note_path": "Projects/axis-iliad/Models/Toast.md"
+      "label": "Props",
+      "note_path": "Projects/axis-iliad/Models/Props.md"
     },
     {
       "id": "model_57",
       "type": "domain_model",
-      "label": "ToastContextValue",
-      "note_path": "Projects/axis-iliad/Models/ToastContextValue.md"
+      "label": "Toast",
+      "note_path": "Projects/axis-iliad/Models/Toast.md"
     },
     {
       "id": "model_58",
       "type": "domain_model",
-      "label": "Props",
-      "note_path": "Projects/axis-iliad/Models/Props.md"
+      "label": "ToastContextValue",
+      "note_path": "Projects/axis-iliad/Models/ToastContextValue.md"
     },
     {
       "id": "model_59",
@@ -441,611 +441,617 @@
     {
       "id": "model_60",
       "type": "domain_model",
+      "label": "Props",
+      "note_path": "Projects/axis-iliad/Models/Props.md"
+    },
+    {
+      "id": "model_61",
+      "type": "domain_model",
       "label": "ProgramDoc",
       "note_path": "Projects/axis-iliad/Models/ProgramDoc.md"
     },
     {
-      "id": "model_61",
+      "id": "model_62",
       "type": "domain_model",
       "label": "Example",
       "note_path": "Projects/axis-iliad/Models/Example.md"
     },
     {
-      "id": "model_62",
+      "id": "model_63",
       "type": "domain_model",
       "label": "Step",
       "note_path": "Projects/axis-iliad/Models/Step.md"
     },
     {
-      "id": "model_63",
+      "id": "model_64",
       "type": "domain_model",
       "label": "TroubleshootItem",
       "note_path": "Projects/axis-iliad/Models/TroubleshootItem.md"
     },
     {
-      "id": "model_64",
+      "id": "model_65",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-iliad/Models/Props.md"
     },
     {
-      "id": "model_65",
+      "id": "model_66",
       "type": "domain_model",
       "label": "ProgramDef",
       "note_path": "Projects/axis-iliad/Models/ProgramDef.md"
     },
     {
-      "id": "model_66",
+      "id": "model_67",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-iliad/Models/Props.md"
     },
     {
-      "id": "model_67",
+      "id": "model_68",
       "type": "domain_model",
       "label": "QAItem",
       "note_path": "Projects/axis-iliad/Models/QAItem.md"
     },
     {
-      "id": "model_68",
+      "id": "model_69",
       "type": "domain_model",
       "label": "Section",
       "note_path": "Projects/axis-iliad/Models/Section.md"
     },
     {
-      "id": "model_69",
+      "id": "model_70",
       "type": "domain_model",
       "label": "Props",
       "note_path": "Projects/axis-iliad/Models/Props.md"
     },
     {
-      "id": "model_70",
+      "id": "model_71",
       "type": "domain_model",
       "label": "ImportMeta",
       "note_path": "Projects/axis-iliad/Models/ImportMeta.md"
     },
     {
-      "id": "model_71",
+      "id": "model_72",
       "type": "domain_model",
       "label": "ImportMetaEnv",
       "note_path": "Projects/axis-iliad/Models/ImportMetaEnv.md"
     },
     {
-      "id": "model_72",
+      "id": "model_73",
       "type": "domain_model",
       "label": "DashboardData",
       "note_path": "Projects/axis-iliad/Models/DashboardData.md"
     },
     {
-      "id": "model_73",
+      "id": "model_74",
       "type": "domain_model",
       "label": "axisiliadProps",
       "note_path": "Projects/axis-iliad/Models/axisiliadProps.md"
     },
     {
-      "id": "model_74",
+      "id": "model_75",
       "type": "domain_model",
       "label": "PaletteAction",
       "note_path": "Projects/axis-iliad/Models/PaletteAction.md"
     },
     {
-      "id": "model_75",
+      "id": "model_76",
       "type": "domain_model",
       "label": "Edge",
       "note_path": "Projects/axis-iliad/Models/Edge.md"
     },
     {
-      "id": "model_76",
+      "id": "model_77",
       "type": "domain_model",
       "label": "Node",
       "note_path": "Projects/axis-iliad/Models/Node.md"
     },
     {
-      "id": "model_77",
+      "id": "model_78",
       "type": "domain_model",
       "label": "ContextMap",
       "note_path": "Projects/axis-iliad/Models/ContextMap.md"
     },
     {
-      "id": "model_78",
+      "id": "model_79",
       "type": "domain_model",
       "label": "RepoProfile",
       "note_path": "Projects/axis-iliad/Models/RepoProfile.md"
     },
     {
-      "id": "model_79",
+      "id": "model_80",
       "type": "domain_model",
       "label": "CommerceSignals",
       "note_path": "Projects/axis-iliad/Models/CommerceSignals.md"
     },
     {
-      "id": "model_80",
+      "id": "model_81",
       "type": "domain_model",
       "label": "Edge",
       "note_path": "Projects/axis-iliad/Models/Edge.md"
     },
     {
-      "id": "model_81",
+      "id": "model_82",
       "type": "domain_model",
       "label": "Node",
       "note_path": "Projects/axis-iliad/Models/Node.md"
     },
     {
-      "id": "model_82",
+      "id": "model_83",
       "type": "domain_model",
       "label": "DashboardData",
       "note_path": "Projects/axis-iliad/Models/DashboardData.md"
     },
     {
-      "id": "model_83",
+      "id": "model_84",
       "type": "domain_model",
       "label": "MyComponentProps",
       "note_path": "Projects/axis-iliad/Models/MyComponentProps.md"
     },
     {
-      "id": "model_84",
+      "id": "model_85",
       "type": "domain_model",
       "label": "RemotionTheme",
       "note_path": "Projects/axis-iliad/Models/RemotionTheme.md"
     },
     {
-      "id": "model_85",
+      "id": "model_86",
       "type": "domain_model",
       "label": "GeneratedFile",
       "note_path": "Projects/axis-iliad/Models/GeneratedFile.md"
     },
     {
-      "id": "model_86",
+      "id": "model_87",
       "type": "domain_model",
       "label": "GeneratorInput",
       "note_path": "Projects/axis-iliad/Models/GeneratorInput.md"
     },
     {
-      "id": "model_87",
+      "id": "model_88",
       "type": "domain_model",
       "label": "GeneratorResult",
       "note_path": "Projects/axis-iliad/Models/GeneratorResult.md"
     },
     {
-      "id": "model_88",
+      "id": "model_89",
       "type": "domain_model",
       "label": "SourceFile",
       "note_path": "Projects/axis-iliad/Models/SourceFile.md"
     },
     {
-      "id": "model_89",
+      "id": "model_90",
       "type": "domain_model",
       "label": "DomainModel",
       "note_path": "Projects/axis-iliad/Models/DomainModel.md"
     },
     {
-      "id": "model_90",
+      "id": "model_91",
       "type": "domain_model",
       "label": "FrameworkRule",
       "note_path": "Projects/axis-iliad/Models/FrameworkRule.md"
     },
     {
-      "id": "model_91",
+      "id": "model_92",
       "type": "domain_model",
       "label": "DepGroups",
       "note_path": "Projects/axis-iliad/Models/DepGroups.md"
     },
     {
-      "id": "model_92",
+      "id": "model_93",
       "type": "domain_model",
       "label": "CreateUserRequest",
       "note_path": "Projects/axis-iliad/Models/CreateUserRequest.md"
     },
     {
-      "id": "model_93",
+      "id": "model_94",
       "type": "domain_model",
       "label": "SQLTable",
       "note_path": "Projects/axis-iliad/Models/SQLTable.md"
     },
     {
-      "id": "model_94",
+      "id": "model_95",
       "type": "domain_model",
       "label": "DependencyInfo",
       "note_path": "Projects/axis-iliad/Models/DependencyInfo.md"
     },
     {
-      "id": "model_95",
+      "id": "model_96",
       "type": "domain_model",
       "label": "FileAnnotation",
       "note_path": "Projects/axis-iliad/Models/FileAnnotation.md"
     },
     {
-      "id": "model_96",
+      "id": "model_97",
       "type": "domain_model",
       "label": "FrameworkDetection",
       "note_path": "Projects/axis-iliad/Models/FrameworkDetection.md"
     },
     {
-      "id": "model_97",
+      "id": "model_98",
       "type": "domain_model",
       "label": "ImportEdge",
       "note_path": "Projects/axis-iliad/Models/ImportEdge.md"
     },
     {
-      "id": "model_98",
+      "id": "model_99",
       "type": "domain_model",
       "label": "LanguageStats",
       "note_path": "Projects/axis-iliad/Models/LanguageStats.md"
     },
     {
-      "id": "model_99",
+      "id": "model_100",
       "type": "domain_model",
       "label": "ParseResult",
       "note_path": "Projects/axis-iliad/Models/ParseResult.md"
     },
     {
-      "id": "model_100",
+      "id": "model_101",
       "type": "domain_model",
       "label": "AnalyzeFilesInput",
       "note_path": "Projects/axis-iliad/Models/AnalyzeFilesInput.md"
     },
     {
-      "id": "model_101",
+      "id": "model_102",
       "type": "domain_model",
       "label": "AnalyzeRepoInput",
       "note_path": "Projects/axis-iliad/Models/AnalyzeRepoInput.md"
     },
     {
-      "id": "model_102",
+      "id": "model_103",
       "type": "domain_model",
       "label": "ArtifactEntry",
       "note_path": "Projects/axis-iliad/Models/ArtifactEntry.md"
     },
     {
-      "id": "model_103",
+      "id": "model_104",
       "type": "domain_model",
       "label": "AxisClientOptions",
       "note_path": "Projects/axis-iliad/Models/AxisClientOptions.md"
     },
     {
-      "id": "model_104",
+      "id": "model_105",
       "type": "domain_model",
       "label": "FileEntry",
       "note_path": "Projects/axis-iliad/Models/FileEntry.md"
     },
     {
-      "id": "model_105",
+      "id": "model_106",
       "type": "domain_model",
       "label": "HealthResponse",
       "note_path": "Projects/axis-iliad/Models/HealthResponse.md"
     },
     {
-      "id": "model_106",
+      "id": "model_107",
       "type": "domain_model",
       "label": "McpToolCallResult",
       "note_path": "Projects/axis-iliad/Models/McpToolCallResult.md"
     },
     {
-      "id": "model_107",
+      "id": "model_108",
       "type": "domain_model",
       "label": "OpenApiSpec",
       "note_path": "Projects/axis-iliad/Models/OpenApiSpec.md"
     },
     {
-      "id": "model_108",
+      "id": "model_109",
       "type": "domain_model",
       "label": "SnapshotResult",
       "note_path": "Projects/axis-iliad/Models/SnapshotResult.md"
     },
     {
-      "id": "model_109",
+      "id": "model_110",
       "type": "domain_model",
       "label": "AccountSummary",
       "note_path": "Projects/axis-iliad/Models/AccountSummary.md"
     },
     {
-      "id": "model_110",
+      "id": "model_111",
       "type": "domain_model",
       "label": "QuotaCheck",
       "note_path": "Projects/axis-iliad/Models/QuotaCheck.md"
     },
     {
-      "id": "model_111",
+      "id": "model_112",
       "type": "domain_model",
       "label": "RecentActivity",
       "note_path": "Projects/axis-iliad/Models/RecentActivity.md"
     },
     {
-      "id": "model_112",
+      "id": "model_113",
       "type": "domain_model",
       "label": "SystemStats",
       "note_path": "Projects/axis-iliad/Models/SystemStats.md"
     },
     {
-      "id": "model_113",
+      "id": "model_114",
       "type": "domain_model",
       "label": "Account",
       "note_path": "Projects/axis-iliad/Models/Account.md"
     },
     {
-      "id": "model_114",
+      "id": "model_115",
       "type": "domain_model",
       "label": "ApiKey",
       "note_path": "Projects/axis-iliad/Models/ApiKey.md"
     },
     {
-      "id": "model_115",
+      "id": "model_116",
       "type": "domain_model",
       "label": "PersistenceCreditRecord",
       "note_path": "Projects/axis-iliad/Models/PersistenceCreditRecord.md"
     },
     {
-      "id": "model_116",
+      "id": "model_117",
       "type": "domain_model",
       "label": "ProgramEntitlement",
       "note_path": "Projects/axis-iliad/Models/ProgramEntitlement.md"
     },
     {
-      "id": "model_117",
+      "id": "model_118",
       "type": "domain_model",
       "label": "TierLimits",
       "note_path": "Projects/axis-iliad/Models/TierLimits.md"
     },
     {
-      "id": "model_118",
+      "id": "model_119",
       "type": "domain_model",
       "label": "UsageRecord",
       "note_path": "Projects/axis-iliad/Models/UsageRecord.md"
     },
     {
-      "id": "model_119",
+      "id": "model_120",
       "type": "domain_model",
       "label": "UsageSummary",
       "note_path": "Projects/axis-iliad/Models/UsageSummary.md"
     },
     {
-      "id": "model_120",
+      "id": "model_121",
       "type": "domain_model",
       "label": "DbMaintenanceResult",
       "note_path": "Projects/axis-iliad/Models/DbMaintenanceResult.md"
     },
     {
-      "id": "model_121",
+      "id": "model_122",
       "type": "domain_model",
       "label": "Migration",
       "note_path": "Projects/axis-iliad/Models/Migration.md"
     },
     {
-      "id": "model_122",
+      "id": "model_123",
       "type": "domain_model",
       "label": "EmailDelivery",
       "note_path": "Projects/axis-iliad/Models/EmailDelivery.md"
     },
     {
-      "id": "model_123",
+      "id": "model_124",
       "type": "domain_model",
       "label": "EmailMessage",
       "note_path": "Projects/axis-iliad/Models/EmailMessage.md"
     },
     {
-      "id": "model_124",
+      "id": "model_125",
       "type": "domain_model",
       "label": "FunnelMetrics",
       "note_path": "Projects/axis-iliad/Models/FunnelMetrics.md"
     },
     {
-      "id": "model_125",
+      "id": "model_126",
       "type": "domain_model",
       "label": "FunnelEvent",
       "note_path": "Projects/axis-iliad/Models/FunnelEvent.md"
     },
     {
-      "id": "model_126",
+      "id": "model_127",
       "type": "domain_model",
       "label": "PlanDefinition",
       "note_path": "Projects/axis-iliad/Models/PlanDefinition.md"
     },
     {
-      "id": "model_127",
+      "id": "model_128",
       "type": "domain_model",
       "label": "PlanFeature",
       "note_path": "Projects/axis-iliad/Models/PlanFeature.md"
     },
     {
-      "id": "model_128",
+      "id": "model_129",
       "type": "domain_model",
       "label": "Seat",
       "note_path": "Projects/axis-iliad/Models/Seat.md"
     },
     {
-      "id": "model_129",
+      "id": "model_130",
       "type": "domain_model",
       "label": "UpgradePrompt",
       "note_path": "Projects/axis-iliad/Models/UpgradePrompt.md"
     },
     {
-      "id": "model_130",
+      "id": "model_131",
       "type": "domain_model",
       "label": "GitHubToken",
       "note_path": "Projects/axis-iliad/Models/GitHubToken.md"
     },
     {
-      "id": "model_131",
+      "id": "model_132",
       "type": "domain_model",
       "label": "GitHubFetchResult",
       "note_path": "Projects/axis-iliad/Models/GitHubFetchResult.md"
     },
     {
-      "id": "model_132",
+      "id": "model_133",
       "type": "domain_model",
       "label": "ParsedGitHubUrl",
       "note_path": "Projects/axis-iliad/Models/ParsedGitHubUrl.md"
     },
     {
-      "id": "model_133",
+      "id": "model_134",
       "type": "domain_model",
       "label": "TarParseResult",
       "note_path": "Projects/axis-iliad/Models/TarParseResult.md"
     },
     {
-      "id": "model_134",
+      "id": "model_135",
       "type": "domain_model",
       "label": "GitHubTokenResponse",
       "note_path": "Projects/axis-iliad/Models/GitHubTokenResponse.md"
     },
     {
-      "id": "model_135",
+      "id": "model_136",
       "type": "domain_model",
       "label": "GitHubUser",
       "note_path": "Projects/axis-iliad/Models/GitHubUser.md"
     },
     {
-      "id": "model_136",
+      "id": "model_137",
       "type": "domain_model",
       "label": "ReferralCode",
       "note_path": "Projects/axis-iliad/Models/ReferralCode.md"
     },
     {
-      "id": "model_137",
+      "id": "model_138",
       "type": "domain_model",
       "label": "ReferralConversion",
       "note_path": "Projects/axis-iliad/Models/ReferralConversion.md"
     },
     {
-      "id": "model_138",
+      "id": "model_139",
       "type": "domain_model",
       "label": "ReferralCredits",
       "note_path": "Projects/axis-iliad/Models/ReferralCredits.md"
     },
     {
-      "id": "model_139",
+      "id": "model_140",
       "type": "domain_model",
       "label": "CodeSymbol",
       "note_path": "Projects/axis-iliad/Models/CodeSymbol.md"
     },
     {
-      "id": "model_140",
+      "id": "model_141",
       "type": "domain_model",
       "label": "SearchIndexEntry",
       "note_path": "Projects/axis-iliad/Models/SearchIndexEntry.md"
     },
     {
-      "id": "model_141",
+      "id": "model_142",
       "type": "domain_model",
       "label": "SearchResult",
       "note_path": "Projects/axis-iliad/Models/SearchResult.md"
     },
     {
-      "id": "model_142",
+      "id": "model_143",
       "type": "domain_model",
       "label": "SymbolSearchResult",
       "note_path": "Projects/axis-iliad/Models/SymbolSearchResult.md"
     },
     {
-      "id": "model_143",
+      "id": "model_144",
       "type": "domain_model",
       "label": "StripeSubscription",
       "note_path": "Projects/axis-iliad/Models/StripeSubscription.md"
     },
     {
-      "id": "model_144",
+      "id": "model_145",
       "type": "domain_model",
       "label": "ProrationResult",
       "note_path": "Projects/axis-iliad/Models/ProrationResult.md"
     },
     {
-      "id": "model_145",
+      "id": "model_146",
       "type": "domain_model",
       "label": "TierChange",
       "note_path": "Projects/axis-iliad/Models/TierChange.md"
     },
     {
-      "id": "model_146",
+      "id": "model_147",
       "type": "domain_model",
       "label": "FileEntry",
       "note_path": "Projects/axis-iliad/Models/FileEntry.md"
     },
     {
-      "id": "model_147",
+      "id": "model_148",
       "type": "domain_model",
       "label": "SnapshotInput",
       "note_path": "Projects/axis-iliad/Models/SnapshotInput.md"
     },
     {
-      "id": "model_148",
+      "id": "model_149",
       "type": "domain_model",
       "label": "SnapshotManifest",
       "note_path": "Projects/axis-iliad/Models/SnapshotManifest.md"
     },
     {
-      "id": "model_149",
+      "id": "model_150",
       "type": "domain_model",
       "label": "SnapshotRecord",
       "note_path": "Projects/axis-iliad/Models/SnapshotRecord.md"
     },
     {
-      "id": "model_150",
+      "id": "model_151",
       "type": "domain_model",
       "label": "FileDiff",
       "note_path": "Projects/axis-iliad/Models/FileDiff.md"
     },
     {
-      "id": "model_151",
+      "id": "model_152",
       "type": "domain_model",
       "label": "GenerationVersion",
       "note_path": "Projects/axis-iliad/Models/GenerationVersion.md"
     },
     {
-      "id": "model_152",
+      "id": "model_153",
       "type": "domain_model",
       "label": "VersionDiff",
       "note_path": "Projects/axis-iliad/Models/VersionDiff.md"
     },
     {
-      "id": "model_153",
+      "id": "model_154",
       "type": "domain_model",
       "label": "VersionFile",
       "note_path": "Projects/axis-iliad/Models/VersionFile.md"
     },
     {
-      "id": "model_154",
+      "id": "model_155",
       "type": "domain_model",
       "label": "VersionRow",
       "note_path": "Projects/axis-iliad/Models/VersionRow.md"
     },
     {
-      "id": "model_155",
+      "id": "model_156",
       "type": "domain_model",
       "label": "RetryCandidate",
       "note_path": "Projects/axis-iliad/Models/RetryCandidate.md"
     },
     {
-      "id": "model_156",
+      "id": "model_157",
       "type": "domain_model",
       "label": "Webhook",
       "note_path": "Projects/axis-iliad/Models/Webhook.md"
     },
     {
-      "id": "model_157",
+      "id": "model_158",
       "type": "domain_model",
       "label": "WebhookDelivery",
       "note_path": "Projects/axis-iliad/Models/WebhookDelivery.md"
     },
     {
-      "id": "model_158",
+      "id": "model_159",
       "type": "domain_model",
       "label": "WebhookRow",
       "note_path": "Projects/axis-iliad/Models/WebhookRow.md"
     },
     {
-      "id": "model_159",
+      "id": "model_160",
       "type": "domain_model",
       "label": "averypayplatformConfig",
       "note_path": "Projects/axis-iliad/Models/averypayplatformConfig.md"
     },
     {
-      "id": "model_160",
+      "id": "model_161",
       "type": "domain_model",
       "label": "Edge",
       "note_path": "Projects/axis-iliad/Models/Edge.md"
     },
     {
-      "id": "model_161",
+      "id": "model_162",
       "type": "domain_model",
       "label": "Node",
       "note_path": "Projects/axis-iliad/Models/Node.md"
@@ -1928,6 +1934,11 @@
     {
       "from": "architecture",
       "to": "model_161",
+      "relationship": "has_model"
+    },
+    {
+      "from": "architecture",
+      "to": "model_162",
       "relationship": "has_model"
     },
     {

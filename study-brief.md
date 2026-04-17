@@ -19,7 +19,7 @@ Before diving into this codebase, you should be comfortable with:
 
    - `apps` — monorepo_apps (141 files)
    - `packages` — monorepo_packages (135 files)
-   - `payment-processing-output` — project_directory (72 files)
+   - `payment-processing-output` — project_directory (67 files)
    - `examples` — project_directory (17 files)
    - `algorithmic` — project_directory (4 files)
    - `artifacts` — project_directory (4 files)
@@ -46,7 +46,7 @@ These are the core data structures that define what the system works with:
 | `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
 | `RpcError` | interface | 5 | `apps/api/src/mcp-server.ts` |
 | `RpcSuccess` | interface | 3 | `apps/api/src/mcp-server.ts` |
-| *(+152 more)* | | | |
+| *(+153 more)* | | | |
 
 ### Phase 4: Data Flow
 
@@ -159,7 +159,7 @@ createRoot(document.getElementById("root")!).render(
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "scripts": {

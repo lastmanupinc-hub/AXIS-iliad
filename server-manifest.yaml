@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
-# Generated: 2026-04-16T18:58:44.978Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 162 domain models.
+# Generated: 2026-04-17T13:25:43.231Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 163 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -276,6 +276,11 @@ server:
       mime_type: application/json
       description: interface with 5 fields (apps/api/src/mpp.ts)
 
+    - uri: model://Build402Options
+      name: Build402Options
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/mpp.ts)
+
     - uri: model://CacheKey
       name: CacheKey
       mime_type: application/json
@@ -285,11 +290,6 @@ server:
       name: ChargeOptions
       mime_type: application/json
       description: type_alias with 5 fields (apps/api/src/mpp.ts)
-
-    - uri: model://MppResult
-      name: MppResult
-      mime_type: application/json
-      description: type_alias with 1 field (apps/api/src/mpp.ts)
 
   prompts:
     - name: review_code
@@ -337,6 +337,8 @@ server:
 
   # Detected Server/Tool Files
   source_files:
+    - path: ".vitest-mcp-server-verbose.txt"
+      exports: []
     - path: "apps/api/mcp-server.json"
       exports: []
     - path: "apps/api/src/mcp-server.test.ts"
@@ -350,6 +352,4 @@ server:
     - path: "mcp/begin.yaml"
       exports: []
     - path: "mcp/continuation.yaml"
-      exports: []
-    - path: "mcp/MEMORY.yaml"
       exports: []

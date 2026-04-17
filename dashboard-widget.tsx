@@ -36,8 +36,8 @@ export function DashboardWidget() {
         <StatCard label="Language" value={data.language} />
         <StatCard label="Entry Points" value={data.entryPoints} />
         <StatCard label="Hotspots" value={data.hotspots} />
-        <StatCard label="TypeScript" value={`${73.1}%`} />
-        <StatCard label="JSON" value={`${10.1}%`} />
+        <StatCard label="TypeScript" value={`${73.3}%`} />
+        <StatCard label="JSON" value={`${10}%`} />
         <StatCard label="YAML" value={`${7.6}%`} />
       </div>
       <div className="framework-tags">
@@ -66,7 +66,7 @@ export default DashboardWidget;
 // POST: 189 endpoints
 // DELETE: 21 endpoints
 
-// ─── Domain Models: 162 entities ───
+// ─── Domain Models: 163 entities ───
 // AuthContext (interface, 3 fields) — apps/api/src/billing.ts
 // EnvSpec (interface, 5 fields) — apps/api/src/env.ts
 // ValidationError (interface, 2 fields) — apps/api/src/env.ts

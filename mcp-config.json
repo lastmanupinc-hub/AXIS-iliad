@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-04-16T18:58:44.846Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 162 domain models.",
+  "generated_at": "2026-04-17T13:25:42.679Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 163 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -162,6 +162,12 @@
       "mimeType": "application/json"
     },
     {
+      "uri": "model://axis-iliad/Build402Options",
+      "name": "Build402Options",
+      "description": "interface with 2 fields (apps/api/src/mpp.ts)",
+      "mimeType": "application/json"
+    },
+    {
       "uri": "model://axis-iliad/CacheKey",
       "name": "CacheKey",
       "description": "type_alias with 2 fields (apps/api/src/mpp.ts)",
@@ -171,12 +177,6 @@
       "uri": "model://axis-iliad/ChargeOptions",
       "name": "ChargeOptions",
       "description": "type_alias with 5 fields (apps/api/src/mpp.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/MppResult",
-      "name": "MppResult",
-      "description": "type_alias with 1 field (apps/api/src/mpp.ts)",
       "mimeType": "application/json"
     }
   ],
@@ -296,6 +296,13 @@
       "resource_uri": "model://axis-iliad/AgentBudget"
     },
     {
+      "name": "Build402Options",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-iliad/Build402Options"
+    },
+    {
       "name": "CacheKey",
       "kind": "type_alias",
       "field_count": 2,
@@ -343,26 +350,24 @@
       "field_count": 3,
       "source_file": "apps/api/src/router.ts",
       "resource_uri": "model://axis-iliad/AppHandle"
-    },
-    {
-      "name": "Route",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/api/src/router.ts",
-      "resource_uri": "model://axis-iliad/Route"
     }
   ],
   "sql_schema": null,
   "detected_mcp_files": [
     {
+      "path": ".vitest-mcp-server-verbose.txt",
+      "exports": [],
+      "size": 79882
+    },
+    {
       "path": "apps/api/mcp-server.json",
       "exports": [],
-      "size": 10349
+      "size": 10100
     },
     {
       "path": "apps/api/src/mcp-server.test.ts",
       "exports": [],
-      "size": 79682
+      "size": 81266
     },
     {
       "path": "apps/api/src/mcp-server.ts",
@@ -394,7 +399,7 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 97242
+      "size": 101125
     },
     {
       "path": "apps/api/src/oauth-server.ts",

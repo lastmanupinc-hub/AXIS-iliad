@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated": "2026-04-16T18:58:44.987Z",
+  "generated": "2026-04-17T13:25:43.255Z",
   "parameters": [
     {
       "name": "primary_hue",
@@ -39,7 +39,7 @@
         200,
         400
       ],
-      "description": "Element density based on project scale (486 files)"
+      "description": "Element density based on project scale (485 files)"
     },
     {
       "name": "layout",
