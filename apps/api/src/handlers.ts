@@ -2545,16 +2545,16 @@ export async function handleForAgents(
   const allTools = [
       { name: "analyze_repo",                   auth: true,  description: `Analyze any public GitHub repo. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts.` },
       { name: "analyze_files",                  auth: true,  description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts.` },
-      { name: "list_programs",                  auth: false, description: `List all ${PROGRAM_COUNT} programs and their generators.` },
+      { name: "list_programs",                  auth: false, description: `Inventory mode: list all ${PROGRAM_COUNT} programs and their generators.` },
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
       { name: "prepare_for_agentic_purchasing", auth: true,  description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence, win probability model, lighter SCA paths, playbooks. Focus areas: sca, dispute, mandate, tap, tokenization." },
-      { name: "search_and_discover_tools",      auth: false, description: `Keyword search across all ${PROGRAM_COUNT} programs. START HERE if unsure.` },
-      { name: "discover_agentic_commerce_tools",auth: false, description: "Free overview of all AXIS tools with pricing, install configs, and shareable manifest." },
+      { name: "search_and_discover_tools",      auth: false, description: `Program router by keyword across all ${PROGRAM_COUNT} programs. Use when you know desired outcome but not which program.` },
+      { name: "discover_agentic_commerce_tools",auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
       { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files." },
-      { name: "discover_agentic_purchasing_needs", auth: false, description: "Describe your commerce/compliance task and get tailored AXIS tool recommendations. Free intent probe." },
+      { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.001 per agent conversion." },
-      { name: "check_referral_credits",            auth: true,  description: "Check referral earnings, conversions, discount tier, free calls remaining." },
+      { name: "check_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
 
   // If intent is provided, filter/rank tools by relevance

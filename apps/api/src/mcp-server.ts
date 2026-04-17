@@ -246,7 +246,7 @@ export const MCP_TOOLS = [
   {
     name: "list_programs",
     description:
-      `List all ${PROGRAM_COUNT} AXIS programs, their ${ARTIFACT_COUNT} generators, tier (free/pro), and artifact paths. No authentication required. Use search_and_discover_tools for keyword-based discovery; use this for complete enumeration.`,
+      `Inventory mode. List all ${PROGRAM_COUNT} AXIS programs, their ${ARTIFACT_COUNT} generators, tier (free/pro), and artifact paths. No authentication required. Use this when you need complete enumeration. If you only have a keyword, use search_and_discover_tools instead.`,
     inputSchema: { type: "object", properties: {} },
     examples: [
       {
@@ -367,7 +367,7 @@ export const MCP_TOOLS = [
   {
     name: "search_and_discover_tools",
     description:
-      `Keyword search across all ${PROGRAM_COUNT} AXIS programs and ${ARTIFACT_COUNT} generators. Returns ranked matches with capability tags, artifact paths, and example API calls. Searchable terms include: AP2 compliance, UCP Article 5, Visa Intelligent Commerce, agentic purchasing, purchasing readiness score, autonomous checkout, spending authority, procurement protocol, negotiation playbook, compliance checklist, agentic-commerce, MCP tools, debug playbook, brand guidelines, design tokens, SEO, Remotion, Canvas. Context-efficient: call this before loading full tool schemas to find the right program without wasting tokens. Examples: 'AP2 UCP' → agentic-purchasing; 'checkout payment' → agentic-purchasing; 'debug logs' → debug; 'mcp agents' → mcp; 'brand guidelines' → brand. Omit q to list all ${PROGRAM_COUNT} programs alphabetically. No authentication required.`,
+      `Program router by keyword. Search across all ${PROGRAM_COUNT} programs and ${ARTIFACT_COUNT} generators, then return ranked program matches with capability tags, artifact paths, and example API calls. Use this when you know what outcome you want but do not know which AXIS program to call. If you already know the exact tool list, use list_programs. If you need install metadata, use discover_agentic_commerce_tools. If your prompt is specifically about purchasing/compliance intent, use discover_agentic_purchasing_needs. No authentication required.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -397,7 +397,7 @@ export const MCP_TOOLS = [
   {
     name: "discover_agentic_commerce_tools",
     description:
-      "Free discovery endpoint — no authentication required. Returns a ranked overview of every AXIS tool with pricing, capability tags, and direct install links for Claude Desktop, Cursor, VS Code, and Claude Code. Ideal first call for any agent entering the AXIS ecosystem. Includes shareable manifest JSON for agent swarms and system prompt snippets. Call this to learn what AXIS can do before committing to an authenticated call.",
+      "Platform onboarding and install metadata. Free, no authentication required. Returns a broad overview of every AXIS tool with pricing tiers, install configs (Claude Desktop, Cursor, VS Code, Claude Code), and shareable manifest snippets. Use this when setting up AXIS access in a new agent environment. Do not use this for intent matching or program ranking; use discover_agentic_purchasing_needs or search_and_discover_tools for that.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -444,7 +444,7 @@ export const MCP_TOOLS = [
   {
     name: "discover_agentic_purchasing_needs",
     description:
-      "Describe your current purchasing, compliance, negotiation, or commerce hardening task. Returns the exact AXIS tools, readiness score methodology, compliance generators, and self-onboarding steps that best match. No authentication required. Use this to understand what AXIS can do for your specific commerce challenge before committing to an authenticated call. Includes CTA to prepare_for_agentic_purchasing with pricing. Searchable: AP2 compliance, UCP, Visa IC, autonomous checkout, spending authority, procurement protocol, negotiation playbook, dispute flow, SCA, PCI, fraud detection, agentic commerce hardening.",
+      "Intent advisor for purchasing and compliance workflows. Free, no authentication required. Describe a commerce task (for example SCA, dispute handling, AP2/UCP/Visa alignment, checkout policy), and this tool maps it to the best AXIS workflow, expected artifacts, and next call. Use this for commerce-specific triage. For non-commerce keyword routing across all programs, use search_and_discover_tools.",
     inputSchema: {
       type: "object",
       properties: {
@@ -495,7 +495,7 @@ export const MCP_TOOLS = [
   {
     name: "check_referral_credits",
     description:
-      "Check your agent's referral earnings, lifetime conversions, discount tier, and free calls remaining. Returns: earned_credits_millicents, earned_discount ($), lifetime_referrals, free_calls_remaining, referral_token, next_milestone. No cost to call. Requires API key.",
+      "Referral ledger lookup. Returns your current referral earnings, lifetime conversions, discount tier status, free calls remaining, referral_token, and next milestone. No cost to call. Requires API key.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -956,6 +956,12 @@ export function runDiscoverAgenticCommerceTools(): string {
     },
     tools,
     free_tools: tools.filter(t => t.pricing === "free").map(t => t.name),
+    tool_selection_guide: {
+      list_programs: "Use for complete inventory of all programs and outputs.",
+      search_and_discover_tools: "Use for keyword routing to the best program.",
+      discover_agentic_commerce_tools: "Use for install and ecosystem onboarding metadata.",
+      discover_agentic_purchasing_needs: "Use for commerce-specific intent to workflow mapping.",
+    },
     install: {
       mcp_endpoint: AXIS_MCP_ENDPOINT,
       transport: "Streamable HTTP (2025-03-26 spec)",

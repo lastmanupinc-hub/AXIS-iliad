@@ -63,18 +63,18 @@
     },
     {
       "name": "list_programs",
-      "summary": "List all 18 AXIS programs and their 86 generators with tier info. No auth required. Use to orient before calling analyze_files or to understand what artifacts are available.",
-      "description": "Returns all programs grouped by tier (free: search, skills, debug; pro: 15 programs). Each program entry includes generator_count and outputs[] array of artifact paths. Use search_and_discover_tools for keyword-based discovery; use list_programs for complete enumeration."
+      "summary": "Inventory mode: list all 18 AXIS programs and 86 generators with tier info. No auth required.",
+      "description": "Returns complete program enumeration grouped by tier (free: search, skills, debug; pro: 15 programs). Each program entry includes generator_count and outputs[] artifact paths. Use this when you need the full catalog. If you only have a keyword and need routing, use search_and_discover_tools."
     },
     {
       "name": "search_and_discover_tools",
-      "summary": "Keyword search across all 18 programs and 86 generators. Returns ranked matching programs with capability tags and example API calls. No auth required. Use this to find the right program without loading all schemas.",
-      "description": "Accepts optional q (search query) and optional program (filter to one program). Scores programs by: program name match (+3), capability tag match (+1/token), artifact path match (+2/token). Returns sorted results with program, tier, capability_tags, matching_artifacts, all_artifacts, and example_call. Example queries: 'checkout payment' → agentic-purchasing wins; 'debug logs' → debug wins; 'mcp agents' → mcp wins; 'brand guidelines' → brand wins. Omit q to list all 18 programs ranked alphabetically. No authentication required."
+      "summary": "Program router by keyword across all 18 programs and 86 generators. No auth required.",
+      "description": "Accepts optional q (search query) and optional program filter, then scores programs by name match (+3), capability tag match (+1/token), and artifact path match (+2/token). Returns ranked program matches with tier, capability_tags, matching_artifacts, all_artifacts, and example_call. Use this when you know the desired outcome but not the right AXIS program. For full catalog listing use list_programs; for install onboarding use discover_agentic_commerce_tools; for commerce-intent triage use discover_agentic_purchasing_needs."
     },
     {
       "name": "discover_agentic_commerce_tools",
-      "summary": "Free overview of all AXIS tools with pricing, install configs, and shareable manifest. No auth required.",
-      "description": "Returns a ranked overview of every AXIS tool with pricing, capability tags, and direct install links for Claude Desktop, Cursor, VS Code, and Claude Code. Ideal first call for any agent entering the AXIS ecosystem."
+      "summary": "Platform onboarding tool: pricing + install configs + shareable manifest. No auth required.",
+      "description": "Returns ecosystem-level setup metadata for AXIS: tool overview, pricing, and direct install configs for Claude Desktop, Cursor, VS Code, and Claude Code. Use this when integrating AXIS into a new agent runtime. Do not use for keyword routing or commerce intent diagnosis."
     },
     {
       "name": "improve_my_agent_with_axis",
@@ -83,8 +83,8 @@
     },
     {
       "name": "discover_agentic_purchasing_needs",
-      "summary": "Describe your commerce/compliance task and get tailored AXIS tool recommendations. Free, no auth.",
-      "description": "Intent-based discovery: describe your current purchasing, compliance, negotiation, or commerce hardening task. Returns the exact AXIS tools, readiness score methodology, compliance generators, and self-onboarding steps that best match."
+      "summary": "Commerce intent advisor: maps purchasing/compliance tasks to the right AXIS workflow. Free, no auth.",
+      "description": "Intent-based commerce triage. Describe your purchasing/compliance task (SCA, dispute, AP2/UCP/Visa, checkout controls), and this returns matched workflows, relevant artifacts, readiness context, and recommended next call. For general keyword routing outside commerce, use search_and_discover_tools."
     },
     {
       "name": "get_referral_code",
@@ -93,8 +93,8 @@
     },
     {
       "name": "check_referral_credits",
-      "summary": "Check referral earnings, conversions, discount tier, and free calls remaining. Requires API key.",
-      "description": "Returns earned_credits_millicents, earned_discount, lifetime_referrals, free_calls_remaining, referral_token, next_milestone."
+      "summary": "Referral ledger lookup: earnings, conversions, tier status, and free calls remaining. Requires API key.",
+      "description": "Returns earned_credits_millicents, earned_discount, lifetime_referrals, free_calls_remaining, referral_token, and next_milestone for the authenticated account."
     }
   ],
   "quickstart": {
