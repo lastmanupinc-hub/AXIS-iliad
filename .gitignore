@@ -17,3 +17,9 @@ cov4.txt
 *-key.pem
 
 keys.env
+
+# Local transient test and scratch outputs
+.tmp*
+.vitest*
+.ai-vitest-latest.txt
+vitest-api-src-output.txt
