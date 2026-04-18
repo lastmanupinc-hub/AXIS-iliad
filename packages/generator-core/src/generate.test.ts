@@ -1087,6 +1087,12 @@ describe("depth generators content", () => {
     expect(file.content).toContain("resource(name: string, description: string, uriTemplate: string, handler: (params: unknown) => Promise<unknown>)");
     expect(file.content).toContain("prompt(name: string, description: string, schema: unknown, handler: (input: unknown) => Promise<string>)");
     expect(file.content).toContain("shutdown()");
+    expect(file.content).toContain("## 8. Transport Implementations");
+    expect(file.content).toContain("packages/server/src/transports/*");
+    expect(file.content).toContain("Standard adapters: `stdio`, `http`, and `websocket`.");
+    expect(file.content).toContain("export interface TransportAdapter");
+    expect(file.content).toContain("start(): Promise<void>;");
+    expect(file.content).toContain("stop(): Promise<void>;");
     expect(file.content).toContain("## packages/server");
     expect(file.content).toContain("## packages/client");
     expect(file.content).toContain("## packages/sdk");

@@ -1507,6 +1507,29 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("```");
   lines.push("");
 
+  lines.push("## 8. Transport Implementations");
+  lines.push("");
+  lines.push("- Implement transport adapters in `packages/server/src/transports/*` and keep them protocol-focused.");
+  lines.push("- Standard adapters: `stdio`, `http`, and `websocket`.");
+  lines.push("- Each adapter should expose consistent lifecycle hooks (`start`, `stop`) and delegate request handling to `McpServer`.");
+  lines.push("- Keep auth, framing, and connection concerns inside adapters, not in tool/resource/prompt handlers.");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/server/src/transports/types.ts");
+  lines.push("export interface TransportAdapter {");
+  lines.push("  start(): Promise<void>;");
+  lines.push("  stop(): Promise<void>;");
+  lines.push("}");
+  lines.push("```");
+  lines.push("");
+  lines.push("```text");
+  lines.push("packages/server/src/transports/");
+  lines.push("|- stdio.ts");
+  lines.push("|- http.ts");
+  lines.push("`- websocket.ts");
+  lines.push("```");
+  lines.push("");
+
   lines.push("## packages/client");
   lines.push("");
   lines.push("- Discovery: resolve capabilities, tool lists, and schema metadata.");
