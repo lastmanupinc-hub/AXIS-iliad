@@ -1,8 +1,73 @@
-FROM debian:bookworm-slim
-ENV DEBIAN_FRONTEND=noninteractive \
-    GLAMA_VERSION="1.0.0" \
-    PYTHONUNBUFFERED=1
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git && curl -fsSL https://deb.nodesource.com/setup_25.x | bash - && apt-get install -y --no-install-recommends nodejs && npm install -g mcp-proxy@6.4.3 pnpm@10.14.0 && node --version && curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/usr/local/bin" sh && uv python install 3.14 --default --preview && ln -s $(uv python find) /usr/local/bin/python && python --version && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# ─── Axis' Iliad — Glama Release Dockerfile ─────────────────────
+#
+# MCP transport: Streamable HTTP  (mcp-2025-03-26)
+# MCP endpoint:  http://localhost:4000/mcp
+# Health check:  http://localhost:4000/v1/health
+#
+# ── Stage 1: deps ────────────────────────────────────────────────
+FROM node:20-slim AS deps
 WORKDIR /app
-RUN git clone https://github.com/lastmanupinc-hub/AXIS-iliad . && git checkout 54d505c7b2b8315f2ccda0df0da038478235b843
-CMD ["mcp-proxy","--"]
+
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN echo "node-linker=hoisted" > .npmrc
+
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth=1 --branch main \
+    https://github.com/lastmanupinc-hub/AXIS-iliad.git .
+
+RUN pnpm install --frozen-lockfile
+
+# ── Stage 2: build ───────────────────────────────────────────────
+FROM deps AS builder
+WORKDIR /app
+RUN pnpm -r build
+
+# ── Stage 3: runner ──────────────────────────────────────────────
+FROM node:20-slim AS runner
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+RUN echo "node-linker=hoisted" > .npmrc
+
+# Non-root user
+RUN groupadd --gid 1001 axis && \
+    useradd --uid 1001 --gid axis --shell /bin/sh --create-home axis
+
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/package.json apps/api/package.json
+COPY --from=builder /app/apps/api/dist apps/api/dist
+COPY --from=builder /app/apps/web/package.json apps/web/package.json
+COPY --from=builder /app/apps/web/dist apps/web/dist
+COPY --from=builder /app/apps/cli/package.json apps/cli/package.json
+COPY --from=builder /app/apps/cli/dist apps/cli/dist
+COPY --from=builder /app/apps/cli/bin apps/cli/bin
+COPY --from=builder /app/packages/snapshots/package.json packages/snapshots/package.json
+COPY --from=builder /app/packages/snapshots/dist packages/snapshots/dist
+COPY --from=builder /app/packages/repo-parser/package.json packages/repo-parser/package.json
+COPY --from=builder /app/packages/repo-parser/dist packages/repo-parser/dist
+COPY --from=builder /app/packages/context-engine/package.json packages/context-engine/package.json
+COPY --from=builder /app/packages/context-engine/dist packages/context-engine/dist
+COPY --from=builder /app/packages/generator-core/package.json packages/generator-core/package.json
+COPY --from=builder /app/packages/generator-core/dist packages/generator-core/dist
+
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+
+# Persistent SQLite data volume
+RUN mkdir -p /data && chown -R axis:axis /data
+
+ENV NODE_ENV=production
+ENV PORT=4000
+ENV DATABASE_PATH=/data/axis.db
+
+EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "const h=require('http');h.get('http://localhost:4000/v1/health',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))"
+
+USER axis
+
+# MCP endpoint available at http://localhost:4000/mcp  (Streamable HTTP, mcp-2025-03-26)
+CMD ["node", "apps/api/dist/server.js"]
