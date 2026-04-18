@@ -783,7 +783,7 @@ describe("depth generators content", () => {
     "meta-tag-audit.json", "token-budget-plan.md",
     "dark-mode-tokens.json", "channel-rulebook.md",
     "ab-test-plan.md", "citation-index.json",
-    "server-manifest.yaml", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "template-pack.md",
+    "server-manifest.yaml", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "template-pack.md",
     "automation-pipeline.yaml", "component-library.json",
     "storyboard.md", "brand-board.md",
     "variation-matrix.json",
@@ -980,8 +980,22 @@ describe("depth generators content", () => {
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
     expect(parsed.private).toBe(true);
-    expect(parsed.workspaces).toBeTruthy();
+    expect(parsed.packageManager).toBeTruthy();
+    expect(Array.isArray(parsed.workspaces)).toBe(true);
+    expect(parsed.workspaces).toContain("apps/*");
+    expect(parsed.workspaces).toContain("packages/*");
     expect(parsed.scripts).toBeTruthy();
+    expect(parsed.scripts.build).toBeTruthy();
+    expect(parsed.scripts.test).toBeTruthy();
+    expect(parsed.scripts.lint).toBeTruthy();
+    expect(parsed.scripts.publish).toBeTruthy();
+    expect(parsed.scripts["build:turbo"]).toBeTruthy();
+    expect(parsed.scripts["test:turbo"]).toBeTruthy();
+    expect(parsed.scripts["lint:turbo"]).toBeTruthy();
+    expect(parsed.dependencies?.zod).toBeTruthy();
+    expect(parsed.devDependencies?.typescript).toBeTruthy();
+    expect(parsed.devDependencies?.vitest).toBeTruthy();
+    expect(parsed.devDependencies?.turbo).toBeTruthy();
     expect(file.content_type).toBe("application/json");
   });
 
@@ -992,6 +1006,37 @@ describe("depth generators content", () => {
     expect(parsed.main).toBe("dist/index.js");
     expect(parsed.types).toBe("dist/index.d.ts");
     expect(parsed.scripts).toBeTruthy();
+    expect(parsed.scripts.build).toBeTruthy();
+    expect(parsed.scripts.test).toBeTruthy();
+    expect(parsed.scripts.lint).toBeTruthy();
+    expect(parsed.scripts.publish).toBeTruthy();
+    expect(parsed.peerDependencies?.zod).toBeTruthy();
+    expect(parsed.devDependencies?.typescript).toBeTruthy();
+    expect(parsed.devDependencies?.vitest).toBeTruthy();
+    expect(file.content_type).toBe("application/json");
+  });
+
+  it("mcp/tsconfig.root.template.json has strict ESM and monorepo paths", () => {
+    const file = result.files.find(f => f.path === "mcp/tsconfig.root.template.json")!;
+    expect(file.program).toBe("mcp");
+    const parsed = JSON.parse(file.content);
+    expect(parsed.compilerOptions?.strict).toBe(true);
+    expect(parsed.compilerOptions?.module).toBe("NodeNext");
+    expect(parsed.compilerOptions?.moduleResolution).toBe("NodeNext");
+    expect(parsed.compilerOptions?.paths?.["@apps/*"]).toBeTruthy();
+    expect(parsed.compilerOptions?.paths?.["@packages/*"]).toBeTruthy();
+    expect(file.content_type).toBe("application/json");
+  });
+
+  it("mcp/tsconfig.package.template.json has strict package output settings", () => {
+    const file = result.files.find(f => f.path === "mcp/tsconfig.package.template.json")!;
+    expect(file.program).toBe("mcp");
+    const parsed = JSON.parse(file.content);
+    expect(parsed.extends).toContain("tsconfig");
+    expect(parsed.compilerOptions?.strict).toBe(true);
+    expect(parsed.compilerOptions?.outDir).toBe("dist");
+    expect(parsed.compilerOptions?.module).toBe("NodeNext");
+    expect(parsed.compilerOptions?.moduleResolution).toBe("NodeNext");
     expect(file.content_type).toBe("application/json");
   });
 
@@ -1045,7 +1090,7 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(94);
+    expect(generators.length).toBe(96);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/symbol-index.json");
     expect(paths).toContain(".ai/context-map.json");
@@ -1066,6 +1111,8 @@ describe("listAvailableGenerators", () => {
     expect(paths).toContain("mcp/build-artifacts.md");
     expect(paths).toContain("mcp/package-json.root.template.json");
     expect(paths).toContain("mcp/package-json.package.template.json");
+    expect(paths).toContain("mcp/tsconfig.root.template.json");
+    expect(paths).toContain("mcp/tsconfig.package.template.json");
     expect(paths).toContain("collection-map.md");
     expect(paths).toContain("export-manifest.yaml");
     // depth generators

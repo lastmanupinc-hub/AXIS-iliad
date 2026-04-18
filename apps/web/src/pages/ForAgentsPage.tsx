@@ -109,7 +109,7 @@ const PROGRAMS = [
   { name: "marketing",          tier: "pro",  outputs: 5,  key: "campaign-brief.md, funnel-map.md, sequence-pack.md, cro-playbook.md, ab-test-plan.md" },
   { name: "notebook",           tier: "pro",  outputs: 5,  key: "notebook-summary.md, source-map.json, study-brief.md, research-threads.md, citation-index.json" },
   { name: "obsidian",           tier: "pro",  outputs: 5,  key: "obsidian-skill-pack.md, vault-rules.md, graph-prompt-map.json, linking-policy.md, template-pack.md" },
-  { name: "mcp",                tier: "pro",  outputs: 12, key: "mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, connector-map.yaml, capability-registry.json, server-manifest.yaml" },
+  { name: "mcp",                tier: "pro",  outputs: 14, key: "mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, mcp/tsconfig.root.template.json, mcp/tsconfig.package.template.json, connector-map.yaml, capability-registry.json, server-manifest.yaml" },
   { name: "artifacts",          tier: "pro",  outputs: 5,  key: "generated-component.tsx, dashboard-widget.tsx, embed-snippet.ts, artifact-spec.md, component-library.json" },
   { name: "remotion",           tier: "pro",  outputs: 5,  key: "remotion-script.ts, scene-plan.md, render-config.json, asset-checklist.md, storyboard.md" },
   { name: "canvas",             tier: "pro",  outputs: 5,  key: "canvas-spec.json, social-pack.md, poster-layouts.md, asset-guidelines.md, brand-board.md" },
@@ -120,8 +120,8 @@ const PROGRAMS = [
 // â”€â”€â”€ Real MCP tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MCP_TOOLS = [
-  { tool: "analyze_repo",                  auth: true,  desc: "Analyze any public GitHub repo. Returns snapshot_id + 94 artifacts." },
-  { tool: "analyze_files",                 auth: true,  desc: "Analyze inline files [{path,content}]. Returns snapshot_id + 94 artifacts." },
+  { tool: "analyze_repo",                  auth: true,  desc: "Analyze any public GitHub repo. Returns snapshot_id + 96 artifacts." },
+  { tool: "analyze_files",                 auth: true,  desc: "Analyze inline files [{path,content}]. Returns snapshot_id + 96 artifacts." },
   { tool: "list_programs",                 auth: false, desc: "List all 18 programs and their generators with tier info." },
   { tool: "get_snapshot",                  auth: false, desc: "Get status and full artifact listing for a prior snapshot_id." },
   { tool: "get_artifact",                  auth: false, desc: "Read full content of any artifact by path (AGENTS.md, .ai/debug-playbook.md, etc.)." },

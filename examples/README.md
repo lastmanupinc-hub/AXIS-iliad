@@ -1,6 +1,6 @@
 # Axis' Iliad — Example Repos
 
-> 5 real codebases analyzed by Axis' Iliad. Each example shows the **3 free-tier artifacts** (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates **94 artifacts across 18 programs** — upgrade to Pro to unlock all of them.
+> 5 real codebases analyzed by Axis' Iliad. Each example shows the **3 free-tier artifacts** (AGENTS.md, CLAUDE.md, .cursorrules) that every project receives. The full AXIS analysis generates **96 artifacts across 18 programs** — upgrade to Pro to unlock all of them.
 
 ## The Examples
 
@@ -20,9 +20,9 @@ Each example includes the **free-tier Search program** output:
 - **CLAUDE.md** — 10-point condensed cheat sheet for fast onboarding
 - **.cursorrules** — Domain-specific coding conventions and constraints
 
-> **Want the full 94 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, and 70+ more files. [Try it →](https://axis-iliad.jonathanarvay.com)
+> **Want the full 96 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, and 70+ more files. [Try it →](https://axis-iliad.jonathanarvay.com)
 
-## Full AXIS Output (94 artifacts across 18 programs)
+## Full AXIS Output (96 artifacts across 18 programs)
 
 ### Free Programs (3) — included in these examples
 - **Search** — AGENTS.md, CLAUDE.md, .cursorrules, context-map.json
@@ -35,7 +35,7 @@ Each example includes the **free-tier Search program** output:
 - **Theme** — design-tokens.json, theme.css, theme-guidelines.md, component-theme-map.json
 - **Brand** — brand-guidelines.md, voice-and-tone.md, messaging-system.yaml, channel-rulebook.md
 - **Optimization** — optimization-rules.md, prompt-diff-report.md, cost-estimate.json, token-budget-plan.md
-- **MCP** — mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, connector-map.yaml, capability-registry.json, server-manifest.yaml
+- **MCP** — mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, mcp/tsconfig.root.template.json, mcp/tsconfig.package.template.json, connector-map.yaml, capability-registry.json, server-manifest.yaml
 - **Superpowers** — superpower-pack.md, test-generation-rules.md, refactor-checklist.md, automation-pipeline.yaml
 - **Marketing** — campaign-brief.md, funnel-map.md, cro-playbook.md, sequence-pack.md
 - **Notebook** — notebook-summary.md, source-map.json, study-brief.md, research-threads.md

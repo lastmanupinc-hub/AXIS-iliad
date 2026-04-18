@@ -1170,9 +1170,21 @@ export function generateRootPackageJsonTemplate(ctx: ContextMap): GeneratedFile 
       test: "npx vitest run",
       lint: "pnpm -r lint",
       typecheck: "pnpm -r typecheck",
+      publish: "pnpm -r publish --no-git-checks",
+      "build:turbo": "turbo run build",
+      "test:turbo": "turbo run test",
+      "lint:turbo": "turbo run lint",
     },
     engines: {
       node: ">=20",
+    },
+    dependencies: {
+      zod: "^3.24.1",
+    },
+    devDependencies: {
+      typescript: "^5.7.3",
+      vitest: "^2.1.8",
+      turbo: "^2.0.0",
     },
   };
 
@@ -1207,11 +1219,15 @@ export function generatePackagePackageJsonTemplate(ctx: ContextMap): GeneratedFi
       test: "npx vitest run",
       lint: "eslint .",
       typecheck: "tsc --noEmit",
+      publish: "npm publish --access public",
     },
     dependencies: {},
+    peerDependencies: {
+      zod: "^3.24.1",
+    },
     devDependencies: {
-      typescript: "^5.0.0",
-      vitest: "^2.0.0",
+      typescript: "^5.7.3",
+      vitest: "^2.1.8",
       tsx: "^4.0.0",
     },
   };
@@ -1222,6 +1238,94 @@ export function generatePackagePackageJsonTemplate(ctx: ContextMap): GeneratedFi
     content_type: "application/json",
     program: "mcp",
     description: "Per-package package.json template for TypeScript workspace packages with build/test scripts",
+  };
+}
+
+// ─── mcp/tsconfig.root.template.json ─────────────────────────
+
+export function generateRootTsconfigTemplate(): GeneratedFile {
+  const template = {
+    $schema: "https://json.schemastore.org/tsconfig",
+    compilerOptions: {
+      target: "ES2022",
+      module: "NodeNext",
+      moduleResolution: "NodeNext",
+      lib: ["ES2022"],
+      strict: true,
+      noUncheckedIndexedAccess: true,
+      exactOptionalPropertyTypes: true,
+      forceConsistentCasingInFileNames: true,
+      skipLibCheck: true,
+      esModuleInterop: true,
+      allowSyntheticDefaultImports: true,
+      resolveJsonModule: true,
+      declaration: true,
+      declarationMap: true,
+      sourceMap: true,
+      composite: true,
+      baseUrl: ".",
+      paths: {
+        "@apps/*": ["apps/*/src"],
+        "@packages/*": ["packages/*/src"],
+      },
+    },
+    include: ["apps", "packages"],
+    exclude: ["**/dist", "**/node_modules"],
+    references: [
+      { path: "./apps/api" },
+      { path: "./apps/web" },
+      { path: "./packages/context-engine" },
+      { path: "./packages/generator-core" },
+      { path: "./packages/repo-parser" },
+      { path: "./packages/snapshots" },
+    ],
+  };
+
+  return {
+    path: "mcp/tsconfig.root.template.json",
+    content: JSON.stringify(template, null, 2),
+    content_type: "application/json",
+    program: "mcp",
+    description: "Root tsconfig.json template with strict TypeScript, ESM settings, and monorepo path mappings",
+  };
+}
+
+// ─── mcp/tsconfig.package.template.json ──────────────────────
+
+export function generatePackageTsconfigTemplate(): GeneratedFile {
+  const template = {
+    $schema: "https://json.schemastore.org/tsconfig",
+    extends: "../../tsconfig.base.json",
+    compilerOptions: {
+      rootDir: "src",
+      outDir: "dist",
+      tsBuildInfoFile: "dist/.tsbuildinfo",
+      target: "ES2022",
+      module: "NodeNext",
+      moduleResolution: "NodeNext",
+      lib: ["ES2022"],
+      strict: true,
+      noUncheckedIndexedAccess: true,
+      exactOptionalPropertyTypes: true,
+      declaration: true,
+      declarationMap: true,
+      sourceMap: true,
+      composite: true,
+      baseUrl: ".",
+      paths: {
+        "@packages/*": ["../*/src"],
+      },
+    },
+    include: ["src"],
+    exclude: ["dist", "node_modules", "**/*.test.ts"],
+  };
+
+  return {
+    path: "mcp/tsconfig.package.template.json",
+    content: JSON.stringify(template, null, 2),
+    content_type: "application/json",
+    program: "mcp",
+    description: "Per-package tsconfig.json template with strict TypeScript and ESM-focused build output",
   };
 }
 
