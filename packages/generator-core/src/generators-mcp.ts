@@ -1749,6 +1749,7 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("- Keep `spec.types.ts` synchronized with runtime schemas so generated and handwritten clients share one source of truth.");
   lines.push("- Add `docs/server.md` as the detailed implementation guide for building MCP servers, transport adapters, and tool/resource/prompt registration flows.");
   lines.push("- Add `docs/client.md` as the usage guide for discovery, capability negotiation, transport configuration, and typed tool invocation from MCP clients.");
+  lines.push("- Add `docs/protocol.md` for low-level protocol details including framing, message envelopes, lifecycle sequencing, and transport invariants.");
   lines.push("- Publish package-level READMEs (`packages/server`, `packages/client`, `packages/sdk`, `packages/middleware`) with quickstart, transport setup, and troubleshooting sections.");
   lines.push("- Document versioning and compatibility policy for MCP protocol versions, transport support, and breaking changes.");
   lines.push("- Include migration notes and change summaries for every release that alters tool/resource/prompt contracts.");
@@ -1757,6 +1758,7 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("docs/mcp/");
   lines.push("|- server.md");
   lines.push("|- client.md");
+  lines.push("|- protocol.md");
   lines.push("|- protocol-spec.md");
   lines.push("|- spec.types.ts");
   lines.push("|- migration-notes.md");
