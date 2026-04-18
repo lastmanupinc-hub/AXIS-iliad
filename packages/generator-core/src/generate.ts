@@ -12,7 +12,7 @@ import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGeneratio
 import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook, generateAbTestPlan } from "./generators-marketing.js";
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
-import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateConnectorMap, generateCapabilityRegistry, generateServerManifest } from "./generators-mcp.js";
+import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateConnectorMap, generateCapabilityRegistry, generateServerManifest } from "./generators-mcp.js";
 import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary } from "./generators-artifacts.js";
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
@@ -68,6 +68,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "mcp-registry-metadata.json": (ctx, profile, files) => generateMcpRegistryMetadata(ctx, profile, files),
   "protocol-spec.md": (ctx, _p, _files) => generateProtocolSpec(ctx),
   "spec.types.ts": (ctx, _p, _files) => generateSpecTypes(ctx),
+  "mcp/README.md": (ctx, profile, _files) => generateMcpReadme(ctx, profile),
   "connector-map.yaml": (ctx, _p, files) => generateConnectorMap(ctx, files),
   "capability-registry.json": (ctx, _p, files) => generateCapabilityRegistry(ctx, files),
   "generated-component.tsx": (ctx, _p, files) => generateComponent(ctx, files),
@@ -255,6 +256,7 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "mcp-registry-metadata.json": "mcp",
   "protocol-spec.md": "mcp",
   "spec.types.ts": "mcp",
+  "mcp/README.md": "mcp",
   "connector-map.yaml": "mcp",
   "capability-registry.json": "mcp",
   "server-manifest.yaml": "mcp",

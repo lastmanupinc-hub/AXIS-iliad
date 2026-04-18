@@ -783,7 +783,7 @@ describe("depth generators content", () => {
     "meta-tag-audit.json", "token-budget-plan.md",
     "dark-mode-tokens.json", "channel-rulebook.md",
     "ab-test-plan.md", "citation-index.json",
-    "server-manifest.yaml", "protocol-spec.md", "spec.types.ts", "template-pack.md",
+    "server-manifest.yaml", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "template-pack.md",
     "automation-pipeline.yaml", "component-library.json",
     "storyboard.md", "brand-board.md",
     "variation-matrix.json",
@@ -938,6 +938,21 @@ describe("depth generators content", () => {
     expect(file.content.length).toBeGreaterThan(500);
   });
 
+  it("mcp/README.md has project overview and quickstart", () => {
+    const file = result.files.find(f => f.path === "mcp/README.md")!;
+    expect(file.program).toBe("mcp");
+    expect(file.content).toContain("## Project Overview");
+    expect(file.content).toContain("## Installation");
+    expect(file.content).toContain("## Quickstart");
+    expect(file.content).toContain("## Supported Runtimes");
+    expect(file.content).toContain("Node.js");
+    expect(file.content).toContain("Bun");
+    expect(file.content).toContain("Deno");
+    expect(file.content).toContain("## Contribution Guidelines");
+    expect(file.content_type).toBe("text/markdown");
+    expect(file.content.length).toBeGreaterThan(500);
+  });
+
   it("template-pack.md has note templates", () => {
     const file = result.files.find(f => f.path === "template-pack.md")!;
     expect(file.program).toBe("obsidian");
@@ -988,7 +1003,7 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(89);
+    expect(generators.length).toBe(90);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/symbol-index.json");
     expect(paths).toContain(".ai/context-map.json");
@@ -1004,6 +1019,7 @@ describe("listAvailableGenerators", () => {
     expect(paths).toContain("mcp-registry-metadata.json");
     expect(paths).toContain("protocol-spec.md");
     expect(paths).toContain("spec.types.ts");
+    expect(paths).toContain("mcp/README.md");
     expect(paths).toContain("collection-map.md");
     expect(paths).toContain("export-manifest.yaml");
     // depth generators

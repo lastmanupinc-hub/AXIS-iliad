@@ -4,7 +4,7 @@ import { findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports,
 import { hasFw, getFw } from "./fw-helpers.js";
 
 /** Canonical counts — mirrors apps/api/src/counts.ts */
-const ARTIFACT_COUNT = 89;
+const ARTIFACT_COUNT = 90;
 const PROGRAM_COUNT = 18;
 const MCP_TOOL_COUNT = 12;
 

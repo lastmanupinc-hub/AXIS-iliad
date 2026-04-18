@@ -28,7 +28,7 @@
         "path": {
           "type": "string",
           "description": "Output file path relative to project root",
-          "enum": ["mcp-config.json","mcp-registry-metadata.json","protocol-spec.md","spec.types.ts","connector-map.yaml","capability-registry.json","server-manifest.yaml"]
+          "enum": ["mcp-config.json","mcp-registry-metadata.json","protocol-spec.md","spec.types.ts","mcp/README.md","connector-map.yaml","capability-registry.json","server-manifest.yaml"]
         },
         "content": {
           "type": "string",

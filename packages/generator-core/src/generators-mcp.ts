@@ -901,6 +901,127 @@ export function generateSpecTypes(ctx: ContextMap): GeneratedFile {
   };
 }
 
+// ─── mcp/README.md ───────────────────────────────────────────
+
+export function generateMcpReadme(ctx: ContextMap, profile: RepoProfile): GeneratedFile {
+  const projectName = ctx.project_identity.name;
+  const primaryLanguage = ctx.project_identity.primary_language || "TypeScript";
+  const packageManagers = ctx.detection.package_managers;
+  const preferredPackageManager = packageManagers.includes("pnpm")
+    ? "pnpm"
+    : packageManagers.includes("yarn")
+      ? "yarn"
+      : "npm";
+
+  const lines: string[] = [];
+
+  lines.push(`# ${projectName} MCP Server`);
+  lines.push("");
+  lines.push("## Project Overview");
+  lines.push("");
+  lines.push(`${projectName} exposes a Model Context Protocol (MCP) server for repository analysis, generation workflows, and agentic automation.`);
+  lines.push("");
+  lines.push("This package README documents the MCP surface area, local setup, runtime compatibility, and contribution process.");
+  lines.push("");
+
+  lines.push("## Installation");
+  lines.push("");
+  lines.push("### Prerequisites");
+  lines.push("");
+  lines.push("- Git");
+  lines.push("- A supported runtime (Node.js, Bun, or Deno)");
+  lines.push(`- Package manager: ${preferredPackageManager}`);
+  lines.push("");
+  lines.push("### Install Dependencies");
+  lines.push("");
+  if (preferredPackageManager === "pnpm") {
+    lines.push("```bash");
+    lines.push("pnpm install");
+    lines.push("pnpm build");
+    lines.push("```");
+  } else if (preferredPackageManager === "yarn") {
+    lines.push("```bash");
+    lines.push("yarn install");
+    lines.push("yarn build");
+    lines.push("```");
+  } else {
+    lines.push("```bash");
+    lines.push("npm install");
+    lines.push("npm run build");
+    lines.push("```");
+  }
+  lines.push("");
+
+  lines.push("## Quickstart");
+  lines.push("");
+  lines.push("### 1) Start the API server");
+  lines.push("");
+  lines.push("```bash");
+  lines.push("node apps/api/dist/server.js");
+  lines.push("```");
+  lines.push("");
+  lines.push("### 2) Verify MCP endpoint");
+  lines.push("");
+  lines.push("```bash");
+  lines.push("curl http://localhost:4000/.well-known/mcp.json");
+  lines.push("```");
+  lines.push("");
+  lines.push("### 3) Call MCP initialize");
+  lines.push("");
+  lines.push("```bash");
+  lines.push("curl -X POST http://localhost:4000/mcp \\");
+  lines.push("  -H \"Content-Type: application/json\" \\");
+  lines.push("  -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{}}}'");
+  lines.push("```");
+  lines.push("");
+  lines.push("### 4) List available tools");
+  lines.push("");
+  lines.push("```bash");
+  lines.push("curl -X POST http://localhost:4000/mcp \\");
+  lines.push("  -H \"Content-Type: application/json\" \\");
+  lines.push("  -d '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}'");
+  lines.push("```");
+  lines.push("");
+
+  lines.push("## Supported Runtimes");
+  lines.push("");
+  lines.push("- Node.js: primary and production-supported runtime.");
+  lines.push("- Bun: supported for local development and script execution where Node compatibility is sufficient.");
+  lines.push("- Deno: supported via HTTP interface consumption and generated TypeScript contracts.");
+  lines.push("");
+  lines.push("Cross-runtime interoperability is enabled through JSON-RPC and Standard Schema-compatible contracts in `spec.types.ts` and `protocol-spec.md`.");
+  lines.push("");
+
+  lines.push("## Contribution Guidelines");
+  lines.push("");
+  lines.push("1. Read the repository `CONTRIBUTING.md` before opening a pull request.");
+  lines.push("2. Keep protocol changes additive-first and update `protocol-spec.md` when behavior changes.");
+  lines.push("3. Keep type contracts synchronized in `spec.types.ts` for new methods, params, and responses.");
+  lines.push("4. Run tests before pushing:");
+  lines.push("");
+  lines.push("```bash");
+  lines.push("npx vitest run");
+  lines.push("```");
+  lines.push("");
+  lines.push("5. Include migration notes for any breaking protocol change.");
+  lines.push("");
+
+  lines.push("## Implementation Notes");
+  lines.push("");
+  lines.push(`- Primary language: ${primaryLanguage}`);
+  lines.push(`- Package manager(s): ${packageManagers.length > 0 ? packageManagers.join(", ") : "unknown"}`);
+  const detectedFrameworks = profile.detection?.frameworks?.map(f => f.name) ?? [];
+  lines.push(`- Detected frameworks: ${detectedFrameworks.length > 0 ? detectedFrameworks.join(", ") : "none"}`);
+
+  return {
+    path: "mcp/README.md",
+    content: lines.join("\n"),
+    content_type: "text/markdown",
+    program: "mcp",
+    description: "MCP package README with project overview, installation, quickstart, runtime compatibility, and contribution guidelines",
+  };
+}
+
 // ─── connector-map.yaml ─────────────────────────────────────────
 
 export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {

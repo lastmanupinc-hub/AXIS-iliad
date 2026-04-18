@@ -108,7 +108,7 @@
       {
         "name": "MCP",
         "tier": "pro",
-        "outputs": ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"]
+        "outputs": ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"]
       },
       {
         "name": "Superpowers",
