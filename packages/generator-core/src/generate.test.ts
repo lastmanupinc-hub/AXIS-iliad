@@ -1126,9 +1126,13 @@ describe("depth generators content", () => {
     expect(file.content).toContain("return runReportOutputSchema.parse(result);");
     expect(file.content).toContain("## 10. Middleware & Runtime Helpers");
     expect(file.content).toContain("Keep framework glue code in `packages/middleware/src/*` so server and client packages stay runtime-agnostic.");
+    expect(file.content).toContain("Express, Hono, Node HTTP, and other popular runtimes");
     expect(file.content).toContain("createMcpExpressHandler");
     expect(file.content).toContain("createMcpHonoHandler");
     expect(file.content).toContain("createMcpNodeHandler");
+    expect(file.content).toContain("import type { IncomingMessage, ServerResponse } from \"node:http\";");
+    expect(file.content).toContain("function wrapIncomingMessage(req: IncomingMessage, res: ServerResponse)");
+    expect(file.content).toContain("const httpCtx = wrapIncomingMessage(req, res);");
     expect(file.content).toContain("## packages/server");
     expect(file.content).toContain("## packages/client");
     expect(file.content).toContain("## packages/sdk");
