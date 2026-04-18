@@ -1108,10 +1108,16 @@ describe("depth generators content", () => {
     expect(file.content).toContain("// packages/server/src/transports/websocket.ts");
     expect(file.content).toContain("## 9. Schema & Validation Layer");
     expect(file.content).toContain("Centralize tool/resource/prompt schemas under `packages/server/src/schema/*`.");
+    expect(file.content).toContain("Prefer Standard Schema-compatible validators and `zod` schemas so client/server types stay aligned.");
     expect(file.content).toContain("export interface SchemaValidator<TInput>");
     expect(file.content).toContain("kind: \"tool\" | \"resource\" | \"prompt\"");
     expect(file.content).toContain("private validateOrThrow<T>(validator: SchemaValidator<T>, input: unknown): T");
     expect(file.content).toContain("// packages/server/src/schema/types.ts");
+    expect(file.content).toContain("import { z } from \"zod\";");
+    expect(file.content).toContain("export type CreateTaskInput = z.infer<typeof createTaskInputSchema>;");
+    expect(file.content).toContain("export type CreateTaskOutput = z.infer<typeof createTaskOutputSchema>;");
+    expect(file.content).toContain("server.tool(\"tasks.create\", \"Create a task\", createTaskInputSchema, async (input) => {");
+    expect(file.content).toContain("return createTaskOutputSchema.parse(result);");
     expect(file.content).toContain("## packages/server");
     expect(file.content).toContain("## packages/client");
     expect(file.content).toContain("## packages/sdk");
