@@ -1772,6 +1772,7 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("");
   lines.push("- Maintain an `examples/` folder with runnable reference projects for each supported transport (`stdio`, streamable `http`, `websocket`).");
   lines.push("- Include runnable minimal servers such as an `echo` tool and a `filesystem` tool so integrators can verify setup in minutes.");
+  lines.push("- Provide real-world examples that show tool registration, resource serving, and client connections across common deployment patterns.");
   lines.push("- Include server and client examples that demonstrate tool, resource, and prompt flows end-to-end with typed schemas.");
   lines.push("- Keep examples minimal but production-realistic: auth wiring, error handling, lifecycle startup/shutdown, and logging.");
   lines.push("- Ensure every example has README setup/run steps and a deterministic verification command for CI checks.");
@@ -1784,6 +1785,9 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("|- server-websocket/");
   lines.push("|- server-echo-minimal/");
   lines.push("|- server-filesystem-minimal/");
+  lines.push("|- realworld-tool-registration/");
+  lines.push("|- realworld-resource-serving/");
+  lines.push("|- realworld-client-connections/");
   lines.push("|- client-basic/");
   lines.push("`- tool-resource-prompt-e2e/");
   lines.push("```");

@@ -1160,6 +1160,7 @@ describe("depth generators content", () => {
     expect(file.content).toContain("## 13. Examples Folder");
     expect(file.content).toContain("Maintain an `examples/` folder with runnable reference projects");
     expect(file.content).toContain("runnable minimal servers such as an `echo` tool and a `filesystem` tool");
+    expect(file.content).toContain("Provide real-world examples that show tool registration, resource serving, and client connections");
     expect(file.content).toContain("tool, resource, and prompt flows end-to-end");
     expect(file.content).toContain("examples/");
     expect(file.content).toContain("|- server-stdio/");
@@ -1167,6 +1168,9 @@ describe("depth generators content", () => {
     expect(file.content).toContain("|- server-websocket/");
     expect(file.content).toContain("|- server-echo-minimal/");
     expect(file.content).toContain("|- server-filesystem-minimal/");
+    expect(file.content).toContain("|- realworld-tool-registration/");
+    expect(file.content).toContain("|- realworld-resource-serving/");
+    expect(file.content).toContain("|- realworld-client-connections/");
     expect(file.content).toContain("|- client-basic/");
     expect(file.content).toContain("`- tool-resource-prompt-e2e/");
     expect(file.content).toContain("import type { IncomingMessage, ServerResponse } from \"node:http\";");
