@@ -1448,6 +1448,70 @@ export function generateMonorepoStructureGuide(ctx: ContextMap): GeneratedFile {
   };
 }
 
+// ─── mcp/core-implementation-artifacts.md ─────────────────────
+
+export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): GeneratedFile {
+  const projectName = ctx.project_identity.name;
+  const lines: string[] = [];
+
+  lines.push(`# Core Implementation Artifacts — ${projectName}`);
+  lines.push("");
+  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push("");
+  lines.push("## Purpose");
+  lines.push("");
+  lines.push("Define the implementation contracts for core MCP packages so server, client, and framework adapters evolve safely.");
+  lines.push("");
+
+  lines.push("## packages/server");
+  lines.push("");
+  lines.push("- Own the `McpServer` class and lifecycle hooks.");
+  lines.push("- Register tools/resources/prompts with typed schemas.");
+  lines.push("- Provide transport adapters under `src/transports/*` (`stdio`, `http`, `websocket`).");
+  lines.push("- Keep business logic in service modules, not transport handlers.");
+  lines.push("");
+
+  lines.push("## packages/client");
+  lines.push("");
+  lines.push("- Discovery: resolve capabilities, tool lists, and schema metadata.");
+  lines.push("- Invocation: execute tool calls with typed inputs and normalized outputs.");
+  lines.push("- Support retry, timeout, and auth strategies per transport.");
+  lines.push("- Expose a stable interface for app and SDK consumers.");
+  lines.push("");
+
+  lines.push("## packages/sdk");
+  lines.push("");
+  lines.push("- Re-export stable APIs from `packages/client` and `packages/server`.");
+  lines.push("- Provide a single integration surface for external developers.");
+  lines.push("- Avoid embedding transport-specific logic in the umbrella package.");
+  lines.push("");
+
+  lines.push("## packages/middleware");
+  lines.push("");
+  lines.push("- Optional adapters for `Express`, `Hono`, and Node `http` runtimes.");
+  lines.push("- Map framework request/response objects to core server/client contracts.");
+  lines.push("- Keep middleware thin and stateless; delegate protocol logic to server/client packages.");
+  lines.push("");
+
+  lines.push("## Recommended Artifact Layout");
+  lines.push("");
+  lines.push("```text");
+  lines.push("packages/");
+  lines.push("|- server/src/{McpServer.ts,tools/,transports/}");
+  lines.push("|- client/src/{discovery/,invocation/}");
+  lines.push("|- sdk/src/index.ts");
+  lines.push("`- middleware/src/{express/,hono/,node-http/}");
+  lines.push("```");
+
+  return {
+    path: "mcp/core-implementation-artifacts.md",
+    content: lines.join("\n"),
+    content_type: "text/markdown",
+    program: "mcp",
+    description: "Core implementation package contracts for MCP server, client, sdk, and middleware modules",
+  };
+}
+
 // ─── connector-map.yaml ─────────────────────────────────────────
 
 export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {

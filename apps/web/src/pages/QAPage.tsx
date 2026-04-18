@@ -3,7 +3,7 @@ import { Icon } from "../components/AxisIcons";
 
 type QACategory = "all" | "general" | "programs" | "api" | "billing" | "technical" | "integration" | "security";
 
-interface QAItem {
+    answer: "Run Axis MCP to generate mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, mcp/tsconfig.root.template.json, mcp/tsconfig.package.template.json, mcp/monorepo-structure.md, mcp/core-implementation-artifacts.md, connector-map.yaml, capability-registry.json, and server-manifest.yaml. These files define your private MCP endpoint configuration, protocol and type contracts, project setup/build guidance, root/per-package package.json templates, root/per-package tsconfig templates, a monorepo folder blueprint, and core implementation package contracts, plus MCP Registry publishing metadata. Pro includes hosted private endpoints with persistent configs, auth management, and usage logs.",
   question: string;
   answer: string;
   category: QACategory;
@@ -219,7 +219,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "integration",
     question: "How do I use Axis with MCP servers?",
-    answer: "Run Axis MCP to generate mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, mcp/tsconfig.root.template.json, mcp/tsconfig.package.template.json, mcp/monorepo-structure.md, connector-map.yaml, capability-registry.json, and server-manifest.yaml. These files define your private MCP endpoint configuration, protocol and type contracts, project setup/build guidance, root/per-package package.json templates, root/per-package tsconfig templates, and a monorepo folder blueprint, plus MCP Registry publishing metadata. Pro includes hosted private endpoints with persistent configs, auth management, and usage logs.",
+    answer: "Run Axis MCP to generate mcp-config.json, mcp-registry-metadata.json, protocol-spec.md, spec.types.ts, mcp/README.md, mcp/project-setup.md, mcp/build-artifacts.md, mcp/package-json.root.template.json, mcp/package-json.package.template.json, mcp/tsconfig.root.template.json, mcp/tsconfig.package.template.json, mcp/monorepo-structure.md, mcp/core-implementation-artifacts.md, connector-map.yaml, capability-registry.json, and server-manifest.yaml. These files define your private MCP endpoint configuration, protocol and type contracts, project setup/build guidance, root/per-package package.json templates, root/per-package tsconfig templates, a monorepo folder blueprint, and core implementation package contracts, plus MCP Registry publishing metadata. Pro includes hosted private endpoints with persistent configs, auth management, and usage logs.",
   },
 
   // Security

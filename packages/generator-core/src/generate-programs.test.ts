@@ -63,7 +63,7 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
   marketing: ["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md", "ab-test-plan.md"],
   notebook: ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md", "citation-index.json"],
   obsidian: ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md", "template-pack.md"],
-  mcp: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"],
+  mcp: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml"],
   artifacts: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json"],
   remotion: ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
   canvas: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
@@ -74,10 +74,10 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
 describe("generateFiles — all 18 programs produce valid output", () => {
   const input = makeInput(Object.values(PROGRAM_OUTPUTS).flat());
 
-  it("generates 97 files with 0 skipped", () => {
+  it("generates 98 files with 0 skipped", () => {
     const result = generateFiles(input);
     expect(result.skipped).toEqual([]);
-    expect(result.files.length).toBe(97);
+    expect(result.files.length).toBe(98);
   });
 
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -191,9 +191,9 @@ describe("generateFiles — edge cases", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 97 registered generators", () => {
+  it("returns all 98 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(97);
+    expect(generators.length).toBe(98);
   });
 
   it("returns objects with path and program fields", () => {
