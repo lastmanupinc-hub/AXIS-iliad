@@ -12,7 +12,7 @@ import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGeneratio
 import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook, generateAbTestPlan } from "./generators-marketing.js";
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
-import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateConnectorMap, generateCapabilityRegistry, generateServerManifest } from "./generators-mcp.js";
+import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest } from "./generators-mcp.js";
 import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary } from "./generators-artifacts.js";
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
@@ -75,6 +75,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "mcp/package-json.package.template.json": (ctx, _p, _files) => generatePackagePackageJsonTemplate(ctx),
   "mcp/tsconfig.root.template.json": (_ctx, _p, _files) => generateRootTsconfigTemplate(),
   "mcp/tsconfig.package.template.json": (_ctx, _p, _files) => generatePackageTsconfigTemplate(),
+  "mcp/monorepo-structure.md": (ctx, _p, _files) => generateMonorepoStructureGuide(ctx),
   "connector-map.yaml": (ctx, _p, files) => generateConnectorMap(ctx, files),
   "capability-registry.json": (ctx, _p, files) => generateCapabilityRegistry(ctx, files),
   "generated-component.tsx": (ctx, _p, files) => generateComponent(ctx, files),
@@ -269,6 +270,7 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "mcp/package-json.package.template.json": "mcp",
   "mcp/tsconfig.root.template.json": "mcp",
   "mcp/tsconfig.package.template.json": "mcp",
+  "mcp/monorepo-structure.md": "mcp",
   "connector-map.yaml": "mcp",
   "capability-registry.json": "mcp",
   "server-manifest.yaml": "mcp",

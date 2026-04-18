@@ -2,7 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 
 /** Canonical counts — mirrors apps/api/src/counts.ts */
-const ARTIFACT_COUNT = 96;
+const ARTIFACT_COUNT = 97;
 const PROGRAM_COUNT = 18;
 
 /**

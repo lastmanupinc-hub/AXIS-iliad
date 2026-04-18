@@ -1329,6 +1329,73 @@ export function generatePackageTsconfigTemplate(): GeneratedFile {
   };
 }
 
+// ─── mcp/monorepo-structure.md ───────────────────────────────
+
+export function generateMonorepoStructureGuide(ctx: ContextMap): GeneratedFile {
+  const projectName = ctx.project_identity.name;
+  const lines: string[] = [];
+
+  lines.push(`# Monorepo Structure Template — ${projectName}`);
+  lines.push("");
+  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push("");
+  lines.push("## Recommended Folder Layout");
+  lines.push("");
+  lines.push("```text");
+  lines.push(".");
+  lines.push("|- apps/");
+  lines.push("|  |- api/");
+  lines.push("|  |  |- src/");
+  lines.push("|  |  |- test/");
+  lines.push("|  |  `- package.json");
+  lines.push("|  `- web/");
+  lines.push("|     |- src/");
+  lines.push("|     |- public/");
+  lines.push("|     `- package.json");
+  lines.push("|- packages/");
+  lines.push("|  |- context-engine/");
+  lines.push("|  |- generator-core/");
+  lines.push("|  |- repo-parser/");
+  lines.push("|  `- snapshots/");
+  lines.push("|- mcp/");
+  lines.push("|  |- schemas/");
+  lines.push("|  `- templates/");
+  lines.push("|- scripts/");
+  lines.push("|- tsconfig.base.json");
+  lines.push("|- pnpm-workspace.yaml");
+  lines.push("`- package.json");
+  lines.push("```");
+  lines.push("");
+  lines.push("## Folder Roles");
+  lines.push("");
+  lines.push("- `apps/`: deployable services and frontends.");
+  lines.push("- `packages/`: shared libraries and buildable modules.");
+  lines.push("- `mcp/`: MCP-specific specs, schema contracts, and integration templates.");
+  lines.push("- `scripts/`: repository automation tasks for CI/CD and local workflows.");
+  lines.push("");
+  lines.push("## Naming and Boundaries");
+  lines.push("");
+  lines.push("- Keep package names scoped (`@org/name`) and mirror folder names.");
+  lines.push("- Avoid cross-app imports; share through `packages/*` only.");
+  lines.push("- Keep runtime code in `src/`, generated output in `dist/`.");
+  lines.push("- Co-locate tests in `test/` or as `*.test.ts` under `src/`.");
+  lines.push("");
+  lines.push("## Monorepo Bootstrap Checklist");
+  lines.push("");
+  lines.push("- Create root `package.json` with workspace and pipeline scripts.");
+  lines.push("- Create root and per-package `tsconfig` files with strict ESM settings.");
+  lines.push("- Configure workspace manager (`pnpm-workspace.yaml` or equivalent).");
+  lines.push("- Add CI checks for build, test, lint, and typecheck across all packages.");
+
+  return {
+    path: "mcp/monorepo-structure.md",
+    content: lines.join("\n"),
+    content_type: "text/markdown",
+    program: "mcp",
+    description: "Monorepo folder structure template with recommended app/package boundaries",
+  };
+}
+
 // ─── connector-map.yaml ─────────────────────────────────────────
 
 export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {

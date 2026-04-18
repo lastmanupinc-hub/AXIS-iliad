@@ -783,7 +783,7 @@ describe("depth generators content", () => {
     "meta-tag-audit.json", "token-budget-plan.md",
     "dark-mode-tokens.json", "channel-rulebook.md",
     "ab-test-plan.md", "citation-index.json",
-    "server-manifest.yaml", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "template-pack.md",
+    "server-manifest.yaml", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "template-pack.md",
     "automation-pipeline.yaml", "component-library.json",
     "storyboard.md", "brand-board.md",
     "variation-matrix.json",
@@ -1040,6 +1040,17 @@ describe("depth generators content", () => {
     expect(file.content_type).toBe("application/json");
   });
 
+  it("mcp/monorepo-structure.md includes apps and packages layout", () => {
+    const file = result.files.find(f => f.path === "mcp/monorepo-structure.md")!;
+    expect(file.program).toBe("mcp");
+    expect(file.content).toContain("## Recommended Folder Layout");
+    expect(file.content).toContain("apps/");
+    expect(file.content).toContain("packages/");
+    expect(file.content).toContain("mcp/");
+    expect(file.content).toContain("## Folder Roles");
+    expect(file.content_type).toBe("text/markdown");
+  });
+
   it("template-pack.md has note templates", () => {
     const file = result.files.find(f => f.path === "template-pack.md")!;
     expect(file.program).toBe("obsidian");
@@ -1090,7 +1101,7 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(96);
+    expect(generators.length).toBe(97);
     const paths = generators.map(g => g.path);
     expect(paths).toContain(".ai/symbol-index.json");
     expect(paths).toContain(".ai/context-map.json");
@@ -1113,6 +1124,7 @@ describe("listAvailableGenerators", () => {
     expect(paths).toContain("mcp/package-json.package.template.json");
     expect(paths).toContain("mcp/tsconfig.root.template.json");
     expect(paths).toContain("mcp/tsconfig.package.template.json");
+    expect(paths).toContain("mcp/monorepo-structure.md");
     expect(paths).toContain("collection-map.md");
     expect(paths).toContain("export-manifest.yaml");
     // depth generators

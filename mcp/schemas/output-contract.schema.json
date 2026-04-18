@@ -28,7 +28,7 @@
         "path": {
           "type": "string",
           "description": "Output file path relative to project root",
-          "enum": ["mcp-config.json","mcp-registry-metadata.json","protocol-spec.md","spec.types.ts","mcp/README.md","mcp/project-setup.md","mcp/build-artifacts.md","mcp/package-json.root.template.json","mcp/package-json.package.template.json","mcp/tsconfig.root.template.json","mcp/tsconfig.package.template.json","connector-map.yaml","capability-registry.json","server-manifest.yaml"]
+          "enum": ["mcp-config.json","mcp-registry-metadata.json","protocol-spec.md","spec.types.ts","mcp/README.md","mcp/project-setup.md","mcp/build-artifacts.md","mcp/package-json.root.template.json","mcp/package-json.package.template.json","mcp/tsconfig.root.template.json","mcp/tsconfig.package.template.json","mcp/monorepo-structure.md","connector-map.yaml","capability-registry.json","server-manifest.yaml"]
         },
         "content": {
           "type": "string",
