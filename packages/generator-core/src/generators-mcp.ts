@@ -1529,6 +1529,24 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("`- websocket.ts");
   lines.push("```");
   lines.push("");
+  lines.push("### StdioServerTransport (most common for local use)");
+  lines.push("");
+  lines.push("- Use `StdioServerTransport` for local IDE integrations and CLI-hosted MCP servers.");
+  lines.push("- Read framed JSON-RPC messages from `stdin` and write responses/events to `stdout`.");
+  lines.push("- Keep transport startup deterministic so local tooling can connect immediately.");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/server/src/transports/stdio.ts");
+  lines.push("export class StdioServerTransport implements TransportAdapter {");
+  lines.push("  async start(): Promise<void> {");
+  lines.push("    // Attach stdin/stdout handlers and forward parsed requests to McpServer.");
+  lines.push("  }");
+  lines.push("  async stop(): Promise<void> {");
+  lines.push("    // Remove listeners and flush any buffered outbound messages.");
+  lines.push("  }");
+  lines.push("}");
+  lines.push("```");
+  lines.push("");
 
   lines.push("## packages/client");
   lines.push("");

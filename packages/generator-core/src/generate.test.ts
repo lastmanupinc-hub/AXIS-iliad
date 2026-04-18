@@ -1093,6 +1093,10 @@ describe("depth generators content", () => {
     expect(file.content).toContain("export interface TransportAdapter");
     expect(file.content).toContain("start(): Promise<void>;");
     expect(file.content).toContain("stop(): Promise<void>;");
+    expect(file.content).toContain("### StdioServerTransport (most common for local use)");
+    expect(file.content).toContain("Use `StdioServerTransport` for local IDE integrations and CLI-hosted MCP servers.");
+    expect(file.content).toContain("export class StdioServerTransport implements TransportAdapter");
+    expect(file.content).toContain("// packages/server/src/transports/stdio.ts");
     expect(file.content).toContain("## packages/server");
     expect(file.content).toContain("## packages/client");
     expect(file.content).toContain("## packages/sdk");
