@@ -1484,6 +1484,15 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("export type { ServerConfig, RegisteredTool } from \"./types.js\";");
   lines.push("```");
   lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/server/src/McpServer.ts");
+  lines.push("export class McpServer {");
+  lines.push("  tool(name: string, description: string, schema: unknown, handler: (input: unknown) => Promise<unknown>) {");
+  lines.push("    // Register typed tool metadata and handler in an internal registry.");
+  lines.push("  }");
+  lines.push("}");
+  lines.push("```");
+  lines.push("");
 
   lines.push("## packages/client");
   lines.push("");
