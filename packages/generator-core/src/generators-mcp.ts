@@ -1672,6 +1672,38 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("```");
   lines.push("");
 
+  lines.push("## 10. Middleware & Runtime Helpers");
+  lines.push("");
+  lines.push("- Keep framework glue code in `packages/middleware/src/*` so server and client packages stay runtime-agnostic.");
+  lines.push("- Provide thin helpers for Express, Hono, and Node HTTP that adapt request/response objects to MCP transports.");
+  lines.push("- Keep auth extraction, request context wiring, and error mapping in middleware helpers.");
+  lines.push("- Avoid business logic in runtime adapters; delegate to `McpServer` and shared service modules.");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/middleware/src/express/createMcpExpressHandler.ts");
+  lines.push("export function createMcpExpressHandler(server: McpServer) {");
+  lines.push("  return async function mcpExpressHandler(req: unknown, res: unknown) {");
+  lines.push("    // Adapt Express req/res into transport calls and send protocol-safe responses.");
+  lines.push("  };\n}");
+  lines.push("```");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/middleware/src/hono/createMcpHonoHandler.ts");
+  lines.push("export function createMcpHonoHandler(server: McpServer) {");
+  lines.push("  return async function mcpHonoHandler(ctx: unknown) {");
+  lines.push("    // Map Hono context to MCP request/response semantics.");
+  lines.push("  };\n}");
+  lines.push("```");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/middleware/src/node-http/createMcpNodeHandler.ts");
+  lines.push("export function createMcpNodeHandler(server: McpServer) {");
+  lines.push("  return async function mcpNodeHandler(req: unknown, res: unknown) {");
+  lines.push("    // Normalize Node HTTP streams and delegate to the server transport boundary.");
+  lines.push("  };\n}");
+  lines.push("```");
+  lines.push("");
+
   lines.push("## packages/client");
   lines.push("");
   lines.push("- Discovery: resolve capabilities, tool lists, and schema metadata.");
