@@ -1796,6 +1796,8 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("## 14. CI/CD & Release Artifacts");
   lines.push("");
   lines.push("- Add CI pipelines that run lint, typecheck, unit tests, conformance tests, and example smoke tests on every pull request.");
+  lines.push("- Define `.github/workflows/` automation for lint, test, and build so every merge candidate passes the same deterministic quality gates.");
+  lines.push("- Add npm publish workflows that use OIDC trusted publishing (no long-lived npm tokens) with environment protections and provenance attestations.");
   lines.push("- Publish release artifacts for server/client/sdk/middleware packages with reproducible build metadata and checksums.");
   lines.push("- Generate protocol compatibility reports that compare current outputs against the previous stable release.");
   lines.push("- Enforce release gates for changelog completeness, migration notes, semantic version validation, and signed package provenance.");
@@ -1803,8 +1805,12 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("");
   lines.push("```text");
   lines.push(".github/workflows/");
+  lines.push("|- lint.yml");
+  lines.push("|- test.yml");
+  lines.push("|- build.yml");
   lines.push("|- mcp-ci.yml");
   lines.push("|- mcp-release.yml");
+  lines.push("`- npm-publish.yml");
   lines.push("artifacts/releases/");
   lines.push("|- checksums.txt");
   lines.push("|- compatibility-report.md");

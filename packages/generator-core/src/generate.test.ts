@@ -1175,11 +1175,17 @@ describe("depth generators content", () => {
     expect(file.content).toContain("`- tool-resource-prompt-e2e/");
     expect(file.content).toContain("## 14. CI/CD & Release Artifacts");
     expect(file.content).toContain("Add CI pipelines that run lint, typecheck, unit tests, conformance tests");
+    expect(file.content).toContain("Define `.github/workflows/` automation for lint, test, and build");
+    expect(file.content).toContain("npm publish workflows that use OIDC trusted publishing");
     expect(file.content).toContain("Publish release artifacts for server/client/sdk/middleware packages");
     expect(file.content).toContain("protocol compatibility reports");
     expect(file.content).toContain(".github/workflows/");
+    expect(file.content).toContain("|- lint.yml");
+    expect(file.content).toContain("|- test.yml");
+    expect(file.content).toContain("|- build.yml");
     expect(file.content).toContain("|- mcp-ci.yml");
     expect(file.content).toContain("|- mcp-release.yml");
+    expect(file.content).toContain("`- npm-publish.yml");
     expect(file.content).toContain("artifacts/releases/");
     expect(file.content).toContain("|- checksums.txt");
     expect(file.content).toContain("|- compatibility-report.md");
