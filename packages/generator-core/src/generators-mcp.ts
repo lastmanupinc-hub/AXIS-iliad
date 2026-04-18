@@ -1490,6 +1490,12 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("  tool(name: string, description: string, schema: unknown, handler: (input: unknown) => Promise<unknown>) {");
   lines.push("    // Register typed tool metadata and handler in an internal registry.");
   lines.push("  }");
+  lines.push("  resource(name: string, description: string, uriTemplate: string, handler: (params: unknown) => Promise<unknown>) {");
+  lines.push("    // Register a resource resolver that maps URI params to typed data.");
+  lines.push("  }");
+  lines.push("  prompt(name: string, description: string, schema: unknown, handler: (input: unknown) => Promise<string>) {");
+  lines.push("    // Register reusable prompt builders with validated input schemas.");
+  lines.push("  }");
   lines.push("}");
   lines.push("```");
   lines.push("");
