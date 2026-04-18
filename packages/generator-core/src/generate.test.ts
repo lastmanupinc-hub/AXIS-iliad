@@ -1046,8 +1046,13 @@ describe("depth generators content", () => {
     expect(file.content).toContain("## Recommended Folder Layout");
     expect(file.content).toContain("apps/");
     expect(file.content).toContain("packages/");
+    expect(file.content).toContain("packages/server/");
+    expect(file.content).toContain("McpServer.ts");
     expect(file.content).toContain("mcp/");
     expect(file.content).toContain("## Folder Roles");
+    expect(file.content).toContain("## packages/server Responsibilities");
+    expect(file.content).toContain("Tool registration");
+    expect(file.content).toContain("Transports");
     expect(file.content_type).toBe("text/markdown");
   });
 
