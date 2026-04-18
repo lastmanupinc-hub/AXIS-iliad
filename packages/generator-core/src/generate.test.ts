@@ -1106,6 +1106,12 @@ describe("depth generators content", () => {
     expect(file.content).toContain("abstract class BaseSocketTransport implements TransportAdapter");
     expect(file.content).toContain("export class WebSocketServerTransport extends BaseSocketTransport");
     expect(file.content).toContain("// packages/server/src/transports/websocket.ts");
+    expect(file.content).toContain("## 9. Schema & Validation Layer");
+    expect(file.content).toContain("Centralize tool/resource/prompt schemas under `packages/server/src/schema/*`.");
+    expect(file.content).toContain("export interface SchemaValidator<TInput>");
+    expect(file.content).toContain("kind: \"tool\" | \"resource\" | \"prompt\"");
+    expect(file.content).toContain("private validateOrThrow<T>(validator: SchemaValidator<T>, input: unknown): T");
+    expect(file.content).toContain("// packages/server/src/schema/types.ts");
     expect(file.content).toContain("## packages/server");
     expect(file.content).toContain("## packages/client");
     expect(file.content).toContain("## packages/sdk");

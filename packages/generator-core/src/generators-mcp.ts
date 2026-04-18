@@ -1589,6 +1589,34 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("```");
   lines.push("");
 
+  lines.push("## 9. Schema & Validation Layer");
+  lines.push("");
+  lines.push("- Centralize tool/resource/prompt schemas under `packages/server/src/schema/*`.");
+  lines.push("- Validate inbound payloads before invoking handlers; return protocol-safe validation errors.");
+  lines.push("- Keep runtime validators and exported schema metadata aligned to prevent drift between server and clients.");
+  lines.push("- Reuse a shared validator interface so all registration paths (`tool`, `resource`, `prompt`) apply consistent rules.");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/server/src/schema/types.ts");
+  lines.push("export interface SchemaValidator<TInput> {");
+  lines.push("  parse(input: unknown): TInput;");
+  lines.push("}");
+  lines.push("");
+  lines.push("export interface RegisteredSchema {");
+  lines.push("  name: string;");
+  lines.push("  kind: \"tool\" | \"resource\" | \"prompt\";");
+  lines.push("  validator: SchemaValidator<unknown>;");
+  lines.push("}");
+  lines.push("```");
+  lines.push("");
+  lines.push("```ts");
+  lines.push("// packages/server/src/McpServer.ts");
+  lines.push("private validateOrThrow<T>(validator: SchemaValidator<T>, input: unknown): T {");
+  lines.push("  return validator.parse(input);");
+  lines.push("}");
+  lines.push("```");
+  lines.push("");
+
   lines.push("## packages/client");
   lines.push("");
   lines.push("- Discovery: resolve capabilities, tool lists, and schema metadata.");
