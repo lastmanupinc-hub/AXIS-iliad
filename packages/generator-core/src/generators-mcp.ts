@@ -1477,6 +1477,7 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("- Keep request validation, tool registration, and dispatch inside `McpServer.ts`.");
   lines.push("- Wire transports via adapters and avoid transport-specific branches in core server logic.");
   lines.push("- Surface typed registration APIs so downstream packages can add tools safely.");
+  lines.push("- Implement capability negotiation during `initialize` and clean teardown on `shutdown`.");
   lines.push("");
   lines.push("```ts");
   lines.push("// packages/server/src/index.ts");
@@ -1487,6 +1488,9 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("```ts");
   lines.push("// packages/server/src/McpServer.ts");
   lines.push("export class McpServer {");
+  lines.push("  initialize(clientCapabilities: unknown) {");
+  lines.push("    // Negotiate protocol version and feature flags from client/server capabilities.");
+  lines.push("  }");
   lines.push("  tool(name: string, description: string, schema: unknown, handler: (input: unknown) => Promise<unknown>) {");
   lines.push("    // Register typed tool metadata and handler in an internal registry.");
   lines.push("  }");
@@ -1495,6 +1499,9 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("  }");
   lines.push("  prompt(name: string, description: string, schema: unknown, handler: (input: unknown) => Promise<string>) {");
   lines.push("    // Register reusable prompt builders with validated input schemas.");
+  lines.push("  }");
+  lines.push("  shutdown() {");
+  lines.push("    // Flush pending work and release transport resources before exit.");
   lines.push("  }");
   lines.push("}");
   lines.push("```");
