@@ -783,7 +783,7 @@ describe("depth generators content", () => {
     "meta-tag-audit.json", "token-budget-plan.md",
     "dark-mode-tokens.json", "channel-rulebook.md",
     "ab-test-plan.md", "citation-index.json",
-    "server-manifest.yaml", "template-pack.md",
+    "server-manifest.yaml", "protocol-spec.md", "template-pack.md",
     "automation-pipeline.yaml", "component-library.json",
     "storyboard.md", "brand-board.md",
     "variation-matrix.json",
@@ -881,6 +881,16 @@ describe("depth generators content", () => {
     expect(file.program).toBe("mcp");
     expect(file.content).toContain("server");
     expect(file.content.length).toBeGreaterThan(200);
+  });
+
+  it("protocol-spec.md covers JSON-RPC request/response/notification/batch", () => {
+    const file = result.files.find(f => f.path === "protocol-spec.md")!;
+    expect(file.program).toBe("mcp");
+    expect(file.content).toContain("JSON-RPC 2.0 Message Formats");
+    expect(file.content).toContain("### Request");
+    expect(file.content).toContain("### Success Response");
+    expect(file.content).toContain("### Notification (no id)");
+    expect(file.content).toContain("### Batch Request");
   });
 
   it("template-pack.md has note templates", () => {

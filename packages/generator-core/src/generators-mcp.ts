@@ -287,6 +287,76 @@ export function generateProtocolSpec(ctx: ContextMap): GeneratedFile {
   lines.push("- Response envelope: JSON-RPC success or error object");
   lines.push("");
 
+  lines.push("## JSON-RPC 2.0 Message Formats");
+  lines.push("");
+  lines.push("### Request");
+  lines.push("");
+  lines.push("```json");
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "id": 1,');
+  lines.push('  "method": "tools/call",');
+  lines.push('  "params": {');
+  lines.push('    "name": "list_programs",');
+  lines.push('    "arguments": {}');
+  lines.push('  }');
+  lines.push('}');
+  lines.push("```");
+  lines.push("");
+
+  lines.push("### Success Response");
+  lines.push("");
+  lines.push("```json");
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "id": 1,');
+  lines.push('  "result": {');
+  lines.push('    "content": [{ "type": "text", "text": "..." }]');
+  lines.push('  }');
+  lines.push('}');
+  lines.push("```");
+  lines.push("");
+
+  lines.push("### Error Response");
+  lines.push("");
+  lines.push("```json");
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "id": 1,');
+  lines.push('  "error": {');
+  lines.push('    "code": -32602,');
+  lines.push('    "message": "Invalid params"');
+  lines.push('  }');
+  lines.push('}');
+  lines.push("```");
+  lines.push("");
+
+  lines.push("### Notification (no id)");
+  lines.push("");
+  lines.push("```json");
+  lines.push('{');
+  lines.push('  "jsonrpc": "2.0",');
+  lines.push('  "method": "notifications/initialized",');
+  lines.push('  "params": {}');
+  lines.push('}');
+  lines.push("```");
+  lines.push("");
+  lines.push("Notifications do not produce a response body.");
+  lines.push("");
+
+  lines.push("### Batch Request");
+  lines.push("");
+  lines.push("```json");
+  lines.push('[');
+  lines.push('  { "jsonrpc": "2.0", "id": 1, "method": "ping" },');
+  lines.push('  { "jsonrpc": "2.0", "id": 2, "method": "tools/list" },');
+  lines.push('  { "jsonrpc": "2.0", "method": "notifications/initialized", "params": {} }');
+  lines.push(']');
+  lines.push("```");
+  lines.push("");
+  lines.push("Batch response must include one entry per request that has an `id`.");
+  lines.push("");
+
   lines.push("## Authentication");
   lines.push("");
   lines.push("- Primary: `Authorization: Bearer <api_key>`");
