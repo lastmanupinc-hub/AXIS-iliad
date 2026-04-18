@@ -1118,6 +1118,12 @@ describe("depth generators content", () => {
     expect(file.content).toContain("export type CreateTaskOutput = z.infer<typeof createTaskOutputSchema>;");
     expect(file.content).toContain("server.tool(\"tasks.create\", \"Create a task\", createTaskInputSchema, async (input) => {");
     expect(file.content).toContain("return createTaskOutputSchema.parse(result);");
+    expect(file.content).toContain("### Runtime validation + TypeScript inference");
+    expect(file.content).toContain("Validate all unknown payloads at runtime before business logic executes.");
+    expect(file.content).toContain("type RunReportInput = z.infer<typeof runReportInputSchema>;");
+    expect(file.content).toContain("type RunReportOutput = z.infer<typeof runReportOutputSchema>;");
+    expect(file.content).toContain("const typedInput: RunReportInput = runReportInputSchema.parse(input);");
+    expect(file.content).toContain("return runReportOutputSchema.parse(result);");
     expect(file.content).toContain("## packages/server");
     expect(file.content).toContain("## packages/client");
     expect(file.content).toContain("## packages/sdk");
