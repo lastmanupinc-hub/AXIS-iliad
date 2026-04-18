@@ -1173,6 +1173,17 @@ describe("depth generators content", () => {
     expect(file.content).toContain("|- realworld-client-connections/");
     expect(file.content).toContain("|- client-basic/");
     expect(file.content).toContain("`- tool-resource-prompt-e2e/");
+    expect(file.content).toContain("## 14. CI/CD & Release Artifacts");
+    expect(file.content).toContain("Add CI pipelines that run lint, typecheck, unit tests, conformance tests");
+    expect(file.content).toContain("Publish release artifacts for server/client/sdk/middleware packages");
+    expect(file.content).toContain("protocol compatibility reports");
+    expect(file.content).toContain(".github/workflows/");
+    expect(file.content).toContain("|- mcp-ci.yml");
+    expect(file.content).toContain("|- mcp-release.yml");
+    expect(file.content).toContain("artifacts/releases/");
+    expect(file.content).toContain("|- checksums.txt");
+    expect(file.content).toContain("|- compatibility-report.md");
+    expect(file.content).toContain("`- provenance.json");
     expect(file.content).toContain("import type { IncomingMessage, ServerResponse } from \"node:http\";");
     expect(file.content).toContain("function wrapIncomingMessage(req: IncomingMessage, res: ServerResponse)");
     expect(file.content).toContain("const httpCtx = wrapIncomingMessage(req, res);");

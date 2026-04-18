@@ -1793,6 +1793,25 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   lines.push("```");
   lines.push("");
 
+  lines.push("## 14. CI/CD & Release Artifacts");
+  lines.push("");
+  lines.push("- Add CI pipelines that run lint, typecheck, unit tests, conformance tests, and example smoke tests on every pull request.");
+  lines.push("- Publish release artifacts for server/client/sdk/middleware packages with reproducible build metadata and checksums.");
+  lines.push("- Generate protocol compatibility reports that compare current outputs against the previous stable release.");
+  lines.push("- Enforce release gates for changelog completeness, migration notes, semantic version validation, and signed package provenance.");
+  lines.push("- Include rollback playbooks and post-release verification steps for transport health and tool/resource/prompt contract integrity.");
+  lines.push("");
+  lines.push("```text");
+  lines.push(".github/workflows/");
+  lines.push("|- mcp-ci.yml");
+  lines.push("|- mcp-release.yml");
+  lines.push("artifacts/releases/");
+  lines.push("|- checksums.txt");
+  lines.push("|- compatibility-report.md");
+  lines.push("`- provenance.json");
+  lines.push("```");
+  lines.push("");
+
   lines.push("## packages/client");
   lines.push("");
   lines.push("- Discovery: resolve capabilities, tool lists, and schema metadata.");
