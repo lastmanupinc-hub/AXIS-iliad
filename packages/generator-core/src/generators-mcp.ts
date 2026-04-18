@@ -476,6 +476,30 @@ export function generateProtocolSpec(ctx: ContextMap): GeneratedFile {
   lines.push("Progress messages should be monotonic and end with a terminal success/failure outcome.");
   lines.push("");
 
+  lines.push("## Security Model");
+  lines.push("");
+  lines.push("### OAuth");
+  lines.push("");
+  lines.push("- OAuth 2.1 style flows are RECOMMENDED for third-party delegated access.");
+  lines.push("- Access tokens should be short-lived and scoped to least privilege.");
+  lines.push("- Refresh token issuance should be policy-controlled and revocable.");
+  lines.push("- Bearer tokens must be sent over TLS-only transports.");
+  lines.push("");
+
+  lines.push("### Sandboxing");
+  lines.push("");
+  lines.push("- Tool execution should run with explicit resource boundaries (CPU, memory, timeouts)." );
+  lines.push("- Filesystem and network access should default-deny, then allowlist required targets.");
+  lines.push("- Execution environments should isolate tenant data and prevent cross-session data leakage.");
+  lines.push("");
+
+  lines.push("### Consent");
+  lines.push("");
+  lines.push("- High-impact tool calls should require explicit user consent prior to execution.");
+  lines.push("- Consent prompts should clearly state action, scope, and expected side effects.");
+  lines.push("- Consent decisions should be auditable and revocable.");
+  lines.push("");
+
   lines.push("## Idempotency and Determinism");
   lines.push("");
   lines.push("- Read/list operations should be deterministic for the same inputs.");

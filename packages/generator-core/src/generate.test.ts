@@ -904,6 +904,10 @@ describe("depth generators content", () => {
     expect(file.content).toContain("## Pagination");
     expect(file.content).toContain("## Cancellation");
     expect(file.content).toContain("## Progress Reporting");
+    expect(file.content).toContain("## Security Model");
+    expect(file.content).toContain("### OAuth");
+    expect(file.content).toContain("### Sandboxing");
+    expect(file.content).toContain("### Consent");
   });
 
   it("template-pack.md has note templates", () => {
