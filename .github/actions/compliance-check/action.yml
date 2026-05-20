@@ -96,7 +96,7 @@ runs:
             "project_type": "monorepo",
             "frameworks": ["typescript"],
             "goals": ["compliance-check"],
-            "requested_outputs": ["agent-purchasing-playbook.md"],
+            "requested_outputs": ["debug-playbook.md"],
           },
         }
 
@@ -111,6 +111,7 @@ runs:
           "$AXIS_API_URL/v1/snapshots"
           -H "Content-Type: application/json"
           -H "Authorization: Bearer $AXIS_API_KEY"
+          -H "X-Axis-Key: $AXIS_API_KEY"
           --data-binary @axis-compliance-payload.json
         )
 
