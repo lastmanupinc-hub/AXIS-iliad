@@ -121,19 +121,7 @@ runs:
           echo "::error::Axis compliance endpoint returned HTTP $HTTP_STATUS"
           if [ -f axis-compliance-response.json ]; then
             echo "Response preview:" >> "$GITHUB_STEP_SUMMARY"
-            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-            import pathlib
-
-            path = pathlib.Path("axis-compliance-response.json")
-            try:
-                text = path.read_text(encoding="utf-8", errors="ignore")
-            except Exception as exc:
-                print(f"Failed to read response body: {exc}")
-            else:
-                print("```")
-                print(text[:2000])
-                print("```")
-            PY
+            python3 -c "from pathlib import Path; path = Path('axis-compliance-response.json'); text = path.read_text(encoding='utf-8', errors='ignore'); print('```'); print(text[:2000]); print('```')" >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 1
         fi
@@ -147,33 +135,9 @@ runs:
           exit 1
         fi
 
-        GRADE=$(python3 - <<'PY'
-        import json
+        GRADE=$(python3 -c "import json; data = json.load(open('axis-compliance-response.json', 'r', encoding='utf-8')); cg = data.get('compliance_grade', {}); print(cg.get('grade', 'D') if isinstance(cg, dict) else 'D')")
 
-        with open("axis-compliance-response.json", "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-
-        cg = data.get("compliance_grade", {})
-        if isinstance(cg, dict):
-            print(cg.get("grade", "D"))
-        else:
-            print("D")
-        PY
-        )
-
-        CHECKS_PASSED=$(python3 - <<'PY'
-        import json
-
-        with open("axis-compliance-response.json", "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-
-        cg = data.get("compliance_grade", {})
-        if isinstance(cg, dict):
-            print(cg.get("checks_passed", 0))
-        else:
-            print(0)
-        PY
-        )
+        CHECKS_PASSED=$(python3 -c "import json; data = json.load(open('axis-compliance-response.json', 'r', encoding='utf-8')); cg = data.get('compliance_grade', {}); print(cg.get('checks_passed', 0) if isinstance(cg, dict) else 0)")
 
         echo "grade=$GRADE" >> "$GITHUB_OUTPUT"
         echo "checks_passed=$CHECKS_PASSED" >> "$GITHUB_OUTPUT"
