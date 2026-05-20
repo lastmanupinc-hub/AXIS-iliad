@@ -45,6 +45,11 @@ runs:
         AXIS_API_URL: ${{ inputs.api-url }}
         AXIS_LITE: ${{ inputs.lite-mode }}
       run: |
+        if [ -z "$AXIS_API_KEY" ]; then
+          echo "::error::Missing AXIS_API_KEY. Add the AXIS_API_KEY repository secret before running the compliance workflow."
+          exit 1
+        fi
+
         python3 - <<'PY' > axis-compliance-payload.json
         import json
         import os
@@ -121,7 +126,12 @@ runs:
           echo "::error::Axis compliance endpoint returned HTTP $HTTP_STATUS"
           if [ -f axis-compliance-response.json ]; then
             echo "Response preview:" >> "$GITHUB_STEP_SUMMARY"
-            python3 -c "from pathlib import Path; path = Path('axis-compliance-response.json'); text = path.read_text(encoding='utf-8', errors='ignore'); print('```'); print(text[:2000]); print('```')" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo '```json'
+              head -c 2000 axis-compliance-response.json
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 1
         fi
