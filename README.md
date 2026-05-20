@@ -113,6 +113,16 @@ Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` + `X-Age
 
 ## Self-host
 
+### System Requirements
+
+- **Node.js**: ≥ 20.x (LTS recommended)
+- **pnpm**: ≥ 9.x
+- **OS**: macOS 11+, Linux (any distro), or Windows 10+
+- **RAM**: 4 GB minimum (8 GB recommended)
+- **Disk space**: ~2 GB for dependencies + build
+
+### Quick Start
+
 ```bash
 # Prerequisites: Node.js ≥ 20, pnpm ≥ 9
 git clone https://github.com/lastmanupinc-hub/axis-iliad.git
@@ -131,11 +141,14 @@ node apps/cli/dist/cli.js analyze .
 node apps/cli/dist/cli.js github https://github.com/owner/repo
 ```
 
-**Docker:**
+### Docker
+
 ```bash
 docker build -t axis-iliad .
 docker run -p 4000:4000 axis-iliad
 ```
+
+Requires: Docker 20.10+ or Docker Desktop
 
 ---
 

@@ -2,6 +2,8 @@
 
 ## Dev Setup
 
+**Ensure you meet the [System Requirements](#system-requirements) first.**
+
 ```bash
 git clone https://github.com/lastmanupinc-hub/axis-iliad.git
 cd axis-iliad
@@ -10,7 +12,7 @@ pnpm install
 # Build all packages (order matters — packages before apps)
 pnpm build
 
-# Run tests
+# Run tests (local, zero AI rate limit cost)
 npx vitest run
 
 # Run with coverage
@@ -47,14 +49,84 @@ cd apps/web && npx vite
 - **Imports**: use `.js` extensions in import paths (Node ESM resolution)
 - **Error handling**: validate at system boundaries (request bodies, file I/O), not interior functions
 
-## Test Conventions
+## System Requirements
+
+### Minimum Requirements
+- **Node.js**: ≥ 20.x (LTS recommended)
+- **pnpm**: ≥ 9.x
+- **OS**: macOS 11+, Linux (any modern distro), Windows 10+
+- **RAM**: 4 GB minimum (8 GB recommended for full build + tests)
+- **Disk space**: 2 GB for dependencies + build output
+- **Package manager**: pnpm (workspace support required)
+
+### For Development
+- TypeScript 5.x (installed via dependencies)
+- vitest (test runner, installed via dependencies)
+- tsx (for TypeScript execution, installed via dependencies)
+
+### For Docker
+- Docker 20.10+ or Docker Desktop
+- For ARM64 (M1/M2 Mac): native support, no additional setup needed
+
+### Important Notes
+- **No external databases required** — SQLite is bundled and file-based
+- **No external services required for local development** — API runs standalone
+- **AI rate limits**: Running tests locally (via `npx vitest run`) consumes **zero** AI rate limits. Tests run purely on your CPU using Python/Node.js. No API calls, no LLM usage, zero impact on Claude/Cursor token limits.
+
+## Testing Strategy
+
+### Test Levels by Stage
+
+| Stage / Situation | Recommended Test Level | Frequency | Why |
+|---|---|---|---|
+| Small change (e.g., tweak one tool) | Smoke / relevant tests only | Every commit / after change | Fast feedback |
+| Medium change (new feature or refactor) | Partial regression (core + affected area) | Before push / PR | Balance speed & safety |
+| Major change or before merge | Full regression | Before major PRs / merges | Catch side effects |
+| Before shipping / tagging a release | Full regression | Every release | High confidence |
+| Nightly / CI integration | Full regression | Daily (automated) | Catch issues early |
+
+### Running Tests
+
+```bash
+# Run all tests
+npx vitest run
+
+# Run with coverage (produces coverage report)
+npx vitest --coverage
+
+# Run in watch mode (great for active development)
+npx vitest
+
+# Run a specific file
+npx vitest run packages/repo-parser/src/language-detector.test.ts
+
+# Run tests matching a pattern
+npx vitest run --grep "snapshot"
+
+# Run benchmarks
+npx vitest bench
+```
+
+### Test Conventions
 
 - Test files live next to source: `engine.ts` → `engine.test.ts`
 - Use `describe` blocks per function/module, `it` blocks per behavior
 - Helper functions (e.g., `makeSnapshot()`, `makeFiles()`) at top of test file
 - Shared vitest config in root `vitest.config.ts`
-- Run all: `npx vitest run`
-- Run one file: `npx vitest run packages/repo-parser/src/language-detector.test.ts`
+
+### Best Practices for Solo / Small-Team Development
+
+1. **Run full regression before every significant commit or PR** — Don't skip this gate for shared work.
+2. **Always run full regression before any release or schema changes** — Especially when you update tool registry or domain models.
+3. **Automate in CI/CD** — Use GitHub Actions (or equivalent) to run full regression on every push to `main`. You don't have to do it manually every time once it's wired.
+4. **Keep your test suite fast** — The current 58 passing tests are very manageable. Aim to keep full runs under 2 minutes.
+5. **Don't run full suite after every tiny edit during active development** — That kills velocity. Use smoke tests / focused runs, then full regression before sharing.
+
+### Cost of Testing
+
+- **Local tests**: Zero cost. `npx vitest run` uses only your CPU. No AI rate limit consumption, no API calls, no external services.
+- **CI tests**: Only cloud resource costs (GitHub Actions free tier covers most indie/small-team usage). No AI rate limits.
+- **Scaling**: At 58 tests, you're well under the performance ceiling. Adding more tests scales linearly.
 
 ## Adding a New Generator
 
