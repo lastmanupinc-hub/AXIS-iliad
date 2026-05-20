@@ -45,6 +45,9 @@ runs:
         AXIS_API_URL: ${{ inputs.api-url }}
         AXIS_LITE: ${{ inputs.lite-mode }}
       run: |
+        # Normalize secrets copied from terminals/UI that may include newline characters.
+        AXIS_API_KEY="$(printf '%s' "$AXIS_API_KEY" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
         if [ -z "$AXIS_API_KEY" ]; then
           echo "::error::Missing AXIS_API_KEY. Add the AXIS_API_KEY repository secret before running the compliance workflow."
           exit 1
@@ -126,6 +129,9 @@ runs:
         if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
           echo "::error::Axis compliance endpoint returned HTTP $HTTP_STATUS"
           if [ -f axis-compliance-response.json ]; then
+            echo "Axis response preview (first 2000 bytes):"
+            head -c 2000 axis-compliance-response.json
+            echo
             echo "Response preview:" >> "$GITHUB_STEP_SUMMARY"
             {
               echo '```json'
