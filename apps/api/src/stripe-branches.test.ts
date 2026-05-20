@@ -298,6 +298,33 @@ describe("handleCreateCheckout branches", () => {
 
     expect(r.status).toBe(400);
   });
+
+  it("uses AXIS_WEB_URL fallback when CORS_ORIGIN is wildcard", async () => {
+    const account = createAccount("Wildcard CORS", "wildcard-cors-171@test.com", "free");
+    const { rawKey } = createApiKey(account.account_id, "test");
+
+    const savedCors = process.env.CORS_ORIGIN;
+    const savedWeb = process.env.AXIS_WEB_URL;
+    process.env.CORS_ORIGIN = "*";
+    process.env.AXIS_WEB_URL = "https://app.axis.example";
+
+    const fetchSpy = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: "cs_test_fallback", url: "https://checkout.stripe.com/test-fallback" }),
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const r = await req("POST", "/v1/checkout", { tier: "paid" }, { Authorization: `Bearer ${rawKey}` });
+
+    expect(r.status).toBe(201);
+    const body = String((fetchSpy.mock.calls[0]?.[1] as RequestInit | undefined)?.body ?? "");
+    const params = new URLSearchParams(body);
+    expect(params.get("success_url")).toBe("https://app.axis.example/#account");
+    expect(params.get("cancel_url")).toBe("https://app.axis.example/#plans");
+
+    process.env.CORS_ORIGIN = savedCors;
+    process.env.AXIS_WEB_URL = savedWeb;
+  });
 });
 
 // ─── 2. handleCancelSubscription — all branches ────────────────

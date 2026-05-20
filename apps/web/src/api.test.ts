@@ -603,14 +603,15 @@ describe("searchSymbols", () => {
 
 describe("createCheckout", () => {
   it("POSTs to /v1/checkout with tier in body", async () => {
-    const response = { checkout_url: "https://checkout.lemonsqueezy.com/buy/abc", tier: "paid", variant_id: "v_123" };
+    const response = { checkout_url: "https://checkout.stripe.com/pay/cs_test_123", tier: "paid", session_id: "cs_test_123", price_id: "price_paid_123" };
     const fetchFn = mockFetch(response);
     vi.stubGlobal("fetch", fetchFn);
 
     const result = await createCheckout("paid");
 
-    expect(result.checkout_url).toBe("https://checkout.lemonsqueezy.com/buy/abc");
+    expect(result.checkout_url).toBe("https://checkout.stripe.com/pay/cs_test_123");
     expect(result.tier).toBe("paid");
+    expect(result.session_id).toBe("cs_test_123");
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe("/v1/checkout");
     expect(init.method).toBe("POST");
@@ -629,7 +630,7 @@ describe("getSubscription", () => {
       active_subscription: {
         subscription_id: "sub_abc",
         status: "active",
-        variant_id: "v_paid",
+        price_id: "price_paid",
         current_period_start: "2025-01-01T00:00:00Z",
         current_period_end: "2025-02-01T00:00:00Z",
         card_brand: "visa",

@@ -16,6 +16,7 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getApiCallSummary,
   recordUsage,
   isProgramEnabled,
   trackEvent,
@@ -313,6 +314,40 @@ export async function handleGetUsage(
       generators: summary.reduce((s, p) => s + p.total_generators, 0),
       input_files: summary.reduce((s, p) => s + p.total_input_files, 0),
       input_bytes: summary.reduce((s, p) => s + p.total_input_bytes, 0),
+    },
+  });
+}
+
+/** GET /v1/account/analytics/summary — per-account API + program analytics (requires auth) */
+export async function handleGetAnalyticsSummary(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const sinceDaysRaw = parseInt(url.searchParams.get("since_days") ?? "30", 10);
+  const limitRaw = parseInt(url.searchParams.get("limit") ?? "100", 10);
+  const sinceDays = Math.min(Math.max(Number.isFinite(sinceDaysRaw) ? sinceDaysRaw : 30, 1), 365);
+  const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 100, 1), 500);
+  const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString();
+
+  const usage = getUsageSummary(ctx.account!.account_id, since);
+  const api = getApiCallSummary(ctx.account!.account_id, since, limit);
+
+  sendJSON(res, 200, {
+    account_id: ctx.account!.account_id,
+    tier: ctx.account!.tier,
+    since,
+    programs: usage,
+    api_calls: api,
+    totals: {
+      runs: usage.reduce((s, p) => s + p.total_runs, 0),
+      generators: usage.reduce((s, p) => s + p.total_generators, 0),
+      input_files: usage.reduce((s, p) => s + p.total_input_files, 0),
+      input_bytes: usage.reduce((s, p) => s + p.total_input_bytes, 0),
+      api_calls: api.total_calls,
     },
   });
 }

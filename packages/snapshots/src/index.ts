@@ -25,7 +25,7 @@ export { parseGitHubUrl, fetchGitHubRepo } from "./github.js";
 
 // Billing
 export type { Account, ApiKey, BillingTier, ProgramEntitlement, UsageRecord, UsageSummary, TierLimits, ProgramName, PersistenceOp, PersistenceCreditRecord, PersistencePackId } from "./billing-types.js";
-export type { QuotaCheck, SystemStats, AccountSummary, RecentActivity } from "./billing-store.js";
+export type { QuotaCheck, SystemStats, AccountSummary, RecentActivity, ApiEndpointUsage, ApiStatusUsage, AccountApiAnalyticsSummary } from "./billing-store.js";
 export { TIER_LIMITS, ALL_PROGRAMS, PERSISTENCE_CREDIT_COSTS, PERSISTENCE_CREDIT_PACKS, PERSISTENCE_MIN_TIER, SUITE_MONTHLY_PERSISTENCE_CREDITS } from "./billing-types.js";
 export {
   createAccount,
@@ -48,6 +48,8 @@ export {
   getSystemStats,
   listAllAccounts,
   getRecentActivity,
+  recordApiCall,
+  getApiCallSummary,
 } from "./billing-store.js";
 
 // Funnel & Seats

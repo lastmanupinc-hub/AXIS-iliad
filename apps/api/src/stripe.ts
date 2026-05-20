@@ -75,6 +75,29 @@ function tsToISO(ts: unknown): string | null {
   return new Date(ts * 1000).toISOString();
 }
 
+function resolveCheckoutBaseUrl(): string {
+  const candidates = [
+    process.env.AXIS_WEB_URL,
+    process.env.CORS_ORIGIN,
+  ];
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === "*") continue;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return parsed.origin;
+      }
+    } catch {
+      // ignore invalid candidate
+    }
+  }
+
+  return "http://localhost:5173";
+}
+
 // ─── Sync tier from subscription status ────────────────────────
 
 function syncTierFromStripeSubscription(
@@ -324,7 +347,7 @@ export async function handleCreateCheckout(
   }
 
   // Determine redirect URLs
-  const webUrl = process.env.CORS_ORIGIN || "http://localhost:5173";
+  const webUrl = resolveCheckoutBaseUrl();
   const successUrl = `${webUrl}/#account`;
   const cancelUrl = `${webUrl}/#plans`;
 
@@ -367,6 +390,8 @@ export async function handleCreateCheckout(
     sendJSON(res, 201, {
       checkout_url: session.url,
       tier,
+      price_id: priceId,
+      variant_id: priceId, // backward-compat for older web clients
       session_id: session.id,
     });
   } catch (err) {
@@ -395,6 +420,7 @@ export async function handleGetSubscription(
           subscription_id: active.subscription_id,
           status: active.status,
           price_id: active.price_id,
+          variant_id: active.price_id, // backward-compat for older web clients
           current_period_start: active.current_period_start,
           current_period_end: active.current_period_end,
           card_brand: active.card_brand,

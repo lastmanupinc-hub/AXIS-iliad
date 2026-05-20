@@ -5,7 +5,7 @@ import { initRequest, getRequestId, getRequestStart, log, ErrorCode, type ErrorC
 import { checkRateLimit } from "./rate-limiter.js";
 import { resolveAuth } from "./billing.js";
 import { recordRequest, recordLatency } from "./metrics.js";
-import { walCheckpoint, closeDb } from "@axis/snapshots";
+import { walCheckpoint, closeDb, recordApiCall } from "@axis/snapshots";
 
 // Store request reference on response for sendJSON gzip negotiation
 const REQUEST_REF = new WeakMap<ServerResponse, IncomingMessage>();
@@ -286,6 +286,14 @@ export function createApp(router: Router, port: number): Server {
       recordRequest(status);
       if (duration !== undefined && req.method && req.url) {
         recordLatency(req.method, req.url, duration);
+      }
+      if (auth.account && req.method && req.url) {
+        // Persist per-account endpoint usage for MyAnalytics recommendations.
+        try {
+          recordApiCall(auth.account.account_id, req.method, req.url, status);
+        } catch {
+          // Never fail request handling due to analytics write errors.
+        }
       }
       // Suppress health/liveness/readiness probes from info logs — only log on error
       const path = req.url ?? "";

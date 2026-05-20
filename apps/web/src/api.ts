@@ -150,6 +150,41 @@ export interface UsageSummary {
   total_input_bytes: number;
 }
 
+export interface ApiEndpointUsage {
+  method: string;
+  path: string;
+  calls: number;
+  last_called_at: string;
+}
+
+export interface ApiStatusUsage {
+  status_bucket: string;
+  calls: number;
+}
+
+export interface MyAnalyticsSummary {
+  account_id: string;
+  tier: BillingTier;
+  since: string;
+  programs: UsageSummary[];
+  api_calls: {
+    account_id: string;
+    since: string;
+    total_calls: number;
+    calls_last_24h: number;
+    calls_last_7d: number;
+    by_endpoint: ApiEndpointUsage[];
+    by_status: ApiStatusUsage[];
+  };
+  totals: {
+    runs: number;
+    generators: number;
+    input_files: number;
+    input_bytes: number;
+    api_calls: number;
+  };
+}
+
 // ─── Funnel / Plan types ────────────────────────────────────────
 
 export interface PlanDefinition {
@@ -178,6 +213,56 @@ export interface UpgradePrompt {
   cta_url: string;
   features_unlocked: string[];
   urgency: "low" | "medium" | "high";
+}
+
+// ─── Admin / Analytics types ───────────────────────────────────
+
+export interface AdminStats {
+  total_accounts: number;
+  total_api_keys: number;
+  total_snapshots: number;
+  total_usage_records: number;
+  accounts_by_tier: Record<string, number>;
+}
+
+export interface AdminAccountSummary {
+  account_id: string;
+  name: string;
+  email: string;
+  tier: BillingTier;
+  created_at: string;
+}
+
+export interface AdminAccountsResponse {
+  accounts: AdminAccountSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface AdminActivityEvent {
+  event_id: string;
+  account_id: string;
+  event_type: string;
+  stage: string;
+  metadata: unknown;
+  created_at: string;
+}
+
+export interface AdminActivityResponse {
+  events: AdminActivityEvent[];
+  count: number;
+}
+
+export interface FunnelMetrics {
+  total_accounts: number;
+  total_seats: number;
+  conversion_rate: number;
+  activation_rate: number;
+  by_tier: Record<string, number>;
+  by_stage: Record<string, number>;
+  events_last_24h: number;
+  events_last_7d: number;
 }
 
 // ─── Fetch helpers ──────────────────────────────────────────────
@@ -438,6 +523,12 @@ export async function getUsage(): Promise<{ tier: BillingTier; monthly_snapshots
   };
 }
 
+export async function getMyAnalyticsSummary(sinceDays = 30, limit = 200): Promise<MyAnalyticsSummary> {
+  const safeSince = Math.min(Math.max(sinceDays, 1), 365);
+  const safeLimit = Math.min(Math.max(limit, 1), 500);
+  return fetchJSON(`/v1/account/analytics/summary?since_days=${encodeURIComponent(String(safeSince))}&limit=${encodeURIComponent(String(safeLimit))}`);
+}
+
 export async function updateTier(tier: BillingTier): Promise<{ account: Account }> {
   return fetchJSON("/v1/account/tier", {
     method: "POST",
@@ -507,6 +598,38 @@ export async function getFunnelStatus(): Promise<{ account_id: string; tier: Bil
   return fetchJSON("/v1/account/funnel");
 }
 
+export async function getFunnelMetrics(): Promise<{ metrics: FunnelMetrics }> {
+  return fetchJSON("/v1/funnel/metrics");
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  return fetchJSON("/v1/admin/stats");
+}
+
+export async function getAdminAccounts(limit = 50, offset = 0): Promise<AdminAccountsResponse> {
+  return fetchJSON(`/v1/admin/accounts?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`);
+}
+
+export async function getAdminActivity(limit = 50): Promise<AdminActivityResponse> {
+  return fetchJSON(`/v1/admin/activity?limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function trackAnalyticsEvent(
+  eventType: string,
+  metadata?: Record<string, unknown>,
+  stage?: string,
+): Promise<{ tracked: true; event_type: string; stage: string }> {
+  return fetchJSON("/v1/account/analytics/events", {
+    method: "POST",
+    body: JSON.stringify({
+      event_type: eventType,
+      stage,
+      metadata: metadata ?? {},
+    }),
+    timeoutMs: 10_000,
+  });
+}
+
 // ─── Subscription / Checkout API ────────────────────────────────
 
 export interface SubscriptionInfo {
@@ -516,7 +639,8 @@ export interface SubscriptionInfo {
   active_subscription: {
     subscription_id: string;
     status: string;
-    variant_id: string;
+    price_id?: string;
+    variant_id?: string;
     current_period_start: string | null;
     current_period_end: string | null;
     card_brand: string | null;
@@ -526,7 +650,7 @@ export interface SubscriptionInfo {
   subscription_count: number;
 }
 
-export async function createCheckout(tier: BillingTier): Promise<{ checkout_url: string; tier: string; variant_id: string }> {
+export async function createCheckout(tier: BillingTier): Promise<{ checkout_url: string; tier: string; session_id: string; price_id?: string; variant_id?: string }> {
   return fetchJSON("/v1/checkout", {
     method: "POST",
     body: JSON.stringify({ tier }),

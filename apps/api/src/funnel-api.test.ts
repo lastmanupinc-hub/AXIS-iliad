@@ -8,6 +8,7 @@ import {
   handleDismissUpgradePrompt,
   handleGetFunnelStatus,
   handleGetFunnelMetrics,
+  handleTrackAnalyticsEvent,
   handleInviteSeat,
   handleListSeats,
   handleAcceptSeat,
@@ -84,6 +85,7 @@ beforeAll(async () => {
   router.post("/v1/account/upgrade-prompt/dismiss", handleDismissUpgradePrompt);
   router.get("/v1/account/funnel", handleGetFunnelStatus);
   router.get("/v1/funnel/metrics", handleGetFunnelMetrics);
+  router.post("/v1/account/analytics/events", handleTrackAnalyticsEvent);
 
   server = createApp(router, TEST_PORT);
   await new Promise<void>((r) => setTimeout(r, 100));
@@ -305,6 +307,38 @@ describe("GET /v1/funnel/metrics", () => {
     expect(metrics).toHaveProperty("by_stage");
     expect(metrics).toHaveProperty("events_last_24h");
     expect(metrics).toHaveProperty("events_last_7d");
+  });
+});
+
+// ─── Analytics Event Tracking ───────────────────────────────────
+
+describe("POST /v1/account/analytics/events", () => {
+  it("returns 401 without auth", async () => {
+    const res = await req("POST", "/v1/account/analytics/events", { event_type: "checkout_started" });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when event_type is missing", async () => {
+    const { rawKey } = await createAuthenticatedAccount("AnalyticsMissing", "analytics-missing@example.com");
+    const res = await req("POST", "/v1/account/analytics/events", { stage: "ui" }, rawKey);
+    expect(res.status).toBe(400);
+    expect((res.data as Record<string, unknown>).error_code).toBe("MISSING_FIELD");
+  });
+
+  it("tracks analytics event successfully", async () => {
+    const { rawKey } = await createAuthenticatedAccount("AnalyticsOk", "analytics-ok@example.com");
+    const track = await req(
+      "POST",
+      "/v1/account/analytics/events",
+      { event_type: "checkout_started", stage: "signup", metadata: { source: "admin" } },
+      rawKey,
+    );
+    expect(track.status).toBe(201);
+    expect((track.data as Record<string, unknown>).tracked).toBe(true);
+
+    const funnelRes = await req("GET", "/v1/account/funnel", undefined, rawKey);
+    const events = ((funnelRes.data as Record<string, unknown>).recent_events as Array<Record<string, unknown>>);
+    expect(events.some((evt) => evt.event_type === "checkout_started")).toBe(true);
   });
 });
 

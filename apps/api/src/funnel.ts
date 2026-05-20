@@ -17,11 +17,48 @@ import {
   generateUpgradePrompt,
   getFunnelMetrics,
   type SeatRole,
+  type FunnelEventType,
+  type FunnelStage,
   SEAT_LIMITS,
   PLAN_CATALOG,
   PLAN_FEATURES,
   sendSeatInvitation,
 } from "@axis/snapshots";
+
+const ALLOWED_FUNNEL_EVENT_TYPES: FunnelEventType[] = [
+  "account_created",
+  "first_snapshot",
+  "snapshot_created",
+  "limit_reached",
+  "upgrade_prompt_shown",
+  "upgrade_prompt_dismissed",
+  "upgrade_completed",
+  "downgrade_completed",
+  "program_added",
+  "program_removed",
+  "seat_invited",
+  "seat_accepted",
+  "seat_removed",
+  "api_key_created",
+  "trial_started",
+  "trial_expired",
+  "checkout_started",
+  "cancellation_requested",
+];
+
+const ALLOWED_FUNNEL_STAGES: FunnelStage[] = [
+  "visitor",
+  "signup",
+  "activation",
+  "engagement",
+  "limit_hit",
+  "upgrade_shown",
+  "trial_start",
+  "conversion",
+  "expansion",
+  "churn_risk",
+  "churned",
+];
 
 // ─── Plans / Pricing ────────────────────────────────────────────
 
@@ -276,4 +313,47 @@ export async function handleGetFunnelMetrics(
 
   const metrics = getFunnelMetrics();
   sendJSON(res, 200, { metrics });
+}
+
+/** POST /v1/account/analytics/events — track a custom analytics event (requires auth) */
+export async function handleTrackAnalyticsEvent(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAuth(req, res);
+  if (!ctx) return;
+
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const eventType = body.event_type;
+  const stage = body.stage;
+  const metadata = body.metadata;
+
+  if (!eventType || typeof eventType !== "string") {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "event_type is required");
+    return;
+  }
+
+  if (!ALLOWED_FUNNEL_EVENT_TYPES.includes(eventType as FunnelEventType)) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "event_type is not supported");
+    return;
+  }
+
+  const resolvedStage = typeof stage === "string" && ALLOWED_FUNNEL_STAGES.includes(stage as FunnelStage)
+    ? stage as FunnelStage
+    : resolveStage(ctx.account!.account_id);
+
+  const safeMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata)
+    ? metadata as Record<string, unknown>
+    : {};
+
+  trackEvent(ctx.account!.account_id, eventType as FunnelEventType, resolvedStage, safeMetadata);
+  sendJSON(res, 201, { tracked: true, event_type: eventType, stage: resolvedStage });
 }

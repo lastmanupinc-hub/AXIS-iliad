@@ -66,6 +66,7 @@ import {
   handleListApiKeys,
   handleRevokeApiKey,
   handleGetUsage,
+  handleGetAnalyticsSummary,
   handleUpdateTier,
   handleUpdatePrograms,
   handleGetQuota,
@@ -87,6 +88,7 @@ import {
   handleDismissUpgradePrompt,
   handleGetFunnelStatus,
   handleGetFunnelMetrics,
+  handleTrackAnalyticsEvent,
 } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
@@ -375,6 +377,7 @@ router.post("/v1/account/keys", handleCreateApiKey);
 router.get("/v1/account/keys", handleListApiKeys);
 router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
 router.get("/v1/account/usage", handleGetUsage);
+router.get("/v1/account/analytics/summary", handleGetAnalyticsSummary);
 router.get("/v1/account/quota", handleGetQuota);
 router.post("/v1/account/tier", handleUpdateTier);
 router.post("/v1/account/programs", handleUpdatePrograms);
@@ -402,6 +405,7 @@ router.get("/v1/account/upgrade-prompt", handleGetUpgradePrompt);
 router.post("/v1/account/upgrade-prompt/dismiss", handleDismissUpgradePrompt);
 router.get("/v1/account/funnel", handleGetFunnelStatus);
 router.get("/v1/funnel/metrics", handleGetFunnelMetrics);
+router.post("/v1/account/analytics/events", handleTrackAnalyticsEvent);
 
 // Admin
 router.get("/v1/admin/stats", handleAdminStats);

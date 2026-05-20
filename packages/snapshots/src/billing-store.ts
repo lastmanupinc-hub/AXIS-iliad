@@ -283,6 +283,111 @@ export interface SystemStats {
   active_api_keys: number;
 }
 
+export interface ApiEndpointUsage {
+  method: string;
+  path: string;
+  calls: number;
+  last_called_at: string;
+}
+
+export interface ApiStatusUsage {
+  status_bucket: string;
+  calls: number;
+}
+
+export interface AccountApiAnalyticsSummary {
+  account_id: string;
+  since: string;
+  total_calls: number;
+  calls_last_24h: number;
+  calls_last_7d: number;
+  by_endpoint: ApiEndpointUsage[];
+  by_status: ApiStatusUsage[];
+}
+
+function normalizeApiPath(path: string): string {
+  const base = path.split("?")[0];
+  return base
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ":id")
+    .replace(/\/\d+\b/g, "/:id");
+}
+
+export function recordApiCall(
+  account_id: string,
+  method: string,
+  path: string,
+  status_code: number,
+): void {
+  getDb().prepare(
+    `INSERT INTO account_api_calls (call_id, account_id, method, path, status_code, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(
+    randomUUID(),
+    account_id,
+    method,
+    normalizeApiPath(path),
+    status_code,
+    new Date().toISOString(),
+  );
+}
+
+export function getApiCallSummary(
+  account_id: string,
+  since: string,
+  limit = 100,
+): AccountApiAnalyticsSummary {
+  const db = getDb();
+  const totalRow = db.prepare(
+    "SELECT COUNT(*) as c FROM account_api_calls WHERE account_id = ? AND created_at >= ?",
+  ).get(account_id, since) as { c: number };
+
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const calls24hRow = db.prepare(
+    "SELECT COUNT(*) as c FROM account_api_calls WHERE account_id = ? AND created_at >= ?",
+  ).get(account_id, since24h) as { c: number };
+
+  const calls7dRow = db.prepare(
+    "SELECT COUNT(*) as c FROM account_api_calls WHERE account_id = ? AND created_at >= ?",
+  ).get(account_id, since7d) as { c: number };
+
+  const byEndpoint = db.prepare(
+    `SELECT method, path, COUNT(*) as calls, MAX(created_at) as last_called_at
+     FROM account_api_calls
+     WHERE account_id = ? AND created_at >= ?
+     GROUP BY method, path
+     ORDER BY calls DESC, last_called_at DESC
+     LIMIT ?`,
+  ).all(account_id, since, Math.max(1, limit)) as ApiEndpointUsage[];
+
+  const byStatus = db.prepare(
+    `SELECT
+       CASE
+         WHEN status_code >= 200 AND status_code < 300 THEN '2xx'
+         WHEN status_code >= 300 AND status_code < 400 THEN '3xx'
+         WHEN status_code >= 400 AND status_code < 500 THEN '4xx'
+         WHEN status_code >= 500 THEN '5xx'
+         ELSE 'other'
+       END as status_bucket,
+       COUNT(*) as calls
+     FROM account_api_calls
+     WHERE account_id = ? AND created_at >= ?
+     GROUP BY status_bucket
+     ORDER BY calls DESC`,
+  ).all(account_id, since) as ApiStatusUsage[];
+
+  return {
+    account_id,
+    since,
+    total_calls: totalRow.c,
+    calls_last_24h: calls24hRow.c,
+    calls_last_7d: calls7dRow.c,
+    by_endpoint: byEndpoint,
+    by_status: byStatus,
+  };
+}
+
 export function getSystemStats(): SystemStats {
   const db = getDb();
   const accountRow = db.prepare(

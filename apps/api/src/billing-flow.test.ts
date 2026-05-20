@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { handleCreateSnapshot, handleGetSnapshot, handleGetContext, handleGetGeneratedFiles, handleGetGeneratedFile, handleSearchExport, handleHealthCheck } from "./handlers.js";
-import { handleCreateAccount, handleGetAccount, handleCreateApiKey, handleListApiKeys, handleRevokeApiKey, handleGetUsage, handleUpdateTier, handleUpdatePrograms, handleGetCredits } from "./billing.js";
+import { handleCreateAccount, handleGetAccount, handleCreateApiKey, handleListApiKeys, handleRevokeApiKey, handleGetUsage, handleGetAnalyticsSummary, handleUpdateTier, handleUpdatePrograms, handleGetCredits } from "./billing.js";
 import { handleInviteSeat, handleListSeats, handleAcceptSeat, handleRevokeSeat, handleGetPlans } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { resetRateLimits } from "./rate-limiter.js";
@@ -68,6 +68,7 @@ beforeAll(async () => {
   router.get("/v1/account/keys", handleListApiKeys);
   router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
   router.get("/v1/account/usage", handleGetUsage);
+  router.get("/v1/account/analytics/summary", handleGetAnalyticsSummary);
   router.post("/v1/account/tier", handleUpdateTier);
   router.post("/v1/account/programs", handleUpdatePrograms);
   router.get("/v1/account/credits", handleGetCredits);
@@ -207,6 +208,24 @@ describe("authenticated snapshot flow", () => {
 
     const files = await req("GET", `/v1/projects/${projectId}/generated-files`, undefined, key);
     expect(files.status).toBe(200);
+  });
+});
+
+// ─── 2b. MyAnalytics summary flow ─────────────────────────────
+
+describe("myanalytics summary", () => {
+  it("returns account-level API and program analytics", async () => {
+    const { key } = await createTestAccount("MyAnalytics", "myanalytics@test.com");
+
+    // Generate at least one billable/program event and one tracked API request.
+    await req("POST", "/v1/snapshots", SNAPSHOT_BODY, key);
+    const analytics = await req("GET", "/v1/account/analytics/summary?since_days=30&limit=100", undefined, key);
+
+    expect(analytics.status).toBe(200);
+    expect(analytics.data.api_calls).toBeDefined();
+    expect((analytics.data.api_calls as Record<string, unknown>).total_calls).toBeGreaterThan(0);
+    expect(Array.isArray(analytics.data.programs)).toBe(true);
+    expect((analytics.data.totals as Record<string, unknown>).api_calls).toBeGreaterThan(0);
   });
 });
 

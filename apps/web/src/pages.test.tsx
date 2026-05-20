@@ -89,6 +89,8 @@ describe("Page smoke tests — zero-prop pages", () => {
 // ─── Prop-taking page smoke tests ───────────────────────────────
 
 import { AccountPage } from "./pages/AccountPage";
+import { AdminPage } from "./pages/AdminPage";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage";
 import { PlansPage } from "./pages/PlansPage";
 import { ProgramsPage } from "./pages/ProgramsPage";
 import { UploadPage } from "./pages/UploadPage";
@@ -96,6 +98,16 @@ import { UploadPage } from "./pages/UploadPage";
 describe("Page smoke tests — pages with required props", () => {
   it("AccountPage renders with minimal props", () => {
     const { container } = render(<AccountPage />);
+    expect(container.innerHTML.length).toBeGreaterThan(0);
+  });
+
+  it("AdminPage renders with minimal props", () => {
+    const { container } = render(<AdminPage />);
+    expect(container.innerHTML.length).toBeGreaterThan(0);
+  });
+
+  it("MyAnalyticsPage renders with minimal props", () => {
+    const { container } = render(<MyAnalyticsPage />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 

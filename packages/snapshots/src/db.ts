@@ -493,6 +493,23 @@ ALTER TABLE referral_credits ADD COLUMN initial_grant_given INTEGER NOT NULL DEF
 ALTER TABLE referral_credits ADD COLUMN paid_call_count INTEGER NOT NULL DEFAULT 0;
 `,
   },
+  {
+    version: 20,
+    name: "add_account_api_calls",
+    sql: `
+CREATE TABLE IF NOT EXISTS account_api_calls (
+  call_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  status_code INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_account_api_calls_account ON account_api_calls(account_id);
+CREATE INDEX IF NOT EXISTS idx_account_api_calls_created ON account_api_calls(created_at);
+CREATE INDEX IF NOT EXISTS idx_account_api_calls_path ON account_api_calls(path);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {
