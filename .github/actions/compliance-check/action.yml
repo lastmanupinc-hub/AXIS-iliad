@@ -124,6 +124,16 @@ runs:
 
         HTTP_STATUS=$(curl "${CURL_ARGS[@]}")
 
+        if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+          # Some hosted environments can return an HTML "Blocked" page to CI runners.
+          # Fall back to local grading so compliance checks stay deterministic.
+          if [ "$HTTP_STATUS" = "403" ] && [ -f axis-compliance-response.json ] && grep -qi "<title>Blocked</title>" axis-compliance-response.json; then
+            echo "Axis endpoint returned WAF block page; using local compliance fallback"
+            node --input-type=module -e 'import fs from "node:fs"; import { computeComplianceGrade } from "./packages/generator-core/dist/generators-agentic-purchasing.js"; const preferred=["apps/api/src/stripe.ts","checkout-flow.md","negotiation-rules.md","AGENTS.md","README.md"]; const files=preferred.filter((p)=>fs.existsSync(p)&&fs.statSync(p).isFile()).map((p)=>({path:p,content:fs.readFileSync(p,"utf8")})); const compliance=computeComplianceGrade(files); process.stdout.write(JSON.stringify({ compliance_grade: { grade: compliance.grade, checks_passed: compliance.checks_passed, checks_total: compliance.checks_total }, source: "local-fallback" }));' > axis-compliance-response.json
+            HTTP_STATUS=200
+          fi
+        fi
+
         echo "http_status=$HTTP_STATUS" >> "$GITHUB_OUTPUT"
 
         if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
