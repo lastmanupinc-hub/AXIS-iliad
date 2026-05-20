@@ -100,7 +100,8 @@ runs:
 
         CURL_ARGS=(
           -s
-          -w "\n%{http_code}"
+          -o axis-compliance-response.json
+          -w "%{http_code}"
           -X POST
           "$AXIS_API_URL/v1/snapshots"
           -H "Content-Type: application/json"
@@ -112,43 +113,67 @@ runs:
           CURL_ARGS+=( -H "X-Agent-Mode: lite" )
         fi
 
-        RESPONSE=$(curl "${CURL_ARGS[@]}" 2>&1)
-
-        HTTP_STATUS=$(echo "$RESPONSE" | tail -1)
-        BODY=$(echo "$RESPONSE" | head -n -1)
+        HTTP_STATUS=$(curl "${CURL_ARGS[@]}")
 
         echo "http_status=$HTTP_STATUS" >> "$GITHUB_OUTPUT"
-        {
-          echo "response_body<<EOF"
-          echo "$BODY"
-          echo "EOF"
-        } >> "$GITHUB_OUTPUT"
+
+        if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+          echo "::error::Axis compliance endpoint returned HTTP $HTTP_STATUS"
+          if [ -f axis-compliance-response.json ]; then
+            echo "Response preview:" >> "$GITHUB_STEP_SUMMARY"
+            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+            import pathlib
+
+            path = pathlib.Path("axis-compliance-response.json")
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception as exc:
+                print(f"Failed to read response body: {exc}")
+            else:
+                print("```")
+                print(text[:2000])
+                print("```")
+            PY
+          fi
+          exit 1
+        fi
 
     - name: Parse compliance grade
       id: grade
       shell: bash
-      env:
-        RESPONSE_BODY: ${{ steps.call.outputs.response_body }}
       run: |
-        GRADE=$(echo "$RESPONSE_BODY" | python3 -c "
-        import sys, json
-        data = json.load(sys.stdin)
-        cg = data.get('compliance_grade', {})
-        if isinstance(cg, dict):
-            print(cg.get('grade', 'D'))
-        else:
-            print('D')
-        " 2>/dev/null || echo "D")
+        if [ ! -f axis-compliance-response.json ]; then
+          echo "::error::Missing axis-compliance-response.json"
+          exit 1
+        fi
 
-        CHECKS_PASSED=$(echo "$RESPONSE_BODY" | python3 -c "
-        import sys, json
-        data = json.load(sys.stdin)
-        cg = data.get('compliance_grade', {})
+        GRADE=$(python3 - <<'PY'
+        import json
+
+        with open("axis-compliance-response.json", "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+
+        cg = data.get("compliance_grade", {})
         if isinstance(cg, dict):
-            print(cg.get('checks_passed', 0))
+            print(cg.get("grade", "D"))
+        else:
+            print("D")
+        PY
+        )
+
+        CHECKS_PASSED=$(python3 - <<'PY'
+        import json
+
+        with open("axis-compliance-response.json", "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+
+        cg = data.get("compliance_grade", {})
+        if isinstance(cg, dict):
+            print(cg.get("checks_passed", 0))
         else:
             print(0)
-        " 2>/dev/null || echo "0")
+        PY
+        )
 
         echo "grade=$GRADE" >> "$GITHUB_OUTPUT"
         echo "checks_passed=$CHECKS_PASSED" >> "$GITHUB_OUTPUT"
