@@ -2674,7 +2674,7 @@ export async function handleForAgents(
       { name: "improve_my_agent_with_axis",     auth: true,  x_payment: PAYMENT_META, description: "Analyze your agent's codebase, get improvement plan + missing context files. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
-      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid ($0.25/crawl, or $0.12 lite). On 402, present checkout_url or pay autonomously, then retry." },
+      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid per page crawled ($0.25/page, or $0.12/page lite). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.00001 per agent conversion." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
@@ -3543,7 +3543,7 @@ export async function handleFirecrawlScrape(
 /**
  * POST /v1/research/crawl â€” Proxy to Firecrawl /crawl endpoint
  * Crawls a domain and scrapes multiple pages
- * Pricing: 4 credits per crawl (~$0.0048) + scrape costs
+ * Pricing: charged per page crawled
  */
 export async function handleFirecrawlCrawl(
   req: IncomingMessage,
@@ -3580,7 +3580,8 @@ export async function handleFirecrawlCrawl(
   const budget = parseAgentBudget(req);
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier("iliad_web_research_crawl");
-  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+  const perPageCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+  const estimatedAmountCents = perPageCents * limit;
 
   // Check quota
   const quota = checkQuota(auth.account.account_id);
@@ -3588,11 +3589,11 @@ export async function handleFirecrawlCrawl(
     const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
       currency: "usd",
       decimals: 2,
-      description: `Firecrawl web crawl (${limit} pages) - $${(amountCents / 100).toFixed(2)}`,
+      description: `Firecrawl web crawl (${limit} pages requested) - up to $${(estimatedAmountCents / 100).toFixed(2)}`,
       meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", limit: String(limit) },
     });
     if (mppResult === null) {
-      sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires $${(amountCents / 100).toFixed(2)}`, {
+      sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires up to $${(estimatedAmountCents / 100).toFixed(2)} for ${limit} requested pages`, {
         ...buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id),
       });
     }
@@ -3640,12 +3641,15 @@ export async function handleFirecrawlCrawl(
 
     const firecrawlData = (await firecrawlRes.json()) as FirecrawlCrawlResponse;
 
-    // Charge after successful crawl
-    const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+    const pagesCrawled = firecrawlData.data?.scrapeResults?.length ?? 0;
+    const finalAmountCents = perPageCents * pagesCrawled;
+
+    // Charge after successful crawl based on actual pages returned.
+    const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, finalAmountCents, {
       currency: "usd",
       decimals: 2,
-      description: `Firecrawl web crawl (${limit} pages) - ${url.slice(0, 50)}...`,
-      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit) },
+      description: `Firecrawl web crawl (${pagesCrawled} pages) - ${url.slice(0, 50)}...`,
+      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit), pages_crawled: String(pagesCrawled) },
     });
 
     if (chargeResult === null) {
@@ -3659,7 +3663,7 @@ export async function handleFirecrawlCrawl(
       success: true,
       data: {
         url,
-        pages_crawled: firecrawlData.data?.scrapeResults?.length ?? 0,
+        pages_crawled: pagesCrawled,
         pages: firecrawlData.data?.scrapeResults?.map((result) => ({
           url: result.url,
           markdown: result.markdown,

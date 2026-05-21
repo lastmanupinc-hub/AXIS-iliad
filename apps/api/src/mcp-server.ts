@@ -788,7 +788,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research_crawl",
     description:
-      "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per crawl (covers up to 100 pages). Use iliad_web_research for single-page scrapes.",
+      "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per page crawled (up to 100 pages per request). Use iliad_web_research for single-page scrapes.",
     inputSchema: {
       type: "object",
       required: ["url"],

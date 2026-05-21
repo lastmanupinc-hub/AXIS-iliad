@@ -366,7 +366,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/research/crawl": {
         post: {
           summary: "Crawl a domain and scrape multiple pages",
-          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. Pricing: $0.25 standard, $0.12 lite per crawl.",
+          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. Pricing: $0.25 standard, $0.12 lite per page crawled.",
           operationId: "firecrawlCrawl",
           tags: ["Web Research"],
           requestBody: {
