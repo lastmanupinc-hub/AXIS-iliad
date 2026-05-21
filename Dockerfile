@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm install --fro
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app /app
-RUN corepack enable && pnpm run build
+RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm run build
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
