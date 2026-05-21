@@ -95,14 +95,9 @@ function resolveCheckoutBaseUrl(req?: IncomingMessage): string {
     }
   }
 
-  const forwardedProto = (req?.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim();
-  const forwardedHost = (req?.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim();
-  const host = forwardedHost || (req?.headers.host as string | undefined)?.trim();
-  if (host) {
-    const proto = forwardedProto === "http" || host.startsWith("localhost") || host.startsWith("127.0.0.1")
-      ? "http"
-      : "https";
-    return `${proto}://${host}`;
+  // In production, default to the known web frontend rather than the API host.
+  if (process.env.NODE_ENV === "production") {
+    return "https://axis-iliad.jonathanarvay.com";
   }
 
   return "http://localhost:5173";
