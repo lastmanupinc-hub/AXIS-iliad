@@ -134,6 +134,13 @@ export function TermsPage() {
               payment negotiation.
             </p>
 
+            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.1.2 Referral Rewards</h4>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
+              Referral rewards apply to token usage only. As referral rewards accrue, token usage per
+              call may decrease (up to 0.02%). Cash pricing, subscription pricing, and overage dollar
+              rates remain unchanged. Referral reward state resets each billing cycle.
+            </p>
+
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.2 Payment Processing</h4>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
               Payments are processed by <strong>Stripe, Inc.</strong> We do not store your card

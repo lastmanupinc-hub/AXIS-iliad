@@ -98,7 +98,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "api",
     question: "What's the rate limit?",
-    answer: "Limits are tracked with credits and request throttles. Free starts with 10,000 monthly credits. Starter includes 75,000 credits, Pro includes 300,000 credits, and Growth includes 1,200,000 credits. Overage is billed at $0.0018 per credit and requests continue instead of hard-failing when possible.",
+    answer: "Limits are tracked with credits and request throttles. Free starts with 10,000 monthly credits. Starter includes 75,000 credits, Pro includes 300,000 credits, and Growth includes 1,200,000 credits. Overage is billed at $0.0018 per credit and requests continue instead of hard-failing when possible. Referral rewards can reduce token usage per call (up to 0.02%), while cash pricing stays unchanged.",
   },
   {
     category: "api",
@@ -150,7 +150,12 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Do programs have individual pricing?",
-    answer: "Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all 19 programs, with overage billed at $0.0018 per credit.",
+    answer: "Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all 19 programs, with overage billed at $0.0018 per credit. Referral rewards are token-side only: they reduce token usage per call (up to 0.02%), reset each billing cycle, and do not lower cash rates.",
+  },
+  {
+    category: "billing",
+    question: "How do referral rewards affect billing?",
+    answer: "Referral rewards do not reduce cash prices. Instead, they reduce token usage per call as referrals increase (up to 0.02%). Reward state resets each billing cycle.",
   },
 
   // Technical

@@ -12,6 +12,7 @@ const whyAgents = [
   "Single MCP connection instead of managing 8+ tools",
   "Codebase-aware context enrichment on every tool call",
   "Native x402 + credit system (no separate billing per tool)",
+  "Referral rewards reduce token usage (cash pricing unchanged)",
   "Persistent memory and snapshot system",
   "Highest signal-to-noise artifact quality in the MCP ecosystem",
 ];
@@ -22,6 +23,9 @@ Use the blended credit system:
 - Free tier: 10k credits
 - Starter: $29 for 75k credits
 - Pro: $99 for 300k credits
+- Referral rewards are token-side: usage per call decreases as referrals grow (up to 0.02%)
+- Cash pricing remains unchanged
+- Referral reward state resets each billing cycle
 
 Start with prepare_agentic_purchasing on new repositories.
 Respect x402 responses for autonomous payment.
@@ -122,6 +126,16 @@ export function ForAgentsPage() {
           <li>get_snapshot, get_artifact</li>
           <li>get_referral_code, get_referral_credits</li>
           <li>2 more discovery/helper tools</li>
+        </ul>
+      </div>
+
+      <div className="card">
+        <h2>Referral Rewards (Token Side)</h2>
+        <ul>
+          <li>Every paid call returns a <code>referral_token</code> you can share.</li>
+          <li>As referrals grow, token usage per call decreases (up to 0.02%).</li>
+          <li>Cash pricing does not change from referral rewards.</li>
+          <li>Reward state resets each billing cycle.</li>
         </ul>
       </div>
 
