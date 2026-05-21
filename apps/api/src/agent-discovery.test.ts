@@ -143,8 +143,8 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("POST /mcp");
   });
 
-  it("contains 13 MCP tools count", () => {
-    expect(body).toContain("13 tools");
+    it("contains 14 MCP tools count", () => {
+      expect(body).toContain("14 tools");
   });
 
   it("contains the 19 programs count", () => {
@@ -235,11 +235,11 @@ describe("GET /.well-known/skills/index.json", () => {
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists 12 tools", () => {
+  it("axis-mcp skill lists 14 tools", () => {
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
-    expect(mcp!.tools!.length).toBe(12);
+      expect(mcp!.tools!.length).toBe(14);
   });
 
   it("axis-analyze has tags array", () => {

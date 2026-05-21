@@ -62,7 +62,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
         // Fallback if API not running — show static data
         setPlans([
           { id: "free", name: "Free", tagline: "Get started with core analysis tools", price_monthly_cents: 0, price_annual_cents: 0, highlights: ["3 core programs", "10 snapshots/month", "1 project", "1,000 files per snapshot"] },
-          { id: "paid", name: "Pro", tagline: "Full toolkit for professional teams", price_monthly_cents: 2900, price_annual_cents: 27900, highlights: ["All 18 programs", "200 snapshots/month", "20 projects", "5 team seats"] },
+          { id: "paid", name: "Pro", tagline: "Full toolkit for professional teams", price_monthly_cents: 2900, price_annual_cents: 27900, highlights: ["All 19 programs", "200 snapshots/month", "20 projects", "5 team seats"] },
           { id: "suite", name: "Enterprise Suite", tagline: "Unlimited scale for engineering orgs", price_monthly_cents: -1, price_annual_cents: -1, highlights: ["Unlimited everything", "SSO & audit logs", "Dedicated support"] },
         ]);
       })

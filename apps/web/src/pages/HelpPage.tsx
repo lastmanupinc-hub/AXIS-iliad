@@ -19,7 +19,7 @@ const GETTING_STARTED_STEPS: Step[] = [
   { number: 1, title: "Create an Account", description: "Go to the Account page and sign up with your name and email. You'll receive an API key with the axis_ prefix — save it somewhere safe.", icon: "user" },
   { number: 2, title: "Upload Your Project", description: "Head to the Analyze page. Drag and drop a folder, upload a ZIP file, or paste a GitHub repository URL. Axis will scan all source files.", icon: "upload" },
   { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the Dashboard. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
-  { number: 4, title: "Run Programs", description: "Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get 3 programs; upgrade for all 17.", icon: "programs" },
+  { number: 4, title: "Run Programs", description: "Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get 3 programs; upgrade for all 19.", icon: "programs" },
   { number: 5, title: "Download or Search", description: "Use the Generated Files tab to view and copy output, or export everything as a ZIP. The Search tab lets you query your indexed snapshot.", icon: "download" },
 ];
 
@@ -34,7 +34,7 @@ const TROUBLESHOOTING: TroubleshootItem[] = [
   { problem: "API shows red dot in the status bar", solution: "The API server isn't running. Start it with `pnpm dev` in the apps/api directory. Make sure port 4000 is available." },
   { problem: "\"Unauthorized\" error on program run", solution: "Your API key may be missing or invalid. Go to Account, check your key, or create a new one. Keys must start with axis_." },
   { problem: "Dashboard won't load after upload", solution: "The upload may have failed silently. Check the browser console for errors. Try re-uploading with a smaller project first." },
-  { problem: "Programs show as locked", solution: "You're on the Free tier which includes 3 programs. Upgrade to Pro or Enterprise to unlock all 18 programs." },
+  { problem: "Programs show as locked", solution: "You're on the Free tier which includes 3 programs. Upgrade to Pro or Enterprise to unlock all 19 programs." },
   { problem: "ZIP upload fails", solution: "Ensure the ZIP file isn't corrupted and contains source files. Maximum recommended size is 50MB. Very large repos should use GitHub URL instead." },
   { problem: "Search returns no results", solution: "You need to build the search index first. Go to the Search tab and click 'Index Snapshot' before running queries." },
   { problem: "Slow analysis for large repo", solution: "Large repositories take longer to scan. Consider uploading only the relevant source directories instead of the entire project root." },
@@ -306,12 +306,12 @@ function ProgramsGuideSection() {
             </tr>
             <tr>
               <td><span className="badge badge-accent">Pro</span></td>
-              <td style={{ fontWeight: 600 }}>14</td>
+              <td style={{ fontWeight: 600 }}>16</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
                 <Icon name="frontend" /> Frontend &nbsp;·&nbsp; <Icon name="seo" /> SEO &nbsp;·&nbsp; <Icon name="optimization" /> Optimization &nbsp;·&nbsp; <Icon name="theme" /> Theme &nbsp;·&nbsp;
                 <Icon name="brand" /> Brand &nbsp;·&nbsp; <Icon name="superpowers" /> Superpowers &nbsp;·&nbsp; <Icon name="marketing" /> Marketing &nbsp;·&nbsp; <Icon name="notebook" /> Notebook &nbsp;·&nbsp;
                 <Icon name="obsidian" /> Obsidian &nbsp;·&nbsp; <Icon name="mcp" /> MCP &nbsp;·&nbsp; <Icon name="artifacts" /> Artifacts &nbsp;·&nbsp; <Icon name="remotion" /> Remotion &nbsp;·&nbsp;
-                <Icon name="canvas" /> Canvas &nbsp;·&nbsp; <Icon name="algorithmic" /> Algorithmic
+                <Icon name="canvas" /> Canvas &nbsp;·&nbsp; <Icon name="algorithmic" /> Algorithmic &nbsp;·&nbsp; Agentic Purchasing &nbsp;·&nbsp; Closer
               </td>
             </tr>
           </tbody>
@@ -321,7 +321,7 @@ function ProgramsGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Program Categories</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Programs are grouped into 6 categories. Each addresses a different part of the development lifecycle.
+          Programs are grouped into 7 categories. Each addresses a different part of the development lifecycle.
         </p>
         <div className="grid grid-2" style={{ gap: 10 }}>
           {[
@@ -331,6 +331,7 @@ function ProgramsGuideSection() {
             { cat: "Growth & Content", icon: "seo", programs: "SEO, Brand, Marketing" },
             { cat: "Knowledge & Context", icon: "notebook", programs: "Notebook, Obsidian" },
             { cat: "Creative Generation", icon: "remotion", programs: "Theme, Remotion, Canvas, Algorithmic" },
+            { cat: "Agentic Commerce", icon: "credit-card", programs: "Agentic Purchasing, Closer" },
           ].map((c) => (
             <div key={c.cat} style={{ padding: "8px 12px", background: "var(--bg)", borderRadius: "var(--radius)" }}>
               <div className="flex" style={{ gap: 6, marginBottom: 4 }}>
@@ -575,7 +576,7 @@ function AccountGuideSection() {
         <h3 style={{ marginBottom: 12 }}>Upgrading Your Plan</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7 }}>
           Visit the Plans page to compare tiers. The Free plan includes 3 core programs and 10
-          snapshots per month. Pro unlocks all 18 programs, 200 snapshots, and team seats.
+          snapshots per month. Pro unlocks all 19 programs, 200 snapshots, and team seats.
           Enterprise offers unlimited usage with dedicated support.
         </p>
         <table style={{ marginTop: 12 }}>

@@ -327,11 +327,11 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Hero value prop ────────────────────────────────────── */}
       <section className="upload-hero">
         <h1 className="upload-hero-title">
-          Turn any codebase into 102 structured AI artifacts.
+          Turn any codebase into 99 structured AI artifacts.
         </h1>
         <p className="upload-hero-sub">
           Upload a repo and instantly generate AGENTS.md, CLAUDE.md, .cursorrules, MCP configs,
-          SEO rules, brand guidelines, debug playbooks, and 95 more files — one scan across 18 programs.
+          SEO rules, brand guidelines, debug playbooks, and 92 more files — one scan across 19 programs.
         </p>
         <div className="upload-hero-pills">
           {["AGENTS.md", "CLAUDE.md", ".cursorrules", "MCP Config", "SEO Rules", "Brand Guidelines", "Debug Playbook", "Design Tokens", "Obsidian Vault", "Remotion Script"].map((label) => (
@@ -340,9 +340,9 @@ export function UploadPage({ onComplete }: Props) {
         </div>
       </section>
 
-      {/* ── 18 Programs listing ──────────────────────────────────── */}
+      {/* ── 19 Programs listing ──────────────────────────────────── */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>18 Programs — 3 free · 15 pro</p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>19 Programs — 3 free · 16 pro</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
           {[
             { name: "Search", free: true }, { name: "Skills", free: true }, { name: "Debug", free: true },
@@ -351,7 +351,7 @@ export function UploadPage({ onComplete }: Props) {
             { name: "Marketing", free: false }, { name: "Notebook", free: false }, { name: "Obsidian", free: false },
             { name: "MCP", free: false }, { name: "Artifacts", free: false }, { name: "Remotion", free: false },
             { name: "Canvas", free: false }, { name: "Algorithmic", free: false },
-            { name: "Agentic Purchasing", free: false },
+            { name: "Agentic Purchasing", free: false }, { name: "Closer", free: false },
           ].map(({ name, free }) => (
             <span key={name} className={`badge ${free ? "badge-green" : "badge-accent"}`} style={{ fontSize: "0.78rem" }}>
               {name}
@@ -399,7 +399,7 @@ Upload or point at any codebase — get 102 generated artifacts.
         <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Analyze Your Project</h2>
         <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto", marginBottom: 16 }}>
           Upload a project folder or paste a GitHub URL to generate AI context maps, governance files,
-          debug playbooks, and more across 18 programs.
+          debug playbooks, and more across 19 programs.
         </p>
         <div className="flex" style={{ gap: 8, justifyContent: "center" }}>
           <button
@@ -592,7 +592,7 @@ Upload or point at any codebase — get 102 generated artifacts.
               ))}
             </div>
             <button type="button" className="btn btn-primary" style={{ marginRight: 8 }} onClick={() => { window.location.hash = "plans"; }}>
-              Go Pro — Unlock All 18 Programs
+              Go Pro — Unlock All 19 Programs
             </button>
             <button type="button" className="btn" onClick={() => {
               const freeOutputs = selectedOutputs.filter((o) => {
@@ -625,7 +625,7 @@ Upload or point at any codebase — get 102 generated artifacts.
         </button>
 
         <p style={{ textAlign: "center", marginTop: 20, color: "var(--text-muted)", fontSize: "0.8125rem" }}>
-          Free: 3 programs · <button type="button" className="btn" style={{ padding: "2px 10px", fontSize: "0.8125rem" }} onClick={() => { window.location.hash = "plans"; }}>Go Pro</button> to unlock all 18
+          Free: 3 programs · <button type="button" className="btn" style={{ padding: "2px 10px", fontSize: "0.8125rem" }} onClick={() => { window.location.hash = "plans"; }}>Go Pro</button> to unlock all 19
         </p>
       </form>
 

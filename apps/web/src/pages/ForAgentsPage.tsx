@@ -115,21 +115,24 @@ const PROGRAMS = [
   { name: "canvas",             tier: "pro",  outputs: 5,  key: "canvas-spec.json, social-pack.md, poster-layouts.md, asset-guidelines.md, brand-board.md" },
   { name: "algorithmic",        tier: "pro",  outputs: 5,  key: "generative-sketch.ts, parameter-pack.json, collection-map.md, export-manifest.yaml, variation-matrix.json" },
   { name: "agentic-purchasing", tier: "pro",  outputs: 5,  key: "agent-purchasing-playbook.md, product-schema.json, checkout-flow.md, negotiation-rules.md, commerce-registry.json" },
+  { name: "closer",             tier: "pro",  outputs: 5,  key: "DISTRIBUTABLE.md, packaging-report.md, launch-checklist.md, launch-content.md, AXIS_Board_Pitch.md" },
 ];
 
 // â”€â”€â”€ Real MCP tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MCP_TOOLS = [
-  { tool: "analyze_repo",                  auth: true,  desc: "Analyze any public GitHub repo. Returns snapshot_id + 102 artifacts." },
-  { tool: "analyze_files",                 auth: true,  desc: "Analyze inline files [{path,content}]. Returns snapshot_id + 102 artifacts." },
-  { tool: "list_programs",                 auth: false, desc: "List all 18 programs and their generators with tier info." },
+  { tool: "analyze_repo",                  auth: true,  desc: "Analyze any public GitHub repo. Returns snapshot_id + 99 artifacts." },
+  { tool: "analyze_files",                 auth: true,  desc: "Analyze inline files [{path,content}]. Returns snapshot_id + 99 artifacts." },
+  { tool: "list_programs",                 auth: false, desc: "List all 19 programs and their generators with tier info." },
   { tool: "get_snapshot",                  auth: false, desc: "Get status and full artifact listing for a prior snapshot_id." },
   { tool: "get_artifact",                  auth: false, desc: "Read full content of any artifact by path (AGENTS.md, .ai/debug-playbook.md, etc.)." },
   { tool: "prepare_agentic_purchasing",auth: true,  desc: "Full purchasing-readiness audit. Returns score 0â€“100, AP2/Visa compliance, playbooks, checkout rules, MCP config." },
-  { tool: "search_and_discover_tools",     auth: false, desc: "Keyword search across all 18 programs. Use before loading full schemas." },
+  { tool: "search_and_discover_tools",     auth: false, desc: "Keyword search across all 19 programs. Use before loading full schemas." },
   { tool: "discover_commerce_tools",auth: false, desc: "Free overview of all AXIS tools with pricing, install configs, and shareable manifest." },
   { tool: "improve_my_agent_with_axis",     auth: true,  desc: "Analyze your agent's codebase, get improvement plan + missing context files + MCP config." },
   { tool: "discover_agentic_purchasing_needs", auth: false, desc: "Describe your commerce/compliance need — get tailored AXIS tool recommendations. Free intent probe." },
+  { tool: "iliad_web_research",            auth: true,  desc: "Scrape a single URL using Firecrawl. Returns markdown and metadata." },
+  { tool: "iliad_web_research_crawl",      auth: true,  desc: "Crawl and scrape multiple pages using Firecrawl. Returns page list with markdown." },
   { tool: "get_referral_code",              auth: true,  desc: "Get your referral token for share-to-earn micro-discounts." },
   { tool: "get_referral_credits",           auth: true,  desc: "Check referral earnings, conversions, discount tier, and free calls remaining." },
 ];
@@ -149,8 +152,8 @@ API key env:  AXIS_API_KEY
 
 Available tools (via MCP or REST):
 - prepare_agentic_purchasing      â†’ full purchasing-readiness audit (score 0-100, AP2/Visa compliance, playbooks)
-- analyze_repo                    → generate 102 artifacts from any GitHub URL
-- analyze_files                   → generate 102 artifacts from inline [{path,content}] files
+- analyze_repo                    → generate 99 artifacts from any GitHub URL
+- analyze_files                   → generate 99 artifacts from inline [{path,content}] files
 - search_and_discover_tools       â†’ find the right program by keyword (no auth)
 - get_artifact                    â†’ read any generated artifact by path
 
@@ -299,13 +302,13 @@ curl "${API_BASE}/v1/mcp/tools?q=debug"
 # â†’ returns debug program
 
 curl "${API_BASE}/v1/mcp/tools"
-# â†’ returns all 18 programs alphabetically`;
+# â†’ returns all 19 programs alphabetically`;
 
   const analyzeRepoCurl = `curl -X POST ${API_BASE}/v1/analyze \\
   -H "Authorization: Bearer <raw_key>" \\
   -H "Content-Type: application/json" \\
   -d '{"github_url":"https://github.com/your/repo"}'
-# Returns snapshot_id + 102 artifacts across 18 programs`;
+# Returns snapshot_id + 99 artifacts across 19 programs`;
 
   const getArtifactCurl = `curl -X POST ${API_BASE}/mcp \\
   -H "Authorization: Bearer <raw_key>" \\
@@ -358,8 +361,8 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "right", lineHeight: 1.9 }}>
-              <div><strong style={{ color: "var(--text)" }}>18</strong> programs Â· <strong style={{ color: "var(--text)" }}>102</strong> generators</div>
-              <div><strong style={{ color: "var(--text)" }}>12</strong> MCP tools Â· <strong style={{ color: "var(--text)" }}>v0.5.0</strong></div>
+              <div><strong style={{ color: "var(--text)" }}>19</strong> programs Â· <strong style={{ color: "var(--text)" }}>99</strong> generators</div>
+              <div><strong style={{ color: "var(--text)" }}>14</strong> MCP tools Â· <strong style={{ color: "var(--text)" }}>v0.5.0</strong></div>
               <div style={{ color: "var(--green)", fontWeight: 600 }}>$0.50 / run</div>
             </div>
           </div>
@@ -436,7 +439,7 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
               color: "var(--accent)",
               highlight: true,
               features: [
-                "All 18 programs on demand",
+                "All 19 programs on demand",
                 "Paid via MPP 402 challenge",
                 "Stripe card or Link",
                 "Agent-native: pay + retry pattern",
@@ -450,7 +453,7 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
               period: "/ month",
               color: "var(--text-muted)",
               features: [
-                "All 18 programs unlimited",
+                "All 19 programs unlimited",
                 "200 snapshots / month",
                 "Priority processing",
                 "Project history",
@@ -761,7 +764,7 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
 
       {/* â”€â”€ MCP Tools â”€â”€ */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <SectionHeader title="12 MCP Tools" subtitle="All accessible at POST /mcp (Streamable HTTP, 2025-03-26 spec)." tag="MCP" />
+        <SectionHeader title="14 MCP Tools" subtitle="All accessible at POST /mcp (Streamable HTTP, 2025-03-26 spec)." tag="MCP" />
         <div style={{ display: "flex", flexDirection: "column", gap: 0, borderRadius: "var(--radius)", border: "1px solid var(--border)", overflow: "hidden", marginBottom: 14 }}>
           {MCP_TOOLS.map((t, i) => (
             <div key={t.tool} style={{
@@ -806,7 +809,7 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
 
       {/* â”€â”€ Quick Start â”€â”€ */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <SectionHeader title="Quick Start" subtitle="From zero to 102 artifacts in three steps." tag="API" />
+        <SectionHeader title="Quick Start" subtitle="From zero to 99 artifacts in three steps." tag="API" />
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
             <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 8 }}>
@@ -829,9 +832,9 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
         </div>
       </div>
 
-      {/* â”€â”€ All 18 Programs â”€â”€ */}
+      {/* â”€â”€ All 19 Programs â”€â”€ */}
       <div className="card" style={{ marginBottom: 24 }}>
-        <SectionHeader title="All 18 Programs" subtitle="Free tier: search, skills, debug. Pro tier: remaining 15 programs." />
+        <SectionHeader title="All 19 Programs" subtitle="Free tier: search, skills, debug. Pro tier: remaining 16 programs." />
         <div style={{ display: "flex", flexDirection: "column", gap: 0, borderRadius: "var(--radius)", border: "1px solid var(--border)", overflow: "hidden" }}>
           {PROGRAMS.map((p, i) => (
             <div key={p.name} style={{
@@ -861,9 +864,9 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
         <div style={{ display: "flex", flexDirection: "column", gap: 0, borderRadius: "var(--radius)", border: "1px solid var(--border)", overflow: "hidden" }}>
           {[
             { method: "POST", path: "/v1/prepare-for-agentic-purchasing", desc: "Full purchasing-readiness audit â€” score + AP2/Visa compliance + playbooks" },
-            { method: "POST", path: "/v1/analyze",                        desc: "Analyze GitHub URL or inline files → 102 artifacts" },
-            { method: "POST", path: "/mcp",                               desc: "MCP server — Streamable HTTP transport, 2025-03-26 spec, 12 tools" },
-            { method: "GET",  path: "/v1/mcp/tools?q=",                   desc: "Search 18 programs by keyword â€” no auth required" },
+            { method: "POST", path: "/v1/analyze",                        desc: "Analyze GitHub URL or inline files → 99 artifacts" },
+            { method: "POST", path: "/mcp",                               desc: "MCP server — Streamable HTTP transport, 2025-03-26 spec, 14 public tools" },
+            { method: "GET",  path: "/v1/mcp/tools?q=",                   desc: "Search 19 programs by keyword â€” no auth required" },
             { method: "GET",  path: "/v1/mcp/server.json",                desc: "MCP registry metadata for mcp-publisher CLI and registry crawlers" },
             { method: "POST", path: "/v1/accounts",                       desc: "Create account, get raw_key" },
             { method: "GET",  path: "/.well-known/axis.json",             desc: "Machine-readable discovery manifest" },

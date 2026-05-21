@@ -450,7 +450,7 @@ export function ExamplesPage() {
             </div>
           </div>
           <div>
-            <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6, color: "var(--accent)" }}>Pro (15 programs, 87 files)</p>
+            <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6, color: "var(--accent)" }}>Pro (16 programs, 89 files)</p>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
               frontend-rules.md · component-guidelines.md · seo-rules.md · schema-recommendations.json · optimization-rules.md · theme.css · design-tokens.json · brand-guidelines.md · mcp-config.json · superpower-pack.md · and 77 more
             </div>
@@ -458,7 +458,7 @@ export function ExamplesPage() {
           <div>
             <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6 }}>How it works</p>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Upload your repo (zip, folder, or GitHub URL). AXIS detects 60+ languages and 10+ frameworks, builds a context graph, then fires 102 generators across 18 programs.
+              Upload your repo (zip, folder, or GitHub URL). AXIS detects 60+ languages and 10+ frameworks, builds a context graph, then fires 99 generators across 19 programs.
             </div>
           </div>
         </div>
@@ -483,7 +483,7 @@ export function ExamplesPage() {
         </h2>
         <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.7 }}>
           Upload a ZIP, select a folder, or paste a GitHub URL.
-          One scan generates 102 artifacts across 18 programs. Takes under 60 seconds.
+          One scan generates 99 artifacts across 19 programs. Takes under 60 seconds.
         </p>
         <a
           href="#upload"

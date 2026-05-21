@@ -29,7 +29,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "general",
     question: "How is this different from other analysis tools?",
-    answer: "Unlike linters or static analyzers, Axis' Iliad generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 102 generators across 18 programs produce files you can drop directly into your project.",
+    answer: "Unlike linters or static analyzers, Axis' Iliad generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 99 generators across 19 programs produce files you can drop directly into your project.",
   },
   {
     category: "general",
@@ -50,8 +50,8 @@ const QA_ITEMS: QAItem[] = [
   },
   {
     category: "programs",
-    question: "What do the 15 Pro programs include?",
-    answer: "Pro programs span 6 categories: Engineering Delivery (Frontend Audit, Superpowers, MCP, Artifacts), Growth & Content (SEO, Brand, Marketing), Knowledge & Context (Notebook, Obsidian), Design System (Theme), Creative Generation (Remotion, Canvas, Algorithmic), and Agentic Commerce (Agentic Purchasing). Plus Optimization from Repo Intelligence. Each produces 4–5 specialized files — design tokens, video scripts, marketing campaigns, commerce registries, and more.",
+    question: "What do the 16 Pro programs include?",
+    answer: "Pro programs span 6 categories: Engineering Delivery (Frontend Audit, Superpowers, MCP, Artifacts), Growth & Content (SEO, Brand, Marketing), Knowledge & Context (Notebook, Obsidian), Design System (Theme), Creative Generation (Remotion, Canvas, Algorithmic), and Agentic Commerce (Agentic Purchasing, Closer). Plus Optimization from Repo Intelligence. Each produces 4–5 specialized files — design tokens, video scripts, marketing campaigns, commerce registries, and more.",
   },
   {
     category: "programs",
@@ -88,7 +88,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "api",
     question: "What is the API base URL?",
-    answer: "The production API runs at https://axis-api-6c7z.onrender.com with all endpoints prefixed under /v1. For example: POST /v1/snapshots to create a snapshot, GET /v1/health for status checks. There are 107 endpoints covering snapshots, programs, generated files, search, accounts, API keys, team seats, billing, webhooks, and agentic commerce.",
+    answer: "The production API runs at https://axis-api-6c7z.onrender.com with all endpoints prefixed under /v1. For example: POST /v1/snapshots to create a snapshot, GET /v1/health for status checks. There are 110 endpoints covering snapshots, programs, generated files, search, accounts, API keys, team seats, billing, webhooks, and agentic commerce.",
   },
   {
     category: "api",
@@ -125,7 +125,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "How much does Pro cost?",
-    answer: "Pro is $29/month or $279/year (save 20% with annual billing). It includes all 18 programs, 200 snapshots/month, 20 projects, 5 team seats, and 120 requests/minute API rate limit. Each program can be purchased individually if you only need specific capabilities.",
+    answer: "Pro is $29/month or $279/year (save 20% with annual billing). It includes all 19 programs, 200 snapshots/month, 20 projects, 5 team seats, and 120 requests/minute API rate limit. Each program can be purchased individually if you only need specific capabilities.",
   },
   {
     category: "billing",
@@ -150,7 +150,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Do programs have individual pricing?",
-    answer: "Yes. Each of the 18 programs is separately billable — you can purchase only the programs you need instead of the full Pro plan. Visit the Plans page for individual program pricing. The Suite bundle (all 18) is discounted compared to purchasing programs individually.",
+    answer: "Yes. Each of the 19 programs is separately billable — you can purchase only the programs you need instead of the full Pro plan. Visit the Plans page for individual program pricing. The Suite bundle (all 19) is discounted compared to purchasing programs individually.",
   },
 
   // Technical

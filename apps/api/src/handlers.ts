@@ -2258,13 +2258,13 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits
+- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits
 - No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
 
 ## Programs (${PROGRAM_COUNT} total)
 
 Free tier: search (AGENTS.md, .cursorrules, CLAUDE.md, symbol-index), skills, debug
-Pro tier: frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing
+Pro tier: frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer
 
 ## Agentic Commerce
 
@@ -2490,7 +2490,7 @@ export async function handleSkillsIndex(
         tags: ["mcp", "ai-agents", "protocol", "integration"],
         endpoint: "POST /mcp",
         auth_required: false,
-        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits"],
+        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits"],
       },
     ],
   });
@@ -2571,7 +2571,7 @@ List all programs with generator counts and output paths. No auth required.
 
 - \`POST /mcp\`  -  Streamable HTTP transport (2025-03-26 spec)
 - \`GET /mcp\`  -  SSE stream for long-running operations
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits
+- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits
 
 ## Search & Indexing
 

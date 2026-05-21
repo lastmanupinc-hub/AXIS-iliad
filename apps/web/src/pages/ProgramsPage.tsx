@@ -1,4 +1,4 @@
-// ProgramsPage — keyword-rich landing for all 17 AXIS programs
+// ProgramsPage — keyword-rich landing for all 19 AXIS programs
 
 interface ProgramDef {
   id: string;
@@ -183,6 +183,26 @@ const PROGRAMS: ProgramDef[] = [
     outputs: ["generative-sketch.js", "parameter-pack.json", "collection-map.md", "export-manifest.json", "variation-matrix.md"],
     cta: "Generate algorithmic artifacts",
   },
+  {
+    id: "agentic-purchasing",
+    name: "Agentic Purchasing",
+    tier: "pro",
+
+    tagline: "Autonomous checkout hardening with AP2, dispute evidence, and policy controls",
+    keywords: ["agentic purchasing readiness", "autonomous checkout", "AP2 compliance", "Visa Intelligent Commerce", "negotiation rules", "commerce registry"],
+    outputs: ["agent-purchasing-playbook.md", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json", "product-schema.json"],
+    cta: "Generate purchasing controls",
+  },
+  {
+    id: "closer",
+    name: "Closer",
+    tier: "pro",
+
+    tagline: "Ship-ready packaging artifacts for distribution, launch, and marketplace readiness",
+    keywords: ["product packaging", "launch checklist", "distribution manifest", "marketplace readiness", "go to market artifacts"],
+    outputs: ["DISTRIBUTABLE.md", "packaging-report.md", "launch-checklist.md", "launch-content.md", "AXIS_Board_Pitch.md"],
+    cta: "Generate ship-ready package",
+  },
 ];
 
 interface Props {
@@ -198,22 +218,22 @@ export function ProgramsPage({ onAnalyze }: Props) {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="programs-hero">
         <div className="programs-hero-inner">
-          <span className="badge badge-accent" style={{ marginBottom: 12, display: "inline-block" }}>18 Programs · 102 Artifacts</span>
+          <span className="badge badge-accent" style={{ marginBottom: 12, display: "inline-block" }}>19 Programs · 99 Artifacts</span>
           <h1 className="programs-hero-title">
             Every AI artifact your codebase needs. Generated in seconds.
           </h1>
           <p className="programs-hero-sub">
             Axis' Iliad analyzes your repo across 60+ languages and generates structured governance files
             for every AI coding tool — GitHub Copilot, Claude Code, Cursor, Windsurf, Aider, and more.
-            One scan. 102 outputs. Zero manual work.
+            One scan. 99 outputs. Zero manual work.
           </p>
           <div className="programs-hero-stats">
             <div className="programs-stat">
-              <span className="programs-stat-value">102</span>
+              <span className="programs-stat-value">99</span>
               <span className="programs-stat-label">Generated Artifacts</span>
             </div>
             <div className="programs-stat">
-              <span className="programs-stat-value">18</span>
+              <span className="programs-stat-value">19</span>
               <span className="programs-stat-label">Specialized Programs</span>
             </div>
             <div className="programs-stat">
@@ -248,7 +268,7 @@ export function ProgramsPage({ onAnalyze }: Props) {
       <section className="programs-section">
         <div className="programs-section-header">
           <h2>Pro Programs</h2>
-          <p>15 additional programs unlocked with a Pro subscription.</p>
+          <p>16 additional programs unlocked with a Pro subscription.</p>
         </div>
         <div className="programs-grid">
           {pro.map((p) => (

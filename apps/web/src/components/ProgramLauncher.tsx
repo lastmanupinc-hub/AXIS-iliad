@@ -57,7 +57,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
       await onRun(program.endpoint);
     } catch (err) {
       if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
-        setError("This program requires a Pro plan. Upgrade to unlock all 18 programs.");
+        setError("This program requires a Pro plan. Upgrade to unlock all 19 programs.");
       } else {
         setError(err instanceof Error ? err.message : "Failed");
       }
