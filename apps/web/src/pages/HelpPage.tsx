@@ -655,8 +655,8 @@ function AccountGuideSection() {
           Track your usage on the Account page. Each meter resets at the start of your billing cycle.
         </p>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Referral rewards are token-side only: token usage per call can decrease as referrals grow (up to 0.02%).
-          Cash pricing and overage rates remain unchanged.
+          Referral rewards lower your effective dollars per call as referrals grow (up to 0.02% benefit),
+          and this reward state resets each billing cycle.
         </p>
         <table>
           <thead>
