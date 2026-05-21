@@ -51,9 +51,16 @@ function ErrorBoundary({ children }: { children: ReactNode }) {
 
 type Page = "upload" | "dashboard" | "plans" | "account" | "docs" | "help" | "qa" | "programs" | "terms" | "for-agents" | "examples" | "install" | "admin" | "myanalytics";
 
+const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics"]);
+
+function hasApiKey(): boolean {
+  return !!localStorage.getItem("axis_api_key");
+}
+
 function getInitialPage(): Page {
   const h = location.hash.replace("#", "");
-  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install" || h === "admin" || h === "myanalytics") return h as Page;
+  if (h === "admin" || h === "myanalytics") return hasApiKey() ? (h as Page) : "account";
+  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install") return h as Page;
   if (h === "dashboard" && localStorage.getItem("axis_last_result")) return "dashboard";
   return "upload";
 }
@@ -94,6 +101,7 @@ export function App() {
   useEffect(() => {
     const onHash = () => {
       const h = location.hash.replace("#", "");
+      const isLoggedIn = hasApiKey();
       if (h === "plans") setPage("plans");
       else if (h === "account") setPage("account");
       else if (h === "docs") setPage("docs");
@@ -104,8 +112,20 @@ export function App() {
       else if (h === "for-agents") setPage("for-agents");
       else if (h === "examples") setPage("examples");
       else if (h === "install") setPage("install");
-      else if (h === "admin") setPage("admin");
-      else if (h === "myanalytics") setPage("myanalytics");
+      else if (h === "admin") {
+        if (isLoggedIn) setPage("admin");
+        else {
+          setPage("account");
+          location.hash = "account";
+        }
+      }
+      else if (h === "myanalytics") {
+        if (isLoggedIn) setPage("myanalytics");
+        else {
+          setPage("account");
+          location.hash = "account";
+        }
+      }
       else if (h === "dashboard" && resultRef.current) setPage("dashboard");
       else if (h === "dashboard" && !resultRef.current) {
         const restored = loadPersistedResult();
@@ -119,6 +139,13 @@ export function App() {
   }, []);
 
   const nav = useCallback((p: Page) => {
+    if (AUTH_ONLY_PAGES.has(p) && !hasApiKey()) {
+      setPage("account");
+      setPageKey((k) => k + 1);
+      setNavOpen(false);
+      location.hash = "account";
+      return;
+    }
     setPage(p);
     setPageKey((k) => k + 1);
     setNavOpen(false);
@@ -183,9 +210,13 @@ export function App() {
       { id: "nav-docs", label: "Go to Docs", icon: "", shortcut: "Ctrl+5", section: "Navigation", onSelect: () => nav("docs") },
       { id: "nav-help", label: "Go to Help", icon: "", shortcut: "Ctrl+6", section: "Navigation", onSelect: () => nav("help") },
       { id: "nav-qa", label: "Go to Q&A", icon: "", shortcut: "Ctrl+7", section: "Navigation", onSelect: () => nav("qa") },
-      { id: "nav-admin", label: "Go to Admin", icon: "", shortcut: "Ctrl+8", section: "Navigation", onSelect: () => nav("admin") },
-      { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
     ];
+    if (loggedIn) {
+      actions.push(
+        { id: "nav-admin", label: "Go to Admin", icon: "", shortcut: "Ctrl+8", section: "Navigation", onSelect: () => nav("admin") },
+        { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
+      );
+    }
     if (result) {
       actions.splice(1, 0, {
         id: "nav-dashboard",
@@ -212,12 +243,12 @@ export function App() {
       else if (key === "5") { e.preventDefault(); nav("docs"); }
       else if (key === "6") { e.preventDefault(); nav("help"); }
       else if (key === "7") { e.preventDefault(); nav("qa"); }
-      else if (key === "8") { e.preventDefault(); nav("admin"); }
-      else if (key === "9") { e.preventDefault(); nav("myanalytics"); }
+      else if (key === "8" && loggedIn) { e.preventDefault(); nav("admin"); }
+      else if (key === "9" && loggedIn) { e.preventDefault(); nav("myanalytics"); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [nav, result]);
+  }, [nav, result, loggedIn]);
 
   return (
     <ToastProvider>
@@ -241,8 +272,8 @@ export function App() {
           <button className={`btn ${page === "docs" ? "btn-primary" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`btn ${page === "help" ? "btn-primary" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`btn ${page === "qa" ? "btn-primary" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          <button className={`btn ${page === "myanalytics" ? "btn-primary" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>
-          <button className={`btn ${page === "admin" ? "btn-primary" : ""}`} onClick={() => nav("admin")}>Admin</button>
+          {loggedIn && <button className={`btn ${page === "myanalytics" ? "btn-primary" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
+          {loggedIn && <button className={`btn ${page === "admin" ? "btn-primary" : ""}`} onClick={() => nav("admin")}>Admin</button>}
           <button className={`btn ${page === "for-agents" ? "btn-primary" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
           <button className={`btn ${page === "examples" ? "btn-primary" : ""}`} onClick={() => nav("examples")}>Examples</button>
           <button className={`btn ${page === "install" ? "btn-primary" : ""}`} onClick={() => nav("install")}>Install</button>
@@ -277,8 +308,8 @@ export function App() {
           <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>
-          <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>
+          {loggedIn && <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
+          {loggedIn && <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>}
           <button className={`nav-drawer-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
           <button className={`nav-drawer-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}>Examples</button>
           <button className={`nav-drawer-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}>Install</button>
@@ -305,8 +336,8 @@ export function App() {
           {page === "docs" && <DocsPage />}
           {page === "help" && <HelpPage />}
           {page === "qa" && <QAPage />}
-          {page === "myanalytics" && <MyAnalyticsPage />}
-          {page === "admin" && <AdminPage />}
+          {page === "myanalytics" && loggedIn && <MyAnalyticsPage />}
+          {page === "admin" && loggedIn && <AdminPage />}
           {page === "programs" && <ProgramsPage onAnalyze={() => nav("upload")} />}
           {page === "terms" && <TermsPage />}
           {page === "for-agents" && <ForAgentsPage />}
