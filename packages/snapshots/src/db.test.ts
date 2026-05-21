@@ -63,6 +63,8 @@ describe("openMemoryDb", () => {
       "snapshots",
       "stripe_subscriptions",
       "tier_changes",
+      "usage_credit_ledger",
+      "usage_credit_monthly",
       "usage_records",
       "webhook_deliveries",
       "webhooks",
@@ -332,14 +334,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(20);
+    expect(getSchemaVersion(db)).toBe(21);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(20);
+    expect(result.current_version).toBe(21);
   });
 
   it("creates rate_limits table via migration", () => {

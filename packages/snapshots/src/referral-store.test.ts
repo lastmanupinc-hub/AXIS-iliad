@@ -166,25 +166,25 @@ describe("Referral Discount", () => {
     expect(result.discount_cents).toBe(0);
   });
 
-  it("applies accumulated credits as discount", () => {
+  it("does not apply discount when accrued credits are below one cent", () => {
     const referrer = createAccount("Referrer", "ref@example.com");
 
-    // Seed credits directly — 1000 millicents = 1 cent discount
+    // Seed credits directly — still below one cent in this micro-discount model.
     getReferralCredits(referrer.account_id);
     const db = getDb();
-    db.prepare("UPDATE referral_credits SET earned_credits_millicents = 1000 WHERE account_id = ?").run(referrer.account_id);
+    db.prepare("UPDATE referral_credits SET earned_credits_millicents = ? WHERE account_id = ?").run(MAX_EARNED_MILLICENTS, referrer.account_id);
 
     const result = applyReferralDiscount(referrer.account_id, 50);
-    expect(result.discount_cents).toBe(1);
-    expect(result.final_cents).toBe(49);
-    expect(result.credits_used_millicents).toBe(1000);
+    expect(result.discount_cents).toBe(0);
+    expect(result.final_cents).toBe(50);
+    expect(result.credits_used_millicents).toBe(0);
 
-    // Credits should be consumed
+    // Credits are preserved when no whole-cent discount can be applied.
     const afterCredits = getReferralCredits(referrer.account_id);
-    expect(afterCredits.earned_credits_millicents).toBe(0);
+    expect(afterCredits.earned_credits_millicents).toBe(MAX_EARNED_MILLICENTS);
   });
 
-  it("caps discount at $0.20 (20 cents)", () => {
+  it("caps earned balance at $0.0002 (20 millicents)", () => {
     const referrer = createAccount("Referrer", "ref@example.com");
 
     // Seed max credits directly
@@ -193,8 +193,8 @@ describe("Referral Discount", () => {
     db.prepare("UPDATE referral_credits SET earned_credits_millicents = ? WHERE account_id = ?").run(MAX_EARNED_MILLICENTS, referrer.account_id);
 
     const result = applyReferralDiscount(referrer.account_id, 50);
-    expect(result.discount_cents).toBe(20);
-    expect(result.final_cents).toBe(30);
+    expect(result.discount_cents).toBe(0);
+    expect(result.final_cents).toBe(50);
   });
 });
 

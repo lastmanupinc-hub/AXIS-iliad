@@ -32,6 +32,7 @@ import {
   getPersistenceLedger,
   addPersistenceCredits,
   applySuiteMonthlyGrant,
+  getUsageCreditSummary,
   PERSISTENCE_CREDIT_COSTS,
   PERSISTENCE_CREDIT_PACKS,
   type Account,
@@ -210,10 +211,12 @@ export async function handleGetAccount(
 
   const quota = checkQuota(ctx.account!.account_id);
   const entitlements = getEntitlements(ctx.account!.account_id);
+  const usageCredits = getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
 
   sendJSON(res, 200, {
     account: ctx.account,
     entitlements: entitlements.map((e) => e.program),
+    usage_credits: usageCredits,
     quota: {
       tier: quota.tier,
       snapshots_this_month: quota.usage.snapshots_this_month,
@@ -320,11 +323,13 @@ export async function handleGetUsage(
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const since = url.searchParams.get("since") ?? undefined;
   const summary = getUsageSummary(ctx.account!.account_id, since);
+  const usageCredits = getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
 
   sendJSON(res, 200, {
     account_id: ctx.account!.account_id,
     tier: ctx.account!.tier,
     since: since ?? "all_time",
+    usage_credits: usageCredits,
     programs: summary,
     totals: {
       runs: summary.reduce((s, p) => s + p.total_runs, 0),

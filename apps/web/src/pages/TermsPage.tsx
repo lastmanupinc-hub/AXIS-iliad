@@ -94,7 +94,7 @@ export function TermsPage() {
             </p>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginTop: 12 }}>
               The Service is provided on a tiered subscription basis. Free-tier users receive access
-              to a subset of programs. Pro and Enterprise features require a paid subscription.
+              to a subset of programs. Paid tiers use a blended monthly credit model.
             </p>
           </div>
 
@@ -120,9 +120,18 @@ export function TermsPage() {
 
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.1 Plans</h4>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Axis' Iliad offers three tiers: Free ($0/month), Pro ($29/month), and Enterprise Suite
-              (custom pricing, contact sales). Plan features, snapshot limits, and program entitlements
-              are described on the Plans page and are subject to change with reasonable notice.
+              Axis' Iliad offers four tiers: Free ($0/month, 10,000 monthly credits), Starter
+              ($29/month, 75,000 credits), Pro ($99/month, 300,000 credits), and Growth
+              ($299/month, 1,200,000 credits). Annual billing may include a 20% discount.
+              Plan features and entitlements are described on the Plans page and are subject to
+              change with reasonable notice.
+            </p>
+
+            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.1.1 Overage</h4>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
+              Usage above included monthly credits is billed as overage at $0.0018 per credit. In
+              supported autonomous payment flows, overages may be handled through x402-compatible
+              payment negotiation.
             </p>
 
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.2 Payment Processing</h4>
@@ -149,9 +158,9 @@ export function TermsPage() {
               required by applicable law.
             </p>
 
-            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.5 Enterprise</h4>
+            <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.5 Growth and Custom Terms</h4>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Enterprise Suite pricing, seat counts, service level commitments, and payment terms are
+              Growth plan seat counts, service-level commitments, and any custom payment terms may be
               negotiated individually. Contact{" "}
               <a href="mailto:sales@lastmanup.com" style={{ color: "var(--accent)" }}>
                 sales@lastmanup.com

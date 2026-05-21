@@ -167,7 +167,7 @@ export function InstallPage() {
             { label: "14 MCP Tools", desc: "analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits" },
             { label: "19 Programs", desc: "search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer" },
             { label: "99 Generators", desc: "AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and 93 more" },
-            { label: "Autonomous Payment", desc: "HTTP 402 → MPP challenge → Stripe payment → retry. $0.50/run. No human needed." },
+            { label: "Autonomous Payment", desc: "HTTP 402 → MPP challenge → Stripe payment → retry. Blended credits with $0.0018 overage per credit. No human needed." },
           ].map(item => (
             <div key={item.label} style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
               <div style={{ fontSize: "0.78rem", fontWeight: 700, marginBottom: 4 }}>{item.label}</div>

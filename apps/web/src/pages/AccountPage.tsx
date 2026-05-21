@@ -255,7 +255,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     );
   }
 
-  const tierLabels: Record<BillingTier, string> = { free: "Free", paid: "Pro", suite: "Enterprise Suite" };
+  const tierLabels: Record<BillingTier, string> = { free: "Free", paid: "Starter", suite: "Growth" };
   const tierColors: Record<BillingTier, string> = { free: "badge-green", paid: "badge-accent", suite: "badge-yellow" };
 
   return (
@@ -285,11 +285,11 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
             <div>
               <h3 style={{ color: "var(--accent)" }}>Unlock All 19 Programs</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Upgrade to Pro for 200 snapshots/month, 20 projects, 5 team seats, and all 16 Pro programs.
+                Upgrade to Starter for $29/month and 75,000 monthly credits across all 19 programs.
               </p>
             </div>
             <button className="btn btn-primary" onClick={() => handleUpgrade("paid")}>
-              Upgrade to Pro — $29/mo
+              Upgrade to Starter — $29/mo
             </button>
           </div>
         </div>
@@ -300,11 +300,11 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
             <div>
               <h3 style={{ color: "var(--yellow)" }}>Need More?</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Enterprise Suite: unlimited snapshots, SSO, audit logs, and dedicated support.
+                Move to Growth for $299/month and 1,200,000 monthly credits. Pro ($99/month) includes 300,000 monthly credits.
               </p>
             </div>
             <button className="btn" onClick={() => handleUpgrade("suite")}>
-              Upgrade to Enterprise
+              Upgrade to Growth
             </button>
           </div>
         </div>

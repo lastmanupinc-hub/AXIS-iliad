@@ -98,7 +98,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "api",
     question: "What's the rate limit?",
-    answer: "Free tier: 10 snapshots/month, 60 requests/minute. Pro tier: 200 snapshots/month, 120 requests/minute. Enterprise: unlimited with custom rate limits. Rate-limited requests receive a 429 response with a Retry-After header indicating when to retry.",
+    answer: "Limits are tracked with credits and request throttles. Free starts with 10,000 monthly credits. Starter includes 75,000 credits, Pro includes 300,000 credits, and Growth includes 1,200,000 credits. Overage is billed at $0.0018 per credit and requests continue instead of hard-failing when possible.",
   },
   {
     category: "api",
@@ -125,22 +125,22 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "How much does Pro cost?",
-    answer: "Pro is $29/month or $279/year (save 20% with annual billing). It includes all 19 programs, 200 snapshots/month, 20 projects, 5 team seats, and 120 requests/minute API rate limit. Each program can be purchased individually if you only need specific capabilities.",
+    answer: "Pro is $99/month and includes 300,000 monthly credits. The blended model tiers are Free ($0 / 10,000 credits), Starter ($29 / 75,000 credits), Pro ($99 / 300,000 credits), and Growth ($299 / 1,200,000 credits). Annual billing saves 20%.",
   },
   {
     category: "billing",
     question: "Can I try Pro before committing?",
-    answer: "Start with the Free tier to try the 3 core programs (Search, Skills, Debug). The output quality and format is identical to Pro — you just have access to fewer programs and lower limits (10 snapshots/month, 1 project, 1 seat). No credit card required for Free tier.",
+    answer: "Yes. Start with the Free tier (10,000 monthly credits) to validate quality and workflows before moving to Starter, Pro, or Growth. Core files such as AGENTS.md, CLAUDE.md, CURSOR.md, and .cursorrules stay free on every tier.",
   },
   {
     category: "billing",
-    question: "What's included in Enterprise?",
-    answer: "Enterprise includes unlimited snapshots, programs, projects, and team seats. Plus SSO integration, audit logs, dedicated support, custom rate limits, and SLA guarantees. Contact sales@lastmanup.com for pricing — plans are customized based on team size and usage patterns.",
+    question: "What's included in Growth?",
+    answer: "Growth is $299/month with 1,200,000 monthly credits and is designed for teams and production workloads. It includes all 19 programs plus higher operational limits and support options.",
   },
   {
     category: "billing",
     question: "How do team seats work?",
-    answer: "Pro includes 5 seats and Enterprise is unlimited. Invite team members by email from the Account page. Each member gets their own API key with member-level permissions. Admins can manage seats, keys, and billing. Members can run programs, view results, and generate files but cannot manage billing or team settings.",
+    answer: "Starter, Pro, and Growth include team seats with increasing limits by plan. Invite team members by email from the Account page. Admins can manage seats, keys, and billing. Members can run programs, view results, and generate files.",
   },
   {
     category: "billing",
@@ -150,7 +150,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Do programs have individual pricing?",
-    answer: "Yes. Each of the 19 programs is separately billable — you can purchase only the programs you need instead of the full Pro plan. Visit the Plans page for individual program pricing. The Suite bundle (all 19) is discounted compared to purchasing programs individually.",
+    answer: "Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all 19 programs, with overage billed at $0.0018 per credit.",
   },
 
   // Technical

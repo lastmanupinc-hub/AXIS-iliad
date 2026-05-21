@@ -37,9 +37,9 @@ import {
   recordReferralConversion,
   createReferralCode,
   getReferralCredits,
-  applyReferralDiscount,
   consumeFreeCall,
   recordPaidCall,
+  consumeUsageCredits,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -53,7 +53,7 @@ import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT } from ".
 
 // ─── Referral discount wrapper ──────────────────────────────────
 
-/** Apply referral benefits (free call + earned discount) before charging MPP. */
+/** Apply referral benefits (free call) before charging MPP cash overage. */
 async function chargeWithDiscounts(
   req: IncomingMessage,
   res: ServerResponse,
@@ -61,14 +61,21 @@ async function chargeWithDiscounts(
   amountCents: number,
   opts: { currency: string; decimals: number; description?: string; meta?: Record<string, string> },
 ): Promise<{ status: 402 | 200 } | null> {
+  const tier = (opts.meta?.tier === "paid" || opts.meta?.tier === "suite" || opts.meta?.tier === "free")
+    ? opts.meta.tier
+    : "free";
+  const tool = opts.meta?.tool ?? opts.meta?.program ?? "default";
+  const overageCents = tier === "free"
+    ? amountCents
+    : consumeUsageCredits(accountId, tier, tool, amountCents).effective_overage_cents;
+
+  res.setHeader("X-Axis-Request-Cost", (overageCents / 100).toFixed(2));
+
+  // Plan credits covered this call fully — no overage payment required.
+  if (overageCents <= 0) return { status: 200 };
+
   if (consumeFreeCall(accountId)) return { status: 200 };
-  const discount = applyReferralDiscount(accountId, amountCents);
-  let result: { status: 402 | 200 } | null;
-  if (discount.final_cents <= 0) {
-    result = { status: 200 };
-  } else {
-    result = await chargeMpp(req, res, { ...opts, amount: String(discount.final_cents) });
-  }
+  const result = await chargeMpp(req, res, { ...opts, amount: String(overageCents) });
   if (result && result.status === 200) {
     recordPaidCall(accountId);
   }
@@ -179,40 +186,43 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
       }
 
       // Check if program is enabled for this account
-      if (!isProgramEnabled(auth.account.account_id, program)) {
+      const enabled = isProgramEnabled(auth.account.account_id, program);
+      if (!enabled) {
         trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
           reason: `program_not_enabled:${program}`,
           source: "program_handler",
         });
-
-        const budget = parseAgentBudget(req);
-        const mode = resolveAgentMode(req);
-        const pricing = getPricingTier(program);
-        const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-
-        // Offer 402 MPP payment (budget-aware, referral discounts applied)
-        const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
-          currency: "usd",
-          decimals: 2,
-          description: `AXIS ${program} - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
-          meta: { account_id: auth.account.account_id, tier: auth.account.tier, program, mode },
-        });
-
-        if (mppResult === null) {
-          // MPP not configured � return 402 with negotiation data
-          const paymentMessage = `${program} requires a paid plan or per-call payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
-          sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
-            program,
-            tier: auth.account.tier,
-            price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-            ...buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id),
-          });
-        }
-        // 402 challenge issued or payment failed � stop processing
-        if (mppResult === null || mppResult.status === 402) return;
-
-        // mppResult.status === 200 � payment accepted, continue to generation
       }
+
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier(program);
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
+      // Meter monthly credits first. If overage remains, offer MPP payment.
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `AXIS ${program} - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, program, tool: program, mode },
+      });
+
+      if (mppResult === null) {
+        // MPP not configured � return 402 with negotiation data
+        const paymentMessage = enabled
+          ? `${program} exceeded included monthly credits and requires overage payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`
+          : `${program} requires a paid plan or per-call payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+          program,
+          tier: auth.account.tier,
+          price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+          ...buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id),
+        });
+      }
+      // 402 challenge issued or payment failed � stop processing
+      if (mppResult === null || mppResult.status === 402) return;
+
+      // mppResult.status === 200 � covered by included credits or overage payment accepted.
     }
 
     const raw = await readBody(req);
@@ -2052,9 +2062,10 @@ export async function handlePreparePurchasing(
       ...(myReferralCode ? {
         incentives: {
           your_referral_token: myReferralCode.code,
-          share_instruction: "Pass this referral_token to other agents. When they include it in their first paid call, you earn $0.001 off future calls (cap $0.20, 30-day rolling).",
+          share_instruction: "Pass this referral_token to other agents. When they include it in their first paid call, your token usage per call decreases (up to 0.02%, resets each billing cycle).",
           earned_credits_millicents: myCredits!.earned_credits_millicents,
-          earned_discount: `$${(myCredits!.earned_credits_millicents / 100_000).toFixed(3)}`,
+          earned_discount: `$${(myCredits!.earned_credits_millicents / 100_000).toFixed(6)}`,
+          token_usage_reduction_rate: Math.min(myCredits!.earned_credits_millicents / 100_000, 0.0002),
           lifetime_referrals: myCredits!.lifetime_referrals,
           free_calls_remaining: myCredits!.free_calls_remaining,
         },
@@ -2086,9 +2097,9 @@ export async function handleWellKnown(
     name: "Axis' Iliad",
     incentives: {
       program_name: "Share-to-Earn Micro-Discounts",
-      description: "Agent referral system: Every paid call returns a referral_token. Pass it to other agents → referrer earns $0.001 per unique conversion (cap $0.20 per call, 30-day rolling reset). New agents get their 5th paid call free.",
-      how_it_works: "Referral credits auto-apply via chargeWithDiscounts(). Continuous monthly incentive — no permanent caps.",
-      key_exports: ["createReferralCode", "lookupReferralCode", "applyReferralDiscount"],
+      description: "Agent referral system: Every paid call returns a referral_token. Pass it to other agents -> referrer earns $0.00001 per unique conversion (cap $0.0002 per call, 30-day rolling reset). New agents get their 5th paid call free.",
+      how_it_works: "Referral rewards reduce token usage inside monthly credit metering (cash pricing is unchanged). Rewards reset each billing cycle.",
+      key_exports: ["createReferralCode", "lookupReferralCode", "getReferralTokenUsageModifier", "consumeUsageCredits"],
       details: "GET /for-agents?intent=referral",
     },
     tagline: `Analyze any codebase. Generate ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.`,
@@ -2664,7 +2675,7 @@ export async function handleForAgents(
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid ($0.25/crawl, or $0.12 lite). On 402, present checkout_url or pay autonomously, then retry." },
-      { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.001 per agent conversion." },
+      { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.00001 per agent conversion." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
 
@@ -2813,8 +2824,8 @@ export async function handleForAgents(
       ],
       incentives: {
         program_name: "Share-to-Earn Micro-Discounts",
-        description: "Every paid call returns a referral_token. Pass it to other agents → earn $0.001 per unique conversion (cap $0.20/call, 30-day rolling reset). 5th paid call free for new agents.",
-        how_it_works: "Referral credits auto-apply via chargeWithDiscounts(). Continuous monthly incentive — no permanent caps.",
+        description: "Every paid call returns a referral_token. Pass it to other agents -> earn $0.00001 per unique conversion (cap $0.0002/call, 30-day rolling reset). 5th paid call free for new agents.",
+        how_it_works: "Referral rewards reduce token usage in monthly metering (cash pricing unchanged) and reset each billing cycle.",
       },
     },
     demo_output: {

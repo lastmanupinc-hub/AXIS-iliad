@@ -271,9 +271,10 @@ export function build402NegotiationBody(
     incentives: {
       referral: {
         enabled: true,
-        earn_cents_per_unique_share: 0.1,
-        cap_cents_per_call: 20,
-        reset_days: 30,
+        applies_to: "token_usage",
+        reward_millicents_per_unique_share: 1,
+        max_token_usage_reduction_rate: 0.0002,
+        reset_basis: "billing_cycle",
         how: "Include referral_token in prepare_agentic_purchasing args",
       },
       onboarding: {

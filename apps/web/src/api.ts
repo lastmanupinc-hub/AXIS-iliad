@@ -188,7 +188,7 @@ export interface MyAnalyticsSummary {
 // ─── Funnel / Plan types ────────────────────────────────────────
 
 export interface PlanDefinition {
-  id: BillingTier;
+  id: "free" | "starter" | "pro" | "growth" | "enterprise";
   name: string;
   tagline: string;
   price_monthly_cents: number;
@@ -199,8 +199,10 @@ export interface PlanDefinition {
 export interface PlanFeature {
   name: string;
   free: string | boolean | number;
+  starter: string | boolean | number;
   pro: string | boolean | number;
-  suite: string | boolean | number;
+  growth: string | boolean | number;
+  enterprise: string | boolean | number;
 }
 
 export interface UpgradePrompt {
@@ -651,12 +653,12 @@ export interface SubscriptionInfo {
 }
 
 export async function createCheckout(
-  tier: BillingTier,
+  planId: "starter" | "pro" | "growth",
   billingCycle: "monthly" | "annual" = "monthly",
-): Promise<{ checkout_url: string; tier: string; billing_cycle?: string; session_id: string; price_id?: string; variant_id?: string }> {
+): Promise<{ checkout_url: string; plan_id: string; tier?: string; billing_cycle?: string; session_id: string; price_id?: string; variant_id?: string }> {
   return fetchJSON("/v1/checkout", {
     method: "POST",
-    body: JSON.stringify({ tier, billing_cycle: billingCycle }),
+    body: JSON.stringify({ plan_id: planId, billing_cycle: billingCycle }),
   });
 }
 

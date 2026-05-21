@@ -1592,16 +1592,18 @@ export function buildOpenApiSpec(): OpenApiSpec {
         },
         CreateCheckoutRequest: {
           type: "object",
-          required: ["tier"],
+          required: ["plan_id"],
           properties: {
-            tier: { type: "string", enum: ["paid", "suite"], description: "Target subscription tier" },
-            billing_cycle: { type: "string", enum: ["monthly", "annual"], description: "Stripe billing cycle for the paid tier" },
+            plan_id: { type: "string", enum: ["starter", "pro", "growth"], description: "Target subscription plan" },
+            tier: { type: "string", enum: ["paid", "suite"], description: "Legacy subscription tier alias" },
+            billing_cycle: { type: "string", enum: ["monthly", "annual"], description: "Stripe billing cycle for the selected plan" },
           },
         },
         CheckoutResponse: {
           type: "object",
           properties: {
             checkout_url: { type: "string", format: "uri" },
+            plan_id: { type: "string" },
             tier: { type: "string" },
             billing_cycle: { type: "string", enum: ["monthly", "annual"] },
             variant_id: { type: "string" },

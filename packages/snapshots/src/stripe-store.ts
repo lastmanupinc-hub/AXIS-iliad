@@ -6,6 +6,8 @@
 import { getDb } from "./db.js";
 import type { BillingTier } from "./billing-types.js";
 
+export type StripePlanId = "starter" | "pro" | "growth";
+
 // ─── Types ──────────────────────────────────────────────────────
 
 export type StripeSubscriptionStatus =
@@ -40,8 +42,35 @@ export interface StripeSubscription {
  * Reads from environment variables so values can change without code deploy.
  */
 export function priceToTier(priceId: string): BillingTier | null {
-  if (priceId === process.env.STRIPE_PRICE_ID_PAID) return "paid";
-  if (priceId === process.env.STRIPE_PRICE_ID_SUITE) return "suite";
+  if (
+    priceId === process.env.STRIPE_PRICE_ID_STARTER ||
+    priceId === process.env.STRIPE_PRICE_ID_STARTER_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_PAID ||
+    priceId === process.env.STRIPE_PRICE_ID_PAID_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_PRO ||
+    priceId === process.env.STRIPE_PRICE_ID_PRO_ANNUAL
+  ) return "paid";
+  if (
+    priceId === process.env.STRIPE_PRICE_ID_GROWTH ||
+    priceId === process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_SUITE
+  ) return "suite";
+  return null;
+}
+
+export function priceToPlanId(priceId: string): StripePlanId | null {
+  if (
+    priceId === process.env.STRIPE_PRICE_ID_STARTER ||
+    priceId === process.env.STRIPE_PRICE_ID_STARTER_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_PAID ||
+    priceId === process.env.STRIPE_PRICE_ID_PAID_ANNUAL
+  ) return "starter";
+  if (priceId === process.env.STRIPE_PRICE_ID_PRO || priceId === process.env.STRIPE_PRICE_ID_PRO_ANNUAL) return "pro";
+  if (
+    priceId === process.env.STRIPE_PRICE_ID_GROWTH ||
+    priceId === process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_SUITE
+  ) return "growth";
   return null;
 }
 

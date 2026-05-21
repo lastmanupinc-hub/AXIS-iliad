@@ -510,6 +510,37 @@ CREATE INDEX IF NOT EXISTS idx_account_api_calls_created ON account_api_calls(cr
 CREATE INDEX IF NOT EXISTS idx_account_api_calls_path ON account_api_calls(path);
 `,
   },
+  {
+    version: 21,
+    name: "add_usage_credit_metering",
+    sql: `
+CREATE TABLE IF NOT EXISTS usage_credit_monthly (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  plan_id TEXT NOT NULL,
+  monthly_allowance INTEGER NOT NULL,
+  included_credits_used INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, month_key)
+);
+CREATE INDEX IF NOT EXISTS idx_usage_credit_monthly_month ON usage_credit_monthly(month_key);
+
+CREATE TABLE IF NOT EXISTS usage_credit_ledger (
+  entry_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  plan_id TEXT NOT NULL,
+  tool TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  credits_required INTEGER NOT NULL,
+  included_credits_applied INTEGER NOT NULL,
+  overage_credits INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_account_month ON usage_credit_ledger(account_id, month_key);
+CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_created ON usage_credit_ledger(created_at);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

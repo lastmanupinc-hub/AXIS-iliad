@@ -29,9 +29,15 @@ export const ENV_SPEC: EnvSpec[] = [
   // Stripe payment integration
   { key: "STRIPE_SECRET_KEY", required: false, type: "string", description: "Stripe secret API key for checkout and subscription management" },
   { key: "STRIPE_WEBHOOK_SECRET", required: false, type: "string", description: "Stripe webhook signing secret (whsec_...) for Stripe-Signature verification" },
-  { key: "STRIPE_PRICE_ID_PAID", required: false, type: "string", description: "Stripe price ID for the paid ($29/mo) tier" },
-  { key: "STRIPE_PRICE_ID_PAID_ANNUAL", required: false, type: "string", description: "Stripe price ID for the paid ($279/yr) tier" },
-  { key: "STRIPE_PRICE_ID_SUITE", required: false, type: "string", description: "Stripe price ID for the suite ($99/mo) tier" },
+  { key: "STRIPE_PRICE_ID_STARTER", required: false, type: "string", description: "Stripe price ID for the Starter ($29/mo) plan" },
+  { key: "STRIPE_PRICE_ID_STARTER_ANNUAL", required: false, type: "string", description: "Stripe price ID for the Starter ($278.40/yr) plan" },
+  { key: "STRIPE_PRICE_ID_PRO", required: false, type: "string", description: "Stripe price ID for the Pro ($99/mo) plan" },
+  { key: "STRIPE_PRICE_ID_PRO_ANNUAL", required: false, type: "string", description: "Stripe price ID for the Pro ($950.40/yr) plan" },
+  { key: "STRIPE_PRICE_ID_GROWTH", required: false, type: "string", description: "Stripe price ID for the Growth ($299/mo) plan" },
+  { key: "STRIPE_PRICE_ID_GROWTH_ANNUAL", required: false, type: "string", description: "Stripe price ID for the Growth ($2,870.40/yr) plan" },
+  { key: "STRIPE_PRICE_ID_PAID", required: false, type: "string", description: "Legacy Stripe price ID alias for Starter" },
+  { key: "STRIPE_PRICE_ID_PAID_ANNUAL", required: false, type: "string", description: "Legacy Stripe price ID alias for Starter annual" },
+  { key: "STRIPE_PRICE_ID_SUITE", required: false, type: "string", description: "Legacy Stripe price ID alias for Growth" },
   // Proxied tool integrations
   { key: "FIRECRAWL_API_KEY", required: false, type: "string", description: "API key for Firecrawl web scraping service (https://firecrawl.dev)" },
   { key: "REPLICATE_API_TOKEN", required: false, type: "string", description: "API token for Replicate image/video generation (https://replicate.com)" },

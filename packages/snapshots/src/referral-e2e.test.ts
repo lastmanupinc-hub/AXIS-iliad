@@ -86,22 +86,20 @@ describe("E2E Referral Lifecycle", () => {
     expect(discount1.discount_cents).toBe(0);
     expect(discount1.final_cents).toBe(50);
 
-    // ── Step 7: Accumulate enough credits for a real discount ───
-    // Seed 200 more referees to reach 205 total → 205 millicents (still < 1000)
-    // Instead, directly seed credits for realistic testing
+    // ── Step 7: Micro-discount cap remains below one cent ───────
     const db = getDb();
     db.prepare(
-      "UPDATE referral_credits SET earned_credits_millicents = 5000 WHERE account_id = ?",
+      "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
     ).run(agentA.account_id);
 
     const discount2 = applyReferralDiscount(agentA.account_id, 50);
-    expect(discount2.discount_cents).toBe(5); // 5000 millicents = 5 cents
-    expect(discount2.final_cents).toBe(45);
-    expect(discount2.credits_used_millicents).toBe(5000);
+    expect(discount2.discount_cents).toBe(0);
+    expect(discount2.final_cents).toBe(50);
+    expect(discount2.credits_used_millicents).toBe(0);
 
-    // Credits should be consumed
+    // Credits remain since no whole-cent discount can be applied.
     const afterDiscount = getReferralCredits(agentA.account_id);
-    expect(afterDiscount.earned_credits_millicents).toBe(0);
+    expect(afterDiscount.earned_credits_millicents).toBe(20);
 
     // ── Step 8: Incentives summary reflects full state ───────────
     const summary = buildIncentivesSummary(agentA.account_id);
@@ -110,7 +108,7 @@ describe("E2E Referral Lifecycle", () => {
 
     const status = summary.your_status as Record<string, unknown>;
     expect(status.referral_code).toBe(code.code);
-    expect(status.earned_credits_millicents).toBe(0); // consumed above
+    expect(status.earned_credits_millicents).toBe(20);
     expect(status.lifetime_referrals).toBe(5); // only organic conversions count
   });
 
@@ -150,25 +148,25 @@ describe("E2E Referral Lifecycle", () => {
     expect(getReferralCredits(referrerB.account_id).earned_credits_millicents).toBe(0);
   });
 
-  it("discount cannot exceed base price", () => {
+  it("discount remains zero when credits are below one cent", () => {
     const agent = createAccount("Cheap-Call", "cheap@agents.io");
     getReferralCredits(agent.account_id);
 
-    // Seed 10 cents worth of credits
+    // Seed to max configured micro-discount balance.
     const db = getDb();
     db.prepare(
-      "UPDATE referral_credits SET earned_credits_millicents = 10000 WHERE account_id = ?",
+      "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
     ).run(agent.account_id);
 
-    // Base price is only 3 cents — discount capped at 3
+    // Base price is 3 cents, but cap is below one cent.
     const result = applyReferralDiscount(agent.account_id, 3);
-    expect(result.discount_cents).toBe(3);
-    expect(result.final_cents).toBe(0);
-    expect(result.credits_used_millicents).toBe(3000);
+    expect(result.discount_cents).toBe(0);
+    expect(result.final_cents).toBe(3);
+    expect(result.credits_used_millicents).toBe(0);
 
-    // Remaining credits = 10000 - 3000 = 7000
+    // Credits remain untouched.
     const credits = getReferralCredits(agent.account_id);
-    expect(credits.earned_credits_millicents).toBe(7000);
+    expect(credits.earned_credits_millicents).toBe(20);
   });
 
   it("free call takes priority — no discount consumed", () => {
@@ -181,7 +179,7 @@ describe("E2E Referral Lifecycle", () => {
     // Also seed discount credits
     const db = getDb();
     db.prepare(
-      "UPDATE referral_credits SET earned_credits_millicents = 5000 WHERE account_id = ?",
+      "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
     ).run(agent.account_id);
 
     // Simulate chargeWithDiscounts logic: free call first
@@ -190,7 +188,7 @@ describe("E2E Referral Lifecycle", () => {
 
     // If free call worked, discount credits should be untouched
     const credits = getReferralCredits(agent.account_id);
-    expect(credits.earned_credits_millicents).toBe(5000);
+    expect(credits.earned_credits_millicents).toBe(20);
     expect(credits.free_calls_remaining).toBe(0);
   });
 
@@ -217,15 +215,15 @@ describe("E2E Referral Lifecycle", () => {
     // ── Seed referral credits ───────────────────────────────────
     const db = getDb();
     db.prepare(
-      "UPDATE referral_credits SET earned_credits_millicents = 3000 WHERE account_id = ?",
+      "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
     ).run(agent.account_id);
 
     // ── Call 3: No free calls left, discount applies ────────────
     const free3 = consumeFreeCall(agent.account_id);
     expect(free3).toBe(false);
     const disc3 = applyReferralDiscount(agent.account_id, baseCents);
-    expect(disc3.discount_cents).toBe(3); // 3000 millicents = 3 cents
-    expect(disc3.final_cents).toBe(47); // would charge 47 via chargeMpp
+    expect(disc3.discount_cents).toBe(0);
+    expect(disc3.final_cents).toBe(50);
 
     // ── Call 4: Credits consumed, full charge ───────────────────
     const free4 = consumeFreeCall(agent.account_id);

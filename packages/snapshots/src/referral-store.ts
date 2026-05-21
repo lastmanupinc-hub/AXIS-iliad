@@ -27,16 +27,34 @@ export interface ReferralCredits {
   updated_at: string;
 }
 
+export interface ReferralTokenUsageModifier {
+  reduction_rate: number;
+  month_key: string;
+  earned_credits_millicents: number;
+}
+
 // ─── Constants ──────────────────────────────────────────────────
 
-/** Each unique downstream referral earns $0.001 = 1 millicent. */
+/** Each unique downstream referral earns $0.00001 = 1 millicent. */
 export const REWARD_MILLICENTS = 1;
 
-/** Maximum earned discount per call: $0.20 = 20_000 millicents. */
-export const MAX_EARNED_MILLICENTS = 20_000;
+/** Maximum earned discount balance: $0.0002 = 20 millicents. */
+export const MAX_EARNED_MILLICENTS = 20;
 
 /** Rolling window for credit expiry: 30 days in milliseconds. */
 export const CREDIT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+function getMonthKey(isoDate = new Date().toISOString()): string {
+  return isoDate.slice(0, 7);
+}
+
+function resetCreditsIfBillingCycleChanged(account_id: string, nowIso = new Date().toISOString()): void {
+  const db = getDb();
+  const row = db.prepare("SELECT last_reset_at FROM referral_credits WHERE account_id = ?").get(account_id) as { last_reset_at: string } | undefined;
+  if (!row) return;
+  if (getMonthKey(row.last_reset_at) === getMonthKey(nowIso)) return;
+  db.prepare("UPDATE referral_credits SET earned_credits_millicents = 0, last_reset_at = ?, updated_at = ? WHERE account_id = ?").run(nowIso, nowIso, account_id);
+}
 
 // ─── Referral Code Management ───────────────────────────────────
 
@@ -129,7 +147,23 @@ function ensureReferralCredits(account_id: string): void {
 /** Get referral credits for an account. Returns defaults if none exist. */
 export function getReferralCredits(account_id: string): ReferralCredits {
   ensureReferralCredits(account_id);
+  resetCreditsIfBillingCycleChanged(account_id);
   return getDb().prepare("SELECT * FROM referral_credits WHERE account_id = ?").get(account_id) as ReferralCredits;
+}
+
+/**
+ * Referral rewards reduce token usage (credits consumed), not cash price.
+ * reduction_rate is a small scalar in [0, 1], e.g. 0.0002 = 0.02%.
+ */
+export function getReferralTokenUsageModifier(account_id: string, monthKey?: string): ReferralTokenUsageModifier {
+  const credits = getReferralCredits(account_id);
+  const month_key = monthKey ?? getMonthKey();
+  const reduction_rate = Math.min(credits.earned_credits_millicents / 100_000, 0.0002);
+  return {
+    reduction_rate,
+    month_key,
+    earned_credits_millicents: credits.earned_credits_millicents,
+  };
 }
 
 /** Record a paid call and auto-grant 5th-call-free when paid_call_count reaches 4. */
@@ -155,21 +189,15 @@ export function consumeFreeCall(account_id: string): boolean {
 export function applyReferralDiscount(account_id: string, base_cents: number): { final_cents: number; discount_cents: number; credits_used_millicents: number } {
   const credits = getReferralCredits(account_id);
 
-  // Reset expired credits (30-day rolling window)
-  const lastReset = new Date(credits.last_reset_at).getTime();
-  const now = Date.now();
-  if (now - lastReset > CREDIT_WINDOW_MS) {
-    const nowIso = new Date().toISOString();
-    getDb().prepare("UPDATE referral_credits SET earned_credits_millicents = 0, last_reset_at = ?, updated_at = ? WHERE account_id = ?").run(nowIso, nowIso, account_id);
-    return { final_cents: base_cents, discount_cents: 0, credits_used_millicents: 0 };
-  }
-
   if (credits.earned_credits_millicents <= 0) {
     return { final_cents: base_cents, discount_cents: 0, credits_used_millicents: 0 };
   }
 
-  // Convert millicents to cents for discount (1000 millicents = 1 cent)
-  const maxDiscountCents = Math.min(Math.floor(credits.earned_credits_millicents / 1000), 20); // $0.20 cap
+  // Convert millicents to cents for discount (1000 millicents = 1 cent).
+  const maxDiscountCents = Math.min(
+    Math.floor(credits.earned_credits_millicents / 1000),
+    Math.floor(MAX_EARNED_MILLICENTS / 1000),
+  );
   const discountCents = Math.min(maxDiscountCents, base_cents);
   const millicentsUsed = discountCents * 1000;
 
@@ -188,12 +216,13 @@ export function applyReferralDiscount(account_id: string, base_cents: number): {
 export function buildIncentivesSummary(account_id?: string): Record<string, unknown> {
   const base = {
     share_to_earn: {
-      reward_per_referral: "$0.001",
+      reward_per_referral: "$0.00001",
       reward_per_referral_millicents: REWARD_MILLICENTS,
-      max_discount_per_call: "$0.20",
+      max_discount_per_call: "$0.0002",
       max_discount_millicents: MAX_EARNED_MILLICENTS,
+      max_token_usage_reduction_rate: 0.0002,
       rolling_window_days: 30,
-      how: "Share your referral_token with other agents. When they make their first paid call with your token, you earn $0.001 off future calls.",
+      how: "Share your referral_token with other agents. Referral rewards reduce token usage per call (cash pricing remains unchanged).",
     },
     fifth_call_free: {
       description: "After 4 paid calls, the 5th is free — one-time onboarding reward.",
@@ -212,7 +241,8 @@ export function buildIncentivesSummary(account_id?: string): Record<string, unkn
     your_status: {
       referral_code: codes.length > 0 ? codes[0].code : null,
       earned_credits_millicents: credits.earned_credits_millicents,
-      earned_discount: `$${(credits.earned_credits_millicents / 100_000).toFixed(3)}`,
+      earned_discount: `$${(credits.earned_credits_millicents / 100_000).toFixed(6)}`,
+      token_usage_reduction_rate: Math.min(credits.earned_credits_millicents / 100_000, 0.0002),
       lifetime_referrals: credits.lifetime_referrals,
       free_calls_remaining: credits.free_calls_remaining,
     },

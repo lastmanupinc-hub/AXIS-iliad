@@ -279,7 +279,7 @@ export function createApp(router: Router, port: number): Server {
         res.setHeader("X-Axis-Quota-Limit", limit);
         const credits = getPersistenceBalance(auth.account.account_id);
         res.setHeader("X-Axis-Credits-Balance", String(credits));
-        res.setHeader("X-Axis-Request-Cost", "0.50");
+        res.setHeader("X-Axis-Request-Cost", "0.00");
       } catch {
         // Never fail a request due to header injection errors
       }

@@ -6,27 +6,123 @@ It now includes both billing surfaces:
 - Subscription checkout (Pro and Suite)
 - Per-call resold tools via x402/MPP (including new Firecrawl tools)
 
+## Strategy-Faithful Migration Checklist (Blended Credit Model)
+
+Use this checklist to align Stripe with the pricing strategy:
+- Free: $0 / 10,000 monthly credits
+- Starter: $29 / 75,000 monthly credits
+- Pro: $99 / 300,000 monthly credits
+- Growth: $299 / 1,200,000 monthly credits
+- Annual billing: 20% discount
+- Overage: $0.0018 per credit
+
+### 1) Create Stripe products and recurring prices
+
+Create monthly + annual prices for three paid tiers:
+1. Starter monthly: $29
+2. Starter annual: $278.40
+3. Pro monthly: $99
+4. Pro annual: $950.40
+5. Growth monthly: $299
+6. Growth annual: $2,870.40
+
+### 2) Add env vars for each paid tier and billing cycle
+
+Add these to deployment:
+- STRIPE_PRICE_ID_STARTER_MONTHLY
+- STRIPE_PRICE_ID_STARTER_ANNUAL
+- STRIPE_PRICE_ID_PRO_MONTHLY
+- STRIPE_PRICE_ID_PRO_ANNUAL
+- STRIPE_PRICE_ID_GROWTH_MONTHLY
+- STRIPE_PRICE_ID_GROWTH_ANNUAL
+
+Keep existing Stripe vars:
+- STRIPE_SECRET_KEY
+- STRIPE_WEBHOOK_SECRET
+
+### 3) Extend checkout payload contract
+
+Update API request contract from tier-only to include plan + billing cycle:
+- plan: starter | pro | growth
+- billing_cycle: monthly | annual
+
+### 4) Update checkout price selection logic
+
+In the checkout handler, map plan + billing_cycle to the six Stripe price IDs.
+Fail closed if a selected plan/cycle price is not configured.
+
+### 5) Keep webhook events unchanged
+
+Current webhook event subscriptions remain valid:
+- checkout.session.completed
+- customer.subscription.created
+- customer.subscription.updated
+- customer.subscription.deleted
+- invoice.payment_failed
+
+### 6) Add credit allowances by plan in backend
+
+Set monthly included credits by plan:
+- free: 10,000
+- starter: 75,000
+- pro: 300,000
+- growth: 1,200,000
+
+### 7) Implement overage billing path
+
+When credits are exhausted:
+1. Continue serving requests when policy allows
+2. Record overage credits consumed
+3. Bill overage at $0.0018 per credit
+4. For autonomous flows, return x402 challenge with payment metadata when immediate settlement is required
+
+### 8) Update frontend plan labels and checkout mapping
+
+Map checkout actions to:
+- Starter -> starter
+- Pro -> pro
+- Growth -> growth
+and send billing_cycle for monthly/annual.
+
+### 9) Validate end-to-end
+
+1. Start checkout for each plan/cycle combination (6 total)
+2. Complete Stripe checkout in test mode
+3. Verify webhook delivery and subscription state
+4. Verify credit ledger and monthly allowance assignment
+5. Trigger overage and confirm $0.0018/credit billing logic
+
 ## 1) Stripe Dashboard: Create/Verify Prices
 
-The API checkout endpoint reads two recurring Stripe Price IDs:
-- `STRIPE_PRICE_ID_PAID` for tier `paid`
-- `STRIPE_PRICE_ID_SUITE` for tier `suite`
+The API checkout endpoint now reads six recurring Stripe Price IDs, plus legacy aliases:
+- `STRIPE_PRICE_ID_STARTER` / `STRIPE_PRICE_ID_STARTER_ANNUAL`
+- `STRIPE_PRICE_ID_PRO` / `STRIPE_PRICE_ID_PRO_ANNUAL`
+- `STRIPE_PRICE_ID_GROWTH` / `STRIPE_PRICE_ID_GROWTH_ANNUAL`
+- legacy aliases still accepted: `STRIPE_PRICE_ID_PAID`, `STRIPE_PRICE_ID_PAID_ANNUAL`, `STRIPE_PRICE_ID_SUITE`
 
 Code references:
 - `POST /v1/checkout` reads these env vars and fails if missing: `apps/api/src/stripe.ts`
-- tier validation only allows `paid` or `suite`: `apps/api/src/stripe.ts`
+- checkout validation now accepts `plan_id: starter | pro | growth` (legacy `tier` aliases are still accepted): `apps/api/src/stripe.ts`
 
 ### Required Stripe objects
 
-1. Product: Axis Pro
+1. Product: Axis Starter
 - Billing: Recurring
 - Amount: USD $29.00 monthly
-- Save resulting `price_...` ID as `STRIPE_PRICE_ID_PAID`
+- Annual amount: USD $278.40 yearly
+- Save resulting `price_...` IDs as `STRIPE_PRICE_ID_STARTER` and `STRIPE_PRICE_ID_STARTER_ANNUAL`
 
-2. Product: Axis Enterprise Suite
+2. Product: Axis Pro
 - Billing: Recurring
 - Amount: USD $99.00 monthly
-- Save resulting `price_...` ID as `STRIPE_PRICE_ID_SUITE`
+- Annual amount: USD $950.40 yearly
+- Save resulting `price_...` IDs as `STRIPE_PRICE_ID_PRO` and `STRIPE_PRICE_ID_PRO_ANNUAL`
+
+3. Product: Axis Growth
+- Billing: Recurring
+- Amount: USD $299.00 monthly
+- Annual amount: USD $2,870.40 yearly
+- Save resulting `price_...` IDs as `STRIPE_PRICE_ID_GROWTH` and `STRIPE_PRICE_ID_GROWTH_ANNUAL`
 
 Important:
 - Keep products/prices **active**. Inactive products/prices cause checkout creation to fail with upstream Stripe errors.
@@ -90,14 +186,22 @@ Code reference:
 Set these in Render service env vars:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_ID_PAID`
-- `STRIPE_PRICE_ID_SUITE`
+- `STRIPE_PRICE_ID_STARTER`
+- `STRIPE_PRICE_ID_STARTER_ANNUAL`
+- `STRIPE_PRICE_ID_PRO`
+- `STRIPE_PRICE_ID_PRO_ANNUAL`
+- `STRIPE_PRICE_ID_GROWTH`
+- `STRIPE_PRICE_ID_GROWTH_ANNUAL`
+- optional legacy aliases for older deployments:
+	- `STRIPE_PRICE_ID_PAID`
+	- `STRIPE_PRICE_ID_PAID_ANNUAL`
+	- `STRIPE_PRICE_ID_SUITE`
 - `AXIS_WEB_URL` (already used for checkout success/cancel redirects)
 - `MPP_SECRET_KEY` (strongly recommended for stable x402 challenge signing across restarts)
 
 Current state note:
 - `render.yaml` already includes `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
-- `render.yaml` currently does **not** include `STRIPE_PRICE_ID_PAID` or `STRIPE_PRICE_ID_SUITE`
+- `render.yaml` currently does **not** include the new `STRIPE_PRICE_ID_STARTER*`, `STRIPE_PRICE_ID_PRO*`, or `STRIPE_PRICE_ID_GROWTH*` keys
 - `render.yaml` already includes `MPP_SECRET_KEY` (good for x402/MPP stability)
 
 ## 4.1) Exact Stripe Changes for New Resold Tools
@@ -132,18 +236,20 @@ Code reference:
 - `POST /v1/accounts`
 
 2. Start checkout:
-- `POST /v1/checkout` with body `{ "tier": "paid" }`
+- `POST /v1/checkout` with body `{ "plan_id": "starter" }`
 - Expect `201` + `checkout_url`
 
-3. Complete Stripe checkout in browser.
+3. Repeat with `plan_id: pro` and `plan_id: growth` to validate all plan/cycle combinations.
 
-4. Verify webhook delivery in Stripe dashboard:
+4. Complete Stripe checkout in browser.
+
+5. Verify webhook delivery in Stripe dashboard:
 - Endpoint should receive `checkout.session.completed` and `customer.subscription.*`
 
-5. Verify subscription API:
+6. Verify subscription API:
 - `GET /v1/account/subscription` should show active subscription
 
-6. Verify new resold tool charges:
+7. Verify new resold tool charges:
 - Call `POST /v1/research/scrape` with a real URL and auth.
 - Call `POST /v1/research/crawl` with a real URL and auth.
 - Confirm price negotiation reflects:

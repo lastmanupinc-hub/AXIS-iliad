@@ -65,8 +65,15 @@ beforeAll(async () => {
   openMemoryDb();
   resetRateLimits();
   process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
-  process.env.STRIPE_PRICE_ID_PAID = "price_paid_169";
-  process.env.STRIPE_PRICE_ID_SUITE = "price_suite_169";
+  process.env.STRIPE_PRICE_ID_STARTER = "price_starter_169";
+  process.env.STRIPE_PRICE_ID_STARTER_ANNUAL = "price_starter_annual_169";
+  process.env.STRIPE_PRICE_ID_PRO = "price_pro_169";
+  process.env.STRIPE_PRICE_ID_PRO_ANNUAL = "price_pro_annual_169";
+  process.env.STRIPE_PRICE_ID_GROWTH = "price_growth_169";
+  process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL = "price_growth_annual_169";
+  process.env.STRIPE_PRICE_ID_PAID = "price_starter_169";
+  process.env.STRIPE_PRICE_ID_PAID_ANNUAL = "price_starter_annual_169";
+  process.env.STRIPE_PRICE_ID_SUITE = "price_growth_169";
 
   const router = new Router();
   router.post("/v1/accounts", handleCreateAccount);
@@ -89,7 +96,14 @@ afterAll(() => {
   server?.close();
   closeDb();
   delete process.env.STRIPE_WEBHOOK_SECRET;
+  delete process.env.STRIPE_PRICE_ID_STARTER;
+  delete process.env.STRIPE_PRICE_ID_STARTER_ANNUAL;
+  delete process.env.STRIPE_PRICE_ID_PRO;
+  delete process.env.STRIPE_PRICE_ID_PRO_ANNUAL;
+  delete process.env.STRIPE_PRICE_ID_GROWTH;
+  delete process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL;
   delete process.env.STRIPE_PRICE_ID_PAID;
+  delete process.env.STRIPE_PRICE_ID_PAID_ANNUAL;
   delete process.env.STRIPE_PRICE_ID_SUITE;
 });
 
@@ -170,26 +184,26 @@ describe("Email notification wiring", () => {
 
 describe("Checkout flow", () => {
   it("requires auth for checkout", async () => {
-    const r = await req("POST", "/v1/checkout", { tier: "paid" });
+    const r = await req("POST", "/v1/checkout", { plan_id: "starter" });
     expect(r.status).toBe(401);
   });
 
-  it("rejects invalid tier", async () => {
+  it("rejects invalid plan", async () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_169";
-    process.env.STRIPE_PRICE_ID_PAID = "price_test_paid";
+    process.env.STRIPE_PRICE_ID_STARTER = "price_test_starter";
 
     const account = createAccount("Tier Test", "tier-test-169@example.com", "free");
     const { rawKey } = createApiKey(account.account_id, "test");
 
     const r = await req("POST", "/v1/checkout",
-      { tier: "free" },
+      { plan_id: "free" },
       { Authorization: `Bearer ${rawKey}` },
     );
     expect(r.status).toBe(400);
-    expect(r.data.error).toContain("tier must be paid or suite");
+    expect(r.data.error).toContain("plan_id must be starter, pro, or growth");
 
     delete process.env.STRIPE_SECRET_KEY;
-    process.env.STRIPE_PRICE_ID_PAID = "price_paid_169";
+    process.env.STRIPE_PRICE_ID_STARTER = "price_starter_169";
   });
 
   it("returns 503 when Stripe key not configured", async () => {
@@ -201,7 +215,7 @@ describe("Checkout flow", () => {
     delete process.env.STRIPE_SECRET_KEY;
 
     const r = await req("POST", "/v1/checkout",
-      { tier: "paid" },
+      { plan_id: "starter" },
       { Authorization: `Bearer ${rawKey}` },
     );
     expect(r.status).toBe(503);
@@ -219,7 +233,7 @@ describe("Checkout flow", () => {
     // Without STRIPE_SECRET_KEY set, we get 503 — confirms we reach the checkout logic
     delete process.env.STRIPE_SECRET_KEY;
     const r = await req("POST", "/v1/checkout",
-      { tier: "paid" },
+      { plan_id: "starter" },
       { Authorization: `Bearer ${rawKey}` },
     );
     expect(r.status).toBe(503);
@@ -277,7 +291,7 @@ describe("Webhook upgrade email notification", () => {
           subscription: "sub_webhook_169",
           customer: "cus_webhook_169",
           client_reference_id: account.account_id,
-          metadata: { account_id: account.account_id, tier: "paid" },
+          metadata: { account_id: account.account_id, plan_id: "starter", billing_cycle: "monthly" },
         },
       },
     });
@@ -300,7 +314,7 @@ describe("Webhook upgrade email notification", () => {
     // Verify email content
     const upgradeMsg = emails.find((e) => e.template === "upgrade_confirmation");
     expect(upgradeMsg).toBeDefined();
-    expect(upgradeMsg!.variables.tier_name).toBe("Pro");
+    expect(upgradeMsg!.variables.tier_name).toBe("Starter");
 
     setEmailProvider(null as unknown as import("@axis/snapshots").EmailProvider);
   });

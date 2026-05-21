@@ -116,8 +116,8 @@ describe("GET /v1/plans", () => {
 
     const data = res.data as Record<string, unknown>;
     const plans = data.plans as Array<Record<string, unknown>>;
-    expect(plans).toHaveLength(3);
-    expect(plans.map(p => p.id)).toEqual(["free", "paid", "suite"]);
+    expect(plans).toHaveLength(5);
+    expect(plans.map(p => p.id)).toEqual(["free", "starter", "pro", "growth", "enterprise"]);
   });
 
   it("free plan has zero price", async () => {
@@ -131,19 +131,21 @@ describe("GET /v1/plans", () => {
   it("pro plan has correct pricing", async () => {
     const res = await req("GET", "/v1/plans");
     const plans = (res.data as Record<string, unknown>).plans as Array<Record<string, unknown>>;
-    const pro = plans.find(p => p.id === "paid")!;
-    expect(pro.price_monthly_cents).toBe(2900);
+    const pro = plans.find(p => p.id === "pro")!;
+    expect(pro.price_monthly_cents).toBe(9900);
     expect(pro.name).toBe("Pro");
   });
 
   it("includes feature comparison matrix", async () => {
     const res = await req("GET", "/v1/plans");
     const features = (res.data as Record<string, unknown>).features as Array<Record<string, unknown>>;
-    expect(features.length).toBeGreaterThan(10);
+    expect(features.length).toBeGreaterThan(8);
     for (const f of features) {
       expect(f).toHaveProperty("free");
+      expect(f).toHaveProperty("starter");
       expect(f).toHaveProperty("pro");
-      expect(f).toHaveProperty("suite");
+      expect(f).toHaveProperty("growth");
+      expect(f).toHaveProperty("enterprise");
     }
   });
 });

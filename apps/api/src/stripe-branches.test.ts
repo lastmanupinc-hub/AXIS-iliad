@@ -482,7 +482,7 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     await new Promise((r) => setTimeout(r, 50));
     const upgradeEmail = emails.find((e) => e.template === "upgrade_confirmation");
     expect(upgradeEmail).toBeDefined();
-    expect(upgradeEmail!.variables.tier_name).toBe("Enterprise Suite");
+    expect(upgradeEmail!.variables.tier_name).toBe("Growth");
 
     setEmailProvider(null as unknown as import("@axis/snapshots").EmailProvider);
   });
@@ -853,7 +853,7 @@ describe("additional branch coverage", () => {
           subscription: "sub_unknown_tier_branch",
           customer: "cus_unknown_tier_branch",
           client_reference_id: account.account_id,
-          metadata: { account_id: account.account_id, tier: "starter" },
+          metadata: { account_id: account.account_id, tier: "unknown" },
         },
       },
     });

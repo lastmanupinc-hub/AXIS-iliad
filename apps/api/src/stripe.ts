@@ -23,6 +23,48 @@ import {
   type StripeSubscriptionStatus,
 } from "@axis/snapshots";
 
+type CheckoutPlanId = "starter" | "pro" | "growth";
+
+function normalizeCheckoutPlanId(raw: unknown): CheckoutPlanId | null {
+  if (raw === "starter" || raw === "pro" || raw === "growth") return raw;
+  if (raw === "paid") return "starter";
+  if (raw === "suite") return "growth";
+  return null;
+}
+
+function resolveCheckoutPriceId(planId: CheckoutPlanId, billingCycle: "monthly" | "annual"): string | undefined {
+  switch (planId) {
+    case "starter":
+      return billingCycle === "annual"
+        ? process.env.STRIPE_PRICE_ID_STARTER_ANNUAL ?? process.env.STRIPE_PRICE_ID_PAID_ANNUAL
+        : process.env.STRIPE_PRICE_ID_STARTER ?? process.env.STRIPE_PRICE_ID_PAID;
+    case "pro":
+      return billingCycle === "annual"
+        ? process.env.STRIPE_PRICE_ID_PRO_ANNUAL
+        : process.env.STRIPE_PRICE_ID_PRO;
+    case "growth":
+      return billingCycle === "annual"
+        ? process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ?? process.env.STRIPE_PRICE_ID_SUITE
+        : process.env.STRIPE_PRICE_ID_GROWTH ?? process.env.STRIPE_PRICE_ID_SUITE;
+  }
+}
+
+function resolvePlanNameFromPriceId(priceId: string): string | null {
+  if (
+    priceId === process.env.STRIPE_PRICE_ID_STARTER ||
+    priceId === process.env.STRIPE_PRICE_ID_STARTER_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_PAID ||
+    priceId === process.env.STRIPE_PRICE_ID_PAID_ANNUAL
+  ) return "Starter";
+  if (priceId === process.env.STRIPE_PRICE_ID_PRO || priceId === process.env.STRIPE_PRICE_ID_PRO_ANNUAL) return "Pro";
+  if (
+    priceId === process.env.STRIPE_PRICE_ID_GROWTH ||
+    priceId === process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ||
+    priceId === process.env.STRIPE_PRICE_ID_SUITE
+  ) return "Growth";
+  return null;
+}
+
 // ─── Webhook signature verification ────────────────────────────
 //
 // Stripe format: "Stripe-Signature: t=<timestamp>,v1=<hmac>"
@@ -157,15 +199,16 @@ function syncTierFromStripeSubscription(
   );
 
   if (newTier !== "free") {
-    const tierNames: Record<string, string> = { paid: "Pro", suite: "Enterprise Suite" };
+    const planName = resolvePlanNameFromPriceId(priceId) ?? (newTier === "suite" ? "Growth" : "Starter");
     const limits: Record<string, { snaps: string; projects: string; programs: string }> = {
-      paid: { snaps: "200", projects: "20", programs: "17" },
-      suite: { snaps: "Unlimited", projects: "Unlimited", programs: "17" },
+      Starter: { snaps: "200", projects: "20", programs: "19" },
+      Pro: { snaps: "200", projects: "20", programs: "19" },
+      Growth: { snaps: "Unlimited", projects: "Unlimited", programs: "19" },
     };
     /* v8 ignore next */
-    const l = limits[newTier] ?? limits.paid;
+    const l = limits[planName] ?? limits.Starter;
     /* v8 ignore next */
-    sendUpgradeConfirmation(account.email, account.name, tierNames[newTier] ?? newTier, l.snaps, l.projects, l.programs).catch(() => {});
+    sendUpgradeConfirmation(account.email, account.name, planName, l.snaps, l.projects, l.programs).catch(() => {});
   }
 }
 
@@ -180,12 +223,9 @@ function handleCheckoutCompleted(session: Record<string, unknown>): void {
   const customerId = session.customer as string | undefined;
   if (!subscriptionId || !customerId) return;
 
-  const tier = (meta?.tier ?? "") as string;
-  const priceId = tier === "paid"
-    ? (process.env.STRIPE_PRICE_ID_PAID ?? "")
-    : tier === "suite"
-      ? (process.env.STRIPE_PRICE_ID_SUITE ?? "")
-      : "";
+  const billingCycle = meta?.billing_cycle === "annual" ? "annual" : "monthly";
+  const planId = normalizeCheckoutPlanId(meta?.plan_id ?? meta?.tier);
+  const priceId = planId ? (resolveCheckoutPriceId(planId, billingCycle) ?? "") : "";
 
   const now = new Date().toISOString();
   const existing = getSubscription(subscriptionId);
@@ -350,9 +390,9 @@ export async function handleCreateCheckout(
     return;
   }
 
-  const tier = body.tier as string | undefined;
-  if (!tier || !["paid", "suite"].includes(tier)) {
-    sendError(res, 400, ErrorCode.INVALID_FORMAT, "tier must be paid or suite");
+  const planId = normalizeCheckoutPlanId(body.plan_id ?? body.tier);
+  if (!planId) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "plan_id must be starter, pro, or growth");
     return;
   }
 
@@ -364,14 +404,10 @@ export async function handleCreateCheckout(
 
   const billingCycle = billingCycleRaw === "annual" ? "annual" : "monthly";
 
-  const priceId = tier === "paid"
-    ? billingCycle === "annual"
-      ? process.env.STRIPE_PRICE_ID_PAID_ANNUAL
-      : process.env.STRIPE_PRICE_ID_PAID
-    : process.env.STRIPE_PRICE_ID_SUITE;
+  const priceId = resolveCheckoutPriceId(planId, billingCycle);
 
   if (!priceId) {
-    const priceLabel = tier === "paid" ? `${tier} ${billingCycle}` : tier;
+    const priceLabel = `${planId} ${billingCycle}`;
     sendError(res, 503, ErrorCode.INTERNAL_ERROR, `No Stripe price ID configured for ${priceLabel} tier`);
     return;
   }
@@ -400,10 +436,12 @@ export async function handleCreateCheckout(
     params.append("customer_email", ctx.account!.email);
   }
   params.append("metadata[account_id]", ctx.account!.account_id);
-  params.append("metadata[tier]", tier);
+  params.append("metadata[plan_id]", planId);
+  params.append("metadata[tier]", planId === "growth" ? "suite" : "paid");
   params.append("metadata[billing_cycle]", billingCycle);
   params.append("subscription_data[metadata][account_id]", ctx.account!.account_id);
-  params.append("subscription_data[metadata][tier]", tier);
+  params.append("subscription_data[metadata][plan_id]", planId);
+  params.append("subscription_data[metadata][tier]", planId === "growth" ? "suite" : "paid");
   params.append("subscription_data[metadata][billing_cycle]", billingCycle);
 
   try {
@@ -427,14 +465,14 @@ export async function handleCreateCheckout(
           res,
           503,
           ErrorCode.UPSTREAM_ERROR,
-          `Stripe price is not purchasable for ${tier} tier. Activate the product in Stripe or update the STRIPE_PRICE_ID_${tier.toUpperCase()} env var.`,
+          `Stripe price is not purchasable for ${planId} plan. Activate the product in Stripe or update the matching STRIPE_PRICE_ID_* env var.`,
           {
             stripe_error: errBody.slice(0, 1200),
             stripe_error_message: stripeErr.message,
             stripe_error_param: stripeErr.param,
             stripe_request_log_url: stripeErr.request_log_url,
             configured_price_id: priceId,
-            configured_price_env: `STRIPE_PRICE_ID_${tier.toUpperCase()}`,
+            configured_price_env: `STRIPE_PRICE_ID_${planId.toUpperCase()}`,
             success_url: successUrl,
             cancel_url: cancelUrl,
           },
@@ -462,14 +500,16 @@ export async function handleCreateCheckout(
     const session = await response.json() as { id: string; url: string };
 
     trackEvent(ctx.account!.account_id, "checkout_started", "conversion", {
-      tier,
+      plan_id: planId,
+      tier: planId === "growth" ? "suite" : "paid",
       billing_cycle: billingCycle,
       source: "stripe",
     });
 
     sendJSON(res, 201, {
       checkout_url: session.url,
-      tier,
+      plan_id: planId,
+      tier: planId === "growth" ? "suite" : "paid",
       billing_cycle: billingCycle,
       price_id: priceId,
       variant_id: priceId, // backward-compat for older web clients

@@ -64,12 +64,16 @@ export interface Seat {
 export interface PlanFeature {
   name: string;
   free: string | boolean | number;
+  starter: string | boolean | number;
   pro: string | boolean | number;
-  suite: string | boolean | number;
+  growth: string | boolean | number;
+  enterprise: string | boolean | number;
 }
 
+export type PlanId = "free" | "starter" | "pro" | "growth" | "enterprise";
+
 export interface PlanDefinition {
-  id: BillingTier;
+  id: PlanId;
   name: string;
   tagline: string;
   price_monthly_cents: number;   // 0 = free, -1 = contact sales
@@ -103,71 +107,79 @@ export const PLAN_CATALOG: PlanDefinition[] = [
   {
     id: "free",
     name: "Free",
-    tagline: "Get started with core analysis tools — no credit card required",
+    tagline: "Core files and evaluation tier — no credit card required",
     price_monthly_cents: 0,
     price_annual_cents: 0,
     highlights: [
+      "10,000 monthly credits",
       "3 core programs (Search, Skills, Debug)",
-      "10 snapshots per month",
-      "1 active project",
-      "1,000 files per snapshot (5 MB max)",
-      "API access with key",
-      "CLI and web interface",
+      "Best for evaluation and trials",
+      "Core outputs stay free",
     ],
   },
   {
-    id: "paid",
-    name: "Pro",
-    tagline: "Unlock the full toolkit for professional development teams",
-    price_monthly_cents: 2900,       // $29/mo
-    price_annual_cents: 27900,       // $279/yr ($23.25/mo effective)
+    id: "starter",
+    name: "Starter",
+    tagline: "Best for solo builders and small agent workflows",
+    price_monthly_cents: 2900,
+    price_annual_cents: 27840,
     highlights: [
-      "All 17 programs — pick what you need",
-      "200 snapshots per month",
-      "20 active projects",
-      "2,000 files per snapshot (50 MB max)",
-      "Team seats (up to 5)",
-      "Priority support",
-      "Saved history & automation",
-      "Per-program billing — coming soon",
+      "75,000 monthly credits",
+      "All 19 programs",
+      "Overage at $0.0018 per credit",
+      "Annual billing saves 20%",
     ],
   },
   {
-    id: "suite",
-    name: "Enterprise Suite",
-    tagline: "Full platform access with unlimited scale for engineering organizations",
-    price_monthly_cents: -1,         // contact sales
+    id: "pro",
+    name: "Pro",
+    tagline: "Higher credits for teams that ship frequently",
+    price_monthly_cents: 9900,
+    price_annual_cents: 95040,
+    highlights: [
+      "300,000 monthly credits",
+      "All 19 programs",
+      "Overage at $0.0018 per credit",
+      "Annual billing saves 20%",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    tagline: "For production teams and heavy usage",
+    price_monthly_cents: 29900,
+    price_annual_cents: 287040,
+    highlights: [
+      "1,200,000 monthly credits",
+      "All 19 programs",
+      "Overage at $0.0018 per credit",
+      "Priority support",
+    ],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    tagline: "Custom contracts, security review, and volume pricing",
+    price_monthly_cents: -1,
     price_annual_cents: -1,
     highlights: [
-      "All 17 programs — always on",
-      "Unlimited snapshots & projects",
-      "5,000 files per snapshot (100 MB max)",
-      "Unlimited team seats",
-      "Cross-program workflows",
-      "Consolidated usage analytics",
-      "Dedicated support & onboarding",
-      "SSO & audit logs (roadmap)",
-      "Custom integrations",
+      "Custom credits and limits",
+      "Dedicated support and onboarding",
+      "Security review and custom terms",
     ],
   },
 ];
 
 export const PLAN_FEATURES: PlanFeature[] = [
-  { name: "Programs available",    free: "3 core",             pro: "All 17 (pick & choose)", suite: "All 17 (always on)" },
-  { name: "Snapshots per month",   free: 10,                   pro: 200,                      suite: "Unlimited" },
-  { name: "Active projects",       free: 1,                    pro: 20,                       suite: "Unlimited" },
-  { name: "Max files per snapshot", free: 1000,                pro: 2000,                     suite: 5000 },
-  { name: "Max upload size",       free: "5 MB",               pro: "50 MB",                  suite: "100 MB" },
-  { name: "Team seats",            free: 1,                    pro: 5,                        suite: "Unlimited" },
-  { name: "API access",            free: true,                 pro: true,                     suite: true },
-  { name: "CLI access",            free: true,                 pro: true,                     suite: true },
-  { name: "GitHub URL intake",     free: true,                 pro: true,                     suite: true },
-  { name: "Saved snapshot history", free: false,               pro: true,                     suite: true },
-  { name: "Per-program billing",   free: false,                pro: "Coming soon",            suite: "Coming soon" },
-  { name: "Cross-program workflows", free: false,              pro: false,                    suite: true },
-  { name: "Consolidated analytics", free: false,               pro: false,                    suite: true },
-  { name: "Priority support",      free: false,                pro: true,                     suite: "Dedicated" },
-  { name: "SSO & audit logs",      free: false,                pro: false,                    suite: "Roadmap" },
+  { name: "Monthly credits", free: 10000, starter: 75000, pro: 300000, growth: 1200000, enterprise: "Custom" },
+  { name: "Programs available", free: "3 core", starter: "All 19", pro: "All 19", growth: "All 19", enterprise: "All 19" },
+  { name: "Overage", free: "$0.0018 / credit", starter: "$0.0018 / credit", pro: "$0.0018 / credit", growth: "$0.0018 / credit", enterprise: "Custom" },
+  { name: "Annual savings", free: false, starter: "20%", pro: "20%", growth: "20%", enterprise: "Custom" },
+  { name: "Team seats", free: 1, starter: 5, pro: 10, growth: 25, enterprise: "Unlimited" },
+  { name: "Saved history", free: false, starter: true, pro: true, growth: true, enterprise: true },
+  { name: "Priority support", free: false, starter: false, pro: true, growth: true, enterprise: "Dedicated" },
+  { name: "SSO & audit logs", free: false, starter: false, pro: false, growth: true, enterprise: true },
+  { name: "Custom terms", free: false, starter: false, pro: false, growth: false, enterprise: true },
 ];
 
 // ─── Funnel Stage Progression Rules ─────────────────────────────

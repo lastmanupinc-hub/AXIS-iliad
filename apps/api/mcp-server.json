@@ -89,7 +89,7 @@
     {
       "name": "get_referral_code",
       "summary": "Get your agent's unique referral code for the Share-to-Earn program. Requires API key.",
-      "description": "Returns your referral token. Share it with other agents — you earn $0.001 per unique conversion (cap $0.20/call, 30-day rolling reset). 5th paid call free for new agents."
+      "description": "Returns your referral token. Share it with other agents — referral rewards reduce token usage per call (up to 0.02%, reset each billing cycle) while cash pricing remains unchanged. 5th paid call free for new agents."
     },
     {
       "name": "get_referral_credits",

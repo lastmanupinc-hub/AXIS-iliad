@@ -171,6 +171,7 @@ export {
 export type { StripeSubscriptionStatus, StripeSubscription } from "./stripe-store.js";
 export {
   priceToTier,
+  priceToPlanId,
   upsertSubscription,
   getSubscription,
   getSubscriptionByAccount,
@@ -181,8 +182,16 @@ export {
   getActiveSubscriptionTier,
 } from "./stripe-store.js";
 
+// Usage credit metering (monthly plan credits + overage)
+export type { UsageCreditPlanId, UsageCreditSummary, UsageCreditChargeResult } from "./usage-credit-metering.js";
+export {
+  creditsFromUsdCents,
+  getUsageCreditSummary,
+  consumeUsageCredits,
+} from "./usage-credit-metering.js";
+
 // Referral System
-export type { ReferralCode, ReferralConversion, ReferralCredits } from "./referral-store.js";
+export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {
   REWARD_MILLICENTS,
   MAX_EARNED_MILLICENTS,
@@ -193,6 +202,7 @@ export {
   recordReferralConversion,
   getReferralConversionCount,
   getReferralCredits,
+  getReferralTokenUsageModifier,
   recordPaidCall,
   consumeFreeCall,
   applyReferralDiscount,

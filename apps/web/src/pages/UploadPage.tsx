@@ -206,8 +206,8 @@ export function UploadPage({ onComplete }: Props) {
         blocked: uniqueProPrograms,
         allowed: ["search", "skills", "debug"],
       });
-      setError(`Free tier includes 3 programs (search, skills, debug). Sign up or upgrade to Pro to unlock: ${uniqueProPrograms.join(", ")}.`);
-      toast("error", "Upgrade to Pro to unlock those programs");
+      setError(`Free tier includes 3 programs (search, skills, debug). Sign up or upgrade to Starter, Pro, or Growth to unlock: ${uniqueProPrograms.join(", ")}.`);
+      toast("error", "Upgrade your tier to unlock those programs");
       return;
     }
 

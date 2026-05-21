@@ -34,7 +34,7 @@ const TROUBLESHOOTING: TroubleshootItem[] = [
   { problem: "API shows red dot in the status bar", solution: "The API server isn't running. Start it with `pnpm dev` in the apps/api directory. Make sure port 4000 is available." },
   { problem: "\"Unauthorized\" error on program run", solution: "Your API key may be missing or invalid. Go to Account, check your key, or create a new one. Keys must start with axis_." },
   { problem: "Dashboard won't load after upload", solution: "The upload may have failed silently. Check the browser console for errors. Try re-uploading with a smaller project first." },
-  { problem: "Programs show as locked", solution: "You're on the Free tier which includes 3 programs. Upgrade to Pro or Enterprise to unlock all 19 programs." },
+  { problem: "Programs show as locked", solution: "You're on the Free tier which includes 3 programs. Upgrade to Starter, Pro, or Growth to unlock all 19 programs." },
   { problem: "ZIP upload fails", solution: "Ensure the ZIP file isn't corrupted and contains source files. Maximum recommended size is 50MB. Very large repos should use GitHub URL instead." },
   { problem: "Search returns no results", solution: "You need to build the search index first. Go to the Search tab and click 'Index Snapshot' before running queries." },
   { problem: "Slow analysis for large repo", solution: "Large repositories take longer to scan. Consider uploading only the relevant source directories instead of the entire project root." },
@@ -168,7 +168,7 @@ function GettingStartedSection() {
           {[
             { page: "Analyze", key: "Ctrl+1", desc: "Upload projects via folder, ZIP, or GitHub URL" },
             { page: "Dashboard", key: "Ctrl+2", desc: "View analysis results across 6 tabs" },
-            { page: "Plans", key: "Ctrl+3", desc: "Compare Free, Pro, and Enterprise tiers" },
+            { page: "Plans", key: "Ctrl+3", desc: "Compare Free, Starter, Pro, and Growth tiers" },
             { page: "Account", key: "Ctrl+4", desc: "Manage API keys, team seats, and usage" },
             { page: "Docs", key: "Ctrl+5", desc: "Full documentation, API reference, CLI guide" },
             { page: "Help", key: "Ctrl+6", desc: "Step-by-step guides and troubleshooting" },
@@ -549,7 +549,7 @@ function AccountGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Team Management</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Pro and Enterprise plans include team seats. Invite team members by email and assign
+          Starter, Pro, and Growth plans include team seats. Invite team members by email and assign
           roles (admin or member). Revoke access at any time.
         </p>
         <table>
@@ -576,48 +576,54 @@ function AccountGuideSection() {
         <h3 style={{ marginBottom: 12 }}>Upgrading Your Plan</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7 }}>
           Visit the Plans page to compare tiers. The Free plan includes 3 core programs and 10
-          snapshots per month. Pro unlocks all 19 programs, 200 snapshots, and team seats.
-          Enterprise offers unlimited usage with dedicated support.
+          snapshots per month. Starter unlocks all 19 programs with 75,000 monthly credits,
+          Pro includes 300,000 credits, and Growth includes 1,200,000 credits.
         </p>
         <table style={{ marginTop: 12 }}>
           <thead>
             <tr>
               <th>Feature</th>
               <th>Free</th>
-              <th>Pro ($29/mo)</th>
-              <th>Enterprise</th>
+              <th>Starter ($29/mo)</th>
+              <th>Pro ($99/mo)</th>
+              <th>Growth ($299/mo)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Programs</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>3</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>17</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>17</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>19</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>19</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>19</td>
             </tr>
             <tr>
-              <td style={{ fontSize: "0.8125rem" }}>Snapshots / month</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>10</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>200</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Unlimited</td>
+              <td style={{ fontSize: "0.8125rem" }}>Monthly credits</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>10,000</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>75,000</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>300,000</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>1,200,000</td>
             </tr>
             <tr>
-              <td style={{ fontSize: "0.8125rem" }}>Projects</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>3</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>20</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Unlimited</td>
+              <td style={{ fontSize: "0.8125rem" }}>Annual billing</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Available</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Save 20%</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Save 20%</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Save 20%</td>
+            </tr>
+            <tr>
+              <td style={{ fontSize: "0.8125rem" }}>Overage rate</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>$0.0018 / credit</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>$0.0018 / credit</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>$0.0018 / credit</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>$0.0018 / credit</td>
             </tr>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Team seats</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>1</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>5</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>10</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Unlimited</td>
-            </tr>
-            <tr>
-              <td style={{ fontSize: "0.8125rem" }}>API rate limit</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>60 req/min</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>300 req/min</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Custom</td>
             </tr>
           </tbody>
         </table>

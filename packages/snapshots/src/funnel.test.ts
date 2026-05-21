@@ -367,9 +367,9 @@ describe("Funnel Metrics", () => {
 // ─── Plan Catalog ───────────────────────────────────────────────
 
 describe("Plan Catalog", () => {
-  it("has 3 plans (free, pro, suite)", () => {
-    expect(PLAN_CATALOG.length).toBe(3);
-    expect(PLAN_CATALOG.map(p => p.id)).toEqual(["free", "paid", "suite"]);
+  it("has 5 plans (free, starter, pro, growth, enterprise)", () => {
+    expect(PLAN_CATALOG.length).toBe(5);
+    expect(PLAN_CATALOG.map((p) => p.id)).toEqual(["free", "starter", "pro", "growth", "enterprise"]);
   });
 
   it("free plan is $0", () => {
@@ -378,24 +378,41 @@ describe("Plan Catalog", () => {
     expect(free.price_annual_cents).toBe(0);
   });
 
+  it("starter plan has a price", () => {
+    const starter = PLAN_CATALOG.find((p) => p.id === "starter")!;
+    expect(starter.price_monthly_cents).toBe(2900);
+    expect(starter.price_annual_cents).toBe(27840);
+    expect(starter.name).toBe("Starter");
+  });
+
   it("pro plan has a price", () => {
-    const pro = PLAN_CATALOG.find(p => p.id === "paid")!;
-    expect(pro.price_monthly_cents).toBe(2900);
+    const pro = PLAN_CATALOG.find((p) => p.id === "pro")!;
+    expect(pro.price_monthly_cents).toBe(9900);
+    expect(pro.price_annual_cents).toBe(95040);
     expect(pro.name).toBe("Pro");
   });
 
-  it("suite plan is contact sales", () => {
-    const suite = PLAN_CATALOG.find(p => p.id === "suite")!;
-    expect(suite.price_monthly_cents).toBe(-1);
-    expect(suite.name).toBe("Enterprise Suite");
+  it("growth plan has a price", () => {
+    const growth = PLAN_CATALOG.find((p) => p.id === "growth")!;
+    expect(growth.price_monthly_cents).toBe(29900);
+    expect(growth.price_annual_cents).toBe(287040);
+    expect(growth.name).toBe("Growth");
+  });
+
+  it("enterprise plan is contact sales", () => {
+    const enterprise = PLAN_CATALOG.find((p) => p.id === "enterprise")!;
+    expect(enterprise.price_monthly_cents).toBe(-1);
+    expect(enterprise.name).toBe("Enterprise");
   });
 
   it("feature comparison has entries for all tiers", () => {
-    expect(PLAN_FEATURES.length).toBeGreaterThan(10);
+    expect(PLAN_FEATURES.length).toBe(9);
     for (const feature of PLAN_FEATURES) {
       expect(feature).toHaveProperty("free");
+      expect(feature).toHaveProperty("starter");
       expect(feature).toHaveProperty("pro");
-      expect(feature).toHaveProperty("suite");
+      expect(feature).toHaveProperty("growth");
+      expect(feature).toHaveProperty("enterprise");
     }
   });
 

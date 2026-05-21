@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getPlans, createCheckout, type PlanDefinition, type PlanFeature, type BillingTier } from "../api.ts";
+import { getPlans, createCheckout, type PlanDefinition, type PlanFeature } from "../api.ts";
 
 interface Props {
   onSelectPlan: () => void;
@@ -27,7 +27,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
       onSelectPlan(); // Navigate to account page for free signup
       return;
     }
-    if (planId === "suite") {
+    if (planId === "enterprise") {
       // Enterprise is contact-sales
       window.location.href = "mailto:sales@lastmanup.com?subject=Axis%27%20Iliad%20Enterprise";
       return;
@@ -44,7 +44,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
     setCheckoutLoading(planId);
     setCheckoutError(null);
     try {
-      const result = await createCheckout(planId as BillingTier, annual ? "annual" : "monthly");
+      const result = await createCheckout(planId as "starter" | "pro" | "growth", annual ? "annual" : "monthly");
       window.location.href = result.checkout_url;
     } catch (err) {
       setCheckoutError(err instanceof Error ? err.message : "Checkout failed");
@@ -61,9 +61,11 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
       .catch(() => {
         // Fallback if API not running — show static data
         setPlans([
-          { id: "free", name: "Free", tagline: "Get started with core analysis tools", price_monthly_cents: 0, price_annual_cents: 0, highlights: ["3 core programs", "10 snapshots/month", "1 project", "1,000 files per snapshot"] },
-          { id: "paid", name: "Pro", tagline: "Full toolkit for professional teams", price_monthly_cents: 2900, price_annual_cents: 27900, highlights: ["All 19 programs", "200 snapshots/month", "20 projects", "5 team seats"] },
-          { id: "suite", name: "Enterprise Suite", tagline: "Unlimited scale for engineering orgs", price_monthly_cents: -1, price_annual_cents: -1, highlights: ["Unlimited everything", "SSO & audit logs", "Dedicated support"] },
+          { id: "free", name: "Free", tagline: "Core files and evaluation tier", price_monthly_cents: 0, price_annual_cents: 0, highlights: ["10,000 monthly credits", "Core outputs stay free", "Best for evaluation"] },
+          { id: "starter", name: "Starter", tagline: "Best for solo builders and small agents", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: ["75,000 monthly credits", "All 19 programs", "Overage at $0.0018/credit"] },
+          { id: "pro", name: "Pro", tagline: "More credits for active teams", price_monthly_cents: 9900, price_annual_cents: 95040, highlights: ["300,000 monthly credits", "All 19 programs", "Overage at $0.0018/credit"] },
+          { id: "growth", name: "Growth", tagline: "Production scale and heavier usage", price_monthly_cents: 29900, price_annual_cents: 287040, highlights: ["1,200,000 monthly credits", "All 19 programs", "Priority support"] },
+          { id: "enterprise", name: "Enterprise", tagline: "Custom contracts and volume pricing", price_monthly_cents: -1, price_annual_cents: -1, highlights: ["Custom credits and limits", "Dedicated support", "Security review"] },
         ]);
       })
       .finally(() => setLoading(false));
@@ -79,8 +81,10 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
 
   const tierColors: Record<string, string> = {
     free: "var(--green)",
-    paid: "var(--accent)",
-    suite: "var(--yellow)",
+    starter: "var(--accent)",
+    pro: "var(--yellow)",
+    growth: "var(--orange)",
+    enterprise: "var(--text-muted)",
   };
 
   return (
@@ -93,7 +97,10 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
       <div style={{ textAlign: "center", marginBottom: 32 }}>
         <h2 style={{ fontSize: "2rem", marginBottom: 8 }}>Choose Your Plan</h2>
         <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto 16px" }}>
-          Start free. Upgrade when you need more power.
+          Blended credit model: Free, Starter, Pro, Growth, and Enterprise. Annual billing saves 20%.
+        </p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginBottom: 16 }}>
+          Pro is $99/month with 300,000 monthly credits.
         </p>
         <div className="flex" style={{ gap: 8, justifyContent: "center" }}>
           <button
@@ -119,11 +126,11 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
             key={plan.id}
             className="card"
             style={{
-              borderColor: plan.id === "paid" ? "var(--accent)" : undefined,
+              borderColor: plan.id === "pro" ? "var(--accent)" : undefined,
               position: "relative",
             }}
           >
-            {plan.id === "paid" && (
+            {plan.id === "pro" && (
               <div
                 style={{
                   position: "absolute",
@@ -138,7 +145,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
                   fontWeight: 600,
                 }}
               >
-                Most Popular
+                Popular
               </div>
             )}
             <div style={{ textAlign: "center", marginBottom: 16 }}>
@@ -180,7 +187,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
             </ul>
 
             <button
-              className={`btn ${plan.id === "paid" ? "btn-primary" : ""}`}
+              className={`btn ${plan.id === "pro" ? "btn-primary" : ""}`}
               style={{ width: "100%", justifyContent: "center" }}
               onClick={() => handlePlanSelect(plan.id)}
               disabled={checkoutLoading === plan.id}
@@ -192,8 +199,8 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
                   : plan.price_monthly_cents < 0
                     ? "Contact Sales"
                     : isLoggedIn
-                      ? "Upgrade to Pro"
-                      : "Sign Up for Pro"}
+                      ? `Choose ${plan.name}`
+                      : `Sign Up for ${plan.name}`}
             </button>            {plan.price_monthly_cents > 0 && plan.price_monthly_cents !== -1 && (
               <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                 By subscribing you agree to our{" "}
@@ -211,18 +218,18 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
             <thead>
               <tr>
                 <th style={{ width: "40%" }}>Feature</th>
-                <th style={{ width: "20%", textAlign: "center" }}>Free</th>
-                <th style={{ width: "20%", textAlign: "center" }}>Pro</th>
-                <th style={{ width: "20%", textAlign: "center" }}>Enterprise</th>
+                {plans.map((plan) => (
+                  <th key={plan.id} style={{ width: `${60 / Math.max(plans.length, 1)}%`, textAlign: "center" }}>{plan.name}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {features.map((f) => (
                 <tr key={f.name}>
                   <td>{f.name}</td>
-                  <td style={{ textAlign: "center" }}>{renderFeatureValue(f.free)}</td>
-                  <td style={{ textAlign: "center" }}>{renderFeatureValue(f.pro)}</td>
-                  <td style={{ textAlign: "center" }}>{renderFeatureValue(f.suite)}</td>
+                  {plans.map((plan) => (
+                    <td key={plan.id} style={{ textAlign: "center" }}>{renderFeatureValue(f[plan.id as keyof PlanFeature] as string | boolean | number)}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>

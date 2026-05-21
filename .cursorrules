@@ -143,5 +143,5 @@ test_before_commit = true
 #
 # === Share-to-Earn Micro-Discounts ===
 # Every paid call returns referral_token. Share with other agents via prepare_agentic_purchasing args.
-# Earn $0.001/referral (cap $0.20, 30-day rolling), applied automatically to your next charge.
+# Referral rewards are token-side: usage per call decreases up to 0.02%, reset each billing cycle, cash pricing unchanged.
 # 5th paid call free for new agents. Credits reset every 30 days — keep sharing to keep earning micro-discounts.
