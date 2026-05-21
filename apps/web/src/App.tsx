@@ -17,7 +17,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
+import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
 // React requires a class for getDerivedStateFromError; this thin wrapper
@@ -175,10 +175,47 @@ export function App() {
   }, [nav]);
 
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("axis_api_key"));
+  const [privateAccess, setPrivateAccess] = useState(false);
 
   const handleAuthChange = useCallback(() => {
     setLoggedIn(!!localStorage.getItem("axis_api_key"));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolvePrivateAccess() {
+      if (!loggedIn) {
+        setPrivateAccess(false);
+        return;
+      }
+
+      try {
+        await getAdminStats();
+        if (!cancelled) setPrivateAccess(true);
+      } catch (err) {
+        if (!cancelled) {
+          if (err instanceof ApiError && err.status === 403) {
+            setPrivateAccess(false);
+          } else {
+            setPrivateAccess(false);
+          }
+        }
+      }
+    }
+
+    void resolvePrivateAccess();
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedIn]);
+
+  useEffect(() => {
+    if ((page === "admin" || page === "myanalytics") && !privateAccess) {
+      setPage("account");
+      location.hash = "account";
+    }
+  }, [page, privateAccess]);
 
   const handleSignUpSuccess = useCallback(() => {
     setShowSignUp(false);
@@ -211,7 +248,7 @@ export function App() {
       { id: "nav-help", label: "Go to Help", icon: "", shortcut: "Ctrl+6", section: "Navigation", onSelect: () => nav("help") },
       { id: "nav-qa", label: "Go to Q&A", icon: "", shortcut: "Ctrl+7", section: "Navigation", onSelect: () => nav("qa") },
     ];
-    if (loggedIn) {
+    if (privateAccess) {
       actions.push(
         { id: "nav-admin", label: "Go to Admin", icon: "", shortcut: "Ctrl+8", section: "Navigation", onSelect: () => nav("admin") },
         { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
@@ -228,7 +265,7 @@ export function App() {
       });
     }
     return actions;
-  }, [result, nav]);
+  }, [result, nav, privateAccess]);
 
   // Keyboard shortcuts for nav
   useEffect(() => {
@@ -243,12 +280,12 @@ export function App() {
       else if (key === "5") { e.preventDefault(); nav("docs"); }
       else if (key === "6") { e.preventDefault(); nav("help"); }
       else if (key === "7") { e.preventDefault(); nav("qa"); }
-      else if (key === "8" && loggedIn) { e.preventDefault(); nav("admin"); }
-      else if (key === "9" && loggedIn) { e.preventDefault(); nav("myanalytics"); }
+      else if (key === "8" && privateAccess) { e.preventDefault(); nav("admin"); }
+      else if (key === "9" && privateAccess) { e.preventDefault(); nav("myanalytics"); }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [nav, result, loggedIn]);
+  }, [nav, result, privateAccess]);
 
   return (
     <ToastProvider>
@@ -272,8 +309,8 @@ export function App() {
           <button className={`btn ${page === "docs" ? "btn-primary" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`btn ${page === "help" ? "btn-primary" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`btn ${page === "qa" ? "btn-primary" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          {loggedIn && <button className={`btn ${page === "myanalytics" ? "btn-primary" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
-          {loggedIn && <button className={`btn ${page === "admin" ? "btn-primary" : ""}`} onClick={() => nav("admin")}>Admin</button>}
+          {privateAccess && <button className={`btn ${page === "myanalytics" ? "btn-primary" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
+          {privateAccess && <button className={`btn ${page === "admin" ? "btn-primary" : ""}`} onClick={() => nav("admin")}>Admin</button>}
           <button className={`btn ${page === "for-agents" ? "btn-primary" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
           <button className={`btn ${page === "examples" ? "btn-primary" : ""}`} onClick={() => nav("examples")}>Examples</button>
           <button className={`btn ${page === "install" ? "btn-primary" : ""}`} onClick={() => nav("install")}>Install</button>
@@ -308,8 +345,8 @@ export function App() {
           <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          {loggedIn && <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
-          {loggedIn && <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>}
+          {privateAccess && <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
+          {privateAccess && <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>}
           <button className={`nav-drawer-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
           <button className={`nav-drawer-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}>Examples</button>
           <button className={`nav-drawer-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}>Install</button>
@@ -336,8 +373,8 @@ export function App() {
           {page === "docs" && <DocsPage />}
           {page === "help" && <HelpPage />}
           {page === "qa" && <QAPage />}
-          {page === "myanalytics" && loggedIn && <MyAnalyticsPage />}
-          {page === "admin" && loggedIn && <AdminPage />}
+          {page === "myanalytics" && privateAccess && <MyAnalyticsPage />}
+          {page === "admin" && privateAccess && <AdminPage />}
           {page === "programs" && <ProgramsPage onAnalyze={() => nav("upload")} />}
           {page === "terms" && <TermsPage />}
           {page === "for-agents" && <ForAgentsPage />}

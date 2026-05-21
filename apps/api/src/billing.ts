@@ -105,6 +105,23 @@ export function requireAuth(req: IncomingMessage, res: ServerResponse): AuthCont
   return ctx;
 }
 
+function hasPrivateAnalyticsAccess(req: IncomingMessage): boolean {
+  const ownerKey = process.env.ADMIN_API_KEY;
+  if (!ownerKey) return false;
+
+  const authHeader = req.headers.authorization;
+  const xAxisKey = req.headers["x-axis-key"];
+
+  let rawKey: string | null = null;
+  if (authHeader?.startsWith("Bearer ")) {
+    rawKey = authHeader.slice(7);
+  } else if (typeof xAxisKey === "string" && xAxisKey) {
+    rawKey = xAxisKey;
+  }
+
+  return rawKey === ownerKey;
+}
+
 // ─── Billing API Handlers ───────────────────────────────────────
 
 /** POST /v1/accounts — create a new account */
@@ -325,6 +342,11 @@ export async function handleGetAnalyticsSummary(
 ): Promise<void> {
   const ctx = requireAuth(req, res);
   if (!ctx) return;
+
+  if (!hasPrivateAnalyticsAccess(req)) {
+    sendError(res, 403, ErrorCode.FORBIDDEN, "Private analytics access is restricted to the owner account");
+    return;
+  }
 
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const sinceDaysRaw = parseInt(url.searchParams.get("since_days") ?? "30", 10);

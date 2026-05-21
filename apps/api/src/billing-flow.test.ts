@@ -88,6 +88,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   resetRateLimits();
+  delete process.env.ADMIN_API_KEY;
 });
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -216,6 +217,7 @@ describe("authenticated snapshot flow", () => {
 describe("myanalytics summary", () => {
   it("returns account-level API and program analytics", async () => {
     const { key } = await createTestAccount("MyAnalytics", "myanalytics@test.com");
+    process.env.ADMIN_API_KEY = key;
 
     // Generate at least one billable/program event and one tracked API request.
     await req("POST", "/v1/snapshots", SNAPSHOT_BODY, key);
@@ -226,6 +228,21 @@ describe("myanalytics summary", () => {
     expect((analytics.data.api_calls as Record<string, unknown>).total_calls).toBeGreaterThan(0);
     expect(Array.isArray(analytics.data.programs)).toBe(true);
     expect((analytics.data.totals as Record<string, unknown>).api_calls).toBeGreaterThan(0);
+
+    delete process.env.ADMIN_API_KEY;
+  });
+
+  it("rejects analytics access for non-owner keys", async () => {
+    const { key: ownerKey } = await createTestAccount("OwnerAnalytics", "owneranalytics@test.com");
+    const { key: otherKey } = await createTestAccount("OtherAnalytics", "otheranalytics@test.com");
+    process.env.ADMIN_API_KEY = ownerKey;
+
+    const analytics = await req("GET", "/v1/account/analytics/summary?since_days=30&limit=100", undefined, otherKey);
+
+    expect(analytics.status).toBe(403);
+    expect(analytics.data.error_code).toBe("FORBIDDEN");
+
+    delete process.env.ADMIN_API_KEY;
   });
 });
 
