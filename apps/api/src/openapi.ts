@@ -238,7 +238,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           summary: "Analyze a codebase â€” one call returns all AI context files with adoption hints",
           description:
             `Analyze any GitHub repo or uploaded codebase and return ${ARTIFACT_COUNT} structured AI artifacts across ${PROGRAM_COUNT} programs (AGENTS.md, CLAUDE.md, .cursorrules, MCP config, brand guidelines, debug playbooks, etc.). ` +
-            "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.52 per-call MPP credit. " +
+            "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.50 per-call MPP credit. " +
             "If the caller lacks access, the server returns HTTP 402 with a machine-readable payment body containing payment_url, checkout_url, and retry_after_payment instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request â€” no extra steps. " +
             "Pass X-Agent-Budget header to negotiate lite mode ($0.15, 3 programs). Pass X-Agent-Mode: lite explicitly. " +
@@ -247,7 +247,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           tags: ["Analyze"],
           "x-payment": {
             model: "stripe_x402",
-            price_usd: "0.52",
+            price_usd: "0.50",
             lite_price_usd: "0.15",
             free_programs: ["search", "skills", "debug"],
             description: "Returns HTTP 402 for free-tier callers requesting paid programs. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
@@ -266,7 +266,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
                 type: "object",
                 properties: {
                   error: { type: "string", example: "Payment Required" },
-                  price: { type: "string", example: "0.52" },
+                  price: { type: "string", example: "0.50" },
                   currency: { type: "string", example: "USD" },
                   payment_url: { type: "string", description: "Stripe billing page for the caller's account" },
                   checkout_url: { type: "string", description: "Direct Stripe checkout URL for Pro plan" },

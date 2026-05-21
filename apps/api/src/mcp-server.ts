@@ -215,7 +215,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.52 standard, $0.15 lite budget mode per repo. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
+      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode per repo. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
     inputSchema: {
       type: "object",
       required: ["github_url"],
@@ -337,7 +337,7 @@ export const MCP_TOOLS = [
       {
         name: "Get a snapshot",
         input: { snapshot_id: "abc-123" },
-        output: '{"snapshot_id":"abc-123","status":"complete","artifact_count":86,"artifacts":[{"path":"AGENTS.md","program":"search","description":"Agent instructions"}]}',
+        output: '{"snapshot_id":"abc-123","status":"complete","artifact_count":99,"artifacts":[{"path":"AGENTS.md","program":"search","description":"Agent instructions"}]}',
       },
     ],
   },
@@ -453,7 +453,7 @@ export const MCP_TOOLS = [
       {
         name: "Basic purchasing hardening",
         input: { project_name: "my-checkout", project_type: "web_application", frameworks: ["react", "stripe"], goals: ["autonomous checkout"], files: [{ path: "src/checkout.ts", content: "export function checkout() { ... }" }] },
-        output: '{"snapshot_id":"snap_...","score":62,"risk_level":"medium","artifact_count":86,"artifacts":{"AGENTS.md":"...","commerce-registry.json":"..."},"referral_token":"ref_abc123"}',
+        output: '{"snapshot_id":"snap_...","score":62,"risk_level":"medium","artifact_count":99,"artifacts":{"AGENTS.md":"...","commerce-registry.json":"..."},"referral_token":"ref_abc123"}',
       },
       {
         name: "Focused SCA + dispute analysis with budget",
@@ -1012,7 +1012,7 @@ export async function runAnalyzeFiles(
     throw new Error(buildMcpPaymentRequiredError(
       "analyze_files",
       account.account_id,
-      `analyze_files requires $0.52 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. Use list_programs, search_and_discover_tools, or free programs only to stay on the free path.`,
+      `analyze_files requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. Use list_programs, search_and_discover_tools, or free programs only to stay on the free path.`,
       req,
       { blocked_programs: blockedPrograms },
     ));
@@ -1087,7 +1087,7 @@ export async function runAnalyzeFiles(
       status: "ready",
       snapshot_summary: {
         mode: blockedPrograms.length > 0 ? "free-tier" : "full-access",
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.52/run or $29/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $29/mo).",
       },
       programs_executed: [...programs],
       artifact_count: generated.files.length,
@@ -1139,7 +1139,7 @@ export async function runAnalyzeRepo(
     throw new Error(buildMcpPaymentRequiredError(
       "analyze_repo",
       account.account_id,
-      `analyze_repo requires $0.52 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. This is the paid full-analysis path; discovery remains free on list_programs, search_and_discover_tools, and discover_commerce_tools.`,
+      `analyze_repo requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. This is the paid full-analysis path; discovery remains free on list_programs, search_and_discover_tools, and discover_commerce_tools.`,
       req,
       { blocked_programs: blockedPrograms },
     ));
@@ -1222,7 +1222,7 @@ export async function runAnalyzeRepo(
       status: "ready",
       snapshot_summary: {
         mode: blockedPrograms.length > 0 ? "free-tier" : "full-access",
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.52/run or $29/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $29/mo).",
       },
       programs_executed: [...programs],
       artifact_count: generated.files.length,
@@ -1371,7 +1371,7 @@ export function runDiscoverAgenticCommerceTools(): string {
     auth_required: !FREE_TOOL_NAMES.has(t.name),
     pricing: FREE_TOOL_NAMES.has(t.name)
       ? "free"
-      : "$0.50-$0.52/call (tool-dependent) or included in plan",
+      : "$0.50/call or included in plan",
   }));
 
   return JSON.stringify({
@@ -1390,7 +1390,7 @@ export function runDiscoverAgenticCommerceTools(): string {
     free_tools: tools.filter(t => t.pricing === "free").map(t => t.name),
     conversion_triggers: {
       first_paid_call: "prepare_agentic_purchasing returns a Purchasing Readiness Score (0-100), referral_token, and the full commerce hardening bundle in one call.",
-      first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.52, lite mode starts at $0.15, and Pro is $29/month.`,
+      first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.50, lite mode starts at $0.15, and Pro is $29/month.`,
       share_to_earn: "Every paid call returns a referral_token - share it and your effective dollar cost drops as referrals increase (up to 0.02% benefit per call, resets each billing cycle).",
     },
     tool_selection_guide: {
@@ -1742,7 +1742,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
     recommended_next_step: {
       tool: "prepare_agentic_purchasing",
       description: "Full agentic commerce hardening. Chains 10 programs, computes Score 0-100, returns complete artifact bundle.",
-      pricing: "$0.52 per call via MPP (HTTP 402 flow) or included in Pro plan",
+      pricing: "$0.50 per call via MPP (HTTP 402 flow) or included in Pro plan",
       mcp_call: {
         jsonrpc: "2.0",
         method: "tools/call",
@@ -2310,9 +2310,9 @@ export async function runPreparePurchasing(
       project_id: snapshot.project_id,
       status: "ready",
       upgrade_offer: {
-        agent_conversion_message: `This codebase is ${score}% ready for autonomous spending. Upgrade to Pro for the full 86-artifact hardening bundle + $0.15 lite mode option.`,
+        agent_conversion_message: `This codebase is ${score}% ready for autonomous spending. Upgrade to Pro for the full ${ARTIFACT_COUNT}-artifact hardening bundle + $0.15 lite mode option.`,
         plan: "$29/month",
-        standard_run: "$0.52/run",
+        standard_run: "$0.50/run",
         lite_from: "$0.15/run",
       },
       summary: {
