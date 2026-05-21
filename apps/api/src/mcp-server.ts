@@ -29,6 +29,7 @@ import {
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
+import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";

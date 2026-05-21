@@ -75,7 +75,7 @@ function tsToISO(ts: unknown): string | null {
   return new Date(ts * 1000).toISOString();
 }
 
-function resolveCheckoutBaseUrl(): string {
+function resolveCheckoutBaseUrl(req?: IncomingMessage): string {
   const candidates = [
     process.env.AXIS_WEB_URL,
     process.env.CORS_ORIGIN,
@@ -93,6 +93,16 @@ function resolveCheckoutBaseUrl(): string {
     } catch {
       // ignore invalid candidate
     }
+  }
+
+  const forwardedProto = (req?.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim();
+  const forwardedHost = (req?.headers["x-forwarded-host"] as string | undefined)?.split(",")[0]?.trim();
+  const host = forwardedHost || (req?.headers.host as string | undefined)?.trim();
+  if (host) {
+    const proto = forwardedProto === "http" || host.startsWith("localhost") || host.startsWith("127.0.0.1")
+      ? "http"
+      : "https";
+    return `${proto}://${host}`;
   }
 
   return "http://localhost:5173";
@@ -347,7 +357,7 @@ export async function handleCreateCheckout(
   }
 
   // Determine redirect URLs
-  const webUrl = resolveCheckoutBaseUrl();
+  const webUrl = resolveCheckoutBaseUrl(req);
   const successUrl = `${webUrl}/#account`;
   const cancelUrl = `${webUrl}/#plans`;
 
@@ -379,7 +389,13 @@ export async function handleCreateCheckout(
 
     if (!response.ok) {
       const errBody = await response.text();
-      sendError(res, 502, ErrorCode.INTERNAL_ERROR, `Stripe API error: ${response.status}`);
+      sendError(
+        res,
+        502,
+        ErrorCode.INTERNAL_ERROR,
+        `Stripe API error: ${response.status}`,
+        { stripe_error: errBody.slice(0, 1200), success_url: successUrl, cancel_url: cancelUrl },
+      );
       return;
     }
 
