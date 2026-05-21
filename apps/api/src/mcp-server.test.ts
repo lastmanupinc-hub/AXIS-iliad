@@ -244,13 +244,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns all 15 tools with incentives block", async () => {
+  it("returns all 16 tools with incentives block", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     expect(tools.length).toBe(MCP_TOOLS.length);
-    expect(tools.length).toBe(15);
+    expect(tools.length).toBe(16);
     // incentives injected into every success result
     const incentives = result.incentives as Record<string, unknown>;
     expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
@@ -387,6 +387,121 @@ describe("POST /mcp — tools/call list_programs", () => {
     expect(parsed.free_programs).toContain("search");
     expect(parsed.free_programs).toContain("skills");
     expect(parsed.free_programs).toContain("debug");
+  });
+});
+
+describe("POST /mcp — tools/call prepare_agentic_purchasing_preview", () => {
+  const sampleFiles = [
+    { path: "src/checkout.ts", content: "import Stripe from \"stripe\";\nexport function checkout() { return new Stripe(\"sk\"); }" },
+    { path: "package.json", content: '{"name":"my-checkout","dependencies":{"react":"19.0.0","stripe":"^14.0.0"}}' },
+    { path: "README.md", content: "# my-checkout\n\nAutonomous purchasing demo." },
+  ];
+
+  it("returns a readiness score without auth and without persisting a snapshot", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 1001,
+      method: "tools/call",
+      params: {
+        name: "prepare_agentic_purchasing_preview",
+        arguments: { project_name: "my-checkout", project_type: "web_application", frameworks: ["react", "stripe"], files: sampleFiles },
+      },
+    });
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+
+    expect(typeof parsed.score).toBe("number");
+    expect(parsed.score).toBeGreaterThanOrEqual(0);
+    expect(parsed.score).toBeLessThanOrEqual(100);
+    expect(["low", "medium", "high"]).toContain(parsed.risk_level);
+    expect(Array.isArray(parsed.gaps)).toBe(true);
+    expect(Array.isArray(parsed.top_3_gaps)).toBe(true);
+    expect(parsed.top_3_gaps.length).toBeLessThanOrEqual(3);
+    expect(Array.isArray(parsed.what_axis_would_add)).toBe(true);
+    expect(parsed.what_axis_would_add.length).toBeGreaterThan(0);
+    expect(parsed.cost).toContain("free");
+    expect(parsed.conversion.tool).toBe("prepare_agentic_purchasing");
+    expect(parsed.conversion.price_standard_usd).toBe("0.50");
+    expect(parsed.conversion.price_lite_usd).toBe("0.25");
+    expect(parsed.projected_score_after_axis).toBe(100);
+  });
+
+  it("detects stripe and react frameworks from file content even without explicit hints", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 1002,
+      method: "tools/call",
+      params: {
+        name: "prepare_agentic_purchasing_preview",
+        arguments: { project_name: "auto-detect", files: sampleFiles },
+      },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.frameworks_detected).toContain("stripe");
+    expect(parsed.frameworks_detected).toContain("react");
+  });
+
+  it("returns isError on missing project_name", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 1003,
+      method: "tools/call",
+      params: { name: "prepare_agentic_purchasing_preview", arguments: { files: sampleFiles } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+  });
+
+  it("returns isError when files exceeds 25-file cap", async () => {
+    const tooMany = Array.from({ length: 26 }, (_, i) => ({ path: `f${i}.ts`, content: "x" }));
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 1004,
+      method: "tools/call",
+      params: { name: "prepare_agentic_purchasing_preview", arguments: { project_name: "p", files: tooMany } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("preview accepts max 25 files");
+  });
+
+  it("returns isError when a single file exceeds 50KB cap", async () => {
+    const big = "x".repeat(51 * 1024);
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 1005,
+      method: "tools/call",
+      params: { name: "prepare_agentic_purchasing_preview", arguments: { project_name: "p", files: [{ path: "big.txt", content: big }] } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    expect(content[0].text).toContain("exceeds preview cap");
+  });
+
+  it("returns isError on path-traversal attempt", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 1006,
+      method: "tools/call",
+      params: { name: "prepare_agentic_purchasing_preview", arguments: { project_name: "p", files: [{ path: "../etc/passwd", content: "x" }] } },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+  });
+
+  it("is registered as a free tool in MCP_TOOLS", () => {
+    const tool = MCP_TOOLS.find(t => t.name === "prepare_agentic_purchasing_preview");
+    expect(tool).toBeDefined();
+    expect(tool!.description.toLowerCase()).toContain("free");
+    expect(tool!.description.toLowerCase()).toContain("no auth");
+    expect(tool!.description.toLowerCase()).toContain("no charge");
   });
 });
 
@@ -1467,9 +1582,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array has 15 entries derived from MCP_TOOLS", () => {
+  it("tools array has 16 entries derived from MCP_TOOLS", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(16);
     expect(tools.map(t => t.name)).toEqual(MCP_TOOLS.map(t => t.name));
   });
 
@@ -1540,11 +1655,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 15 tools", async () => {
+  it("body contains 16 tools", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(16);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1579,7 +1694,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.axis_iliad).toBeDefined();
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
-    expect(parsed.tools.length).toBe(15);
+    expect(parsed.tools.length).toBe(16);
   });
 
   it("includes free_tools array", async () => {
@@ -1624,7 +1739,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(15);
+    expect(parsed.shareable_manifest.tools).toBe(16);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });

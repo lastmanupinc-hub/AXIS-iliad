@@ -2233,9 +2233,11 @@ export async function handleCapabilities(
       endpoint: "POST /mcp",
       tools: [
         "analyze_repo", "analyze_files", "get_snapshot", "get_artifact",
-        "list_programs", "prepare_agentic_purchasing", "search_and_discover_tools",
-        "discover_commerce_tools", "improve_my_agent_with_axis",
-        "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits",
+        "list_programs", "prepare_agentic_purchasing", "closer",
+        "search_and_discover_tools", "discover_commerce_tools",
+        "improve_my_agent_with_axis", "discover_agentic_purchasing_needs",
+        "prepare_agentic_purchasing_preview", "get_referral_code",
+        "get_referral_credits", "iliad_web_research", "iliad_web_research_crawl",
       ],
     },
     security_txt: "https://axis-api-6c7z.onrender.com/.well-known/security.txt",
@@ -2269,7 +2271,7 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits
+- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, closer, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, prepare_agentic_purchasing_preview, get_referral_code, get_referral_credits, iliad_web_research, iliad_web_research_crawl
 - No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
 
 ## Programs (${PROGRAM_COUNT} total)
@@ -2501,7 +2503,7 @@ export async function handleSkillsIndex(
         tags: ["mcp", "ai-agents", "protocol", "integration"],
         endpoint: "POST /mcp",
         auth_required: false,
-        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits"],
+        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "closer", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "prepare_agentic_purchasing_preview", "get_referral_code", "get_referral_credits", "iliad_web_research", "iliad_web_research_crawl"],
       },
     ],
   });
@@ -2582,7 +2584,7 @@ List all programs with generator counts and output paths. No auth required.
 
 - \`POST /mcp\`  -  Streamable HTTP transport (2025-03-26 spec)
 - \`GET /mcp\`  -  SSE stream for long-running operations
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits
+- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, closer, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, prepare_agentic_purchasing_preview, get_referral_code, get_referral_credits, iliad_web_research, iliad_web_research_crawl
 
 ## Search & Indexing
 
@@ -2669,10 +2671,12 @@ export async function handleForAgents(
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
       { name: "prepare_agentic_purchasing",      auth: true,  x_payment: { ...PAYMENT_META, lite_price_usd: "0.25" }, description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence, win probability model, lighter SCA paths, playbooks. Paid ($0.50/run). Focus areas: sca, dispute, mandate, tap, tokenization. On 402, present checkout_url or pay autonomously, then retry." },
+      { name: "closer",                         auth: true,  x_payment: PAYMENT_META, description: "Take a 70-80% complete project and generate professional packaging + marketplace certification artifacts. Paid ($0.50/run). Requires an existing snapshot_id; on 402, present checkout_url or pay autonomously, then retry." },
       { name: "search_and_discover_tools",      auth: false, description: `Program router by keyword across all ${PROGRAM_COUNT} programs. Use when you know desired outcome but not which program.` },
       { name: "discover_commerce_tools",        auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
       { name: "improve_my_agent_with_axis",     auth: true,  x_payment: PAYMENT_META, description: "Analyze your agent's codebase, get improvement plan + missing context files. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
+      { name: "prepare_agentic_purchasing_preview", auth: false, description: "Free Purchasing Readiness Score preview. Triage a codebase before paying for the full prepare_agentic_purchasing run. No auth, no charge, no snapshot persisted. Hard caps: 25 files / 50KB per file / 1MB total. Returns score, gaps, and which AXIS programs would close which gaps." },
       { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid per page crawled ($0.25/page, or $0.12/page lite). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.00001 per agent conversion." },

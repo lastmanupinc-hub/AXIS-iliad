@@ -143,8 +143,8 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("POST /mcp");
   });
 
-    it("contains 14 MCP tools count", () => {
-      expect(body).toContain("14 tools");
+    it("contains 16 MCP tools count", () => {
+      expect(body).toContain("16 tools");
   });
 
   it("contains the 19 programs count", () => {
@@ -235,11 +235,11 @@ describe("GET /.well-known/skills/index.json", () => {
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists 14 tools", () => {
+  it("axis-mcp skill lists 16 tools", () => {
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
-      expect(mcp!.tools!.length).toBe(14);
+      expect(mcp!.tools!.length).toBe(16);
   });
 
   it("axis-analyze has tags array", () => {
@@ -366,9 +366,9 @@ describe("GET /for-agents", () => {
     expect(platforms["claude-code"]).toBeDefined();
   });
 
-  it("includes tools array with 14 tools", () => {
+  it("includes tools array with 16 tools", () => {
     const tools = data.tools as Array<unknown>;
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(16);
   });
 
   it("includes first_action hint", () => {
@@ -549,7 +549,7 @@ describe("GET /for-agents?intent=", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
-    expect(data.tools.length).toBe(14);
+    expect(data.tools.length).toBe(16);
     // purchasing-related tools should be ranked higher
     const names = data.tools.map((t: { name: string }) => t.name);
     const purchasingIdx = names.indexOf("prepare_agentic_purchasing");
@@ -562,6 +562,6 @@ describe("GET /for-agents?intent=", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
-    expect(data.tools.length).toBe(14);
+    expect(data.tools.length).toBe(16);
   });
 });

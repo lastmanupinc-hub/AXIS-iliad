@@ -680,6 +680,61 @@ export const MCP_TOOLS = [
     ],
   },
   {
+    name: "prepare_agentic_purchasing_preview",
+    description:
+      "Compute a free Purchasing Readiness Score (0-100) and gap list for a codebase without generating artifacts. No auth, no charge, no snapshot persisted. Hard caps: 25 files / 50KB per file / 1MB total. Returns score, risk_level, top gaps, frameworks detected, and which AXIS programs would close which gaps. Use this when you want to triage 'should I pay for the full hardening bundle?' before calling prepare_agentic_purchasing. The paid version generates the full artifact bundle including CE 3.0 dispute evidence, SCA exemption matrix, and TAP interop.",
+    inputSchema: {
+      type: "object",
+      required: ["project_name", "files"],
+      properties: {
+        project_name: { type: "string", description: "Name of the project being previewed" },
+        project_type: { type: "string", description: "Optional project type hint (web_application, api_service, cli_tool, library, monorepo)" },
+        frameworks: { type: "array", items: { type: "string" }, description: "Optional framework hints" },
+        files: {
+          type: "array",
+          description: "Source files to triage (max 25 files, 50KB each, 1MB total)",
+          items: {
+            type: "object",
+            required: ["path", "content"],
+            properties: {
+              path: { type: "string" },
+              content: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        score: { type: "number", description: "Current Purchasing Readiness Score (0-100) for the codebase as submitted" },
+        risk_level: { type: "string", enum: ["low", "medium", "high"] },
+        interpretation: { type: "string" },
+        strengths: { type: "array", items: { type: "string" } },
+        gaps: { type: "array", items: { type: "string" } },
+        top_3_gaps: { type: "array", items: { type: "string" } },
+        frameworks_detected: { type: "array", items: { type: "string" } },
+        what_axis_would_add: { type: "array", items: { type: "string" } },
+        conversion: { type: "object" },
+        cost: { type: "string" },
+      },
+      required: ["score", "risk_level", "strengths", "gaps", "top_3_gaps", "what_axis_would_add", "conversion", "cost"],
+    },
+    annotations: toolAnnotations("Prepare Agentic Purchasing (Preview)", true, true),
+    examples: [
+      {
+        name: "Preview a checkout codebase",
+        input: {
+          project_name: "my-checkout",
+          project_type: "web_application",
+          frameworks: ["react", "stripe"],
+          files: [{ path: "src/checkout.ts", content: "export function checkout() {}" }, { path: "README.md", content: "# my-checkout" }],
+        },
+        output: '{"score":15,"risk_level":"high","top_3_gaps":["commerce artifacts","compliance checklist","negotiation playbook"],"what_axis_would_add":["agent-purchasing-playbook.md","commerce-registry.json","negotiation-rules.md"],"conversion":{"tool":"prepare_agentic_purchasing","price":"$0.50","projected_score_after":"95+"},"cost":"free"}',
+      },
+    ],
+  },
+  {
     name: "get_referral_code",
     description:
       "Get or create the caller's AXIS referral token. Requires Authorization: Bearer <api_key>, has no usage charge, and may persist a new referral code if one does not exist yet. Example: call before sharing AXIS with another agent or workspace. Use this when you need the shareable token itself. Use get_referral_credits instead when you need balances, milestones, and discount status.",
@@ -1246,10 +1301,181 @@ const FREE_TOOL_NAMES = new Set([
   "discover_commerce_tools",
   "discover_agentic_commerce_tools",
   "discover_agentic_purchasing_needs",
+  "prepare_agentic_purchasing_preview",
   "get_referral_code",
   "get_referral_credits",
   "check_referral_credits",
 ]);
+
+// ─── Tool: prepare_agentic_purchasing_preview ─────────────────────
+//
+// Free, anonymous, no-charge sampling of the Purchasing Readiness Score.
+// Lets agents triage "should I pay for the full hardening bundle?" before
+// they commit a $0.50 paid call. No snapshot persisted, no DB writes
+// other than intent capture for analytics.
+
+/** Per-file content cap for the free preview (50 KB). */
+const PREVIEW_MAX_FILE_CONTENT_BYTES = 50 * 1024;
+/** Max files in a single preview call. */
+const PREVIEW_MAX_FILES = 25;
+/** Aggregate payload cap (1 MB). */
+const PREVIEW_MAX_TOTAL_BYTES = 1024 * 1024;
+
+/** Map a readiness category (gap label) to the AXIS artifact(s) that close it. */
+const PREVIEW_GAP_TO_ARTIFACTS: Record<string, string[]> = {
+  "commerce artifacts": ["agent-purchasing-playbook.md", "commerce-registry.json", "product-schema.json", "checkout-flow.md"],
+  "mcp configs": ["mcp-config.json", "capability-registry.json", "mcp/README.md"],
+  "compliance checklist": ["negotiation-rules.md", "checkout-flow.md", ".ai/ap2-compliance-checklist.md"],
+  "negotiation playbook": ["negotiation-rules.md", ".ai/negotiation-playbook.md"],
+  "debug playbook": ["debug-playbook.md", ".ai/debug-playbook.md"],
+  "optimization rules": ["optimization-rules.md", "token-budget-plan.md"],
+  "onboarding docs": ["AGENTS.md", "CLAUDE.md", ".cursorrules"],
+};
+
+export function runPreparePurchasingPreview(args: Record<string, unknown>): string {
+  const { project_name, project_type, frameworks, files: rawFiles } = args;
+
+  if (typeof project_name !== "string" || !project_name)
+    throw new Error("project_name is required");
+  if (project_name.length > MAX_SHORT_STRING_LENGTH)
+    throw new Error(`project_name exceeds max length (${MAX_SHORT_STRING_LENGTH})`);
+  if (!Array.isArray(rawFiles) || rawFiles.length === 0)
+    throw new Error("files must be a non-empty array");
+  if (rawFiles.length > PREVIEW_MAX_FILES)
+    throw new Error(`preview accepts max ${PREVIEW_MAX_FILES} files (received ${rawFiles.length}). Use prepare_agentic_purchasing for full analysis of larger codebases.`);
+
+  let totalBytes = 0;
+  const filePaths: string[] = [];
+  const fileContents: { path: string; content: string }[] = [];
+  for (const f of rawFiles) {
+    const file = f as Record<string, unknown>;
+    if (typeof file.path !== "string" || typeof file.content !== "string") {
+      throw new Error("Each file must have path (string) and content (string)");
+    }
+    const path = file.path
+      .replace(/\\/g, "/")
+      .replace(/\/+/g, "/")
+      .replace(/^\/+/, "");
+    if (path.includes("..")) throw new Error(`Invalid file path: ${file.path as string}`);
+    const size = Buffer.byteLength(file.content, "utf-8");
+    if (size > PREVIEW_MAX_FILE_CONTENT_BYTES)
+      throw new Error(`File ${path} exceeds preview cap (${PREVIEW_MAX_FILE_CONTENT_BYTES / 1024} KB per file). Use prepare_agentic_purchasing for larger files.`);
+    totalBytes += size;
+    if (totalBytes > PREVIEW_MAX_TOTAL_BYTES)
+      throw new Error(`Total payload exceeds preview cap (${PREVIEW_MAX_TOTAL_BYTES / 1024 / 1024} MB). Use prepare_agentic_purchasing for full analysis.`);
+    filePaths.push(path);
+    fileContents.push({ path, content: file.content });
+  }
+
+  // Score the codebase's CURRENT readiness (what artifacts they already have)
+  const { score: currentScore, gaps, strengths } = computePurchasingReadinessScore(filePaths);
+
+  // Detect frameworks from file content (lightweight signal, not the full context-engine)
+  const detectedFrameworks = new Set<string>();
+  if (Array.isArray(frameworks)) {
+    for (const fw of frameworks) {
+      if (typeof fw === "string" && fw.length > 0) detectedFrameworks.add(fw);
+    }
+  }
+  const combinedContent = fileContents.map(f => `${f.path}\n${f.content}`).join("\n").toLowerCase();
+  const frameworkSignals: { needle: string; label: string }[] = [
+    { needle: "from \"react\"", label: "react" },
+    { needle: "from 'react'", label: "react" },
+    { needle: "\"react\":", label: "react" }, // package.json dep
+    { needle: "from \"next", label: "next.js" },
+    { needle: "\"next\":", label: "next.js" },
+    { needle: "from \"vue\"", label: "vue" },
+    { needle: "\"vue\":", label: "vue" },
+    { needle: "from \"@angular", label: "angular" },
+    { needle: "\"@angular/", label: "angular" },
+    { needle: "express()", label: "express" },
+    { needle: "\"express\":", label: "express" },
+    { needle: "fastify(", label: "fastify" },
+    { needle: "\"fastify\":", label: "fastify" },
+    { needle: "from \"stripe\"", label: "stripe" },
+    { needle: "from 'stripe'", label: "stripe" },
+    { needle: "from \"@stripe/", label: "stripe" },
+    { needle: "\"stripe\":", label: "stripe" },
+    { needle: "paypal", label: "paypal" },
+    { needle: "from \"openai\"", label: "openai" },
+    { needle: "\"openai\":", label: "openai" },
+    { needle: "from \"@anthropic-ai", label: "anthropic" },
+    { needle: "\"@anthropic-ai/", label: "anthropic" },
+  ];
+  for (const { needle, label } of frameworkSignals) {
+    if (combinedContent.includes(needle)) detectedFrameworks.add(label);
+  }
+
+  const riskLevel: "low" | "medium" | "high" =
+    currentScore >= 80 ? "low" : currentScore >= 50 ? "medium" : "high";
+  const interpretation =
+    currentScore >= 80 ? "production-ready"
+    : currentScore >= 50 ? "partially-ready"
+    : "needs-hardening";
+
+  const top3 = gaps.slice(0, 3);
+  const whatAxisWouldAdd: string[] = [];
+  for (const gap of gaps) {
+    const artifacts = PREVIEW_GAP_TO_ARTIFACTS[gap] ?? [];
+    for (const artifact of artifacts) {
+      if (!whatAxisWouldAdd.includes(artifact)) whatAxisWouldAdd.push(artifact);
+    }
+  }
+
+  // Projected score after AXIS = current + sum of weights for all gaps AXIS can close.
+  // PURCHASING_READINESS_WEIGHTS sum to 100 by design, so projected ≈ 100 minus any
+  // category that even AXIS can't close (none, currently — keep dynamic for future).
+  const projectedScoreAfter = 100; // all gaps are AXIS-closable
+
+  // Intent capture for telemetry (no PII, no auth required)
+  captureIntent("prepare_agentic_purchasing_preview", project_name, "anonymous");
+
+  const projectTypeStr = typeof project_type === "string" ? project_type : "unspecified";
+
+  return JSON.stringify({
+    score: currentScore,
+    projected_score_after_axis: projectedScoreAfter,
+    risk_level: riskLevel,
+    interpretation,
+    project_name,
+    project_type: projectTypeStr,
+    files_analyzed: rawFiles.length,
+    strengths,
+    gaps,
+    top_3_gaps: top3,
+    frameworks_detected: [...detectedFrameworks],
+    what_axis_would_add: whatAxisWouldAdd,
+    conversion: {
+      tool: "prepare_agentic_purchasing",
+      price_standard_usd: "0.50",
+      price_lite_usd: "0.25",
+      gap_closure: `Pay $0.50 to close ${gaps.length} readiness gap${gaps.length === 1 ? "" : "s"} and unlock the full ${ARTIFACT_COUNT}-artifact hardening bundle (CE 3.0 dispute evidence, SCA exemption matrix, TAP interop, VROL/RDR/CDRN dispute flows).`,
+      projected_score_after: `${projectedScoreAfter}/100`,
+      retry_with: {
+        method: "tools/call",
+        name: "prepare_agentic_purchasing",
+        arguments: {
+          project_name,
+          project_type: projectTypeStr,
+          frameworks: [...detectedFrameworks],
+          goals: ["autonomous purchasing readiness"],
+          files: "<your files array>",
+        },
+      },
+    },
+    scoring_methodology: {
+      reference: "discover_agentic_purchasing_needs returns the full weighted scoring methodology",
+      categories: Object.keys(PREVIEW_GAP_TO_ARTIFACTS),
+      max_score: 100,
+    },
+    limits: {
+      max_files: PREVIEW_MAX_FILES,
+      max_file_kb: PREVIEW_MAX_FILE_CONTENT_BYTES / 1024,
+      max_total_mb: PREVIEW_MAX_TOTAL_BYTES / 1024 / 1024,
+    },
+    cost: "free — no auth required, no snapshot persisted",
+  }, null, 2);
+}
 
 const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
   search:               ["search", "discovery", "findability", "semantic", "agents-md", "cursorrules"],
@@ -2447,6 +2673,9 @@ export async function dispatch(
             break;
           case "prepare_agentic_purchasing":
             text = await runPreparePurchasing(toolArgs, req);
+            break;
+          case "prepare_agentic_purchasing_preview":
+            text = runPreparePurchasingPreview(toolArgs);
             break;
           case "closer":
             text = runCloser(toolArgs, req);
