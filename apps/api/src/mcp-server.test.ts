@@ -349,7 +349,7 @@ describe("POST /mcp — tools/list", () => {
     expect(analyzeRepo).toBeDefined();
     expect(analyzeRepo!.description).toContain("snapshot_id plus an artifacts listing");
     expect(analyzeRepo!.description).toContain("Use this when the source of truth is a GitHub repo URL");
-    expect(analyzeRepo!.description).toContain("$0.50 standard, $0.15 lite budget mode");
+    expect(analyzeRepo!.description).toContain("$0.52 standard, $0.15 lite budget mode");
     expect(analyzeRepo!.description).toContain("authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors");
   });
 });

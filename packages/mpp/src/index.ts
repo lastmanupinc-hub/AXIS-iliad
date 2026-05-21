@@ -74,13 +74,13 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   },
   analyze_repo: {
     tool: "analyze_repo",
-    standard_cents: 50,
+    standard_cents: 52,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 18 programs)",
   },
   analyze_files: {
     tool: "analyze_files",
-    standard_cents: 50,
+    standard_cents: 52,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 18 programs)",
   },
@@ -264,7 +264,7 @@ export function build402NegotiationBody(
         "VROL/RDR/CDRN pre-dispute deflection paths",
       ],
       vs_visa_ic_pilot: {
-        axis: { api_calls: 0, latency_ms: 0, pci_scope: "none", price: "$0.50/run (one-time)", output: "deterministic artifacts" },
+        axis: { api_calls: 0, latency_ms: 0, pci_scope: "none", price: "$0.52/run (one-time)", output: "deterministic artifacts" },
         visa_ic: { api_calls: "3-5 per transaction", latency_ms: "200-800", pci_scope: "required", price: "per-call pricing", output: "runtime responses" },
       },
     },

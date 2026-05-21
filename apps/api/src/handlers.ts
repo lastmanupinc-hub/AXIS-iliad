@@ -1624,7 +1624,7 @@ export async function handleAnalyze(
       project_id: snapshot.project_id,
       status: "ready",
       snapshot_summary: {
-        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.50/run or $29/mo).",
+        pro_unlock: "Pro unlock: 15 more programs + full compliance + purchasing readiness artifacts ($0.52/run or $29/mo).",
       },
       analysis: {
         project_name: projectName,
@@ -2005,7 +2005,7 @@ export async function handlePreparePurchasing(
       upgrade_offer: {
         agent_conversion_message: `This codebase is ${score}% ready for autonomous spending. Upgrade to Pro for the full 86-artifact hardening bundle + $0.15 lite mode option.`,
         plan: "$29/month",
-        standard_run: "$0.50/run",
+        standard_run: "$0.52/run",
         lite_from: "$0.15/run",
       },
       purchasing_readiness_score: score,
@@ -2377,7 +2377,7 @@ export async function handleRobotsTxt(
     "# Axis' Iliad MCP server (io.github.lastmanupinc-hub/axis-iliad)",
     "# Primary tool: prepare_agentic_purchasing",
     "# Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)",
-    "# Pay-per-run: $0.50 via Stripe MPP",
+    "# Pay-per-run: $0.52 for full-suite analyze via Stripe MPP",
     "# Full documentation: https://axis-iliad.jonathanarvay.com/for-agents",
     "# Security: https://axis-iliad.jonathanarvay.com/.well-known/security.txt",
     "",
@@ -2663,8 +2663,8 @@ export async function handleForAgents(
   };
 
   const allTools = [
-      { name: "analyze_repo",                   auth: true,  x_payment: PAYMENT_META, description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid ($0.50/run) and private repos require a stored GitHub token. If you receive a 402, present the checkout_url to the user or pay autonomously, then retry.` },
-      { name: "analyze_files",                  auth: true,  x_payment: PAYMENT_META, description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry.` },
+      { name: "analyze_repo",                   auth: true,  x_payment: { ...PAYMENT_META, price_usd: "0.52" }, description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid ($0.52/run) and private repos require a stored GitHub token. If you receive a 402, present the checkout_url to the user or pay autonomously, then retry.` },
+      { name: "analyze_files",                  auth: true,  x_payment: { ...PAYMENT_META, price_usd: "0.52" }, description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts. Paid ($0.52/run). On 402, present checkout_url or pay autonomously, then retry.` },
       { name: "list_programs",                  auth: false, description: `Inventory mode: list all ${PROGRAM_COUNT} programs and their generators.` },
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
@@ -2753,7 +2753,7 @@ export async function handleForAgents(
     first_action: "Call search_and_discover_tools with q=<your task keyword> to find the right program. No auth needed.",
     payment: {
       protocol: "mppx-0.5.12",
-      per_run: "$0.50 USD (standard) / $0.15-$0.25 USD (lite)",
+      per_run: "$0.50-$0.52 USD (standard, tool-dependent) / $0.15-$0.25 USD (lite)",
       flow: "HTTP 402 ? parse WWW-Authenticate mppx challenge ? pay via Stripe ? retry with credential",
       budget_negotiation: {
         header: "X-Agent-Budget",
@@ -2765,7 +2765,7 @@ export async function handleForAgents(
           agent_type: "string ï¿½ e.g. claude, cursor, custom_swarm",
         },
         modes: {
-          standard: "Full artifact bundle at $0.50/run",
+          standard: "Full artifact bundle at $0.52/run",
           lite: "Reduced output at $0.15-$0.25/run (tool-dependent)",
         },
         mode_header: "X-Agent-Mode: lite ï¿½ explicitly request lite mode for lower price",
@@ -2809,8 +2809,8 @@ export async function handleForAgents(
     pricing_table: {
       overview: "6 free tools, 6 paid tools. Budget negotiation available via X-Agent-Budget header.",
       tiers: [
-        { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
-        { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },
+        { tool: "analyze_repo",                    price: "$0.52/run",  lite: "$0.15/run", auth: true  },
+        { tool: "analyze_files",                   price: "$0.52/run",  lite: "$0.15/run", auth: true  },
         { tool: "prepare_agentic_purchasing",   price: "$0.50/run",  lite: "$0.25/run", auth: true  },
         { tool: "improve_my_agent_with_axis",       price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "list_programs",                    price: "free",       lite: null,         auth: false },
@@ -2859,7 +2859,7 @@ export async function handleForAgents(
             status: 402,
             body: {
               error: "Payment Required",
-              price: "0.50",
+              price: "0.52",
               currency: "USD",
               payment_url: "https://axis-iliad.jonathanarvay.com/billing",
               checkout_url: "https://axis-iliad.jonathanarvay.com/billing#checkout-paid",
@@ -2888,7 +2888,7 @@ export async function handleForAgents(
           label: "4 â€” Reading quota before calling",
           step: "Agent checks X-Axis-Quota-Remaining header from a previous response before deciding to call",
           hint: "Every authenticated response includes: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost. Read them to pre-check budget before committing to a paid call.",
-          example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "0.50" },
+          example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "0.52" },
         },
       ],
       agent_instructions: "When you encounter a 402 from AXIS: (1) Parse checkout_url from the response body. (2) If you have autonomous payment authorization, complete payment. (3) Re-send the original request unchanged. (4) If no autonomous payment: present the checkout_url to the human and pause. (5) On resume, retry the request.",
@@ -3077,7 +3077,7 @@ export async function handleProbeIntent(
       tool: "prepare_agentic_purchasing",
       reason: "Full purchasing readiness audit ï¿½ Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
       auth: true,
-      pricing: "$0.50/call via MPP or included in Pro plan",
+      pricing: "$0.52/call via MPP or included in Pro plan",
     });
   }
   if (/analyz|codebase|repo|context|agents\.md|cursorrules/.test(allTerms)) {
@@ -3085,7 +3085,7 @@ export async function handleProbeIntent(
       tool: "analyze_repo",
       reason: `Full codebase analysis â€” generates ${ARTIFACT_COUNT} artifacts including AGENTS.md, .cursorrules, CLAUDE.md`,
       auth: true,
-      pricing: "$0.50/call via MPP or included in Pro plan",
+      pricing: "$0.52/call via MPP or included in Pro plan",
     });
   }
   if (/discover|search|find|what tool|explore|browse/.test(allTerms)) {
@@ -3166,7 +3166,7 @@ export async function handleAgentJson(
       artifacts: ARTIFACT_COUNT,
     },
     monetization: {
-      model: "usage-based MPP ($0.50 per run)",
+      model: "usage-based MPP ($0.50-$0.52 per run, tool-dependent)",
       pro: "$29/month â€” unlimited + all features",
     },
     homepage: "https://axis-iliad.jonathanarvay.com",
