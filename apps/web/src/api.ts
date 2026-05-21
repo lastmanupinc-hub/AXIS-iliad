@@ -650,10 +650,13 @@ export interface SubscriptionInfo {
   subscription_count: number;
 }
 
-export async function createCheckout(tier: BillingTier): Promise<{ checkout_url: string; tier: string; session_id: string; price_id?: string; variant_id?: string }> {
+export async function createCheckout(
+  tier: BillingTier,
+  billingCycle: "monthly" | "annual" = "monthly",
+): Promise<{ checkout_url: string; tier: string; billing_cycle?: string; session_id: string; price_id?: string; variant_id?: string }> {
   return fetchJSON("/v1/checkout", {
     method: "POST",
-    body: JSON.stringify({ tier }),
+    body: JSON.stringify({ tier, billing_cycle: billingCycle }),
   });
 }
 

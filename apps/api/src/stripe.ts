@@ -356,12 +356,23 @@ export async function handleCreateCheckout(
     return;
   }
 
+  const billingCycleRaw = body.billing_cycle;
+  if (billingCycleRaw !== undefined && billingCycleRaw !== "monthly" && billingCycleRaw !== "annual") {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "billing_cycle must be monthly or annual");
+    return;
+  }
+
+  const billingCycle = billingCycleRaw === "annual" ? "annual" : "monthly";
+
   const priceId = tier === "paid"
-    ? process.env.STRIPE_PRICE_ID_PAID
+    ? billingCycle === "annual"
+      ? process.env.STRIPE_PRICE_ID_PAID_ANNUAL
+      : process.env.STRIPE_PRICE_ID_PAID
     : process.env.STRIPE_PRICE_ID_SUITE;
 
   if (!priceId) {
-    sendError(res, 503, ErrorCode.INTERNAL_ERROR, `No Stripe price ID configured for ${tier} tier`);
+    const priceLabel = tier === "paid" ? `${tier} ${billingCycle}` : tier;
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, `No Stripe price ID configured for ${priceLabel} tier`);
     return;
   }
 
@@ -390,8 +401,10 @@ export async function handleCreateCheckout(
   }
   params.append("metadata[account_id]", ctx.account!.account_id);
   params.append("metadata[tier]", tier);
+  params.append("metadata[billing_cycle]", billingCycle);
   params.append("subscription_data[metadata][account_id]", ctx.account!.account_id);
   params.append("subscription_data[metadata][tier]", tier);
+  params.append("subscription_data[metadata][billing_cycle]", billingCycle);
 
   try {
     const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
@@ -448,11 +461,16 @@ export async function handleCreateCheckout(
 
     const session = await response.json() as { id: string; url: string };
 
-    trackEvent(ctx.account!.account_id, "checkout_started", "conversion", { tier, source: "stripe" });
+    trackEvent(ctx.account!.account_id, "checkout_started", "conversion", {
+      tier,
+      billing_cycle: billingCycle,
+      source: "stripe",
+    });
 
     sendJSON(res, 201, {
       checkout_url: session.url,
       tier,
+      billing_cycle: billingCycle,
       price_id: priceId,
       variant_id: priceId, // backward-compat for older web clients
       session_id: session.id,

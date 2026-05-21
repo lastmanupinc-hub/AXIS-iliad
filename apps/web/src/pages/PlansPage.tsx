@@ -44,7 +44,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
     setCheckoutLoading(planId);
     setCheckoutError(null);
     try {
-      const result = await createCheckout(planId as BillingTier);
+      const result = await createCheckout(planId as BillingTier, annual ? "annual" : "monthly");
       window.location.href = result.checkout_url;
     } catch (err) {
       setCheckoutError(err instanceof Error ? err.message : "Checkout failed");

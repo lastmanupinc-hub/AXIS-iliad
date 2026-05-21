@@ -1595,6 +1595,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           required: ["tier"],
           properties: {
             tier: { type: "string", enum: ["paid", "suite"], description: "Target subscription tier" },
+            billing_cycle: { type: "string", enum: ["monthly", "annual"], description: "Stripe billing cycle for the paid tier" },
           },
         },
         CheckoutResponse: {
@@ -1602,6 +1603,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           properties: {
             checkout_url: { type: "string", format: "uri" },
             tier: { type: "string" },
+            billing_cycle: { type: "string", enum: ["monthly", "annual"] },
             variant_id: { type: "string" },
           },
         },

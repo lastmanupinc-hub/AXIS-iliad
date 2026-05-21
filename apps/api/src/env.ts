@@ -30,6 +30,7 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "STRIPE_SECRET_KEY", required: false, type: "string", description: "Stripe secret API key for checkout and subscription management" },
   { key: "STRIPE_WEBHOOK_SECRET", required: false, type: "string", description: "Stripe webhook signing secret (whsec_...) for Stripe-Signature verification" },
   { key: "STRIPE_PRICE_ID_PAID", required: false, type: "string", description: "Stripe price ID for the paid ($29/mo) tier" },
+  { key: "STRIPE_PRICE_ID_PAID_ANNUAL", required: false, type: "string", description: "Stripe price ID for the paid ($279/yr) tier" },
   { key: "STRIPE_PRICE_ID_SUITE", required: false, type: "string", description: "Stripe price ID for the suite ($99/mo) tier" },
   // Proxied tool integrations
   { key: "FIRECRAWL_API_KEY", required: false, type: "string", description: "API key for Firecrawl web scraping service (https://firecrawl.dev)" },
