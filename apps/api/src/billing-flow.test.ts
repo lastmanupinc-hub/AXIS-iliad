@@ -270,6 +270,18 @@ describe("tier upgrade flow", () => {
     expect((r.data.account as Record<string, unknown>).tier).toBe("suite");
   });
 
+  it("accepts plan aliases for tier updates", async () => {
+    const { key } = await createTestAccount("AliasTier", "aliastier@test.com");
+
+    const starter = await req("POST", "/v1/account/tier", { tier: "starter" }, key);
+    expect(starter.status).toBe(200);
+    expect((starter.data.account as Record<string, unknown>).tier).toBe("paid");
+
+    const growth = await req("POST", "/v1/account/tier", { tier: "growth" }, key);
+    expect(growth.status).toBe(200);
+    expect((growth.data.account as Record<string, unknown>).tier).toBe("suite");
+  });
+
   it("rejects invalid tier", async () => {
     const { key } = await createTestAccount("Lou", "lou@test.com");
     const r = await req("POST", "/v1/account/tier", { tier: "enterprise" }, key);

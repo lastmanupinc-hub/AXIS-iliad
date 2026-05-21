@@ -50,6 +50,13 @@ export interface AuthContext {
 
 const AUTH_CONTEXT = new WeakMap<IncomingMessage, AuthContext>();
 
+function normalizeBillingTierInput(raw: unknown): BillingTier | null {
+  if (raw === "free") return "free";
+  if (raw === "paid" || raw === "starter" || raw === "pro") return "paid";
+  if (raw === "suite" || raw === "growth") return "suite";
+  return null;
+}
+
 /**
  * Extract and resolve API key from Authorization header.
  * Sets auth context on the request. Does NOT reject anonymous requests —
@@ -144,14 +151,14 @@ export async function handleCreateAccount(
   /* v8 ignore next — V8 quirk on body property access after try/catch */
   const name = body.name as string | undefined;
   const email = body.email as string | undefined;
-  const tier = (body.tier as BillingTier) ?? "free";
+  const tier = normalizeBillingTierInput(body.tier ?? "free");
 
   if (!name || typeof name !== "string" || !email || typeof email !== "string") {
     sendError(res, 400, ErrorCode.MISSING_FIELD, "name and email are required (both must be strings)");
     return;
   }
 
-  if (typeof tier !== "string" || !["free", "paid", "suite"].includes(tier)) {
+  if (!tier) {
     sendError(res, 400, ErrorCode.INVALID_FORMAT, "tier must be free, paid, or suite");
     return;
   }
@@ -397,18 +404,18 @@ export async function handleUpdateTier(
     return;
   }
 
-  const tier = body.tier;
-  if (!tier || typeof tier !== "string" || !["free", "paid", "suite"].includes(tier)) {
+  const tier = normalizeBillingTierInput(body.tier);
+  if (!tier) {
     sendError(res, 400, ErrorCode.INVALID_FORMAT, "tier must be free, paid, or suite");
     return;
   }
 
   const previousTier = ctx.account!.tier;
-  updateAccountTier(ctx.account!.account_id, tier as BillingTier);
+  updateAccountTier(ctx.account!.account_id, tier);
   const updated = getAccount(ctx.account!.account_id);
 
   // Log tier change to audit trail
-  logTierChange(ctx.account!.account_id, previousTier, tier as BillingTier, "user_request", { source: "api" });
+  logTierChange(ctx.account!.account_id, previousTier, tier, "user_request", { source: "api" });
 
   // Track tier change funnel event
   const isUpgrade = (tier === "paid" && ctx.account!.tier === "free") || (tier === "suite");
