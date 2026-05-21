@@ -83,7 +83,7 @@ This is a **monorepo** built with **TypeScript**.
 - `GET /.well-known/agent.json` â†’ apps/api/src/server.ts
 - `GET /.well-known/oauth-authorization-server` â†’ apps/api/src/server.ts
 - `GET /mcp/.well-known/mcp.json` â†’ apps/api/src/server.ts
-- *â€¦ 91 more (see OpenAPI spec or `/v1/docs`)*
+- *… 92 more routes (see OpenAPI spec or `/v1/docs`)*
 
 ### Domain Models
 
