@@ -14,7 +14,7 @@ import {
   detectProjectName,
 } from "./handlers.js";
 
-// ─── HTTP helper ─────────────────────────────────────────────────
+// â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function req(
   method: string,
@@ -87,7 +87,7 @@ afterAll(async () => {
   closeDb();
 });
 
-// ─── adoptionHint (pure function) ───────────────────────────────
+// â”€â”€â”€ adoptionHint (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("adoptionHint", () => {
   it("returns known hint for AGENTS.md", () => {
@@ -130,14 +130,14 @@ describe("adoptionHint", () => {
     expect(hint.adoption_hint).toContain(".ai/");
   });
 
-  it("is deterministic (same input → same output)", () => {
+  it("is deterministic (same input â†’ same output)", () => {
     const a = adoptionHint("AGENTS.md");
     const b = adoptionHint("AGENTS.md");
     expect(a).toEqual(b);
   });
 });
 
-// ─── buildNextSteps (pure function) ─────────────────────────────
+// â”€â”€â”€ buildNextSteps (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("buildNextSteps", () => {
   it("returns AGENTS.md as top step when present", () => {
@@ -173,7 +173,7 @@ describe("buildNextSteps", () => {
   });
 });
 
-// ─── detectProjectName (pure function) ──────────────────────────
+// â”€â”€â”€ detectProjectName (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("detectProjectName", () => {
   it("extracts name from package.json", () => {
@@ -224,9 +224,9 @@ describe("detectProjectName", () => {
   });
 });
 
-// ─── POST /v1/analyze — validation ──────────────────────────────
+// â”€â”€â”€ POST /v1/analyze â€” validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("POST /v1/analyze — validation", () => {
+describe("POST /v1/analyze â€” validation", () => {
   it("rejects missing body input (no github_url or files)", async () => {
     const r = await req("POST", "/v1/analyze", {});
     expect(r.status).toBe(400);
@@ -311,9 +311,9 @@ describe("POST /v1/analyze — validation", () => {
   });
 });
 
-// ─── POST /v1/analyze — success (files mode) ────────────────────
+// â”€â”€â”€ POST /v1/analyze â€” success (files mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("POST /v1/analyze — files mode", () => {
+describe("POST /v1/analyze â€” files mode", () => {
   let result: Record<string, unknown>;
 
   beforeAll(async () => {
@@ -377,9 +377,9 @@ describe("POST /v1/analyze — files mode", () => {
   });
 });
 
-// ─── POST /v1/analyze — programs filter ──────────────────────────
+// â”€â”€â”€ POST /v1/analyze â€” programs filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("POST /v1/analyze — programs filter", () => {
+describe("POST /v1/analyze â€” programs filter", () => {
   it("returns only requested programs", async () => {
     const r = await req("POST", "/v1/analyze", {
       files: minFiles,
@@ -390,7 +390,7 @@ describe("POST /v1/analyze — programs filter", () => {
     const files = data.files as Array<{ program: string }>;
     const programs = new Set(files.map(f => f.program));
     expect(programs.has("debug")).toBe(true);
-    // search program not requested — should not appear
+    // search program not requested â€” should not appear
     expect(programs.has("search")).toBe(false);
   });
 
@@ -413,9 +413,9 @@ describe("POST /v1/analyze — programs filter", () => {
   });
 });
 
-// ─── POST /v1/analyze — inline_content: false ────────────────────
+// â”€â”€â”€ POST /v1/analyze â€” inline_content: false â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("POST /v1/analyze — inline_content: false", () => {
+describe("POST /v1/analyze â€” inline_content: false", () => {
   it("omits content field from files when inline_content is false", async () => {
     const r = await req("POST", "/v1/analyze", {
       files: minFiles,
@@ -435,7 +435,7 @@ describe("POST /v1/analyze — inline_content: false", () => {
   });
 });
 
-// ─── GET /.well-known/axis.json ──────────────────────────────────
+// â”€â”€â”€ GET /.well-known/axis.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /.well-known/axis.json", () => {
   let manifest: Record<string, unknown>;
@@ -448,7 +448,7 @@ describe("GET /.well-known/axis.json", () => {
 
   it("returns name and version", () => {
     expect(manifest.name).toBe("Axis' Iliad");
-    expect(manifest.version).toBe("0.5.2");
+    expect(manifest.version).toBe("0.5.3");
   });
 
   it("describes the analyze_endpoint", () => {

@@ -7,7 +7,7 @@ describe("buildOpenApiSpec", () => {
   it("returns valid OpenAPI 3.1 spec", () => {
     expect(spec.openapi).toBe("3.1.0");
     expect(spec.info.title).toBe("Axis' Iliad API");
-    expect(spec.info.version).toBe("0.5.2");
+    expect(spec.info.version).toBe("0.5.3");
   });
 
   it("includes all major route groups", () => {
@@ -206,7 +206,7 @@ describe("buildOpenApiSpec", () => {
     }
   });
 
-  // ── eq_175: OAuth, Payments, GitHub Tokens, Billing paths ─────
+  // â”€â”€ eq_175: OAuth, Payments, GitHub Tokens, Billing paths â”€â”€â”€â”€â”€
 
   it("includes OAuth endpoints", () => {
     const paths = Object.keys(spec.paths);
@@ -278,7 +278,7 @@ describe("buildOpenApiSpec", () => {
     expect(schemas).toContain("ProrationPreviewResponse");
   });
 
-  // ── Route-spec parity: every server.ts route has a spec path ──
+  // â”€â”€ Route-spec parity: every server.ts route has a spec path â”€â”€
 
   it("every registered route has a corresponding OpenAPI path", () => {
     // All routes from server.ts (normalized to OpenAPI path params)

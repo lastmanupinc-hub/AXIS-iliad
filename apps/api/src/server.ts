@@ -108,8 +108,8 @@ import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT } from "./counts.js";
 
-// ─── Startup env validation (fail-fast) ─────────────────────────
-/* v8 ignore start — server.ts startup block not imported by tests */
+// â”€â”€â”€ Startup env validation (fail-fast) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* v8 ignore start â€” server.ts startup block not imported by tests */
 const envResult = validateEnv();
 if (!envResult.valid) {
   for (const err of envResult.errors) {
@@ -121,12 +121,12 @@ if (!envResult.valid) {
 
 const router = new Router();
 
-// Root — API landing page for probes, crawlers, and humans
+// Root â€” API landing page for probes, crawlers, and humans
 router.get("/", async (_req, res) => {
   const { sendJSON } = await import("./router.js");
   sendJSON(res, 200, {
     name: "Axis' Iliad API",
-    version: "0.5.2",
+    version: "0.5.3",
     docs: "/v1/docs",
     health: "/v1/health",
     llms: "/llms.txt",
@@ -201,7 +201,7 @@ router.post("/v1/analyze", handleAnalyze);
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);
 
-// Firecrawl proxy — web research (Phase 1)
+// Firecrawl proxy â€” web research (Phase 1)
 router.post("/v1/research/scrape", handleFirecrawlScrape);
 router.post("/v1/research/crawl", handleFirecrawlCrawl);
 
@@ -235,7 +235,7 @@ router.get("/.well-known/skills/index.json", handleSkillsIndex);
 // Plain-text API docs (Stripe-style .md suffix)
 router.get("/v1/docs.md", handleDocsMd);
 
-// Agent onboarding — machine-readable manifest + install configs
+// Agent onboarding â€” machine-readable manifest + install configs
 router.get("/for-agents", handleForAgents);
 router.post("/probe-intent", handleProbeIntent);
 router.get("/v1/install", handleInstall);
@@ -269,7 +269,7 @@ router.get("/v1/programs", async (_req, res) => {
   sendJSON(res, 200, { programs, total_generators: generators.length });
 });
 
-// MCP Server — Streamable HTTP transport (2025-03-26)
+// MCP Server â€” Streamable HTTP transport (2025-03-26)
 const handleMcpEntrypoint = async (req: IncomingMessage, res: ServerResponse) => {
   // Parse once here and pass pre-read JSON to handleMcpPost.
   // Auth is enforced inside MCP tool handlers so clients get JSON-RPC/tool
@@ -351,7 +351,7 @@ router.get("/v1/stats", async (_req, res) => {
   });
 });
 
-// MCP registry metadata — for mcp-publisher CLI and registry crawlers
+// MCP registry metadata â€” for mcp-publisher CLI and registry crawlers
 router.get("/v1/mcp/server.json", handleMcpServerJson);
 
 // MCP tool discovery via REST
@@ -447,7 +447,7 @@ router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 router.post("/portal/api/subscribe", handlePaidSubscribe);
 router.post("/portal/api/paid/webhook", handlePaidWebhook);
 
-/* v8 ignore next — server.ts is never imported by test suites */
+/* v8 ignore next â€” server.ts is never imported by test suites */
 const port = parseInt(process.env.PORT ?? "4000", 10);
 /* v8 ignore next */
 export const app = createApp(router, port);

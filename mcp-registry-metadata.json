@@ -3,7 +3,7 @@
   "generated_at": "2026-05-14T02:05:24.985Z",
   "registry": {
     "name": "@axis/api",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "description": "MCP server metadata for axis-iliad publishing and discovery.",
     "capabilities": [
       "tools",

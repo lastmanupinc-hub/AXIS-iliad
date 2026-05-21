@@ -1,7 +1,7 @@
 {
   "name": "axis-iliad",
-  "displayName": "Axis Iliad — Codebase Intelligence For Agentic Commerce",
-  "version": "0.5.2",
+  "displayName": "Axis Iliad â€” Codebase Intelligence For Agentic Commerce",
+  "version": "0.5.3",
   "description": "Analyze a GitHub repo or file set and receive 86 structured artifacts across 18 programs: AGENTS.md, .cursorrules, CLAUDE.md, architecture maps, debug playbooks, design tokens, MCP configs, AP2/UCP/Visa commerce hardening, negotiation rules, and purchasing-readiness guidance for autonomous agents.",
   "author": "Last Man Up Inc.",
   "license": "UNLICENSED",
@@ -39,17 +39,17 @@
     {
       "name": "prepare_agentic_purchasing",
       "summary": "Full purchasing readiness audit for any codebase. One call. Returns a score (0-100), AP2/UCP/Visa compliance checklist, negotiation playbook, autonomous checkout rules, payment mandate schema, MCP configs, and self-onboarding kit. Use this FIRST before spending money on or with any repo.",
-      "description": "POST /v1/prepare-for-agentic-purchasing — chains 10 AXIS programs, computes a Purchasing Readiness Score (0-100) via a 7-category weighted rubric (commerce artifacts 20pts, MCP configs 20pts, compliance checklist 15pts, negotiation playbook 15pts, debug playbook 10pts, optimization rules 10pts, onboarding docs 10pts), and returns a structured JSON bundle. Output includes: score_breakdown with strengths[], gaps[], interpretation; purchasing_artifacts with full content (AP2 compliance checklist, autonomous-checkout-rules.yaml, negotiation-playbook.md, payment-mandate-schema.json, agentic-purchasing-readiness.md, AGENTS.md, .cursorrules, mcp-config.json); all_artifacts list; and how_to_call_axis_again with REST and MCP usage. Supports GitHub URL via github_url field instead of files[]. Requires API key. Deducts 1 credit per run."
+      "description": "POST /v1/prepare-for-agentic-purchasing â€” chains 10 AXIS programs, computes a Purchasing Readiness Score (0-100) via a 7-category weighted rubric (commerce artifacts 20pts, MCP configs 20pts, compliance checklist 15pts, negotiation playbook 15pts, debug playbook 10pts, optimization rules 10pts, onboarding docs 10pts), and returns a structured JSON bundle. Output includes: score_breakdown with strengths[], gaps[], interpretation; purchasing_artifacts with full content (AP2 compliance checklist, autonomous-checkout-rules.yaml, negotiation-playbook.md, payment-mandate-schema.json, agentic-purchasing-readiness.md, AGENTS.md, .cursorrules, mcp-config.json); all_artifacts list; and how_to_call_axis_again with REST and MCP usage. Supports GitHub URL via github_url field instead of files[]. Requires API key. Deducts 1 credit per run."
     },
     {
       "name": "analyze_repo",
       "summary": "Analyze a GitHub repo URL and return snapshot_id plus 86 structured artifacts. Use this for repository URLs; use analyze_files for inline file payloads. Requires API key and the full-analysis path is paid.",
-      "description": "POST /v1/mcp with method tools/call, tool analyze_repo — fetches the GitHub tarball, runs the full 18-program pipeline (search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing), and returns snapshot_id plus an artifacts listing with paths and descriptions. Call get_artifact to read any generated file and get_snapshot to re-enumerate outputs without re-running analysis. Use this when the input is a GitHub repository URL; use analyze_files for direct file content, and use list_programs or search_and_discover_tools if you are still selecting a workflow. Requires Authorization: Bearer <api_key>. The full 86-artifact analysis path is paid ($0.50 standard, $0.15 lite budget mode). Public GitHub repos work directly; private repos require a stored GitHub token on the AXIS account. Common failures include invalid GitHub URL, authentication failure, quota exhaustion, payment-required responses, and upstream GitHub fetch errors."
+      "description": "POST /v1/mcp with method tools/call, tool analyze_repo â€” fetches the GitHub tarball, runs the full 18-program pipeline (search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing), and returns snapshot_id plus an artifacts listing with paths and descriptions. Call get_artifact to read any generated file and get_snapshot to re-enumerate outputs without re-running analysis. Use this when the input is a GitHub repository URL; use analyze_files for direct file content, and use list_programs or search_and_discover_tools if you are still selecting a workflow. Requires Authorization: Bearer <api_key>. The full 86-artifact analysis path is paid ($0.50 standard, $0.15 lite budget mode). Public GitHub repos work directly; private repos require a stored GitHub token on the AXIS account. Common failures include invalid GitHub URL, authentication failure, quota exhaustion, payment-required responses, and upstream GitHub fetch errors."
     },
     {
       "name": "analyze_files",
       "summary": "Analyze source files directly (no GitHub required). Returns snapshot_id + 86 artifacts. Pass files as [{path, content}] array. Requires API key.",
-      "description": "POST /v1/mcp with method tools/call, tool analyze_files — accepts project_name, project_type (web_application/api_service/cli_tool/library/monorepo), frameworks[], goals[], and files[{path,content}]. Runs the full 18-program pipeline and returns snapshot_id plus all 86 generated artifact paths. Deterministic: same input always produces byte-identical output. Tier limits: free 1000 files/snapshot, pro 1000 files/snapshot. Requires API key."
+      "description": "POST /v1/mcp with method tools/call, tool analyze_files â€” accepts project_name, project_type (web_application/api_service/cli_tool/library/monorepo), frameworks[], goals[], and files[{path,content}]. Runs the full 18-program pipeline and returns snapshot_id plus all 86 generated artifact paths. Deterministic: same input always produces byte-identical output. Tier limits: free 1000 files/snapshot, pro 1000 files/snapshot. Requires API key."
     },
     {
       "name": "get_artifact",
@@ -89,7 +89,7 @@
     {
       "name": "get_referral_code",
       "summary": "Get your agent's unique referral code for the Share-to-Earn program. Requires API key.",
-      "description": "Returns your referral token. Share it with other agents — as referrals grow, your effective dollar cost per call decreases (up to 0.02% benefit, reset each billing cycle). 5th paid call free for new agents."
+      "description": "Returns your referral token. Share it with other agents â€” as referrals grow, your effective dollar cost per call decreases (up to 0.02% benefit, reset each billing cycle). 5th paid call free for new agents."
     },
     {
       "name": "get_referral_credits",
@@ -98,8 +98,8 @@
     }
   ],
   "quickstart": {
-    "step1_get_key": "GET https://axis-api-6c7z.onrender.com/v1/auth/github → OAuth flow → returns api_key",
-    "step2_discover": "GET https://axis-api-6c7z.onrender.com/v1/mcp/tools?q=checkout → find relevant programs",
+    "step1_get_key": "GET https://axis-api-6c7z.onrender.com/v1/auth/github â†’ OAuth flow â†’ returns api_key",
+    "step2_discover": "GET https://axis-api-6c7z.onrender.com/v1/mcp/tools?q=checkout â†’ find relevant programs",
     "step3_analyze": "POST https://axis-api-6c7z.onrender.com/v1/mcp  {jsonrpc:'2.0', method:'tools/call', params:{name:'prepare_agentic_purchasing', arguments:{...}}}",
     "step4_retrieve": "Use snapshot_id from step3 + get_artifact tool to pull any specific file"
   },

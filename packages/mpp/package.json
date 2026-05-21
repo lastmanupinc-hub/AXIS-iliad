@@ -1,8 +1,8 @@
 {
   "name": "@axis/mpp",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "type": "module",
-  "description": "Machine Payments Protocol (MPP) — x402 budget negotiation and AP2 pricing utilities for MCP/AI agent servers",
+  "description": "Machine Payments Protocol (MPP) â€” x402 budget negotiation and AP2 pricing utilities for MCP/AI agent servers",
   "keywords": [
     "mpp",
     "x402",
@@ -29,7 +29,7 @@
   "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsc",
-    "test": "echo skipped — run vitest from root"
+    "test": "echo skipped â€” run vitest from root"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

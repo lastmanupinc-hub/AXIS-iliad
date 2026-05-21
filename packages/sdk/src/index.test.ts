@@ -1,5 +1,5 @@
 /**
- * Tests for @axis/sdk — AxisClient (eq_197)
+ * Tests for @axis/sdk â€” AxisClient (eq_197)
  *
  * Mocks globalThis.fetch to validate:
  * - Correct URL construction and method usage
@@ -11,7 +11,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { AxisClient } from "./index.js";
 
-// ─── Mock fetch ──────────────────────────────────────────────────
+// â”€â”€â”€ Mock fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function mockFetch(status: number, body: unknown, opts?: { headers?: Record<string, string> }) {
   const fn = vi.fn().mockResolvedValue({
@@ -34,7 +34,7 @@ function mockMcpResponse(text: string, isError = false) {
   };
 }
 
-// ─── Constructor ─────────────────────────────────────────────────
+// â”€â”€â”€ Constructor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("AxisClient constructor", () => {
   it("uses production base URL by default", () => {
@@ -68,7 +68,7 @@ describe("AxisClient constructor", () => {
   });
 });
 
-// ─── Health endpoints ────────────────────────────────────────────
+// â”€â”€â”€ Health endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("health endpoints", () => {
   let client: AxisClient;
@@ -78,7 +78,7 @@ describe("health endpoints", () => {
   });
 
   it("health() calls GET /v1/health", async () => {
-    const f = mockFetch(200, { status: "healthy", version: "0.5.2" });
+    const f = mockFetch(200, { status: "healthy", version: "0.5.3" });
     const res = await client.health();
     expect(f).toHaveBeenCalledWith("http://test:4000/v1/health", expect.objectContaining({ method: "GET" }));
     expect(res.status).toBe("healthy");
@@ -97,7 +97,7 @@ describe("health endpoints", () => {
   });
 });
 
-// ─── Authorization ───────────────────────────────────────────────
+// â”€â”€â”€ Authorization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("authorization", () => {
   it("sends Bearer token when apiKey is set", async () => {
@@ -117,7 +117,7 @@ describe("authorization", () => {
   });
 });
 
-// ─── Error handling ──────────────────────────────────────────────
+// â”€â”€â”€ Error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("error handling", () => {
   let client: AxisClient;
@@ -148,7 +148,7 @@ describe("error handling", () => {
   });
 });
 
-// ─── MCP-based methods ──────────────────────────────────────────
+// â”€â”€â”€ MCP-based methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("MCP-based methods", () => {
   let client: AxisClient;
@@ -231,7 +231,7 @@ describe("MCP-based methods", () => {
   });
 });
 
-// ─── REST-based methods ──────────────────────────────────────────
+// â”€â”€â”€ REST-based methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("REST-based methods", () => {
   let client: AxisClient;
@@ -241,7 +241,7 @@ describe("REST-based methods", () => {
   });
 
   it("docs() calls GET /v1/docs and returns OpenAPI spec", async () => {
-    const spec = { openapi: "3.1.0", info: { title: "AXIS", version: "0.5.2" }, paths: {} };
+    const spec = { openapi: "3.1.0", info: { title: "AXIS", version: "0.5.3" }, paths: {} };
     const f = mockFetch(200, spec);
     const res = await client.docs();
     expect(f).toHaveBeenCalledWith("http://test:4000/v1/docs", expect.objectContaining({ method: "GET" }));
@@ -264,7 +264,7 @@ describe("REST-based methods", () => {
   });
 });
 
-// ─── MCP error edge cases ────────────────────────────────────────
+// â”€â”€â”€ MCP error edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("MCP error edge cases", () => {
   let client: AxisClient;

@@ -1,14 +1,14 @@
 /**
  * Tests for discovery & well-known handlers (eq_197):
- *   GET /.well-known/agent.json       — handleAgentJson
- *   GET /.well-known/glama.json       — handleGlamaJson
- *   GET /.well-known/security.txt     — handleSecurityTxt
- *   GET /.well-known/capabilities.json — handleCapabilities
- *   GET /robots.txt                    — handleRobotsTxt
- *   GET /sitemap.xml                   — handleSitemapXml
- *   GET /health                        — handleHealthRedirect
- *   GET /docs                          — handleDocsRedirect
- *   GET /openapi.json                  — handleOpenApiJson
+ *   GET /.well-known/agent.json       â€” handleAgentJson
+ *   GET /.well-known/glama.json       â€” handleGlamaJson
+ *   GET /.well-known/security.txt     â€” handleSecurityTxt
+ *   GET /.well-known/capabilities.json â€” handleCapabilities
+ *   GET /robots.txt                    â€” handleRobotsTxt
+ *   GET /sitemap.xml                   â€” handleSitemapXml
+ *   GET /health                        â€” handleHealthRedirect
+ *   GET /docs                          â€” handleDocsRedirect
+ *   GET /openapi.json                  â€” handleOpenApiJson
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
@@ -28,7 +28,7 @@ import {
   handlePerformanceReputation,
 } from "./handlers.js";
 
-// ─── HTTP helper ─────────────────────────────────────────────────
+// â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function req(
   path: string,
@@ -89,7 +89,7 @@ afterAll(async () => {
   closeDb();
 });
 
-// ─── GET /.well-known/agent.json ─────────────────────────────────
+// â”€â”€â”€ GET /.well-known/agent.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /.well-known/agent.json", () => {
   let status: number;
@@ -118,7 +118,7 @@ describe("GET /.well-known/agent.json", () => {
   });
 
   it("contains version field", () => {
-    expect(json.version).toBe("0.5.2");
+    expect(json.version).toBe("0.5.3");
   });
 
   it("contains capabilities object", () => {
@@ -136,7 +136,7 @@ describe("GET /.well-known/agent.json", () => {
   });
 });
 
-// ─── GET /.well-known/glama.json ────────────────────────────────
+// â”€â”€â”€ GET /.well-known/glama.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /.well-known/glama.json", () => {
   let status: number;
@@ -165,7 +165,7 @@ describe("GET /.well-known/glama.json", () => {
   });
 });
 
-// ─── GET /.well-known/security.txt ───────────────────────────────
+// â”€â”€â”€ GET /.well-known/security.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /.well-known/security.txt", () => {
   let status: number;
@@ -208,7 +208,7 @@ describe("GET /.well-known/security.txt", () => {
   });
 });
 
-// ─── GET /.well-known/capabilities.json ──────────────────────────
+// â”€â”€â”€ GET /.well-known/capabilities.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /.well-known/capabilities.json", () => {
   let status: number;
@@ -255,7 +255,7 @@ describe("GET /.well-known/capabilities.json", () => {
   });
 });
 
-// ─── GET /robots.txt ─────────────────────────────────────────────
+// â”€â”€â”€ GET /robots.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /robots.txt", () => {
   let status: number;
@@ -296,7 +296,7 @@ describe("GET /robots.txt", () => {
   });
 });
 
-// ─── GET /sitemap.xml ────────────────────────────────────────────
+// â”€â”€â”€ GET /sitemap.xml â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /sitemap.xml", () => {
   let status: number;
@@ -340,7 +340,7 @@ describe("GET /sitemap.xml", () => {
   });
 });
 
-// ─── GET /health ─────────────────────────────────────────────────
+// â”€â”€â”€ GET /health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /health", () => {
   let status: number;
@@ -369,7 +369,7 @@ describe("GET /health", () => {
   });
 
   it("contains version field", () => {
-    expect(json.version).toBe("0.5.2");
+    expect(json.version).toBe("0.5.3");
   });
 
   it("contains timestamp", () => {
@@ -382,7 +382,7 @@ describe("GET /health", () => {
   });
 });
 
-// ─── GET /docs ───────────────────────────────────────────────────
+// â”€â”€â”€ GET /docs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /docs", () => {
   let status: number;
@@ -419,7 +419,7 @@ describe("GET /docs", () => {
   });
 });
 
-// ─── GET /openapi.json ──────────────────────────────────────────
+// â”€â”€â”€ GET /openapi.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /openapi.json", () => {
   let status: number;
@@ -460,7 +460,7 @@ describe("GET /openapi.json", () => {
   });
 });
 
-// ─── GET /performance ─────────────────────────────────────────────
+// â”€â”€â”€ GET /performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /performance", () => {
   let status: number;
@@ -489,7 +489,7 @@ describe("GET /performance", () => {
   });
 
   it("contains version field", () => {
-    expect(json.version).toBe("0.5.2");
+    expect(json.version).toBe("0.5.3");
   });
 
   it("contains timestamp", () => {
@@ -508,7 +508,7 @@ describe("GET /performance", () => {
   });
 });
 
-// ─── GET /performance/reputation ──────────────────────────────────
+// â”€â”€â”€ GET /performance/reputation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /performance/reputation", () => {
   let status: number;

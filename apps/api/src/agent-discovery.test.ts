@@ -1,8 +1,8 @@
 /**
  * Tests for the three AI-discoverability endpoints (eq_192):
- *   GET /llms.txt                        — llmstxt.org standard
- *   GET /.well-known/skills/index.json   — agentskills.io standard
- *   GET /v1/docs.md                      — Stripe-style plain-text API reference
+ *   GET /llms.txt                        â€” llmstxt.org standard
+ *   GET /.well-known/skills/index.json   â€” agentskills.io standard
+ *   GET /v1/docs.md                      â€” Stripe-style plain-text API reference
  *
  * Also verifies that handleWellKnown now includes the llms_txt and skills fields.
  */
@@ -20,7 +20,7 @@ import {
   handleProbeIntent,
 } from "./handlers.js";
 
-// ─── HTTP helper ─────────────────────────────────────────────────
+// â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function req(
   path: string,
@@ -109,7 +109,7 @@ afterAll(async () => {
   closeDb();
 });
 
-// ─── GET /llms.txt ───────────────────────────────────────────────
+// â”€â”€â”€ GET /llms.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /llms.txt", () => {
   let status: number;
@@ -174,7 +174,7 @@ describe("GET /llms.txt", () => {
   });
 });
 
-// ─── GET /.well-known/skills/index.json ─────────────────────────
+// â”€â”€â”€ GET /.well-known/skills/index.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /.well-known/skills/index.json", () => {
   let status: number;
@@ -249,7 +249,7 @@ describe("GET /.well-known/skills/index.json", () => {
   });
 });
 
-// ─── GET /v1/docs.md ────────────────────────────────────────────
+// â”€â”€â”€ GET /v1/docs.md â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /v1/docs.md", () => {
   let status: number;
@@ -308,9 +308,9 @@ describe("GET /v1/docs.md", () => {
   });
 });
 
-// ─── GET /.well-known/axis.json — llms_txt and skills fields ────
+// â”€â”€â”€ GET /.well-known/axis.json â€” llms_txt and skills fields â”€â”€â”€â”€
 
-describe("GET /.well-known/axis.json — new fields", () => {
+describe("GET /.well-known/axis.json â€” new fields", () => {
   let data: Record<string, unknown>;
 
   beforeAll(async () => {
@@ -329,7 +329,7 @@ describe("GET /.well-known/axis.json — new fields", () => {
   });
 });
 
-// ─── GET /for-agents ──────────────────────────────────────────
+// â”€â”€â”€ GET /for-agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /for-agents", () => {
   let status: number;
@@ -347,7 +347,7 @@ describe("GET /for-agents", () => {
 
   it("returns name and version", () => {
     expect(data.name).toBe("Axis' Iliad");
-    expect(data.version).toBe("0.5.2");
+    expect(data.version).toBe("0.5.3");
   });
 
   it("includes install section with mcp_endpoint", () => {
@@ -389,7 +389,7 @@ describe("GET /for-agents", () => {
   });
 });
 
-// ─── GET /v1/install ──────────────────────────────────────────
+// â”€â”€â”€ GET /v1/install â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /v1/install", () => {
   let status: number;
@@ -424,7 +424,7 @@ describe("GET /v1/install", () => {
   });
 });
 
-// ─── GET /v1/install/:platform ──────────────────────────────
+// â”€â”€â”€ GET /v1/install/:platform â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /v1/install/:platform", () => {
   it("returns claude-desktop config", async () => {
@@ -468,7 +468,7 @@ describe("GET /v1/install/:platform", () => {
   });
 });
 
-// ─── POST /probe-intent ─────────────────────────────────────────
+// â”€â”€â”€ POST /probe-intent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("POST /probe-intent", () => {
   it("returns 200 with recommendations for valid description", async () => {
@@ -541,7 +541,7 @@ describe("POST /probe-intent", () => {
   });
 });
 
-// ─── GET /for-agents?intent= ────────────────────────────────────
+// â”€â”€â”€ GET /for-agents?intent= â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("GET /for-agents?intent=", () => {
   it("returns tools sorted by relevance when intent is provided", async () => {

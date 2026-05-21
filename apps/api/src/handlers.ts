@@ -51,7 +51,7 @@ import { resolveAuth, requireAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
 
-// ─── Referral discount wrapper ──────────────────────────────────
+// â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Apply referral benefits (free call) before charging MPP cash overage. */
 async function chargeWithDiscounts(
@@ -71,7 +71,7 @@ async function chargeWithDiscounts(
 
   res.setHeader("X-Axis-Request-Cost", (overageCents / 100).toFixed(2));
 
-  // Plan credits covered this call fully — no overage payment required.
+  // Plan credits covered this call fully â€” no overage payment required.
   if (overageCents <= 0) return { status: 200 };
 
   if (consumeFreeCall(accountId)) return { status: 200 };
@@ -95,7 +95,7 @@ function buildPaymentRequiredPayload(
   });
 }
 
-// ─── Ownership helpers ──────────────────────────────────────────
+// â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
 function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
@@ -128,7 +128,7 @@ function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_
   return true;
 }
 
-// ─── Per-program default outputs ────────────────────────────────
+// â”€â”€â”€ Per-program default outputs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   debug:        [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
@@ -167,7 +167,7 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   ],
 };
 
-// ─── Generic program handler factory ────────────────────────────
+// â”€â”€â”€ Generic program handler factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const FREE_PROGRAMS = new Set(TIER_LIMITS.free.programs);
 
@@ -175,7 +175,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   const isPro = !FREE_PROGRAMS.has(program);
 
   return async function (req: IncomingMessage, res: ServerResponse): Promise<void> {
-    // Billing gate for pro programs � $0.50 per call
+    // Billing gate for pro programs ï¿½ $0.50 per call
     if (isPro) {
       const auth = resolveAuth(req);
 
@@ -208,7 +208,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
       });
 
       if (mppResult === null) {
-        // MPP not configured � return 402 with negotiation data
+        // MPP not configured ï¿½ return 402 with negotiation data
         const paymentMessage = enabled
           ? `${program} exceeded included monthly credits and requires overage payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`
           : `${program} requires a paid plan or per-call payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
@@ -219,10 +219,10 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
           ...buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id),
         });
       }
-      // 402 challenge issued or payment failed � stop processing
+      // 402 challenge issued or payment failed ï¿½ stop processing
       if (mppResult === null || mppResult.status === 402) return;
 
-      // mppResult.status === 200 � covered by included credits or overage payment accepted.
+      // mppResult.status === 200 ï¿½ covered by included credits or overage payment accepted.
     }
 
     const raw = await readBody(req);
@@ -288,7 +288,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   };
 }
 
-// ─── Program handlers (generated from PROGRAM_OUTPUTS) ──────────
+// â”€â”€â”€ Program handlers (generated from PROGRAM_OUTPUTS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const handleDebugAnalyze        = makeProgramHandler("debug", PROGRAM_OUTPUTS.debug);
 export const handleFrontendAudit       = makeProgramHandler("frontend", PROGRAM_OUTPUTS.frontend);
@@ -377,7 +377,7 @@ export async function handleCreateSnapshot(
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
       // Determine if the user is requesting ONLY free programs.
-      // If so, skip the MPP charge — return a clear 429 without payment flow.
+      // If so, skip the MPP charge â€” return a clear 429 without payment flow.
       const requestedProgramsFromOutputs = new Set<string>();
       for (const output of manifest.requested_outputs) {
         for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -388,7 +388,7 @@ export async function handleCreateSnapshot(
         [...requestedProgramsFromOutputs].every(p => FREE_PROGRAMS.has(p));
 
       if (onlyFreePrograms) {
-        // Free-program-only requests bypass quota entirely — free programs are always available
+        // Free-program-only requests bypass quota entirely â€” free programs are always available
       } else {
         trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
         const budget = parseAgentBudget(req);
@@ -427,7 +427,7 @@ export async function handleCreateSnapshot(
       }
     }
 
-    // Enforce program entitlements — reject if free-tier user requests pro outputs
+    // Enforce program entitlements â€” reject if free-tier user requests pro outputs
     const allowedPrograms = new Set(limits.programs.length > 0 ? limits.programs : ALL_PROGRAMS as unknown as string[]);
     const requestedPro = new Set<string>();
     for (const output of manifest.requested_outputs) {
@@ -454,7 +454,7 @@ export async function handleCreateSnapshot(
 
       if (mppResult === null) {
         const paymentMessage = `Free tier includes 3 programs (search, skills, debug). Upgrade to Pro to unlock: ${proList.join(", ")}.`;
-        // MPP not configured — return 402 with negotiation data
+        // MPP not configured â€” return 402 with negotiation data
         sendError(res, 402, ErrorCode.TIER_REQUIRED,
           paymentMessage,
           {
@@ -468,7 +468,7 @@ export async function handleCreateSnapshot(
         );
       }
       if (mppResult === null || mppResult.status === 402) return;
-      // mppResult.status === 200 — payment accepted, continue to generation
+      // mppResult.status === 200 â€” payment accepted, continue to generation
     }
   } else if (auth.anonymous) {
     // Anonymous users get free-tier program limits
@@ -725,7 +725,7 @@ export async function handleHealthCheck(
   sendJSON(res, ready ? 200 : 503, {
     status: ready ? "ok" : "shutting_down",
     service: "axis-api",
-    version: "0.5.2",
+    version: "0.5.3",
     timestamp: new Date().toISOString(),
   });
 }
@@ -871,7 +871,7 @@ export async function handleSkillsGenerate(
   });
 }
 
-// ─── GitHub URL intake ──────────────────────────────────────────
+// â”€â”€â”€ GitHub URL intake â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleGitHubAnalyze(
   req: IncomingMessage,
@@ -1059,7 +1059,7 @@ export async function handleGitHubAnalyze(
   /* v8 ignore stop */
 }
 
-// ─── File Content Search API ────────────────────────────────────
+// â”€â”€â”€ File Content Search API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleSearchIndex(
   req: IncomingMessage,
@@ -1194,7 +1194,7 @@ export async function handleSearchSymbols(
   });
 }
 
-// ─── POST /v1/analyze  -  unified one-call analysis endpoint ──────
+// â”€â”€â”€ POST /v1/analyze  -  unified one-call analysis endpoint â”€â”€â”€â”€â”€â”€
 
 // Per-file adoption hints (deterministic  -  same input = same output)
 const ADOPTION_HINTS: Record<string, { placement: string; adoption_hint: string }> = {
@@ -1657,9 +1657,9 @@ export async function handleAnalyze(
   /* v8 ignore stop */
 }
 
-// ─── POST /v1/prepare-for-agentic-purchasing ────────────────────
+// â”€â”€â”€ POST /v1/prepare-for-agentic-purchasing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/** Scoring weights for Purchasing Readiness Score (0–100). */
+/** Scoring weights for Purchasing Readiness Score (0â€“100). */
 export const PURCHASING_READINESS_WEIGHTS = {
   commerce_artifacts:   25,
   mcp_configs:          20,
@@ -1824,7 +1824,7 @@ export async function handlePreparePurchasing(
     files.push({ path, content: file.content as string, size: Buffer.byteLength(file.content as string, "utf-8") });
   }
 
-  // Billing gate � the hardener runs pro programs, so require auth + entitlement
+  // Billing gate ï¿½ the hardener runs pro programs, so require auth + entitlement
   const proPrograms = PURCHASING_PROGRAMS.filter(p => !FREE_PROGRAMS.has(p));
   if (proPrograms.length > 0) {
     if (auth.anonymous || !auth.account) {
@@ -1944,7 +1944,7 @@ export async function handlePreparePurchasing(
         ...(typeof agent_type === "string" ? { agent_type } : {}),
       });
 
-      // ── Referral tracking ──────────────────────────────────────
+      // â”€â”€ Referral tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (typeof referral_token === "string" && referral_token.length > 0) {
         const referral = lookupReferralCode(referral_token as string);
         if (referral && referral.account_id !== auth.account.account_id) {
@@ -1987,10 +1987,10 @@ export async function handlePreparePurchasing(
       compliance_depth: complianceDepth,
       compliance_depth_reason:
         complianceDepth === "summary"
-          ? "Lite mode � top gaps and score only. Upgrade to standard for full evidence."
+          ? "Lite mode ï¿½ top gaps and score only. Upgrade to standard for full evidence."
           : complianceDepth === "standard"
-            ? "Budget-constrained � core compliance included, detailed TAP/dispute evidence abbreviated."
-            : "Full compliance suite � all evidence, TAP interop, dispute flows, and verification proofs included.",
+            ? "Budget-constrained ï¿½ core compliance included, detailed TAP/dispute evidence abbreviated."
+            : "Full compliance suite ï¿½ all evidence, TAP interop, dispute flows, and verification proofs included.",
       ...(complianceDepth === "full"
         ? { category_scores, evidence }
         : complianceDepth === "standard"
@@ -2087,7 +2087,7 @@ export async function handlePreparePurchasing(
   /* v8 ignore stop */
 }
 
-// ─── GET /.well-known/axis.json  -  agent discovery manifest ──────
+// â”€â”€â”€ GET /.well-known/axis.json  -  agent discovery manifest â”€â”€â”€â”€â”€â”€
 
 export async function handleWellKnown(
   _req: IncomingMessage,
@@ -2103,7 +2103,7 @@ export async function handleWellKnown(
       details: "GET /for-agents?intent=referral",
     },
     tagline: `Analyze any codebase. Generate ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.`,
-    version: "0.5.2",
+    version: "0.5.3",
     description: "Submit source files or a GitHub URL. AXIS returns structured AI context files  -  AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more  -  each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
     analyze_endpoint: {
       method: "POST",
@@ -2138,7 +2138,7 @@ export async function handleWellKnown(
       { path: "design-tokens.json",  program: "theme",              purpose: "Design system tokens  -  import into Figma, CSS, or component library" },
     ],
     quick_start: {
-      step_1: "POST /v1/accounts with {email, name, tier: 'free'} → get raw_key",
+      step_1: "POST /v1/accounts with {email, name, tier: 'free'} â†’ get raw_key",
       step_2: "POST /v1/analyze with {github_url: 'https://github.com/your/repo'} and Authorization: Bearer <raw_key>",
       step_3: "Read adoption_hint on each returned file to know exactly where to place it",
       step_4: "Place AGENTS.md in repo root  -  AI assistants auto-load it immediately",
@@ -2151,7 +2151,7 @@ export async function handleWellKnown(
     openapi_json: "GET /openapi.json  -  OpenAPI 3.1 spec alias",
     for_agents: {
       note: "Every file in the response includes placement and adoption_hint fields. No guesswork  -  you know exactly what each file does and where it goes.",
-      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0–100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence + win probability model + lighter SCA paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
+      purchasing: "POST /v1/prepare-for-agentic-purchasing  -  computes Purchasing Readiness Score (0â€“100), chains 8 programs, returns commerce artifacts + CE 3.0 dispute evidence + win probability model + lighter SCA paths + compliance checklist + negotiation playbook + self-onboarding kit in a single call. Focus areas: sca, dispute, mandate, tap, tokenization.",
       agentic_purchasing_generate: "POST /v1/agentic-purchasing/generate after creating a snapshot. Returns commerce-registry.json with product schema, bearer auth, and checkout flow.",
       mcp_discovery: `GET /mcp (Streamable HTTP transport, 2025-03-26 spec). ${MCP_TOOL_COUNT} tools including analyze_repo, analyze_files, get_snapshot, get_artifact, list_programs, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits.`,
       search_tools: `GET /v1/mcp/tools?q=<keyword>  -  search all ${PROGRAM_COUNT} programs and ${ARTIFACT_COUNT} generators by capability keyword. Returns ranked programs with artifact paths, capability tags, and example API calls. No auth required.`,
@@ -2163,7 +2163,7 @@ export async function handleWellKnown(
   });
 }
 
-// ─── GET /llms.txt  -  llmstxt.org standard ───────────────────────
+// â”€â”€â”€ GET /llms.txt  -  llmstxt.org standard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // --- GET /.well-known/capabilities.json -------------------------
 
@@ -2173,7 +2173,7 @@ export async function handleCapabilities(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.2",
+    version: "0.5.3",
     description: `Semantic capability manifest for agent tool discovery. Analyzes codebases, generates ${ARTIFACT_COUNT} artifacts across ${PROGRAM_COUNT} programs. Full agentic commerce hardening including AP2/UCP/Visa IC compliance.`,
     keywords: [
       "AP2", "AP2-compliance", "Article-2", "UN-CISG",
@@ -2218,7 +2218,7 @@ export async function handleCapabilities(
       intent_probe: {
         endpoint: "POST /probe-intent",
         mcp_tool: "discover_agentic_purchasing_needs",
-        description: "Lightweight intent matching � describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations. Free, no auth.",
+        description: "Lightweight intent matching ï¿½ describe your commerce, compliance, or DevOps need and get tailored AXIS tool recommendations. Free, no auth.",
         auth_required: false,
       },
       analysis: {
@@ -2260,7 +2260,7 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 ## Quick Start
 
 - POST /v1/accounts  -  create account, get API key (free tier available, no auth required)
-- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} → returns ${ARTIFACT_COUNT} artifacts
+- POST /v1/analyze  -  submit {github_url} or {files:[{path,content}]} â†’ returns ${ARTIFACT_COUNT} artifacts
 - GET /.well-known/axis.json  -  machine-readable capability manifest
 - GET /v1/mcp/tools?q=  -  search programs by keyword (no auth required)
 
@@ -2318,7 +2318,7 @@ When integrating with Axis' Iliad as an LLM agent:
   res.end(body);
 }
 
-// ─── GET /.well-known/security.txt  -  RFC 9116 ────────────────────
+// â”€â”€â”€ GET /.well-known/security.txt  -  RFC 9116 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleSecurityTxt(
   _req: IncomingMessage,
@@ -2337,7 +2337,7 @@ export async function handleSecurityTxt(
   res.end(lines.join("\n") + "\n");
 }
 
-// ─── GET /.well-known/skills/index.json  -  agent skills registry ──
+// â”€â”€â”€ GET /.well-known/skills/index.json  -  agent skills registry â”€â”€
 
 export async function handleRobotsTxt(
   _req: IncomingMessage,
@@ -2507,7 +2507,7 @@ export async function handleSkillsIndex(
   });
 }
 
-// ─── GET /.well-known/oauth-authorization-server ──────────────────
+// â”€â”€â”€ GET /.well-known/oauth-authorization-server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function handleOAuthAuthorizationServer(
   _req: IncomingMessage,
   res: ServerResponse,
@@ -2527,7 +2527,7 @@ export async function handleOAuthAuthorizationServer(
   });
 }
 
-// ─── GET /v1/docs.md  -  plain-text OpenAPI summary ───────────────
+// â”€â”€â”€ GET /v1/docs.md  -  plain-text OpenAPI summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleDocsMd(
   _req: IncomingMessage,
@@ -2535,7 +2535,7 @@ export async function handleDocsMd(
 ): Promise<void> {
   const body = `# Axis' Iliad API  -  Plain Text Reference
 
-Version: 0.5.2 | Base URL: https://axis-api-6c7z.onrender.com
+Version: 0.5.3 | Base URL: https://axis-api-6c7z.onrender.com
 
 ## Authentication
 
@@ -2629,7 +2629,7 @@ List all programs with generator counts and output paths. No auth required.
   res.end(body);
 }
 
-// --- GET /for-agents � agent-first onboarding manifest ----------
+// --- GET /for-agents ï¿½ agent-first onboarding manifest ----------
 
 const AXIS_API_BASE = "https://axis-api-6c7z.onrender.com";
 
@@ -2655,7 +2655,7 @@ export async function handleForAgents(
   const PAYMENT_META = {
     price_usd: "0.50",
     lite_price_usd: "0.15",
-    flow: "Call → 402 with payment_url/checkout_url → pay at checkout_url → retry identical request",
+    flow: "Call â†’ 402 with payment_url/checkout_url â†’ pay at checkout_url â†’ retry identical request",
     on_402: "Parse response body: present checkout_url to user OR use autonomous payment if authorized. After payment, re-send original request unchanged.",
     budget_header: 'X-Agent-Budget: {"budget_per_run_cents":50,"spending_window":"per_call"}',
     lite_header: "X-Agent-Mode: lite",
@@ -2696,7 +2696,7 @@ export async function handleForAgents(
   }
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.2",
+    version: "0.5.3",
     incentives: buildIncentivesSummary(),
     purpose: `Codebase intelligence API. Analyzes any repo, generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs. Every generated file tells AI agents exactly what the codebase does, how to work in it, and how to purchase from it.`,
     install: {
@@ -2758,17 +2758,17 @@ export async function handleForAgents(
       budget_negotiation: {
         header: "X-Agent-Budget",
         schema: {
-          budget_per_run_cents: "number � your max spend per call in cents",
+          budget_per_run_cents: "number ï¿½ your max spend per call in cents",
           spending_window: "per_call | hourly | daily | monthly",
-          max_monthly_cents: "number � optional monthly cap",
-          wallet_id: "string � optional wallet/org identifier",
-          agent_type: "string � e.g. claude, cursor, custom_swarm",
+          max_monthly_cents: "number ï¿½ optional monthly cap",
+          wallet_id: "string ï¿½ optional wallet/org identifier",
+          agent_type: "string ï¿½ e.g. claude, cursor, custom_swarm",
         },
         modes: {
           standard: "Full artifact bundle at $0.50/run",
           lite: "Reduced output at $0.15-$0.25/run (tool-dependent)",
         },
-        mode_header: "X-Agent-Mode: lite � explicitly request lite mode for lower price",
+        mode_header: "X-Agent-Mode: lite ï¿½ explicitly request lite mode for lower price",
         example: 'curl -H \'X-Agent-Budget: {"budget_per_run_cents":25,"spending_window":"per_call"}\' -H \'X-Agent-Mode: lite\' ...',
       },
     },
@@ -2798,7 +2798,7 @@ export async function handleForAgents(
       custom_swarm: {
         description: "For multi-agent swarms: each sub-agent calls AXIS independently. Share snapshot_id to avoid duplicate analysis costs.",
         pattern: [
-          "Agent A calls analyze_repo → gets snapshot_id",
+          "Agent A calls analyze_repo â†’ gets snapshot_id",
           "Agent A shares snapshot_id with Agents B, C, D",
           "Agents B-D call get_artifact with snapshot_id to read specific artifacts",
           "Agent E calls prepare_agentic_purchasing for commerce hardening",
@@ -2852,7 +2852,7 @@ export async function handleForAgents(
       description: "Few-shot examples showing the complete agent interaction pattern with the x402 payment rail.",
       examples: [
         {
-          label: "1 — Free-tier caller hits 402",
+          label: "1 â€” Free-tier caller hits 402",
           step: "Agent calls POST /v1/analyze as a free-tier user requesting paid programs",
           request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_free_xxxx" }, body: { github_url: "https://github.com/acme/shop" } },
           response: {
@@ -2871,21 +2871,21 @@ export async function handleForAgents(
           agent_action: "Present checkout_url to the user or, if autonomous payment is authorized, trigger payment flow, then proceed to step 2.",
         },
         {
-          label: "2 — Agent retries after payment",
+          label: "2 â€” Agent retries after payment",
           step: "After payment completes, agent re-sends identical request. No extra steps needed.",
           request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_free_xxxx" }, body: { github_url: "https://github.com/acme/shop" } },
           response: { status: 201, body: { snapshot_id: "snap_abc123", artifact_count: ARTIFACT_COUNT, programs_executed: ["search", "skills", "debug", "theme", "brand", "..."] } },
           agent_action: "Proceed with the snapshot_id to read artifacts via get_artifact.",
         },
         {
-          label: "3 — Budget negotiation (lite mode)",
+          label: "3 â€” Budget negotiation (lite mode)",
           step: "Agent with a $0.25 budget sends X-Agent-Budget and X-Agent-Mode: lite",
           request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_xxxx", "X-Agent-Budget": "{\"budget_per_run_cents\":25,\"spending_window\":\"per_call\"}", "X-Agent-Mode": "lite" }, body: { github_url: "https://github.com/acme/shop" } },
           response: { status: 201, body: { snapshot_id: "snap_lite_xyz", artifact_count: 30, programs_executed: ["search", "skills", "debug"] } },
           agent_action: "Lite mode succeeded at $0.15. 3 programs returned instead of the full bundle.",
         },
         {
-          label: "4 — Reading quota before calling",
+          label: "4 â€” Reading quota before calling",
           step: "Agent checks X-Axis-Quota-Remaining header from a previous response before deciding to call",
           hint: "Every authenticated response includes: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost. Read them to pre-check budget before committing to a paid call.",
           example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "0.50" },
@@ -2896,7 +2896,7 @@ export async function handleForAgents(
   });
 }
 
-// --- GET /v1/install � platform-specific MCP configs ------------
+// --- GET /v1/install ï¿½ platform-specific MCP configs ------------
 
 const INSTALL_CONFIGS: Record<string, { file: string; description: string; config: object }> = {
   "claude-desktop": {
@@ -2969,9 +2969,9 @@ export async function handleInstall(
     return;
   }
 
-  // No platform specified � return all
+  // No platform specified ï¿½ return all
   sendJSON(res, 200, {
-    name: "Axis' Iliad � MCP Install Configs",
+    name: "Axis' Iliad ï¿½ MCP Install Configs",
     mcp_endpoint: `${AXIS_API_BASE}/mcp`,
     get_api_key: `POST ${AXIS_API_BASE}/v1/accounts with {email, name, tier: 'free'}`,
     platforms: INSTALL_CONFIGS,
@@ -2979,7 +2979,7 @@ export async function handleInstall(
   });
 }
 
-// --- POST /probe-intent � lightweight intent capture ------------
+// --- POST /probe-intent ï¿½ lightweight intent capture ------------
 
 export async function handleProbeIntent(
   req: IncomingMessage,
@@ -3075,7 +3075,7 @@ export async function handleProbeIntent(
   if (/purchas|commerce|checkout|payment|stripe|visa|ap2|ucp|compliance|negotiat/.test(allTerms)) {
     recommendations.push({
       tool: "prepare_agentic_purchasing",
-      reason: "Full purchasing readiness audit � Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
+      reason: "Full purchasing readiness audit ï¿½ Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
       auth: true,
       pricing: "$0.50/call via MPP or included in Pro plan",
     });
@@ -3083,7 +3083,7 @@ export async function handleProbeIntent(
   if (/analyz|codebase|repo|context|agents\.md|cursorrules/.test(allTerms)) {
     recommendations.push({
       tool: "analyze_repo",
-      reason: `Full codebase analysis — generates ${ARTIFACT_COUNT} artifacts including AGENTS.md, .cursorrules, CLAUDE.md`,
+      reason: `Full codebase analysis â€” generates ${ARTIFACT_COUNT} artifacts including AGENTS.md, .cursorrules, CLAUDE.md`,
       auth: true,
       pricing: "$0.50/call via MPP or included in Pro plan",
     });
@@ -3091,7 +3091,7 @@ export async function handleProbeIntent(
   if (/discover|search|find|what tool|explore|browse/.test(allTerms)) {
     recommendations.push({
       tool: "search_and_discover_tools",
-      reason: `Keyword search across all ${PROGRAM_COUNT} programs — find the right tool for your task`,
+      reason: `Keyword search across all ${PROGRAM_COUNT} programs â€” find the right tool for your task`,
       auth: false,
       pricing: "free",
     });
@@ -3132,7 +3132,7 @@ export async function handleProbeIntent(
   });
 }
 
-// ─── GET /.well-known/glama.json  -  Glama registry hint ─────────────
+// â”€â”€â”€ GET /.well-known/glama.json  -  Glama registry hint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleGlamaJson(
   _req: IncomingMessage,
@@ -3148,7 +3148,7 @@ export async function handleGlamaJson(
   });
 }
 
-// ─── GET /.well-known/agent.json  -  AgentSEO / MCP scanner standard ──
+// â”€â”€â”€ GET /.well-known/agent.json  -  AgentSEO / MCP scanner standard â”€â”€
 
 export async function handleAgentJson(
   _req: IncomingMessage,
@@ -3156,7 +3156,7 @@ export async function handleAgentJson(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.2",
+    version: "0.5.3",
     description: `Deterministic snapshot-based generation of ${ARTIFACT_COUNT}+ artifacts across ${PROGRAM_COUNT} specialized programs`,
     capabilities: {
       core: "AI-native development operating system",
@@ -3167,7 +3167,7 @@ export async function handleAgentJson(
     },
     monetization: {
       model: "usage-based MPP ($0.50 per run)",
-      pro: "$29/month — unlimited + all features",
+      pro: "$29/month â€” unlimited + all features",
     },
     homepage: "https://axis-iliad.jonathanarvay.com",
     mcp_endpoint: "/mcp",
@@ -3186,7 +3186,7 @@ export async function handleAgentJson(
   });
 }
 
-// ─── GET /health  -  scanner-friendly health probe ────────────────
+// â”€â”€â”€ GET /health  -  scanner-friendly health probe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleHealthRedirect(
   _req: IncomingMessage,
@@ -3194,14 +3194,14 @@ export async function handleHealthRedirect(
 ): Promise<void> {
   sendJSON(res, 200, {
     status: "healthy",
-    version: "0.5.2",
+    version: "0.5.3",
     timestamp: new Date().toISOString(),
     uptime: "OK",
     details: "/v1/health for full health check",
   });
 }
 
-// ─── GET /docs  -  redirect to API docs ──────────────────────────
+// â”€â”€â”€ GET /docs  -  redirect to API docs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleDocsRedirect(
   _req: IncomingMessage,
@@ -3215,7 +3215,7 @@ export async function handleDocsRedirect(
   });
 }
 
-// ─── GET /pricing  -  pricing landing metadata for crawlers ─────
+// â”€â”€â”€ GET /pricing  -  pricing landing metadata for crawlers â”€â”€â”€â”€â”€
 
 export async function handlePricingLanding(
   _req: IncomingMessage,
@@ -3231,7 +3231,7 @@ export async function handlePricingLanding(
   });
 }
 
-// ─── GET /openapi.json  -  OpenAPI spec alias ────────────────────
+// â”€â”€â”€ GET /openapi.json  -  OpenAPI spec alias â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleOpenApiJson(
   _req: IncomingMessage,
@@ -3245,7 +3245,7 @@ export async function handleOpenApiJson(
   sendJSON(res, 200, openApiMod.buildOpenApiSpec());
 }
 
-// ─── GET /performance  -  Main performance overview ──────────────
+// â”€â”€â”€ GET /performance  -  Main performance overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handlePerformance(
   _req: IncomingMessage,
@@ -3294,7 +3294,7 @@ export async function handlePerformance(
 
   sendJSON(res, 200, {
     status: "ok",
-    version: "0.5.2",
+    version: "0.5.3",
     timestamp: new Date().toISOString(),
     metrics: {
       uptime_seconds: uptimeSeconds,
@@ -3313,7 +3313,7 @@ export async function handlePerformance(
   });
 }
 
-// ─── GET /performance/reputation  -  AgentSEO trust signals ──────
+// â”€â”€â”€ GET /performance/reputation  -  AgentSEO trust signals â”€â”€â”€â”€â”€â”€
 
 export async function handlePerformanceReputation(
   _req: IncomingMessage,
@@ -3370,7 +3370,7 @@ export async function handlePerformanceReputation(
   });
 }
 
-// ─── Firecrawl Proxy: Web Research Tools ──────────────────────────────
+// â”€â”€â”€ Firecrawl Proxy: Web Research Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface FirecrawlScrapeRequest {
   url: string;
@@ -3416,7 +3416,7 @@ interface FirecrawlCrawlResponse {
 }
 
 /**
- * POST /v1/research/scrape — Proxy to Firecrawl /scrape endpoint
+ * POST /v1/research/scrape â€” Proxy to Firecrawl /scrape endpoint
  * Scrapes a single URL and returns markdown + structured data
  * Pricing: 1.5 credits per page (~$0.0018)
  */
@@ -3541,7 +3541,7 @@ export async function handleFirecrawlScrape(
 }
 
 /**
- * POST /v1/research/crawl — Proxy to Firecrawl /crawl endpoint
+ * POST /v1/research/crawl â€” Proxy to Firecrawl /crawl endpoint
  * Crawls a domain and scrapes multiple pages
  * Pricing: 4 credits per crawl (~$0.0048) + scrape costs
  */

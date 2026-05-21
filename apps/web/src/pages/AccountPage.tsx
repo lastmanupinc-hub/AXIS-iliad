@@ -148,10 +148,10 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     onAuthChange?.();
   }
 
-  async function handleUpgrade(tier: BillingTier) {
+  async function handleUpgrade(planId: "starter" | "pro" | "growth") {
     setError(null);
     try {
-      const result = await createCheckout(tier);
+      const result = await createCheckout(planId);
       window.location.href = result.checkout_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
@@ -288,7 +288,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
                 Upgrade to Starter for $29/month and 75,000 monthly credits across all 19 programs.
               </p>
             </div>
-            <button className="btn btn-primary" onClick={() => handleUpgrade("paid")}>
+            <button className="btn btn-primary" onClick={() => handleUpgrade("starter")}>
               Upgrade to Starter — $29/mo
             </button>
           </div>
@@ -303,8 +303,8 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
                 Move to Growth for $299/month and 1,200,000 monthly credits. Pro ($99/month) includes 300,000 monthly credits.
               </p>
             </div>
-            <button className="btn" onClick={() => handleUpgrade("suite")}>
-              Upgrade to Growth
+            <button className="btn" onClick={() => handleUpgrade("growth")}>
+              View Growth Plan
             </button>
           </div>
         </div>
