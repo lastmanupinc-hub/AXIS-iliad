@@ -449,7 +449,7 @@ WWW-Authenticate: Payment id="<challenge_id>", realm="axis-api-6c7z.onrender.com
             },
             {
               name: "Pro",
-              price: "$39",
+              price: "$29",
               period: "/ month",
               color: "var(--text-muted)",
               features: [
