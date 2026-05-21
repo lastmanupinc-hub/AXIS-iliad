@@ -3586,7 +3586,7 @@ export async function handleFirecrawlCrawl(
   // Check quota
   const quota = checkQuota(auth.account.account_id);
   if (!quota.allowed) {
-    const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+    const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, estimatedAmountCents, {
       currency: "usd",
       decimals: 2,
       description: `Firecrawl web crawl (${limit} pages requested) - up to $${(estimatedAmountCents / 100).toFixed(2)}`,
