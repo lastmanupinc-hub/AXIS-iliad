@@ -40,6 +40,8 @@ import {
   consumeFreeCall,
   recordPaidCall,
   consumeUsageCredits,
+  getCachedScrape,
+  putCachedScrape,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -3454,6 +3456,41 @@ export async function handleFirecrawlScrape(
   const pricing = getPricingTier("iliad_web_research");
   const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
 
+  // ─── Shared 24h scrape cache ─────────────────────────────────────
+  // Any agent in the network that scraped this URL in the last 24h
+  // populated the cache; this caller gets the result for $0 and we pay
+  // Firecrawl nothing. Cache hits skip both the quota check and the
+  // billing path — the value is delivered without burning a Firecrawl
+  // call, so charging would be incoherent.
+  const cached = getCachedScrape(url);
+  if (cached) {
+    res.setHeader("X-Axis-Cache", "hit");
+    res.setHeader("X-Axis-Cache-Age", String(cached.age_seconds));
+    log("info", "firecrawl_scrape_cache_hit", {
+      request_id: getRequestId(res),
+      url,
+      age_seconds: cached.age_seconds,
+      hit_count: cached.hit_count,
+      account_id: auth.account.account_id,
+    });
+    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode, cache_hit: "true" });
+    sendJSON(res, 200, {
+      success: true,
+      cache: {
+        hit: true,
+        age_seconds: cached.age_seconds,
+        hit_count: cached.hit_count,
+        ttl_remaining_seconds: Math.max(0, Math.floor((new Date(cached.expires_at).getTime() - Date.now()) / 1000)),
+      },
+      data: {
+        url: cached.url,
+        markdown: cached.markdown,
+        metadata: cached.metadata,
+      },
+    });
+    return;
+  }
+
   // Check quota before attempting Firecrawl call
   const quota = checkQuota(auth.account.account_id);
   if (!quota.allowed) {
@@ -3472,6 +3509,7 @@ export async function handleFirecrawlScrape(
     if (mppResult === null || mppResult.status === 402) return;
   }
 
+  res.setHeader("X-Axis-Cache", "miss");
   // Proxy to Firecrawl API
   const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
   if (!firecrawlApiKey) {
@@ -3509,6 +3547,8 @@ export async function handleFirecrawlScrape(
       }
 
       const firecrawlData = (await firecrawlRes.json()) as FirecrawlScrapeResponse;
+      const markdown = firecrawlData.data?.markdown ?? "";
+      const metadata = firecrawlData.data?.metadata ?? {};
 
       // Charge after successful scrape
       const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
@@ -3523,15 +3563,29 @@ export async function handleFirecrawlScrape(
         return;
       }
 
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode });
+      // Populate shared cache only on a non-empty successful scrape — empty
+      // markdown usually means Firecrawl returned a 200 with no extractable
+      // content (rate-limited destination, JS-rendered failure, etc.) and
+      // we don't want to cache that.
+      if (markdown.length > 0) {
+        try {
+          putCachedScrape(url, markdown, metadata as Record<string, unknown>, 200);
+        } catch (cacheErr) {
+          // Cache write failure must never block the response — log and move on.
+          log("warn", "scrape_cache_put_failed", {
+            request_id: getRequestId(res),
+            url,
+            error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+          });
+        }
+      }
+
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode, cache_hit: "false" });
 
       sendJSON(res, 200, {
         success: true,
-        data: {
-          url,
-          markdown: firecrawlData.data?.markdown ?? "",
-          metadata: firecrawlData.data?.metadata ?? {},
-        },
+        cache: { hit: false },
+        data: { url, markdown, metadata },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -3661,10 +3715,26 @@ export async function handleFirecrawlCrawl(
       return;
     }
 
-    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+    // Populate shared scrape cache with each crawled page so subsequent
+    // single-URL fetches by any agent get cache hits. Bounded by the crawl's
+    // own page limit, so we can't blow up the cache.
+    let cachedCount = 0;
+    for (const result of firecrawlData.data?.scrapeResults ?? []) {
+      if (typeof result.url === "string" && typeof result.markdown === "string" && result.markdown.length > 0) {
+        try {
+          putCachedScrape(result.url, result.markdown, (result.metadata ?? {}) as Record<string, unknown>, 200);
+          cachedCount += 1;
+        } catch {
+          // Cache write failures are non-fatal for the crawl response.
+        }
+      }
+    }
+
+    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode, pages_cached: String(cachedCount) });
 
     sendJSON(res, 200, {
       success: true,
+      cache: { warmed_entries: cachedCount },
       data: {
         url,
         pages_crawled: pagesCrawled,

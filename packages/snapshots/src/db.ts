@@ -541,6 +541,26 @@ CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_account_month ON usage_credit
 CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_created ON usage_credit_ledger(created_at);
 `,
   },
+  {
+    version: 22,
+    name: "add_scrape_cache",
+    sql: `
+CREATE TABLE IF NOT EXISTS scrape_cache (
+  url_hash TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  markdown TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  status_code INTEGER NOT NULL DEFAULT 200,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  hit_count INTEGER NOT NULL DEFAULT 0,
+  last_hit_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_expires ON scrape_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_created ON scrape_cache(created_at);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_hits ON scrape_cache(hit_count DESC);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

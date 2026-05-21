@@ -190,6 +190,18 @@ export {
   consumeUsageCredits,
 } from "./usage-credit-metering.js";
 
+// Scrape cache — 24h shared cache for Firecrawl resale; bounds wholesale
+// cost on the free-pool and accelerates popular URL fetches for every agent.
+export type { CachedScrape, ScrapeCacheStats } from "./scrape-cache-store.js";
+export {
+  getCachedScrape,
+  putCachedScrape,
+  cleanupExpiredScrapes,
+  getScrapeCacheStats,
+  normalizeUrl,
+  _clearScrapeCacheForTests,
+} from "./scrape-cache-store.js";
+
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {
