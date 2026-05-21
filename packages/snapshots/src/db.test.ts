@@ -28,6 +28,7 @@ describe("openMemoryDb", () => {
     const names = tables.map((t) => t.name).sort();
     const userTables = names.filter((n) => n !== "sqlite_sequence");
     expect(userTables).toEqual([
+      "account_api_calls",
       "accounts",
       "api_keys",
       "code_symbols",
@@ -331,14 +332,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(19);
+    expect(getSchemaVersion(db)).toBe(20);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(19);
+    expect(result.current_version).toBe(20);
   });
 
   it("creates rate_limits table via migration", () => {
