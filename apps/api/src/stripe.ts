@@ -75,6 +75,27 @@ function tsToISO(ts: unknown): string | null {
   return new Date(ts * 1000).toISOString();
 }
 
+function parseStripeErrorBody(raw: string): {
+  message?: string;
+  param?: string;
+  request_log_url?: string;
+  type?: string;
+} {
+  try {
+    const parsed = JSON.parse(raw) as {
+      error?: {
+        message?: string;
+        param?: string;
+        request_log_url?: string;
+        type?: string;
+      };
+    };
+    return parsed.error ?? {};
+  } catch {
+    return {};
+  }
+}
+
 function resolveCheckoutBaseUrl(req?: IncomingMessage): string {
   const candidates = [
     process.env.AXIS_WEB_URL,
@@ -384,12 +405,43 @@ export async function handleCreateCheckout(
 
     if (!response.ok) {
       const errBody = await response.text();
+      const stripeErr = parseStripeErrorBody(errBody);
+      const msg = (stripeErr.message ?? "").toLowerCase();
+
+      // Stripe catalog misconfiguration: price exists but linked product is inactive.
+      if (msg.includes("not available to be purchased") || msg.includes("product is not active")) {
+        sendError(
+          res,
+          503,
+          ErrorCode.UPSTREAM_ERROR,
+          `Stripe price is not purchasable for ${tier} tier. Activate the product in Stripe or update the STRIPE_PRICE_ID_${tier.toUpperCase()} env var.`,
+          {
+            stripe_error: errBody.slice(0, 1200),
+            stripe_error_message: stripeErr.message,
+            stripe_error_param: stripeErr.param,
+            stripe_request_log_url: stripeErr.request_log_url,
+            configured_price_id: priceId,
+            configured_price_env: `STRIPE_PRICE_ID_${tier.toUpperCase()}`,
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+          },
+        );
+        return;
+      }
+
       sendError(
         res,
         502,
-        ErrorCode.INTERNAL_ERROR,
+        ErrorCode.UPSTREAM_ERROR,
         `Stripe API error: ${response.status}`,
-        { stripe_error: errBody.slice(0, 1200), success_url: successUrl, cancel_url: cancelUrl },
+        {
+          stripe_error: errBody.slice(0, 1200),
+          stripe_error_message: stripeErr.message,
+          stripe_error_param: stripeErr.param,
+          stripe_request_log_url: stripeErr.request_log_url,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        },
       );
       return;
     }
