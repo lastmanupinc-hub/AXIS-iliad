@@ -111,6 +111,19 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 15,
     lite_description: "Lite mode: compliance grade (A/B/C/D) + top 3 SCA exemptions + CE 3.0 score only",
   },
+  // Phase 1: Firecrawl web research proxy (per-page pricing)
+  iliad_web_research: {
+    tool: "iliad_web_research",
+    standard_cents: 10,
+    lite_cents: 5,
+    lite_description: "Lite mode: markdown only (no structured data extraction)",
+  },
+  iliad_web_research_crawl: {
+    tool: "iliad_web_research_crawl",
+    standard_cents: 25,
+    lite_cents: 12,
+    lite_description: "Lite mode: crawl up to 5 pages (standard allows up to 100)",
+  },
   default: {
     tool: "default",
     standard_cents: 50,
@@ -197,7 +210,11 @@ export function build402NegotiationBody(
     action: "Upgrade or add credits to continue",
     accepted_payment_schemes: acceptedPaymentSchemes,
     referral_token: options.referral_token ?? null,
+    // Direct links for agents to surface to the user or use autonomously
+    payment_url: `${process.env.WEB_BASE_URL ?? "https://axis-iliad.jonathanarvay.com"}/billing`,
+    checkout_url: `${process.env.WEB_BASE_URL ?? "https://axis-iliad.jonathanarvay.com"}/billing#checkout-paid`,
     go_pro_url: "https://axis-iliad.jonathanarvay.com/billing",
+    retry_after_payment: "After payment completes, re-send the original request with your API key in Authorization: Bearer <key>. No additional steps required — the server processes it immediately.",
     x402: {
       amount: String(tier.standard_cents * 10_000),
       asset: "USDC",

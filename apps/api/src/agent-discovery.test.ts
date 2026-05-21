@@ -366,9 +366,9 @@ describe("GET /for-agents", () => {
     expect(platforms["claude-code"]).toBeDefined();
   });
 
-  it("includes tools array with 12 tools", () => {
+  it("includes tools array with 14 tools", () => {
     const tools = data.tools as Array<unknown>;
-    expect(tools).toHaveLength(12);
+    expect(tools).toHaveLength(14);
   });
 
   it("includes first_action hint", () => {
@@ -549,7 +549,7 @@ describe("GET /for-agents?intent=", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
-    expect(data.tools.length).toBe(12);
+    expect(data.tools.length).toBe(14);
     // purchasing-related tools should be ranked higher
     const names = data.tools.map((t: { name: string }) => t.name);
     const purchasingIdx = names.indexOf("prepare_agentic_purchasing");
@@ -562,6 +562,6 @@ describe("GET /for-agents?intent=", () => {
     expect(r.status).toBe(200);
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
-    expect(data.tools.length).toBe(12);
+    expect(data.tools.length).toBe(14);
   });
 });

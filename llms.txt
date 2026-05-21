@@ -1,0 +1,27 @@
+# Axis Iliad
+
+> AI codebase analyzer and MCP tools for agentic development.
+
+Primary discovery and integration endpoints:
+
+- /for-agents
+- /mcp
+- /v1/mcp/tools
+- /.well-known/axis.json
+- /.well-known/capabilities.json
+- /.well-known/mcp.json
+- /.well-known/skills/index.json
+- /v1/docs
+- /v1/docs.md
+
+Core outcomes:
+
+- Generate AGENTS.md, CLAUDE.md, and .cursorrules from repository context.
+- Discover and call MCP tools for analysis, artifact retrieval, and agentic purchasing.
+- Produce purchasing readiness outputs (compliance, checkout policy, negotiation and dispute playbooks).
+
+Quick start:
+
+1. Create API key with POST /v1/accounts.
+2. Analyze with POST /v1/analyze or connect via POST /mcp.
+3. Discover best tool by keyword using GET /v1/mcp/tools?q=.

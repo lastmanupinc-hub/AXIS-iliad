@@ -57,7 +57,21 @@ function hasApiKey(): boolean {
   return !!localStorage.getItem("axis_api_key");
 }
 
+function pageFromPathname(pathname: string): Page | null {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (normalized === "/for-agents") return "for-agents";
+  if (normalized === "/mcp") return "for-agents";
+  if (normalized === "/pricing") return "plans";
+  if (normalized === "/docs") return "docs";
+  if (normalized === "/install") return "install";
+  if (normalized === "/programs") return "programs";
+  return null;
+}
+
 function getInitialPage(): Page {
+  const pathPage = pageFromPathname(location.pathname);
+  if (pathPage) return pathPage;
+
   const h = location.hash.replace("#", "");
   if (h === "admin" || h === "myanalytics") return hasApiKey() ? (h as Page) : "account";
   if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install") return h as Page;
@@ -100,6 +114,12 @@ export function App() {
 
   useEffect(() => {
     const onHash = () => {
+      const pathPage = pageFromPathname(location.pathname);
+      if (pathPage) {
+        setPage(pathPage);
+        return;
+      }
+
       const h = location.hash.replace("#", "");
       const isLoggedIn = hasApiKey();
       if (h === "plans") setPage("plans");

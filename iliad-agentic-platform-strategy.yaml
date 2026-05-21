@@ -1,0 +1,668 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Iliad Agentic Platform Strategy
+# Purpose: Define the product + engineering roadmap for turning Iliad into
+#          a full-stack agent operating system via the MCP hub model.
+# Owner:   Jonathan Arvay
+# Date:    2026-05-21
+# ─────────────────────────────────────────────────────────────────────────────
+
+strategy:
+  name: "Iliad Agent OS"
+  tagline: "One MCP connection. Every tool an agent needs."
+  core_thesis: >
+    Iliad's moat is not any single tool — it's the bundled experience: codebase
+    intelligence + payment rail + proxied high-value tools over a single
+    authenticated MCP endpoint. Agents pay a premium for reduced cognitive load,
+    single billing, and higher workflow reliability. Proxy non-core tools
+    aggressively; own the analysis + x402 layer exclusively.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FINANCIAL MODEL
+# ─────────────────────────────────────────────────────────────────────────────
+
+financial_model:
+  principle: >
+    Agentic purchasing is value-per-dollar ruthless. Iliad wins by delivering
+    orchestration value ABOVE what agents can get by calling providers directly.
+    Markup is justified by: single connection, single auth, single billing,
+    smart chaining, caching, retries, and codebase-aware context enrichment.
+
+  proxy_vs_build:
+    build_own_tool:
+      upfront_cost_usd: "15000–60000 opportunity cost"
+      time_to_parity: "2–6 months"
+      ongoing_infra_monthly: "500–2000 (crawler) + 50–200 (email infra)"
+      risk: high
+      recommendation: "Never for commodity tools. Only for your core differentiator."
+    proxy_third_party:
+      upfront_cost_usd: "~0 (1–2 weeks integration time)"
+      time_to_market: "1–2 weeks"
+      ongoing_infra_monthly: "wholesale API cost only"
+      risk: low
+      recommendation: "Default choice for all non-core tools."
+
+  markup_model:
+    target_margin: "30–100% over wholesale cost"
+    examples:
+      - tool: firecrawl_page_scrape
+        wholesale_per_1k_pages_usd: 0.80
+        iliad_price_per_1k_pages_usd: 1.60
+        margin_pct: 100
+      - tool: replicate_image_gen
+        wholesale_per_run_usd: 0.0023
+        iliad_price_per_run_usd: 0.004
+        margin_pct: 74
+      - tool: resend_email
+        wholesale_per_1k_emails_usd: 0.90
+        iliad_price_per_1k_emails_usd: 1.50
+        margin_pct: 67
+    note: >
+      Agents are willing to pay 1.5–2.5x for the bundled experience.
+      The key differentiator is not being cheaper — it is being more valuable.
+
+  pricing_model: subscription_plus_overage
+  pricing_rationale: >
+    Subscription tiers give human operators (developers configuring agents) a
+    predictable monthly budget. Blended credits abstract away per-tool pricing
+    so agents never need to track 8 different cost units. Overages charged at
+    a flat per-credit rate via Stripe so no call ever hard-fails — it just
+    bills. x402 autonomous payment rail remains the mechanism for agents
+    calling without a session; it deducts from the account's credit balance
+    rather than initiating a new charge each call. Annual billing saves 20%.
+
+  credit_system:
+    unit: "1 Iliad Credit"
+    unit_value_note: "Same value regardless of which tool consumes it. Agents see one number."
+    overage_rate_per_credit_usd: 0.0018
+    annual_discount_pct: 20
+    credit_costs:
+      - action: "Full codebase analysis (standard)"
+        credits: 2500
+        notes: "Includes 102 artifacts — AGENTS.md, .cursorrules, debug playbook, etc."
+      - action: "Deep codebase analysis (large repo)"
+        credits_range: "6000–12000"
+        notes: "Auto-detected based on file count and complexity"
+      - action: "Firecrawl scrape (per page)"
+        credits: 1.5
+        notes: "Markdown + structured data output"
+      - action: "Firecrawl search + scrape"
+        credits: 4
+        notes: "Research workflow — query + fetch"
+      - action: "Replicate image gen (Flux / standard)"
+        credits: 12
+      - action: "Replicate high-quality / video"
+        credits_range: "35–80"
+        notes: "Advanced models — charged at actual model cost"
+      - action: "Fastio store / retrieve / RAG query"
+        credits: 1
+        notes: "Per operation"
+      - action: "Resend email"
+        credits: 2
+        notes: "Per email sent"
+
+  pricing_tiers:
+    free:
+      monthly_credits: 10000
+      monthly_price_usd: 0
+      codebase_analysis_runs: 3
+      firecrawl_pages: 1000
+      replicate_images: 20
+      fastio_storage_gb: 5
+      resend_emails: 500
+      mcp_access: true
+      x402_autonomous: limited
+      usage_dashboard: basic
+      support: community
+      best_for: "Testing agents, exploring tools"
+
+    starter:
+      monthly_credits: 75000
+      monthly_price_usd: 29
+      annual_price_usd: 23  # 20% discount = $276/yr
+      codebase_analysis_runs: 25
+      firecrawl_pages: 40000
+      replicate_images: 400
+      fastio_storage_gb: 50
+      resend_emails: 8000
+      mcp_access: true
+      x402_autonomous: full
+      usage_dashboard: full
+      support: email
+      best_for: "Solo devs and small agents"
+      example_usage: "8 codebase runs + 15k Firecrawl pages + 300 images → ~$29/mo"
+
+    pro:
+      monthly_credits: 300000
+      monthly_price_usd: 99
+      annual_price_usd: 79  # 20% discount = $948/yr
+      codebase_analysis_runs: unlimited
+      firecrawl_pages: 150000
+      replicate_images: 2000
+      fastio_storage_gb: 250
+      resend_emails: 30000
+      mcp_access: true
+      x402_autonomous: "full + priority"
+      priority_caching: true
+      usage_dashboard: full
+      support: "priority email + discord"
+      best_for: "Serious agent builders"
+      recommended: true
+      example_usage: "60 deep analyses + 80k research pages + 1500 images → ~$99/mo"
+
+    growth:
+      monthly_credits: 1200000
+      monthly_price_usd: 299
+      annual_price_usd: 239  # 20% discount = $2868/yr
+      codebase_analysis_runs: unlimited
+      firecrawl_pages: 600000
+      replicate_images: 8000
+      fastio_storage_gb: 1024  # 1 TB
+      resend_emails: 120000
+      mcp_access: true
+      x402_autonomous: "full + analytics"
+      priority_caching: true
+      usage_dashboard: "full + alerts"
+      support: slack
+      best_for: "Teams and production workloads"
+      example_usage: "400+ analyses + heavy research and generation → $320–450/mo"
+
+    enterprise:
+      monthly_credits: unlimited
+      monthly_price_usd: custom
+      codebase_analysis_runs: unlimited
+      all_tools: unlimited
+      mcp_access: "standard + dedicated endpoint"
+      x402_autonomous: "full + SLA"
+      priority_caching: true
+      usage_dashboard: custom
+      support: "dedicated Slack + calls"
+      includes: [dedicated_instance, sla, no_log_mode, custom_per_call_markup, white_label_option]
+      best_for: "Companies"
+
+  page_copy:
+    headline: "Iliad — The Agent Operating System"
+    subhead: "One MCP endpoint. Every tool your agent needs."
+    descriptor: >
+      Deep codebase intelligence + web research + image gen + memory + email —
+      all in one place. Start free. Scale with confidence.
+      Transparent usage-based pricing designed for agents.
+    trust_bullets:
+      - "One connection instead of 8 different MCP servers"
+      - "Single bill via Stripe — x402 works automatically"
+      - "Your core codebase analyzer is unmatched — the rest is best-in-class and reliably proxied"
+      - "Built by a solo engineer who actually ships"
+    calculator_scenarios:
+      - label: "Light Research Agent"
+        inputs: "8 codebase runs + 15k Firecrawl pages + 300 images"
+        estimated_monthly: "$29 (Starter)"
+      - label: "Heavy Coding Agent"
+        inputs: "60 deep analyses + 80k research pages + 1500 images"
+        estimated_monthly: "$99 (Pro)"
+      - label: "Production Team"
+        inputs: "400+ analyses + heavy research and generation"
+        estimated_monthly: "$320–450 (Growth)"
+
+  break_even_projection:
+    proxy_scenario:
+      fixed_overhead_usd: 0
+      variable_cost: wholesale_api_rate_only
+      per_analyze_run_gross_margin_pct: 50
+      per_firecrawl_page_gross_margin_pct: 53
+      month_1_revenue_at_10_pro_users_usd: 990
+      month_1_wholesale_cost_estimate_usd: 300
+      month_1_net_usd: "+690"
+      note: "Subscription float means revenue is collected before credits are consumed."
+    build_scenario:
+      month_1_cost_usd: 15000
+      month_1_revenue_potential_usd: 500
+      net: "-14500"
+      payback_months: "18–30"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRICING PAGE
+# ─────────────────────────────────────────────────────────────────────────────
+
+pricing_page:
+  hero:
+    headline: "Iliad — The Agent Operating System"
+    subheadline: "One MCP endpoint. Every tool your agent needs."
+    descriptor: >
+      Deep codebase intelligence + web research + image gen + memory + email —
+      all in one place. Start free. Scale with confidence. Transparent usage-based
+      pricing designed for agents.
+
+  trust_section:
+    title: "Why agents choose Iliad"
+    bullets:
+      - "One connection instead of 8 different MCP servers"
+      - "Single bill via Stripe — x402 works automatically"
+      - "Your core codebase analyzer is unmatched — the rest is best-in-class and reliably proxied"
+      - "Built by a solo engineer who actually ships"
+
+  tier_table:
+    note: "Annual billing saves 20%. Pro plan is most popular (highlight in UI)."
+    columns: [Feature, Free, Starter, Pro, Growth, Enterprise]
+    rows:
+      - feature: "Monthly Blended Credits"
+        free: "10,000"
+        starter: "75,000"
+        pro: "300,000"
+        growth: "1,200,000"
+        enterprise: "Unlimited"
+      - feature: "Codebase Analysis Runs"
+        free: "3 / month"
+        starter: "25 / month"
+        pro: "Unlimited"
+        growth: "Unlimited"
+        enterprise: "Unlimited"
+      - feature: "Firecrawl Research (pages)"
+        free: "1,000"
+        starter: "40,000"
+        pro: "150,000"
+        growth: "600,000"
+        enterprise: "Unlimited"
+      - feature: "Replicate Image / Video Gen"
+        free: "20 images"
+        starter: "400 images"
+        pro: "2,000 images"
+        growth: "8,000 images"
+        enterprise: "Unlimited"
+      - feature: "Fastio Storage / RAG"
+        free: "5 GB"
+        starter: "50 GB"
+        pro: "250 GB"
+        growth: "1 TB"
+        enterprise: "Unlimited"
+      - feature: "Resend Emails"
+        free: "500"
+        starter: "8,000"
+        pro: "30,000"
+        growth: "120,000"
+        enterprise: "Unlimited"
+      - feature: "MCP Server Access"
+        free: "✅"
+        starter: "✅"
+        pro: "✅"
+        growth: "✅"
+        enterprise: "✅ + Dedicated"
+      - feature: "x402 Autonomous Payments"
+        free: "Limited"
+        starter: "Full"
+        pro: "Full + Priority"
+        growth: "Full + Analytics"
+        enterprise: "Full + SLA"
+      - feature: "Priority Caching"
+        free: "—"
+        starter: "—"
+        pro: "✅"
+        growth: "✅"
+        enterprise: "✅"
+      - feature: "Usage Dashboard"
+        free: "Basic"
+        starter: "Full"
+        pro: "Full"
+        growth: "Full + Alerts"
+        enterprise: "Custom"
+      - feature: "Support"
+        free: "Community"
+        starter: "Email"
+        pro: "Priority Email + Discord"
+        growth: "Slack"
+        enterprise: "Dedicated Slack + Calls"
+      - feature: "Best For"
+        free: "Testing agents"
+        starter: "Solo devs & small agents"
+        pro: "Serious agent builders"
+        growth: "Teams & production"
+        enterprise: "Companies"
+
+  pricing_details:
+    free:
+      price_monthly_usd: 0
+      credits: 10000
+    starter:
+      price_monthly_usd: 29
+      price_annual_usd: 23
+      credits: 75000
+      note: "Example: 8 codebase runs + 15k Firecrawl pages + 300 images ≈ $29/mo"
+    pro:
+      price_monthly_usd: 99
+      price_annual_usd: 79
+      credits: 300000
+      note: "Example: 60 deep analyses + 80k research pages + 1,500 images ≈ $99/mo"
+      recommended: true
+    growth:
+      price_monthly_usd: 299
+      price_annual_usd: 239
+      credits: 1200000
+      note: "Example: 400+ analyses + heavy research and generation → $320–450/mo"
+    enterprise:
+      price_monthly_usd: custom
+      credits: unlimited
+      note: "Includes dedicated instance, SLA, no-log mode, white-label option"
+
+  calculator:
+    title: "How much will Iliad cost my agents?"
+    subtitle: "Use the calculator below to estimate monthly spend based on real usage."
+    scenarios:
+      - label: "Light Research Agent"
+        inputs: "8 codebase runs + 15k Firecrawl pages + 300 images"
+        estimated_monthly: "$29 (Starter)"
+      - label: "Heavy Coding Agent"
+        inputs: "60 deep analyses + 80k research pages + 1,500 images"
+        estimated_monthly: "$99 (Pro)"
+      - label: "Production Team"
+        inputs: "400+ analyses + heavy research and generation"
+        estimated_monthly: "$320–450 (Growth)"
+
+  dashboard_preview:
+    title: "Iliad Usage Dashboard"
+    subtitle: "Real-time credit consumption • Forecasted spend • Cost per agent"
+    example_state:
+      current_period: "87,432 / 300,000 credits (29%)"
+      top_spenders:
+        - category: "Code Intelligence"
+          pct: 41
+        - category: "Web Research"
+          pct: 33
+        - category: "Image Generation"
+          pct: 18
+      projected_month_end: "$94 (under Pro limit)"
+      recommendation: "Upgrade to Pro now and save $41 on overages"
+
+  overage_policy:
+    overage_rate_per_credit_usd: 0.0018
+    policy: >
+      When you exceed your monthly credit allocation, additional credits are
+      automatically billed at $0.0018 per credit. No service interruption.
+      No surprise charges — you see the forecast on your dashboard before
+      the billing period ends.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ARCHITECTURE
+# ─────────────────────────────────────────────────────────────────────────────
+
+architecture:
+  model: "MCP Hub / Aggregator"
+  single_endpoint: "https://axis-api-6c7z.onrender.com/mcp"
+  auth: "Bearer <AXIS_API_KEY> — single credential unlocks all tools"
+
+  additive_principle: >
+    Proxied tools are net-new additions. They do not change, replace, or
+    compete with the existing codebase analysis tools (analyze_repo,
+    analyze_files, prepare_agentic_purchasing, improve_my_agent_with_axis).
+    They extend the platform so agents that arrive for code analysis can
+    accomplish related work (research, image gen, storage, email) without
+    leaving the Iliad MCP connection. All existing tool schemas, x402 gates,
+    quota headers, and test suites remain unchanged.
+
+  tool_registry:
+    owned_tools:
+      - name: analyze_repo
+        description: "Deep codebase analysis → 99 artifacts"
+        pricing: x402_50_cents
+        differentiator: true
+      - name: analyze_files
+        description: "Inline file analysis"
+        pricing: x402_50_cents
+        differentiator: true
+      - name: prepare_agentic_purchasing
+        description: "AP2/Visa/CE3.0 purchasing readiness audit"
+        pricing: x402_50_cents
+        differentiator: true
+      - name: improve_my_agent_with_axis
+        description: "Agent self-improvement loop"
+        pricing: x402_50_cents
+        differentiator: true
+
+    proxied_tools:
+      - name: iliad_web_research
+        backed_by: firecrawl
+        mcp_upstream: "https://mcp.firecrawl.dev/v2/mcp"
+        env_key: FIRECRAWL_API_KEY
+        value_add: >
+          Codebase-aware scraping: when called during analyze_repo, Iliad
+          auto-enriches queries with repo context (tech stack, domain, frameworks)
+          for higher relevance than raw Firecrawl calls.
+        pricing:
+          per_page_usd: 0.0016
+          markup_over_wholesale: "100%"
+        priority: 1
+
+      - name: iliad_image_gen
+        backed_by: replicate
+        mcp_upstream: "https://mcp.replicate.com"
+        env_key: REPLICATE_API_TOKEN
+        value_add: "UI mock generation from context_map; Mars/game asset generation."
+        pricing:
+          per_run_usd: 0.004
+          markup_over_wholesale: "74%"
+        priority: 2
+
+      - name: iliad_storage
+        backed_by: fastio
+        mcp_upstream: "https://mcp.fast.io/mcp"
+        env_key: FASTIO_API_KEY
+        value_add: >
+          Persistent agent memory. Snapshot artifacts auto-saved; long-running
+          sessions maintain state across context windows.
+        pricing:
+          per_gb_usd: 0.05
+          markup_over_wholesale: "50%"
+        priority: 2
+
+      - name: iliad_email
+        backed_by: resend
+        rest_api: "https://api.resend.com/emails"
+        env_key: RESEND_API_KEY
+        value_add: >
+          Agents can send analysis reports, audit results, and alerts.
+          Iliad templates the email body from snapshot artifacts automatically.
+        pricing:
+          per_1k_emails_usd: 1.50
+          markup_over_wholesale: "67%"
+        priority: 3
+
+      - name: iliad_payments_enhanced
+        backed_by: neverminded
+        description: "Supplementary payment layer — credit burning + paywall"
+        value_add: "Complements existing x402 rail with subscription-style credit burning."
+        priority: 4
+
+      - name: iliad_db
+        backed_by: upstash_or_postgres_mcp
+        description: "Safe SQL agent memory layer with Iliad auth"
+        value_add: "Persistent project state across agent sessions."
+        priority: 4
+
+  value_chain:
+    example_workflow: "Mars Tech Research Agent"
+    steps:
+      - step: 1
+        tool: search_and_discover_tools
+        action: "Find relevant programs for tech research + code analysis"
+        cost: free
+      - step: 2
+        tool: iliad_web_research
+        action: "Scrape recent Mars colony engineering papers, NASA docs"
+        cost: "$0.016 (10 pages)"
+      - step: 3
+        tool: analyze_repo
+        action: "Analyze SpaceX/starship-software GitHub repo"
+        cost: "$0.50"
+      - step: 4
+        tool: iliad_image_gen
+        action: "Generate Mars base UI concept from brand guidelines artifact"
+        cost: "$0.004"
+      - step: 5
+        tool: iliad_email
+        action: "Send compiled report to team"
+        cost: "$0.0015"
+      - step: 6
+        tool: iliad_storage
+        action: "Persist snapshot + artifacts for follow-up sessions"
+        cost: "$0.001"
+    total_agent_cost: "~$0.52 for a full research + analysis + delivery pipeline"
+    iliad_revenue: "~$0.25 gross profit (net of wholesale)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPETITIVE DIFFERENTIATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+differentiation:
+  headline: "Why agents pay Iliad more than direct tool providers"
+  dimensions:
+    - dimension: single_connection
+      direct_competitor: "Need separate MCP/credentials per tool"
+      iliad: "One /mcp endpoint, one API key, one billing relationship"
+      agent_value: "Huge — agents can't manage 6+ credentials reliably"
+
+    - dimension: single_billing
+      direct_competitor: "Multiple invoices, separate auth flows"
+      iliad: "One Stripe checkout via x402 rail; autonomous payment supported"
+      agent_value: "Critical for fully-autonomous agent workflows"
+
+    - dimension: codebase_aware_context
+      direct_competitor: "Generic tool outputs (raw markdown, raw image)"
+      iliad: "Outputs enriched with repo context from analyze_repo artifacts"
+      agent_value: "Higher relevance = fewer retries = lower total cost"
+
+    - dimension: orchestration
+      direct_competitor: "Agent must chain tools manually"
+      iliad: "Pre-built workflow patterns; tools aware of each other's outputs"
+      agent_value: "Reduces agent planning overhead; higher success rate"
+
+    - dimension: reliability_layer
+      direct_competitor: "Provider SLAs only"
+      iliad: "Iliad adds retry logic, caching, deduplication on top"
+      agent_value: "Agents hate flaky tools; reliability premium is real"
+
+    - dimension: budget_negotiation
+      direct_competitor: "Fixed pricing"
+      iliad: "X-Agent-Budget header; lite mode; 402 negotiation protocol"
+      agent_value: "Budget-constrained agents stay on platform instead of leaving"
+
+    - dimension: discovery
+      direct_competitor: "Agent must know tool exists"
+      iliad: "search_and_discover_tools routes intent → right tool automatically"
+      agent_value: "Zero-friction onboarding for new agent workflows"
+
+  moat_summary: >
+    Iliad's moat is NOT the individual tools — it's the integrated experience:
+    x402 payment rail + codebase intelligence + proxied ecosystem +
+    single-credential discovery. This is not replicable by pointing agents
+    directly at Firecrawl, Replicate, etc.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVELOPMENT PHASES
+# ─────────────────────────────────────────────────────────────────────────────
+
+phases:
+  - phase: 1
+    name: "Firecrawl Proxy — Web Research Tool"
+    priority: critical
+    estimated_effort: "3–5 days"
+    why_first: >
+      Highest agent demand (research is a universal workflow).
+      Complements analyze_repo directly — agents want to pull external docs
+      during code analysis. 100% markup achievable.
+    deliverables:
+      - "POST /v1/research/scrape — proxy to Firecrawl scrape endpoint"
+      - "POST /v1/research/crawl — proxy to Firecrawl crawl endpoint"
+      - "MCP tool: iliad_web_research with inputSchema matching Firecrawl"
+      - "x402 gate at $0.005 per page request (includes Iliad markup)"
+      - "Context enrichment: if X-Axis-Snapshot-Id header present, inject repo context into query"
+      - "Add FIRECRAWL_API_KEY to env spec + render.yaml"
+      - "Update /for-agents tool listing with iliad_web_research entry"
+      - "Update openapi.ts with /v1/research/* paths"
+    acceptance_criteria:
+      - "Agent calls iliad_web_research via MCP → gets markdown scrape result"
+      - "x402 fires correctly for unauthenticated or over-quota callers"
+      - "Cost header X-Axis-Request-Cost reflects per-page pricing"
+      - "All existing tests still pass"
+
+  - phase: 2
+    name: "Replicate Image Gen + Fastio Storage"
+    priority: high
+    estimated_effort: "3–4 days"
+    deliverables:
+      - "MCP tool: iliad_image_gen → proxy Replicate /v1/predictions"
+      - "MCP tool: iliad_storage → proxy Fastio file tools (upload, download, list, delete)"
+      - "x402 gates for both: image_gen @ $0.004/run, storage @ $0.001/MB"
+      - "snapshot artifact auto-save: after analyze_repo, offer to persist artifacts to iliad_storage"
+      - "Add REPLICATE_API_TOKEN + FASTIO_API_KEY to env spec"
+    acceptance_criteria:
+      - "Agent can generate an image from an MCP call through Iliad"
+      - "Agent can store/retrieve files via MCP through Iliad"
+      - "Costs reflected in x402 / X-Axis-Request-Cost headers"
+
+  - phase: 3
+    name: "Email (Resend) + Workflow Templates"
+    priority: medium
+    estimated_effort: "2–3 days"
+    deliverables:
+      - "MCP tool: iliad_send_email → REST proxy to Resend /emails"
+      - "Pre-built email templates for: analysis report, audit result, payment confirmation"
+      - "Workflow template: research_and_report (steps 1–6 from value_chain example)"
+      - "GET /v1/workflows — returns available workflow templates"
+      - "Add RESEND_API_KEY to env spec"
+    acceptance_criteria:
+      - "Agent calls iliad_send_email → email delivered via Resend"
+      - "Workflow template endpoint returns structured step list consumable by agent planners"
+
+  - phase: 4
+    name: "Persistent Memory + Analytics"
+    priority: medium
+    estimated_effort: "4–5 days"
+    deliverables:
+      - "MCP tool: iliad_memory_set / iliad_memory_get — agent key/value store"
+      - "Backed by SQLite (existing @axis/snapshots db) or Upstash if scale demands"
+      - "Per-account memory namespace (no cross-account leakage)"
+      - "Usage analytics dashboard for proxied tool consumption"
+      - "Caching layer: deduplicate identical Firecrawl scrape requests within 1h TTL"
+    acceptance_criteria:
+      - "Agent persists data across sessions using iliad_memory_*"
+      - "Cache prevents duplicate Firecrawl charges for identical URLs in same session"
+
+  - phase: 5
+    name: "Enterprise + White-label"
+    priority: future
+    estimated_effort: "2–3 weeks"
+    deliverables:
+      - "Dedicated instance option (self-hosted Docker)"
+      - "No-log mode (no analytics stored)"
+      - "Custom markup configuration per enterprise account"
+      - "SLA + support tiers"
+      - "White-label MCP endpoint (customer's domain, Iliad powered)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# IMPLEMENTATION CONSTRAINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+implementation_constraints:
+  language: TypeScript
+  framework: "Custom HTTP router (apps/api/src/router.ts) — no Express"
+  payment_rail: "mppx x402 — all new paid tools MUST use existing chargeMpp pattern"
+  auth: "Existing requireAuth / resolveAuth from billing.ts — no new auth systems"
+  database: "@axis/snapshots SQLite — use for memory/caching where possible before adding Upstash"
+  test_requirement: "All phases must maintain passing vitest suite (currently 4187 tests)"
+  env_management: "Add new keys to apps/api/src/env.ts EnvSpec + .env.example + render.yaml"
+  mcp_registration: "New tools added to MCP_TOOLS array in apps/api/src/mcp-server.ts with full inputSchema, outputSchema, examples, annotations"
+  openapi: "New endpoints added to apps/api/src/openapi.ts — spec path count test must pass"
+  for_agents: "New tools added to allTools array in handleForAgents (handlers.ts) with x_payment metadata"
+  discovery_files: "Update .well-known/capabilities.json and /for-agents when new tools go live"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ANTI-PATTERNS (HARD BANS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+anti_patterns:
+  - "DO NOT build a custom web crawler — proxy Firecrawl"
+  - "DO NOT build a custom email sender — proxy Resend"
+  - "DO NOT build a custom image generator — proxy Replicate"
+  - "DO NOT add a new auth system — use existing requireAuth"
+  - "DO NOT add a new payment system — extend existing x402 rail"
+  - "DO NOT add a new MCP framework — extend existing MCP_TOOLS array in mcp-server.ts"
+  - "DO NOT compete on price with direct providers — compete on orchestration value"
+  - "DO NOT launch Phase 2 before Phase 1 has paying agents"
+  - "DO NOT add optional complexity to the front door (core analyze_repo flow must stay clean)"

@@ -2340,6 +2340,7 @@ export async function handleRobotsTxt(
     "Allow: /",
     "Allow: /.well-known/",
     "Allow: /mcp",
+    "Allow: /pricing",
     "Allow: /for-agents",
     "Allow: /v1/",
     "Allow: /llms.txt",
@@ -2387,6 +2388,8 @@ export async function handleSitemapXml(
   const urls: Array<{ loc: string; changefreq: string; priority: string }> = [
     { loc: "/",                               changefreq: "weekly",  priority: "1.0" },
     { loc: "/for-agents",                     changefreq: "weekly",  priority: "0.9" },
+    { loc: "/mcp",                            changefreq: "weekly",  priority: "0.9" },
+    { loc: "/pricing",                        changefreq: "weekly",  priority: "0.8" },
     { loc: "/llms.txt",                       changefreq: "monthly", priority: "0.8" },
     { loc: "/robots.txt",                     changefreq: "monthly", priority: "0.5" },
     { loc: "/v1/docs",                        changefreq: "weekly",  priority: "0.9" },
@@ -2638,17 +2641,29 @@ export async function handleForAgents(
     });
   }
 
+  const PAYMENT_META = {
+    price_usd: "0.50",
+    lite_price_usd: "0.15",
+    flow: "Call → 402 with payment_url/checkout_url → pay at checkout_url → retry identical request",
+    on_402: "Parse response body: present checkout_url to user OR use autonomous payment if authorized. After payment, re-send original request unchanged.",
+    budget_header: 'X-Agent-Budget: {"budget_per_run_cents":50,"spending_window":"per_call"}',
+    lite_header: "X-Agent-Mode: lite",
+    quota_headers: "X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Credits-Balance sent on every authenticated response",
+  };
+
   const allTools = [
-      { name: "analyze_repo",                   auth: true,  description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid and private repos require a stored GitHub token.` },
-      { name: "analyze_files",                  auth: true,  description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts.` },
+      { name: "analyze_repo",                   auth: true,  x_payment: PAYMENT_META, description: `Analyze a GitHub repo URL and return snapshot_id + ${ARTIFACT_COUNT} artifacts. Use analyze_files for inline content; use list_programs or search_and_discover_tools before this if you are still choosing a workflow. Requires API key; full analysis is paid ($0.50/run) and private repos require a stored GitHub token. If you receive a 402, present the checkout_url to the user or pay autonomously, then retry.` },
+      { name: "analyze_files",                  auth: true,  x_payment: PAYMENT_META, description: `Analyze inline files [{path,content}]. Returns snapshot_id + ${ARTIFACT_COUNT} artifacts. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry.` },
       { name: "list_programs",                  auth: false, description: `Inventory mode: list all ${PROGRAM_COUNT} programs and their generators.` },
       { name: "get_snapshot",                   auth: false, description: "Get status and artifact listing for a snapshot_id." },
       { name: "get_artifact",                   auth: false, description: "Read full content of any generated artifact by path." },
-      { name: "prepare_agentic_purchasing", auth: true,  description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence, win probability model, lighter SCA paths, playbooks. Focus areas: sca, dispute, mandate, tap, tokenization." },
+      { name: "prepare_agentic_purchasing",      auth: true,  x_payment: { ...PAYMENT_META, lite_price_usd: "0.25" }, description: "Full purchasing-readiness audit. Score 0-100, AP2/Visa compliance, CE 3.0 dispute evidence, win probability model, lighter SCA paths, playbooks. Paid ($0.50/run). Focus areas: sca, dispute, mandate, tap, tokenization. On 402, present checkout_url or pay autonomously, then retry." },
       { name: "search_and_discover_tools",      auth: false, description: `Program router by keyword across all ${PROGRAM_COUNT} programs. Use when you know desired outcome but not which program.` },
-      { name: "discover_commerce_tools",auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
-      { name: "improve_my_agent_with_axis",     auth: true,  description: "Analyze your agent's codebase, get improvement plan + missing context files." },
+      { name: "discover_commerce_tools",        auth: false, description: "Platform onboarding metadata: pricing, install configs, and shareable manifest." },
+      { name: "improve_my_agent_with_axis",     auth: true,  x_payment: PAYMENT_META, description: "Analyze your agent's codebase, get improvement plan + missing context files. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
+      { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
+      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid ($0.25/crawl, or $0.12 lite). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.001 per agent conversion." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
@@ -2821,6 +2836,51 @@ export async function handleForAgents(
         ],
         note: "This is illustrative. Actual output is deterministic and specific to the analyzed codebase.",
       },
+    },
+    x402_flow: {
+      description: "Few-shot examples showing the complete agent interaction pattern with the x402 payment rail.",
+      examples: [
+        {
+          label: "1 — Free-tier caller hits 402",
+          step: "Agent calls POST /v1/analyze as a free-tier user requesting paid programs",
+          request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_free_xxxx" }, body: { github_url: "https://github.com/acme/shop" } },
+          response: {
+            status: 402,
+            body: {
+              error: "Payment Required",
+              price: "0.50",
+              currency: "USD",
+              payment_url: "https://axis-iliad.jonathanarvay.com/billing",
+              checkout_url: "https://axis-iliad.jonathanarvay.com/billing#checkout-paid",
+              retry_after_payment: "Re-send the original request with your API key after completing payment.",
+              error_code: "TIER_REQUIRED",
+              agent_message: "AXIS can complete this request after payment. Retry with an MPP credential, switch to lite mode, or stay on the free discovery tools first.",
+            },
+          },
+          agent_action: "Present checkout_url to the user or, if autonomous payment is authorized, trigger payment flow, then proceed to step 2.",
+        },
+        {
+          label: "2 — Agent retries after payment",
+          step: "After payment completes, agent re-sends identical request. No extra steps needed.",
+          request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_free_xxxx" }, body: { github_url: "https://github.com/acme/shop" } },
+          response: { status: 201, body: { snapshot_id: "snap_abc123", artifact_count: ARTIFACT_COUNT, programs_executed: ["search", "skills", "debug", "theme", "brand", "..."] } },
+          agent_action: "Proceed with the snapshot_id to read artifacts via get_artifact.",
+        },
+        {
+          label: "3 — Budget negotiation (lite mode)",
+          step: "Agent with a $0.25 budget sends X-Agent-Budget and X-Agent-Mode: lite",
+          request: { method: "POST", path: "/v1/analyze", headers: { Authorization: "Bearer ak_xxxx", "X-Agent-Budget": "{\"budget_per_run_cents\":25,\"spending_window\":\"per_call\"}", "X-Agent-Mode": "lite" }, body: { github_url: "https://github.com/acme/shop" } },
+          response: { status: 201, body: { snapshot_id: "snap_lite_xyz", artifact_count: 30, programs_executed: ["search", "skills", "debug"] } },
+          agent_action: "Lite mode succeeded at $0.15. 3 programs returned instead of the full bundle.",
+        },
+        {
+          label: "4 — Reading quota before calling",
+          step: "Agent checks X-Axis-Quota-Remaining header from a previous response before deciding to call",
+          hint: "Every authenticated response includes: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost. Read them to pre-check budget before committing to a paid call.",
+          example_headers: { "X-Axis-Tier": "paid", "X-Axis-Quota-Remaining": "47", "X-Axis-Quota-Limit": "50", "X-Axis-Credits-Balance": "0", "X-Axis-Request-Cost": "0.50" },
+        },
+      ],
+      agent_instructions: "When you encounter a 402 from AXIS: (1) Parse checkout_url from the response body. (2) If you have autonomous payment authorization, complete payment. (3) Re-send the original request unchanged. (4) If no autonomous payment: present the checkout_url to the human and pause. (5) On resume, retry the request.",
     },
   });
 }
@@ -3144,6 +3204,22 @@ export async function handleDocsRedirect(
   });
 }
 
+// ─── GET /pricing  -  pricing landing metadata for crawlers ─────
+
+export async function handlePricingLanding(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    title: "Axis Iliad Pricing",
+    description: "Pricing and plans for Axis Iliad, including free and pro tiers for AI codebase analysis and MCP tools.",
+    web_pricing_page: "https://axis-iliad.jonathanarvay.com/#plans",
+    api_plans_endpoint: "/v1/plans",
+    docs: "/v1/docs",
+    for_agents: "/for-agents",
+  });
+}
+
 // ─── GET /openapi.json  -  OpenAPI spec alias ────────────────────
 
 export async function handleOpenApiJson(
@@ -3281,4 +3357,312 @@ export async function handlePerformanceReputation(
     last_probe: lastProbe,
     notes: "Professional MCP server with deterministic artifact generation and clean OAuth discovery support.",
   });
+}
+
+// ─── Firecrawl Proxy: Web Research Tools ──────────────────────────────
+
+interface FirecrawlScrapeRequest {
+  url: string;
+  formats?: string[];
+  onlyMainContent?: boolean;
+  includeTags?: string[];
+  excludeTags?: string[];
+  timeout?: number;
+}
+
+interface FirecrawlScrapeResponse {
+  success: boolean;
+  data?: {
+    markdown: string;
+    html?: string;
+    rawHtml?: string;
+    metadata?: Record<string, unknown>;
+  };
+  error?: string;
+}
+
+interface FirecrawlCrawlRequest {
+  url: string;
+  limit?: number;
+  allowBackendLinks?: boolean;
+  scrapeOptions?: {
+    formats?: string[];
+    onlyMainContent?: boolean;
+  };
+  timeout?: number;
+}
+
+interface FirecrawlCrawlResponse {
+  success: boolean;
+  data?: {
+    scrapeResults?: Array<{
+      url: string;
+      markdown: string;
+      metadata?: Record<string, unknown>;
+    }>;
+  };
+  error?: string;
+}
+
+/**
+ * POST /v1/research/scrape — Proxy to Firecrawl /scrape endpoint
+ * Scrapes a single URL and returns markdown + structured data
+ * Pricing: 1.5 credits per page (~$0.0018)
+ */
+export async function handleFirecrawlScrape(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const url = body.url as string | undefined;
+  if (!url || typeof url !== "string") {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "url is required (string)");
+    return;
+  }
+
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required for web research");
+    return;
+  }
+
+  const budget = parseAgentBudget(req);
+  const mode = resolveAgentMode(req);
+  const pricing = getPricingTier("iliad_web_research");
+  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
+  // Check quota before attempting Firecrawl call
+  const quota = checkQuota(auth.account.account_id);
+  if (!quota.allowed) {
+    const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+      currency: "usd",
+      decimals: 2,
+      description: `Firecrawl web scrape - $${(amountCents / 100).toFixed(2)} per page`,
+      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research" },
+    });
+    if (mppResult === null) {
+      const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+      sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+        ...buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id),
+      });
+    }
+    if (mppResult === null || mppResult.status === 402) return;
+  }
+
+  // Proxy to Firecrawl API
+  const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
+  if (!firecrawlApiKey) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Firecrawl integration not configured");
+    return;
+  }
+
+  const scrapePayload: FirecrawlScrapeRequest = {
+    url,
+    formats: ["markdown"],
+    onlyMainContent: body.only_main_content !== false,
+    timeout: 30000,
+  };
+
+  try {
+    const firecrawlRes = await fetch("https://api.firecrawl.dev/v0/scrape", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${firecrawlApiKey}`,
+      },
+      body: JSON.stringify(scrapePayload),
+    });
+
+    if (!firecrawlRes.ok) {
+      const errorText = await firecrawlRes.text();
+      log("warn", "firecrawl_scrape_error", {
+          request_id: getRequestId(res),
+          url,
+          status: firecrawlRes.status,
+          error: errorText.slice(0, 200),
+        });
+        sendError(res, firecrawlRes.status >= 500 ? 502 : 400, ErrorCode.UPSTREAM_ERROR, `Firecrawl error: ${firecrawlRes.statusText}`);
+        return;
+      }
+
+      const firecrawlData = (await firecrawlRes.json()) as FirecrawlScrapeResponse;
+
+      // Charge after successful scrape
+      const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `Firecrawl web scrape - ${url.slice(0, 50)}...`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research", url },
+      });
+
+      if (chargeResult === null) {
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after scrape complete");
+        return;
+      }
+
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode });
+
+      sendJSON(res, 200, {
+        success: true,
+        data: {
+          url,
+          markdown: firecrawlData.data?.markdown ?? "",
+          metadata: firecrawlData.data?.metadata ?? {},
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      log("error", "firecrawl_scrape_exception", {
+        request_id: getRequestId(res),
+        url,
+        error: message,
+      });
+      sendError(res, 500, ErrorCode.INTERNAL_ERROR, `Firecrawl request failed: ${message}`);
+    }
+}
+
+/**
+ * POST /v1/research/crawl — Proxy to Firecrawl /crawl endpoint
+ * Crawls a domain and scrapes multiple pages
+ * Pricing: 4 credits per crawl (~$0.0048) + scrape costs
+ */
+export async function handleFirecrawlCrawl(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const url = body.url as string | undefined;
+  const limit = typeof body.limit === "number" ? body.limit : 10;
+
+  if (!url || typeof url !== "string") {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "url is required (string)");
+    return;
+  }
+
+  if (limit < 1 || limit > 100) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "limit must be between 1 and 100");
+    return;
+  }
+
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required for web research");
+    return;
+  }
+
+  const budget = parseAgentBudget(req);
+  const mode = resolveAgentMode(req);
+  const pricing = getPricingTier("iliad_web_research_crawl");
+  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
+  // Check quota
+  const quota = checkQuota(auth.account.account_id);
+  if (!quota.allowed) {
+    const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+      currency: "usd",
+      decimals: 2,
+      description: `Firecrawl web crawl (${limit} pages) - $${(amountCents / 100).toFixed(2)}`,
+      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", limit: String(limit) },
+    });
+    if (mppResult === null) {
+      sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires $${(amountCents / 100).toFixed(2)}`, {
+        ...buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id),
+      });
+    }
+    if (mppResult === null || mppResult.status === 402) return;
+  }
+
+  const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
+  if (!firecrawlApiKey) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Firecrawl integration not configured");
+    return;
+  }
+
+  const crawlPayload: FirecrawlCrawlRequest = {
+    url,
+    limit,
+    allowBackendLinks: false,
+    scrapeOptions: {
+      formats: ["markdown"],
+      onlyMainContent: true,
+    },
+    timeout: 60000,
+  };
+
+  try {
+    const firecrawlRes = await fetch("https://api.firecrawl.dev/v0/crawl", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${firecrawlApiKey}`,
+      },
+      body: JSON.stringify(crawlPayload),
+    });
+
+    if (!firecrawlRes.ok) {
+      const errorText = await firecrawlRes.text();
+      log("warn", "firecrawl_crawl_error", {
+        request_id: getRequestId(res),
+        url,
+        status: firecrawlRes.status,
+        error: errorText.slice(0, 200),
+      });
+      sendError(res, firecrawlRes.status >= 500 ? 502 : 400, ErrorCode.UPSTREAM_ERROR, `Firecrawl error: ${firecrawlRes.statusText}`);
+      return;
+    }
+
+    const firecrawlData = (await firecrawlRes.json()) as FirecrawlCrawlResponse;
+
+    // Charge after successful crawl
+    const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+      currency: "usd",
+      decimals: 2,
+      description: `Firecrawl web crawl (${limit} pages) - ${url.slice(0, 50)}...`,
+      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit) },
+    });
+
+    if (chargeResult === null) {
+      sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after crawl complete");
+      return;
+    }
+
+    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+
+    sendJSON(res, 200, {
+      success: true,
+      data: {
+        url,
+        pages_crawled: firecrawlData.data?.scrapeResults?.length ?? 0,
+        pages: firecrawlData.data?.scrapeResults?.map((result) => ({
+          url: result.url,
+          markdown: result.markdown,
+          metadata: result.metadata ?? {},
+        })) ?? [],
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    log("error", "firecrawl_crawl_exception", {
+      request_id: getRequestId(res),
+      url,
+      error: message,
+    });
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, `Firecrawl request failed: ${message}`);
+  }
 }

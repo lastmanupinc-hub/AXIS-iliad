@@ -5,7 +5,7 @@ import { initRequest, getRequestId, getRequestStart, log, ErrorCode, type ErrorC
 import { checkRateLimit } from "./rate-limiter.js";
 import { resolveAuth } from "./billing.js";
 import { recordRequest, recordLatency } from "./metrics.js";
-import { walCheckpoint, closeDb, recordApiCall } from "@axis/snapshots";
+import { walCheckpoint, closeDb, recordApiCall, checkQuota, getPersistenceBalance } from "@axis/snapshots";
 
 // Store request reference on response for sendJSON gzip negotiation
 const REQUEST_REF = new WeakMap<ServerResponse, IncomingMessage>();
@@ -202,6 +202,7 @@ const CACHE_CONTROL: Record<string, string> = {
   "/.well-known/skills/index.json": "public, max-age=3600",
   "/v1/install": "public, max-age=3600",
   "/for-agents": "public, max-age=3600",
+  "/pricing": "public, max-age=3600",
   "/v1/mcp/server.json": "public, max-age=86400",
   "/v1/mcp/tools": "public, max-age=1800",
 };
@@ -247,7 +248,8 @@ export function createApp(router: Router, port: number): Server {
       ?? (process.env.NODE_ENV === "production" ? "https://axis-iliad.jonathanarvay.com" : "*");
     res.setHeader("Access-Control-Allow-Origin", corsOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Content-Encoding, Authorization");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Content-Encoding, Authorization, X-Agent-Budget, X-Agent-Mode, X-Axis-Key");
+    res.setHeader("Access-Control-Expose-Headers", "X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After, X-Request-Id");
     res.setHeader("Access-Control-Max-Age", "86400"); // cache preflight for 24h
     if (corsOrigin !== "*") {
       res.setHeader("Vary", "Origin");
@@ -262,6 +264,26 @@ export function createApp(router: Router, port: number): Server {
     // Rate limiting (before route handling — auth-aware)
     const auth = resolveAuth(req);
     if (!checkRateLimit(req, res, { authenticated: !auth.anonymous && auth.account !== null })) return;
+
+    // Axis agent headers — quota and tier info injected on every authenticated response
+    // so agents can pre-check budget before committing to a paid call.
+    if (auth.account) {
+      try {
+        const quota = checkQuota(auth.account.account_id);
+        const remaining = quota.limits.max_snapshots_per_month === -1
+          ? "unlimited"
+          : String(Math.max(0, quota.limits.max_snapshots_per_month - quota.usage.snapshots_this_month));
+        const limit = quota.limits.max_snapshots_per_month === -1 ? "unlimited" : String(quota.limits.max_snapshots_per_month);
+        res.setHeader("X-Axis-Tier", auth.account.tier);
+        res.setHeader("X-Axis-Quota-Remaining", remaining);
+        res.setHeader("X-Axis-Quota-Limit", limit);
+        const credits = getPersistenceBalance(auth.account.account_id);
+        res.setHeader("X-Axis-Credits-Balance", String(credits));
+        res.setHeader("X-Axis-Request-Cost", "0.50");
+      } catch {
+        // Never fail a request due to header injection errors
+      }
+    }
 
     /* v8 ignore next 4 — OPTIONS preflight tested in router.test.ts but V8 doesn't credit */
     if (req.method === "OPTIONS") {

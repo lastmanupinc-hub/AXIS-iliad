@@ -67,8 +67,9 @@ program_catalog:
     - slug: search
       name: Axis Search
       category: repo_intelligence
-      promise: Understand the repo faster
-      description: Search and map codebases, docs, prompts, and architecture context from a project snapshot.
+      promise: Understand the repo faster with unparalleled precision
+      description: >
+        Axis Search transforms project snapshots into actionable insights by mapping codebases, documentation, prompts, and architecture context. With advanced indexing and cross-project search capabilities, it empowers developers to navigate complex repositories effortlessly, ensuring no detail is overlooked.
       acquisition_role: broad_repo_surface_area
       free:
         - limited_snapshot_runs
@@ -96,8 +97,9 @@ program_catalog:
     - slug: debug
       name: Axis Debug
       category: repo_intelligence
-      promise: Find root cause faster
-      description: Turn code, logs, traces, and project context into repeatable debugging reports and playbooks.
+      promise: Find root cause faster with AI-driven diagnostics
+      description: >
+        Axis Debug leverages AI to turn code, logs, traces, and project context into repeatable debugging reports and playbooks. It accelerates root cause analysis, enabling teams to resolve issues with precision and confidence, reducing downtime and improving productivity.
       acquisition_role: high_value_engineering_outcome
       free:
         - limited_debug_runs
@@ -125,8 +127,9 @@ program_catalog:
     - slug: skills
       name: Axis Skills
       category: governance
-      promise: Generate project-specific AI governance files
-      description: Generate root-level guidance, workflows, and AI control files tailored to the project.
+      promise: Generate project-specific AI governance files effortlessly
+      description: >
+        Axis Skills automates the creation of root-level guidance, workflows, and AI control files tailored to your project. It ensures governance and compliance while enabling seamless integration of AI capabilities into development workflows.
       acquisition_role: governance_anchor
       free:
         - limited_file_previews
@@ -155,8 +158,9 @@ program_catalog:
     - slug: frontend
       name: Axis Frontend
       category: engineering_delivery
-      promise: Make UI work match the project's actual standards
-      description: Audit frontend structure and produce component, layout, and interface rules aligned to the repo.
+      promise: Align UI work with project standards seamlessly
+      description: >
+        Axis Frontend audits your project's frontend structure and generates component, layout, and interface rules that align with your repository's standards. It bridges the gap between design and development, ensuring consistency and quality.
       acquisition_role: design_dev_alignment
       free:
         - limited_ui_audits
@@ -183,8 +187,9 @@ program_catalog:
     - slug: seo
       name: Axis SEO
       category: growth_and_content
-      promise: Improve discoverability from inside the codebase
-      description: Analyze routes, content structure, schema, and technical SEO directly from the project.
+      promise: Optimize discoverability directly from your codebase
+      description: >
+        Axis SEO analyzes routes, content structure, schema, and technical SEO to improve discoverability. It provides actionable recommendations and route priority maps, ensuring your project reaches its target audience effectively.
       acquisition_role: growth_entry_point
       free:
         - single_route_audit
@@ -211,8 +216,9 @@ program_catalog:
     - slug: optimization
       name: Axis Optimization
       category: repo_intelligence
-      promise: Reduce waste and improve prompt and context efficiency
-      description: Analyze prompts, context packing, and model workflows for cost, clarity, and output quality.
+      promise: Maximize efficiency with prompt and context analysis
+      description: >
+        Axis Optimization evaluates prompts, context packing, and workflows for cost, clarity, and output quality. It identifies inefficiencies and provides actionable insights to optimize your development process.
       acquisition_role: efficiency_entry_point
       free:
         - single_analysis

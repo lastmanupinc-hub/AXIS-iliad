@@ -739,6 +739,107 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  {
+    name: "iliad_web_research",
+    description:
+      "Scrape a single URL using Firecrawl and return markdown-formatted content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. Use iliad_web_research_crawl for crawling multiple pages or link following.",
+    inputSchema: {
+      type: "object",
+      required: ["url"],
+      properties: {
+        url: {
+          type: "string",
+          description: "The URL to scrape (http or https)",
+        },
+        only_main_content: {
+          type: "boolean",
+          description: "Extract only the main content (default: true)",
+          default: true,
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean" },
+        data: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "The scraped URL" },
+            markdown: { type: "string", description: "Content as markdown" },
+            metadata: { type: "object", description: "Extracted metadata (title, description, etc.)" },
+          },
+        },
+        error: { type: "string", description: "Error message if request failed" },
+      },
+      required: ["success"],
+    },
+    annotations: toolAnnotations("Web Research", false, true),
+    examples: [
+      {
+        name: "Scrape a documentation page",
+        input: { url: "https://example.com/docs/api" },
+        output: '{"success":true,"data":{"url":"https://example.com/docs/api","markdown":"# API Documentation\\n\\n## Overview\\n...","metadata":{"title":"API Documentation","description":"Full API reference"}}}',
+      },
+    ],
+  },
+  {
+    name: "iliad_web_research_crawl",
+    description:
+      "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per crawl (covers up to 100 pages). Use iliad_web_research for single-page scrapes.",
+    inputSchema: {
+      type: "object",
+      required: ["url"],
+      properties: {
+        url: {
+          type: "string",
+          description: "The domain/URL to crawl (http or https)",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum pages to crawl (1-100, default: 10)",
+          minimum: 1,
+          maximum: 100,
+          default: 10,
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        success: { type: "boolean" },
+        data: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "The domain that was crawled" },
+            pages_crawled: { type: "number", description: "Number of pages successfully crawled" },
+            pages: {
+              type: "array",
+              description: "Array of scraped pages",
+              items: {
+                type: "object",
+                properties: {
+                  url: { type: "string" },
+                  markdown: { type: "string" },
+                  metadata: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+        error: { type: "string", description: "Error message if request failed" },
+      },
+      required: ["success"],
+    },
+    annotations: toolAnnotations("Web Research (Crawl)", false, true),
+    examples: [
+      {
+        name: "Crawl a documentation site",
+        input: { url: "https://example.com/docs", limit: 5 },
+        output: '{"success":true,"data":{"url":"https://example.com/docs","pages_crawled":5,"pages":[{"url":"https://example.com/docs/intro","markdown":"# Introduction\\n...","metadata":{"title":"Introduction"}},{"url":"https://example.com/docs/api","markdown":"# API\\n...","metadata":{"title":"API Reference"}}]}}',
+      },
+    ],
+  },
 ];
 
 // ─── Response builders ───────────────────────────────────────────

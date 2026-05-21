@@ -31,6 +31,11 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "STRIPE_WEBHOOK_SECRET", required: false, type: "string", description: "Stripe webhook signing secret (whsec_...) for Stripe-Signature verification" },
   { key: "STRIPE_PRICE_ID_PAID", required: false, type: "string", description: "Stripe price ID for the paid ($29/mo) tier" },
   { key: "STRIPE_PRICE_ID_SUITE", required: false, type: "string", description: "Stripe price ID for the suite ($99/mo) tier" },
+  // Proxied tool integrations
+  { key: "FIRECRAWL_API_KEY", required: false, type: "string", description: "API key for Firecrawl web scraping service (https://firecrawl.dev)" },
+  { key: "REPLICATE_API_TOKEN", required: false, type: "string", description: "API token for Replicate image/video generation (https://replicate.com)" },
+  { key: "FASTIO_API_KEY", required: false, type: "string", description: "API key for Fastio persistent storage and RAG (https://fast.io)" },
+  { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com)" },
 ];
 
 export interface ValidationError {

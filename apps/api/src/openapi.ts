@@ -236,13 +236,45 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/analyze": {
         post: {
           summary: "Analyze a codebase — one call returns all AI context files with adoption hints",
+          description:
+            `Analyze any GitHub repo or uploaded codebase and return ${ARTIFACT_COUNT} structured AI artifacts across ${PROGRAM_COUNT} programs (AGENTS.md, CLAUDE.md, .cursorrules, MCP config, brand guidelines, debug playbooks, etc.). ` +
+            "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.50 per-call MPP credit. " +
+            "If the caller lacks access, the server returns HTTP 402 with a machine-readable payment body containing payment_url, checkout_url, and retry_after_payment instructions. " +
+            "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request — no extra steps. " +
+            "Pass X-Agent-Budget header to negotiate lite mode ($0.15, 3 programs). Pass X-Agent-Mode: lite explicitly. " +
+            "Response headers on every authenticated call: X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Credits-Balance, X-Axis-Request-Cost.",
           operationId: "analyze",
           tags: ["Analyze"],
+          "x-payment": {
+            model: "stripe_x402",
+            price_usd: "0.50",
+            lite_price_usd: "0.15",
+            free_programs: ["search", "skills", "debug"],
+            description: "Returns HTTP 402 for free-tier callers requesting paid programs. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
+            budget_header: "X-Agent-Budget: {\"budget_per_run_cents\": 50, \"spending_window\": \"per_call\"}",
+            lite_mode_header: "X-Agent-Mode: lite",
+            retry_pattern: "Re-send original request with same API key after payment — no extra steps.",
+          },
           requestBody: jsonBody(ref("AnalyzeRequest")),
           responses: {
             201: { description: "Analysis complete — files with content, placement, and adoption_hint", content: jsonContent(ref("AnalyzeResponse")) },
             400: { description: "Validation error", content: jsonContent(ref("ErrorResponse")) },
-            401: { description: "Invalid or revoked API key" },
+            401: { description: "Invalid or revoked API key — authenticate first via POST /v1/accounts then POST /v1/account/keys" },
+            402: {
+              description: "Payment Required — free-tier caller requested paid programs. Response body contains payment_url, checkout_url, retry_after_payment, and full x402 negotiation block.",
+              content: jsonContent({
+                type: "object",
+                properties: {
+                  error: { type: "string", example: "Payment Required" },
+                  price: { type: "string", example: "0.50" },
+                  currency: { type: "string", example: "USD" },
+                  payment_url: { type: "string", description: "Stripe billing page for the caller's account" },
+                  checkout_url: { type: "string", description: "Direct Stripe checkout URL for Pro plan" },
+                  retry_after_payment: { type: "string", description: "Instructions to retry after payment completes" },
+                  x402: { type: "object", description: "x402-compatible on-chain payment block (USDC)" },
+                },
+              }),
+            },
             413: { description: "File count or size limit exceeded" },
             422: { description: "No source files found" },
             429: { description: "Rate limit or quota exceeded" },
@@ -253,13 +285,24 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/prepare-for-agentic-purchasing": {
         post: {
           summary: "Generate agentic purchasing readiness assessment — AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
+          description:
+            "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence, win probability model, lighter SCA paths (0ms vs 200-800ms Visa IC), and autonomous checkout rules. " +
+            "Requires Pro tier or $0.50 MPP credit. HTTP 402 returned for free-tier callers with payment_url and retry instructions. " +
+            "**Agent flow**: (1) Call with API key. (2) If 402, present checkout_url or pay autonomously. (3) Retry after payment.",
           operationId: "prepareForAgenticPurchasing",
           tags: ["Analyze", "Agentic Commerce"],
+          "x-payment": {
+            model: "stripe_x402",
+            price_usd: "0.50",
+            lite_price_usd: "0.25",
+            description: "Returns HTTP 402 for free-tier callers. Body contains payment_url, checkout_url, and retry_after_payment.",
+          },
           requestBody: jsonBody(ref("AnalyzeRequest")),
           responses: {
             201: { description: "Purchasing readiness score + compliance artifacts" },
             400: { description: "Validation error" },
             401: { description: "Invalid or revoked API key" },
+            402: { description: "Payment Required — body contains payment_url, checkout_url, and retry_after_payment instructions" },
             429: { description: "Rate limit or quota exceeded" },
           },
         },
@@ -276,6 +319,85 @@ export function buildOpenApiSpec(): OpenApiSpec {
             201: { description: "Snapshot created from GitHub repo" },
             400: { description: "Invalid GitHub URL" },
             404: { description: "Repository not found or inaccessible" },
+          },
+        },
+      },
+
+      // ── Firecrawl Web Research (Phase 1) ──
+      "/v1/research/scrape": {
+        post: {
+          summary: "Scrape a single URL and return markdown content",
+          description: "Proxy to Firecrawl /scrape. Returns markdown, metadata, and structured data. Requires authentication. Pricing: $0.10 standard, $0.05 lite per page.",
+          operationId: "firecrawlScrape",
+          tags: ["Web Research"],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["url"],
+                  properties: {
+                    url: { type: "string", description: "URL to scrape" },
+                    only_main_content: { type: "boolean", default: true, description: "Extract main content only" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Scrape successful" },
+            400: { description: "Invalid URL or request" },
+            401: { description: "Authentication required" },
+            402: { description: "Payment required" },
+            502: { description: "Firecrawl service error" },
+          },
+          "x-payment": {
+            model: "per_call_with_lite_mode",
+            price_usd: "$0.10",
+            lite_price_usd: "$0.05",
+            budget_header: "X-Agent-Budget",
+            lite_mode_header: "X-Agent-Mode: lite",
+            retry_pattern: "Retry with same body after paying",
+          },
+        },
+      },
+
+      "/v1/research/crawl": {
+        post: {
+          summary: "Crawl a domain and scrape multiple pages",
+          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. Pricing: $0.25 standard, $0.12 lite per crawl.",
+          operationId: "firecrawlCrawl",
+          tags: ["Web Research"],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["url"],
+                  properties: {
+                    url: { type: "string", description: "Domain/URL to crawl" },
+                    limit: { type: "number", minimum: 1, maximum: 100, default: 10, description: "Max pages to crawl" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            200: { description: "Crawl successful" },
+            400: { description: "Invalid URL or request" },
+            401: { description: "Authentication required" },
+            402: { description: "Payment required" },
+            502: { description: "Firecrawl service error" },
+          },
+          "x-payment": {
+            model: "per_call_with_lite_mode",
+            price_usd: "$0.25",
+            lite_price_usd: "$0.12",
+            budget_header: "X-Agent-Budget",
+            lite_mode_header: "X-Agent-Mode: lite",
+            retry_pattern: "Retry with same body after paying",
           },
         },
       },

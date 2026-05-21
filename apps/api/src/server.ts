@@ -27,6 +27,8 @@ import {
   handleCloserGenerate,
   handleGitHubAnalyze,
   handleAnalyze,
+  handleFirecrawlScrape,
+  handleFirecrawlCrawl,
   handlePreparePurchasing,
   handleWellKnown,
   handleCapabilities,
@@ -54,6 +56,7 @@ import {
   handleOAuthAuthorizationServer,
   handleHealthRedirect,
   handleDocsRedirect,
+  handlePricingLanding,
   handleOpenApiJson,
   handleSitemapXml,
   handlePerformance,
@@ -198,6 +201,10 @@ router.post("/v1/analyze", handleAnalyze);
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);
 
+// Firecrawl proxy — web research (Phase 1)
+router.post("/v1/research/scrape", handleFirecrawlScrape);
+router.post("/v1/research/crawl", handleFirecrawlCrawl);
+
 // Agent discovery manifest
 router.get("/.well-known/axis.json", handleWellKnown);
 router.get("/.well-known/capabilities.json", handleCapabilities);
@@ -218,6 +225,7 @@ router.get("/sitemap.xml", handleSitemapXml);
 // Scanner-friendly root-level aliases
 router.get("/health", handleHealthRedirect);
 router.get("/docs", handleDocsRedirect);
+router.get("/pricing", handlePricingLanding);
 router.get("/openapi.json", handleOpenApiJson);
 
 // AI tool discovery standards (llmstxt.org + agentskills.io)
