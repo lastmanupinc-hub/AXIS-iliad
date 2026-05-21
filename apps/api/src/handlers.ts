@@ -42,6 +42,9 @@ import {
   consumeUsageCredits,
   getCachedScrape,
   putCachedScrape,
+  consumeFreeScrapes,
+  getFreeScrapePoolStatus,
+  FREE_SCRAPE_POOL_MONTHLY,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -2679,8 +2682,8 @@ export async function handleForAgents(
       { name: "improve_my_agent_with_axis",     auth: true,  x_payment: PAYMENT_META, description: "Analyze your agent's codebase, get improvement plan + missing context files. Paid ($0.50/run). On 402, present checkout_url or pay autonomously, then retry." },
       { name: "discover_agentic_purchasing_needs", auth: false, description: "Commerce intent advisor: map purchasing/compliance tasks to the right AXIS workflow." },
       { name: "prepare_agentic_purchasing_preview", auth: false, description: "Free Purchasing Readiness Score preview. Triage a codebase before paying for the full prepare_agentic_purchasing run. No auth, no charge, no snapshot persisted. Hard caps: 25 files / 50KB per file / 1MB total. Returns score, gaps, and which AXIS programs would close which gaps." },
-      { name: "iliad_web_research",             auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.10", lite_price_usd: "$0.05", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. Paid ($0.10/page, or $0.05 lite). On 402, present checkout_url or pay autonomously, then retry." },
-      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "per_call_with_lite_mode", price_usd: "$0.25", lite_price_usd: "$0.12", budget_header: "X-Agent-Budget", lite_mode_header: "X-Agent-Mode: lite", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. Paid per page crawled ($0.25/page, or $0.12/page lite). On 402, present checkout_url or pay autonomously, then retry." },
+      { name: "iliad_web_research",             auth: true,  x_payment: { model: "free_pool_then_per_page", price_usd: "$0.01", free_pool: "First 100 pages/account/month free", cache: "24h shared cache (X-Axis-Cache: hit returns $0)", budget_header: "X-Agent-Budget", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Scrape a single URL using Firecrawl. Returns markdown, metadata, and extracted content. Best for research, documentation reading, and SEO audits. **First 100 pages/month free per account; $0.01/page after.** 24h shared cache means hot URLs return $0 across the network. On 402, present checkout_url or pay autonomously, then retry." },
+      { name: "iliad_web_research_crawl",      auth: true,  x_payment: { model: "free_pool_then_per_page", price_usd: "$0.01", free_pool: "Shares the 100-page/account/month pool with iliad_web_research", cache: "Each page warms the 24h shared cache for future single-URL scrapes", budget_header: "X-Agent-Budget", retry_pattern: "Retry with same body after paying via checkout_url" }, description: "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of pages with markdown. Best for site mapping, content audits, bulk research. Limit 1-100 pages. **Shares the 100-page/account/month free pool with iliad_web_research; $0.01/page after.** Each crawled page warms the shared cache. On 402, present checkout_url or pay autonomously, then retry." },
       { name: "get_referral_code",                auth: true,  description: "Get your referral code for Share-to-Earn. Earn $0.00001 per agent conversion." },
       { name: "get_referral_credits",            auth: true,  description: "Referral ledger lookup: earnings, conversions, tier status, free calls remaining." },
     ];
@@ -3456,6 +3459,15 @@ export async function handleFirecrawlScrape(
   const pricing = getPricingTier("iliad_web_research");
   const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
 
+  // Surface remaining free-pool balance on every scrape response, even
+  // before we know whether this call will be funded by the pool, the
+  // cache, or a paid charge. Agents key off this header to decide when
+  // to switch back to direct Firecrawl (they won't, because 100 free +
+  // 1¢ overage + shared cache is cheaper than direct).
+  const poolStatusBefore = getFreeScrapePoolStatus(auth.account.account_id);
+  res.setHeader("X-Axis-Free-Pages-Remaining", String(poolStatusBefore.remaining));
+  res.setHeader("X-Axis-Free-Pool-Cap", String(poolStatusBefore.cap));
+
   // ─── Shared 24h scrape cache ─────────────────────────────────────
   // Any agent in the network that scraped this URL in the last 24h
   // populated the cache; this caller gets the result for $0 and we pay
@@ -3491,22 +3503,46 @@ export async function handleFirecrawlScrape(
     return;
   }
 
-  // Check quota before attempting Firecrawl call
-  const quota = checkQuota(auth.account.account_id);
-  if (!quota.allowed) {
-    const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
-      currency: "usd",
-      decimals: 2,
-      description: `Firecrawl web scrape - $${(amountCents / 100).toFixed(2)} per page`,
-      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research" },
+  // ─── Free-pool reservation ───────────────────────────────────────
+  // Try to consume one page from the account's monthly free pool. If the
+  // pool has capacity, the page is free for the agent — no MPP charge,
+  // no quota gate (free-pool pages don't count against the snapshot
+  // quota). If the pool is empty, we fall through to the paid path at
+  // the 1¢/page floor.
+  const reservation = consumeFreeScrapes(auth.account.account_id, 1);
+  const usedFreePool = reservation.allowed && reservation.consumed === 1;
+
+  if (usedFreePool) {
+    res.setHeader("X-Axis-Free-Pages-Remaining", String(reservation.remaining));
+    log("info", "firecrawl_scrape_free_pool_consumed", {
+      request_id: getRequestId(res),
+      url,
+      account_id: auth.account.account_id,
+      pool_remaining: reservation.remaining,
     });
-    if (mppResult === null) {
-      const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
-      sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
-        ...buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id),
+  } else {
+    // Paid path — only run quota + charge logic when the pool is exhausted.
+    const quota = checkQuota(auth.account.account_id);
+    if (!quota.allowed) {
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `Firecrawl web scrape - $${(amountCents / 100).toFixed(2)} per page (free pool exhausted)`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research" },
       });
+      if (mppResult === null) {
+        const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page (your ${FREE_SCRAPE_POOL_MONTHLY}-page monthly free pool is exhausted). Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+          ...buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id),
+          free_pool: {
+            cap_per_month: FREE_SCRAPE_POOL_MONTHLY,
+            remaining: 0,
+            resets_at: poolStatusBefore.resets_at,
+          },
+        });
+      }
+      if (mppResult === null || mppResult.status === 402) return;
     }
-    if (mppResult === null || mppResult.status === 402) return;
   }
 
   res.setHeader("X-Axis-Cache", "miss");
@@ -3550,17 +3586,19 @@ export async function handleFirecrawlScrape(
       const markdown = firecrawlData.data?.markdown ?? "";
       const metadata = firecrawlData.data?.metadata ?? {};
 
-      // Charge after successful scrape
-      const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
-        currency: "usd",
-        decimals: 2,
-        description: `Firecrawl web scrape - ${url.slice(0, 50)}...`,
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research", url },
-      });
+      // Only charge if this call was NOT funded by the free pool.
+      if (!usedFreePool) {
+        const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+          currency: "usd",
+          decimals: 2,
+          description: `Firecrawl web scrape - ${url.slice(0, 50)}...`,
+          meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research", url, free_pool_consumed: "false" },
+        });
 
-      if (chargeResult === null) {
-        sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after scrape complete");
-        return;
+        if (chargeResult === null) {
+          sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after scrape complete");
+          return;
+        }
       }
 
       // Populate shared cache only on a non-empty successful scrape — empty
@@ -3580,11 +3618,17 @@ export async function handleFirecrawlScrape(
         }
       }
 
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode, cache_hit: "false" });
+      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode, cache_hit: "false", free_pool_used: usedFreePool ? "true" : "false" });
 
       sendJSON(res, 200, {
         success: true,
         cache: { hit: false },
+        billing: {
+          free_pool_used: usedFreePool,
+          free_pool_remaining: usedFreePool ? reservation.remaining : poolStatusBefore.remaining,
+          free_pool_cap: FREE_SCRAPE_POOL_MONTHLY,
+          paid_cents: usedFreePool ? 0 : amountCents,
+        },
         data: { url, markdown, metadata },
       });
     } catch (err) {
@@ -3639,23 +3683,40 @@ export async function handleFirecrawlCrawl(
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier("iliad_web_research_crawl");
   const perPageCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-  const estimatedAmountCents = perPageCents * limit;
 
-  // Check quota
-  const quota = checkQuota(auth.account.account_id);
-  if (!quota.allowed) {
-    const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, estimatedAmountCents, {
-      currency: "usd",
-      decimals: 2,
-      description: `Firecrawl web crawl (${limit} pages requested) - up to $${(estimatedAmountCents / 100).toFixed(2)}`,
-      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", limit: String(limit) },
-    });
-    if (mppResult === null) {
-      sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires up to $${(estimatedAmountCents / 100).toFixed(2)} for ${limit} requested pages`, {
-        ...buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id),
+  // Surface remaining free-pool balance on every crawl response.
+  const poolStatusBefore = getFreeScrapePoolStatus(auth.account.account_id);
+  res.setHeader("X-Axis-Free-Pages-Remaining", String(poolStatusBefore.remaining));
+  res.setHeader("X-Axis-Free-Pool-Cap", String(poolStatusBefore.cap));
+
+  // Worst-case cost the agent might pay = (limit - free pages remaining) × 1¢.
+  // We don't pre-charge — pages are billed after Firecrawl returns the actual
+  // count, and the free pool absorbs as many as it can.
+  const worstCasePaidPages = Math.max(0, limit - poolStatusBefore.remaining);
+  const worstCaseAmountCents = perPageCents * worstCasePaidPages;
+
+  // Check quota only when there are paid pages to gate on.
+  if (worstCasePaidPages > 0) {
+    const quota = checkQuota(auth.account.account_id);
+    if (!quota.allowed) {
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, worstCaseAmountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `Firecrawl web crawl (${limit} pages, free pool covers up to ${poolStatusBefore.remaining}) - up to $${(worstCaseAmountCents / 100).toFixed(2)}`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", limit: String(limit), free_pool_remaining: String(poolStatusBefore.remaining) },
       });
+      if (mppResult === null) {
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires up to $${(worstCaseAmountCents / 100).toFixed(2)} for ${worstCasePaidPages} paid pages (free pool covers ${poolStatusBefore.remaining}/${limit})`, {
+          ...buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id),
+          free_pool: {
+            cap_per_month: FREE_SCRAPE_POOL_MONTHLY,
+            remaining: poolStatusBefore.remaining,
+            resets_at: poolStatusBefore.resets_at,
+          },
+        });
+      }
+      if (mppResult === null || mppResult.status === 402) return;
     }
-    if (mppResult === null || mppResult.status === 402) return;
   }
 
   const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
@@ -3700,20 +3761,28 @@ export async function handleFirecrawlCrawl(
     const firecrawlData = (await firecrawlRes.json()) as FirecrawlCrawlResponse;
 
     const pagesCrawled = firecrawlData.data?.scrapeResults?.length ?? 0;
-    const finalAmountCents = perPageCents * pagesCrawled;
 
-    // Charge after successful crawl based on actual pages returned.
-    const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, finalAmountCents, {
-      currency: "usd",
-      decimals: 2,
-      description: `Firecrawl web crawl (${pagesCrawled} pages) - ${url.slice(0, 50)}...`,
-      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit), pages_crawled: String(pagesCrawled) },
-    });
+    // Reserve as many free-pool pages as we can cover, charge for the rest.
+    // Atomic via the underlying SQLite UPDATE — safe under concurrent crawl
+    // calls from the same account.
+    const reservation = consumeFreeScrapes(auth.account.account_id, pagesCrawled);
+    const paidPages = reservation.unfunded;
+    const finalAmountCents = perPageCents * paidPages;
 
-    if (chargeResult === null) {
-      sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after crawl complete");
-      return;
+    if (paidPages > 0) {
+      const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, finalAmountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `Firecrawl web crawl (${paidPages} paid pages of ${pagesCrawled}, ${reservation.consumed} free) - ${url.slice(0, 50)}...`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit), pages_crawled: String(pagesCrawled), free_pool_consumed: String(reservation.consumed), paid_pages: String(paidPages) },
+      });
+
+      if (chargeResult === null) {
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after crawl complete");
+        return;
+      }
     }
+    res.setHeader("X-Axis-Free-Pages-Remaining", String(reservation.remaining));
 
     // Populate shared scrape cache with each crawled page so subsequent
     // single-URL fetches by any agent get cache hits. Bounded by the crawl's
@@ -3730,11 +3799,19 @@ export async function handleFirecrawlCrawl(
       }
     }
 
-    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode, pages_cached: String(cachedCount) });
+    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode, pages_cached: String(cachedCount), free_pool_consumed: String(reservation.consumed), paid_pages: String(paidPages) });
 
     sendJSON(res, 200, {
       success: true,
       cache: { warmed_entries: cachedCount },
+      billing: {
+        pages_crawled: pagesCrawled,
+        free_pool_consumed: reservation.consumed,
+        free_pool_remaining: reservation.remaining,
+        free_pool_cap: FREE_SCRAPE_POOL_MONTHLY,
+        paid_pages: paidPages,
+        paid_cents: finalAmountCents,
+      },
       data: {
         url,
         pages_crawled: pagesCrawled,

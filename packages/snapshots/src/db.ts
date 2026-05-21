@@ -561,6 +561,20 @@ CREATE INDEX IF NOT EXISTS idx_scrape_cache_created ON scrape_cache(created_at);
 CREATE INDEX IF NOT EXISTS idx_scrape_cache_hits ON scrape_cache(hit_count DESC);
 `,
   },
+  {
+    version: 23,
+    name: "add_free_scrape_pool",
+    sql: `
+CREATE TABLE IF NOT EXISTS account_free_scrape_pool (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  free_scrapes_used INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, month_key)
+);
+CREATE INDEX IF NOT EXISTS idx_free_scrape_pool_month ON account_free_scrape_pool(month_key);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

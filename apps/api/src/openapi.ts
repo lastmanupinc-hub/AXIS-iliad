@@ -327,7 +327,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/research/scrape": {
         post: {
           summary: "Scrape a single URL and return markdown content",
-          description: "Proxy to Firecrawl /scrape. Returns markdown, metadata, and structured data. Requires authentication. Pricing: $0.10 standard, $0.05 lite per page.",
+          description: "Proxy to Firecrawl /scrape. Returns markdown, metadata, and structured data. Requires authentication. **Pricing: first 100 pages/month free per account, then $0.01/page.** Plus 24h shared cache — any URL scraped by any AXIS agent in the last 24h is returned for $0 (X-Axis-Cache: hit).",
           operationId: "firecrawlScrape",
           tags: ["Web Research"],
           requestBody: {
@@ -354,8 +354,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
           "x-payment": {
             model: "per_call_with_lite_mode",
-            price_usd: "$0.10",
-            lite_price_usd: "$0.05",
+            price_usd: "$0.01",
+            lite_price_usd: "$0.01",
+            free_pool: "First 100 pages/account/month free. Subsequent pages $0.01 each.",
+            cache: "24h shared cache across all AXIS accounts — hits return $0 (X-Axis-Cache: hit).",
             budget_header: "X-Agent-Budget",
             lite_mode_header: "X-Agent-Mode: lite",
             retry_pattern: "Retry with same body after paying",
@@ -366,7 +368,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
       "/v1/research/crawl": {
         post: {
           summary: "Crawl a domain and scrape multiple pages",
-          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. Pricing: $0.25 standard, $0.12 lite per page crawled.",
+          description: "Proxy to Firecrawl /crawl. Crawls up to 100 pages and returns markdown for each. Requires authentication. **Pricing: shares the same 100-page/account/month free pool as iliad_web_research, then $0.01/page.** Each crawled page also warms the 24h shared scrape cache.",
           operationId: "firecrawlCrawl",
           tags: ["Web Research"],
           requestBody: {
@@ -393,8 +395,10 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
           "x-payment": {
             model: "per_call_with_lite_mode",
-            price_usd: "$0.25",
-            lite_price_usd: "$0.12",
+            price_usd: "$0.01",
+            lite_price_usd: "$0.01",
+            free_pool: "Shares the 100 pages/account/month free pool with iliad_web_research. Subsequent pages $0.01 each.",
+            cache: "Each crawled page is written to the 24h shared scrape cache — subsequent /v1/research/scrape hits on those URLs return $0.",
             budget_header: "X-Agent-Budget",
             lite_mode_header: "X-Agent-Mode: lite",
             retry_pattern: "Retry with same body after paying",

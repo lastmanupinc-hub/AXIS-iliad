@@ -202,6 +202,18 @@ export {
   _clearScrapeCacheForTests,
 } from "./scrape-cache-store.js";
 
+// Free scrape pool — 100 free Firecrawl pages per account per month.
+// The other half of the crawler-adoption story: every account starts each
+// month with 100 free pages. Scrape + crawl both consume from the same
+// pool. After exhaustion: 1¢/page via MPP.
+export type { FreeScrapeConsumption, FreeScrapePoolStatus } from "./free-scrape-pool-store.js";
+export {
+  consumeFreeScrapes,
+  getFreeScrapePoolStatus,
+  FREE_SCRAPE_POOL_MONTHLY,
+  _resetFreeScrapePoolForTests,
+} from "./free-scrape-pool-store.js";
+
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {

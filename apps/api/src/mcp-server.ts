@@ -799,7 +799,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research",
     description:
-      "Scrape a single URL using Firecrawl and return markdown-formatted content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. Use iliad_web_research_crawl for crawling multiple pages or link following.",
+      "Scrape a single URL using Firecrawl and return markdown-formatted content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. **Pricing: first 100 pages/month free per account, then $0.01/page.** Cache: any URL scraped by any AXIS agent in the last 24h is returned for $0 from the shared cache (X-Axis-Cache: hit). Free-pool balance surfaced on every response via X-Axis-Free-Pages-Remaining. Use iliad_web_research_crawl for crawling multiple pages or link following.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -843,7 +843,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research_crawl",
     description:
-      "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per page crawled (up to 100 pages per request). Use iliad_web_research for single-page scrapes.",
+      "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. **Pricing: first 100 pages/month free per account, then $0.01/page (1-100 pages per request).** Each crawled page also warms the shared 24h cache, so subsequent single-URL scrapes from any AXIS agent come back for $0. Use iliad_web_research for single-page scrapes.",
     inputSchema: {
       type: "object",
       required: ["url"],

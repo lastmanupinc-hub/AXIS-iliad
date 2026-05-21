@@ -111,18 +111,23 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 15,
     lite_description: "Lite mode: compliance grade (A/B/C/D) + top 3 SCA exemptions + CE 3.0 score only",
   },
-  // Phase 1: Firecrawl web research proxy (per-page pricing)
+  // Firecrawl web research proxy — adoption-priced.
+  // First 100 pages/account/month are free (see free-scrape-pool-store).
+  // After the free pool is exhausted: 1¢ per page on both scrape and crawl.
+  // Beats Firecrawl direct on per-page convenience because we cache 24h
+  // network-wide — popular URLs hit the cache for $0 to the agent and $0
+  // wholesale to us.
   iliad_web_research: {
     tool: "iliad_web_research",
-    standard_cents: 10,
-    lite_cents: 5,
-    lite_description: "Lite mode: markdown only (no structured data extraction)",
+    standard_cents: 1,
+    lite_cents: 1,
+    lite_description: "Standard mode is already at the 1¢/page floor — lite mode does not reduce price further.",
   },
   iliad_web_research_crawl: {
     tool: "iliad_web_research_crawl",
-    standard_cents: 25,
-    lite_cents: 12,
-    lite_description: "Lite mode: crawl up to 5 pages (standard allows up to 100)",
+    standard_cents: 1,
+    lite_cents: 1,
+    lite_description: "1¢ per page crawled. Lite mode is no longer differentiated — pricing is already at the floor.",
   },
   default: {
     tool: "default",
