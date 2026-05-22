@@ -1,6 +1,6 @@
 # Poster Layouts — axis-iliad
 
-Generated: 2026-05-22T21:39:10.753Z
+Generated: 2026-05-22T22:06:46.454Z
 
 ## Layout A: Tech Overview (A4 Portrait)
 
@@ -36,10 +36,10 @@ Generated: 2026-05-22T21:39:10.753Z
 - Dependencies: 27
 
 **Language Breakdown**
-- TypeScript: 76.4% (93343 LOC)
+- TypeScript: 76.5% (93731 LOC)
 - YAML: 8.1% (9885 LOC)
 - JSON: 6.6% (8079 LOC)
-- Markdown: 6.5% (8000 LOC)
+- Markdown: 6.5% (7944 LOC)
 - JavaScript: 1.7% (2093 LOC)
 - CSS: 0.6% (675 LOC)
 - HTML: 0.1% (158 LOC)
@@ -54,11 +54,11 @@ Generated: 2026-05-22T21:39:10.753Z
 
 **Domain Models**
 - AuthContext (interface, 3 fields)
-- EmbeddingsConfig (interface, 2 fields)
-- EmbeddingsResult (interface, 4 fields)
-- OpenAIEmbeddingResponse (interface, 5 fields)
-- OpenAIErrorResponse (interface, 3 fields)
-- EnvSpec (interface, 5 fields)
+- EmailConfig (interface, 2 fields)
+- ResendErrorResponse (interface, 3 fields)
+- ResendSuccessResponse (interface, 1 fields)
+- SendEmailOptions (interface, 5 fields)
+- SendEmailResult (interface, 4 fields)
 
 ## Layout B: Minimal Card (Landscape)
 

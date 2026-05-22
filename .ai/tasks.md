@@ -13,13 +13,13 @@ Tasks are ordered by phase. Check items off as they land. New tasks land at the 
 
 ## Phase 1 — Core Domain
 
-- [x] 259 domain models defined
+- [x] 264 domain models defined
   - `AuthContext` (interface, 3 fields, `apps/api/src/billing.ts`)
-  - `EmbeddingsConfig` (interface, 2 fields, `apps/api/src/embeddings.ts`)
-  - `EmbeddingsResult` (interface, 4 fields, `apps/api/src/embeddings.ts`)
-  - `OpenAIEmbeddingResponse` (interface, 5 fields, `apps/api/src/embeddings.ts`)
-  - `OpenAIErrorResponse` (interface, 3 fields, `apps/api/src/embeddings.ts`)
-  - `EnvSpec` (interface, 5 fields, `apps/api/src/env.ts`)
+  - `EmailConfig` (interface, 2 fields, `apps/api/src/email.ts`)
+  - `ResendErrorResponse` (interface, 3 fields, `apps/api/src/email.ts`)
+  - `ResendSuccessResponse` (interface, 1 field, `apps/api/src/email.ts`)
+  - `SendEmailOptions` (interface, 5 fields, `apps/api/src/email.ts`)
+  - `SendEmailResult` (interface, 4 fields, `apps/api/src/email.ts`)
 - [ ] Pure-function business logic with no I/O side effects
 - [ ] Validation at every system boundary (input parsing, deserialization)
 

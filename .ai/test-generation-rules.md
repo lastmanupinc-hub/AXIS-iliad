@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -55,6 +55,11 @@ These models were detected in the codebase. Each should have factory helpers and
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmailConfig` | interface | 2 | `apps/api/src/email.ts` |
+| `ResendErrorResponse` | interface | 3 | `apps/api/src/email.ts` |
+| `ResendSuccessResponse` | interface | 1 | `apps/api/src/email.ts` |
+| `SendEmailOptions` | interface | 5 | `apps/api/src/email.ts` |
+| `SendEmailResult` | interface | 4 | `apps/api/src/email.ts` |
 | `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
 | `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
 | `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
@@ -64,12 +69,7 @@ These models were detected in the codebase. Each should have factory helpers and
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
 | `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
 | `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
-| `PushPayload` | interface | 7 | `apps/api/src/github-webhook.ts` |
-| `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
-| `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
-| `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
-| `FirecrawlScrapeRequest` | interface | 6 | `apps/api/src/handlers.ts` |
-| *... and 244 more* | | | |
+| *... and 249 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -83,14 +83,14 @@ export function makeAuthContext(overrides: Partial<AuthContext> = {}): AuthConte
   };
 }
 
-export function makeEmbeddingsConfig(overrides: Partial<EmbeddingsConfig> = {}): EmbeddingsConfig {
+export function makeEmailConfig(overrides: Partial<EmailConfig> = {}): EmailConfig {
   return {
     // fill in required fields with sensible test defaults
     ...overrides,
   };
 }
 
-export function makeEmbeddingsResult(overrides: Partial<EmbeddingsResult> = {}): EmbeddingsResult {
+export function makeResendErrorResponse(overrides: Partial<ResendErrorResponse> = {}): ResendErrorResponse {
   return {
     // fill in required fields with sensible test defaults
     ...overrides,

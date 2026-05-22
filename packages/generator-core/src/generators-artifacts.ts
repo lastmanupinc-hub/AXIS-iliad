@@ -1871,10 +1871,10 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "transactional_email",
     name: "Transactional email (auth, receipts, notifications)",
-    axis_brand_tool: "",
+    axis_brand_tool: "iliad_transactional_email",
     pricing_tier: null,
-    status: "planned_proxy",
-    summary: "Send a single transactional email with tracking, bounce handling, and DKIM/SPF.",
+    status: "live_proxy",
+    summary: "AXIS-branded wrapper around Resend /emails. Agents send arbitrary subject + body_html/body_text content; all messages ship from RESEND_FROM_ADDRESS (verified domain). Internal welcome/upgrade/usage-alert emails keep their template-bound pipeline. Future swap to a self-hosted MTA is a module-internal change.",
     providers: [
       { name: "Resend", url: "https://resend.com", retail_pricing: "$20/mo (50k emails) — current AXIS provider" },
       { name: "Postmark", url: "https://postmarkapp.com", retail_pricing: "$15/mo (10k)" },

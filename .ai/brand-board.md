@@ -1,12 +1,12 @@
 # Brand Board — axis-iliad
 
-Generated: 2026-05-22T21:39:10.991Z
+Generated: 2026-05-22T22:06:46.842Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Color Palette
 
@@ -85,7 +85,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Stack Badge Bar
 
 - `React`
-- `TypeScript` — 76% of codebase
+- `TypeScript` — 77% of codebase
 - `YAML` — 8% of codebase
 - `JSON` — 7% of codebase
 
@@ -102,11 +102,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 Consider domain-specific iconography for:
 
 - **AuthContext** (interface) — 3 fields, from apps/api/src/billing.ts
-- **EmbeddingsConfig** (interface) — 2 fields, from apps/api/src/embeddings.ts
-- **EmbeddingsResult** (interface) — 4 fields, from apps/api/src/embeddings.ts
-- **OpenAIEmbeddingResponse** (interface) — 5 fields, from apps/api/src/embeddings.ts
-- **OpenAIErrorResponse** (interface) — 3 fields, from apps/api/src/embeddings.ts
-- **EnvSpec** (interface) — 5 fields, from apps/api/src/env.ts
+- **EmailConfig** (interface) — 2 fields, from apps/api/src/email.ts
+- **ResendErrorResponse** (interface) — 3 fields, from apps/api/src/email.ts
+- **ResendSuccessResponse** (interface) — 1 fields, from apps/api/src/email.ts
+- **SendEmailOptions** (interface) — 5 fields, from apps/api/src/email.ts
+- **SendEmailResult** (interface) — 4 fields, from apps/api/src/email.ts
 
 ### Brand Warnings
 
@@ -147,4 +147,3 @@ Consider domain-specific iconography for:
 - `brand-guidelines.md`
 - `packages/generator-core/src/generators-brand.ts`
 - `payment-processing-output/brand-board.md`
-- `payment-processing-output/brand-guidelines.md`

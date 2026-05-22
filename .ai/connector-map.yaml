@@ -1,7 +1,7 @@
 # Connector Map
 # Project: axis-iliad
-# Generated: 2026-05-22T21:39:10.650Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+# Generated: 2026-05-22T22:06:46.340Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 connectors:
   - id: vscode
@@ -60,6 +60,36 @@ resources:
     kind: interface
     fields: 3
     source: apps/api/src/billing.ts
+  - id: emailconfig
+    name: EmailConfig
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/email.ts
+  - id: resenderrorresponse
+    name: ResendErrorResponse
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/email.ts
+  - id: resendsuccessresponse
+    name: ResendSuccessResponse
+    type: domain_model
+    kind: interface
+    fields: 1
+    source: apps/api/src/email.ts
+  - id: sendemailoptions
+    name: SendEmailOptions
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/email.ts
+  - id: sendemailresult
+    name: SendEmailResult
+    type: domain_model
+    kind: interface
+    fields: 4
+    source: apps/api/src/email.ts
   - id: embeddingsconfig
     name: EmbeddingsConfig
     type: domain_model
@@ -114,36 +144,6 @@ resources:
     kind: interface
     fields: 5
     source: apps/api/src/github-webhook.ts
-  - id: pushpayload
-    name: PushPayload
-    type: domain_model
-    kind: interface
-    fields: 7
-    source: apps/api/src/github-webhook.ts
-  - id: snapshottarget
-    name: SnapshotTarget
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/github-webhook.ts
-  - id: firecrawlcrawlrequest
-    name: FirecrawlCrawlRequest
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/handlers.ts
-  - id: firecrawlcrawlresponse
-    name: FirecrawlCrawlResponse
-    type: domain_model
-    kind: interface
-    fields: 4
-    source: apps/api/src/handlers.ts
-  - id: firecrawlscraperequest
-    name: FirecrawlScrapeRequest
-    type: domain_model
-    kind: interface
-    fields: 6
-    source: apps/api/src/handlers.ts
 
 tools:
   - id: v1_health

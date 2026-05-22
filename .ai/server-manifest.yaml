@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
-# Generated: 2026-05-22T21:39:10.980Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+# Generated: 2026-05-22T22:06:46.827Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -64,6 +64,66 @@ server:
           id:
             type: string
             description: Primary key or identifier for AuthContext
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_emailconfig
+      description: Query EmailConfig records (interface, 2 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EmailConfig
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_resenderrorresponse
+      description: Query ResendErrorResponse records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ResendErrorResponse
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_resendsuccessresponse
+      description: Query ResendSuccessResponse records (interface, 1 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ResendSuccessResponse
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_sendemailoptions
+      description: Query SendEmailOptions records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for SendEmailOptions
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_sendemailresult
+      description: Query SendEmailResult records (interface, 4 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for SendEmailResult
           filter:
             type: object
             description: Optional filter criteria
@@ -140,66 +200,6 @@ server:
             type: object
             description: Optional filter criteria
 
-    - name: query_validationresult
-      description: Query ValidationResult records (interface, 3 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for ValidationResult
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_zipentry
-      description: Query ZipEntry records (interface, 4 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for ZipEntry
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_pullrequestpayload
-      description: Query PullRequestPayload records (interface, 5 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for PullRequestPayload
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_pushpayload
-      description: Query PushPayload records (interface, 7 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for PushPayload
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_snapshottarget
-      description: Query SnapshotTarget records (interface, 5 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for SnapshotTarget
-          filter:
-            type: object
-            description: Optional filter criteria
-
   resources:
     - uri: project://context-map
       name: Project Context Map
@@ -220,6 +220,31 @@ server:
       name: AuthContext
       mime_type: application/json
       description: interface with 3 fields (apps/api/src/billing.ts)
+
+    - uri: model://EmailConfig
+      name: EmailConfig
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/email.ts)
+
+    - uri: model://ResendErrorResponse
+      name: ResendErrorResponse
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/email.ts)
+
+    - uri: model://ResendSuccessResponse
+      name: ResendSuccessResponse
+      mime_type: application/json
+      description: interface with 1 field (apps/api/src/email.ts)
+
+    - uri: model://SendEmailOptions
+      name: SendEmailOptions
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/email.ts)
+
+    - uri: model://SendEmailResult
+      name: SendEmailResult
+      mime_type: application/json
+      description: interface with 4 fields (apps/api/src/email.ts)
 
     - uri: model://EmbeddingsConfig
       name: EmbeddingsConfig
@@ -265,31 +290,6 @@ server:
       name: PullRequestPayload
       mime_type: application/json
       description: interface with 5 fields (apps/api/src/github-webhook.ts)
-
-    - uri: model://PushPayload
-      name: PushPayload
-      mime_type: application/json
-      description: interface with 7 fields (apps/api/src/github-webhook.ts)
-
-    - uri: model://SnapshotTarget
-      name: SnapshotTarget
-      mime_type: application/json
-      description: interface with 5 fields (apps/api/src/github-webhook.ts)
-
-    - uri: model://FirecrawlCrawlRequest
-      name: FirecrawlCrawlRequest
-      mime_type: application/json
-      description: interface with 5 fields (apps/api/src/handlers.ts)
-
-    - uri: model://FirecrawlCrawlResponse
-      name: FirecrawlCrawlResponse
-      mime_type: application/json
-      description: interface with 4 fields (apps/api/src/handlers.ts)
-
-    - uri: model://FirecrawlScrapeRequest
-      name: FirecrawlScrapeRequest
-      mime_type: application/json
-      description: interface with 6 fields (apps/api/src/handlers.ts)
 
   prompts:
     - name: review_code

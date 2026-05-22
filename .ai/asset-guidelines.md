@@ -1,6 +1,6 @@
 # Asset Guidelines — axis-iliad
 
-Generated: 2026-05-22T21:39:10.755Z
+Generated: 2026-05-22T22:06:46.456Z
 
 ## Color System
 

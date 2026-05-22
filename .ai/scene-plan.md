@@ -1,6 +1,6 @@
 # Scene Plan — axis-iliad
 
-Generated: 2026-05-22T21:39:10.735Z
+Generated: 2026-05-22T22:06:46.444Z
 
 ## Video Overview
 
@@ -14,7 +14,7 @@ Generated: 2026-05-22T21:39:10.735Z
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -35,7 +35,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (76.4%), YAML (8.1%), JSON (6.6%), Markdown (6.5%), JavaScript (1.7%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
+- **Languages**: TypeScript (76.5%), YAML (8.1%), JSON (6.6%), Markdown (6.5%), JavaScript (1.7%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 
@@ -57,8 +57,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Scene 5: Domain Models (0:12–0:15)
 
 - **Content**: Detected domain model entities
-- **Models**: AuthContext (interface, 3 fields); EmbeddingsConfig (interface, 2 fields); EmbeddingsResult (interface, 4 fields); OpenAIEmbeddingResponse (interface, 5 fields); OpenAIErrorResponse (interface, 3 fields); EnvSpec (interface, 5 fields)
-- **Total**: 259 models detected
+- **Models**: AuthContext (interface, 3 fields); EmailConfig (interface, 2 fields); ResendErrorResponse (interface, 3 fields); ResendSuccessResponse (interface, 1 fields); SendEmailOptions (interface, 5 fields); SendEmailResult (interface, 4 fields)
+- **Total**: 264 models detected
 - **Animation**: Entity cards fade in with field-count pill badges
 - **Visual**: Grid of entity cards with kind and field count
 

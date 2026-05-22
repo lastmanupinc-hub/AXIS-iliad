@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 133,129 |
-| Average LOC / file | 266 |
-| Estimated token count | ~599,081 |
+| Total LOC | 133,461 |
+| Average LOC / file | 267 |
+| Estimated token count | ~600,575 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -197,10 +197,12 @@ apps/api/src/deletion.test.ts (5.6 KB)
 apps/api/src/deployment.test.ts (6.9 KB)
 apps/api/src/e2e-flows.test.ts (22.8 KB)
 apps/api/src/e2e-smoke.test.ts (4.5 KB)
+apps/api/src/email.test.ts (8.9 KB)
+apps/api/src/email.ts (5.6 KB)
 apps/api/src/embeddings.test.ts (7.3 KB)
 apps/api/src/embeddings.ts (5.2 KB)
 apps/api/src/env.test.ts (8.3 KB)
-apps/api/src/env.ts (9.5 KB)
+apps/api/src/env.ts (10.0 KB)
 apps/api/src/export-edge-cases.test.ts (9.9 KB)
 apps/api/src/export.test.ts (13.4 KB)
 apps/api/src/export.ts (6.7 KB)
@@ -220,7 +222,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (150.2 KB)
+apps/api/src/mcp-server.ts (154.6 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -535,7 +537,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (105.2 KB)
+packages/generator-core/src/generators-artifacts.ts (105.4 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -652,8 +654,6 @@ payment-processing-output/asset-checklist.md (1.2 KB)
 payment-processing-output/asset-guidelines.md (1.7 KB)
 payment-processing-output/automation-pipeline.yaml (2.1 KB)
 payment-processing-output/brand-board.md (4.0 KB)
-payment-processing-output/brand-guidelines.md (2.5 KB)
-payment-processing-output/campaign-brief.md (1.6 KB)
 ```
 
 ## Hotspot File Excerpts

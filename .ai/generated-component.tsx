@@ -84,6 +84,36 @@ const MODELS: Model[] = [
     "source": "apps/api/src/billing.ts"
   },
   {
+    "name": "EmailConfig",
+    "kind": "interface",
+    "fields": 2,
+    "source": "apps/api/src/email.ts"
+  },
+  {
+    "name": "ResendErrorResponse",
+    "kind": "interface",
+    "fields": 3,
+    "source": "apps/api/src/email.ts"
+  },
+  {
+    "name": "ResendSuccessResponse",
+    "kind": "interface",
+    "fields": 1,
+    "source": "apps/api/src/email.ts"
+  },
+  {
+    "name": "SendEmailOptions",
+    "kind": "interface",
+    "fields": 5,
+    "source": "apps/api/src/email.ts"
+  },
+  {
+    "name": "SendEmailResult",
+    "kind": "interface",
+    "fields": 4,
+    "source": "apps/api/src/email.ts"
+  },
+  {
     "name": "EmbeddingsConfig",
     "kind": "interface",
     "fields": 2,
@@ -94,36 +124,6 @@ const MODELS: Model[] = [
     "kind": "interface",
     "fields": 4,
     "source": "apps/api/src/embeddings.ts"
-  },
-  {
-    "name": "OpenAIEmbeddingResponse",
-    "kind": "interface",
-    "fields": 5,
-    "source": "apps/api/src/embeddings.ts"
-  },
-  {
-    "name": "OpenAIErrorResponse",
-    "kind": "interface",
-    "fields": 3,
-    "source": "apps/api/src/embeddings.ts"
-  },
-  {
-    "name": "EnvSpec",
-    "kind": "interface",
-    "fields": 5,
-    "source": "apps/api/src/env.ts"
-  },
-  {
-    "name": "ValidationError",
-    "kind": "interface",
-    "fields": 2,
-    "source": "apps/api/src/env.ts"
-  },
-  {
-    "name": "ValidationResult",
-    "kind": "interface",
-    "fields": 3,
-    "source": "apps/api/src/env.ts"
   }
 ];
 const ENTRY_POINTS: Entry[] = [];

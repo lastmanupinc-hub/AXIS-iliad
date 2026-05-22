@@ -90,6 +90,11 @@ This is a **monorepo** built with **TypeScript**.
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | apps/api/src/billing.ts |
+| `EmailConfig` | interface | 2 | apps/api/src/email.ts |
+| `ResendErrorResponse` | interface | 3 | apps/api/src/email.ts |
+| `ResendSuccessResponse` | interface | 1 | apps/api/src/email.ts |
+| `SendEmailOptions` | interface | 5 | apps/api/src/email.ts |
+| `SendEmailResult` | interface | 4 | apps/api/src/email.ts |
 | `EmbeddingsConfig` | interface | 2 | apps/api/src/embeddings.ts |
 | `EmbeddingsResult` | interface | 4 | apps/api/src/embeddings.ts |
 | `OpenAIEmbeddingResponse` | interface | 5 | apps/api/src/embeddings.ts |
@@ -104,12 +109,7 @@ This is a **monorepo** built with **TypeScript**.
 | `FirecrawlCrawlRequest` | interface | 5 | apps/api/src/handlers.ts |
 | `FirecrawlCrawlResponse` | interface | 4 | apps/api/src/handlers.ts |
 | `FirecrawlScrapeRequest` | interface | 6 | apps/api/src/handlers.ts |
-| `FirecrawlScrapeResponse` | interface | 5 | apps/api/src/handlers.ts |
-| `IntentCapture` | interface | 5 | apps/api/src/mcp-server.ts |
-| `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
-| `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
-| `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
-| *… 239 more* | | | |
+| *… 244 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 

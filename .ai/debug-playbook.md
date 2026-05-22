@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Quick Reference
 
@@ -17,17 +17,17 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 133,129 LOC |
+| Files | 500 files, 133,461 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 281 | 93,343 | 76.4% |
+| TypeScript | 283 | 93,731 | 76.5% |
 | YAML | 57 | 9,885 | 8.1% |
 | JSON | 60 | 8,079 | 6.6% |
-| Markdown | 76 | 8,000 | 6.5% |
+| Markdown | 74 | 7,944 | 6.5% |
 | JavaScript | 8 | 2,093 | 1.7% |
 | CSS | 1 | 675 | 0.6% |
 | HTML | 1 | 158 | 0.1% |
@@ -94,6 +94,11 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Model | Kind | Language | Fields | Source |
 |-------|------|----------|--------|--------|
 | AuthContext | interface | TypeScript | 3 | `apps/api/src/billing.ts` |
+| EmailConfig | interface | TypeScript | 2 | `apps/api/src/email.ts` |
+| ResendErrorResponse | interface | TypeScript | 3 | `apps/api/src/email.ts` |
+| ResendSuccessResponse | interface | TypeScript | 1 | `apps/api/src/email.ts` |
+| SendEmailOptions | interface | TypeScript | 5 | `apps/api/src/email.ts` |
+| SendEmailResult | interface | TypeScript | 4 | `apps/api/src/email.ts` |
 | EmbeddingsConfig | interface | TypeScript | 2 | `apps/api/src/embeddings.ts` |
 | EmbeddingsResult | interface | TypeScript | 4 | `apps/api/src/embeddings.ts` |
 | OpenAIEmbeddingResponse | interface | TypeScript | 5 | `apps/api/src/embeddings.ts` |

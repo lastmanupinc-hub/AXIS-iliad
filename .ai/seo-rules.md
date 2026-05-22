@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -546,6 +546,11 @@ These domain models represent structured content — mapping them to schema type
 | Model | Kind | Fields | Suggested Schema Type |
 |-------|------|--------|-----------------------|
 | `AuthContext` | interface | 3 | WebPage |
+| `EmailConfig` | interface | 2 | WebPage |
+| `ResendErrorResponse` | interface | 3 | WebPage |
+| `ResendSuccessResponse` | interface | 1 | WebPage |
+| `SendEmailOptions` | interface | 5 | WebPage |
+| `SendEmailResult` | interface | 4 | WebPage |
 | `EmbeddingsConfig` | interface | 2 | WebPage |
 | `EmbeddingsResult` | interface | 4 | WebPage |
 | `OpenAIEmbeddingResponse` | interface | 5 | WebPage |
@@ -555,11 +560,6 @@ These domain models represent structured content — mapping them to schema type
 | `ValidationResult` | interface | 3 | WebPage |
 | `ZipEntry` | interface | 4 | WebPage |
 | `PullRequestPayload` | interface | 5 | WebPage |
-| `PushPayload` | interface | 7 | WebPage |
-| `SnapshotTarget` | interface | 5 | WebPage |
-| `FirecrawlCrawlRequest` | interface | 5 | WebPage |
-| `FirecrawlCrawlResponse` | interface | 4 | WebPage |
-| `FirecrawlScrapeRequest` | interface | 6 | WebPage |
 
 ## Contact & Support Page SEO
 

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-05-22T21:39:10.926Z",
-  "total_symbols": 2041,
-  "file_count": 250,
+  "generated_at": "2026-05-22T22:06:46.733Z",
+  "total_symbols": 2060,
+  "file_count": 252,
   "symbols": {
     "apps/api/src/admin.test.ts": [
       {
@@ -458,6 +458,100 @@
         "line": 29
       }
     ],
+    "apps/api/src/email.test.ts": [
+      {
+        "name": "config",
+        "type": "const",
+        "line": 9
+      },
+      {
+        "name": "mockFetch",
+        "type": "function",
+        "line": 11
+      },
+      {
+        "name": "stub",
+        "type": "function",
+        "line": 72
+      },
+      {
+        "name": "stub",
+        "type": "function",
+        "line": 101
+      },
+      {
+        "name": "noKey",
+        "type": "const",
+        "line": 180
+      },
+      {
+        "name": "noFrom",
+        "type": "const",
+        "line": 184
+      },
+      {
+        "name": "bad",
+        "type": "const",
+        "line": 191
+      },
+      {
+        "name": "fetch",
+        "type": "function",
+        "line": 216
+      }
+    ],
+    "apps/api/src/email.ts": [
+      {
+        "name": "EmailConfig",
+        "type": "interface",
+        "line": 14
+      },
+      {
+        "name": "SendEmailOptions",
+        "type": "interface",
+        "line": 19
+      },
+      {
+        "name": "SendEmailResult",
+        "type": "interface",
+        "line": 28
+      },
+      {
+        "name": "EmailConfigFromEnv",
+        "type": "type",
+        "line": 35
+      },
+      {
+        "name": "readEmailConfigFromEnv",
+        "type": "function",
+        "line": 38
+      },
+      {
+        "name": "ResendSuccessResponse",
+        "type": "interface",
+        "line": 47
+      },
+      {
+        "name": "ResendErrorResponse",
+        "type": "interface",
+        "line": 48
+      },
+      {
+        "name": "validateRecipients",
+        "type": "function",
+        "line": 53
+      },
+      {
+        "name": "sendTransactionalEmail",
+        "type": "function",
+        "line": 71
+      },
+      {
+        "name": "errBody",
+        "type": "function",
+        "line": 133
+      }
+    ],
     "apps/api/src/embeddings.test.ts": [
       {
         "name": "config",
@@ -553,27 +647,27 @@
       {
         "name": "ValidationError",
         "type": "interface",
-        "line": 60
+        "line": 61
       },
       {
         "name": "ValidationResult",
         "type": "interface",
-        "line": 65
+        "line": 66
       },
       {
         "name": "validateEnv",
         "type": "function",
-        "line": 75
+        "line": 76
       },
       {
         "name": "requireValidEnv",
         "type": "function",
-        "line": 123
+        "line": 124
       },
       {
         "name": "generateEnvExample",
         "type": "function",
-        "line": 137
+        "line": 138
       }
     ],
     "apps/api/src/export-edge-cases.test.ts": [
@@ -1829,307 +1923,312 @@
       {
         "name": "McpCallCounters",
         "type": "interface",
-        "line": 58
+        "line": 59
       },
       {
         "name": "_counters",
         "type": "const",
-        "line": 66
+        "line": 67
       },
       {
         "name": "ProbeClass",
         "type": "type",
-        "line": 74
+        "line": 75
       },
       {
         "name": "classifyProbe",
         "type": "function",
-        "line": 84
+        "line": 85
       },
       {
         "name": "IntentCapture",
         "type": "interface",
-        "line": 91
+        "line": 92
       },
       {
         "name": "captureIntent",
         "type": "function",
-        "line": 102
+        "line": 103
       },
       {
         "name": "entry",
         "type": "const",
-        "line": 103
+        "line": 104
       },
       {
         "name": "getIntentLog",
         "type": "function",
-        "line": 114
+        "line": 115
       },
       {
         "name": "logMcpCall",
         "type": "function",
-        "line": 118
+        "line": 119
       },
       {
         "name": "getMcpCallCounters",
         "type": "function",
-        "line": 137
+        "line": 138
       },
       {
         "name": "JsonRpcRequest",
         "type": "interface",
-        "line": 147
+        "line": 148
       },
       {
         "name": "RpcSuccess",
         "type": "interface",
-        "line": 154
+        "line": 155
       },
       {
         "name": "RpcError",
         "type": "interface",
-        "line": 160
+        "line": 161
       },
       {
         "name": "RpcResponse",
         "type": "type",
-        "line": 166
+        "line": 167
       },
       {
         "name": "normalizeToolName",
         "type": "function",
-        "line": 174
+        "line": 175
       },
       {
         "name": "PlannedCapability",
         "type": "interface",
-        "line": 187
+        "line": 188
       },
       {
         "name": "runPlannedCapability",
         "type": "function",
-        "line": 379
+        "line": 361
       },
       {
         "name": "runObjectStorage",
         "type": "function",
-        "line": 396
+        "line": 378
+      },
+      {
+        "name": "runTransactionalEmail",
+        "type": "function",
+        "line": 443
       },
       {
         "name": "runEmbeddings",
         "type": "function",
-        "line": 461
+        "line": 492
       },
       {
         "name": "runVectorDatabase",
         "type": "function",
-        "line": 500
+        "line": 531
       },
       {
         "name": "vec",
         "type": "function",
-        "line": 541
+        "line": 572
       },
       {
         "name": "queryOpts",
         "type": "const",
-        "line": 572
+        "line": 603
       },
       {
         "name": "toolAnnotations",
         "type": "function",
-        "line": 585
+        "line": 616
       },
       {
         "name": "ARTIFACT_ENTRY_SCHEMA",
         "type": "const",
-        "line": 594
+        "line": 625
       },
       {
         "name": "SNAPSHOT_RESULT_SCHEMA",
         "type": "const",
-        "line": 604
+        "line": 635
       },
       {
         "name": "TOOL_MATCH_SCHEMA",
         "type": "const",
-        "line": 617
+        "line": 648
       },
       {
         "name": "rpcOk",
         "type": "function",
-        "line": 1438
+        "line": 1516
       },
       {
         "name": "rpcErr",
         "type": "function",
-        "line": 1442
+        "line": 1520
       },
       {
         "name": "toolOk",
         "type": "function",
-        "line": 1450
+        "line": 1528
       },
       {
         "name": "toolErr",
         "type": "function",
-        "line": 1454
+        "line": 1532
       },
       {
         "name": "ErrorCategory",
         "type": "type",
-        "line": 1458
+        "line": 1536
       },
       {
         "name": "categorizeError",
         "type": "function",
-        "line": 1460
+        "line": 1538
       },
       {
         "name": "buildMcpPaymentRequiredError",
         "type": "function",
-        "line": 1483
+        "line": 1561
       },
       {
         "name": "meterMcpToolCredits",
         "type": "function",
-        "line": 1505
+        "line": 1583
       },
       {
         "name": "filterGeneratorsByEntitlement",
         "type": "function",
-        "line": 1534
+        "line": 1612
       },
       {
         "name": "runAnalyzeFiles",
         "type": "function",
-        "line": 1550
+        "line": 1628
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1626
+        "line": 1704
       },
       {
         "name": "runAnalyzeRepo",
         "type": "function",
-        "line": 1696
+        "line": 1774
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1767
+        "line": 1845
       },
       {
         "name": "runSearchTools",
         "type": "function",
-        "line": 1872
+        "line": 1950
       },
       {
         "name": "runDiscoverAgenticCommerceTools",
         "type": "function",
-        "line": 1956
+        "line": 2034
       },
       {
         "name": "runImproveMyAgent",
         "type": "function",
-        "line": 2020
+        "line": 2098
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2066
+        "line": 2144
       },
       {
         "name": "runDiscoverAgenticPurchasingNeeds",
         "type": "function",
-        "line": 2233
+        "line": 2311
       },
       {
         "name": "runGetReferralCode",
         "type": "function",
-        "line": 2364
+        "line": 2442
       },
       {
         "name": "runCheckReferralCredits",
         "type": "function",
-        "line": 2394
+        "line": 2472
       },
       {
         "name": "runListPrograms",
         "type": "function",
-        "line": 2425
+        "line": 2503
       },
       {
         "name": "runGetSnapshot",
         "type": "function",
-        "line": 2469
+        "line": 2547
       },
       {
         "name": "runGetArtifact",
         "type": "function",
-        "line": 2512
+        "line": 2590
       },
       {
         "name": "runCloser",
         "type": "function",
-        "line": 2548
+        "line": 2626
       },
       {
         "name": "runPreparePurchasing",
         "type": "function",
-        "line": 2659
+        "line": 2737
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2743
+        "line": 2821
       },
       {
         "name": "dispatch",
         "type": "function",
-        "line": 2979
+        "line": 3057
       },
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 3010
+        "line": 3088
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 3017
+        "line": 3095
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 3113
+        "line": 3194
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 3190
+        "line": 3271
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 3226
+        "line": 3307
       },
       {
         "name": "handleMcpDocs",
         "type": "function",
-        "line": 3244
+        "line": 3325
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 3291
+        "line": 3372
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 3359
+        "line": 3440
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [

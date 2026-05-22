@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "5681830"
-    current_session_id: "session_107"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (5 real iliad_* tools: 3 live_proxy + 2 owned, 9 planned stubs remaining). Session 107 promotes iliad_embeddings to live_proxy (OpenAI /v1/embeddings backend with configurable model, structured _not_configured envelope when unset, 17 tests). Pairs natively with iliad_vector_database for one-call RAG."
+    commit_or_tag: "0178638"
+    current_session_id: "session_108"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (6 real iliad_* tools: 4 live_proxy + 2 owned, 8 planned stubs remaining = 42% complete). Session 108 promotes iliad_transactional_email to live_proxy (Resend /emails backend with arbitrary subject + body content, RESEND_FROM_ADDRESS header, 22 tests). Decoupled from internal welcome/upgrade pipeline so the template-bound infrastructure in @axis/snapshots stays untouched."
 
   executive_truth:
     maturity_estimate:
@@ -4184,6 +4184,51 @@ project_continuation:
       - "9 planned_proxy items remaining: llm_inference, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, transactional_email, analytics."
       - "Per SOP scoring, transactional_email is the natural next move — AXIS already uses Resend internally for sendWelcomeEmail; flipping iliad_transactional_email to a live_proxy is reuse, not new infra. Smallest-effort remaining item."
       - "Pricing tiers for the 3 new owned/live AXIS-branded tools (iliad_object_storage, iliad_vector_database, iliad_embeddings) not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing layered on."
+    local_only: false
+    commit_results: ["0178638: Promote iliad_embeddings from planned_proxy to live_proxy (OpenAI backend)"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 0178638"]
+
+  session_result_108:
+    date: "2026-05-22"
+    session_id: "session_108"
+    selected_move: "Promote iliad_transactional_email from planned_proxy to live_proxy (Resend /emails backend)"
+    selected_move_roi_reason: >
+      Smallest-effort remaining planned_proxy item per SOP scoring. AXIS
+      already uses Resend internally for sendWelcomeEmail() (in
+      @axis/snapshots/email-store.ts), so the operational story is solved
+      — just the agent-facing surface needed wiring. Per begin.yaml axes:
+      agent_acquisition_gain 4 (transactional email is a category every
+      agent platform ships), integration_quality_gain 5 (~200 LoC module
+      + 22 tests + no new deps; pure function over fetch), production
+      _quality 5 (defensive guards across recipient count, subject
+      length, body size, address-validity, plus 4xx/5xx error
+      normalization), implementation_cost: small.
+    completed_candidates:
+      - "apps/api/src/email.ts: NEW (~155 LoC). sendTransactionalEmail(opts, config, fetch?, baseUrl?): pure function over fetch so tests pass a stub. Validates: recipient count (1..50), email-shape regex on every address, subject required + ≤998 chars (RFC 5322 line cap), body_html OR body_text required + ≤1 MB each, optional reply_to with same email-shape check. Posts to Resend /emails with Bearer auth. Normalises 4xx (JSON body), 5xx (bare status), network errors. Defensive: rejects missing message_id from the response, rejects non-JSON responses, rejects empty api_key/from_address. readEmailConfigFromEnv(): null when either RESEND_API_KEY or RESEND_FROM_ADDRESS is missing."
+      - "apps/api/src/email.test.ts: NEW (22 tests). readEmailConfigFromEnv (3 cases). Happy path (4 cases — single recipient round-trip, array recipients, request-shape inspection, omitted-field defaults). Error paths (15 cases — both bodies missing, empty/oversized recipient list, invalid recipient addresses, invalid reply_to, missing/empty/oversized subject, oversized bodies, missing config fields, invalid from_address, 4xx with JSON, 5xx without JSON, fetch failure, missing message id, non-JSON response)."
+      - "apps/api/src/env.ts: ENV_SPEC RESEND_API_KEY description expanded to note dual use (internal welcome pipeline + iliad_transactional_email MCP tool). RESEND_FROM_ADDRESS added as a new env var — required for the MCP tool since arbitrary content needs a verified sender."
+      - "apps/api/src/mcp-server.ts: transactional_email removed from PLANNED_CAPABILITIES. Explicit iliad_transactional_email MCP_TOOLS entry added near iliad_embeddings. Description documents the 1 MB body cap, 50 recipient cap, 998-char subject cap, and the _not_configured envelope shape. runTransactionalEmail(args, req): auth gate → _not_configured envelope → runtime arg-shape guards → sendTransactionalEmail → JSON. Dispatcher: case iliad_transactional_email alongside other live tools."
+      - "packages/generator-core/src/generators-artifacts.ts: transactional_email RESELL_CAPABILITIES entry flipped — status 'planned_proxy' → 'live_proxy', axis_brand_tool '' → 'iliad_transactional_email', summary rewritten to note the dual-pipeline split (internal templates + agent-facing arbitrary content)."
+      - "Design choice: NOT refactoring sendWelcomeEmail() to use the new module. The internal email path lives in @axis/snapshots/email-store.ts and is template-bound (welcome, upgrade, usage_alert, api_key, seat_invitation) with a provider registry pattern. The MCP tool serves arbitrary agent-supplied content. Unifying them would require a schema migration to support template=null in email_deliveries — out of scope for this session."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest: 151 passed files (+1: email.test.ts), 4312 passed tests (+22), 11 skipped, 0 failed."
+      - "Targeted: email.test.ts 22/22 in 1.26s — full happy path + 15 error cases via mocked fetch."
+      - "pnpm --filter @axis/api build clean. pnpm --filter @axis/generator-core build clean."
+      - "Dogfood: 124 artifacts; capability-map.yaml status counts now {live_proxy: 4, planned_proxy: 8, owned: 2}. Real tools = 6/14 (42%)."
+      - "No new npm dependencies. Uses Node 22 built-in fetch."
+    verticals_advanced:
+      - "v18_agentic_commerce: 6th real iliad_* tool. Transactional email is a category-table-stakes capability for any agent platform; AXIS now has it without depending on the operator wiring their own SendGrid/Postmark client."
+      - "v0_core_platform: pure-function-over-fetch testing pattern proven across 3 live_proxy tools (web_research/Firecrawl, embeddings/OpenAI, transactional_email/Resend). Reusable for the remaining 8 planned_proxy items."
+    blockers_removed:
+      - "transactional_email was the only planned_proxy item with existing AXIS infra (Resend was already integrated for internal emails). Promoting it required less new code than any other proxy — natural pick-off."
+      - "Agents needed a way to send arbitrary emails (e.g. delivering search results, notifying customers from purchasing workflows). iliad_transactional_email closes this gap with one MCP call."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "8 planned_proxy items remaining: llm_inference, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, analytics. Per SOP scoring, llm_inference is the next-highest-leverage item — pairs with embeddings + vector_database to complete the agentic-LLM trio. Effort: medium (multi-provider routing, structured output schema enforcement). web_search is the simplest-effort alternative (Tavily / Brave / SerpAPI are all single-endpoint JSON APIs, identical pattern to embeddings)."
+      - "Pricing tiers for the 4 new live_proxy + owned AXIS-branded tools not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing layered on."
+      - "Unifying the internal template-based email path with the new arbitrary-content path is deferred — both work, but a schema migration would let `iliad_transactional_email` deliveries also appear in the email_deliveries audit log."
     local_only: false
     commit_results: ["(this commit)"]
     push_results: []

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Commands
 
@@ -49,6 +49,11 @@ Detected domain model contracts:
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | apps/api/src/billing.ts |
+| `EmailConfig` | interface | 2 | apps/api/src/email.ts |
+| `ResendErrorResponse` | interface | 3 | apps/api/src/email.ts |
+| `ResendSuccessResponse` | interface | 1 | apps/api/src/email.ts |
+| `SendEmailOptions` | interface | 5 | apps/api/src/email.ts |
+| `SendEmailResult` | interface | 4 | apps/api/src/email.ts |
 | `EmbeddingsConfig` | interface | 2 | apps/api/src/embeddings.ts |
 | `EmbeddingsResult` | interface | 4 | apps/api/src/embeddings.ts |
 | `OpenAIEmbeddingResponse` | interface | 5 | apps/api/src/embeddings.ts |
@@ -63,12 +68,7 @@ Detected domain model contracts:
 | `FirecrawlCrawlRequest` | interface | 5 | apps/api/src/handlers.ts |
 | `FirecrawlCrawlResponse` | interface | 4 | apps/api/src/handlers.ts |
 | `FirecrawlScrapeRequest` | interface | 6 | apps/api/src/handlers.ts |
-| `FirecrawlScrapeResponse` | interface | 5 | apps/api/src/handlers.ts |
-| `IntentCapture` | interface | 5 | apps/api/src/mcp-server.ts |
-| `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
-| `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
-| `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
-| *… 239 more* | | | |
+| *… 244 more* | | | |
 
 ## Warnings
 

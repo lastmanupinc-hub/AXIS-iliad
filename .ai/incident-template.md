@@ -54,6 +54,11 @@
 ### Domain Entities to Check
 
 - [ ] `AuthContext` (interface, 3 fields) — apps/api/src/billing.ts
+- [ ] `EmailConfig` (interface, 2 fields) — apps/api/src/email.ts
+- [ ] `ResendErrorResponse` (interface, 3 fields) — apps/api/src/email.ts
+- [ ] `ResendSuccessResponse` (interface, 1 fields) — apps/api/src/email.ts
+- [ ] `SendEmailOptions` (interface, 5 fields) — apps/api/src/email.ts
+- [ ] `SendEmailResult` (interface, 4 fields) — apps/api/src/email.ts
 - [ ] `EmbeddingsConfig` (interface, 2 fields) — apps/api/src/embeddings.ts
 - [ ] `EmbeddingsResult` (interface, 4 fields) — apps/api/src/embeddings.ts
 - [ ] `OpenAIEmbeddingResponse` (interface, 5 fields) — apps/api/src/embeddings.ts

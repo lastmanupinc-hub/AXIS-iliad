@@ -13,6 +13,7 @@ import {
   type QueryOptions,
 } from "./vector-db.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
+import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -333,25 +334,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     capability_id: "code_sandbox",
   },
   {
-    name: "iliad_transactional_email",
-    title: "Transactional Email",
-    summary: "Send a single transactional email with tracking, bounce handling, and DKIM/SPF.",
-    status: "planned_proxy",
-    input_properties: {
-      to: { type: "string", description: "Recipient (single address or comma-separated list)." },
-      subject: { type: "string", description: "Email subject." },
-      body_html: { type: "string", description: "HTML body. Either body_html or body_text is required." },
-      body_text: { type: "string", description: "Plaintext body. Either body_html or body_text is required." },
-    },
-    required_inputs: ["to", "subject"],
-    output_properties: {
-      message_id: { type: "string", description: "Provider-assigned message ID." },
-      delivered_to: { type: "array", description: "Recipients the provider accepted." },
-    },
-    recommended_provider: { name: "Resend", url: "https://resend.com/docs/api-reference/emails/send-email" },
-    capability_id: "transactional_email",
-  },
-  {
     name: "iliad_analytics",
     title: "Product Analytics",
     summary: "Record events and query funnels / cohorts / retention.",
@@ -456,6 +438,55 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     operation: method,
     ttl_seconds: ttl,
   }, null, 2);
+}
+
+async function runTransactionalEmail(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_transactional_email needs Authorization: Bearer <api_key>.");
+  }
+  const config = readEmailConfigFromEnv();
+  if (!config) {
+    return JSON.stringify({
+      _not_configured: true,
+      tool: "iliad_transactional_email",
+      message: "Email backend is not provisioned on this AXIS instance. Operator must set RESEND_API_KEY and RESEND_FROM_ADDRESS.",
+      required_env: ["RESEND_API_KEY", "RESEND_FROM_ADDRESS"],
+      capability_map_reference: ".ai/capability-map.yaml",
+    }, null, 2);
+  }
+
+  // Runtime shape guards — sendTransactionalEmail validates content, this
+  // layer validates only the JSON-RPC arg shapes (e.g. caller sent a number
+  // for `to`).
+  const rawTo = args.to;
+  if (typeof rawTo !== "string" && !Array.isArray(rawTo)) {
+    throw new Error("iliad_transactional_email: `to` must be a string or array of strings.");
+  }
+  if (typeof args.subject !== "string") {
+    throw new Error("iliad_transactional_email: `subject` must be a string.");
+  }
+  if (args.body_html !== undefined && typeof args.body_html !== "string") {
+    throw new Error("iliad_transactional_email: `body_html` must be a string.");
+  }
+  if (args.body_text !== undefined && typeof args.body_text !== "string") {
+    throw new Error("iliad_transactional_email: `body_text` must be a string.");
+  }
+  if (args.reply_to !== undefined && typeof args.reply_to !== "string") {
+    throw new Error("iliad_transactional_email: `reply_to` must be a string.");
+  }
+
+  const result = await sendTransactionalEmail(
+    {
+      to: rawTo as string | string[],
+      subject: args.subject,
+      body_html: args.body_html as string | undefined,
+      body_text: args.body_text as string | undefined,
+      reply_to: args.reply_to as string | undefined,
+    },
+    config,
+  );
+  return JSON.stringify(result, null, 2);
 }
 
 async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
@@ -1393,7 +1424,54 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (9 tools) ─────────────────────────
+  // ─── iliad_transactional_email (live_proxy → Resend) ────────────
+  // Decoupled from the internal welcome/upgrade/usage-alert pipeline in
+  // @axis/snapshots — that path stays template-bound for AXIS's own emails.
+  // This tool serves arbitrary agent-supplied content under a single
+  // verified From: address per deployment.
+  {
+    name: "iliad_transactional_email",
+    description:
+      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["to", "subject"],
+      properties: {
+        to: {
+          type: ["string", "array"] as unknown as string,
+          description: "Recipient address or array of addresses (max 50).",
+        },
+        subject: { type: "string", description: "Email subject (max 998 chars, RFC 5322)." },
+        body_html: { type: "string", description: "HTML body. At least one of body_html / body_text required." },
+        body_text: { type: "string", description: "Plaintext body. At least one of body_html / body_text required." },
+        reply_to: { type: "string", description: "Optional Reply-To address." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["message_id", "delivered_to", "from", "subject"],
+      properties: {
+        message_id: { type: "string", description: "Provider-assigned message ID." },
+        delivered_to: { type: "array", description: "Recipients the provider accepted." },
+        from: { type: "string", description: "RESEND_FROM_ADDRESS used as the From: header." },
+        subject: { type: "string", description: "Subject sent (echo)." },
+      },
+    },
+    annotations: toolAnnotations("Transactional Email", false, false),
+    examples: [
+      {
+        name: "Send a simple notification",
+        input: { to: "alice@example.com", subject: "Your snapshot is ready", body_text: "Hi Alice, your AXIS snapshot finished. Open https://axis-iliad.jonathanarvay.com/dashboard to view." },
+        output: '{"message_id":"re_abc123","delivered_to":["alice@example.com"],"from":"noreply@axis-iliad.jonathanarvay.com","subject":"Your snapshot is ready"}',
+      },
+      {
+        name: "Send HTML to multiple recipients with reply-to",
+        input: { to: ["alice@example.com", "bob@example.com"], subject: "Weekly digest", body_html: "<h1>This week</h1><p>...</p>", reply_to: "support@axis-iliad.jonathanarvay.com" },
+        output: '{"message_id":"re_xyz789","delivered_to":["alice@example.com","bob@example.com"],"from":"noreply@axis-iliad.jonathanarvay.com","subject":"Weekly digest"}',
+      },
+    ],
+  },
+  // ─── Planned-capability stubs (8 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full 14-tool iliad_* surface immediately. tools/call on
   // any of these returns a structured `_planned: true` envelope until
@@ -3066,6 +3144,9 @@ export async function dispatch(
             break;
           case "iliad_embeddings":
             text = await runEmbeddings(toolArgs, req);
+            break;
+          case "iliad_transactional_email":
+            text = await runTransactionalEmail(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

@@ -22,6 +22,11 @@ test_before_commit = true
 
 # === Domain Models ===
 # AuthContext (interface, 3 fields) @ apps/api/src/billing.ts
+# EmailConfig (interface, 2 fields) @ apps/api/src/email.ts
+# ResendErrorResponse (interface, 3 fields) @ apps/api/src/email.ts
+# ResendSuccessResponse (interface, 1 fields) @ apps/api/src/email.ts
+# SendEmailOptions (interface, 5 fields) @ apps/api/src/email.ts
+# SendEmailResult (interface, 4 fields) @ apps/api/src/email.ts
 # EmbeddingsConfig (interface, 2 fields) @ apps/api/src/embeddings.ts
 # EmbeddingsResult (interface, 4 fields) @ apps/api/src/embeddings.ts
 # OpenAIEmbeddingResponse (interface, 5 fields) @ apps/api/src/embeddings.ts
@@ -36,12 +41,7 @@ test_before_commit = true
 # FirecrawlCrawlRequest (interface, 5 fields) @ apps/api/src/handlers.ts
 # FirecrawlCrawlResponse (interface, 4 fields) @ apps/api/src/handlers.ts
 # FirecrawlScrapeRequest (interface, 6 fields) @ apps/api/src/handlers.ts
-# FirecrawlScrapeResponse (interface, 5 fields) @ apps/api/src/handlers.ts
-# IntentCapture (interface, 5 fields) @ apps/api/src/mcp-server.ts
-# JsonRpcRequest (interface, 4 fields) @ apps/api/src/mcp-server.ts
-# McpCallCounters (interface, 5 fields) @ apps/api/src/mcp-server.ts
-# PlannedCapability (interface, 7 fields) @ apps/api/src/mcp-server.ts
-# ... and 239 more
+# ... and 244 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode
@@ -93,13 +93,13 @@ test_before_commit = true
 # apps/api/src/deployment.test.ts
 # apps/api/src/e2e-flows.test.ts
 # apps/api/src/e2e-smoke.test.ts
+# apps/api/src/email.test.ts
+# apps/api/src/email.ts
 # apps/api/src/embeddings.test.ts
 # apps/api/src/embeddings.ts
 # apps/api/src/env.test.ts
 # apps/api/src/env.ts
 # apps/api/src/export-edge-cases.test.ts
-# apps/api/src/export.test.ts
-# apps/api/src/export.ts
 # ... and 450 more files
 
 # === Key Entry Points ===

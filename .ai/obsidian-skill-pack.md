@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -91,14 +91,14 @@ Help me trace this from the entry point to the failure.
 ```
 I'm working with the following domain models in axis-iliad:
 - AuthContext (interface, 3 fields) — defined in apps/api/src/billing.ts
+- EmailConfig (interface, 2 fields) — defined in apps/api/src/email.ts
+- ResendErrorResponse (interface, 3 fields) — defined in apps/api/src/email.ts
+- ResendSuccessResponse (interface, 1 fields) — defined in apps/api/src/email.ts
+- SendEmailOptions (interface, 5 fields) — defined in apps/api/src/email.ts
+- SendEmailResult (interface, 4 fields) — defined in apps/api/src/email.ts
 - EmbeddingsConfig (interface, 2 fields) — defined in apps/api/src/embeddings.ts
 - EmbeddingsResult (interface, 4 fields) — defined in apps/api/src/embeddings.ts
-- OpenAIEmbeddingResponse (interface, 5 fields) — defined in apps/api/src/embeddings.ts
-- OpenAIErrorResponse (interface, 3 fields) — defined in apps/api/src/embeddings.ts
-- EnvSpec (interface, 5 fields) — defined in apps/api/src/env.ts
-- ValidationError (interface, 2 fields) — defined in apps/api/src/env.ts
-- ValidationResult (interface, 3 fields) — defined in apps/api/src/env.ts
-  ... and 251 more
+  ... and 256 more
 
 When generating code that uses these types, import from their source files and
 do not redefine them.

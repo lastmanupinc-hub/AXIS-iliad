@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -185,13 +185,13 @@ Routes detected — consider zone-based theming:
 Consider extending the token system for domain entity states:
 
 - **AuthContext** (interface): 3 fields — apps/api/src/billing.ts
+- **EmailConfig** (interface): 2 fields — apps/api/src/email.ts
+- **ResendErrorResponse** (interface): 3 fields — apps/api/src/email.ts
+- **ResendSuccessResponse** (interface): 1 fields — apps/api/src/email.ts
+- **SendEmailOptions** (interface): 5 fields — apps/api/src/email.ts
+- **SendEmailResult** (interface): 4 fields — apps/api/src/email.ts
 - **EmbeddingsConfig** (interface): 2 fields — apps/api/src/embeddings.ts
 - **EmbeddingsResult** (interface): 4 fields — apps/api/src/embeddings.ts
-- **OpenAIEmbeddingResponse** (interface): 5 fields — apps/api/src/embeddings.ts
-- **OpenAIErrorResponse** (interface): 3 fields — apps/api/src/embeddings.ts
-- **EnvSpec** (interface): 5 fields — apps/api/src/env.ts
-- **ValidationError** (interface): 2 fields — apps/api/src/env.ts
-- **ValidationResult** (interface): 3 fields — apps/api/src/env.ts
 
 ## Warnings
 

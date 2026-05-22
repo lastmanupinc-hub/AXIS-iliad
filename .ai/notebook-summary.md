@@ -4,12 +4,12 @@
 
 ## Project Synopsis
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Architecture Overview
 
 - **Files**: 500 files across 65 directories
-- **Lines of Code**: 133,129
+- **Lines of Code**: 133,461
 - **Primary Language**: TypeScript
 - **Frameworks**: React
 - **Patterns**: monorepo, containerized
@@ -18,15 +18,15 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ## Key Concepts
 
 - **`AuthContext`** — interface (3 fields in `apps/api/src/billing.ts`)
+- **`EmailConfig`** — interface (2 fields in `apps/api/src/email.ts`)
+- **`ResendErrorResponse`** — interface (3 fields in `apps/api/src/email.ts`)
+- **`ResendSuccessResponse`** — interface (1 fields in `apps/api/src/email.ts`)
+- **`SendEmailOptions`** — interface (5 fields in `apps/api/src/email.ts`)
+- **`SendEmailResult`** — interface (4 fields in `apps/api/src/email.ts`)
 - **`EmbeddingsConfig`** — interface (2 fields in `apps/api/src/embeddings.ts`)
 - **`EmbeddingsResult`** — interface (4 fields in `apps/api/src/embeddings.ts`)
 - **`OpenAIEmbeddingResponse`** — interface (5 fields in `apps/api/src/embeddings.ts`)
 - **`OpenAIErrorResponse`** — interface (3 fields in `apps/api/src/embeddings.ts`)
-- **`EnvSpec`** — interface (5 fields in `apps/api/src/env.ts`)
-- **`ValidationError`** — interface (2 fields in `apps/api/src/env.ts`)
-- **`ValidationResult`** — interface (3 fields in `apps/api/src/env.ts`)
-- **`ZipEntry`** — interface (4 fields in `apps/api/src/export.ts`)
-- **`PullRequestPayload`** — interface (5 fields in `apps/api/src/github-webhook.ts`)
 
 ## Conventions
 

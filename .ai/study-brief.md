@@ -17,11 +17,11 @@ Before diving into this codebase, you should be comfortable with:
 1. Read the project README and any CONTRIBUTING.md
 2. Understand the top-level directory structure:
 
-   - `apps` — monorepo_apps (159 files)
+   - `apps` — monorepo_apps (161 files)
    - `packages` — monorepo_packages (144 files)
    - `examples` — project_directory (17 files)
    - `mcp` — project_directory (16 files)
-   - `payment-processing-output` — project_directory (10 files)
+   - `payment-processing-output` — project_directory (8 files)
    - `packaging` — project_directory (7 files)
    - `.github` — project_directory (5 files)
    - `algorithmic` — project_directory (4 files)
@@ -37,16 +37,16 @@ These are the core data structures that define what the system works with:
 | Model | Kind | Fields | File |
 |-------|------|--------|------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmailConfig` | interface | 2 | `apps/api/src/email.ts` |
+| `ResendErrorResponse` | interface | 3 | `apps/api/src/email.ts` |
+| `ResendSuccessResponse` | interface | 1 | `apps/api/src/email.ts` |
+| `SendEmailOptions` | interface | 5 | `apps/api/src/email.ts` |
+| `SendEmailResult` | interface | 4 | `apps/api/src/email.ts` |
 | `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
 | `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
 | `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
 | `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
-| `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
-| `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
-| `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
-| `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
-| `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
-| *(+249 more)* | | | |
+| *(+254 more)* | | | |
 
 ### Phase 4: Data Flow
 

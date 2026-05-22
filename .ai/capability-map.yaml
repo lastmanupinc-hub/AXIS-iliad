@@ -1,12 +1,12 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot da095f62-3673-4d92-a407-b47ceeab2b3b).
-# Generated at: 2026-05-22T21:39:10.299Z
+# Generated for axis-iliad (snapshot 329b0539-239b-497b-8e39-92dc6af61793).
+# Generated at: 2026-05-22T22:06:45.510Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "da095f62-3673-4d92-a407-b47ceeab2b3b"
-  generated_at: "2026-05-22T21:39:10.299Z"
+  snapshot_id: "329b0539-239b-497b-8e39-92dc6af61793"
+  generated_at: "2026-05-22T22:06:45.510Z"
   capability_count: 14
   capabilities_detected_in_repo: 13
 
@@ -643,14 +643,14 @@ capabilities:
 
   - id: transactional_email
     name: "Transactional email (auth, receipts, notifications)"
-    status: planned_proxy
-    axis_brand_tool: ""
+    status: live_proxy
+    axis_brand_tool: "iliad_transactional_email"
     pricing_tier: null
-    summary: "Send a single transactional email with tracking, bounce handling, and DKIM/SPF."
+    summary: "AXIS-branded wrapper around Resend /emails. Agents send arbitrary subject + body_html/body_text content; all messages ship from RESEND_FROM_ADDRESS (verified domain). Internal welcome/upgrade/usage-alert emails keep their template-bound pipeline. Future swap to a self-hosted MTA is a module-internal change."
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references RESEND_API_KEY"
-      - "source references /resend\\.com/ (e.g. apps/api/src/env.ts)"
+      - "source references /resend\\.com/ (e.g. apps/api/src/email.test.ts)"
     third_party_providers:
       - name: "Resend"
         url: "https://resend.com"
@@ -807,9 +807,9 @@ capabilities:
 
 summary:
   by_status:
-    live_proxy: 3
+    live_proxy: 4
     owned: 2
-    planned_proxy: 9
+    planned_proxy: 8
   recommended_next_owned:
     - id: image_generation
       effort: medium
@@ -823,6 +823,6 @@ summary:
     - id: document_parsing
       effort: medium
       reason: "Marker inference ≈ $0.0001/page vs $0.10/page Unstructured retail"
-    - id: transactional_email
+    - id: analytics
       effort: medium
-      reason: "Owning the MTA + relay split avoids Resend's per-email markup at scale (~$0.001/email vs $0.0004 own cost)"
+      reason: "PostHog OSS at our scale costs ≈ $50/mo VPS + storage vs $1k+/mo PostHog Cloud at the same event volume"

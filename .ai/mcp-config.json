@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T21:39:10.637Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.",
+  "generated_at": "2026-05-22T22:06:46.326Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -96,6 +96,36 @@
       "mimeType": "application/json"
     },
     {
+      "uri": "model://axis-iliad/EmailConfig",
+      "name": "EmailConfig",
+      "description": "interface with 2 fields (apps/api/src/email.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/ResendErrorResponse",
+      "name": "ResendErrorResponse",
+      "description": "interface with 3 fields (apps/api/src/email.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/ResendSuccessResponse",
+      "name": "ResendSuccessResponse",
+      "description": "interface with 1 field (apps/api/src/email.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/SendEmailOptions",
+      "name": "SendEmailOptions",
+      "description": "interface with 5 fields (apps/api/src/email.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/SendEmailResult",
+      "name": "SendEmailResult",
+      "description": "interface with 4 fields (apps/api/src/email.ts)",
+      "mimeType": "application/json"
+    },
+    {
       "uri": "model://axis-iliad/EmbeddingsConfig",
       "name": "EmbeddingsConfig",
       "description": "interface with 2 fields (apps/api/src/embeddings.ts)",
@@ -148,36 +178,6 @@
       "name": "PullRequestPayload",
       "description": "interface with 5 fields (apps/api/src/github-webhook.ts)",
       "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/PushPayload",
-      "name": "PushPayload",
-      "description": "interface with 7 fields (apps/api/src/github-webhook.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/SnapshotTarget",
-      "name": "SnapshotTarget",
-      "description": "interface with 5 fields (apps/api/src/github-webhook.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/FirecrawlCrawlRequest",
-      "name": "FirecrawlCrawlRequest",
-      "description": "interface with 5 fields (apps/api/src/handlers.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/FirecrawlCrawlResponse",
-      "name": "FirecrawlCrawlResponse",
-      "description": "interface with 4 fields (apps/api/src/handlers.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/FirecrawlScrapeRequest",
-      "name": "FirecrawlScrapeRequest",
-      "description": "interface with 6 fields (apps/api/src/handlers.ts)",
-      "mimeType": "application/json"
     }
   ],
   "prompts": [
@@ -217,6 +217,41 @@
       "field_count": 3,
       "source_file": "apps/api/src/billing.ts",
       "resource_uri": "model://axis-iliad/AuthContext"
+    },
+    {
+      "name": "EmailConfig",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/email.ts",
+      "resource_uri": "model://axis-iliad/EmailConfig"
+    },
+    {
+      "name": "ResendErrorResponse",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/email.ts",
+      "resource_uri": "model://axis-iliad/ResendErrorResponse"
+    },
+    {
+      "name": "ResendSuccessResponse",
+      "kind": "interface",
+      "field_count": 1,
+      "source_file": "apps/api/src/email.ts",
+      "resource_uri": "model://axis-iliad/ResendSuccessResponse"
+    },
+    {
+      "name": "SendEmailOptions",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/email.ts",
+      "resource_uri": "model://axis-iliad/SendEmailOptions"
+    },
+    {
+      "name": "SendEmailResult",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/email.ts",
+      "resource_uri": "model://axis-iliad/SendEmailResult"
     },
     {
       "name": "EmbeddingsConfig",
@@ -315,41 +350,6 @@
       "field_count": 6,
       "source_file": "apps/api/src/handlers.ts",
       "resource_uri": "model://axis-iliad/FirecrawlScrapeRequest"
-    },
-    {
-      "name": "FirecrawlScrapeResponse",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/handlers.ts",
-      "resource_uri": "model://axis-iliad/FirecrawlScrapeResponse"
-    },
-    {
-      "name": "IntentCapture",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/mcp-server.ts",
-      "resource_uri": "model://axis-iliad/IntentCapture"
-    },
-    {
-      "name": "JsonRpcRequest",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/api/src/mcp-server.ts",
-      "resource_uri": "model://axis-iliad/JsonRpcRequest"
-    },
-    {
-      "name": "McpCallCounters",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/mcp-server.ts",
-      "resource_uri": "model://axis-iliad/McpCallCounters"
-    },
-    {
-      "name": "PlannedCapability",
-      "kind": "interface",
-      "field_count": 7,
-      "source_file": "apps/api/src/mcp-server.ts",
-      "resource_uri": "model://axis-iliad/PlannedCapability"
     }
   ],
   "sql_schema": null,
@@ -396,7 +396,7 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 153855
+      "size": 158269
     },
     {
       "path": "apps/api/src/oauth-server.ts",
