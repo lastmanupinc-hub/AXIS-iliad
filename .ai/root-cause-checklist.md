@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-iliad
 
-> monorepo | TypeScript | 500 files | 132,263 LOC
+> monorepo | TypeScript | 500 files | 132,543 LOC
 
 **Stack:** React ^19.1.0
 
@@ -69,6 +69,7 @@ Check these entities for state corruption or relationship violations:
 - [ ] `IntentCapture` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
 - [ ] `JsonRpcRequest` (interface, 4 fields) — `apps/api/src/mcp-server.ts`
 - [ ] `McpCallCounters` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
+- [ ] `PlannedCapability` (interface, 7 fields) — `apps/api/src/mcp-server.ts`
 - [ ] `RpcError` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
 - [ ] `RpcSuccess` (interface, 3 fields) — `apps/api/src/mcp-server.ts`
 - [ ] `HistogramEntry` (interface, 3 fields) — `apps/api/src/metrics.ts`

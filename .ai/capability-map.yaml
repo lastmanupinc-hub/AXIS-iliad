@@ -1,14 +1,14 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot 3ebb4d4b-c362-4689-8bd8-45b110a5da49).
-# Generated at: 2026-05-22T20:30:17.368Z
+# Generated for axis-iliad (snapshot 26eed936-0e72-471c-81b7-b5f8055246f5).
+# Generated at: 2026-05-22T20:41:26.194Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "3ebb4d4b-c362-4689-8bd8-45b110a5da49"
-  generated_at: "2026-05-22T20:30:17.368Z"
+  snapshot_id: "26eed936-0e72-471c-81b7-b5f8055246f5"
+  generated_at: "2026-05-22T20:41:26.194Z"
   capability_count: 14
-  capabilities_detected_in_repo: 5
+  capabilities_detected_in_repo: 11
 
 status_legend:
   live_proxy:    "Shipping today as an iliad_* MCP tool that proxies to a third party."
@@ -143,6 +143,7 @@ capabilities:
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references REPLICATE_API_TOKEN"
+      - "source references /openai\\.com/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "OpenAI"
         url: "https://openai.com"
@@ -252,6 +253,7 @@ capabilities:
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references REPLICATE_API_TOKEN"
+      - "source references /replicate.*flux/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "Replicate"
         url: "https://replicate.com"
@@ -305,7 +307,9 @@ capabilities:
     axis_brand_tool: ""
     pricing_tier: null
     summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus."
-    detected_in_repo: false
+    detected_in_repo: true
+    detection_evidence:
+      - "source references /elevenlabs\\.io/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "ElevenLabs"
         url: "https://elevenlabs.io"
@@ -358,7 +362,9 @@ capabilities:
     axis_brand_tool: ""
     pricing_tier: null
     summary: "Transcribe audio to text with speaker diarization and timestamp segmentation."
-    detected_in_repo: false
+    detected_in_repo: true
+    detection_evidence:
+      - "source references /deepgram\\.com/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "Deepgram"
         url: "https://deepgram.com"
@@ -407,7 +413,9 @@ capabilities:
     axis_brand_tool: ""
     pricing_tier: null
     summary: "Convert PDFs, DOCX, PPTX, and HTML into clean Markdown with extracted tables and headings."
-    detected_in_repo: false
+    detected_in_repo: true
+    detection_evidence:
+      - "source references /llamaparse/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "LlamaParse"
         url: "https://www.llamaindex.ai"
@@ -460,7 +468,9 @@ capabilities:
     axis_brand_tool: ""
     pricing_tier: null
     summary: "Run a search query and return organic results plus answer-box / featured-snippet data."
-    detected_in_repo: false
+    detected_in_repo: true
+    detection_evidence:
+      - "source references /tavily\\.com/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "Tavily"
         url: "https://tavily.com"
@@ -512,7 +522,9 @@ capabilities:
     axis_brand_tool: ""
     pricing_tier: null
     summary: "Execute untrusted Python / Node / shell code in an isolated sandbox and return stdout, stderr, and exit code."
-    detected_in_repo: false
+    detected_in_repo: true
+    detection_evidence:
+      - "source references /e2b\\.dev/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "E2B"
         url: "https://e2b.dev"
@@ -736,7 +748,9 @@ capabilities:
     axis_brand_tool: ""
     pricing_tier: null
     summary: "Record arbitrary user events and query funnels, cohorts, and retention curves."
-    detected_in_repo: false
+    detected_in_repo: true
+    detection_evidence:
+      - "source references /posthog/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "PostHog Cloud"
         url: "https://posthog.com"

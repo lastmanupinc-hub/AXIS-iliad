@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-22T20:30:18.008Z",
-  "total_symbols": 1991,
+  "generated_at": "2026-05-22T20:41:27.186Z",
+  "total_symbols": 1993,
   "file_count": 245,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -1823,199 +1823,209 @@
         "line": 164
       },
       {
+        "name": "PlannedCapability",
+        "type": "interface",
+        "line": 177
+      },
+      {
+        "name": "runPlannedCapability",
+        "type": "function",
+        "line": 423
+      },
+      {
         "name": "toolAnnotations",
         "type": "function",
-        "line": 168
+        "line": 437
       },
       {
         "name": "ARTIFACT_ENTRY_SCHEMA",
         "type": "const",
-        "line": 177
+        "line": 446
       },
       {
         "name": "SNAPSHOT_RESULT_SCHEMA",
         "type": "const",
-        "line": 187
+        "line": 456
       },
       {
         "name": "TOOL_MATCH_SCHEMA",
         "type": "const",
-        "line": 200
+        "line": 469
       },
       {
         "name": "rpcOk",
         "type": "function",
-        "line": 849
+        "line": 1156
       },
       {
         "name": "rpcErr",
         "type": "function",
-        "line": 853
+        "line": 1160
       },
       {
         "name": "toolOk",
         "type": "function",
-        "line": 861
+        "line": 1168
       },
       {
         "name": "toolErr",
         "type": "function",
-        "line": 865
+        "line": 1172
       },
       {
         "name": "ErrorCategory",
         "type": "type",
-        "line": 869
+        "line": 1176
       },
       {
         "name": "categorizeError",
         "type": "function",
-        "line": 871
+        "line": 1178
       },
       {
         "name": "buildMcpPaymentRequiredError",
         "type": "function",
-        "line": 894
+        "line": 1201
       },
       {
         "name": "meterMcpToolCredits",
         "type": "function",
-        "line": 916
+        "line": 1223
       },
       {
         "name": "filterGeneratorsByEntitlement",
         "type": "function",
-        "line": 945
+        "line": 1252
       },
       {
         "name": "runAnalyzeFiles",
         "type": "function",
-        "line": 961
+        "line": 1268
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1037
+        "line": 1344
       },
       {
         "name": "runAnalyzeRepo",
         "type": "function",
-        "line": 1107
+        "line": 1414
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1178
+        "line": 1485
       },
       {
         "name": "runSearchTools",
         "type": "function",
-        "line": 1283
+        "line": 1590
       },
       {
         "name": "runDiscoverAgenticCommerceTools",
         "type": "function",
-        "line": 1367
+        "line": 1674
       },
       {
         "name": "runImproveMyAgent",
         "type": "function",
-        "line": 1431
+        "line": 1738
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1477
+        "line": 1784
       },
       {
         "name": "runDiscoverAgenticPurchasingNeeds",
         "type": "function",
-        "line": 1644
+        "line": 1951
       },
       {
         "name": "runGetReferralCode",
         "type": "function",
-        "line": 1775
+        "line": 2082
       },
       {
         "name": "runCheckReferralCredits",
         "type": "function",
-        "line": 1805
+        "line": 2112
       },
       {
         "name": "runListPrograms",
         "type": "function",
-        "line": 1836
+        "line": 2143
       },
       {
         "name": "runGetSnapshot",
         "type": "function",
-        "line": 1880
+        "line": 2187
       },
       {
         "name": "runGetArtifact",
         "type": "function",
-        "line": 1923
+        "line": 2230
       },
       {
         "name": "runCloser",
         "type": "function",
-        "line": 1959
+        "line": 2266
       },
       {
         "name": "runPreparePurchasing",
         "type": "function",
-        "line": 2070
+        "line": 2377
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2154
+        "line": 2461
       },
       {
         "name": "dispatch",
         "type": "function",
-        "line": 2390
+        "line": 2697
       },
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 2421
+        "line": 2728
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 2428
+        "line": 2735
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 2506
+        "line": 2822
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 2583
+        "line": 2899
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 2619
+        "line": 2935
       },
       {
         "name": "handleMcpDocs",
         "type": "function",
-        "line": 2637
+        "line": 2953
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 2684
+        "line": 3000
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 2752
+        "line": 3068
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [

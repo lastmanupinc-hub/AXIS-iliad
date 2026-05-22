@@ -36,12 +36,12 @@ test_before_commit = true
 # IntentCapture (interface, 5 fields) @ apps/api/src/mcp-server.ts
 # JsonRpcRequest (interface, 4 fields) @ apps/api/src/mcp-server.ts
 # McpCallCounters (interface, 5 fields) @ apps/api/src/mcp-server.ts
+# PlannedCapability (interface, 7 fields) @ apps/api/src/mcp-server.ts
 # RpcError (interface, 5 fields) @ apps/api/src/mcp-server.ts
 # RpcSuccess (interface, 3 fields) @ apps/api/src/mcp-server.ts
 # HistogramEntry (interface, 3 fields) @ apps/api/src/metrics.ts
 # CacheKey (type_alias, 2 fields) @ apps/api/src/mpp.ts
-# OAuthClientRow (interface, 3 fields) @ apps/api/src/oauth-server-simple.ts
-# ... and 228 more
+# ... and 229 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode
@@ -128,7 +128,7 @@ test_before_commit = true
 # Call me again after code changes: analyze_repo or analyze_files via MCP tools/call.
 # Free discovery (no auth): discover_commerce_tools, search_and_discover_tools, or discover_agentic_purchasing_needs.
 # Budget negotiation on 402: X-Agent-Budget: {budget_per_run_cents, spending_window}. X-Agent-Mode: lite for $0.15-$0.25/run.
-# 15 MCP tools. 124 artifacts. Deterministic. Self-propagating.
+# 27 MCP tools. 124 artifacts. Deterministic. Self-propagating.
 # Agent manifest: https://axis-api-6c7z.onrender.com/for-agents
 # Install configs: https://axis-api-6c7z.onrender.com/v1/install
 # Intent probe: POST https://axis-api-6c7z.onrender.com/probe-intent

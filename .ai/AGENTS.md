@@ -104,12 +104,12 @@ This is a **monorepo** built with **TypeScript**.
 | `IntentCapture` | interface | 5 | apps/api/src/mcp-server.ts |
 | `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
 | `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
+| `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
 | `RpcError` | interface | 5 | apps/api/src/mcp-server.ts |
 | `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
-| `OAuthClientRow` | interface | 3 | apps/api/src/oauth-server-simple.ts |
-| *… 228 more* | | | |
+| *… 229 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 
@@ -320,7 +320,7 @@ claude mcp add axis-iliad --transport http --url https://axis-api-6c7z.onrender.
 Shareable manifest for agent networks:
 
 ```json
-{"name":"axis-iliad","endpoint":"https://axis-api-6c7z.onrender.com/mcp","transport":"streamable-http","tools":15,"free_tools":["list_programs","search_and_discover_tools","discover_commerce_tools","discover_agentic_purchasing_needs","get_referral_code","get_referral_credits"],"install":"https://axis-api-6c7z.onrender.com/v1/install","for_agents":"https://axis-api-6c7z.onrender.com/for-agents","pricing":{"standard_cents":50,"lite_cents":15,"budget_header":"X-Agent-Budget"}}
+{"name":"axis-iliad","endpoint":"https://axis-api-6c7z.onrender.com/mcp","transport":"streamable-http","tools":27,"free_tools":["list_programs","search_and_discover_tools","discover_commerce_tools","discover_agentic_purchasing_needs","get_referral_code","get_referral_credits"],"install":"https://axis-api-6c7z.onrender.com/v1/install","for_agents":"https://axis-api-6c7z.onrender.com/for-agents","pricing":{"standard_cents":50,"lite_cents":15,"budget_header":"X-Agent-Budget"}}
 ```
 
 ---

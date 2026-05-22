@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.
 
 ## Quick Reference
 
@@ -17,14 +17,14 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 132,263 LOC |
+| Files | 500 files, 132,543 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 275 | 91,953 | 75.8% |
+| TypeScript | 275 | 92,233 | 75.8% |
 | YAML | 57 | 9,885 | 8.1% |
 | JSON | 63 | 8,478 | 7% |
 | Markdown | 79 | 8,125 | 6.7% |
@@ -108,6 +108,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | IntentCapture | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
 | JsonRpcRequest | interface | TypeScript | 4 | `apps/api/src/mcp-server.ts` |
 | McpCallCounters | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
+| PlannedCapability | interface | TypeScript | 7 | `apps/api/src/mcp-server.ts` |
 | RpcError | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
 | RpcSuccess | interface | TypeScript | 3 | `apps/api/src/mcp-server.ts` |
 | HistogramEntry | interface | TypeScript | 3 | `apps/api/src/metrics.ts` |

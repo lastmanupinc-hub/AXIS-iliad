@@ -13,5 +13,5 @@ import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
-export const MCP_TOOL_COUNT = 15;
+export const MCP_TOOL_COUNT = 27;
 export const ENDPOINT_COUNT = 143;

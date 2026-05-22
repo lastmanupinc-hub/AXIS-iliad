@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T20:30:17.668Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.",
+  "generated_at": "2026-05-22T20:41:26.759Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -317,6 +317,13 @@
       "resource_uri": "model://axis-iliad/McpCallCounters"
     },
     {
+      "name": "PlannedCapability",
+      "kind": "interface",
+      "field_count": 7,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-iliad/PlannedCapability"
+    },
+    {
       "name": "RpcError",
       "kind": "interface",
       "field_count": 5,
@@ -343,13 +350,6 @@
       "field_count": 2,
       "source_file": "apps/api/src/mpp.ts",
       "resource_uri": "model://axis-iliad/CacheKey"
-    },
-    {
-      "name": "OAuthClientRow",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/api/src/oauth-server-simple.ts",
-      "resource_uri": "model://axis-iliad/OAuthClientRow"
     }
   ],
   "sql_schema": null,
@@ -374,6 +374,7 @@
         "export function getIntentLog(): IntentCapture[] { ... }",
         "export function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string",
         "export function getMcpCallCounters(): McpCallCounters { ... }",
+        "export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = ...",
         "export const MCP_TOOLS = ...",
         "export async function runAnalyzeFiles(",
         "export async function runAnalyzeRepo(",
@@ -395,7 +396,7 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 123479
+      "size": 139486
     },
     {
       "path": "apps/api/src/oauth-server.ts",

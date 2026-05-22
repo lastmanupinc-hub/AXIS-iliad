@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (132263 LOC)
+- **Files:** 500 (132543 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -571,7 +571,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Domain Models
 
-Detected 248 domain models:
+Detected 249 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -590,6 +590,7 @@ Detected 248 domain models:
 | `IntentCapture` | interface | 5 | apps/api/src/mcp-server.ts |
 | `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
 | `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
+| `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
 | `RpcError` | interface | 5 | apps/api/src/mcp-server.ts |
 | `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
@@ -599,8 +600,7 @@ Detected 248 domain models:
 | `CreateIntentInput` | interface | 3 | apps/api/src/paid-client.ts |
 | `CreateSubscriptionInput` | interface | 3 | apps/api/src/paid-client.ts |
 | `PaidConfig` | interface | 6 | apps/api/src/paid-client.ts |
-| `PaymentIntent` | interface | 6 | apps/api/src/paid-client.ts |
-| *… 223 more* | | | |
+| *… 224 more* | | | |
 
 > **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ResellCapability`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
@@ -689,7 +689,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (120.6 KB)
+apps/api/src/mcp-server.ts (136.2 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)

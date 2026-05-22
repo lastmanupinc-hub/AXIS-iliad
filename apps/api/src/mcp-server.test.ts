@@ -250,7 +250,7 @@ describe("POST /mcp — tools/list", () => {
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     expect(tools.length).toBe(MCP_TOOLS.length);
-    expect(tools.length).toBe(15);
+    expect(tools.length).toBe(27);
     // incentives injected into every success result
     const incentives = result.incentives as Record<string, unknown>;
     expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
@@ -1467,9 +1467,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array has 15 entries derived from MCP_TOOLS", () => {
+  it("tools array has 27 entries derived from MCP_TOOLS", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(27);
     expect(tools.map(t => t.name)).toEqual(MCP_TOOLS.map(t => t.name));
   });
 
@@ -1544,7 +1544,7 @@ describe("GET /v1/mcp/server.json", () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(27);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1579,7 +1579,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.axis_iliad).toBeDefined();
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
-    expect(parsed.tools.length).toBe(15);
+    expect(parsed.tools.length).toBe(27);
   });
 
   it("includes free_tools array", async () => {
@@ -1624,7 +1624,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(15);
+    expect(parsed.shareable_manifest.tools).toBe(27);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });

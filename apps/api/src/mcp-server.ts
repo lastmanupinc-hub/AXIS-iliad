@@ -165,6 +165,275 @@ function normalizeToolName(toolName: string): string {
   return LEGACY_TOOL_ALIASES[toolName] ?? toolName;
 }
 
+// ─── Planned-capability stubs ─────────────────────────────────────
+//
+// Twelve iliad_* tools whose AXIS-owned implementation is on the
+// roadmap (see .ai/capability-map.yaml from the artifacts program).
+// They appear in tools/list so agents see the full surface area,
+// and tools/call returns a structured "planned_capability" envelope
+// pointing at the canonical provider until the AXIS-owned build
+// ships. Each entry is the canonical source — both MCP_TOOLS
+// schemas and the dispatcher case are derived from this list.
+interface PlannedCapability {
+  /** Tool name as registered in MCP_TOOLS. */
+  name: string;
+  /** Short title used in MCP annotations. */
+  title: string;
+  /** One-line capability summary (top of description). */
+  summary: string;
+  /** Status — drives the response envelope. */
+  status: "planned_proxy" | "planned_owned";
+  /** Concrete inputSchema properties. */
+  input_properties: Record<string, { type: string; description: string; enum?: string[] }>;
+  /** Inputs that are required. */
+  required_inputs: string[];
+  /** Concrete outputSchema properties (used when the tool is live; documented now). */
+  output_properties: Record<string, { type: string; description: string }>;
+  /** Recommended third-party provider an agent should call right now. */
+  recommended_provider: { name: string; url: string };
+  /** Capability-map id this stub maps to. */
+  capability_id: string;
+}
+
+export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
+  {
+    name: "iliad_llm_inference",
+    title: "LLM Inference",
+    summary: "Run a chat-completion prompt through an LLM with optional structured-output schema enforcement.",
+    status: "planned_proxy",
+    input_properties: {
+      messages: { type: "array", description: "Standard chat-completion messages (role + content)." },
+      model_tier: { type: "string", description: "fast | balanced | deep — AXIS routes to the cheapest model meeting the tier.", enum: ["fast", "balanced", "deep"] },
+      response_schema: { type: "object", description: "Optional JSON Schema for structured output." },
+    },
+    required_inputs: ["messages"],
+    output_properties: {
+      content: { type: "string", description: "Generated text or stringified structured output." },
+      model_used: { type: "string", description: "Concrete backend model the router selected." },
+    },
+    recommended_provider: { name: "OpenAI", url: "https://platform.openai.com/docs/api-reference/chat" },
+    capability_id: "llm_inference",
+  },
+  {
+    name: "iliad_embeddings",
+    title: "Vector Embeddings",
+    summary: "Convert text to dense vectors for semantic search, clustering, and RAG.",
+    status: "planned_proxy",
+    input_properties: {
+      input: { type: "string", description: "Text or batch of texts (pass an array via JSON-encoded string)." },
+      dimensions: { type: "number", description: "Vector size. Defaults to 1024." },
+    },
+    required_inputs: ["input"],
+    output_properties: {
+      vectors: { type: "array", description: "Dense vectors, one per input." },
+      model_used: { type: "string", description: "Concrete embedding model used." },
+    },
+    recommended_provider: { name: "OpenAI Embeddings", url: "https://platform.openai.com/docs/api-reference/embeddings" },
+    capability_id: "embeddings",
+  },
+  {
+    name: "iliad_image_generation",
+    title: "Image Generation",
+    summary: "Generate an image from a text prompt with selectable aspect ratio and quality tier.",
+    status: "planned_proxy",
+    input_properties: {
+      prompt: { type: "string", description: "Image prompt." },
+      aspect: { type: "string", description: "Aspect ratio.", enum: ["1:1", "16:9", "9:16", "4:3"] },
+      quality: { type: "string", description: "fast = SDXL-class, hi = Flux-class.", enum: ["fast", "hi"] },
+    },
+    required_inputs: ["prompt"],
+    output_properties: {
+      image_url: { type: "string", description: "Public URL of the generated image (24h-signed)." },
+      seed: { type: "number", description: "Seed used; pass back to reproduce." },
+    },
+    recommended_provider: { name: "Replicate", url: "https://replicate.com/black-forest-labs/flux-pro" },
+    capability_id: "image_generation",
+  },
+  {
+    name: "iliad_text_to_speech",
+    title: "Text-to-Speech",
+    summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus.",
+    status: "planned_proxy",
+    input_properties: {
+      text: { type: "string", description: "Text to speak." },
+      voice: { type: "string", description: "Voice slug. AXIS will publish 8 stock voices." },
+      format: { type: "string", description: "Audio codec.", enum: ["mp3", "opus", "wav"] },
+    },
+    required_inputs: ["text"],
+    output_properties: {
+      audio_url: { type: "string", description: "24h-signed URL pointing at the rendered audio." },
+      duration_seconds: { type: "number", description: "Rendered audio length." },
+    },
+    recommended_provider: { name: "ElevenLabs", url: "https://elevenlabs.io/docs/api-reference/text-to-speech" },
+    capability_id: "text_to_speech",
+  },
+  {
+    name: "iliad_speech_to_text",
+    title: "Speech-to-Text",
+    summary: "Transcribe audio to text with speaker diarization and timestamp segmentation.",
+    status: "planned_proxy",
+    input_properties: {
+      audio_url: { type: "string", description: "URL to audio file." },
+      diarize: { type: "boolean", description: "Emit speaker labels per segment. Defaults to false." },
+    },
+    required_inputs: ["audio_url"],
+    output_properties: {
+      transcript: { type: "string", description: "Full transcript text." },
+      segments: { type: "array", description: "Timestamped segments." },
+    },
+    recommended_provider: { name: "Deepgram", url: "https://developers.deepgram.com/reference/listen-file" },
+    capability_id: "speech_to_text",
+  },
+  {
+    name: "iliad_document_parsing",
+    title: "Document Parsing",
+    summary: "Convert PDFs, DOCX, PPTX, and HTML into clean Markdown with extracted tables.",
+    status: "planned_proxy",
+    input_properties: {
+      document_url: { type: "string", description: "URL to PDF, DOCX, PPTX, or HTML." },
+      extract_tables: { type: "boolean", description: "Emit tables[] alongside markdown." },
+    },
+    required_inputs: ["document_url"],
+    output_properties: {
+      markdown: { type: "string", description: "Structured markdown with H1-H6 preserved." },
+      tables: { type: "array", description: "Detected tables." },
+      page_count: { type: "number", description: "Total pages parsed." },
+    },
+    recommended_provider: { name: "LlamaParse", url: "https://docs.llamaindex.ai/en/stable/llama_cloud/llama_parse/" },
+    capability_id: "document_parsing",
+  },
+  {
+    name: "iliad_web_search",
+    title: "Web Search",
+    summary: "Run a search query and return organic results + answer-box / featured-snippet data.",
+    status: "planned_proxy",
+    input_properties: {
+      query: { type: "string", description: "Search query." },
+      max_results: { type: "number", description: "Cap on organic results. Defaults to 10." },
+      site: { type: "string", description: "Restrict to a domain (e.g. 'docs.python.org')." },
+    },
+    required_inputs: ["query"],
+    output_properties: {
+      results: { type: "array", description: "Organic results in rank order." },
+      answer_box: { type: "object", description: "Featured-snippet content (or null)." },
+    },
+    recommended_provider: { name: "Tavily", url: "https://docs.tavily.com/docs/rest-api/api-reference" },
+    capability_id: "web_search",
+  },
+  {
+    name: "iliad_code_sandbox",
+    title: "Code Sandbox",
+    summary: "Execute untrusted Python / Node / shell code in an isolated sandbox; return stdout / stderr / exit code.",
+    status: "planned_proxy",
+    input_properties: {
+      language: { type: "string", description: "Runtime language.", enum: ["python", "node", "bash"] },
+      code: { type: "string", description: "Code to execute." },
+      timeout_seconds: { type: "number", description: "Wall-clock limit. Defaults 30, max 600." },
+    },
+    required_inputs: ["language", "code"],
+    output_properties: {
+      stdout: { type: "string", description: "Captured stdout." },
+      stderr: { type: "string", description: "Captured stderr." },
+      exit_code: { type: "number", description: "Process exit code." },
+    },
+    recommended_provider: { name: "E2B", url: "https://e2b.dev/docs" },
+    capability_id: "code_sandbox",
+  },
+  {
+    name: "iliad_object_storage",
+    title: "Object Storage (signed URLs)",
+    summary: "Pre-sign upload / download URLs against an account-scoped object store.",
+    status: "planned_owned",
+    input_properties: {
+      key: { type: "string", description: "Object key." },
+      operation: { type: "string", description: "Pre-sign upload or download.", enum: ["put", "get"] },
+      ttl_seconds: { type: "number", description: "Signed-URL lifetime. Defaults 3600." },
+    },
+    required_inputs: ["key", "operation"],
+    output_properties: {
+      url: { type: "string", description: "Pre-signed URL." },
+      expires_at: { type: "string", description: "ISO-8601 URL expiry." },
+    },
+    recommended_provider: { name: "Cloudflare R2", url: "https://developers.cloudflare.com/r2/api/s3/presigned-urls/" },
+    capability_id: "object_storage",
+  },
+  {
+    name: "iliad_transactional_email",
+    title: "Transactional Email",
+    summary: "Send a single transactional email with tracking, bounce handling, and DKIM/SPF.",
+    status: "planned_proxy",
+    input_properties: {
+      to: { type: "string", description: "Recipient (single address or comma-separated list)." },
+      subject: { type: "string", description: "Email subject." },
+      body_html: { type: "string", description: "HTML body. Either body_html or body_text is required." },
+      body_text: { type: "string", description: "Plaintext body. Either body_html or body_text is required." },
+    },
+    required_inputs: ["to", "subject"],
+    output_properties: {
+      message_id: { type: "string", description: "Provider-assigned message ID." },
+      delivered_to: { type: "array", description: "Recipients the provider accepted." },
+    },
+    recommended_provider: { name: "Resend", url: "https://resend.com/docs/api-reference/emails/send-email" },
+    capability_id: "transactional_email",
+  },
+  {
+    name: "iliad_vector_database",
+    title: "Vector Database",
+    summary: "Store and query dense vectors for RAG, deduplication, and similarity search.",
+    status: "planned_owned",
+    input_properties: {
+      operation: { type: "string", description: "Insert vectors or find nearest neighbors.", enum: ["upsert", "query"] },
+      namespace: { type: "string", description: "Logical isolation key. Defaults to the account ID." },
+      vectors: { type: "array", description: "Vectors to upsert (upsert mode)." },
+      query: { type: "object", description: "{vector, top_k, filter?} (query mode)." },
+    },
+    required_inputs: ["operation"],
+    output_properties: {
+      upserted: { type: "number", description: "Vectors written (upsert mode)." },
+      matches: { type: "array", description: "Nearest neighbors (query mode)." },
+    },
+    recommended_provider: { name: "Qdrant Cloud", url: "https://qdrant.tech/documentation/cloud/" },
+    capability_id: "vector_database",
+  },
+  {
+    name: "iliad_analytics",
+    title: "Product Analytics",
+    summary: "Record events and query funnels / cohorts / retention.",
+    status: "planned_proxy",
+    input_properties: {
+      operation: { type: "string", description: "capture or query.", enum: ["capture", "query"] },
+      event: { type: "object", description: "Event payload (capture mode)." },
+      query: { type: "object", description: "Analytics query (query mode)." },
+    },
+    required_inputs: ["operation"],
+    output_properties: {
+      result: { type: "object", description: "Capture confirmation or query results." },
+    },
+    recommended_provider: { name: "PostHog", url: "https://posthog.com/docs/api" },
+    capability_id: "analytics",
+  },
+];
+
+const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map(c => c.name));
+
+/**
+ * Structured "not yet live" response for a planned capability. The shape is
+ * stable so agents can branch on `_planned === true` without parsing free text.
+ */
+function runPlannedCapability(capability: PlannedCapability): string {
+  return JSON.stringify({
+    _planned: true,
+    capability_id: capability.capability_id,
+    status: capability.status,
+    message: `${capability.title} is on the AXIS roadmap. Until the AXIS-owned version ships, call the recommended provider directly.`,
+    recommended_provider: capability.recommended_provider,
+    expected_inputs: capability.required_inputs,
+    expected_output_shape: capability.output_properties,
+    capability_map_reference: ".ai/capability-map.yaml",
+    tool_name: capability.name,
+  }, null, 2);
+}
+
 function toolAnnotations(title: string, readOnly: boolean, idempotent: boolean) {
   return {
     title,
@@ -842,6 +1111,44 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── Planned-capability stubs (12 tools) ────────────────────────
+  // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
+  // see the full 14-tool iliad_* surface immediately. tools/call on
+  // any of these returns a structured `_planned: true` envelope until
+  // the AXIS-owned implementation ships.
+  ...PLANNED_CAPABILITIES.map((c) => ({
+    name: c.name,
+    description:
+      `${c.summary} Status: **${c.status}** — AXIS-owned implementation on the roadmap (see .ai/capability-map.yaml). ` +
+      `Calls return a planned-capability envelope pointing at ${c.recommended_provider.name} (${c.recommended_provider.url}) as the recommended interim provider. ` +
+      `When the AXIS-owned version ships, the dispatch handler swaps in without changing this schema.`,
+    inputSchema: {
+      type: "object" as const,
+      required: c.required_inputs,
+      properties: c.input_properties,
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        _planned: { type: "boolean", description: "Always true while this tool is in development." },
+        capability_id: { type: "string", description: "Capability slug matching capability-map.yaml." },
+        status: { type: "string", description: "planned_proxy or planned_owned." },
+        message: { type: "string", description: "Human-readable status note." },
+        recommended_provider: { type: "object", description: "Third-party provider to call directly today." },
+        // Once the AXIS-owned implementation lands, these fields take over:
+        ...c.output_properties,
+      },
+      required: ["_planned"],
+    },
+    annotations: toolAnnotations(c.title, false, c.status === "planned_owned"),
+    examples: [
+      {
+        name: `Probe ${c.title}`,
+        input: Object.fromEntries(c.required_inputs.map((k) => [k, `<${k}>`])),
+        output: `{"_planned":true,"capability_id":"${c.capability_id}","status":"${c.status}","recommended_provider":${JSON.stringify(c.recommended_provider)}}`,
+      },
+    ],
+  })),
 ];
 
 // â”€â”€â”€ Response builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2469,8 +2776,17 @@ export async function dispatch(
           case "get_referral_credits":
             text = runCheckReferralCredits(req);
             break;
-          default:
+          default: {
+            // Planned-capability stubs: discovery-only tools whose AXIS-owned
+            // implementation is on the roadmap. They share a single handler
+            // that returns the structured planned-capability envelope so
+            // agents can branch on `_planned === true` deterministically.
+            if (PLANNED_CAPABILITY_NAMES.has(canonicalToolName)) {
+              const cap = PLANNED_CAPABILITIES.find(c => c.name === canonicalToolName);
+              if (cap) { text = runPlannedCapability(cap); break; }
+            }
             return rpcErr(id, RPC_INVALID_PARAMS, `Unknown tool: ${toolName}`);
+          }
         }
         return rpcOk(id, {
           ...toolOk(text),

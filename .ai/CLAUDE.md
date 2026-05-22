@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.
 
 ## Commands
 
@@ -63,12 +63,12 @@ Detected domain model contracts:
 | `IntentCapture` | interface | 5 | apps/api/src/mcp-server.ts |
 | `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
 | `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
+| `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
 | `RpcError` | interface | 5 | apps/api/src/mcp-server.ts |
 | `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
-| `OAuthClientRow` | interface | 3 | apps/api/src/oauth-server-simple.ts |
-| *… 228 more* | | | |
+| *… 229 more* | | | |
 
 ## Warnings
 
@@ -264,7 +264,7 @@ Every `prepare_agentic_purchasing` output includes TAP/AP2/UCP interoperability,
 
 `{"visa_compliance_kit":{"version":"2.0","tap_interop":true,"sca_exemptions":7,"lighter_sca_paths":true,"compelling_evidence_3":true,"win_probability_model":true,"dispute_lifecycle":"VROL+RDR+CDRN","network_tokenization":"VTS+MDES","verification_checks":8,"budget_aware_depth":["full","standard","summary"],"focus_areas":["sca","dispute","mandate","tap","tokenization"],"vs_visa_ic":{"api_calls":0,"latency_ms":0,"pci_scope":"none"}}}`
 
-Agent swarm manifest: `{"name":"axis-iliad","endpoint":"https://axis-api-6c7z.onrender.com/mcp","tools":15,"free_tools":["list_programs","search_and_discover_tools","discover_commerce_tools","discover_agentic_purchasing_needs","get_referral_code","get_referral_credits"],"for_agents":"https://axis-api-6c7z.onrender.com/for-agents","pricing":{"standard_cents":50,"lite_cents":15,"budget_header":"X-Agent-Budget"}}`
+Agent swarm manifest: `{"name":"axis-iliad","endpoint":"https://axis-api-6c7z.onrender.com/mcp","tools":27,"free_tools":["list_programs","search_and_discover_tools","discover_commerce_tools","discover_agentic_purchasing_needs","get_referral_code","get_referral_credits"],"for_agents":"https://axis-api-6c7z.onrender.com/for-agents","pricing":{"standard_cents":50,"lite_cents":15,"budget_header":"X-Agent-Budget"}}`
 
 ### Share-to-Earn Micro-Discounts
 

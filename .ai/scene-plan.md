@@ -1,6 +1,6 @@
 # Scene Plan — axis-iliad
 
-Generated: 2026-05-22T20:30:17.788Z
+Generated: 2026-05-22T20:41:26.850Z
 
 ## Video Overview
 
@@ -14,7 +14,7 @@ Generated: 2026-05-22T20:30:17.788Z
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.
 
 ## Detected Stack
 
@@ -58,7 +58,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Detected domain model entities
 - **Models**: AuthContext (interface, 3 fields); EnvSpec (interface, 5 fields); ValidationError (interface, 2 fields); ValidationResult (interface, 3 fields); ZipEntry (interface, 4 fields); PullRequestPayload (interface, 5 fields)
-- **Total**: 248 models detected
+- **Total**: 249 models detected
 - **Animation**: Entity cards fade in with field-count pill badges
 - **Visual**: Grid of entity cards with kind and field count
 

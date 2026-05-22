@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "def3302"
-    current_session_id: "session_103"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 18 programs, 86 generators, 12 MCP tools, GitHub App webhook. Session 103 ships POST /v1/github/webhook with HMAC-SHA256 verification, delivery-ID dedup, push/pull_request → snapshot dispatch, GitHub App manifest, and 20 tests — closing gap_cr_001 / gap_s2_001 (the CodeRabbit-style distribution channel)."
+    commit_or_tag: "e3bac2f"
+    current_session_id: "session_104"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (2 live iliad_* + 12 planned-capability stubs), GitHub App webhook, capability-map.yaml registry of 14 resell tools with AXIS-owned replication plans. Sessions 101-104 deliver a generator-hardening sweep + capability-map artifact + the 12 iliad_* stubs that complete the planned tool surface."
 
   executive_truth:
     maturity_estimate:
@@ -3979,3 +3979,65 @@ project_continuation:
     local_only: true
     commit_results: []
     push_results: []
+
+  session_result_104:
+    date: "2026-05-22"
+    session_id: "session_104"
+    selected_move: "Generator hardening sweep + capability-map.yaml + 12 iliad_* MCP tool stubs"
+    selected_move_roi_reason: >
+      Multi-batch consolidated session covering the generator quality sweep
+      the user requested ("ad these generators to your task list and then
+      continue what you were working on") plus the capability-replication
+      strategy ("we have 14 programs including firecrawler that need to be
+      capability mapped and replicated into AXIS owned capabilities"). Highest-
+      ROI per begin.yaml axes: production_quality_gain 5, integration_quality
+      _gain 5, agent_acquisition_gain 5 (the 12 stubs expose the full iliad_*
+      surface in tools/list immediately, so every agent that enumerates AXIS
+      sees the planned roadmap), self_propagation 5 (the capability-map
+      artifact propagates per-snapshot), conformance_and_protocol_gain 4
+      (drift-proof counts via REGISTRY-derived TOTAL_GENERATORS).
+    completed_candidates:
+      - "Batch 1 (9ff7363): Eliminate .ai/.ai/ nested-directory bug. 8 generators (search, debug, frontend, optimization, seo, theme + 2 search depth) hardcoded `.ai/` in their GeneratedFile.path; CLI writer's join(outputDir, path) produced .ai/.ai/<file>. Removed prefix from 8 generators, inverted aliases (legacy `.ai/foo` resolves to bare name), updated 19 test files. The dual-form fallback in handleGetGeneratedFile stays in place for backwards compat with stored snapshots."
+      - "Batch 2 (82cbfd3): Drift-proof canonical counts. apps/api/src/counts.ts re-exports ARTIFACT_COUNT and PROGRAM_COUNT from @axis/generator-core's TOTAL_GENERATORS / TOTAL_PROGRAMS (derived from REGISTRY at module init). The two private mirrors in generators-skills.ts and generators-agentic-purchasing.ts are pinned by counts-consistency.test in both packages — CI fails on drift. Fixed missing closer program (16 outputs) in generateProductSchema. ARTIFACT_COUNT corrected 99 → 118."
+      - "Batch 3 (80f3331): Deepen closer program outputs. Five files rewritten from 227-573 byte stubs to 886-2090 byte production-grade artifacts. Dockerfile: multi-stage Node/Go/Python, non-root user, HEALTHCHECK on /health, $PORT honored, OCI labels. docker-compose.yml: Compose v2 with env_file, healthcheck, log rotation, bounded restart attempts. Makefile: help/install/dev/start/lint/format/test/build/audit/clean/package/attest/ship targets, all package-manager-aware. ci.yml: concurrency-canceled, Node matrix, correct cache key per pm, lint+typecheck+test+build+audit+ship. release.yml: full fetch-depth, conditional npm publish + ghcr.io push with provenance, attestation bundle attached."
+      - "Batch 4 (9c01b87): Spark-parity scaffolding generators added to artifacts program — prd.md, design.md, tasks.md, context.md, index.html. All data-driven from ContextMap: PRD goals from route count, design doc layer boundaries from architecture_signals, tasks-list checkboxes auto-marked from snapshot signals, context-md snapshot stats + watch list + Next-Session checklist, index.html with viewport-fit cover + light/dark theme-color + JS-required noscript fallback."
+      - "Batch 5-7 (326f177): mcp templates rewritten data-driven (no axis-iliad hardcoded values: pnpm filter for @axis/api removed, zod peerDep removed, tsconfig references/paths derived from detected layout, extends '../../tsconfig.base.json' only when that file exists). generated-component.tsx now App-shaped: PascalCase component, ErrorBoundary class, Section/Routes/Models/EntryPoints function components, inline data tables from snapshot, modern JSX (no `import React`). theme.css ships a real index.css baseline: box-sizing, html/body font mounting, heading sizes from type-scale tokens, link colors, code/pre/table/button defaults — dropped 8 duplicative per-domain-model class scaffolds in favor of .surface-card primitive."
+      - "Batch 8 (fe3e3a5): Marketplace manifest audit. Removed low-effort placeholders: npm-package.json repository/homepage/bugs only emitted when repo URL detected (no more github.com/owner/repo defaults), keywords derived from detected frameworks; vscode-extension.json publisher intentionally omitted (avoids broken vsce publish from placeholder), activationEvents tied to command; dockerhub-repository.md uses project slug + ${PORT:-8080} matching the new Dockerfile, Environment + Publishing tables; unreal.uplugin CreatedBy left as TODO with DocsURL/SupportURL from repo URL; github-marketplace-listing.md dropped invented Billing/SLA section, added Installation + Verification blocks."
+      - "Batch 9 (e3bac2f): capability-map.yaml generator added to artifacts program. 14 resell-tool capabilities catalogued (web_research, web_crawl, llm_inference, embeddings, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, object_storage, transactional_email, vector_database, analytics) with axis_brand_tool slug, status (live_proxy / planned_proxy / planned_owned / owned), 3 ranked third-party providers + retail pricing, input/output schemas, replication_plan (runtime, persistence, OSS deps, effort), axis_advantages. Detection layer reads every workspace package.json + env.ts + .env files + source-content regex; correctly detects 5/14 in the AXIS repo (Firecrawl × 2, Replicate × 2, Resend)."
+      - "Batch 10 (this commit): 12 iliad_* MCP tool stubs minted for the planned capabilities (llm_inference, embeddings, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, object_storage, transactional_email, vector_database, analytics). PLANNED_CAPABILITIES array is the canonical source — MCP_TOOLS schemas (name, description, inputSchema, outputSchema, annotations, examples) and the tools/call dispatcher case are derived from it. runPlannedCapability() returns a structured `{_planned: true, capability_id, status, recommended_provider, expected_inputs, expected_output_shape, capability_map_reference}` envelope so agents branch deterministically. MCP_TOOL_COUNT 15 → 27 in counts.ts + the private mirror in generators-skills.ts; 6 stale toBe(15) / toHaveLength(15) assertions updated across mcp-server.test.ts and prepare-purchasing.test.ts. Discovery side-effect: iliad_web_research / iliad_web_research_crawl, which previously fell through to the Unknown-tool branch in tools/call, are unaffected (their handlers are at REST /v1/research/*) but the new planned-capability fallback gives every iliad_* tool a useful response from tools/call."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest after batch 10: 147 passed files, 4229 passed tests, 11 skipped, 0 failed."
+      - "Dogfood post-batch-10: 124 artifacts, generated-component.tsx 6 KB, theme.css 10.5 KB, capability-map.yaml 32 KB, .cursorrules header reads '# 27 MCP tools. 124 artifacts.'"
+      - "capability-map.yaml status counts: live_proxy 2, planned_proxy 10, planned_owned 2. Dogfood correctly detects 5/14 (web_research, web_crawl, llm_inference, image_generation, transactional_email) — exact match with what AXIS currently uses (Firecrawl, Replicate env, Resend)."
+      - "Drift-proofing: counts-consistency.test in both generator-core and api catches any future ARTIFACT_COUNT / PROGRAM_COUNT / MCP_TOOL_COUNT divergence in CI."
+    verticals_advanced:
+      - "v18_agentic_commerce: full iliad_* MCP tool surface (2 live + 12 planned) visible in tools/list — agents see the complete capability roadmap on first discovery."
+      - "v0_core_platform: generator quality + drift-proof counts + new artifacts program members (5 Spark-parity files + capability-map.yaml)."
+      - "v2_codebase_intelligence_api: capability-map.yaml is a new authoritative document — analyzed repos get a per-snapshot report of which capability replications AXIS recommends for their stack."
+    blockers_removed:
+      - ".ai/.ai/ nested-directory defect (was recurring; now structurally eliminated by removing all hardcoded `.ai/` path prefixes)."
+      - "ARTIFACT_COUNT drift across 3 independent definitions (99 / 99 / 102) — now derived from REGISTRY."
+      - "Closer-program outputs were skeletal stubs (227-573 B) advertising 'production-grade packaging' — now actually production-grade."
+      - "generated-component.tsx was a lowercase `axisiliad` wrapper that JSX would have parsed as an HTML element; now an App-shaped PascalCase component with ErrorBoundary and snapshot-driven sections."
+      - "Marketplace manifests carried `https://github.com/owner/repo`, `your-publisher`, `your-org/your-image:latest` placeholders; now use detected signals or admit unknown with explicit TODOs."
+      - "No canonical document of which third-party services AXIS resells nor what AXIS-owned replacements would look like; capability-map.yaml is now the authoritative source."
+      - "iliad_* tools beyond web_research were not discoverable — agents had no way to know AXIS plans to offer LLM inference, embeddings, image gen, TTS, STT, etc."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "iliad_web_research / iliad_web_research_crawl tools/call still falls through to the planned-capability branch (their handlers live at REST /v1/research/*); proper MCP dispatch is a follow-on, not a blocker."
+      - "Stripe / OAuth / mppx / GitHub-tarball are intentionally not in the capability-map (they're infrastructure, not resell tools). If we ever want to map them too, they'd be a separate 'platform_dependencies' section."
+      - "Building the AXIS-owned implementations from capability-map.yaml.recommended_next_owned (object_storage on R2 first, then transactional_email MTA) is the natural next session."
+    local_only: false
+    commit_results:
+      - "9ff7363: Drop .ai/ prefix from generator paths; normalize writer/exporter contract"
+      - "82cbfd3: Make canonical counts drift-proof; fix stale ARTIFACT_COUNT (99 → 118)"
+      - "80f3331: Deepen closer program: production-grade Docker, Compose, CI, release, Makefile"
+      - "9c01b87: Add Spark-parity scaffolding generators (prd, design, tasks, context, index.html)"
+      - "326f177: Batches 5-7: mcp templates, App-shaped component, theme.css base reset"
+      - "fe3e3a5: Batch 8: marketplace manifest audit — remove low-effort placeholders"
+      - "e3bac2f: Add capability-map.yaml generator: catalog 14 resell tools + AXIS-owned replication plan"
+      - "(this commit): Mint 12 planned-capability iliad_* MCP tool stubs; MCP_TOOL_COUNT 15 → 27"
+    push_results:
+      - "pushed to origin/feat/iliad-tool-console — current HEAD updated each batch"

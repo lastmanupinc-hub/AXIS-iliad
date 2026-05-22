@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 132,263 |
+| Total LOC | 132,543 |
 | Average LOC / file | 265 |
-| Estimated token count | ~595,184 |
+| Estimated token count | ~596,444 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -218,7 +218,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (120.6 KB)
+apps/api/src/mcp-server.ts (136.2 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)

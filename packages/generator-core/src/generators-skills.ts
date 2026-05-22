@@ -11,7 +11,7 @@ import { hasFw, getFw } from "./fw-helpers.js";
  */
 const ARTIFACT_COUNT = 124;
 const PROGRAM_COUNT = 19;
-const MCP_TOOL_COUNT = 15;
+const MCP_TOOL_COUNT = 27;
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;

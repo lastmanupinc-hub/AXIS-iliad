@@ -457,7 +457,7 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
   });
 
   it("lists 15 total MCP tools", () => {
-    expect(MCP_TOOLS.length).toBe(15);
+    expect(MCP_TOOLS.length).toBe(27);
   });
 });
 

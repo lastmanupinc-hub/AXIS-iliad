@@ -533,6 +533,7 @@ State transitions on these entities should be logged:
 - `IntentCapture` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
 - `JsonRpcRequest` (interface, 4 fields) — `apps/api/src/mcp-server.ts`
 - `McpCallCounters` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
+- `PlannedCapability` (interface, 7 fields) — `apps/api/src/mcp-server.ts`
 - `RpcError` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
 - `RpcSuccess` (interface, 3 fields) — `apps/api/src/mcp-server.ts`
 - `HistogramEntry` (interface, 3 fields) — `apps/api/src/metrics.ts`

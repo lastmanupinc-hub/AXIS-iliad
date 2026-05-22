@@ -66,7 +66,7 @@ export default DashboardWidget;
 // POST: 204 endpoints
 // DELETE: 21 endpoints
 
-// ─── Domain Models: 248 entities ───
+// ─── Domain Models: 249 entities ───
 // AuthContext (interface, 3 fields) — apps/api/src/billing.ts
 // EnvSpec (interface, 5 fields) — apps/api/src/env.ts
 // ValidationError (interface, 2 fields) — apps/api/src/env.ts
