@@ -7,7 +7,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
  * drift fails CI.
  */
-const ARTIFACT_COUNT = 123;
+const ARTIFACT_COUNT = 124;
 const PROGRAM_COUNT = 19;
 
 /**
@@ -752,7 +752,7 @@ export function generateProductSchema(
       { slug: "notebook",          tier: "pro",  outputs: 5,  description: "Notebook summary, source map, study brief, research threads, citation index" },
       { slug: "obsidian",          tier: "pro",  outputs: 5,  description: "Obsidian skill pack, vault rules, graph prompt map, linking policy, template pack" },
       { slug: "mcp",               tier: "pro",  outputs: 19, description: "MCP config, registry metadata, protocol/types, implementation guides, connector/capability manifests, fintech surface package, and fintech domain schema" },
-      { slug: "artifacts",         tier: "pro",  outputs: 10, description: "Generated component, dashboard widget, embed snippet, artifact spec, component library, PRD, design doc, tasks breakdown, session context, root index.html" },
+      { slug: "artifacts",         tier: "pro",  outputs: 11, description: "Generated component, dashboard widget, embed snippet, artifact spec, component library, PRD, design doc, tasks breakdown, session context, root index.html, capability map" },
       { slug: "remotion",          tier: "pro",  outputs: 5,  description: "Remotion script, scene plan, render config, asset checklist, storyboard" },
       { slug: "canvas",            tier: "pro",  outputs: 5,  description: "Canvas spec, social pack, poster layouts, asset guidelines, brand board" },
       { slug: "algorithmic",       tier: "pro",  outputs: 5,  description: "Generative sketch, parameter pack, collection map, export manifest, variation matrix" },

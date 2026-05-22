@@ -1339,3 +1339,859 @@ export function generateIndexHtml(ctx: ContextMap, _profile: RepoProfile, _files
     description: "Root HTML document with viewport, theme-color, OG tags, JS-required noscript fallback, and module-script mount for the generated component",
   };
 }
+
+// ─── capability-map.yaml ────────────────────────────────────────
+// Catalog of third-party-resell capabilities AXIS currently fronts (or
+// plans to front) as `iliad_*` MCP tools, with the AXIS-owned
+// replication path for each. The capability registry is hand-curated
+// from the resell-tool strategy; the detection layer reads ctx +
+// package.json signals to mark which of these capabilities the
+// analyzed repo already depends on, so consumers see "you use OpenAI
+// + Stripe + Resend — here's what AXIS-owned equivalents look like."
+
+interface ResellProvider {
+  /** Official product name shown to humans. */
+  name: string;
+  /** Public URL agents can resolve to the homepage. */
+  url: string;
+  /** Per-call retail pricing summary. Approximate; for capability-mapping context, not billing. */
+  retail_pricing: string;
+}
+
+interface ResellCapability {
+  /** Slug used as the YAML key and as part of the AXIS-branded MCP tool name. */
+  id: string;
+  /** Human-readable capability name. */
+  name: string;
+  /** AXIS-branded tool name. Empty string means the tool has not been minted yet. */
+  axis_brand_tool: string;
+  /** Pricing-tier slug from @axis/mpp that backs this resell tool, if minted. */
+  pricing_tier: string | null;
+  /** Current ownership status. */
+  status: "live_proxy" | "planned_proxy" | "planned_owned" | "owned";
+  /** One-line capability summary. */
+  summary: string;
+  /** Third-party providers that supply this capability today (in priority order). */
+  providers: ResellProvider[];
+  /** Detection signals — regexes / env var names / file paths that imply the repo uses this capability. */
+  detection: {
+    /** Package.json dependency patterns. */
+    deps?: string[];
+    /** Env-var names. */
+    envs?: string[];
+    /** Source-file content regex patterns (any match = detected). */
+    content_patterns?: string[];
+  };
+  /** Inputs the AXIS-owned tool accepts (when minted). */
+  inputs: Array<{ name: string; type: string; required: boolean; description: string }>;
+  /** Outputs the AXIS-owned tool returns. */
+  outputs: Array<{ name: string; type: string; description: string }>;
+  /** Concrete plan for the AXIS-owned implementation. */
+  replication_plan: {
+    runtime: string;
+    persistence: string | null;
+    key_dependencies: string[];
+    differentiators: string[];
+    estimated_effort: "small" | "medium" | "large";
+  };
+  /** Why an MCP-first AXIS-owned version beats reselling. */
+  axis_advantages: string[];
+}
+
+const RESELL_CAPABILITIES: ResellCapability[] = [
+  {
+    id: "web_research",
+    name: "Web scrape (single URL → clean markdown)",
+    axis_brand_tool: "iliad_web_research",
+    pricing_tier: "iliad_web_research",
+    status: "live_proxy",
+    summary: "Fetch a URL, strip chrome and boilerplate, return reader-friendly markdown plus structured metadata.",
+    providers: [
+      { name: "Firecrawl", url: "https://firecrawl.dev", retail_pricing: "$15/mo Hobby (1k pages), $89/mo Standard (10k)" },
+      { name: "ScrapingBee", url: "https://www.scrapingbee.com", retail_pricing: "$49/mo (150k credits)" },
+      { name: "Apify", url: "https://apify.com", retail_pricing: "pay-as-you-go ~$0.25/1k pages" },
+    ],
+    detection: {
+      deps: ["firecrawl", "@mendable/firecrawl-js", "puppeteer", "playwright", "cheerio"],
+      envs: ["FIRECRAWL_API_KEY", "SCRAPINGBEE_API_KEY"],
+      content_patterns: ["firecrawl\\.dev", "scrapingbee\\.com"],
+    },
+    inputs: [
+      { name: "url", type: "string", required: true, description: "URL to scrape." },
+      { name: "format", type: "\"markdown\" | \"html\" | \"json\"", required: false, description: "Output format. Defaults to markdown." },
+      { name: "include_links", type: "boolean", required: false, description: "Emit a links[] array alongside content." },
+    ],
+    outputs: [
+      { name: "markdown", type: "string", description: "Reader-friendly markdown with chrome stripped." },
+      { name: "title", type: "string", description: "Page title (og:title, then <title>, then h1)." },
+      { name: "links", type: "string[]", description: "Outbound links, when include_links=true." },
+      { name: "fetched_at", type: "string (ISO 8601)", description: "Timestamp of the scrape." },
+    ],
+    replication_plan: {
+      runtime: "Cloudflare Workers + Browser Rendering API, or self-hosted Playwright pool on RunPod",
+      persistence: "Cloudflare KV cache, 24h TTL keyed by SHA-256(url)",
+      key_dependencies: ["playwright", "@cloudflare/puppeteer", "readability (Mozilla) for content extraction", "cheerio (fallback)"],
+      differentiators: [
+        "Network-wide 24h cache — popular URLs return free at full speed",
+        "Deterministic output — same URL + same fetched_at returns the same markdown",
+        "MCP-native return shape — no client SDK required, just JSON",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "No per-page Firecrawl markup — wholesale infrastructure cost ~$0.001/page vs ~$0.01 retail",
+      "Cache hits are pure margin and instant for agents",
+      "First-class MCP error envelope on render failures (Firecrawl returns raw 500s)",
+    ],
+  },
+  {
+    id: "web_crawl",
+    name: "Domain crawl (follow links to N pages)",
+    axis_brand_tool: "iliad_web_research_crawl",
+    pricing_tier: "iliad_web_research_crawl",
+    status: "live_proxy",
+    summary: "Crawl up to N pages from a single domain, deduplicating URLs and returning each page's markdown.",
+    providers: [
+      { name: "Firecrawl", url: "https://firecrawl.dev", retail_pricing: "100-page crawl ≈ $1 retail" },
+      { name: "Apify Web Scraper", url: "https://apify.com", retail_pricing: "$0.40/1k pages on shared proxy" },
+    ],
+    detection: {
+      deps: ["firecrawl", "@mendable/firecrawl-js", "playwright-crawler", "crawlee"],
+      envs: ["FIRECRAWL_API_KEY"],
+      content_patterns: ["firecrawl.*crawl", "crawlee"],
+    },
+    inputs: [
+      { name: "domain", type: "string", required: true, description: "Root domain to crawl. URLs outside the domain are not followed." },
+      { name: "max_pages", type: "number", required: false, description: "Cap on pages returned. Lite mode = 5, standard = up to 100." },
+      { name: "include_paths", type: "string[]", required: false, description: "Glob patterns restricting which paths to crawl." },
+    ],
+    outputs: [
+      { name: "pages", type: "Array<{url, title, markdown, fetched_at}>", description: "Crawled pages." },
+      { name: "skipped", type: "Array<{url, reason}>", description: "URLs that hit the path filter or fetch errors." },
+    ],
+    replication_plan: {
+      runtime: "Same Playwright pool as iliad_web_research, with a BFS queue keyed by hostname",
+      persistence: "KV cache + per-domain robots.txt cache, 1h TTL",
+      key_dependencies: ["playwright", "robots-parser", "p-queue for concurrency control"],
+      differentiators: [
+        "Respects robots.txt and rate-limits per-host",
+        "Resumable: pass a previous crawl_id to continue where it stopped",
+        "Returns sitemap-derived structure even on JavaScript-rendered sites",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Crawl + dedupe + cache run in one round-trip on AXIS infra; on Firecrawl each page is a separate billed call",
+      "Resume tokens are an AXIS abstraction — no equivalent on Firecrawl",
+    ],
+  },
+  {
+    id: "llm_inference",
+    name: "Chat completion / structured-output LLM call",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Run a prompt through an LLM and return text or JSON, with optional structured-output schema enforcement.",
+    providers: [
+      { name: "OpenAI", url: "https://openai.com", retail_pricing: "$2.50/1M input · $10/1M output (gpt-4o)" },
+      { name: "Anthropic", url: "https://anthropic.com", retail_pricing: "$3/1M input · $15/1M output (sonnet)" },
+      { name: "Replicate (open-weights)", url: "https://replicate.com", retail_pricing: "~$0.50/1M tokens (llama-3.1-70b)" },
+    ],
+    detection: {
+      deps: ["openai", "@anthropic-ai/sdk", "ai", "@ai-sdk/openai", "@ai-sdk/anthropic", "ollama"],
+      envs: ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "REPLICATE_API_TOKEN", "GROQ_API_KEY"],
+      content_patterns: ["openai\\.com", "anthropic\\.com", "chat\\.completions", "messages\\.create"],
+    },
+    inputs: [
+      { name: "messages", type: "Array<{role, content}>", required: true, description: "Standard chat-completion messages." },
+      { name: "model_tier", type: "\"fast\" | \"balanced\" | \"deep\"", required: false, description: "AXIS routes to the cheapest model that meets the tier." },
+      { name: "response_schema", type: "JSON Schema", required: false, description: "Force structured output." },
+    ],
+    outputs: [
+      { name: "content", type: "string | object", description: "Text or parsed structured output." },
+      { name: "model_used", type: "string", description: "Concrete backend the router picked." },
+      { name: "tokens", type: "{input, output}", description: "Token counts for billing." },
+    ],
+    replication_plan: {
+      runtime: "Edge router (Cloudflare Workers AI for fast tier; Bedrock / vLLM on RunPod for balanced; OpenAI/Anthropic passthrough for deep)",
+      persistence: "Prompt-cache via @axis/snapshots so identical (messages, schema) returns cached output",
+      key_dependencies: ["@cloudflare/ai", "vllm (RunPod)", "llama.cpp for local CPU fallback"],
+      differentiators: [
+        "Tier-based routing — agents say \"fast/balanced/deep\" not \"gpt-4o vs sonnet\"",
+        "Prompt-cache keyed by snapshot_id — agents that ask the same question twice in a session pay once",
+        "Deterministic mode (temperature=0 + seed) is a first-class flag, not a model-specific quirk",
+      ],
+      estimated_effort: "large",
+    },
+    axis_advantages: [
+      "Single billing surface across providers — agents don't manage 4 API keys",
+      "Automatic failover when a provider rate-limits",
+      "Compliance: structured output is validated against the schema before it leaves AXIS infra",
+    ],
+  },
+  {
+    id: "embeddings",
+    name: "Vector embeddings for semantic search and RAG",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Convert text to dense vectors for semantic search, clustering, and retrieval-augmented generation.",
+    providers: [
+      { name: "OpenAI", url: "https://openai.com", retail_pricing: "$0.02/1M tokens (text-embedding-3-small)" },
+      { name: "Cohere", url: "https://cohere.com", retail_pricing: "$0.10/1M tokens (embed-english-v3)" },
+      { name: "Voyage AI", url: "https://www.voyageai.com", retail_pricing: "$0.05/1M (voyage-3)" },
+    ],
+    detection: {
+      deps: ["openai", "cohere-ai", "voyageai", "@xenova/transformers", "fastembed", "@chroma/chroma"],
+      envs: ["OPENAI_API_KEY", "COHERE_API_KEY", "VOYAGE_API_KEY"],
+      content_patterns: ["embeddings\\.create", "/v1/embeddings", "voyageai", "cohere.*embed", "fastembed"],
+    },
+    inputs: [
+      { name: "input", type: "string | string[]", required: true, description: "Text or batch of texts to embed." },
+      { name: "dimensions", type: "number", required: false, description: "Vector size. Defaults to 1024." },
+    ],
+    outputs: [
+      { name: "vectors", type: "number[][]", description: "Dense vectors. Length matches input array length." },
+      { name: "model_used", type: "string", description: "Concrete embedding model used." },
+    ],
+    replication_plan: {
+      runtime: "fastembed (ONNX) on Cloudflare Workers for the small tier; vLLM serving BAAI/bge-large on RunPod for the high-recall tier",
+      persistence: "Embedding cache keyed by SHA-256(input + model). Hits are free.",
+      key_dependencies: ["fastembed", "onnxruntime-web", "bge-large-en-v1.5"],
+      differentiators: [
+        "Sub-50ms p95 on cached inputs",
+        "Single endpoint serves all dimensions via Matryoshka truncation",
+        "Free tier: 1M tokens/month — most projects never pay",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Wholesale infrastructure cost on open-weights is ~$0.002/1M tokens vs $0.02 retail (10× margin)",
+      "Caching makes most production RAG workloads effectively free",
+      "Same API surface as the LLM inference router — one auth token, one billing line",
+    ],
+  },
+  {
+    id: "image_generation",
+    name: "Text-to-image generation",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Generate an image from a text prompt with selectable quality and aspect ratio.",
+    providers: [
+      { name: "Replicate", url: "https://replicate.com", retail_pricing: "~$0.003/image (sdxl), ~$0.04/image (flux-pro)" },
+      { name: "OpenAI", url: "https://openai.com", retail_pricing: "$0.04 / image (dall-e-3 1024x1024)" },
+      { name: "fal.ai", url: "https://fal.ai", retail_pricing: "~$0.025/image (flux-1.1-pro)" },
+    ],
+    detection: {
+      deps: ["replicate", "openai", "@fal-ai/serverless-client"],
+      envs: ["REPLICATE_API_TOKEN", "OPENAI_API_KEY", "FAL_KEY"],
+      content_patterns: ["images\\.generate", "/v1/images", "replicate.*flux", "fal\\.ai"],
+    },
+    inputs: [
+      { name: "prompt", type: "string", required: true, description: "Image prompt." },
+      { name: "aspect", type: "\"1:1\" | \"16:9\" | \"9:16\" | \"4:3\"", required: false, description: "Aspect ratio. Defaults to 1:1." },
+      { name: "quality", type: "\"fast\" | \"hi\"", required: false, description: "Tier — fast = SDXL-class, hi = Flux-class." },
+    ],
+    outputs: [
+      { name: "image_url", type: "string", description: "Public URL of the generated image (24h-signed)." },
+      { name: "seed", type: "number", description: "Seed used; pass back to reproduce." },
+    ],
+    replication_plan: {
+      runtime: "SDXL-Lightning on RunPod for the fast tier; Flux.1-dev on dedicated A100 for the hi tier",
+      persistence: "Output stored in R2 with 24h-signed URLs",
+      key_dependencies: ["diffusers", "sdxl-lightning", "flux.1-dev (Apache 2.0)"],
+      differentiators: [
+        "Open-weights only — no DALL-E/MidJourney usage policy ambiguity for autonomous agents",
+        "Seed-based reproducibility is a first-class output, not buried in metadata",
+        "Provenance manifest attached — C2PA-style claim signed by AXIS",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Open-weights inference at GPU-hour cost ≈ $0.001/image vs $0.04 retail (40× margin)",
+      "AXIS owns the inference pipeline so agents can request deterministic regeneration",
+      "Marketplace-ready output: every image ships a C2PA-style provenance claim, useful for the Visa CE3.0 evidence bundle",
+    ],
+  },
+  {
+    id: "text_to_speech",
+    name: "Text-to-speech audio synthesis",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus.",
+    providers: [
+      { name: "ElevenLabs", url: "https://elevenlabs.io", retail_pricing: "$0.18/1k chars (Creator)" },
+      { name: "OpenAI TTS", url: "https://openai.com", retail_pricing: "$15/1M chars (tts-1)" },
+      { name: "Cartesia (Sonic)", url: "https://cartesia.ai", retail_pricing: "$0.065/1k chars" },
+    ],
+    detection: {
+      deps: ["elevenlabs", "@elevenlabs/elevenlabs-js", "openai", "@cartesia/cartesia-js"],
+      envs: ["ELEVENLABS_API_KEY", "OPENAI_API_KEY", "CARTESIA_API_KEY"],
+      content_patterns: ["elevenlabs\\.io", "audio\\.speech", "cartesia\\.ai"],
+    },
+    inputs: [
+      { name: "text", type: "string", required: true, description: "Text to speak." },
+      { name: "voice", type: "string", required: false, description: "Voice slug. AXIS publishes 8 stock voices." },
+      { name: "format", type: "\"mp3\" | \"opus\" | \"wav\"", required: false, description: "Audio codec. Defaults to mp3." },
+    ],
+    outputs: [
+      { name: "audio_url", type: "string", description: "24h-signed URL pointing at the rendered audio." },
+      { name: "duration_seconds", type: "number", description: "Rendered audio length." },
+    ],
+    replication_plan: {
+      runtime: "Coqui XTTS-v2 (open-weights) on RunPod; F5-TTS for the prosody-controlled tier",
+      persistence: "R2-backed output, cache keyed by SHA-256(text + voice + format)",
+      key_dependencies: ["xtts-v2", "f5-tts", "opus-encoder"],
+      differentiators: [
+        "Voice clone from 6-second sample is opt-in, gated by content-policy review",
+        "Cache hits for marketing copy / podcast intros are free after first render",
+        "Output is C2PA-signed; useful for any commerce-related voice prompts",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Open-weights inference ≈ $0.005/1k chars vs $0.18 (36× margin)",
+      "No ElevenLabs character cap — AXIS amortizes long-form synthesis cost across cache hits",
+    ],
+  },
+  {
+    id: "speech_to_text",
+    name: "Audio transcription with diarization",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Transcribe audio to text with speaker diarization and timestamp segmentation.",
+    providers: [
+      { name: "Deepgram", url: "https://deepgram.com", retail_pricing: "$0.0043/min (Nova-3)" },
+      { name: "OpenAI Whisper", url: "https://openai.com", retail_pricing: "$0.006/min (whisper-1)" },
+      { name: "AssemblyAI", url: "https://www.assemblyai.com", retail_pricing: "$0.0065/min (Universal-2)" },
+    ],
+    detection: {
+      deps: ["@deepgram/sdk", "openai", "assemblyai"],
+      envs: ["DEEPGRAM_API_KEY", "OPENAI_API_KEY", "ASSEMBLYAI_API_KEY"],
+      content_patterns: ["audio\\.transcriptions", "deepgram\\.com", "assemblyai\\.com"],
+    },
+    inputs: [
+      { name: "audio_url", type: "string", required: true, description: "URL to audio file." },
+      { name: "diarize", type: "boolean", required: false, description: "Emit speaker labels per segment. Defaults to false." },
+    ],
+    outputs: [
+      { name: "transcript", type: "string", description: "Full transcript text." },
+      { name: "segments", type: "Array<{start, end, speaker, text}>", description: "Timestamped segments." },
+    ],
+    replication_plan: {
+      runtime: "whisper.cpp on Cloudflare Workers (CPU) for short audio; faster-whisper on RunPod GPU for long audio",
+      persistence: "Transcript cache keyed by SHA-256(audio bytes)",
+      key_dependencies: ["whisper.cpp", "faster-whisper", "pyannote-audio (diarization)"],
+      differentiators: [
+        "Audio fingerprint cache — re-transcribing the same recording is free",
+        "Diarization is open-weights (pyannote) — no third-party dependency",
+        "Returns word-level timestamps even on the free tier",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Open-weights whisper-large-v3 inference ≈ $0.0005/min vs $0.0043 retail (8× margin)",
+      "GDPR-friendly — audio never leaves AXIS infra",
+    ],
+  },
+  {
+    id: "document_parsing",
+    name: "PDF / Office document → structured Markdown",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Convert PDFs, DOCX, PPTX, and HTML into clean Markdown with extracted tables and headings.",
+    providers: [
+      { name: "LlamaParse", url: "https://www.llamaindex.ai", retail_pricing: "$0.003/page (Free tier 1k pages/day)" },
+      { name: "Unstructured.io", url: "https://unstructured.io", retail_pricing: "$0.10/page (Serverless API)" },
+      { name: "Mathpix", url: "https://mathpix.com", retail_pricing: "$0.012/page (Convert API)" },
+    ],
+    detection: {
+      deps: ["llamaparse", "unstructured-client", "mathpix-markdown-it", "pdf-parse", "pdfjs-dist"],
+      envs: ["LLAMA_CLOUD_API_KEY", "UNSTRUCTURED_API_KEY", "MATHPIX_API_KEY"],
+      content_patterns: ["llamaparse", "unstructured\\.io", "pdf-parse"],
+    },
+    inputs: [
+      { name: "document_url", type: "string", required: true, description: "URL to PDF, DOCX, PPTX, or HTML." },
+      { name: "extract_tables", type: "boolean", required: false, description: "Emit a tables[] array alongside the markdown." },
+    ],
+    outputs: [
+      { name: "markdown", type: "string", description: "Structured markdown with H1-H6 hierarchy preserved." },
+      { name: "tables", type: "Array<{rows: string[][], page}>", description: "Detected tables." },
+      { name: "page_count", type: "number", description: "Total pages parsed." },
+    ],
+    replication_plan: {
+      runtime: "Marker (open-weights, MIT) running on RunPod for PDF; mammoth for DOCX; pptxgenjs for PPTX",
+      persistence: "Parse cache keyed by SHA-256(document bytes)",
+      key_dependencies: ["marker-pdf", "mammoth", "pptx2html", "tesseract.js for image-only PDFs"],
+      differentiators: [
+        "Marker handles math + scientific tables better than Unstructured's free tier",
+        "Cache-keyed by document hash so re-parsing the same RFP is free",
+        "AXIS provenance: every output ships a manifest of which extractor ran per page",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Marker inference ≈ $0.0001/page vs $0.10/page Unstructured retail",
+      "Open-weights stack avoids LlamaParse's commercial usage restrictions",
+    ],
+  },
+  {
+    id: "web_search",
+    name: "Web search results (organic + answer boxes)",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Run a search query and return organic results plus answer-box / featured-snippet data.",
+    providers: [
+      { name: "Tavily", url: "https://tavily.com", retail_pricing: "$0.005/query (Pro)" },
+      { name: "Brave Search", url: "https://search.brave.com/help/api", retail_pricing: "$3/1k queries (Pro plan)" },
+      { name: "SerpAPI", url: "https://serpapi.com", retail_pricing: "$50/mo (5k searches)" },
+    ],
+    detection: {
+      deps: ["@tavily/core", "tavily", "brave-search", "serpapi"],
+      envs: ["TAVILY_API_KEY", "BRAVE_API_KEY", "SERPAPI_API_KEY"],
+      content_patterns: ["tavily\\.com", "search\\.brave\\.com", "serpapi\\.com"],
+    },
+    inputs: [
+      { name: "query", type: "string", required: true, description: "Search query." },
+      { name: "max_results", type: "number", required: false, description: "Cap on organic results. Defaults to 10." },
+      { name: "site", type: "string", required: false, description: "Restrict to a domain (e.g. 'docs.python.org')." },
+    ],
+    outputs: [
+      { name: "results", type: "Array<{url, title, snippet}>", description: "Organic results in rank order." },
+      { name: "answer_box", type: "{text, source} | null", description: "Featured-snippet content when present." },
+    ],
+    replication_plan: {
+      runtime: "SearXNG metasearch on RunPod, fronted by AXIS-owned crawler index for popular queries",
+      persistence: "Query result cache, 24h TTL keyed by SHA-256(query + site)",
+      key_dependencies: ["searxng", "@elastic/elasticsearch (for own-index queries)"],
+      differentiators: [
+        "AXIS owns the index for the top 10k programming queries — sub-50ms response, no third-party calls",
+        "Result rankings are transparent (we publish the weighting) — Brave/Tavily are black boxes",
+        "Cache deduplicates near-identical queries within a session",
+      ],
+      estimated_effort: "large",
+    },
+    axis_advantages: [
+      "Cached-hit cost ≈ free; cold-query cost ≈ $0.0005 vs $0.005 Tavily (10× margin)",
+      "No rate-limit ceiling for paid customers",
+    ],
+  },
+  {
+    id: "code_sandbox",
+    name: "Sandboxed code execution",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Execute untrusted Python / Node / shell code in an isolated sandbox and return stdout, stderr, and exit code.",
+    providers: [
+      { name: "E2B", url: "https://e2b.dev", retail_pricing: "$0.07/hr (Compute Time)" },
+      { name: "Modal", url: "https://modal.com", retail_pricing: "$0.000056/CPU-sec ($0.20/hr)" },
+      { name: "Daytona", url: "https://daytona.io", retail_pricing: "$0.10/hr (Cloud sandbox)" },
+    ],
+    detection: {
+      deps: ["@e2b/sdk", "@e2b/code-interpreter", "modal", "daytona-sdk"],
+      envs: ["E2B_API_KEY", "MODAL_TOKEN_ID", "DAYTONA_API_KEY"],
+      content_patterns: ["e2b\\.dev", "modal\\.com", "code_interpreter", "daytona-sdk", "@e2b/"],
+    },
+    inputs: [
+      { name: "language", type: "\"python\" | \"node\" | \"bash\"", required: true, description: "Runtime language." },
+      { name: "code", type: "string", required: true, description: "Code to execute." },
+      { name: "timeout_seconds", type: "number", required: false, description: "Wall-clock limit. Defaults to 30, max 600." },
+    ],
+    outputs: [
+      { name: "stdout", type: "string", description: "Captured stdout." },
+      { name: "stderr", type: "string", description: "Captured stderr." },
+      { name: "exit_code", type: "number", description: "Process exit code." },
+      { name: "duration_ms", type: "number", description: "Actual wall-clock time used." },
+    ],
+    replication_plan: {
+      runtime: "Firecracker microVMs on AXIS-owned bare metal; alternatively gVisor on AWS Fargate Spot",
+      persistence: "Snapshot the sandbox filesystem after each run; pass snapshot_id back to chain calls within a session",
+      key_dependencies: ["firecracker", "containerd", "vsock-server for stdin/stdout streaming"],
+      differentiators: [
+        "Sub-200ms cold start (Firecracker boots fast)",
+        "Filesystem snapshot return value — agents can chain runs without re-uploading data",
+        "Network egress disabled by default; agents opt in per-run with explicit allowlist",
+      ],
+      estimated_effort: "large",
+    },
+    axis_advantages: [
+      "Bare-metal Firecracker cost ≈ $0.01/hr per concurrent sandbox vs $0.07 E2B (7× margin)",
+      "Filesystem snapshots are an AXIS abstraction — no equivalent on E2B/Modal",
+      "Egress firewall is a first-class flag, important for the compliance posture",
+    ],
+  },
+  {
+    id: "object_storage",
+    name: "Signed-URL object storage (uploads + downloads)",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_owned",
+    summary: "Object storage with pre-signed URLs for browser-direct uploads and downloads.",
+    providers: [
+      { name: "AWS S3", url: "https://aws.amazon.com/s3/", retail_pricing: "$0.023/GB-month + egress" },
+      { name: "Cloudflare R2", url: "https://www.cloudflare.com/products/r2/", retail_pricing: "$0.015/GB-month, zero egress" },
+      { name: "Backblaze B2", url: "https://www.backblaze.com/b2/", retail_pricing: "$0.006/GB-month, $0.01/GB egress" },
+    ],
+    detection: {
+      deps: ["@aws-sdk/client-s3", "@aws-sdk/s3-request-presigner", "@cloudflare/r2", "minio"],
+      envs: ["AWS_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID", "S3_BUCKET", "R2_BUCKET"],
+      content_patterns: ["s3\\.amazonaws\\.com", "r2\\.cloudflarestorage\\.com", "presignedUrl", "getSignedUrl"],
+    },
+    inputs: [
+      { name: "key", type: "string", required: true, description: "Object key." },
+      { name: "operation", type: "\"put\" | \"get\"", required: true, description: "Pre-sign upload or download." },
+      { name: "ttl_seconds", type: "number", required: false, description: "Signed-URL lifetime. Defaults to 3600 (1h)." },
+    ],
+    outputs: [
+      { name: "url", type: "string", description: "Pre-signed URL." },
+      { name: "expires_at", type: "string (ISO 8601)", description: "URL expiry timestamp." },
+    ],
+    replication_plan: {
+      runtime: "Cloudflare R2 fronted by an AXIS-owned signing service (zero-egress is the killer feature)",
+      persistence: "R2 buckets per account, lifecycle rules per tier",
+      key_dependencies: ["@aws-sdk/s3-request-presigner (R2 is S3-compatible)", "@cloudflare/r2"],
+      differentiators: [
+        "Zero egress fees — predictable cost regardless of download volume",
+        "Account-scoped buckets with audit logging baked in",
+        "MCP-native signed-URL minting — no need to install an SDK",
+      ],
+      estimated_effort: "small",
+    },
+    axis_advantages: [
+      "R2's zero-egress model means AXIS-owned object storage is materially cheaper than S3 once download volume crosses ~10 GB/account/month",
+      "Already trusted infra (Cloudflare) — no new ops surface to monitor",
+    ],
+  },
+  {
+    id: "transactional_email",
+    name: "Transactional email (auth, receipts, notifications)",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Send a single transactional email with tracking, bounce handling, and DKIM/SPF.",
+    providers: [
+      { name: "Resend", url: "https://resend.com", retail_pricing: "$20/mo (50k emails) — current AXIS provider" },
+      { name: "Postmark", url: "https://postmarkapp.com", retail_pricing: "$15/mo (10k)" },
+      { name: "AWS SES", url: "https://aws.amazon.com/ses/", retail_pricing: "$0.10/1k emails" },
+    ],
+    detection: {
+      deps: ["resend", "postmark", "@aws-sdk/client-sesv2", "nodemailer"],
+      envs: ["RESEND_API_KEY", "POSTMARK_API_TOKEN", "AWS_REGION"],
+      content_patterns: ["resend\\.com", "postmark", "sendmail"],
+    },
+    inputs: [
+      { name: "to", type: "string | string[]", required: true, description: "Recipient(s)." },
+      { name: "subject", type: "string", required: true, description: "Email subject." },
+      { name: "body", type: "{html?, text?}", required: true, description: "HTML or plaintext body." },
+    ],
+    outputs: [
+      { name: "message_id", type: "string", description: "Provider-assigned message ID." },
+      { name: "delivered_to", type: "string[]", description: "Recipients the provider accepted." },
+    ],
+    replication_plan: {
+      runtime: "haraka or postal MTA on a hardened VPS, with R2-backed bounce / complaint log; AWS SES as the relay-of-last-resort",
+      persistence: "Per-account suppression list (bounces, complaints) in the existing snapshot DB",
+      key_dependencies: ["haraka or postal", "@aws-sdk/client-sesv2 (relay)"],
+      differentiators: [
+        "Bounces and complaints surface directly in AXIS dashboards — no third-party log mining",
+        "Per-tenant DKIM signing key — emails ship under the customer's domain when configured",
+        "Suppression list shared across all AXIS tools (RAG outputs, marketing pack, etc.)",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "Owning the MTA + relay split avoids Resend's per-email markup at scale (~$0.001/email vs $0.0004 own cost)",
+      "Bounce + complaint data feeds the deliverability scoring used by the marketing program",
+    ],
+  },
+  {
+    id: "vector_database",
+    name: "Vector database (semantic-search store)",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_owned",
+    summary: "Store and query dense vectors for RAG, deduplication, and similarity search.",
+    providers: [
+      { name: "Pinecone", url: "https://pinecone.io", retail_pricing: "$0.096/hr p2.x1 + storage" },
+      { name: "Qdrant Cloud", url: "https://qdrant.tech", retail_pricing: "$25/mo (4GB starter)" },
+      { name: "Weaviate Cloud", url: "https://weaviate.io", retail_pricing: "$25/mo (Sandbox+)" },
+    ],
+    detection: {
+      deps: ["@pinecone-database/pinecone", "@qdrant/qdrant-js", "weaviate-ts-client", "@lancedb/lancedb"],
+      envs: ["PINECONE_API_KEY", "QDRANT_API_KEY", "WEAVIATE_API_KEY"],
+      content_patterns: ["pinecone\\.io", "qdrant\\.io", "weaviate", "vectorStore"],
+    },
+    inputs: [
+      { name: "operation", type: "\"upsert\" | \"query\"", required: true, description: "Insert vectors or find nearest neighbors." },
+      { name: "namespace", type: "string", required: false, description: "Logical isolation key. Defaults to the account ID." },
+      { name: "vectors", type: "Array<{id, vector, metadata}>", required: false, description: "Vectors to upsert." },
+      { name: "query", type: "{vector, top_k, filter?}", required: false, description: "Query parameters." },
+    ],
+    outputs: [
+      { name: "upserted", type: "number", description: "Vectors written (upsert mode)." },
+      { name: "matches", type: "Array<{id, score, metadata}>", description: "Nearest neighbors (query mode)." },
+    ],
+    replication_plan: {
+      runtime: "LanceDB (Apache 2.0, columnar) backed by R2; Qdrant on a small VPS as the high-recall tier",
+      persistence: "LanceDB stores natively on R2 — no separate persistence layer",
+      key_dependencies: ["@lancedb/lancedb", "qdrant (self-hosted)"],
+      differentiators: [
+        "Columnar storage on R2 means free egress when serving results to the inference router",
+        "Account-scoped namespaces enforced server-side (no \"oops queried wrong index\" bugs)",
+        "Hybrid search (vector + BM25) is a built-in operation, not a separate API call",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "LanceDB-on-R2 storage cost ≈ $0.015/GB-month vs Pinecone's $0.096/hr per p2.x1 (orders of magnitude cheaper at low scale)",
+      "No per-pod fees — query throughput scales with the inference router instead",
+      "Same auth + billing surface as the rest of the AXIS tool stack",
+    ],
+  },
+  {
+    id: "analytics",
+    name: "Product analytics (events + funnels + cohorts)",
+    axis_brand_tool: "",
+    pricing_tier: null,
+    status: "planned_proxy",
+    summary: "Record arbitrary user events and query funnels, cohorts, and retention curves.",
+    providers: [
+      { name: "PostHog Cloud", url: "https://posthog.com", retail_pricing: "$0/mo (1M events) → $0.00031/event (Scale)" },
+      { name: "Plausible", url: "https://plausible.io", retail_pricing: "$9/mo (10k pageviews)" },
+      { name: "Mixpanel", url: "https://mixpanel.com", retail_pricing: "$0.83/MTU (Growth)" },
+    ],
+    detection: {
+      deps: ["posthog-js", "posthog-node", "@plausible/analytics", "mixpanel", "@segment/analytics-node"],
+      envs: ["POSTHOG_API_KEY", "PLAUSIBLE_API_KEY", "MIXPANEL_TOKEN", "SEGMENT_WRITE_KEY"],
+      content_patterns: ["posthog", "plausible", "mixpanel\\.com", "segment\\.io"],
+    },
+    inputs: [
+      { name: "operation", type: "\"capture\" | \"query\"", required: true, description: "Record an event or run an analytics query." },
+      { name: "event", type: "{name, distinct_id, properties}", required: false, description: "Event payload (capture mode)." },
+      { name: "query", type: "{funnel?, cohort?, retention?}", required: false, description: "Analytics query (query mode)." },
+    ],
+    outputs: [
+      { name: "result", type: "object", description: "Capture confirmation or query results." },
+    ],
+    replication_plan: {
+      runtime: "PostHog OSS (Elastic 2.0) self-hosted on a small VPS for the long term — same UI, no metered billing",
+      persistence: "PostgreSQL + ClickHouse stack (PostHog defaults), R2 cold storage for events > 90 days",
+      key_dependencies: ["posthog-ee (self-hosted)", "clickhouse", "kafka for ingestion buffer"],
+      differentiators: [
+        "Identical PostHog query API — migrate by changing the host, no schema changes",
+        "Account-scoped projects with billing-line attribution baked in",
+        "Free tier covers what the proxy currently includes (1M events/month) — same UX as PostHog Cloud",
+      ],
+      estimated_effort: "medium",
+    },
+    axis_advantages: [
+      "PostHog OSS at our scale costs ≈ $50/mo VPS + storage vs $1k+/mo PostHog Cloud at the same event volume",
+      "Self-hosted means session-replay PII never leaves AXIS infra — material compliance win",
+    ],
+  },
+];
+
+function detectCapabilityUsage(cap: ResellCapability, files?: SourceFile[]): {
+  detected: boolean;
+  evidence: string[];
+} {
+  const evidence: string[] = [];
+  if (!files || files.length === 0) return { detected: false, evidence };
+
+  // ─── package.json check (root AND every workspace package.json) ──────
+  // Monorepo workspace deps live in apps/*/package.json and packages/*/
+  // package.json, not the root. Scanning all of them catches Firecrawl in
+  // apps/api/package.json, OpenAI in apps/cli/package.json, etc.
+  if (cap.detection.deps && cap.detection.deps.length > 0) {
+    const pkgFiles = files.filter(f =>
+      /(^|\/)package\.json$/i.test(f.path) &&
+      !/(^|\/)node_modules\//i.test(f.path),
+    );
+    const seen = new Set<string>();
+    for (const pkg of pkgFiles) {
+      let deps: Record<string, unknown> = {};
+      try {
+        const parsed = JSON.parse(pkg.content) as Record<string, unknown>;
+        deps = {
+          ...((parsed.dependencies as Record<string, unknown>) ?? {}),
+          ...((parsed.devDependencies as Record<string, unknown>) ?? {}),
+          ...((parsed.peerDependencies as Record<string, unknown>) ?? {}),
+        };
+      } catch {
+        continue;
+      }
+      for (const dep of cap.detection.deps) {
+        if (deps[dep] && !seen.has(dep)) {
+          evidence.push(`${pkg.path} depends on "${dep}"`);
+          seen.add(dep);
+        }
+      }
+    }
+  }
+
+  // ─── env-var declarations in env.ts / settings.py / .env* ────────────
+  if (cap.detection.envs && cap.detection.envs.length > 0) {
+    const envSources = files.filter(f =>
+      /(^|\/)\.env(\.[\w.-]+)?$/i.test(f.path) ||
+      /(^|\/)env\.(ts|js|mjs|cjs|tsx)$/i.test(f.path) ||
+      /(^|\/)settings\.py$/i.test(f.path) ||
+      /(^|\/)config\/.*\.(ts|js|py)$/i.test(f.path),
+    );
+    const seen = new Set<string>();
+    for (const src of envSources) {
+      for (const env of cap.detection.envs) {
+        if (seen.has(env)) continue;
+        // Match either `KEY=value` (env file) or "KEY"/process.env.KEY (source).
+        const re = new RegExp(`(^|[^A-Z_])${env}(\\s*=|\"|')`);
+        if (re.test(src.content)) {
+          evidence.push(`${src.path} references ${env}`);
+          seen.add(env);
+        }
+      }
+    }
+  }
+
+  // ─── source content patterns (full scan, capped at first 200 files) ──
+  // Was previously 30, but in a 500-file monorepo that misses API handlers
+  // sitting in apps/api/src/*. 200 covers all reasonable mid-size repos
+  // while staying deterministic.
+  if (cap.detection.content_patterns && cap.detection.content_patterns.length > 0) {
+    const sample = files.slice(0, 200);
+    for (const pattern of cap.detection.content_patterns) {
+      const re = new RegExp(pattern, "i");
+      const hit = sample.find(f => re.test(f.content));
+      if (hit) {
+        evidence.push(`source references /${pattern}/ (e.g. ${hit.path})`);
+        break;
+      }
+    }
+  }
+
+  return { detected: evidence.length > 0, evidence };
+}
+
+export function generateCapabilityMap(
+  ctx: ContextMap,
+  _profile: RepoProfile,
+  files?: SourceFile[],
+): GeneratedFile {
+  const detections = RESELL_CAPABILITIES.map(cap => ({
+    cap,
+    detection: detectCapabilityUsage(cap, files),
+  }));
+
+  // YAML-ish output. Hand-rolled so we don't pull in a YAML dep — small,
+  // deterministic, and matches the format other AXIS YAML artifacts use.
+  const lines: string[] = [];
+  lines.push("# capability-map.yaml");
+  lines.push("# AXIS resell-tool catalog + in-house replication plan.");
+  lines.push(`# Generated for ${ctx.project_identity.name} (snapshot ${ctx.snapshot_id}).`);
+  lines.push(`# Generated at: ${ctx.generated_at}`);
+  lines.push("");
+  lines.push("meta:");
+  lines.push(`  project: "${ctx.project_identity.name}"`);
+  lines.push(`  snapshot_id: "${ctx.snapshot_id}"`);
+  lines.push(`  generated_at: "${ctx.generated_at}"`);
+  lines.push(`  capability_count: ${RESELL_CAPABILITIES.length}`);
+  lines.push(`  capabilities_detected_in_repo: ${detections.filter(d => d.detection.detected).length}`);
+  lines.push("");
+
+  lines.push("status_legend:");
+  lines.push("  live_proxy:    \"Shipping today as an iliad_* MCP tool that proxies to a third party.\"");
+  lines.push("  planned_proxy: \"Capability identified; AXIS-branded proxy planned but not built.\"");
+  lines.push("  planned_owned: \"Capability identified; AXIS-owned implementation planned (skip the proxy step).\"");
+  lines.push("  owned:         \"AXIS-owned implementation shipping; no third-party dependency.\"");
+  lines.push("");
+
+  lines.push("capabilities:");
+  for (const { cap, detection } of detections) {
+    lines.push(`  - id: ${cap.id}`);
+    lines.push(`    name: "${escapeYamlString(cap.name)}"`);
+    lines.push(`    status: ${cap.status}`);
+    lines.push(`    axis_brand_tool: "${cap.axis_brand_tool}"`);
+    lines.push(`    pricing_tier: ${cap.pricing_tier ? `"${cap.pricing_tier}"` : "null"}`);
+    lines.push(`    summary: "${escapeYamlString(cap.summary)}"`);
+    lines.push(`    detected_in_repo: ${detection.detected}`);
+    if (detection.evidence.length > 0) {
+      lines.push("    detection_evidence:");
+      for (const e of detection.evidence) lines.push(`      - "${escapeYamlString(e)}"`);
+    }
+    lines.push("    third_party_providers:");
+    for (const p of cap.providers) {
+      lines.push(`      - name: "${p.name}"`);
+      lines.push(`        url: "${p.url}"`);
+      lines.push(`        retail_pricing: "${escapeYamlString(p.retail_pricing)}"`);
+    }
+    lines.push("    inputs:");
+    for (const i of cap.inputs) {
+      lines.push(`      - name: ${i.name}`);
+      lines.push(`        type: "${escapeYamlString(i.type)}"`);
+      lines.push(`        required: ${i.required}`);
+      lines.push(`        description: "${escapeYamlString(i.description)}"`);
+    }
+    lines.push("    outputs:");
+    for (const o of cap.outputs) {
+      lines.push(`      - name: ${o.name}`);
+      lines.push(`        type: "${escapeYamlString(o.type)}"`);
+      lines.push(`        description: "${escapeYamlString(o.description)}"`);
+    }
+    lines.push("    replication_plan:");
+    lines.push(`      runtime: "${escapeYamlString(cap.replication_plan.runtime)}"`);
+    lines.push(`      persistence: ${cap.replication_plan.persistence ? `"${escapeYamlString(cap.replication_plan.persistence)}"` : "null"}`);
+    lines.push(`      estimated_effort: ${cap.replication_plan.estimated_effort}`);
+    lines.push("      key_dependencies:");
+    for (const d of cap.replication_plan.key_dependencies) lines.push(`        - "${escapeYamlString(d)}"`);
+    lines.push("      differentiators:");
+    for (const d of cap.replication_plan.differentiators) lines.push(`        - "${escapeYamlString(d)}"`);
+    lines.push("    axis_advantages:");
+    for (const a of cap.axis_advantages) lines.push(`      - "${escapeYamlString(a)}"`);
+    lines.push("");
+  }
+
+  // Quick-reference summary at the bottom so agents can scan without parsing
+  // the whole YAML body.
+  lines.push("summary:");
+  lines.push("  by_status:");
+  const byStatus: Record<string, number> = {};
+  for (const c of RESELL_CAPABILITIES) byStatus[c.status] = (byStatus[c.status] ?? 0) + 1;
+  for (const status of Object.keys(byStatus).sort()) {
+    lines.push(`    ${status}: ${byStatus[status]}`);
+  }
+  lines.push("  recommended_next_owned:");
+  // Cheapest-to-build + highest-margin items first.
+  const recs = RESELL_CAPABILITIES
+    .filter(c => c.status === "planned_proxy" || c.status === "planned_owned")
+    .sort((a, b) => {
+      const order = { small: 0, medium: 1, large: 2 } as const;
+      return order[a.replication_plan.estimated_effort] - order[b.replication_plan.estimated_effort];
+    })
+    .slice(0, 5);
+  for (const r of recs) {
+    lines.push(`    - id: ${r.id}`);
+    lines.push(`      effort: ${r.replication_plan.estimated_effort}`);
+    lines.push(`      reason: "${escapeYamlString(r.axis_advantages[0] ?? "")}"`);
+  }
+
+  return {
+    path: "capability-map.yaml",
+    content: lines.join("\n") + "\n",
+    content_type: "application/yaml",
+    program: "artifacts",
+    description: `Resell-tool capability registry: ${RESELL_CAPABILITIES.length} capabilities catalogued with status, detected-in-repo flag, third-party providers, AXIS-branded tool slug, replication plan, and per-capability MCP-native advantages.`,
+  };
+}
+
+function escapeYamlString(s: string): string {
+  // Conservative escape: backslashes first (must come before adding more),
+  // then double-quotes; trim whitespace control chars to keep YAML valid.
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, "\\\"")
+    .replace(/[ -]/g, " ");
+}

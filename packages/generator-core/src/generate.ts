@@ -13,7 +13,7 @@ import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generat
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
-import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml } from "./generators-artifacts.js";
+import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml, generateCapabilityMap } from "./generators-artifacts.js";
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
@@ -109,6 +109,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "tasks.md": (ctx, profile, files) => generateTasksMd(ctx, profile, files),
   "context.md": (ctx, profile, files) => generateContextMd(ctx, profile, files),
   "index.html": (ctx, profile, files) => generateIndexHtml(ctx, profile, files),
+  "capability-map.yaml": (ctx, profile, files) => generateCapabilityMap(ctx, profile, files),
   "remotion-script.ts": (ctx, _p, files) => generateRemotionScript(ctx, files),
   "scene-plan.md": (ctx, _p, files) => generateScenePlan(ctx, files),
   "render-config.json": (ctx, profile, files) => generateRenderConfig(ctx, profile, files),
@@ -337,6 +338,7 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "tasks.md": "artifacts",
   "context.md": "artifacts",
   "index.html": "artifacts",
+  "capability-map.yaml": "artifacts",
   "remotion-script.ts": "remotion",
   "scene-plan.md": "remotion",
   "render-config.json": "remotion",

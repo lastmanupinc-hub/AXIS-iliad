@@ -1,26 +1,26 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T18:29:19.149Z",
+  "generated_at": "2026-05-22T20:30:17.601Z",
   "summary": {
     "total_files": 500,
-    "total_loc": 131464,
-    "estimated_total_tokens": 591588,
+    "total_loc": 132263,
+    "estimated_total_tokens": 595184,
     "primary_language": "TypeScript"
   },
   "language_breakdown": [
     {
       "language": "TypeScript",
       "files": 275,
-      "loc": 91154,
-      "estimated_tokens": 410193,
-      "percentage": 69
+      "loc": 91953,
+      "estimated_tokens": 413789,
+      "percentage": 70
     },
     {
       "language": "YAML",
       "files": 57,
       "loc": 9885,
       "estimated_tokens": 44483,
-      "percentage": 8
+      "percentage": 7
     },
     {
       "language": "JSON",
@@ -69,76 +69,76 @@
     {
       "operation": "full_project_context",
       "description": "Include entire project source as context",
-      "input_tokens": 591588,
+      "input_tokens": 595184,
       "output_tokens": 2000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 1.479,
+          "input_cost": 1.488,
           "output_cost": 0.02,
-          "total_cost": 1.499
+          "total_cost": 1.508
         },
         {
           "model": "GPT-4o-mini",
-          "input_cost": 0.0887,
+          "input_cost": 0.0893,
           "output_cost": 0.0012,
-          "total_cost": 0.0899
+          "total_cost": 0.0905
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 1.7748,
+          "input_cost": 1.7856,
           "output_cost": 0.03,
-          "total_cost": 1.8048
+          "total_cost": 1.8156
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.4733,
+          "input_cost": 0.4761,
           "output_cost": 0.008,
-          "total_cost": 0.4813
+          "total_cost": 0.4841
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.7395,
+          "input_cost": 0.744,
           "output_cost": 0.02,
-          "total_cost": 0.7595
+          "total_cost": 0.764
         }
       ]
     },
     {
       "operation": "selective_context",
       "description": "Include top 10 files + config as context",
-      "input_tokens": 147897,
+      "input_tokens": 148796,
       "output_tokens": 2000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 0.3697,
+          "input_cost": 0.372,
           "output_cost": 0.02,
-          "total_cost": 0.3897
+          "total_cost": 0.392
         },
         {
           "model": "GPT-4o-mini",
-          "input_cost": 0.0222,
+          "input_cost": 0.0223,
           "output_cost": 0.0012,
-          "total_cost": 0.0234
+          "total_cost": 0.0235
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 0.4437,
+          "input_cost": 0.4464,
           "output_cost": 0.03,
-          "total_cost": 0.4737
+          "total_cost": 0.4764
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.1183,
+          "input_cost": 0.119,
           "output_cost": 0.008,
-          "total_cost": 0.1263
+          "total_cost": 0.127
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.1849,
+          "input_cost": 0.186,
           "output_cost": 0.02,
-          "total_cost": 0.2049
+          "total_cost": 0.206
         }
       ]
     },
@@ -183,38 +183,38 @@
     {
       "operation": "code_review",
       "description": "Review a diff with project context",
-      "input_tokens": 236635,
+      "input_tokens": 238074,
       "output_tokens": 3000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 0.5916,
+          "input_cost": 0.5952,
           "output_cost": 0.03,
-          "total_cost": 0.6216
+          "total_cost": 0.6252
         },
         {
           "model": "GPT-4o-mini",
-          "input_cost": 0.0355,
+          "input_cost": 0.0357,
           "output_cost": 0.0018,
-          "total_cost": 0.0373
+          "total_cost": 0.0375
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 0.7099,
+          "input_cost": 0.7142,
           "output_cost": 0.045,
-          "total_cost": 0.7549
+          "total_cost": 0.7592
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.1893,
+          "input_cost": 0.1905,
           "output_cost": 0.012,
-          "total_cost": 0.2013
+          "total_cost": 0.2025
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.2958,
+          "input_cost": 0.2976,
           "output_cost": 0.03,
-          "total_cost": 0.3258
+          "total_cost": 0.3276
         }
       ]
     }
@@ -232,5 +232,5 @@
     "Costs are per-operation — multiply by expected daily/weekly frequency"
   ],
   "source_file_count": 500,
-  "source_total_lines": 154199
+  "source_total_lines": 155057
 }

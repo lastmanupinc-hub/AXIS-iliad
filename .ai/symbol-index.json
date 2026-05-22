@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-22T18:29:19.339Z",
-  "total_symbols": 1985,
+  "generated_at": "2026-05-22T20:30:18.008Z",
+  "total_symbols": 1991,
   "file_count": 245,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -5809,17 +5809,17 @@
       {
         "name": "validateGeneratedFile",
         "type": "function",
-        "line": 188
+        "line": 189
       },
       {
         "name": "generateFiles",
         "type": "function",
-        "line": 199
+        "line": 200
       },
       {
         "name": "listAvailableGenerators",
         "type": "function",
-        "line": 378
+        "line": 380
       }
     ],
     "packages/generator-core/src/generator-alt-profiles.test.ts": [
@@ -7247,6 +7247,36 @@
         "name": "escape",
         "type": "function",
         "line": 1300
+      },
+      {
+        "name": "ResellProvider",
+        "type": "interface",
+        "line": 1352
+      },
+      {
+        "name": "ResellCapability",
+        "type": "interface",
+        "line": 1361
+      },
+      {
+        "name": "detectCapabilityUsage",
+        "type": "function",
+        "line": 2000
+      },
+      {
+        "name": "generateCapabilityMap",
+        "type": "function",
+        "line": 2079
+      },
+      {
+        "name": "order",
+        "type": "const",
+        "line": 2171
+      },
+      {
+        "name": "escapeYamlString",
+        "type": "function",
+        "line": 2190
       }
     ],
     "packages/generator-core/src/generators-brand.ts": [

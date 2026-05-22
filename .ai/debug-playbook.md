@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 246 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
 
 ## Quick Reference
 
@@ -17,15 +17,15 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 131,464 LOC |
+| Files | 500 files, 132,263 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 275 | 91,154 | 75.6% |
-| YAML | 57 | 9,885 | 8.2% |
+| TypeScript | 275 | 91,953 | 75.8% |
+| YAML | 57 | 9,885 | 8.1% |
 | JSON | 63 | 8,478 | 7% |
 | Markdown | 79 | 8,125 | 6.7% |
 | JavaScript | 8 | 2,093 | 1.7% |
@@ -210,6 +210,8 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | DashboardData | interface | TypeScript | 6 | `packages/generator-core/src/generators-artifacts.ts` |
 | Entry | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-artifacts.ts` |
 | Model | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-artifacts.ts` |
+| ResellCapability | interface | TypeScript | 10 | `packages/generator-core/src/generators-artifacts.ts` |
+| ResellProvider | interface | TypeScript | 3 | `packages/generator-core/src/generators-artifacts.ts` |
 | Route | type_alias | TypeScript | 3 | `packages/generator-core/src/generators-artifacts.ts` |
 | BrandingConfig | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
 | MerkleBundle | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |

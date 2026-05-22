@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 246 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
 
 ## Detected Stack
 
@@ -98,7 +98,7 @@ I'm working with the following domain models in axis-iliad:
 - PullRequestPayload (interface, 5 fields) — defined in apps/api/src/github-webhook.ts
 - PushPayload (interface, 7 fields) — defined in apps/api/src/github-webhook.ts
 - SnapshotTarget (interface, 5 fields) — defined in apps/api/src/github-webhook.ts
-  ... and 238 more
+  ... and 240 more
 
 When generating code that uses these types, import from their source files and
 do not redefine them.

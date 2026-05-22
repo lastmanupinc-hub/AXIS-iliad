@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 246 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 248 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (131464 LOC)
+- **Files:** 500 (132263 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -571,7 +571,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Domain Models
 
-Detected 246 domain models:
+Detected 248 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -600,9 +600,9 @@ Detected 246 domain models:
 | `CreateSubscriptionInput` | interface | 3 | apps/api/src/paid-client.ts |
 | `PaidConfig` | interface | 6 | apps/api/src/paid-client.ts |
 | `PaymentIntent` | interface | 6 | apps/api/src/paid-client.ts |
-| *… 221 more* | | | |
+| *… 223 more* | | | |
 
-> **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
+> **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ResellCapability`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
 ## Tooling
 
@@ -974,7 +974,7 @@ packages/generator-core/src/generate-programs.test.ts (13.0 KB)
 packages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)
 packages/generator-core/src/generate-validation.test.ts (8.7 KB)
 packages/generator-core/src/generate.test.ts (68.0 KB)
-packages/generator-core/src/generate.ts (23.8 KB)
+packages/generator-core/src/generate.ts (24.0 KB)
 packages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)
 packages/generator-core/src/generator-branches.test.ts (217.6 KB)
 packages/generator-core/src/generator-sourcefile-branches.test.ts (21.3 KB)
@@ -1000,7 +1000,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (60.2 KB)
+packages/generator-core/src/generators-artifacts.ts (104.7 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -1243,7 +1243,7 @@ export { generateCampaignBrief, generateFunnelMap, generateSequencePack, generat
 export { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 export { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 export { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
-export { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml } from "./generators-artifacts.js";
+export { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml, generateCapabilityMap } from "./generators-artifacts.js";
 export { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 export { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 export { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";

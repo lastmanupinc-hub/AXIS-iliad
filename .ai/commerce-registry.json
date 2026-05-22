@@ -117,11 +117,11 @@
         "algorithmic",
         "agentic-purchasing"
       ],
-      "outputs": 123,
+      "outputs": 124,
       "tier": "pro",
       "price_cents": 5000,
       "price_interval": "per_call",
-      "description": "All 123 structured artifacts across 19 programs — full AI-native governance layer",
+      "description": "All 124 structured artifacts across 19 programs — full AI-native governance layer",
       "api_call": {
         "method": "tools/call",
         "tool": "analyze_repo",

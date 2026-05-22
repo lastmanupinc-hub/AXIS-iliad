@@ -1,6 +1,6 @@
 # Core Implementation Artifacts — axis-iliad
 
-Generated: 2026-05-22T18:29:19.203Z
+Generated: 2026-05-22T20:30:17.674Z
 
 ## Purpose
 

@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 131,464 |
-| Average LOC / file | 263 |
-| Estimated token count | ~591,588 |
+| Total LOC | 132,263 |
+| Average LOC / file | 265 |
+| Estimated token count | ~595,184 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -503,7 +503,7 @@ packages/generator-core/src/generate-programs.test.ts (13.0 KB)
 packages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)
 packages/generator-core/src/generate-validation.test.ts (8.7 KB)
 packages/generator-core/src/generate.test.ts (68.0 KB)
-packages/generator-core/src/generate.ts (23.8 KB)
+packages/generator-core/src/generate.ts (24.0 KB)
 packages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)
 packages/generator-core/src/generator-branches.test.ts (217.6 KB)
 packages/generator-core/src/generator-sourcefile-branches.test.ts (21.3 KB)
@@ -529,7 +529,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (60.2 KB)
+packages/generator-core/src/generators-artifacts.ts (104.7 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)

@@ -170,6 +170,8 @@
 - [ ] `DashboardData` (interface, 6 fields) — packages/generator-core/src/generators-artifacts.ts
 - [ ] `Entry` (type_alias, 2 fields) — packages/generator-core/src/generators-artifacts.ts
 - [ ] `Model` (type_alias, 4 fields) — packages/generator-core/src/generators-artifacts.ts
+- [ ] `ResellCapability` (interface, 10 fields) — packages/generator-core/src/generators-artifacts.ts
+- [ ] `ResellProvider` (interface, 3 fields) — packages/generator-core/src/generators-artifacts.ts
 - [ ] `Route` (type_alias, 3 fields) — packages/generator-core/src/generators-artifacts.ts
 - [ ] `BrandingConfig` (interface, 3 fields) — packages/generator-core/src/generators-closer.ts
 - [ ] `MerkleBundle` (interface, 3 fields) — packages/generator-core/src/generators-closer.ts
