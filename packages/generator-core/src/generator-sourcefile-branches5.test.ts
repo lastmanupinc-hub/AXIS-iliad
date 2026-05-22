@@ -87,13 +87,13 @@ const CONFIG_FILES: SourceFile[] = [
 describe("debug generator — domain models and remaining branches", () => {
   it("debug-playbook includes domain model inventory when models exist", () => {
     const s = snap({ files: BASIC_FILES });
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     inp.context_map.domain_models = [
       { name: "User", kind: "interface", language: "TypeScript", field_count: 5, source_file: "src/models/user.ts" },
       { name: "Order", kind: "class", language: "TypeScript", field_count: 8, source_file: "src/models/order.ts" },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Domain Model Inventory");
     expect(f!.content).toContain("User");
@@ -524,9 +524,9 @@ describe("theme generator — uncovered branches", () => {
   // design-tokens: no source files → null (line ~131 FALSE)
   it("design-tokens returns null source_theme_files when no files", () => {
     const s = snap({ files: BASIC_FILES });
-    const inp = input(s, [".ai/design-tokens.json"]);
+    const inp = input(s, ["design-tokens.json"]);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
     const parsed = JSON.parse(f!.content);
     expect(parsed.source_theme_files).toBeNull();
@@ -539,9 +539,9 @@ describe("theme generator — uncovered branches", () => {
       { path: "src/theme.css", content: ":root { --primary: blue; }\n", size: 30 },
       { path: "tailwind.config.js", content: "module.exports = { content: [] };\n", size: 35 },
     ];
-    const inp = input(s, [".ai/design-tokens.json"], themeFiles);
+    const inp = input(s, ["design-tokens.json"], themeFiles);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
     const parsed = JSON.parse(f!.content);
     expect(parsed.source_theme_files).toBeDefined();

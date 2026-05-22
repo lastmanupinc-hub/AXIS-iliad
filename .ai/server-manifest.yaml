@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
-# Generated: 2026-04-11T22:24:48.193Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+# Generated: 2026-05-22T16:58:33.763Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -48,7 +48,7 @@ server:
             enum: [search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic]
 
     - name: list_routes
-      description: List all 387 detected routes
+      description: List all 497 detected routes
       input_schema:
         type: object
         properties:
@@ -116,86 +116,86 @@ server:
             type: object
             description: Optional filter criteria
 
-    - name: query_histogramentry
-      description: Query HistogramEntry records (interface, 3 fields)
+    - name: query_pullrequestpayload
+      description: Query PullRequestPayload records (interface, 5 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for HistogramEntry
+            description: Primary key or identifier for PullRequestPayload
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_openapispec
-      description: Query OpenApiSpec records (interface, 6 fields)
+    - name: query_pushpayload
+      description: Query PushPayload records (interface, 7 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for OpenApiSpec
+            description: Primary key or identifier for PushPayload
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_windowentry
-      description: Query WindowEntry records (interface, 2 fields)
+    - name: query_snapshottarget
+      description: Query SnapshotTarget records (interface, 5 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for WindowEntry
+            description: Primary key or identifier for SnapshotTarget
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_apphandle
-      description: Query AppHandle records (interface, 3 fields)
+    - name: query_firecrawlcrawlrequest
+      description: Query FirecrawlCrawlRequest records (interface, 5 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for AppHandle
+            description: Primary key or identifier for FirecrawlCrawlRequest
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_route
-      description: Query Route records (interface, 4 fields)
+    - name: query_firecrawlcrawlresponse
+      description: Query FirecrawlCrawlResponse records (interface, 4 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for Route
+            description: Primary key or identifier for FirecrawlCrawlResponse
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_cliargs
-      description: Query CliArgs records (interface, 5 fields)
+    - name: query_firecrawlscraperequest
+      description: Query FirecrawlScrapeRequest records (interface, 6 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for CliArgs
+            description: Primary key or identifier for FirecrawlScrapeRequest
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_axisconfig
-      description: Query AxisConfig records (interface, 2 fields)
+    - name: query_firecrawlscraperesponse
+      description: Query FirecrawlScrapeResponse records (interface, 5 fields)
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for AxisConfig
+            description: Primary key or identifier for FirecrawlScrapeResponse
           filter:
             type: object
             description: Optional filter criteria
@@ -241,55 +241,55 @@ server:
       mime_type: application/json
       description: interface with 4 fields (apps/api/src/export.ts)
 
-    - uri: model://HistogramEntry
-      name: HistogramEntry
+    - uri: model://PullRequestPayload
+      name: PullRequestPayload
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/metrics.ts)
+      description: interface with 5 fields (apps/api/src/github-webhook.ts)
 
-    - uri: model://OpenApiSpec
-      name: OpenApiSpec
+    - uri: model://PushPayload
+      name: PushPayload
       mime_type: application/json
-      description: interface with 6 fields (apps/api/src/openapi.ts)
+      description: interface with 7 fields (apps/api/src/github-webhook.ts)
 
-    - uri: model://WindowEntry
-      name: WindowEntry
+    - uri: model://SnapshotTarget
+      name: SnapshotTarget
       mime_type: application/json
-      description: interface with 2 fields (apps/api/src/rate-limiter.ts)
+      description: interface with 5 fields (apps/api/src/github-webhook.ts)
 
-    - uri: model://AppHandle
-      name: AppHandle
+    - uri: model://FirecrawlCrawlRequest
+      name: FirecrawlCrawlRequest
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/router.ts)
+      description: interface with 5 fields (apps/api/src/handlers.ts)
 
-    - uri: model://Route
-      name: Route
+    - uri: model://FirecrawlCrawlResponse
+      name: FirecrawlCrawlResponse
       mime_type: application/json
-      description: interface with 4 fields (apps/api/src/router.ts)
+      description: interface with 4 fields (apps/api/src/handlers.ts)
 
-    - uri: model://CliArgs
-      name: CliArgs
+    - uri: model://FirecrawlScrapeRequest
+      name: FirecrawlScrapeRequest
       mime_type: application/json
-      description: interface with 5 fields (apps/cli/src/cli.ts)
+      description: interface with 6 fields (apps/api/src/handlers.ts)
 
-    - uri: model://AxisConfig
-      name: AxisConfig
+    - uri: model://FirecrawlScrapeResponse
+      name: FirecrawlScrapeResponse
       mime_type: application/json
-      description: interface with 2 fields (apps/cli/src/credential-store.ts)
+      description: interface with 5 fields (apps/api/src/handlers.ts)
 
-    - uri: model://RunResult
-      name: RunResult
+    - uri: model://IntentCapture
+      name: IntentCapture
       mime_type: application/json
-      description: interface with 4 fields (apps/cli/src/runner.ts)
+      description: interface with 5 fields (apps/api/src/mcp-server.ts)
 
-    - uri: model://ScanResult
-      name: ScanResult
+    - uri: model://JsonRpcRequest
+      name: JsonRpcRequest
       mime_type: application/json
-      description: interface with 3 fields (apps/cli/src/scanner.ts)
+      description: interface with 4 fields (apps/api/src/mcp-server.ts)
 
-    - uri: model://WriteResult
-      name: WriteResult
+    - uri: model://McpCallCounters
+      name: McpCallCounters
       mime_type: application/json
-      description: interface with 3 fields (apps/cli/src/writer.ts)
+      description: interface with 5 fields (apps/api/src/mcp-server.ts)
 
   prompts:
     - name: review_code
@@ -322,34 +322,34 @@ server:
       version: "workspace:*"
     - name: @axis/generator-core
       version: "workspace:*"
+    - name: @axis/mpp
+      version: "workspace:*"
     - name: @axis/repo-parser
       version: "workspace:*"
     - name: @axis/snapshots
       version: "workspace:*"
-    - name: jszip
-      version: "^3.10.1"
-    - name: react
-      version: "^19.1.0"
-    - name: react-dom
-      version: "^19.1.0"
-    - name: better-sqlite3
-      version: "^12.8.0"
+    - name: @jmondi/oauth2-server
+      version: "^4.2.2"
+    - name: jsonwebtoken
+      version: "^9.0.3"
+    - name: mppx
+      version: "^0.5.12"
 
   # Detected Server/Tool Files
   source_files:
+    - path: "apps/api/mcp-server.json"
+      exports: []
+    - path: "apps/api/src/mcp-server.test.ts"
+      exports: []
+    - path: "apps/api/src/mcp-server.ts"
+      exports: ["export const MCP_PROTOCOL_VERSION = ...", "export type ProbeClass = ...", "export function classifyProbe(userAgent: string): ProbeClass { ... }", "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }", "export function getIntentLog(): IntentCapture[] { ... }"]
+    - path: "apps/api/src/oauth-server.ts"
+      exports: ["export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }"]
     - path: "apps/api/src/server.ts"
       exports: ["export const app = ..."]
     - path: "mcp/begin.yaml"
       exports: []
+    - path: "mcp/build-artifacts.md"
+      exports: []
     - path: "mcp/continuation.yaml"
-      exports: []
-    - path: "mcp/MEMORY.yaml"
-      exports: []
-    - path: "mcp/schemas/output-contract.schema.json"
-      exports: []
-    - path: "mcp-config.json"
-      exports: []
-    - path: "packages/generator-core/src/generators-mcp.ts"
-      exports: ["export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile { ... }", "export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile { ... }", "export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]): GeneratedFile { ... }", "export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile { ..."]
-    - path: "payment-processing-output/mcp-config.json"
       exports: []

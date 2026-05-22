@@ -23,9 +23,9 @@ interface Edge {
 const CONFIG = {
   width: 1920,
   height: 1080,
-  nodeCount: 12,
+  nodeCount: 14,
   complexity: 0.01,
-  palette: [{"name":"TypeScript","hue":220,"weight":71.2},{"name":"YAML","hue":280,"weight":16},{"name":"JSON","hue":340,"weight":6.9},{"name":"Markdown","hue":160,"weight":4.2},{"name":"CSS","hue":40,"weight":0.9}],
+  palette: [{"name":"TypeScript","hue":220,"weight":75.2},{"name":"YAML","hue":280,"weight":8.3},{"name":"JSON","hue":340,"weight":7.3},{"name":"Markdown","hue":160,"weight":6.8},{"name":"JavaScript","hue":40,"weight":1.7}],
   dampening: 0.98,
   attractionStrength: 0.001,
   repulsionStrength: 500,
@@ -145,19 +145,19 @@ export { CONFIG, createNodes, createEdges, simulate };
 // g
 // i
 // t
+// h
+// u
+// b
+// /
+// a
+// c
+// t
 // i
-// g
-// n
 // o
-// r
-// e
-//  
-// (
-// 0
-// .
-// 1
-//  
-// K
-// B
-// )
-// 
+// n
+// s
+// /
+// c
+// o
+// m
+// p

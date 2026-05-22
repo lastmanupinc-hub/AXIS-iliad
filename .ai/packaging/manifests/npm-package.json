@@ -1,0 +1,17 @@
+{
+  "name": "axis-iliad",
+  "version": "1.0.0",
+  "description": "Production-grade axis-iliad packaging and release kit",
+  "license": "SEE LICENSE IN packaging/LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/owner/repo"
+  },
+  "homepage": "https://example.com",
+  "keywords": [
+    "marketplace",
+    "packaged",
+    "production",
+    "certified"
+  ]
+}

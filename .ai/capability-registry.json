@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.524Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
+  "generated_at": "2026-05-22T16:58:33.604Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -23,7 +23,7 @@
       "name": "Build Project",
       "category": "build",
       "provider": "vite",
-      "command": "pnpm run build",
+      "command": "npm run build",
       "available": true
     },
     {
@@ -31,7 +31,7 @@
       "name": "Start Dev Server",
       "category": "build",
       "provider": "vite",
-      "command": "pnpm run dev",
+      "command": "npm run dev",
       "available": true
     },
     {
@@ -63,7 +63,7 @@
       "name": "Lint Code",
       "category": "analysis",
       "provider": "eslint",
-      "command": "pnpm run lint",
+      "command": "npm run lint",
       "available": false
     },
     {
@@ -71,15 +71,15 @@
       "name": "Format Code",
       "category": "analysis",
       "provider": "prettier",
-      "command": "pnpm run format",
+      "command": "npm run format",
       "available": false
     },
     {
       "id": "install",
       "name": "Install Dependencies",
       "category": "setup",
-      "provider": "pnpm",
-      "command": "pnpm install",
+      "provider": "npm",
+      "command": "npm install",
       "available": true
     },
     {
@@ -100,9 +100,9 @@
     }
   ],
   "source_scripts": [
-    "\"dev\": \"tsx watch src/server.ts\"",
+    "\"dev\": \"npx tsx watch src/server.ts\"",
     "\"build\": \"tsc\"",
     "\"start\": \"node dist/server.js\"",
-    "\"test\": \"node --test dist/**/*.test.js\""
+    "\"test\": \"echo skipped â€” run vitest from root\""
   ]
 }

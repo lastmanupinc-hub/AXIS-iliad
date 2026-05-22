@@ -1,0 +1,65 @@
+schema_version: "1.0"
+generated_at: "2026-05-22T16:58:33.606Z"
+domain: fintech_mcp_buildout
+project:
+  name: "axis-iliad"
+  primary_language: "TypeScript"
+  trust_fabric_detected: true
+  detected_provider_hints: []
+bounded_contexts:
+  - onboarding
+  - ledger
+  - payments
+  - settlements
+  - disputes
+  - compliance_evidence
+tables:
+  ledger_accounts:
+    primary_key: ledger_account_id
+    columns: [tenant_id, account_code, currency, balance_minor, status, opened_at, closed_at]
+    invariants: [double_entry_only, currency_locked, non_destructive_closure]
+  ledger_entries:
+    primary_key: ledger_entry_id
+    columns: [ledger_account_id, transaction_id, direction, amount_minor, event_time, reversal_of]
+    invariants: [balanced_by_transaction, immutable_after_posting]
+  payment_intents:
+    primary_key: payment_intent_id
+    columns: [customer_id, amount_minor, currency, payment_rail, status, idempotency_key, created_at]
+    invariants: [idempotent_create, amount_currency_required]
+  settlement_events:
+    primary_key: settlement_event_id
+    columns: [payment_intent_id, clearing_system, settlement_status, value_date, settled_amount_minor, reference]
+    invariants: [status_transition_controlled, event_lineage_preserved]
+  mandates:
+    primary_key: mandate_id
+    columns: [customer_id, mandate_type, status, authorized_at, sca_reference, exemption_reason, revoked_at]
+    invariants: [sca_before_active, revocation_terminal]
+  dispute_cases:
+    primary_key: dispute_case_id
+    columns: [payment_intent_id, network, reason_code, stage, opened_at, response_deadline_at]
+    invariants: [deadline_present, stage_machine_enforced]
+  dispute_evidence:
+    primary_key: evidence_id
+    columns: [dispute_case_id, evidence_type, collected_at, hash, source_uri, admissibility_status]
+    invariants: [tamper_evident_hash, linked_to_case]
+  audit_log:
+    primary_key: audit_event_id
+    columns: [actor_type, actor_id, action, entity_type, entity_id, occurred_at, trace_id, payload_hash]
+    invariants: [append_only, payload_hash_required, trace_id_required]
+  compliance_evidence_packages:
+    primary_key: package_id
+    columns: [package_type, subject_entity, created_at, jurisdiction, status, manifest_hash]
+    invariants: [manifest_hash_required, exportable_bundle]
+resources:
+  institution_api:
+    required_endpoints: [create_payment_intent, capture_payment, list_settlements, create_mandate, open_dispute_case, export_evidence_package]
+  compliance_controls:
+    required: [kyc_kyb, sanctions_screening, webhook_signature_validation, audit_trail, dispute_evidence_retention]
+  evidence_packaging:
+    package_types: [regulator_exam, dispute_representment, onboarding_review, reconciliation_exception]
+    required_artifacts: [timeline, source_hashes, operator_actions, linked_records]
+implementation_targets:
+  route_count_hint: 497
+  domain_model_count_hint: 243
+  sql_schema_count_hint: 0
+  objective: Build institution-grade API-callable fintech software, not just provider wrappers

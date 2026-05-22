@@ -203,7 +203,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
 
   return {
-    path: ".ai/frontend-rules.md",
+    path: "frontend-rules.md",
     content: lines.join("\n"),
     content_type: "text/markdown",
     program: "frontend",

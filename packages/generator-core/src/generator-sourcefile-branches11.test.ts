@@ -119,7 +119,7 @@ describe("all generators: entry points with exports", () => {
     "funnel-map.md", "sequence-pack.md", "cro-playbook.md",
     "artifact-spec.md", "superpower-pack.md", "refactor-checklist.md",
     "research-threads.md", "linking-policy.md", "prompt-diff-report.md",
-    ".ai/debug-playbook.md", "tracing-rules.md", "root-cause-checklist.md",
+    "debug-playbook.md", "tracing-rules.md", "root-cause-checklist.md",
     ".cursorrules", "CLAUDE.md", "workflow-pack.md",
     "route-priority-map.md", "content-audit.md",
     "dependency-hotspots.md", "architecture-summary.md",
@@ -213,9 +213,9 @@ describe("generators with config source files", () => {
 
 describe("theme generators with CSS source files", () => {
   it("design-tokens detects theme files", () => {
-    const inp = input(snap(), [".ai/design-tokens.json"], [CSS_FILE]);
+    const inp = input(snap(), ["design-tokens.json"], [CSS_FILE]);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/design-tokens.json");
+    const f = getFile(res, "design-tokens.json");
     const data = JSON.parse(f!.content);
     expect(data.source_theme_files).toBeDefined();
   });

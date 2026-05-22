@@ -272,8 +272,8 @@ describe("generators-frontend.ts — source file branches", () => {
   const allFrontend: SourceFile[] = [...COMPONENT_FILES, ...STYLE_FILES, ...LAYOUT_FILES, ...ENTRY_POINTS];
 
   describe("generateFrontendRules with source files", () => {
-    const result = generateFiles(input(s, [".ai/frontend-rules.md"], allFrontend));
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const result = generateFiles(input(s, ["frontend-rules.md"], allFrontend));
+    const f = getFile(result, "frontend-rules.md");
 
     it("produces frontend rules", () => {
       expect(f).toBeDefined();

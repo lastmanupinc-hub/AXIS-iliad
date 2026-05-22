@@ -8,9 +8,9 @@
    Type:        monorepo
    Language:    TypeScript
    Stack:       React
-   Total LOC:   93,769
-   Routes:      387 (202 GET · 165 POST)
-   Models:      131 domain models
+   Total LOC:   119,644
+   Routes:      497 (272 GET · 204 POST)
+   Models:      243 domain models
    ─────────────────────────────────────────────────────── */
 
 :root {
@@ -303,40 +303,40 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* HistogramEntry — interface (3 fields) */
-.histogram-entry-card {
+/* PullRequestPayload — interface (5 fields) */
+.pull-request-payload-card {
   background: var(--surface-card);
   border: 1px solid var(--color-neutral-200);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
 }
-.histogram-entry-surface {
+.pull-request-payload-surface {
   background: var(--surface-elevated);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
 
-/* OpenApiSpec — interface (6 fields) */
-.open-api-spec-card {
+/* PushPayload — interface (7 fields) */
+.push-payload-card {
   background: var(--surface-card);
   border: 1px solid var(--color-neutral-200);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
 }
-.open-api-spec-surface {
+.push-payload-surface {
   background: var(--surface-elevated);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
 
-/* WindowEntry — interface (2 fields) */
-.window-entry-card {
+/* SnapshotTarget — interface (5 fields) */
+.snapshot-target-card {
   background: var(--surface-card);
   border: 1px solid var(--color-neutral-200);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
 }
-.window-entry-surface {
+.snapshot-target-surface {
   background: var(--surface-elevated);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -345,5 +345,4 @@
 /* ─── Detected Style Files ─────────────────────────────── */
 /*
    apps/web/src/index.css (770 lines)
-   payment-processing-output/theme.css (226 lines)
 */

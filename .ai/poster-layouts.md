@@ -1,6 +1,6 @@
 # Poster Layouts — axis-iliad
 
-Generated: 2026-04-11T22:24:47.567Z
+Generated: 2026-05-22T16:58:33.617Z
 
 ## Layout A: Tech Overview (A4 Portrait)
 
@@ -26,24 +26,24 @@ Generated: 2026-04-11T22:24:47.567Z
 
 **Hero Zone**
 - Title: axis-iliad
-- Subtitle: AI-native development operating system. Upload or point at any codebase — get 80 generated artifacts across 17 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
+- Subtitle: null
 - Type Badge: monorepo
 
 **Stats Grid**
 - Entry Points: 0
-- Hotspots: 6
-- Architecture Score: 0.64/100
-- Dependencies: 19
+- Hotspots: 7
+- Architecture Score: 0.65/100
+- Dependencies: 27
 
 **Language Breakdown**
-- TypeScript: 71.2% (66752 LOC)
-- YAML: 16% (14963 LOC)
-- JSON: 6.9% (6426 LOC)
-- Markdown: 4.2% (3944 LOC)
-- CSS: 0.9% (849 LOC)
-- JavaScript: 0.7% (673 LOC)
-- HTML: 0.1% (113 LOC)
-- Dockerfile: 0.1% (49 LOC)
+- TypeScript: 75.2% (89919 LOC)
+- YAML: 8.3% (9885 LOC)
+- JSON: 7.3% (8753 LOC)
+- Markdown: 6.8% (8140 LOC)
+- JavaScript: 1.7% (2093 LOC)
+- CSS: 0.6% (675 LOC)
+- HTML: 0.1% (158 LOC)
+- Dockerfile: 0% (21 LOC)
 
 **Architecture Diagram**
 - Patterns: monorepo, containerized
@@ -58,7 +58,7 @@ Generated: 2026-04-11T22:24:47.567Z
 - ValidationError (interface, 2 fields)
 - ValidationResult (interface, 3 fields)
 - ZipEntry (interface, 4 fields)
-- HistogramEntry (interface, 3 fields)
+- PullRequestPayload (interface, 5 fields)
 
 ## Layout B: Minimal Card (Landscape)
 
@@ -72,7 +72,7 @@ Generated: 2026-04-11T22:24:47.567Z
 
 - Name: axis-iliad
 - Type: monorepo
-- Score: 0.64/100
+- Score: 0.65/100
 - Badges: React
 
 ## Layout C: Data Dashboard

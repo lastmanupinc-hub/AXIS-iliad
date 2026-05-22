@@ -95,7 +95,7 @@ function proSnapshot(projectName?: string) {
       project_type: "saas_web_app",
       frameworks: ["react"],
       goals: ["test"],
-      requested_outputs: [".ai/frontend-rules.md"],
+      requested_outputs: ["frontend-rules.md"],
     },
     files: [{ path: "index.ts", content: "export const x = 1;", size: 20 }],
   };

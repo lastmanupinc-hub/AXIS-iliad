@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0",
+  "certlib_profile": "certlib-offline-v1",
+  "generated_at": "2026-05-22T16:58:34.613Z",
+  "snapshot_id": "47d06969-be96-43d1-8395-cdc41dda4e88",
+  "project_id": "970eeab5-663e-4d60-8755-6dcb8bbc21fa",
+  "product_name": "axis-iliad",
+  "package_root": "./",
+  "merkle_root": "3f33528dcd505e45f7d09d5260d0ca968e9afebe8926f0a40a1664031d143d82",
+  "signature": {
+    "algorithm": "sha256-pseudo-signature",
+    "signer": "axis-closer",
+    "value": "2ea2669a2e4a9b2650393014d4438afec09d98be693c046c88234c85fb420949"
+  },
+  "leaf_count": 16,
+  "leaves": [
+    {
+      "path": "packaging/README.md",
+      "digest": "3d490579f1294bb8bd7b94345862dff4a00222b418f30edc85f621d36d322526"
+    },
+    {
+      "path": "packaging/LICENSE",
+      "digest": "bf75019b7d6e53be90534db1c7a6104521033391dc81c07c88c3b6f389406f59"
+    },
+    {
+      "path": "Dockerfile",
+      "digest": "46e6bd5fa81bc1e496861305d13a0f60cc065b470a8c41a932494419cdebf746"
+    },
+    {
+      "path": "docker-compose.yml",
+      "digest": "bc48006a507c64821fe3cc9176612062407c93df3bce6cdc415b258e53e31c9b"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "digest": "0a7f28b56405f21bf4fe9c0ce7b8000c0c2e2d968469f785d179529ea389b113"
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "digest": "cb15317c26113c62f57fc9c1c13178ba17b98eb918a7f4fd0f5cc4140cd4c0b7"
+    },
+    {
+      "path": "packaging/manifests/npm-package.json",
+      "digest": "8082e642d7d65f6583be0f2b8afa00b772803753696d5f91da07455889adce8b"
+    },
+    {
+      "path": "packaging/manifests/unreal.uplugin",
+      "digest": "9d36dbc0fe47858ced593714dbda87927af9fd01a0bf6e327ac33df8de5d90b4"
+    },
+    {
+      "path": "packaging/manifests/vscode-extension.json",
+      "digest": "baa688af9e7fef0ea0369336534c69018ccf41d2e6d69c4ab08f1b8b7ba4b639"
+    },
+    {
+      "path": "packaging/manifests/dockerhub-repository.md",
+      "digest": "e69eee984acc45cd7e9760d071f960a7b95370911e98d3cddf83a496ae9b763f"
+    },
+    {
+      "path": "packaging/manifests/github-marketplace-listing.md",
+      "digest": "babefe7b2ee9a720ed9e56cc764cbc747562c209bbc469aa5ab7dddfb8544735"
+    },
+    {
+      "path": "packaging/trust-fabric/attestation.json",
+      "digest": "06da1ce984537949073e1f26cf4ad7bf3d17d1a55e7522b114ec2616db2f1b01"
+    },
+    {
+      "path": "packaging/trust-fabric/merkle-proof.json",
+      "digest": "189537b6945414c6055c28dc4885ba54ac9f22f4dd7007c6fb16d77c3770b932"
+    },
+    {
+      "path": "packaging-report.md",
+      "digest": "447407604d2e94d36d76721ab46d7b98decffe4f2472abe2f5581fb83b7e7a97"
+    },
+    {
+      "path": "DISTRIBUTABLE.md",
+      "digest": "1af60027b247a5f173a0bd1e3a1c6e50c35265f1d805e4b284860f586506497e"
+    },
+    {
+      "path": "Makefile",
+      "digest": "804e67087d7cbf5cdb7938756be05836b6e436a9de83226700d1e76d085c14b2"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.562Z",
+  "generated_at": "2026-05-22T16:58:33.615Z",
   "design_system": {
     "colors": {
       "primary": "#6366f1",
@@ -119,10 +119,10 @@
   ],
   "data_bindings": {
     "title": "axis-iliad",
-    "subtitle": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
+    "subtitle": null,
     "type": "monorepo",
     "language": "TypeScript",
-    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
+    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.",
     "frameworks": [
       {
         "name": "React",
@@ -136,46 +136,46 @@
     "language_stats": [
       {
         "name": "TypeScript",
-        "percent": 71.2,
-        "loc": 66752
+        "percent": 75.2,
+        "loc": 89919
       },
       {
         "name": "YAML",
-        "percent": 16,
-        "loc": 14963
+        "percent": 8.3,
+        "loc": 9885
       },
       {
         "name": "JSON",
-        "percent": 6.9,
-        "loc": 6426
+        "percent": 7.3,
+        "loc": 8753
       },
       {
         "name": "Markdown",
-        "percent": 4.2,
-        "loc": 3944
-      },
-      {
-        "name": "CSS",
-        "percent": 0.9,
-        "loc": 849
+        "percent": 6.8,
+        "loc": 8140
       },
       {
         "name": "JavaScript",
-        "percent": 0.7,
-        "loc": 673
+        "percent": 1.7,
+        "loc": 2093
+      },
+      {
+        "name": "CSS",
+        "percent": 0.6,
+        "loc": 675
       },
       {
         "name": "HTML",
         "percent": 0.1,
-        "loc": 113
+        "loc": 158
       },
       {
         "name": "Dockerfile",
-        "percent": 0.1,
-        "loc": 49
+        "percent": 0,
+        "loc": 21
       }
     ],
-    "architecture_score": 0.64,
+    "architecture_score": 0.65,
     "patterns": [
       "monorepo",
       "containerized"
@@ -190,11 +190,11 @@
       }
     ],
     "entry_point_count": 0,
-    "hotspot_count": 6,
-    "domain_model_count": 131,
-    "route_count": 387,
-    "total_files": 432,
-    "total_loc": 95217
+    "hotspot_count": 7,
+    "domain_model_count": 243,
+    "route_count": 497,
+    "total_files": 500,
+    "total_loc": 130519
   },
   "source_asset_files": null
 }

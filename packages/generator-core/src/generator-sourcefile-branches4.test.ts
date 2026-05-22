@@ -151,7 +151,7 @@ describe("debug generator — minimal context false branches", () => {
   // No description, no go_module, no languages, no frameworks, no key_abstractions, no hotspots, no domain_models
   it("debug-playbook skips optional sections when context is empty", () => {
     const s = snapMinimal();
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     // Ensure empty detection
     inp.context_map.detection.frameworks = [];
     inp.context_map.detection.languages = [];
@@ -160,7 +160,7 @@ describe("debug generator — minimal context false branches", () => {
     inp.context_map.dependency_graph.hotspots = [];
     inp.context_map.domain_models = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     // Should NOT contain sections that require data
     expect(f!.content).not.toContain("## Language Distribution");
@@ -176,12 +176,12 @@ describe("debug generator — minimal context false branches", () => {
   // Go project path (go_module set, no Node.js frameworks)
   it("debug-playbook uses go build/test commands when go_module is set", () => {
     const s = snapMinimal();
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     inp.context_map.project_identity.go_module = "github.com/org/service";
     inp.context_map.project_identity.primary_language = "Go";
     inp.context_map.detection.frameworks = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("go build ./...");
     expect(f!.content).toContain("go test ./...");
@@ -191,12 +191,12 @@ describe("debug generator — minimal context false branches", () => {
   // Go stdlib HTTP (go_module + no Go frameworks)
   it("debug-playbook includes Go stdlib HTTP section for Go without frameworks", () => {
     const s = snapMinimal();
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     inp.context_map.project_identity.go_module = "github.com/org/api";
     inp.context_map.project_identity.primary_language = "Go";
     inp.context_map.detection.frameworks = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Go stdlib HTTP");
     expect(f!.content).toContain("Handler panics");
@@ -245,11 +245,11 @@ describe("optimization generator — uncovered branches", () => {
   // optimization-rules: large project warning (>50000 LOC)
   it("optimization-rules shows large project warning for >50000 LOC", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.structure.total_loc = 75000;
     inp.context_map.structure.total_files = 500;
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("exceeds most context windows");
   });
@@ -257,11 +257,11 @@ describe("optimization generator — uncovered branches", () => {
   // optimization-rules: medium project note (10000-50000 LOC)
   it("optimization-rules shows medium project note for 10000-50000 LOC", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.structure.total_loc = 25000;
     inp.context_map.structure.total_files = 200;
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("fits in large context windows");
   });
@@ -269,11 +269,11 @@ describe("optimization generator — uncovered branches", () => {
   // optimization-rules: small project (< 10000 LOC)
   it("optimization-rules shows small project note for <10000 LOC", () => {
     const s = snapMinimal();
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.structure.total_loc = 500;
     inp.context_map.structure.total_files = 10;
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("comfortably fits in modern context windows");
   });
@@ -281,14 +281,14 @@ describe("optimization generator — uncovered branches", () => {
   // optimization-rules: no hotspots, no entry points, no conventions, no patterns, no warnings
   it("optimization-rules skips empty sections", () => {
     const s = snapMinimal();
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.dependency_graph.hotspots = [];
     inp.context_map.entry_points = [];
     inp.context_map.ai_context.conventions = [];
     inp.context_map.architecture_signals.patterns_detected = [];
     inp.context_map.ai_context.warnings = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).not.toContain("### Dependency Hotspots");
     expect(f!.content).not.toContain("### Entry Points");
@@ -297,12 +297,12 @@ describe("optimization generator — uncovered branches", () => {
   // optimization-rules: source file analysis with configs + hotspot files
   it("optimization-rules includes source file analysis with configs", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = input(s, [".ai/optimization-rules.md"], [...CONFIG_FILES, ...ENTRY_POINTS]);
+    const inp = input(s, ["optimization-rules.md"], [...CONFIG_FILES, ...ENTRY_POINTS]);
     inp.context_map.dependency_graph.hotspots = [
       { path: "src/index.ts", inbound_count: 10, outbound_count: 3, risk_score: 8.5 },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Configuration Files");
     expect(f!.content).toContain("File Tree");

@@ -1,0 +1,12 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0.0",
+  "FriendlyName": "axis-iliad",
+  "Description": "Production-grade axis-iliad packaging and release kit",
+  "Category": "Tools",
+  "CreatedBy": "axis-iliad",
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "Installed": false
+}

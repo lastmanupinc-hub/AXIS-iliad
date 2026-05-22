@@ -355,7 +355,7 @@ describe("CLI integration", () => {
     expect(existsSync(join(outputDir, "AGENTS.md"))).toBe(true);
     expect(existsSync(join(outputDir, "CLAUDE.md"))).toBe(true);
     expect(existsSync(join(outputDir, ".cursorrules"))).toBe(true);
-    expect(existsSync(join(outputDir, ".ai", "context-map.json"))).toBe(true);
+    expect(existsSync(join(outputDir, "context-map.json"))).toBe(true);
 
     // Verify programs are represented
     const programs = new Set(result.generator_result.files.map((f) => f.program));

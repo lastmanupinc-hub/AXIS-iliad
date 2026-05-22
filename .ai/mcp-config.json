@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.503Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
+  "generated_at": "2026-05-22T16:58:33.598Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -41,7 +41,7 @@
     },
     {
       "name": "run_build",
-      "description": "Execute pnpm build",
+      "description": "Execute npm build",
       "category": "build",
       "enabled": true
     },
@@ -120,63 +120,63 @@
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/HistogramEntry",
-      "name": "HistogramEntry",
-      "description": "interface with 3 fields (apps/api/src/metrics.ts)",
+      "uri": "model://axis-iliad/PullRequestPayload",
+      "name": "PullRequestPayload",
+      "description": "interface with 5 fields (apps/api/src/github-webhook.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/OpenApiSpec",
-      "name": "OpenApiSpec",
-      "description": "interface with 6 fields (apps/api/src/openapi.ts)",
+      "uri": "model://axis-iliad/PushPayload",
+      "name": "PushPayload",
+      "description": "interface with 7 fields (apps/api/src/github-webhook.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/WindowEntry",
-      "name": "WindowEntry",
-      "description": "interface with 2 fields (apps/api/src/rate-limiter.ts)",
+      "uri": "model://axis-iliad/SnapshotTarget",
+      "name": "SnapshotTarget",
+      "description": "interface with 5 fields (apps/api/src/github-webhook.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/AppHandle",
-      "name": "AppHandle",
-      "description": "interface with 3 fields (apps/api/src/router.ts)",
+      "uri": "model://axis-iliad/FirecrawlCrawlRequest",
+      "name": "FirecrawlCrawlRequest",
+      "description": "interface with 5 fields (apps/api/src/handlers.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/Route",
-      "name": "Route",
-      "description": "interface with 4 fields (apps/api/src/router.ts)",
+      "uri": "model://axis-iliad/FirecrawlCrawlResponse",
+      "name": "FirecrawlCrawlResponse",
+      "description": "interface with 4 fields (apps/api/src/handlers.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/CliArgs",
-      "name": "CliArgs",
-      "description": "interface with 5 fields (apps/cli/src/cli.ts)",
+      "uri": "model://axis-iliad/FirecrawlScrapeRequest",
+      "name": "FirecrawlScrapeRequest",
+      "description": "interface with 6 fields (apps/api/src/handlers.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/AxisConfig",
-      "name": "AxisConfig",
-      "description": "interface with 2 fields (apps/cli/src/credential-store.ts)",
+      "uri": "model://axis-iliad/FirecrawlScrapeResponse",
+      "name": "FirecrawlScrapeResponse",
+      "description": "interface with 5 fields (apps/api/src/handlers.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/RunResult",
-      "name": "RunResult",
-      "description": "interface with 4 fields (apps/cli/src/runner.ts)",
+      "uri": "model://axis-iliad/IntentCapture",
+      "name": "IntentCapture",
+      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/ScanResult",
-      "name": "ScanResult",
-      "description": "interface with 3 fields (apps/cli/src/scanner.ts)",
+      "uri": "model://axis-iliad/JsonRpcRequest",
+      "name": "JsonRpcRequest",
+      "description": "interface with 4 fields (apps/api/src/mcp-server.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/WriteResult",
-      "name": "WriteResult",
-      "description": "interface with 3 fields (apps/cli/src/writer.ts)",
+      "uri": "model://axis-iliad/McpCallCounters",
+      "name": "McpCallCounters",
+      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
       "mimeType": "application/json"
     }
   ],
@@ -247,6 +247,90 @@
       "resource_uri": "model://axis-iliad/ZipEntry"
     },
     {
+      "name": "PullRequestPayload",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/github-webhook.ts",
+      "resource_uri": "model://axis-iliad/PullRequestPayload"
+    },
+    {
+      "name": "PushPayload",
+      "kind": "interface",
+      "field_count": 7,
+      "source_file": "apps/api/src/github-webhook.ts",
+      "resource_uri": "model://axis-iliad/PushPayload"
+    },
+    {
+      "name": "SnapshotTarget",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/github-webhook.ts",
+      "resource_uri": "model://axis-iliad/SnapshotTarget"
+    },
+    {
+      "name": "FirecrawlCrawlRequest",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/handlers.ts",
+      "resource_uri": "model://axis-iliad/FirecrawlCrawlRequest"
+    },
+    {
+      "name": "FirecrawlCrawlResponse",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/handlers.ts",
+      "resource_uri": "model://axis-iliad/FirecrawlCrawlResponse"
+    },
+    {
+      "name": "FirecrawlScrapeRequest",
+      "kind": "interface",
+      "field_count": 6,
+      "source_file": "apps/api/src/handlers.ts",
+      "resource_uri": "model://axis-iliad/FirecrawlScrapeRequest"
+    },
+    {
+      "name": "FirecrawlScrapeResponse",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/handlers.ts",
+      "resource_uri": "model://axis-iliad/FirecrawlScrapeResponse"
+    },
+    {
+      "name": "IntentCapture",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-iliad/IntentCapture"
+    },
+    {
+      "name": "JsonRpcRequest",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-iliad/JsonRpcRequest"
+    },
+    {
+      "name": "McpCallCounters",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-iliad/McpCallCounters"
+    },
+    {
+      "name": "RpcError",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-iliad/RpcError"
+    },
+    {
+      "name": "RpcSuccess",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/mcp-server.ts",
+      "resource_uri": "model://axis-iliad/RpcSuccess"
+    },
+    {
       "name": "HistogramEntry",
       "kind": "interface",
       "field_count": 3,
@@ -254,112 +338,83 @@
       "resource_uri": "model://axis-iliad/HistogramEntry"
     },
     {
-      "name": "OpenApiSpec",
-      "kind": "interface",
-      "field_count": 6,
-      "source_file": "apps/api/src/openapi.ts",
-      "resource_uri": "model://axis-iliad/OpenApiSpec"
-    },
-    {
-      "name": "WindowEntry",
-      "kind": "interface",
+      "name": "CacheKey",
+      "kind": "type_alias",
       "field_count": 2,
-      "source_file": "apps/api/src/rate-limiter.ts",
-      "resource_uri": "model://axis-iliad/WindowEntry"
+      "source_file": "apps/api/src/mpp.ts",
+      "resource_uri": "model://axis-iliad/CacheKey"
     },
     {
-      "name": "AppHandle",
+      "name": "OAuthClientRow",
       "kind": "interface",
       "field_count": 3,
-      "source_file": "apps/api/src/router.ts",
-      "resource_uri": "model://axis-iliad/AppHandle"
-    },
-    {
-      "name": "Route",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/api/src/router.ts",
-      "resource_uri": "model://axis-iliad/Route"
-    },
-    {
-      "name": "CliArgs",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/cli/src/cli.ts",
-      "resource_uri": "model://axis-iliad/CliArgs"
-    },
-    {
-      "name": "AxisConfig",
-      "kind": "interface",
-      "field_count": 2,
-      "source_file": "apps/cli/src/credential-store.ts",
-      "resource_uri": "model://axis-iliad/AxisConfig"
-    },
-    {
-      "name": "RunResult",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/cli/src/runner.ts",
-      "resource_uri": "model://axis-iliad/RunResult"
-    },
-    {
-      "name": "ScanResult",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/cli/src/scanner.ts",
-      "resource_uri": "model://axis-iliad/ScanResult"
-    },
-    {
-      "name": "WriteResult",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/cli/src/writer.ts",
-      "resource_uri": "model://axis-iliad/WriteResult"
-    },
-    {
-      "name": "Account",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/web/src/api.ts",
-      "resource_uri": "model://axis-iliad/Account"
-    },
-    {
-      "name": "ApiKeyInfo",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/web/src/api.ts",
-      "resource_uri": "model://axis-iliad/ApiKeyInfo"
-    },
-    {
-      "name": "ContextMap",
-      "kind": "interface",
-      "field_count": 8,
-      "source_file": "apps/web/src/api.ts",
-      "resource_uri": "model://axis-iliad/ContextMap"
-    },
-    {
-      "name": "GeneratedFile",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/web/src/api.ts",
-      "resource_uri": "model://axis-iliad/GeneratedFile"
-    },
-    {
-      "name": "GeneratedFilesResponse",
-      "kind": "interface",
-      "field_count": 6,
-      "source_file": "apps/web/src/api.ts",
-      "resource_uri": "model://axis-iliad/GeneratedFilesResponse"
+      "source_file": "apps/api/src/oauth-server-simple.ts",
+      "resource_uri": "model://axis-iliad/OAuthClientRow"
     }
   ],
   "sql_schema": null,
   "detected_mcp_files": [
     {
+      "path": "apps/api/mcp-server.json",
+      "exports": [],
+      "size": 10663
+    },
+    {
+      "path": "apps/api/src/mcp-server.test.ts",
+      "exports": [],
+      "size": 84156
+    },
+    {
+      "path": "apps/api/src/mcp-server.ts",
+      "exports": [
+        "export const MCP_PROTOCOL_VERSION = ...",
+        "export type ProbeClass = ...",
+        "export function classifyProbe(userAgent: string): ProbeClass { ... }",
+        "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }",
+        "export function getIntentLog(): IntentCapture[] { ... }",
+        "export function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string",
+        "export function getMcpCallCounters(): McpCallCounters { ... }",
+        "export const MCP_TOOLS = ...",
+        "export async function runAnalyzeFiles(",
+        "export async function runAnalyzeRepo(",
+        "export function runSearchTools(args: Record<string, unknown>): string { ... }",
+        "export function runDiscoverAgenticCommerceTools(): string { ... }",
+        "export async function runImproveMyAgent(",
+        "export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>): string { ... }",
+        "export function runGetReferralCode(req: IncomingMessage): string { ... }",
+        "export function runCheckReferralCredits(req: IncomingMessage): string { ... }",
+        "export function runListPrograms(): string { ... }",
+        "export function runGetSnapshot(",
+        "export function runGetArtifact(",
+        "export function runCloser(",
+        "export async function runPreparePurchasing(",
+        "export async function dispatch(",
+        "export async function handleMcpPost(",
+        "export async function handleMcpGet(",
+        "export async function handleMcpDocs(",
+        "export function getMcpServerMeta(): Record<string, unknown> { ... }",
+        "export async function handleMcpServerJson("
+      ],
+      "size": 123479
+    },
+    {
+      "path": "apps/api/src/oauth-server.ts",
+      "exports": [
+        "export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
+        "export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
+        "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
+        "export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
+        "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }",
+        "export function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ..."
+      ],
+      "size": 8292
+    },
+    {
       "path": "apps/api/src/server.ts",
       "exports": [
         "export const app = ..."
       ],
-      "size": 9090
+      "size": 18014
     }
   ]
 }

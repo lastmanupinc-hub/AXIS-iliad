@@ -141,9 +141,9 @@ describe("no matching source files — empty arrays", () => {
 
   it("seo-rules with no page files → pageFiles.length===0 FALSE", () => {
     // seo L155: if (pageFiles.length > 0) — FALSE path
-    const inp = input(snap(), [".ai/seo-rules.md"], [INERT]);
+    const inp = input(snap(), ["seo-rules.md"], [INERT]);
     const res = generateFiles(inp);
-    expect(getFile(res, ".ai/seo-rules.md")).toBeDefined();
+    expect(getFile(res, "seo-rules.md")).toBeDefined();
   });
 
   it("route-priority-map with no route files → routeFiles.length===0 FALSE", () => {
@@ -341,10 +341,10 @@ describe("generators with hotspots in context (function coverage)", () => {
       content: 'export class Engine { run() {} }\nexport const VERSION = "1.0";\n// l3\n// l4\n// l5\n',
       size: 80,
     };
-    const inp = input(snap(), [".ai/optimization-rules.md"], [src]);
+    const inp = input(snap(), ["optimization-rules.md"], [src]);
     addHotspots(inp);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/optimization-rules.md");
+    const f = getFile(res, "optimization-rules.md");
     expect(f!.content).toContain("engine.ts");
   });
 

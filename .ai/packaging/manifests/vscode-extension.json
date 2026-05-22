@@ -1,0 +1,22 @@
+{
+  "name": "axis-iliad",
+  "displayName": "axis-iliad",
+  "description": "Production-grade axis-iliad packaging and release kit",
+  "version": "1.0.0",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "axis-iliad.open",
+        "title": "axis-iliad: Open"
+      }
+    ]
+  }
+}

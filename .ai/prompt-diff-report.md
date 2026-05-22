@@ -8,36 +8,36 @@
 |-----------|--------|-------|-------|
 | Context Precision | 30/100 | 60/100 | +30 |
 | Convention Compliance | 40/100 | 90/100 | +50 |
-| Dependency Awareness | 50/100 | 80/100 | +30 |
+| Dependency Awareness | 30/100 | 60/100 | +30 |
 | Architecture Alignment | 40/100 | 85/100 | +45 |
 | Route Awareness | 35/100 | 85/100 | +50 |
-| **Overall** | **39/100** | **80/100** | **+41** |
+| **Overall** | **35/100** | **76/100** | **+41** |
 
 ## Recommendations
 
 ### Context Precision
 
-Use dependency hotspot analysis to select the 6 highest-signal files instead of including entire directories.
+Use dependency hotspot analysis to select the 7 highest-signal files instead of including entire directories.
 
 ### Convention Compliance
 
-Embed 2 detected conventions as system-level constraints in every code generation prompt.
+Embed 4 detected conventions as system-level constraints in every code generation prompt.
 
 ### Dependency Awareness
 
-Include package.json to ensure generated code uses existing dependencies.
+Reference package.json in prompts to constrain imports to the 27 actual dependencies. Prevents hallucinated package references.
 
 ### Architecture Alignment
 
-Reference 2 detected patterns (separation score: 0.64/100) in architectural prompts to maintain layer boundaries.
+Reference 2 detected patterns (separation score: 0.65/100) in architectural prompts to maintain layer boundaries.
 
 ### Route Awareness
 
-Include route map (387 routes) in prompts when working on API or page code to prevent duplicate endpoints.
+Include route map (497 routes) in prompts when working on API or page code to prevent duplicate endpoints.
 
 ## Token Budget Guidance
 
-Estimated full-project tokens: ~428,477
+Estimated full-project tokens: ~587,336
 
 **Selective context required.** Use this priority order:
 1. Active file being modified
@@ -50,9 +50,9 @@ Estimated full-project tokens: ~428,477
 
 | File | Lines | Exports |
 |------|-------|---------|
-| `apps/api/src/server.ts` | 234 | export const app = ... |
-| `apps/web/src/App.tsx` | 286 | export function App() { ... } |
+| `apps/api/src/server.ts` | 458 | export const app = ... |
+| `apps/web/src/App.tsx` | 490 | export function App() { ... } |
 | `apps/web/src/main.tsx` | 11 | default |
 | `packages/context-engine/src/index.ts` | 3 | export type { ... }, export { ... } |
-| `packages/generator-core/src/index.ts` | 20 | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... } |
-| `packages/repo-parser/src/index.ts` | 10 | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... }, export type { ... } |
+| `packages/generator-core/src/index.ts` | 40 | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... } |
+| `packages/mpp/src/index.ts` | 325 | export type ChargeOptions = ..., export type MppResult = ..., export interface AgentBudget { ... }, export interface PricingTier { ... }, export interface Build402Options { ... }, export const PRICING_TIERS: Record<string, PricingTier> = ..., export const LEGACY_TOOL_ALIASES: Record<string, string> = ..., export function getPricingTier(tool: string): PricingTier { ... }, export function negotiatePrice(, export function build402NegotiationBody(, export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined { ... }, export function resolveAgentMode(req: IncomingMessage): "standard" | "lite" { ... } |

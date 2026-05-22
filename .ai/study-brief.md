@@ -8,7 +8,7 @@ Before diving into this codebase, you should be comfortable with:
 
 - **TypeScript** — the primary language
 - **React** — used framework
-- **Build tools**: vite
+- **Build tools**: vite, make
 
 ## Recommended Reading Order
 
@@ -17,14 +17,14 @@ Before diving into this codebase, you should be comfortable with:
 1. Read the project README and any CONTRIBUTING.md
 2. Understand the top-level directory structure:
 
-   - `packages` — monorepo_packages (126 files)
-   - `apps` — monorepo_apps (114 files)
-   - `payment-processing-output` — project_directory (72 files)
-   - `search` — project_directory (6 files)
+   - `apps` — monorepo_apps (152 files)
+   - `packages` — monorepo_packages (143 files)
+   - `payment-processing-output` — project_directory (18 files)
+   - `examples` — project_directory (17 files)
+   - `mcp` — project_directory (16 files)
+   - `packaging` — project_directory (7 files)
+   - `.github` — project_directory (5 files)
    - `algorithmic` — project_directory (4 files)
-   - `artifacts` — project_directory (4 files)
-   - `brand` — project_directory (4 files)
-   - `canvas` — project_directory (4 files)
 
 ### Phase 2: Entry Points
 
@@ -41,12 +41,12 @@ These are the core data structures that define what the system works with:
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
 | `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
-| `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
-| `OpenApiSpec` | interface | 6 | `apps/api/src/openapi.ts` |
-| `WindowEntry` | interface | 2 | `apps/api/src/rate-limiter.ts` |
-| `AppHandle` | interface | 3 | `apps/api/src/router.ts` |
-| `Route` | interface | 4 | `apps/api/src/router.ts` |
-| *(+121 more)* | | | |
+| `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| `PushPayload` | interface | 7 | `apps/api/src/github-webhook.ts` |
+| `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
+| `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
+| *(+233 more)* | | | |
 
 ### Phase 4: Data Flow
 
@@ -87,6 +87,7 @@ Answer these to confirm understanding:
 ### `apps/api/src/server.ts`
 
 ```typescript
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
 import {
   handleCreateSnapshot,
@@ -106,8 +107,7 @@ import {
   handleMarketingGenerate,
   handleNotebookGenerate,
   handleObsidianAnalyze,
-  handleMcpProvision,
-... (214 more lines)
+... (438 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -123,17 +123,17 @@ import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
 import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
-
-// ─── Error Boundary ─────────────────────────────────────────────
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-... (266 more lines)
+... (470 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -154,38 +154,35 @@ createRoot(document.getElementById("root")!).render(
 
 ## Configuration Overview
 
+### `.prettierrc.json`
+
+```json
+{
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 100
+}
+
+```
+
 ### `apps/api/package.json`
 
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "npx tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --test dist/**/*.test.js"
+    "test": "echo skipped â€” run vitest from root"
   },
   "dependencies": {
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-... (10 more lines)
-```
-
-### `apps/api/tsconfig.json`
-
-```json
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
-  },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
-}
-
+    "@axis/mpp": "workspace:*",
+... (15 more lines)
 ```

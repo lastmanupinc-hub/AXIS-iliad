@@ -1,7 +1,7 @@
 # Connector Map
 # Project: axis-iliad
-# Generated: 2026-04-11T22:24:47.520Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+# Generated: 2026-05-22T16:58:33.602Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 connectors:
   - id: vscode
@@ -23,15 +23,15 @@ connectors:
       - file_editing
       - terminal_execution
       - ai_chat
-  - id: npm_registry
-    name: npm Registry
-    type: package_registry
-    protocol: https
-    status: available
+  - id: ci_github_actions
+    name: github_actions
+    type: ci_cd
+    protocol: webhook
+    status: detected
     capabilities:
-      - package_publish
-      - version_check
-      - audit
+      - build_trigger
+      - test_execution
+      - deployment
   - id: sqlite
     name: SQLite
     type: database
@@ -84,66 +84,66 @@ resources:
     kind: interface
     fields: 4
     source: apps/api/src/export.ts
-  - id: histogramentry
-    name: HistogramEntry
-    type: domain_model
-    kind: interface
-    fields: 3
-    source: apps/api/src/metrics.ts
-  - id: openapispec
-    name: OpenApiSpec
-    type: domain_model
-    kind: interface
-    fields: 6
-    source: apps/api/src/openapi.ts
-  - id: windowentry
-    name: WindowEntry
-    type: domain_model
-    kind: interface
-    fields: 2
-    source: apps/api/src/rate-limiter.ts
-  - id: apphandle
-    name: AppHandle
-    type: domain_model
-    kind: interface
-    fields: 3
-    source: apps/api/src/router.ts
-  - id: route
-    name: Route
-    type: domain_model
-    kind: interface
-    fields: 4
-    source: apps/api/src/router.ts
-  - id: cliargs
-    name: CliArgs
+  - id: pullrequestpayload
+    name: PullRequestPayload
     type: domain_model
     kind: interface
     fields: 5
-    source: apps/cli/src/cli.ts
-  - id: axisconfig
-    name: AxisConfig
+    source: apps/api/src/github-webhook.ts
+  - id: pushpayload
+    name: PushPayload
     type: domain_model
     kind: interface
-    fields: 2
-    source: apps/cli/src/credential-store.ts
-  - id: runresult
-    name: RunResult
+    fields: 7
+    source: apps/api/src/github-webhook.ts
+  - id: snapshottarget
+    name: SnapshotTarget
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/github-webhook.ts
+  - id: firecrawlcrawlrequest
+    name: FirecrawlCrawlRequest
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/handlers.ts
+  - id: firecrawlcrawlresponse
+    name: FirecrawlCrawlResponse
     type: domain_model
     kind: interface
     fields: 4
-    source: apps/cli/src/runner.ts
-  - id: scanresult
-    name: ScanResult
+    source: apps/api/src/handlers.ts
+  - id: firecrawlscraperequest
+    name: FirecrawlScrapeRequest
     type: domain_model
     kind: interface
-    fields: 3
-    source: apps/cli/src/scanner.ts
-  - id: writeresult
-    name: WriteResult
+    fields: 6
+    source: apps/api/src/handlers.ts
+  - id: firecrawlscraperesponse
+    name: FirecrawlScrapeResponse
     type: domain_model
     kind: interface
-    fields: 3
-    source: apps/cli/src/writer.ts
+    fields: 5
+    source: apps/api/src/handlers.ts
+  - id: intentcapture
+    name: IntentCapture
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/mcp-server.ts
+  - id: jsonrpcrequest
+    name: JsonRpcRequest
+    type: domain_model
+    kind: interface
+    fields: 4
+    source: apps/api/src/mcp-server.ts
+  - id: mcpcallcounters
+    name: McpCallCounters
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/mcp-server.ts
 
 tools:
   - id: v1_health
@@ -176,6 +176,61 @@ tools:
     method: GET
     path: /v1/admin/activity
     source: apps/api/src/admin.test.ts
+  - id: llms_txt
+    name: "GET /llms.txt"
+    method: GET
+    path: /llms.txt
+    source: apps/api/src/agent-discovery.test.ts
+  - id: well_known_skills_index_json
+    name: "GET /.well-known/skills/index.json"
+    method: GET
+    path: /.well-known/skills/index.json
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_docs_md
+    name: "GET /v1/docs.md"
+    method: GET
+    path: /v1/docs.md
+    source: apps/api/src/agent-discovery.test.ts
+  - id: well_known_axis_json
+    name: "GET /.well-known/axis.json"
+    method: GET
+    path: /.well-known/axis.json
+    source: apps/api/src/agent-discovery.test.ts
+  - id: for_agents
+    name: "GET /for-agents"
+    method: GET
+    path: /for-agents
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_install
+    name: "GET /v1/install"
+    method: GET
+    path: /v1/install
+    source: apps/api/src/agent-discovery.test.ts
+  - id: v1_install__platform
+    name: "GET /v1/install/:platform"
+    method: GET
+    path: /v1/install/:platform
+    source: apps/api/src/agent-discovery.test.ts
+  - id: probe_intent
+    name: "POST /probe-intent"
+    method: POST
+    path: /probe-intent
+    source: apps/api/src/agent-discovery.test.ts
+  - id: mcp
+    name: "POST /mcp"
+    method: POST
+    path: /mcp
+    source: apps/api/src/analyze-repo-success.test.ts
+  - id: v1_analyze
+    name: "POST /v1/analyze"
+    method: POST
+    path: /v1/analyze
+    source: apps/api/src/analyze.test.ts
+  - id: well_known_axis_json
+    name: "GET /.well-known/axis.json"
+    method: GET
+    path: /.well-known/axis.json
+    source: apps/api/src/analyze.test.ts
   - id: v1_snapshots
     name: "POST /v1/snapshots"
     method: POST
@@ -191,61 +246,6 @@ tools:
     method: DELETE
     path: /v1/snapshots/:snapshot_id
     source: apps/api/src/api-branches.test.ts
-  - id: v1_projects__project_id_context
-    name: "GET /v1/projects/:project_id/context"
-    method: GET
-    path: /v1/projects/:project_id/context
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_projects__project_id_generated_files
-    name: "GET /v1/projects/:project_id/generated-files"
-    method: GET
-    path: /v1/projects/:project_id/generated-files
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_projects__project_id_generated_files__file_path
-    name: "GET /v1/projects/:project_id/generated-files/:file_path"
-    method: GET
-    path: /v1/projects/:project_id/generated-files/:file_path
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_projects__project_id
-    name: "DELETE /v1/projects/:project_id"
-    method: DELETE
-    path: /v1/projects/:project_id
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_health
-    name: "GET /v1/health"
-    method: GET
-    path: /v1/health
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_db_stats
-    name: "GET /v1/db/stats"
-    method: GET
-    path: /v1/db/stats
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_db_maintenance
-    name: "POST /v1/db/maintenance"
-    method: POST
-    path: /v1/db/maintenance
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_search_index
-    name: "POST /v1/search/index"
-    method: POST
-    path: /v1/search/index
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_search_query
-    name: "POST /v1/search/query"
-    method: POST
-    path: /v1/search/query
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_search__snapshot_id_stats
-    name: "GET /v1/search/:snapshot_id/stats"
-    method: GET
-    path: /v1/search/:snapshot_id/stats
-    source: apps/api/src/api-branches.test.ts
-  - id: v1_debug_analyze
-    name: "POST /v1/debug/analyze"
-    method: POST
-    path: /v1/debug/analyze
-    source: apps/api/src/api-branches.test.ts
 
 integration_flows:
   - name: development_loop
@@ -257,10 +257,18 @@ integration_flows:
         action: run_tests
       - connector: git
         action: commit
+      - connector: ci_github_actions
+        action: build_and_test
 
 # Detected CI/Deployment Files
 detected_configs:
+  - path: ".github/workflows/ci.yml"
+    size: 4859
+  - path: ".github/workflows/compliance-check.yml"
+    size: 733
+  - path: ".github/workflows/release.yml"
+    size: 570
   - path: "docker-compose.yml"
-    size: 2017
+    size: 548
   - path: "Dockerfile"
-    size: 4112
+    size: 887

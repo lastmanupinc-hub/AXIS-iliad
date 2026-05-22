@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -59,17 +59,17 @@ These models were detected in the codebase. Each should have factory helpers and
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
 | `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
-| `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
-| `OpenApiSpec` | interface | 6 | `apps/api/src/openapi.ts` |
-| `WindowEntry` | interface | 2 | `apps/api/src/rate-limiter.ts` |
-| `AppHandle` | interface | 3 | `apps/api/src/router.ts` |
-| `Route` | interface | 4 | `apps/api/src/router.ts` |
-| `CliArgs` | interface | 5 | `apps/cli/src/cli.ts` |
-| `AxisConfig` | interface | 2 | `apps/cli/src/credential-store.ts` |
-| `RunResult` | interface | 4 | `apps/cli/src/runner.ts` |
-| `ScanResult` | interface | 3 | `apps/cli/src/scanner.ts` |
-| `WriteResult` | interface | 3 | `apps/cli/src/writer.ts` |
-| *... and 116 more* | | | |
+| `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| `PushPayload` | interface | 7 | `apps/api/src/github-webhook.ts` |
+| `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
+| `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
+| `FirecrawlScrapeRequest` | interface | 6 | `apps/api/src/handlers.ts` |
+| `FirecrawlScrapeResponse` | interface | 5 | `apps/api/src/handlers.ts` |
+| `IntentCapture` | interface | 5 | `apps/api/src/mcp-server.ts` |
+| `JsonRpcRequest` | interface | 4 | `apps/api/src/mcp-server.ts` |
+| `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
+| *... and 228 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -103,9 +103,9 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 
 - **`ProgramDoc`** (13 fields) — test with partial input, null fields, and boundary values
 - **`ParseResult`** (13 fields) — test with partial input, null fields, and boundary values
+- **`SubscriptionInfo`** (12 fields) — test with partial input, null fields, and boundary values
 - **`RepoProfile`** (12 fields) — test with partial input, null fields, and boundary values
 - **`StripeSubscription`** (12 fields) — test with partial input, null fields, and boundary values
-- **`SubscriptionInfo`** (11 fields) — test with partial input, null fields, and boundary values
 
 ## Test Categories
 
@@ -157,63 +157,69 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 
 | File | Lines |
 |------|-------|
-| `apps/api/src/admin.test.ts` | 232 |
+| `apps/api/src/admin.test.ts` | 265 |
+| `apps/api/src/agent-discovery.test.ts` | 569 |
+| `apps/api/src/analyze-repo-success.test.ts` | 137 |
+| `apps/api/src/analyze.test.ts` | 487 |
 | `apps/api/src/api-branches.test.ts` | 606 |
-| `apps/api/src/api-layer5.test.ts` | 282 |
-| `apps/api/src/api.test.ts` | 432 |
+| `apps/api/src/api-layer5.test.ts` | 284 |
+| `apps/api/src/api.test.ts` | 464 |
 | `apps/api/src/b-grade-upgrade.test.ts` | 228 |
-| `apps/api/src/billing-flow.test.ts` | 548 |
-| `apps/api/src/checkout-email.test.ts` | 308 |
+| `apps/api/src/billing-flow.test.ts` | 596 |
+| `apps/api/src/budget-probe.test.ts` | 833 |
+| `apps/api/src/checkout-email.test.ts` | 322 |
 | `apps/api/src/crash-resilience.test.ts` | 158 |
-| `apps/api/src/credits-api.test.ts` | 262 |
-| `apps/api/src/db-endpoints.test.ts` | 108 |
-| `apps/api/src/deletion.test.ts` | 148 |
-| `apps/api/src/deployment.test.ts` | 208 |
 
 ## Reference Test
 
-### `apps/api/src/logger.test.ts`
+### `apps/api/src/handler-shutdown.test.ts`
 
 ```typescript
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { log } from "./logger.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
-describe("LOG_LEVEL filtering", () => {
-  afterEach(() => {
-    delete process.env.LOG_LEVEL;
-    vi.restoreAllMocks();
-  });
+// ─── Mock router.js to control isShuttingDown ───────────────────
+vi.mock("./router.js", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("./router.js")>();
+  return { ...orig, isShuttingDown: vi.fn(() => false) };
+});
 
-  it("writes info by default (LOG_LEVEL unset)", () => {
-    const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    log("info", "test_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-    expect(parsed.level).toBe("info");
-    expect(parsed.msg).toBe("test_msg");
-  });
+// ─── Mock @axis/snapshots to prevent real DB access on import ───
+vi.mock("@axis/snapshots", async (importOriginal) => {
+  const orig = await importOriginal<typeof import("@axis/snapshots")>();
+  return { ...orig, openMemoryDb: vi.fn(), closeDb: vi.fn() };
+});
 
-  it("writes error to stderr", () => {
-    const spy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    log("error", "err_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-    expect(parsed.level).toBe("error");
-  });
+import { handleHealthCheck } from "./handlers.js";
+import { isShuttingDown } from "./router.js";
 
-  it("writes warn to stdout", () => {
-    const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    log("warn", "warn_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-    expect(parsed.level).toBe("warn");
-  });
+// ─── Minimal res/req stubs ──────────────────────────────────────
+function stubReq(): IncomingMessage {
+  return { headers: {} } as unknown as IncomingMessage;
+}
 
-  it("writes debug when LOG_LEVEL=debug", () => {
-    process.env.LOG_LEVEL = "debug";
-    const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    log("debug", "debug_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-... (54 more lines)
+function stubRes(): ServerResponse & { _status: number; _body: string } {
+  const res: Record<string, unknown> = {
+    _status: 0,
+    _body: "",
+    _headers: {} as Record<string, string>,
+    writeHead(status: number) { res._status = status; return res; },
+    setHeader(k: string, v: string) { (res._headers as Record<string, string>)[k] = v; },
+    end(body?: string) { res._body = body ?? ""; },
+    getHeader() { return undefined; },
+  };
+  return res as unknown as ServerResponse & { _status: number; _body: string };
+}
+
+// ─── Tests ──────────────────────────────────────────────────────
+describe("handleHealthCheck shutdown path", () => {
+  beforeEach(() => {
+    vi.mocked(isShuttingDown).mockReturnValue(false);
+... (27 more lines)
 ```
+
+## Untested Exports
+
+These source files export functions without matching test files:
+
+- `apps/api/src/counts.ts` — export const ARTIFACT_COUNT = ..., export const PROGRAM_COUNT = ..., export const MCP_TOOL_COUNT = ..., export const ENDPOINT_COUNT = ...

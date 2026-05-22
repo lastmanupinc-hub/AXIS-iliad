@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.445Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
+  "generated_at": "2026-05-22T16:58:33.578Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -17,8 +17,8 @@
       "category": "build",
       "trigger": "Before commit / Before PR",
       "steps": [
-        "pnpm install",
-        "pnpm run build",
+        "npm install",
+        "npm run build",
         "npx vitest run",
         "npx tsc --noEmit"
       ],
@@ -40,8 +40,8 @@
       "category": "maintenance",
       "trigger": "Weekly / Before release",
       "steps": [
-        "pnpm audit",
-        "pnpm outdated",
+        "npm audit",
+        "npm outdated",
         "Review dependency hotspots in optimization-rules.md"
       ],
       "applicable": true
@@ -80,20 +80,20 @@
     }
   ],
   "source_config_files": [
+    ".github/actions/compliance-check/action.yml",
+    ".github/app-manifest.json",
+    ".github/workflows/ci.yml",
+    ".github/workflows/compliance-check.yml",
+    ".github/workflows/release.yml",
+    ".prettierrc.json",
+    ".tmp-vitest.json",
     "algorithmic/begin.yaml",
     "algorithmic/continuation.yaml",
     "algorithmic/MEMORY.yaml",
     "algorithmic/schemas/output-contract.schema.json",
     "algorithmic-pack.json",
+    "apps/api/mcp-server.json",
     "apps/api/package.json",
-    "apps/api/tsconfig.json",
-    "apps/cli/package.json",
-    "apps/cli/tsconfig.json",
-    "apps/web/package.json",
-    "apps/web/tsconfig.json",
-    "artifacts/begin.yaml",
-    "artifacts/continuation.yaml",
-    "artifacts/MEMORY.yaml",
-    "artifacts/schemas/output-contract.schema.json"
+    "apps/api/tsconfig.json"
   ]
 }

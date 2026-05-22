@@ -8,28 +8,29 @@ export const PROJECT_CONTEXT = {
   name: "axis-iliad",
   type: "monorepo",
   language: "TypeScript",
-  description: "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.",
+  description: null,
 } as const;
 
 export const CONVENTIONS = [
   "TypeScript strict mode",
-  "pnpm workspaces",
+  "Linter configured",
+  "Formatter configured",
+  "Makefile build",
 ] as const;
 
 export const WARNINGS = [
-  "No CI/CD pipeline detected",
   "No lockfile found — dependency versions may be inconsistent",
 ] as const;
 
 export const KEY_ABSTRACTIONS = [
-  "packages/ (monorepo_packages)",
   "apps/ (monorepo_apps)",
+  "packages/ (monorepo_packages)",
   "payment-processing-output/ (project_directory)",
-  "search/ (project_directory)",
+  "examples/ (project_directory)",
+  "mcp/ (project_directory)",
+  "packaging/ (project_directory)",
+  ".github/ (project_directory)",
   "algorithmic/ (project_directory)",
-  "artifacts/ (project_directory)",
-  "brand/ (project_directory)",
-  "canvas/ (project_directory)",
 ] as const;
 
 /**
@@ -60,5 +61,5 @@ export const ENTRY_POINTS = [
   { path: "apps/web/src/main.tsx", exports: [] },
   { path: "packages/context-engine/src/index.ts", exports: ["export type { ... }","export { ... }"] },
   { path: "packages/generator-core/src/index.ts", exports: ["export type { ... }","export { ... }","export { ... }","export { ... }","export { ... }"] },
-  { path: "packages/repo-parser/src/index.ts", exports: ["export type { ... }","export { ... }","export { ... }","export { ... }","export { ... }"] },
+  { path: "packages/mpp/src/index.ts", exports: ["export type ChargeOptions = ...","export type MppResult = ...","export interface AgentBudget { ... }","export interface PricingTier { ... }","export interface Build402Options { ... }"] },
 ] as const;

@@ -1,7 +1,7 @@
 /**
  * generate-symbol-index.test.ts
  *
- * Tests for the .ai/symbol-index.json generator (generateSymbolIndex).
+ * Tests for the symbol-index.json generator (generateSymbolIndex).
  * Covers: no files, empty files, TS symbols, Python symbols, Go symbols,
  * symbol grouping by file, parent field, and pipeline integration via generateFiles.
  */
@@ -41,7 +41,7 @@ function gInput(sourceFiles?: SourceFile[]): GeneratorInput {
   return {
     context_map: buildContextMap(s),
     repo_profile: buildRepoProfile(s),
-    requested_outputs: [".ai/symbol-index.json"],
+    requested_outputs: ["symbol-index.json"],
     source_files: sourceFiles,
   };
 }
@@ -51,7 +51,7 @@ function gInput(sourceFiles?: SourceFile[]): GeneratorInput {
 describe("generateSymbolIndex — no files", () => {
   it("returns valid GeneratedFile shape with no source files", () => {
     const result = generateSymbolIndex(undefined);
-    expect(result.path).toBe(".ai/symbol-index.json");
+    expect(result.path).toBe("symbol-index.json");
     expect(result.content_type).toBe("application/json");
     expect(result.program).toBe("search");
     expect(result.description.length).toBeGreaterThan(0);
@@ -229,24 +229,24 @@ describe("generateSymbolIndex — output JSON metadata", () => {
 
 /* ─── Pipeline integration via generateFiles ────────────────────── */
 
-describe("generateFiles — .ai/symbol-index.json via pipeline", () => {
-  it("generates .ai/symbol-index.json with no source files", () => {
+describe("generateFiles — symbol-index.json via pipeline", () => {
+  it("generates symbol-index.json with no source files", () => {
     const input = gInput();
     const result = generateFiles(input);
-    const file = result.files.find(f => f.path === ".ai/symbol-index.json");
+    const file = result.files.find(f => f.path === "symbol-index.json");
     expect(file).toBeDefined();
     expect(file!.content.length).toBeGreaterThan(0);
     expect(file!.content_type).toBe("application/json");
     expect(file!.program).toBe("search");
   });
 
-  it("generates .ai/symbol-index.json with source code files", () => {
+  it("generates symbol-index.json with source code files", () => {
     const files: SourceFile[] = [
       { path: "src/index.ts", content: "export function main() {}\nexport class App {}\n", size: 45 },
     ];
     const input = gInput(files);
     const result = generateFiles(input);
-    const file = result.files.find(f => f.path === ".ai/symbol-index.json");
+    const file = result.files.find(f => f.path === "symbol-index.json");
     expect(file).toBeDefined();
     const json = JSON.parse(file!.content) as { total_symbols: number };
     expect(json.total_symbols).toBeGreaterThan(0);
@@ -255,7 +255,7 @@ describe("generateFiles — .ai/symbol-index.json via pipeline", () => {
   it("produces valid JSON content", () => {
     const input = gInput();
     const result = generateFiles(input);
-    const file = result.files.find(f => f.path === ".ai/symbol-index.json");
+    const file = result.files.find(f => f.path === "symbol-index.json");
     expect(() => JSON.parse(file!.content)).not.toThrow();
   });
 });

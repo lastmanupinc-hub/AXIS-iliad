@@ -13,7 +13,7 @@ export function generateContextMapJSON(ctx: ContextMap, files?: SourceFile[]): G
   }
 
   return {
-    path: ".ai/context-map.json",
+    path: "context-map.json",
     content: JSON.stringify(enriched, null, 2),
     content_type: "application/json",
     program: "search",
@@ -31,7 +31,7 @@ export function generateRepoProfileYAML(profile: RepoProfile, files?: SourceFile
   }
 
   return {
-    path: ".ai/repo-profile.yaml",
+    path: "repo-profile.yaml",
     content: toYAML(profileData),
     content_type: "application/yaml",
     program: "search",
@@ -465,7 +465,7 @@ export function generateSymbolIndex(files?: SourceFile[]): GeneratedFile {
   };
 
   return {
-    path: ".ai/symbol-index.json",
+    path: "symbol-index.json",
     content: JSON.stringify(output, null, 2),
     content_type: "application/json",
     program: "search",

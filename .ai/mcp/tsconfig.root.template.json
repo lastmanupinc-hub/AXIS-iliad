@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2022"
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@apps/*": [
+        "apps/*/src"
+      ],
+      "@packages/*": [
+        "packages/*/src"
+      ]
+    }
+  },
+  "include": [
+    "apps",
+    "packages"
+  ],
+  "exclude": [
+    "**/dist",
+    "**/node_modules"
+  ],
+  "references": [
+    {
+      "path": "./apps/api"
+    },
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./packages/context-engine"
+    },
+    {
+      "path": "./packages/generator-core"
+    },
+    {
+      "path": "./packages/repo-parser"
+    },
+    {
+      "path": "./packages/snapshots"
+    }
+  ]
+}

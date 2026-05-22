@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -14,7 +14,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 ## Architecture Context
 
-Separation score: **0.64**/1.0
+Separation score: **0.65**/1.0
 
 Theme tokens should be applied consistently across these layers:
 
@@ -61,7 +61,7 @@ Theme tokens should be applied consistently across these layers:
 
 ## Component Patterns
 
-Detected 18 component file(s). Apply these patterns:
+Detected 22 component file(s). Apply these patterns:
 
 - Buttons: `radius-md`, `primary-500` bg, `space-2` horizontal padding, `space-1` vertical
 - Cards: `radius-lg`, `shadow-base`, `space-4` padding, `neutral-50` bg
@@ -172,13 +172,13 @@ Routes detected — consider zone-based theming:
 - `/v1/admin/stats` (GET) → apps/api/src/admin.test.ts
 - `/v1/admin/accounts` (GET) → apps/api/src/admin.test.ts
 - `/v1/admin/activity` (GET) → apps/api/src/admin.test.ts
-- `/v1/snapshots` (POST) → apps/api/src/api-branches.test.ts
-- `/v1/snapshots/:snapshot_id` (GET) → apps/api/src/api-branches.test.ts
-- `/v1/snapshots/:snapshot_id` (DELETE) → apps/api/src/api-branches.test.ts
-- `/v1/projects/:project_id/context` (GET) → apps/api/src/api-branches.test.ts
-- `/v1/projects/:project_id/generated-files` (GET) → apps/api/src/api-branches.test.ts
-- `/v1/projects/:project_id/generated-files/:file_path` (GET) → apps/api/src/api-branches.test.ts
-- … and 375 more routes
+- `/llms.txt` (GET) → apps/api/src/agent-discovery.test.ts
+- `/.well-known/skills/index.json` (GET) → apps/api/src/agent-discovery.test.ts
+- `/v1/docs.md` (GET) → apps/api/src/agent-discovery.test.ts
+- `/.well-known/axis.json` (GET) → apps/api/src/agent-discovery.test.ts
+- `/for-agents` (GET) → apps/api/src/agent-discovery.test.ts
+- `/v1/install` (GET) → apps/api/src/agent-discovery.test.ts
+- … and 485 more routes
 
 ## Domain-Specific Tokens
 
@@ -189,27 +189,22 @@ Consider extending the token system for domain entity states:
 - **ValidationError** (interface): 2 fields — apps/api/src/env.ts
 - **ValidationResult** (interface): 3 fields — apps/api/src/env.ts
 - **ZipEntry** (interface): 4 fields — apps/api/src/export.ts
-- **HistogramEntry** (interface): 3 fields — apps/api/src/metrics.ts
-- **OpenApiSpec** (interface): 6 fields — apps/api/src/openapi.ts
-- **WindowEntry** (interface): 2 fields — apps/api/src/rate-limiter.ts
+- **PullRequestPayload** (interface): 5 fields — apps/api/src/github-webhook.ts
+- **PushPayload** (interface): 7 fields — apps/api/src/github-webhook.ts
+- **SnapshotTarget** (interface): 5 fields — apps/api/src/github-webhook.ts
 
 ## Warnings
 
-> ⚠ No CI/CD pipeline detected
 > ⚠ No lockfile found — dependency versions may be inconsistent
 
 ## Detected Style Files
 
 - `apps/web/src/index.css` (770 lines)
+- `component-theme-map.json` (362 lines)
+- `dark-mode-tokens.json` (132 lines)
 - `packages/generator-core/src/generators-theme.ts` (1027 lines)
 - `packages/snapshots/src/github-token-branches.test.ts` (89 lines)
 - `packages/snapshots/src/github-token-store.ts` (136 lines)
-- `payment-processing-output/component-theme-map.json` (2059 lines)
-- `payment-processing-output/dark-mode-tokens.json` (117 lines)
-- `payment-processing-output/theme-guidelines.md` (137 lines)
-- `payment-processing-output/theme.css` (226 lines)
-- `payment-processing-output/token-budget-plan.md` (71 lines)
-- `theme/begin.yaml` (27 lines)
 
 ## Style File Contents
 
@@ -239,70 +234,70 @@ Consider extending the token system for domain entity states:
 ... (750 more lines)
 ```
 
-### `packages/generator-core/src/generators-theme.ts`
+### `component-theme-map.json`
 
-```typescript
-import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, renderExcerpts, fileTree, extractExports } from "./file-excerpt-utils.js";
-
-// ─── .ai/design-tokens.json ────────────────────────────────────
-
-export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
-  const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks;
-  const fwNames = frameworks.map(f => f.name);
-
-  // Detect styling approach from file tree
-  const treeFiles = ctx.structure.file_tree_summary;
-  const hasTailwind = treeFiles.some(f => f.path.includes("tailwind.config"));
-  const hasCssModules = treeFiles.some(f => f.path.endsWith(".module.css") || f.path.endsWith(".module.scss"));
-  const hasStyledComponents = ctx.dependency_graph.external_dependencies.some(
-    d => d.name === "styled-components" || d.name === "@emotion/styled" || d.name === "@emotion/react",
-  );
-  const hasSass = treeFiles.some(f => f.path.endsWith(".scss") || f.path.endsWith(".sass"));
-... (1007 more lines)
+```json
+{
+  "project": "axis-iliad",
+  "generated_at": "2026-05-14T02:05:24.906Z",
+  "detected_stack": [
+    {
+      "name": "React",
+      "version": "^19.1.0",
+      "confidence": 0.95
+    }
+  ],
+  "primary_language": "TypeScript",
+  "summary": {
+    "total_components": 30,
+    "by_type": {
+      "custom": 15,
+      "decorative": 1,
+      "overlay": 2,
+      "page": 12
+    }
+  },
+... (342 more lines)
 ```
 
-### `packages/snapshots/src/github-token-branches.test.ts`
+### `dark-mode-tokens.json`
 
-```typescript
-/**
- * eq_129: GitHub token store branch coverage
- * Targets uncovered branches: lines 31 (valid decrypt format), 103-106 (token_id query path)
- */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb, getDb } from "./db.js";
-import { createAccount } from "./billing-store.js";
-import {
-  saveGitHubToken,
-  getGitHubTokens,
-  getGitHubTokenDecrypted,
-} from "./github-token-store.js";
-
-beforeEach(() => { openMemoryDb(); });
-afterEach(() => { closeDb(); });
-
-describe("github-token-store branches", () => {
-  it("decrypts a saved token via getGitHubTokenDecrypted (no token_id)", () => {
-    const acct = createAccount("TokenTest", "token@test.com");
-    const raw = "ghp_1234567890abcdef1234567890abcdef12";
-... (69 more lines)
+```json
+{
+  "project": "axis-iliad",
+  "generated_at": "2026-05-14T02:05:25.649Z",
+  "scheme": "dark",
+  "detected_stack": {
+    "frameworks": [
+      "React ^19.1.0"
+    ],
+    "primary_language": "TypeScript",
+    "project_type": "monorepo"
+  },
+  "colors": {
+    "background": {
+      "base": "#0f172a",
+      "surface": "#1e293b",
+      "elevated": "#334155",
+      "overlay": "rgba(0, 0, 0, 0.6)"
+    },
+    "foreground": {
+      "primary": "#f8fafc",
+... (112 more lines)
 ```
 
 ## Component Style Usage
 
 | Component | Exports | Lines |
 |-----------|---------|-------|
-| `apps/web/src/App.tsx` | export function App() { ... } | 286 |
+| `apps/web/src/App.tsx` | export function App() { ... } | 490 |
 | `apps/web/src/components/AxisIcons.tsx` | export function Icon({ ... } | 111 |
 | `apps/web/src/components/CommandPalette.tsx` | export interface PaletteAction { ... }, export function CommandPalette({ ... } | 214 |
 | `apps/web/src/components/FilesTab.tsx` | export function FilesTab({ ... } | 126 |
 | `apps/web/src/components/GeneratedTab.tsx` | export function GeneratedTab({ ... } | 118 |
 | `apps/web/src/components/GraphTab.tsx` | export function GraphTab({ ... } | 128 |
 | `apps/web/src/components/OverviewTab.tsx` | export function OverviewTab({ ... } | 223 |
-| `apps/web/src/components/ProgramLauncher.tsx` | export function ProgramLauncher({ ... } | 165 |
+| `apps/web/src/components/ProgramLauncher.tsx` | export function ProgramLauncher({ ... } | 169 |
 | `apps/web/src/components/SearchTab.tsx` | export function SearchTab({ ... } | 307 |
 | `apps/web/src/components/SignUpModal.tsx` | export function SignUpModal({ ... } | 122 |
 | `apps/web/src/components/StatusBar.tsx` | export function StatusBar({ ... } | 76 |

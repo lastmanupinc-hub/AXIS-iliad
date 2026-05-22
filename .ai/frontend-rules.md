@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 215 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -62,14 +62,14 @@ These domain models were detected in the codebase. Use their type names in compo
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
 | `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
-| `IntentCapture` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `JsonRpcRequest` | interface | 4 | `apps/api/src/mcp-server.ts` |
-| `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `RpcError` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `RpcSuccess` | interface | 3 | `apps/api/src/mcp-server.ts` |
-| `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
-| `CacheKey` | type_alias | 2 | `apps/api/src/mpp.ts` |
-| *... and 203 more* | | | |
+| `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| `PushPayload` | interface | 7 | `apps/api/src/github-webhook.ts` |
+| `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
+| `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
+| `FirecrawlScrapeRequest` | interface | 6 | `apps/api/src/handlers.ts` |
+| `FirecrawlScrapeResponse` | interface | 5 | `apps/api/src/handlers.ts` |
+| *... and 231 more* | | | |
 
 **Rule**: Component prop types must reference these detected types, not re-define them. Import from the canonical source file.
 
@@ -104,7 +104,7 @@ These domain models were detected in the codebase. Use their type names in compo
 - **`apps/web/src/components/ProgramLauncher.tsx`**: `export function ProgramLauncher({ ... }`
 - **`apps/web/src/components/SearchTab.tsx`**: `export function SearchTab({ ... }`
 - **`apps/web/src/components/SignUpModal.tsx`**: `export function SignUpModal({ ... }`
-- *... and 27 more*
+- *... and 29 more*
 
 ## Style Sources
 

@@ -182,7 +182,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   }
 
   return {
-    path: ".ai/optimization-rules.md",
+    path: "optimization-rules.md",
     content: lines.join("\n"),
     content_type: "text/markdown",
     program: "optimization",

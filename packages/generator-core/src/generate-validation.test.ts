@@ -70,7 +70,7 @@ describe("generateFiles validation branches", () => {
   it("skips generator that returns non-object (null)", () => {
     vi.mocked(generateContextMapJSON).mockReturnValue(null as unknown as GeneratedFile);
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Generator returned non-object");
   });
@@ -84,63 +84,63 @@ describe("generateFiles validation branches", () => {
       description: "desc",
     });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing or empty 'path'");
   });
 
   it("skips generator that returns empty content", () => {
     vi.mocked(generateContextMapJSON).mockReturnValue({
-      path: ".ai/context-map.json",
+      path: "context-map.json",
       content: "",
       content_type: "application/json",
       program: "search",
       description: "desc",
     });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
-    expect(skip!.reason).toBe("Empty content for .ai/context-map.json");
+    expect(skip!.reason).toBe("Empty content for context-map.json");
   });
 
   it("skips generator that returns missing content_type", () => {
     vi.mocked(generateContextMapJSON).mockReturnValue({
-      path: ".ai/context-map.json",
+      path: "context-map.json",
       content: "data",
       content_type: "",
       program: "search",
       description: "desc",
     });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing 'content_type'");
   });
 
   it("skips generator that returns missing program", () => {
     vi.mocked(generateContextMapJSON).mockReturnValue({
-      path: ".ai/context-map.json",
+      path: "context-map.json",
       content: "data",
       content_type: "application/json",
       program: "",
       description: "desc",
     });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing 'program'");
   });
 
   it("skips generator that returns missing description", () => {
     vi.mocked(generateContextMapJSON).mockReturnValue({
-      path: ".ai/context-map.json",
+      path: "context-map.json",
       content: "data",
       content_type: "application/json",
       program: "search",
       description: "",
     });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Missing 'description'");
   });
@@ -155,7 +155,7 @@ describe("generateFiles error handling", () => {
   it("catches Error instance and uses err.message", () => {
     vi.mocked(generateContextMapJSON).mockImplementation(() => { throw new Error("parse explosion"); });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Generator error: parse explosion");
   });
@@ -163,7 +163,7 @@ describe("generateFiles error handling", () => {
   it("catches non-Error throw and uses String()", () => {
     vi.mocked(generateContextMapJSON).mockImplementation(() => { throw "string error"; });
     const result = generateFiles(makeInput([]));
-    const skip = result.skipped.find(s => s.path === ".ai/context-map.json");
+    const skip = result.skipped.find(s => s.path === "context-map.json");
     expect(skip).toBeDefined();
     expect(skip!.reason).toBe("Generator error: string error");
   });

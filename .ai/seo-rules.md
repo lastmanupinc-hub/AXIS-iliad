@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 215 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -141,6 +141,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/account/keys` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/keys/:key_id/revoke` | POST | API route — exclude from sitemap |
 | `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/account/analytics/summary` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/tier` | POST | API route — exclude from sitemap |
 | `/v1/account/programs` | POST | API route — exclude from sitemap |
 | `/v1/account/credits` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
@@ -222,6 +223,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/account/upgrade-prompt/dismiss` | POST | API route — exclude from sitemap |
 | `/v1/account/funnel` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/funnel/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/account/analytics/events` | POST | API route — exclude from sitemap |
+| `/v1/github/webhook` | POST | API route — exclude from sitemap |
 | `/v1/snapshots` | POST | API route — exclude from sitemap |
 | `/health` | GET | Add WebPage schema · unique title + description required |
 | `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
@@ -368,6 +371,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/prepare-for-agentic-purchasing` | POST | API route — exclude from sitemap |
 | `/v1/analyze` | POST | API route — exclude from sitemap |
 | `/v1/github/analyze` | POST | API route — exclude from sitemap |
+| `/v1/github/webhook` | POST | API route — exclude from sitemap |
+| `/v1/research/scrape` | POST | API route — exclude from sitemap |
+| `/v1/research/crawl` | POST | API route — exclude from sitemap |
 | `/.well-known/axis.json` | GET | Add WebPage schema · unique title + description required |
 | `/.well-known/capabilities.json` | GET | Add WebPage schema · unique title + description required |
 | `/.well-known/mcp.json` | GET | Add WebPage schema · unique title + description required |
@@ -381,6 +387,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/sitemap.xml` | GET | Add WebPage schema · unique title + description required |
 | `/health` | GET | Add WebPage schema · unique title + description required |
 | `/docs` | GET | Add TechArticle schema · high crawl priority |
+| `/pricing` | GET | Add Product schema · high crawl priority |
 | `/openapi.json` | GET | Add WebPage schema · unique title + description required |
 | `/llms.txt` | GET | Add WebPage schema · unique title + description required |
 | `/.well-known/skills/index.json` | GET | Add WebPage schema · unique title + description required |
@@ -424,6 +431,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/account/keys` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/keys/:key_id/revoke` | POST | API route — exclude from sitemap |
 | `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/account/analytics/summary` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/quota` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/tier` | POST | API route — exclude from sitemap |
 | `/v1/account/programs` | POST | API route — exclude from sitemap |
@@ -443,6 +451,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/account/upgrade-prompt/dismiss` | POST | API route — exclude from sitemap |
 | `/v1/account/funnel` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/funnel/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/account/analytics/events` | POST | API route — exclude from sitemap |
 | `/v1/admin/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/admin/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/admin/activity` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
@@ -524,6 +533,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/health` | GET | Add WebPage schema · unique title + description required |
 | `/api/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/webhook` | POST | API route — exclude from sitemap |
+| `/v1/my-tool` | POST | API route — exclude from sitemap |
+| `/v1/my-tool` | POST | API route — exclude from sitemap |
+| `/v1/my-tool` | POST | API route — exclude from sitemap |
 | `/users/:id` | GET | Add WebPage schema · unique title + description required |
 | `/users` | POST | API route — exclude from sitemap |
 
@@ -538,16 +550,16 @@ These domain models represent structured content — mapping them to schema type
 | `ValidationError` | interface | 2 | WebPage |
 | `ValidationResult` | interface | 3 | WebPage |
 | `ZipEntry` | interface | 4 | WebPage |
+| `PullRequestPayload` | interface | 5 | WebPage |
+| `PushPayload` | interface | 7 | WebPage |
+| `SnapshotTarget` | interface | 5 | WebPage |
+| `FirecrawlCrawlRequest` | interface | 5 | WebPage |
+| `FirecrawlCrawlResponse` | interface | 4 | WebPage |
+| `FirecrawlScrapeRequest` | interface | 6 | WebPage |
+| `FirecrawlScrapeResponse` | interface | 5 | WebPage |
 | `IntentCapture` | interface | 5 | WebPage |
 | `JsonRpcRequest` | interface | 4 | WebPage |
 | `McpCallCounters` | interface | 5 | WebPage |
-| `RpcError` | interface | 5 | WebPage |
-| `RpcSuccess` | interface | 3 | WebPage |
-| `HistogramEntry` | interface | 3 | WebPage |
-| `CacheKey` | type_alias | 2 | Thing |
-| `OAuthClientRow` | interface | 3 | WebPage |
-| `OpenApiSpec` | interface | 6 | WebPage |
-| `CreateIntentInput` | interface | 3 | WebPage |
 
 ## Contact & Support Page SEO
 
@@ -577,15 +589,41 @@ These domain models represent structured content — mapping them to schema type
 
 ## Detected SEO Files
 
+- `.github/app-manifest.json` (25 lines)
 - `apps/web/public/robots.txt` (26 lines)
 - `export-manifest.yaml` (87 lines)
 - `packaging/manifests/dockerhub-repository.md` (17 lines)
 - `packaging/manifests/github-marketplace-listing.md` (17 lines)
 - `packaging/manifests/npm-package.json` (17 lines)
 - `packaging/manifests/vscode-extension.json` (22 lines)
-- `payment-processing-output/export-manifest.yaml` (87 lines)
 
 ## SEO File Contents
+
+### `.github/app-manifest.json`
+
+```json
+{
+  "name": "Axis Iliad Compliance",
+  "url": "https://axis-iliad.jonathanarvay.com",
+  "hook_attributes": {
+    "url": "https://axis-api-6c7z.onrender.com/v1/github/webhook",
+    "active": true
+  },
+  "redirect_url": "https://axis-iliad.jonathanarvay.com/install/github/callback",
+  "callback_urls": [
+    "https://axis-iliad.jonathanarvay.com/install/github/callback"
+  ],
+  "description": "Runs AP2/Visa agentic-commerce compliance grading on every push and pull request. Installs the Axis' Iliad GitHub Action under .github/workflows/ and surfaces a 'Axis Compliance: <grade>' Check Run on the head commit. Snapshots prime the analyze cache so subsequent CLI / MCP calls return in <1s.",
+  "public": true,
+  "default_events": [
+    "push",
+    "pull_request"
+  ],
+  "default_permissions": {
+    "checks": "write",
+    "contents": "read",
+... (5 more lines)
+```
 
 ### `apps/web/public/robots.txt`
 
@@ -618,7 +656,7 @@ Allow: /v1/
 ```yaml
 # Export Manifest
 # Project: axis-iliad
-# Generated: 2026-05-08T19:58:35.511Z
+# Generated: 2026-05-14T02:05:25.046Z
 
 manifest:
   project: "axis-iliad"
@@ -639,41 +677,19 @@ manifest:
 ... (67 more lines)
 ```
 
-### `packaging/manifests/dockerhub-repository.md`
-
-```markdown
-# Docker Hub Listing — axis-iliad
-
-## Overview
-Production-grade axis-iliad packaging and release kit
-
-## Tags
-- latest
-- 1.0.0
-
-## Quick Start
-```bash
-docker run --rm -p 8080:8080 your-org/your-image:latest
-```
-
-## Compliance and Trust
-- Includes signed Merkle attestation in packaging/trust-fabric/attestation.json
-- Generated with offline certlib profile
-```
-
 ## Detected Page Files
 
 | Page | Exports | Lines |
 |------|---------|-------|
-| `apps/web/index.html` | default | 128 |
+| `apps/web/index.html` | default | 167 |
+| `apps/web/src/components/ToolPage.tsx` | export interface ToolPricing { ... }, export interface ToolPageProps { ... }, export function ToolPage({ ... } | 189 |
 | `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 630 |
+| `apps/web/src/pages/AdminPage.tsx` | export function AdminPage() { ... } | 206 |
 | `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 197 |
-| `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1292 |
+| `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1293 |
 | `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 505 |
-| `apps/web/src/pages/ForAgentsPage.tsx` | export function ForAgentsPage() { ... } | 898 |
-| `apps/web/src/pages/HelpPage.tsx` | export function HelpPage() { ... } | 758 |
-| `apps/web/src/pages/InstallPage.tsx` | export function InstallPage() { ... } | 204 |
-| `apps/web/src/pages/PlansPage.tsx` | export function PlansPage({ ... } | 242 |
-| `apps/web/src/pages/ProgramsPage.tsx` | export function ProgramsPage({ ... } | 313 |
-| `apps/web/src/pages/QAPage.tsx` | export function QAPage() { ... } | 392 |
-| `apps/web/src/pages/TermsPage.tsx` | export function TermsPage() { ... } | 357 |
+| `apps/web/src/pages/ForAgentsPage.tsx` | export function ForAgentsPage() { ... } | 168 |
+| `apps/web/src/pages/HelpPage.tsx` | export function HelpPage() { ... } | 769 |
+| `apps/web/src/pages/InstallPage.tsx` | export function InstallPage() { ... } | 205 |
+| `apps/web/src/pages/MyAnalyticsPage.tsx` | export function MyAnalyticsPage() { ... } | 241 |
+| `apps/web/src/pages/PlansPage.tsx` | export function PlansPage({ ... } | 249 |

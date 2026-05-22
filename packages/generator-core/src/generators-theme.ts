@@ -151,7 +151,7 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
   }
 
   return {
-    path: ".ai/design-tokens.json",
+    path: "design-tokens.json",
     content: JSON.stringify(tokens, null, 2),
     content_type: "application/json",
     program: "theme",

@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0",
+  "merkle_root": "3f33528dcd505e45f7d09d5260d0ca968e9afebe8926f0a40a1664031d143d82",
+  "levels": [
+    [
+      "3d490579f1294bb8bd7b94345862dff4a00222b418f30edc85f621d36d322526",
+      "bf75019b7d6e53be90534db1c7a6104521033391dc81c07c88c3b6f389406f59",
+      "46e6bd5fa81bc1e496861305d13a0f60cc065b470a8c41a932494419cdebf746",
+      "bc48006a507c64821fe3cc9176612062407c93df3bce6cdc415b258e53e31c9b",
+      "0a7f28b56405f21bf4fe9c0ce7b8000c0c2e2d968469f785d179529ea389b113",
+      "cb15317c26113c62f57fc9c1c13178ba17b98eb918a7f4fd0f5cc4140cd4c0b7",
+      "8082e642d7d65f6583be0f2b8afa00b772803753696d5f91da07455889adce8b",
+      "9d36dbc0fe47858ced593714dbda87927af9fd01a0bf6e327ac33df8de5d90b4",
+      "baa688af9e7fef0ea0369336534c69018ccf41d2e6d69c4ab08f1b8b7ba4b639",
+      "e69eee984acc45cd7e9760d071f960a7b95370911e98d3cddf83a496ae9b763f",
+      "babefe7b2ee9a720ed9e56cc764cbc747562c209bbc469aa5ab7dddfb8544735",
+      "06da1ce984537949073e1f26cf4ad7bf3d17d1a55e7522b114ec2616db2f1b01",
+      "189537b6945414c6055c28dc4885ba54ac9f22f4dd7007c6fb16d77c3770b932",
+      "447407604d2e94d36d76721ab46d7b98decffe4f2472abe2f5581fb83b7e7a97",
+      "1af60027b247a5f173a0bd1e3a1c6e50c35265f1d805e4b284860f586506497e",
+      "804e67087d7cbf5cdb7938756be05836b6e436a9de83226700d1e76d085c14b2"
+    ],
+    [
+      "a449a1854b55ede481e2b5475c94789d32bcbab62cd75b7cef57fdf335a0768f",
+      "3008cfc44c39898b592c620196b5430dd48413aa2782f0946cb2b17d639ff21f",
+      "ac93ea7add9230e375618405290eb3b328305449cfc3d36c064d471adc0239fa",
+      "526fc5b72ce4f750c152c4b442e421d5f19bf48c46eaceddda003febad5cc6b2",
+      "cdbb8d64322a5d09b47256485ba09f7163258f0730bad1131b0c5ad34f4b6192",
+      "eb6698bbc24cd265d42af54791fcfd32c1826ed26954816cfd608a06c2b694e0",
+      "f666302322fbf17feef228edd3aa111b8bc3e1f1d00fe39313caab3aa2fe66e0",
+      "a3d7042562e82fdcf0f529d3ec777f46345a2026072075e4dadd50440d00221d"
+    ],
+    [
+      "260d208ac00e0e5da4bdb8bac1f217a2d4b840f45599db99c921bdc4398e12ae",
+      "d3a74287ca6d0e76c41514b2fc1d29781e1ca6bf9d18dc0d6d8e52a59c1efdec",
+      "f4db2b661767c899cdc86b82c89ea4485849abe92d345c7e237e3a86799d3069",
+      "6eebdb23a687c2e8eb28b450d0968b03b8dd7995b2fbf0966957d412060ba7db"
+    ],
+    [
+      "0b33d792ae0c865c2917cf3a78297ab98b6d928243b2b41d28150172a0421af8",
+      "f915461b7ad72ccd7edca00db5bd8c08f0e1373d0c0fbb01eefb1aa96fffc108"
+    ],
+    [
+      "3f33528dcd505e45f7d09d5260d0ca968e9afebe8926f0a40a1664031d143d82"
+    ]
+  ],
+  "leaf_index": [
+    {
+      "index": 0,
+      "path": "packaging/README.md",
+      "digest": "3d490579f1294bb8bd7b94345862dff4a00222b418f30edc85f621d36d322526"
+    },
+    {
+      "index": 1,
+      "path": "packaging/LICENSE",
+      "digest": "bf75019b7d6e53be90534db1c7a6104521033391dc81c07c88c3b6f389406f59"
+    },
+    {
+      "index": 2,
+      "path": "Dockerfile",
+      "digest": "46e6bd5fa81bc1e496861305d13a0f60cc065b470a8c41a932494419cdebf746"
+    },
+    {
+      "index": 3,
+      "path": "docker-compose.yml",
+      "digest": "bc48006a507c64821fe3cc9176612062407c93df3bce6cdc415b258e53e31c9b"
+    },
+    {
+      "index": 4,
+      "path": ".github/workflows/ci.yml",
+      "digest": "0a7f28b56405f21bf4fe9c0ce7b8000c0c2e2d968469f785d179529ea389b113"
+    },
+    {
+      "index": 5,
+      "path": ".github/workflows/release.yml",
+      "digest": "cb15317c26113c62f57fc9c1c13178ba17b98eb918a7f4fd0f5cc4140cd4c0b7"
+    },
+    {
+      "index": 6,
+      "path": "packaging/manifests/npm-package.json",
+      "digest": "8082e642d7d65f6583be0f2b8afa00b772803753696d5f91da07455889adce8b"
+    },
+    {
+      "index": 7,
+      "path": "packaging/manifests/unreal.uplugin",
+      "digest": "9d36dbc0fe47858ced593714dbda87927af9fd01a0bf6e327ac33df8de5d90b4"
+    },
+    {
+      "index": 8,
+      "path": "packaging/manifests/vscode-extension.json",
+      "digest": "baa688af9e7fef0ea0369336534c69018ccf41d2e6d69c4ab08f1b8b7ba4b639"
+    },
+    {
+      "index": 9,
+      "path": "packaging/manifests/dockerhub-repository.md",
+      "digest": "e69eee984acc45cd7e9760d071f960a7b95370911e98d3cddf83a496ae9b763f"
+    },
+    {
+      "index": 10,
+      "path": "packaging/manifests/github-marketplace-listing.md",
+      "digest": "babefe7b2ee9a720ed9e56cc764cbc747562c209bbc469aa5ab7dddfb8544735"
+    },
+    {
+      "index": 11,
+      "path": "packaging/trust-fabric/attestation.json",
+      "digest": "06da1ce984537949073e1f26cf4ad7bf3d17d1a55e7522b114ec2616db2f1b01"
+    },
+    {
+      "index": 12,
+      "path": "packaging/trust-fabric/merkle-proof.json",
+      "digest": "189537b6945414c6055c28dc4885ba54ac9f22f4dd7007c6fb16d77c3770b932"
+    },
+    {
+      "index": 13,
+      "path": "packaging-report.md",
+      "digest": "447407604d2e94d36d76721ab46d7b98decffe4f2472abe2f5581fb83b7e7a97"
+    },
+    {
+      "index": 14,
+      "path": "DISTRIBUTABLE.md",
+      "digest": "1af60027b247a5f173a0bd1e3a1c6e50c35265f1d805e4b284860f586506497e"
+    },
+    {
+      "index": 15,
+      "path": "Makefile",
+      "digest": "804e67087d7cbf5cdb7938756be05836b6e436a9de83226700d1e76d085c14b2"
+    }
+  ],
+  "verification": {
+    "algorithm": "sha256",
+    "certlib_profile": "certlib-offline-v1",
+    "replay_command": "node verify-attestation.js packaging/trust-fabric/attestation.json packaging/trust-fabric/merkle-proof.json"
+  }
+}

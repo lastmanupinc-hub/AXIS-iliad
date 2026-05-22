@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -20,13 +20,13 @@ Copy-paste-ready commands for common high-value operations:
 
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
 # Build
-pnpm run build
+npm run build
 
 # Dev server
-pnpm run dev
+npm run dev
 ```
 
 ### Testing
@@ -50,11 +50,11 @@ npx vitest run --coverage
 1. **Reproduce** — Create a minimal test case that triggers the bug
 2. **Isolate** — Use dependency hotspots to narrow the search area:
 
-   - `apps/web/src/api.ts` (risk: 0.8, 16 inbound, 0 outbound)
-   - `apps/web/src/App.tsx` (risk: 0.8, 1 inbound, 14 outbound)
-   - `apps/web/src/pages/DashboardPage.tsx` (risk: 0.5, 1 inbound, 9 outbound)
-   - `apps/web/src/components/Toast.tsx` (risk: 0.1, 3 inbound, 0 outbound)
-   - `apps/web/src/components/AxisIcons.tsx` (risk: 0.1, 3 inbound, 0 outbound)
+   - `apps/web/src/App.tsx` (risk: 1.0, 1 inbound, 21 outbound)
+   - `apps/web/src/api.ts` (risk: 0.9, 19 inbound, 0 outbound)
+   - `apps/web/src/pages.test.tsx` (risk: 0.8, 0 inbound, 17 outbound)
+   - `apps/web/src/pages/DashboardPage.tsx` (risk: 0.6, 1 inbound, 10 outbound)
+   - `apps/web/src/components/Toast.tsx` (risk: 0.2, 4 inbound, 0 outbound)
 
 3. **Trace** — Follow the import chain from entry point to failure
 4. **Fix** — Make the smallest change that resolves the issue
@@ -69,7 +69,9 @@ npx vitest run --coverage
 - [ ] Import graph doesn't create new circular dependencies
 - [ ] Changes follow detected conventions:
   - TypeScript strict mode
-  - pnpm workspaces
+  - Linter configured
+  - Formatter configured
+  - Makefile build
 
 ## Planning Template
 
@@ -99,7 +101,12 @@ npx vitest run --coverage
 ### `apps/web/src/api.ts`
 
 ```typescript
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
+const isLocalHost =
+  typeof window === "undefined" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
 
 // ─── Snapshot types ─────────────────────────────────────────────
 
@@ -114,12 +121,7 @@ export interface SnapshotPayload {
   };
   files: Array<{ path: string; content: string; size: number }>;
 }
-
-export interface SnapshotResponse {
-  snapshot_id: string;
-  project_id: string;
-  status: string;
-... (451 more lines)
+... (701 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -135,41 +137,41 @@ import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
 import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
-
-// ─── Error Boundary ─────────────────────────────────────────────
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-... (266 more lines)
+... (470 more lines)
 ```
 
-### `apps/web/src/pages/DashboardPage.tsx`
+### `apps/web/src/pages.test.tsx`
 
 ```tsx
-import { useState, useEffect } from "react";
-import type { SnapshotResponse, GeneratedFile } from "../api.ts";
-import { getGeneratedFiles, runProgram, downloadExport } from "../api.ts";
-import { OverviewTab } from "../components/OverviewTab.tsx";
-import { FilesTab } from "../components/FilesTab.tsx";
-import { GraphTab } from "../components/GraphTab.tsx";
-import { GeneratedTab } from "../components/GeneratedTab.tsx";
-import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
-import { SearchTab } from "../components/SearchTab.tsx";
-import { useToast } from "../components/Toast.tsx";
+/**
+ * @vitest-environment happy-dom
+ */
 
-interface Props {
-  result: SnapshotResponse;
-  onGeneratedCountChange?: (count: number) => void;
-}
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render } from "@testing-library/react";
 
-const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
-type Tab = (typeof TABS)[number];
+// ─── Zero-prop page smoke tests ─────────────────────────────────
+// Each test renders the page and verifies it mounts without throwing.
 
-export function DashboardPage({ result, onGeneratedCountChange }: Props) {
-... (138 more lines)
+import { DocsPage } from "./pages/DocsPage";
+import { ExamplesPage } from "./pages/ExamplesPage";
+import { ForAgentsPage } from "./pages/ForAgentsPage";
+import { HelpPage } from "./pages/HelpPage";
+import { InstallPage } from "./pages/InstallPage";
+import { QAPage } from "./pages/QAPage";
+import { TermsPage } from "./pages/TermsPage";
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+... (142 more lines)
 ```

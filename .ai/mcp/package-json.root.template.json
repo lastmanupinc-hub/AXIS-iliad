@@ -1,0 +1,33 @@
+{
+  "name": "axis-iliad",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "npm@10",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @axis/api dev",
+    "test": "npx vitest run",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "publish": "pnpm -r publish --no-git-checks",
+    "build:turbo": "turbo run build",
+    "test:turbo": "turbo run test",
+    "lint:turbo": "turbo run lint"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "turbo": "^2.0.0"
+  }
+}

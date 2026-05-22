@@ -374,7 +374,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
 
   return {
-    path: ".ai/debug-playbook.md",
+    path: "debug-playbook.md",
     content: lines.join("\n"),
     content_type: "text/markdown",
     program: "debug",

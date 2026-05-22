@@ -1,0 +1,25 @@
+name: release
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npm run build --if-present
+      - run: make ship
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: project ${{ github.ref_name }}
+          generate_release_notes: true

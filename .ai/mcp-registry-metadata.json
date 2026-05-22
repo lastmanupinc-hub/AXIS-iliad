@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-22T16:58:33.600Z",
+  "registry": {
+    "name": "@axis/api",
+    "version": "0.5.3",
+    "description": "MCP server metadata for axis-iliad publishing and discovery.",
+    "capabilities": [
+      "tools",
+      "resources",
+      "prompts",
+      "http_routes",
+      "domain_models"
+    ]
+  },
+  "mcp": {
+    "protocol_version": "2025-03-26",
+    "endpoint": "/mcp",
+    "transport": "streamable_http"
+  },
+  "project": {
+    "name": "axis-iliad",
+    "type": "monorepo",
+    "primary_language": "TypeScript"
+  }
+}

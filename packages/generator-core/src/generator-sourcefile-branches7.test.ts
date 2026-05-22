@@ -58,77 +58,77 @@ function getFile(result: ReturnType<typeof generateFiles>, path: string) {
 
 describe("debug generator - framework-specific playbook branches", () => {
   it("debug-playbook: Next.js-specific debugging section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Next.js");
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Next.js");
     expect(f!.content).toContain("Hydration mismatches");
   });
 
   it("debug-playbook: SvelteKit-specific debugging section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "SvelteKit");
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("SvelteKit");
     expect(f!.content).toContain("Load functions");
   });
 
   it("debug-playbook: Svelte-specific debugging section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Svelte");
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Svelte");
     expect(f!.content).toContain("Reactivity bugs");
   });
 
   it("debug-playbook: React-specific debugging section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "React");
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("React");
     expect(f!.content).toContain("stale closures");
   });
 
   it("debug-playbook: Prisma with sql_schema tables", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Prisma");
     inp.context_map.sql_schema = [
       { name: "users", column_count: 5, foreign_key_count: 0, source_file: "schema.sql" },
       { name: "orders", column_count: 8, foreign_key_count: 2, source_file: "schema.sql" },
     ];
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Prisma");
     expect(f!.content).toContain("`users` (5 cols, 0 FKs)");
   });
 
   it("debug-playbook: Echo (Go HTTP) section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Echo");
     inp.context_map.project_identity.go_module = "github.com/org/api";
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Echo");
   });
 
   it("debug-playbook: Gin (Go HTTP) section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Gin");
     inp.context_map.project_identity.go_module = "github.com/org/api";
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Gin");
     expect(f!.content).toContain("ShouldBind");
   });
 
   it("debug-playbook: Express/Fastify API Server section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Express");
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("catch-all routes");
   });
@@ -137,7 +137,7 @@ describe("debug generator - framework-specific playbook branches", () => {
 
 describe("debug generator - rich context branches", () => {
   it("debug-playbook: domain models, sql schema, routes, architecture", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Next.js");
     inp.context_map.domain_models = [
       { name: "User", kind: "interface", language: "TypeScript", field_count: 6, source_file: "src/types.ts" },
@@ -155,7 +155,7 @@ describe("debug generator - rich context branches", () => {
     ];
     inp.context_map.architecture_signals.separation_score = 0.4;
     inp.context_map.architecture_signals.patterns_detected = ["MVC"];
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Domain Model");
     expect(f!.content).toContain("Database Schema");
@@ -165,37 +165,37 @@ describe("debug generator - rich context branches", () => {
   });
 
   it("debug-playbook: moderate separation (0.5-0.7) + docker", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.architecture_signals.layer_boundaries = [
       { layer: "business_logic", directories: ["src/services"] },
     ];
     inp.context_map.architecture_signals.separation_score = 0.6;
     inp.context_map.detection.deployment_target = "docker";
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Moderate separation");
     expect(f!.content).toContain("Container");
   });
 
   it("debug-playbook: good separation (>=0.7)", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.architecture_signals.layer_boundaries = [
       { layer: "presentation", directories: ["src/app"] },
     ];
     inp.context_map.architecture_signals.separation_score = 0.85;
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Good separation");
   });
 
   it("debug-playbook: >20 production deps shows truncation", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     const deps = [];
     for (let i = 0; i < 25; i++) {
       deps.push({ name: `dep-${i}`, version: "1.0.0", type: "production" as const });
     }
     inp.context_map.dependency_graph.external_dependencies = deps;
-    const f = getFile(generateFiles(inp), ".ai/debug-playbook.md");
+    const f = getFile(generateFiles(inp), "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("and 5 more");
   });
@@ -660,9 +660,9 @@ describe("frontend generator - uncovered branches", () => {
         size: 50,
       });
     }
-    const inp = input(snap(), [".ai/frontend-rules.md"], components);
+    const inp = input(snap(), ["frontend-rules.md"], components);
     addFw(inp, "React");
-    const f = getFile(generateFiles(inp), ".ai/frontend-rules.md");
+    const f = getFile(generateFiles(inp), "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Widget0");
     expect(f!.content).toContain("more");
@@ -814,17 +814,17 @@ describe("mcp generator - uncovered branches", () => {
 
 describe("seo generator - uncovered branches", () => {
   it("seo-rules: Next.js SSR/SSG tips", () => {
-    const inp = input(snap(), [".ai/seo-rules.md"]);
+    const inp = input(snap(), ["seo-rules.md"]);
     addFw(inp, "Next.js");
     const r = generateFiles(inp);
-    expect(getFile(r, ".ai/seo-rules.md")!.content).toContain("Next.js");
+    expect(getFile(r, "seo-rules.md")!.content).toContain("Next.js");
   });
 
   it("seo-rules: React SPA warnings (no Next)", () => {
-    const inp = input(snap(), [".ai/seo-rules.md"]);
+    const inp = input(snap(), ["seo-rules.md"]);
     addFw(inp, "React");
     const r = generateFiles(inp);
-    expect(getFile(r, ".ai/seo-rules.md")!.content).toContain("React");
+    expect(getFile(r, "seo-rules.md")!.content).toContain("React");
   });
 
   it("content-audit: page component analysis from source files", () => {

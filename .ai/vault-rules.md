@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -73,4 +73,4 @@ status: [draft | active | archived]
 
 ## Existing Markdown Files
 
-Found 65 markdown files in the project — candidates for vault import.
+Found 80 markdown files in the project — candidates for vault import.

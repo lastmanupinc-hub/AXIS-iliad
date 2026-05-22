@@ -103,10 +103,10 @@ describe("debug generator — uncovered branches", () => {
   // debug-playbook: test_frameworks branch (line ~90)
   it("debug-playbook includes test framework commands when test_frameworks present", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md"], ENTRY_POINTS));
+    const inp = withHotspots(input(s, ["debug-playbook.md"], ENTRY_POINTS));
     inp.context_map.detection.test_frameworks = ["vitest", "jest"];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("vitest, jest");
   });
@@ -114,10 +114,10 @@ describe("debug generator — uncovered branches", () => {
   // debug-playbook: deployment_target vercel branch (line ~325)
   it("debug-playbook includes vercel deployment notes when deployment_target is vercel", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md"], ENTRY_POINTS));
+    const inp = withHotspots(input(s, ["debug-playbook.md"], ENTRY_POINTS));
     inp.context_map.detection.deployment_target = "vercel";
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Build logs");
     expect(f!.content).toContain("Edge functions");
@@ -127,10 +127,10 @@ describe("debug generator — uncovered branches", () => {
   // debug-playbook: deployment_target lambda branch (line ~329)
   it("debug-playbook includes lambda deployment notes when deployment_target is lambda", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md"], ENTRY_POINTS));
+    const inp = withHotspots(input(s, ["debug-playbook.md"], ENTRY_POINTS));
     inp.context_map.detection.deployment_target = "lambda";
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Cold starts");
     expect(f!.content).toContain("Memory limits");
@@ -140,10 +140,10 @@ describe("debug generator — uncovered branches", () => {
   // debug-playbook: deployment_target serverless branch
   it("debug-playbook includes serverless notes when deployment_target is serverless", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md"], ENTRY_POINTS));
+    const inp = withHotspots(input(s, ["debug-playbook.md"], ENTRY_POINTS));
     inp.context_map.detection.deployment_target = "serverless";
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Cold starts");
   });
@@ -333,9 +333,9 @@ describe("seo generator — uncovered branches", () => {
   // seo-rules: meta files (sitemap, robots) detection (line ~144-160)
   it("seo-rules includes detected SEO files when sitemap/robots present", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = input(s, [".ai/seo-rules.md"], [...SEO_META_FILES, ...PAGE_FILES]);
+    const inp = input(s, ["seo-rules.md"], [...SEO_META_FILES, ...PAGE_FILES]);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/seo-rules.md");
+    const f = getFile(result, "seo-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Detected SEO Files");
     expect(f!.content).toContain("sitemap.xml");
@@ -345,9 +345,9 @@ describe("seo generator — uncovered branches", () => {
   // seo-rules: page files detection (line ~160-170)
   it("seo-rules includes detected page files table", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = input(s, [".ai/seo-rules.md"], PAGE_FILES);
+    const inp = input(s, ["seo-rules.md"], PAGE_FILES);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/seo-rules.md");
+    const f = getFile(result, "seo-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Detected Page Files");
     expect(f!.content).toContain("app/page.tsx");
@@ -626,9 +626,9 @@ describe("theme generator — uncovered branches", () => {
   // design-tokens: source_theme_files (line ~148-155)
   it("design-tokens includes source_theme_files when theme/token files present", () => {
     const s = snap({ files: SNAPSHOT_FILES });
-    const inp = input(s, [".ai/design-tokens.json"], THEME_FILES);
+    const inp = input(s, ["design-tokens.json"], THEME_FILES);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
     const parsed = JSON.parse(f!.content);
     expect(parsed.source_theme_files).not.toBeNull();

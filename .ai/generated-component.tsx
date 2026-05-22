@@ -25,13 +25,15 @@ export default axisiliad;
 // ValidationError (interface, 2 fields) — apps/api/src/env.ts
 // ValidationResult (interface, 3 fields) — apps/api/src/env.ts
 // ZipEntry (interface, 4 fields) — apps/api/src/export.ts
-// HistogramEntry (interface, 3 fields) — apps/api/src/metrics.ts
-// OpenApiSpec (interface, 6 fields) — apps/api/src/openapi.ts
-// WindowEntry (interface, 2 fields) — apps/api/src/rate-limiter.ts
+// PullRequestPayload (interface, 5 fields) — apps/api/src/github-webhook.ts
+// PushPayload (interface, 7 fields) — apps/api/src/github-webhook.ts
+// SnapshotTarget (interface, 5 fields) — apps/api/src/github-webhook.ts
 
 // ─── Project Conventions ───
 // • TypeScript strict mode
-// • pnpm workspaces
+// • Linter configured
+// • Formatter configured
+// • Makefile build
 
 // ─── Reference: existing components found in project ───
 // apps/web/src/App.tsx: export function App() { ... }

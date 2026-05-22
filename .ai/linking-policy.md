@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -49,11 +49,12 @@ Map high-importance code files to vault notes for traceability:
 
 | Code File | Risk | Vault Note |
 |-----------|------|-----------|
-| `apps/web/src/api.ts` | 0.8 | `[[Code/apps-web-src-api]]` |
-| `apps/web/src/App.tsx` | 0.8 | `[[Code/apps-web-src-App]]` |
-| `apps/web/src/pages/DashboardPage.tsx` | 0.5 | `[[Code/apps-web-src-pages-DashboardPage]]` |
-| `apps/web/src/components/Toast.tsx` | 0.1 | `[[Code/apps-web-src-components-Toast]]` |
-| `apps/web/src/components/AxisIcons.tsx` | 0.1 | `[[Code/apps-web-src-components-AxisIcons]]` |
+| `apps/web/src/App.tsx` | 1.0 | `[[Code/apps-web-src-App]]` |
+| `apps/web/src/api.ts` | 0.9 | `[[Code/apps-web-src-api]]` |
+| `apps/web/src/pages.test.tsx` | 0.8 | `[[Code/apps-web-src-pages.test]]` |
+| `apps/web/src/pages/DashboardPage.tsx` | 0.6 | `[[Code/apps-web-src-pages-DashboardPage]]` |
+| `apps/web/src/components/Toast.tsx` | 0.2 | `[[Code/apps-web-src-components-Toast]]` |
+| `apps/web/src/components/AxisIcons.tsx` | 0.2 | `[[Code/apps-web-src-components-AxisIcons]]` |
 | `apps/web/src/upload-utils.ts` | 0.1 | `[[Code/apps-web-src-upload-utils]]` |
 
 ## Anti-Patterns
@@ -84,4 +85,4 @@ Track these metrics to ensure vault health:
 - `apps/web/src/App.tsx` → exports: export function App() { ... }
 - `apps/web/src/main.tsx` → exports: default
 - `packages/context-engine/src/index.ts` → exports: export type { ... }, export { ... }
-- `packages/generator-core/src/index.ts` → exports: export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }
+- `packages/generator-core/src/index.ts` → exports: export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... }

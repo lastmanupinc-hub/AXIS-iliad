@@ -40,25 +40,25 @@ import {
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]) => GeneratedFile;
 
 const REGISTRY: Record<string, GeneratorFn> = {
-  ".ai/context-map.json": (ctx, _p, files) => generateContextMapJSON(ctx, files),
-  ".ai/repo-profile.yaml": (_ctx, profile, files) => generateRepoProfileYAML(profile, files),
+  "context-map.json": (ctx, _p, files) => generateContextMapJSON(ctx, files),
+  "repo-profile.yaml": (_ctx, profile, files) => generateRepoProfileYAML(profile, files),
   "architecture-summary.md": (ctx, _p, files) => generateArchitectureSummary(ctx, files),
   "AGENTS.md": (ctx, _p, files) => generateAgentsMD(ctx, files),
   "CLAUDE.md": (ctx, _p, files) => generateClaudeMD(ctx, files),
   ".cursorrules": (ctx, _p, files) => generateCursorRules(ctx, files),
-  ".ai/debug-playbook.md": (ctx, _p, files) => generateDebugPlaybook(ctx, files),
+  "debug-playbook.md": (ctx, _p, files) => generateDebugPlaybook(ctx, files),
   "incident-template.md": (ctx, _p, files) => generateIncidentTemplate(ctx, files),
   "tracing-rules.md": (ctx, _p, files) => generateTracingRules(ctx, files),
-  ".ai/frontend-rules.md": (ctx, _p, files) => generateFrontendRules(ctx, files),
+  "frontend-rules.md": (ctx, _p, files) => generateFrontendRules(ctx, files),
   "component-guidelines.md": (ctx, _p, files) => generateComponentGuidelines(ctx, files),
-  ".ai/seo-rules.md": (ctx, _p, files) => generateSeoRules(ctx, files),
+  "seo-rules.md": (ctx, _p, files) => generateSeoRules(ctx, files),
   "schema-recommendations.json": (ctx, _p, files) => generateSchemaRecommendations(ctx, files),
   "route-priority-map.md": (ctx, _p, files) => generateRoutePriorityMap(ctx, files),
   "content-audit.md": (ctx, _p, files) => generateContentAudit(ctx, files),
-  ".ai/optimization-rules.md": (ctx, _p, files) => generateOptimizationRules(ctx, files),
+  "optimization-rules.md": (ctx, _p, files) => generateOptimizationRules(ctx, files),
   "prompt-diff-report.md": (ctx, profile, files) => generatePromptDiffReport(ctx, profile, files),
   "cost-estimate.json": (ctx, profile, files) => generateCostEstimate(ctx, profile, files),
-  ".ai/design-tokens.json": (ctx, _p, files) => generateDesignTokens(ctx, files),
+  "design-tokens.json": (ctx, _p, files) => generateDesignTokens(ctx, files),
   "theme.css": (ctx, _p, files) => generateThemeCss(ctx, files),
   "theme-guidelines.md": (ctx, _p, files) => generateThemeGuidelines(ctx, files),
   "component-theme-map.json": (ctx, _p, files) => generateComponentThemeMap(ctx, files),
@@ -118,7 +118,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "export-manifest.yaml": (ctx, profile, files) => generateExportManifest(ctx, profile, files),
   // ─── depth generators ───────────────────────────────────────
   "dependency-hotspots.md": (ctx, _p, files) => generateDependencyHotspots(ctx, files),
-  ".ai/symbol-index.json": (_ctx, _p, files) => generateSymbolIndex(files),
+  "symbol-index.json": (_ctx, _p, files) => generateSymbolIndex(files),
   "repo-run-stats.json": (ctx, _p, files) => generateRepoRunStats(ctx, _p, files),
   "root-cause-checklist.md": (ctx, _p, files) => generateRootCauseChecklist(ctx, files),
   "workflow-pack.md": (ctx, _p, files) => generateWorkflowPack(ctx, files),
@@ -163,17 +163,20 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "Makefile": (ctx, profile, files) => generateMakefileWithShipTarget(ctx, profile, files),
 };
 
-// Aliases (user may request with different naming)
+// Aliases (user may request with legacy `.ai/` prefix or other naming).
+// Canonical paths are bare basenames — the writer/exporter prepends the
+// output directory. Legacy `.ai/foo` requests resolve to the bare name.
 const ALIASES: Record<string, string> = {
   "CURSOR.md": ".cursorrules",
-  "context-map.json": ".ai/context-map.json",
-  "repo-profile.yaml": ".ai/repo-profile.yaml",
-  ".ai/project-profile.yaml": ".ai/repo-profile.yaml",
-  "debug-playbook.md": ".ai/debug-playbook.md",
-  "frontend-rules.md": ".ai/frontend-rules.md",
-  "seo-rules.md": ".ai/seo-rules.md",
-  "optimization-rules.md": ".ai/optimization-rules.md",
-  "design-tokens.json": ".ai/design-tokens.json",
+  ".ai/context-map.json": "context-map.json",
+  ".ai/repo-profile.yaml": "repo-profile.yaml",
+  ".ai/project-profile.yaml": "repo-profile.yaml",
+  ".ai/debug-playbook.md": "debug-playbook.md",
+  ".ai/frontend-rules.md": "frontend-rules.md",
+  ".ai/seo-rules.md": "seo-rules.md",
+  ".ai/optimization-rules.md": "optimization-rules.md",
+  ".ai/design-tokens.json": "design-tokens.json",
+  ".ai/symbol-index.json": "symbol-index.json",
 };
 
 /** Validate a GeneratedFile has all required non-empty string fields. Returns error message or null. */
@@ -195,8 +198,8 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
 
   // Always include the core search outputs
   const outputSet = new Set(requested_outputs);
-  outputSet.add(".ai/context-map.json");
-  outputSet.add(".ai/repo-profile.yaml");
+  outputSet.add("context-map.json");
+  outputSet.add("repo-profile.yaml");
   outputSet.add("architecture-summary.md");
 
   for (const requested of outputSet) {
@@ -242,35 +245,35 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
 
 // ─── Program classification for each generator output ─────────
 const GENERATOR_PROGRAMS: Record<string, string> = {
-  ".ai/context-map.json": "search",
-  ".ai/repo-profile.yaml": "search",
+  "context-map.json": "search",
+  "repo-profile.yaml": "search",
   "architecture-summary.md": "search",
   "dependency-hotspots.md": "search",
-  ".ai/symbol-index.json": "search",
+  "symbol-index.json": "search",
   "repo-run-stats.json": "search",
   "AGENTS.md": "skills",
   "CLAUDE.md": "skills",
   ".cursorrules": "skills",
   "workflow-pack.md": "skills",
   "policy-pack.md": "skills",
-  ".ai/debug-playbook.md": "debug",
+  "debug-playbook.md": "debug",
   "incident-template.md": "debug",
   "tracing-rules.md": "debug",
   "root-cause-checklist.md": "debug",
-  ".ai/frontend-rules.md": "frontend",
+  "frontend-rules.md": "frontend",
   "component-guidelines.md": "frontend",
   "layout-patterns.md": "frontend",
   "ui-audit.md": "frontend",
-  ".ai/seo-rules.md": "seo",
+  "seo-rules.md": "seo",
   "schema-recommendations.json": "seo",
   "route-priority-map.md": "seo",
   "content-audit.md": "seo",
   "meta-tag-audit.json": "seo",
-  ".ai/optimization-rules.md": "optimization",
+  "optimization-rules.md": "optimization",
   "prompt-diff-report.md": "optimization",
   "cost-estimate.json": "optimization",
   "token-budget-plan.md": "optimization",
-  ".ai/design-tokens.json": "theme",
+  "design-tokens.json": "theme",
   "theme.css": "theme",
   "theme-guidelines.md": "theme",
   "component-theme-map.json": "theme",

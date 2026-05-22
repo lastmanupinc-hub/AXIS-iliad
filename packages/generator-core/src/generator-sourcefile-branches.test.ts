@@ -150,9 +150,9 @@ describe("generators-debug.ts — source file branches", () => {
   const s = snap({ name: "debug-sf-app", files: SNAPSHOT_FILES });
 
   describe("generateDebugPlaybook with source files", () => {
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md"], ALL_DEBUG_FILES));
+    const inp = withHotspots(input(s, ["debug-playbook.md"], ALL_DEBUG_FILES));
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
 
     it("produces a debug playbook", () => {
       expect(f).toBeDefined();
@@ -241,11 +241,11 @@ describe("generators-debug.ts — source file branches", () => {
   });
 
   describe("debug generators without source files produce no source sections", () => {
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md", "tracing-rules.md"], undefined));
+    const inp = withHotspots(input(s, ["debug-playbook.md", "tracing-rules.md"], undefined));
     const result = generateFiles(inp);
 
     it("debug playbook has no entry point source section", () => {
-      const f = getFile(result, ".ai/debug-playbook.md");
+      const f = getFile(result, "debug-playbook.md");
       expect(f).toBeDefined();
       expect(f!.content).not.toContain("Entry Point Source (for tracing)");
     });

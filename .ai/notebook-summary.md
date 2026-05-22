@@ -4,16 +4,16 @@
 
 ## Project Synopsis
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Architecture Overview
 
-- **Files**: 432 files across 53 directories
-- **Lines of Code**: 95,217
+- **Files**: 500 files across 65 directories
+- **Lines of Code**: 130,519
 - **Primary Language**: TypeScript
 - **Frameworks**: React
 - **Patterns**: monorepo, containerized
-- **Separation Score**: 0.64/10
+- **Separation Score**: 0.65/10
 
 ## Key Concepts
 
@@ -22,16 +22,18 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 - **`ValidationError`** — interface (2 fields in `apps/api/src/env.ts`)
 - **`ValidationResult`** — interface (3 fields in `apps/api/src/env.ts`)
 - **`ZipEntry`** — interface (4 fields in `apps/api/src/export.ts`)
-- **`HistogramEntry`** — interface (3 fields in `apps/api/src/metrics.ts`)
-- **`OpenApiSpec`** — interface (6 fields in `apps/api/src/openapi.ts`)
-- **`WindowEntry`** — interface (2 fields in `apps/api/src/rate-limiter.ts`)
-- **`AppHandle`** — interface (3 fields in `apps/api/src/router.ts`)
-- **`Route`** — interface (4 fields in `apps/api/src/router.ts`)
+- **`PullRequestPayload`** — interface (5 fields in `apps/api/src/github-webhook.ts`)
+- **`PushPayload`** — interface (7 fields in `apps/api/src/github-webhook.ts`)
+- **`SnapshotTarget`** — interface (5 fields in `apps/api/src/github-webhook.ts`)
+- **`FirecrawlCrawlRequest`** — interface (5 fields in `apps/api/src/handlers.ts`)
+- **`FirecrawlCrawlResponse`** — interface (4 fields in `apps/api/src/handlers.ts`)
 
 ## Conventions
 
 - TypeScript strict mode
-- pnpm workspaces
+- Linter configured
+- Formatter configured
+- Makefile build
 
 ## Warnings & Notes
 
@@ -39,21 +41,21 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 ## Dependency Snapshot
 
-Total external dependencies: **19**
+Total external dependencies: **27**
 
 | Package | Version |
 |---------|---------|
 | @axis/context-engine | workspace:* |
 | @axis/generator-core | workspace:* |
+| @axis/mpp | workspace:* |
 | @axis/repo-parser | workspace:* |
 | @axis/snapshots | workspace:* |
+| @jmondi/oauth2-server | ^4.2.2 |
+| jsonwebtoken | ^9.0.3 |
+| mppx | ^0.5.12 |
 | jszip | ^3.10.1 |
 | react | ^19.1.0 |
-| react-dom | ^19.1.0 |
-| better-sqlite3 | ^12.8.0 |
-| uuid | ^11.1.0 |
-| @types/better-sqlite3 | ^7.6.13 |
-| ... | +9 more |
+| ... | +17 more |
 
 ## Entry Point Source
 
@@ -63,30 +65,42 @@ Total external dependencies: **19**
 | `apps/web/src/App.tsx` | export function App() { ... } |
 | `apps/web/src/main.tsx` | default |
 | `packages/context-engine/src/index.ts` | export type { ... }, export { ... } |
-| `packages/generator-core/src/index.ts` | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... } |
-| `packages/repo-parser/src/index.ts` | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... }, export type { ... } |
+| `packages/generator-core/src/index.ts` | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... } |
+| `packages/mpp/src/index.ts` | export type ChargeOptions = ..., export type MppResult = ..., export interface AgentBudget { ... }, export interface PricingTier { ... }, export interface Build402Options { ... }, export const PRICING_TIERS: Record<string, PricingTier> = ..., export const LEGACY_TOOL_ALIASES: Record<string, string> = ..., export function getPricingTier(tool: string): PricingTier { ... }, export function negotiatePrice(, export function build402NegotiationBody(, export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined { ... }, export function resolveAgentMode(req: IncomingMessage): "standard" | "lite" { ... } |
 
 ## Configuration Files
+
+### `.prettierrc.json`
+
+```json
+{
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 100
+}
+
+```
 
 ### `apps/api/package.json`
 
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "npx tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --test dist/**/*.test.js"
+    "test": "echo skipped â€” run vitest from root"
   },
   "dependencies": {
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-... (10 more lines)
+    "@axis/mpp": "workspace:*",
+... (15 more lines)
 ```
 
 ### `apps/api/tsconfig.json`
@@ -102,25 +116,4 @@ Total external dependencies: **19**
   "exclude": ["src/**/*.test.ts"]
 }
 
-```
-
-### `apps/cli/package.json`
-
-```json
-{
-  "name": "@axis/cli",
-  "version": "0.5.0",
-  "private": true,
-  "type": "module",
-  "bin": {
-    "axis": "./bin/axis.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/cli.js"
-  },
-  "dependencies": {
-    "@axis/snapshots": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-... (8 more lines)
 ```

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
 
 ## Detected Stack
 
@@ -19,8 +19,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | Project Type | monorepo |
 | Primary Language | TypeScript |
 | Frameworks | React |
-| Total Files | 432 |
-| Total LOC | 95217 |
+| Total Files | 500 |
+| Total LOC | 130519 |
 
 ## SEO Readiness Score
 
@@ -31,16 +31,16 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | Server-Side Rendering | FAIL | 3 |
 | Route Detection | PASS | 2 |
 | Has TypeScript | PASS | 1 |
-| Has CI/CD | FAIL | 1 |
-| Has README | PASS | 1 |
+| Has CI/CD | PASS | 1 |
+| Has README | FAIL | 1 |
 | Has Tests | PASS | 1 |
 | Architecture Layers | PASS | 1 |
 
 ## Content Files Analysis
 
-- **Content files (md/mdx/html):** 121
-- **Template files (tsx/jsx/vue/svelte):** 24
-- **Total source files:** 432
+- **Content files (md/mdx/html):** 157
+- **Template files (tsx/jsx/vue/svelte):** 34
+- **Total source files:** 500
 
 ## Page Components
 
@@ -48,20 +48,27 @@ These files likely render as individual pages:
 
 | File | Language | LOC | SEO Action |
 |------|----------|-----|------------|
-| `apps/web/src/pages/AccountPage.tsx` | TypeScript | 542 | Needs meta tags |
-| `apps/web/src/pages/DashboardPage.tsx` | TypeScript | 141 | Needs meta tags |
-| `apps/web/src/pages/DocsPage.tsx` | TypeScript | 1248 | Needs meta tags |
-| `apps/web/src/pages/HelpPage.tsx` | TypeScript | 723 | Needs meta tags |
-| `apps/web/src/pages/PlansPage.tsx` | TypeScript | 224 | Needs meta tags |
-| `apps/web/src/pages/ProgramsPage.tsx` | TypeScript | 282 | Needs meta tags |
-| `apps/web/src/pages/QAPage.tsx` | TypeScript | 367 | Needs meta tags |
-| `apps/web/src/pages/TermsPage.tsx` | TypeScript | 318 | Needs meta tags |
-| `apps/web/src/pages/UploadPage.tsx` | TypeScript | 470 | Needs meta tags |
+| `apps/web/src/pages/AccountPage.tsx` | TypeScript | 597 | Needs meta tags |
+| `apps/web/src/pages/AdminPage.tsx` | TypeScript | 194 | Needs meta tags |
+| `apps/web/src/pages/DashboardPage.tsx` | TypeScript | 176 | Needs meta tags |
+| `apps/web/src/pages/DocsPage.tsx` | TypeScript | 1249 | Needs meta tags |
+| `apps/web/src/pages/ExamplesPage.tsx` | TypeScript | 479 | Needs meta tags |
+| `apps/web/src/pages/ForAgentsPage.tsx` | TypeScript | 152 | Needs meta tags |
+| `apps/web/src/pages/HelpPage.tsx` | TypeScript | 734 | Needs meta tags |
+| `apps/web/src/pages/InstallPage.tsx` | TypeScript | 186 | Needs meta tags |
+| `apps/web/src/pages/MyAnalyticsPage.tsx` | TypeScript | 218 | Needs meta tags |
+| `apps/web/src/pages/PlansPage.tsx` | TypeScript | 231 | Needs meta tags |
+| `apps/web/src/pages/ProgramsPage.tsx` | TypeScript | 300 | Needs meta tags |
+| `apps/web/src/pages/QAPage.tsx` | TypeScript | 372 | Needs meta tags |
+| `apps/web/src/pages/TermsPage.tsx` | TypeScript | 331 | Needs meta tags |
+| `apps/web/src/pages/tools/WebResearchPage.tsx` | TypeScript | 198 | Needs meta tags |
+| `apps/web/src/pages/ToolsIndexPage.tsx` | TypeScript | 185 | Needs meta tags |
+| `apps/web/src/pages/UploadPage.tsx` | TypeScript | 582 | Needs meta tags |
 
 ## Recommendations
 
 - **CRITICAL:** No SSR framework detected. Client-only rendering hurts SEO. Consider Next.js, Nuxt, or SvelteKit.
-- **WARNING:** 9 page components found but no SSR. These pages may not be indexed.
+- **WARNING:** 16 page components found but no SSR. These pages may not be indexed.
 
 ## Core Web Vitals Checklist
 
@@ -75,29 +82,35 @@ These files likely render as individual pages:
 
 ## Detected Content Files
 
-- `AGENTS.md` (128 lines)
-- `apps/web/index.html` (121 lines)
-- `architecture-summary.md` (136 lines)
-- `artifact-spec.md` (39 lines)
+- `ab-test-plan.md` (91 lines)
+- `agent-purchasing-playbook.md` (443 lines)
+- `AGENTS.md` (328 lines)
+- `apps/web/index.html` (167 lines)
+- `architecture-summary.md` (1947 lines)
+- `artifact-spec.md` (146 lines)
+- `asset-checklist.md` (50 lines)
+- `asset-guidelines.md` (65 lines)
 - `AXIS_Board_Pitch.md` (504 lines)
-- `AXIS_DEMO_REPORT.md` (273 lines)
-- `brand-guidelines.md` (190 lines)
-- `canvas-pack.md` (215 lines)
-- `CHANGELOG.md` (73 lines)
-- `CLAUDE.md` (13 lines)
-- `cloudflare-pages.md` (34 lines)
-- `CONTRIBUTING.md` (93 lines)
+- `AXIS_DEMO_REPORT.md` (274 lines)
+- `brand-board.md` (151 lines)
+- `brand-guidelines.md` (92 lines)
 
 ## Page Component Analysis
 
 | Component | Has Meta | Lines |
 |-----------|----------|-------|
-| `apps/web/src/pages/AccountPage.tsx` | **Missing** | 573 |
-| `apps/web/src/pages/DashboardPage.tsx` | **Missing** | 158 |
-| `apps/web/src/pages/DocsPage.tsx` | **Missing** | 1292 |
-| `apps/web/src/pages/HelpPage.tsx` | Yes | 758 |
-| `apps/web/src/pages/PlansPage.tsx` | **Missing** | 242 |
-| `apps/web/src/pages/ProgramsPage.tsx` | **Missing** | 313 |
-| `apps/web/src/pages/QAPage.tsx` | Yes | 392 |
-| `apps/web/src/pages/TermsPage.tsx` | Yes | 357 |
-| `apps/web/src/pages/UploadPage.tsx` | **Missing** | 520 |
+| `apps/web/src/components/ToolPage.tsx` | Yes | 189 |
+| `apps/web/src/pages/AccountPage.tsx` | **Missing** | 630 |
+| `apps/web/src/pages/AdminPage.tsx` | **Missing** | 206 |
+| `apps/web/src/pages/DashboardPage.tsx` | **Missing** | 197 |
+| `apps/web/src/pages/DocsPage.tsx` | Yes | 1293 |
+| `apps/web/src/pages/ExamplesPage.tsx` | Yes | 505 |
+| `apps/web/src/pages/ForAgentsPage.tsx` | **Missing** | 168 |
+| `apps/web/src/pages/HelpPage.tsx` | Yes | 769 |
+| `apps/web/src/pages/InstallPage.tsx` | **Missing** | 205 |
+| `apps/web/src/pages/MyAnalyticsPage.tsx` | **Missing** | 241 |
+| `apps/web/src/pages/PlansPage.tsx` | **Missing** | 249 |
+| `apps/web/src/pages/ProgramsPage.tsx` | **Missing** | 333 |
+| `apps/web/src/pages/QAPage.tsx` | Yes | 397 |
+| `apps/web/src/pages/TermsPage.tsx` | Yes | 372 |
+| `apps/web/src/pages/tools/WebResearchPage.tsx` | Yes | 223 |

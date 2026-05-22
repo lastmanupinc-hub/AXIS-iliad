@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:48.038Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
+  "generated_at": "2026-05-22T16:58:33.743Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -48,7 +48,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
@@ -104,7 +104,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
@@ -160,7 +160,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
@@ -216,12 +216,460 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
         "canonical": {
           "value": "https://example.com/v1/admin/activity",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/llms.txt",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "llms.txt | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/llms.txt",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/.well-known/skills/index.json",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "index.json | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/.well-known/skills/index.json",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/docs.md",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "docs.md | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/docs.md",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/.well-known/axis.json",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "axis.json | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/.well-known/axis.json",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/for-agents",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "for agents | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/for-agents",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/install",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "install | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/install",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/v1/install/:platform",
+      "source_file": "apps/api/src/agent-discovery.test.ts",
+      "required_tags": {
+        "title": {
+          "template": ":platform | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/v1/install/:platform",
+          "status": "verify"
+        }
+      },
+      "open_graph": {
+        "og:title": {
+          "inherits": "title"
+        },
+        "og:description": {
+          "inherits": "description"
+        },
+        "og:type": {
+          "value": "article"
+        },
+        "og:url": {
+          "inherits": "canonical"
+        },
+        "og:image": {
+          "value": "/og-image.png",
+          "dimensions": "1200x630",
+          "status": "verify"
+        },
+        "og:site_name": {
+          "value": "axis-iliad"
+        }
+      },
+      "twitter": {
+        "twitter:card": {
+          "value": "summary_large_image"
+        },
+        "twitter:title": {
+          "inherits": "title"
+        },
+        "twitter:description": {
+          "inherits": "description"
+        },
+        "twitter:image": {
+          "inherits": "og:image"
+        }
+      }
+    },
+    {
+      "route": "/.well-known/axis.json",
+      "source_file": "apps/api/src/analyze.test.ts",
+      "required_tags": {
+        "title": {
+          "template": "axis.json | axis-iliad",
+          "max_length": 60,
+          "status": "verify"
+        },
+        "description": {
+          "template": "axis-iliad",
+          "max_length": 160,
+          "status": "verify"
+        },
+        "canonical": {
+          "value": "https://example.com/.well-known/axis.json",
           "status": "verify"
         }
       },
@@ -272,7 +720,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
@@ -328,7 +776,7 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
@@ -384,460 +832,12 @@
           "status": "verify"
         },
         "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
+          "template": "axis-iliad",
           "max_length": 160,
           "status": "verify"
         },
         "canonical": {
           "value": "https://example.com/v1/projects/:project_id/generated-files",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/projects/:project_id/generated-files/:file_path",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": ":file path | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/projects/:project_id/generated-files/:file_path",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/health",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "health | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/health",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/db/stats",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "stats | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/db/stats",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/search/:snapshot_id/stats",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "stats | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/search/:snapshot_id/stats",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/docs",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "docs | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/docs",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/programs",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "programs | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/programs",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/account/seats",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "seats | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/account/seats",
-          "status": "verify"
-        }
-      },
-      "open_graph": {
-        "og:title": {
-          "inherits": "title"
-        },
-        "og:description": {
-          "inherits": "description"
-        },
-        "og:type": {
-          "value": "article"
-        },
-        "og:url": {
-          "inherits": "canonical"
-        },
-        "og:image": {
-          "value": "/og-image.png",
-          "dimensions": "1200x630",
-          "status": "verify"
-        },
-        "og:site_name": {
-          "value": "axis-iliad"
-        }
-      },
-      "twitter": {
-        "twitter:card": {
-          "value": "summary_large_image"
-        },
-        "twitter:title": {
-          "inherits": "title"
-        },
-        "twitter:description": {
-          "inherits": "description"
-        },
-        "twitter:image": {
-          "inherits": "og:image"
-        }
-      }
-    },
-    {
-      "route": "/v1/account/upgrade-prompt",
-      "source_file": "apps/api/src/api-branches.test.ts",
-      "required_tags": {
-        "title": {
-          "template": "upgrade prompt | axis-iliad",
-          "max_length": 60,
-          "status": "verify"
-        },
-        "description": {
-          "template": "AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context",
-          "max_length": 160,
-          "status": "verify"
-        },
-        "canonical": {
-          "value": "https://example.com/v1/account/upgrade-prompt",
           "status": "verify"
         }
       },
@@ -901,22 +901,22 @@
       "priority": "medium"
     },
     {
-      "route": "/v1/snapshots/:snapshot_id",
+      "route": "/llms.txt",
       "schema_type": "WebPage",
       "priority": "medium"
     },
     {
-      "route": "/v1/projects/:project_id/context",
+      "route": "/.well-known/skills/index.json",
       "schema_type": "WebPage",
       "priority": "medium"
     },
     {
-      "route": "/v1/projects/:project_id/generated-files",
+      "route": "/v1/docs.md",
       "schema_type": "WebPage",
       "priority": "medium"
     },
     {
-      "route": "/v1/projects/:project_id/generated-files/:file_path",
+      "route": "/.well-known/axis.json",
       "schema_type": "WebPage",
       "priority": "medium"
     }
@@ -957,6 +957,13 @@
       "has_description": true
     },
     {
+      "path": "apps/web/src/components/ToolPage.tsx",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": true
+    },
+    {
       "path": "apps/web/src/index.css",
       "has_title": true,
       "has_og_tags": false,
@@ -971,6 +978,13 @@
       "has_description": false
     },
     {
+      "path": "apps/web/src/pages/AdminPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
+    },
+    {
       "path": "apps/web/src/pages/DashboardPage.tsx",
       "has_title": false,
       "has_og_tags": false,
@@ -979,10 +993,24 @@
     },
     {
       "path": "apps/web/src/pages/DocsPage.tsx",
-      "has_title": false,
+      "has_title": true,
       "has_og_tags": false,
       "has_structured_data": false,
       "has_description": true
+    },
+    {
+      "path": "apps/web/src/pages/ExamplesPage.tsx",
+      "has_title": true,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": true
+    },
+    {
+      "path": "apps/web/src/pages/ForAgentsPage.tsx",
+      "has_title": false,
+      "has_og_tags": false,
+      "has_structured_data": false,
+      "has_description": false
     },
     {
       "path": "apps/web/src/pages/HelpPage.tsx",
@@ -992,42 +1020,14 @@
       "has_description": true
     },
     {
-      "path": "apps/web/src/pages/PlansPage.tsx",
+      "path": "apps/web/src/pages/InstallPage.tsx",
       "has_title": false,
       "has_og_tags": false,
       "has_structured_data": false,
       "has_description": false
     },
     {
-      "path": "apps/web/src/pages/ProgramsPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/QAPage.tsx",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/TermsPage.tsx",
-      "has_title": true,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "apps/web/src/pages/UploadPage.tsx",
-      "has_title": false,
-      "has_og_tags": false,
-      "has_structured_data": false,
-      "has_description": false
-    },
-    {
-      "path": "packages/context-engine/src/index.ts",
+      "path": "apps/web/src/pages/MyAnalyticsPage.tsx",
       "has_title": false,
       "has_og_tags": false,
       "has_structured_data": false,

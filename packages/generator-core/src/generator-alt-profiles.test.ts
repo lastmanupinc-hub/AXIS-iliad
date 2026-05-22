@@ -125,8 +125,8 @@ describe("Vue + Sass profile", () => {
   });
 
   it("theme design-tokens detect sass styling approach", () => {
-    const result = generateFiles(makeInput(snap, [".ai/design-tokens.json"]));
-    const token = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const result = generateFiles(makeInput(snap, ["design-tokens.json"]));
+    const token = result.files.find(f => f.path === "design-tokens.json")!;
     const parsed = JSON.parse(token.content);
     expect(parsed.styling_approach).toBe("sass");
     expect(parsed.detected_stack.has_sass).toBe(true);
@@ -142,8 +142,8 @@ describe("Vue + Sass profile", () => {
   });
 
   it("frontend rules include Vue conventions", () => {
-    const result = generateFiles(makeInput(snap, [".ai/frontend-rules.md"]));
-    const file = result.files.find(f => f.path === ".ai/frontend-rules.md")!;
+    const result = generateFiles(makeInput(snap, ["frontend-rules.md"]));
+    const file = result.files.find(f => f.path === "frontend-rules.md")!;
     expect(file.content).toContain("<script setup>");
     expect(file.content).toContain(".vue");
     expect(file.content).not.toContain("Server Components");
@@ -151,8 +151,8 @@ describe("Vue + Sass profile", () => {
 
   it("generates valid files for all requested outputs", () => {
     const result = generateFiles(makeInput(snap, [
-      ".ai/design-tokens.json", "theme.css", "theme-guidelines.md",
-      ".ai/frontend-rules.md", "component-guidelines.md",
+      "design-tokens.json", "theme.css", "theme-guidelines.md",
+      "frontend-rules.md", "component-guidelines.md",
     ]));
     expect(result.files.length).toBeGreaterThanOrEqual(5);
     for (const f of result.files) {
@@ -172,8 +172,8 @@ describe("Python Flask profile", () => {
   });
 
   it("theme design-tokens detect plain-css (no JS styling)", () => {
-    const result = generateFiles(makeInput(snap, [".ai/design-tokens.json"]));
-    const token = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const result = generateFiles(makeInput(snap, ["design-tokens.json"]));
+    const token = result.files.find(f => f.path === "design-tokens.json")!;
     const parsed = JSON.parse(token.content);
     expect(parsed.styling_approach).toBe("plain-css");
     expect(parsed.detected_stack.has_tailwind).toBe(false);
@@ -189,16 +189,16 @@ describe("Python Flask profile", () => {
   });
 
   it("frontend rules omit React/Vue/Next.js conventions", () => {
-    const result = generateFiles(makeInput(snap, [".ai/frontend-rules.md"]));
-    const file = result.files.find(f => f.path === ".ai/frontend-rules.md")!;
+    const result = generateFiles(makeInput(snap, ["frontend-rules.md"]));
+    const file = result.files.find(f => f.path === "frontend-rules.md")!;
     expect(file.content).not.toContain("functional components with hooks");
     expect(file.content).not.toContain("Server Components");
     expect(file.content).not.toContain("<script setup>");
   });
 
   it("optimization rules show small-project context window note", () => {
-    const result = generateFiles(makeInput(snap, [".ai/optimization-rules.md"]));
-    const file = result.files.find(f => f.path === ".ai/optimization-rules.md")!;
+    const result = generateFiles(makeInput(snap, ["optimization-rules.md"]));
+    const file = result.files.find(f => f.path === "optimization-rules.md")!;
     expect(file.content).toContain("comfortably fits");
     expect(file.content).not.toContain("Warning:");
     expect(file.content).toContain("flask-api");
@@ -207,8 +207,8 @@ describe("Python Flask profile", () => {
   it("core search outputs still generate for non-JS projects", () => {
     const result = generateFiles(makeInput(snap, []));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
-    expect(paths).toContain(".ai/repo-profile.yaml");
+    expect(paths).toContain("context-map.json");
+    expect(paths).toContain("repo-profile.yaml");
     expect(paths).toContain("architecture-summary.md");
   });
 });
@@ -222,8 +222,8 @@ describe("styled-components profile", () => {
   });
 
   it("theme design-tokens detect css-in-js styling approach", () => {
-    const result = generateFiles(makeInput(snap, [".ai/design-tokens.json"]));
-    const token = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const result = generateFiles(makeInput(snap, ["design-tokens.json"]));
+    const token = result.files.find(f => f.path === "design-tokens.json")!;
     const parsed = JSON.parse(token.content);
     expect(parsed.styling_approach).toBe("css-in-js");
     expect(parsed.detected_stack.has_css_in_js).toBe(true);
@@ -239,8 +239,8 @@ describe("styled-components profile", () => {
   });
 
   it("frontend rules include React conventions", () => {
-    const result = generateFiles(makeInput(snap, [".ai/frontend-rules.md"]));
-    const file = result.files.find(f => f.path === ".ai/frontend-rules.md")!;
+    const result = generateFiles(makeInput(snap, ["frontend-rules.md"]));
+    const file = result.files.find(f => f.path === "frontend-rules.md")!;
     expect(file.content).toContain("functional components");
   });
 });
@@ -254,8 +254,8 @@ describe("CSS modules profile", () => {
   });
 
   it("theme design-tokens detect css-modules styling approach", () => {
-    const result = generateFiles(makeInput(snap, [".ai/design-tokens.json"]));
-    const token = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const result = generateFiles(makeInput(snap, ["design-tokens.json"]));
+    const token = result.files.find(f => f.path === "design-tokens.json")!;
     const parsed = JSON.parse(token.content);
     expect(parsed.styling_approach).toBe("css-modules");
     expect(parsed.detected_stack.has_css_modules).toBe(true);
@@ -272,8 +272,8 @@ describe("CSS modules profile", () => {
   });
 
   it("frontend rules include Next.js conventions", () => {
-    const result = generateFiles(makeInput(snap, [".ai/frontend-rules.md"]));
-    const file = result.files.find(f => f.path === ".ai/frontend-rules.md")!;
+    const result = generateFiles(makeInput(snap, ["frontend-rules.md"]));
+    const file = result.files.find(f => f.path === "frontend-rules.md")!;
     expect(file.content).toContain("Server Components");
   });
 });
@@ -289,27 +289,27 @@ describe("minimal profile", () => {
   it("still generates core search outputs", () => {
     const result = generateFiles(makeInput(snap, []));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
-    expect(paths).toContain(".ai/repo-profile.yaml");
+    expect(paths).toContain("context-map.json");
+    expect(paths).toContain("repo-profile.yaml");
     expect(paths).toContain("architecture-summary.md");
   });
 
   it("optimization classifies as small project", () => {
-    const result = generateFiles(makeInput(snap, [".ai/optimization-rules.md"]));
-    const file = result.files.find(f => f.path === ".ai/optimization-rules.md")!;
+    const result = generateFiles(makeInput(snap, ["optimization-rules.md"]));
+    const file = result.files.find(f => f.path === "optimization-rules.md")!;
     expect(file.content).toContain("comfortably fits");
   });
 
   it("design-tokens default to plain-css", () => {
-    const result = generateFiles(makeInput(snap, [".ai/design-tokens.json"]));
-    const token = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const result = generateFiles(makeInput(snap, ["design-tokens.json"]));
+    const token = result.files.find(f => f.path === "design-tokens.json")!;
     const parsed = JSON.parse(token.content);
     expect(parsed.styling_approach).toBe("plain-css");
   });
 
   it("context-map JSON is valid with minimal data", () => {
     const result = generateFiles(makeInput(snap, []));
-    const file = result.files.find(f => f.path === ".ai/context-map.json")!;
+    const file = result.files.find(f => f.path === "context-map.json")!;
     const parsed = JSON.parse(file.content);
     expect(parsed.project_identity.name).toBe("minimal");
     expect(parsed.version).toBe("1.0.0");
@@ -317,8 +317,8 @@ describe("minimal profile", () => {
 
   it("each generated file has non-empty content, program, and content_type", () => {
     const result = generateFiles(makeInput(snap, [
-      "AGENTS.md", ".ai/debug-playbook.md", ".ai/seo-rules.md",
-      ".ai/optimization-rules.md", ".ai/design-tokens.json",
+      "AGENTS.md", "debug-playbook.md", "seo-rules.md",
+      "optimization-rules.md", "design-tokens.json",
     ]));
     for (const f of result.files) {
       expect(f.content.length, `${f.path} should have content`).toBeGreaterThan(0);
