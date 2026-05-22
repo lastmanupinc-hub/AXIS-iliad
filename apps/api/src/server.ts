@@ -103,6 +103,7 @@ import { handleListVersions, handleGetVersion, handleDiffVersions } from "./vers
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
+import { handleGitHubWebhook } from "./github-webhook.js";
 import { handlePaidSubscribe, handlePaidWebhook } from "./paid-handlers.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
@@ -200,6 +201,9 @@ router.post("/v1/analyze", handleAnalyze);
 
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);
+
+// GitHub App webhook (push / pull_request / installation events)
+router.post("/v1/github/webhook", handleGitHubWebhook);
 
 // Firecrawl proxy â€” web research (Phase 1)
 router.post("/v1/research/scrape", handleFirecrawlScrape);

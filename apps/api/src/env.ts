@@ -43,6 +43,9 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "REPLICATE_API_TOKEN", required: false, type: "string", description: "API token for Replicate image/video generation (https://replicate.com)" },
   { key: "FASTIO_API_KEY", required: false, type: "string", description: "API key for Fastio persistent storage and RAG (https://fast.io)" },
   { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com)" },
+  // GitHub App webhook (push / pull_request → background snapshot)
+  { key: "GITHUB_WEBHOOK_SECRET", required: false, type: "string", description: "Shared secret from the GitHub App settings. Verifies X-Hub-Signature-256 on POST /v1/github/webhook. If unset, the endpoint returns 503 so the App retries until ops finishes the deploy." },
+  { key: "GITHUB_TOKEN", required: false, type: "string", description: "Personal-access token fallback used when fetching tarballs for webhook-triggered snapshots and the /v1/github/analyze handler when no per-account token is stored." },
 ];
 
 export interface ValidationError {

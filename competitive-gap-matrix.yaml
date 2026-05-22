@@ -192,6 +192,17 @@ competitors:
           priority: CRITICAL
           gap_type: distribution_channel
           cost_to_build: medium   # GitHub App manifest + webhook handler
+          completion_status: complete
+          completion_note: >
+            Code surface delivered: apps/api/src/github-webhook.ts (HMAC-SHA256
+            X-Hub-Signature-256 verification, X-GitHub-Delivery dedup cache,
+            push/pull_request/installation/ping event router, fire-and-forget
+            snapshot dispatch). Route POST /v1/github/webhook wired in server.ts.
+            .github/app-manifest.json provides the manifest-flow bootstrap.
+            env.ts documents GITHUB_WEBHOOK_SECRET + GITHUB_TOKEN. 20 tests cover
+            signature verification (8) and HTTP behavior (12). Manual prerequisite:
+            register the App at github.com/settings/apps/new (or use the manifest
+            flow), set GITHUB_WEBHOOK_SECRET in production env, install on repos.
 
         - id: gap_cr_002
           description: >
@@ -349,6 +360,12 @@ strategy_targets:
           priority: CRITICAL
           cost_to_build: medium
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            Closed by the same code surface as gap_cr_001 — the webhook handler
+            reuses fetchGitHubRepo + createSnapshot from @axis/snapshots so push
+            and pull_request events automatically build snapshots. See gap_cr_001
+            completion_note for file list. (Session 103.)
 
         - id: gap_s2_002
           description: >
@@ -567,12 +584,16 @@ gap_completion_queue:
       gap_id: gap_cr_001
       description: "GitHub App manifest + webhook handler (CRITICAL, medium cost)"
       strategy: strategy_2_codebase_intelligence_api
+      completion_status: complete
+      completed_session: session_103
 
     - rank: 4
       gap_id: gap_s2_001
       description: "GitHub App manifest + webhook handler — same as above, consolidated"
       strategy: strategy_2_codebase_intelligence_api
       note: "Overlaps with gap_cr_001 — single build satisfies both"
+      completion_status: complete
+      completed_session: session_103
 
     - rank: 5
       gap_id: gap_s3_002

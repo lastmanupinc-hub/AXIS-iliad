@@ -14,10 +14,10 @@ project_continuation:
 
   current_identity:
     project_name: "Axis' Iliad"
-    date: "2026-05-21"
-    commit_or_tag: "60b0084"
-    current_session_id: "session_102"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 18 programs, 86 generators, 12 MCP tools. Session 102 adds a named GitHub Check Run (\"Axis Compliance: <grade>\") to the compliance-check action so the PR Checks tab shows the grade letter directly, closing gap_s3_002."
+    date: "2026-05-22"
+    commit_or_tag: "def3302"
+    current_session_id: "session_103"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 18 programs, 86 generators, 12 MCP tools, GitHub App webhook. Session 103 ships POST /v1/github/webhook with HMAC-SHA256 verification, delivery-ID dedup, push/pull_request → snapshot dispatch, GitHub App manifest, and 20 tests — closing gap_cr_001 / gap_s2_001 (the CodeRabbit-style distribution channel)."
 
   executive_truth:
     maturity_estimate:
@@ -3927,6 +3927,55 @@ project_continuation:
     remaining_pre_existing_gaps:
       - "gap_cr_001 / gap_s2_001: GitHub App manifest + webhook handler (CRITICAL, medium cost) — top remaining queue item; needs a published GitHub App + webhook secret."
       - "gap_c7_001 / gap_cr_004 / gap_c7_002 / gap_cr_002: seat subscription, credit pack, overage billing, per-seat billing — all blocked on Stripe-dashboard product/meter creation (manual prerequisite)."
+    local_only: false
+    commit_results:
+      - "def3302: Post named Check Run with compliance grade letter"
+    push_results:
+      - "pushed to origin/feat/iliad-tool-console — HEAD at def3302"
+
+  session_result_103:
+    date: "2026-05-22"
+    session_id: "session_103"
+    selected_move: "gap_cr_001 / gap_s2_001: GitHub App webhook handler + manifest"
+    selected_move_roi_reason: >
+      Top unblocked queue item (rank 3 and 4 — overlapping CRITICAL gaps). User confirmed
+      the repo is hosted at github.com/lastmanupinc-hub/AXIS-iliad, removing the deployment
+      ambiguity that had previously made this look like a manual-prerequisite gate. With the
+      hosting URL known, the code surface (webhook handler, signature verification, event
+      dispatch, manifest) is fully buildable autonomously — only the App registration
+      itself remains as ops work. Distribution_channel 5, agent_acquisition 5, capability_gain 5,
+      production_quality 5. This is the single biggest distribution multiplier remaining in
+      the queue: every install becomes an automatic snapshot trigger, primes the analyze
+      cache, and feeds the compliance gate.
+    completed_candidates:
+      - "apps/api/src/github-webhook.ts: NEW (267 lines). verifyGitHubSignature() HMAC-SHA256 timing-safe comparison against X-Hub-Signature-256. handleGitHubWebhook() orchestrates: secret check → body read → signature verify → JSON parse → event dispatch. Event router covers ping (200 pong), push (202 + fire-and-forget snapshot), pull_request opened|synchronize|reopened (202 + snapshot from head ref), installation / installation_repositories (200 informational), unknown event (200 handled=false). dispatchWebhookSnapshot() reuses fetchGitHubRepo + createSnapshot from @axis/snapshots. Module-scoped 15-min delivery dedup cache keyed by X-GitHub-Delivery prevents duplicate snapshots on GitHub retries. resetGitHubWebhookState() exported for tests."
+      - "apps/api/src/server.ts: import handleGitHubWebhook from ./github-webhook.js; router.post('/v1/github/webhook', handleGitHubWebhook) registered alongside the existing /v1/github/analyze route."
+      - "apps/api/src/env.ts: ENV_SPEC adds GITHUB_WEBHOOK_SECRET (shared App secret) and GITHUB_TOKEN (tarball-fetch fallback). Both optional; webhook endpoint returns 503 until the secret is set."
+      - "apps/api/src/github-webhook.test.ts: NEW (20 tests, TEST_PORT 44540). verifyGitHubSignature unit tests (8): valid sha256, tampered body, wrong secret, missing header, no sha256= prefix, empty digest, non-hex digest, wrong-length digest. HTTP tests (12): 503 no secret, 401 invalid signature, 401 missing signature, 400 missing X-GitHub-Event, 400 malformed JSON, 200 ping with pong, 200 unhandled event, 200 PR labeled handled=false, 200 installation handled=false, 202 push with resolvable target, 202 PR opened from fork, 401 body-bytes mismatch (same length)."
+      - ".github/app-manifest.json: NEW. Bootstrap for GitHub App registration via the manifest flow — name, hook_attributes.url pointing at /v1/github/webhook on prod, redirect_url to the installation callback, default_events=[push, pull_request], default_permissions={checks: write, contents: read, metadata: read, pull_requests: read}."
+      - "competitive-gap-matrix.yaml: gap_cr_001 and gap_s2_001 marked complete with completion_note describing the code surface and the remaining manual App registration step; queue ranks 3 and 4 carry completion_status."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest suite: 145 passed files, 4213 passed tests (+20 vs session 102), 11 skipped, 0 failed (duration 81.33s)."
+      - "Package build: pnpm --filter @axis/api build — exit 0 (@axis/api@0.5.3, tsc clean across the new module + route registration + env additions)."
+      - "Targeted run: github-webhook.test.ts 20/20 passing in 275ms."
+      - "Signature path is timing-safe (timingSafeEqual on equal-length Buffers, length check before compare)."
+      - "Idempotency: delivery cache prevents duplicate snapshots on GitHub retry; tested via resetGitHubWebhookState() in beforeEach."
+    verticals_advanced:
+      - "v18_agentic_commerce: GitHub App distribution channel — every install becomes an automatic snapshot trigger feeding the compliance gate."
+      - "v2_codebase_intelligence_api: the install-and-forget pattern that closes the distribution gap vs CodeRabbit's 3M-repo install base is now live on the code side."
+      - "v0_core_platform: webhook signature verification reuses the Stripe-webhook pattern — consistent HMAC + timingSafeEqual surface across all signed external integrations."
+    blockers_removed:
+      - "No GitHub App webhook endpoint — agents and CI pipelines had no automatic trigger when code changed."
+      - "Webhook signature verification was a missing primitive in the codebase outside of Stripe."
+      - "GitHub App manifest flow was undocumented — would have required hand-writing the App registration on every deploy."
+    blockers_added:
+      - "Manual prerequisite: register the GitHub App at github.com/settings/apps/new using .github/app-manifest.json (or via the GitHub App manifest creation flow), then set GITHUB_WEBHOOK_SECRET in production env. The endpoint returns 503 until configured, which causes GitHub's automatic retry — no message loss."
+    remaining_pre_existing_gaps:
+      - "gap_c7_001 / gap_cr_004 / gap_c7_002 / gap_cr_002: seat subscription, credit pack, overage billing, per-seat billing — all blocked on Stripe-dashboard product/meter creation (manual prerequisite)."
+      - "Account ↔ installation mapping: webhook-created snapshots are currently anonymous. A future installation_id → account_id table would let the webhook attribute snapshots to the installing account for billing/dashboard."
+      - "Continuation ledger still missing session results for the post-session_100 feature-branch commits (Firecrawl, tool console, pricing unification) — bookkeeping debt."
     local_only: true
     commit_results: []
     push_results: []
