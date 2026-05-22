@@ -197,6 +197,7 @@ export type {
   CreditPackStatus,
   CreditPackCatalogEntry,
   PackConsumptionResult,
+  PackChargeAttempt,
 } from "./credit-pack-store.js";
 export {
   CREDIT_PACK_CATALOG,
@@ -207,6 +208,7 @@ export {
   getTotalPackCredits,
   listCreditPacks,
   getPackBySession,
+  tryPayWithPackCredits,
   _resetCreditPacksForTests,
 } from "./credit-pack-store.js";
 

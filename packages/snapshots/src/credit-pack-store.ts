@@ -19,6 +19,7 @@
 
 import { randomUUID } from "node:crypto";
 import { getDb } from "./db.js";
+import { creditsFromUsdCents } from "./usage-credit-metering.js";
 
 export type CreditPackStatus = "pending" | "succeeded" | "refunded" | "failed";
 
@@ -324,6 +325,87 @@ export function getPackBySession(paid_session_id: string): CreditPack | null {
     `SELECT * FROM credit_pack_purchases WHERE paid_session_id = ?`,
   ).get(paid_session_id) as PackRow | undefined;
   return row ? rowToPack(row) : null;
+}
+
+// ─── chargeWithDiscounts integration ────────────────────────────
+//
+// Called by the per-call MPP charge path after plan credits are exhausted
+// and the 5th-call-free grant has been considered. Semantics are
+// deliberately all-or-nothing for a given call:
+//
+//   - If pack balance >= credits needed: atomically draw and return
+//     packs_cover_call=true. The caller treats this as "no MPP charge
+//     needed."
+//   - If pack balance < credits needed: leave packs untouched and return
+//     packs_cover_call=false with telemetry. The caller falls through to
+//     chargeMpp() for the full remaining overage.
+//
+// This avoids the partial-draw rollback problem (what if MPP fails after
+// we already drew some packs?) at the cost of needing a full pack balance
+// to skip the per-call Stripe fee on any given call. In practice that's
+// fine because:
+//   - Calls are uniformly priced per tool ($0.50 for analyze, $0.01 for
+//     Firecrawl), so users either have enough for a given call class or
+//     don't.
+//   - The starter pack covers 9+ analyses; mid covers 45+; pro covers 125+.
+//     Running out partway through a call is rare.
+
+export interface PackChargeAttempt {
+  packs_cover_call: boolean;
+  credits_needed: number;
+  pack_balance_before: number;
+  /** Only set when packs_cover_call=true. Matches credits_needed. */
+  consumed?: number;
+  /** Only set when packs_cover_call=true. */
+  pack_balance_after?: number;
+  /** Only set when packs_cover_call=false. credits_needed - pack_balance_before. */
+  unfunded_credits?: number;
+}
+
+/**
+ * Attempt to pay a per-call overage from the account's credit packs.
+ * Returns a result describing whether packs covered the call (in which
+ * case they were atomically drawn) or not (in which case packs remain
+ * untouched).
+ *
+ * Caller MUST NOT call chargeMpp when packs_cover_call=true.
+ */
+export function tryPayWithPackCredits(
+  account_id: string,
+  overage_cents: number,
+): PackChargeAttempt {
+  // Defensive: a 0/negative overage shouldn't reach here, but if it does
+  // we treat it as "trivially covered" without drawing anything.
+  if (!account_id || !Number.isFinite(overage_cents) || overage_cents <= 0) {
+    return {
+      packs_cover_call: true,
+      credits_needed: 0,
+      pack_balance_before: account_id ? getTotalPackCredits(account_id) : 0,
+      consumed: 0,
+      pack_balance_after: account_id ? getTotalPackCredits(account_id) : 0,
+    };
+  }
+
+  const credits_needed = creditsFromUsdCents(overage_cents);
+  const pack_balance_before = getTotalPackCredits(account_id);
+
+  if (pack_balance_before < credits_needed) {
+    return {
+      packs_cover_call: false,
+      credits_needed,
+      pack_balance_before,
+      unfunded_credits: credits_needed - pack_balance_before,
+    };
+  }
+
+  const consumption = consumePackCredits(account_id, credits_needed);
+  return {
+    packs_cover_call: true,
+    credits_needed,
+    pack_balance_before,
+    consumed: consumption.consumed,
+    pack_balance_after: consumption.remaining_after,
+  };
 }
 
 // ─── Test/debug helpers ──────────────────────────────────────────

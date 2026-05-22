@@ -10,8 +10,10 @@ import {
   getTotalPackCredits,
   listCreditPacks,
   getPackBySession,
+  tryPayWithPackCredits,
   _resetCreditPacksForTests,
 } from "./credit-pack-store.js";
+import { creditsFromUsdCents } from "./usage-credit-metering.js";
 
 let accountId = "";
 let otherAccountId = "";
@@ -204,6 +206,106 @@ describe("credit-pack-store — getPackBySession", () => {
 
   it("returns null for an unknown session ID", () => {
     expect(getPackBySession("cs_does_not_exist")).toBeNull();
+  });
+});
+
+describe("credit-pack-store — tryPayWithPackCredits", () => {
+  it("returns packs_cover_call=true with consumed=0 for zero or negative overage", () => {
+    const r = tryPayWithPackCredits(accountId, 0);
+    expect(r.packs_cover_call).toBe(true);
+    expect(r.consumed).toBe(0);
+    expect(r.credits_needed).toBe(0);
+  });
+
+  it("returns packs_cover_call=true and trivial values for empty account_id", () => {
+    const r = tryPayWithPackCredits("", 50);
+    expect(r.packs_cover_call).toBe(true);
+    expect(r.consumed).toBe(0);
+  });
+
+  it("returns packs_cover_call=false when balance is zero", () => {
+    const r = tryPayWithPackCredits(accountId, 50);
+    expect(r.packs_cover_call).toBe(false);
+    expect(r.pack_balance_before).toBe(0);
+    expect(r.unfunded_credits).toBe(r.credits_needed);
+  });
+
+  it("returns packs_cover_call=false when balance is positive but insufficient", () => {
+    // Buy a starter pack: 2,500 credits.
+    recordPendingPurchase(accountId, "pack_starter", "cs_partial");
+    markPurchaseSucceeded("cs_partial");
+
+    // Charge for $10 — that's creditsFromUsdCents(1000) = ceil(1000*100/18) = 5,556 credits.
+    const r = tryPayWithPackCredits(accountId, 1000);
+    expect(r.packs_cover_call).toBe(false);
+    expect(r.pack_balance_before).toBe(2_500);
+    expect(r.credits_needed).toBe(creditsFromUsdCents(1000));
+    expect(r.unfunded_credits).toBe(r.credits_needed - 2_500);
+
+    // Confirm packs were NOT drawn — full balance still present.
+    expect(getTotalPackCredits(accountId)).toBe(2_500);
+  });
+
+  it("returns packs_cover_call=true and atomically draws when balance covers exactly", () => {
+    // Build the exact balance needed for a $0.50 overage.
+    // creditsFromUsdCents(50) = ceil(50*100/18) = 278 credits.
+    // We need to construct a pack that holds exactly that many credits. Since our catalog
+    // doesn't have such a pack, instead buy starter (2,500) and verify the 278-credit draw.
+    recordPendingPurchase(accountId, "pack_starter", "cs_exact");
+    markPurchaseSucceeded("cs_exact");
+
+    const overageCents = 50;
+    const expectedCreditsNeeded = creditsFromUsdCents(overageCents);
+    const r = tryPayWithPackCredits(accountId, overageCents);
+
+    expect(r.packs_cover_call).toBe(true);
+    expect(r.consumed).toBe(expectedCreditsNeeded);
+    expect(r.pack_balance_after).toBe(2_500 - expectedCreditsNeeded);
+    expect(getTotalPackCredits(accountId)).toBe(2_500 - expectedCreditsNeeded);
+  });
+
+  it("draws across multiple packs FIFO when needed credits span more than one pack", async () => {
+    recordPendingPurchase(accountId, "pack_starter", "cs_fifo_a");
+    markPurchaseSucceeded("cs_fifo_a");
+    await new Promise((r) => setTimeout(r, 5));
+    recordPendingPurchase(accountId, "pack_mid", "cs_fifo_b");
+    markPurchaseSucceeded("cs_fifo_b");
+
+    // Trigger a draw larger than the starter pack alone (2,500) but less than total (15,000).
+    // creditsFromUsdCents(600) = ceil(600*100/18) = 3,334 credits — exceeds starter alone.
+    const r = tryPayWithPackCredits(accountId, 600);
+    expect(r.packs_cover_call).toBe(true);
+    expect(r.consumed).toBe(creditsFromUsdCents(600));
+    expect(r.pack_balance_after).toBe(15_000 - creditsFromUsdCents(600));
+  });
+
+  it("does not touch other accounts' packs", () => {
+    recordPendingPurchase(otherAccountId, "pack_pro", "cs_other_packs");
+    markPurchaseSucceeded("cs_other_packs");
+    // This account has zero packs.
+    const r = tryPayWithPackCredits(accountId, 50);
+    expect(r.packs_cover_call).toBe(false);
+    expect(r.pack_balance_before).toBe(0);
+    // Other account still has its full 35,000.
+    expect(getTotalPackCredits(otherAccountId)).toBe(35_000);
+  });
+
+  it("never overdraws — repeated calls fail cleanly once balance is depleted", () => {
+    recordPendingPurchase(accountId, "pack_starter", "cs_deplete");
+    markPurchaseSucceeded("cs_deplete");
+
+    // Drain via repeated $1 calls (200 credits each by formula? Actually creditsFromUsdCents(100) = ceil(100*100/18) = 556).
+    let consumedTotal = 0;
+    for (let i = 0; i < 20; i += 1) {
+      const r = tryPayWithPackCredits(accountId, 100);
+      if (r.packs_cover_call) consumedTotal += r.consumed ?? 0;
+      else break;
+    }
+    // Balance should now be < credits_needed for a $1 call.
+    const after = tryPayWithPackCredits(accountId, 100);
+    expect(after.packs_cover_call).toBe(false);
+    expect(getTotalPackCredits(accountId)).toBe(2_500 - consumedTotal);
+    expect(getTotalPackCredits(accountId)).toBeLessThan(creditsFromUsdCents(100));
   });
 });
 

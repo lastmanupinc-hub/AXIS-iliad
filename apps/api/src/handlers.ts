@@ -40,6 +40,7 @@ import {
   consumeFreeCall,
   recordPaidCall,
   consumeUsageCredits,
+  tryPayWithPackCredits,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -53,7 +54,18 @@ import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT } from ".
 
 // â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/** Apply referral benefits (free call) before charging MPP cash overage. */
+/**
+ * Per-call charge dispatcher. Tries discount layers in this order:
+ *   1. Plan-included monthly credits (consumeUsageCredits, paid/suite only)
+ *   2. 5th-call-free grant (account-wide one-time)
+ *   3. Pre-purchased credit packs (PAI'D-routed, all-or-nothing per call)
+ *   4. MPP per-call charge (Stripe direct via mppx)
+ *
+ * Pack credits sit between the free grant and MPP because they're a paid
+ * resource the user already committed to - using the free grant first
+ * preserves packs for future calls. Packs are all-or-nothing per call to
+ * avoid the partial-draw rollback problem when downstream charging fails.
+ */
 async function chargeWithDiscounts(
   req: IncomingMessage,
   res: ServerResponse,
@@ -74,7 +86,25 @@ async function chargeWithDiscounts(
   // Plan credits covered this call fully â€” no overage payment required.
   if (overageCents <= 0) return { status: 200 };
 
+  // 5th-call-free grant - preserves pack credits for future calls.
   if (consumeFreeCall(accountId)) return { status: 200 };
+
+  // Credit packs - all-or-nothing for this call. If the pack balance
+  // covers the credit cost, atomically draw. If not, leave packs untouched
+  // and fall through to MPP for the full overage.
+  const packAttempt = tryPayWithPackCredits(accountId, overageCents);
+  if (packAttempt.packs_cover_call) {
+    res.setHeader("X-Axis-Pack-Credits-Consumed", String(packAttempt.consumed ?? 0));
+    res.setHeader("X-Axis-Pack-Credits-Remaining", String(packAttempt.pack_balance_after ?? 0));
+    res.setHeader("X-Axis-Request-Cost", "0.00");
+    recordPaidCall(accountId); // packs are a paid resource - count toward the 5th-call-free funnel
+    return { status: 200 };
+  }
+  if (packAttempt.pack_balance_before > 0) {
+    res.setHeader("X-Axis-Pack-Credits-Available", String(packAttempt.pack_balance_before));
+    res.setHeader("X-Axis-Pack-Credits-Needed", String(packAttempt.credits_needed));
+  }
+
   const result = await chargeMpp(req, res, { ...opts, amount: String(overageCents) });
   if (result && result.status === 200) {
     recordPaidCall(accountId);
