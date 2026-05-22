@@ -439,6 +439,15 @@ strategy_targets:
           priority: HIGH
           cost_to_build: low
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            .github/actions/compliance-check/action.yml step "Publish Check Run with grade letter"
+            posts a named Check Run "Axis Compliance: <grade>" to the PR head commit (extracted
+            from $GITHUB_EVENT_PATH so it appears in the PR Checks tab, not the merge commit).
+            Payload built via jq, summary includes grade letter + N/8 checks + minimum required.
+            Gracefully degrades to a ::warning:: if checks:write permission is missing. Example
+            workflow .github/workflows/compliance-check.yml grants the permission and documents
+            the requirement inline.
 
         - id: gap_s3_003
           description: >
@@ -569,6 +578,8 @@ gap_completion_queue:
       gap_id: gap_s3_002
       description: "Compliance grade in PR Check Run (HIGH, low cost)"
       strategy: strategy_3_compliance_artifact_compiler
+      completion_status: complete
+      completed_session: session_102
 
     - rank: 6
       gap_id: gap_s3_003
