@@ -1,6 +1,6 @@
 # Brand Board — axis-iliad
 
-Generated: 2026-05-22T17:35:44.979Z
+Generated: 2026-05-22T17:51:39.726Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
@@ -85,7 +85,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Stack Badge Bar
 
 - `React`
-- `TypeScript` — 75% of codebase
+- `TypeScript` — 76% of codebase
 - `YAML` — 8% of codebase
 - `JSON` — 7% of codebase
 

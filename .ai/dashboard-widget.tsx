@@ -36,9 +36,9 @@ export function DashboardWidget() {
         <StatCard label="Language" value={data.language} />
         <StatCard label="Entry Points" value={data.entryPoints} />
         <StatCard label="Hotspots" value={data.hotspots} />
-        <StatCard label="TypeScript" value={`${75.4}%`} />
+        <StatCard label="TypeScript" value={`${75.5}%`} />
         <StatCard label="YAML" value={`${8.2}%`} />
-        <StatCard label="JSON" value={`${7.1}%`} />
+        <StatCard label="JSON" value={`${7}%`} />
       </div>
       <div className="framework-tags">
         {data.frameworks.map(f => (

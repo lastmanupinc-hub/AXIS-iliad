@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (130731 LOC)
+- **Files:** 500 (131200 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -970,11 +970,11 @@ packages/generator-core/package.json (1.1 KB)
 packages/generator-core/src/counts-consistency.test.ts (1.9 KB)
 packages/generator-core/src/file-excerpt-utils.ts (5.4 KB)
 packages/generator-core/src/fw-helpers.ts (0.5 KB)
-packages/generator-core/src/generate-programs.test.ts (12.9 KB)
+packages/generator-core/src/generate-programs.test.ts (13.0 KB)
 packages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)
 packages/generator-core/src/generate-validation.test.ts (8.7 KB)
 packages/generator-core/src/generate.test.ts (67.5 KB)
-packages/generator-core/src/generate.ts (23.2 KB)
+packages/generator-core/src/generate.ts (23.8 KB)
 packages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)
 packages/generator-core/src/generator-branches.test.ts (217.3 KB)
 packages/generator-core/src/generator-sourcefile-branches.test.ts (20.9 KB)
@@ -998,9 +998,9 @@ packages/generator-core/src/generator-sourcefile-branches7.test.ts (36.6 KB)
 packages/generator-core/src/generator-sourcefile-branches8.test.ts (49.0 KB)
 packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.5 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
-packages/generator-core/src/generators-agentic-purchasing.ts (61.8 KB)
+packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (28.2 KB)
+packages/generator-core/src/generators-artifacts.ts (53.9 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -1019,7 +1019,7 @@ packages/generator-core/src/generators-seo.ts (35.8 KB)
 packages/generator-core/src/generators-skills.ts (43.0 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (45.9 KB)
-packages/generator-core/src/index.ts (4.0 KB)
+packages/generator-core/src/index.ts (4.1 KB)
 packages/generator-core/src/pipeline.test.ts (9.6 KB)
 packages/generator-core/src/types.ts (0.6 KB)
 packages/generator-core/tsconfig.json (0.2 KB)
@@ -1243,7 +1243,7 @@ export { generateCampaignBrief, generateFunnelMap, generateSequencePack, generat
 export { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 export { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 export { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
-export { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary } from "./generators-artifacts.js";
+export { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml } from "./generators-artifacts.js";
 export { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 export { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 export { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";

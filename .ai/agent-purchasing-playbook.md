@@ -54,7 +54,7 @@ Detection results from `500` source files:
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 118 structured artifacts across 19 programs.
+Axis' Iliad analyzes codebases and generates 123 structured artifacts across 19 programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 

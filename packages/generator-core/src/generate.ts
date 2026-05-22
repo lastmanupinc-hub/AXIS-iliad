@@ -13,7 +13,7 @@ import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generat
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
-import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary } from "./generators-artifacts.js";
+import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml } from "./generators-artifacts.js";
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
@@ -104,6 +104,11 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "dashboard-widget.tsx": (ctx, _p, files) => generateDashboardWidget(ctx, files),
   "embed-snippet.ts": (ctx, _p, files) => generateEmbedSnippet(ctx, files),
   "artifact-spec.md": (ctx, profile, files) => generateArtifactSpec(ctx, profile, files),
+  "prd.md": (ctx, profile, files) => generatePrd(ctx, profile, files),
+  "design.md": (ctx, profile, files) => generateDesignDoc(ctx, profile, files),
+  "tasks.md": (ctx, profile, files) => generateTasksMd(ctx, profile, files),
+  "context.md": (ctx, profile, files) => generateContextMd(ctx, profile, files),
+  "index.html": (ctx, profile, files) => generateIndexHtml(ctx, profile, files),
   "remotion-script.ts": (ctx, _p, files) => generateRemotionScript(ctx, files),
   "scene-plan.md": (ctx, _p, files) => generateScenePlan(ctx, files),
   "render-config.json": (ctx, profile, files) => generateRenderConfig(ctx, profile, files),
@@ -327,6 +332,11 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "embed-snippet.ts": "artifacts",
   "artifact-spec.md": "artifacts",
   "component-library.json": "artifacts",
+  "prd.md": "artifacts",
+  "design.md": "artifacts",
+  "tasks.md": "artifacts",
+  "context.md": "artifacts",
+  "index.html": "artifacts",
   "remotion-script.ts": "remotion",
   "scene-plan.md": "remotion",
   "render-config.json": "remotion",

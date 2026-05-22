@@ -1,6 +1,6 @@
 # Social Pack — axis-iliad
 
-Generated: 2026-05-22T17:35:44.812Z
+Generated: 2026-05-22T17:51:39.570Z
 
 ## Project Summary
 
@@ -40,9 +40,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Stat | Value |
 |------|-------|
-| TypeScript | 75.4% |
+| TypeScript | 75.5% |
 | YAML | 8.2% |
-| JSON | 7.1% |
+| JSON | 7% |
 | Frameworks | 1 |
 | Architecture Score | 0.65/100 |
 

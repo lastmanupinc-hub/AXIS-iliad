@@ -254,7 +254,7 @@ Re-analyze after code changes: `{"jsonrpc":"2.0","id":1,"method":"tools/call","p
 
 ### Why Use AXIS
 
-118 artifacts per call. Deterministic output. Free tier for search/skills/debug. Budget-aware pricing: $0.50 standard, $0.15-$0.25 lite mode. Agentic commerce ready. Self-propagating — every generated file instructs the next agent.
+123 artifacts per call. Deterministic output. Free tier for search/skills/debug. Budget-aware pricing: $0.50 standard, $0.15-$0.25 lite mode. Agentic commerce ready. Self-propagating — every generated file instructs the next agent.
 
 Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` and `X-Agent-Mode: lite` on any paid call to get reduced-price output.
 

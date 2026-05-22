@@ -173,7 +173,7 @@ describe("runner", () => {
     expect(result.project_name).toBe("test-project");
     expect(result.elapsed_ms).toBeGreaterThanOrEqual(0);
     expect(result.generator_result.files.length).toBeGreaterThan(0);
-    expect(result.generator_result.files.length).toBe(118);
+    expect(result.generator_result.files.length).toBe(123);
   });
 
   it("detects project name from package.json", () => {
@@ -232,7 +232,7 @@ describe("runner", () => {
 
     const result = run(scan, "/tmp/mono");
     // The pipeline runs — we can check it detected something
-    expect(result.generator_result.files.length).toBe(118);
+    expect(result.generator_result.files.length).toBe(123);
   });
 
   it("detects Python frameworks from requirements.txt", () => {
@@ -247,7 +247,7 @@ describe("runner", () => {
 
     const result = run(scan, "/tmp/django-app");
     expect(result.project_name).toBe("django-app");
-    expect(result.generator_result.files.length).toBe(118);
+    expect(result.generator_result.files.length).toBe(123);
   });
 });
 
@@ -344,11 +344,11 @@ describe("CLI integration", () => {
     // Run pipeline
     const result = run(scan, inputDir);
     expect(result.project_name).toBe("integration-test");
-    expect(result.generator_result.files.length).toBe(118);
+    expect(result.generator_result.files.length).toBe(123);
 
     // Write output
     const written = writeGeneratedFiles(result.generator_result.files, outputDir);
-    expect(written.files_written).toBe(118);
+    expect(written.files_written).toBe(123);
     expect(written.total_bytes).toBeGreaterThan(0);
 
     // Verify key files exist
@@ -386,7 +386,7 @@ describe("github via shared package", () => {
 
     const result = run(githubScan, "owner/repo");
     expect(result.project_name).toBe("remote-test");
-    expect(result.generator_result.files.length).toBe(118);
+    expect(result.generator_result.files.length).toBe(123);
     expect(result.elapsed_ms).toBeGreaterThanOrEqual(0);
   });
 });

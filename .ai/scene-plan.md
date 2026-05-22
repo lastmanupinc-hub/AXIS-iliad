@@ -1,6 +1,6 @@
 # Scene Plan — axis-iliad
 
-Generated: 2026-05-22T17:35:44.807Z
+Generated: 2026-05-22T17:51:39.565Z
 
 ## Video Overview
 
@@ -35,7 +35,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (75.4%), YAML (8.2%), JSON (7.1%), Markdown (6.8%), JavaScript (1.7%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
+- **Languages**: TypeScript (75.5%), YAML (8.2%), JSON (7%), Markdown (6.8%), JavaScript (1.7%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 

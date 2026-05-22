@@ -64,7 +64,7 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
   notebook: ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md", "citation-index.json"],
   obsidian: ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md", "template-pack.md"],
   mcp: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml", "mcp/fintech-mcp-surface-package.md", "mcp/fintech-domain-schema.yaml"],
-  artifacts: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json"],
+  artifacts: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json", "prd.md", "design.md", "tasks.md", "context.md", "index.html"],
   remotion: ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
   canvas: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
   algorithmic: ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
@@ -95,7 +95,7 @@ describe("generateFiles — all 19 programs produce valid output", () => {
   it("generates 118 files with 0 skipped", () => {
     const result = generateFiles(input);
     expect(result.skipped).toEqual([]);
-    expect(result.files.length).toBe(118);
+    expect(result.files.length).toBe(123);
   });
 
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -212,7 +212,7 @@ describe("generateFiles — edge cases", () => {
 describe("listAvailableGenerators", () => {
   it("returns all 118 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(118);
+    expect(generators.length).toBe(123);
   });
 
   it("returns objects with path and program fields", () => {

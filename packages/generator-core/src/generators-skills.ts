@@ -9,7 +9,7 @@ import { hasFw, getFw } from "./fw-helpers.js";
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
  * drift fails CI. MCP_TOOL_COUNT mirrors MCP_TOOLS.length in apps/api.
  */
-const ARTIFACT_COUNT = 118;
+const ARTIFACT_COUNT = 123;
 const PROGRAM_COUNT = 19;
 const MCP_TOOL_COUNT = 15;
 

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-22T17:35:44.936Z",
-  "total_symbols": 1983,
+  "generated_at": "2026-05-22T17:51:39.682Z",
+  "total_symbols": 1989,
   "file_count": 245,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -5809,17 +5809,17 @@
       {
         "name": "validateGeneratedFile",
         "type": "function",
-        "line": 183
+        "line": 188
       },
       {
         "name": "generateFiles",
         "type": "function",
-        "line": 194
+        "line": 199
       },
       {
         "name": "listAvailableGenerators",
         "type": "function",
-        "line": 368
+        "line": 378
       }
     ],
     "packages/generator-core/src/generator-alt-profiles.test.ts": [
@@ -7217,6 +7217,36 @@
         "name": "library",
         "type": "const",
         "line": 679
+      },
+      {
+        "name": "generatePrd",
+        "type": "function",
+        "line": 720
+      },
+      {
+        "name": "generateDesignDoc",
+        "type": "function",
+        "line": 842
+      },
+      {
+        "name": "generateTasksMd",
+        "type": "function",
+        "line": 966
+      },
+      {
+        "name": "generateContextMd",
+        "type": "function",
+        "line": 1082
+      },
+      {
+        "name": "generateIndexHtml",
+        "type": "function",
+        "line": 1192
+      },
+      {
+        "name": "escape",
+        "type": "function",
+        "line": 1199
       }
     ],
     "packages/generator-core/src/generators-brand.ts": [

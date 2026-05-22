@@ -219,8 +219,8 @@
     {
       "slug": "artifacts",
       "tier": "pro",
-      "outputs": 5,
-      "description": "Generated component, dashboard widget, embed snippet, artifact spec, component library"
+      "outputs": 10,
+      "description": "Generated component, dashboard widget, embed snippet, artifact spec, component library, PRD, design doc, tasks breakdown, session context, root index.html"
     },
     {
       "slug": "remotion",
@@ -274,5 +274,5 @@
     }
   },
   "total_programs": 19,
-  "total_outputs": 118
+  "total_outputs": 123
 }
