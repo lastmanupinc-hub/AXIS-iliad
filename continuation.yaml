@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "e3bac2f"
-    current_session_id: "session_104"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (2 live iliad_* + 12 planned-capability stubs), GitHub App webhook, capability-map.yaml registry of 14 resell tools with AXIS-owned replication plans. Sessions 101-104 deliver a generator-hardening sweep + capability-map artifact + the 12 iliad_* stubs that complete the planned tool surface."
+    commit_or_tag: "7d5413e"
+    current_session_id: "session_105"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (3 live iliad_* including the new AXIS-owned object_storage + 11 planned-capability stubs). Session 105 promotes iliad_object_storage from planned_owned to owned: SigV4 R2 pre-signed URLs, account-scoped key prefixes, 20-test SigV4 verification suite. First member of the owned-tier ladder defined in capability-map.yaml."
 
   executive_truth:
     maturity_estimate:
@@ -4041,3 +4041,54 @@ project_continuation:
       - "(this commit): Mint 12 planned-capability iliad_* MCP tool stubs; MCP_TOOL_COUNT 15 → 27"
     push_results:
       - "pushed to origin/feat/iliad-tool-console — current HEAD updated each batch"
+
+  session_result_105:
+    date: "2026-05-22"
+    session_id: "session_105"
+    selected_move: "Promote iliad_object_storage from planned_owned to owned via SigV4 R2 pre-signer"
+    selected_move_roi_reason: >
+      Highest-ROI move from capability-map.yaml.summary.recommended_next_owned
+      (smallest-effort planned capability with a clean MCP swap). object_storage
+      is stateless signing — no infrastructure to run, just HMAC chains over
+      crypto.createHmac. ROI per begin.yaml axes: capability_gain 4
+      (first AXIS-owned tool beyond Firecrawl-proxy), production_quality 5
+      (timing-safe HMAC, deterministic output, path-traversal hardening),
+      integration_quality_gain 5 (dispatcher swap is one case statement, no
+      new external infra), implementation_cost: small (~280 LoC including
+      tests). Critically: zero new npm dependencies — we hand-rolled SigV4
+      instead of adding @aws-sdk/* per the CLAUDE.md "Do not add dependencies
+      without discussion" rule. The next-tier capability (vector_database)
+      depends on this one being live, so this move unblocks the rest of the
+      owned-tier ladder.
+    completed_candidates:
+      - "apps/api/src/object-storage.ts: NEW (~165 LoC). presignR2Url(): hand-rolled AWS Signature V4 for Cloudflare R2 path-style URLs. Implements the full canonical-request → string-to-sign → derived-key → signature chain using crypto.createHmac. region=auto (R2-specific), service=s3, payload-hash=UNSIGNED-PAYLOAD (the pre-signed URL spec). encodeRfc3986 + path-segment encoder handle special characters consistently between canonical URI and final URL so signatures verify. scopeAccountKey() prefixes all keys with accounts/<account_id>/ and rejects path traversal (.., absolute paths, >1024 chars). readR2ConfigFromEnv() returns null when any of R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_BUCKET is missing so the dispatcher can emit a structured not_configured envelope without throwing."
+      - "apps/api/src/object-storage.test.ts: NEW (20 tests). readR2ConfigFromEnv (3 cases — null on missing, full config on complete, ignores unrelated keys). scopeAccountKey (6 cases — prefix shape, double-slash inside, path traversal rejection, absolute-path rejection, length cap, empty-account rejection). presignR2Url (11 cases — host shape, all 6 X-Amz-* query params present, expires_at = now+ttl, R2 auto region in credential scope, GET vs PUT signature divergence, path-segment encoding without double-slash, unsupported-method rejection, ttl out-of-range rejection, incomplete-config rejection, determinism under fixed time)."
+      - "apps/api/src/env.ts: ENV_SPEC adds R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET. All optional — endpoint returns _not_configured: true envelope until provisioned. R2 API token doc explicitly recommends the 'Object Read & Write' template scoped to a single bucket so a compromised key cannot escalate beyond axis-managed objects."
+      - "apps/api/src/mcp-server.ts: object_storage removed from PLANNED_CAPABILITIES array (the auto-derived planned-stub registry). Explicit iliad_object_storage entry added to MCP_TOOLS before the planned-capability spread — name, description (mentions r2, account-scoping, $PORT-like _not_configured envelope), inputSchema (key required, operation enum [put|get], ttl_seconds), outputSchema (url, expires_at, bucket, scoped_key, operation), annotations (destructiveHint false; idempotentHint false because PUT isn't idempotent), example. runObjectStorage(args, req): authenticates via resolveAuth, returns not_configured envelope when R2_* env vars missing, validates inputs, calls scopeAccountKey for tenant isolation, calls presignR2Url, returns JSON. Dispatcher switch gets the new case 'iliad_object_storage' alongside the other live tools."
+      - "packages/generator-core/src/generators-artifacts.ts: object_storage capability flipped: status 'planned_owned' → 'owned', axis_brand_tool '' → 'iliad_object_storage', summary rewritten to reflect live status."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest: 148 passed files (+1: object-storage.test.ts), 4249 passed tests (+20), 11 skipped, 0 failed."
+      - "Targeted SigV4 verification: 20/20 tests in object-storage.test.ts (deterministic signature, GET vs PUT divergence, RFC 3986 encoding, R2 auto-region scope, ttl bounds, path-traversal rejection)."
+      - "pnpm --filter @axis/api build clean."
+      - "pnpm --filter @axis/generator-core build clean."
+      - "Dogfood regenerated: 124 artifacts; capability-map.yaml status counts now {live_proxy: 2, planned_proxy: 10, owned: 1, planned_owned: 1} — first owned tool live."
+      - "MCP_TOOL_COUNT unchanged at 27 (object_storage was already counted in the 12-stub minting batch; this swaps it from auto-derived stub to explicit owned entry, net count unchanged)."
+      - "No new npm dependencies added. SigV4 implemented with crypto.createHmac (Node built-in)."
+    verticals_advanced:
+      - "v18_agentic_commerce: first AXIS-owned tool beyond Firecrawl-proxy. Demonstrates the owned-tier pattern (capability-map entry + explicit MCP_TOOLS schema + dispatcher case + tests) that vector_database, transactional_email, etc. will follow."
+      - "v0_core_platform: hand-rolled SigV4 is reusable. The same code signs S3 URLs (region=auto → us-east-1) or any S3-compatible store (Backblaze B2, MinIO) when we want a fallback provider."
+    blockers_removed:
+      - "object_storage was the smallest-effort owned-tier item and a prerequisite for vector_database (capability-map runtime: 'LanceDB on R2'). Now unblocks that follow-on."
+      - "AXIS had no built-in way to mint signed URLs for agent-uploaded files (e.g. for image_generation results stored in R2) — iliad_object_storage covers it."
+    blockers_added:
+      - "Manual prerequisite: operator must provision the 4 R2_* env vars before the tool serves real traffic. Until then the tool returns _not_configured envelopes (no crash, no leaked secrets)."
+      - "vector_database (LanceDB on R2) is now the next planned_owned capability — same effort tier as object_storage but with a stateful query layer. Natural next session."
+    remaining_pre_existing_gaps:
+      - "Pricing tier for iliad_object_storage not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing is layered on."
+      - "REST endpoint (/v1/storage/presign) not yet exposed; iliad_object_storage is reachable only via MCP tools/call. Adding the REST surface mirrors the pattern from /v1/research/scrape and is a separate small move."
+      - "Lifecycle rules for the R2 bucket (auto-expire after N days, multipart cleanup) live in the bucket config, not the code — should be documented in mcp/operations.md when that artifact lands."
+    local_only: false
+    commit_results: ["(this commit)"]
+    push_results: []

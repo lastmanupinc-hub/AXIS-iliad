@@ -1829,10 +1829,10 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "object_storage",
     name: "Signed-URL object storage (uploads + downloads)",
-    axis_brand_tool: "",
+    axis_brand_tool: "iliad_object_storage",
     pricing_tier: null,
-    status: "planned_owned",
-    summary: "Object storage with pre-signed URLs for browser-direct uploads and downloads.",
+    status: "owned",
+    summary: "AXIS-owned signed-URL minter (R2-backed, SigV4, account-scoped key prefixes). Live as the iliad_object_storage MCP tool — first member of the owned tier.",
     providers: [
       { name: "AWS S3", url: "https://aws.amazon.com/s3/", retail_pricing: "$0.023/GB-month + egress" },
       { name: "Cloudflare R2", url: "https://www.cloudflare.com/products/r2/", retail_pricing: "$0.015/GB-month, zero egress" },

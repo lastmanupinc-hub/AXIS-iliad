@@ -17,11 +17,11 @@ Before diving into this codebase, you should be comfortable with:
 1. Read the project README and any CONTRIBUTING.md
 2. Understand the top-level directory structure:
 
-   - `apps` — monorepo_apps (153 files)
+   - `apps` — monorepo_apps (155 files)
    - `packages` — monorepo_packages (144 files)
    - `examples` — project_directory (17 files)
    - `mcp` — project_directory (16 files)
-   - `payment-processing-output` — project_directory (16 files)
+   - `payment-processing-output` — project_directory (14 files)
    - `packaging` — project_directory (7 files)
    - `.github` — project_directory (5 files)
    - `algorithmic` — project_directory (4 files)
@@ -46,7 +46,7 @@ These are the core data structures that define what the system works with:
 | `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
 | `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
 | `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
-| *(+239 more)* | | | |
+| *(+242 more)* | | | |
 
 ### Phase 4: Data Flow
 

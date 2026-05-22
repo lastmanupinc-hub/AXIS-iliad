@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T20:41:26.759Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.",
+  "generated_at": "2026-05-22T21:02:10.640Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -396,7 +396,7 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 139486
+      "size": 144204
     },
     {
       "path": "apps/api/src/oauth-server.ts",

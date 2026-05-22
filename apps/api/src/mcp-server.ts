@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
+import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -340,24 +341,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     capability_id: "code_sandbox",
   },
   {
-    name: "iliad_object_storage",
-    title: "Object Storage (signed URLs)",
-    summary: "Pre-sign upload / download URLs against an account-scoped object store.",
-    status: "planned_owned",
-    input_properties: {
-      key: { type: "string", description: "Object key." },
-      operation: { type: "string", description: "Pre-sign upload or download.", enum: ["put", "get"] },
-      ttl_seconds: { type: "number", description: "Signed-URL lifetime. Defaults 3600." },
-    },
-    required_inputs: ["key", "operation"],
-    output_properties: {
-      url: { type: "string", description: "Pre-signed URL." },
-      expires_at: { type: "string", description: "ISO-8601 URL expiry." },
-    },
-    recommended_provider: { name: "Cloudflare R2", url: "https://developers.cloudflare.com/r2/api/s3/presigned-urls/" },
-    capability_id: "object_storage",
-  },
-  {
     name: "iliad_transactional_email",
     title: "Transactional Email",
     summary: "Send a single transactional email with tracking, bounce handling, and DKIM/SPF.",
@@ -431,6 +414,74 @@ function runPlannedCapability(capability: PlannedCapability): string {
     expected_output_shape: capability.output_properties,
     capability_map_reference: ".ai/capability-map.yaml",
     tool_name: capability.name,
+  }, null, 2);
+}
+
+/** Cap on operator-supplied TTL. 24h matches the doc surface. */
+const OBJECT_STORAGE_MAX_TTL_SECONDS = 86400;
+
+function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): string {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    // Anonymous calls cannot scope to an account; reject early. The wider
+    // dispatcher returns this string as the tool result text, and the
+    // categorizeError shim maps "Authentication required" to an MCP error
+    // envelope on the client side.
+    throw new Error("Authentication required: iliad_object_storage needs Authorization: Bearer <api_key>.");
+  }
+
+  const config = readR2ConfigFromEnv();
+  if (!config) {
+    // Structured "not configured" envelope so agents can branch on
+    // `_not_configured === true` without parsing free text. No crash, no
+    // leaked secrets.
+    return JSON.stringify({
+      _not_configured: true,
+      tool: "iliad_object_storage",
+      message: "Object storage backend is not provisioned on this AXIS instance. Operator must set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET.",
+      required_env: ["R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"],
+      capability_map_reference: ".ai/capability-map.yaml",
+    }, null, 2);
+  }
+
+  const rawKey = args.key;
+  const rawOp = args.operation;
+  const rawTtl = args.ttl_seconds;
+
+  if (typeof rawKey !== "string" || rawKey.length === 0) {
+    throw new Error("iliad_object_storage: `key` is required and must be a non-empty string.");
+  }
+  if (rawOp !== "put" && rawOp !== "get") {
+    throw new Error("iliad_object_storage: `operation` must be \"put\" or \"get\".");
+  }
+  let ttl = 3600;
+  if (rawTtl !== undefined) {
+    if (typeof rawTtl !== "number" || !Number.isFinite(rawTtl) || rawTtl <= 0) {
+      throw new Error("iliad_object_storage: `ttl_seconds` must be a positive number.");
+    }
+    if (rawTtl > OBJECT_STORAGE_MAX_TTL_SECONDS) {
+      throw new Error(`iliad_object_storage: ttl_seconds capped at ${OBJECT_STORAGE_MAX_TTL_SECONDS} (24h).`);
+    }
+    ttl = Math.floor(rawTtl);
+  }
+
+  let scopedKey: string;
+  try {
+    scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `iliad_object_storage: ${err.message}` : String(err));
+  }
+
+  const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
+  const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
+
+  return JSON.stringify({
+    url: presigned.url,
+    expires_at: presigned.expires_at,
+    bucket: presigned.bucket,
+    scoped_key: scopedKey,
+    operation: method,
+    ttl_seconds: ttl,
   }, null, 2);
 }
 
@@ -1111,7 +1162,45 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (12 tools) ────────────────────────
+  // ─── iliad_object_storage (AXIS-owned, Cloudflare R2 SigV4) ─────
+  // First member of the "owned" tier — not a Firecrawl-style proxy, not a
+  // planned stub. The handler signs URLs locally; R2 is the storage layer
+  // we picked because its zero-egress model is materially cheaper than S3
+  // once download volume crosses ~10 GB/account/month.
+  {
+    name: "iliad_object_storage",
+    description:
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h).",
+    inputSchema: {
+      type: "object" as const,
+      required: ["key", "operation"],
+      properties: {
+        key: { type: "string", description: "Object key (max 1024 chars). Path traversal and leading-/ are rejected." },
+        operation: { type: "string", description: "Pre-sign upload (put) or download (get).", enum: ["put", "get"] },
+        ttl_seconds: { type: "number", description: "Signed-URL lifetime, 1..86400. Defaults to 3600." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["url", "expires_at", "bucket", "scoped_key"],
+      properties: {
+        url: { type: "string", description: "Pre-signed URL valid for ttl_seconds." },
+        expires_at: { type: "string", description: "ISO-8601 expiry timestamp." },
+        bucket: { type: "string", description: "Resolved R2 bucket name." },
+        scoped_key: { type: "string", description: "Server-side key after account scoping (the user-supplied key prefixed with accounts/<account_id>/)." },
+        operation: { type: "string", description: "PUT or GET — what the URL was signed for." },
+      },
+    },
+    annotations: toolAnnotations("Object Storage (signed URLs)", false, false),
+    examples: [
+      {
+        name: "Pre-sign an upload URL",
+        input: { key: "uploads/photo.png", operation: "put", ttl_seconds: 600 },
+        output: '{"url":"https://<account>.r2.cloudflarestorage.com/<bucket>/accounts/<acc>/uploads/photo.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&...","expires_at":"2026-05-22T10:10:00.000Z","bucket":"axis-storage","scoped_key":"accounts/<acc>/uploads/photo.png","operation":"PUT"}',
+      },
+    ],
+  },
+  // ─── Planned-capability stubs (11 tools) ────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full 14-tool iliad_* surface immediately. tools/call on
   // any of these returns a structured `_planned: true` envelope until
@@ -2775,6 +2864,9 @@ export async function dispatch(
             break;
           case "get_referral_credits":
             text = runCheckReferralCredits(req);
+            break;
+          case "iliad_object_storage":
+            text = runObjectStorage(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

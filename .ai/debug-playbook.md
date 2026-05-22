@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models.
 
 ## Quick Reference
 
@@ -17,17 +17,17 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 132,543 LOC |
+| Files | 500 files, 132,800 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 275 | 92,233 | 75.8% |
+| TypeScript | 277 | 92,561 | 75.9% |
 | YAML | 57 | 9,885 | 8.1% |
 | JSON | 63 | 8,478 | 7% |
-| Markdown | 79 | 8,125 | 6.7% |
+| Markdown | 77 | 8,054 | 6.6% |
 | JavaScript | 8 | 2,093 | 1.7% |
 | CSS | 1 | 675 | 0.6% |
 | HTML | 1 | 158 | 0.1% |
@@ -114,6 +114,9 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | HistogramEntry | interface | TypeScript | 3 | `apps/api/src/metrics.ts` |
 | CacheKey | type_alias | TypeScript | 2 | `apps/api/src/mpp.ts` |
 | OAuthClientRow | interface | TypeScript | 3 | `apps/api/src/oauth-server-simple.ts` |
+| PresignOptions | interface | TypeScript | 5 | `apps/api/src/object-storage.ts` |
+| PresignResult | interface | TypeScript | 5 | `apps/api/src/object-storage.ts` |
+| R2Config | interface | TypeScript | 4 | `apps/api/src/object-storage.ts` |
 | OpenApiSpec | interface | TypeScript | 6 | `apps/api/src/openapi.ts` |
 | CreateIntentInput | interface | TypeScript | 3 | `apps/api/src/paid-client.ts` |
 | CreateSubscriptionInput | interface | TypeScript | 3 | `apps/api/src/paid-client.ts` |

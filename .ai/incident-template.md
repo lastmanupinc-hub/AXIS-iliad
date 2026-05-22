@@ -74,6 +74,9 @@
 - [ ] `HistogramEntry` (interface, 3 fields) — apps/api/src/metrics.ts
 - [ ] `CacheKey` (type_alias, 2 fields) — apps/api/src/mpp.ts
 - [ ] `OAuthClientRow` (interface, 3 fields) — apps/api/src/oauth-server-simple.ts
+- [ ] `PresignOptions` (interface, 5 fields) — apps/api/src/object-storage.ts
+- [ ] `PresignResult` (interface, 5 fields) — apps/api/src/object-storage.ts
+- [ ] `R2Config` (interface, 4 fields) — apps/api/src/object-storage.ts
 - [ ] `OpenApiSpec` (interface, 6 fields) — apps/api/src/openapi.ts
 - [ ] `CreateIntentInput` (interface, 3 fields) — apps/api/src/paid-client.ts
 - [ ] `CreateSubscriptionInput` (interface, 3 fields) — apps/api/src/paid-client.ts

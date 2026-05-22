@@ -1,7 +1,7 @@
 version: 1.0.0
-snapshot_id: 26eed936-0e72-471c-81b7-b5f8055246f5
-project_id: 0f0d16b4-0cd9-487d-b772-cc92032571ab
-generated_at: "2026-05-22T20:41:26.426Z"
+snapshot_id: 4668bd55-4643-4aad-8fbb-33e436c2ff91
+project_id: 0269ddc4-182c-49a8-954a-ab48a4b3b3ba
+generated_at: "2026-05-22T21:02:10.289Z"
 project:
   name: axis-iliad
   type: monorepo
@@ -13,9 +13,9 @@ project:
 detection:
   languages:
     - name: TypeScript
-      file_count: 275
-      loc: 92233
-      loc_percent: 75.8
+      file_count: 277
+      loc: 92561
+      loc_percent: 75.9
     - name: YAML
       file_count: 57
       loc: 9885
@@ -25,9 +25,9 @@ detection:
       loc: 8478
       loc_percent: 7
     - name: Markdown
-      file_count: 79
-      loc: 8125
-      loc_percent: 6.7
+      file_count: 77
+      loc: 8054
+      loc_percent: 6.6
     - name: JavaScript
       file_count: 8
       loc: 2093
@@ -69,11 +69,11 @@ detection:
 structure_summary:
   total_files: 500
   total_directories: 65
-  total_loc: 132543
+  total_loc: 132800
   top_level_dirs:
     - name: apps
       purpose: monorepo_apps
-      file_count: 153
+      file_count: 155
     - name: packages
       purpose: monorepo_packages
       file_count: 144
@@ -85,7 +85,7 @@ structure_summary:
       file_count: 16
     - name: payment-processing-output
       purpose: project_directory
-      file_count: 16
+      file_count: 14
     - name: packaging
       purpose: project_directory
       file_count: 7
@@ -127,7 +127,7 @@ structure_summary:
 health:
   has_readme: false
   has_tests: true
-  test_file_count: 147
+  test_file_count: 148
   has_ci: true
   has_lockfile: false
   has_typescript: true
@@ -195,7 +195,7 @@ apps/api/src/deployment.test.ts (6.9 KB)
 apps/api/src/e2e-flows.test.ts (22.8 KB)
 apps/api/src/e2e-smoke.test.ts (4.5 KB)
 apps/api/src/env.test.ts (8.3 KB)
-apps/api/src/env.ts (7.8 KB)
+apps/api/src/env.ts (8.8 KB)
 apps/api/src/export-edge-cases.test.ts (9.9 KB)
 apps/api/src/export.test.ts (13.4 KB)
 apps/api/src/export.ts (6.7 KB)
@@ -215,7 +215,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (136.2 KB)
+apps/api/src/mcp-server.ts (140.8 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -226,6 +226,8 @@ apps/api/src/oauth-server-simple.ts (5.8 KB)
 apps/api/src/oauth-server.ts (8.1 KB)
 apps/api/src/oauth.test.ts (8.0 KB)
 apps/api/src/oauth.ts (3.4 KB)
+apps/api/src/object-storage.test.ts (7.3 KB)
+apps/api/src/object-storage.ts (8.1 KB)
 apps/api/src/openapi.test.ts (15.3 KB)
 apps/api/src/openapi.ts (75.9 KB)
 apps/api/src/paid-client.test.ts (6.8 KB)
@@ -526,7 +528,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (104.7 KB)
+packages/generator-core/src/generators-artifacts.ts (104.8 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -648,6 +650,4 @@ payment-processing-output/campaign-brief.md (1.6 KB)
 payment-processing-output/canvas-spec.json (3.5 KB)
 payment-processing-output/capability-registry.json (1.8 KB)
 payment-processing-output/channel-rulebook.md (2.6 KB)
-payment-processing-output/citation-index.json (2.6 KB)
-payment-processing-output/CLAUDE.md (0.9 KB)
-payment-processing-output/collection-map.md (2.2 KB)"
+payment-processing-output/citation-index.json (2.6 KB)"

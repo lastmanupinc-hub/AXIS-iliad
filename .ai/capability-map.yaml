@@ -1,14 +1,14 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot 26eed936-0e72-471c-81b7-b5f8055246f5).
-# Generated at: 2026-05-22T20:41:26.194Z
+# Generated for axis-iliad (snapshot 4668bd55-4643-4aad-8fbb-33e436c2ff91).
+# Generated at: 2026-05-22T21:02:09.961Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "26eed936-0e72-471c-81b7-b5f8055246f5"
-  generated_at: "2026-05-22T20:41:26.194Z"
+  snapshot_id: "4668bd55-4643-4aad-8fbb-33e436c2ff91"
+  generated_at: "2026-05-22T21:02:09.961Z"
   capability_count: 14
-  capabilities_detected_in_repo: 11
+  capabilities_detected_in_repo: 12
 
 status_legend:
   live_proxy:    "Shipping today as an iliad_* MCP tool that proxies to a third party."
@@ -580,11 +580,15 @@ capabilities:
 
   - id: object_storage
     name: "Signed-URL object storage (uploads + downloads)"
-    status: planned_owned
-    axis_brand_tool: ""
+    status: owned
+    axis_brand_tool: "iliad_object_storage"
     pricing_tier: null
-    summary: "Object storage with pre-signed URLs for browser-direct uploads and downloads."
-    detected_in_repo: false
+    summary: "AXIS-owned signed-URL minter (R2-backed, SigV4, account-scoped key prefixes). Live as the iliad_object_storage MCP tool — first member of the owned tier."
+    detected_in_repo: true
+    detection_evidence:
+      - "apps/api/src/env.ts references R2_ACCESS_KEY_ID"
+      - "apps/api/src/env.ts references R2_BUCKET"
+      - "source references /r2\\.cloudflarestorage\\.com/ (e.g. apps/api/src/env.ts)"
     third_party_providers:
       - name: "AWS S3"
         url: "https://aws.amazon.com/s3/"
@@ -797,12 +801,10 @@ capabilities:
 summary:
   by_status:
     live_proxy: 2
-    planned_owned: 2
+    owned: 1
+    planned_owned: 1
     planned_proxy: 10
   recommended_next_owned:
-    - id: object_storage
-      effort: small
-      reason: "R2's zero-egress model means AXIS-owned object storage is materially cheaper than S3 once download volume crosses ~10 GB/account/month"
     - id: embeddings
       effort: medium
       reason: "Wholesale infrastructure cost on open-weights is ~$0.002/1M tokens vs $0.02 retail (10× margin)"
@@ -815,3 +817,6 @@ summary:
     - id: speech_to_text
       effort: medium
       reason: "Open-weights whisper-large-v3 inference ≈ $0.0005/min vs $0.0043 retail (8× margin)"
+    - id: document_parsing
+      effort: medium
+      reason: "Marker inference ≈ $0.0001/page vs $0.10/page Unstructured retail"

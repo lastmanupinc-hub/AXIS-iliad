@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 249 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (132543 LOC)
+- **Files:** 500 (132800 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -539,11 +539,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Directory Layout
 
-- `apps/` — monorepo_apps (153 files)
+- `apps/` — monorepo_apps (155 files)
 - `packages/` — monorepo_packages (144 files)
 - `examples/` — project_directory (17 files)
 - `mcp/` — project_directory (16 files)
-- `payment-processing-output/` — project_directory (16 files)
+- `payment-processing-output/` — project_directory (14 files)
 - `packaging/` — project_directory (7 files)
 - `.github/` — project_directory (5 files)
 - `algorithmic/` — project_directory (4 files)
@@ -571,7 +571,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Domain Models
 
-Detected 249 domain models:
+Detected 252 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -596,11 +596,11 @@ Detected 249 domain models:
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
 | `OAuthClientRow` | interface | 3 | apps/api/src/oauth-server-simple.ts |
+| `PresignOptions` | interface | 5 | apps/api/src/object-storage.ts |
+| `PresignResult` | interface | 5 | apps/api/src/object-storage.ts |
+| `R2Config` | interface | 4 | apps/api/src/object-storage.ts |
 | `OpenApiSpec` | interface | 6 | apps/api/src/openapi.ts |
-| `CreateIntentInput` | interface | 3 | apps/api/src/paid-client.ts |
-| `CreateSubscriptionInput` | interface | 3 | apps/api/src/paid-client.ts |
-| `PaidConfig` | interface | 6 | apps/api/src/paid-client.ts |
-| *… 224 more* | | | |
+| *… 227 more* | | | |
 
 > **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ResellCapability`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
@@ -669,7 +669,7 @@ apps/api/src/deployment.test.ts (6.9 KB)
 apps/api/src/e2e-flows.test.ts (22.8 KB)
 apps/api/src/e2e-smoke.test.ts (4.5 KB)
 apps/api/src/env.test.ts (8.3 KB)
-apps/api/src/env.ts (7.8 KB)
+apps/api/src/env.ts (8.8 KB)
 apps/api/src/export-edge-cases.test.ts (9.9 KB)
 apps/api/src/export.test.ts (13.4 KB)
 apps/api/src/export.ts (6.7 KB)
@@ -689,7 +689,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (136.2 KB)
+apps/api/src/mcp-server.ts (140.8 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -700,6 +700,8 @@ apps/api/src/oauth-server-simple.ts (5.8 KB)
 apps/api/src/oauth-server.ts (8.1 KB)
 apps/api/src/oauth.test.ts (8.0 KB)
 apps/api/src/oauth.ts (3.4 KB)
+apps/api/src/object-storage.test.ts (7.3 KB)
+apps/api/src/object-storage.ts (8.1 KB)
 apps/api/src/openapi.test.ts (15.3 KB)
 apps/api/src/openapi.ts (75.9 KB)
 apps/api/src/paid-client.test.ts (6.8 KB)
@@ -1000,7 +1002,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (104.7 KB)
+packages/generator-core/src/generators-artifacts.ts (104.8 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -1123,8 +1125,6 @@ payment-processing-output/canvas-spec.json (3.5 KB)
 payment-processing-output/capability-registry.json (1.8 KB)
 payment-processing-output/channel-rulebook.md (2.6 KB)
 payment-processing-output/citation-index.json (2.6 KB)
-payment-processing-output/CLAUDE.md (0.9 KB)
-payment-processing-output/collection-map.md (2.2 KB)
 ```
 
 ## Entry Points (Source)

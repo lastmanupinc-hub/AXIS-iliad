@@ -1,129 +1,129 @@
 {
   "schema_version": "1.0",
-  "merkle_root": "4bd7f8577ca680dfe74e63cb6821ec969c256edab158a2e6521a353f63e1fddf",
+  "merkle_root": "b5577d5db000fec3402e0871fabc52671512d0298f9b1cd23e3b9f4bf9b80cc0",
   "levels": [
     [
-      "0b6fa51d36bae7d6b6b0cb452205bb5697192c7641fba131a7dc8bf288fda328",
-      "7b3c62e0294a8b2c9b188d004ed37264056230d2e3d301dcb6b0c69505584555",
-      "a8037dfb858537000907944d60abf0b7ea00927acaffbda1e8de825f231ab6f8",
-      "53571e7f3b7c35b7a6ef98568384b1588546af95935990e5cece4dc14863125a",
-      "224689f8ecd648325fa3551127c9d3b8dcc9a8899b411804dc12c6d679bd70aa",
-      "27475adcd50f368c3a0568f74d6fd80360eb60b8bff140fb163fe59e7e11a840",
-      "9b56d6a1315801c62248e83c2c634ce0300dbe1fea88fba90f953360b1eb4f21",
-      "ae2425151d3528dda9bf70eabbd006828aa55dd110a0d89dc2da4a0324d2ffd6",
-      "d27e7487e11fd515b2882b9b1d15973effa6515baa052d32f76631ed8f0b60dd",
-      "4806db952bd7c92813603650ef5724cccd8cc9386e97ab610929c7267a12ea03",
-      "9f401ea0094b79fd0d7f74b568e6efd46cf0937693c6415265ba15da9ca207c8",
-      "9203213e1a23c9ed0fef6f4e4b5e1604d98113abd437c71108d43156fbabc791",
-      "8845c727865275d0b606ba28b663ddfa633a79ba9b0711993f4b579855736a7d",
-      "b3bb8dab88b79e587c21082c4f2dcd29fb0d16a8cb47629bb43b5b5219209395",
-      "d2151a38b49a6e2d6fd3bd8241a97f42eaea2b2878ba6cc5734bb3937acd9e53",
-      "69f2a06908a9836ff34146e917661eab8795db31b9751238dbc0ce7715218fc9"
+      "eea0c7d9d08db881498679e5f88a38ffc14675c26d4fe5188b30fdc7f829f533",
+      "d1b3d046061361ddf784ce3e40925583e50bdf8fd61c1c4996242fcd56e64491",
+      "48f72f584da077d91056cb9de65c05fcc87051c56216ec38cbfcec24cd7ef377",
+      "d89f1ec2253c889eadbaa17beacc6c32b41b3ea91659e4a335107e989d4b99c4",
+      "f959f3336a1601ab990c9fc0ad7200a85a8c6d38a0e8efc597296cac29571b4b",
+      "413bb42a1cd0ee884e8a4d3e3c671c0b224de71c8f2ae5e2ee6454e69e1ee260",
+      "230e58c080b0ae5d28122b27e4ca8901b671fcb7e0726cdb288af3cbd7b1f13b",
+      "4192045a082416a67a878138550dd2213779457e4d14099f10bb0a23be25295c",
+      "1ad8ba29658b27d439a0ca4a9ec2be4e2057e4975f244f0d04b3326e843f517a",
+      "93634e636fe2df659738cd61c98953ad0f738a1d10fb90035901ed357f9e829a",
+      "c0c8842ed7d06516542c3895ac3d8d864bc1f0ab9fcab647524bea5bdea21472",
+      "258d4bb8ed3407e232a740c15ed5dd9906d10d48dd3f04c55ca6e92fb99ea2a2",
+      "6248c0a871b0b34912f42c760e31ef3d165d49213bfd033c0f38fa8495c65e49",
+      "e7befe547f55e4fc626c7f9e5fae0f9f489ce961bc30b97e533ce63922f57f2a",
+      "4e771d707481cb1d45b81cfe339c35be651f0b330c21eb6f97240cf86aec8082",
+      "4359159f2f78da9dc3bf1cebd38cadde4f4233f244302fa4d81de6714f473b26"
     ],
     [
-      "95497b618b2e594a8ba13588539dcab83b8ee99e3c0f69a9861650664890a0a7",
-      "2e33d1bda7c7c6af60de476a2315608d1a6e26b48ecf2f4ae8e508dac3606299",
-      "10bb67c12270799256eb6d2399ac9c9191fe9e5126d43bed689bf1294a27f5b0",
-      "5bf77c98fd7bee27fb68906cb3c76f71803efd3222dd80d8c96af61ef9d520dd",
-      "36ec30d091b763f2cfcd9e121a34589c21175d6c6dd17c15243bee5173a81e3b",
-      "76e03d53ebc55943bfe6548ea1b44401837573089698cdfe86a265faff50ee55",
-      "df9a3f7f868a9b6cf312ec72bc117d665394e8b359873ec7e2f39a0814870cfa",
-      "897fcc13575c4b59ef7129f0966d0232dae00ca81adc9f9d33da19468263076e"
+      "d62068a1fda8fd4109b8eaa8b66388eaa38057ab8ebc4771b874c21caa07f6a5",
+      "21a7fe3c3b793a26154ca68c575949bc38067d8fc5d101aad39d4d6f01f9bad7",
+      "bc7ac2ac35c2777ddc014677447a383761b3ea5f3e2f19d8c3cc1d0ceeee15d6",
+      "5ba9e61ad77c73c75e59ca3fd0eeca1c96dbbccfa338de66d41397cdc7b77607",
+      "de88d82790288c5f4988daf2ad4bb1befac1c14051872b8fe671af662902ecb7",
+      "a7760dc6dcd083b841d3905196f1038414b1039bafd206a3efce350d827bedd1",
+      "9e594839c7357cdcbaf72f7df202c9c16145cdf471116e451fb923b0d830fc53",
+      "733fa65d384e8329d5d2643948e6c7ef0dff68e34f3a2064c0f4480fd559a48f"
     ],
     [
-      "bdbbc3fcb4a4ca0e53d850827bf42c6e716201e3f6704842532bb2a7512e3906",
-      "780f47e389c3669e9b50465959fe94f53c3251b32f00495ccc9b46b998545abd",
-      "2fa31420507d0621cefe23cf10165ebac03fcbc1d48c2581fc3a328225a131b1",
-      "30a101b815f2ab0c8c8335e4519fca023caba8c04f58ac2c2b45d194cc963b23"
+      "2d7363bbacfa4be76959ea7985ed2bac6734e9086a606b7a144fb40a01c9fb37",
+      "2abd3867d36c02b1fd3315b9ed8499c995c6ca2bba6cf9e9d0606ae2eebe5412",
+      "8fed653bed20aac0021a4d19ecb9a95339aed5e908fcf16388f3fa4801950df5",
+      "175b7c373b843782d85b36a23f2a7ef264d1a16a79b87cf0534bfc44d32d39a3"
     ],
     [
-      "98140d1c0102fa83bac99121c0eec3224a891b3e40bf8b37a86a4c9d312da79f",
-      "3dc53cf5c7617ca7c7920f2283aae7de94d3f6f71998809dfcf3c67b18797218"
+      "d13aa562f049d0654433cdb1a34c860e9b7f708f11aa8893c125a570eef9530f",
+      "7151720787cea8bddc8bb5da12bc746029ae54acee74b74dfcf3c2cbe7219314"
     ],
     [
-      "4bd7f8577ca680dfe74e63cb6821ec969c256edab158a2e6521a353f63e1fddf"
+      "b5577d5db000fec3402e0871fabc52671512d0298f9b1cd23e3b9f4bf9b80cc0"
     ]
   ],
   "leaf_index": [
     {
       "index": 0,
       "path": "packaging/README.md",
-      "digest": "0b6fa51d36bae7d6b6b0cb452205bb5697192c7641fba131a7dc8bf288fda328"
+      "digest": "eea0c7d9d08db881498679e5f88a38ffc14675c26d4fe5188b30fdc7f829f533"
     },
     {
       "index": 1,
       "path": "packaging/LICENSE",
-      "digest": "7b3c62e0294a8b2c9b188d004ed37264056230d2e3d301dcb6b0c69505584555"
+      "digest": "d1b3d046061361ddf784ce3e40925583e50bdf8fd61c1c4996242fcd56e64491"
     },
     {
       "index": 2,
       "path": "Dockerfile",
-      "digest": "a8037dfb858537000907944d60abf0b7ea00927acaffbda1e8de825f231ab6f8"
+      "digest": "48f72f584da077d91056cb9de65c05fcc87051c56216ec38cbfcec24cd7ef377"
     },
     {
       "index": 3,
       "path": "docker-compose.yml",
-      "digest": "53571e7f3b7c35b7a6ef98568384b1588546af95935990e5cece4dc14863125a"
+      "digest": "d89f1ec2253c889eadbaa17beacc6c32b41b3ea91659e4a335107e989d4b99c4"
     },
     {
       "index": 4,
       "path": ".github/workflows/ci.yml",
-      "digest": "224689f8ecd648325fa3551127c9d3b8dcc9a8899b411804dc12c6d679bd70aa"
+      "digest": "f959f3336a1601ab990c9fc0ad7200a85a8c6d38a0e8efc597296cac29571b4b"
     },
     {
       "index": 5,
       "path": ".github/workflows/release.yml",
-      "digest": "27475adcd50f368c3a0568f74d6fd80360eb60b8bff140fb163fe59e7e11a840"
+      "digest": "413bb42a1cd0ee884e8a4d3e3c671c0b224de71c8f2ae5e2ee6454e69e1ee260"
     },
     {
       "index": 6,
       "path": "packaging/manifests/npm-package.json",
-      "digest": "9b56d6a1315801c62248e83c2c634ce0300dbe1fea88fba90f953360b1eb4f21"
+      "digest": "230e58c080b0ae5d28122b27e4ca8901b671fcb7e0726cdb288af3cbd7b1f13b"
     },
     {
       "index": 7,
       "path": "packaging/manifests/unreal.uplugin",
-      "digest": "ae2425151d3528dda9bf70eabbd006828aa55dd110a0d89dc2da4a0324d2ffd6"
+      "digest": "4192045a082416a67a878138550dd2213779457e4d14099f10bb0a23be25295c"
     },
     {
       "index": 8,
       "path": "packaging/manifests/vscode-extension.json",
-      "digest": "d27e7487e11fd515b2882b9b1d15973effa6515baa052d32f76631ed8f0b60dd"
+      "digest": "1ad8ba29658b27d439a0ca4a9ec2be4e2057e4975f244f0d04b3326e843f517a"
     },
     {
       "index": 9,
       "path": "packaging/manifests/dockerhub-repository.md",
-      "digest": "4806db952bd7c92813603650ef5724cccd8cc9386e97ab610929c7267a12ea03"
+      "digest": "93634e636fe2df659738cd61c98953ad0f738a1d10fb90035901ed357f9e829a"
     },
     {
       "index": 10,
       "path": "packaging/manifests/github-marketplace-listing.md",
-      "digest": "9f401ea0094b79fd0d7f74b568e6efd46cf0937693c6415265ba15da9ca207c8"
+      "digest": "c0c8842ed7d06516542c3895ac3d8d864bc1f0ab9fcab647524bea5bdea21472"
     },
     {
       "index": 11,
       "path": "packaging/trust-fabric/attestation.json",
-      "digest": "9203213e1a23c9ed0fef6f4e4b5e1604d98113abd437c71108d43156fbabc791"
+      "digest": "258d4bb8ed3407e232a740c15ed5dd9906d10d48dd3f04c55ca6e92fb99ea2a2"
     },
     {
       "index": 12,
       "path": "packaging/trust-fabric/merkle-proof.json",
-      "digest": "8845c727865275d0b606ba28b663ddfa633a79ba9b0711993f4b579855736a7d"
+      "digest": "6248c0a871b0b34912f42c760e31ef3d165d49213bfd033c0f38fa8495c65e49"
     },
     {
       "index": 13,
       "path": "packaging-report.md",
-      "digest": "b3bb8dab88b79e587c21082c4f2dcd29fb0d16a8cb47629bb43b5b5219209395"
+      "digest": "e7befe547f55e4fc626c7f9e5fae0f9f489ce961bc30b97e533ce63922f57f2a"
     },
     {
       "index": 14,
       "path": "DISTRIBUTABLE.md",
-      "digest": "d2151a38b49a6e2d6fd3bd8241a97f42eaea2b2878ba6cc5734bb3937acd9e53"
+      "digest": "4e771d707481cb1d45b81cfe339c35be651f0b330c21eb6f97240cf86aec8082"
     },
     {
       "index": 15,
       "path": "Makefile",
-      "digest": "69f2a06908a9836ff34146e917661eab8795db31b9751238dbc0ce7715218fc9"
+      "digest": "4359159f2f78da9dc3bf1cebd38cadde4f4233f244302fa4d81de6714f473b26"
     }
   ],
   "verification": {

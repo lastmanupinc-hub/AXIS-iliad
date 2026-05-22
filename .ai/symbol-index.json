@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-05-22T20:41:27.186Z",
-  "total_symbols": 1993,
-  "file_count": 245,
+  "generated_at": "2026-05-22T21:02:10.963Z",
+  "total_symbols": 2009,
+  "file_count": 247,
   "symbols": {
     "apps/api/src/admin.test.ts": [
       {
@@ -474,27 +474,27 @@
       {
         "name": "ValidationError",
         "type": "interface",
-        "line": 51
+        "line": 56
       },
       {
         "name": "ValidationResult",
         "type": "interface",
-        "line": 56
+        "line": 61
       },
       {
         "name": "validateEnv",
         "type": "function",
-        "line": 66
+        "line": 71
       },
       {
         "name": "requireValidEnv",
         "type": "function",
-        "line": 114
+        "line": 119
       },
       {
         "name": "generateEnvExample",
         "type": "function",
-        "line": 128
+        "line": 133
       }
     ],
     "apps/api/src/export-edge-cases.test.ts": [
@@ -1750,282 +1750,287 @@
       {
         "name": "McpCallCounters",
         "type": "interface",
-        "line": 48
+        "line": 49
       },
       {
         "name": "_counters",
         "type": "const",
-        "line": 56
+        "line": 57
       },
       {
         "name": "ProbeClass",
         "type": "type",
-        "line": 64
+        "line": 65
       },
       {
         "name": "classifyProbe",
         "type": "function",
-        "line": 74
+        "line": 75
       },
       {
         "name": "IntentCapture",
         "type": "interface",
-        "line": 81
+        "line": 82
       },
       {
         "name": "captureIntent",
         "type": "function",
-        "line": 92
+        "line": 93
       },
       {
         "name": "entry",
         "type": "const",
-        "line": 93
+        "line": 94
       },
       {
         "name": "getIntentLog",
         "type": "function",
-        "line": 104
+        "line": 105
       },
       {
         "name": "logMcpCall",
         "type": "function",
-        "line": 108
+        "line": 109
       },
       {
         "name": "getMcpCallCounters",
         "type": "function",
-        "line": 127
+        "line": 128
       },
       {
         "name": "JsonRpcRequest",
         "type": "interface",
-        "line": 137
+        "line": 138
       },
       {
         "name": "RpcSuccess",
         "type": "interface",
-        "line": 144
+        "line": 145
       },
       {
         "name": "RpcError",
         "type": "interface",
-        "line": 150
+        "line": 151
       },
       {
         "name": "RpcResponse",
         "type": "type",
-        "line": 156
+        "line": 157
       },
       {
         "name": "normalizeToolName",
         "type": "function",
-        "line": 164
+        "line": 165
       },
       {
         "name": "PlannedCapability",
         "type": "interface",
-        "line": 177
+        "line": 178
       },
       {
         "name": "runPlannedCapability",
+        "type": "function",
+        "line": 406
+      },
+      {
+        "name": "runObjectStorage",
         "type": "function",
         "line": 423
       },
       {
         "name": "toolAnnotations",
         "type": "function",
-        "line": 437
+        "line": 488
       },
       {
         "name": "ARTIFACT_ENTRY_SCHEMA",
         "type": "const",
-        "line": 446
+        "line": 497
       },
       {
         "name": "SNAPSHOT_RESULT_SCHEMA",
         "type": "const",
-        "line": 456
+        "line": 507
       },
       {
         "name": "TOOL_MATCH_SCHEMA",
         "type": "const",
-        "line": 469
+        "line": 520
       },
       {
         "name": "rpcOk",
         "type": "function",
-        "line": 1156
+        "line": 1245
       },
       {
         "name": "rpcErr",
         "type": "function",
-        "line": 1160
+        "line": 1249
       },
       {
         "name": "toolOk",
         "type": "function",
-        "line": 1168
+        "line": 1257
       },
       {
         "name": "toolErr",
         "type": "function",
-        "line": 1172
+        "line": 1261
       },
       {
         "name": "ErrorCategory",
         "type": "type",
-        "line": 1176
+        "line": 1265
       },
       {
         "name": "categorizeError",
         "type": "function",
-        "line": 1178
+        "line": 1267
       },
       {
         "name": "buildMcpPaymentRequiredError",
         "type": "function",
-        "line": 1201
+        "line": 1290
       },
       {
         "name": "meterMcpToolCredits",
         "type": "function",
-        "line": 1223
+        "line": 1312
       },
       {
         "name": "filterGeneratorsByEntitlement",
         "type": "function",
-        "line": 1252
+        "line": 1341
       },
       {
         "name": "runAnalyzeFiles",
         "type": "function",
-        "line": 1268
+        "line": 1357
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1344
+        "line": 1433
       },
       {
         "name": "runAnalyzeRepo",
         "type": "function",
-        "line": 1414
+        "line": 1503
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1485
+        "line": 1574
       },
       {
         "name": "runSearchTools",
         "type": "function",
-        "line": 1590
+        "line": 1679
       },
       {
         "name": "runDiscoverAgenticCommerceTools",
         "type": "function",
-        "line": 1674
+        "line": 1763
       },
       {
         "name": "runImproveMyAgent",
         "type": "function",
-        "line": 1738
+        "line": 1827
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1784
+        "line": 1873
       },
       {
         "name": "runDiscoverAgenticPurchasingNeeds",
         "type": "function",
-        "line": 1951
+        "line": 2040
       },
       {
         "name": "runGetReferralCode",
         "type": "function",
-        "line": 2082
+        "line": 2171
       },
       {
         "name": "runCheckReferralCredits",
         "type": "function",
-        "line": 2112
+        "line": 2201
       },
       {
         "name": "runListPrograms",
         "type": "function",
-        "line": 2143
+        "line": 2232
       },
       {
         "name": "runGetSnapshot",
         "type": "function",
-        "line": 2187
+        "line": 2276
       },
       {
         "name": "runGetArtifact",
         "type": "function",
-        "line": 2230
+        "line": 2319
       },
       {
         "name": "runCloser",
         "type": "function",
-        "line": 2266
+        "line": 2355
       },
       {
         "name": "runPreparePurchasing",
         "type": "function",
-        "line": 2377
+        "line": 2466
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2461
+        "line": 2550
       },
       {
         "name": "dispatch",
         "type": "function",
-        "line": 2697
+        "line": 2786
       },
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 2728
+        "line": 2817
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 2735
+        "line": 2824
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 2822
+        "line": 2914
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 2899
+        "line": 2991
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 2935
+        "line": 3027
       },
       {
         "name": "handleMcpDocs",
         "type": "function",
-        "line": 2953
+        "line": 3045
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 3000
+        "line": 3092
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 3068
+        "line": 3160
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [
@@ -2366,6 +2371,85 @@
         "name": "handleGitHubOAuthCallback",
         "type": "function",
         "line": 40
+      }
+    ],
+    "apps/api/src/object-storage.test.ts": [
+      {
+        "name": "config",
+        "type": "const",
+        "line": 84
+      },
+      {
+        "name": "bad",
+        "type": "const",
+        "line": 152
+      }
+    ],
+    "apps/api/src/object-storage.ts": [
+      {
+        "name": "R2Operation",
+        "type": "type",
+        "line": 16
+      },
+      {
+        "name": "R2Config",
+        "type": "interface",
+        "line": 18
+      },
+      {
+        "name": "PresignOptions",
+        "type": "interface",
+        "line": 25
+      },
+      {
+        "name": "PresignResult",
+        "type": "interface",
+        "line": 36
+      },
+      {
+        "name": "R2ConfigFromEnv",
+        "type": "type",
+        "line": 45
+      },
+      {
+        "name": "readR2ConfigFromEnv",
+        "type": "function",
+        "line": 48
+      },
+      {
+        "name": "encodeS3Path",
+        "type": "function",
+        "line": 61
+      },
+      {
+        "name": "hmac",
+        "type": "function",
+        "line": 70
+      },
+      {
+        "name": "sha256Hex",
+        "type": "function",
+        "line": 74
+      },
+      {
+        "name": "deriveSigningKey",
+        "type": "function",
+        "line": 78
+      },
+      {
+        "name": "presignR2Url",
+        "type": "function",
+        "line": 93
+      },
+      {
+        "name": "encodeRfc3986",
+        "type": "function",
+        "line": 167
+      },
+      {
+        "name": "scopeAccountKey",
+        "type": "function",
+        "line": 182
       }
     ],
     "apps/api/src/openapi.ts": [
