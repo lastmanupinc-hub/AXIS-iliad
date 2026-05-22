@@ -14,11 +14,10 @@ project_continuation:
 
   current_identity:
     project_name: "Axis' Iliad"
-    date: "2026-04-17"
-    commit_or_tag: "39e3622"
-    current_session_id: "session_100"
-    commit_or_tag: "4b537ba"
-    one_sentence_summary: "Axis' Iliad v0.5.2 — 18 programs, 86 generators, 12 MCP tools. Session 100 delivers compliance_grade in snapshot API responses, GitHub Action compliance CI gate, @axis/mpp publishable package, and competitive gap matrix with OSS packaging prep."
+    date: "2026-05-21"
+    commit_or_tag: "7ff9fe4"
+    current_session_id: "session_101"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 18 programs, 86 generators, 12 MCP tools. Session 101 finishes the @axis/mpp OSS publication by adding the npm-discoverable README (Express/Hono/Fastify/bare-Node recipes + full API reference) and MIT LICENSE, closing gap_s1_002 and unblocking external MCP server operators."
 
   executive_truth:
     maturity_estimate:
@@ -3853,3 +3852,41 @@ project_continuation:
       - "4b537ba: feat(session-100): compliance_grade in snapshot API, GitHub Action CI gate, @axis/mpp OSS package, competitive gap matrix"
     push_results:
       - "pushed to origin/main — HEAD at 4b537ba"
+
+  session_result_101:
+    date: "2026-05-21"
+    session_id: "session_101"
+    selected_move: "gap_s1_002: finish @axis/mpp OSS publication — npm-discoverable README + MIT LICENSE"
+    selected_move_roi_reason: >
+      Highest-ROI unblocked candidate from the competitive gap queue. Session 100 published
+      @axis/mpp (gap_s1_001) but the package.json declared `files: ["dist", "README.md", "LICENSE"]`
+      while README.md and LICENSE did not exist — the npm artifact was technically broken and
+      undiscoverable. gap_s1_002 (rank 11, HIGH priority, low cost, self_propagation 5,
+      agent_acquisition 5) was the natural compounding follow-on: without a README, no external
+      MCP server operator can find or adopt @axis/mpp, so the protocol-platform play from
+      session 100 had zero distribution surface. This single move closes both the publishability
+      defect and the documentation gap.
+    completed_candidates:
+      - "packages/mpp/README.md: npm-discoverable docs with badges, 5-line quickstart, Express/Hono/Fastify/bare-Node recipes, full API reference (parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier, PRICING_TIERS, LEGACY_TOOL_ALIASES), env-var table, 'Why MPP?' comparison table, related projects, MIT license note."
+      - "packages/mpp/LICENSE: MIT (mirrors root LICENSE, copyright lastmanupinc-hub). Resolves the package.json files: declaration."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest suite: 144 passed files, 4193 passed tests, 11 skipped, 0 failed (duration 70.66s)."
+      - "Package build: pnpm --filter @axis/mpp build — exit 0 (@axis/mpp@0.5.3, tsc clean)."
+      - "packages/mpp/README.md (~6.5 KB) + packages/mpp/LICENSE (1.1 KB) added — both now resolved by `files: [\"dist\", \"README.md\", \"LICENSE\"]` in package.json."
+      - "competitive-gap-matrix.yaml updated: gap_s1_002 marked complete (with completion_note); gap_s1_001, gap_s3_001, gap_s3_003 retroactively marked complete in axis_current_coverage.missing blocks; queue ranks 1, 2, 6, 11 carry completion_status + completed_session."
+    verticals_advanced:
+      - "v18_agentic_commerce: @axis/mpp is now a discoverable, installable npm package — external MCP server operators can ship x402 budget negotiation in ~5 lines without depending on AXIS infrastructure."
+      - "v0_core_platform: OSS-readiness checklist — packages/mpp now has both items the npm publish flow declared but did not yet ship."
+    blockers_removed:
+      - "packages/mpp/package.json declared README.md and LICENSE in files: but neither file existed — published artifact was non-discoverable and technically broken."
+      - "gap_s1_002 (MCP server monetization starter kit) — no quickstart existed for external operators to adopt @axis/mpp."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "gap_cr_001 / gap_s2_001: GitHub App manifest + webhook handler (CRITICAL, medium cost) — top remaining queue item."
+      - "gap_s3_002: PR Check Run with explicit compliance-grade output (HIGH, low cost) — workflow run already shows pass/fail; native Check Run is the next refinement."
+      - "Continuation ledger still missing session results 095b/096b…100b for the post-session_100 commits on feat/iliad-tool-console (Firecrawl, tool console, pricing unification) — bookkeeping debt."
+    local_only: true
+    commit_results: []
+    push_results: []

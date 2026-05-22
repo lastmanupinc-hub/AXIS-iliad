@@ -275,6 +275,11 @@ strategy_targets:
           priority: CRITICAL
           cost_to_build: medium
           oss_blocker: true
+          completion_status: complete
+          completion_note: >
+            packages/mpp/ published with parseAgentBudget, negotiatePrice, build402NegotiationBody,
+            PRICING_TIERS, LEGACY_TOOL_ALIASES, getPricingTier, resolveAgentMode. apps/api/src/mpp.ts
+            re-exports from @axis/mpp. (Session 100, commit 4b537ba.)
 
         - id: gap_s1_002
           description: >
@@ -283,6 +288,13 @@ strategy_targets:
           priority: HIGH
           cost_to_build: low
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            packages/mpp/README.md ships agent-first quickstart + Express/Hono/Fastify/bare-Node
+            recipes, full API reference, env-var table, and "Why MPP?" comparison. LICENSE added
+            so the npm-declared files: ["dist", "README.md", "LICENSE"] resolve cleanly.
+            Closes the discoverability gap that blocked external MCP server operators from
+            using @axis/mpp after session_100's publish.
 
         - id: gap_s1_003
           description: >
@@ -412,6 +424,12 @@ strategy_targets:
           priority: CRITICAL
           cost_to_build: low
           oss_blocker: true
+          completion_status: complete
+          completion_note: >
+            .github/actions/compliance-check/action.yml composite action shipped with
+            min-grade gate, step summary, WAF-fallback local grading, and lite-mode default.
+            .github/workflows/compliance-check.yml example workflow on PR/push.
+            (Session 100, commit 4b537ba.)
 
         - id: gap_s3_002
           description: >
@@ -430,6 +448,11 @@ strategy_targets:
           priority: HIGH
           cost_to_build: low
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            computeComplianceGrade() exported from @axis/generator-core. handleCreateSnapshot
+            (201) and handleGetSnapshot (200) both return compliance_grade: {grade, checks_passed,
+            checks_total}. Null-safe; no regressions. (Session 100, commit 4b537ba.)
 
         - id: gap_s3_004
           description: >
@@ -521,11 +544,15 @@ gap_completion_queue:
       gap_id: gap_s3_001
       description: "GitHub Action for compliance check (CRITICAL, low cost, OSS blocker)"
       strategy: strategy_3_compliance_artifact_compiler
+      completion_status: complete
+      completed_session: session_100
 
     - rank: 2
       gap_id: gap_s1_001
       description: "@axis/mpp publishable npm package with middleware (CRITICAL, medium cost, OSS blocker)"
       strategy: strategy_1_x402_mcp_gateway
+      completion_status: complete
+      completed_session: session_100
 
     - rank: 3
       gap_id: gap_cr_001
@@ -547,6 +574,8 @@ gap_completion_queue:
       gap_id: gap_s3_003
       description: "compliance_grade in snapshot response body (HIGH, low cost)"
       strategy: strategy_3_compliance_artifact_compiler
+      completion_status: complete
+      completed_session: session_100
 
     - rank: 7
       gap_id: gap_c7_001
@@ -572,6 +601,8 @@ gap_completion_queue:
       gap_id: gap_s1_002
       description: "MCP monetization starter kit (HIGH, low cost)"
       strategy: strategy_1_x402_mcp_gateway
+      completion_status: complete
+      completed_session: session_101
 
     - rank: 12
       gap_id: gap_s2_002
