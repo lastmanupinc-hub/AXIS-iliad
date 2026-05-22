@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router } from "./router.js";
+import { MCP_TOOL_COUNT } from "./counts.js";
 import {
   handleLlmsTxt,
   handleSkillsIndex,
@@ -143,8 +144,8 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("POST /mcp");
   });
 
-    it("contains 14 MCP tools count", () => {
-      expect(body).toContain("14 tools");
+    it("contains the canonical MCP tools count", () => {
+      expect(body).toContain(`${MCP_TOOL_COUNT} tools`);
   });
 
   it("contains the 19 programs count", () => {

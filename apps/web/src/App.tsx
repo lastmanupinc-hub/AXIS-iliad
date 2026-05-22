@@ -13,6 +13,8 @@ import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -49,7 +51,25 @@ function ErrorBoundary({ children }: { children: ReactNode }) {
   );
 }
 
-type Page = "upload" | "dashboard" | "plans" | "account" | "docs" | "help" | "qa" | "programs" | "terms" | "for-agents" | "examples" | "install" | "admin" | "myanalytics";
+type Page =
+  | "upload"
+  | "dashboard"
+  | "plans"
+  | "account"
+  | "docs"
+  | "help"
+  | "qa"
+  | "programs"
+  | "terms"
+  | "for-agents"
+  | "examples"
+  | "install"
+  | "admin"
+  | "myanalytics"
+  | "tools"
+  // Sub-tool pages — each click-driven console for a single backend capability.
+  // Hash format: "#tools/web-research" → "tool-web-research".
+  | "tool-web-research";
 
 const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics"]);
 
@@ -65,12 +85,27 @@ function pageFromPathname(pathname: string): Page | null {
   if (normalized === "/docs") return "docs";
   if (normalized === "/install") return "install";
   if (normalized === "/programs") return "programs";
+  if (normalized === "/tools") return "tools";
+  if (normalized === "/tools/web-research") return "tool-web-research";
+  return null;
+}
+
+/** Parse a sub-tool hash like "tools/web-research" into a Page enum value. */
+function pageFromHash(hash: string): Page | null {
+  const h = hash.replace(/^#/, "");
+  if (!h) return null;
+  if (h === "tools") return "tools";
+  if (h === "tools/web-research") return "tool-web-research";
+  // Future tool subpages: extend this match block in lockstep with the Page union above.
   return null;
 }
 
 function getInitialPage(): Page {
   const pathPage = pageFromPathname(location.pathname);
   if (pathPage) return pathPage;
+
+  const subPage = pageFromHash(location.hash);
+  if (subPage) return subPage;
 
   const h = location.hash.replace("#", "");
   if (h === "admin" || h === "myanalytics") return hasApiKey() ? (h as Page) : "account";
@@ -120,6 +155,12 @@ export function App() {
         return;
       }
 
+      const subPage = pageFromHash(location.hash);
+      if (subPage) {
+        setPage(subPage);
+        return;
+      }
+
       const h = location.hash.replace("#", "");
       const isLoggedIn = hasApiKey();
       if (h === "plans") setPage("plans");
@@ -158,6 +199,14 @@ export function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  /** Map a Page enum to the hash it should set in the URL. Sub-tool pages
+   *  use a sub-path style (#tools/web-research) for readability. */
+  const hashForPage = useCallback((p: Page): string => {
+    if (p === "upload") return "";
+    if (p === "tool-web-research") return "tools/web-research";
+    return p;
+  }, []);
+
   const nav = useCallback((p: Page) => {
     if (AUTH_ONLY_PAGES.has(p) && !hasApiKey()) {
       setPage("account");
@@ -169,8 +218,8 @@ export function App() {
     setPage(p);
     setPageKey((k) => k + 1);
     setNavOpen(false);
-    location.hash = p === "upload" ? "" : p;
-  }, []);
+    location.hash = hashForPage(p);
+  }, [hashForPage]);
 
   const handleUploadComplete = useCallback((data: SnapshotResponse) => {
     const isLoggedIn = !!localStorage.getItem("axis_api_key");
@@ -323,6 +372,7 @@ export function App() {
           {result && (
             <button className={`btn ${page === "dashboard" ? "btn-primary" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
           )}
+          <button className={`btn ${page === "tools" || page.startsWith("tool-") ? "btn-primary" : ""}`} onClick={() => nav("tools")}>Tools</button>
           <button className={`btn ${page === "programs" ? "btn-primary" : ""}`} onClick={() => nav("programs")}>Programs</button>
           <button className={`btn ${page === "plans" ? "btn-primary" : ""}`} onClick={() => nav("plans")}>Plans</button>
           <button className={`btn ${page === "account" ? "btn-primary" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
@@ -359,6 +409,7 @@ export function App() {
           {result && (
             <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
           )}
+          <button className={`nav-drawer-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}>Tools</button>
           <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
           <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
           <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
@@ -400,6 +451,17 @@ export function App() {
           {page === "for-agents" && <ForAgentsPage />}
           {page === "examples" && <ExamplesPage />}
           {page === "install" && <InstallPage />}
+          {page === "tools" && (
+            <ToolsIndexPage
+              onSelectTool={(toolId) => {
+                if (toolId === "tools/web-research") nav("tool-web-research");
+                else if (toolId === "tools/analyze") nav("upload");
+                else if (toolId === "tools/list-programs") nav("programs");
+                // Future tools: add cases here as their ToolPage instances ship.
+              }}
+            />
+          )}
+          {page === "tool-web-research" && <WebResearchPage onBack={() => nav("tools")} />}
         </div>
       </ErrorBoundary>
 

@@ -669,3 +669,52 @@ export async function getSubscription(): Promise<SubscriptionInfo> {
 export async function cancelSubscription(): Promise<{ subscription_id: string; status: string; message: string }> {
   return fetchJSON("/v1/account/subscription/cancel", { method: "POST" });
 }
+
+// ─── Web Research API (Firecrawl proxy) ─────────────────────────
+
+export interface ScrapeResult {
+  success: boolean;
+  data?: {
+    url: string;
+    markdown: string;
+    metadata: Record<string, unknown>;
+  };
+  cache?: { hit: boolean; age_seconds?: number; hit_count?: number; ttl_remaining_seconds?: number };
+  error?: string;
+}
+
+export interface CrawlPage {
+  url: string;
+  markdown: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface CrawlResult {
+  success: boolean;
+  data?: {
+    url: string;
+    pages_crawled: number;
+    pages: CrawlPage[];
+  };
+  cache?: { warmed_entries?: number };
+  error?: string;
+}
+
+export async function scrapeUrl(
+  url: string,
+  opts?: { only_main_content?: boolean },
+): Promise<ScrapeResult> {
+  return fetchJSON("/v1/research/scrape", {
+    method: "POST",
+    body: JSON.stringify({ url, only_main_content: opts?.only_main_content ?? true }),
+    timeoutMs: 60_000,
+  });
+}
+
+export async function crawlDomain(url: string, limit = 10): Promise<CrawlResult> {
+  return fetchJSON("/v1/research/crawl", {
+    method: "POST",
+    body: JSON.stringify({ url, limit }),
+    timeoutMs: 120_000,
+  });
+}
