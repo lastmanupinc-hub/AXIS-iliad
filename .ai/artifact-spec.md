@@ -1,6 +1,6 @@
 # Artifact Specification — axis-iliad
 
-Generated: 2026-05-22T18:24:24.007Z
+Generated: 2026-05-22T18:29:19.211Z
 
 ## Project Overview
 
@@ -23,7 +23,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Language Distribution
 
-- **TypeScript**: 75.6% ███████████████ (275 files, 91116 LOC)
+- **TypeScript**: 75.6% ███████████████ (275 files, 91154 LOC)
 - **YAML**: 8.2% ██ (57 files, 9885 LOC)
 - **JSON**: 7% █ (63 files, 8478 LOC)
 - **Markdown**: 6.7% █ (79 files, 8125 LOC)

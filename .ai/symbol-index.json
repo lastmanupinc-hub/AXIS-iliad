@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-22T18:24:24.134Z",
+  "generated_at": "2026-05-22T18:29:19.339Z",
   "total_symbols": 1985,
   "file_count": 245,
   "symbols": {
@@ -7429,47 +7429,47 @@
       {
         "name": "generateCloserManifestUnreal",
         "type": "function",
-        "line": 939
+        "line": 948
       },
       {
         "name": "generateCloserManifestVsCode",
         "type": "function",
-        "line": 971
+        "line": 985
       },
       {
         "name": "generateCloserManifestDockerHub",
         "type": "function",
-        "line": 1003
+        "line": 1024
       },
       {
         "name": "generateCloserManifestGitHubMarketplace",
         "type": "function",
-        "line": 1038
+        "line": 1079
       },
       {
         "name": "generateCloserTrustAttestation",
         "type": "function",
-        "line": 1073
+        "line": 1125
       },
       {
         "name": "generateCloserMerkleProof",
         "type": "function",
-        "line": 1113
+        "line": 1165
       },
       {
         "name": "generateCloserPackagingReport",
         "type": "function",
-        "line": 1147
+        "line": 1199
       },
       {
         "name": "generateDistributableGuide",
         "type": "function",
-        "line": 1203
+        "line": 1255
       },
       {
         "name": "generateMakefileWithShipTarget",
         "type": "function",
-        "line": 1250
+        "line": 1302
       }
     ],
     "packages/generator-core/src/generators-debug.ts": [

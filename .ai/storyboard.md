@@ -1,6 +1,6 @@
 # Storyboard — axis-iliad
 
-Generated: 2026-05-22T18:24:24.179Z
+Generated: 2026-05-22T18:29:19.384Z
 
 Frame-by-frame storyboard for a 60-second project showcase video.
 

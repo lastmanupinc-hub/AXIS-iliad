@@ -1,7 +1,7 @@
 version: 1.0.0
-snapshot_id: 778d2fdc-ab47-4972-b576-8745904d193c
-project_id: 7dd377af-6b73-4bba-bdc9-c7b194380b40
-generated_at: "2026-05-22T18:24:23.883Z"
+snapshot_id: 02251fc4-6b6e-4966-8a9d-c7bfe80ed861
+project_id: 7721ecb8-3572-4f94-a161-0ad320617cab
+generated_at: "2026-05-22T18:29:19.085Z"
 project:
   name: axis-iliad
   type: monorepo
@@ -14,7 +14,7 @@ detection:
   languages:
     - name: TypeScript
       file_count: 275
-      loc: 91116
+      loc: 91154
       loc_percent: 75.6
     - name: YAML
       file_count: 57
@@ -69,7 +69,7 @@ detection:
 structure_summary:
   total_files: 500
   total_directories: 65
-  total_loc: 131426
+  total_loc: 131464
   top_level_dirs:
     - name: apps
       purpose: monorepo_apps
@@ -530,7 +530,7 @@ packages/generator-core/src/generators-artifacts.ts (60.2 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
-packages/generator-core/src/generators-closer.ts (47.8 KB)
+packages/generator-core/src/generators-closer.ts (51.8 KB)
 packages/generator-core/src/generators-debug.ts (42.0 KB)
 packages/generator-core/src/generators-frontend.ts (27.6 KB)
 packages/generator-core/src/generators-marketing.ts (35.4 KB)

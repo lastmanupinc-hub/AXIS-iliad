@@ -5,8 +5,10 @@
   "FriendlyName": "axis-iliad",
   "Description": "Production-grade axis-iliad packaging and release kit",
   "Category": "Tools",
-  "CreatedBy": "axis-iliad",
+  "CreatedBy": "<add your publisher name>",
+  "CreatedByURL": "<add your homepage URL>",
   "CanContainContent": true,
   "IsBetaVersion": false,
-  "Installed": false
+  "Installed": false,
+  "EngineVersion": "5.3.0"
 }

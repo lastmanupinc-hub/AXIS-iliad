@@ -910,29 +910,38 @@ export function generateCloserManifestNpm(
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
   const npmName = branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const content = JSON.stringify(
-    {
-      name: npmName,
-      version: "1.0.0",
-      description: branding.tagline,
-      license: "SEE LICENSE IN packaging/LICENSE",
-      repository: {
-        type: "git",
-        url: ctx.project_identity.repo_url ?? "https://github.com/owner/repo",
-      },
-      homepage: "https://example.com",
-      keywords: ["marketplace", "packaged", "production", "certified"],
-    },
-    null,
-    2,
-  );
+  // Pull keywords from detected frameworks instead of meaningless filler.
+  const frameworkKeywords = ctx.detection.frameworks
+    .slice(0, 5)
+    .map(f => f.name.toLowerCase().replace(/\s+/g, "-"));
+  const keywords = Array.from(new Set([npmName, ctx.project_identity.primary_language.toLowerCase(), ...frameworkKeywords]))
+    .filter(k => k && k !== "unknown");
+
+  const manifest: Record<string, unknown> = {
+    name: npmName,
+    version: "1.0.0",
+    description: branding.tagline,
+    type: "module",
+    license: "SEE LICENSE IN packaging/LICENSE",
+    engines: { node: ">=20" },
+    files: ["dist", "README.md", "LICENSE"],
+    keywords,
+  };
+  // Only emit repository / homepage / bugs URLs when we actually detected a
+  // repo URL. Shipping https://github.com/owner/repo and https://example.com
+  // as defaults trains downstream tools to ignore the fields.
+  if (ctx.project_identity.repo_url) {
+    manifest.repository = { type: "git", url: ctx.project_identity.repo_url };
+    manifest.homepage = `${ctx.project_identity.repo_url.replace(/\.git$/, "")}#readme`;
+    manifest.bugs = { url: `${ctx.project_identity.repo_url.replace(/\.git$/, "")}/issues` };
+  }
 
   return {
     path: "packaging/manifests/npm-package.json",
-    content,
+    content: JSON.stringify(manifest, null, 2),
     content_type: "application/json",
     program: PROGRAM,
-    description: "npm marketplace manifest template for product listing and distribution",
+    description: "npm publish-ready manifest. type:module, engines.node, files allowlist, keywords from detected frameworks. Repository/homepage/bugs only emitted when a repo URL was detected.",
   };
 }
 
@@ -942,29 +951,34 @@ export function generateCloserManifestUnreal(
   files?: SourceFile[],
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
-  const content = JSON.stringify(
-    {
-      FileVersion: 3,
-      Version: 1,
-      VersionName: "1.0.0",
-      FriendlyName: branding.product_name,
-      Description: branding.tagline,
-      Category: "Tools",
-      CreatedBy: branding.product_name,
-      CanContainContent: true,
-      IsBetaVersion: false,
-      Installed: false,
-    },
-    null,
-    2,
-  );
+  const manifest: Record<string, unknown> = {
+    FileVersion: 3,
+    Version: 1,
+    VersionName: "1.0.0",
+    FriendlyName: branding.product_name,
+    Description: branding.tagline,
+    Category: "Tools",
+    // CreatedBy is a human/org name — using the product name as a fallback is
+    // worse than admitting we don't know. Operator must fill this in before
+    // marketplace submission.
+    CreatedBy: "<add your publisher name>",
+    CreatedByURL: ctx.project_identity.repo_url ?? "<add your homepage URL>",
+    CanContainContent: true,
+    IsBetaVersion: false,
+    Installed: false,
+    EngineVersion: "5.3.0",
+  };
+  if (ctx.project_identity.repo_url) {
+    manifest.DocsURL = `${ctx.project_identity.repo_url.replace(/\.git$/, "")}#readme`;
+    manifest.SupportURL = `${ctx.project_identity.repo_url.replace(/\.git$/, "")}/issues`;
+  }
 
   return {
     path: "packaging/manifests/unreal.uplugin",
-    content,
+    content: JSON.stringify(manifest, null, 2),
     content_type: "application/json",
     program: PROGRAM,
-    description: "Unreal marketplace plugin descriptor generated for submission packaging",
+    description: "Unreal .uplugin descriptor. CreatedBy + CreatedByURL are intentionally left as TODOs (must match a real Marketplace seller record). DocsURL and SupportURL populated from the detected repo URL when present.",
   };
 }
 
@@ -975,28 +989,35 @@ export function generateCloserManifestVsCode(
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
   const slug = branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const content = JSON.stringify(
-    {
-      name: slug,
-      displayName: branding.product_name,
-      description: branding.tagline,
-      version: "1.0.0",
-      publisher: "your-publisher",
-      engines: { vscode: "^1.95.0" },
-      categories: ["Other"],
-      main: "./dist/extension.js",
-      contributes: { commands: [{ command: `${slug}.open`, title: `${branding.product_name}: Open` }] },
+  const manifest: Record<string, unknown> = {
+    name: slug,
+    displayName: branding.product_name,
+    description: branding.tagline,
+    version: "1.0.0",
+    // publisher is intentionally omitted — it must match a real
+    // Marketplace publisher account and shouldn't have a placeholder
+    // value that fails `vsce publish` silently. The TODO comment in the
+    // description tells the operator what to add.
+    engines: { vscode: "^1.95.0" },
+    categories: ["Other"],
+    main: "./dist/extension.js",
+    activationEvents: [`onCommand:${slug}.open`],
+    contributes: {
+      commands: [{ command: `${slug}.open`, title: `${branding.product_name}: Open` }],
     },
-    null,
-    2,
-  );
+  };
+  if (ctx.project_identity.repo_url) {
+    manifest.repository = { type: "git", url: ctx.project_identity.repo_url };
+    manifest.homepage = ctx.project_identity.repo_url.replace(/\.git$/, "");
+    manifest.bugs = { url: `${ctx.project_identity.repo_url.replace(/\.git$/, "")}/issues` };
+  }
 
   return {
     path: "packaging/manifests/vscode-extension.json",
-    content,
+    content: JSON.stringify(manifest, null, 2),
     content_type: "application/json",
     program: PROGRAM,
-    description: "VS Code Marketplace extension manifest scaffold",
+    description: "VS Code Marketplace extension manifest. Includes activationEvents tied to the contributed command. `publisher` is omitted on purpose — add your real publisher ID before `vsce publish`.",
   };
 }
 
@@ -1006,24 +1027,44 @@ export function generateCloserManifestDockerHub(
   files?: SourceFile[],
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
+  const slug = branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  // Use the actual project slug for the docker image tag instead of
+  // your-org/your-image (which never gets edited in practice).
+  const image = `<your-org>/${slug}`;
   const content = [
     `# Docker Hub Listing — ${branding.product_name}`,
     "",
-    `## Overview`,
+    "## Overview",
     branding.tagline,
+    ...(ctx.project_identity.repo_url ? ["", `**Source**: ${ctx.project_identity.repo_url}`] : []),
     "",
     "## Tags",
-    "- latest",
-    "- 1.0.0",
+    "- `latest` — current stable build",
+    "- `1.0.0` — pinned semver",
     "",
     "## Quick Start",
     "```bash",
-    "docker run --rm -p 8080:8080 your-org/your-image:latest",
+    `docker run --rm -p \${PORT:-8080}:8080 ${image}:latest`,
     "```",
     "",
-    "## Compliance and Trust",
-    "- Includes signed Merkle attestation in packaging/trust-fabric/attestation.json",
-    "- Generated with offline certlib profile",
+    "## Environment",
+    "| Var | Default | Description |",
+    "|-----|---------|-------------|",
+    "| `PORT` | `8080` | HTTP listen port. Honored by the container entrypoint. |",
+    "| `NODE_ENV` | `production` | Runtime mode. Set to `development` for verbose logging. |",
+    "",
+    "## Compliance & Trust",
+    "- Signed Merkle attestation in `packaging/trust-fabric/attestation.json`.",
+    "- Multi-stage non-root build (see Dockerfile in the source repo).",
+    "- HEALTHCHECK on `/health` so orchestrators can drive rolling restarts.",
+    "",
+    "## Publishing",
+    "Replace `<your-org>` above with your Docker Hub namespace before pushing:",
+    "",
+    "```bash",
+    `docker tag ${slug}:latest <your-org>/${slug}:latest`,
+    `docker push <your-org>/${slug}:latest`,
+    "```",
   ].join("\n");
 
   return {
@@ -1031,7 +1072,7 @@ export function generateCloserManifestDockerHub(
     content,
     content_type: "text/markdown",
     program: PROGRAM,
-    description: "Docker Hub repository listing content with trust and launch metadata",
+    description: `Docker Hub long-description: tags table, ${slug}-tagged quick-start that honors $PORT, env-var reference, publish steps, and a Compliance & Trust section pointing at the attestation bundle.`,
   };
 }
 
@@ -1044,21 +1085,32 @@ export function generateCloserManifestGitHubMarketplace(
   const content = [
     `# GitHub Marketplace Listing — ${branding.product_name}`,
     "",
-    `## Value Proposition`,
+    "## Value Proposition",
     branding.tagline,
+    ...(ctx.project_identity.repo_url ? ["", `**Source**: ${ctx.project_identity.repo_url}`] : []),
     "",
     "## Features",
-    "- Production packaging profile (CI, release, container runtime)",
-    "- Marketplace manifests for npm, Unreal, VS Code, and Docker Hub",
-    "- Trust Fabric attestation bundle with deterministic Merkle root",
+    "- Production packaging profile — CI, release workflow, multi-stage container.",
+    "- Marketplace manifests for npm, Unreal, VS Code, and Docker Hub.",
+    "- Trust Fabric attestation bundle with deterministic Merkle root.",
+    "- `make ship` runs the full release sequence locally before tagging.",
+    "",
+    "## Installation",
+    "```bash",
+    `git clone ${ctx.project_identity.repo_url ?? "<repo-url>"}`,
+    "cd " + branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    "make ship",
+    "```",
+    "",
+    "## Verification",
+    "Every release attaches the attestation bundle. Verify after install:",
+    "",
+    "```bash",
+    "cat packaging/trust-fabric/attestation.json | jq .digest",
+    "```",
     "",
     "## Support",
-    "- SLA tiers: Community / Team / Enterprise",
-    "- Contact: support@company.example",
-    "",
-    "## Billing",
-    "- Suggested base subscription: $99/month",
-    "- Premium assisted onboarding: $499 one-time",
+    "Open an issue on the source repository for bug reports or feature requests. Commercial support tiers, response-time SLAs, and contact information are owned by the publisher — fill those in here before submitting the listing.",
   ].join("\n");
 
   return {
