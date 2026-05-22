@@ -12,6 +12,7 @@ import {
   type VectorRecord,
   type QueryOptions,
 } from "./vector-db.js";
+import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
 import {
   createSnapshot,
   getSnapshot,
@@ -222,23 +223,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     },
     recommended_provider: { name: "OpenAI", url: "https://platform.openai.com/docs/api-reference/chat" },
     capability_id: "llm_inference",
-  },
-  {
-    name: "iliad_embeddings",
-    title: "Vector Embeddings",
-    summary: "Convert text to dense vectors for semantic search, clustering, and RAG.",
-    status: "planned_proxy",
-    input_properties: {
-      input: { type: "string", description: "Text or batch of texts (pass an array via JSON-encoded string)." },
-      dimensions: { type: "number", description: "Vector size. Defaults to 1024." },
-    },
-    required_inputs: ["input"],
-    output_properties: {
-      vectors: { type: "array", description: "Dense vectors, one per input." },
-      model_used: { type: "string", description: "Concrete embedding model used." },
-    },
-    recommended_provider: { name: "OpenAI Embeddings", url: "https://platform.openai.com/docs/api-reference/embeddings" },
-    capability_id: "embeddings",
   },
   {
     name: "iliad_image_generation",
@@ -472,6 +456,40 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     operation: method,
     ttl_seconds: ttl,
   }, null, 2);
+}
+
+async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_embeddings needs Authorization: Bearer <api_key>.");
+  }
+  const config = readEmbeddingsConfigFromEnv();
+  if (!config) {
+    return JSON.stringify({
+      _not_configured: true,
+      tool: "iliad_embeddings",
+      message: "Embeddings backend is not provisioned on this AXIS instance. Operator must set OPENAI_API_KEY (and optionally OPENAI_EMBEDDING_MODEL).",
+      required_env: ["OPENAI_API_KEY"],
+      optional_env: ["OPENAI_EMBEDDING_MODEL"],
+      capability_map_reference: ".ai/capability-map.yaml",
+    }, null, 2);
+  }
+
+  // Accept either a single string or an array. Other shapes get a clean
+  // 400-style error message routed through the MCP envelope.
+  const rawInput = args.input;
+  if (typeof rawInput !== "string" && !Array.isArray(rawInput)) {
+    throw new Error("iliad_embeddings: `input` must be a string or array of strings.");
+  }
+  if (Array.isArray(rawInput)) {
+    for (let i = 0; i < rawInput.length; i++) {
+      if (typeof rawInput[i] !== "string") {
+        throw new Error(`iliad_embeddings: input[${i}] must be a string.`);
+      }
+    }
+  }
+  const result = await computeEmbeddings(rawInput as string | string[], config);
+  return JSON.stringify(result, null, 2);
 }
 
 /** Hard cap on a single upsert batch to keep request size bounded. */
@@ -1334,7 +1352,48 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (10 tools) ────────────────────────
+  // ─── iliad_embeddings (live_proxy → OpenAI; planned fastembed-ONNX swap) ─
+  // Natural pair to iliad_vector_database. Returns dense vectors that feed
+  // directly into vector_database's upsert/query operations. Until the
+  // fastembed-ONNX module-swap ships, the inference happens at OpenAI with
+  // an operator-managed API key; AXIS provides the MCP surface, billing,
+  // and error normalization.
+  {
+    name: "iliad_embeddings",
+    description:
+      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["input"],
+      properties: {
+        input: { type: ["string", "array"] as unknown as string, description: "A single string or an array of strings to embed. Empty strings and entries > 32k chars are rejected (chunk before calling)." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["vectors", "model_used", "input_count"],
+      properties: {
+        vectors: { type: "array", description: "Array of dense vectors. vectors[i] corresponds to input[i] (order preserved)." },
+        model_used: { type: "string", description: "Concrete embedding model name returned by the provider." },
+        input_count: { type: "number", description: "Number of inputs submitted (matches vectors.length)." },
+        usage: { type: "object", description: "{prompt_tokens, total_tokens} when reported by the provider." },
+      },
+    },
+    annotations: toolAnnotations("Vector Embeddings", false, true),
+    examples: [
+      {
+        name: "Embed a single string",
+        input: { input: "hello world" },
+        output: '{"vectors":[[0.012,-0.034,...]],"model_used":"text-embedding-3-small","input_count":1,"usage":{"prompt_tokens":2,"total_tokens":2}}',
+      },
+      {
+        name: "Embed a batch for RAG indexing",
+        input: { input: ["chunk 1 text", "chunk 2 text", "chunk 3 text"] },
+        output: '{"vectors":[[...],[...],[...]],"model_used":"text-embedding-3-small","input_count":3}',
+      },
+    ],
+  },
+  // ─── Planned-capability stubs (9 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full 14-tool iliad_* surface immediately. tools/call on
   // any of these returns a structured `_planned: true` envelope until
@@ -3004,6 +3063,9 @@ export async function dispatch(
             break;
           case "iliad_vector_database":
             text = runVectorDatabase(toolArgs, req);
+            break;
+          case "iliad_embeddings":
+            text = await runEmbeddings(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

@@ -8,9 +8,9 @@
    Type:        monorepo
    Language:    TypeScript
    Stack:       React
-   Total LOC:   122,223
+   Total LOC:   122,254
    Routes:      497 (272 GET · 204 POST)
-   Models:      255 domain models
+   Models:      259 domain models
    ─────────────────────────────────────────────────────── */
 
 :root {
@@ -324,13 +324,13 @@ th { font-weight: 600; }
 /*    Add model-specific tweaks in your own stylesheet, not here.            */
 
 /*   .auth-context-card    — AuthContext (interface, 3 fields). Apply .surface-card. */
+/*   .embeddings-config-card    — EmbeddingsConfig (interface, 2 fields). Apply .surface-card. */
+/*   .embeddings-result-card    — EmbeddingsResult (interface, 4 fields). Apply .surface-card. */
+/*   .open-aiembedding-response-card    — OpenAIEmbeddingResponse (interface, 5 fields). Apply .surface-card. */
+/*   .open-aierror-response-card    — OpenAIErrorResponse (interface, 3 fields). Apply .surface-card. */
 /*   .env-spec-card    — EnvSpec (interface, 5 fields). Apply .surface-card. */
 /*   .validation-error-card    — ValidationError (interface, 2 fields). Apply .surface-card. */
 /*   .validation-result-card    — ValidationResult (interface, 3 fields). Apply .surface-card. */
-/*   .zip-entry-card    — ZipEntry (interface, 4 fields). Apply .surface-card. */
-/*   .pull-request-payload-card    — PullRequestPayload (interface, 5 fields). Apply .surface-card. */
-/*   .push-payload-card    — PushPayload (interface, 7 fields). Apply .surface-card. */
-/*   .snapshot-target-card    — SnapshotTarget (interface, 5 fields). Apply .surface-card. */
 
 /* ─── Detected Style Files ─────────────────────────────── */
 /*

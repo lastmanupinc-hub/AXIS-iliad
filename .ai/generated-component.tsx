@@ -84,6 +84,30 @@ const MODELS: Model[] = [
     "source": "apps/api/src/billing.ts"
   },
   {
+    "name": "EmbeddingsConfig",
+    "kind": "interface",
+    "fields": 2,
+    "source": "apps/api/src/embeddings.ts"
+  },
+  {
+    "name": "EmbeddingsResult",
+    "kind": "interface",
+    "fields": 4,
+    "source": "apps/api/src/embeddings.ts"
+  },
+  {
+    "name": "OpenAIEmbeddingResponse",
+    "kind": "interface",
+    "fields": 5,
+    "source": "apps/api/src/embeddings.ts"
+  },
+  {
+    "name": "OpenAIErrorResponse",
+    "kind": "interface",
+    "fields": 3,
+    "source": "apps/api/src/embeddings.ts"
+  },
+  {
     "name": "EnvSpec",
     "kind": "interface",
     "fields": 5,
@@ -100,30 +124,6 @@ const MODELS: Model[] = [
     "kind": "interface",
     "fields": 3,
     "source": "apps/api/src/env.ts"
-  },
-  {
-    "name": "ZipEntry",
-    "kind": "interface",
-    "fields": 4,
-    "source": "apps/api/src/export.ts"
-  },
-  {
-    "name": "PullRequestPayload",
-    "kind": "interface",
-    "fields": 5,
-    "source": "apps/api/src/github-webhook.ts"
-  },
-  {
-    "name": "PushPayload",
-    "kind": "interface",
-    "fields": 7,
-    "source": "apps/api/src/github-webhook.ts"
-  },
-  {
-    "name": "SnapshotTarget",
-    "kind": "interface",
-    "fields": 5,
-    "source": "apps/api/src/github-webhook.ts"
   }
 ];
 const ENTRY_POINTS: Entry[] = [];

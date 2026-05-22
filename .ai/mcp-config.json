@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T21:12:20.845Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.",
+  "generated_at": "2026-05-22T21:39:10.637Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -96,6 +96,30 @@
       "mimeType": "application/json"
     },
     {
+      "uri": "model://axis-iliad/EmbeddingsConfig",
+      "name": "EmbeddingsConfig",
+      "description": "interface with 2 fields (apps/api/src/embeddings.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/EmbeddingsResult",
+      "name": "EmbeddingsResult",
+      "description": "interface with 4 fields (apps/api/src/embeddings.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/OpenAIEmbeddingResponse",
+      "name": "OpenAIEmbeddingResponse",
+      "description": "interface with 5 fields (apps/api/src/embeddings.ts)",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "model://axis-iliad/OpenAIErrorResponse",
+      "name": "OpenAIErrorResponse",
+      "description": "interface with 3 fields (apps/api/src/embeddings.ts)",
+      "mimeType": "application/json"
+    },
+    {
       "uri": "model://axis-iliad/EnvSpec",
       "name": "EnvSpec",
       "description": "interface with 5 fields (apps/api/src/env.ts)",
@@ -154,30 +178,6 @@
       "name": "FirecrawlScrapeRequest",
       "description": "interface with 6 fields (apps/api/src/handlers.ts)",
       "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/FirecrawlScrapeResponse",
-      "name": "FirecrawlScrapeResponse",
-      "description": "interface with 5 fields (apps/api/src/handlers.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/IntentCapture",
-      "name": "IntentCapture",
-      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/JsonRpcRequest",
-      "name": "JsonRpcRequest",
-      "description": "interface with 4 fields (apps/api/src/mcp-server.ts)",
-      "mimeType": "application/json"
-    },
-    {
-      "uri": "model://axis-iliad/McpCallCounters",
-      "name": "McpCallCounters",
-      "description": "interface with 5 fields (apps/api/src/mcp-server.ts)",
-      "mimeType": "application/json"
     }
   ],
   "prompts": [
@@ -217,6 +217,34 @@
       "field_count": 3,
       "source_file": "apps/api/src/billing.ts",
       "resource_uri": "model://axis-iliad/AuthContext"
+    },
+    {
+      "name": "EmbeddingsConfig",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/embeddings.ts",
+      "resource_uri": "model://axis-iliad/EmbeddingsConfig"
+    },
+    {
+      "name": "EmbeddingsResult",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/embeddings.ts",
+      "resource_uri": "model://axis-iliad/EmbeddingsResult"
+    },
+    {
+      "name": "OpenAIEmbeddingResponse",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/embeddings.ts",
+      "resource_uri": "model://axis-iliad/OpenAIEmbeddingResponse"
+    },
+    {
+      "name": "OpenAIErrorResponse",
+      "kind": "interface",
+      "field_count": 3,
+      "source_file": "apps/api/src/embeddings.ts",
+      "resource_uri": "model://axis-iliad/OpenAIErrorResponse"
     },
     {
       "name": "EnvSpec",
@@ -322,34 +350,6 @@
       "field_count": 7,
       "source_file": "apps/api/src/mcp-server.ts",
       "resource_uri": "model://axis-iliad/PlannedCapability"
-    },
-    {
-      "name": "RpcError",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/mcp-server.ts",
-      "resource_uri": "model://axis-iliad/RpcError"
-    },
-    {
-      "name": "RpcSuccess",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/api/src/mcp-server.ts",
-      "resource_uri": "model://axis-iliad/RpcSuccess"
-    },
-    {
-      "name": "HistogramEntry",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/api/src/metrics.ts",
-      "resource_uri": "model://axis-iliad/HistogramEntry"
-    },
-    {
-      "name": "CacheKey",
-      "kind": "type_alias",
-      "field_count": 2,
-      "source_file": "apps/api/src/mpp.ts",
-      "resource_uri": "model://axis-iliad/CacheKey"
     }
   ],
   "sql_schema": null,
@@ -396,7 +396,7 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 150456
+      "size": 153855
     },
     {
       "path": "apps/api/src/oauth-server.ts",

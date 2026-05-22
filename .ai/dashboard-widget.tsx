@@ -36,9 +36,9 @@ export function DashboardWidget() {
         <StatCard label="Language" value={data.language} />
         <StatCard label="Entry Points" value={data.entryPoints} />
         <StatCard label="Hotspots" value={data.hotspots} />
-        <StatCard label="TypeScript" value={`${76.1}%`} />
+        <StatCard label="TypeScript" value={`${76.4}%`} />
         <StatCard label="YAML" value={`${8.1}%`} />
-        <StatCard label="JSON" value={`${6.8}%`} />
+        <StatCard label="JSON" value={`${6.6}%`} />
       </div>
       <div className="framework-tags">
         {data.frameworks.map(f => (
@@ -66,17 +66,17 @@ export default DashboardWidget;
 // POST: 204 endpoints
 // DELETE: 21 endpoints
 
-// ─── Domain Models: 255 entities ───
+// ─── Domain Models: 259 entities ───
 // AuthContext (interface, 3 fields) — apps/api/src/billing.ts
+// EmbeddingsConfig (interface, 2 fields) — apps/api/src/embeddings.ts
+// EmbeddingsResult (interface, 4 fields) — apps/api/src/embeddings.ts
+// OpenAIEmbeddingResponse (interface, 5 fields) — apps/api/src/embeddings.ts
+// OpenAIErrorResponse (interface, 3 fields) — apps/api/src/embeddings.ts
 // EnvSpec (interface, 5 fields) — apps/api/src/env.ts
 // ValidationError (interface, 2 fields) — apps/api/src/env.ts
 // ValidationResult (interface, 3 fields) — apps/api/src/env.ts
 // ZipEntry (interface, 4 fields) — apps/api/src/export.ts
 // PullRequestPayload (interface, 5 fields) — apps/api/src/github-webhook.ts
-// PushPayload (interface, 7 fields) — apps/api/src/github-webhook.ts
-// SnapshotTarget (interface, 5 fields) — apps/api/src/github-webhook.ts
-// FirecrawlCrawlRequest (interface, 5 fields) — apps/api/src/handlers.ts
-// FirecrawlCrawlResponse (interface, 4 fields) — apps/api/src/handlers.ts
 
 // ─── Architecture Health ───
 // Separation score: 0.65

@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "cf34940"
-    current_session_id: "session_106"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (4 live iliad_* including object_storage + vector_database + 10 planned-capability stubs). Session 106 promotes iliad_vector_database from planned_owned to owned: SQLite-backed flat-search with cosine similarity, account-scoped namespaces, 24 tests. Both planned_owned items now live; capability-map status counts {live_proxy: 2, planned_proxy: 10, owned: 2}."
+    commit_or_tag: "5681830"
+    current_session_id: "session_107"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (5 real iliad_* tools: 3 live_proxy + 2 owned, 9 planned stubs remaining). Session 107 promotes iliad_embeddings to live_proxy (OpenAI /v1/embeddings backend with configurable model, structured _not_configured envelope when unset, 17 tests). Pairs natively with iliad_vector_database for one-call RAG."
 
   executive_truth:
     maturity_estimate:
@@ -4138,6 +4138,52 @@ project_continuation:
     remaining_pre_existing_gaps:
       - "Capability-map roadmap now has 10 planned_proxy items remaining (llm_inference, embeddings, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, transactional_email, analytics). Per SOP scoring, the next moves are graded by effort * agent_acquisition. embeddings is the natural pair to vector_database — gating an LLM behind the inference router unlocks fast_tier + balanced_tier."
       - "Pricing tier for iliad_vector_database / iliad_object_storage not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing is layered on. Both are persistence-light so the marginal cost per call is near-zero; pricing should focus on storage + bandwidth caps, not per-call fees."
+    local_only: false
+    commit_results: ["5681830: Promote iliad_vector_database from planned_owned to owned (SQLite-backed flat search)"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 5681830"]
+
+  session_result_107:
+    date: "2026-05-22"
+    session_id: "session_107"
+    selected_move: "Promote iliad_embeddings from planned_proxy to live_proxy (OpenAI embeddings backend)"
+    selected_move_roi_reason: >
+      Per SOP scoring after session 106 cleared both planned_owned items.
+      embeddings is the natural pair to vector_database — without it,
+      vector_database forces users to bring their own embedding pipeline,
+      which defeats the single-billing surface. Effort: small (proxy
+      pattern, ~190 LoC module + 17 tests + no new deps). Per
+      begin.yaml axes: agent_acquisition_gain 5 (turns vector_database
+      from useful-for-people-with-their-own-embeddings to plug-and-play
+      RAG), integration_quality_gain 5 (composition demo — feed
+      computeEmbeddings().vectors directly into upsertVectors()),
+      production_quality 5 (mocked-fetch test coverage + structured
+      not-configured envelope + clean error normalization),
+      implementation_cost: small.
+    completed_candidates:
+      - "apps/api/src/embeddings.ts: NEW (~150 LoC). computeEmbeddings(input, config, fetch?, baseUrl?): pure function over fetch so tests can pass a stub. Accepts a single string or string[] (batch). Per-row validation rejects empty strings, non-strings, and strings > 32k chars (chunk-before-call boundary). Normalises 4xx with JSON error body, 5xx with bare HTTP status, network errors with a clean message. Sorts upstream data[] by index defensively so vector order matches input order regardless of provider quirks. Defensive vector-count assertion on the response so silent off-by-one bugs surface immediately. readEmbeddingsConfigFromEnv(): returns null when OPENAI_API_KEY is missing; honors OPENAI_EMBEDDING_MODEL override with text-embedding-3-small default."
+      - "apps/api/src/embeddings.test.ts: NEW (17 tests). readEmbeddingsConfigFromEnv (3 cases — null/default-model/override). Happy path (4 cases — one-vector-per-input, index-shuffle defense, single-string normalization, request shape: Authorization Bearer + Content-Type JSON + correct URL). Error paths (10 cases — 4xx with JSON body, 5xx without JSON body, fetch network error, empty input array, oversized batch (>2048), non-string entries, oversized strings (>32k chars), upstream vector-count mismatch, empty data[], missing api_key/model)."
+      - "apps/api/src/env.ts: ENV_SPEC adds OPENAI_API_KEY (required for iliad_embeddings inference) and OPENAI_EMBEDDING_MODEL (optional, defaults text-embedding-3-small). Both optional — tool returns _not_configured envelope when OPENAI_API_KEY is missing."
+      - "apps/api/src/mcp-server.ts: embeddings removed from PLANNED_CAPABILITIES. Explicit iliad_embeddings MCP_TOOLS entry added near iliad_vector_database with rich description pointing at the vector_database composition. inputSchema accepts string or array; outputSchema documents vectors / model_used / input_count / usage. Annotations: not destructive, idempotent (same input → same vectors). runEmbeddings(args, req): auth gate, _not_configured envelope when config missing, runtime guard against malformed input shapes, returns JSON.stringify of the EmbeddingsResult. Dispatcher: case iliad_embeddings alongside the other live tools."
+      - "packages/generator-core/src/generators-artifacts.ts: embeddings RESELL_CAPABILITIES entry flipped — status 'planned_proxy' → 'live_proxy', axis_brand_tool '' → 'iliad_embeddings', summary rewritten to note the OpenAI backend + fastembed-ONNX future swap."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest: 150 passed files (+1: embeddings.test.ts), 4290 passed tests (+17), 11 skipped, 0 failed."
+      - "Targeted: embeddings.test.ts 17/17 in 975ms — mocked fetch covers happy path + 10 error paths."
+      - "pnpm --filter @axis/api build clean. pnpm --filter @axis/generator-core build clean."
+      - "Dogfood: 124 artifacts; capability-map.yaml status counts now {live_proxy: 3, planned_proxy: 9, owned: 2}. Real tools = 5/14."
+      - "No new npm dependencies. Uses Node 22 built-in fetch."
+    verticals_advanced:
+      - "v18_agentic_commerce: 5th real iliad_* tool. RAG primitive (embeddings + vector_database) now fully AXIS-native — agents can chunk → embed → store → retrieve with a single billing surface."
+      - "v0_core_platform: pure-function-over-fetch testing pattern (stub fetch as parameter) is now established and reusable for the remaining 9 planned_proxy tools that also wrap third-party HTTP APIs."
+    blockers_removed:
+      - "iliad_vector_database needed an embedding source — agents had to bring their own pipeline. iliad_embeddings closes the loop so both ends of the RAG primitive live in AXIS."
+      - "embeddings was the highest-value remaining planned_proxy item per agent_acquisition × effort scoring."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "9 planned_proxy items remaining: llm_inference, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, transactional_email, analytics."
+      - "Per SOP scoring, transactional_email is the natural next move — AXIS already uses Resend internally for sendWelcomeEmail; flipping iliad_transactional_email to a live_proxy is reuse, not new infra. Smallest-effort remaining item."
+      - "Pricing tiers for the 3 new owned/live AXIS-branded tools (iliad_object_storage, iliad_vector_database, iliad_embeddings) not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing layered on."
     local_only: false
     commit_results: ["(this commit)"]
     push_results: []

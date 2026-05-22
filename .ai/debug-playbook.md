@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 ## Quick Reference
 
@@ -17,16 +17,16 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 133,098 LOC |
+| Files | 500 files, 133,129 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 279 | 93,029 | 76.1% |
+| TypeScript | 281 | 93,343 | 76.4% |
 | YAML | 57 | 9,885 | 8.1% |
-| JSON | 62 | 8,362 | 6.8% |
+| JSON | 60 | 8,079 | 6.6% |
 | Markdown | 76 | 8,000 | 6.5% |
 | JavaScript | 8 | 2,093 | 1.7% |
 | CSS | 1 | 675 | 0.6% |
@@ -94,6 +94,10 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Model | Kind | Language | Fields | Source |
 |-------|------|----------|--------|--------|
 | AuthContext | interface | TypeScript | 3 | `apps/api/src/billing.ts` |
+| EmbeddingsConfig | interface | TypeScript | 2 | `apps/api/src/embeddings.ts` |
+| EmbeddingsResult | interface | TypeScript | 4 | `apps/api/src/embeddings.ts` |
+| OpenAIEmbeddingResponse | interface | TypeScript | 5 | `apps/api/src/embeddings.ts` |
+| OpenAIErrorResponse | interface | TypeScript | 3 | `apps/api/src/embeddings.ts` |
 | EnvSpec | interface | TypeScript | 5 | `apps/api/src/env.ts` |
 | ValidationError | interface | TypeScript | 2 | `apps/api/src/env.ts` |
 | ValidationResult | interface | TypeScript | 3 | `apps/api/src/env.ts` |

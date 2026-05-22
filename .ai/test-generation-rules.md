@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 ## Detected Stack
 
@@ -55,6 +55,10 @@ These models were detected in the codebase. Each should have factory helpers and
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
+| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
+| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
+| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
 | `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
@@ -65,11 +69,7 @@ These models were detected in the codebase. Each should have factory helpers and
 | `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
 | `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
 | `FirecrawlScrapeRequest` | interface | 6 | `apps/api/src/handlers.ts` |
-| `FirecrawlScrapeResponse` | interface | 5 | `apps/api/src/handlers.ts` |
-| `IntentCapture` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `JsonRpcRequest` | interface | 4 | `apps/api/src/mcp-server.ts` |
-| `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| *... and 240 more* | | | |
+| *... and 244 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -83,14 +83,14 @@ export function makeAuthContext(overrides: Partial<AuthContext> = {}): AuthConte
   };
 }
 
-export function makeEnvSpec(overrides: Partial<EnvSpec> = {}): EnvSpec {
+export function makeEmbeddingsConfig(overrides: Partial<EmbeddingsConfig> = {}): EmbeddingsConfig {
   return {
     // fill in required fields with sensible test defaults
     ...overrides,
   };
 }
 
-export function makeValidationError(overrides: Partial<ValidationError> = {}): ValidationError {
+export function makeEmbeddingsResult(overrides: Partial<EmbeddingsResult> = {}): EmbeddingsResult {
   return {
     // fill in required fields with sensible test defaults
     ...overrides,

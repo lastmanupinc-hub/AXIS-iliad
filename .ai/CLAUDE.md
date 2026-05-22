@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 ## Commands
 
@@ -49,6 +49,10 @@ Detected domain model contracts:
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | apps/api/src/billing.ts |
+| `EmbeddingsConfig` | interface | 2 | apps/api/src/embeddings.ts |
+| `EmbeddingsResult` | interface | 4 | apps/api/src/embeddings.ts |
+| `OpenAIEmbeddingResponse` | interface | 5 | apps/api/src/embeddings.ts |
+| `OpenAIErrorResponse` | interface | 3 | apps/api/src/embeddings.ts |
 | `EnvSpec` | interface | 5 | apps/api/src/env.ts |
 | `ValidationError` | interface | 2 | apps/api/src/env.ts |
 | `ValidationResult` | interface | 3 | apps/api/src/env.ts |
@@ -64,11 +68,7 @@ Detected domain model contracts:
 | `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
 | `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
 | `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
-| `RpcError` | interface | 5 | apps/api/src/mcp-server.ts |
-| `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
-| `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
-| `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
-| *… 235 more* | | | |
+| *… 239 more* | | | |
 
 ## Warnings
 

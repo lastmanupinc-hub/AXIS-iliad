@@ -1,5 +1,5 @@
 schema_version: "1.0"
-generated_at: "2026-05-22T21:12:20.862Z"
+generated_at: "2026-05-22T21:39:10.659Z"
 domain: fintech_mcp_buildout
 project:
   name: "axis-iliad"
@@ -60,6 +60,6 @@ resources:
     required_artifacts: [timeline, source_hashes, operator_actions, linked_records]
 implementation_targets:
   route_count_hint: 497
-  domain_model_count_hint: 255
+  domain_model_count_hint: 259
   sql_schema_count_hint: 0
   objective: Build institution-grade API-callable fintech software, not just provider wrappers

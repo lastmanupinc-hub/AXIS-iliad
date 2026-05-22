@@ -90,6 +90,10 @@ This is a **monorepo** built with **TypeScript**.
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | apps/api/src/billing.ts |
+| `EmbeddingsConfig` | interface | 2 | apps/api/src/embeddings.ts |
+| `EmbeddingsResult` | interface | 4 | apps/api/src/embeddings.ts |
+| `OpenAIEmbeddingResponse` | interface | 5 | apps/api/src/embeddings.ts |
+| `OpenAIErrorResponse` | interface | 3 | apps/api/src/embeddings.ts |
 | `EnvSpec` | interface | 5 | apps/api/src/env.ts |
 | `ValidationError` | interface | 2 | apps/api/src/env.ts |
 | `ValidationResult` | interface | 3 | apps/api/src/env.ts |
@@ -105,11 +109,7 @@ This is a **monorepo** built with **TypeScript**.
 | `JsonRpcRequest` | interface | 4 | apps/api/src/mcp-server.ts |
 | `McpCallCounters` | interface | 5 | apps/api/src/mcp-server.ts |
 | `PlannedCapability` | interface | 7 | apps/api/src/mcp-server.ts |
-| `RpcError` | interface | 5 | apps/api/src/mcp-server.ts |
-| `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
-| `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
-| `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
-| *… 235 more* | | | |
+| *… 239 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 

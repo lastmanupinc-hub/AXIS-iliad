@@ -22,6 +22,10 @@ test_before_commit = true
 
 # === Domain Models ===
 # AuthContext (interface, 3 fields) @ apps/api/src/billing.ts
+# EmbeddingsConfig (interface, 2 fields) @ apps/api/src/embeddings.ts
+# EmbeddingsResult (interface, 4 fields) @ apps/api/src/embeddings.ts
+# OpenAIEmbeddingResponse (interface, 5 fields) @ apps/api/src/embeddings.ts
+# OpenAIErrorResponse (interface, 3 fields) @ apps/api/src/embeddings.ts
 # EnvSpec (interface, 5 fields) @ apps/api/src/env.ts
 # ValidationError (interface, 2 fields) @ apps/api/src/env.ts
 # ValidationResult (interface, 3 fields) @ apps/api/src/env.ts
@@ -37,11 +41,7 @@ test_before_commit = true
 # JsonRpcRequest (interface, 4 fields) @ apps/api/src/mcp-server.ts
 # McpCallCounters (interface, 5 fields) @ apps/api/src/mcp-server.ts
 # PlannedCapability (interface, 7 fields) @ apps/api/src/mcp-server.ts
-# RpcError (interface, 5 fields) @ apps/api/src/mcp-server.ts
-# RpcSuccess (interface, 3 fields) @ apps/api/src/mcp-server.ts
-# HistogramEntry (interface, 3 fields) @ apps/api/src/metrics.ts
-# CacheKey (type_alias, 2 fields) @ apps/api/src/mpp.ts
-# ... and 235 more
+# ... and 239 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode
@@ -93,13 +93,13 @@ test_before_commit = true
 # apps/api/src/deployment.test.ts
 # apps/api/src/e2e-flows.test.ts
 # apps/api/src/e2e-smoke.test.ts
+# apps/api/src/embeddings.test.ts
+# apps/api/src/embeddings.ts
 # apps/api/src/env.test.ts
 # apps/api/src/env.ts
 # apps/api/src/export-edge-cases.test.ts
 # apps/api/src/export.test.ts
 # apps/api/src/export.ts
-# apps/api/src/funnel-api.test.ts
-# apps/api/src/funnel.ts
 # ... and 450 more files
 
 # === Key Entry Points ===

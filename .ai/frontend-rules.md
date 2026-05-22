@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 ## Detected Stack
 
@@ -58,6 +58,10 @@ These domain models were detected in the codebase. Use their type names in compo
 | Type | Kind | Fields | Source |
 |------|------|--------|--------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
+| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
+| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
+| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
 | `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
@@ -65,11 +69,7 @@ These domain models were detected in the codebase. Use their type names in compo
 | `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
 | `PushPayload` | interface | 7 | `apps/api/src/github-webhook.ts` |
 | `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
-| `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
-| `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
-| `FirecrawlScrapeRequest` | interface | 6 | `apps/api/src/handlers.ts` |
-| `FirecrawlScrapeResponse` | interface | 5 | `apps/api/src/handlers.ts` |
-| *... and 243 more* | | | |
+| *... and 247 more* | | | |
 
 **Rule**: Component prop types must reference these detected types, not re-define them. Import from the canonical source file.
 

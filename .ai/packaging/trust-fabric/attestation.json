@@ -1,82 +1,82 @@
 {
   "schema_version": "1.0",
   "certlib_profile": "certlib-offline-v1",
-  "generated_at": "2026-05-22T21:12:22.680Z",
-  "snapshot_id": "7613fff9-e216-4d6c-8605-23c8ab908195",
-  "project_id": "89f119dc-75bc-43eb-81f7-de3064a3943f",
+  "generated_at": "2026-05-22T21:39:12.496Z",
+  "snapshot_id": "da095f62-3673-4d92-a407-b47ceeab2b3b",
+  "project_id": "d3ea8225-e4c0-4159-b5fc-13b0bf331b14",
   "product_name": "axis-iliad",
   "package_root": "./",
-  "merkle_root": "08d995ba37c39a05040fa1b606073e6ce8e51ae35681d7b8ebd20d3e796ea73b",
+  "merkle_root": "5d03ff5601dae228f3635dde92c095731c47caaed9c0b8fed7c326d964404f02",
   "signature": {
     "algorithm": "sha256-pseudo-signature",
     "signer": "axis-closer",
-    "value": "05679b0f8fa7ac0e3e0eec0bc27703e1d98f0507f1c20c9870586011a38ec89a"
+    "value": "d1b5f6331db4d76f5cfc4622c4e247f97e347890e55912711a00e5e67f54579e"
   },
   "leaf_count": 16,
   "leaves": [
     {
       "path": "packaging/README.md",
-      "digest": "d87117769a4690f5f53af84cb90d6ae4815a0aa6dd490e396933af7bd1b004d1"
+      "digest": "73fb55cdf9595392c640e9327dfd09c7eec6b18add3072a53061389d32d8f3e7"
     },
     {
       "path": "packaging/LICENSE",
-      "digest": "7df19cdc1d9706783cb2d296cfc0b88449efb37fd8bfa3650e6b9c852a486c97"
+      "digest": "3b52f3a297db63e1b9335ce76bbd066f485b78cae972ee22283464d4db921f61"
     },
     {
       "path": "Dockerfile",
-      "digest": "9550d5a72f95c0a2dcd97b2e243ceb0bb31aacbed504c407056e1c5e60c45a4b"
+      "digest": "fa027e549267b6184fae0686d1adbe20571cee40c3b897851947e5e4ec2a5724"
     },
     {
       "path": "docker-compose.yml",
-      "digest": "185360237363959747361ec5bf9dd5ba486e09bb4da008707d89f101bbe97ce7"
+      "digest": "6160c4e9338dd610c36b70587620dba7a043705b7fb1984ffbb79c7eb26b2518"
     },
     {
       "path": ".github/workflows/ci.yml",
-      "digest": "c243c30eedcafefbf864251f73e1e121898b4da8f6ac7a39fce3bec779d73bfe"
+      "digest": "0762192fab9b64463fde120ec4c9894b32f61082838b95fb58c065802c3db97c"
     },
     {
       "path": ".github/workflows/release.yml",
-      "digest": "21d5f4b0dfe4ebeb07bd97141a0d13180c351d017a4a987703f511ad2282f9ed"
+      "digest": "67367664c015a446693bcb5d6923531809c648d358f2b4c99732c33490055dc5"
     },
     {
       "path": "packaging/manifests/npm-package.json",
-      "digest": "f9d9088a506d8697c1748f99601e2c983714456885099264283549c7d8faf58f"
+      "digest": "91eb5bb0b069b4ed749c66995f33e09dbf7c40f7c35a17cb45eb89854ad4b5ed"
     },
     {
       "path": "packaging/manifests/unreal.uplugin",
-      "digest": "a524b72410de8908e161e9738dc27f96f167cb358be42e38d03cb3e8fe2d9c86"
+      "digest": "31fff53a21446ff0c81bc9277d0eef0ca7a1c3fa4778790a3555687b841cfe3f"
     },
     {
       "path": "packaging/manifests/vscode-extension.json",
-      "digest": "451e74102c6a9f88316f615c4d0fd20b1b7af0aca504596f290bcbabcf79ca8d"
+      "digest": "0119786d7d6c9b852ff20dc96684e55478856497b16f9b0b930a592b2fc45768"
     },
     {
       "path": "packaging/manifests/dockerhub-repository.md",
-      "digest": "877d5e26f6b5ef08f964f0515112a53211febaa0bd2d082d990d439240ba582d"
+      "digest": "83a6d4aad870fdd177d5d8745c99c344eb6d225c49a5727f533b283b2aa0c6f1"
     },
     {
       "path": "packaging/manifests/github-marketplace-listing.md",
-      "digest": "da9d2a315cc3d9476623b3cc9cc1f39931595e16d2440def22b9842bc82f7e39"
+      "digest": "6633704159f70ce4bf6fe7fa0a3293b910beb7d9e51488ef492fd3f132bc2e50"
     },
     {
       "path": "packaging/trust-fabric/attestation.json",
-      "digest": "08f1f9fbf590522bb3ac53aacb19d7dc861ffccd4350ad61b23cd9b2102384d6"
+      "digest": "514e56066df76203c82d53df759b260d570490fc66e3f68ca20d881156d2f6ed"
     },
     {
       "path": "packaging/trust-fabric/merkle-proof.json",
-      "digest": "9d2e4887d1cd56c1251797e7cd2bbab2df89937ae969b536eb6eb72749cb858f"
+      "digest": "923df29bf736adcdf6416d19c6048c9401b5ae0d7d6061abb3c22be6822abe09"
     },
     {
       "path": "packaging-report.md",
-      "digest": "5d781c5c905fe2f04a029ad54020fa10f4e4578e01e65a7b5d5d277bca371437"
+      "digest": "b70f8106e65c8326c974c771d3818063cb3255a648b45dcc6c7bbff7dee85578"
     },
     {
       "path": "DISTRIBUTABLE.md",
-      "digest": "44f359c23a12de96d448ef7bb36e2da7a8adad1764d5f30fb34dc7efccb52f2d"
+      "digest": "32378206cc4fafec1d44f672b026ce1eace1d07d422ce1a333e3cb5a3cf69f33"
     },
     {
       "path": "Makefile",
-      "digest": "94b169339463ea436dc26b9c65b14f9710762b468200286bb4d99094f6b87786"
+      "digest": "e3ee3413280caa3c5bb641cda2cddc284f7e8ec6ee0d28657580222b53fe8887"
     }
   ]
 }

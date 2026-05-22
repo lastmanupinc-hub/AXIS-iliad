@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
-# Generated: 2026-05-22T21:12:21.188Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+# Generated: 2026-05-22T21:39:10.980Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -64,6 +64,54 @@ server:
           id:
             type: string
             description: Primary key or identifier for AuthContext
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_embeddingsconfig
+      description: Query EmbeddingsConfig records (interface, 2 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EmbeddingsConfig
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_embeddingsresult
+      description: Query EmbeddingsResult records (interface, 4 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EmbeddingsResult
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_openaiembeddingresponse
+      description: Query OpenAIEmbeddingResponse records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for OpenAIEmbeddingResponse
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_openaierrorresponse
+      description: Query OpenAIErrorResponse records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for OpenAIErrorResponse
           filter:
             type: object
             description: Optional filter criteria
@@ -152,54 +200,6 @@ server:
             type: object
             description: Optional filter criteria
 
-    - name: query_firecrawlcrawlrequest
-      description: Query FirecrawlCrawlRequest records (interface, 5 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for FirecrawlCrawlRequest
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_firecrawlcrawlresponse
-      description: Query FirecrawlCrawlResponse records (interface, 4 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for FirecrawlCrawlResponse
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_firecrawlscraperequest
-      description: Query FirecrawlScrapeRequest records (interface, 6 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for FirecrawlScrapeRequest
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_firecrawlscraperesponse
-      description: Query FirecrawlScrapeResponse records (interface, 5 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for FirecrawlScrapeResponse
-          filter:
-            type: object
-            description: Optional filter criteria
-
   resources:
     - uri: project://context-map
       name: Project Context Map
@@ -220,6 +220,26 @@ server:
       name: AuthContext
       mime_type: application/json
       description: interface with 3 fields (apps/api/src/billing.ts)
+
+    - uri: model://EmbeddingsConfig
+      name: EmbeddingsConfig
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/embeddings.ts)
+
+    - uri: model://EmbeddingsResult
+      name: EmbeddingsResult
+      mime_type: application/json
+      description: interface with 4 fields (apps/api/src/embeddings.ts)
+
+    - uri: model://OpenAIEmbeddingResponse
+      name: OpenAIEmbeddingResponse
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/embeddings.ts)
+
+    - uri: model://OpenAIErrorResponse
+      name: OpenAIErrorResponse
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/embeddings.ts)
 
     - uri: model://EnvSpec
       name: EnvSpec
@@ -270,26 +290,6 @@ server:
       name: FirecrawlScrapeRequest
       mime_type: application/json
       description: interface with 6 fields (apps/api/src/handlers.ts)
-
-    - uri: model://FirecrawlScrapeResponse
-      name: FirecrawlScrapeResponse
-      mime_type: application/json
-      description: interface with 5 fields (apps/api/src/handlers.ts)
-
-    - uri: model://IntentCapture
-      name: IntentCapture
-      mime_type: application/json
-      description: interface with 5 fields (apps/api/src/mcp-server.ts)
-
-    - uri: model://JsonRpcRequest
-      name: JsonRpcRequest
-      mime_type: application/json
-      description: interface with 4 fields (apps/api/src/mcp-server.ts)
-
-    - uri: model://McpCallCounters
-      name: McpCallCounters
-      mime_type: application/json
-      description: interface with 5 fields (apps/api/src/mcp-server.ts)
 
   prompts:
     - name: review_code

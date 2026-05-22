@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-iliad
 
-> monorepo | TypeScript | 500 files | 133,098 LOC
+> monorepo | TypeScript | 500 files | 133,129 LOC
 
 **Stack:** React ^19.1.0
 
@@ -55,6 +55,10 @@ Which layer does the error surface in?
 Check these entities for state corruption or relationship violations:
 
 - [ ] `AuthContext` (interface, 3 fields) — `apps/api/src/billing.ts`
+- [ ] `EmbeddingsConfig` (interface, 2 fields) — `apps/api/src/embeddings.ts`
+- [ ] `EmbeddingsResult` (interface, 4 fields) — `apps/api/src/embeddings.ts`
+- [ ] `OpenAIEmbeddingResponse` (interface, 5 fields) — `apps/api/src/embeddings.ts`
+- [ ] `OpenAIErrorResponse` (interface, 3 fields) — `apps/api/src/embeddings.ts`
 - [ ] `EnvSpec` (interface, 5 fields) — `apps/api/src/env.ts`
 - [ ] `ValidationError` (interface, 2 fields) — `apps/api/src/env.ts`
 - [ ] `ValidationResult` (interface, 3 fields) — `apps/api/src/env.ts`

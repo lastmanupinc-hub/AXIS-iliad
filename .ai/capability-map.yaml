@@ -1,14 +1,14 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot 7613fff9-e216-4d6c-8605-23c8ab908195).
-# Generated at: 2026-05-22T21:12:20.486Z
+# Generated for axis-iliad (snapshot da095f62-3673-4d92-a407-b47ceeab2b3b).
+# Generated at: 2026-05-22T21:39:10.299Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "7613fff9-e216-4d6c-8605-23c8ab908195"
-  generated_at: "2026-05-22T21:12:20.486Z"
+  snapshot_id: "da095f62-3673-4d92-a407-b47ceeab2b3b"
+  generated_at: "2026-05-22T21:39:10.299Z"
   capability_count: 14
-  capabilities_detected_in_repo: 12
+  capabilities_detected_in_repo: 13
 
 status_legend:
   live_proxy:    "Shipping today as an iliad_* MCP tool that proxies to a third party."
@@ -142,8 +142,9 @@ capabilities:
     summary: "Run a prompt through an LLM and return text or JSON, with optional structured-output schema enforcement."
     detected_in_repo: true
     detection_evidence:
+      - "apps/api/src/env.ts references OPENAI_API_KEY"
       - "apps/api/src/env.ts references REPLICATE_API_TOKEN"
-      - "source references /openai\\.com/ (e.g. apps/api/src/mcp-server.ts)"
+      - "source references /openai\\.com/ (e.g. apps/api/src/embeddings.ts)"
     third_party_providers:
       - name: "OpenAI"
         url: "https://openai.com"
@@ -196,11 +197,14 @@ capabilities:
 
   - id: embeddings
     name: "Vector embeddings for semantic search and RAG"
-    status: planned_proxy
-    axis_brand_tool: ""
+    status: live_proxy
+    axis_brand_tool: "iliad_embeddings"
     pricing_tier: null
-    summary: "Convert text to dense vectors for semantic search, clustering, and retrieval-augmented generation."
-    detected_in_repo: false
+    summary: "AXIS-branded wrapper around OpenAI /v1/embeddings (configurable model via OPENAI_EMBEDDING_MODEL). Pairs natively with iliad_vector_database — same auth + billing surface, no juggling third-party SDKs. Future swap to fastembed-ONNX is a module-internal change."
+    detected_in_repo: true
+    detection_evidence:
+      - "apps/api/src/env.ts references OPENAI_API_KEY"
+      - "source references //v1/embeddings/ (e.g. apps/api/src/embeddings.ts)"
     third_party_providers:
       - name: "OpenAI"
         url: "https://openai.com"
@@ -253,6 +257,7 @@ capabilities:
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references REPLICATE_API_TOKEN"
+      - "apps/api/src/env.ts references OPENAI_API_KEY"
       - "source references /replicate.*flux/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "Replicate"
@@ -309,6 +314,7 @@ capabilities:
     summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus."
     detected_in_repo: true
     detection_evidence:
+      - "apps/api/src/env.ts references OPENAI_API_KEY"
       - "source references /elevenlabs\\.io/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "ElevenLabs"
@@ -364,6 +370,7 @@ capabilities:
     summary: "Transcribe audio to text with speaker diarization and timestamp segmentation."
     detected_in_repo: true
     detection_evidence:
+      - "apps/api/src/env.ts references OPENAI_API_KEY"
       - "source references /deepgram\\.com/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "Deepgram"
@@ -800,13 +807,10 @@ capabilities:
 
 summary:
   by_status:
-    live_proxy: 2
+    live_proxy: 3
     owned: 2
-    planned_proxy: 10
+    planned_proxy: 9
   recommended_next_owned:
-    - id: embeddings
-      effort: medium
-      reason: "Wholesale infrastructure cost on open-weights is ~$0.002/1M tokens vs $0.02 retail (10× margin)"
     - id: image_generation
       effort: medium
       reason: "Open-weights inference at GPU-hour cost ≈ $0.001/image vs $0.04 retail (40× margin)"
@@ -819,3 +823,6 @@ summary:
     - id: document_parsing
       effort: medium
       reason: "Marker inference ≈ $0.0001/page vs $0.10/page Unstructured retail"
+    - id: transactional_email
+      effort: medium
+      reason: "Owning the MTA + relay split avoids Resend's per-email markup at scale (~$0.001/email vs $0.0004 own cost)"

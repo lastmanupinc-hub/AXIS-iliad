@@ -1,0 +1,195 @@
+import { describe, it, expect } from "vitest";
+import {
+  computeEmbeddings,
+  readEmbeddingsConfigFromEnv,
+  DEFAULT_OPENAI_BASE_URL,
+  type EmbeddingsConfig,
+} from "./embeddings.js";
+
+const config: EmbeddingsConfig = { api_key: "sk-test-xxx", model: "text-embedding-3-small" };
+
+/** Build a typed mock fetch that returns a canned Response. */
+function mockFetch(opts: { ok?: boolean; status?: number; body: unknown; isJson?: boolean }): typeof fetch {
+  const ok = opts.ok ?? true;
+  const status = opts.status ?? (ok ? 200 : 500);
+  return (async () => {
+    return {
+      ok,
+      status,
+      async json() {
+        if (opts.isJson === false) throw new Error("not json");
+        return opts.body;
+      },
+    } as Response;
+  }) as unknown as typeof fetch;
+}
+
+// ─── readEmbeddingsConfigFromEnv ────────────────────────────────
+
+describe("readEmbeddingsConfigFromEnv", () => {
+  it("returns null when OPENAI_API_KEY is missing", () => {
+    expect(readEmbeddingsConfigFromEnv({})).toBeNull();
+  });
+
+  it("returns a config with the default model when API_KEY is set", () => {
+    expect(readEmbeddingsConfigFromEnv({ OPENAI_API_KEY: "sk-x" })).toEqual({
+      api_key: "sk-x",
+      model: "text-embedding-3-small",
+    });
+  });
+
+  it("honors OPENAI_EMBEDDING_MODEL override", () => {
+    expect(readEmbeddingsConfigFromEnv({
+      OPENAI_API_KEY: "sk-x",
+      OPENAI_EMBEDDING_MODEL: "text-embedding-3-large",
+    })).toEqual({ api_key: "sk-x", model: "text-embedding-3-large" });
+  });
+});
+
+// ─── computeEmbeddings happy path ───────────────────────────────
+
+describe("computeEmbeddings", () => {
+  it("returns one vector per input string", async () => {
+    const fetch = mockFetch({
+      body: {
+        object: "list",
+        model: "text-embedding-3-small",
+        data: [{ index: 0, embedding: [0.1, 0.2, 0.3], object: "embedding" }],
+        usage: { prompt_tokens: 3, total_tokens: 3 },
+      },
+    });
+    const r = await computeEmbeddings("hello", config, fetch);
+    expect(r.vectors).toEqual([[0.1, 0.2, 0.3]]);
+    expect(r.model_used).toBe("text-embedding-3-small");
+    expect(r.input_count).toBe(1);
+    expect(r.usage).toEqual({ prompt_tokens: 3, total_tokens: 3 });
+  });
+
+  it("returns vectors in original input order even when provider returns shuffled indices", async () => {
+    const fetch = mockFetch({
+      body: {
+        object: "list",
+        model: "text-embedding-3-small",
+        data: [
+          { index: 2, embedding: [0.3], object: "embedding" },
+          { index: 0, embedding: [0.1], object: "embedding" },
+          { index: 1, embedding: [0.2], object: "embedding" },
+        ],
+      },
+    });
+    const r = await computeEmbeddings(["a", "b", "c"], config, fetch);
+    expect(r.vectors).toEqual([[0.1], [0.2], [0.3]]);
+  });
+
+  it("accepts a single string and normalizes to array internally", async () => {
+    const fetch = mockFetch({
+      body: {
+        object: "list",
+        model: "text-embedding-3-small",
+        data: [{ index: 0, embedding: [0.5], object: "embedding" }],
+      },
+    });
+    const r = await computeEmbeddings("just one", config, fetch);
+    expect(r.vectors).toHaveLength(1);
+    expect(r.input_count).toBe(1);
+  });
+
+  it("posts to <baseUrl>/embeddings with Bearer auth + JSON body", async () => {
+    let capturedUrl = "";
+    let capturedHeaders: HeadersInit | undefined;
+    let capturedBody: string | undefined;
+    const stub = (async (url: string | URL, init?: RequestInit) => {
+      capturedUrl = String(url);
+      capturedHeaders = init?.headers;
+      capturedBody = String(init?.body);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            object: "list",
+            model: "text-embedding-3-small",
+            data: [{ index: 0, embedding: [0.1], object: "embedding" }],
+          };
+        },
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    await computeEmbeddings("x", config, stub);
+    expect(capturedUrl).toBe(`${DEFAULT_OPENAI_BASE_URL}/embeddings`);
+    const headers = capturedHeaders as Record<string, string>;
+    expect(headers.Authorization).toBe(`Bearer ${config.api_key}`);
+    expect(headers["Content-Type"]).toBe("application/json");
+    const parsed = JSON.parse(capturedBody!);
+    expect(parsed.input).toEqual(["x"]);
+    expect(parsed.model).toBe("text-embedding-3-small");
+  });
+});
+
+// ─── computeEmbeddings error paths ──────────────────────────────
+
+describe("computeEmbeddings error handling", () => {
+  it("normalises 4xx provider errors", async () => {
+    const fetch = mockFetch({
+      ok: false,
+      status: 401,
+      body: { error: { message: "Invalid API key", code: "invalid_api_key" } },
+    });
+    await expect(computeEmbeddings("x", config, fetch)).rejects.toThrow(/401 Invalid API key/);
+  });
+
+  it("normalises 5xx provider errors with no JSON body", async () => {
+    const fetch = mockFetch({ ok: false, status: 502, body: null, isJson: false });
+    await expect(computeEmbeddings("x", config, fetch)).rejects.toThrow(/HTTP 502/);
+  });
+
+  it("maps fetch network errors to a clean message", async () => {
+    const fetch = (async () => { throw new Error("ECONNREFUSED 127.0.0.1:443"); }) as unknown as typeof fetch;
+    await expect(computeEmbeddings("x", config, fetch)).rejects.toThrow(/Embeddings provider unreachable/);
+  });
+
+  it("rejects empty input arrays", async () => {
+    await expect(computeEmbeddings([], config, mockFetch({ body: {} }))).rejects.toThrow(/input is empty/);
+  });
+
+  it("rejects oversized batches", async () => {
+    const big = Array.from({ length: 2049 }, (_, i) => `s${i}`);
+    await expect(computeEmbeddings(big, config, mockFetch({ body: {} }))).rejects.toThrow(/exceeds 2048/);
+  });
+
+  it("rejects non-string entries", async () => {
+    // @ts-expect-error — exercising runtime guard
+    await expect(computeEmbeddings(["ok", 42], config, mockFetch({ body: {} }))).rejects.toThrow(/non-empty string/);
+  });
+
+  it("rejects oversized strings", async () => {
+    const huge = "a".repeat(32_001);
+    await expect(computeEmbeddings([huge], config, mockFetch({ body: {} }))).rejects.toThrow(/32000 chars/);
+  });
+
+  it("flags vector-count mismatch from upstream", async () => {
+    const fetch = mockFetch({
+      body: {
+        object: "list",
+        model: "text-embedding-3-small",
+        data: [{ index: 0, embedding: [0.1], object: "embedding" }],
+      },
+    });
+    // 2 inputs, but mocked response only returns 1 vector → defensive guard fires.
+    await expect(computeEmbeddings(["a", "b"], config, fetch)).rejects.toThrow(/returned 1 vectors for 2 inputs/);
+  });
+
+  it("rejects empty data[] from provider", async () => {
+    const fetch = mockFetch({
+      body: { object: "list", model: "text-embedding-3-small", data: [] },
+    });
+    await expect(computeEmbeddings("x", config, fetch)).rejects.toThrow(/empty data\[\]/);
+  });
+
+  it("throws when api_key or model is missing", async () => {
+    const bad = { api_key: "", model: "m" } as EmbeddingsConfig;
+    await expect(computeEmbeddings("x", bad, mockFetch({ body: {} }))).rejects.toThrow(/api_key/);
+    const noModel = { api_key: "k", model: "" } as EmbeddingsConfig;
+    await expect(computeEmbeddings("x", noModel, mockFetch({ body: {} }))).rejects.toThrow(/model/);
+  });
+});

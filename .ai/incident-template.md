@@ -54,6 +54,10 @@
 ### Domain Entities to Check
 
 - [ ] `AuthContext` (interface, 3 fields) — apps/api/src/billing.ts
+- [ ] `EmbeddingsConfig` (interface, 2 fields) — apps/api/src/embeddings.ts
+- [ ] `EmbeddingsResult` (interface, 4 fields) — apps/api/src/embeddings.ts
+- [ ] `OpenAIEmbeddingResponse` (interface, 5 fields) — apps/api/src/embeddings.ts
+- [ ] `OpenAIErrorResponse` (interface, 3 fields) — apps/api/src/embeddings.ts
 - [ ] `EnvSpec` (interface, 5 fields) — apps/api/src/env.ts
 - [ ] `ValidationError` (interface, 2 fields) — apps/api/src/env.ts
 - [ ] `ValidationResult` (interface, 3 fields) — apps/api/src/env.ts

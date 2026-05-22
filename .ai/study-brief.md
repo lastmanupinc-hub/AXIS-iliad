@@ -17,11 +17,11 @@ Before diving into this codebase, you should be comfortable with:
 1. Read the project README and any CONTRIBUTING.md
 2. Understand the top-level directory structure:
 
-   - `apps` — monorepo_apps (157 files)
+   - `apps` — monorepo_apps (159 files)
    - `packages` — monorepo_packages (144 files)
    - `examples` — project_directory (17 files)
    - `mcp` — project_directory (16 files)
-   - `payment-processing-output` — project_directory (12 files)
+   - `payment-processing-output` — project_directory (10 files)
    - `packaging` — project_directory (7 files)
    - `.github` — project_directory (5 files)
    - `algorithmic` — project_directory (4 files)
@@ -37,16 +37,16 @@ These are the core data structures that define what the system works with:
 | Model | Kind | Fields | File |
 |-------|------|--------|------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
+| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
+| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
+| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
 | `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
 | `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
 | `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
-| `PushPayload` | interface | 7 | `apps/api/src/github-webhook.ts` |
-| `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
-| `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
-| `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
-| *(+245 more)* | | | |
+| *(+249 more)* | | | |
 
 ### Phase 4: Data Flow
 

@@ -1,12 +1,12 @@
 # Brand Board — axis-iliad
 
-Generated: 2026-05-22T21:12:21.197Z
+Generated: 2026-05-22T21:39:10.991Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 ## Color Palette
 
@@ -102,11 +102,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 Consider domain-specific iconography for:
 
 - **AuthContext** (interface) — 3 fields, from apps/api/src/billing.ts
+- **EmbeddingsConfig** (interface) — 2 fields, from apps/api/src/embeddings.ts
+- **EmbeddingsResult** (interface) — 4 fields, from apps/api/src/embeddings.ts
+- **OpenAIEmbeddingResponse** (interface) — 5 fields, from apps/api/src/embeddings.ts
+- **OpenAIErrorResponse** (interface) — 3 fields, from apps/api/src/embeddings.ts
 - **EnvSpec** (interface) — 5 fields, from apps/api/src/env.ts
-- **ValidationError** (interface) — 2 fields, from apps/api/src/env.ts
-- **ValidationResult** (interface) — 3 fields, from apps/api/src/env.ts
-- **ZipEntry** (interface) — 4 fields, from apps/api/src/export.ts
-- **PullRequestPayload** (interface) — 5 fields, from apps/api/src/github-webhook.ts
 
 ### Brand Warnings
 

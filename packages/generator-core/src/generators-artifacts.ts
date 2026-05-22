@@ -1532,10 +1532,10 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "embeddings",
     name: "Vector embeddings for semantic search and RAG",
-    axis_brand_tool: "",
+    axis_brand_tool: "iliad_embeddings",
     pricing_tier: null,
-    status: "planned_proxy",
-    summary: "Convert text to dense vectors for semantic search, clustering, and retrieval-augmented generation.",
+    status: "live_proxy",
+    summary: "AXIS-branded wrapper around OpenAI /v1/embeddings (configurable model via OPENAI_EMBEDDING_MODEL). Pairs natively with iliad_vector_database — same auth + billing surface, no juggling third-party SDKs. Future swap to fastembed-ONNX is a module-internal change.",
     providers: [
       { name: "OpenAI", url: "https://openai.com", retail_pricing: "$0.02/1M tokens (text-embedding-3-small)" },
       { name: "Cohere", url: "https://cohere.com", retail_pricing: "$0.10/1M tokens (embed-english-v3)" },

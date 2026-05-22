@@ -1,7 +1,7 @@
 # Connector Map
 # Project: axis-iliad
-# Generated: 2026-05-22T21:12:20.855Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
+# Generated: 2026-05-22T21:39:10.650Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 259 domain models.
 
 connectors:
   - id: vscode
@@ -60,6 +60,30 @@ resources:
     kind: interface
     fields: 3
     source: apps/api/src/billing.ts
+  - id: embeddingsconfig
+    name: EmbeddingsConfig
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/embeddings.ts
+  - id: embeddingsresult
+    name: EmbeddingsResult
+    type: domain_model
+    kind: interface
+    fields: 4
+    source: apps/api/src/embeddings.ts
+  - id: openaiembeddingresponse
+    name: OpenAIEmbeddingResponse
+    type: domain_model
+    kind: interface
+    fields: 5
+    source: apps/api/src/embeddings.ts
+  - id: openaierrorresponse
+    name: OpenAIErrorResponse
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/embeddings.ts
   - id: envspec
     name: EnvSpec
     type: domain_model
@@ -120,30 +144,6 @@ resources:
     kind: interface
     fields: 6
     source: apps/api/src/handlers.ts
-  - id: firecrawlscraperesponse
-    name: FirecrawlScrapeResponse
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/handlers.ts
-  - id: intentcapture
-    name: IntentCapture
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/mcp-server.ts
-  - id: jsonrpcrequest
-    name: JsonRpcRequest
-    type: domain_model
-    kind: interface
-    fields: 4
-    source: apps/api/src/mcp-server.ts
-  - id: mcpcallcounters
-    name: McpCallCounters
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/mcp-server.ts
 
 tools:
   - id: v1_health

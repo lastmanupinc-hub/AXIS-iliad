@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-05-22T21:12:21.130Z",
-  "total_symbols": 2025,
-  "file_count": 248,
+  "generated_at": "2026-05-22T21:39:10.926Z",
+  "total_symbols": 2041,
+  "file_count": 250,
   "symbols": {
     "apps/api/src/admin.test.ts": [
       {
@@ -458,6 +458,85 @@
         "line": 29
       }
     ],
+    "apps/api/src/embeddings.test.ts": [
+      {
+        "name": "config",
+        "type": "const",
+        "line": 9
+      },
+      {
+        "name": "mockFetch",
+        "type": "function",
+        "line": 12
+      },
+      {
+        "name": "stub",
+        "type": "function",
+        "line": 101
+      },
+      {
+        "name": "fetch",
+        "type": "function",
+        "line": 147
+      },
+      {
+        "name": "bad",
+        "type": "const",
+        "line": 190
+      },
+      {
+        "name": "noModel",
+        "type": "const",
+        "line": 192
+      }
+    ],
+    "apps/api/src/embeddings.ts": [
+      {
+        "name": "EmbeddingsInput",
+        "type": "type",
+        "line": 13
+      },
+      {
+        "name": "EmbeddingsConfig",
+        "type": "interface",
+        "line": 15
+      },
+      {
+        "name": "EmbeddingsResult",
+        "type": "interface",
+        "line": 20
+      },
+      {
+        "name": "EmbeddingsConfigFromEnv",
+        "type": "type",
+        "line": 29
+      },
+      {
+        "name": "readEmbeddingsConfigFromEnv",
+        "type": "function",
+        "line": 32
+      },
+      {
+        "name": "OpenAIEmbeddingResponse",
+        "type": "interface",
+        "line": 44
+      },
+      {
+        "name": "OpenAIErrorResponse",
+        "type": "interface",
+        "line": 51
+      },
+      {
+        "name": "computeEmbeddings",
+        "type": "function",
+        "line": 60
+      },
+      {
+        "name": "body",
+        "type": "function",
+        "line": 107
+      }
+    ],
     "apps/api/src/env.test.ts": [
       {
         "name": "msg",
@@ -474,27 +553,27 @@
       {
         "name": "ValidationError",
         "type": "interface",
-        "line": 56
+        "line": 60
       },
       {
         "name": "ValidationResult",
         "type": "interface",
-        "line": 61
+        "line": 65
       },
       {
         "name": "validateEnv",
         "type": "function",
-        "line": 71
+        "line": 75
       },
       {
         "name": "requireValidEnv",
         "type": "function",
-        "line": 119
+        "line": 123
       },
       {
         "name": "generateEnvExample",
         "type": "function",
-        "line": 133
+        "line": 137
       }
     ],
     "apps/api/src/export-edge-cases.test.ts": [
@@ -1750,302 +1829,307 @@
       {
         "name": "McpCallCounters",
         "type": "interface",
-        "line": 57
+        "line": 58
       },
       {
         "name": "_counters",
         "type": "const",
-        "line": 65
+        "line": 66
       },
       {
         "name": "ProbeClass",
         "type": "type",
-        "line": 73
+        "line": 74
       },
       {
         "name": "classifyProbe",
         "type": "function",
-        "line": 83
+        "line": 84
       },
       {
         "name": "IntentCapture",
         "type": "interface",
-        "line": 90
+        "line": 91
       },
       {
         "name": "captureIntent",
         "type": "function",
-        "line": 101
+        "line": 102
       },
       {
         "name": "entry",
         "type": "const",
-        "line": 102
+        "line": 103
       },
       {
         "name": "getIntentLog",
         "type": "function",
-        "line": 113
+        "line": 114
       },
       {
         "name": "logMcpCall",
         "type": "function",
-        "line": 117
+        "line": 118
       },
       {
         "name": "getMcpCallCounters",
         "type": "function",
-        "line": 136
+        "line": 137
       },
       {
         "name": "JsonRpcRequest",
         "type": "interface",
-        "line": 146
+        "line": 147
       },
       {
         "name": "RpcSuccess",
         "type": "interface",
-        "line": 153
+        "line": 154
       },
       {
         "name": "RpcError",
         "type": "interface",
-        "line": 159
+        "line": 160
       },
       {
         "name": "RpcResponse",
         "type": "type",
-        "line": 165
+        "line": 166
       },
       {
         "name": "normalizeToolName",
         "type": "function",
-        "line": 173
+        "line": 174
       },
       {
         "name": "PlannedCapability",
         "type": "interface",
-        "line": 186
+        "line": 187
       },
       {
         "name": "runPlannedCapability",
         "type": "function",
-        "line": 395
+        "line": 379
       },
       {
         "name": "runObjectStorage",
         "type": "function",
-        "line": 412
+        "line": 396
+      },
+      {
+        "name": "runEmbeddings",
+        "type": "function",
+        "line": 461
       },
       {
         "name": "runVectorDatabase",
         "type": "function",
-        "line": 482
+        "line": 500
       },
       {
         "name": "vec",
         "type": "function",
-        "line": 523
+        "line": 541
       },
       {
         "name": "queryOpts",
         "type": "const",
-        "line": 554
+        "line": 572
       },
       {
         "name": "toolAnnotations",
         "type": "function",
-        "line": 567
+        "line": 585
       },
       {
         "name": "ARTIFACT_ENTRY_SCHEMA",
         "type": "const",
-        "line": 576
+        "line": 594
       },
       {
         "name": "SNAPSHOT_RESULT_SCHEMA",
         "type": "const",
-        "line": 586
+        "line": 604
       },
       {
         "name": "TOOL_MATCH_SCHEMA",
         "type": "const",
-        "line": 599
+        "line": 617
       },
       {
         "name": "rpcOk",
         "type": "function",
-        "line": 1379
+        "line": 1438
       },
       {
         "name": "rpcErr",
         "type": "function",
-        "line": 1383
+        "line": 1442
       },
       {
         "name": "toolOk",
         "type": "function",
-        "line": 1391
+        "line": 1450
       },
       {
         "name": "toolErr",
         "type": "function",
-        "line": 1395
+        "line": 1454
       },
       {
         "name": "ErrorCategory",
         "type": "type",
-        "line": 1399
+        "line": 1458
       },
       {
         "name": "categorizeError",
         "type": "function",
-        "line": 1401
+        "line": 1460
       },
       {
         "name": "buildMcpPaymentRequiredError",
         "type": "function",
-        "line": 1424
+        "line": 1483
       },
       {
         "name": "meterMcpToolCredits",
         "type": "function",
-        "line": 1446
+        "line": 1505
       },
       {
         "name": "filterGeneratorsByEntitlement",
         "type": "function",
-        "line": 1475
+        "line": 1534
       },
       {
         "name": "runAnalyzeFiles",
         "type": "function",
-        "line": 1491
+        "line": 1550
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1567
+        "line": 1626
       },
       {
         "name": "runAnalyzeRepo",
         "type": "function",
-        "line": 1637
+        "line": 1696
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1708
+        "line": 1767
       },
       {
         "name": "runSearchTools",
         "type": "function",
-        "line": 1813
+        "line": 1872
       },
       {
         "name": "runDiscoverAgenticCommerceTools",
         "type": "function",
-        "line": 1897
+        "line": 1956
       },
       {
         "name": "runImproveMyAgent",
         "type": "function",
-        "line": 1961
+        "line": 2020
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2007
+        "line": 2066
       },
       {
         "name": "runDiscoverAgenticPurchasingNeeds",
         "type": "function",
-        "line": 2174
+        "line": 2233
       },
       {
         "name": "runGetReferralCode",
         "type": "function",
-        "line": 2305
+        "line": 2364
       },
       {
         "name": "runCheckReferralCredits",
         "type": "function",
-        "line": 2335
+        "line": 2394
       },
       {
         "name": "runListPrograms",
         "type": "function",
-        "line": 2366
+        "line": 2425
       },
       {
         "name": "runGetSnapshot",
         "type": "function",
-        "line": 2410
+        "line": 2469
       },
       {
         "name": "runGetArtifact",
         "type": "function",
-        "line": 2453
+        "line": 2512
       },
       {
         "name": "runCloser",
         "type": "function",
-        "line": 2489
+        "line": 2548
       },
       {
         "name": "runPreparePurchasing",
         "type": "function",
-        "line": 2600
+        "line": 2659
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2684
+        "line": 2743
       },
       {
         "name": "dispatch",
         "type": "function",
-        "line": 2920
+        "line": 2979
       },
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 2951
+        "line": 3010
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 2958
+        "line": 3017
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 3051
+        "line": 3113
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 3128
+        "line": 3190
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 3164
+        "line": 3226
       },
       {
         "name": "handleMcpDocs",
         "type": "function",
-        "line": 3182
+        "line": 3244
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 3229
+        "line": 3291
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 3297
+        "line": 3359
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [

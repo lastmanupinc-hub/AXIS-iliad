@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T21:12:20.933Z",
+  "generated_at": "2026-05-22T21:39:10.740Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
@@ -34,8 +34,8 @@
       "id": "data-model",
       "from": 270,
       "duration": 90,
-      "label": "Data Model (255 entities)",
-      "data_points": 255
+      "label": "Data Model (259 entities)",
+      "data_points": 259
     },
     {
       "id": "complexity",
@@ -86,8 +86,8 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 93029,
-          "percent": 76.1
+          "loc": 93343,
+          "percent": 76.4
         },
         {
           "name": "YAML",
@@ -96,8 +96,8 @@
         },
         {
           "name": "JSON",
-          "loc": 8362,
-          "percent": 6.8
+          "loc": 8079,
+          "percent": 6.6
         },
         {
           "name": "Markdown",
@@ -229,10 +229,30 @@
       ]
     },
     "data_model": {
-      "total_models": 255,
+      "total_models": 259,
       "models": [
         {
           "name": "AuthContext",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "EmbeddingsConfig",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "EmbeddingsResult",
+          "kind": "interface",
+          "fields": 4
+        },
+        {
+          "name": "OpenAIEmbeddingResponse",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "OpenAIErrorResponse",
           "kind": "interface",
           "fields": 3
         },
@@ -285,26 +305,6 @@
           "name": "FirecrawlScrapeRequest",
           "kind": "interface",
           "fields": 6
-        },
-        {
-          "name": "FirecrawlScrapeResponse",
-          "kind": "interface",
-          "fields": 5
-        },
-        {
-          "name": "IntentCapture",
-          "kind": "interface",
-          "fields": 5
-        },
-        {
-          "name": "JsonRpcRequest",
-          "kind": "interface",
-          "fields": 4
-        },
-        {
-          "name": "McpCallCounters",
-          "kind": "interface",
-          "fields": 5
         }
       ]
     },
@@ -379,7 +379,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 133098
+    "total_loc": 133129
   },
   "source_media_files": null
 }
