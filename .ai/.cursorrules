@@ -41,7 +41,7 @@ test_before_commit = true
 # HistogramEntry (interface, 3 fields) @ apps/api/src/metrics.ts
 # CacheKey (type_alias, 2 fields) @ apps/api/src/mpp.ts
 # OAuthClientRow (interface, 3 fields) @ apps/api/src/oauth-server-simple.ts
-# ... and 223 more
+# ... and 226 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode

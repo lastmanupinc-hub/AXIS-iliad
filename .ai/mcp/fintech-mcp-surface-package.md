@@ -1,6 +1,6 @@
 # Fintech MCP Surface Package — axis-iliad
 
-Generated: 2026-05-22T17:51:39.554Z
+Generated: 2026-05-22T18:24:24.002Z
 
 ## Objective
 
@@ -9,7 +9,7 @@ This package defines the initial MCP surface for an agent that does more than au
 ## Why This Repo Qualifies
 
 - Routes detected: 497
-- Domain models detected: 243
+- Domain models detected: 246
 - SQL tables detected: 0
 - Trust Fabric detected: yes
 - Fintech dependency hints: none directly detected

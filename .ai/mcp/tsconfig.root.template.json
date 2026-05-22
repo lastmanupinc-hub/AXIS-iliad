@@ -19,6 +19,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
+    "incremental": true,
     "baseUrl": ".",
     "paths": {
       "@apps/*": [
@@ -35,26 +36,7 @@
   ],
   "exclude": [
     "**/dist",
-    "**/node_modules"
-  ],
-  "references": [
-    {
-      "path": "./apps/api"
-    },
-    {
-      "path": "./apps/web"
-    },
-    {
-      "path": "./packages/context-engine"
-    },
-    {
-      "path": "./packages/generator-core"
-    },
-    {
-      "path": "./packages/repo-parser"
-    },
-    {
-      "path": "./packages/snapshots"
-    }
+    "**/node_modules",
+    "**/*.test.ts"
   ]
 }

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-22T17:51:39.682Z",
-  "total_symbols": 1989,
+  "generated_at": "2026-05-22T18:24:24.134Z",
+  "total_symbols": 1985,
   "file_count": 245,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -6928,72 +6928,72 @@
       {
         "name": "comp",
         "type": "const",
-        "line": 446
+        "line": 450
       },
       {
         "name": "src",
         "type": "const",
-        "line": 481
+        "line": 485
       },
       {
         "name": "readme",
         "type": "const",
-        "line": 491
+        "line": 495
       },
       {
         "name": "src",
         "type": "const",
-        "line": 505
+        "line": 509
       },
       {
         "name": "src",
         "type": "const",
-        "line": 515
+        "line": 519
       },
       {
         "name": "src",
         "type": "const",
-        "line": 529
+        "line": 533
       },
       {
         "name": "src",
         "type": "const",
-        "line": 569
+        "line": 573
       },
       {
         "name": "entry",
         "type": "const",
-        "line": 626
+        "line": 630
       },
       {
         "name": "src",
         "type": "const",
-        "line": 677
+        "line": 681
       },
       {
         "name": "src",
         "type": "const",
-        "line": 713
+        "line": 717
       },
       {
         "name": "svg",
         "type": "const",
-        "line": 744
+        "line": 748
       },
       {
         "name": "src",
         "type": "const",
-        "line": 771
+        "line": 775
       },
       {
         "name": "src",
         "type": "const",
-        "line": 786
+        "line": 790
       },
       {
         "name": "src",
         "type": "const",
-        "line": 804
+        "line": 808
       }
     ],
     "packages/generator-core/src/generators-agentic-purchasing.test.ts": [
@@ -7196,57 +7196,57 @@
       {
         "name": "generateDashboardWidget",
         "type": "function",
-        "line": 137
+        "line": 238
       },
       {
         "name": "generateEmbedSnippet",
         "type": "function",
-        "line": 307
+        "line": 408
       },
       {
         "name": "generateArtifactSpec",
         "type": "function",
-        "line": 397
+        "line": 498
       },
       {
         "name": "generateComponentLibrary",
         "type": "function",
-        "line": 564
+        "line": 665
       },
       {
         "name": "library",
         "type": "const",
-        "line": 679
+        "line": 780
       },
       {
         "name": "generatePrd",
         "type": "function",
-        "line": 720
+        "line": 821
       },
       {
         "name": "generateDesignDoc",
         "type": "function",
-        "line": 842
+        "line": 943
       },
       {
         "name": "generateTasksMd",
         "type": "function",
-        "line": 966
+        "line": 1067
       },
       {
         "name": "generateContextMd",
         "type": "function",
-        "line": 1082
+        "line": 1183
       },
       {
         "name": "generateIndexHtml",
         "type": "function",
-        "line": 1192
+        "line": 1293
       },
       {
         "name": "escape",
         "type": "function",
-        "line": 1199
+        "line": 1300
       }
     ],
     "packages/generator-core/src/generators-brand.ts": [
@@ -7600,94 +7600,74 @@
         "line": 1148
       },
       {
-        "name": "template",
-        "type": "const",
-        "line": 1157
-      },
-      {
         "name": "generatePackagePackageJsonTemplate",
         "type": "function",
-        "line": 1202
-      },
-      {
-        "name": "template",
-        "type": "const",
-        "line": 1206
+        "line": 1229
       },
       {
         "name": "generateRootTsconfigTemplate",
         "type": "function",
-        "line": 1246
-      },
-      {
-        "name": "template",
-        "type": "const",
-        "line": 1247
+        "line": 1276
       },
       {
         "name": "generatePackageTsconfigTemplate",
         "type": "function",
-        "line": 1295
-      },
-      {
-        "name": "template",
-        "type": "const",
-        "line": 1296
+        "line": 1355
       },
       {
         "name": "generateMonorepoStructureGuide",
         "type": "function",
-        "line": 1334
+        "line": 1414
       },
       {
         "name": "generateCoreImplementationArtifactsGuide",
         "type": "function",
-        "line": 1453
+        "line": 1533
       },
       {
         "name": "generateTestingDocumentationPolishArtifactsGuide",
         "type": "function",
-        "line": 1891
+        "line": 1971
       },
       {
         "name": "generateConnectorMap",
         "type": "function",
-        "line": 1950
+        "line": 2030
       },
       {
         "name": "generateCapabilityRegistry",
         "type": "function",
-        "line": 2155
+        "line": 2235
       },
       {
         "name": "registry",
         "type": "const",
-        "line": 2272
+        "line": 2352
       },
       {
         "name": "generateServerManifest",
         "type": "function",
-        "line": 2306
+        "line": 2386
       },
       {
         "name": "detectFintechDependencies",
         "type": "function",
-        "line": 2495
+        "line": 2575
       },
       {
         "name": "hasTrustFabric",
         "type": "function",
-        "line": 2502
+        "line": 2582
       },
       {
         "name": "generateFintechMcpSurfacePackage",
         "type": "function",
-        "line": 2506
+        "line": 2586
       },
       {
         "name": "generateFintechDomainSchema",
         "type": "function",
-        "line": 2629
+        "line": 2709
       }
     ],
     "packages/generator-core/src/generators-notebook.ts": [
@@ -8087,27 +8067,27 @@
       {
         "name": "generateThemeGuidelines",
         "type": "function",
-        "line": 482
+        "line": 564
       },
       {
         "name": "generateComponentThemeMap",
         "type": "function",
-        "line": 816
+        "line": 898
       },
       {
         "name": "themeMap",
         "type": "const",
-        "line": 868
+        "line": 950
       },
       {
         "name": "generateDarkModeTokens",
         "type": "function",
-        "line": 916
+        "line": 998
       },
       {
         "name": "tokens",
         "type": "const",
-        "line": 922
+        "line": 1004
       }
     ],
     "packages/generator-core/src/pipeline.test.ts": [

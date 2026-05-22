@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 246 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (131200 LOC)
+- **Files:** 500 (131426 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -571,7 +571,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Domain Models
 
-Detected 243 domain models:
+Detected 246 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -600,7 +600,7 @@ Detected 243 domain models:
 | `CreateSubscriptionInput` | interface | 3 | apps/api/src/paid-client.ts |
 | `PaidConfig` | interface | 6 | apps/api/src/paid-client.ts |
 | `PaymentIntent` | interface | 6 | apps/api/src/paid-client.ts |
-| *… 218 more* | | | |
+| *… 221 more* | | | |
 
 > **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
@@ -973,11 +973,11 @@ packages/generator-core/src/fw-helpers.ts (0.5 KB)
 packages/generator-core/src/generate-programs.test.ts (13.0 KB)
 packages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)
 packages/generator-core/src/generate-validation.test.ts (8.7 KB)
-packages/generator-core/src/generate.test.ts (67.5 KB)
+packages/generator-core/src/generate.test.ts (68.0 KB)
 packages/generator-core/src/generate.ts (23.8 KB)
 packages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)
-packages/generator-core/src/generator-branches.test.ts (217.3 KB)
-packages/generator-core/src/generator-sourcefile-branches.test.ts (20.9 KB)
+packages/generator-core/src/generator-branches.test.ts (217.6 KB)
+packages/generator-core/src/generator-sourcefile-branches.test.ts (21.3 KB)
 packages/generator-core/src/generator-sourcefile-branches10.test.ts (34.0 KB)
 packages/generator-core/src/generator-sourcefile-branches11.test.ts (21.4 KB)
 packages/generator-core/src/generator-sourcefile-branches12.test.ts (16.3 KB)
@@ -986,7 +986,7 @@ packages/generator-core/src/generator-sourcefile-branches14.test.ts (13.8 KB)
 packages/generator-core/src/generator-sourcefile-branches15.test.ts (9.2 KB)
 packages/generator-core/src/generator-sourcefile-branches16.test.ts (22.4 KB)
 packages/generator-core/src/generator-sourcefile-branches17.test.ts (15.9 KB)
-packages/generator-core/src/generator-sourcefile-branches18.test.ts (28.8 KB)
+packages/generator-core/src/generator-sourcefile-branches18.test.ts (28.9 KB)
 packages/generator-core/src/generator-sourcefile-branches19.test.ts (12.6 KB)
 packages/generator-core/src/generator-sourcefile-branches2.test.ts (23.8 KB)
 packages/generator-core/src/generator-sourcefile-branches20.test.ts (9.5 KB)
@@ -996,11 +996,11 @@ packages/generator-core/src/generator-sourcefile-branches5.test.ts (29.0 KB)
 packages/generator-core/src/generator-sourcefile-branches6.test.ts (25.9 KB)
 packages/generator-core/src/generator-sourcefile-branches7.test.ts (36.6 KB)
 packages/generator-core/src/generator-sourcefile-branches8.test.ts (49.0 KB)
-packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.5 KB)
+packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (53.9 KB)
+packages/generator-core/src/generators-artifacts.ts (60.2 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -1008,7 +1008,7 @@ packages/generator-core/src/generators-closer.ts (47.8 KB)
 packages/generator-core/src/generators-debug.ts (42.0 KB)
 packages/generator-core/src/generators-frontend.ts (27.6 KB)
 packages/generator-core/src/generators-marketing.ts (35.4 KB)
-packages/generator-core/src/generators-mcp.ts (115.7 KB)
+packages/generator-core/src/generators-mcp.ts (120.3 KB)
 packages/generator-core/src/generators-notebook.ts (24.9 KB)
 packages/generator-core/src/generators-obsidian.ts (28.5 KB)
 packages/generator-core/src/generators-optimization.ts (26.1 KB)
@@ -1018,7 +1018,7 @@ packages/generator-core/src/generators-search.ts (26.1 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
 packages/generator-core/src/generators-skills.ts (43.0 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
-packages/generator-core/src/generators-theme.ts (45.9 KB)
+packages/generator-core/src/generators-theme.ts (49.9 KB)
 packages/generator-core/src/index.ts (4.1 KB)
 packages/generator-core/src/pipeline.test.ts (9.6 KB)
 packages/generator-core/src/types.ts (0.6 KB)

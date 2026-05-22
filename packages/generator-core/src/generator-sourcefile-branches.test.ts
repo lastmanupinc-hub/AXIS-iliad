@@ -273,12 +273,18 @@ describe("generators-artifacts.ts — source file branches", () => {
       expect(f).toBeDefined();
     });
 
-    it("includes reference to existing components", () => {
-      expect(f!.content).toContain("Reference: existing components found in project");
+    it("renders an App-shaped React component with ErrorBoundary", () => {
+      // generated-component.tsx is now a full App shell, not a snippet listing
+      // sibling components. We assert the structural primitives: a default
+      // export, an ErrorBoundary class, and Section/Routes/Models wrappers.
+      expect(f!.content).toMatch(/export default \w+/);
+      expect(f!.content).toContain("class ErrorBoundary");
+      expect(f!.content).toContain("<Section ");
     });
 
-    it("lists component exports", () => {
-      expect(f!.content).toMatch(/Header|Footer/);
+    it("inlines route + model data tables from the snapshot", () => {
+      expect(f!.content).toContain("const ROUTES:");
+      expect(f!.content).toContain("const MODELS:");
     });
   });
 

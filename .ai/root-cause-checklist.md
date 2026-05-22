@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-iliad
 
-> monorepo | TypeScript | 500 files | 131,200 LOC
+> monorepo | TypeScript | 500 files | 131,426 LOC
 
 **Stack:** React ^19.1.0
 
@@ -169,6 +169,9 @@ Check these entities for state corruption or relationship violations:
 - [ ] `Edge` (interface, 3 fields) — `packages/generator-core/src/generators-algorithmic.ts`
 - [ ] `Node` (interface, 7 fields) — `packages/generator-core/src/generators-algorithmic.ts`
 - [ ] `DashboardData` (interface, 6 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `Entry` (type_alias, 2 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `Model` (type_alias, 4 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `Route` (type_alias, 3 fields) — `packages/generator-core/src/generators-artifacts.ts`
 - [ ] `BrandingConfig` (interface, 3 fields) — `packages/generator-core/src/generators-closer.ts`
 - [ ] `MerkleBundle` (interface, 3 fields) — `packages/generator-core/src/generators-closer.ts`
 - [ ] `ProjectSignals` (interface, 10 fields) — `packages/generator-core/src/generators-closer.ts`

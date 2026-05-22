@@ -1,6 +1,6 @@
 # axis-iliad — Session Context
 
-Last updated: `2026-05-22T17:51:39.327Z`  ·  Snapshot: `2da5e723-19db-49ee-8b7b-77fba87ea69a`
+Last updated: `2026-05-22T18:24:23.747Z`  ·  Snapshot: `778d2fdc-ab47-4972-b576-8745904d193c`
 
 Load this file at the start of every working session. It's the agent-readable progress log — what's done, what's in flight, and where to look next.
 
@@ -8,14 +8,14 @@ Load this file at the start of every working session. It's the agent-readable pr
 
 - **Files**: 500
 - **Directories**: 65
-- **Lines of code**: 131,200
+- **Lines of code**: 131,426
 - **Primary language**: TypeScript
 - **Frameworks**: React
 
 ## What's Done
 
 - 497 HTTP routes registered (3 methods)
-- 243 domain models defined and typed
+- 246 domain models defined and typed
 - Test runner configured: vitest
 - CI pipeline live on github_actions
 - Deployment target: docker

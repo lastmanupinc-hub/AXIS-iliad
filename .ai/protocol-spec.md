@@ -1,6 +1,6 @@
 # Protocol Specification — axis-iliad
 
-Generated: 2026-05-22T17:51:39.549Z
+Generated: 2026-05-22T18:24:23.997Z
 
 ## Purpose
 

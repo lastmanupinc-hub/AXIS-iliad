@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T17:51:39.569Z",
+  "generated_at": "2026-05-22T18:24:24.018Z",
   "design_system": {
     "colors": {
       "primary": "#6366f1",
@@ -122,7 +122,7 @@
     "subtitle": null,
     "type": "monorepo",
     "language": "TypeScript",
-    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 243 domain models.",
+    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 246 domain models.",
     "frameworks": [
       {
         "name": "React",
@@ -136,8 +136,8 @@
     "language_stats": [
       {
         "name": "TypeScript",
-        "percent": 75.5,
-        "loc": 90890
+        "percent": 75.6,
+        "loc": 91116
       },
       {
         "name": "YAML",
@@ -151,7 +151,7 @@
       },
       {
         "name": "Markdown",
-        "percent": 6.8,
+        "percent": 6.7,
         "loc": 8125
       },
       {
@@ -191,10 +191,10 @@
     ],
     "entry_point_count": 0,
     "hotspot_count": 7,
-    "domain_model_count": 243,
+    "domain_model_count": 246,
     "route_count": 497,
     "total_files": 500,
-    "total_loc": 131200
+    "total_loc": 131426
   },
   "source_asset_files": null
 }

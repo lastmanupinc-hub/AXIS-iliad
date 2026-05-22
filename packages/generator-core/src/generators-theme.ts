@@ -387,6 +387,97 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("}");
   lines.push("");
 
+  // ─── Base reset + typography baseline ──────────────────────
+  // Drop-in equivalent of an index.css for fresh projects. Sets box-sizing,
+  // mounts the font tokens onto html/body, normalizes margins, applies sane
+  // defaults to headings/p/code/pre/links/buttons, and respects the focus-ring
+  // policy defined above. Safe to override per-component.
+  lines.push("/* ─── Base Reset (index.css baseline) ────────────────────── */");
+  lines.push("");
+  lines.push("*, *::before, *::after { box-sizing: border-box; }");
+  lines.push("");
+  lines.push("html {");
+  lines.push("  font-family: var(--font-sans);");
+  lines.push("  font-size: 16px;");
+  lines.push("  line-height: 1.5;");
+  lines.push("  -webkit-text-size-adjust: 100%;");
+  lines.push("  -webkit-font-smoothing: antialiased;");
+  lines.push("  -moz-osx-font-smoothing: grayscale;");
+  lines.push("  text-rendering: optimizeLegibility;");
+  lines.push("  color-scheme: light dark;");
+  lines.push("}");
+  lines.push("");
+  lines.push("body {");
+  lines.push("  margin: 0;");
+  lines.push("  min-height: 100vh;");
+  lines.push("  background: var(--surface-page);");
+  lines.push("  color: var(--color-neutral-900);");
+  lines.push("  font-size: var(--font-size-base);");
+  lines.push("}");
+  lines.push("");
+  lines.push("h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd { margin: 0; }");
+  lines.push("h1 { font-size: var(--font-size-4xl); line-height: 1.15; font-weight: 700; }");
+  lines.push("h2 { font-size: var(--font-size-2xl); line-height: 1.25; font-weight: 600; }");
+  lines.push("h3 { font-size: var(--font-size-xl);  line-height: 1.3;  font-weight: 600; }");
+  lines.push("h4 { font-size: var(--font-size-lg);  line-height: 1.35; font-weight: 600; }");
+  lines.push("");
+  lines.push("p { max-width: 70ch; }");
+  lines.push("");
+  lines.push("a {");
+  lines.push("  color: var(--color-primary-600);");
+  lines.push("  text-decoration-thickness: 0.08em;");
+  lines.push("  text-underline-offset: 0.18em;");
+  lines.push("}");
+  lines.push("a:hover { color: var(--color-primary-700); }");
+  lines.push("");
+  lines.push("code, kbd, samp, pre {");
+  lines.push("  font-family: var(--font-mono);");
+  lines.push("  font-size: 0.95em;");
+  lines.push("}");
+  lines.push("code, kbd, samp {");
+  lines.push("  background: var(--surface-inset);");
+  lines.push("  border-radius: var(--radius-sm);");
+  lines.push("  padding: 0.1em 0.35em;");
+  lines.push("}");
+  lines.push("pre {");
+  lines.push("  background: var(--surface-inset);");
+  lines.push("  border-radius: var(--radius-md);");
+  lines.push("  padding: var(--space-4);");
+  lines.push("  overflow-x: auto;");
+  lines.push("}");
+  lines.push("pre code { background: transparent; padding: 0; }");
+  lines.push("");
+  lines.push("img, picture, video, canvas, svg { display: block; max-width: 100%; height: auto; }");
+  lines.push("");
+  lines.push("button, input, optgroup, select, textarea {");
+  lines.push("  font: inherit;");
+  lines.push("  color: inherit;");
+  lines.push("}");
+  lines.push("button {");
+  lines.push("  background: transparent;");
+  lines.push("  border: 1px solid transparent;");
+  lines.push("  cursor: pointer;");
+  lines.push("  padding: var(--space-2) var(--space-4);");
+  lines.push("  border-radius: var(--radius-md);");
+  lines.push("  transition: background var(--transition-fast), border-color var(--transition-fast);");
+  lines.push("}");
+  lines.push("button:disabled { cursor: not-allowed; opacity: 0.6; }");
+  lines.push("");
+  lines.push("hr {");
+  lines.push("  border: 0;");
+  lines.push("  border-top: 1px solid var(--color-neutral-200);");
+  lines.push("  margin: var(--space-6) 0;");
+  lines.push("}");
+  lines.push("");
+  lines.push("table { border-collapse: collapse; width: 100%; }");
+  lines.push("th, td {");
+  lines.push("  text-align: left;");
+  lines.push("  padding: var(--space-2) var(--space-3);");
+  lines.push("  border-bottom: 1px solid var(--color-neutral-200);");
+  lines.push("}");
+  lines.push("th { font-weight: 600; }");
+  lines.push("");
+
   // Component reset classes
   lines.push("/* ─── Component Primitives ───────────────────────────────── */");
   lines.push("");
@@ -428,30 +519,21 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("}");
   lines.push("");
 
-  // ─── Domain-model component stubs ────────────────────────────
+  // ─── Domain-model component class registry ──────────────────
+  // For each detected model we publish a (commented) class hint pointing at
+  // the canonical .surface-card / .surface-elevated primitives. We no longer
+  // emit a separate 8-line rule per model — they were identical to the
+  // primitives and bloated the stylesheet with dead CSS.
   if (ctx.domain_models.length > 0) {
-    lines.push("/* ─── Domain Model Component Scaffolds ───────────────────── */");
-    lines.push("/*     Auto-derived from project domain models.               */");
-    lines.push("/*     Rename and extend these for your actual components.     */");
+    lines.push("/* ─── Domain Model Component Hints ───────────────────────── */");
+    lines.push("/*    Use .surface-card / .surface-elevated for cards backed by these models. */");
+    lines.push("/*    Add model-specific tweaks in your own stylesheet, not here.            */");
     lines.push("");
     for (const model of ctx.domain_models.slice(0, 8)) {
-      const slug = model.name
-        .replace(/([a-z])([A-Z])/g, "$1-$2")
-        .toLowerCase();
-      lines.push(`/* ${model.name} — ${model.kind} (${model.field_count} fields) */`);
-      lines.push(`.${slug}-card {`);
-      lines.push("  background: var(--surface-card);");
-      lines.push("  border: 1px solid var(--color-neutral-200);");
-      lines.push("  border-radius: var(--radius-lg);");
-      lines.push("  padding: var(--space-4);");
-      lines.push("}");
-      lines.push(`.${slug}-surface {`);
-      lines.push("  background: var(--surface-elevated);");
-      lines.push("  border-radius: var(--radius-md);");
-      lines.push("  box-shadow: var(--shadow-sm);");
-      lines.push("}");
-      lines.push("");
+      const slug = model.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+      lines.push(`/*   .${slug}-card    — ${model.name} (${model.kind}, ${model.field_count} fields). Apply .surface-card. */`);
     }
+    lines.push("");
   }
 
   // ─── Source File Analysis ────────────────────────────────────

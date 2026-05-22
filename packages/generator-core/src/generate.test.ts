@@ -620,11 +620,12 @@ describe("artifacts generators content", () => {
     expect(artFiles.length).toBe(4);
   });
 
-  it("generated-component.tsx has component scaffold", () => {
+  it("generated-component.tsx is an App-shaped React component", () => {
     const file = result.files.find(f => f.path === "generated-component.tsx")!;
-    expect(file.content).toContain("container");
-    expect(file.content).toContain("content");
-    expect(file.content.length).toBeGreaterThan(100);
+    expect(file.content).toMatch(/export default \w+/);
+    expect(file.content).toContain("class ErrorBoundary");
+    expect(file.content).toContain("function Section");
+    expect(file.content.length).toBeGreaterThan(500);
   });
 
   it("dashboard-widget.tsx has project stats", () => {
@@ -1011,68 +1012,70 @@ describe("depth generators content", () => {
     expect(file.content.length).toBeGreaterThan(350);
   });
 
-  it("mcp/package-json.root.template.json is valid root package template", () => {
+  it("mcp/package-json.root.template.json is a clean, package-manager-aware root template", () => {
     const file = result.files.find(f => f.path === "mcp/package-json.root.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
     expect(parsed.private).toBe(true);
-    expect(parsed.packageManager).toBeTruthy();
-    expect(Array.isArray(parsed.workspaces)).toBe(true);
-    expect(parsed.workspaces).toContain("apps/*");
-    expect(parsed.workspaces).toContain("packages/*");
-    expect(parsed.scripts).toBeTruthy();
+    expect(parsed.packageManager).toMatch(/^(pnpm|yarn|bun|npm)@/);
+    // Scripts now mirror the detected package manager's CLI surface.
     expect(parsed.scripts.build).toBeTruthy();
     expect(parsed.scripts.test).toBeTruthy();
     expect(parsed.scripts.lint).toBeTruthy();
-    expect(parsed.scripts.publish).toBeTruthy();
-    expect(parsed.scripts["build:turbo"]).toBeTruthy();
-    expect(parsed.scripts["test:turbo"]).toBeTruthy();
-    expect(parsed.scripts["lint:turbo"]).toBeTruthy();
-    expect(parsed.dependencies?.zod).toBeTruthy();
+    expect(parsed.scripts.typecheck).toBeTruthy();
+    // No hardcoded zod dependency anymore — templates should not ship opinions
+    // on app-level libraries.
+    expect(parsed.dependencies?.zod).toBeUndefined();
     expect(parsed.devDependencies?.typescript).toBeTruthy();
-    expect(parsed.devDependencies?.vitest).toBeTruthy();
-    expect(parsed.devDependencies?.turbo).toBeTruthy();
     expect(file.content_type).toBe("application/json");
   });
 
-  it("mcp/package-json.package.template.json is valid package template", () => {
+  it("mcp/package-json.package.template.json uses ESM exports (not legacy main/types)", () => {
     const file = result.files.find(f => f.path === "mcp/package-json.package.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
-    expect(parsed.main).toBe("dist/index.js");
-    expect(parsed.types).toBe("dist/index.d.ts");
-    expect(parsed.scripts).toBeTruthy();
+    // ESM packages should declare their public surface via `exports`, not
+    // top-level `main` + `types`. Legacy `main` field is no longer emitted.
+    expect(parsed.main).toBeUndefined();
+    expect(parsed.type).toBe("module");
+    expect(parsed.exports?.["."]?.import).toBe("./dist/index.js");
+    expect(parsed.exports?.["."]?.types).toBe("./dist/index.d.ts");
     expect(parsed.scripts.build).toBeTruthy();
     expect(parsed.scripts.test).toBeTruthy();
     expect(parsed.scripts.lint).toBeTruthy();
-    expect(parsed.scripts.publish).toBeTruthy();
-    expect(parsed.peerDependencies?.zod).toBeTruthy();
+    expect(parsed.scripts.prepublishOnly).toBeTruthy();
+    // No hardcoded zod peerDependency anymore.
+    expect(parsed.peerDependencies?.zod).toBeUndefined();
     expect(parsed.devDependencies?.typescript).toBeTruthy();
-    expect(parsed.devDependencies?.vitest).toBeTruthy();
     expect(file.content_type).toBe("application/json");
   });
 
-  it("mcp/tsconfig.root.template.json has strict ESM and monorepo paths", () => {
+  it("mcp/tsconfig.root.template.json has strict ESM settings; paths/references derive from detected layout", () => {
     const file = result.files.find(f => f.path === "mcp/tsconfig.root.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
     expect(parsed.compilerOptions?.strict).toBe(true);
     expect(parsed.compilerOptions?.module).toBe("NodeNext");
     expect(parsed.compilerOptions?.moduleResolution).toBe("NodeNext");
-    expect(parsed.compilerOptions?.paths?.["@apps/*"]).toBeTruthy();
-    expect(parsed.compilerOptions?.paths?.["@packages/*"]).toBeTruthy();
+    expect(parsed.compilerOptions?.composite).toBe(true);
+    expect(parsed.compilerOptions?.incremental).toBe(true);
+    expect(Array.isArray(parsed.include)).toBe(true);
+    expect(parsed.include.length).toBeGreaterThan(0);
     expect(file.content_type).toBe("application/json");
   });
 
-  it("mcp/tsconfig.package.template.json has strict package output settings", () => {
+  it("mcp/tsconfig.package.template.json has strict, composite + incremental output settings", () => {
     const file = result.files.find(f => f.path === "mcp/tsconfig.package.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
-    expect(parsed.extends).toContain("tsconfig");
-    expect(parsed.compilerOptions?.strict).toBe(true);
     expect(parsed.compilerOptions?.outDir).toBe("dist");
-    expect(parsed.compilerOptions?.module).toBe("NodeNext");
-    expect(parsed.compilerOptions?.moduleResolution).toBe("NodeNext");
+    expect(parsed.compilerOptions?.rootDir).toBe("src");
+    expect(parsed.compilerOptions?.composite).toBe(true);
+    expect(parsed.compilerOptions?.incremental).toBe(true);
+    // Either extends a base config OR inlines strict + NodeNext settings.
+    const inheritsBase = typeof parsed.extends === "string" && parsed.extends.includes("tsconfig");
+    const inlinesStrict = parsed.compilerOptions?.strict === true && parsed.compilerOptions?.module === "NodeNext";
+    expect(inheritsBase || inlinesStrict).toBe(true);
     expect(file.content_type).toBe("application/json");
   });
 

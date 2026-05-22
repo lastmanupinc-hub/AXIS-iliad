@@ -1146,89 +1146,119 @@ export function generateBuildArtifactsGuide(ctx: ContextMap): GeneratedFile {
 // ─── mcp/package-json.root.template.json ─────────────────────
 
 export function generateRootPackageJsonTemplate(ctx: ContextMap): GeneratedFile {
-  const projectName = ctx.project_identity.name;
+  const projectName = ctx.project_identity.name.toLowerCase().replace(/\s+/g, "-");
   const packageManagers = ctx.detection.package_managers;
-  const packageManager = packageManagers.includes("pnpm")
-    ? "pnpm@9"
-    : packageManagers.includes("yarn")
-      ? "yarn@4"
-      : "npm@10";
+  const pm: "pnpm" | "yarn" | "bun" | "npm" =
+    packageManagers.includes("pnpm") ? "pnpm" :
+    packageManagers.includes("yarn") ? "yarn" :
+    packageManagers.includes("bun") ? "bun" :
+    "npm";
 
-  const template = {
-    name: projectName.toLowerCase().replace(/\s+/g, "-"),
+  const packageManagerField =
+    pm === "pnpm" ? "pnpm@9" :
+    pm === "yarn" ? "yarn@4" :
+    pm === "bun" ? "bun@1" :
+    "npm@10";
+
+  // Detect actual workspace dirs from the analyzed repo. If apps/ or packages/
+  // exist in the top-level layout, glob them; otherwise omit workspaces entirely.
+  const layoutNames = new Set(ctx.structure.top_level_layout.map(l => l.name));
+  const workspaces: string[] = [];
+  if (layoutNames.has("apps")) workspaces.push("apps/*");
+  if (layoutNames.has("packages")) workspaces.push("packages/*");
+
+  // Compose package-manager-appropriate run commands. pnpm/yarn/bun support
+  // workspace-recursive runs; npm 7+ uses --workspaces.
+  const recursive =
+    pm === "pnpm" ? "pnpm -r" :
+    pm === "yarn" ? "yarn workspaces foreach -A run" :
+    pm === "bun"  ? "bun run --filter='*'" :
+    "npm run --workspaces --if-present";
+
+  // The dev script needs a concrete first workspace to target. Pick a sensible
+  // default: prefer apps/<first detected app>, otherwise the first package.
+  const firstApp = ctx.structure.top_level_layout
+    .find(l => l.name === "apps" && l.file_count > 0);
+  const devScript = firstApp
+    ? (pm === "pnpm" ? `pnpm --filter "./apps/*" --parallel dev`
+       : pm === "yarn" ? `yarn workspaces foreach -A --include "apps/*" run dev`
+       : pm === "bun"  ? `bun --filter "./apps/*" dev`
+       : `npm run dev --workspaces --if-present`)
+    : `${pm === "npm" ? "npm run" : pm} dev`;
+
+  const template: Record<string, unknown> = {
+    name: projectName,
     private: true,
     version: "0.1.0",
     type: "module",
-    packageManager,
-    workspaces: [
-      "apps/*",
-      "packages/*",
-    ],
+    packageManager: packageManagerField,
     scripts: {
-      build: "pnpm -r build",
-      dev: "pnpm --filter @axis/api dev",
-      test: "npx vitest run",
-      lint: "pnpm -r lint",
-      typecheck: "pnpm -r typecheck",
-      publish: "pnpm -r publish --no-git-checks",
-      "build:turbo": "turbo run build",
-      "test:turbo": "turbo run test",
-      "lint:turbo": "turbo run lint",
+      build: `${recursive} build`,
+      dev: devScript,
+      test: `${recursive} test`,
+      lint: `${recursive} lint`,
+      typecheck: `${recursive} typecheck`,
+      format: `${recursive} format`,
+      clean: `${recursive} clean`,
     },
     engines: {
       node: ">=20",
     },
-    dependencies: {
-      zod: "^3.24.1",
-    },
     devDependencies: {
       typescript: "^5.7.3",
-      vitest: "^2.1.8",
-      turbo: "^2.0.0",
     },
   };
+  if (workspaces.length > 0) {
+    // npm uses `workspaces`; pnpm uses `pnpm-workspace.yaml` (separate file).
+    // For pnpm we still emit `workspaces` for tooling-compat, but the canonical
+    // source on pnpm is the workspace yaml shipped alongside.
+    template.workspaces = workspaces;
+  }
 
   return {
     path: "mcp/package-json.root.template.json",
     content: JSON.stringify(template, null, 2),
     content_type: "application/json",
     program: "mcp",
-    description: "Root package.json template for monorepo setup with workspace scripts and engine constraints",
+    description: `Root package.json template tuned for ${pm}; workspaces inferred from the detected top-level layout (${workspaces.length > 0 ? workspaces.join(", ") : "no workspaces detected"}).`,
   };
 }
 
 // ─── mcp/package-json.package.template.json ──────────────────
 
 export function generatePackagePackageJsonTemplate(ctx: ContextMap): GeneratedFile {
-  const projectName = ctx.project_identity.name;
-  const scopedName = `@${projectName.toLowerCase().replace(/\s+/g, "-")}/sample-package`;
-
-  const template = {
+  const slug = ctx.project_identity.name.toLowerCase().replace(/\s+/g, "-");
+  const scopedName = `@${slug}/sample-package`;
+  // Use ESM `exports` instead of legacy `main`/`types`. ESM with type:module
+  // and a top-level `main` causes resolver edge cases for downstream consumers.
+  const template: Record<string, unknown> = {
     name: scopedName,
     private: true,
     version: "0.1.0",
     type: "module",
-    main: "dist/index.js",
-    types: "dist/index.d.ts",
+    exports: {
+      ".": {
+        types: "./dist/index.d.ts",
+        import: "./dist/index.js",
+      },
+    },
     files: [
       "dist",
+      "README.md",
+      "LICENSE",
     ],
     scripts: {
       build: "tsc -p tsconfig.json",
-      dev: "tsx watch src/index.ts",
-      test: "npx vitest run",
+      dev: "tsc -p tsconfig.json --watch",
+      test: "vitest run",
       lint: "eslint .",
       typecheck: "tsc --noEmit",
-      publish: "npm publish --access public",
+      clean: "rm -rf dist .turbo",
+      prepublishOnly: "npm run build && npm run test",
     },
     dependencies: {},
-    peerDependencies: {
-      zod: "^3.24.1",
-    },
     devDependencies: {
       typescript: "^5.7.3",
-      vitest: "^2.1.8",
-      tsx: "^4.0.0",
     },
   };
 
@@ -1237,14 +1267,53 @@ export function generatePackagePackageJsonTemplate(ctx: ContextMap): GeneratedFi
     content: JSON.stringify(template, null, 2),
     content_type: "application/json",
     program: "mcp",
-    description: "Per-package package.json template for TypeScript workspace packages with build/test scripts",
+    description: "Per-package package.json template — ESM-correct exports map, no main/types legacy fields, build/dev/test/lint/typecheck/clean scripts plus prepublishOnly gate.",
   };
 }
 
 // ─── mcp/tsconfig.root.template.json ─────────────────────────
 
-export function generateRootTsconfigTemplate(): GeneratedFile {
-  const template = {
+export function generateRootTsconfigTemplate(ctx?: ContextMap): GeneratedFile {
+  // Derive include/paths/references from the actual top-level layout so the
+  // template doesn't carry axis-iliad-specific directory names. Fall back to
+  // the generic apps/+packages/ shape if no layout info is available.
+  const layout = ctx?.structure.top_level_layout ?? [];
+  const hasApps = layout.some(l => l.name === "apps" && l.file_count > 0);
+  const hasPackages = layout.some(l => l.name === "packages" && l.file_count > 0);
+  const hasSrc = layout.some(l => l.name === "src" && l.file_count > 0);
+
+  const include: string[] = [];
+  const paths: Record<string, string[]> = {};
+  if (hasApps) {
+    include.push("apps");
+    paths["@apps/*"] = ["apps/*/src"];
+  }
+  if (hasPackages) {
+    include.push("packages");
+    paths["@packages/*"] = ["packages/*/src"];
+  }
+  if (hasSrc) {
+    include.push("src");
+  }
+  if (include.length === 0) {
+    // Conservative default for projects that don't use a workspace layout.
+    include.push("src");
+  }
+
+  // References: discover candidate composite-project roots from the detected
+  // entry points. Each unique top-level directory under apps/ or packages/
+  // becomes a reference. This avoids hardcoding axis-specific paths.
+  const refDirs = new Set<string>();
+  const entryPaths = ctx?.entry_points.map(e => e.path) ?? [];
+  for (const p of entryPaths) {
+    const parts = p.split("/");
+    if ((parts[0] === "apps" || parts[0] === "packages") && parts[1]) {
+      refDirs.add(`./${parts[0]}/${parts[1]}`);
+    }
+  }
+  const references = Array.from(refDirs).sort().map(path => ({ path }));
+
+  const template: Record<string, unknown> = {
     $schema: "https://json.schemastore.org/tsconfig",
     compilerOptions: {
       target: "ES2022",
@@ -1263,22 +1332,13 @@ export function generateRootTsconfigTemplate(): GeneratedFile {
       declarationMap: true,
       sourceMap: true,
       composite: true,
+      incremental: true,
       baseUrl: ".",
-      paths: {
-        "@apps/*": ["apps/*/src"],
-        "@packages/*": ["packages/*/src"],
-      },
+      ...(Object.keys(paths).length > 0 ? { paths } : {}),
     },
-    include: ["apps", "packages"],
-    exclude: ["**/dist", "**/node_modules"],
-    references: [
-      { path: "./apps/api" },
-      { path: "./apps/web" },
-      { path: "./packages/context-engine" },
-      { path: "./packages/generator-core" },
-      { path: "./packages/repo-parser" },
-      { path: "./packages/snapshots" },
-    ],
+    include,
+    exclude: ["**/dist", "**/node_modules", "**/*.test.ts"],
+    ...(references.length > 0 ? { references } : {}),
   };
 
   return {
@@ -1286,38 +1346,58 @@ export function generateRootTsconfigTemplate(): GeneratedFile {
     content: JSON.stringify(template, null, 2),
     content_type: "application/json",
     program: "mcp",
-    description: "Root tsconfig.json template with strict TypeScript, ESM settings, and monorepo path mappings",
+    description: `Root tsconfig.json template derived from the detected layout (${include.join(", ") || "src"}). References discovered from entry points: ${references.length === 0 ? "none" : references.length + " composite project(s)"}.`,
   };
 }
 
 // ─── mcp/tsconfig.package.template.json ──────────────────────
 
-export function generatePackageTsconfigTemplate(): GeneratedFile {
-  const template = {
+export function generatePackageTsconfigTemplate(ctx?: ContextMap): GeneratedFile {
+  // Only `extends: "../../tsconfig.base.json"` when a base config actually
+  // exists in the analyzed repo. Otherwise inline all the strict settings so
+  // a fresh package compiles without a missing-file error.
+  const layout = ctx?.structure.top_level_layout ?? [];
+  const hasPackages = layout.some(l => l.name === "packages" && l.file_count > 0);
+  const hasBaseConfig = layout.some(l => l.name === "tsconfig.base.json");
+
+  const compilerOptions: Record<string, unknown> = hasBaseConfig
+    ? {
+        rootDir: "src",
+        outDir: "dist",
+        tsBuildInfoFile: "dist/.tsbuildinfo",
+        composite: true,
+        incremental: true,
+        ...(hasPackages ? { baseUrl: ".", paths: { "@packages/*": ["../*/src"] } } : {}),
+      }
+    : {
+        rootDir: "src",
+        outDir: "dist",
+        tsBuildInfoFile: "dist/.tsbuildinfo",
+        target: "ES2022",
+        module: "NodeNext",
+        moduleResolution: "NodeNext",
+        lib: ["ES2022"],
+        strict: true,
+        noUncheckedIndexedAccess: true,
+        exactOptionalPropertyTypes: true,
+        forceConsistentCasingInFileNames: true,
+        skipLibCheck: true,
+        esModuleInterop: true,
+        resolveJsonModule: true,
+        declaration: true,
+        declarationMap: true,
+        sourceMap: true,
+        composite: true,
+        incremental: true,
+        ...(hasPackages ? { baseUrl: ".", paths: { "@packages/*": ["../*/src"] } } : {}),
+      };
+
+  const template: Record<string, unknown> = {
     $schema: "https://json.schemastore.org/tsconfig",
-    extends: "../../tsconfig.base.json",
-    compilerOptions: {
-      rootDir: "src",
-      outDir: "dist",
-      tsBuildInfoFile: "dist/.tsbuildinfo",
-      target: "ES2022",
-      module: "NodeNext",
-      moduleResolution: "NodeNext",
-      lib: ["ES2022"],
-      strict: true,
-      noUncheckedIndexedAccess: true,
-      exactOptionalPropertyTypes: true,
-      declaration: true,
-      declarationMap: true,
-      sourceMap: true,
-      composite: true,
-      baseUrl: ".",
-      paths: {
-        "@packages/*": ["../*/src"],
-      },
-    },
+    ...(hasBaseConfig ? { extends: "../../tsconfig.base.json" } : {}),
+    compilerOptions,
     include: ["src"],
-    exclude: ["dist", "node_modules", "**/*.test.ts"],
+    exclude: ["dist", "node_modules", "**/*.test.ts", "**/*.spec.ts"],
   };
 
   return {
@@ -1325,7 +1405,7 @@ export function generatePackageTsconfigTemplate(): GeneratedFile {
     content: JSON.stringify(template, null, 2),
     content_type: "application/json",
     program: "mcp",
-    description: "Per-package tsconfig.json template with strict TypeScript and ESM-focused build output",
+    description: `Per-package tsconfig.json template ${hasBaseConfig ? "extending the repo's tsconfig.base.json" : "with inline strict settings (no base config detected)"}. ESM-focused, composite + incremental enabled.`,
   };
 }
 

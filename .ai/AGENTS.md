@@ -109,7 +109,7 @@ This is a **monorepo** built with **TypeScript**.
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
 | `OAuthClientRow` | interface | 3 | apps/api/src/oauth-server-simple.ts |
-| *… 223 more* | | | |
+| *… 226 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 

@@ -46,7 +46,7 @@ These are the core data structures that define what the system works with:
 | `SnapshotTarget` | interface | 5 | `apps/api/src/github-webhook.ts` |
 | `FirecrawlCrawlRequest` | interface | 5 | `apps/api/src/handlers.ts` |
 | `FirecrawlCrawlResponse` | interface | 4 | `apps/api/src/handlers.ts` |
-| *(+233 more)* | | | |
+| *(+236 more)* | | | |
 
 ### Phase 4: Data Flow
 

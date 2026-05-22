@@ -3429,14 +3429,16 @@ describe("Layer 5 branch coverage", () => {
   });
 
   // ── generators-artifacts.ts ────────────────────────────────
-  // Line 37: non-React component scaffold
-  it("generated-component uses scaffold comment for Vue project", () => {
+  // Vue path emits a Vue SFC App shell rather than the prior `<slot />` snippet.
+  it("generated-component emits a Vue SFC app shell for Vue project", () => {
     const s = snap({ files: VUE_FILES });
     const inp = input(s, ["generated-component.tsx"]);
     const result = generateFiles(inp);
     const f = getFile(result, "generated-component.tsx");
     expect(f).toBeDefined();
-    expect(f!.content).toContain("Generated component scaffold");
+    expect(f!.content).toContain("<template>");
+    expect(f!.content).toContain("<script setup lang=\"ts\">");
+    expect(f!.content).toContain("Vue 3 app shell");
   });
 
   // Lines 458-459: no hotspots → low coupling message
@@ -3541,14 +3543,15 @@ describe("Layer 6 branch coverage", () => {
   });
 
   // ── generators-artifacts.ts ────────────────────────────────
-  // Line 37 ??: empty frameworks → fallback to primary_language
-  it("generated-component falls back to primary_language when no frameworks", () => {
+  // No framework detected → vanilla DOM factory (not a React/Svelte/Vue shell).
+  it("generated-component falls back to vanilla DOM factory when no frameworks", () => {
     const s = snap({ files: EMPTY_PROJECT_FILES });
     const inp = input(s, ["generated-component.tsx"]);
     const result = generateFiles(inp);
     const f = getFile(result, "generated-component.tsx");
     expect(f).toBeDefined();
-    expect(f!.content).toContain("Generated component scaffold");
+    expect(f!.content).toContain("vanilla DOM app factory");
+    expect(f!.content).toMatch(/export function create\w+/);
   });
 
   // Lines 458-459: component-library with non-React framework

@@ -423,12 +423,12 @@ describe("superpowers: automation-pipeline with CI and test tools", () => {
 /* ================================================================= */
 
 describe("artifacts: generated-component with many component files", () => {
-  it("renders component exemplar and reference", () => {
+  it("renders an App-shaped React component (sibling components no longer inlined)", () => {
     const comps: SourceFile[] = [];
     for (let i = 0; i < 5; i++) {
       comps.push({
         path: `src/components/Widget${i}.tsx`,
-        content: `export function Widget${i}() { return <div>W${i}</div>; }\nexport default Widget${i};\n// l3\n// l4\n// l5\n`,
+        content: `export function Widget${i}() { return <div>W${i}</div>; }\nexport default Widget${i};\n`,
         size: 100,
       });
     }
@@ -437,7 +437,11 @@ describe("artifacts: generated-component with many component files", () => {
     const res = generateFiles(inp);
     const f = getFile(res, "generated-component.tsx");
     expect(f).toBeDefined();
-    expect(f!.content).toContain("Widget");
+    // The new App-shaped output exports an `App` (or PascalCase project-named)
+    // component and renders Routes/Models/EntryPoints sections — it no longer
+    // dumps sibling components into trailing comments.
+    expect(f!.content).toMatch(/export default \w+/);
+    expect(f!.content).toContain("<Section ");
   });
 });
 

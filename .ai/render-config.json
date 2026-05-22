@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T17:51:39.566Z",
+  "generated_at": "2026-05-22T18:24:24.015Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
@@ -34,8 +34,8 @@
       "id": "data-model",
       "from": 270,
       "duration": 90,
-      "label": "Data Model (243 entities)",
-      "data_points": 243
+      "label": "Data Model (246 entities)",
+      "data_points": 246
     },
     {
       "id": "complexity",
@@ -86,8 +86,8 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 90890,
-          "percent": 75.5
+          "loc": 91116,
+          "percent": 75.6
         },
         {
           "name": "YAML",
@@ -102,7 +102,7 @@
         {
           "name": "Markdown",
           "loc": 8125,
-          "percent": 6.8
+          "percent": 6.7
         },
         {
           "name": "JavaScript",
@@ -229,7 +229,7 @@
       ]
     },
     "data_model": {
-      "total_models": 243,
+      "total_models": 246,
       "models": [
         {
           "name": "AuthContext",
@@ -379,7 +379,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 131200
+    "total_loc": 131426
   },
   "source_media_files": null
 }

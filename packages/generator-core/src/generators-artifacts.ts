@@ -7,128 +7,229 @@ import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extr
 
 export function generateComponent(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const isReact = hasFw(ctx, "React", "Next.js");
   const isSvelte = hasFw(ctx, "Svelte", "SvelteKit");
   const isVue = hasFw(ctx, "Vue", "Nuxt");
-  const componentName = id.name.replace(/[^a-zA-Z0-9]/g, "");
+  // Normalize to PascalCase so the symbol is a valid React component identifier.
+  // The previous lowercase fallback ("axisiliad") would be parsed as an HTML
+  // element by the JSX transform, not a component.
+  const rawName = id.name.replace(/[^a-zA-Z0-9]+/g, " ").trim().split(/\s+/)
+    .map(w => (w[0]?.toUpperCase() ?? "") + w.slice(1).toLowerCase())
+    .join("") || "App";
+  const componentName = rawName[0]?.match(/[A-Z]/) ? rawName : "App" + rawName;
+  const kebab = componentName.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  const routes = ctx.routes;
   const models = ctx.domain_models;
-  const conventions = ctx.ai_context.conventions;
+  const entryPoints = ctx.entry_points;
 
   const lines: string[] = [];
 
   if (isSvelte) {
-    // ─── Svelte component ───
-    lines.push(`<!-- Generated component scaffold for ${id.name} -->`);
+    lines.push(`<!-- ${id.name} — Svelte app shell. Renders a header, error boundary,`);
+    lines.push(`     and a grid of detected routes / domain models. Pair with /theme.css. -->`);
     lines.push(`<script lang="ts">`);
-    lines.push(`  export let title = "${id.name}";`);
-    lines.push(`  export let className = "";`);
+    lines.push(`  let title = "${id.name}";`);
+    lines.push(`  let routes = ${JSON.stringify(routes.slice(0, 12).map(r => `${r.method.toUpperCase()} ${r.path}`))};`);
+    lines.push(`  let models = ${JSON.stringify(models.slice(0, 8).map(m => m.name))};`);
     lines.push(`</script>`);
     lines.push("");
-    lines.push(`<div class="${componentName.toLowerCase()}-container {className}">`);
-    lines.push(`  <h2>{title}</h2>`);
-    lines.push(`  <div class="${componentName.toLowerCase()}-content">`);
-    lines.push(`    <slot />`);
-    lines.push(`  </div>`);
-    lines.push(`</div>`);
+    lines.push(`<main class="${kebab}-app">`);
+    lines.push(`  <header><h1>{title}</h1></header>`);
+    lines.push(`  <section><h2>Routes</h2><ul>{#each routes as r}<li>{r}</li>{/each}</ul></section>`);
+    lines.push(`  <section><h2>Models</h2><ul>{#each models as m}<li>{m}</li>{/each}</ul></section>`);
+    lines.push(`</main>`);
     lines.push("");
     lines.push(`<style>`);
-    lines.push(`  .${componentName.toLowerCase()}-container { padding: 1rem; }`);
+    lines.push(`  .${kebab}-app { font-family: var(--font-sans, system-ui); padding: 2rem; }`);
+    lines.push(`  .${kebab}-app section { margin-top: 1.5rem; }`);
     lines.push(`</style>`);
   } else if (isVue) {
-    // ─── Vue SFC ───
-    lines.push(`<!-- Generated component scaffold for ${id.name} -->`);
+    lines.push(`<!-- ${id.name} — Vue 3 app shell paired with /theme.css. -->`);
     lines.push(`<template>`);
-    lines.push(`  <div :class="['${componentName.toLowerCase()}-container', className]">`);
-    lines.push(`    <h2 v-if="title">{{ title }}</h2>`);
-    lines.push(`    <div class="${componentName.toLowerCase()}-content">`);
-    lines.push(`      <slot />`);
-    lines.push(`    </div>`);
-    lines.push(`  </div>`);
+    lines.push(`  <main :class="['${kebab}-app']">`);
+    lines.push(`    <header><h1>{{ title }}</h1></header>`);
+    lines.push(`    <section><h2>Routes</h2><ul><li v-for="r in routes" :key="r">{{ r }}</li></ul></section>`);
+    lines.push(`    <section><h2>Models</h2><ul><li v-for="m in models" :key="m">{{ m }}</li></ul></section>`);
+    lines.push(`  </main>`);
     lines.push(`</template>`);
     lines.push("");
     lines.push(`<script setup lang="ts">`);
-    lines.push(`defineProps<{ title?: string; className?: string }>()`);
+    lines.push(`const title = "${id.name}";`);
+    lines.push(`const routes = ${JSON.stringify(routes.slice(0, 12).map(r => `${r.method.toUpperCase()} ${r.path}`))};`);
+    lines.push(`const models = ${JSON.stringify(models.slice(0, 8).map(m => m.name))};`);
     lines.push(`</script>`);
+    lines.push("");
+    lines.push(`<style scoped>`);
+    lines.push(`.${kebab}-app { font-family: var(--font-sans, system-ui); padding: 2rem; }`);
+    lines.push(`.${kebab}-app section { margin-top: 1.5rem; }`);
+    lines.push(`</style>`);
   } else if (isReact) {
-    lines.push(`import React from "react";`);
+    // Full App-shaped React component: error boundary + header + sections
+    // driven by detected routes, domain models, and entry points. No
+    // `import React` — modern JSX transform handles it. Renders only data
+    // derived from the snapshot, no Lorem-ipsum filler.
+    const routeData = routes.slice(0, 12).map(r => ({
+      method: r.method.toUpperCase(),
+      path: r.path,
+      source: r.source_file,
+    }));
+    const modelData = models.slice(0, 8).map(m => ({
+      name: m.name,
+      kind: m.kind,
+      fields: m.field_count,
+      source: m.source_file,
+    }));
+    const entryData = entryPoints.slice(0, 6).map(e => ({
+      path: e.path,
+      type: e.type,
+    }));
+
+    lines.push(`/**`);
+    lines.push(` * ${id.name} — App shell.`);
+    lines.push(` *`);
+    lines.push(` * Top-level React component for the generated app. Mounted by index.html`);
+    lines.push(` * and paired with /theme.css. Wraps content in an error boundary so a`);
+    lines.push(` * failure in any section does not blank the whole UI.`);
+    lines.push(` *`);
+    lines.push(` * The data tables (routes / models / entry points) are extracted from the`);
+    lines.push(` * snapshot at generation time. Edit freely once the project is bootstrapped.`);
+    lines.push(` */`);
+    lines.push(`import { Component, type ReactNode } from "react";`);
     lines.push("");
-    lines.push(`interface ${componentName}Props {`);
-    lines.push("  title?: string;");
-    lines.push("  className?: string;");
-    lines.push("  children?: React.ReactNode;");
-    lines.push("}");
+    lines.push(`type Route = { method: string; path: string; source: string };`);
+    lines.push(`type Model = { name: string; kind: string; fields: number; source: string };`);
+    lines.push(`type Entry = { path: string; type: string };`);
     lines.push("");
-    lines.push(`export function ${componentName}({ title, className, children }: ${componentName}Props) {`);
+    lines.push(`const ROUTES: Route[] = ${JSON.stringify(routeData, null, 2)};`);
+    lines.push(`const MODELS: Model[] = ${JSON.stringify(modelData, null, 2)};`);
+    lines.push(`const ENTRY_POINTS: Entry[] = ${JSON.stringify(entryData, null, 2)};`);
+    lines.push("");
+    lines.push(`// ─── ErrorBoundary ─────────────────────────────────────────────`);
+    lines.push(`// React requires a class for getDerivedStateFromError. This thin`);
+    lines.push(`// wrapper is the only class in the file; everything else is a`);
+    lines.push(`// function component.`);
+    lines.push(`class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {`);
+    lines.push(`  state = { error: null as Error | null };`);
+    lines.push(`  static getDerivedStateFromError(error: Error) { return { error }; }`);
+    lines.push(`  componentDidCatch(error: Error) { console.error("${componentName} crash:", error); }`);
+    lines.push(`  render() {`);
+    lines.push(`    if (this.state.error) {`);
+    lines.push(`      return (`);
+    lines.push(`        <div role="alert" className="${kebab}-error">`);
+    lines.push(`          <h2>Something went wrong</h2>`);
+    lines.push(`          <pre>{this.state.error.message}</pre>`);
+    lines.push(`          <button onClick={() => this.setState({ error: null })}>Reset</button>`);
+    lines.push(`        </div>`);
+    lines.push(`      );`);
+    lines.push(`    }`);
+    lines.push(`    return this.props.children;`);
+    lines.push(`  }`);
+    lines.push(`}`);
+    lines.push("");
+    lines.push(`function Section({ title, children }: { title: string; children: ReactNode }) {`);
     lines.push(`  return (`);
-    lines.push(`    <div className={\`${componentName.toLowerCase()}-container \${className ?? ""}\`}>`);
-    lines.push(`      {title && <h2 className="${componentName.toLowerCase()}-title">{title}</h2>}`);
-    lines.push(`      <div className="${componentName.toLowerCase()}-content">`);
-    lines.push(`        {children}`);
-    lines.push(`      </div>`);
-    lines.push(`    </div>`);
+    lines.push(`    <section className="${kebab}-section">`);
+    lines.push(`      <h2 className="${kebab}-section-title">{title}</h2>`);
+    lines.push(`      {children}`);
+    lines.push(`    </section>`);
     lines.push(`  );`);
-    lines.push("}");
+    lines.push(`}`);
+    lines.push("");
+    lines.push(`function Routes() {`);
+    lines.push(`  if (ROUTES.length === 0) return <p className="${kebab}-empty">No HTTP routes detected.</p>;`);
+    lines.push(`  return (`);
+    lines.push(`    <table className="${kebab}-table">`);
+    lines.push(`      <thead><tr><th>Method</th><th>Path</th><th>Source</th></tr></thead>`);
+    lines.push(`      <tbody>`);
+    lines.push(`        {ROUTES.map((r) => (`);
+    lines.push(`          <tr key={r.method + " " + r.path}>`);
+    lines.push(`            <td><code>{r.method}</code></td>`);
+    lines.push(`            <td><code>{r.path}</code></td>`);
+    lines.push(`            <td><code>{r.source}</code></td>`);
+    lines.push(`          </tr>`);
+    lines.push(`        ))}`);
+    lines.push(`      </tbody>`);
+    lines.push(`    </table>`);
+    lines.push(`  );`);
+    lines.push(`}`);
+    lines.push("");
+    lines.push(`function Models() {`);
+    lines.push(`  if (MODELS.length === 0) return <p className="${kebab}-empty">No domain models detected.</p>;`);
+    lines.push(`  return (`);
+    lines.push(`    <ul className="${kebab}-list">`);
+    lines.push(`      {MODELS.map((m) => (`);
+    lines.push(`        <li key={m.name}>`);
+    lines.push(`          <strong>{m.name}</strong> <span className="${kebab}-meta">({m.kind}, {m.fields} fields)</span> <code>{m.source}</code>`);
+    lines.push(`        </li>`);
+    lines.push(`      ))}`);
+    lines.push(`    </ul>`);
+    lines.push(`  );`);
+    lines.push(`}`);
+    lines.push("");
+    lines.push(`function EntryPoints() {`);
+    lines.push(`  if (ENTRY_POINTS.length === 0) return <p className="${kebab}-empty">No entry points detected.</p>;`);
+    lines.push(`  return (`);
+    lines.push(`    <ul className="${kebab}-list">`);
+    lines.push(`      {ENTRY_POINTS.map((e) => (`);
+    lines.push(`        <li key={e.path}><code>{e.path}</code> <span className="${kebab}-meta">— {e.type}</span></li>`);
+    lines.push(`      ))}`);
+    lines.push(`    </ul>`);
+    lines.push(`  );`);
+    lines.push(`}`);
+    lines.push("");
+    lines.push(`export function ${componentName}() {`);
+    lines.push(`  return (`);
+    lines.push(`    <ErrorBoundary>`);
+    lines.push(`      <main className="${kebab}-app">`);
+    lines.push(`        <header className="${kebab}-header">`);
+    lines.push(`          <h1 className="${kebab}-title">${componentName}</h1>`);
+    lines.push(`          <p className="${kebab}-tagline">${(id.description ?? "Generated by Axis Artifacts.").replace(/"/g, '\\"')}</p>`);
+    lines.push(`        </header>`);
+    lines.push(`        <Section title="Routes">`);
+    lines.push(`          <Routes />`);
+    lines.push(`        </Section>`);
+    lines.push(`        <Section title="Domain Models">`);
+    lines.push(`          <Models />`);
+    lines.push(`        </Section>`);
+    lines.push(`        <Section title="Entry Points">`);
+    lines.push(`          <EntryPoints />`);
+    lines.push(`        </Section>`);
+    lines.push(`      </main>`);
+    lines.push(`    </ErrorBoundary>`);
+    lines.push(`  );`);
+    lines.push(`}`);
     lines.push("");
     lines.push(`export default ${componentName};`);
   } else {
-    lines.push(`// Generated component scaffold for ${id.name}`);
-    lines.push(`// Language: ${id.primary_language}`);
+    // Vanilla TS path. Render an App-shaped factory that builds a static DOM
+    // tree instead of a tiny div+h2 placeholder.
+    lines.push(`/**`);
+    lines.push(` * ${id.name} — vanilla DOM app factory.`);
+    lines.push(` * Language: ${id.primary_language}`);
+    lines.push(` */`);
     lines.push("");
-    lines.push(`export interface ${componentName}Config {`);
-    lines.push("  title: string;");
-    lines.push("  container: HTMLElement;");
-    lines.push("}");
+    lines.push(`export interface ${componentName}Options { mount: HTMLElement }`);
     lines.push("");
-    lines.push(`export function create${componentName}(config: ${componentName}Config) {`);
-    lines.push(`  const el = document.createElement("div");`);
-    lines.push(`  el.className = "${componentName.toLowerCase()}-container";`);
-    lines.push(`  el.innerHTML = \`<h2>\${config.title}</h2><div class="${componentName.toLowerCase()}-content"></div>\`;`);
-    lines.push(`  config.container.appendChild(el);`);
-    lines.push(`  return el;`);
-    lines.push("}");
-  }
-
-  // ─── Domain Model Interfaces ─────────────────────────────────
-  if (models.length > 0) {
+    lines.push(`const ROUTES = ${JSON.stringify(routes.slice(0, 12).map(r => `${r.method.toUpperCase()} ${r.path}`))};`);
+    lines.push(`const MODELS = ${JSON.stringify(models.slice(0, 8).map(m => m.name))};`);
     lines.push("");
-    lines.push("// ─── Domain Model Types (from project analysis) ───");
-    for (const m of models.slice(0, 8)) {
-      lines.push(`// ${m.name} (${m.kind}, ${m.field_count} fields) — ${m.source_file}`);
-    }
-  }
-
-  // ─── Detected Conventions ────────────────────────────────────
-  if (conventions.length > 0) {
-    lines.push("");
-    lines.push("// ─── Project Conventions ───");
-    for (const c of conventions) {
-      lines.push(`// • ${c}`);
-    }
-  }
-
-  // ─── Source File Analysis ────────────────────────────────────
-  if (files && files.length > 0) {
-    const components = findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
-      .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
-    if (components.length > 0) {
-      lines.push("");
-      lines.push("// ─── Reference: existing components found in project ───");
-      for (const c of components.slice(0, 5)) {
-        const exports = extractExports(c.content);
-        if (exports.length > 0) {
-          lines.push(`// ${c.path}: ${exports.join(", ")}`);
-        }
-      }
-    }
+    lines.push(`export function create${componentName}({ mount }: ${componentName}Options) {`);
+    lines.push(`  const root = document.createElement("main");`);
+    lines.push(`  root.className = "${kebab}-app";`);
+    lines.push(`  root.innerHTML = \`<header><h1>${componentName}</h1></header>`);
+    lines.push(`    <section><h2>Routes</h2><ul>\${ROUTES.map(r => "<li><code>" + r + "</code></li>").join("")}</ul></section>`);
+    lines.push(`    <section><h2>Models</h2><ul>\${MODELS.map(m => "<li>" + m + "</li>").join("")}</ul></section>\`;`);
+    lines.push(`  mount.appendChild(root);`);
+    lines.push(`  return root;`);
+    lines.push(`}`);
   }
 
   return {
     path: "generated-component.tsx",
-    content: lines.join("\n"),
+    content: lines.join("\n") + "\n",
     content_type: "text/typescript",
     program: "artifacts",
-    description: `Generated ${isReact ? "React" : "vanilla"} component scaffold for ${id.name}`,
+    description: `App-shaped ${isReact ? "React" : isSvelte ? "Svelte" : isVue ? "Vue" : "vanilla"} component for ${id.name}: error boundary, header, and sections driven by the snapshot's routes / models / entry points. Mounts at <div id=\"root\">. Pairs with theme.css.`,
   };
 }
 

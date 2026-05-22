@@ -493,9 +493,10 @@ describe("artifacts: Svelte component scaffold — branch 0 (line 20)", () => {
     const res = generateFiles(inp);
     const f = getFile(res, "generated-component.tsx");
     expect(f).toBeDefined();
-    // Branch 0 (isSvelte) → Svelte <script lang="ts"> syntax
+    // Branch 0 (isSvelte) → Svelte <script lang="ts"> shell with main+sections
     expect(f!.content).toContain("<script lang=\"ts\">");
-    expect(f!.content).toContain("<slot />");
+    expect(f!.content).toMatch(/<main[^>]+class=/);
+    expect(f!.content).toContain("<section>");
   });
 });
 

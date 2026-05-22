@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 131,200 |
-| Average LOC / file | 262 |
-| Estimated token count | ~590,400 |
+| Total LOC | 131,426 |
+| Average LOC / file | 263 |
+| Estimated token count | ~591,417 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -502,11 +502,11 @@ packages/generator-core/src/fw-helpers.ts (0.5 KB)
 packages/generator-core/src/generate-programs.test.ts (13.0 KB)
 packages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)
 packages/generator-core/src/generate-validation.test.ts (8.7 KB)
-packages/generator-core/src/generate.test.ts (67.5 KB)
+packages/generator-core/src/generate.test.ts (68.0 KB)
 packages/generator-core/src/generate.ts (23.8 KB)
 packages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)
-packages/generator-core/src/generator-branches.test.ts (217.3 KB)
-packages/generator-core/src/generator-sourcefile-branches.test.ts (20.9 KB)
+packages/generator-core/src/generator-branches.test.ts (217.6 KB)
+packages/generator-core/src/generator-sourcefile-branches.test.ts (21.3 KB)
 packages/generator-core/src/generator-sourcefile-branches10.test.ts (34.0 KB)
 packages/generator-core/src/generator-sourcefile-branches11.test.ts (21.4 KB)
 packages/generator-core/src/generator-sourcefile-branches12.test.ts (16.3 KB)
@@ -515,7 +515,7 @@ packages/generator-core/src/generator-sourcefile-branches14.test.ts (13.8 KB)
 packages/generator-core/src/generator-sourcefile-branches15.test.ts (9.2 KB)
 packages/generator-core/src/generator-sourcefile-branches16.test.ts (22.4 KB)
 packages/generator-core/src/generator-sourcefile-branches17.test.ts (15.9 KB)
-packages/generator-core/src/generator-sourcefile-branches18.test.ts (28.8 KB)
+packages/generator-core/src/generator-sourcefile-branches18.test.ts (28.9 KB)
 packages/generator-core/src/generator-sourcefile-branches19.test.ts (12.6 KB)
 packages/generator-core/src/generator-sourcefile-branches2.test.ts (23.8 KB)
 packages/generator-core/src/generator-sourcefile-branches20.test.ts (9.5 KB)
@@ -525,11 +525,11 @@ packages/generator-core/src/generator-sourcefile-branches5.test.ts (29.0 KB)
 packages/generator-core/src/generator-sourcefile-branches6.test.ts (25.9 KB)
 packages/generator-core/src/generator-sourcefile-branches7.test.ts (36.6 KB)
 packages/generator-core/src/generator-sourcefile-branches8.test.ts (49.0 KB)
-packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.5 KB)
+packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (53.9 KB)
+packages/generator-core/src/generators-artifacts.ts (60.2 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -537,7 +537,7 @@ packages/generator-core/src/generators-closer.ts (47.8 KB)
 packages/generator-core/src/generators-debug.ts (42.0 KB)
 packages/generator-core/src/generators-frontend.ts (27.6 KB)
 packages/generator-core/src/generators-marketing.ts (35.4 KB)
-packages/generator-core/src/generators-mcp.ts (115.7 KB)
+packages/generator-core/src/generators-mcp.ts (120.3 KB)
 packages/generator-core/src/generators-notebook.ts (24.9 KB)
 packages/generator-core/src/generators-obsidian.ts (28.5 KB)
 packages/generator-core/src/generators-optimization.ts (26.1 KB)
@@ -547,7 +547,7 @@ packages/generator-core/src/generators-search.ts (26.1 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
 packages/generator-core/src/generators-skills.ts (43.0 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
-packages/generator-core/src/generators-theme.ts (45.9 KB)
+packages/generator-core/src/generators-theme.ts (49.9 KB)
 packages/generator-core/src/index.ts (4.1 KB)
 packages/generator-core/src/pipeline.test.ts (9.6 KB)
 packages/generator-core/src/types.ts (0.6 KB)
