@@ -1,12 +1,12 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot 4668bd55-4643-4aad-8fbb-33e436c2ff91).
-# Generated at: 2026-05-22T21:02:09.961Z
+# Generated for axis-iliad (snapshot 7613fff9-e216-4d6c-8605-23c8ab908195).
+# Generated at: 2026-05-22T21:12:20.486Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "4668bd55-4643-4aad-8fbb-33e436c2ff91"
-  generated_at: "2026-05-22T21:02:09.961Z"
+  snapshot_id: "7613fff9-e216-4d6c-8605-23c8ab908195"
+  generated_at: "2026-05-22T21:12:20.486Z"
   capability_count: 14
   capabilities_detected_in_repo: 12
 
@@ -691,10 +691,10 @@ capabilities:
 
   - id: vector_database
     name: "Vector database (semantic-search store)"
-    status: planned_owned
-    axis_brand_tool: ""
+    status: owned
+    axis_brand_tool: "iliad_vector_database"
     pricing_tier: null
-    summary: "Store and query dense vectors for RAG, deduplication, and similarity search."
+    summary: "AXIS-owned vector store (SQLite-backed flat search with cosine similarity, per-namespace account isolation). Live as the iliad_vector_database MCP tool. Targets ≤10k vectors per namespace today; LanceDB-on-R2 upgrade is a future module swap with stable public signatures."
     detected_in_repo: false
     third_party_providers:
       - name: "Pinecone"
@@ -801,8 +801,7 @@ capabilities:
 summary:
   by_status:
     live_proxy: 2
-    owned: 1
-    planned_owned: 1
+    owned: 2
     planned_proxy: 10
   recommended_next_owned:
     - id: embeddings

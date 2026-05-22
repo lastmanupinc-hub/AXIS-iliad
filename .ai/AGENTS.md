@@ -109,7 +109,7 @@ This is a **monorepo** built with **TypeScript**.
 | `RpcSuccess` | interface | 3 | apps/api/src/mcp-server.ts |
 | `HistogramEntry` | interface | 3 | apps/api/src/metrics.ts |
 | `CacheKey` | type_alias | 2 | apps/api/src/mpp.ts |
-| *… 232 more* | | | |
+| *… 235 more* | | | |
 
 When modifying domain models, update all downstream consumers (handlers, validators, tests).
 

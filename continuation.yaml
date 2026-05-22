@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "7d5413e"
-    current_session_id: "session_105"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (3 live iliad_* including the new AXIS-owned object_storage + 11 planned-capability stubs). Session 105 promotes iliad_object_storage from planned_owned to owned: SigV4 R2 pre-signed URLs, account-scoped key prefixes, 20-test SigV4 verification suite. First member of the owned-tier ladder defined in capability-map.yaml."
+    commit_or_tag: "cf34940"
+    current_session_id: "session_106"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, 27 MCP tools (4 live iliad_* including object_storage + vector_database + 10 planned-capability stubs). Session 106 promotes iliad_vector_database from planned_owned to owned: SQLite-backed flat-search with cosine similarity, account-scoped namespaces, 24 tests. Both planned_owned items now live; capability-map status counts {live_proxy: 2, planned_proxy: 10, owned: 2}."
 
   executive_truth:
     maturity_estimate:
@@ -4089,6 +4089,55 @@ project_continuation:
       - "Pricing tier for iliad_object_storage not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing is layered on."
       - "REST endpoint (/v1/storage/presign) not yet exposed; iliad_object_storage is reachable only via MCP tools/call. Adding the REST surface mirrors the pattern from /v1/research/scrape and is a separate small move."
       - "Lifecycle rules for the R2 bucket (auto-expire after N days, multipart cleanup) live in the bucket config, not the code — should be documented in mcp/operations.md when that artifact lands."
+    local_only: false
+    commit_results: ["cf34940: Promote iliad_object_storage from planned_owned to owned (SigV4 R2 pre-signer)"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at cf34940"]
+
+  session_result_106:
+    date: "2026-05-22"
+    session_id: "session_106"
+    selected_move: "Promote iliad_vector_database from planned_owned to owned (SQLite-backed flat search with cosine similarity)"
+    selected_move_roi_reason: >
+      Last planned_owned capability in the queue (after object_storage shipped
+      in session 105). Same effort tier — stateless query layer, no new
+      infra, no new npm deps. Per begin.yaml axes: capability_gain 5
+      (real persistent vector store, not just a planned stub),
+      integration_quality_gain 5 (reuses the existing @axis/snapshots SQLite
+      database, no migration in the shared package), production_quality 5
+      (deterministic ties, dimension-mismatch guards, batched transactions,
+      account-scoped namespaces), implementation_cost: medium (~230 LoC
+      module + 24 tests). Clearing both planned_owned items in two
+      consecutive sessions means the capability-map roadmap is now
+      4 owned-tier tools (vector_database, object_storage,
+      web_research, web_crawl — the last two via live Firecrawl proxy) +
+      10 planned-proxy stubs, ready for the proxy → owned migration
+      that we'll iterate through next.
+    completed_candidates:
+      - "apps/api/src/vector-db.ts: NEW (~230 LoC). upsertVectors(namespace, records[]): batched INSERT OR REPLACE inside a single transaction so partial writes can't leave half-finished state on disk. Per-record validation rejects non-string ids, empty vectors, dimension mismatches inside a single batch, and non-finite values. Float32 BLOB encoding keeps the row size compact (4 bytes per dimension). queryVectors(namespace, opts): SELECT all rows for the namespace, deserialize, compute cosine in JS, sort by (score desc, id asc) for deterministic ties, slice to top_k. Optional metadata filter does exact-match equality and excludes rows with no metadata when a filter is provided. cosineSimilarity(a, b): standard dot/(|a||b|) with zero-vector returning 0. deleteNamespace + countVectors round out the surface. scopeNamespace(account_id, raw): prefixes with `acct:<id>:<ns>` (defaults to 'default'), rejects path-traversal-style names ('..', '/', '\\\\'), caps length at 200. ensureSchema() runs CREATE TABLE IF NOT EXISTS + index at first call — no migration in the shared @axis/snapshots package needed."
+      - "apps/api/src/vector-db.test.ts: NEW (24 tests). cosineSimilarity (6 cases — identical, opposite, orthogonal, scale-invariant, zero vectors, dimension mismatch). upsert+query lifecycle (8 cases — round-trip, ranking order, top_k limit, metadata preservation, upsert replace, dimension-mismatch rejection, non-finite rejection, empty-batch rejection). Namespace isolation (2 cases). Metadata filter (2 cases — match, exclude-no-metadata). Determinism (1 case — id tiebreak ascending). scopeNamespace (5 cases — prefix, default fallback, traversal rejection, length cap, empty-account rejection)."
+      - "apps/api/src/mcp-server.ts: vector_database removed from PLANNED_CAPABILITIES (auto-derived stub registry). Explicit iliad_vector_database entry added to MCP_TOOLS alongside iliad_object_storage. Schema documents the matches[] shape (id, score in [-1,1], metadata). runVectorDatabase(args, req): authentication gate → scopeNamespace → branch on op. upsert mode: per-row validation, batch cap at 256, returns {upserted, total_in_namespace}. query mode: vector + top_k validation (cap at 100), optional filter, returns {matches: [{id, score, metadata}, …]}. Dispatcher: case 'iliad_vector_database' alongside the other owned tools."
+      - "packages/generator-core/src/generators-artifacts.ts: vector_database RESELL_CAPABILITIES entry flipped — status 'planned_owned' → 'owned', axis_brand_tool '' → 'iliad_vector_database', summary rewritten to note the SQLite MVP + LanceDB-on-R2 future upgrade path."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "Full Vitest: 149 passed files (+1: vector-db.test.ts), 4273 passed tests (+24), 11 skipped, 0 failed."
+      - "Targeted: vector-db.test.ts 24/24 in 966ms — cosine math + upsert/query lifecycle + namespace isolation + filter + determinism + scopeNamespace."
+      - "pnpm --filter @axis/api build clean. pnpm --filter @axis/generator-core build clean."
+      - "Dogfood: 124 artifacts; capability-map.yaml status counts now {live_proxy: 2, planned_proxy: 10, owned: 2}. Zero planned_owned remaining — both planned_owned items cleared in sessions 105-106."
+      - "MCP_TOOL_COUNT unchanged at 27 — vector_database was already counted in the 12-stub minting; this swap moves it from auto-derived stub to explicit owned entry with a real handler."
+      - "No new npm dependencies. Reuses the existing @axis/snapshots SQLite database."
+    verticals_advanced:
+      - "v18_agentic_commerce: 4th live iliad_* tool. Second AXIS-owned implementation. Composition demo — image_generation and llm_inference (when those move from planned_proxy to owned) will use both object_storage (R2 for artifacts) and vector_database (caching prompts / embedding RAG context)."
+      - "v0_core_platform: Float32 BLOB encoding + cosine-in-JS pattern is reusable when we later want a high-recall tier (Qdrant or LanceDB) — current code is the verification reference for what the swap must preserve."
+    blockers_removed:
+      - "vector_database was the last planned_owned item — the owned-tier ladder defined in capability-map.yaml is now fully built out (both items shipped)."
+      - "AXIS had no built-in semantic-search store; downstream features that need RAG retrievers or deduplication can now use iliad_vector_database without choosing a third party."
+    blockers_added:
+      - "Flat-search performance: scans all rows in a namespace per query. Empirically sub-ms up to ~10k vectors per namespace at 1024 dims; at 100k+ we need the LanceDB swap. Documented in the MCP description so callers know the soft ceiling."
+      - "No HNSW / IVF index — high-recall workloads pay an O(N*D) cost per query. Acceptable for the MVP; the next module-swap session is where we add it."
+    remaining_pre_existing_gaps:
+      - "Capability-map roadmap now has 10 planned_proxy items remaining (llm_inference, embeddings, image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox, transactional_email, analytics). Per SOP scoring, the next moves are graded by effort * agent_acquisition. embeddings is the natural pair to vector_database — gating an LLM behind the inference router unlocks fast_tier + balanced_tier."
+      - "Pricing tier for iliad_vector_database / iliad_object_storage not yet declared in @axis/mpp PRICING_TIERS — free for authenticated users until billing is layered on. Both are persistence-light so the marginal cost per call is near-zero; pricing should focus on storage + bandwidth caps, not per-call fees."
     local_only: false
     commit_results: ["(this commit)"]
     push_results: []

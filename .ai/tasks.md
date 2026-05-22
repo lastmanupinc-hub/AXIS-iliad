@@ -13,7 +13,7 @@ Tasks are ordered by phase. Check items off as they land. New tasks land at the 
 
 ## Phase 1 — Core Domain
 
-- [x] 252 domain models defined
+- [x] 255 domain models defined
   - `AuthContext` (interface, 3 fields, `apps/api/src/billing.ts`)
   - `EnvSpec` (interface, 5 fields, `apps/api/src/env.ts`)
   - `ValidationError` (interface, 2 fields, `apps/api/src/env.ts`)

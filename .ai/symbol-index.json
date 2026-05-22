@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-05-22T21:02:10.963Z",
-  "total_symbols": 2009,
-  "file_count": 247,
+  "generated_at": "2026-05-22T21:12:21.130Z",
+  "total_symbols": 2025,
+  "file_count": 248,
   "symbols": {
     "apps/api/src/admin.test.ts": [
       {
@@ -1750,287 +1750,302 @@
       {
         "name": "McpCallCounters",
         "type": "interface",
-        "line": 49
+        "line": 57
       },
       {
         "name": "_counters",
         "type": "const",
-        "line": 57
+        "line": 65
       },
       {
         "name": "ProbeClass",
         "type": "type",
-        "line": 65
+        "line": 73
       },
       {
         "name": "classifyProbe",
         "type": "function",
-        "line": 75
+        "line": 83
       },
       {
         "name": "IntentCapture",
         "type": "interface",
-        "line": 82
+        "line": 90
       },
       {
         "name": "captureIntent",
         "type": "function",
-        "line": 93
+        "line": 101
       },
       {
         "name": "entry",
         "type": "const",
-        "line": 94
+        "line": 102
       },
       {
         "name": "getIntentLog",
         "type": "function",
-        "line": 105
+        "line": 113
       },
       {
         "name": "logMcpCall",
         "type": "function",
-        "line": 109
+        "line": 117
       },
       {
         "name": "getMcpCallCounters",
         "type": "function",
-        "line": 128
+        "line": 136
       },
       {
         "name": "JsonRpcRequest",
         "type": "interface",
-        "line": 138
+        "line": 146
       },
       {
         "name": "RpcSuccess",
         "type": "interface",
-        "line": 145
+        "line": 153
       },
       {
         "name": "RpcError",
         "type": "interface",
-        "line": 151
+        "line": 159
       },
       {
         "name": "RpcResponse",
         "type": "type",
-        "line": 157
+        "line": 165
       },
       {
         "name": "normalizeToolName",
         "type": "function",
-        "line": 165
+        "line": 173
       },
       {
         "name": "PlannedCapability",
         "type": "interface",
-        "line": 178
+        "line": 186
       },
       {
         "name": "runPlannedCapability",
         "type": "function",
-        "line": 406
+        "line": 395
       },
       {
         "name": "runObjectStorage",
         "type": "function",
-        "line": 423
+        "line": 412
+      },
+      {
+        "name": "runVectorDatabase",
+        "type": "function",
+        "line": 482
+      },
+      {
+        "name": "vec",
+        "type": "function",
+        "line": 523
+      },
+      {
+        "name": "queryOpts",
+        "type": "const",
+        "line": 554
       },
       {
         "name": "toolAnnotations",
         "type": "function",
-        "line": 488
+        "line": 567
       },
       {
         "name": "ARTIFACT_ENTRY_SCHEMA",
         "type": "const",
-        "line": 497
+        "line": 576
       },
       {
         "name": "SNAPSHOT_RESULT_SCHEMA",
         "type": "const",
-        "line": 507
+        "line": 586
       },
       {
         "name": "TOOL_MATCH_SCHEMA",
         "type": "const",
-        "line": 520
+        "line": 599
       },
       {
         "name": "rpcOk",
         "type": "function",
-        "line": 1245
+        "line": 1379
       },
       {
         "name": "rpcErr",
         "type": "function",
-        "line": 1249
+        "line": 1383
       },
       {
         "name": "toolOk",
         "type": "function",
-        "line": 1257
+        "line": 1391
       },
       {
         "name": "toolErr",
         "type": "function",
-        "line": 1261
+        "line": 1395
       },
       {
         "name": "ErrorCategory",
         "type": "type",
-        "line": 1265
+        "line": 1399
       },
       {
         "name": "categorizeError",
         "type": "function",
-        "line": 1267
+        "line": 1401
       },
       {
         "name": "buildMcpPaymentRequiredError",
         "type": "function",
-        "line": 1290
+        "line": 1424
       },
       {
         "name": "meterMcpToolCredits",
         "type": "function",
-        "line": 1312
+        "line": 1446
       },
       {
         "name": "filterGeneratorsByEntitlement",
         "type": "function",
-        "line": 1341
+        "line": 1475
       },
       {
         "name": "runAnalyzeFiles",
         "type": "function",
-        "line": 1357
+        "line": 1491
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1433
+        "line": 1567
       },
       {
         "name": "runAnalyzeRepo",
         "type": "function",
-        "line": 1503
+        "line": 1637
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1574
+        "line": 1708
       },
       {
         "name": "runSearchTools",
         "type": "function",
-        "line": 1679
+        "line": 1813
       },
       {
         "name": "runDiscoverAgenticCommerceTools",
         "type": "function",
-        "line": 1763
+        "line": 1897
       },
       {
         "name": "runImproveMyAgent",
         "type": "function",
-        "line": 1827
+        "line": 1961
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 1873
+        "line": 2007
       },
       {
         "name": "runDiscoverAgenticPurchasingNeeds",
         "type": "function",
-        "line": 2040
+        "line": 2174
       },
       {
         "name": "runGetReferralCode",
         "type": "function",
-        "line": 2171
+        "line": 2305
       },
       {
         "name": "runCheckReferralCredits",
         "type": "function",
-        "line": 2201
+        "line": 2335
       },
       {
         "name": "runListPrograms",
         "type": "function",
-        "line": 2232
+        "line": 2366
       },
       {
         "name": "runGetSnapshot",
         "type": "function",
-        "line": 2276
+        "line": 2410
       },
       {
         "name": "runGetArtifact",
         "type": "function",
-        "line": 2319
+        "line": 2453
       },
       {
         "name": "runCloser",
         "type": "function",
-        "line": 2355
+        "line": 2489
       },
       {
         "name": "runPreparePurchasing",
         "type": "function",
-        "line": 2466
+        "line": 2600
       },
       {
         "name": "manifest",
         "type": "const",
-        "line": 2550
+        "line": 2684
       },
       {
         "name": "dispatch",
         "type": "function",
-        "line": 2786
+        "line": 2920
       },
       {
         "name": "toolArgs",
         "type": "function",
-        "line": 2817
+        "line": 2951
       },
       {
         "name": "ip",
         "type": "function",
-        "line": 2824
+        "line": 2958
       },
       {
         "name": "handleMcpPost",
         "type": "function",
-        "line": 2914
+        "line": 3051
       },
       {
         "name": "INCENTIVES_BLOCK",
         "type": "const",
-        "line": 2991
+        "line": 3128
       },
       {
         "name": "handleMcpGet",
         "type": "function",
-        "line": 3027
+        "line": 3164
       },
       {
         "name": "handleMcpDocs",
         "type": "function",
-        "line": 3045
+        "line": 3182
       },
       {
         "name": "getMcpServerMeta",
         "type": "function",
-        "line": 3092
+        "line": 3229
       },
       {
         "name": "handleMcpServerJson",
         "type": "function",
-        "line": 3160
+        "line": 3297
       }
     ],
     "apps/api/src/metrics-branches.test.ts": [
@@ -3214,6 +3229,73 @@
         "name": "req",
         "type": "function",
         "line": 22
+      }
+    ],
+    "apps/api/src/vector-db.ts": [
+      {
+        "name": "VectorRecord",
+        "type": "interface",
+        "line": 17
+      },
+      {
+        "name": "VectorMatch",
+        "type": "interface",
+        "line": 23
+      },
+      {
+        "name": "QueryOptions",
+        "type": "interface",
+        "line": 29
+      },
+      {
+        "name": "ensureSchema",
+        "type": "function",
+        "line": 44
+      },
+      {
+        "name": "resetVectorDbForTests",
+        "type": "function",
+        "line": 63
+      },
+      {
+        "name": "encodeVector",
+        "type": "function",
+        "line": 72
+      },
+      {
+        "name": "decodeVector",
+        "type": "function",
+        "line": 77
+      },
+      {
+        "name": "cosineSimilarity",
+        "type": "function",
+        "line": 89
+      },
+      {
+        "name": "upsertVectors",
+        "type": "function",
+        "line": 114
+      },
+      {
+        "name": "queryVectors",
+        "type": "function",
+        "line": 171
+      },
+      {
+        "name": "deleteNamespace",
+        "type": "function",
+        "line": 214
+      },
+      {
+        "name": "countVectors",
+        "type": "function",
+        "line": 225
+      },
+      {
+        "name": "scopeNamespace",
+        "type": "function",
+        "line": 241
       }
     ],
     "apps/api/src/versions.test.ts": [

@@ -1,7 +1,7 @@
 # Messaging System
 # Project: axis-iliad
-# Generated: 2026-05-22T21:02:10.467Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models.
+# Generated: 2026-05-22T21:12:20.797Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
 
 product:
   name: "axis-iliad"
@@ -10,8 +10,8 @@ product:
   stack: "React"
 
 taglines:
-  primary: "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models."
-  technical: "React monorepo — 500 files, 132,800 lines of TypeScript"
+  primary: "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models."
+  technical: "React monorepo — 500 files, 133,098 lines of TypeScript"
   conceptual: "Built around apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory)"
 
 value_propositions:
@@ -22,14 +22,14 @@ value_propositions:
     headline: "497 API Endpoints"
     detail: "Complete API with 272 GET, 204 POST, 21 DELETE — ready for integration."
   - id: domain_model
-    headline: "252 Domain Entities"
-    detail: "Rich domain model with AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 247 more."
+    headline: "255 Domain Entities"
+    detail: "Rich domain model with AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 250 more."
   - id: architecture
     headline: "Clean Architecture (0.65 separation)"
     detail: "monorepo, containerized with 1 layer boundaries."
   - id: quality
     headline: "Test-Driven Quality"
-    detail: "Tested with vitest across 148 test files."
+    detail: "Tested with vitest across 149 test files."
 
 feature_messages:
   api_surface:
@@ -50,10 +50,10 @@ feature_messages:
     count: 8
     message: "8 languages detected and analyzed"
     breakdown:
-      - "TypeScript: 92,561 lines (75.9%)"
+      - "TypeScript: 93,029 lines (76.1%)"
       - "YAML: 9,885 lines (8.1%)"
-      - "JSON: 8,478 lines (7%)"
-      - "Markdown: 8,054 lines (6.6%)"
+      - "JSON: 8,362 lines (6.8%)"
+      - "Markdown: 8,000 lines (6.5%)"
       - "JavaScript: 2,093 lines (1.7%)"
   framework_detection:
     count: 1

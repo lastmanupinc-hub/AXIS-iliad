@@ -5,6 +5,14 @@ import { resolveAuth } from "./billing.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
 import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
+  upsertVectors,
+  queryVectors,
+  countVectors,
+  scopeNamespace,
+  type VectorRecord,
+  type QueryOptions,
+} from "./vector-db.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -360,25 +368,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     capability_id: "transactional_email",
   },
   {
-    name: "iliad_vector_database",
-    title: "Vector Database",
-    summary: "Store and query dense vectors for RAG, deduplication, and similarity search.",
-    status: "planned_owned",
-    input_properties: {
-      operation: { type: "string", description: "Insert vectors or find nearest neighbors.", enum: ["upsert", "query"] },
-      namespace: { type: "string", description: "Logical isolation key. Defaults to the account ID." },
-      vectors: { type: "array", description: "Vectors to upsert (upsert mode)." },
-      query: { type: "object", description: "{vector, top_k, filter?} (query mode)." },
-    },
-    required_inputs: ["operation"],
-    output_properties: {
-      upserted: { type: "number", description: "Vectors written (upsert mode)." },
-      matches: { type: "array", description: "Nearest neighbors (query mode)." },
-    },
-    recommended_provider: { name: "Qdrant Cloud", url: "https://qdrant.tech/documentation/cloud/" },
-    capability_id: "vector_database",
-  },
-  {
     name: "iliad_analytics",
     title: "Product Analytics",
     summary: "Record events and query funnels / cohorts / retention.",
@@ -482,6 +471,96 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     scoped_key: scopedKey,
     operation: method,
     ttl_seconds: ttl,
+  }, null, 2);
+}
+
+/** Hard cap on a single upsert batch to keep request size bounded. */
+const VECTOR_UPSERT_MAX_BATCH = 256;
+/** Hard cap on top_k so a single query can't read an entire namespace. */
+const VECTOR_QUERY_MAX_TOP_K = 100;
+
+function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): string {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_vector_database needs Authorization: Bearer <api_key>.");
+  }
+
+  const op = args.operation;
+  if (op !== "upsert" && op !== "query") {
+    throw new Error("iliad_vector_database: `operation` must be \"upsert\" or \"query\".");
+  }
+
+  const rawNs = typeof args.namespace === "string" ? args.namespace : undefined;
+  let scopedNs: string;
+  try {
+    scopedNs = scopeNamespace(auth.account.account_id, rawNs);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `iliad_vector_database: ${err.message}` : String(err));
+  }
+
+  if (op === "upsert") {
+    const records = args.vectors;
+    if (!Array.isArray(records) || records.length === 0) {
+      throw new Error("iliad_vector_database: upsert requires a non-empty `vectors[]` array.");
+    }
+    if (records.length > VECTOR_UPSERT_MAX_BATCH) {
+      throw new Error(`iliad_vector_database: batch size capped at ${VECTOR_UPSERT_MAX_BATCH} (got ${records.length}).`);
+    }
+    // Per-row validation mirrors upsertVectors' internal checks but emits
+    // an MCP-friendly error message that names the offending row.
+    const cleaned: VectorRecord[] = [];
+    for (let i = 0; i < records.length; i++) {
+      const r = records[i] as Record<string, unknown>;
+      if (!r || typeof r !== "object") {
+        throw new Error(`iliad_vector_database: vectors[${i}] must be an object`);
+      }
+      if (typeof r.id !== "string" || r.id.length === 0) {
+        throw new Error(`iliad_vector_database: vectors[${i}].id must be a non-empty string`);
+      }
+      if (!Array.isArray(r.vector)) {
+        throw new Error(`iliad_vector_database: vectors[${i}].vector must be an array of numbers`);
+      }
+      const vec = (r.vector as unknown[]).map((v) => Number(v));
+      cleaned.push({
+        id: r.id,
+        vector: vec,
+        metadata: (r.metadata as Record<string, unknown> | undefined) ?? undefined,
+      });
+    }
+    upsertVectors(scopedNs, cleaned);
+    return JSON.stringify({
+      operation: "upsert",
+      namespace: scopedNs,
+      upserted: cleaned.length,
+      total_in_namespace: countVectors(scopedNs),
+    }, null, 2);
+  }
+
+  // query mode
+  const q = args.query as Record<string, unknown> | undefined;
+  if (!q || typeof q !== "object") {
+    throw new Error("iliad_vector_database: query requires a `query` object.");
+  }
+  if (!Array.isArray(q.vector) || q.vector.length === 0) {
+    throw new Error("iliad_vector_database: query.vector must be a non-empty number[].");
+  }
+  let top_k = typeof q.top_k === "number" ? Math.floor(q.top_k) : 10;
+  if (!Number.isFinite(top_k) || top_k <= 0) {
+    throw new Error("iliad_vector_database: query.top_k must be a positive number.");
+  }
+  if (top_k > VECTOR_QUERY_MAX_TOP_K) {
+    throw new Error(`iliad_vector_database: top_k capped at ${VECTOR_QUERY_MAX_TOP_K} (got ${top_k}).`);
+  }
+  const queryOpts: QueryOptions = {
+    vector: (q.vector as unknown[]).map((v) => Number(v)),
+    top_k,
+    filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
+  };
+  const matches = queryVectors(scopedNs, queryOpts);
+  return JSON.stringify({
+    operation: "query",
+    namespace: scopedNs,
+    matches,
   }, null, 2);
 }
 
@@ -1200,7 +1279,62 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (11 tools) ────────────────────────
+  // ─── iliad_vector_database (AXIS-owned, SQLite-backed flat search) ─
+  // Second member of the owned tier. MVP runs cosine-similarity flat
+  // search over the existing @axis/snapshots SQLite database. Future
+  // upgrade path: swap the module body for a LanceDB-on-R2 implementation
+  // when query volume justifies the columnar index. Public function
+  // signatures stay stable across the swap.
+  {
+    name: "iliad_vector_database",
+    description:
+      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via SQLite. Requires Authorization: Bearer <api_key>. Best for RAG retrievers, deduplication, and similarity search up to ~10k vectors per namespace; for larger workloads we'll publish a high-recall tier on Qdrant.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["operation"],
+      properties: {
+        operation: { type: "string", description: "upsert (insert/replace) or query (top-k cosine).", enum: ["upsert", "query"] },
+        namespace: { type: "string", description: "Logical isolation key. Defaults to 'default'. Account ID is always prepended server-side." },
+        vectors: { type: "array", description: "Array of {id, vector, metadata?} — required for upsert." },
+        query: { type: "object", description: "{vector: number[], top_k?: number, filter?: object} — required for query." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        operation: { type: "string", description: "Echo of the operation that ran." },
+        namespace: { type: "string", description: "Scoped namespace the call wrote to or queried." },
+        upserted: { type: "number", description: "Vectors written (upsert mode only)." },
+        total_in_namespace: { type: "number", description: "Total vectors in this namespace after the call (upsert mode only)." },
+        matches: {
+          type: "array",
+          description: "Nearest neighbors sorted by score desc (query mode only).",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string", description: "Vector id." },
+              score: { type: "number", description: "Cosine similarity in [-1, 1]." },
+              metadata: { type: "object", description: "Stored metadata or null." },
+            },
+          },
+        },
+      },
+    },
+    annotations: toolAnnotations("Vector Database", false, false),
+    examples: [
+      {
+        name: "Upsert two vectors",
+        input: { operation: "upsert", namespace: "docs", vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3], metadata: { source: "intro.md" } }] },
+        output: '{"operation":"upsert","namespace":"acct:<acc>:docs","upserted":1,"total_in_namespace":1}',
+      },
+      {
+        name: "Query for top-3 nearest neighbors",
+        input: { operation: "query", namespace: "docs", query: { vector: [0.1, 0.2, 0.3], top_k: 3 } },
+        output: '{"operation":"query","namespace":"acct:<acc>:docs","matches":[{"id":"v1","score":0.999,"metadata":{"source":"intro.md"}}]}',
+      },
+    ],
+  },
+  // ─── Planned-capability stubs (10 tools) ────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full 14-tool iliad_* surface immediately. tools/call on
   // any of these returns a structured `_planned: true` envelope until
@@ -2867,6 +3001,9 @@ export async function dispatch(
             break;
           case "iliad_object_storage":
             text = runObjectStorage(toolArgs, req);
+            break;
+          case "iliad_vector_database":
+            text = runVectorDatabase(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

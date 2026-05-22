@@ -87,6 +87,9 @@
 - [ ] `WindowEntry` (interface, 2 fields) — apps/api/src/rate-limiter.ts
 - [ ] `AppHandle` (interface, 3 fields) — apps/api/src/router.ts
 - [ ] `Route` (interface, 4 fields) — apps/api/src/router.ts
+- [ ] `QueryOptions` (interface, 3 fields) — apps/api/src/vector-db.ts
+- [ ] `VectorMatch` (interface, 3 fields) — apps/api/src/vector-db.ts
+- [ ] `VectorRecord` (interface, 3 fields) — apps/api/src/vector-db.ts
 - [ ] `CliArgs` (interface, 5 fields) — apps/cli/src/cli.ts
 - [ ] `AxisConfig` (interface, 2 fields) — apps/cli/src/credential-store.ts
 - [ ] `RunResult` (interface, 4 fields) — apps/cli/src/runner.ts

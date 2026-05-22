@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
 
 ## Detected Stack
 
@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (132800 LOC)
+- **Files:** 500 (133098 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -539,11 +539,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Directory Layout
 
-- `apps/` — monorepo_apps (155 files)
+- `apps/` — monorepo_apps (157 files)
 - `packages/` — monorepo_packages (144 files)
 - `examples/` — project_directory (17 files)
 - `mcp/` — project_directory (16 files)
-- `payment-processing-output/` — project_directory (14 files)
+- `payment-processing-output/` — project_directory (12 files)
 - `packaging/` — project_directory (7 files)
 - `.github/` — project_directory (5 files)
 - `algorithmic/` — project_directory (4 files)
@@ -571,7 +571,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Domain Models
 
-Detected 252 domain models:
+Detected 255 domain models:
 
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
@@ -600,7 +600,7 @@ Detected 252 domain models:
 | `PresignResult` | interface | 5 | apps/api/src/object-storage.ts |
 | `R2Config` | interface | 4 | apps/api/src/object-storage.ts |
 | `OpenApiSpec` | interface | 6 | apps/api/src/openapi.ts |
-| *… 227 more* | | | |
+| *… 230 more* | | | |
 
 > **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ResellCapability`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
@@ -689,7 +689,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (140.8 KB)
+apps/api/src/mcp-server.ts (146.9 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -730,6 +730,8 @@ apps/api/src/stripe-branches.test.ts (39.8 KB)
 apps/api/src/stripe.test.ts (10.1 KB)
 apps/api/src/stripe.ts (21.1 KB)
 apps/api/src/validation.test.ts (8.1 KB)
+apps/api/src/vector-db.test.ts (7.6 KB)
+apps/api/src/vector-db.ts (8.9 KB)
 apps/api/src/versions.test.ts (8.1 KB)
 apps/api/src/versions.ts (2.5 KB)
 apps/api/src/webhook-branches.test.ts (16.3 KB)
@@ -1002,7 +1004,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (104.8 KB)
+packages/generator-core/src/generators-artifacts.ts (105.0 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -1123,8 +1125,6 @@ payment-processing-output/brand-guidelines.md (2.5 KB)
 payment-processing-output/campaign-brief.md (1.6 KB)
 payment-processing-output/canvas-spec.json (3.5 KB)
 payment-processing-output/capability-registry.json (1.8 KB)
-payment-processing-output/channel-rulebook.md (2.6 KB)
-payment-processing-output/citation-index.json (2.6 KB)
 ```
 
 ## Entry Points (Source)

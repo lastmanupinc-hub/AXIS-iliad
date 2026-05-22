@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 132,800 |
+| Total LOC | 133,098 |
 | Average LOC / file | 266 |
-| Estimated token count | ~597,600 |
+| Estimated token count | ~598,941 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -218,7 +218,7 @@ apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
 apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (140.8 KB)
+apps/api/src/mcp-server.ts (146.9 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -259,6 +259,8 @@ apps/api/src/stripe-branches.test.ts (39.8 KB)
 apps/api/src/stripe.test.ts (10.1 KB)
 apps/api/src/stripe.ts (21.1 KB)
 apps/api/src/validation.test.ts (8.1 KB)
+apps/api/src/vector-db.test.ts (7.6 KB)
+apps/api/src/vector-db.ts (8.9 KB)
 apps/api/src/versions.test.ts (8.1 KB)
 apps/api/src/versions.ts (2.5 KB)
 apps/api/src/webhook-branches.test.ts (16.3 KB)
@@ -531,7 +533,7 @@ packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
 packages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
-packages/generator-core/src/generators-artifacts.ts (104.8 KB)
+packages/generator-core/src/generators-artifacts.ts (105.0 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
 packages/generator-core/src/generators-closer.test.ts (7.3 KB)
@@ -652,8 +654,6 @@ payment-processing-output/brand-guidelines.md (2.5 KB)
 payment-processing-output/campaign-brief.md (1.6 KB)
 payment-processing-output/canvas-spec.json (3.5 KB)
 payment-processing-output/capability-registry.json (1.8 KB)
-payment-processing-output/channel-rulebook.md (2.6 KB)
-payment-processing-output/citation-index.json (2.6 KB)
 ```
 
 ## Hotspot File Excerpts

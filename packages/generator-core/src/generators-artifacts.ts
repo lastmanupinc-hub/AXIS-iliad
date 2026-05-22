@@ -1913,10 +1913,10 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "vector_database",
     name: "Vector database (semantic-search store)",
-    axis_brand_tool: "",
+    axis_brand_tool: "iliad_vector_database",
     pricing_tier: null,
-    status: "planned_owned",
-    summary: "Store and query dense vectors for RAG, deduplication, and similarity search.",
+    status: "owned",
+    summary: "AXIS-owned vector store (SQLite-backed flat search with cosine similarity, per-namespace account isolation). Live as the iliad_vector_database MCP tool. Targets ≤10k vectors per namespace today; LanceDB-on-R2 upgrade is a future module swap with stable public signatures.",
     providers: [
       { name: "Pinecone", url: "https://pinecone.io", retail_pricing: "$0.096/hr p2.x1 + storage" },
       { name: "Qdrant Cloud", url: "https://qdrant.tech", retail_pricing: "$25/mo (4GB starter)" },

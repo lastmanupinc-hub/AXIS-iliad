@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 252 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 255 domain models.
 
 ## Quick Reference
 
@@ -17,17 +17,17 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 132,800 LOC |
+| Files | 500 files, 133,098 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 277 | 92,561 | 75.9% |
+| TypeScript | 279 | 93,029 | 76.1% |
 | YAML | 57 | 9,885 | 8.1% |
-| JSON | 63 | 8,478 | 7% |
-| Markdown | 77 | 8,054 | 6.6% |
+| JSON | 62 | 8,362 | 6.8% |
+| Markdown | 76 | 8,000 | 6.5% |
 | JavaScript | 8 | 2,093 | 1.7% |
 | CSS | 1 | 675 | 0.6% |
 | HTML | 1 | 158 | 0.1% |
@@ -127,6 +127,9 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | WindowEntry | interface | TypeScript | 2 | `apps/api/src/rate-limiter.ts` |
 | AppHandle | interface | TypeScript | 3 | `apps/api/src/router.ts` |
 | Route | interface | TypeScript | 4 | `apps/api/src/router.ts` |
+| QueryOptions | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
+| VectorMatch | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
+| VectorRecord | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
 | CliArgs | interface | TypeScript | 5 | `apps/cli/src/cli.ts` |
 | AxisConfig | interface | TypeScript | 2 | `apps/cli/src/credential-store.ts` |
 | RunResult | interface | TypeScript | 4 | `apps/cli/src/runner.ts` |

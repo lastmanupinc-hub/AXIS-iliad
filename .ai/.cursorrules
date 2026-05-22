@@ -41,7 +41,7 @@ test_before_commit = true
 # RpcSuccess (interface, 3 fields) @ apps/api/src/mcp-server.ts
 # HistogramEntry (interface, 3 fields) @ apps/api/src/metrics.ts
 # CacheKey (type_alias, 2 fields) @ apps/api/src/mpp.ts
-# ... and 232 more
+# ... and 235 more
 
 # === Detected Conventions ===
 # - TypeScript strict mode
