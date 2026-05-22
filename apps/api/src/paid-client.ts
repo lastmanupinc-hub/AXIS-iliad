@@ -54,6 +54,30 @@ export interface CreateSubscriptionInput {
   idempotencyKey?: string;
 }
 
+export interface CreateCheckoutSessionInput {
+  amountCents: number;
+  currency?: string;
+  successUrl: string;
+  cancelUrl: string;
+  description?: string;
+  lineItems?: Array<{
+    name: string;
+    amount_cents: number;
+    currency?: string;
+    quantity?: number;
+  }>;
+  metadata?: Record<string, string>;
+  /** Optional override of the routing provider; defaults to PAI'D's default (stripe). */
+  providerId?: string;
+}
+
+export interface CheckoutSession {
+  session_id: string;
+  url: string;
+  expires_at: number;
+  [key: string]: unknown;
+}
+
 export class PaidError extends Error {
   constructor(
     message: string,
@@ -110,6 +134,50 @@ export async function createPaymentIntent(
       currency: (input.currency ?? "USD").toUpperCase(),
       merchant_id: config.merchantId,
       idempotency_key: input.idempotencyKey ?? randomUUID(),
+    },
+    config,
+  );
+}
+
+/**
+ * Create a Stripe Checkout Session via PAI'D. Used for one-shot purchases
+ * (credit packs, top-ups, one-time fees). Subscriptions go through
+ * createSubscription (PAI'D's internal billing engine) instead.
+ *
+ * PAI'D records this session in its ledger keyed by the API-key's merchant_id,
+ * then proxies the session creation to Stripe under PAI'D's own Stripe account.
+ * Money lands in PAI'D's Stripe balance; PAI'D's reconciliation engine credits
+ * the merchant. The Stripe webhook fires PAI'D's checkout.session.completed,
+ * which PAI'D forwards to the merchant's webhook for grant-the-credits.
+ */
+export async function createCheckoutSession(
+  input: CreateCheckoutSessionInput,
+  config: PaidConfig = loadPaidConfig(),
+): Promise<CheckoutSession> {
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    throw new Error("amountCents must be a positive integer (cents)");
+  }
+  if (!input.successUrl || !input.cancelUrl) {
+    throw new Error("successUrl and cancelUrl are required");
+  }
+  return paidPost<CheckoutSession>(
+    "/checkout/sessions",
+    {
+      provider_id: input.providerId ?? "stripe",
+      amount: input.amountCents,
+      currency: (input.currency ?? "USD").toLowerCase(),
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      line_items: input.lineItems?.map((li) => ({
+        name: li.name,
+        amount: li.amount_cents,
+        currency: (li.currency ?? input.currency ?? "USD").toLowerCase(),
+        quantity: li.quantity ?? 1,
+      })),
+      metadata: {
+        ...(input.description ? { description: input.description } : {}),
+        ...(input.metadata ?? {}),
+      },
     },
     config,
   );

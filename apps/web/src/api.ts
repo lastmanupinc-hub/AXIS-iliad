@@ -669,3 +669,68 @@ export async function getSubscription(): Promise<SubscriptionInfo> {
 export async function cancelSubscription(): Promise<{ subscription_id: string; status: string; message: string }> {
   return fetchJSON("/v1/account/subscription/cancel", { method: "POST" });
 }
+
+// ─── Credit Pack Top-Up API (PAI'D-routed) ──────────────────────
+
+export interface CreditPackCatalogEntry {
+  pack_id: string;
+  credits: number;
+  price_cents: number;
+  label: string;
+  price_per_1k_credits_cents: number;
+  description: string;
+  is_best_value: boolean;
+}
+
+export interface CreditPackPurchase {
+  purchase_id: string;
+  account_id: string;
+  pack_id: string;
+  credits_purchased: number;
+  credits_remaining: number;
+  price_cents: number;
+  paid_session_id: string | null;
+  paid_payment_intent_id: string | null;
+  status: "pending" | "succeeded" | "refunded" | "failed";
+  created_at: string;
+  succeeded_at: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface CreditPackCatalogResponse {
+  packs: CreditPackCatalogEntry[];
+  note: string;
+}
+
+export interface CreditTopupResponse {
+  checkout_url: string;
+  session_id: string;
+  purchase_id: string;
+  pack: {
+    pack_id: string;
+    credits: number;
+    price_cents: number;
+    label: string;
+  };
+  expires_at: number;
+}
+
+export interface MyCreditPacksResponse {
+  total_credits_remaining: number;
+  purchases: CreditPackPurchase[];
+}
+
+export async function listCreditPacks(): Promise<CreditPackCatalogResponse> {
+  return fetchJSON("/v1/credits/packs");
+}
+
+export async function createCreditTopup(packId: string): Promise<CreditTopupResponse> {
+  return fetchJSON("/v1/credits/topup", {
+    method: "POST",
+    body: JSON.stringify({ pack_id: packId }),
+  });
+}
+
+export async function listMyCreditPacks(): Promise<MyCreditPacksResponse> {
+  return fetchJSON("/v1/credits/packs/me");
+}

@@ -104,6 +104,11 @@ import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handlePaidSubscribe, handlePaidWebhook } from "./paid-handlers.js";
+import {
+  handleListCreditPacks,
+  handleCreateCreditTopup,
+  handleListMyCreditPacks,
+} from "./credit-pack-handlers.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT } from "./counts.js";
@@ -446,6 +451,11 @@ router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 // PAI'D payment processor (subscriptions + webhook)
 router.post("/portal/api/subscribe", handlePaidSubscribe);
 router.post("/portal/api/paid/webhook", handlePaidWebhook);
+
+// PAI'D credit-pack top-ups (one-shot purchases routed through PAI'D → Stripe)
+router.get("/v1/credits/packs", handleListCreditPacks);
+router.post("/v1/credits/topup", handleCreateCreditTopup);
+router.get("/v1/credits/packs/me", handleListMyCreditPacks);
 
 /* v8 ignore next â€” server.ts is never imported by test suites */
 const port = parseInt(process.env.PORT ?? "4000", 10);

@@ -190,6 +190,26 @@ export {
   consumeUsageCredits,
 } from "./usage-credit-metering.js";
 
+// Credit packs — one-shot AXIS credit purchases routed through PAI'D.
+// First production revenue path for the PAI'D PSP integration.
+export type {
+  CreditPack,
+  CreditPackStatus,
+  CreditPackCatalogEntry,
+  PackConsumptionResult,
+} from "./credit-pack-store.js";
+export {
+  CREDIT_PACK_CATALOG,
+  getPackById,
+  recordPendingPurchase,
+  markPurchaseSucceeded,
+  consumePackCredits,
+  getTotalPackCredits,
+  listCreditPacks,
+  getPackBySession,
+  _resetCreditPacksForTests,
+} from "./credit-pack-store.js";
+
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {

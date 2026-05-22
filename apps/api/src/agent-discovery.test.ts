@@ -19,6 +19,7 @@ import {
   handleInstall,
   handleProbeIntent,
 } from "./handlers.js";
+import { MCP_TOOL_COUNT } from "./counts.js";
 
 // â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -143,8 +144,8 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("POST /mcp");
   });
 
-    it("contains 14 MCP tools count", () => {
-      expect(body).toContain("14 tools");
+    it("contains the MCP tools count from counts.ts", () => {
+      expect(body).toContain(`${MCP_TOOL_COUNT} tools`);
   });
 
   it("contains the 19 programs count", () => {
@@ -235,11 +236,11 @@ describe("GET /.well-known/skills/index.json", () => {
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists 14 tools", () => {
+  it("axis-mcp skill lists the canonical MCP tool count", () => {
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
-      expect(mcp!.tools!.length).toBe(14);
+      expect(mcp!.tools!.length).toBe(MCP_TOOL_COUNT);
   });
 
   it("axis-analyze has tags array", () => {

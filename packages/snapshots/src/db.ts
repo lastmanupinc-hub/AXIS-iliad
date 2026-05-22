@@ -541,6 +541,30 @@ CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_account_month ON usage_credit
 CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_created ON usage_credit_ledger(created_at);
 `,
   },
+  {
+    version: 22,
+    name: "add_credit_pack_purchases",
+    sql: `
+CREATE TABLE IF NOT EXISTS credit_pack_purchases (
+  purchase_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  pack_id TEXT NOT NULL,
+  credits_purchased INTEGER NOT NULL,
+  credits_remaining INTEGER NOT NULL DEFAULT 0,
+  price_cents INTEGER NOT NULL,
+  paid_session_id TEXT,
+  paid_payment_intent_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  succeeded_at TEXT,
+  metadata TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_credit_packs_account ON credit_pack_purchases(account_id);
+CREATE INDEX IF NOT EXISTS idx_credit_packs_session ON credit_pack_purchases(paid_session_id);
+CREATE INDEX IF NOT EXISTS idx_credit_packs_status ON credit_pack_purchases(status);
+CREATE INDEX IF NOT EXISTS idx_credit_packs_created ON credit_pack_purchases(created_at);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

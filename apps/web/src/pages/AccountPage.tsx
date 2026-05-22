@@ -13,6 +13,9 @@ import {
   listSeats,
   inviteSeat,
   revokeSeat,
+  listCreditPacks,
+  createCreditTopup,
+  listMyCreditPacks,
   type Account,
   type ApiKeyInfo,
   type UsageSummary,
@@ -20,6 +23,8 @@ import {
   type Seat,
   type SubscriptionInfo,
   type CreditsInfo,
+  type CreditPackCatalogEntry,
+  type MyCreditPacksResponse,
 } from "../api.ts";
 
 const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
@@ -36,6 +41,11 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [seats, setSeats] = useState<{ seats: Seat[]; count: number; limit: number; remaining: number } | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [credits, setCredits] = useState<CreditsInfo | null>(null);
+  const [creditPackCatalog, setCreditPackCatalog] = useState<CreditPackCatalogEntry[]>([]);
+  const [myPacks, setMyPacks] = useState<MyCreditPacksResponse | null>(null);
+  const [topupLoading, setTopupLoading] = useState<string | null>(null);
+  const [topupError, setTopupError] = useState<string | null>(null);
+  const [topupSuccessBanner, setTopupSuccessBanner] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +82,15 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
       return;
     }
     try {
-      const [acct, keysData, usageData, seatsData, subData, creditsData] = await Promise.all([
+      const [acct, keysData, usageData, seatsData, subData, creditsData, packCatalog, myPacksData] = await Promise.all([
         getAccount(),
         listApiKeys(),
         getUsage(),
         listSeats(),
         getSubscription().catch(() => null),
         getCredits().catch(() => null),
+        listCreditPacks().catch(() => ({ packs: [] as CreditPackCatalogEntry[], note: "" })),
+        listMyCreditPacks().catch(() => null),
       ]);
       setAccount(acct);
       setKeys(keysData.keys);
@@ -86,12 +98,49 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
       setSeats(seatsData);
       setSubscription(subData);
       setCredits(creditsData);
+      setCreditPackCatalog(packCatalog.packs);
+      setMyPacks(myPacksData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load account");
     } finally {
       setLoading(false);
     }
   }, [isLoggedIn]);
+
+  // Show a one-shot success banner when we return from PAI'D after a topup.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("topup") === "success") {
+      const pack = params.get("pack") ?? "";
+      setTopupSuccessBanner(
+        pack
+          ? `Top-up complete — credits from ${pack} should be available in a moment.`
+          : "Top-up complete — credits should be available in a moment.",
+      );
+      // Clean URL so refresh doesn't re-show the banner.
+      params.delete("topup");
+      params.delete("pack");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : ""));
+    } else if (params.get("topup") === "canceled") {
+      setTopupError("Top-up canceled. No charge was made.");
+      params.delete("topup");
+      const qs = params.toString();
+      window.history.replaceState({}, "", window.location.pathname + (qs ? "?" + qs : ""));
+    }
+  }, []);
+
+  const handleTopup = useCallback(async (packId: string) => {
+    setTopupLoading(packId);
+    setTopupError(null);
+    try {
+      const result = await createCreditTopup(packId);
+      window.location.href = result.checkout_url;
+    } catch (err) {
+      setTopupError(err instanceof Error ? err.message : "Top-up failed");
+      setTopupLoading(null);
+    }
+  }, []);
 
   useEffect(() => {
     loadAccount();
@@ -440,6 +489,126 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
                       <td style={{ fontSize: "0.8rem" }}>{new Date(e.created_at).toLocaleDateString()}</td>
                       <td style={{ textAlign: "right", color: e.delta >= 0 ? "var(--success)" : "var(--danger)" }}>{e.delta >= 0 ? "+" : ""}{e.delta}</td>
                       <td style={{ fontSize: "0.85rem" }}>{e.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
+        </div>
+      )}
+
+      {/* Credit Pack Top-Up — PAI'D-routed one-shot purchases */}
+      {creditPackCatalog.length > 0 && (
+        <div className="card" style={{ marginTop: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>Top Up Credits</h3>
+            {myPacks && myPacks.total_credits_remaining > 0 && (
+              <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                Pack credits remaining: <strong style={{ color: "var(--accent)" }}>{myPacks.total_credits_remaining.toLocaleString()}</strong>
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-muted)", marginBottom: 12 }}>
+            One-shot credit packs, no commitment. Routed through PAI'D → Stripe. Drawn after your monthly plan allowance, before per-call overage.
+          </p>
+          {topupSuccessBanner && (
+            <div style={{ background: "rgba(34,197,94,0.1)", border: "1px solid var(--success)", padding: "8px 12px", borderRadius: 4, marginBottom: 12, fontSize: "0.85rem" }}>
+              ✓ {topupSuccessBanner}
+            </div>
+          )}
+          {topupError && (
+            <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid var(--red, #ef4444)", padding: "8px 12px", borderRadius: 4, marginBottom: 12, fontSize: "0.85rem", color: "var(--red, #ef4444)" }}>
+              {topupError}
+            </div>
+          )}
+          <div className="grid grid-3" style={{ gap: 12 }}>
+            {creditPackCatalog.map((pack) => (
+              <div
+                key={pack.pack_id}
+                className="card"
+                style={{
+                  margin: 0,
+                  padding: 16,
+                  border: pack.is_best_value ? "2px solid var(--accent)" : "1px solid var(--border)",
+                  position: "relative",
+                }}
+              >
+                {pack.is_best_value && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -10,
+                      right: 12,
+                      background: "var(--accent)",
+                      color: "white",
+                      fontSize: "0.7rem",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      fontWeight: 600,
+                    }}
+                  >
+                    BEST VALUE
+                  </span>
+                )}
+                <div style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: 4 }}>
+                  ${(pack.price_cents / 100).toFixed(0)}
+                </div>
+                <div style={{ fontSize: "0.95rem", marginBottom: 4 }}>
+                  {pack.credits.toLocaleString()} credits
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 12 }}>
+                  ${(pack.price_per_1k_credits_cents / 100).toFixed(3)} per 1k credits
+                </div>
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 12, minHeight: 36 }}>
+                  {pack.description}
+                </div>
+                <button
+                  className="btn btn-primary"
+                  style={{ width: "100%" }}
+                  onClick={() => handleTopup(pack.pack_id)}
+                  disabled={topupLoading !== null}
+                >
+                  {topupLoading === pack.pack_id ? "Redirecting..." : "Buy"}
+                </button>
+              </div>
+            ))}
+          </div>
+          {myPacks && myPacks.purchases.length > 0 && (
+            <details style={{ marginTop: 16 }}>
+              <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                Purchase history ({myPacks.purchases.length})
+              </summary>
+              <table style={{ marginTop: 8 }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Pack</th>
+                    <th style={{ textAlign: "right" }}>Credits</th>
+                    <th style={{ textAlign: "right" }}>Remaining</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {myPacks.purchases.slice(0, 20).map((p) => (
+                    <tr key={p.purchase_id}>
+                      <td style={{ fontSize: "0.8rem" }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                      <td style={{ fontSize: "0.85rem" }}>{p.pack_id}</td>
+                      <td style={{ textAlign: "right" }}>{p.credits_purchased.toLocaleString()}</td>
+                      <td style={{ textAlign: "right" }}>{p.credits_remaining.toLocaleString()}</td>
+                      <td>
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            padding: "2px 6px",
+                            borderRadius: 3,
+                            background: p.status === "succeeded" ? "rgba(34,197,94,0.15)" : "rgba(156,163,175,0.15)",
+                            color: p.status === "succeeded" ? "var(--success)" : "var(--text-muted)",
+                          }}
+                        >
+                          {p.status}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
