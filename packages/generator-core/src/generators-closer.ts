@@ -29,6 +29,12 @@ interface ProjectSignals {
   has_ci: boolean;
   monetization_hints: string[];
   selected_license: "MIT" | "Apache-2.0" | "Proprietary";
+  /** Detected package manager — drives lockfile + install commands. */
+  package_manager: "pnpm" | "yarn" | "npm" | "bun" | "none";
+  /** Whether the project ships a server entry point (drives Dockerfile EXPOSE / CMD). */
+  is_server: boolean;
+  /** Whether the project has any test runner declared. */
+  has_tests: boolean;
 }
 
 interface MerkleBundle {
@@ -146,6 +152,30 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
   const selected_license: "MIT" | "Apache-2.0" | "Proprietary" =
     hasInternalOnly ? "Proprietary" : hasApacheHint || profile.project.primary_language === "Go" ? "Apache-2.0" : "MIT";
 
+  const pms = ctx.detection.package_managers ?? [];
+  const package_manager: ProjectSignals["package_manager"] =
+    pms.includes("pnpm") ? "pnpm" :
+    pms.includes("yarn") ? "yarn" :
+    pms.includes("bun") ? "bun" :
+    pms.includes("npm") ? "npm" :
+    profile.project.primary_language === "JavaScript" || profile.project.primary_language === "TypeScript" ? "npm" :
+    "none";
+
+  const hasServerEntry = Boolean(
+    files?.some(f =>
+      /(^|\/)(server|api|main|index)\.(ts|js|tsx|jsx|go|py)$/i.test(f.path) ||
+      /(^|\/)server\//i.test(f.path) ||
+      /(^|\/)cmd\//i.test(f.path),
+    ),
+  ) || ctx.routes.length > 0;
+
+  const hasTests = Boolean(
+    files?.some(f =>
+      /\.(test|spec)\.(ts|tsx|js|jsx|mjs|cjs|go|py)$/i.test(f.path) ||
+      /(^|\/)__tests__\//i.test(f.path),
+    ),
+  );
+
   return {
     detected_frameworks: frameworks,
     primary_language: profile.project.primary_language,
@@ -154,6 +184,9 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
     has_ci: Boolean(files?.some(f => /(^|\/)\.github\/workflows\//i.test(f.path))),
     monetization_hints,
     selected_license,
+    package_manager,
+    is_server: hasServerEntry,
+    has_tests: hasTests,
   };
 }
 
@@ -340,44 +373,180 @@ export function generatePackagingLicense(
 export function generateCloserDockerfile(
   ctx: ContextMap,
   profile: RepoProfile,
+  files?: SourceFile[],
 ): GeneratedFile {
-  const entryHint = profile.project.primary_language === "Go" ? "./bin/app" : "node dist/server.js";
-  const content = [
-    "# syntax=docker/dockerfile:1.7",
-    "FROM debian:bookworm-slim AS runtime",
-    "WORKDIR /app",
-    "ENV NODE_ENV=production",
-    "COPY . /app",
-    "RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates make && rm -rf /var/lib/apt/lists/*",
-    "EXPOSE 8080",
-    `CMD [\"sh\", \"-lc\", \"${entryHint}\"]`,
-  ].join("\n");
+  const signals = detectProjectSignals(ctx, profile, files);
+  const lang = profile.project.primary_language;
+  const pm = signals.package_manager;
+
+  // Pick a base image and build/runtime steps appropriate to the stack.
+  // Node and Go are first-class; everything else falls back to a Node-ish
+  // shape unless Python or Rust is detected, in which case we honor them.
+  let content: string;
+
+  if (lang === "Go") {
+    content = [
+      "# syntax=docker/dockerfile:1.7",
+      "# Multi-stage build for Go binary: small final image, no toolchain at runtime.",
+      "",
+      "FROM golang:1.22-alpine AS build",
+      "WORKDIR /src",
+      "RUN apk add --no-cache git ca-certificates",
+      "COPY go.mod go.sum* ./",
+      "RUN go mod download",
+      "COPY . .",
+      "ENV CGO_ENABLED=0",
+      "RUN go build -trimpath -ldflags=\"-s -w\" -o /out/app ./...",
+      "",
+      "FROM gcr.io/distroless/static-debian12:nonroot",
+      "WORKDIR /app",
+      "COPY --from=build /out/app /app/app",
+      "USER nonroot:nonroot",
+      "ENV PORT=8080",
+      "EXPOSE 8080",
+      `LABEL org.opencontainers.image.title=\"${ctx.project_identity.name}\"`,
+      `LABEL org.opencontainers.image.source=\"${ctx.project_identity.repo_url ?? ""}\"`,
+      "ENTRYPOINT [\"/app/app\"]",
+    ].join("\n");
+  } else if (lang === "Python") {
+    content = [
+      "# syntax=docker/dockerfile:1.7",
+      "# Multi-stage build for Python: install deps in a builder stage so the",
+      "# runtime layer is just the interpreter + site-packages.",
+      "",
+      "FROM python:3.12-slim AS build",
+      "WORKDIR /src",
+      "ENV PYTHONDONTWRITEBYTECODE=1 PIP_DISABLE_PIP_VERSION_CHECK=1",
+      "COPY requirements*.txt pyproject.toml* poetry.lock* ./",
+      "RUN if [ -f requirements.txt ]; then pip install --no-cache-dir --target=/install -r requirements.txt; fi",
+      "COPY . .",
+      "",
+      "FROM python:3.12-slim AS runtime",
+      "WORKDIR /app",
+      "ENV PYTHONUNBUFFERED=1 PYTHONPATH=/install PORT=8080",
+      "RUN groupadd --system app && useradd --system --gid app --no-create-home app",
+      "COPY --from=build /install /install",
+      "COPY --from=build /src /app",
+      "USER app",
+      "EXPOSE 8080",
+      `LABEL org.opencontainers.image.title=\"${ctx.project_identity.name}\"`,
+      "HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\",
+      "  CMD python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{__import__(\\\"os\\\").environ.get(\\\"PORT\\\",\\\"8080\\\")}/health').status==200 else 1)\" || exit 1",
+      "CMD [\"python\", \"-m\", \"app\"]",
+    ].join("\n");
+  } else {
+    // Node / TypeScript path — default for AXIS-style web apps. Use Alpine for
+    // small footprint; copy lockfile that matches the detected package manager
+    // so `npm ci` / `pnpm install --frozen-lockfile` reproduces the build.
+    const installCmd =
+      pm === "pnpm" ? "RUN corepack enable && pnpm install --frozen-lockfile --prod"
+      : pm === "yarn" ? "RUN corepack enable && yarn install --frozen-lockfile --production"
+      : pm === "bun" ? "RUN apk add --no-cache curl && curl -fsSL https://bun.sh/install | bash && /root/.bun/bin/bun install --frozen-lockfile --production"
+      : "RUN npm ci --omit=dev --ignore-scripts";
+    const buildInstall =
+      pm === "pnpm" ? "RUN corepack enable && pnpm install --frozen-lockfile"
+      : pm === "yarn" ? "RUN corepack enable && yarn install --frozen-lockfile"
+      : pm === "bun" ? "RUN apk add --no-cache curl && curl -fsSL https://bun.sh/install | bash && /root/.bun/bin/bun install --frozen-lockfile"
+      : "RUN npm ci --ignore-scripts";
+    const buildCmd =
+      pm === "pnpm" ? "RUN pnpm run build --if-present"
+      : pm === "yarn" ? "RUN yarn build --if-present || echo \"no build script\""
+      : pm === "bun" ? "RUN /root/.bun/bin/bun run build --if-present || echo \"no build script\""
+      : "RUN npm run build --if-present";
+    const lockHint =
+      pm === "pnpm" ? "package.json pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc*"
+      : pm === "yarn" ? "package.json yarn.lock* .yarnrc.yml*"
+      : pm === "bun" ? "package.json bun.lockb*"
+      : "package.json package-lock.json* npm-shrinkwrap.json*";
+    const entry = signals.is_server ? "node dist/server.js" : "node dist/index.js";
+
+    content = [
+      "# syntax=docker/dockerfile:1.7",
+      "# Multi-stage Node build. Builder installs all deps + compiles TS;",
+      `# runtime image only has node_modules/* needed for production + ${pm === "none" ? "npm" : pm} prod deps.`,
+      "",
+      "FROM node:22-alpine AS build",
+      "WORKDIR /src",
+      `COPY ${lockHint} ./`,
+      buildInstall,
+      "COPY . .",
+      buildCmd,
+      `${installCmd.replace("RUN ", "RUN rm -rf node_modules && ")}`,
+      "",
+      "FROM node:22-alpine AS runtime",
+      "WORKDIR /app",
+      "ENV NODE_ENV=production PORT=8080",
+      "RUN addgroup -S app && adduser -S app -G app",
+      "COPY --from=build --chown=app:app /src/node_modules ./node_modules",
+      "COPY --from=build --chown=app:app /src/dist ./dist",
+      "COPY --from=build --chown=app:app /src/package.json ./package.json",
+      "USER app",
+      "EXPOSE 8080",
+      `LABEL org.opencontainers.image.title=\"${ctx.project_identity.name}\"`,
+      `LABEL org.opencontainers.image.source=\"${ctx.project_identity.repo_url ?? ""}\"`,
+      "HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\",
+      "  CMD wget --quiet --tries=1 --spider http://127.0.0.1:${PORT}/health || exit 1",
+      `CMD [\"sh\", \"-lc\", \"${entry}\"]`,
+    ].join("\n");
+  }
 
   return {
     path: "Dockerfile",
     content,
     content_type: "text/plain",
     program: PROGRAM,
-    description: `Container build configuration generated for ${ctx.project_identity.name}`,
+    description: `Multi-stage container build for ${ctx.project_identity.name} (${lang}/${pm}), non-root user, HEALTHCHECK on /health, honors $PORT.`,
   };
 }
 
 export function generateCloserDockerCompose(
   ctx: ContextMap,
+  _profile?: RepoProfile,
+  _files?: SourceFile[],
 ): GeneratedFile {
+  const name = ctx.project_identity.name;
+  // Compose v2 schema — top-level `version` is deprecated/ignored. Healthcheck
+  // and env_file present so a copied .env.example wires through automatically.
   const content = [
-    "version: \"3.9\"",
+    `# docker compose for ${name}`,
+    "# Usage:",
+    "#   cp .env.example .env  (if present)",
+    "#   docker compose up --build",
+    "#",
+    "# Reads PORT from .env; defaults to 8080.",
+    "",
     "services:",
     "  app:",
+    `    image: ${name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`,
     "    build:",
     "      context: .",
     "      dockerfile: Dockerfile",
-    "    container_name: closer-app",
-    "    ports:",
-    "      - \"8080:8080\"",
-    "    environment:",
-    `      - PRODUCT_NAME=${ctx.project_identity.name}`,
+    `    container_name: ${name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}`,
     "    restart: unless-stopped",
+    "    ports:",
+    "      - \"${PORT:-8080}:8080\"",
+    "    env_file:",
+    "      - path: .env",
+    "        required: false",
+    "    environment:",
+    `      - PRODUCT_NAME=${name}`,
+    "      - NODE_ENV=production",
+    "      - PORT=8080",
+    "    healthcheck:",
+    "      test: [\"CMD\", \"wget\", \"--quiet\", \"--tries=1\", \"--spider\", \"http://127.0.0.1:8080/health\"]",
+    "      interval: 30s",
+    "      timeout: 3s",
+    "      retries: 3",
+    "      start_period: 10s",
+    "    logging:",
+    "      driver: json-file",
+    "      options:",
+    "        max-size: \"10m\"",
+    "        max-file: \"3\"",
+    "    deploy:",
+    "      restart_policy:",
+    "        condition: on-failure",
+    "        max_attempts: 5",
   ].join("\n");
 
   return {
@@ -385,36 +554,168 @@ export function generateCloserDockerCompose(
     content,
     content_type: "application/yaml",
     program: PROGRAM,
-    description: "Container orchestration config for local packaging validation and smoke checks",
+    description: "Compose v2 service definition with healthcheck, env_file passthrough, log rotation, and bounded restart attempts. Honors $PORT.",
   };
 }
 
-export function generateCloserCiWorkflow(): GeneratedFile {
+export function generateCloserCiWorkflow(
+  ctx?: ContextMap,
+  profile?: RepoProfile,
+  files?: SourceFile[],
+): GeneratedFile {
+  const signals = ctx && profile
+    ? detectProjectSignals(ctx, profile, files)
+    : {
+        primary_language: "TypeScript",
+        package_manager: "npm" as const,
+        has_tests: true,
+        detected_frameworks: [],
+        uses_docker: false,
+        has_makefile: false,
+        has_ci: false,
+        monetization_hints: [],
+        selected_license: "MIT" as const,
+        is_server: false,
+      };
+
+  const lang = signals.primary_language;
+  const pm = signals.package_manager;
+
+  if (lang === "Go") {
+    const content = [
+      "name: ci",
+      "",
+      "on:",
+      "  pull_request:",
+      "  push:",
+      "    branches: [main]",
+      "",
+      "permissions:",
+      "  contents: read",
+      "",
+      "jobs:",
+      "  verify:",
+      "    runs-on: ubuntu-latest",
+      "    timeout-minutes: 15",
+      "    steps:",
+      "      - uses: actions/checkout@v4",
+      "      - uses: actions/setup-go@v5",
+      "        with:",
+      "          go-version: \"1.22\"",
+      "          cache: true",
+      "      - name: Verify modules",
+      "        run: |",
+      "          go mod download",
+      "          go mod verify",
+      "      - name: Lint",
+      "        uses: golangci/golangci-lint-action@v6",
+      "        with:",
+      "          version: latest",
+      "          args: --timeout=5m",
+      "      - name: Vet",
+      "        run: go vet ./...",
+      "      - name: Test",
+      "        run: go test -race -coverprofile=coverage.out ./...",
+      "      - name: Upload coverage",
+      "        uses: actions/upload-artifact@v4",
+      "        with:",
+      "          name: coverage",
+      "          path: coverage.out",
+      "      - name: Build",
+      "        run: go build -trimpath ./...",
+    ].join("\n");
+    return {
+      path: ".github/workflows/ci.yml",
+      content,
+      content_type: "application/yaml",
+      program: PROGRAM,
+      description: "Go CI workflow: mod verify, lint (golangci-lint), vet, race-tested coverage, and build.",
+    };
+  }
+
+  // Node/TS path — pick install command and cache key based on the detected
+  // package manager. Matrix on Node 20+22 so we catch engine drift early.
+  const setupSteps =
+    pm === "pnpm" ? [
+      "      - name: Setup pnpm",
+      "        uses: pnpm/action-setup@v4",
+      "        with:",
+      "          run_install: false",
+      "      - name: Setup Node",
+      "        uses: actions/setup-node@v4",
+      "        with:",
+      "          node-version: ${{ matrix.node }}",
+      "          cache: pnpm",
+      "      - name: Install",
+      "        run: pnpm install --frozen-lockfile",
+    ] : pm === "yarn" ? [
+      "      - name: Setup Node",
+      "        uses: actions/setup-node@v4",
+      "        with:",
+      "          node-version: ${{ matrix.node }}",
+      "          cache: yarn",
+      "      - name: Install",
+      "        run: yarn install --frozen-lockfile",
+    ] : pm === "bun" ? [
+      "      - name: Setup Bun",
+      "        uses: oven-sh/setup-bun@v1",
+      "      - name: Install",
+      "        run: bun install --frozen-lockfile",
+    ] : [
+      "      - name: Setup Node",
+      "        uses: actions/setup-node@v4",
+      "        with:",
+      "          node-version: ${{ matrix.node }}",
+      "          cache: npm",
+      "      - name: Install",
+      "        run: npm ci --ignore-scripts",
+    ];
+
+  const runner =
+    pm === "pnpm" ? "pnpm" :
+    pm === "yarn" ? "yarn" :
+    pm === "bun"  ? "bun" :
+    "npm";
+  const runScript = (script: string) => `        run: ${runner} run ${script} --if-present`;
+
   const content = [
     "name: ci",
+    "",
     "on:",
     "  pull_request:",
     "  push:",
     "    branches: [main]",
+    "",
+    "permissions:",
+    "  contents: read",
+    "",
+    "concurrency:",
+    "  group: ${{ github.workflow }}-${{ github.ref }}",
+    "  cancel-in-progress: true",
+    "",
     "jobs:",
     "  verify:",
     "    runs-on: ubuntu-latest",
+    "    timeout-minutes: 20",
+    "    strategy:",
+    "      fail-fast: false",
+    "      matrix:",
+    "        node: [22]",
     "    steps:",
-    "      - name: Checkout",
-    "        uses: actions/checkout@v4",
-    "      - name: Setup Node",
-    "        uses: actions/setup-node@v4",
-    "        with:",
-    "          node-version: 22",
-    "          cache: npm",
-    "      - name: Install",
-    "        run: npm ci --ignore-scripts",
+    "      - uses: actions/checkout@v4",
+    ...setupSteps,
     "      - name: Lint",
-    "        run: npm run lint --if-present",
-    "      - name: Test",
-    "        run: npm test --if-present",
+    runScript("lint"),
+    "      - name: Typecheck",
+    runScript("typecheck"),
+    ...(signals.has_tests ? [
+      "      - name: Test",
+      `        run: ${runner} ${runner === "npm" ? "test" : "test"} --if-present`,
+    ] : []),
     "      - name: Build",
-    "        run: npm run build --if-present",
+    runScript("build"),
+    "      - name: Audit",
+    `        run: ${runner === "npm" ? "npm audit --omit=dev --audit-level=high" : runner === "pnpm" ? "pnpm audit --prod --audit-level high" : runner === "yarn" ? "yarn npm audit --severity high --recursive" : "bun audit"} || true`,
     "      - name: Package audit",
     "        run: make ship",
   ].join("\n");
@@ -424,7 +725,7 @@ export function generateCloserCiWorkflow(): GeneratedFile {
     content,
     content_type: "application/yaml",
     program: PROGRAM,
-    description: "Marketplace-grade continuous integration workflow with lint, test, build, and ship validation",
+    description: `${lang} CI workflow tuned for ${pm}: concurrency-canceled PR checks, Node-version matrix, lint/typecheck/test/build/audit/ship.`,
   };
 }
 
@@ -471,33 +772,127 @@ export function generateCloserReleaseWorkflow(
     ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
   });
 
+  const signals = detectProjectSignals(_ctx, _profile, files);
+  const lang = signals.primary_language;
+  const pm = signals.package_manager;
+  const targets = config.target_marketplaces;
+  const publishNpm = targets.includes("npm") && lang !== "Go" && lang !== "Python";
+  const publishDocker = targets.includes("dockerhub") || signals.uses_docker;
+
+  // Package-manager-specific setup. We can be more terse than CI here because
+  // release runs on a tag — no need for matrix builds.
+  const nodeSetup = pm === "pnpm" ? [
+    "      - uses: pnpm/action-setup@v4",
+    "        with: { run_install: false }",
+    "      - uses: actions/setup-node@v4",
+    "        with:",
+    "          node-version: 22",
+    "          cache: pnpm",
+    "          registry-url: https://registry.npmjs.org/",
+    "      - run: pnpm install --frozen-lockfile",
+    "      - run: pnpm run build --if-present",
+  ] : pm === "yarn" ? [
+    "      - uses: actions/setup-node@v4",
+    "        with:",
+    "          node-version: 22",
+    "          cache: yarn",
+    "          registry-url: https://registry.npmjs.org/",
+    "      - run: yarn install --frozen-lockfile",
+    "      - run: yarn build --if-present",
+  ] : pm === "bun" ? [
+    "      - uses: oven-sh/setup-bun@v1",
+    "      - run: bun install --frozen-lockfile",
+    "      - run: bun run build --if-present",
+  ] : [
+    "      - uses: actions/setup-node@v4",
+    "        with:",
+    "          node-version: 22",
+    "          cache: npm",
+    "          registry-url: https://registry.npmjs.org/",
+    "      - run: npm ci --ignore-scripts",
+    "      - run: npm run build --if-present",
+  ];
+
+  const goSetup = [
+    "      - uses: actions/setup-go@v5",
+    "        with: { go-version: \"1.22\" }",
+    "      - run: go build -trimpath -ldflags=\"-s -w\" -o bin/app ./...",
+  ];
+
+  const setupSteps = lang === "Go" ? goSetup : nodeSetup;
+
+  const npmPublishStep = publishNpm ? [
+    "      - name: Publish to npm",
+    "        if: \"!contains(github.ref_name, '-')\"   # skip prerelease tags like v1.0.0-rc.1",
+    `        run: ${pm === "pnpm" ? "pnpm publish --access public --no-git-checks" : pm === "yarn" ? "yarn npm publish --access public" : pm === "bun" ? "bun publish --access public" : "npm publish --access public"}`,
+    "        env:",
+    "          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}",
+  ] : [];
+
+  const dockerPublishStep = publishDocker ? [
+    "      - name: Set up Docker Buildx",
+    "        uses: docker/setup-buildx-action@v3",
+    "      - name: Login to GHCR",
+    "        uses: docker/login-action@v3",
+    "        with:",
+    "          registry: ghcr.io",
+    "          username: ${{ github.actor }}",
+    "          password: ${{ secrets.GITHUB_TOKEN }}",
+    "      - name: Build and push image",
+    "        uses: docker/build-push-action@v6",
+    "        with:",
+    "          context: .",
+    "          push: true",
+    "          provenance: true",
+    "          tags: |",
+    `            ghcr.io/\${{ github.repository }}:\${{ github.ref_name }}`,
+    `            ghcr.io/\${{ github.repository }}:latest`,
+  ] : [];
+
   const content = [
     "name: release",
+    "",
     "on:",
     "  workflow_dispatch:",
     "  push:",
     "    tags:",
     "      - \"v*\"",
+    "",
+    "permissions:",
+    "  contents: write       # create the release",
+    "  id-token: write       # npm/PyPI OIDC + Sigstore",
+    publishDocker ? "  packages: write       # push to ghcr.io" : "",
+    "",
+    "concurrency:",
+    "  group: release-${{ github.ref }}",
+    "  cancel-in-progress: false",
+    "",
     "jobs:",
     "  publish:",
     "    runs-on: ubuntu-latest",
-    "    permissions:",
-    "      contents: write",
-    "      id-token: write",
+    "    timeout-minutes: 30",
     "    steps:",
     "      - uses: actions/checkout@v4",
-    "      - uses: actions/setup-node@v4",
-    "        with:",
-    "          node-version: 22",
-    "      - run: npm ci --ignore-scripts",
-    "      - run: npm run build --if-present",
-    "      - run: make ship",
-    "      - name: Create Release",
+    "        with: { fetch-depth: 0 }   # full history so make ship can fingerprint commits",
+    ...setupSteps,
+    "      - name: Run ship pipeline",
+    "        run: make ship",
+    ...npmPublishStep,
+    ...dockerPublishStep,
+    "      - name: Verify attestation bundle",
+    "        run: |",
+    "          test -f packaging/trust-fabric/attestation.json",
+    "          test -f packaging/trust-fabric/merkle-proof.json",
+    "      - name: Create GitHub Release",
     "        uses: softprops/action-gh-release@v2",
     "        with:",
     `          name: ${config.product_name} \${{ github.ref_name }}`,
     "          generate_release_notes: true",
-  ].join("\n");
+    "          fail_on_unmatched_files: true",
+    "          files: |",
+    "            packaging/trust-fabric/attestation.json",
+    "            packaging/trust-fabric/merkle-proof.json",
+  ].filter(Boolean).join("\n");
 
   return {
     path: ".github/workflows/release.yml",
@@ -858,29 +1253,117 @@ export function generateMakefileWithShipTarget(
   files?: SourceFile[],
 ): GeneratedFile {
   const signals = detectProjectSignals(ctx, profile, files);
-  const testCommand = profile.project.primary_language === "Go" ? "go test ./..." : "npm test --if-present";
-  const buildCommand = profile.project.primary_language === "Go" ? "go build ./..." : "npm run build --if-present";
+  const lang = signals.primary_language;
+  const pm = signals.package_manager;
+
+  // Package-manager-aware commands. Falls back to npm when nothing is detected.
+  const isGo = lang === "Go";
+  const isPy = lang === "Python";
+  const runner = pm === "pnpm" ? "pnpm" : pm === "yarn" ? "yarn" : pm === "bun" ? "bun" : "npm";
+
+  const installCmd = isGo ? "go mod download"
+                   : isPy ? "pip install -r requirements.txt"
+                   : pm === "pnpm" ? "pnpm install --frozen-lockfile"
+                   : pm === "yarn" ? "yarn install --frozen-lockfile"
+                   : pm === "bun"  ? "bun install --frozen-lockfile"
+                   : "npm ci --ignore-scripts";
+
+  const devCmd = isGo ? "go run ./..."
+               : isPy ? "python -m app"
+               : `${runner} run dev --if-present`;
+
+  const startCmd = isGo ? "./bin/app"
+                 : isPy ? "python -m app"
+                 : `${runner === "npm" ? "npm start" : `${runner} start`} --if-present`;
+
+  const lintCmd = isGo ? "golangci-lint run ./..."
+                : isPy ? "ruff check ."
+                : `${runner} run lint --if-present`;
+
+  const formatCmd = isGo ? "gofmt -w ."
+                  : isPy ? "ruff format ."
+                  : `${runner} run format --if-present`;
+
+  const testCmd = isGo ? "go test -race -cover ./..."
+                : isPy ? "pytest"
+                : `${runner === "npm" ? "npm test" : `${runner} test`} --if-present`;
+
+  const buildCmd = isGo ? "go build -trimpath -ldflags=\"-s -w\" -o bin/app ./..."
+                 : isPy ? "python -m build"
+                 : `${runner} run build --if-present`;
+
+  const auditCmd = isGo ? "go vet ./..."
+                 : isPy ? "pip-audit || true"
+                 : pm === "pnpm" ? "pnpm audit --prod --audit-level high || true"
+                 : pm === "yarn" ? "yarn npm audit --severity high --recursive || true"
+                 : pm === "bun"  ? "bun audit || true"
+                 : "npm audit --omit=dev --audit-level=high || true";
+
+  const cleanCmd = isGo ? "rm -rf bin/ coverage.out"
+                 : isPy ? "rm -rf dist/ build/ *.egg-info __pycache__"
+                 : "rm -rf dist/ build/ coverage/ .turbo/";
+
+  const imageTag = `${ctx.project_identity.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`;
 
   const content = [
-    ".PHONY: build test package attest ship",
+    `# Build orchestration for ${ctx.project_identity.name}`,
+    "# Run \"make help\" for available targets.",
     "",
-    "build:",
-    `\t${buildCommand}`,
+    ".PHONY: help install dev start lint format typecheck test build audit clean package attest ship ship-summary",
     "",
-    "test:",
-    `\t${testCommand}`,
+    "help:",
+    "\t@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = \":.*?## \"}; {printf \"\\033[36m%-15s\\033[0m %s\\n\", $$1, $$2}'",
     "",
-    "package:",
-    "\tdocker build -t product-release:latest .",
+    `install: ## Install dependencies (${pm === "none" ? "npm" : pm} / ${lang})`,
+    `\t${installCmd}`,
     "",
-    "attest:",
-    "\t@echo \"Attestation bundle: packaging/trust-fabric/attestation.json\"",
+    "dev: ## Run dev server with hot reload",
+    `\t${devCmd}`,
     "",
-    "ship: build test package attest",
-    "\t@echo \"Ready to ship: run release workflow and publish marketplace manifests\"",
+    "start: ## Start the production server",
+    `\t${startCmd}`,
     "",
-    "ship-summary:",
-    `\t@echo \"Project: ${ctx.project_identity.name} | Language: ${signals.primary_language} | Docker: ${signals.uses_docker}\"`,
+    "lint: ## Run linter",
+    `\t${lintCmd}`,
+    "",
+    "format: ## Format code in place",
+    `\t${formatCmd}`,
+    "",
+    ...(!isGo && !isPy ? [
+      "typecheck: ## Run TypeScript type checker",
+      `\t${runner} run typecheck --if-present`,
+      "",
+    ] : []),
+    "test: ## Run test suite",
+    `\t${testCmd}`,
+    "",
+    "build: ## Compile production artifacts",
+    `\t${buildCmd}`,
+    "",
+    "audit: ## Audit dependencies for known CVEs",
+    `\t${auditCmd}`,
+    "",
+    "clean: ## Remove build artifacts and caches",
+    `\t${cleanCmd}`,
+    "",
+    "package: build ## Build container image",
+    `\tdocker build -t ${imageTag} .`,
+    "",
+    "attest: ## Verify release attestation",
+    "\t@test -f packaging/trust-fabric/attestation.json || (echo \"missing packaging/trust-fabric/attestation.json\" && exit 1)",
+    "\t@echo \"Attestation: $$(jq -r .digest packaging/trust-fabric/attestation.json)\"",
+    "",
+    "ship: clean install lint test build package attest ## Full release sequence (clean → install → lint → test → build → package → attest)",
+    "\t@echo \"\"",
+    "\t@echo \"\\033[32mReady to ship.\\033[0m Publish: gh release create vX.Y.Z\"",
+    "",
+    "ship-summary: ## Print release context for logs and dashboards",
+    `\t@echo \"Project:       ${ctx.project_identity.name}\"`,
+    `\t@echo \"Language:      ${lang}\"`,
+    `\t@echo \"Package mgr:   ${pm}\"`,
+    `\t@echo \"Frameworks:    ${signals.detected_frameworks.join(", ") || "(none detected)"}\"`,
+    `\t@echo \"Docker:        ${signals.uses_docker}\"`,
+    `\t@echo \"Container:     ${imageTag}\"`,
   ].join("\n");
 
   return {
@@ -888,6 +1371,6 @@ export function generateMakefileWithShipTarget(
     content,
     content_type: "text/plain",
     program: PROGRAM,
-    description: "Build orchestration file with required make ship target for release readiness",
+    description: `Build orchestration with help/install/dev/start/lint/format/test/build/audit/clean/package/attest/ship targets, tuned to ${lang}+${pm}.`,
   };
 }

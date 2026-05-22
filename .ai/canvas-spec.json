@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T17:16:19.543Z",
+  "generated_at": "2026-05-22T17:35:44.811Z",
   "design_system": {
     "colors": {
       "primary": "#6366f1",
@@ -137,11 +137,11 @@
       {
         "name": "TypeScript",
         "percent": 75.4,
-        "loc": 89980
+        "loc": 90421
       },
       {
         "name": "YAML",
-        "percent": 8.3,
+        "percent": 8.2,
         "loc": 9885
       },
       {
@@ -156,7 +156,7 @@
       },
       {
         "name": "JavaScript",
-        "percent": 1.8,
+        "percent": 1.7,
         "loc": 2093
       },
       {
@@ -194,7 +194,7 @@
     "domain_model_count": 243,
     "route_count": 497,
     "total_files": 500,
-    "total_loc": 130290
+    "total_loc": 130731
   },
   "source_asset_files": null
 }

@@ -171,6 +171,11 @@ describe("generators-closer", () => {
     expect(guide.path).toBe("DISTRIBUTABLE.md");
     expect(guide.content).toContain("Ship Checklist");
     expect(makefile.path).toBe("Makefile");
-    expect(makefile.content).toContain("ship: build test package attest");
+    // The ship target gates on clean → install → lint → test → build → package → attest.
+    // We don't pin the exact dependency list (it can grow), but we require ship to depend
+    // on the four core stages and to be marked .PHONY so it always runs.
+    expect(makefile.content).toMatch(/^ship:.*\btest\b.*\bbuild\b.*\bpackage\b.*\battest\b/m);
+    expect(makefile.content).toContain(".PHONY:");
+    expect(makefile.content).toMatch(/\bship\b/);
   });
 });

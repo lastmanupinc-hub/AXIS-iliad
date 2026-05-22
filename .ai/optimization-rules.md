@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 130,290 |
+| Total LOC | 130,731 |
 | Average LOC / file | 261 |
-| Estimated token count | ~586,305 |
+| Estimated token count | ~588,290 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -532,8 +532,8 @@ packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
 packages/generator-core/src/generators-artifacts.ts (28.2 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
-packages/generator-core/src/generators-closer.test.ts (6.9 KB)
-packages/generator-core/src/generators-closer.ts (28.3 KB)
+packages/generator-core/src/generators-closer.test.ts (7.3 KB)
+packages/generator-core/src/generators-closer.ts (47.8 KB)
 packages/generator-core/src/generators-debug.ts (42.0 KB)
 packages/generator-core/src/generators-frontend.ts (27.6 KB)
 packages/generator-core/src/generators-marketing.ts (35.4 KB)

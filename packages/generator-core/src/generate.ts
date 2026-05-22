@@ -147,9 +147,9 @@ const REGISTRY: Record<string, GeneratorFn> = {
   // ─── closer generators ─────────────────────────────────────
   "packaging/README.md": (ctx, profile, files) => generatePackagingReadme(ctx, profile, files),
   "packaging/LICENSE": (ctx, profile, files) => generatePackagingLicense(ctx, profile, files),
-  "Dockerfile": (ctx, profile, _files) => generateCloserDockerfile(ctx, profile),
-  "docker-compose.yml": (ctx, _profile, _files) => generateCloserDockerCompose(ctx),
-  ".github/workflows/ci.yml": (_ctx, _profile, _files) => generateCloserCiWorkflow(),
+  "Dockerfile": (ctx, profile, files) => generateCloserDockerfile(ctx, profile, files),
+  "docker-compose.yml": (ctx, profile, files) => generateCloserDockerCompose(ctx, profile, files),
+  ".github/workflows/ci.yml": (ctx, profile, files) => generateCloserCiWorkflow(ctx, profile, files),
   ".github/workflows/release.yml": (ctx, profile, files) => generateCloserReleaseWorkflow(ctx, profile, files),
   "packaging/manifests/npm-package.json": (ctx, profile, files) => generateCloserManifestNpm(ctx, profile, files),
   "packaging/manifests/unreal.uplugin": (ctx, profile, files) => generateCloserManifestUnreal(ctx, profile, files),

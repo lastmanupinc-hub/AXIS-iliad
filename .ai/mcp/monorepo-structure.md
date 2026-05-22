@@ -1,6 +1,6 @@
 # Monorepo Structure Template — axis-iliad
 
-Generated: 2026-05-22T17:16:19.413Z
+Generated: 2026-05-22T17:35:44.794Z
 
 ## Recommended Folder Layout
 

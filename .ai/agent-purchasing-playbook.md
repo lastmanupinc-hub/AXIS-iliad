@@ -54,7 +54,7 @@ Detection results from `500` source files:
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 81 structured artifacts across 17 programs.
+Axis' Iliad analyzes codebases and generates 118 structured artifacts across 19 programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 
@@ -73,9 +73,9 @@ POST /mcp
 }
 ```
 
-Returns all 17 programs with tier (free/pro) and generator counts.
+Returns all 19 programs with tier (free/pro) and generator counts.
 Free programs: search, skills, debug.
-Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing).
+Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer).
 
 ### Step 2 — Obtain an API Key (if not already held)
 ```

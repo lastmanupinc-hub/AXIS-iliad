@@ -245,6 +245,12 @@
       "tier": "pro",
       "outputs": 5,
       "description": "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry"
+    },
+    {
+      "slug": "closer",
+      "tier": "pro",
+      "outputs": 16,
+      "description": "Packaging README/LICENSE, Dockerfile, docker-compose, GitHub Actions workflows (CI + release), platform manifests (npm/unreal/vscode/dockerhub/github-marketplace), trust-fabric attestation + merkle proof, packaging report, DISTRIBUTABLE.md, and Makefile"
     }
   ],
   "purchase_endpoint": "POST /v1/billing/purchase",

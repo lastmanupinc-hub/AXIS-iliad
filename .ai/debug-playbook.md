@@ -17,18 +17,18 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 130,290 LOC |
+| Files | 500 files, 130,731 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 275 | 89,980 | 75.4% |
-| YAML | 57 | 9,885 | 8.3% |
+| TypeScript | 275 | 90,421 | 75.4% |
+| YAML | 57 | 9,885 | 8.2% |
 | JSON | 63 | 8,478 | 7.1% |
 | Markdown | 79 | 8,125 | 6.8% |
-| JavaScript | 8 | 2,093 | 1.8% |
+| JavaScript | 8 | 2,093 | 1.7% |
 | CSS | 1 | 675 | 0.6% |
 | HTML | 1 | 158 | 0.1% |
 | Dockerfile | 1 | 21 | 0% |
@@ -210,7 +210,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | DashboardData | interface | TypeScript | 6 | `packages/generator-core/src/generators-artifacts.ts` |
 | BrandingConfig | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
 | MerkleBundle | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
-| ProjectSignals | interface | TypeScript | 7 | `packages/generator-core/src/generators-closer.ts` |
+| ProjectSignals | interface | TypeScript | 10 | `packages/generator-core/src/generators-closer.ts` |
 | MyComponentProps | interface | TypeScript | 2 | `packages/generator-core/src/generators-frontend.ts` |
 | CancelParams | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
 | CancelRequest | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |

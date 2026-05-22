@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-05-22T17:16:20.509Z",
-  "total_symbols": 1982,
+  "generated_at": "2026-05-22T17:35:44.936Z",
+  "total_symbols": 1983,
   "file_count": 245,
   "symbols": {
     "apps/api/src/admin.test.ts": [
@@ -7309,132 +7309,137 @@
       {
         "name": "MerkleBundle",
         "type": "interface",
-        "line": 34
+        "line": 40
       },
       {
         "name": "hash",
         "type": "function",
-        "line": 60
+        "line": 66
       },
       {
         "name": "normalizeMarketplace",
         "type": "function",
-        "line": 64
+        "line": 70
       },
       {
         "name": "defaultBranding",
         "type": "function",
-        "line": 78
+        "line": 84
       },
       {
         "name": "projectName",
         "type": "function",
-        "line": 79
+        "line": 85
       },
       {
         "name": "readBrandingConfig",
         "type": "function",
-        "line": 87
+        "line": 93
       },
       {
         "name": "detectProjectSignals",
         "type": "function",
-        "line": 129
+        "line": 135
       },
       {
         "name": "renderLicense",
         "type": "function",
-        "line": 160
+        "line": 193
       },
       {
         "name": "buildMerkleBundle",
         "type": "function",
-        "line": 222
+        "line": 255
       },
       {
         "name": "readinessScore",
         "type": "function",
-        "line": 251
+        "line": 284
       },
       {
         "name": "generatePackagingReadme",
         "type": "function",
-        "line": 261
+        "line": 294
       },
       {
         "name": "generatePackagingLicense",
         "type": "function",
-        "line": 324
+        "line": 357
       },
       {
         "name": "generateCloserDockerfile",
         "type": "function",
-        "line": 340
+        "line": 373
       },
       {
         "name": "generateCloserDockerCompose",
         "type": "function",
-        "line": 365
+        "line": 502
       },
       {
         "name": "generateCloserCiWorkflow",
         "type": "function",
-        "line": 392
+        "line": 561
+      },
+      {
+        "name": "runScript",
+        "type": "function",
+        "line": 679
       },
       {
         "name": "generateCloserReleaseWorkflow",
         "type": "function",
-        "line": 431
+        "line": 732
       },
       {
         "name": "generateCloserManifestNpm",
         "type": "function",
-        "line": 511
+        "line": 906
       },
       {
         "name": "generateCloserManifestUnreal",
         "type": "function",
-        "line": 544
+        "line": 939
       },
       {
         "name": "generateCloserManifestVsCode",
         "type": "function",
-        "line": 576
+        "line": 971
       },
       {
         "name": "generateCloserManifestDockerHub",
         "type": "function",
-        "line": 608
+        "line": 1003
       },
       {
         "name": "generateCloserManifestGitHubMarketplace",
         "type": "function",
-        "line": 643
+        "line": 1038
       },
       {
         "name": "generateCloserTrustAttestation",
         "type": "function",
-        "line": 678
+        "line": 1073
       },
       {
         "name": "generateCloserMerkleProof",
         "type": "function",
-        "line": 718
+        "line": 1113
       },
       {
         "name": "generateCloserPackagingReport",
         "type": "function",
-        "line": 752
+        "line": 1147
       },
       {
         "name": "generateDistributableGuide",
         "type": "function",
-        "line": 808
+        "line": 1203
       },
       {
         "name": "generateMakefileWithShipTarget",
         "type": "function",
-        "line": 855
+        "line": 1250
       }
     ],
     "packages/generator-core/src/generators-debug.ts": [

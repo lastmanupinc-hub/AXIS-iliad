@@ -4,22 +4,61 @@ on:
   push:
     tags:
       - "v*"
+permissions:
+  contents: write       # create the release
+  id-token: write       # npm/PyPI OIDC + Sigstore
+  packages: write       # push to ghcr.io
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # full history so make ship can fingerprint commits
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org/
       - run: npm ci --ignore-scripts
       - run: npm run build --if-present
-      - run: make ship
-      - name: Create Release
+      - name: Run ship pipeline
+        run: make ship
+      - name: Publish to npm
+        if: "!contains(github.ref_name, '-')"   # skip prerelease tags like v1.0.0-rc.1
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          provenance: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
+      - name: Verify attestation bundle
+        run: |
+          test -f packaging/trust-fabric/attestation.json
+          test -f packaging/trust-fabric/merkle-proof.json
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: project ${{ github.ref_name }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            packaging/trust-fabric/attestation.json
+            packaging/trust-fabric/merkle-proof.json

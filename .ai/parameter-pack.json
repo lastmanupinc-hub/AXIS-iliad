@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T17:16:19.696Z",
+  "generated_at": "2026-05-22T17:35:44.815Z",
   "description": "Parameter sets for generative visualizations derived from project metrics",
   "parameters": {
     "structure": {
@@ -21,9 +21,9 @@
         {
           "name": "YAML",
           "hue": 280,
-          "saturation": 61.66,
-          "lightness": 51.245,
-          "weight": 8.3
+          "saturation": 61.64,
+          "lightness": 51.23,
+          "weight": 8.2
         },
         {
           "name": "JSON",
@@ -42,9 +42,9 @@
         {
           "name": "JavaScript",
           "hue": 40,
-          "saturation": 60.36,
-          "lightness": 50.27,
-          "weight": 1.8
+          "saturation": 60.34,
+          "lightness": 50.255,
+          "weight": 1.7
         }
       ],
       "background": {

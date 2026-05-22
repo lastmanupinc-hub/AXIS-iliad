@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (130290 LOC)
+- **Files:** 500 (130731 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -602,7 +602,7 @@ Detected 243 domain models:
 | `PaymentIntent` | interface | 6 | apps/api/src/paid-client.ts |
 | *… 218 more* | | | |
 
-> **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
+> **High-complexity models** (8+ fields): `ContextMap`, `FunnelMetrics`, `MyAnalyticsSummary`, `SnapshotResponse`, `SubscriptionInfo`, `UpgradePrompt`, `ToolPageProps`, `ProgramDoc`, `ToolCatalogEntry`, `ContextMap`, `RepoProfile`, `CommerceSignals`, `ProjectSignals`, `ParseResult`, `UsageRecord`, `EmailDelivery`, `FunnelMetrics`, `Seat`, `UpgradePrompt`, `GitHubToken`, `ReferralCredits`, `StripeSubscription`, `TierChange`, `SnapshotManifest`, `SnapshotRecord`, `VersionDiff`, `Webhook`, `WebhookDelivery`, `WebhookRow` — consider splitting if they grow further.
 
 ## Tooling
 
@@ -1003,8 +1003,8 @@ packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
 packages/generator-core/src/generators-artifacts.ts (28.2 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
 packages/generator-core/src/generators-canvas.ts (27.1 KB)
-packages/generator-core/src/generators-closer.test.ts (6.9 KB)
-packages/generator-core/src/generators-closer.ts (28.3 KB)
+packages/generator-core/src/generators-closer.test.ts (7.3 KB)
+packages/generator-core/src/generators-closer.ts (47.8 KB)
 packages/generator-core/src/generators-debug.ts (42.0 KB)
 packages/generator-core/src/generators-frontend.ts (27.6 KB)
 packages/generator-core/src/generators-marketing.ts (35.4 KB)

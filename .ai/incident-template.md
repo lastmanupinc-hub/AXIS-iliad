@@ -170,7 +170,7 @@
 - [ ] `DashboardData` (interface, 6 fields) — packages/generator-core/src/generators-artifacts.ts
 - [ ] `BrandingConfig` (interface, 3 fields) — packages/generator-core/src/generators-closer.ts
 - [ ] `MerkleBundle` (interface, 3 fields) — packages/generator-core/src/generators-closer.ts
-- [ ] `ProjectSignals` (interface, 7 fields) — packages/generator-core/src/generators-closer.ts
+- [ ] `ProjectSignals` (interface, 10 fields) — packages/generator-core/src/generators-closer.ts
 - [ ] `MyComponentProps` (interface, 2 fields) — packages/generator-core/src/generators-frontend.ts
 - [ ] `CancelParams` (interface, 1 fields) — packages/generator-core/src/generators-mcp.ts
 - [ ] `CancelRequest` (type_alias, 2 fields) — packages/generator-core/src/generators-mcp.ts
