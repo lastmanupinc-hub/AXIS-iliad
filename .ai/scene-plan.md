@@ -1,6 +1,6 @@
 # Scene Plan — axis-iliad
 
-Generated: 2026-05-22T16:58:33.611Z
+Generated: 2026-05-22T17:16:19.515Z
 
 ## Video Overview
 
@@ -35,7 +35,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (75.2%), YAML (8.3%), JSON (7.3%), Markdown (6.8%), JavaScript (1.7%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
+- **Languages**: TypeScript (75.4%), YAML (8.3%), JSON (7.1%), Markdown (6.8%), JavaScript (1.8%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 
@@ -50,7 +50,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Scene 4: Key Abstractions (0:09–0:12)
 
 - **Content**: Core abstractions and concepts
-- **Items**: apps/ (monorepo_apps), packages/ (monorepo_packages), payment-processing-output/ (project_directory), examples/ (project_directory), mcp/ (project_directory), packaging/ (project_directory)
+- **Items**: apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory), mcp/ (project_directory), payment-processing-output/ (project_directory), packaging/ (project_directory)
 - **Animation**: Staggered reveal from top
 - **Visual**: Arrow-prefixed list items
 
@@ -67,7 +67,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 > This is axis-iliad, a monorepo built with TypeScript.
 > The tech stack includes React.
 > The architecture scores 0.65 out of 100 for separation.
-> Key abstractions include apps/ (monorepo_apps), packages/ (monorepo_packages), payment-processing-output/ (project_directory).
+> Key abstractions include apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory).
 
 ## Extension Points
 

@@ -1,6 +1,6 @@
 # A/B Test Plan — axis-iliad
 
-Generated: 2026-05-22T16:58:33.761Z
+Generated: 2026-05-22T17:16:20.631Z
 
 ## Project Overview
 
@@ -87,4 +87,4 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Existing Test Infrastructure
 
-Found 145 test files — leverage this infrastructure for experiment validation.
+Found 147 test files — leverage this infrastructure for experiment validation.

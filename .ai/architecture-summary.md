@@ -16,7 +16,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Primary Language:** TypeScript
 - **Project Type:** monorepo
-- **Files:** 500 (130519 LOC)
+- **Files:** 500 (130290 LOC)
 - **Directories:** 65
 
 ## Frameworks & Libraries
@@ -539,11 +539,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Directory Layout
 
-- `apps/` — monorepo_apps (152 files)
-- `packages/` — monorepo_packages (143 files)
-- `payment-processing-output/` — project_directory (18 files)
+- `apps/` — monorepo_apps (153 files)
+- `packages/` — monorepo_packages (144 files)
 - `examples/` — project_directory (17 files)
 - `mcp/` — project_directory (16 files)
+- `payment-processing-output/` — project_directory (16 files)
 - `packaging/` — project_directory (7 files)
 - `.github/` — project_directory (5 files)
 - `algorithmic/` — project_directory (4 files)
@@ -659,7 +659,8 @@ apps/api/src/billing-flow.test.ts (26.8 KB)
 apps/api/src/billing.ts (23.8 KB)
 apps/api/src/budget-probe.test.ts (34.3 KB)
 apps/api/src/checkout-email.test.ts (12.6 KB)
-apps/api/src/counts.ts (0.2 KB)
+apps/api/src/counts-consistency.test.ts (0.9 KB)
+apps/api/src/counts.ts (0.7 KB)
 apps/api/src/crash-resilience.test.ts (6.3 KB)
 apps/api/src/credits-api.test.ts (10.9 KB)
 apps/api/src/db-endpoints.test.ts (4.1 KB)
@@ -966,13 +967,14 @@ packages/context-engine/src/index.ts (0.1 KB)
 packages/context-engine/src/types.ts (2.7 KB)
 packages/context-engine/tsconfig.json (0.2 KB)
 packages/generator-core/package.json (1.1 KB)
+packages/generator-core/src/counts-consistency.test.ts (1.9 KB)
 packages/generator-core/src/file-excerpt-utils.ts (5.4 KB)
 packages/generator-core/src/fw-helpers.ts (0.5 KB)
 packages/generator-core/src/generate-programs.test.ts (12.9 KB)
 packages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)
 packages/generator-core/src/generate-validation.test.ts (8.7 KB)
 packages/generator-core/src/generate.test.ts (67.5 KB)
-packages/generator-core/src/generate.ts (22.9 KB)
+packages/generator-core/src/generate.ts (23.2 KB)
 packages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)
 packages/generator-core/src/generator-branches.test.ts (217.3 KB)
 packages/generator-core/src/generator-sourcefile-branches.test.ts (20.9 KB)
@@ -996,7 +998,7 @@ packages/generator-core/src/generator-sourcefile-branches7.test.ts (36.6 KB)
 packages/generator-core/src/generator-sourcefile-branches8.test.ts (49.0 KB)
 packages/generator-core/src/generator-sourcefile-branches9.test.ts (33.5 KB)
 packages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)
-packages/generator-core/src/generators-agentic-purchasing.ts (61.2 KB)
+packages/generator-core/src/generators-agentic-purchasing.ts (61.8 KB)
 packages/generator-core/src/generators-algorithmic.ts (26.2 KB)
 packages/generator-core/src/generators-artifacts.ts (28.2 KB)
 packages/generator-core/src/generators-brand.ts (32.2 KB)
@@ -1014,7 +1016,7 @@ packages/generator-core/src/generators-remotion.ts (32.1 KB)
 packages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)
 packages/generator-core/src/generators-search.ts (26.1 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
-packages/generator-core/src/generators-skills.ts (42.7 KB)
+packages/generator-core/src/generators-skills.ts (43.0 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (45.9 KB)
 packages/generator-core/src/index.ts (4.0 KB)
@@ -1123,8 +1125,6 @@ payment-processing-output/channel-rulebook.md (2.6 KB)
 payment-processing-output/citation-index.json (2.6 KB)
 payment-processing-output/CLAUDE.md (0.9 KB)
 payment-processing-output/collection-map.md (2.2 KB)
-payment-processing-output/component-guidelines.md (0.8 KB)
-payment-processing-output/component-library.json (5.6 KB)
 ```
 
 ## Entry Points (Source)
@@ -1229,7 +1229,7 @@ export { buildContextMap, buildRepoProfile } from "./engine.js";
 
 ```typescript
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
-export { generateFiles, listAvailableGenerators } from "./generate.js";
+export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";

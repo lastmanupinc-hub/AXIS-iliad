@@ -3,10 +3,15 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 
-/** Canonical counts — mirrors apps/api/src/counts.ts */
-const ARTIFACT_COUNT = 99;
-const PROGRAM_COUNT = 18;
-const MCP_TOOL_COUNT = 12;
+/**
+ * Canonical counts — must equal `listAvailableGenerators().length` and the
+ * unique program count from GENERATOR_PROGRAMS. counts.consistency.test
+ * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
+ * drift fails CI. MCP_TOOL_COUNT mirrors MCP_TOOLS.length in apps/api.
+ */
+const ARTIFACT_COUNT = 118;
+const PROGRAM_COUNT = 19;
+const MCP_TOOL_COUNT = 15;
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;

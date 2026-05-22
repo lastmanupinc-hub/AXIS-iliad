@@ -168,58 +168,36 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 | `apps/api/src/billing-flow.test.ts` | 596 |
 | `apps/api/src/budget-probe.test.ts` | 833 |
 | `apps/api/src/checkout-email.test.ts` | 322 |
-| `apps/api/src/crash-resilience.test.ts` | 158 |
+| `apps/api/src/counts-consistency.test.ts` | 25 |
 
 ## Reference Test
 
-### `apps/api/src/handler-shutdown.test.ts`
+### `apps/api/src/counts-consistency.test.ts`
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { IncomingMessage, ServerResponse } from "node:http";
+import { describe, it, expect } from "vitest";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
+import { MCP_TOOLS } from "./mcp-server.js";
+import { listAvailableGenerators } from "@axis/generator-core";
 
-// ─── Mock router.js to control isShuttingDown ───────────────────
-vi.mock("./router.js", async (importOriginal) => {
-  const orig = await importOriginal<typeof import("./router.js")>();
-  return { ...orig, isShuttingDown: vi.fn(() => false) };
+describe("counts.ts consistency", () => {
+  it("ARTIFACT_COUNT equals the live generator registry size", () => {
+    expect(ARTIFACT_COUNT).toBe(listAvailableGenerators().length);
+  });
+
+  it("PROGRAM_COUNT equals the distinct generator-program count", () => {
+    const programs = new Set(listAvailableGenerators().map(g => g.program));
+    expect(PROGRAM_COUNT).toBe(programs.size);
+  });
+
+  it("MCP_TOOL_COUNT equals the live MCP_TOOLS array length", () => {
+    expect(MCP_TOOL_COUNT).toBe(MCP_TOOLS.length);
+  });
+
+  it("ENDPOINT_COUNT is a positive integer", () => {
+    expect(Number.isInteger(ENDPOINT_COUNT)).toBe(true);
+    expect(ENDPOINT_COUNT).toBeGreaterThan(0);
+  });
 });
 
-// ─── Mock @axis/snapshots to prevent real DB access on import ───
-vi.mock("@axis/snapshots", async (importOriginal) => {
-  const orig = await importOriginal<typeof import("@axis/snapshots")>();
-  return { ...orig, openMemoryDb: vi.fn(), closeDb: vi.fn() };
-});
-
-import { handleHealthCheck } from "./handlers.js";
-import { isShuttingDown } from "./router.js";
-
-// ─── Minimal res/req stubs ──────────────────────────────────────
-function stubReq(): IncomingMessage {
-  return { headers: {} } as unknown as IncomingMessage;
-}
-
-function stubRes(): ServerResponse & { _status: number; _body: string } {
-  const res: Record<string, unknown> = {
-    _status: 0,
-    _body: "",
-    _headers: {} as Record<string, string>,
-    writeHead(status: number) { res._status = status; return res; },
-    setHeader(k: string, v: string) { (res._headers as Record<string, string>)[k] = v; },
-    end(body?: string) { res._body = body ?? ""; },
-    getHeader() { return undefined; },
-  };
-  return res as unknown as ServerResponse & { _status: number; _body: string };
-}
-
-// ─── Tests ──────────────────────────────────────────────────────
-describe("handleHealthCheck shutdown path", () => {
-  beforeEach(() => {
-    vi.mocked(isShuttingDown).mockReturnValue(false);
-... (27 more lines)
 ```
-
-## Untested Exports
-
-These source files export functions without matching test files:
-
-- `apps/api/src/counts.ts` — export const ARTIFACT_COUNT = ..., export const PROGRAM_COUNT = ..., export const MCP_TOOL_COUNT = ..., export const ENDPOINT_COUNT = ...

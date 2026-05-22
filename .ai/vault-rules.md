@@ -73,4 +73,4 @@ status: [draft | active | archived]
 
 ## Existing Markdown Files
 
-Found 80 markdown files in the project — candidates for vault import.
+Found 79 markdown files in the project — candidates for vault import.

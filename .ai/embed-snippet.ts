@@ -25,9 +25,9 @@ export const WARNINGS = [
 export const KEY_ABSTRACTIONS = [
   "apps/ (monorepo_apps)",
   "packages/ (monorepo_packages)",
-  "payment-processing-output/ (project_directory)",
   "examples/ (project_directory)",
   "mcp/ (project_directory)",
+  "payment-processing-output/ (project_directory)",
   "packaging/ (project_directory)",
   ".github/ (project_directory)",
   "algorithmic/ (project_directory)",

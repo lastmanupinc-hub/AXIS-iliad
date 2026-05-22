@@ -1,9 +1,14 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 
-/** Canonical counts — mirrors apps/api/src/counts.ts */
-const ARTIFACT_COUNT = 102;
-const PROGRAM_COUNT = 18;
+/**
+ * Canonical counts — must equal `listAvailableGenerators().length` and the
+ * unique program count from GENERATOR_PROGRAMS. The counts.consistency.test
+ * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
+ * drift fails CI.
+ */
+const ARTIFACT_COUNT = 118;
+const PROGRAM_COUNT = 19;
 
 /**
  * Program: agentic-purchasing
@@ -550,7 +555,7 @@ ${ap2ProviderRows}
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 81 structured artifacts across 17 programs.
+Axis' Iliad analyzes codebases and generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 
@@ -569,9 +574,9 @@ POST /mcp
 }
 \`\`\`
 
-Returns all 17 programs with tier (free/pro) and generator counts.
+Returns all ${PROGRAM_COUNT} programs with tier (free/pro) and generator counts.
 Free programs: search, skills, debug.
-Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing).
+Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer).
 
 ### Step 2 — Obtain an API Key (if not already held)
 \`\`\`
@@ -752,6 +757,7 @@ export function generateProductSchema(
       { slug: "canvas",            tier: "pro",  outputs: 5,  description: "Canvas spec, social pack, poster layouts, asset guidelines, brand board" },
       { slug: "algorithmic",       tier: "pro",  outputs: 5,  description: "Generative sketch, parameter pack, collection map, export manifest, variation matrix" },
       { slug: "agentic-purchasing",tier: "pro",  outputs: 5,  description: "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry" },
+      { slug: "closer",            tier: "pro",  outputs: 16, description: "Packaging README/LICENSE, Dockerfile, docker-compose, GitHub Actions workflows (CI + release), platform manifests (npm/unreal/vscode/dockerhub/github-marketplace), trust-fabric attestation + merkle proof, packaging report, DISTRIBUTABLE.md, and Makefile" },
     ],
     purchase_endpoint: "POST /v1/billing/purchase",
     auth: { type: "bearer", header: "Authorization", format: "Bearer <api_key>" },

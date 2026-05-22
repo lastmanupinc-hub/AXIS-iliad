@@ -1,6 +1,6 @@
 # Template Pack — axis-iliad
 
-Generated: 2026-05-22T16:58:33.765Z
+Generated: 2026-05-22T17:16:20.650Z
 
 ## Project Overview
 
@@ -102,7 +102,7 @@ What was changed and why.
 ---
 type: concept
 project: axis-iliad
-tags: ["apps/ (monorepo_apps)", "packages/ (monorepo_packages)", "payment-processing-output/ (project_directory)"]
+tags: ["apps/ (monorepo_apps)", "packages/ (monorepo_packages)", "examples/ (project_directory)"]
 ---
 # {{title}}
 

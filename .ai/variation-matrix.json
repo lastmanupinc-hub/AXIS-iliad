@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated": "2026-05-22T16:58:33.770Z",
+  "generated": "2026-05-22T17:16:20.670Z",
   "parameters": [
     {
       "name": "primary_hue",
@@ -294,17 +294,17 @@
       "style": "caption"
     },
     {
-      "text": "payment-processing-output/ (project_directory)",
+      "text": "examples/ (project_directory)",
       "position": "top",
       "style": "caption"
     },
     {
-      "text": "examples/ (project_directory)",
+      "text": "mcp/ (project_directory)",
       "position": "bottom",
       "style": "caption"
     },
     {
-      "text": "mcp/ (project_directory)",
+      "text": "payment-processing-output/ (project_directory)",
       "position": "bottom",
       "style": "caption"
     },

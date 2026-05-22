@@ -65,7 +65,7 @@ export function MyComponent({ title, children }: MyComponentProps) {
 - **`apps/web/src/components/SignUpModal.tsx`**: `export function SignUpModal({ ... }`
 - **`apps/web/src/components/StatusBar.tsx`**: `export function StatusBar({ ... }`
 - **`apps/web/src/components/Toast.tsx`**: `export function useToast() { ... }`, `export function ToastProvider({ ... }`
-- *... and 27 more*
+- *... and 25 more*
 
 ## Reference Component (from your codebase)
 

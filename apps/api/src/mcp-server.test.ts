@@ -195,7 +195,7 @@ describe("POST /mcp — initialize", () => {
     expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
     expect(typeof incentives.description).toBe("string");
     const axisCaps = result.axis_capabilities as Record<string, unknown>;
-    expect(axisCaps.artifact_count).toBe(99);
+    expect(axisCaps.artifact_count).toBe(118);
     expect(axisCaps.programs).toBe(19);
   });
 
@@ -256,7 +256,7 @@ describe("POST /mcp — tools/list", () => {
     expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
     expect(typeof incentives.description).toBe("string");
     const axisCaps = result.axis_capabilities as Record<string, unknown>;
-    expect(axisCaps.artifact_count).toBe(99);
+    expect(axisCaps.artifact_count).toBe(118);
   });
 
   it("each tool has name, description, inputSchema", async () => {

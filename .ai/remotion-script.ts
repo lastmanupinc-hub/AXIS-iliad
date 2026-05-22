@@ -61,7 +61,7 @@ function ArchitectureScene() {
 
 function AbstractionsScene() {
   const frame = useCurrentFrame();
-  const items = ["apps/ (monorepo_apps)","packages/ (monorepo_packages)","payment-processing-output/ (project_directory)","examples/ (project_directory)","mcp/ (project_directory)","packaging/ (project_directory)"];
+  const items = ["apps/ (monorepo_apps)","packages/ (monorepo_packages)","examples/ (project_directory)","mcp/ (project_directory)","payment-processing-output/ (project_directory)","packaging/ (project_directory)"];
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>
       <h2 style={{ color: THEME.accent, fontSize: 48 }}>Key Abstractions</h2>

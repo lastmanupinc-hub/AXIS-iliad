@@ -1,6 +1,6 @@
 # Artifact Specification — axis-iliad
 
-Generated: 2026-05-22T16:58:33.609Z
+Generated: 2026-05-22T17:16:19.500Z
 
 ## Project Overview
 
@@ -23,11 +23,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Language Distribution
 
-- **TypeScript**: 75.2% ███████████████ (273 files, 89919 LOC)
+- **TypeScript**: 75.4% ███████████████ (275 files, 89980 LOC)
 - **YAML**: 8.3% ██ (57 files, 9885 LOC)
-- **JSON**: 7.3% █ (64 files, 8753 LOC)
-- **Markdown**: 6.8% █ (80 files, 8140 LOC)
-- **JavaScript**: 1.7% █ (8 files, 2093 LOC)
+- **JSON**: 7.1% █ (63 files, 8478 LOC)
+- **Markdown**: 6.8% █ (79 files, 8125 LOC)
+- **JavaScript**: 1.8% █ (8 files, 2093 LOC)
 - **CSS**: 0.6% █ (1 files, 675 LOC)
 - **HTML**: 0.1% █ (1 files, 158 LOC)
 - **Dockerfile**: 0% █ (1 files, 21 LOC)
@@ -99,7 +99,7 @@ When generating artifacts for this project:
 
 ```typescript
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
-export { generateFiles, listAvailableGenerators } from "./generate.js";
+export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";

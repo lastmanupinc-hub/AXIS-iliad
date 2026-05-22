@@ -106,12 +106,12 @@ describe("generateProductSchema", () => {
     expect(() => JSON.parse(file.content)).not.toThrow();
   });
 
-  it("schema includes all 18 programs", () => {
+  it("schema includes all 19 programs", () => {
     const file = generateProductSchema(ctx, profile);
     const schema = JSON.parse(file.content);
-    expect(schema.programs).toHaveLength(18);
-    expect(schema.total_programs).toBe(18);
-    expect(schema.total_outputs).toBe(102);
+    expect(schema.programs).toHaveLength(19);
+    expect(schema.total_programs).toBe(19);
+    expect(schema.total_outputs).toBe(118);
   });
 
   it("schema includes required structural fields", () => {

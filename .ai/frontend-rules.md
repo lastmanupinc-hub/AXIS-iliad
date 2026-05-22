@@ -104,7 +104,7 @@ These domain models were detected in the codebase. Use their type names in compo
 - **`apps/web/src/components/ProgramLauncher.tsx`**: `export function ProgramLauncher({ ... }`
 - **`apps/web/src/components/SearchTab.tsx`**: `export function SearchTab({ ... }`
 - **`apps/web/src/components/SignUpModal.tsx`**: `export function SignUpModal({ ... }`
-- *... and 29 more*
+- *... and 27 more*
 
 ## Style Sources
 

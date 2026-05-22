@@ -61,7 +61,7 @@ Theme tokens should be applied consistently across these layers:
 
 ## Component Patterns
 
-Detected 22 component file(s). Apply these patterns:
+Detected 20 component file(s). Apply these patterns:
 
 - Buttons: `radius-md`, `primary-500` bg, `space-2` horizontal padding, `space-1` vertical
 - Cards: `radius-lg`, `shadow-base`, `space-4` padding, `neutral-50` bg

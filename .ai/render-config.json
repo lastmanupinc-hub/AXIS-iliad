@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T16:58:33.612Z",
+  "generated_at": "2026-05-22T17:16:19.529Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
@@ -86,8 +86,8 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 89919,
-          "percent": 75.2
+          "loc": 89980,
+          "percent": 75.4
         },
         {
           "name": "YAML",
@@ -96,18 +96,18 @@
         },
         {
           "name": "JSON",
-          "loc": 8753,
-          "percent": 7.3
+          "loc": 8478,
+          "percent": 7.1
         },
         {
           "name": "Markdown",
-          "loc": 8140,
+          "loc": 8125,
           "percent": 6.8
         },
         {
           "name": "JavaScript",
           "loc": 2093,
-          "percent": 1.7
+          "percent": 1.8
         },
         {
           "name": "CSS",
@@ -368,9 +368,9 @@
     "abstractions": [
       "apps/ (monorepo_apps)",
       "packages/ (monorepo_packages)",
-      "payment-processing-output/ (project_directory)",
       "examples/ (project_directory)",
       "mcp/ (project_directory)",
+      "payment-processing-output/ (project_directory)",
       "packaging/ (project_directory)",
       ".github/ (project_directory)",
       "algorithmic/ (project_directory)"
@@ -379,7 +379,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 130519
+    "total_loc": 130290
   },
   "source_media_files": null
 }

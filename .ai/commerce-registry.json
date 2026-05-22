@@ -27,7 +27,7 @@
     "has_tap_protocol": true,
     "has_network_tokenization": true,
     "has_mandate_management": true,
-    "total_payment_files": 93
+    "total_payment_files": 92
   },
   "ap2_compliance_assessment": {
     "readiness_score": 100,
@@ -96,7 +96,7 @@
     },
     {
       "id": "pro-all",
-      "name": "Pro Complete (All 18 Programs)",
+      "name": "Pro Complete (All 19 Programs)",
       "programs": [
         "search",
         "skills",
@@ -117,11 +117,11 @@
         "algorithmic",
         "agentic-purchasing"
       ],
-      "outputs": 102,
+      "outputs": 118,
       "tier": "pro",
       "price_cents": 5000,
       "price_interval": "per_call",
-      "description": "All 102 structured artifacts across 18 programs — full AI-native governance layer",
+      "description": "All 118 structured artifacts across 19 programs — full AI-native governance layer",
       "api_call": {
         "method": "tools/call",
         "tool": "analyze_repo",

@@ -373,3 +373,9 @@ export function listAvailableGenerators(): Array<{ path: string; program: string
     /* v8 ignore stop */
   }));
 }
+
+/** Canonical artifact count — derived from REGISTRY so it cannot drift. */
+export const TOTAL_GENERATORS = Object.keys(REGISTRY).length;
+
+/** Canonical program count — derived from GENERATOR_PROGRAMS so it cannot drift. */
+export const TOTAL_PROGRAMS = new Set(Object.values(GENERATOR_PROGRAMS)).size;

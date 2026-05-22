@@ -1,6 +1,6 @@
 # Brand Board — axis-iliad
 
-Generated: 2026-05-22T16:58:33.769Z
+Generated: 2026-05-22T17:16:20.666Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
@@ -93,9 +93,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **apps/ (monorepo_apps)** — candidate for conceptual branding element
 - **packages/ (monorepo_packages)** — candidate for conceptual branding element
-- **payment-processing-output/ (project_directory)** — candidate for conceptual branding element
 - **examples/ (project_directory)** — candidate for conceptual branding element
 - **mcp/ (project_directory)** — candidate for conceptual branding element
+- **payment-processing-output/ (project_directory)** — candidate for conceptual branding element
 
 ### Domain Models
 

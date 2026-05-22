@@ -25,7 +25,7 @@ const CONFIG = {
   height: 1080,
   nodeCount: 14,
   complexity: 0.01,
-  palette: [{"name":"TypeScript","hue":220,"weight":75.2},{"name":"YAML","hue":280,"weight":8.3},{"name":"JSON","hue":340,"weight":7.3},{"name":"Markdown","hue":160,"weight":6.8},{"name":"JavaScript","hue":40,"weight":1.7}],
+  palette: [{"name":"TypeScript","hue":220,"weight":75.4},{"name":"YAML","hue":280,"weight":8.3},{"name":"JSON","hue":340,"weight":7.1},{"name":"Markdown","hue":160,"weight":6.8},{"name":"JavaScript","hue":40,"weight":1.8}],
   dampening: 0.98,
   attractionStrength: 0.001,
   repulsionStrength: 500,

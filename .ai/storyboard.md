@@ -1,6 +1,6 @@
 # Storyboard — axis-iliad
 
-Generated: 2026-05-22T16:58:33.768Z
+Generated: 2026-05-22T17:16:20.662Z
 
 Frame-by-frame storyboard for a 60-second project showcase video.
 
@@ -57,7 +57,7 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 
 - **Animation**: Layers build from bottom up, connections animate between them
 - **Narration**: "A clean [separation_score]-point architecture with clear boundaries"
-- **Labels**: apps/ (monorepo_apps), packages/ (monorepo_packages), payment-processing-output/ (project_directory), examples/ (project_directory)
+- **Labels**: apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory), mcp/ (project_directory)
 
 ## Scene 4: Code Health (0:30–0:45)
 

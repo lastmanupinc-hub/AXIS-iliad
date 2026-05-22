@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-iliad
 
-> monorepo | TypeScript | 500 files | 130,519 LOC
+> monorepo | TypeScript | 500 files | 130,290 LOC
 
 **Stack:** React ^19.1.0
 
