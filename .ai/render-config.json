@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T22:06:46.447Z",
+  "generated_at": "2026-05-23T03:31:46.299Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
@@ -86,7 +86,7 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 93731,
+          "loc": 93770,
           "percent": 76.5
         },
         {
@@ -379,7 +379,7 @@
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 133461
+    "total_loc": 133500
   },
   "source_media_files": null
 }

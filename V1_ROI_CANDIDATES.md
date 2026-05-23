@@ -1,0 +1,166 @@
+# Axis' Iliad — v1.0 ROI Candidate List
+
+**Source**: synthesis of 16 strategic root YAMLs (`begin.yaml`, `continuation.yaml`, `competitive-gap-matrix.yaml`, `iliad-agentic-platform-strategy.yaml`, `capability_inventory.yaml`, `e2e_ui_audit.yaml`, `e2e_wiring_audit.yaml`, `static_analysis_phase.yaml`, `repo_snapshot.yaml`, `human user audt.yaml`, `axis_master_blueprint.yaml`, `daily-maintenance-runbook.yaml`, `memory generator.yaml`, plus the manually-curated `V1_LAUNCH_TODO.md`).
+
+**Deduplication**: every item the audit-agents found was cross-checked against the post-session-100 shipped surface. Items already complete are listed in the **Shipped Stack** at the end of this file. Stale items (recommended actions that turned out to be done) do not appear in the candidate list.
+
+**Scoring**: per `begin.yaml` `roi_policy`. Each candidate's ROI score reflects the sum of capability_gain + production_quality_gain + integration_quality_gain + agent_acquisition_gain + conformance_and_protocol_gain (minus implementation_cost). Higher = pick first.
+
+**Maturity levels**:
+- `not-started` — nothing in the repo touches it
+- `partial` — code exists but acceptance criteria unmet
+- `proven-but-unverified` — works locally but never tested under production load
+- `proxy-only` — wrapper around a third party; "owned both ends" disqualified
+
+---
+
+## Tier 1 — MUST-SHIP for v1 (blocks launch)
+
+| # | ID | Title | Maturity | Effort | ROI | Proof for v1 |
+|---|---|---|---|---|---|---|
+| 1 | **catalog-honesty-1** | Hide 12 `PLANNED_CAPABILITIES` stubs from public `tools/list`. Show only when `?include_planned=true` query param set. | partial (stubs ship today) | S | 22 | `tools/list` returns 15 entries (down from 27) for unauthenticated callers. Test: existing `mcp-server.test.ts` length assertion bumped + new test for `include_planned=true` opt-in. |
+| 2 | **catalog-honesty-2** | Add `provider` chip on Tools Index for the 4 proxied `iliad_*` tools. UI honesty about Firecrawl/OpenAI/Resend backends. | not-started | S | 18 | `ToolsIndexPage.tsx` renders provider chips. Snapshot test verifies the 4 tools show provider labels. |
+| 3 | **pricing-tiers** | Add pricing tiers in `@axis/mpp/src/index.ts` `PRICING_TIERS` for the 6 real `iliad_*` tools. MPP 402 falls through to default $0.50 right now. | not-started | S | 19 | All 6 tools have explicit tier entries with standard + lite pricing. counts-consistency test pins the registry size. |
+| 4 | **mpp-402-wiring** | Wire owned tools into MPP 402 flow so anonymous agents can pay per call (object_storage, vector_database, embeddings, transactional_email, web_research × 2). | not-started | S | 16 | Anonymous agent calls `iliad_object_storage` → receives 402 with payment_session_url → pays → retries successfully. |
+| 5 | **privacy-policy** | Dedicated Privacy Policy page (GDPR/CCPA-aware). Terms page mentions "Privacy" but lacks the legal language. Hard launch blocker for EU/CA traffic. | not-started | S | 17 | New `PrivacyPage.tsx` route. Lists subprocessors (Stripe, Resend, OpenAI, Firecrawl, R2, GitHub, Render). Cookie disclosure. Right-to-delete contact. |
+| 6 | **subprocessor-list** | Enumerate every SaaS in the data path inside the privacy policy. | not-started | S | 8 | Folded into privacy-policy commit. |
+| 7 | **github-app-register** | Register the GitHub App at `github.com/settings/apps/new` using `.github/app-manifest.json`. Sets `GITHUB_WEBHOOK_SECRET` in prod. | not-started (manual) | S | 21 | A real installation fires a push event, AXIS receives it, snapshot lands in DB. The CodeRabbit-class distribution channel needs this. |
+| 8 | **mcp-publisher-publish** | Publish to MCP registry via `mcp-publisher publish`. Manifest enriched in session 095. | not-started (manual) | S | 18 | Discovery on registry confirms axis-iliad is listed. |
+| 9 | **npm-publish-mpp** | `pnpm --filter @axis/mpp publish --access public` (README + LICENSE shipped session 101). | not-started (manual) | S | 14 | Package visible on npmjs.com. |
+| 10 | **npm-publish-sdk** | `pnpm --filter @axis/sdk publish --access public` (test suite landed session 097). | not-started (manual) | S | 12 | Package visible on npmjs.com. |
+| 11 | **prod-env-audit** | Every var in `apps/api/src/env.ts ENV_SPEC` has a real prod value or is explicitly opted out. | not-started | S | 15 | Checklist commit referencing each env var; missing-value ops items tracked. |
+| 12 | **db-backup-automation** | Nightly `axis.db` → R2 snapshot. Uses the existing `iliad_object_storage` plumbing. | not-started | S | 14 | Cron job (Render) writes a daily snapshot; restoration test passes. |
+| 13 | **uptime-monitor** | UptimeRobot or Better Uptime on `/health`. One alert channel. | not-started (manual) | S | 12 | Synthetic monitor green; one alert sent during chaos test. |
+| 14 | **resend-domain-verify** | Verify `RESEND_FROM_ADDRESS` domain. Without this `iliad_transactional_email` lands in spam. | not-started (manual) | S | 9 | Resend dashboard shows domain verified; test email reaches inbox not spam. |
+| 15 | **incident-template** | Severity definitions + acker/fixer/postmortem roles. | not-started | S | 7 | `INCIDENT.md` in repo root. |
+| 16 | **demo-video** | 60-90s screen recording: GitHub URL → 124 artifacts → drag AGENTS.md into Cursor. | not-started | M | 15 | Public-hosted MP4 / Loom link. Press kit references it. |
+
+**Tier 1 total**: 16 items. Mix of code (1–4, 12), legal (5, 6), manual ops (7–10, 13, 14), and launch enablement (15, 16). Code items are all small.
+
+---
+
+## Tier 2 — SHOULD-SHIP for v1 (prevents embarrassment)
+
+| # | ID | Title | Maturity | Effort | ROI | Proof for v1 |
+|---|---|---|---|---|---|---|
+| 17 | **convert-web-research-owned** | Replace Firecrawl proxy with in-process Playwright. ~250 LoC handler + tests; one new dep. | proxy-only | M | 17 | Status flips `live_proxy → owned` in capability-map. iliad_web_research returns markdown via Playwright; no FIRECRAWL_API_KEY needed. Test against 10 real URLs. |
+| 18 | **convert-transactional-email-owned** | Replace Resend proxy with direct SMTP via `nodemailer`. ~200 LoC; one new dep. | proxy-only | M | 15 | Status flips `live_proxy → owned`. Operator supplies SMTP creds; no SaaS layer. Test via Mailpit/Mailcrab. |
+| 19 | **status-page** | Public status page at `status.axis-iliad.com` (Instatus or Atlassian free tier). Auto-updated from uptime monitor. | not-started | M | 13 | Live page; incidents append-only history. |
+| 20 | **prom-metrics-scraped** | Grafana Cloud free tier scrapes `/metrics`. Endpoint exists; nothing consumes it. | partial (endpoint exists, no scraper) | M | 11 | Dashboard shows live request counts + latencies. |
+| 21 | **launch-landing-page** | Honest v1 pitch: "Analyze any codebase → 124 deterministic AI context artifacts via single MCP call." Distinguishes owned vs proxied tools. | not-started | M | 14 | `LandingPage.tsx` route at `/`; routes unauthenticated visitors here, not `UploadPage`. |
+| 22 | **pricing-page-audit** | Every "Coming soon" cell on `PlansPage.tsx` table either becomes a real feature or is removed. Don't ship a pricing table with placeholders. | partial | S | 10 | Manual review + commit; the table reflects only shipped features. |
+| 23 | **tools-index-honesty** | Each `coming_soon` Tools Index entry either gets a working ToolPage or is removed. 9 entries → either ≥5 working or fewer entries shown. | partial | M | 12 | `ToolsIndexPage.tsx`: every entry routes somewhere real. |
+| 24 | **fix-plans-page-auto-fetch** | `e2e_ui_audit.yaml:plans_page_auto_fetch`: PlansPage doesn't auto-fetch from `getPlans()`. Static fallback in place but the API path is the right one. | partial | S | 8 | Export `getPlans()` from `api.ts`; PlansPage calls it on mount; remove static fallback. |
+| 25 | **fix-api-key-connect-button** | `e2e_ui_audit.yaml:api_key_connect_button`: AccountPage uses brittle `document.querySelector('input[placeholder="axis_..."]')`. Replace with React ref. | partial | S | 6 | Refactor to `useRef<HTMLInputElement>`; placeholder text can change without breaking. |
+| 26 | **fix-nested-file-route** | `e2e_ui_audit.yaml:get_generated_file_single`: GET `/v1/projects/:id/generated-files/.ai/foo.json` returns 404 because `/` in route param fails. | partial | S | 7 | Switch to wildcard route segment or encode path; nested files accessible via API. |
+| 27 | **log-aggregation** | Logflare / Better Stack ingests stdout. SSH-and-tail is not v1-grade. | not-started | M | 9 | Search "request_id=…" in dashboard works. |
+| 28 | **changelog-v05x** | `CHANGELOG.md` entry for the v0.5.x line ending at v1.0.0. | not-started | S | 6 | Markdown file in repo root following Keep-A-Changelog. |
+| 29 | **license-aggregation** | `LICENSES.txt` generated from `pnpm ls --json --depth 0` for production deps. | not-started | S | 5 | File committed; license review confirms no GPL leakage. |
+| 30 | **compliance-action-marketplace** | Publish `axis-iliad/compliance-check` to GitHub Marketplace listing. | not-started (manual) | S | 11 | Action visible at github.com/marketplace; install count > 0 within first week. |
+| 31 | **glama-smithery-submit** | Submit to Glama.ai and Smithery.ai (manual review forms). | not-started (manual) | S | 9 | Listed on both sites within 2 weeks of submission. |
+| 32 | **sample-agent-repo** | Public Claude Code starter repo using AXIS MCP. ~200 LoC, end-to-end demo. | not-started | M | 12 | Repo lives at github.com/lastmanupinc-hub/axis-claude-starter; README + screenshot. |
+| 33 | **press-kit** | Logo SVG, 3–5 screenshots, 1-pager PDF, founder bio + photo. | not-started | M | 7 | `/press` directory or external Notion/Drive link. |
+
+**Tier 2 total**: 17 items.
+
+---
+
+## Tier 3 — COULD-SHIP for v1 (improves launch, not blocking)
+
+| # | ID | Title | Maturity | Effort | ROI | Proof for v1 |
+|---|---|---|---|---|---|---|
+| 34 | **convert-embeddings-owned** | In-process ONNX embeddings (fastembed-js / @xenova/transformers / hand-roll). Resolves the model-file-ownership story honesty. | proxy-only | M | 13 | Status flips `live_proxy → owned`. Same vector output shape; OpenAI key no longer required. **Blocked by** model-file decision from user. |
+| 35 | **on-call-rotation** | PagerDuty / Pager.ly. Only matters once we have paying customers asleep. | not-started | M | 6 | Schedule defined; first page acknowledged within SLA. |
+| 36 | **secret-rotation-runbook** | How to rotate `STRIPE_SECRET_KEY`, `OPENAI_API_KEY`, `RESEND_API_KEY`, `GITHUB_WEBHOOK_SECRET`, `R2_SECRET_ACCESS_KEY`, `ADMIN_API_KEY`. | not-started | S | 5 | `RUNBOOK.md` section in repo root. |
+| 37 | **dpa-template** | Data Processing Agreement template for enterprise sales. | not-started | M | 5 | Signed template + signature flow (DocuSign / HelloSign). |
+| 38 | **trademark-filing** | AXIS trademark intent-to-use filing. Lawyer conversation, not engineering. | not-started (legal) | M | 4 | USPTO filing reference. |
+| 39 | **graceful-shutdown-load-test** | Verify SIGTERM drain works under load. The handler exists; load test confirms drain. | proven-but-unverified | S | 8 | Test report: send SIGTERM during 10 concurrent /v1/analyze; all requests finish, no 502s. |
+| 40 | **dark-mode-visual-pass** | Dark-mode tokens exist; visual review across all pages catches contrast/hierarchy bugs. | partial | M | 6 | Per-page screenshot pair (light/dark) reviewed; bugs filed. |
+| 41 | **launch-r-mcp-post** | r/mcp launch post on Reddit. | not-started | S | 7 | Posted Tuesday morning; ≥10 upvotes within 24h is the baseline signal. |
+| 42 | **launch-x-thread** | X (Twitter) thread with demo GIF. | not-started | S | 6 | Posted; engagement tracked. |
+| 43 | **show-hn-submission** | Show HN. Best window: Tuesday 8:00 AM PT. | not-started | S | 7 | Posted; front page is the bonus. |
+| 44 | **empty-state-copy-review** | All pages have shipped empty states; verify copy is humane (not "no items found"). | partial | S | 4 | One-pass review + commit. |
+| 45 | **slo-instrumentation** | Define week-1 SLOs: error rate < 1%, p95 latency < 500ms, 99.9% uptime. | not-started | S | 8 | Targets documented in `SLO.md`; baseline measured from existing metrics. |
+
+**Tier 3 total**: 12 items.
+
+---
+
+## Tier 4 — Explicitly DEFERRED to v1.1+
+
+These appear in the source YAMLs but are out-of-scope for v1.
+
+| ID | Title | Why deferred |
+|---|---|---|
+| `convert-embeddings-owned` model decision | Honest "we trained this" path requires $10k-$100k compute + months. Honest "we host this open-weight model" path requires the model-file decision. | Needs user-level approval and a longer ramp. |
+| `iliad_llm_inference` owned | node-llama-cpp + 2.4GB model file. | XL effort; standalone project. |
+| `iliad_image_generation` owned | GPU required. SDXL/Flux model files. | XL effort. |
+| `iliad_text_to_speech` owned | piper-tts bindings + 30MB voices. | M effort but post-v1 priority. |
+| `iliad_speech_to_text` owned | whisper.cpp + 150MB model. | M effort but post-v1 priority. |
+| `iliad_web_search` owned | Self-hosted SearXNG OR own crawler + Tantivy index. | XL infrastructure project. |
+| `iliad_code_sandbox` owned | Firecracker microVMs on bare metal OR worker_threads/vm. | M effort but post-v1 priority. |
+| `iliad_document_parsing` owned | pdf-parse + mammoth + tesseract.js. | M effort but post-v1 priority. |
+| `iliad_analytics` owned | Self-host PostHog OSS. | M effort + separate infra. |
+| gap_c7_001 / gap_cr_002 / gap_s2_002 | Seat-based + per-repo Stripe meters | Stripe-dashboard product creation manual prereq. Block-on-billing-design. |
+| gap_c7_002 / gap_cr_004 | Overage billing + credit packs | Same Stripe-dashboard manual prereq. |
+| gap_s2_004 / gap_cr_005 | Cross-repo context graph | Requires architecture for multi-repo dep graphs; weeks of work. |
+| gap_s2_005 | Semantic search across snapshot history | Depends on `iliad_embeddings` owned + indexing pipeline. |
+| gap_cr_003 | Inline PR review surface | Deep GitHub API integration; weeks of work. |
+| gap_c7_003 | SOC-2 + SSO | 3-6 month certification process. |
+| gap_s3_004 | Compliance drift alerting | Depends on push-triggered comparison logic. |
+| gap_s3_005 | Audit evidence export for Vanta/Drata | Niche enterprise feature. |
+| gap_s1_003 | Gateway dashboard for 3rd-party MCP operators | Standalone product surface. |
+| gap_s1_004 | Signed webhook fulfillment registry | Depends on 3rd-party MCP operator flow. |
+| `human user audt.yaml`: WF-01..WF-13 | Mandatory non-technical QA workflows | **Blocked**: no test environment URL or credentials provided. |
+| `axis_master_blueprint.yaml`: theme bridge | averionics_theme_bridge.yaml integration | Out of code-only scope. |
+| `memory generator.yaml`: per-folder MEMORY.yaml standard | MEMORY.yaml files instantiated across subsystems | Lower ROI than tier 1-3 work. |
+| `repo_snapshot.yaml`: version skew | Single source of truth for display version | Largely fixed by sessions 097-098; remaining drift is documentation. |
+
+**Tier 4 total**: 23 items.
+
+---
+
+## Shipped Stack — items the YAMLs flag as gaps but are already done
+
+These came up in the agent audit, but cross-checking against commits 4b537ba..0178638 shows they ship:
+
+- **gap_s1_001** (@axis/mpp publishable) — DONE session 100 + README/LICENSE session 101.
+- **gap_s1_002** (MCP monetization starter kit) — DONE session 101 via @axis/mpp README quickstart.
+- **gap_s3_001** (GitHub Action compliance check) — DONE session 100.
+- **gap_s3_002** (PR Check Run with compliance grade) — DONE session 102.
+- **gap_s3_003** (compliance_grade in snapshot response) — DONE session 100.
+- **gap_cr_001 / gap_s2_001** (GitHub App webhook handler + manifest) — DONE session 103.
+- **Iliad strategy Phase 1** (Firecrawl web research MCP tool + x402 + env wiring) — LIVE as `iliad_web_research` / `iliad_web_research_crawl`.
+- **Iliad strategy Phase 3** (Resend `iliad_send_email`) — LIVE as `iliad_transactional_email` (session 108).
+- **Iliad strategy Phase 4** (memory store, namespace isolation) — LIVE as `iliad_vector_database` (session 106).
+- **Iliad strategy Phase 2** (Replicate iliad_image_gen, Fastio iliad_storage) — `iliad_object_storage` LIVE (session 105); image_gen still planned-only.
+- **static_analysis_phase eq_075..eq_086** (Go ecosystem parsing + SQL + domain models) — VERIFIED SHIPPED. `packages/repo-parser/src/parser.ts` exposes `go_module`, `sql_schema`, `domain_models`.
+- **capability_inventory.payment_integration** — STILL BLOCKED on No Fate Platform processor (not actionable from this repo).
+
+---
+
+## Top of the queue — what to execute next
+
+Per `begin.yaml` `next_move_selection_algorithm`:
+
+1. Determine active verticals → v0_core_platform + v18_agentic_commerce.
+2. Gather unblocked qualifying candidates → all Tier 1 items 1-16 except the manual-only ones (7-10, 13, 14, 16).
+3. Score via roi_policy → table above already ranked.
+4. Discard refusal-surface items → none.
+5. Highest-ranked qualifying unblocked candidate:
+
+**→ Tier 1 #7 (`github-app-register`) is highest-ROI strategic move but is MANUAL OPS only** — cannot execute without a human at github.com/settings/apps/new.
+
+**Highest-ROI code-only item: Tier 1 #1 (`catalog-honesty-1`) — hide planned-capability stubs from public `tools/list`.** Cuts the 27-tool catalog to 19 honest tools, ~30 LoC + tests, ~1h work, immediately fixes the "we ship 12 stubs as features" credibility problem.
+
+Then in sequence:
+- #3 (`pricing-tiers`) — wire MPP pricing for the 6 real iliad_* tools, ~80 LoC.
+- #2 (`catalog-honesty-2`) — provider chips on Tools Index, ~40 LoC.
+- #4 (`mpp-402-wiring`) — wire owned tools into 402 negotiation, ~50 LoC.
+- #5 (`privacy-policy`) — new `PrivacyPage.tsx`, ~250 LoC content + route.
+
+**Beginning #1 now.**
+
+---
+
+_Generated 2026-05-22 as the master v1 ROI candidate list. Update on each session — every commit that closes a checkbox is a v1 readiness milestone. The Shipped Stack section grows as `Tier 1-3` rows resolve to `complete`._

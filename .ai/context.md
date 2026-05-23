@@ -1,6 +1,6 @@
 # axis-iliad — Session Context
 
-Last updated: `2026-05-22T22:06:45.510Z`  ·  Snapshot: `329b0539-239b-497b-8e39-92dc6af61793`
+Last updated: `2026-05-23T03:31:45.700Z`  ·  Snapshot: `9eee24ae-a411-463d-aa12-3cfa23eab83d`
 
 Load this file at the start of every working session. It's the agent-readable progress log — what's done, what's in flight, and where to look next.
 
@@ -8,7 +8,7 @@ Load this file at the start of every working session. It's the agent-readable pr
 
 - **Files**: 500
 - **Directories**: 65
-- **Lines of code**: 133,461
+- **Lines of code**: 133,500
 - **Primary language**: TypeScript
 - **Frameworks**: React
 

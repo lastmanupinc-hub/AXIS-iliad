@@ -1,18 +1,18 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-22T22:06:46.195Z",
+  "generated_at": "2026-05-23T03:31:46.017Z",
   "summary": {
     "total_files": 500,
-    "total_loc": 133461,
-    "estimated_total_tokens": 600575,
+    "total_loc": 133500,
+    "estimated_total_tokens": 600750,
     "primary_language": "TypeScript"
   },
   "language_breakdown": [
     {
       "language": "TypeScript",
       "files": 283,
-      "loc": 93731,
-      "estimated_tokens": 421790,
+      "loc": 93770,
+      "estimated_tokens": 421965,
       "percentage": 70
     },
     {
@@ -69,14 +69,14 @@
     {
       "operation": "full_project_context",
       "description": "Include entire project source as context",
-      "input_tokens": 600575,
+      "input_tokens": 600750,
       "output_tokens": 2000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 1.5014,
+          "input_cost": 1.5019,
           "output_cost": 0.02,
-          "total_cost": 1.5214
+          "total_cost": 1.5219
         },
         {
           "model": "GPT-4o-mini",
@@ -86,35 +86,35 @@
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 1.8017,
+          "input_cost": 1.8022,
           "output_cost": 0.03,
-          "total_cost": 1.8317
+          "total_cost": 1.8322
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.4805,
+          "input_cost": 0.4806,
           "output_cost": 0.008,
-          "total_cost": 0.4885
+          "total_cost": 0.4886
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.7507,
+          "input_cost": 0.7509,
           "output_cost": 0.02,
-          "total_cost": 0.7707
+          "total_cost": 0.7709
         }
       ]
     },
     {
       "operation": "selective_context",
       "description": "Include top 10 files + config as context",
-      "input_tokens": 150144,
+      "input_tokens": 150188,
       "output_tokens": 2000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 0.3754,
+          "input_cost": 0.3755,
           "output_cost": 0.02,
-          "total_cost": 0.3954
+          "total_cost": 0.3955
         },
         {
           "model": "GPT-4o-mini",
@@ -124,15 +124,15 @@
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 0.4504,
+          "input_cost": 0.4506,
           "output_cost": 0.03,
-          "total_cost": 0.4804
+          "total_cost": 0.4806
         },
         {
           "model": "Claude Haiku 3.5",
-          "input_cost": 0.1201,
+          "input_cost": 0.1202,
           "output_cost": 0.008,
-          "total_cost": 0.1281
+          "total_cost": 0.1282
         },
         {
           "model": "Gemini 2.5 Pro",
@@ -183,14 +183,14 @@
     {
       "operation": "code_review",
       "description": "Review a diff with project context",
-      "input_tokens": 240230,
+      "input_tokens": 240300,
       "output_tokens": 3000,
       "costs": [
         {
           "model": "GPT-4o",
-          "input_cost": 0.6006,
+          "input_cost": 0.6008,
           "output_cost": 0.03,
-          "total_cost": 0.6306
+          "total_cost": 0.6308
         },
         {
           "model": "GPT-4o-mini",
@@ -200,9 +200,9 @@
         },
         {
           "model": "Claude Sonnet 4",
-          "input_cost": 0.7207,
+          "input_cost": 0.7209,
           "output_cost": 0.045,
-          "total_cost": 0.7657
+          "total_cost": 0.7659
         },
         {
           "model": "Claude Haiku 3.5",
@@ -212,9 +212,9 @@
         },
         {
           "model": "Gemini 2.5 Pro",
-          "input_cost": 0.3003,
+          "input_cost": 0.3004,
           "output_cost": 0.03,
-          "total_cost": 0.3303
+          "total_cost": 0.3304
         }
       ]
     }
@@ -232,5 +232,5 @@
     "Costs are per-operation — multiply by expected daily/weekly frequency"
   ],
   "source_file_count": 500,
-  "source_total_lines": 156594
+  "source_total_lines": 156665
 }

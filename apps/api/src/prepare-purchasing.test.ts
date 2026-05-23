@@ -456,7 +456,7 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(tool!.description).toContain("dispute");
   });
 
-  it("lists 15 total MCP tools", () => {
+  it("MCP_TOOLS array contains all 27 registered tools (12 planned-stubs included; tools/list filters them by default)", () => {
     expect(MCP_TOOLS.length).toBe(27);
   });
 });

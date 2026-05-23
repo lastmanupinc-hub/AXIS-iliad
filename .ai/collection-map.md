@@ -1,6 +1,6 @@
 # Collection Map — axis-iliad
 
-Generated: 2026-05-22T22:06:46.461Z
+Generated: 2026-05-23T03:31:46.322Z
 
 ## Collection Overview
 
@@ -75,7 +75,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | Domain Models | 264 |
 | Routes | 497 |
 | Total Files | 500 |
-| Total LOC | 133461 |
+| Total LOC | 133500 |
 | Render Target | Canvas 2D / WebGL |
 | Parameter Pack | parameter-pack.json |
 

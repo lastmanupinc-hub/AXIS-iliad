@@ -2,7 +2,7 @@
   "registry_version": "1.0",
   "product": "Axis' Iliad",
   "project": "axis-iliad",
-  "generated_at": "2026-05-22",
+  "generated_at": "2026-05-23",
   "axis_base_url": "https://api.axis-iliad.com",
   "mcp_endpoint": "POST /mcp",
   "repo_commerce_signals": {

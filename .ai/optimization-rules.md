@@ -7,9 +7,9 @@
 | Metric | Value |
 |--------|-------|
 | Total files | 500 |
-| Total LOC | 133,461 |
+| Total LOC | 133,500 |
 | Average LOC / file | 267 |
-| Estimated token count | ~600,575 |
+| Estimated token count | ~600,750 |
 
 **Warning:** This project exceeds most context windows. Use selective context loading.
 
@@ -188,8 +188,8 @@ apps/api/src/billing-flow.test.ts (26.8 KB)
 apps/api/src/billing.ts (23.8 KB)
 apps/api/src/budget-probe.test.ts (34.3 KB)
 apps/api/src/checkout-email.test.ts (12.6 KB)
-apps/api/src/counts-consistency.test.ts (0.9 KB)
-apps/api/src/counts.ts (0.7 KB)
+apps/api/src/counts-consistency.test.ts (1.8 KB)
+apps/api/src/counts.ts (1.0 KB)
 apps/api/src/crash-resilience.test.ts (6.3 KB)
 apps/api/src/credits-api.test.ts (10.9 KB)
 apps/api/src/db-endpoints.test.ts (4.1 KB)
@@ -221,8 +221,8 @@ apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (154.6 KB)
+apps/api/src/mcp-server.test.ts (83.2 KB)
+apps/api/src/mcp-server.ts (155.8 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -241,7 +241,7 @@ apps/api/src/paid-client.test.ts (6.8 KB)
 apps/api/src/paid-client.ts (5.6 KB)
 apps/api/src/paid-handlers.test.ts (8.3 KB)
 apps/api/src/paid-handlers.ts (6.9 KB)
-apps/api/src/prepare-purchasing.test.ts (19.4 KB)
+apps/api/src/prepare-purchasing.test.ts (19.5 KB)
 apps/api/src/production-startup.test.ts (8.5 KB)
 apps/api/src/programs-billing.test.ts (12.8 KB)
 apps/api/src/quota-guardrails.test.ts (7.4 KB)
@@ -553,7 +553,7 @@ packages/generator-core/src/generators-remotion.ts (32.1 KB)
 packages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)
 packages/generator-core/src/generators-search.ts (26.1 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
-packages/generator-core/src/generators-skills.ts (43.0 KB)
+packages/generator-core/src/generators-skills.ts (43.1 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (49.9 KB)
 packages/generator-core/src/index.ts (4.1 KB)

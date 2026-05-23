@@ -1,7 +1,7 @@
 version: 1.0.0
-snapshot_id: 329b0539-239b-497b-8e39-92dc6af61793
-project_id: fd880cc5-d4fc-4ac4-8825-a8a1e1eeb279
-generated_at: "2026-05-22T22:06:46.024Z"
+snapshot_id: 9eee24ae-a411-463d-aa12-3cfa23eab83d
+project_id: c76ea892-a03f-4747-8070-8eecf419fb91
+generated_at: "2026-05-23T03:31:45.890Z"
 project:
   name: axis-iliad
   type: monorepo
@@ -14,7 +14,7 @@ detection:
   languages:
     - name: TypeScript
       file_count: 283
-      loc: 93731
+      loc: 93770
       loc_percent: 76.5
     - name: YAML
       file_count: 57
@@ -69,7 +69,7 @@ detection:
 structure_summary:
   total_files: 500
   total_directories: 65
-  total_loc: 133461
+  total_loc: 133500
   top_level_dirs:
     - name: apps
       purpose: monorepo_apps
@@ -185,8 +185,8 @@ apps/api/src/billing-flow.test.ts (26.8 KB)
 apps/api/src/billing.ts (23.8 KB)
 apps/api/src/budget-probe.test.ts (34.3 KB)
 apps/api/src/checkout-email.test.ts (12.6 KB)
-apps/api/src/counts-consistency.test.ts (0.9 KB)
-apps/api/src/counts.ts (0.7 KB)
+apps/api/src/counts-consistency.test.ts (1.8 KB)
+apps/api/src/counts.ts (1.0 KB)
 apps/api/src/crash-resilience.test.ts (6.3 KB)
 apps/api/src/credits-api.test.ts (10.9 KB)
 apps/api/src/db-endpoints.test.ts (4.1 KB)
@@ -218,8 +218,8 @@ apps/api/src/latency-histogram.test.ts (9.1 KB)
 apps/api/src/logger.test.ts (3.7 KB)
 apps/api/src/logger.ts (3.1 KB)
 apps/api/src/logging.test.ts (8.5 KB)
-apps/api/src/mcp-server.test.ts (82.2 KB)
-apps/api/src/mcp-server.ts (154.6 KB)
+apps/api/src/mcp-server.test.ts (83.2 KB)
+apps/api/src/mcp-server.ts (155.8 KB)
 apps/api/src/metrics-branches.test.ts (2.5 KB)
 apps/api/src/metrics.test.ts (4.3 KB)
 apps/api/src/metrics.ts (6.5 KB)
@@ -238,7 +238,7 @@ apps/api/src/paid-client.test.ts (6.8 KB)
 apps/api/src/paid-client.ts (5.6 KB)
 apps/api/src/paid-handlers.test.ts (8.3 KB)
 apps/api/src/paid-handlers.ts (6.9 KB)
-apps/api/src/prepare-purchasing.test.ts (19.4 KB)
+apps/api/src/prepare-purchasing.test.ts (19.5 KB)
 apps/api/src/production-startup.test.ts (8.5 KB)
 apps/api/src/programs-billing.test.ts (12.8 KB)
 apps/api/src/quota-guardrails.test.ts (7.4 KB)
@@ -550,7 +550,7 @@ packages/generator-core/src/generators-remotion.ts (32.1 KB)
 packages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)
 packages/generator-core/src/generators-search.ts (26.1 KB)
 packages/generator-core/src/generators-seo.ts (35.8 KB)
-packages/generator-core/src/generators-skills.ts (43.0 KB)
+packages/generator-core/src/generators-skills.ts (43.1 KB)
 packages/generator-core/src/generators-superpowers.ts (37.4 KB)
 packages/generator-core/src/generators-theme.ts (49.9 KB)
 packages/generator-core/src/index.ts (4.1 KB)

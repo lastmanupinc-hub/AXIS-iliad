@@ -320,7 +320,7 @@ claude mcp add axis-iliad --transport http --url https://axis-api-6c7z.onrender.
 Shareable manifest for agent networks:
 
 ```json
-{"name":"axis-iliad","endpoint":"https://axis-api-6c7z.onrender.com/mcp","transport":"streamable-http","tools":27,"free_tools":["list_programs","search_and_discover_tools","discover_commerce_tools","discover_agentic_purchasing_needs","get_referral_code","get_referral_credits"],"install":"https://axis-api-6c7z.onrender.com/v1/install","for_agents":"https://axis-api-6c7z.onrender.com/for-agents","pricing":{"standard_cents":50,"lite_cents":15,"budget_header":"X-Agent-Budget"}}
+{"name":"axis-iliad","endpoint":"https://axis-api-6c7z.onrender.com/mcp","transport":"streamable-http","tools":19,"free_tools":["list_programs","search_and_discover_tools","discover_commerce_tools","discover_agentic_purchasing_needs","get_referral_code","get_referral_credits"],"install":"https://axis-api-6c7z.onrender.com/v1/install","for_agents":"https://axis-api-6c7z.onrender.com/for-agents","pricing":{"standard_cents":50,"lite_cents":15,"budget_header":"X-Agent-Budget"}}
 ```
 
 ---

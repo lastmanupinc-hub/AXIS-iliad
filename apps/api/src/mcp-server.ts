@@ -352,7 +352,7 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
   },
 ];
 
-const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map(c => c.name));
+export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map(c => c.name));
 
 /**
  * Structured "not yet live" response for a planned capability. The shape is
@@ -2032,7 +2032,10 @@ const AXIS_MCP_ENDPOINT = "https://axis-api-6c7z.onrender.com/mcp";
 const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
 
 export function runDiscoverAgenticCommerceTools(): string {
-  const tools = MCP_TOOLS.map(t => ({
+  // Distribution-facing surface — only advertise the public catalog
+  // (planned-capability stubs hidden, matching tools/list behavior).
+  const publicTools = MCP_TOOLS.filter(t => !PLANNED_CAPABILITY_NAMES.has(t.name));
+  const tools = publicTools.map(t => ({
     name: t.name,
     description: t.description.slice(0, 200),
     auth_required: !FREE_TOOL_NAMES.has(t.name),
@@ -2083,7 +2086,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       version: REGISTRY_VERSION,
       endpoint: AXIS_MCP_ENDPOINT,
       transport: "streamable-http",
-      tools: MCP_TOOLS.length,
+      tools: publicTools.length,
       free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits"],
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
@@ -3077,10 +3080,22 @@ export async function dispatch(
     case "ping":
       return rpcOk(id, {});
 
-    case "tools/list":
-      return rpcOk(id, {
-        tools: MCP_TOOLS,
-      });
+    case "tools/list": {
+      // Catalog honesty (V1_ROI_CANDIDATES Tier-1 #1): public tools/list
+      // returns only the tools that actually run. The 12 planned-capability
+      // stubs (PLANNED_CAPABILITIES) remain in MCP_TOOLS for internal
+      // discovery but are filtered out by default so external clients
+      // see ~15 honest tools instead of 27 mixed.
+      //
+      // Callers can opt back in with params.include_planned === true,
+      // which is how the Tools Index admin views the full roadmap.
+      const lp = params as Record<string, unknown> | null;
+      const includePlanned = lp?.include_planned === true;
+      const tools = includePlanned
+        ? MCP_TOOLS
+        : MCP_TOOLS.filter((t) => !PLANNED_CAPABILITY_NAMES.has(t.name));
+      return rpcOk(id, { tools });
+    }
 
     case "tools/call": {
       const p = params as Record<string, unknown> | null;
@@ -3383,10 +3398,15 @@ export function getMcpServerMeta(): Record<string, unknown> {
       how_it_works: "Share-to-earn benefit: effective dollars per call decrease as referrals increase. Rewards reset each billing cycle.",
       key_exports: ["createReferralCode", "lookupReferralCode", "getReferralTokenUsageModifier", "consumeUsageCredits"],
     },
-    tools: MCP_TOOLS.map((t) => ({
-      name: t.name,
-      description: t.description,
-    })),
+    // Public metadata excludes planned-capability stubs for the same
+    // catalog-honesty reason tools/list does. The full roadmap stays
+    // available via capability-map.yaml for ops + agent discovery.
+    tools: MCP_TOOLS
+      .filter((t) => !PLANNED_CAPABILITY_NAMES.has(t.name))
+      .map((t) => ({
+        name: t.name,
+        description: t.description,
+      })),
     _meta: {
       displayName: "Axis' Iliad \u2014 Agentic Commerce Codebase Intelligence",
       registry_name: REGISTRY_DISPLAY_NAME,

@@ -1,12 +1,12 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot 329b0539-239b-497b-8e39-92dc6af61793).
-# Generated at: 2026-05-22T22:06:45.510Z
+# Generated for axis-iliad (snapshot 9eee24ae-a411-463d-aa12-3cfa23eab83d).
+# Generated at: 2026-05-23T03:31:45.700Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "329b0539-239b-497b-8e39-92dc6af61793"
-  generated_at: "2026-05-22T22:06:45.510Z"
+  snapshot_id: "9eee24ae-a411-463d-aa12-3cfa23eab83d"
+  generated_at: "2026-05-23T03:31:45.700Z"
   capability_count: 14
   capabilities_detected_in_repo: 13
 

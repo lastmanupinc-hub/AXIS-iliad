@@ -17,14 +17,14 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 133,461 LOC |
+| Files | 500 files, 133,500 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 283 | 93,731 | 76.5% |
+| TypeScript | 283 | 93,770 | 76.5% |
 | YAML | 57 | 9,885 | 8.1% |
 | JSON | 60 | 8,079 | 6.6% |
 | Markdown | 74 | 7,944 | 6.5% |
