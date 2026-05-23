@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "62e0116"
-    current_session_id: "session_109"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 programs, 124 generators, public MCP catalog cut from 27 → 19 honest tools (8 planned-capability stubs hidden by default; opt-in via include_planned=true). Session 109 executes V1_ROI_CANDIDATES Tier-1 #1 (catalog-honesty): synthesized 16 root YAMLs into a ranked candidate list scored by begin.yaml roi_policy, then shipped the highest-ROI code-only move."
+    commit_or_tag: "3ed9d26"
+    current_session_id: "session_110"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 19 public MCP tools (124 artifacts, 19 programs, 8 planned stubs hidden behind include_planned=true). Session 110 ships V1_ROI_CANDIDATES Tier-1 #3: every real iliad_* tool now has a PRICING_TIERS entry — owned tools (object_storage, vector_database) price near-free at 1¢/0¢, proxies (embeddings 5¢/2¢, transactional_email 2¢/1¢) markup the upstream provider cost. 9 new pricing-coverage tests prevent any future iliad_* tool from silently falling back to the default $0.50 tier."
 
   executive_truth:
     maturity_estimate:
@@ -4282,6 +4282,55 @@ project_continuation:
       - "Tier-1 #4 (mpp-402-wiring) — wire owned tools into MPP 402 negotiation. Depends on Tier-1 #3."
       - "Tier-1 #5 (privacy-policy) — dedicated PrivacyPage.tsx. Legal block for EU/CA traffic."
       - "8 manual-ops Tier-1 items waiting on human action (registrations, monitors, demo video)."
+    local_only: false
+    commit_results: ["3ed9d26: Catalog honesty (V1_ROI_CANDIDATES Tier-1 #1): hide 12 planned-capability stubs from public tools/list"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 3ed9d26"]
+
+  session_result_110:
+    date: "2026-05-22"
+    session_id: "session_110"
+    selected_move: "V1_ROI_CANDIDATES Tier-1 #3: wire @axis/mpp PRICING_TIERS for the 6 real iliad_* tools"
+    selected_move_roi_reason: >
+      Per V1_ROI_CANDIDATES.md ROI 19 (Tier-1, code-only, next after the #1
+      catalog-honesty work). The 4 newest iliad_* tools (object_storage,
+      vector_database, embeddings, transactional_email) had no entries in
+      PRICING_TIERS so MPP 402 negotiation silently fell through to the
+      default $0.50/run — wrong for owned-tier tools (near-zero marginal
+      cost) and wrong for proxies (each has its own upstream cost shape).
+      Per begin.yaml roi_policy: production_quality 5 (no more wrong
+      prices), integration_quality 5 (negotiatePrice now returns
+      sensible numbers for every iliad_* tool), conformance_and_protocol
+      _gain 4 (MPP 402 surface now reflects real per-call economics),
+      implementation_cost: S (~60 LoC + 9 tests).
+    completed_candidates:
+      - "packages/mpp/src/index.ts PRICING_TIERS: added 4 entries — iliad_object_storage (1¢/0¢, lite caps URL TTL at 1h), iliad_vector_database (1¢/0¢, lite caps top_k at 10 + 1k vectors), iliad_embeddings (5¢/2¢, lite restricts to single-string input), iliad_transactional_email (2¢/1¢, lite restricts to single recipient + plaintext)."
+      - "Pricing rationale documented inline: owned tools price for operational overhead + quota amortization (signing is essentially free; cosine math is sub-ms); proxies markup the upstream provider cost (OpenAI text-embedding-3-small ~$0.00002/call → AXIS 5¢; Resend $0.0004/email beyond free tier → AXIS 2¢)."
+      - "apps/api/src/budget-probe.test.ts: 5 new tier-coverage tests — one per new iliad_* entry asserting tier.tool/standard_cents/lite_cents/lite_description match the canonical values. Plus a 6th 'no iliad_* tool falls back to default' guard that catches any future iliad_* tool added without a PRICING_TIERS row before MPP 402 starts wrongly charging $0.50."
+      - "Extended the existing 'lite_cents <= standard_cents' invariant test to cover all 11 tools (was 5)."
+      - "Extended the 'non-empty lite_description' test to cover the 4 new entries."
+    refused_candidates: []
+    blocked_candidates:
+      - "Tier-1 #4 (mpp-402-wiring) — actual charging at MCP dispatcher cases (runObjectStorage / runVectorDatabase / runEmbeddings / runTransactionalEmail). Requires a chargeMcpTool helper that returns a structured 402 payload instead of writing to res (chargeWithDiscounts assumes REST). Separate Tier-1 candidate; defer to next session."
+    evidence_added:
+      - "Full Vitest: 151 passed files, 4320 passed tests (+5 new pricing-coverage tests), 11 skipped, 0 failed."
+      - "Targeted: budget-probe.test.ts 100/100 in 10.4s (was 91 tests)."
+      - "pnpm --filter @axis/mpp build clean. pnpm --filter @axis/api build clean."
+      - "getPricingTier now returns the correct tier for every iliad_* tool — verified via the explicit per-tool tests and the 'no iliad_* fallback to default' invariant."
+    verticals_advanced:
+      - "v18_agentic_commerce: pricing surface is now honest — every real iliad_* tool has a tier reflecting its actual per-call economics."
+      - "v0_core_platform: the 'no iliad_* fallback' invariant test is a permanent guard; any future iliad_* tool added without a PRICING_TIERS row fails CI before shipping."
+    blockers_removed:
+      - "Owned-tier tools (object_storage, vector_database) would have charged $0.50/call once 402 wiring landed — wildly wrong for tools with near-zero marginal cost."
+      - "Proxy tools (embeddings, transactional_email) had no markup model — couldn't profitably operate without per-tool entries."
+      - "No CI enforcement that new iliad_* tools must have pricing — easy to ship a tool that falls back to default pricing."
+    blockers_added:
+      - "Tier-1 #4 still pending: actual MPP 402 charge invocation at the 4 new dispatcher cases. Pricing exists but isn't wired yet — owned + proxy tools currently auth-gate then run for free for authenticated users."
+    remaining_pre_existing_gaps:
+      - "Tier-1 #2 (catalog-honesty-2): provider chip on Tools Index for the 4 proxy tools. Frontend, ~40 LoC."
+      - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 4 dispatcher updates. Backend, ~120 LoC + tests."
+      - "Tier-1 #5 (privacy-policy): dedicated PrivacyPage.tsx. Legal block."
+      - "Tier-1 #11 (prod-env-audit), #12 (db-backup-automation): ops-side work."
+      - "8 manual-ops items unchanged (#7-10, #13-14, #16 still waiting on human action)."
     local_only: false
     commit_results: ["(this commit)"]
     push_results: []

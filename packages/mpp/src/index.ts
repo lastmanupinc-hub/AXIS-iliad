@@ -124,6 +124,44 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 12,
     lite_description: "Lite mode: crawl up to 5 pages (standard allows up to 100)",
   },
+  // ─── AXIS-owned iliad_* tools ───────────────────────────────
+  // Marginal compute cost is near-zero (HMAC signing, in-process
+  // SQLite). Pricing reflects operational overhead + quota
+  // amortization, not per-call infra. Lite tier is free so RAG
+  // pipelines that chain embeddings → vector_database → object_storage
+  // stay cheap end-to-end.
+  iliad_object_storage: {
+    tool: "iliad_object_storage",
+    standard_cents: 1,
+    lite_cents: 0,
+    lite_description: "Free tier: signed URL with 1h TTL cap (standard allows up to 24h).",
+  },
+  iliad_vector_database: {
+    tool: "iliad_vector_database",
+    standard_cents: 1,
+    lite_cents: 0,
+    lite_description: "Free tier: top_k capped at 10 + 1k vectors per namespace (standard allows top_k 100 / 10k vectors).",
+  },
+  // ─── AXIS-branded proxies (real provider cost upstream) ─────
+  // OpenAI embeddings: $0.02 per 1M tokens for text-embedding-3-small.
+  // Typical agent batch (10-100 short strings ≈ 1k tokens) → real
+  // cost ~$0.00002/call. AXIS markup absorbs the auth + rate-limit
+  // surface so customers don't manage OPENAI_API_KEY directly.
+  iliad_embeddings: {
+    tool: "iliad_embeddings",
+    standard_cents: 5,
+    lite_cents: 2,
+    lite_description: "Lite mode: single-string input only (standard allows batches up to 2048).",
+  },
+  // Resend transactional: $0.0004/email beyond free 3k/mo tier.
+  // AXIS markup covers DKIM/SPF setup + suppression-list management
+  // + the From-address verification cycle.
+  iliad_transactional_email: {
+    tool: "iliad_transactional_email",
+    standard_cents: 2,
+    lite_cents: 1,
+    lite_description: "Lite mode: single recipient + plaintext body only (standard allows up to 50 recipients + HTML).",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

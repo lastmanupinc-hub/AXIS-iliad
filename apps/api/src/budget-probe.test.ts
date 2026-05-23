@@ -154,17 +154,91 @@ describe("getPricingTier", () => {
     expect(tier.lite_cents).toBe(25);
   });
 
-  it("all tiers have lite_cents <= standard_cents", () => {
-    for (const tool of ["prepare_agentic_purchasing", "analyze_repo", "analyze_files", "improve_my_agent_with_axis", "default"]) {
+  // ─── Tier coverage for the 4 new iliad_* tools landed sessions 105-108 ─
+  // (V1_ROI_CANDIDATES Tier-1 #3.) Confirms the pricing surface no longer
+  // falls through to default for the AXIS-owned and live-proxy tools.
+
+  it("returns near-free tier for iliad_object_storage (owned, signing is essentially free)", () => {
+    const tier = getPricingTier("iliad_object_storage");
+    expect(tier.tool).toBe("iliad_object_storage");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/1h|24h|quota|free/i);
+  });
+
+  it("returns near-free tier for iliad_vector_database (owned, sub-ms cosine in SQLite)", () => {
+    const tier = getPricingTier("iliad_vector_database");
+    expect(tier.tool).toBe("iliad_vector_database");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/top_k|namespace|free/i);
+  });
+
+  it("returns markup-over-OpenAI tier for iliad_embeddings (proxy, real provider cost upstream)", () => {
+    const tier = getPricingTier("iliad_embeddings");
+    expect(tier.tool).toBe("iliad_embeddings");
+    expect(tier.standard_cents).toBe(5);
+    expect(tier.lite_cents).toBe(2);
+    expect(tier.lite_description).toMatch(/single-string|batch/i);
+  });
+
+  it("returns markup-over-Resend tier for iliad_transactional_email (proxy, real provider cost upstream)", () => {
+    const tier = getPricingTier("iliad_transactional_email");
+    expect(tier.tool).toBe("iliad_transactional_email");
+    expect(tier.standard_cents).toBe(2);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/recipient|plaintext|HTML/i);
+  });
+
+  it("all tiers have lite_cents <= standard_cents (including the 4 new iliad_* entries)", () => {
+    for (const tool of [
+      "prepare_agentic_purchasing",
+      "analyze_repo",
+      "analyze_files",
+      "improve_my_agent_with_axis",
+      "iliad_web_research",
+      "iliad_web_research_crawl",
+      "iliad_object_storage",
+      "iliad_vector_database",
+      "iliad_embeddings",
+      "iliad_transactional_email",
+      "default",
+    ]) {
       const tier = getPricingTier(tool);
-      expect(tier.lite_cents).toBeLessThanOrEqual(tier.standard_cents);
+      expect(tier.lite_cents, `${tool}.lite_cents > ${tool}.standard_cents`).toBeLessThanOrEqual(tier.standard_cents);
     }
   });
 
-  it("all tiers have non-empty lite_description", () => {
-    for (const tool of ["prepare_agentic_purchasing", "analyze_repo", "improve_my_agent_with_axis"]) {
+  it("all tiers have non-empty lite_description (including the 4 new iliad_* entries)", () => {
+    for (const tool of [
+      "prepare_agentic_purchasing",
+      "analyze_repo",
+      "improve_my_agent_with_axis",
+      "iliad_object_storage",
+      "iliad_vector_database",
+      "iliad_embeddings",
+      "iliad_transactional_email",
+    ]) {
       const tier = getPricingTier(tool);
-      expect(tier.lite_description.length).toBeGreaterThan(0);
+      expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
+    }
+  });
+
+  it("no iliad_* tool falls back to the default tier", () => {
+    // Honest pricing means every iliad_* tool has its own entry. If a new
+    // iliad_* tool ships without a PRICING_TIERS row, this test catches it
+    // before the MPP 402 surface starts charging the default $0.50.
+    const iliadTools = [
+      "iliad_web_research",
+      "iliad_web_research_crawl",
+      "iliad_object_storage",
+      "iliad_vector_database",
+      "iliad_embeddings",
+      "iliad_transactional_email",
+    ];
+    for (const tool of iliadTools) {
+      const tier = getPricingTier(tool);
+      expect(tier.tool, `${tool} fell through to default tier`).toBe(tool);
     }
   });
 });
