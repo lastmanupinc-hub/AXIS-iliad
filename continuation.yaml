@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_120 — uncommitted)"
+    commit_or_tag: "23fa61e"
     current_session_id: "session_120"
     one_sentence_summary: "Axis' Iliad v0.5.3 — owned-tool surface now has comprehensive regression coverage. Session 120 ships 12 new tests: 11 dispatcher-coverage tests (one per owned iliad_* tool exercising the MCP tools/call switch with a minimal valid arg shape, validating that the dispatcher routes correctly + the _usage block carries the right tool name back) plus 1 end-to-end agent-loop composition test that chains 6 owned-tool calls (analytics capture → analytics query → web_search index → web_search search → vector_database upsert → vector_database query) to prove the owned tier composes as an in-AXIS agent loop with cosine self-similarity ≈ 1.0 on the round-trip."
 
@@ -4856,5 +4856,6 @@ project_continuation:
       - "PrivacyPage.tsx."
       - "Refund-on-throw for the 3 meter-before tools (embeddings, transactional_email, llm_inference) — see blocked_candidates."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["23fa61e: Add MCP dispatcher coverage + agent-loop composition tests"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 23fa61e"]
     push_results: []
