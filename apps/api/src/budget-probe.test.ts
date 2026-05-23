@@ -198,6 +198,14 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/batch|limit|free/i);
   });
 
+  it("returns low-markup tier for iliad_llm_inference (in-process inference, CPU-bound)", () => {
+    const tier = getPricingTier("iliad_llm_inference");
+    expect(tier.tool).toBe("iliad_llm_inference");
+    expect(tier.standard_cents).toBe(2);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/max_tokens|temperature|deterministic/i);
+  });
+
   it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
@@ -211,6 +219,7 @@ describe("getPricingTier", () => {
       "iliad_embeddings",
       "iliad_transactional_email",
       "iliad_analytics",
+      "iliad_llm_inference",
       "default",
     ]) {
       const tier = getPricingTier(tool);
@@ -228,6 +237,7 @@ describe("getPricingTier", () => {
       "iliad_embeddings",
       "iliad_transactional_email",
       "iliad_analytics",
+      "iliad_llm_inference",
     ]) {
       const tier = getPricingTier(tool);
       expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
@@ -246,6 +256,7 @@ describe("getPricingTier", () => {
       "iliad_embeddings",
       "iliad_transactional_email",
       "iliad_analytics",
+      "iliad_llm_inference",
     ];
     for (const tool of iliadTools) {
       const tier = getPricingTier(tool);

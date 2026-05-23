@@ -172,6 +172,17 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 0,
     lite_description: "Free tier: capture batch capped at 50 + query limit capped at 25 (standard allows batch 500 + limit 1000).",
   },
+  // AXIS-hosted LLM: in-process inference via node-llama-cpp + a
+  // small GGUF model. Real marginal cost is CPU seconds (2-15s per
+  // 100 tokens on the recommended picks), not a per-token API fee.
+  // Standard price covers compute amortization; lite tier caps
+  // max_tokens at 256 to keep per-call CPU time bounded.
+  iliad_llm_inference: {
+    tool: "iliad_llm_inference",
+    standard_cents: 2,
+    lite_cents: 1,
+    lite_description: "Lite mode: max_tokens capped at 256 + temperature locked at 0 for cheaper, more deterministic output.",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

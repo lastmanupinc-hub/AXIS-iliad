@@ -23,6 +23,12 @@ import {
   type AnalyticsQuery,
 } from "./analytics.js";
 import {
+  runCompletion as runLlmCompletion,
+  isLlmConfigured,
+  getModelPath as getLlmModelPath,
+  type CompletionOptions as LlmCompletionOptions,
+} from "./llm-inference.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -215,24 +221,6 @@ interface PlannedCapability {
 }
 
 export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
-  {
-    name: "iliad_llm_inference",
-    title: "LLM Inference",
-    summary: "Run a chat-completion prompt through an LLM with optional structured-output schema enforcement.",
-    status: "planned_proxy",
-    input_properties: {
-      messages: { type: "array", description: "Standard chat-completion messages (role + content)." },
-      model_tier: { type: "string", description: "fast | balanced | deep — AXIS routes to the cheapest model meeting the tier.", enum: ["fast", "balanced", "deep"] },
-      response_schema: { type: "object", description: "Optional JSON Schema for structured output." },
-    },
-    required_inputs: ["messages"],
-    output_properties: {
-      content: { type: "string", description: "Generated text or stringified structured output." },
-      model_used: { type: "string", description: "Concrete backend model the router selected." },
-    },
-    recommended_provider: { name: "OpenAI", url: "https://platform.openai.com/docs/api-reference/chat" },
-    capability_id: "llm_inference",
-  },
   {
     name: "iliad_image_generation",
     title: "Image Generation",
@@ -687,6 +675,85 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
     namespace: scopedNs,
     result,
   }, null, 2);
+}
+
+async function runLlmInference(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_llm_inference needs Authorization: Bearer <api_key>.");
+  }
+
+  if (!(await isLlmConfigured())) {
+    // Structured envelope mirrors runObjectStorage / runEmbeddings: agents
+    // can branch on `_not_configured === true` without parsing free text.
+    return JSON.stringify({
+      _not_configured: true,
+      tool: "iliad_llm_inference",
+      model_path: getLlmModelPath(),
+      reason: "GGUF model file is not present at AXIS_LLM_MODEL_PATH.",
+      remediation:
+        "Operator must download a GGUF model (recommended: Phi-3-mini Q4_K_M ~2.2GB MIT, TinyLlama-1.1B Q4_K_M ~669MB Apache-2.0, or Llama-3.2-1B Q4_K_M ~808MB Meta-license) and set AXIS_LLM_MODEL_PATH to its absolute path before restarting the API.",
+    }, null, 2);
+  }
+
+  // Two input shapes accepted: a flat { prompt, ... } object, or
+  // a chat-shape { messages: [{role, content}, ...] }. We collapse
+  // messages into a single prompt with system extraction so the
+  // existing completion API can serve both.
+  let opts: LlmCompletionOptions;
+  if (Array.isArray(args.messages)) {
+    const messages = args.messages as Array<{ role?: string; content?: string }>;
+    if (messages.length === 0) {
+      throw new Error("iliad_llm_inference: `messages` must be a non-empty array.");
+    }
+    let system: string | undefined;
+    const userTurns: string[] = [];
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (!m || typeof m !== "object") {
+        throw new Error(`iliad_llm_inference: messages[${i}] must be an object`);
+      }
+      if (typeof m.content !== "string") {
+        throw new Error(`iliad_llm_inference: messages[${i}].content must be a string`);
+      }
+      if (m.role === "system") {
+        system = system === undefined ? m.content : `${system}\n${m.content}`;
+      } else if (m.role === "user" || m.role === "assistant") {
+        userTurns.push(`${m.role}: ${m.content}`);
+      } else {
+        throw new Error(`iliad_llm_inference: messages[${i}].role must be one of system|user|assistant`);
+      }
+    }
+    if (userTurns.length === 0) {
+      throw new Error("iliad_llm_inference: at least one user or assistant message is required");
+    }
+    opts = {
+      prompt: userTurns.join("\n"),
+      system,
+      max_tokens: typeof args.max_tokens === "number" ? args.max_tokens : undefined,
+      temperature: typeof args.temperature === "number" ? args.temperature : undefined,
+      top_k: typeof args.top_k === "number" ? args.top_k : undefined,
+      top_p: typeof args.top_p === "number" ? args.top_p : undefined,
+      seed: typeof args.seed === "number" ? args.seed : undefined,
+      stop: Array.isArray(args.stop) ? (args.stop as string[]) : undefined,
+    };
+  } else if (typeof args.prompt === "string") {
+    opts = {
+      prompt: args.prompt,
+      system: typeof args.system === "string" ? args.system : undefined,
+      max_tokens: typeof args.max_tokens === "number" ? args.max_tokens : undefined,
+      temperature: typeof args.temperature === "number" ? args.temperature : undefined,
+      top_k: typeof args.top_k === "number" ? args.top_k : undefined,
+      top_p: typeof args.top_p === "number" ? args.top_p : undefined,
+      seed: typeof args.seed === "number" ? args.seed : undefined,
+      stop: Array.isArray(args.stop) ? (args.stop as string[]) : undefined,
+    };
+  } else {
+    throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
+  }
+
+  const result = await runLlmCompletion(opts);
+  return JSON.stringify(result, null, 2);
 }
 
 function toolAnnotations(title: string, readOnly: boolean, idempotent: boolean) {
@@ -1547,6 +1614,70 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── iliad_llm_inference (AXIS-hosted via node-llama-cpp + small GGUF) ─
+  // Owned implementation: inference runs in this process via the
+  // node-llama-cpp native addon. Operators choose the model by
+  // setting AXIS_LLM_MODEL_PATH; the recommended picks are
+  // Phi-3-mini (MIT, ~2.2GB), TinyLlama-1.1B (Apache-2.0, ~669MB),
+  // or Llama-3.2-1B (Meta license, ~808MB). Latency is CPU-bound
+  // (2-15s per 100 tokens depending on model). When the model file
+  // isn't present, the tool returns a structured _not_configured
+  // envelope so agents can branch deterministically.
+  {
+    name: "iliad_llm_inference",
+    description:
+      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        prompt: { type: "string", description: "Single-prompt completion input. Use either this OR messages, not both." },
+        messages: { type: "array", description: "Chat-style input. Array of {role: system|user|assistant, content: string}." },
+        system: { type: "string", description: "Optional system prompt (prompt mode only). For messages mode, use role=system entries." },
+        max_tokens: { type: "number", description: "Max tokens to generate. Defaults 512, hard cap 2048." },
+        temperature: { type: "number", description: "Sampling temperature in [0, 2]. Defaults 0.7." },
+        top_k: { type: "number", description: "Top-k sampling (positive integer). Defaults 40." },
+        top_p: { type: "number", description: "Top-p nucleus sampling in (0, 1]. Defaults 0.95." },
+        seed: { type: "number", description: "Optional seed for reproducible output." },
+        stop: { type: "array", description: "Stop sequences. Generation halts when any string in the array is produced." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        text: { type: "string", description: "Generated completion text." },
+        model_used: { type: "string", description: "Basename of the GGUF model file used." },
+        prompt_tokens: { type: "number", description: "Token count of the input prompt (best-effort)." },
+        completion_tokens: { type: "number", description: "Token count of the generated text (best-effort)." },
+        _not_configured: { type: "boolean", description: "True when no GGUF model is present at AXIS_LLM_MODEL_PATH." },
+        model_path: { type: "string", description: "Path checked for the GGUF file (only present when _not_configured=true)." },
+        reason: { type: "string", description: "Why the tool returned _not_configured (only present when true)." },
+        remediation: { type: "string", description: "How the operator should fix the missing-model condition." },
+      },
+    },
+    annotations: toolAnnotations("LLM Inference", false, false),
+    examples: [
+      {
+        name: "Single-prompt completion",
+        input: { prompt: "Summarize: AXIS turns any codebase into deterministic agent-ready artifacts.", max_tokens: 64, temperature: 0.3 },
+        output: '{"text":"AXIS is a deterministic codebase-to-artifact pipeline...","model_used":"Phi-3-mini-4k-instruct-q4.gguf","prompt_tokens":18,"completion_tokens":40}',
+      },
+      {
+        name: "Chat-style with system prompt",
+        input: { messages: [{ role: "system", content: "Reply with exactly one word." }, { role: "user", content: "What color is the sky on a clear day?" }], max_tokens: 8, seed: 1 },
+        output: '{"text":"Blue.","model_used":"Phi-3-mini-4k-instruct-q4.gguf","prompt_tokens":24,"completion_tokens":2}',
+      },
+      {
+        name: "Reproducible output via seed",
+        input: { prompt: "Pick a random number 1-100:", max_tokens: 8, seed: 42, temperature: 0 },
+        output: '{"text":"42","model_used":"Phi-3-mini-4k-instruct-q4.gguf"}',
+      },
+      {
+        name: "Probe before model download",
+        input: { prompt: "anything" },
+        output: '{"_not_configured":true,"tool":"iliad_llm_inference","model_path":"/srv/axis/models/Llama-3.2-1B-Instruct-Q4_K_M.gguf","reason":"GGUF model file is not present...","remediation":"Operator must download a GGUF model..."}',
+      },
+    ],
+  },
   // ─── iliad_analytics (AXIS-owned, SQLite-backed events + aggregations) ─
   // Third member of the owned tier. Capture is one or many events;
   // query is one of four aggregation kinds (count, count_by_event,
@@ -1602,7 +1733,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (7 tools) ─────────────────────────
+  // ─── Planned-capability stubs (6 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
@@ -3290,6 +3421,9 @@ export async function dispatch(
             break;
           case "iliad_analytics":
             text = runAnalytics(toolArgs, req);
+            break;
+          case "iliad_llm_inference":
+            text = await runLlmInference(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

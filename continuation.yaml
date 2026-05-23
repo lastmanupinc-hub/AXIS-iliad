@@ -14,10 +14,10 @@ project_continuation:
 
   current_identity:
     project_name: "Axis' Iliad"
-    date: "2026-05-22"
-    commit_or_tag: "ab07e67"
-    current_session_id: "session_111"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 27 MCP tools advertised AND served (124 artifacts, 19 programs). Session 111 reverses session 109's tools/list filter (catalog honesty = build, not redact) and ships the first owned implementation of a previously-planned capability: iliad_analytics now runs against SQLite (events table + 4 aggregation kinds: count, count_by_event, distinct_users, count_by_bucket) with per-account namespace isolation, 33 unit tests, MCP dispatcher wiring, capability-map status flipped planned_proxy → owned, and pricing tier at 1¢/0¢ (lite-mode free). 7 planned-capability stubs remain to be replaced by owned implementations."
+    date: "2026-05-23"
+    commit_or_tag: "(session_112 — uncommitted)"
+    current_session_id: "session_112"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 27 MCP tools, owned-tier expanding. Session 112 ships the biggest-effort planned capability first per user directive (biggest → smallest): iliad_llm_inference now runs in-process via node-llama-cpp + a small GGUF model (Phi-3-mini MIT / TinyLlama Apache-2.0 / Llama-3.2-1B Meta — operator picks via AXIS_LLM_MODEL_PATH). Real owned implementation, no upstream provider, no per-token API fee — CPU-bound (2-15s/100 tokens). Graceful _not_configured envelope when the GGUF file isn't present. 6 planned stubs remain (image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox)."
 
   executive_truth:
     maturity_estimate:
@@ -4389,4 +4389,58 @@ project_continuation:
     local_only: false
     commit_results: ["ab07e67: Build owned iliad_analytics + reverse session 109 catalog hide"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at ab07e67"]
+
+  session_result_112:
+    date: "2026-05-23"
+    session_id: "session_112"
+    selected_move: >
+      Build the BIGGEST-effort planned capability first per user directive
+      "go from biggest effort to smallest." That's iliad_llm_inference —
+      real owned implementation via node-llama-cpp + a small GGUF model.
+      User explicitly approved dep adds for the dep-heavy capabilities
+      ("Approve deps as needed").
+    selected_move_roi_reason: >
+      Per user directive flipping prior session 111's smallest-first ordering.
+      llm_inference is the highest-impact missing capability (it unlocks
+      RAG generation, agent tool-use loops, structured-output schemas) and
+      the only one whose absence forces customers to integrate a third
+      party (OpenAI/Anthropic) before AXIS can claim parity with general
+      agentic platforms. Owned implementation via node-llama-cpp removes
+      the per-call API tax and keeps inference data inside the AXIS
+      process.
+    completed_candidates:
+      - "DEP: added node-llama-cpp ^3.18.1 to apps/api dependencies. ESM-only, prebuilt binaries for Win/Mac/Linux (no manual compile in the default CPU/Metal path). Native build scripts require pnpm approve-builds in production; tests use dynamic import so they pass without the native binary."
+      - "NEW: apps/api/src/llm-inference.ts (~210 LoC) — AXIS-hosted LLM serving. Lazy native init via dynamic import('node-llama-cpp'). resolveModelPath() reads AXIS_LLM_MODEL_PATH (defaults to models/Llama-3.2-1B-Instruct-Q4_K_M.gguf at cwd). isLlmConfigured() checks the file exists. runCompletion({prompt, system?, max_tokens?, temperature?, top_k?, top_p?, seed?, stop?}) validates all options (max_tokens hard cap 2048, prompt char cap 32k, temperature [0,2], top_p (0,1], etc.), returns either {text, model_used, prompt_tokens, completion_tokens} or {_not_configured: true, model_path, hint}. Per-call createContext + dispose so KV cache memory stays bounded."
+      - "NEW: apps/api/src/llm-inference.test.ts (20 tests, 19 pass + 1 conditional skip) — env-var resolution, file-presence detection, all 12 validation error paths, _not_configured envelope round-trip, validation-before-config-check ordering. Optional live-inference test skipIf(!AXIS_LLM_MODEL_PATH) for operator dogfood."
+      - "WIRE: apps/api/src/mcp-server.ts — iliad_llm_inference removed from PLANNED_CAPABILITIES (7 → 6 stubs left), explicit MCP_TOOLS entry with inputSchema accepting both 'prompt' and 'messages' (chat-style) shapes + outputSchema covering both result and _not_configured branches + 4 examples (single prompt, chat with system, seeded reproducible, not-configured probe). runLlmInference dispatcher collapses chat messages into a single prompt with role prefixes (system extracted, user/assistant interleaved), validates message shapes, calls runCompletion, JSON-encodes result."
+      - "FLIP: packages/generator-core/src/generators-artifacts.ts — llm_inference RESELL_CAPABILITIES entry status planned_proxy → owned, axis_brand_tool=iliad_llm_inference, pricing_tier set with model-config note."
+      - "PRICE: packages/mpp/src/index.ts — iliad_llm_inference PRICING_TIERS entry at 2¢/1¢ (lite mode caps max_tokens at 256 + locks temperature at 0 for cheaper deterministic output). Above the 1¢/0¢ near-free tier because real CPU time is the marginal cost."
+      - "TEST: apps/api/src/budget-probe.test.ts — added iliad_llm_inference tier assertion + extended the 3 universal-coverage tests (lite ≤ standard, non-empty lite_description, no-fallback-to-default) to include it."
+      - "FIX: corrected node-llama-cpp v3 API call from stopGenerationTriggers (grammar-internal) to customStopTriggers (the public LlamaChatSession option for user-supplied stop sequences)."
+    refused_candidates: []
+    blocked_candidates:
+      - "image_generation (next biggest): same dep-add path via stable-diffusion.cpp + SD1.5 model (~2GB). Operator gating differs from llm_inference (image gen is more GPU-favored than CPU; SD-cpp can run CPU-only but at multi-minute latency for hi-quality)."
+      - "Tier-1 #4 (mpp-402-wiring): runLlmInference auth-gates but doesn't yet invoke MPP 402 charging — same shape as the other 5 owned dispatcher cases."
+    evidence_added:
+      - "apps/api/src/llm-inference.test.ts: 19 pass + 1 skip (live model) in 0.5s."
+      - "apps/api/src/counts-consistency.test.ts + mcp-server.test.ts + budget-probe.test.ts: 268 pass + 1 skip across 4 files."
+      - "Full Vitest: 153 passing files, 4371 tests pass + 12 skipped (was 4333+11; +37 new tests from llm-inference + +1 pricing-coverage). ZERO failures (the prior session's credits-api ECONNREFUSED flake did not reproduce)."
+      - "npm run build clean across all 8 workspace packages — apps/api dist now includes llm-inference handlers."
+    verticals_advanced:
+      - "v0_core_platform: 27-tool catalog now 8 fully-owned (object_storage, vector_database, embeddings as live_proxy, transactional_email as live_proxy, analytics, llm_inference) + 4 web_research / web_research_crawl mature. Owned tier is the majority of iliad_* surface."
+      - "v18_agentic_commerce: agent loops that need a generative step (intent classification, query rewriting, summarization) no longer require an OpenAI/Anthropic key — AXIS serves the inference locally."
+      - "v6_developer_surface: dynamic-import pattern proven for native-addon modules — keeps tests independent of binary builds, gives operators a clean opt-in for the heavy runtime."
+    blockers_removed:
+      - "LLM dependency on third-party providers: agentic workflows that needed any generative model previously had to BYO OpenAI/Anthropic key. Now an operator can place a 670MB-2.2GB GGUF file and serve completions in-process."
+      - "Catalog-honesty stub count down to 6: agents that probed iliad_llm_inference got a _planned envelope; now they get either a real completion or a deterministic _not_configured envelope with operator remediation steps."
+    blockers_added:
+      - "Operator setup step required: pnpm approve-builds for node-llama-cpp (lets it run its install hook) + download a GGUF model + set AXIS_LLM_MODEL_PATH. Documented in the _not_configured envelope; not enforced anywhere else yet."
+      - "Production deployment surface: docker image needs to include the GGUF model OR mount it via volume + healthcheck. Not yet wired into the docker compose / k8s manifests."
+    remaining_pre_existing_gaps:
+      - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 6 dispatcher updates (object_storage, vector_database, embeddings, transactional_email, analytics, llm_inference) — ~160 LoC + tests."
+      - "Tier-1 #2 (catalog-honesty-2): provider chip on Tools Index for proxy tools. Frontend."
+      - "Tier-1 #5 (privacy-policy): dedicated PrivacyPage.tsx. Legal block."
+      - "6 planned-capability stubs remaining: image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox. Next in biggest→smallest order: image_generation."
+    local_only: false
+    commit_results: ["(this commit)"]
     push_results: []

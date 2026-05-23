@@ -1488,9 +1488,9 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "llm_inference",
     name: "Chat completion / structured-output LLM call",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
+    axis_brand_tool: "iliad_llm_inference",
+    pricing_tier: "$0.02 standard / $0.01 lite per call (in-process inference; no upstream per-token API fee). Requires operator-configured GGUF model at AXIS_LLM_MODEL_PATH.",
+    status: "owned",
     summary: "Run a prompt through an LLM and return text or JSON, with optional structured-output schema enforcement.",
     providers: [
       { name: "OpenAI", url: "https://openai.com", retail_pricing: "$2.50/1M input · $10/1M output (gpt-4o)" },

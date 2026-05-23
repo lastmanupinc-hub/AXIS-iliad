@@ -17,7 +17,8 @@
     "@axis/snapshots": "workspace:*",
     "@jmondi/oauth2-server": "^4.2.2",
     "jsonwebtoken": "^9.0.3",
-    "mppx": "^0.5.12"
+    "mppx": "^0.5.12",
+    "node-llama-cpp": "^3.18.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
