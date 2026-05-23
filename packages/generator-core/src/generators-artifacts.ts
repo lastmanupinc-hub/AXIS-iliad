@@ -1735,10 +1735,10 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "document_parsing",
     name: "PDF / Office document → structured Markdown",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
-    summary: "Convert PDFs, DOCX, PPTX, and HTML into clean Markdown with extracted tables and headings.",
+    axis_brand_tool: "iliad_document_parsing",
+    pricing_tier: "$0.02 standard / $0.01 lite per call (pure JS — pdfjs-dist for PDF + mammoth for DOCX; no external API, no per-page fee).",
+    status: "owned",
+    summary: "Convert PDFs, DOCX, HTML, and plain text into Markdown. Tables preserved in DOCX output; PDF tables not yet detected. PPTX not yet supported.",
     providers: [
       { name: "LlamaParse", url: "https://www.llamaindex.ai", retail_pricing: "$0.003/page (Free tier 1k pages/day)" },
       { name: "Unstructured.io", url: "https://unstructured.io", retail_pricing: "$0.10/page (Serverless API)" },

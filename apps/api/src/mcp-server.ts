@@ -53,6 +53,10 @@ import {
   type SearchOptions,
 } from "./web-search.js";
 import {
+  runDocumentParsing,
+  type ParseOptions,
+} from "./document-parsing.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -258,26 +262,16 @@ interface PlannedCapability {
 //
 // This pattern (sibling delegation) is also how the broader AXIS platform
 // composes: each process stays focused, each ships independently.
-export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
-  {
-    name: "iliad_document_parsing",
-    title: "Document Parsing",
-    summary: "Convert PDFs, DOCX, PPTX, and HTML into clean Markdown with extracted tables.",
-    status: "planned_proxy",
-    input_properties: {
-      document_url: { type: "string", description: "URL to PDF, DOCX, PPTX, or HTML." },
-      extract_tables: { type: "boolean", description: "Emit tables[] alongside markdown." },
-    },
-    required_inputs: ["document_url"],
-    output_properties: {
-      markdown: { type: "string", description: "Structured markdown with H1-H6 preserved." },
-      tables: { type: "array", description: "Detected tables." },
-      page_count: { type: "number", description: "Total pages parsed." },
-    },
-    recommended_provider: { name: "LlamaParse", url: "https://docs.llamaindex.ai/en/stable/llama_cloud/llama_parse/" },
-    capability_id: "document_parsing",
-  },
-];
+//
+// ─── Catalog-honesty endgame ─────────────────────────────────────
+//
+// As of session 118 the PLANNED_CAPABILITIES array is empty. Every
+// tool advertised in tools/list now serves a real AXIS-owned (or
+// live-proxy) implementation. The PLANNED_CAPABILITIES + dispatcher
+// + tools/list spread machinery is kept in place because the pattern
+// is reusable: any future planned capability gets the same structured
+// `_planned: true` envelope until its owned implementation ships.
+export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [];
 
 export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map(c => c.name));
 
@@ -701,6 +695,29 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
   }
 
   const result = await runLlmCompletion(opts);
+  return JSON.stringify(result, null, 2);
+}
+
+async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_document_parsing needs Authorization: Bearer <api_key>.");
+  }
+  if (args.document_url !== undefined && typeof args.document_url !== "string") {
+    throw new Error("iliad_document_parsing: `document_url` must be a string when provided.");
+  }
+  if (args.document_base64 !== undefined && typeof args.document_base64 !== "string") {
+    throw new Error("iliad_document_parsing: `document_base64` must be a string when provided.");
+  }
+  if (args.mime_type !== undefined && typeof args.mime_type !== "string") {
+    throw new Error("iliad_document_parsing: `mime_type` must be a string when provided.");
+  }
+  const opts: ParseOptions = {
+    document_url: args.document_url as string | undefined,
+    document_base64: args.document_base64 as string | undefined,
+    mime_type: args.mime_type as string | undefined,
+  };
+  const result = await runDocumentParsing(opts);
   return JSON.stringify(result, null, 2);
 }
 
@@ -1892,6 +1909,64 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── iliad_document_parsing (AXIS-owned PDF/DOCX/HTML/text → markdown) ─
+  // Owned implementation: pdfjs-dist for PDFs, mammoth for DOCX,
+  // pragmatic tag-strip for HTML, passthrough for markdown/text.
+  // Both heavy parsers loaded via dynamic import so the API boot
+  // stays fast and tests don't pay the load cost unless they
+  // actually parse something. No third-party API, no per-page fee.
+  // Empty PLANNED_CAPABILITIES after this lands — every advertised
+  // tool serves a real implementation.
+  {
+    name: "iliad_document_parsing",
+    description:
+      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        document_url: { type: "string", description: "https URL to a document. Use this OR document_base64, not both." },
+        document_base64: { type: "string", description: "Base64-encoded document bytes. Use this OR document_url, not both." },
+        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        markdown: { type: "string", description: "Extracted text, formatted as Markdown when the source had structure." },
+        format_detected: { type: "string", description: "pdf | docx | html | markdown | text | unknown." },
+        byte_size: { type: "number", description: "Raw byte size of the source document." },
+        page_count: { type: ["number", "null"] as unknown as string, description: "Page count for PDFs; null otherwise." },
+        table_count: { type: "number", description: "Number of tables detected in the rendered markdown (DOCX only; 0 elsewhere)." },
+        truncated: { type: "boolean", description: "True when the markdown output was capped at the 1 MiB ceiling." },
+        _not_configured: { type: "boolean", description: "True when a prerequisite is missing or the document was unsupported." },
+        reason: { type: "string", description: "document_download_failed | document_decode_failed | unsupported_format | parse_failed | pdf_runtime_missing | docx_runtime_missing (only when _not_configured=true)." },
+        remediation: { type: "string", description: "Operator-actionable fix." },
+      },
+    },
+    annotations: toolAnnotations("Document Parsing", true, true),
+    examples: [
+      {
+        name: "Parse a PDF URL",
+        input: { document_url: "https://example.com/whitepaper.pdf" },
+        output: '{"markdown":"--- page 1 ---\\n\\nAXIS Iliad whitepaper. We turn any codebase into 99 deterministic AI-agent-ready artifacts...","format_detected":"pdf","byte_size":421334,"page_count":12,"table_count":0,"truncated":false}',
+      },
+      {
+        name: "Parse an inline DOCX",
+        input: { document_base64: "UEsDBBQA...", mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+        output: '{"markdown":"# Q3 Report\\n\\n| Metric | Value |\\n| --- | --- |\\n| MRR | $42k |","format_detected":"docx","byte_size":18432,"page_count":null,"table_count":1,"truncated":false}',
+      },
+      {
+        name: "Parse HTML",
+        input: { document_url: "https://example.com/article.html" },
+        output: '{"markdown":"# Title\\n\\nFirst paragraph...","format_detected":"html","byte_size":4096,"page_count":null,"table_count":0,"truncated":false}',
+      },
+      {
+        name: "Unsupported format → structured envelope",
+        input: { document_base64: "<binary garbage>" },
+        output: '{"_not_configured":true,"reason":"unsupported_format","detail":"Document is not recognized as PDF, DOCX, HTML, Markdown, or plain text","remediation":"Pass `mime_type` explicitly..."}',
+      },
+    ],
+  },
   // ─── iliad_web_search (AXIS-owned BM25 search over cached corpus) ─
   // Honest scope: this is NOT a Google/Bing scraper. It's BM25
   // search over content YOUR AXIS instance has indexed. Agents
@@ -2122,7 +2197,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (1 tool) ──────────────────────────
+  // ─── Planned-capability stubs (0 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
@@ -3825,6 +3900,9 @@ export async function dispatch(
             break;
           case "iliad_web_search":
             text = runWebSearch(toolArgs, req);
+            break;
+          case "iliad_document_parsing":
+            text = await runDocumentParsingDispatch(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

@@ -229,6 +229,16 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 0,
     lite_description: "Free tier: max_results capped at 10 (standard allows up to 100). Indexing is always free.",
   },
+  // AXIS-owned document parser: pdfjs-dist for PDF + mammoth for
+  // DOCX + pure JS for HTML/text/markdown. All parsing happens
+  // in-process — no external API, no per-page fee. Lite tier caps
+  // input at 5 MiB to keep CPU bounded; standard goes up to 50 MiB.
+  iliad_document_parsing: {
+    tool: "iliad_document_parsing",
+    standard_cents: 2,
+    lite_cents: 1,
+    lite_description: "Lite mode: input capped at 5 MiB (standard allows up to 50 MiB) + markdown output capped at 256 KiB (standard caps at 1 MiB).",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

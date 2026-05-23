@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "a837c97"
-    current_session_id: "session_117"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (1 planned stub left). Session 117 ships iliad_web_search as an AXIS-owned BM25 search engine over the operator's indexed corpus — honestly scoped as 'NOT a Google/Bing scraper' but a real owned retrieval surface over content the agent has cached via iliad_web_research or indexed directly. Pure SQLite + JS Okapi BM25 (k1=1.5, b=0.75). 5 operations: index (one/batch), search (with optional site host filter + max_results 1-100), delete, delete_namespace, count. Account-scoped namespacing matches iliad_vector_database + iliad_analytics. Snippets centered on the first matched query token (±80 chars)."
+    commit_or_tag: "(session_118 — uncommitted)"
+    current_session_id: "session_118"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, ZERO planned stubs remaining. Catalog-honesty endgame: every advertised tool now serves a real AXIS-owned (10) or live-proxy (2) implementation, with image_generation delegated to the AXIS Foundry sibling. Session 118 ships the final stub iliad_document_parsing — pdfjs-dist for PDF + mammoth for DOCX + pragmatic tag-strip for HTML + passthrough for markdown/text — all in-process, no third-party API, no per-page fee. Format detection via magic-byte sniffing + URL extension hint + optional caller mime_type. Output capped at 1 MiB markdown with truncation marker. _not_configured envelope covers 6 distinct branches (download_failed, decode_failed, unsupported_format, parse_failed, pdf_runtime_missing, docx_runtime_missing)."
 
   executive_truth:
     maturity_estimate:
@@ -4702,4 +4702,55 @@ project_continuation:
     local_only: false
     commit_results: ["a837c97: Build owned iliad_web_search as BM25 over your AXIS-cached corpus"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at a837c97"]
+
+  session_result_118:
+    date: "2026-05-23"
+    session_id: "session_118"
+    selected_move: >
+      Ship the FINAL planned-capability stub per the biggest-→-smallest
+      ordering: iliad_document_parsing. Pure JS path via pdfjs-dist
+      (PDF) + mammoth (DOCX) + pragmatic tag-strip for HTML. Smallest
+      remaining stub by effort — no external runtime to install, no
+      model file to download. Closes the catalog-honesty endgame:
+      PLANNED_CAPABILITIES is now an empty array.
+    selected_move_roi_reason: >
+      Final stub in the biggest-→-smallest sequence (image_generation
+      delegated to Foundry sibling, llm_inference / image_generation /
+      code_sandbox / speech_to_text / text_to_speech / web_search /
+      document_parsing all owned). Catalog-honesty endgame value:
+      every advertised tool now serves a real implementation, every
+      iliad_* has a real pricing tier, and the PLANNED_CAPABILITY
+      stub dispatch machinery is preserved for future capabilities
+      without any current obligation.
+    completed_candidates:
+      - "DEPS: added pdfjs-dist ^4.10.38 + mammoth ^1.12.0 to apps/api. Both ship prebuilt and load via dynamic import — boot cost stays low and tests don't pay the load unless they actually parse."
+      - "NEW: apps/api/src/document-parsing.ts (~380 LoC) — AXIS-owned document → Markdown extractor. Acquisition: audio_url fetch with AbortController + 60s + 50 MiB cap, or audio_base64 decode (mutually exclusive). Format detection: caller mime_type → magic-byte sniff (%PDF-, ZIP PK\\x03\\x04, <!DOCTYPE html / <html prefix) → URL extension hint → printable-byte heuristic. Per-format dispatch: PDF → pdfjs-dist 'legacy' build (Node-safe, no worker plumbing) with text extraction per page; DOCX → mammoth.convertToMarkdown with CJS/ESM interop handling; HTML → tag-strip with script/style body excise + heading + list + entity decode (NOT a heavy converter — caller wanting fancy HTML→MD should bring turndown). Output capped at 1 MiB markdown with explicit truncation marker."
+      - "NEW: apps/api/src/document-parsing.test.ts (16 tests, all pass) — validation matrix (missing/both inputs, non-http url, mime_type bounds), format dispatch (plain text passthrough, markdown mime_type honored, HTML stripping with script/style exclusion + entity decode + heading/list preservation, unsupported-format envelope for non-printable blobs, oversized base64 envelope, output cap with truncation marker, real PDF round-trip via hand-built minimal PDF buffer (validates the pdfjs path end-to-end), fake-ZIP DOCX envelope (validates mammoth-rejection path stays clean)."
+      - "WIRE: apps/api/src/mcp-server.ts — PLANNED_CAPABILITIES emptied (1 → 0 stubs), explicit MCP_TOOLS entry for iliad_document_parsing with 4 examples (PDF URL, inline DOCX, HTML URL, unsupported-format probe). runDocumentParsingDispatch validates arg types, calls runDocumentParsing, JSON-encodes result. The PLANNED_CAPABILITIES dispatch machinery is kept in place per design note — pattern is reusable for any future planned capability."
+      - "FLIP: packages/generator-core/src/generators-artifacts.ts — document_parsing RESELL_CAPABILITIES entry status planned_proxy → owned, axis_brand_tool=iliad_document_parsing, pricing_tier set. Updated summary to reflect the v1 scope (PDF + DOCX + HTML + text; PPTX deferred; PDF table extraction deferred — pdfjs is purely textual)."
+      - "PRICE: packages/mpp/src/index.ts — iliad_document_parsing PRICING_TIERS entry at 2¢/1¢. Pure-JS parsers run in single-digit ms for small docs, sub-second for typical PDFs; pricing dominated by the 50 MiB ceiling allowance, not per-call CPU. Lite tier caps input at 5 MiB + output at 256 KiB."
+      - "TEST: apps/api/src/budget-probe.test.ts — added iliad_document_parsing tier assertion + extended the 3 universal-coverage tests."
+    refused_candidates: []
+    blocked_candidates:
+      - "Tier-1 #4 (mpp-402-wiring): runDocumentParsingDispatch auth-gates but doesn't yet invoke MPP 402 charging. The remaining big-ticket platform work for v1."
+      - "PDF table extraction: pdfjs is purely textual; tables in PDFs become flat text runs. A real table extractor needs a layout-aware parser (camelot / tabula / mistral OCR-style). Deferred."
+      - "PPTX support: would add a third heavy parser (~200 KB officegen-style). Real demand is unclear — deferred."
+    evidence_added:
+      - "apps/api/src/document-parsing.test.ts: 16 pass + 0 skip in 6.2s (including the minimal-PDF round-trip)."
+      - "Full Vitest: 4483 pass + 20 skip + 0 fail across 158 files (+16 new tests from document-parsing + +1 pricing-coverage)."
+      - "npm run build clean across all 8 workspace packages."
+    verticals_advanced:
+      - "v0_core_platform: CATALOG-HONESTY ENDGAME. Of 26 advertised MCP tools, 0 are planned-stubs. 10 are AXIS-owned in-process (object_storage, vector_database, analytics, llm_inference, code_sandbox, speech_to_text, text_to_speech, web_search, document_parsing — plus the original snapshot/context/skills/debug tier), 2 are live_proxy (web_research × 2 → Firecrawl), and the visual-asset slot is delegated to the AXIS Foundry sibling process. Every advertised tool serves a real implementation."
+      - "v18_agentic_commerce: agents now have an end-to-end document workflow on AXIS — fetch (iliad_web_research) → parse (iliad_document_parsing) → index (iliad_web_search) → retrieve (iliad_web_search) → embed (iliad_embeddings → iliad_vector_database) — all in-AXIS, no third-party in the path beyond the optional Firecrawl crawl."
+      - "v6_developer_surface: 4 distinct parser-runtime patterns now ship in apps/api — pure SQLite (analytics, vector-db, web-search), native addon (llm-inference via node-llama-cpp), container runtime (code-sandbox via dockerode), CLI binary (speech-to-text via whisper-cli, text-to-speech via piper), pure-JS deps (document-parsing via pdfjs-dist + mammoth). Each follows the same dynamic-import + _not_configured envelope + tmpfile-stage recipe."
+    blockers_removed:
+      - "Catalog-honesty stub count: 12 → 7 (session 109 hide reversed) → 6 (analytics owned, session 111) → 5 (llm_inference owned, 112) → 4 (image_generation delegated to Foundry, 113) → 3 (code_sandbox owned, 114) → 2 (speech_to_text owned, 115) → 1 (text_to_speech owned, 116, plus web_search 117) → 0 (document_parsing owned, this session). 9 sessions to close the gap from 'we said we have it but it doesn't work' to 'we said we have it AND it works'."
+      - "Document parsing was the last advertised capability where Iliad pointed at a third-party (LlamaParse) instead of an owned implementation. That fix lands here."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 11 dispatcher updates. With every owned tool now real, the next big improvement is metering them — currently they auth-gate then run for free for authenticated users. The pricing tiers exist; only the charge invocation is missing."
+      - "Operator setup consolidation: production deployment now needs (or optionally) Docker daemon (code_sandbox), GGUF llama model (llm_inference), whisper.cpp + GGML model (speech_to_text), Piper + voice files (text_to_speech). Each tool's _not_configured envelope documents the fix locally; worth a single consolidated operator-setup README now that the surface is stable."
+      - "PDF table extraction + PPTX support — deferred (see blocked_candidates)."
+    local_only: false
+    commit_results: ["(this commit)"]
     push_results: []
