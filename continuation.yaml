@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_113 — uncommitted)"
+    commit_or_tag: "4b95fb5"
     current_session_id: "session_113"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools (was 27). Session 113 corrects the catalog scope: image_generation is owned by the AXIS Foundry sibling process (an AI-native 3D resources foundry — avatars + props + vehicles + environments + VFX), so Iliad no longer mints iliad_image_generation. New `sibling_owned` status added to the capability map type, with a structured sibling_process pointer (name + url + rationale) so consumers can route to Foundry directly. Catalog drops from 6 planned stubs to 5 (text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox)."
 
@@ -4487,5 +4487,6 @@ project_continuation:
       - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 6 dispatcher updates."
       - "5 planned-capability stubs remaining (text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox). Next in biggest→smallest order: code_sandbox or speech_to_text — both medium effort, both fit the in-process pattern. (image_generation removed from the queue.)"
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["4b95fb5: Delegate image_generation to AXIS Foundry sibling; remove from Iliad catalog"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 4b95fb5"]
     push_results: []
