@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_114 — uncommitted)"
+    commit_or_tag: "336eb15"
     current_session_id: "session_114"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (4 planned stubs left). Session 114 ships the biggest remaining planned capability per user directive: iliad_code_sandbox now runs untrusted code in an ephemeral Docker container per call with hardened isolation (NetworkMode=none, ReadonlyRootfs, all caps dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody, force-remove on teardown). Supports python/node/bash via a single multi-runtime image (nikolaik/python-nodejs:python3.12-nodejs22-slim). Real OS-level boundary via namespaces + cgroups — not a JS-eval fig leaf. Returns structured _not_configured envelope when Docker daemon unreachable (Render standard services don't expose /var/run/docker.sock)."
 
@@ -4542,5 +4542,6 @@ project_continuation:
       - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 7 dispatcher updates."
       - "4 planned-capability stubs remaining (text_to_speech, speech_to_text, document_parsing, web_search). Next in biggest→smallest order: speech_to_text (or text_to_speech — comparable effort)."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["336eb15: Build owned iliad_code_sandbox via ephemeral Docker container"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 336eb15"]
     push_results: []
