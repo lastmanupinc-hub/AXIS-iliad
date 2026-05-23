@@ -196,6 +196,17 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 2,
     lite_description: "Lite mode: timeout_seconds capped at 10 (standard allows up to 600) + python/bash only (no node).",
   },
+  // AXIS-owned audio transcription via whisper.cpp + ffmpeg-static.
+  // CPU-bound inference but throughput is reasonable (base.en runs
+  // ~1× realtime on a modern CPU). Standard covers the resample +
+  // model-load + transcription chain; lite tier caps audio at 60s
+  // so cheap probes can't tie up a worker on a long podcast.
+  iliad_speech_to_text: {
+    tool: "iliad_speech_to_text",
+    standard_cents: 3,
+    lite_cents: 1,
+    lite_description: "Lite mode: audio capped at 60 seconds (standard allows up to 30 minutes) + word_timestamps disabled.",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

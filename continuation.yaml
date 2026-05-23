@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "336eb15"
-    current_session_id: "session_114"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (4 planned stubs left). Session 114 ships the biggest remaining planned capability per user directive: iliad_code_sandbox now runs untrusted code in an ephemeral Docker container per call with hardened isolation (NetworkMode=none, ReadonlyRootfs, all caps dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody, force-remove on teardown). Supports python/node/bash via a single multi-runtime image (nikolaik/python-nodejs:python3.12-nodejs22-slim). Real OS-level boundary via namespaces + cgroups — not a JS-eval fig leaf. Returns structured _not_configured envelope when Docker daemon unreachable (Render standard services don't expose /var/run/docker.sock)."
+    commit_or_tag: "(session_115 — uncommitted)"
+    current_session_id: "session_115"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (3 planned stubs left). Session 115 ships iliad_speech_to_text as an AXIS-owned implementation via whisper.cpp shell-out + ffmpeg-static resampler. Accepts audio_url (https, fetch + 100 MiB cap) or audio_base64 (inline bytes), resamples to 16 kHz mono WAV, shells out to whisper-cli, parses the JSON sidecar, returns {text, segments[{start,end,text}], language_detected, duration_seconds, model_used}. No third-party API. Graceful _not_configured envelope covers 5 prerequisite-missing branches (model_file_not_found, whisper_cli_not_found, ffmpeg_static_missing, audio_download_failed, audio_decode_failed)."
 
   executive_truth:
     maturity_estimate:
@@ -4544,4 +4544,54 @@ project_continuation:
     local_only: false
     commit_results: ["336eb15: Build owned iliad_code_sandbox via ephemeral Docker container"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 336eb15"]
+
+  session_result_115:
+    date: "2026-05-23"
+    session_id: "session_115"
+    selected_move: >
+      Build the next biggest remaining planned capability per the
+      biggest-→-smallest ordering: iliad_speech_to_text. Chose
+      shell-out to whisper-cli + ffmpeg-static over nodejs-whisper
+      (postinstall compiles whisper.cpp from source, fails on Windows
+      CI) and @huggingface/transformers via ONNX Runtime (adds ~720 MB
+      onnxruntime-node to the install). Shell-out keeps the npm
+      install lean and pushes the inference runtime to operator setup.
+    selected_move_roi_reason: >
+      Per user directive (biggest → smallest). Of the 4 remaining
+      stubs (speech_to_text, text_to_speech, web_search, document_parsing)
+      speech_to_text and text_to_speech are comparable effort but
+      speech_to_text has higher demand surface area — agent loops that
+      ingest podcasts/meetings/voicemail are more common than TTS
+      synthesis. Same pattern as llm_inference + code_sandbox: lazy
+      dynamic-import + structured _not_configured envelope + cleanup-
+      in-finally tmpfile staging.
+    completed_candidates:
+      - "DEP: added ffmpeg-static ^5.3.0 to apps/api. Prebuilt ffmpeg binaries for Win/Mac/Linux (~30 MB), MIT/LGPL. postinstall fetches the binary; tests pass without it (the module loads lazily, only the runtime path matters)."
+      - "NEW: apps/api/src/speech-to-text.ts (~340 LoC) — AXIS-owned audio transcription. resolveModelPath() / resolveCliPath() read env vars (AXIS_WHISPER_MODEL_PATH default models/ggml-base.en.bin, AXIS_WHISPER_CLI_PATH default whisper-cli on PATH). isWhisperModelPresent + isWhisperCliAvailable + getFfmpegPath probe all three prerequisites separately; isSttConfigured ANDs them. Acquisition path: audio_url → fetch with AbortController + 60s timeout + 100 MiB cap, or audio_base64 → Buffer.from(b64,'base64'). Then ffmpeg-static resample to 16 kHz mono WAV → whisper-cli with -oj/-of/--no-prints/-l/--prompt/-ml flags → JSON sidecar parse with offsets-preferred / timestamps-fallback. All tmpfiles staged in os.tmpdir under a random subdir, fs.rm recursive in finally. spawnWithTimeout wraps both binary calls with SIGKILL on overrun (5 min ffmpeg, 30 min whisper)."
+      - "NEW: apps/api/src/speech-to-text.test.ts (19 tests, 18 pass + 1 conditional skip for AXIS_RUN_WHISPER_TESTS=1) — env-var path resolution (cli + model), all validation branches (missing/both audio inputs, non-http url, language length cap, initial_prompt char cap, word_timestamps type), isWhisperModelPresent file-present-vs-absent, isSttConfigured boolean-without-throw guarantee, runTranscription model_file_not_found envelope round-trip with detail+remediation."
+      - "WIRE: apps/api/src/mcp-server.ts — iliad_speech_to_text removed from PLANNED_CAPABILITIES (4 → 3 stubs left), explicit MCP_TOOLS entry with inputSchema (audio_url/audio_base64/language/initial_prompt/word_timestamps) + outputSchema covering both result and _not_configured branches + 3 examples (URL transcription, inline base64 with language hint, not-configured probe). runSpeechToText dispatcher validates arg types, builds TranscriptionOptions, calls runTranscription, JSON-encodes result. Annotation marks tool idempotent (same audio → same transcript when language/prompt fixed)."
+      - "FLIP: packages/generator-core/src/generators-artifacts.ts — speech_to_text RESELL_CAPABILITIES entry status planned_proxy → owned, axis_brand_tool=iliad_speech_to_text, pricing_tier set with the operator-setup caveat baked in."
+      - "PRICE: packages/mpp/src/index.ts — iliad_speech_to_text PRICING_TIERS entry at 3¢/1¢. Mid tier — between llm_inference (2¢/1¢) and code_sandbox (5¢/2¢) — because whisper-base.en runs ~1× realtime so a typical 30-90s clip costs sub-second CPU plus ffmpeg overhead. Lite tier caps audio at 60s + disables word_timestamps."
+      - "TEST: apps/api/src/budget-probe.test.ts — added iliad_speech_to_text tier assertion + extended the 3 universal-coverage tests."
+    refused_candidates: []
+    blocked_candidates:
+      - "Tier-1 #4 (mpp-402-wiring): runSpeechToText auth-gates but doesn't yet invoke MPP 402 charging."
+      - "Diarization: planned-stub described speaker labels via pyannote-audio. Not in this v1 — pyannote adds Python + torch deps the AXIS Iliad process doesn't ship. Documented in the capability map's outputs/differentiators but not exposed in the v1 inputSchema."
+    evidence_added:
+      - "apps/api/src/speech-to-text.test.ts: 18 pass + 1 skip in 0.6s."
+      - "Full Vitest: 4405 pass + 19 skip + 0 fail across 155 files (+19 new tests from speech-to-text + +1 pricing-coverage)."
+      - "npm run build clean across all 8 workspace packages."
+    verticals_advanced:
+      - "v0_core_platform: owned tier now covers the agent voice-input loop. iliad_speech_to_text → iliad_llm_inference → iliad_transactional_email is a fully-AXIS pipeline for an agent that processes incoming voicemail."
+      - "v6_developer_surface: shell-out-with-_not_configured pattern is now proven for native (node-llama-cpp), container (dockerode), AND CLI-binary (whisper-cli) dependencies. Reusable recipe for the remaining 3 stubs."
+    blockers_removed:
+      - "Owned audio transcription previously required BYO Deepgram/AssemblyAI/OpenAI Whisper key. Now an operator with whisper.cpp installed serves transcription in-process at zero per-minute provider fee."
+      - "Catalog-honesty stub count down to 3."
+    blockers_added:
+      - "Operator setup growing: production deployment now needs Docker daemon (code_sandbox), GGUF llama model (llm_inference), AND whisper.cpp + GGML model (speech_to_text). Documented per-tool in _not_configured envelopes but not yet consolidated into a single operator setup README."
+    remaining_pre_existing_gaps:
+      - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 8 dispatcher updates."
+      - "3 planned-capability stubs remaining (text_to_speech, web_search, document_parsing). Next in biggest→smallest order: text_to_speech (piper-tts shell-out, comparable effort to speech_to_text)."
+    local_only: false
+    commit_results: ["(this commit)"]
     push_results: []

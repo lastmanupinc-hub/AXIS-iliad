@@ -33,6 +33,10 @@ import {
   type SandboxOptions,
 } from "./code-sandbox.js";
 import {
+  runTranscription,
+  type TranscriptionOptions,
+} from "./speech-to-text.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -256,23 +260,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     },
     recommended_provider: { name: "ElevenLabs", url: "https://elevenlabs.io/docs/api-reference/text-to-speech" },
     capability_id: "text_to_speech",
-  },
-  {
-    name: "iliad_speech_to_text",
-    title: "Speech-to-Text",
-    summary: "Transcribe audio to text with speaker diarization and timestamp segmentation.",
-    status: "planned_proxy",
-    input_properties: {
-      audio_url: { type: "string", description: "URL to audio file." },
-      diarize: { type: "boolean", description: "Emit speaker labels per segment. Defaults to false." },
-    },
-    required_inputs: ["audio_url"],
-    output_properties: {
-      transcript: { type: "string", description: "Full transcript text." },
-      segments: { type: "array", description: "Timestamped segments." },
-    },
-    recommended_provider: { name: "Deepgram", url: "https://developers.deepgram.com/reference/listen-file" },
-    capability_id: "speech_to_text",
   },
   {
     name: "iliad_document_parsing",
@@ -734,6 +721,37 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
   }
 
   const result = await runLlmCompletion(opts);
+  return JSON.stringify(result, null, 2);
+}
+
+async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_speech_to_text needs Authorization: Bearer <api_key>.");
+  }
+  if (args.audio_url !== undefined && typeof args.audio_url !== "string") {
+    throw new Error("iliad_speech_to_text: `audio_url` must be a string when provided.");
+  }
+  if (args.audio_base64 !== undefined && typeof args.audio_base64 !== "string") {
+    throw new Error("iliad_speech_to_text: `audio_base64` must be a string when provided.");
+  }
+  if (args.language !== undefined && typeof args.language !== "string") {
+    throw new Error("iliad_speech_to_text: `language` must be a string when provided.");
+  }
+  if (args.initial_prompt !== undefined && typeof args.initial_prompt !== "string") {
+    throw new Error("iliad_speech_to_text: `initial_prompt` must be a string when provided.");
+  }
+  if (args.word_timestamps !== undefined && typeof args.word_timestamps !== "boolean") {
+    throw new Error("iliad_speech_to_text: `word_timestamps` must be a boolean when provided.");
+  }
+  const opts: TranscriptionOptions = {
+    audio_url: args.audio_url as string | undefined,
+    audio_base64: args.audio_base64 as string | undefined,
+    language: args.language as string | undefined,
+    initial_prompt: args.initial_prompt as string | undefined,
+    word_timestamps: args.word_timestamps as boolean | undefined,
+  };
+  const result = await runTranscription(opts);
   return JSON.stringify(result, null, 2);
 }
 
@@ -1749,6 +1767,62 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── iliad_speech_to_text (AXIS-owned via whisper.cpp shell-out) ─
+  // Owned implementation: agent passes audio (URL or base64), we
+  // download/decode → ffmpeg-static resamples to 16kHz mono WAV →
+  // whisper-cli emits JSON sidecar with timestamped segments →
+  // we parse + return. No third-party API, no per-minute provider
+  // fee. Operator installs whisper.cpp once + places a GGML model
+  // file; everything else is AXIS-owned. Graceful _not_configured
+  // envelope covers all four prerequisite-missing branches
+  // (model_file_not_found, whisper_cli_not_found, ffmpeg_static_missing,
+  // audio_download_failed / audio_decode_failed).
+  {
+    name: "iliad_speech_to_text",
+    description:
+      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        audio_url: { type: "string", description: "https URL to an audio file. Use this OR audio_base64, not both." },
+        audio_base64: { type: "string", description: "Base64-encoded audio bytes. Use this OR audio_url, not both." },
+        language: { type: "string", description: "ISO-639-1 language code (en, fr, ja, ...) or 'auto' to autodetect. Defaults 'auto'." },
+        initial_prompt: { type: "string", description: "Optional bias prompt (≤512 chars) — useful for spelling of rare names." },
+        word_timestamps: { type: "boolean", description: "Emit word-level timestamps within segments. Defaults false." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        text: { type: "string", description: "Full transcript text, joined from segments." },
+        segments: { type: "array", description: "[{start: seconds, end: seconds, text}] timestamped segments." },
+        language_detected: { type: "string", description: "Language code whisper detected (or echoed from input language)." },
+        duration_seconds: { type: "number", description: "Audio duration as inferred from the last segment end timestamp." },
+        model_used: { type: "string", description: "Basename of the GGML model file used." },
+        _not_configured: { type: "boolean", description: "True when a prerequisite is missing." },
+        reason: { type: "string", description: "model_file_not_found | whisper_cli_not_found | ffmpeg_static_missing | audio_download_failed | audio_decode_failed (only when _not_configured=true)." },
+        remediation: { type: "string", description: "Operator-actionable fix for the unconfigured prerequisite." },
+      },
+    },
+    annotations: toolAnnotations("Speech-to-Text", false, true),
+    examples: [
+      {
+        name: "Transcribe a URL",
+        input: { audio_url: "https://example.com/podcast-clip.mp3" },
+        output: '{"text":"Welcome to the show...","segments":[{"start":0,"end":2.4,"text":"Welcome to the show..."}],"language_detected":"en","duration_seconds":12.6,"model_used":"ggml-base.en.bin"}',
+      },
+      {
+        name: "Transcribe inline audio with language hint",
+        input: { audio_base64: "<base64-mp3>", language: "fr" },
+        output: '{"text":"Bonjour le monde...","segments":[...],"language_detected":"fr","duration_seconds":3.1,"model_used":"ggml-base.en.bin"}',
+      },
+      {
+        name: "Probe before model is placed",
+        input: { audio_url: "https://x.com/a.mp3" },
+        output: '{"_not_configured":true,"reason":"model_file_not_found","detail":"No GGML model at /srv/axis/models/ggml-base.en.bin","remediation":"Operator must download a GGML whisper model..."}',
+      },
+    ],
+  },
   // ─── iliad_analytics (AXIS-owned, SQLite-backed events + aggregations) ─
   // Third member of the owned tier. Capture is one or many events;
   // query is one of four aggregation kinds (count, count_by_event,
@@ -1804,7 +1878,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (4 tools) ─────────────────────────
+  // ─── Planned-capability stubs (3 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
@@ -3498,6 +3572,9 @@ export async function dispatch(
             break;
           case "iliad_code_sandbox":
             text = await runCodeSandbox(toolArgs, req);
+            break;
+          case "iliad_speech_to_text":
+            text = await runSpeechToText(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

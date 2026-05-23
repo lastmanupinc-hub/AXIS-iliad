@@ -214,6 +214,14 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/timeout|seconds|python|bash/i);
   });
 
+  it("returns mid tier for iliad_speech_to_text (CPU-bound whisper.cpp)", () => {
+    const tier = getPricingTier("iliad_speech_to_text");
+    expect(tier.tool).toBe("iliad_speech_to_text");
+    expect(tier.standard_cents).toBe(3);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/seconds|audio|word_timestamps/i);
+  });
+
   it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
@@ -229,6 +237,7 @@ describe("getPricingTier", () => {
       "iliad_analytics",
       "iliad_llm_inference",
       "iliad_code_sandbox",
+      "iliad_speech_to_text",
       "default",
     ]) {
       const tier = getPricingTier(tool);
@@ -248,6 +257,7 @@ describe("getPricingTier", () => {
       "iliad_analytics",
       "iliad_llm_inference",
       "iliad_code_sandbox",
+      "iliad_speech_to_text",
     ]) {
       const tier = getPricingTier(tool);
       expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
@@ -268,6 +278,7 @@ describe("getPricingTier", () => {
       "iliad_analytics",
       "iliad_llm_inference",
       "iliad_code_sandbox",
+      "iliad_speech_to_text",
     ];
     for (const tool of iliadTools) {
       const tier = getPricingTier(tool);

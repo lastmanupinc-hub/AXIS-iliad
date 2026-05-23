@@ -1694,9 +1694,9 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "speech_to_text",
     name: "Audio transcription with diarization",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
+    axis_brand_tool: "iliad_speech_to_text",
+    pricing_tier: "$0.03 standard / $0.01 lite per call (CPU-bound whisper.cpp inference; in-process shell-out, no per-minute provider fee). Requires operator-installed whisper-cli + GGML model file.",
+    status: "owned",
     summary: "Transcribe audio to text with speaker diarization and timestamp segmentation.",
     providers: [
       { name: "Deepgram", url: "https://deepgram.com", retail_pricing: "$0.0043/min (Nova-3)" },
