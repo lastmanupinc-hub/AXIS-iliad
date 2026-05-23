@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_116 — uncommitted)"
+    commit_or_tag: "60e6b2b"
     current_session_id: "session_116"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (2 planned stubs left). Session 116 ships iliad_text_to_speech as an AXIS-owned implementation via Piper (rhasspy/piper) shell-out + ffmpeg-static for optional MP3/Opus transcoding. Accepts text (1-5000 chars) + optional voice slug + optional format (wav/mp3/opus), returns {audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}. WAV header parsed for accurate sample_rate + duration metadata. Graceful _not_configured envelope covers 7 distinct prerequisite-missing branches (piper_cli_not_found, voice_dir_missing, no_voices_available, voice_model_not_found, voice_config_not_found, ffmpeg_static_missing, synthesis_failed). Voice slug validation rejects path traversal."
 
@@ -4645,5 +4645,6 @@ project_continuation:
       - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 9 dispatcher updates."
       - "2 planned-capability stubs remaining (web_search, document_parsing). Next in biggest→smallest order: web_search (BM25 index over crawls or wrap Brave/Searx; user previously left this open as one of two paths)."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["60e6b2b: Build owned iliad_text_to_speech via Piper + ffmpeg-static"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 60e6b2b"]
     push_results: []
