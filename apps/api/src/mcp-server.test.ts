@@ -2310,3 +2310,273 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(typeof usage.monthly_allowance).toBe("number");
   });
 });
+
+// ─── Owned-tool dispatcher coverage ──────────────────────────────
+//
+// One test per owned iliad_* tool exercising the MCP dispatch path
+// with a minimal valid argument shape. This catches dispatcher
+// routing regressions (a missing case, wrong handler, swapped
+// names) and verifies the _usage block carries the right tool name
+// back for every owned tool.
+//
+// In the CI environment most operator-dependent prerequisites
+// (Docker, GGUF model, whisper.cpp, Piper voices) are absent, so
+// these calls return _not_configured envelopes. That's the right
+// shape to assert against — we're testing the dispatcher, not the
+// underlying runtime.
+
+describe("POST /mcp — owned-tool dispatcher coverage", () => {
+  function parseToolResult(r: Res): { isError: boolean; parsed: Record<string, unknown>; usage: Record<string, unknown> } {
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(content[0].text) as Record<string, unknown>;
+    } catch {
+      // Some error texts are plain strings ("Error: ..."); coerce so tests can still assert shape.
+      parsed = { _raw: content[0].text };
+    }
+    return {
+      isError: result.isError === true,
+      parsed,
+      usage: (result._usage as Record<string, unknown>) ?? {},
+    };
+  }
+
+  it("iliad_object_storage dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 300, method: "tools/call",
+      params: { name: "iliad_object_storage", arguments: { key: "test/k", operation: "put" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_object_storage");
+  });
+
+  it("iliad_vector_database dispatches correctly (suite tier passes through)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 301, method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: { operation: "upsert", namespace: "dispatcher-cov", vectors: [{ id: "x", vector: [0.1] }] },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.operation).toBe("upsert");
+    expect(usage.tool).toBe("iliad_vector_database");
+  });
+
+  it("iliad_embeddings dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 302, method: "tools/call",
+      params: { name: "iliad_embeddings", arguments: { input: "axis test" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_embeddings");
+  });
+
+  it("iliad_transactional_email dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 303, method: "tools/call",
+      params: {
+        name: "iliad_transactional_email",
+        arguments: { to: "test@example.com", subject: "test", body_text: "body" },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_transactional_email");
+  });
+
+  it("iliad_analytics dispatches correctly (suite tier passes through)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 304, method: "tools/call",
+      params: {
+        name: "iliad_analytics",
+        arguments: { operation: "capture", namespace: "dispatcher-cov", event: { event: "test" } },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.operation).toBe("capture");
+    expect(usage.tool).toBe("iliad_analytics");
+  });
+
+  it("iliad_llm_inference dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 305, method: "tools/call",
+      params: { name: "iliad_llm_inference", arguments: { prompt: "hi" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_llm_inference");
+  });
+
+  it("iliad_code_sandbox dispatches correctly (returns _not_configured without Docker)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 306, method: "tools/call",
+      params: { name: "iliad_code_sandbox", arguments: { language: "python", code: "print(1)" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    // Either we got the _not_configured envelope (CI) or we ran (local dev has Docker).
+    // Both are valid dispatcher outcomes.
+    expect(isError).toBe(false);
+    expect(usage.tool).toBe("iliad_code_sandbox");
+    if (parsed._not_configured !== true) {
+      expect(typeof parsed.stdout).toBe("string");
+      expect(typeof parsed.exit_code).toBe("number");
+    }
+  }, 60_000);
+
+  it("iliad_speech_to_text dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 307, method: "tools/call",
+      params: { name: "iliad_speech_to_text", arguments: { audio_url: "https://x.com/a.mp3" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_speech_to_text");
+  });
+
+  it("iliad_text_to_speech dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 308, method: "tools/call",
+      params: { name: "iliad_text_to_speech", arguments: { text: "hello" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_text_to_speech");
+  });
+
+  it("iliad_web_search dispatches correctly (suite tier passes through)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 309, method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: { operation: "count", namespace: "dispatcher-cov" },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.operation).toBe("count");
+    expect(typeof parsed.total).toBe("number");
+    expect(usage.tool).toBe("iliad_web_search");
+  });
+
+  it("iliad_document_parsing dispatches correctly (plain text passthrough)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 310, method: "tools/call",
+      params: {
+        name: "iliad_document_parsing",
+        arguments: { document_base64: Buffer.from("hello world", "utf8").toString("base64") },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.format_detected).toBe("text");
+    expect(parsed.markdown).toBe("hello world");
+    expect(usage.tool).toBe("iliad_document_parsing");
+  });
+});
+
+// ─── Agent-loop composition test ─────────────────────────────────
+//
+// End-to-end agent flow exercising the owned-tier as a composable
+// unit: capture an event, look up its count, index a doc, search
+// for it, store the search hit as a vector. Validates that
+// account-scoped state is consistent across tools (each call
+// scopes via the same account_id) and that the agent can chain
+// owned tools without leaving AXIS.
+
+describe("POST /mcp — owned-tier agent loop composition", () => {
+  function callTool(tool: string, args: Record<string, unknown>, id: number, key: string): Promise<Res> {
+    return post("/mcp", {
+      jsonrpc: "2.0", id, method: "tools/call",
+      params: { name: tool, arguments: args },
+    }, key);
+  }
+
+  it("agent runs analytics + web_search + vector_database end-to-end against its own corpus", async () => {
+    // Use the suite-tier key so credits are never the bottleneck.
+    const ns = "agent-loop-" + Date.now();
+
+    // 1. Capture an event.
+    const captureR = await callTool("iliad_analytics", {
+      operation: "capture",
+      namespace: ns,
+      event: { event: "page_view", user_id: "u_test", properties: { url: "https://docs/intro" } },
+    }, 400, apiKey);
+    expect(captureR.status).toBe(200);
+    const captureResult = (captureR.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(captureResult.isError).toBe(false);
+
+    // 2. Query the event count back. Should be at least 1.
+    const queryR = await callTool("iliad_analytics", {
+      operation: "query",
+      namespace: ns,
+      query: { kind: "count" },
+    }, 401, apiKey);
+    expect(queryR.status).toBe(200);
+    const queryParsed = JSON.parse(
+      ((queryR.data as Record<string, unknown>).result as { content: Array<{ text: string }> }).content[0].text,
+    ) as Record<string, unknown>;
+    const queryInner = queryParsed.result as { total?: number };
+    expect(queryInner.total).toBeGreaterThanOrEqual(1);
+
+    // 3. Index a document.
+    const indexR = await callTool("iliad_web_search", {
+      operation: "index",
+      namespace: ns,
+      document: { doc_id: "d1", url: "https://docs/intro", content: "AXIS Iliad is a deterministic codebase analyzer." },
+    }, 402, apiKey);
+    expect(indexR.status).toBe(200);
+    expect((indexR.data as Record<string, unknown>).result).toMatchObject({ isError: false });
+
+    // 4. Search for it (BM25 should match).
+    const searchR = await callTool("iliad_web_search", {
+      operation: "search",
+      namespace: ns,
+      query: "deterministic codebase",
+    }, 403, apiKey);
+    const searchParsed = JSON.parse(
+      ((searchR.data as Record<string, unknown>).result as { content: Array<{ text: string }> }).content[0].text,
+    ) as Record<string, unknown>;
+    const hits = searchParsed.hits as Array<{ doc_id: string; score: number }>;
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+    expect(hits[0].doc_id).toBe("d1");
+    expect(hits[0].score).toBeGreaterThan(0);
+
+    // 5. Store an embedding-shaped vector keyed off the search hit.
+    const upsertR = await callTool("iliad_vector_database", {
+      operation: "upsert",
+      namespace: ns,
+      vectors: [{ id: hits[0].doc_id, vector: [0.5, 0.5, 0.5], metadata: { source: hits[0].doc_id } }],
+    }, 404, apiKey);
+    expect(upsertR.status).toBe(200);
+    expect((upsertR.data as Record<string, unknown>).result).toMatchObject({ isError: false });
+
+    // 6. Query the vector store with the same vector — should match itself.
+    const vqueryR = await callTool("iliad_vector_database", {
+      operation: "query",
+      namespace: ns,
+      query: { vector: [0.5, 0.5, 0.5], top_k: 3 },
+    }, 405, apiKey);
+    const vqueryParsed = JSON.parse(
+      ((vqueryR.data as Record<string, unknown>).result as { content: Array<{ text: string }> }).content[0].text,
+    ) as Record<string, unknown>;
+    const matches = vqueryParsed.matches as Array<{ id: string; score: number }>;
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(matches[0].id).toBe("d1");
+    // Cosine self-similarity ≈ 1.
+    expect(matches[0].score).toBeGreaterThan(0.99);
+  });
+});
