@@ -7,14 +7,14 @@ import { hasFw, getFw } from "./fw-helpers.js";
  * Canonical counts — must equal `listAvailableGenerators().length` and the
  * unique program count from GENERATOR_PROGRAMS. counts.consistency.test
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
- * drift fails CI. MCP_TOOL_COUNT mirrors the *public* tool count
- * (planned-capability stubs hidden from tools/list); it's the number
- * external agents see. counts.consistency.test pins it against the
- * live filtered MCP_TOOLS.
+ * drift fails CI. MCP_TOOL_COUNT mirrors the full advertised catalog
+ * (every tool in tools/list is also in MCP_TOOL_COUNT — catalog honesty
+ * under the build-not-redact policy). counts.consistency.test pins it
+ * against the live MCP_TOOLS length.
  */
 const ARTIFACT_COUNT = 124;
 const PROGRAM_COUNT = 19;
-const MCP_TOOL_COUNT = 19;
+const MCP_TOOL_COUNT = 27;
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;

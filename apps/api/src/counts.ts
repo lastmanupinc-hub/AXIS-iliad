@@ -9,15 +9,14 @@
  * already import from counts.ts). counts.consistency.test asserts both
  * equal the live values, so CI fails on drift.
  *
- * MCP_TOOL_COUNT is the **public** count — the number of tools that
- * `tools/list` returns by default (planned-capability stubs hidden).
- * MCP_TOOL_COUNT_INCLUDING_PLANNED is the full catalog including the
- * 12 roadmap stubs visible only via `?include_planned=true`.
+ * Catalog honesty under the revised policy is build-not-redact: every
+ * tool we advertise in tools/list also appears in MCP_TOOL_COUNT. As
+ * remaining planned-capability stubs get owned implementations, the
+ * count stays 27 and the surface stays consistent.
  */
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
-export const MCP_TOOL_COUNT = 19;
-export const MCP_TOOL_COUNT_INCLUDING_PLANNED = 27;
+export const MCP_TOOL_COUNT = 27;
 export const ENDPOINT_COUNT = 143;

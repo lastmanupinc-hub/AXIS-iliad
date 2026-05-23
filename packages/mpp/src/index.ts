@@ -162,6 +162,16 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 1,
     lite_description: "Lite mode: single recipient + plaintext body only (standard allows up to 50 recipients + HTML).",
   },
+  // AXIS-owned analytics: pure SQLite on the existing snapshot DB, so
+  // marginal cost per call is the index lookup + JSON serialization.
+  // Standard price covers the storage amortization; lite mode is free
+  // so high-volume capture pipelines stay cheap end-to-end.
+  iliad_analytics: {
+    tool: "iliad_analytics",
+    standard_cents: 1,
+    lite_cents: 0,
+    lite_description: "Free tier: capture batch capped at 50 + query limit capped at 25 (standard allows batch 500 + limit 1000).",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

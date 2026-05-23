@@ -15,6 +15,14 @@ import {
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
 import {
+  captureEvent,
+  captureEvents,
+  queryAnalytics,
+  scopeAnalyticsNamespace,
+  type AnalyticsEvent,
+  type AnalyticsQuery,
+} from "./analytics.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -333,23 +341,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     recommended_provider: { name: "E2B", url: "https://e2b.dev/docs" },
     capability_id: "code_sandbox",
   },
-  {
-    name: "iliad_analytics",
-    title: "Product Analytics",
-    summary: "Record events and query funnels / cohorts / retention.",
-    status: "planned_proxy",
-    input_properties: {
-      operation: { type: "string", description: "capture or query.", enum: ["capture", "query"] },
-      event: { type: "object", description: "Event payload (capture mode)." },
-      query: { type: "object", description: "Analytics query (query mode)." },
-    },
-    required_inputs: ["operation"],
-    output_properties: {
-      result: { type: "object", description: "Capture confirmation or query results." },
-    },
-    recommended_provider: { name: "PostHog", url: "https://posthog.com/docs/api" },
-    capability_id: "analytics",
-  },
 ];
 
 export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = new Set(PLANNED_CAPABILITIES.map(c => c.name));
@@ -610,6 +601,91 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
     operation: "query",
     namespace: scopedNs,
     matches,
+  }, null, 2);
+}
+
+/** Cap on a single capture batch to keep request size bounded. */
+const ANALYTICS_CAPTURE_MAX_BATCH = 500;
+
+function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): string {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_analytics needs Authorization: Bearer <api_key>.");
+  }
+
+  const op = args.operation;
+  if (op !== "capture" && op !== "query") {
+    throw new Error("iliad_analytics: `operation` must be \"capture\" or \"query\".");
+  }
+
+  const rawNs = typeof args.namespace === "string" ? args.namespace : undefined;
+  let scopedNs: string;
+  try {
+    scopedNs = scopeAnalyticsNamespace(auth.account.account_id, rawNs);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `iliad_analytics: ${err.message}` : String(err));
+  }
+
+  if (op === "capture") {
+    // Two shapes: { event: {...} } for a single event, or { events: [{...}, ...] }
+    // for a batch. Batches are transactional — a malformed row aborts the
+    // whole capture call so the caller can fix and retry cleanly.
+    const batch = args.events;
+    if (Array.isArray(batch)) {
+      if (batch.length === 0) {
+        throw new Error("iliad_analytics: events[] must be a non-empty array.");
+      }
+      if (batch.length > ANALYTICS_CAPTURE_MAX_BATCH) {
+        throw new Error(
+          `iliad_analytics: capture batch capped at ${ANALYTICS_CAPTURE_MAX_BATCH} (got ${batch.length}).`,
+        );
+      }
+      const cleaned: AnalyticsEvent[] = batch.map((e, i) => {
+        if (!e || typeof e !== "object") {
+          throw new Error(`iliad_analytics: events[${i}] must be an object`);
+        }
+        return e as AnalyticsEvent;
+      });
+      captureEvents(scopedNs, cleaned);
+      return JSON.stringify({
+        operation: "capture",
+        namespace: scopedNs,
+        captured: cleaned.length,
+      }, null, 2);
+    }
+    const single = args.event;
+    if (!single || typeof single !== "object") {
+      throw new Error("iliad_analytics: capture requires `event` (object) or `events` (array).");
+    }
+    captureEvent(scopedNs, single as AnalyticsEvent);
+    return JSON.stringify({
+      operation: "capture",
+      namespace: scopedNs,
+      captured: 1,
+    }, null, 2);
+  }
+
+  // query mode
+  const q = args.query as Record<string, unknown> | undefined;
+  if (!q || typeof q !== "object") {
+    throw new Error("iliad_analytics: query requires a `query` object.");
+  }
+  const kind = q.kind;
+  if (
+    kind !== "count" &&
+    kind !== "count_by_event" &&
+    kind !== "distinct_users" &&
+    kind !== "count_by_bucket"
+  ) {
+    throw new Error(
+      "iliad_analytics: query.kind must be one of count, count_by_event, distinct_users, count_by_bucket.",
+    );
+  }
+  const result = queryAnalytics(scopedNs, q as unknown as AnalyticsQuery);
+  return JSON.stringify({
+    operation: "query",
+    namespace: scopedNs,
+    result,
   }, null, 2);
 }
 
@@ -1471,11 +1547,66 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (8 tools) ─────────────────────────
+  // ─── iliad_analytics (AXIS-owned, SQLite-backed events + aggregations) ─
+  // Third member of the owned tier. Capture is one or many events;
+  // query is one of four aggregation kinds (count, count_by_event,
+  // distinct_users, count_by_bucket). Namespaces are account-scoped
+  // server-side. Same upgrade path as vector-db: when scan volume
+  // justifies a columnar engine we swap in DuckDB/ClickHouse without
+  // changing this schema.
+  {
+    name: "iliad_analytics",
+    description:
+      "AXIS-owned product analytics. Two operations: `capture` (insert events) and `query` (aggregations). Capture accepts a single `event` or a batch via `events[]` (max 500). Query kinds: `count` (total events), `count_by_event` (top events by frequency), `distinct_users` (unique user_id count), `count_by_bucket` (time-series with minute/hour/day buckets). All queries support optional `event`, `from_ts`, `to_ts`, and `property_filter` filters. Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`). Persistent across restarts via SQLite. Requires Authorization: Bearer <api_key>. Best for funnels, cohorts, and retention on workloads up to ~1M events per account.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["operation"],
+      properties: {
+        operation: { type: "string", description: "capture or query.", enum: ["capture", "query"] },
+        namespace: { type: "string", description: "Logical isolation key. Defaults to 'default'. Account id is always prepended server-side." },
+        event: { type: "object", description: "Single event payload {event, user_id?, properties?, timestamp?} — used in capture mode." },
+        events: { type: "array", description: "Batch of event payloads (max 500). Transactional — partial inserts never persist." },
+        query: { type: "object", description: "{kind, event?, from_ts?, to_ts?, property_filter?, bucket?, limit?} — used in query mode." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        operation: { type: "string", description: "Echo of the operation that ran." },
+        namespace: { type: "string", description: "Scoped namespace the call wrote to or queried." },
+        captured: { type: "number", description: "Events written (capture mode only)." },
+        result: { type: "object", description: "Aggregation result shape depending on query.kind (query mode only)." },
+      },
+    },
+    annotations: toolAnnotations("Product Analytics", false, false),
+    examples: [
+      {
+        name: "Capture a single event",
+        input: { operation: "capture", namespace: "web", event: { event: "purchase", user_id: "u_42", properties: { plan: "pro", amount_cents: 5000 } } },
+        output: '{"operation":"capture","namespace":"acct:<acc>:web","captured":1}',
+      },
+      {
+        name: "Capture a batch",
+        input: { operation: "capture", namespace: "web", events: [{ event: "pageview", user_id: "u_1" }, { event: "pageview", user_id: "u_2" }] },
+        output: '{"operation":"capture","namespace":"acct:<acc>:web","captured":2}',
+      },
+      {
+        name: "Top events by frequency",
+        input: { operation: "query", namespace: "web", query: { kind: "count_by_event", limit: 5 } },
+        output: '{"operation":"query","namespace":"acct:<acc>:web","result":{"kind":"count_by_event","rows":[{"event":"pageview","count":1240},{"event":"click","count":312}]}}',
+      },
+      {
+        name: "Daily active users in a window",
+        input: { operation: "query", namespace: "web", query: { kind: "distinct_users", from_ts: 1717200000000, to_ts: 1717286400000 } },
+        output: '{"operation":"query","namespace":"acct:<acc>:web","result":{"kind":"distinct_users","distinct_users":87}}',
+      },
+    ],
+  },
+  // ─── Planned-capability stubs (7 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
-  // see the full 14-tool iliad_* surface immediately. tools/call on
-  // any of these returns a structured `_planned: true` envelope until
-  // the AXIS-owned implementation ships.
+  // see the full iliad_* surface immediately. tools/call on any of
+  // these returns a structured `_planned: true` envelope until the
+  // AXIS-owned implementation ships.
   ...PLANNED_CAPABILITIES.map((c) => ({
     name: c.name,
     description:
@@ -2032,10 +2163,12 @@ const AXIS_MCP_ENDPOINT = "https://axis-api-6c7z.onrender.com/mcp";
 const AXIS_API_BASE_MCP = "https://axis-api-6c7z.onrender.com";
 
 export function runDiscoverAgenticCommerceTools(): string {
-  // Distribution-facing surface — only advertise the public catalog
-  // (planned-capability stubs hidden, matching tools/list behavior).
-  const publicTools = MCP_TOOLS.filter(t => !PLANNED_CAPABILITY_NAMES.has(t.name));
-  const tools = publicTools.map(t => ({
+  // Distribution-facing surface — advertises the full 27-tool catalog
+  // (revised catalog-honesty policy: build-not-redact). Each
+  // planned-capability stub gets converted to an owned implementation
+  // over the v1 push; the name set stays stable so external integrations
+  // don't need to refresh their schemas.
+  const tools = MCP_TOOLS.map(t => ({
     name: t.name,
     description: t.description.slice(0, 200),
     auth_required: !FREE_TOOL_NAMES.has(t.name),
@@ -2086,7 +2219,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       version: REGISTRY_VERSION,
       endpoint: AXIS_MCP_ENDPOINT,
       transport: "streamable-http",
-      tools: publicTools.length,
+      tools: MCP_TOOLS.length,
       free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits"],
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
@@ -3080,22 +3213,14 @@ export async function dispatch(
     case "ping":
       return rpcOk(id, {});
 
-    case "tools/list": {
-      // Catalog honesty (V1_ROI_CANDIDATES Tier-1 #1): public tools/list
-      // returns only the tools that actually run. The 12 planned-capability
-      // stubs (PLANNED_CAPABILITIES) remain in MCP_TOOLS for internal
-      // discovery but are filtered out by default so external clients
-      // see ~15 honest tools instead of 27 mixed.
-      //
-      // Callers can opt back in with params.include_planned === true,
-      // which is how the Tools Index admin views the full roadmap.
-      const lp = params as Record<string, unknown> | null;
-      const includePlanned = lp?.include_planned === true;
-      const tools = includePlanned
-        ? MCP_TOOLS
-        : MCP_TOOLS.filter((t) => !PLANNED_CAPABILITY_NAMES.has(t.name));
-      return rpcOk(id, { tools });
-    }
+    case "tools/list":
+      // Catalog honesty (revised): every tool in MCP_TOOLS appears in
+      // tools/list. Honesty means we ship what we advertise — not that we
+      // redact the advertised catalog when the build lags. As each
+      // remaining planned-capability stub gets an owned implementation,
+      // it moves from "returns _planned envelope" to "returns real
+      // result"; the visible name set stays stable.
+      return rpcOk(id, { tools: MCP_TOOLS });
 
     case "tools/call": {
       const p = params as Record<string, unknown> | null;
@@ -3162,6 +3287,9 @@ export async function dispatch(
             break;
           case "iliad_transactional_email":
             text = await runTransactionalEmail(toolArgs, req);
+            break;
+          case "iliad_analytics":
+            text = runAnalytics(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned
@@ -3398,15 +3526,14 @@ export function getMcpServerMeta(): Record<string, unknown> {
       how_it_works: "Share-to-earn benefit: effective dollars per call decrease as referrals increase. Rewards reset each billing cycle.",
       key_exports: ["createReferralCode", "lookupReferralCode", "getReferralTokenUsageModifier", "consumeUsageCredits"],
     },
-    // Public metadata excludes planned-capability stubs for the same
-    // catalog-honesty reason tools/list does. The full roadmap stays
-    // available via capability-map.yaml for ops + agent discovery.
-    tools: MCP_TOOLS
-      .filter((t) => !PLANNED_CAPABILITY_NAMES.has(t.name))
-      .map((t) => ({
-        name: t.name,
-        description: t.description,
-      })),
+    // Metadata mirrors tools/list — every tool we advertise. Catalog
+    // honesty under the revised policy is build-not-redact: as remaining
+    // planned-capability stubs get owned implementations, the count stays
+    // 27 and the surface stays consistent.
+    tools: MCP_TOOLS.map((t) => ({
+      name: t.name,
+      description: t.description,
+    })),
     _meta: {
       displayName: "Axis' Iliad \u2014 Agentic Commerce Codebase Intelligence",
       registry_name: REGISTRY_DISPLAY_NAME,

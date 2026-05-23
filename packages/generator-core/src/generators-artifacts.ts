@@ -1957,9 +1957,9 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "analytics",
     name: "Product analytics (events + funnels + cohorts)",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
+    axis_brand_tool: "iliad_analytics",
+    pricing_tier: "Free up to 10k events/mo, $0.01/100 events thereafter; query operations $0.01/call",
+    status: "owned",
     summary: "Record arbitrary user events and query funnels, cohorts, and retention curves.",
     providers: [
       { name: "PostHog Cloud", url: "https://posthog.com", retail_pricing: "$0/mo (1M events) → $0.00031/event (Scale)" },

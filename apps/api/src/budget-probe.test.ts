@@ -190,7 +190,15 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/recipient|plaintext|HTML/i);
   });
 
-  it("all tiers have lite_cents <= standard_cents (including the 4 new iliad_* entries)", () => {
+  it("returns near-free tier for iliad_analytics (owned, SQLite events + aggregations)", () => {
+    const tier = getPricingTier("iliad_analytics");
+    expect(tier.tool).toBe("iliad_analytics");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/batch|limit|free/i);
+  });
+
+  it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
       "analyze_repo",
@@ -202,6 +210,7 @@ describe("getPricingTier", () => {
       "iliad_vector_database",
       "iliad_embeddings",
       "iliad_transactional_email",
+      "iliad_analytics",
       "default",
     ]) {
       const tier = getPricingTier(tool);
@@ -209,7 +218,7 @@ describe("getPricingTier", () => {
     }
   });
 
-  it("all tiers have non-empty lite_description (including the 4 new iliad_* entries)", () => {
+  it("all tiers have non-empty lite_description (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
       "analyze_repo",
@@ -218,6 +227,7 @@ describe("getPricingTier", () => {
       "iliad_vector_database",
       "iliad_embeddings",
       "iliad_transactional_email",
+      "iliad_analytics",
     ]) {
       const tier = getPricingTier(tool);
       expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
@@ -235,6 +245,7 @@ describe("getPricingTier", () => {
       "iliad_vector_database",
       "iliad_embeddings",
       "iliad_transactional_email",
+      "iliad_analytics",
     ];
     for (const tool of iliadTools) {
       const tier = getPricingTier(tool);
