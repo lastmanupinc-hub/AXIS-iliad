@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_118 — uncommitted)"
+    commit_or_tag: "b43270e"
     current_session_id: "session_118"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, ZERO planned stubs remaining. Catalog-honesty endgame: every advertised tool now serves a real AXIS-owned (10) or live-proxy (2) implementation, with image_generation delegated to the AXIS Foundry sibling. Session 118 ships the final stub iliad_document_parsing — pdfjs-dist for PDF + mammoth for DOCX + pragmatic tag-strip for HTML + passthrough for markdown/text — all in-process, no third-party API, no per-page fee. Format detection via magic-byte sniffing + URL extension hint + optional caller mime_type. Output capped at 1 MiB markdown with truncation marker. _not_configured envelope covers 6 distinct branches (download_failed, decode_failed, unsupported_format, parse_failed, pdf_runtime_missing, docx_runtime_missing)."
 
@@ -4752,5 +4752,6 @@ project_continuation:
       - "Operator setup consolidation: production deployment now needs (or optionally) Docker daemon (code_sandbox), GGUF llama model (llm_inference), whisper.cpp + GGML model (speech_to_text), Piper + voice files (text_to_speech). Each tool's _not_configured envelope documents the fix locally; worth a single consolidated operator-setup README now that the surface is stable."
       - "PDF table extraction + PPTX support — deferred (see blocked_candidates)."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["b43270e: Build owned iliad_document_parsing — closes the catalog-honesty endgame"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at b43270e"]
     push_results: []
