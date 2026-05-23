@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-22"
-    commit_or_tag: "(session_111 — uncommitted)"
+    commit_or_tag: "ab07e67"
     current_session_id: "session_111"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 27 MCP tools advertised AND served (124 artifacts, 19 programs). Session 111 reverses session 109's tools/list filter (catalog honesty = build, not redact) and ships the first owned implementation of a previously-planned capability: iliad_analytics now runs against SQLite (events table + 4 aggregation kinds: count, count_by_event, distinct_users, count_by_bucket) with per-account namespace isolation, 33 unit tests, MCP dispatcher wiring, capability-map status flipped planned_proxy → owned, and pricing tier at 1¢/0¢ (lite-mode free). 7 planned-capability stubs remain to be replaced by owned implementations."
 
@@ -4387,5 +4387,6 @@ project_continuation:
       - "8 manual-ops items unchanged."
       - "7 planned-capability stubs awaiting owned implementations (see blockers_added)."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["ab07e67: Build owned iliad_analytics + reverse session 109 catalog hide"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at ab07e67"]
     push_results: []
