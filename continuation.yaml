@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_117 — uncommitted)"
+    commit_or_tag: "a837c97"
     current_session_id: "session_117"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (1 planned stub left). Session 117 ships iliad_web_search as an AXIS-owned BM25 search engine over the operator's indexed corpus — honestly scoped as 'NOT a Google/Bing scraper' but a real owned retrieval surface over content the agent has cached via iliad_web_research or indexed directly. Pure SQLite + JS Okapi BM25 (k1=1.5, b=0.75). 5 operations: index (one/batch), search (with optional site host filter + max_results 1-100), delete, delete_namespace, count. Account-scoped namespacing matches iliad_vector_database + iliad_analytics. Snippets centered on the first matched query token (±80 chars)."
 
@@ -4700,5 +4700,6 @@ project_continuation:
       - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 10 dispatcher updates."
       - "1 planned-capability stub remaining: document_parsing. Pure JS path via pdfjs-dist + mammoth (+ optional html-to-md for HTML). Smallest of the original 7-stub list and the only one left."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["a837c97: Build owned iliad_web_search as BM25 over your AXIS-cached corpus"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at a837c97"]
     push_results: []
