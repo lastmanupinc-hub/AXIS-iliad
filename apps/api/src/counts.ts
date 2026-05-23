@@ -10,13 +10,15 @@
  * equal the live values, so CI fails on drift.
  *
  * Catalog honesty under the revised policy is build-not-redact: every
- * tool we advertise in tools/list also appears in MCP_TOOL_COUNT. As
- * remaining planned-capability stubs get owned implementations, the
- * count stays 27 and the surface stays consistent.
+ * tool we advertise in tools/list also appears in MCP_TOOL_COUNT. The
+ * count drops when a capability is delegated to a sibling AXIS process
+ * (e.g. image_generation → AXIS Foundry) — Iliad does not mint a tool
+ * for capabilities it doesn't own. It stays flat when a planned-stub is
+ * promoted to an owned implementation.
  */
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
 
 export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
-export const MCP_TOOL_COUNT = 27;
+export const MCP_TOOL_COUNT = 26;
 export const ENDPOINT_COUNT = 143;

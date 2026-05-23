@@ -220,25 +220,21 @@ interface PlannedCapability {
   capability_id: string;
 }
 
+// ─── Sibling-process delegation note ────────────────────────────
+//
+// Image generation (and broader visual asset creation) is deliberately
+// NOT exposed via Iliad. The capability is owned at the AXIS platform
+// level by the AXIS Foundry sibling process — an AI-native 3D resources
+// foundry (avatars + props + vehicles + environments + VFX + weapons/armor
+// + character accessories + 2D images). Foundry has its own MCP surface,
+// its own CanonicalAssetContract provenance system, its own pricing, and
+// its own 12.4k-test regression suite. Agents that need visual generation
+// should call Foundry directly (https://github.com/lastmanupinc-hub/AXIS-Foundry),
+// not look for an iliad_image_generation tool that won't exist.
+//
+// This pattern (sibling delegation) is also how the broader AXIS platform
+// composes: each process stays focused, each ships independently.
 export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
-  {
-    name: "iliad_image_generation",
-    title: "Image Generation",
-    summary: "Generate an image from a text prompt with selectable aspect ratio and quality tier.",
-    status: "planned_proxy",
-    input_properties: {
-      prompt: { type: "string", description: "Image prompt." },
-      aspect: { type: "string", description: "Aspect ratio.", enum: ["1:1", "16:9", "9:16", "4:3"] },
-      quality: { type: "string", description: "fast = SDXL-class, hi = Flux-class.", enum: ["fast", "hi"] },
-    },
-    required_inputs: ["prompt"],
-    output_properties: {
-      image_url: { type: "string", description: "Public URL of the generated image (24h-signed)." },
-      seed: { type: "number", description: "Seed used; pass back to reproduce." },
-    },
-    recommended_provider: { name: "Replicate", url: "https://replicate.com/black-forest-labs/flux-pro" },
-    capability_id: "image_generation",
-  },
   {
     name: "iliad_text_to_speech",
     title: "Text-to-Speech",
@@ -1733,7 +1729,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (6 tools) ─────────────────────────
+  // ─── Planned-capability stubs (5 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the

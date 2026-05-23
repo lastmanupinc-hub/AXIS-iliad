@@ -456,8 +456,8 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(tool!.description).toContain("dispute");
   });
 
-  it("MCP_TOOLS array contains all 27 registered tools (12 planned-stubs included; tools/list filters them by default)", () => {
-    expect(MCP_TOOLS.length).toBe(27);
+  it("MCP_TOOLS array contains the full 26-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", () => {
+    expect(MCP_TOOLS.length).toBe(26);
   });
 });
 

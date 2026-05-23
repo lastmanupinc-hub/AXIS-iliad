@@ -1367,8 +1367,30 @@ interface ResellCapability {
   axis_brand_tool: string;
   /** Pricing-tier slug from @axis/mpp that backs this resell tool, if minted. */
   pricing_tier: string | null;
-  /** Current ownership status. */
-  status: "live_proxy" | "planned_proxy" | "planned_owned" | "owned";
+  /**
+   * Current ownership status:
+   *   - `live_proxy`     — AXIS forwards to a third-party provider with AXIS auth + billing.
+   *   - `planned_proxy`  — capability is on the roadmap; no AXIS surface yet.
+   *   - `planned_owned`  — AXIS-owned implementation planned but not shipped.
+   *   - `owned`          — AXIS-owned implementation shipped inside Iliad.
+   *   - `sibling_owned`  — AXIS platform owns it, but in a sibling process
+   *                        (e.g. AXIS Foundry for 3D / image generation). Iliad
+   *                        does NOT expose an MCP tool for it; agents are
+   *                        directed to the sibling process via `sibling_process`.
+   */
+  status: "live_proxy" | "planned_proxy" | "planned_owned" | "owned" | "sibling_owned";
+  /**
+   * When status is `sibling_owned`, names the sibling AXIS process responsible
+   * for this capability and where to find it. Omitted for all other statuses.
+   */
+  sibling_process?: {
+    /** Process name, e.g. "AXIS Foundry". */
+    name: string;
+    /** Repo URL or platform location. */
+    url: string;
+    /** Short note on why the sibling owns it (architectural rationale). */
+    rationale: string;
+  };
   /** One-line capability summary. */
   summary: string;
   /** Third-party providers that supply this capability today (in priority order). */
@@ -1573,15 +1595,28 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   },
   {
     id: "image_generation",
-    name: "Text-to-image generation",
+    name: "Generative visual asset creation (2D images + 3D models)",
     axis_brand_tool: "",
     pricing_tier: null,
-    status: "planned_proxy",
-    summary: "Generate an image from a text prompt with selectable quality and aspect ratio.",
+    status: "sibling_owned",
+    sibling_process: {
+      name: "AXIS Foundry",
+      url: "https://github.com/lastmanupinc-hub/AXIS-Foundry",
+      rationale:
+        "Generative visual assets are owned by AXIS Foundry — an AI-native 3D resources foundry " +
+        "(avatars, props, vehicles, environments, VFX, weapons/armor) with its own canonical contract " +
+        "system, 17-stage production pipeline, and marketplace integration. Iliad intentionally does " +
+        "NOT mint an iliad_image_generation tool because the platform-level capability is delivered by " +
+        "the Foundry sibling process — agents that need visual generation should call Foundry directly.",
+    },
+    summary:
+      "Generative visual asset creation. Owned at the platform level by AXIS Foundry (3D-first: " +
+      "avatars + props + vehicles + environments + VFX + weapons/armor; 2D images follow). Not " +
+      "exposed via Iliad MCP — call Foundry directly.",
     providers: [
-      { name: "Replicate", url: "https://replicate.com", retail_pricing: "~$0.003/image (sdxl), ~$0.04/image (flux-pro)" },
-      { name: "OpenAI", url: "https://openai.com", retail_pricing: "$0.04 / image (dall-e-3 1024x1024)" },
-      { name: "fal.ai", url: "https://fal.ai", retail_pricing: "~$0.025/image (flux-1.1-pro)" },
+      { name: "AXIS Foundry (sibling process)", url: "https://github.com/lastmanupinc-hub/AXIS-Foundry", retail_pricing: "Internal AXIS pricing — see Foundry's own pricing surface" },
+      { name: "Replicate (external fallback)", url: "https://replicate.com", retail_pricing: "~$0.003/image (sdxl), ~$0.04/image (flux-pro)" },
+      { name: "OpenAI DALL-E (external fallback)", url: "https://openai.com", retail_pricing: "$0.04 / image (dall-e-3 1024x1024)" },
     ],
     detection: {
       deps: ["replicate", "openai", "@fal-ai/serverless-client"],
@@ -1589,29 +1624,29 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
       content_patterns: ["images\\.generate", "/v1/images", "replicate.*flux", "fal\\.ai"],
     },
     inputs: [
-      { name: "prompt", type: "string", required: true, description: "Image prompt." },
-      { name: "aspect", type: "\"1:1\" | \"16:9\" | \"9:16\" | \"4:3\"", required: false, description: "Aspect ratio. Defaults to 1:1." },
-      { name: "quality", type: "\"fast\" | \"hi\"", required: false, description: "Tier — fast = SDXL-class, hi = Flux-class." },
+      { name: "prompt", type: "string", required: true, description: "Visual prompt (3D asset description for Foundry, text-to-image prompt for external fallbacks)." },
+      { name: "asset_kind", type: "AVATAR | PROP | VEHICLE | ENVIRONMENT | VFX | WEAPON_ARMOR | CHARACTER_ACCESSORY | GENERIC | IMAGE_2D", required: false, description: "Foundry asset taxonomy. Defaults to AVATAR (Foundry's production path)." },
     ],
     outputs: [
-      { name: "image_url", type: "string", description: "Public URL of the generated image (24h-signed)." },
-      { name: "seed", type: "number", description: "Seed used; pass back to reproduce." },
+      { name: "asset_url", type: "string", description: "URL of the generated asset (GLB for 3D via Foundry; PNG for 2D image fallback)." },
+      { name: "provenance", type: "object", description: "Foundry's CanonicalAssetContract — versioned, SHA-256-hashed, marketplace-ready." },
     ],
     replication_plan: {
-      runtime: "SDXL-Lightning on RunPod for the fast tier; Flux.1-dev on dedicated A100 for the hi tier",
-      persistence: "Output stored in R2 with 24h-signed URLs",
-      key_dependencies: ["diffusers", "sdxl-lightning", "flux.1-dev (Apache 2.0)"],
+      runtime: "AXIS Foundry — pure Python 3.11+, zero runtime deps. 17-stage avatar pipeline (classify → normalize → repair → 65-bone rig → skin → validate → facial → texture → animate → LOD → preview → export).",
+      persistence: "Foundry's own provenance store (SHA-256-hashed contracts per stage); marketplace listings via TrustFabric / PAI payloads.",
+      key_dependencies: ["axis-foundry (sibling process, MIT)", "GoldenSlice workflow runtime"],
       differentiators: [
-        "Open-weights only — no DALL-E/MidJourney usage policy ambiguity for autonomous agents",
-        "Seed-based reproducibility is a first-class output, not buried in metadata",
-        "Provenance manifest attached — C2PA-style claim signed by AXIS",
+        "3D-first — Iliad's catalog peers ship 2D-only; Foundry ships production-grade rigged 3D assets (humanoid 65-bone, quadruped 52-bone, mech 35-bone)",
+        "12,447-outcome regression suite — 12,443 pass, 3 skip, 1 xfail with strict CI provenance auditing",
+        "Cross-engine export — Unity, Unreal, Godot, Roblox",
+        "Marketplace-ready outputs including TrustFabric / PAI listing payloads",
       ],
-      estimated_effort: "medium",
+      estimated_effort: "small",
     },
     axis_advantages: [
-      "Open-weights inference at GPU-hour cost ≈ $0.001/image vs $0.04 retail (40× margin)",
-      "AXIS owns the inference pipeline so agents can request deterministic regeneration",
-      "Marketplace-ready output: every image ships a C2PA-style provenance claim, useful for the Visa CE3.0 evidence bundle",
+      "Sibling-process architecture: Iliad stays focused on codebase intelligence + MCP surface; Foundry stays focused on visual generation. Each ships independently.",
+      "Foundry's CanonicalAssetContract drops directly into AXIS marketplace + Visa CE3.0 evidence bundles — provenance is first-class, not retrofitted.",
+      "Open-source MIT — operators can self-host the entire generation pipeline.",
     ],
   },
   {

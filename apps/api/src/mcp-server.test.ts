@@ -244,13 +244,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns the full 27-tool catalog (build-not-redact catalog honesty)", async () => {
+  it("returns the full 26-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
-    expect(tools.length).toBe(27);
+    expect(tools.length).toBe(26);
     expect(tools.length).toBe(MCP_TOOLS.length);
     // incentives injected into every success result
     const incentives = result.incentives as Record<string, unknown>;
@@ -1468,9 +1468,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 27-tool catalog (build-not-redact)", () => {
+  it("tools array exposes the full 26-tool catalog (build-not-redact)", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(27);
+    expect(tools).toHaveLength(26);
     expect(tools).toHaveLength(MCP_TOOLS.length);
     const allNames = new Set(MCP_TOOLS.map(t => t.name));
     for (const t of tools) {
@@ -1545,11 +1545,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 27 tools (full catalog, build-not-redact)", async () => {
+  it("body contains 26 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(27);
+    expect(tools).toHaveLength(26);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1585,7 +1585,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
     // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
-    expect(parsed.tools.length).toBe(27);
+    expect(parsed.tools.length).toBe(26);
   });
 
   it("includes free_tools array", async () => {
@@ -1630,7 +1630,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(27);
+    expect(parsed.shareable_manifest.tools).toBe(26);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });

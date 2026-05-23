@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "f6b03df"
-    current_session_id: "session_112"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 27 MCP tools, owned-tier expanding. Session 112 ships the biggest-effort planned capability first per user directive (biggest → smallest): iliad_llm_inference now runs in-process via node-llama-cpp + a small GGUF model (Phi-3-mini MIT / TinyLlama Apache-2.0 / Llama-3.2-1B Meta — operator picks via AXIS_LLM_MODEL_PATH). Real owned implementation, no upstream provider, no per-token API fee — CPU-bound (2-15s/100 tokens). Graceful _not_configured envelope when the GGUF file isn't present. 6 planned stubs remain (image_generation, text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox)."
+    commit_or_tag: "(session_113 — uncommitted)"
+    current_session_id: "session_113"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools (was 27). Session 113 corrects the catalog scope: image_generation is owned by the AXIS Foundry sibling process (an AI-native 3D resources foundry — avatars + props + vehicles + environments + VFX), so Iliad no longer mints iliad_image_generation. New `sibling_owned` status added to the capability map type, with a structured sibling_process pointer (name + url + rationale) so consumers can route to Foundry directly. Catalog drops from 6 planned stubs to 5 (text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox)."
 
   executive_truth:
     maturity_estimate:
@@ -4444,4 +4444,48 @@ project_continuation:
     local_only: false
     commit_results: ["f6b03df: Build owned iliad_llm_inference via node-llama-cpp + small GGUF"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at f6b03df"]
+
+  session_result_113:
+    date: "2026-05-23"
+    session_id: "session_113"
+    selected_move: >
+      Remove image_generation from Iliad's owned-tools list per user
+      directive: image generation is already owned at the AXIS platform
+      level by the AXIS Avatar Foundry sibling process. Iliad should
+      not mint a duplicate iliad_image_generation tool — it should
+      route agents to Foundry.
+    selected_move_roi_reason: >
+      Catalog honesty also means not claiming capabilities Iliad doesn't
+      own. AXIS Foundry (sibling repo: github.com/lastmanupinc-hub/AXIS-Foundry)
+      is a production-grade AI-native 3D resources foundry — full 17-stage
+      avatar pipeline, 12,447-outcome regression suite, CanonicalAssetContract
+      provenance, cross-engine export (Unity, Unreal, Godot, Roblox). The
+      right architectural move is sibling delegation, not in-Iliad
+      reimplementation. Per user: 'we already have this it's in axis foundry
+      folder. make a note that it is a sibling process and remove image gen
+      from the list of Iliad owned tools.'
+    completed_candidates:
+      - "TYPE: packages/generator-core/src/generators-artifacts.ts — added 'sibling_owned' status to the ResellCapability status union plus an optional `sibling_process` field (name + url + rationale) so the capability map can structurally express delegation to a sibling AXIS process. JSDoc on the status union documents what each value means."
+      - "FLIP: image_generation RESELL_CAPABILITIES entry — status 'planned_proxy' → 'sibling_owned', name updated to 'Generative visual asset creation (2D images + 3D models)', summary rewritten to point at AXIS Foundry, sibling_process field populated with Foundry's repo url + a 4-line rationale, providers list reordered to put AXIS Foundry first (Replicate/OpenAI demoted to external-fallback), replication_plan rewritten around Foundry's Python pipeline (17-stage, zero runtime deps, GoldenSlice integration, 12.4k-test regression), differentiators rewritten around Foundry's 3D-first advantage."
+      - "REMOVE: apps/api/src/mcp-server.ts — iliad_image_generation removed from PLANNED_CAPABILITIES (6 → 5 stubs). Added a 16-line sibling-process delegation note above the PLANNED_CAPABILITIES export documenting the architectural pattern: each AXIS process stays focused, each ships independently."
+      - "COUNTS: counts.ts MCP_TOOL_COUNT 27 → 26 with updated comment ('The count drops when a capability is delegated to a sibling AXIS process'). generators-skills.ts private MCP_TOOL_COUNT mirror also 27 → 26."
+      - "TESTS: mcp-server.test.ts — 5 assertions bumped 27 → 26 with comment updates noting the Foundry sibling delegation. prepare-purchasing.test.ts MCP_TOOLS array length assertion 27 → 26."
+    refused_candidates: []
+    blocked_candidates: []
+    evidence_added:
+      - "apps/api/src/counts-consistency.test.ts + mcp-server.test.ts: 147 pass in 9.5s after the count change."
+      - "apps/api/src/prepare-purchasing.test.ts: 54 pass in 6.3s after assertion update."
+      - "Full Vitest: 4370 pass + 12 skip + 0 fail across 153 files (was 4371 — net -1 because removing iliad_image_generation also removed the planned-capability shape-validation tests that iterated over PLANNED_CAPABILITIES and validated each stub had the expected envelope keys)."
+      - "npm run build clean across all 8 workspace packages."
+    verticals_advanced:
+      - "v0_core_platform: capability map now has structural support for sibling-process delegation — future capabilities owned by AXIS Chlover, AXIS Avatar Foundry, AXIS Quote, AXIS Recon etc. can be expressed without misrepresenting them as Iliad-owned. The pattern is reusable."
+      - "v6_developer_surface: agents that probe the AXIS surface and see image_generation in the capability map now get a structured pointer at Foundry rather than a misleading iliad_* tool that wouldn't exist or would awkwardly proxy to Foundry."
+    blockers_removed:
+      - "Catalog scope creep — Iliad was about to mint a duplicate image_generation tool that would have stepped on AXIS Foundry's surface and confused agents about which process owns visual generation."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 6 dispatcher updates."
+      - "5 planned-capability stubs remaining (text_to_speech, speech_to_text, document_parsing, web_search, code_sandbox). Next in biggest→smallest order: code_sandbox or speech_to_text — both medium effort, both fit the in-process pattern. (image_generation removed from the queue.)"
+    local_only: false
+    commit_results: ["(this commit)"]
     push_results: []
