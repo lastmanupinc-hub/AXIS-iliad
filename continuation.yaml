@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "60e6b2b"
-    current_session_id: "session_116"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (2 planned stubs left). Session 116 ships iliad_text_to_speech as an AXIS-owned implementation via Piper (rhasspy/piper) shell-out + ffmpeg-static for optional MP3/Opus transcoding. Accepts text (1-5000 chars) + optional voice slug + optional format (wav/mp3/opus), returns {audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}. WAV header parsed for accurate sample_rate + duration metadata. Graceful _not_configured envelope covers 7 distinct prerequisite-missing branches (piper_cli_not_found, voice_dir_missing, no_voices_available, voice_model_not_found, voice_config_not_found, ffmpeg_static_missing, synthesis_failed). Voice slug validation rejects path traversal."
+    commit_or_tag: "(session_117 — uncommitted)"
+    current_session_id: "session_117"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (1 planned stub left). Session 117 ships iliad_web_search as an AXIS-owned BM25 search engine over the operator's indexed corpus — honestly scoped as 'NOT a Google/Bing scraper' but a real owned retrieval surface over content the agent has cached via iliad_web_research or indexed directly. Pure SQLite + JS Okapi BM25 (k1=1.5, b=0.75). 5 operations: index (one/batch), search (with optional site host filter + max_results 1-100), delete, delete_namespace, count. Account-scoped namespacing matches iliad_vector_database + iliad_analytics. Snippets centered on the first matched query token (±80 chars)."
 
   executive_truth:
     maturity_estimate:
@@ -4647,4 +4647,58 @@ project_continuation:
     local_only: false
     commit_results: ["60e6b2b: Build owned iliad_text_to_speech via Piper + ffmpeg-static"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 60e6b2b"]
+
+  session_result_117:
+    date: "2026-05-23"
+    session_id: "session_117"
+    selected_move: >
+      Build the second-to-last planned capability per the
+      biggest-→-smallest ordering: iliad_web_search. The honest
+      "owned" question here was non-trivial — AXIS doesn't operate
+      a billion-page crawler index, reselling Google/Bing without
+      paying them is a legal/operational mine field, and the user
+      explicitly rejected proxy wrappers ("we need to own both").
+      The honest scope chosen: BM25 search over the corpus YOUR
+      account has indexed. Zero deps, real algorithm, real value
+      for agents that have spent budget calling iliad_web_research
+      already.
+    selected_move_roi_reason: >
+      Per user directive (biggest → smallest). Of the 2 remaining
+      stubs (web_search, document_parsing), web_search had the
+      ambiguous "what does owned even mean here" question that
+      needed resolution; document_parsing has a clear-cut answer
+      (pdfjs + mammoth) so we save it for the last session. The
+      BM25-over-cached-corpus framing matches AXIS's overall
+      stance — agents accrue value as they spend, and free-tier
+      retrieval rewards engagement. Same SQLite-backed pattern as
+      iliad_vector_database / iliad_analytics, so zero new deps.
+    completed_candidates:
+      - "NEW: apps/api/src/web-search.ts (~360 LoC) — AXIS-owned BM25 search engine. SQLite-backed (search_documents table: namespace, doc_id, url, url_host, title, content, content_len, tf_json, metadata, created_at + 2 indexes). Tokenizer lowercases + splits on non-word chars + drops single-char tokens + filters tiny stop-word set (~40 entries). Term-frequency map precomputed per doc at insert time → stored as JSON blob → loaded once per search call. Okapi BM25 with k1=1.5, b=0.75 (Wikipedia defaults — never need tuning until real users complain). Snippet extraction centers ±80 chars on first matched query token. URL host extraction via new URL() — empty/invalid URLs stored with null host so site filter never matches."
+      - "5 public operations exposed (capture parity with analytics/vector-db): index (single doc), index (batch up to 100, transactional rollback on malformed entry), search (BM25 top-k 1-100), delete (single doc by id), delete_namespace (drop all), count. Plus scopeSearchNamespace (account-id prefix + traversal guards) matching the pattern from analytics + vector-db."
+      - "NEW: apps/api/src/web-search.test.ts (34 tests, all pass) — tokenizer correctness, all validation paths, addDocument upsert behavior, batch transactional rollback, BM25 ranking correctness (relevant doc first, unrelated doc filtered), max_results cap + clamp-to-100, site host filter (case-insensitive), snippet centering, namespace isolation, deleteDocument + deleteSearchNamespace scoping, scopeSearchNamespace traversal guards + cross-account isolation."
+      - "WIRE: apps/api/src/mcp-server.ts — iliad_web_search removed from PLANNED_CAPABILITIES (2 → 1 stub left), explicit MCP_TOOLS entry with inputSchema covering all 5 operations + outputSchema covering all branches + 4 examples (single index, batch index from iliad_web_research output, search, search with site filter). runWebSearch dispatcher validates auth + operation enum + per-op arg shapes, scopes namespace, calls into web-search module, JSON-encodes result with operation + namespace + per-op result fields."
+      - "FLIP: packages/generator-core/src/generators-artifacts.ts — web_search RESELL_CAPABILITIES entry status planned_proxy → owned, axis_brand_tool=iliad_web_search, pricing_tier set with the honest-scope caveat baked in. Renamed entry to 'BM25 search over your AXIS-cached corpus' to prevent agents misreading it as a Google scraper."
+      - "PRICE: packages/mpp/src/index.ts — iliad_web_search PRICING_TIERS entry at 1¢/0¢. Near-free because the SQL scan + BM25 math runs sub-ms for ≤1k docs, single-digit ms for ≤10k. Indexing is always free; only search ops are priced. Lite tier caps max_results at 10."
+      - "TEST: apps/api/src/budget-probe.test.ts — added iliad_web_search tier assertion + extended the 3 universal-coverage tests."
+    refused_candidates: []
+    blocked_candidates:
+      - "Tier-1 #4 (mpp-402-wiring): runWebSearch auth-gates but doesn't yet invoke MPP 402 charging."
+      - "Inverted index: v1 does full-table scan per query. Fine for ≤100k docs/namespace; if a power-user hits a perf wall we add an inverted-index table behind the same public function signatures. Same upgrade path as vector-db (SQLite flat → LanceDB columnar)."
+    evidence_added:
+      - "apps/api/src/web-search.test.ts: 34 pass + 0 skip in 0.67s."
+      - "Full Vitest: 4466 pass + 20 skip + 0 fail across 157 files (+34 new tests from web-search + +1 pricing-coverage)."
+      - "npm run build clean across all 8 workspace packages."
+    verticals_advanced:
+      - "v0_core_platform: the owned-tier search surface is now real. iliad_web_research (fetch + cache) → iliad_web_search (BM25 retrieve from cache) is a complete AXIS-owned research loop — no third-party search API in the path."
+      - "v18_agentic_commerce: agents that pay for iliad_web_research crawls now get free-tier BM25 retrieval back over their own corpus. The spend-then-retrieve pattern matches how teams use Perplexity Pages or Tavily-with-caching but stays 100% inside AXIS."
+      - "v6_developer_surface: SQLite-backed pattern is now proven for 4 distinct workloads (events, vectors, search, snapshots). Same lazy-init schema + scopeNamespace + reset-for-tests recipe across all four. Pattern is reusable for document_parsing's optional cache layer if we ship one."
+    blockers_removed:
+      - "Catalog-honesty stub count down to 1. Of the 13 capabilities Iliad mints, all are now either owned (10) or live_proxy (2: iliad_web_research + iliad_web_research_crawl, both Firecrawl); the last planned stub is document_parsing."
+      - "Honest scope for web_search resolved — the catalog now reflects what the tool actually does (BM25 over your cached corpus) rather than implying a Google equivalent."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 10 dispatcher updates."
+      - "1 planned-capability stub remaining: document_parsing. Pure JS path via pdfjs-dist + mammoth (+ optional html-to-md for HTML). Smallest of the original 7-stub list and the only one left."
+    local_only: false
+    commit_results: ["(this commit)"]
     push_results: []

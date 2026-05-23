@@ -1776,11 +1776,11 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   },
   {
     id: "web_search",
-    name: "Web search results (organic + answer boxes)",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
-    summary: "Run a search query and return organic results plus answer-box / featured-snippet data.",
+    name: "BM25 search over your AXIS-cached corpus",
+    axis_brand_tool: "iliad_web_search",
+    pricing_tier: "$0.01 standard / $0.00 lite per search operation (BM25 ranking over SQLite, no external API call). Indexing is free. Honest scope: searches YOUR account's indexed corpus, not the open web — feed it pages from iliad_web_research first.",
+    status: "owned",
+    summary: "BM25 search over the corpus your AXIS account has indexed (NOT a Google/Bing scraper). Index docs first via operation='index', then query with operation='search'. Optional site filter restricts to a URL host.",
     providers: [
       { name: "Tavily", url: "https://tavily.com", retail_pricing: "$0.005/query (Pro)" },
       { name: "Brave Search", url: "https://search.brave.com/help/api", retail_pricing: "$3/1k queries (Pro plan)" },

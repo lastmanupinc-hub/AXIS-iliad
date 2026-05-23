@@ -42,6 +42,17 @@ import {
   type AudioFormat,
 } from "./text-to-speech.js";
 import {
+  addDocument as addSearchDocument,
+  addDocuments as addSearchDocuments,
+  searchDocuments,
+  deleteDocument as deleteSearchDocument,
+  deleteSearchNamespace,
+  countSearchDocuments,
+  scopeSearchNamespace,
+  type SearchDocument,
+  type SearchOptions,
+} from "./web-search.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -265,24 +276,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     },
     recommended_provider: { name: "LlamaParse", url: "https://docs.llamaindex.ai/en/stable/llama_cloud/llama_parse/" },
     capability_id: "document_parsing",
-  },
-  {
-    name: "iliad_web_search",
-    title: "Web Search",
-    summary: "Run a search query and return organic results + answer-box / featured-snippet data.",
-    status: "planned_proxy",
-    input_properties: {
-      query: { type: "string", description: "Search query." },
-      max_results: { type: "number", description: "Cap on organic results. Defaults to 10." },
-      site: { type: "string", description: "Restrict to a domain (e.g. 'docs.python.org')." },
-    },
-    required_inputs: ["query"],
-    output_properties: {
-      results: { type: "array", description: "Organic results in rank order." },
-      answer_box: { type: "object", description: "Featured-snippet content (or null)." },
-    },
-    recommended_provider: { name: "Tavily", url: "https://docs.tavily.com/docs/rest-api/api-reference" },
-    capability_id: "web_search",
   },
 ];
 
@@ -709,6 +702,122 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
 
   const result = await runLlmCompletion(opts);
   return JSON.stringify(result, null, 2);
+}
+
+/** Cap on a single index batch to keep request size bounded. */
+const WEB_SEARCH_INDEX_MAX_BATCH = 100;
+
+function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): string {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_web_search needs Authorization: Bearer <api_key>.");
+  }
+
+  const op = args.operation;
+  if (op !== "index" && op !== "search" && op !== "delete" && op !== "delete_namespace" && op !== "count") {
+    throw new Error("iliad_web_search: `operation` must be one of index, search, delete, delete_namespace, count.");
+  }
+
+  const rawNs = typeof args.namespace === "string" ? args.namespace : undefined;
+  let scopedNs: string;
+  try {
+    scopedNs = scopeSearchNamespace(auth.account.account_id, rawNs);
+  } catch (err) {
+    throw new Error(err instanceof Error ? `iliad_web_search: ${err.message}` : String(err));
+  }
+
+  if (op === "index") {
+    // Two shapes accepted: { document: {...} } for one doc, or { documents: [{...}, ...] } for batch.
+    const batch = args.documents;
+    if (Array.isArray(batch)) {
+      if (batch.length === 0) {
+        throw new Error("iliad_web_search: documents[] must be a non-empty array.");
+      }
+      if (batch.length > WEB_SEARCH_INDEX_MAX_BATCH) {
+        throw new Error(
+          `iliad_web_search: index batch capped at ${WEB_SEARCH_INDEX_MAX_BATCH} (got ${batch.length}).`,
+        );
+      }
+      const cleaned: SearchDocument[] = batch.map((d, i) => {
+        if (!d || typeof d !== "object") {
+          throw new Error(`iliad_web_search: documents[${i}] must be an object`);
+        }
+        return d as SearchDocument;
+      });
+      addSearchDocuments(scopedNs, cleaned);
+      return JSON.stringify({
+        operation: "index",
+        namespace: scopedNs,
+        indexed: cleaned.length,
+        total_in_namespace: countSearchDocuments(scopedNs),
+      }, null, 2);
+    }
+    const single = args.document;
+    if (!single || typeof single !== "object") {
+      throw new Error("iliad_web_search: index requires `document` (object) or `documents` (array).");
+    }
+    addSearchDocument(scopedNs, single as SearchDocument);
+    return JSON.stringify({
+      operation: "index",
+      namespace: scopedNs,
+      indexed: 1,
+      total_in_namespace: countSearchDocuments(scopedNs),
+    }, null, 2);
+  }
+
+  if (op === "search") {
+    if (typeof args.query !== "string") {
+      throw new Error("iliad_web_search: search requires `query` (string).");
+    }
+    if (args.max_results !== undefined && typeof args.max_results !== "number") {
+      throw new Error("iliad_web_search: `max_results` must be a number when provided.");
+    }
+    if (args.site !== undefined && typeof args.site !== "string") {
+      throw new Error("iliad_web_search: `site` must be a string when provided.");
+    }
+    const opts: SearchOptions = {
+      query: args.query,
+      max_results: args.max_results as number | undefined,
+      site: args.site as string | undefined,
+    };
+    const hits = searchDocuments(scopedNs, opts);
+    return JSON.stringify({
+      operation: "search",
+      namespace: scopedNs,
+      query: args.query,
+      total_in_namespace: countSearchDocuments(scopedNs),
+      hits,
+    }, null, 2);
+  }
+
+  if (op === "delete") {
+    if (typeof args.doc_id !== "string") {
+      throw new Error("iliad_web_search: delete requires `doc_id` (string).");
+    }
+    const removed = deleteSearchDocument(scopedNs, args.doc_id);
+    return JSON.stringify({
+      operation: "delete",
+      namespace: scopedNs,
+      doc_id: args.doc_id,
+      removed,
+    }, null, 2);
+  }
+
+  if (op === "delete_namespace") {
+    const removed = deleteSearchNamespace(scopedNs);
+    return JSON.stringify({
+      operation: "delete_namespace",
+      namespace: scopedNs,
+      removed,
+    }, null, 2);
+  }
+
+  // count
+  return JSON.stringify({
+    operation: "count",
+    namespace: scopedNs,
+    total: countSearchDocuments(scopedNs),
+  }, null, 2);
 }
 
 async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
@@ -1783,6 +1892,69 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── iliad_web_search (AXIS-owned BM25 search over cached corpus) ─
+  // Honest scope: this is NOT a Google/Bing scraper. It's BM25
+  // search over content YOUR AXIS instance has indexed. Agents
+  // first call iliad_web_search with operation='index' (or
+  // 'index' a batch of documents fetched via iliad_web_research),
+  // then later operation='search' to retrieve. Persistent across
+  // restarts via SQLite. Same account-scoped namespacing pattern
+  // as iliad_vector_database / iliad_analytics.
+  {
+    name: "iliad_web_search",
+    description:
+      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via SQLite. Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["operation"],
+      properties: {
+        operation: { type: "string", description: "index | search | delete | delete_namespace | count.", enum: ["index", "search", "delete", "delete_namespace", "count"] },
+        namespace: { type: "string", description: "Logical isolation key. Defaults 'default'. Account id is always prepended server-side." },
+        document: { type: "object", description: "Single document {doc_id, url?, title?, content, metadata?} — used in index mode (alternative to documents[])." },
+        documents: { type: "array", description: "Batch of documents (max 100). Transactional — malformed entry aborts the whole call." },
+        query: { type: "string", description: "Search query (1-1024 chars). Required in search mode." },
+        max_results: { type: "number", description: "Cap on hits returned. Defaults 10, max 100." },
+        site: { type: "string", description: "Filter to a single URL host (e.g. 'docs.python.org', case-insensitive)." },
+        doc_id: { type: "string", description: "Document id to remove. Required in delete mode." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        operation: { type: "string", description: "Echo of the operation that ran." },
+        namespace: { type: "string", description: "Scoped namespace the call touched." },
+        indexed: { type: "number", description: "Documents written (index mode)." },
+        total_in_namespace: { type: "number", description: "Documents currently in the namespace (index, search, count modes)." },
+        query: { type: "string", description: "Echo of the search query (search mode)." },
+        hits: { type: "array", description: "BM25-ranked hits [{doc_id, url, title, snippet, score, metadata}] (search mode)." },
+        removed: { type: ["boolean", "number"] as unknown as string, description: "delete: boolean; delete_namespace: count of rows removed." },
+        total: { type: "number", description: "Document count (count mode)." },
+      },
+    },
+    annotations: toolAnnotations("Web Search (Owned Corpus)", false, false),
+    examples: [
+      {
+        name: "Index a single document",
+        input: { operation: "index", namespace: "docs", document: { doc_id: "intro", url: "https://example.com/intro", title: "Intro to AXIS", content: "AXIS is a deterministic codebase analyzer..." } },
+        output: '{"operation":"index","namespace":"acct:<acc>:docs","indexed":1,"total_in_namespace":1}',
+      },
+      {
+        name: "Batch index pages from iliad_web_research output",
+        input: { operation: "index", namespace: "docs", documents: [{ doc_id: "p1", url: "https://example.com/a", content: "page A body..." }, { doc_id: "p2", url: "https://example.com/b", content: "page B body..." }] },
+        output: '{"operation":"index","namespace":"acct:<acc>:docs","indexed":2,"total_in_namespace":2}',
+      },
+      {
+        name: "Search the corpus",
+        input: { operation: "search", namespace: "docs", query: "deterministic codebase analyzer", max_results: 3 },
+        output: '{"operation":"search","namespace":"acct:<acc>:docs","query":"deterministic codebase analyzer","total_in_namespace":2,"hits":[{"doc_id":"intro","url":"https://example.com/intro","title":"Intro to AXIS","snippet":"…AXIS is a deterministic codebase analyzer…","score":2.34,"metadata":null}]}',
+      },
+      {
+        name: "Search restricted to a domain",
+        input: { operation: "search", namespace: "docs", query: "tutorial", site: "docs.python.org" },
+        output: '{"operation":"search","namespace":"acct:<acc>:docs","query":"tutorial","total_in_namespace":2,"hits":[...]}',
+      },
+    ],
+  },
   // ─── iliad_text_to_speech (AXIS-owned via Piper shell-out) ─────
   // Owned implementation: shell-out to the operator-installed
   // `piper` binary using a voice .onnx + .onnx.json pair from
@@ -1950,7 +2122,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (2 tools) ─────────────────────────
+  // ─── Planned-capability stubs (1 tool) ──────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
@@ -3650,6 +3822,9 @@ export async function dispatch(
             break;
           case "iliad_text_to_speech":
             text = await runTextToSpeech(toolArgs, req);
+            break;
+          case "iliad_web_search":
+            text = runWebSearch(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

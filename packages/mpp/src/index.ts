@@ -218,6 +218,17 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 1,
     lite_description: "Lite mode: text capped at 500 chars + format locked to wav (standard allows up to 5000 chars + mp3/opus transcode).",
   },
+  // AXIS-owned BM25 search over the account's indexed corpus. Pure
+  // SQLite + JS — no external API call, no provider fee. Per-query
+  // cost is dominated by the table scan + BM25 math (~sub-ms for
+  // ≤1k docs, single-digit ms for ≤10k). Indexing is free; only
+  // search ops are priced. Lite tier caps max_results at 10.
+  iliad_web_search: {
+    tool: "iliad_web_search",
+    standard_cents: 1,
+    lite_cents: 0,
+    lite_description: "Free tier: max_results capped at 10 (standard allows up to 100). Indexing is always free.",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

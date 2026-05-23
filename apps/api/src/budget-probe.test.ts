@@ -230,6 +230,14 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/text|chars|wav|format/i);
   });
 
+  it("returns near-free tier for iliad_web_search (BM25 over SQLite, no external API)", () => {
+    const tier = getPricingTier("iliad_web_search");
+    expect(tier.tool).toBe("iliad_web_search");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/max_results|indexing|free/i);
+  });
+
   it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
@@ -247,6 +255,7 @@ describe("getPricingTier", () => {
       "iliad_code_sandbox",
       "iliad_speech_to_text",
       "iliad_text_to_speech",
+      "iliad_web_search",
       "default",
     ]) {
       const tier = getPricingTier(tool);
@@ -268,6 +277,7 @@ describe("getPricingTier", () => {
       "iliad_code_sandbox",
       "iliad_speech_to_text",
       "iliad_text_to_speech",
+      "iliad_web_search",
     ]) {
       const tier = getPricingTier(tool);
       expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
@@ -290,6 +300,7 @@ describe("getPricingTier", () => {
       "iliad_code_sandbox",
       "iliad_speech_to_text",
       "iliad_text_to_speech",
+      "iliad_web_search",
     ];
     for (const tool of iliadTools) {
       const tier = getPricingTier(tool);
