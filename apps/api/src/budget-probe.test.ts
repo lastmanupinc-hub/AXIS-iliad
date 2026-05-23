@@ -206,6 +206,14 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/max_tokens|temperature|deterministic/i);
   });
 
+  it("returns container-spawn tier for iliad_code_sandbox (ephemeral Docker per call)", () => {
+    const tier = getPricingTier("iliad_code_sandbox");
+    expect(tier.tool).toBe("iliad_code_sandbox");
+    expect(tier.standard_cents).toBe(5);
+    expect(tier.lite_cents).toBe(2);
+    expect(tier.lite_description).toMatch(/timeout|seconds|python|bash/i);
+  });
+
   it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
@@ -220,6 +228,7 @@ describe("getPricingTier", () => {
       "iliad_transactional_email",
       "iliad_analytics",
       "iliad_llm_inference",
+      "iliad_code_sandbox",
       "default",
     ]) {
       const tier = getPricingTier(tool);
@@ -238,6 +247,7 @@ describe("getPricingTier", () => {
       "iliad_transactional_email",
       "iliad_analytics",
       "iliad_llm_inference",
+      "iliad_code_sandbox",
     ]) {
       const tier = getPricingTier(tool);
       expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
@@ -257,6 +267,7 @@ describe("getPricingTier", () => {
       "iliad_transactional_email",
       "iliad_analytics",
       "iliad_llm_inference",
+      "iliad_code_sandbox",
     ];
     for (const tool of iliadTools) {
       const tier = getPricingTier(tool);

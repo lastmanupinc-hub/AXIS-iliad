@@ -183,6 +183,19 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 1,
     lite_description: "Lite mode: max_tokens capped at 256 + temperature locked at 0 for cheaper, more deterministic output.",
   },
+  // AXIS-owned code sandbox: ephemeral Docker container per call.
+  // Real marginal cost is the spawn/teardown overhead (1-2s cold)
+  // plus the wall-clock the user's code runs. Higher tier than
+  // llm_inference because every call materializes a full container
+  // rather than amortizing a long-loaded model. Lite tier caps
+  // timeout at 10s so cheap probes can't tie up a worker for the
+  // full 600s ceiling.
+  iliad_code_sandbox: {
+    tool: "iliad_code_sandbox",
+    standard_cents: 5,
+    lite_cents: 2,
+    lite_description: "Lite mode: timeout_seconds capped at 10 (standard allows up to 600) + python/bash only (no node).",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

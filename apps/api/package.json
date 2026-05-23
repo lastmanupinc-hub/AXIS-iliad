@@ -16,12 +16,14 @@
     "@axis/repo-parser": "workspace:*",
     "@axis/snapshots": "workspace:*",
     "@jmondi/oauth2-server": "^4.2.2",
+    "dockerode": "^4.0.12",
     "jsonwebtoken": "^9.0.3",
     "mppx": "^0.5.12",
     "node-llama-cpp": "^3.18.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/dockerode": "^3.3.47",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "ts-node": "^10.9.2",

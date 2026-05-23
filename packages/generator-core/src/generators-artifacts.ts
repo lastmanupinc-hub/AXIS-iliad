@@ -1819,9 +1819,9 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "code_sandbox",
     name: "Sandboxed code execution",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
+    axis_brand_tool: "iliad_code_sandbox",
+    pricing_tier: "$0.05 standard / $0.02 lite per call (covers Docker container spawn + teardown overhead at ~1-2s cold start). Requires a reachable Docker daemon — Render standard services don't expose /var/run/docker.sock; deploy on a host with Docker access.",
+    status: "owned",
     summary: "Execute untrusted Python / Node / shell code in an isolated sandbox and return stdout, stderr, and exit code.",
     providers: [
       { name: "E2B", url: "https://e2b.dev", retail_pricing: "$0.07/hr (Compute Time)" },

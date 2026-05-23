@@ -29,6 +29,10 @@ import {
   type CompletionOptions as LlmCompletionOptions,
 } from "./llm-inference.js";
 import {
+  runCodeSandbox as runCodeSandboxModule,
+  type SandboxOptions,
+} from "./code-sandbox.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -305,25 +309,6 @@ export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
     },
     recommended_provider: { name: "Tavily", url: "https://docs.tavily.com/docs/rest-api/api-reference" },
     capability_id: "web_search",
-  },
-  {
-    name: "iliad_code_sandbox",
-    title: "Code Sandbox",
-    summary: "Execute untrusted Python / Node / shell code in an isolated sandbox; return stdout / stderr / exit code.",
-    status: "planned_proxy",
-    input_properties: {
-      language: { type: "string", description: "Runtime language.", enum: ["python", "node", "bash"] },
-      code: { type: "string", description: "Code to execute." },
-      timeout_seconds: { type: "number", description: "Wall-clock limit. Defaults 30, max 600." },
-    },
-    required_inputs: ["language", "code"],
-    output_properties: {
-      stdout: { type: "string", description: "Captured stdout." },
-      stderr: { type: "string", description: "Captured stderr." },
-      exit_code: { type: "number", description: "Process exit code." },
-    },
-    recommended_provider: { name: "E2B", url: "https://e2b.dev/docs" },
-    capability_id: "code_sandbox",
   },
 ];
 
@@ -749,6 +734,36 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
   }
 
   const result = await runLlmCompletion(opts);
+  return JSON.stringify(result, null, 2);
+}
+
+async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_code_sandbox needs Authorization: Bearer <api_key>.");
+  }
+
+  const language = args.language;
+  if (language !== "python" && language !== "node" && language !== "bash") {
+    throw new Error("iliad_code_sandbox: `language` must be one of python, node, bash.");
+  }
+  if (typeof args.code !== "string") {
+    throw new Error("iliad_code_sandbox: `code` is required and must be a string.");
+  }
+  if (args.timeout_seconds !== undefined && typeof args.timeout_seconds !== "number") {
+    throw new Error("iliad_code_sandbox: `timeout_seconds` must be a number when provided.");
+  }
+  if (args.stdin !== undefined && typeof args.stdin !== "string") {
+    throw new Error("iliad_code_sandbox: `stdin` must be a string when provided.");
+  }
+
+  const opts: SandboxOptions = {
+    language,
+    code: args.code,
+    timeout_seconds: args.timeout_seconds as number | undefined,
+    stdin: args.stdin as string | undefined,
+  };
+  const result = await runCodeSandboxModule(opts);
   return JSON.stringify(result, null, 2);
 }
 
@@ -1674,6 +1689,66 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── iliad_code_sandbox (AXIS-owned, ephemeral Docker container) ─
+  // Owned implementation: each call spawns a throwaway container
+  // with NetworkMode=none, ReadonlyRootfs=true, all Linux caps
+  // dropped, PidsLimit=64, Memory=256MB, NanoCPUs=0.5, User=nobody,
+  // size-capped tmpfs /tmp, no-new-privileges. Timeout enforcement
+  // via setTimeout → container.kill(SIGKILL) → container.remove(force).
+  // dockerode is dynamically imported so tests pass without Docker.
+  // Returns a _not_configured envelope when the daemon is unreachable.
+  {
+    name: "iliad_code_sandbox",
+    description:
+      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["language", "code"],
+      properties: {
+        language: { type: "string", description: "Runtime language.", enum: ["python", "node", "bash"] },
+        code: { type: "string", description: "Source code to execute. Fed via stdin to the interpreter. Max 256 KiB." },
+        timeout_seconds: { type: "number", description: "Wall-clock limit. Defaults 30, max 600. SIGKILL on overrun." },
+        stdin: { type: "string", description: "Optional additional stdin appended after the code body. Max 1 MiB." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        stdout: { type: "string", description: "Captured stdout (UTF-8, capped at 1 MiB with truncation marker)." },
+        stderr: { type: "string", description: "Captured stderr (UTF-8, capped at 1 MiB)." },
+        exit_code: { type: "number", description: "Process exit code (137 on SIGKILL)." },
+        timed_out: { type: "boolean", description: "True if the wall-clock timeout fired." },
+        duration_ms: { type: "number", description: "End-to-end wall time including container spawn + teardown." },
+        image: { type: "string", description: "Container image actually used." },
+        _not_configured: { type: "boolean", description: "True when no Docker daemon is reachable." },
+        reason: { type: "string", description: "docker_daemon_unreachable | dockerode_import_failed (only when _not_configured=true)." },
+        remediation: { type: "string", description: "How the operator should fix the unreachable-daemon condition." },
+      },
+    },
+    annotations: toolAnnotations("Code Sandbox", false, false),
+    examples: [
+      {
+        name: "Run a Python one-liner",
+        input: { language: "python", code: "print(sum(range(100)))" },
+        output: '{"stdout":"4950\\n","stderr":"","exit_code":0,"timed_out":false,"duration_ms":1820,"image":"nikolaik/python-nodejs:python3.12-nodejs22-slim"}',
+      },
+      {
+        name: "Run a Node script",
+        input: { language: "node", code: "console.log(JSON.stringify({hello:'axis'}));" },
+        output: '{"stdout":"{\\"hello\\":\\"axis\\"}\\n","stderr":"","exit_code":0,"timed_out":false,"duration_ms":1310,"image":"nikolaik/python-nodejs:python3.12-nodejs22-slim"}',
+      },
+      {
+        name: "Bash with a hard timeout",
+        input: { language: "bash", code: "sleep 60", timeout_seconds: 2 },
+        output: '{"stdout":"","stderr":"","exit_code":137,"timed_out":true,"duration_ms":2080,"image":"nikolaik/python-nodejs:python3.12-nodejs22-slim"}',
+      },
+      {
+        name: "Probe before Docker is wired",
+        input: { language: "python", code: "print(1)" },
+        output: '{"_not_configured":true,"reason":"docker_daemon_unreachable","detail":"...","remediation":"iliad_code_sandbox requires a reachable Docker daemon..."}',
+      },
+    ],
+  },
   // ─── iliad_analytics (AXIS-owned, SQLite-backed events + aggregations) ─
   // Third member of the owned tier. Capture is one or many events;
   // query is one of four aggregation kinds (count, count_by_event,
@@ -1729,7 +1804,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (5 tools) ─────────────────────────
+  // ─── Planned-capability stubs (4 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
@@ -3420,6 +3495,9 @@ export async function dispatch(
             break;
           case "iliad_llm_inference":
             text = await runLlmInference(toolArgs, req);
+            break;
+          case "iliad_code_sandbox":
+            text = await runCodeSandbox(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned
