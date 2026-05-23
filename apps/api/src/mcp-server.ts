@@ -349,6 +349,7 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
   }
 
   const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
+  meterMcpToolCredits(req, auth.account, "iliad_object_storage");
   const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
 
   return JSON.stringify({
@@ -397,6 +398,7 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
     throw new Error("iliad_transactional_email: `reply_to` must be a string.");
   }
 
+  meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
   const result = await sendTransactionalEmail(
     {
       to: rawTo as string | string[],
@@ -440,6 +442,7 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
       }
     }
   }
+  meterMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);
   return JSON.stringify(result, null, 2);
 }
@@ -497,6 +500,7 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
         metadata: (r.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     }
+    meterMcpToolCredits(req, auth.account, "iliad_vector_database");
     upsertVectors(scopedNs, cleaned);
     return JSON.stringify({
       operation: "upsert",
@@ -526,6 +530,7 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
     top_k,
     filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
   };
+  meterMcpToolCredits(req, auth.account, "iliad_vector_database");
   const matches = queryVectors(scopedNs, queryOpts);
   return JSON.stringify({
     operation: "query",
@@ -576,6 +581,7 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
         }
         return e as AnalyticsEvent;
       });
+      meterMcpToolCredits(req, auth.account, "iliad_analytics");
       captureEvents(scopedNs, cleaned);
       return JSON.stringify({
         operation: "capture",
@@ -587,6 +593,7 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
     if (!single || typeof single !== "object") {
       throw new Error("iliad_analytics: capture requires `event` (object) or `events` (array).");
     }
+    meterMcpToolCredits(req, auth.account, "iliad_analytics");
     captureEvent(scopedNs, single as AnalyticsEvent);
     return JSON.stringify({
       operation: "capture",
@@ -611,6 +618,7 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
       "iliad_analytics: query.kind must be one of count, count_by_event, distinct_users, count_by_bucket.",
     );
   }
+  meterMcpToolCredits(req, auth.account, "iliad_analytics");
   const result = queryAnalytics(scopedNs, q as unknown as AnalyticsQuery);
   return JSON.stringify({
     operation: "query",
@@ -694,6 +702,7 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
     throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
   }
 
+  meterMcpToolCredits(req, auth.account, "iliad_llm_inference");
   const result = await runLlmCompletion(opts);
   return JSON.stringify(result, null, 2);
 }
@@ -718,7 +727,18 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
     mime_type: args.mime_type as string | undefined,
   };
   const result = await runDocumentParsing(opts);
+  // Skip metering when the call returned a _not_configured envelope —
+  // those branches mean the input was unsupported/malformed/unreachable
+  // (operator-level issues), not a value the caller asked for.
+  if (!isNotConfiguredResult(result)) {
+    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+  }
   return JSON.stringify(result, null, 2);
+}
+
+/** Shape-guard for the _not_configured envelope shared across the owned tools. */
+function isNotConfiguredResult(value: unknown): boolean {
+  return Boolean(value && typeof value === "object" && (value as { _not_configured?: unknown })._not_configured === true);
 }
 
 /** Cap on a single index batch to keep request size bounded. */
@@ -797,6 +817,10 @@ function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): stri
       max_results: args.max_results as number | undefined,
       site: args.site as string | undefined,
     };
+    // Per pricing tier: only `search` is metered. index / delete /
+    // delete_namespace / count are free since they don't consume the
+    // BM25-ranking CPU that the search op pays for.
+    meterMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = searchDocuments(scopedNs, opts);
     return JSON.stringify({
       operation: "search",
@@ -863,6 +887,12 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
     sentence_silence: args.sentence_silence as number | undefined,
   };
   const result = await runSynthesis(opts);
+  // Skip metering on _not_configured branches (piper missing, voice
+  // missing, etc.) — those are operator-setup gaps, not work the
+  // caller successfully completed.
+  if (!isNotConfiguredResult(result)) {
+    meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -894,6 +924,9 @@ async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessa
     word_timestamps: args.word_timestamps as boolean | undefined,
   };
   const result = await runTranscription(opts);
+  if (!isNotConfiguredResult(result)) {
+    meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -924,6 +957,11 @@ async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessag
     stdin: args.stdin as string | undefined,
   };
   const result = await runCodeSandboxModule(opts);
+  // Docker daemon unreachable / dockerode import failed → _not_configured.
+  // Don't meter those — the container never spawned.
+  if (!isNotConfiguredResult(result)) {
+    meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -2285,7 +2323,7 @@ const MAX_FILE_CONTENT_BYTES = 5 * 1024 * 1024;
 const MAX_SHORT_STRING_LENGTH = 500;
 
 function buildMcpPaymentRequiredError(
-  tool: "analyze_files" | "analyze_repo" | "prepare_agentic_purchasing",
+  tool: MeteredMcpTool,
   accountId: string,
   message: string,
   req: IncomingMessage,
@@ -2306,10 +2344,37 @@ function buildMcpPaymentRequiredError(
   );
 }
 
+/**
+ * MCP tool names that go through plan-credit metering. All entries here
+ * must also have a PRICING_TIERS row in @axis/mpp/PRICING_TIERS; the
+ * "no iliad_* falls back to default" invariant in budget-probe.test
+ * catches drift.
+ *
+ * Tools NOT listed here are either:
+ *   - Free discovery tools (list_programs, search_and_discover_tools, etc.)
+ *   - Per-operation gated tools that meter selectively inside their runX
+ *     function (e.g. iliad_web_search bills only `search`, not `index`).
+ */
+type MeteredMcpTool =
+  | "analyze_files"
+  | "analyze_repo"
+  | "prepare_agentic_purchasing"
+  | "iliad_object_storage"
+  | "iliad_vector_database"
+  | "iliad_embeddings"
+  | "iliad_transactional_email"
+  | "iliad_analytics"
+  | "iliad_llm_inference"
+  | "iliad_code_sandbox"
+  | "iliad_speech_to_text"
+  | "iliad_text_to_speech"
+  | "iliad_web_search"
+  | "iliad_document_parsing";
+
 function meterMcpToolCredits(
   req: IncomingMessage,
   account: { account_id: string; tier: "free" | "paid" | "suite" },
-  tool: "analyze_files" | "analyze_repo" | "prepare_agentic_purchasing",
+  tool: MeteredMcpTool,
 ): void {
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier(tool);

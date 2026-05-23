@@ -15,9 +15,9 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "b43270e"
-    current_session_id: "session_118"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, ZERO planned stubs remaining. Catalog-honesty endgame: every advertised tool now serves a real AXIS-owned (10) or live-proxy (2) implementation, with image_generation delegated to the AXIS Foundry sibling. Session 118 ships the final stub iliad_document_parsing — pdfjs-dist for PDF + mammoth for DOCX + pragmatic tag-strip for HTML + passthrough for markdown/text — all in-process, no third-party API, no per-page fee. Format detection via magic-byte sniffing + URL extension hint + optional caller mime_type. Output capped at 1 MiB markdown with truncation marker. _not_configured envelope covers 6 distinct branches (download_failed, decode_failed, unsupported_format, parse_failed, pdf_runtime_missing, docx_runtime_missing)."
+    commit_or_tag: "(session_119 — uncommitted)"
+    current_session_id: "session_119"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — every owned iliad_* tool now meters plan credits per call. Session 119 wired meterMcpToolCredits into all 11 owned tools (object_storage, vector_database, embeddings, transactional_email, analytics, llm_inference, code_sandbox, speech_to_text, text_to_speech, web_search, document_parsing). MeteredMcpTool union widened, buildMcpPaymentRequiredError generalized to accept any metered tool. Smart placement: meter AFTER config-pass + validation, BEFORE work — and crucially, NOT on _not_configured envelopes (so operator-setup gaps don't cost the caller credits) or on iliad_web_search index ops (free per pricing card). Suite tier passes through; free tier deducts from the 10k-credit monthly allowance; once exhausted, MCP calls return the payment_required envelope with referral_token + usage_credits block. 6 new tests verify the wiring."
 
   executive_truth:
     maturity_estimate:
@@ -4754,4 +4754,53 @@ project_continuation:
     local_only: false
     commit_results: ["b43270e: Build owned iliad_document_parsing — closes the catalog-honesty endgame"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at b43270e"]
+
+  session_result_119:
+    date: "2026-05-23"
+    session_id: "session_119"
+    selected_move: >
+      With the catalog-honesty endgame closed (session 118), the next
+      biggest v1 lift was MPP 402 wiring — Tier-1 #4. Every owned tool
+      had a real PRICING_TIERS entry but no charges were invoked, so
+      auth-gated calls effectively ran for free. Wired the existing
+      meterMcpToolCredits helper (used by analyze_files / analyze_repo
+      / prepare_agentic_purchasing) into the 11 newly-owned iliad_*
+      tools.
+    selected_move_roi_reason: >
+      Direct revenue impact: ships the metering for every owned tool
+      we shipped sessions 105-118. Without this wiring AXIS captures
+      no value on the new surface. Picked the existing
+      meterMcpToolCredits pattern (deducts plan credits, throws a
+      payment_required envelope when monthly allowance exhausted) over
+      the heavier chargeMpp/402-per-call path because (a) it matches
+      the existing 3 paid tools, (b) it doesn't require threading res
+      through dispatch, (c) it works inside the JSON-RPC envelope
+      MCP clients already parse.
+    completed_candidates:
+      - "WIDEN: meterMcpToolCredits' tool-name union from the 3-tool ('analyze_files' | 'analyze_repo' | 'prepare_agentic_purchasing') to a new MeteredMcpTool union that adds every owned iliad_* tool. Also widened buildMcpPaymentRequiredError's tool param to MeteredMcpTool so the payment_required envelope formats correctly for any priced tool."
+      - "WIRE: meterMcpToolCredits call added to all 11 owned tool dispatchers — placement chosen per tool: object_storage / transactional_email / embeddings meter AFTER the env-var config check (operator-setup-gap free); vector_database meters per-op (upsert + query each separately); analytics meters per-op (capture single + batch + query separately); llm_inference meters after isLlmConfigured pre-check; code_sandbox / speech_to_text / text_to_speech / document_parsing meter AFTER if the result is NOT a _not_configured envelope (their underlying modules return structured envelopes for operator-setup gaps); web_search meters ONLY on the 'search' op (index / delete / count are free per the pricing card)."
+      - "HELPER: isNotConfiguredResult shape-guard added — checks for {_not_configured: true} on the result before invoking the meter. Used by document_parsing / code_sandbox / speech_to_text / text_to_speech."
+      - "TESTS: 6 new tests in mcp-server.test.ts under 'POST /mcp — owned-tool metering' — (1) free-tier iliad_vector_database upsert increments included_credits_used (proves meter ran), (2) suite-tier passthrough reports tier=suite + tool=iliad_vector_database in _usage block, (3) iliad_web_search operation=index does NOT decrement credits (indexing is free), (4) iliad_web_search operation=search DOES decrement credits, (5) iliad_speech_to_text returns _not_configured envelope WITHOUT charging (operator-setup-gap is free), (6) free-tier returns full payment_required envelope after the 10k-credit monthly allowance is exhausted (uses direct consumeUsageCredits burn to skip 1700+ MCP calls). Each metering test uses a fresh isolated account so credit counters don't accumulate cross-test noise."
+    refused_candidates: []
+    blocked_candidates:
+      - "Per-tool refund-on-failure: if the operator's whisper.cpp install crashes mid-transcription, the caller is charged for work that didn't complete. Acceptable for v1 — these tools succeed almost always when configured. A refund-on-throw path would need a try/finally with bookkeeping in each dispatcher; deferred."
+      - "MPP 402-per-call retry path: this session uses the plan-credit pattern instead of the chargeMpp HTTP 402 + retry-with-payment-receipt flow. MCP clients don't have a clean 402-retry idiom over JSON-RPC; pre-paid plan credits + payment_required JSON-RPC error work better. The 402 path stays available for REST endpoints that call handlers.ts directly."
+    evidence_added:
+      - "apps/api/src/mcp-server.test.ts: 6 new metering tests, all pass."
+      - "Full Vitest: 4489 pass + 20 skip + 0 fail (was 4483 + 20 skip in session 118; +6 metering tests, zero regressions)."
+      - "npm run build clean across all 8 workspace packages."
+    verticals_advanced:
+      - "v18_agentic_commerce: revenue capture now matches the catalog. Every owned tool the user paid us to build over sessions 105-118 now actually decrements plan credits per call. The 10k-credit free tier (≈1650 owned-tool calls/month at 6 credits each) gives agents room to dogfood; usage past that consumes overage credits at 0.18¢ each (≈$1.80 per 1000 calls)."
+      - "v0_core_platform: payment_required envelope shape is uniform — every owned-tool exhaustion returns the same {error, message, price, currency, lite_price, accepted_payment_schemes, referral_token, payment_url, x402, usage_credits} JSON envelope. Agents that handle the envelope once handle all 14 paid MCP tools."
+    blockers_removed:
+      - "Revenue gap closed for the 11 new owned tools. Authenticated agents previously got free unlimited calls; they now consume plan credits per call with a clean overage path."
+      - "Smart placement of meter calls prevents two common UX failures: (1) being charged for _not_configured envelopes (operator-setup gaps), (2) being charged for unmetered ops (web_search indexing). Both are caught by the new tests."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "Refund-on-throw for in-flight failures (whisper.cpp crashed mid-call, dockerode pulled but couldn't start, etc.) — deferred per blocked_candidates."
+      - "Operator setup README consolidation — Docker / GGUF llama / whisper.cpp + GGML / Piper + voices. Each tool's _not_configured envelope documents the fix; worth one consolidated doc."
+      - "Tier-1 #2 (catalog-honesty-2): provider chip on Tools Index for the 2 remaining live_proxy tools (web_research × 2 → Firecrawl). Frontend."
+      - "Tier-1 #5 (privacy-policy): dedicated PrivacyPage.tsx. Legal."
+    local_only: false
+    commit_results: ["(this commit)"]
     push_results: []

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb, createSnapshot, createAccount, createApiKey } from "@axis/snapshots";
+import { openMemoryDb, closeDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -2113,5 +2113,200 @@ describe("POST /mcp — batch JSON-RPC (array of requests)", () => {
     ]);
     // Batch is not supported — should return error (invalid request or parse error)
     expect(r.status).toBe(400);
+  });
+});
+
+// ─── Plan-credit metering on owned iliad_* tools ─────────────────
+//
+// Session 119 wired meterMcpToolCredits into every owned iliad_*
+// tool so MCP calls deduct plan credits and throw a payment_required
+// envelope when the monthly allowance is exhausted. These tests
+// verify:
+//   1. Successful tool calls increment the account's
+//      included_credits_used counter (proves the meter ran).
+//   2. iliad_web_search bills only `search`, not `index`.
+//   3. _not_configured envelopes do NOT consume credits.
+//   4. Suite tier passes through (allowance covers the call).
+//   5. Once monthly allowance is artificially exhausted, the next
+//      call returns the payment_required envelope.
+
+describe("POST /mcp — owned-tool metering", () => {
+  // Use a fresh isolated account per metering test so the credit
+  // counters don't accumulate cross-test noise.
+  function newFreeAccount(seed: string): { accountId: string; rawKey: string } {
+    const acc = createAccount(`Metering-${seed}`, `metering-${seed}@test.com`, "free");
+    const key = createApiKey(acc.account_id, `metering-${seed}-key`).rawKey;
+    return { accountId: acc.account_id, rawKey: key };
+  }
+
+  it("free-tier iliad_vector_database upsert increments included_credits_used", async () => {
+    const { accountId, rawKey } = newFreeAccount("vec-upsert");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 200,
+      method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: {
+          operation: "upsert",
+          namespace: "metering-test",
+          vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3] }],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    // 1¢ tier → at least 1 credit consumed.
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("suite-tier iliad_vector_database upsert passes through and reports tier=suite", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 201,
+      method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: {
+          operation: "upsert",
+          namespace: "metering-suite",
+          vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3] }],
+        },
+      },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.tier).toBe("suite");
+    expect(usage.tool).toBe("iliad_vector_database");
+  });
+
+  it("iliad_web_search operation=index is FREE (no credit decrement)", async () => {
+    const { accountId, rawKey } = newFreeAccount("ws-index");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 202,
+      method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: {
+          operation: "index",
+          namespace: "metering-test",
+          document: { doc_id: "d1", content: "axis iliad metering test" },
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBe(before);
+  });
+
+  it("iliad_web_search operation=search IS metered (credit decrement)", async () => {
+    const { accountId, rawKey } = newFreeAccount("ws-search");
+    // Index a doc first (free), then search (metered).
+    await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 203,
+      method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: {
+          operation: "index",
+          namespace: "metering-test",
+          document: { doc_id: "d1", content: "axis iliad metering test" },
+        },
+      },
+    }, rawKey);
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 204,
+      method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: {
+          operation: "search",
+          namespace: "metering-test",
+          query: "axis",
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("iliad_speech_to_text returns _not_configured envelope WITHOUT charging", async () => {
+    const { accountId, rawKey } = newFreeAccount("stt-not-cfg");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 205,
+      method: "tools/call",
+      params: {
+        name: "iliad_speech_to_text",
+        arguments: { audio_url: "https://example.com/clip.mp3" },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as Record<string, unknown>;
+    expect(parsed._not_configured).toBe(true);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBe(before);
+  });
+
+  it("free-tier returns payment_required envelope after monthly allowance is exhausted", async () => {
+    const { accountId, rawKey } = newFreeAccount("vec-exhaust");
+    // Burn through the 10k-credit free allowance via direct ledger
+    // writes — much faster than 10k MCP calls. Each iteration uses
+    // 6 credits (= 1¢ tier). 1667 iterations × 6 = 10,002 used.
+    for (let i = 0; i < 1700; i++) {
+      const r = consumeUsageCredits(accountId, "free", "iliad_vector_database", 1);
+      if (r.effective_overage_cents > 0) break;
+    }
+    const summary = getUsageCreditSummary(accountId, "free");
+    expect(summary.included_credits_remaining).toBeLessThan(6);
+
+    // Next MCP call should now overage and return the payment_required envelope.
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 206,
+      method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: {
+          operation: "upsert",
+          namespace: "metering-exhaust",
+          vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3] }],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as Record<string, unknown>;
+    // buildMcpPaymentRequiredError shape: build402NegotiationBody + extras.
+    expect(parsed.error).toBe("Payment Required");
+    expect(parsed.message).toContain("exceeded included monthly credits");
+    expect(parsed.price).toBe("0.01");
+    expect(parsed.price_per_call).toBe("$0.01");
+    expect(typeof parsed.referral_token).toBe("string");
+    // usage_credits block is attached via the `extra` arg from meterMcpToolCredits.
+    const usage = parsed.usage_credits as Record<string, unknown>;
+    expect(typeof usage.plan_id).toBe("string");
+    expect(typeof usage.monthly_allowance).toBe("number");
   });
 });
