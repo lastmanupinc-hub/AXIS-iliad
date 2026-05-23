@@ -15,7 +15,7 @@ project_continuation:
   current_identity:
     project_name: "Axis' Iliad"
     date: "2026-05-23"
-    commit_or_tag: "(session_115 — uncommitted)"
+    commit_or_tag: "675c502"
     current_session_id: "session_115"
     one_sentence_summary: "Axis' Iliad v0.5.3 — 26 MCP tools, owned-tier expanding (3 planned stubs left). Session 115 ships iliad_speech_to_text as an AXIS-owned implementation via whisper.cpp shell-out + ffmpeg-static resampler. Accepts audio_url (https, fetch + 100 MiB cap) or audio_base64 (inline bytes), resamples to 16 kHz mono WAV, shells out to whisper-cli, parses the JSON sidecar, returns {text, segments[{start,end,text}], language_detected, duration_seconds, model_used}. No third-party API. Graceful _not_configured envelope covers 5 prerequisite-missing branches (model_file_not_found, whisper_cli_not_found, ffmpeg_static_missing, audio_download_failed, audio_decode_failed)."
 
@@ -4593,5 +4593,6 @@ project_continuation:
       - "Tier-1 #4 (mpp-402-wiring): chargeMcpTool helper + 8 dispatcher updates."
       - "3 planned-capability stubs remaining (text_to_speech, web_search, document_parsing). Next in biggest→smallest order: text_to_speech (piper-tts shell-out, comparable effort to speech_to_text)."
     local_only: false
-    commit_results: ["(this commit)"]
+    commit_results: ["675c502: Build owned iliad_speech_to_text via whisper.cpp + ffmpeg-static"]
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 675c502"]
     push_results: []
