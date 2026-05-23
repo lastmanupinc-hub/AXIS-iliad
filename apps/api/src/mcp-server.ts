@@ -37,6 +37,11 @@ import {
   type TranscriptionOptions,
 } from "./speech-to-text.js";
 import {
+  runSynthesis,
+  type SynthesisOptions,
+  type AudioFormat,
+} from "./text-to-speech.js";
+import {
   createSnapshot,
   getSnapshot,
   updateSnapshotStatus,
@@ -243,24 +248,6 @@ interface PlannedCapability {
 // This pattern (sibling delegation) is also how the broader AXIS platform
 // composes: each process stays focused, each ships independently.
 export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = [
-  {
-    name: "iliad_text_to_speech",
-    title: "Text-to-Speech",
-    summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus.",
-    status: "planned_proxy",
-    input_properties: {
-      text: { type: "string", description: "Text to speak." },
-      voice: { type: "string", description: "Voice slug. AXIS will publish 8 stock voices." },
-      format: { type: "string", description: "Audio codec.", enum: ["mp3", "opus", "wav"] },
-    },
-    required_inputs: ["text"],
-    output_properties: {
-      audio_url: { type: "string", description: "24h-signed URL pointing at the rendered audio." },
-      duration_seconds: { type: "number", description: "Rendered audio length." },
-    },
-    recommended_provider: { name: "ElevenLabs", url: "https://elevenlabs.io/docs/api-reference/text-to-speech" },
-    capability_id: "text_to_speech",
-  },
   {
     name: "iliad_document_parsing",
     title: "Document Parsing",
@@ -721,6 +708,35 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
   }
 
   const result = await runLlmCompletion(opts);
+  return JSON.stringify(result, null, 2);
+}
+
+async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_text_to_speech needs Authorization: Bearer <api_key>.");
+  }
+  if (typeof args.text !== "string") {
+    throw new Error("iliad_text_to_speech: `text` is required and must be a string.");
+  }
+  if (args.voice !== undefined && typeof args.voice !== "string") {
+    throw new Error("iliad_text_to_speech: `voice` must be a string when provided.");
+  }
+  if (args.format !== undefined) {
+    if (args.format !== "wav" && args.format !== "mp3" && args.format !== "opus") {
+      throw new Error("iliad_text_to_speech: `format` must be one of wav, mp3, opus.");
+    }
+  }
+  if (args.sentence_silence !== undefined && typeof args.sentence_silence !== "number") {
+    throw new Error("iliad_text_to_speech: `sentence_silence` must be a number when provided.");
+  }
+  const opts: SynthesisOptions = {
+    text: args.text,
+    voice: args.voice as string | undefined,
+    format: args.format as AudioFormat | undefined,
+    sentence_silence: args.sentence_silence as number | undefined,
+  };
+  const result = await runSynthesis(opts);
   return JSON.stringify(result, null, 2);
 }
 
@@ -1767,6 +1783,62 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── iliad_text_to_speech (AXIS-owned via Piper shell-out) ─────
+  // Owned implementation: shell-out to the operator-installed
+  // `piper` binary using a voice .onnx + .onnx.json pair from
+  // AXIS_PIPER_VOICE_DIR. Synthesis writes a WAV tmpfile; if
+  // format=mp3/opus, ffmpeg-static transcodes it. Output returned
+  // inline as base64-encoded bytes (no R2 round-trip per call —
+  // callers who want a URL can put the bytes through
+  // iliad_object_storage themselves). _not_configured envelope
+  // covers 6 distinct prerequisite-missing branches.
+  {
+    name: "iliad_text_to_speech",
+    description:
+      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["text"],
+      properties: {
+        text: { type: "string", description: "Text to speak. 1-5000 chars after trim." },
+        voice: { type: "string", description: "Voice slug (filename without extension, e.g. 'en_US-amy-medium'). Defaults to first available voice or AXIS_PIPER_DEFAULT_VOICE." },
+        format: { type: "string", description: "Audio codec.", enum: ["wav", "mp3", "opus"] },
+        sentence_silence: { type: "number", description: "Per-sentence silence in seconds (0-5). Defaults 0.2." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        audio_base64: { type: "string", description: "Base64-encoded audio bytes in the requested format." },
+        format: { type: "string", description: "Echo of the requested format." },
+        voice_used: { type: "string", description: "Voice slug that was used (resolved if caller omitted `voice`)." },
+        sample_rate: { type: "number", description: "WAV sample rate parsed from the RIFF header (typically 22050 for Piper)." },
+        duration_seconds: { type: "number", description: "Audio duration in seconds, computed from the WAV header." },
+        byte_size: { type: "number", description: "Byte length of the encoded audio (post-transcode for mp3/opus)." },
+        _not_configured: { type: "boolean", description: "True when a prerequisite is missing." },
+        reason: { type: "string", description: "piper_cli_not_found | voice_dir_missing | no_voices_available | voice_model_not_found | voice_config_not_found | ffmpeg_static_missing | synthesis_failed (only when _not_configured=true)." },
+        remediation: { type: "string", description: "Operator-actionable fix for the unconfigured prerequisite." },
+      },
+    },
+    annotations: toolAnnotations("Text-to-Speech", false, true),
+    examples: [
+      {
+        name: "Default-voice WAV synthesis",
+        input: { text: "Welcome to AXIS Iliad." },
+        output: '{"audio_base64":"UklGRl...","format":"wav","voice_used":"en_US-amy-medium","sample_rate":22050,"duration_seconds":1.74,"byte_size":76844}',
+      },
+      {
+        name: "MP3 with explicit voice",
+        input: { text: "Hello world.", voice: "en_GB-alan-low", format: "mp3" },
+        output: '{"audio_base64":"SUQzAw...","format":"mp3","voice_used":"en_GB-alan-low","sample_rate":22050,"duration_seconds":1.10,"byte_size":12480}',
+      },
+      {
+        name: "Probe before any voice is placed",
+        input: { text: "anything" },
+        output: '{"_not_configured":true,"reason":"no_voices_available","detail":"/srv/axis/models/piper contains no paired .onnx + .onnx.json voice files","remediation":"Download a Piper voice from https://huggingface.co/rhasspy/piper-voices..."}',
+      },
+    ],
+  },
   // ─── iliad_speech_to_text (AXIS-owned via whisper.cpp shell-out) ─
   // Owned implementation: agent passes audio (URL or base64), we
   // download/decode → ffmpeg-static resamples to 16kHz mono WAV →
@@ -1878,7 +1950,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── Planned-capability stubs (3 tools) ─────────────────────────
+  // ─── Planned-capability stubs (2 tools) ─────────────────────────
   // Discovery-only entries derived from PLANNED_CAPABILITIES. Agents
   // see the full iliad_* surface immediately. tools/call on any of
   // these returns a structured `_planned: true` envelope until the
@@ -3575,6 +3647,9 @@ export async function dispatch(
             break;
           case "iliad_speech_to_text":
             text = await runSpeechToText(toolArgs, req);
+            break;
+          case "iliad_text_to_speech":
+            text = await runTextToSpeech(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

@@ -1652,10 +1652,10 @@ const RESELL_CAPABILITIES: ResellCapability[] = [
   {
     id: "text_to_speech",
     name: "Text-to-speech audio synthesis",
-    axis_brand_tool: "",
-    pricing_tier: null,
-    status: "planned_proxy",
-    summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus.",
+    axis_brand_tool: "iliad_text_to_speech",
+    pricing_tier: "$0.02 standard / $0.01 lite per call (CPU-bound Piper synthesis; in-process shell-out, no per-character provider fee). Requires operator-installed Piper binary + at least one voice .onnx + .onnx.json pair.",
+    status: "owned",
+    summary: "Synthesize text to speech in a selected voice; outputs WAV / MP3 / Opus.",
     providers: [
       { name: "ElevenLabs", url: "https://elevenlabs.io", retail_pricing: "$0.18/1k chars (Creator)" },
       { name: "OpenAI TTS", url: "https://openai.com", retail_pricing: "$15/1M chars (tts-1)" },

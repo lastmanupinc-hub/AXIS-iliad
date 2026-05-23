@@ -207,6 +207,17 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 1,
     lite_description: "Lite mode: audio capped at 60 seconds (standard allows up to 30 minutes) + word_timestamps disabled.",
   },
+  // AXIS-owned voice synthesis via Piper + ffmpeg-static. Piper is
+  // fast on CPU (~10× realtime for medium voices), so per-call cost
+  // is dominated by the spawn + WAV write + optional transcode
+  // rather than the synthesis itself. Lite tier locks to WAV (no
+  // ffmpeg) + caps text at 500 chars to keep wall-clock bounded.
+  iliad_text_to_speech: {
+    tool: "iliad_text_to_speech",
+    standard_cents: 2,
+    lite_cents: 1,
+    lite_description: "Lite mode: text capped at 500 chars + format locked to wav (standard allows up to 5000 chars + mp3/opus transcode).",
+  },
   default: {
     tool: "default",
     standard_cents: 50,
