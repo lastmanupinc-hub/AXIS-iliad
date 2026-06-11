@@ -7,12 +7,26 @@ const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
+let warnedDevKeyFallback = false;
+
 function getEncryptionKey(): Buffer {
   const envKey = process.env.AXIS_TOKEN_KEY;
   if (envKey && envKey.length >= 32) {
     return Buffer.from(envKey.slice(0, 32), "utf-8");
   }
+  if (process.env.NODE_ENV === "production") {
+    // Fail closed: never encrypt real tokens with the well-known dev key.
+    throw new Error(
+      "AXIS_TOKEN_KEY must be set to a 32+ char secret in production — refusing to encrypt GitHub tokens with the public dev key",
+    );
+  }
   // Deterministic fallback for development — NOT suitable for production
+  if (!warnedDevKeyFallback) {
+    warnedDevKeyFallback = true;
+    console.warn(
+      "[github-token-store] AXIS_TOKEN_KEY is unset or shorter than 32 chars — falling back to the public dev encryption key (development only). Set AXIS_TOKEN_KEY before deploying.",
+    );
+  }
   return createHash("sha256").update("axis-dev-token-key").digest();
 }
 
