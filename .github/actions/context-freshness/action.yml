@@ -1,0 +1,172 @@
+name: "Context Freshness"
+description: >
+  Check whether agent-context files (AGENTS.md, CLAUDE.md, .cursorrules,
+  .github/copilot-instructions.md, GEMINI.md) have drifted from the codebase,
+  and optionally open a pull request that refreshes them.
+
+branding:
+  icon: "refresh-cw"
+  color: "purple"
+
+inputs:
+  targets:
+    description: >
+      Comma-separated list of context files to manage. Any of:
+      agents, claude, cursor, copilot, gemini.
+    required: false
+    default: "agents,claude,cursor,copilot,gemini"
+  fail-on-drift:
+    description: >
+      Fail the job when drift is detected and auto-pr is disabled.
+      Set to "false" for a warn-only check.
+    required: false
+    default: "true"
+  auto-pr:
+    description: >
+      When drift is detected, regenerate the context files and open a pull
+      request (branch chore/refresh-agent-context) instead of failing.
+    required: false
+    default: "false"
+  package-spec:
+    description: >
+      How to invoke the iliad CLI. The default runs the published package
+      via "npx --yes iliad-md@latest". Set to "local" to run the in-repo build
+      at packages/iliad-md/dist/cli.js (dogfooding; build the package first).
+    required: false
+    default: "iliad-md@latest"
+  github-token:
+    description: >
+      Token used by the auto-pr step to create the refresh pull request.
+      The calling workflow must grant "permissions: contents: write" and
+      "pull-requests: write" for auto-pr to work.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  drift:
+    description: "'true' when the context files have drifted from the codebase, 'false' otherwise."
+    value: ${{ steps.check.outputs.drift }}
+  summary:
+    description: "Diff summary reported by 'iliad check' (empty when fresh)."
+    value: ${{ steps.check.outputs.summary }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve iliad CLI
+      id: cli
+      shell: bash
+      env:
+        PACKAGE_SPEC: ${{ inputs.package-spec }}
+      run: |
+        if [ "$PACKAGE_SPEC" = "local" ]; then
+          if [ ! -f packages/iliad-md/dist/cli.js ]; then
+            echo "::error::package-spec is 'local' but packages/iliad-md/dist/cli.js does not exist. Build it first (e.g. pnpm --filter iliad-md build)."
+            exit 1
+          fi
+          echo "cmd=node packages/iliad-md/dist/cli.js" >> "$GITHUB_OUTPUT"
+          echo "Using local CLI: node packages/iliad-md/dist/cli.js"
+        else
+          echo "cmd=npx --yes $PACKAGE_SPEC" >> "$GITHUB_OUTPUT"
+          echo "Using published CLI: npx --yes $PACKAGE_SPEC"
+        fi
+
+    - name: Check context freshness
+      id: check
+      shell: bash
+      env:
+        ILIAD: ${{ steps.cli.outputs.cmd }}
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        set +e
+        $ILIAD check --targets "$TARGETS" > context-freshness-report.txt 2>&1
+        RC=$?
+        set -e
+
+        cat context-freshness-report.txt
+
+        if [ "$RC" -eq 0 ]; then
+          echo "drift=false" >> "$GITHUB_OUTPUT"
+          echo "summary=" >> "$GITHUB_OUTPUT"
+          rm -f context-freshness-report.txt
+          {
+            echo "### Context freshness"
+            echo ""
+            echo "Agent-context files (targets: \`$TARGETS\`) are up to date with the codebase."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        if [ "$RC" -ne 1 ]; then
+          echo "::error::iliad check failed with exit code $RC (exit 1 means drift; anything else is a CLI error)."
+          exit "$RC"
+        fi
+
+        echo "drift=true" >> "$GITHUB_OUTPUT"
+        {
+          echo "summary<<ILIAD_REPORT_EOF"
+          head -c 6000 context-freshness-report.txt
+          echo ""
+          echo "ILIAD_REPORT_EOF"
+        } >> "$GITHUB_OUTPUT"
+
+        {
+          echo "### Context freshness"
+          echo ""
+          echo "Drift detected in agent-context files (targets: \`$TARGETS\`)."
+          echo ""
+          echo '```'
+          head -c 6000 context-freshness-report.txt
+          echo ""
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Regenerate context files
+      if: steps.check.outputs.drift == 'true' && inputs.auto-pr == 'true'
+      shell: bash
+      env:
+        ILIAD: ${{ steps.cli.outputs.cmd }}
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        $ILIAD --targets "$TARGETS"
+        rm -f context-freshness-report.txt
+        echo "Regenerated files:"
+        git status --short
+
+    - name: Open refresh pull request
+      if: steps.check.outputs.drift == 'true' && inputs.auto-pr == 'true'
+      uses: peter-evans/create-pull-request@v7
+      with:
+        token: ${{ inputs.github-token }}
+        branch: chore/refresh-agent-context
+        delete-branch: true
+        commit-message: "chore: refresh agent-context files"
+        title: "chore: refresh agent-context files"
+        body: |
+          The agent-context files for targets `${{ inputs.targets }}` have
+          drifted from the codebase. This PR regenerates them with `iliad`.
+
+          `iliad check` reported:
+
+          ```
+          ${{ steps.check.outputs.summary }}
+          ```
+
+          Opened automatically by the context-freshness action.
+
+    - name: Fail on drift
+      if: steps.check.outputs.drift == 'true' && inputs.auto-pr != 'true' && inputs.fail-on-drift == 'true'
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        echo "::error::Agent-context files are stale (targets: $TARGETS). Run 'npx iliad-md' locally and commit the refreshed files, or set auto-pr: \"true\" to let this action open the refresh PR for you."
+        exit 1
+
+    - name: Warn on drift
+      if: steps.check.outputs.drift == 'true' && inputs.auto-pr != 'true' && inputs.fail-on-drift != 'true'
+      shell: bash
+      env:
+        TARGETS: ${{ inputs.targets }}
+      run: |
+        echo "::warning::Agent-context files are stale (targets: $TARGETS) but fail-on-drift is disabled. Run 'npx iliad-md' locally to refresh them."

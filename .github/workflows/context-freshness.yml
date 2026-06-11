@@ -1,0 +1,39 @@
+name: Context Freshness
+
+on:
+  pull_request:
+
+jobs:
+  context-freshness:
+    name: Agent-context drift check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build iliad CLI
+        run: pnpm --filter iliad-md build
+
+      # Warn-only until the root context artifacts stabilize; flip
+      # fail-on-drift to "true" to make this a hard gate.
+      - name: Check agent-context freshness
+        uses: ./.github/actions/context-freshness
+        with:
+          package-spec: "local"
+          fail-on-drift: "false"
+          auto-pr: "false"
