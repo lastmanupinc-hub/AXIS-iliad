@@ -369,19 +369,15 @@ export function build402NegotiationBody(
       "POST /probe-intent — REST intent probe (no auth)",
     ],
     compliance_value: {
-      what_you_get: "Single-call Visa-grade agentic compliance kit — deterministic, no PCI scope, no runtime API calls",
+      what_you_get: "Single-call agentic commerce readiness kit — deterministic artifacts generated from your repo, no PCI scope, no runtime API calls",
       includes: [
-        "CE 3.0 (Compelling Evidence) auto-assembly — dispute win rates from 30% to 72% on CNP fraud",
-        "Win probability model — per-reason-code Visa dispute optimization with agent decision matrix",
-        "Lighter SCA exemption tree — 7-priority decision path, 0ms latency vs 200-800ms Visa IC pilot",
+        "CE 3.0 (Compelling Evidence) dispute evidence checklist — qualified data elements and prior-transaction requirements",
+        "SCA exemption decision tree — prioritized exemption paths (low-value, TRA, MIT, trusted beneficiary)",
         "TAP (Token Action Protocol) lifecycle — provisioning, lifecycle management, domain control",
-        "AP2/UCP/Visa IC compliance checklist — autonomous checkout readiness",
+        "AP2/UCP/Visa IC readiness checklist — autonomous checkout preparation",
         "VROL/RDR/CDRN pre-dispute deflection paths",
       ],
-      vs_visa_ic_pilot: {
-        axis: { api_calls: 0, latency_ms: 0, pci_scope: "none", price: "$0.50/run (one-time)", output: "deterministic artifacts" },
-        visa_ic: { api_calls: "3-5 per transaction", latency_ms: "200-800", pci_scope: "required", price: "per-call pricing", output: "runtime responses" },
-      },
+      methodology_note: "Artifacts are generated from a keyword-signal scan of your repository. They are a checklist starting point, not a certification, audit, or legal/compliance advice.",
     },
     incentives: {
       referral: {

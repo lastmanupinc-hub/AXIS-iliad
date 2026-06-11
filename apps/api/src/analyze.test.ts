@@ -459,8 +459,8 @@ describe("GET /.well-known/axis.json", () => {
   });
 
   it("reports correct programs and generators count", () => {
-    expect(manifest.programs).toBe(19);
-    expect(manifest.generators).toBe(124);
+    expect(manifest.programs).toBe(20);
+    expect(manifest.generators).toBe(137);
   });
 
   it("includes key_outputs array with adoption guidance", () => {

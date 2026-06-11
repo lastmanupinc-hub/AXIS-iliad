@@ -190,13 +190,11 @@ describe("POST /mcp — initialize", () => {
     const info = result.serverInfo as Record<string, unknown>;
     expect(info.name).toBe("axis-iliad");
     expect(result.instructions).toContain("analyze");
-    // incentives + monetization + axis_capabilities injected by serialization layer into every success result
-    const incentives = result.incentives as Record<string, unknown>;
-    expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(typeof incentives.description).toBe("string");
-    const axisCaps = result.axis_capabilities as Record<string, unknown>;
-    expect(axisCaps.artifact_count).toBe(124);
-    expect(axisCaps.programs).toBe(19);
+    // No marketing payload is injected into the serialization layer —
+    // results carry only the standard JSON-RPC fields.
+    expect(result.incentives).toBeUndefined();
+    expect(result.monetization).toBeUndefined();
+    expect(result.axis_capabilities).toBeUndefined();
   });
 
   it("includes Mcp-Session-Id header on initialize", async () => {
@@ -214,13 +212,14 @@ describe("POST /mcp — initialize", () => {
 });
 
 describe("POST /mcp — ping", () => {
-  it("returns result with incentives block", async () => {
+  it("returns a plain result with no injected marketing keys", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 4, method: "ping" });
     expect(r.status).toBe(200);
     const d = r.data as Record<string, unknown>;
     const result = d.result as Record<string, unknown>;
-    expect(result.incentives).toBeDefined();
-    expect(result.axis_capabilities).toBeDefined();
+    expect(result.incentives).toBeUndefined();
+    expect(result.monetization).toBeUndefined();
+    expect(result.axis_capabilities).toBeUndefined();
   });
 });
 
@@ -244,20 +243,17 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns the full 26-tool catalog (build-not-redact catalog honesty)", async () => {
+  it("returns the full 27-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
-    expect(tools.length).toBe(26);
+    expect(tools.length).toBe(27);
     expect(tools.length).toBe(MCP_TOOLS.length);
-    // incentives injected into every success result
-    const incentives = result.incentives as Record<string, unknown>;
-    expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(typeof incentives.description).toBe("string");
-    const axisCaps = result.axis_capabilities as Record<string, unknown>;
-    expect(axisCaps.artifact_count).toBe(124);
+    // No marketing payload injected into the result
+    expect(result.incentives).toBeUndefined();
+    expect(result.axis_capabilities).toBeUndefined();
   });
 
   it("each tool has name, description, inputSchema", async () => {
@@ -300,28 +296,26 @@ describe("POST /mcp — tools/list", () => {
     expect(analyzeRepo!.description).toContain("private repos require a stored GitHub token");
   });
 
-  it("incentives keys appear before tools key in serialized result", async () => {
+  it("tools/list result carries no injected marketing keys", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 7, method: "tools/list" });
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const keys = Object.keys(result);
-    const incentivesIdx = keys.indexOf("incentives");
-    const toolsIdx = keys.indexOf("tools");
-    expect(incentivesIdx).toBeLessThan(toolsIdx);
-    expect(keys.indexOf("monetization")).toBeLessThan(toolsIdx);
-    expect(keys.indexOf("axis_capabilities")).toBeLessThan(toolsIdx);
+    expect(keys).not.toContain("incentives");
+    expect(keys).not.toContain("monetization");
+    expect(keys).not.toContain("axis_capabilities");
   });
 
-  it("tools/call result has incentives before content key", async () => {
+  it("tools/call result carries content without injected marketing keys", async () => {
     const r = await post("/mcp", {
       jsonrpc: "2.0", id: 7, method: "tools/call",
       params: { name: "list_programs", arguments: {} },
     });
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const keys = Object.keys(result);
-    const incentivesIdx = keys.indexOf("incentives");
-    const contentIdx = keys.indexOf("content");
-    expect(incentivesIdx).toBeGreaterThanOrEqual(0);
-    expect(incentivesIdx).toBeLessThan(contentIdx);
+    expect(keys).toContain("content");
+    expect(keys).not.toContain("incentives");
+    expect(keys).not.toContain("monetization");
+    expect(keys).not.toContain("axis_capabilities");
   });
 
   it("every tool schema has examples array", () => {
@@ -1030,7 +1024,7 @@ describe("POST /mcp — notifications", () => {
   });
 });
 
-describe("GET /mcp — JSON manifest with incentives-first", () => {
+describe("GET /mcp — JSON manifest", () => {
   it("returns 200 with application/json content-type", async () => {
     const r = await get("/mcp");
     expect(r.status).toBe(200);
@@ -1038,37 +1032,28 @@ describe("GET /mcp — JSON manifest with incentives-first", () => {
     expect(ct).toContain("application/json");
   });
 
-  it("incentives key is the first key after server in the result object", async () => {
+  it("does not embed an incentives marketing section", async () => {
     const r = await get("/mcp");
     const data = r.data as Record<string, unknown>;
-    const keys = Object.keys(data);
-    expect(keys[0]).toBe("server");
-    expect(keys[1]).toBe("incentives");
-  });
-
-  it("incentives appear within the first 200 bytes of the JSON body", async () => {
-    const r = await get("/mcp");
+    expect(data.incentives).toBeUndefined();
     const raw = JSON.stringify(r.data);
-    const idx = raw.indexOf('"incentives"');
-    expect(idx).toBeGreaterThanOrEqual(0);
-    expect(idx).toBeLessThan(200);
+    expect(raw).not.toContain('"incentives"');
+    expect(raw).not.toContain("Share-to-Earn");
   });
 
   it("contains required manifest fields", async () => {
     const r = await get("/mcp");
     const data = r.data as Record<string, unknown>;
     expect(data.server).toBeDefined();
-    expect(data.incentives).toBeDefined();
     expect(data.tools).toBeDefined();
     expect(data._meta).toBeDefined();
     const server = data.server as Record<string, unknown>;
     expect(server.name).toBe("axis-iliad");
     expect(server.endpoint).toBeDefined();
-    const inc = data.incentives as Record<string, unknown>;
-    expect(inc.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(typeof inc.description).toBe("string");
-    expect(typeof inc.how_it_works).toBe("string");
-    expect(Array.isArray(inc.key_exports)).toBe(true);
+    // Pricing/auth metadata stays — facts, not growth-hack instructions.
+    const meta = data._meta as Record<string, unknown>;
+    expect(meta.authentication).toBeDefined();
+    expect(meta.monetization).toBeDefined();
   });
 });
 
@@ -1080,12 +1065,14 @@ describe("GET /mcp/docs — human-readable HTML docs", () => {
     expect(ct).toContain("text/html");
   });
 
-  it("body contains Axis' Iliad heading and incentives", async () => {
+  it("body contains Axis' Iliad heading without referral marketing", async () => {
     const r = await get("/mcp/docs");
     const body = String(r.data);
     expect(body).toContain("Axis' Iliad");
-    expect(body).toContain("Incentives");
-    expect(body).toContain("referral_token");
+    expect(body).toContain("Pricing");
+    expect(body).not.toContain("Incentives");
+    expect(body).not.toContain("referral_token");
+    expect(body).not.toContain("5th paid call free");
   });
 });
 
@@ -1179,7 +1166,8 @@ describe("POST /mcp — branch coverage: request id is null/undefined", () => {
     const d = r.data as Record<string, unknown>;
     expect(d.id).toBeNull();
     const result = d.result as Record<string, unknown>;
-    expect(result.incentives).toBeDefined();
+    expect(result).toBeDefined();
+    expect(result.incentives).toBeUndefined();
   });
 });
 
@@ -1242,9 +1230,9 @@ describe("POST /mcp — branch coverage: anonymous snapshots", () => {
 // ─── runSearchTools unit tests ───────────────────────────────────
 
 describe("runSearchTools — no query returns all programs", () => {
-  it("returns all 19 programs when q is omitted", () => {
+  it("returns all 20 programs when q is omitted", () => {
     const parsed = JSON.parse(runSearchTools({}));
-    expect(parsed.total_matches).toBe(19);
+    expect(parsed.total_matches).toBe(20);
     expect(Array.isArray(parsed.results)).toBe(true);
   });
 
@@ -1432,7 +1420,7 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
     expect(result.isError).toBe(false);
     const content = result.content as Array<{ type: string; text: string }>;
     const parsed = JSON.parse(content[0].text);
-    expect(parsed.total_matches).toBe(19);
+    expect(parsed.total_matches).toBe(20);
   });
 
   it("tool name appears in MCP_TOOLS", () => {
@@ -1468,9 +1456,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 26-tool catalog (build-not-redact)", () => {
+  it("tools array exposes the full 27-tool catalog (build-not-redact)", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(26);
+    expect(tools).toHaveLength(27);
     expect(tools).toHaveLength(MCP_TOOLS.length);
     const allNames = new Set(MCP_TOOLS.map(t => t.name));
     for (const t of tools) {
@@ -1545,11 +1533,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 26 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+  it("body contains 27 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(26);
+    expect(tools).toHaveLength(27);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1585,7 +1573,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
     // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
-    expect(parsed.tools.length).toBe(26);
+    expect(parsed.tools.length).toBe(27);
   });
 
   it("includes free_tools array", async () => {
@@ -1630,7 +1618,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(26);
+    expect(parsed.shareable_manifest.tools).toBe(27);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });

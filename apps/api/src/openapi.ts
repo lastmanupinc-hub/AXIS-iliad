@@ -286,7 +286,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         post: {
           summary: "Generate agentic purchasing readiness assessment â€” AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
           description:
-            "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence, win probability model, lighter SCA paths (0ms vs 200-800ms Visa IC), and autonomous checkout rules. " +
+            "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence requirements, SCA exemption paths, and autonomous checkout rules." +
             "Requires Pro tier or $0.50 MPP credit. HTTP 402 returned for free-tier callers with payment_url and retry instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402, present checkout_url or pay autonomously. (3) Retry after payment.",
           operationId: "prepareForAgenticPurchasing",

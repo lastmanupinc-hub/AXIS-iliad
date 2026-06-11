@@ -474,19 +474,19 @@ describe("build402NegotiationBody", () => {
     expect(actions.switch_lite).toContain("$0.25");
   });
 
-  it("includes compliance_value with CE 3.0 and win probability", () => {
+  it("includes compliance_value with CE 3.0 evidence checklist and methodology note", () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     const cv = body.compliance_value as Record<string, unknown>;
     expect(cv).toBeDefined();
-    expect(cv.what_you_get).toContain("Visa-grade");
+    expect(cv.what_you_get).toContain("readiness kit");
+    expect(cv.what_you_get).not.toContain("Visa-grade");
     const includes = cv.includes as string[];
     expect(includes.some(s => s.includes("CE 3.0"))).toBe(true);
-    expect(includes.some(s => s.includes("Win probability"))).toBe(true);
-    expect(includes.some(s => s.includes("Lighter SCA"))).toBe(true);
+    expect(includes.some(s => s.includes("SCA exemption"))).toBe(true);
     expect(includes.some(s => s.includes("TAP"))).toBe(true);
-    const vs = cv.vs_visa_ic_pilot as Record<string, Record<string, unknown>>;
-    expect(vs.axis.api_calls).toBe(0);
-    expect(vs.axis.latency_ms).toBe(0);
+    expect(includes.some(s => s.includes("Win probability"))).toBe(false);
+    expect(cv.methodology_note).toContain("not a certification");
+    expect(cv.vs_visa_ic_pilot).toBeUndefined();
   });
 });
 

@@ -71,12 +71,6 @@
         "lite_cents_per_run": 15,
         "budget_header": "X-Agent-Budget"
       },
-      "incentives": {
-        "fifth_paid_call_free": true,
-        "referral_earn_per_share_millicents": 1,
-        "referral_cap_cents_per_call": 20,
-        "referral_reset_days": 30
-      },
       "discovery": {
         "for_agents": "https://axis-api-6c7z.onrender.com/for-agents",
         "well_known": "https://axis-api-6c7z.onrender.com/.well-known/axis.json",

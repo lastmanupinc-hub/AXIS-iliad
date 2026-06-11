@@ -331,6 +331,19 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     expect(["production-ready", "partially-ready", "needs-work"]).toContain(bd.interpretation);
   });
 
+  it("replaces the incentives pitch with a neutral referral_program facts object", () => {
+    expect(result.incentives).toBeUndefined();
+    const referral = result.referral_program as Record<string, unknown>;
+    expect(referral).toBeDefined();
+    expect(typeof referral.referral_token).toBe("string");
+    expect(typeof referral.earned_credits_millicents).toBe("number");
+    expect(typeof referral.lifetime_referrals).toBe("number");
+    expect(referral.share_instruction).toBeUndefined();
+    const raw = JSON.stringify(result);
+    expect(raw).not.toContain("Pass this referral_token to other agents");
+    expect(raw).not.toContain("Share-to-Earn");
+  });
+
   it("returns programs_executed array", () => {
     expect(Array.isArray(result.programs_executed)).toBe(true);
     expect((result.programs_executed as string[]).length).toBeGreaterThan(0);
@@ -456,8 +469,8 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(tool!.description).toContain("dispute");
   });
 
-  it("MCP_TOOLS array contains the full 26-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", () => {
-    expect(MCP_TOOLS.length).toBe(26);
+  it("MCP_TOOLS array contains the full 27-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", () => {
+    expect(MCP_TOOLS.length).toBe(27);
   });
 });
 

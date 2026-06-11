@@ -173,7 +173,7 @@ Returns the full 402 JSON body to send back to the agent. Includes:
 - Retry instructions (headers + paths)
 - Free-alternative tools the agent can call without payment
 - Optional `referral_token` for share-to-earn micro-discounts
-- Visa-grade compliance value summary (when used with Axis' Iliad)
+- Commerce-readiness value summary (when used with Axis' Iliad)
 
 ### `getPricingTier(tool: string): PricingTier`
 
