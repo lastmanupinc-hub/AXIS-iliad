@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { scanDirectory } from "./scanner.js";
@@ -86,7 +87,12 @@ Options:
 }
 
 function printVersion(): void {
-  console.log("axis v0.3.0");
+  // package.json sits one level above both src/ (tsx dev) and dist/ (built),
+  // so "../package.json" resolves correctly from either layout.
+  const pkg = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ) as { version: string };
+  console.log(`axis v${pkg.version}`);
 }
 
 function printPrograms(): void {

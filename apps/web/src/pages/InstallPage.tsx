@@ -168,7 +168,7 @@ export function InstallPage() {
             { label: "19 Programs", desc: "search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer" },
             { label: "99 Generators", desc: "AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and 93 more" },
             { label: "Autonomous Payment", desc: "HTTP 402 → MPP challenge → Stripe payment → retry. Blended credits with $0.0018 overage per credit. No human needed." },
-            { label: "Referral Rewards", desc: "The more agents you refer, the less you effectively spend per call (up to 0.02% benefit). Resets each billing cycle." },
+            { label: "Referral Program (Opt-In)", desc: "Paid calls return a referral_token. Unique conversions earn usage credits (up to 0.02% per call). Resets each billing cycle." },
           ].map(item => (
             <div key={item.label} style={{ padding: "12px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
               <div style={{ fontSize: "0.78rem", fontWeight: 700, marginBottom: 4 }}>{item.label}</div>

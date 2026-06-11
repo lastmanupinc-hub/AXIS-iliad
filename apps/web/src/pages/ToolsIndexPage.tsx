@@ -91,7 +91,7 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
   {
     id: "tools/purchasing-full",
     name: "Full Purchasing Hardening",
-    description: "Generate the complete Visa-grade compliance kit: SCA exemption matrix, CE 3.0 dispute evidence, AP2/UCP mandate state machine, autonomous checkout rules.",
+    description: "Generate the full commerce-readiness kit: SCA exemption matrix, CE 3.0 dispute evidence checklist, AP2/UCP mandate state machine, autonomous checkout rules.",
     priceChip: "$0.50 / run · $0.25 lite",
     free: false,
     status: "coming_soon",

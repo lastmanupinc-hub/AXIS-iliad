@@ -3,7 +3,7 @@
  *
  * Usage:
  *   import { AxisClient } from "@axis/sdk";
- *   const axis = new AxisClient({ apiKey: "ax_..." });
+ *   const axis = new AxisClient({ apiKey: "axis_..." });
  *   const snap = await axis.analyzeFiles({ ... });
  *   const artifact = await axis.getArtifact(snap.snapshot_id, "AGENTS.md");
  */
@@ -13,7 +13,7 @@
 export interface AxisClientOptions {
   /** API base URL. Defaults to production. */
   baseUrl?: string;
-  /** API key (ax_...). Required for authenticated endpoints. */
+  /** API key (axis_...). Required for authenticated endpoints. */
   apiKey?: string;
   /** Request timeout in ms. Default 30000. */
   timeout?: number;

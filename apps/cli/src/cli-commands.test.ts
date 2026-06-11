@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+
+// Single source of truth for the expected CLI version — same file cli.ts reads.
+const PKG_VERSION = (
+  JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }
+).version;
 
 // ─── Mock all cli.ts dependencies ───────────────────────────────
 
@@ -152,14 +158,14 @@ describe("parseArgs via main()", () => {
     main();
     expect(mockedScan).not.toHaveBeenCalled();
     const output = logSpy.mock.calls.map(([a]) => a).join("\n");
-    expect(output).toContain("v0.3.0");
+    expect(output).toContain(`v${PKG_VERSION}`);
   });
 
   it("-v shorthand works like --version", () => {
     process.argv = ["node", "axis", "analyze", ".", "-v"];
     main();
     const output = logSpy.mock.calls.map(([a]) => a).join("\n");
-    expect(output).toContain("v0.3.0");
+    expect(output).toContain(`v${PKG_VERSION}`);
   });
 
   it("default target is current directory", () => {
@@ -224,10 +230,10 @@ describe("command routing", () => {
     expect(output).toContain("auth");
   });
 
-  it("version command prints axis v0.3.0", () => {
+  it("version command prints the package.json version", () => {
     process.argv = ["node", "axis", "version"];
     main();
-    expect(logSpy).toHaveBeenCalledWith("axis v0.3.0");
+    expect(logSpy).toHaveBeenCalledWith(`axis v${PKG_VERSION}`);
   });
 
   // Layer 11: github command error catch (cli.ts lines 180-181)

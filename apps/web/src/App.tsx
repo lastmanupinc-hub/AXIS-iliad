@@ -308,9 +308,14 @@ export function App() {
 
   // Command palette actions
   const paletteActions = useMemo<PaletteAction[]>(() => {
+    // Ctrl+2 belongs to Dashboard when a result exists (matches the keyboard
+    // handler below and the HelpPage shortcut table); Programs holds it otherwise.
     const actions: PaletteAction[] = [
       { id: "nav-analyze", label: "Go to Analyze", icon: "", shortcut: "Ctrl+1", section: "Navigation", onSelect: () => nav("upload") },
-      { id: "nav-programs", label: "Go to Programs", icon: "", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("programs") },
+      ...(result
+        ? [{ id: "nav-dashboard", label: "Go to Dashboard", icon: "", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("dashboard") }]
+        : []),
+      { id: "nav-programs", label: "Go to Programs", icon: "", ...(result ? {} : { shortcut: "Ctrl+2" }), section: "Navigation", onSelect: () => nav("programs") },
       { id: "nav-plans", label: "Go to Plans", icon: "", shortcut: "Ctrl+3", section: "Navigation", onSelect: () => nav("plans") },
       { id: "nav-account", label: "Go to Account", icon: "", shortcut: "Ctrl+4", section: "Navigation", onSelect: () => nav("account") },
       { id: "nav-docs", label: "Go to Docs", icon: "", shortcut: "Ctrl+5", section: "Navigation", onSelect: () => nav("docs") },
@@ -323,16 +328,6 @@ export function App() {
         { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
       );
     }
-    if (result) {
-      actions.splice(1, 0, {
-        id: "nav-dashboard",
-        label: "Go to Dashboard",
-        icon: "",
-        shortcut: "Ctrl+2",
-        section: "Navigation",
-        onSelect: () => nav("dashboard"),
-      });
-    }
     return actions;
   }, [result, nav, privateAccess]);
 
@@ -342,8 +337,10 @@ export function App() {
       if (!e.ctrlKey && !e.metaKey) return;
       const key = e.key;
       if (key === "1") { e.preventDefault(); nav("upload"); }
-      else if (key === "2") { e.preventDefault(); nav("programs"); }
+      // Ctrl+2 → Dashboard when a result exists (per HelpPage shortcut table),
+      // Programs otherwise so the key is never dead.
       else if (key === "2" && result) { e.preventDefault(); nav("dashboard"); }
+      else if (key === "2") { e.preventDefault(); nav("programs"); }
       else if (key === "3") { e.preventDefault(); nav("plans"); }
       else if (key === "4") { e.preventDefault(); nav("account"); }
       else if (key === "5") { e.preventDefault(); nav("docs"); }
@@ -426,7 +423,7 @@ export function App() {
 
       {/* Trust / privacy banner — always visible */}
       <div className="trust-banner" role="note" aria-label="Privacy and IP protection statement">
-        <span className="trust-item"><strong>Code never stored</strong> — we analyze and discard</span>
+        <span className="trust-item"><strong>Snapshots are stored</strong> — they power re-runs and exports; delete anytime via the API (DELETE /v1/snapshots/:id)</span>
         <span className="trust-sep">·</span>
         <span className="trust-item"><strong>Never used for AI training</strong></span>
         <span className="trust-sep">·</span>

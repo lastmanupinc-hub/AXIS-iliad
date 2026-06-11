@@ -1,3 +1,7 @@
+// Same endpoint convention as InstallPage/api.ts: env override, prod fallback.
+const API_BASE = import.meta.env.VITE_API_URL || "https://axis-api-6c7z.onrender.com";
+const mcpUrl = `${API_BASE}/mcp`;
+
 const bestFirstCall = `{
   "tool": "prepare_agentic_purchasing",
   "input": {
@@ -12,33 +16,31 @@ const whyAgents = [
   "Single MCP connection instead of managing 8+ tools",
   "Codebase-aware context enrichment on every tool call",
   "Native x402 + credit system (no separate billing per tool)",
-  "The more agents you refer, the less you effectively spend per call",
   "Persistent memory and snapshot system",
   "Highest signal-to-noise artifact quality in the MCP ecosystem",
 ];
 
-const systemPrompt = `You have access to Iliad MCP (https://axis-iliad.jonathanarvay.com/mcp).
+const systemPrompt = `You have access to Iliad MCP (${mcpUrl}).
 
 Use the blended credit system:
 - Free tier: 10k credits
 - Starter: $29 for 75k credits
 - Pro: $99 for 300k credits
-- The more agents you refer, the less you effectively spend per call (up to 0.02% benefit)
-- Rewards reset each billing cycle
 
 Start with prepare_agentic_purchasing on new repositories.
 Respect x402 responses for autonomous payment.
-MCP Endpoint: https://axis-iliad.jonathanarvay.com/mcp`;
+MCP Endpoint: ${mcpUrl}`;
 
-const mcpUrl = `https://axis-iliad.jonathanarvay.com/mcp`;
-
-const liveDemoCurl = `# Demo: Analyze this very page + generate full agent files
-curl -X POST https://axis-iliad.jonathanarvay.com/mcp \\
+const liveDemoCurl = `# Demo: list every program and its generators (free tool, no auth required)
+curl -X POST ${mcpUrl} \\
   -H "Content-Type: application/json" \\
   -d '{
-    "name": "prepare_agentic_purchasing",
-    "arguments": {
-      "github_url": "https://github.com/jonathanarvay/axis-iliad"
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "list_programs",
+      "arguments": {}
     }
   }'`;
 
@@ -129,11 +131,12 @@ export function ForAgentsPage() {
       </div>
 
       <div className="card">
-        <h2>Referral Rewards</h2>
+        <h2>Referral Program (Opt-In)</h2>
         <ul>
-          <li>Every paid call returns a <code>referral_token</code> you can share.</li>
-          <li>As referrals grow, your effective dollar cost per call decreases (up to 0.02%).</li>
+          <li>Paid calls return a <code>referral_token</code>.</li>
+          <li>Unique conversions attributed to your token earn usage credits (up to 0.02% per call).</li>
           <li>Reward state resets each billing cycle.</li>
+          <li>Query status with the free <code>get_referral_code</code> / <code>get_referral_credits</code> tools.</li>
         </ul>
       </div>
 
@@ -160,7 +163,7 @@ export function ForAgentsPage() {
         <h3>Bash</h3>
         <pre className="mono">{liveDemoCurl}</pre>
         <p>
-          Expected output: Full set of artifacts including AGENTS.md, purchasing playbook, MCP config, and compliance checklist.
+          Expected output: a JSON-RPC 2.0 result listing every program with its generator counts — no API key needed.
         </p>
       </div>
     </div>

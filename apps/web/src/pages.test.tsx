@@ -86,6 +86,30 @@ describe("Page smoke tests — zero-prop pages", () => {
   });
 });
 
+describe("Referral copy stays factual — no growth-pitch framing", () => {
+  it("ForAgentsPage describes the referral program neutrally", () => {
+    const { container } = render(<ForAgentsPage />);
+    const html = container.innerHTML;
+    expect(html).not.toContain("The more agents you refer");
+    expect(html).not.toContain("you can share");
+    expect(html).toContain("Referral Program (Opt-In)");
+    expect(html).toContain("get_referral_credits");
+  });
+
+  it("InstallPage describes the referral program neutrally", () => {
+    const { container } = render(<InstallPage />);
+    const html = container.innerHTML;
+    expect(html).not.toContain("The more agents you refer");
+    expect(html).toContain("Referral Program (Opt-In)");
+  });
+
+  it("QAPage billing answer avoids referral growth-pitch framing", () => {
+    const { container } = render(<QAPage />);
+    const html = container.innerHTML;
+    expect(html).not.toContain("The more agents you refer");
+  });
+});
+
 // ─── Prop-taking page smoke tests ───────────────────────────────
 
 import { AccountPage } from "./pages/AccountPage";
