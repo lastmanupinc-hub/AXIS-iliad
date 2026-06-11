@@ -219,11 +219,16 @@ describe("generateSymbolIndex — Go symbols with parent (method receiver)", () 
 });
 
 describe("generateSymbolIndex — output JSON metadata", () => {
-  it("includes generated_at timestamp", () => {
-    const result = generateSymbolIndex([]);
+  it("includes the snapshot-derived generated_at timestamp when supplied", () => {
+    const result = generateSymbolIndex([], "2026-01-02T03:04:05.000Z");
     const json = JSON.parse(result.content) as { generated_at: string };
-    expect(typeof json.generated_at).toBe("string");
-    expect(json.generated_at.length).toBeGreaterThan(0);
+    expect(json.generated_at).toBe("2026-01-02T03:04:05.000Z");
+  });
+
+  it("omits generated_at when no snapshot timestamp is supplied", () => {
+    const result = generateSymbolIndex([]);
+    const json = JSON.parse(result.content) as { generated_at?: string };
+    expect(json.generated_at).toBeUndefined();
   });
 });
 

@@ -1,14 +1,14 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot 9eee24ae-a411-463d-aa12-3cfa23eab83d).
-# Generated at: 2026-05-23T03:31:45.700Z
+# Generated for axis-iliad (snapshot cli-15b433184762a709888449258768e2ff).
+# Generated at: 1970-01-01T00:00:00.000Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "9eee24ae-a411-463d-aa12-3cfa23eab83d"
-  generated_at: "2026-05-23T03:31:45.700Z"
+  snapshot_id: "cli-15b433184762a709888449258768e2ff"
+  generated_at: "1970-01-01T00:00:00.000Z"
   capability_count: 14
-  capabilities_detected_in_repo: 13
+  capabilities_detected_in_repo: 11
 
 status_legend:
   live_proxy:    "Shipping today as an iliad_* MCP tool that proxies to a third party."
@@ -30,13 +30,10 @@ capabilities:
     third_party_providers:
       - name: "Firecrawl"
         url: "https://firecrawl.dev"
-        retail_pricing: "$15/mo Hobby (1k pages), $89/mo Standard (10k)"
       - name: "ScrapingBee"
         url: "https://www.scrapingbee.com"
-        retail_pricing: "$49/mo (150k credits)"
       - name: "Apify"
         url: "https://apify.com"
-        retail_pricing: "pay-as-you-go ~$0.25/1k pages"
     inputs:
       - name: url
         type: "string"
@@ -76,10 +73,6 @@ capabilities:
         - "Network-wide 24h cache — popular URLs return free at full speed"
         - "Deterministic output — same URL + same fetched_at returns the same markdown"
         - "MCP-native return shape — no client SDK required, just JSON"
-    axis_advantages:
-      - "No per-page Firecrawl markup — wholesale infrastructure cost ~$0.001/page vs ~$0.01 retail"
-      - "Cache hits are pure margin and instant for agents"
-      - "First-class MCP error envelope on render failures (Firecrawl returns raw 500s)"
 
   - id: web_crawl
     name: "Domain crawl (follow links to N pages)"
@@ -90,14 +83,12 @@ capabilities:
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references FIRECRAWL_API_KEY"
-      - "source references /firecrawl.*crawl/ (e.g. apps/api/src/env.ts)"
+      - "source references /firecrawl.*crawl/ (e.g. PRIVACY_POLICY.md)"
     third_party_providers:
       - name: "Firecrawl"
         url: "https://firecrawl.dev"
-        retail_pricing: "100-page crawl ≈ $1 retail"
       - name: "Apify Web Scraper"
         url: "https://apify.com"
-        retail_pricing: "$0.40/1k pages on shared proxy"
     inputs:
       - name: domain
         type: "string"
@@ -130,15 +121,12 @@ capabilities:
         - "Respects robots.txt and rate-limits per-host"
         - "Resumable: pass a previous crawl_id to continue where it stopped"
         - "Returns sitemap-derived structure even on JavaScript-rendered sites"
-    axis_advantages:
-      - "Crawl + dedupe + cache run in one round-trip on AXIS infra; on Firecrawl each page is a separate billed call"
-      - "Resume tokens are an AXIS abstraction — no equivalent on Firecrawl"
 
   - id: llm_inference
     name: "Chat completion / structured-output LLM call"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
+    status: owned
+    axis_brand_tool: "iliad_llm_inference"
+    pricing_tier: "$0.02 standard / $0.01 lite per call (in-process inference; no upstream per-token API fee). Requires operator-configured GGUF model at AXIS_LLM_MODEL_PATH."
     summary: "Run a prompt through an LLM and return text or JSON, with optional structured-output schema enforcement."
     detected_in_repo: true
     detection_evidence:
@@ -148,13 +136,10 @@ capabilities:
     third_party_providers:
       - name: "OpenAI"
         url: "https://openai.com"
-        retail_pricing: "$2.50/1M input · $10/1M output (gpt-4o)"
       - name: "Anthropic"
         url: "https://anthropic.com"
-        retail_pricing: "$3/1M input · $15/1M output (sonnet)"
       - name: "Replicate (open-weights)"
         url: "https://replicate.com"
-        retail_pricing: "~$0.50/1M tokens (llama-3.1-70b)"
     inputs:
       - name: messages
         type: "Array<{role, content}>"
@@ -190,10 +175,6 @@ capabilities:
         - "Tier-based routing — agents say \"fast/balanced/deep\" not \"gpt-4o vs sonnet\""
         - "Prompt-cache keyed by snapshot_id — agents that ask the same question twice in a session pay once"
         - "Deterministic mode (temperature=0 + seed) is a first-class flag, not a model-specific quirk"
-    axis_advantages:
-      - "Single billing surface across providers — agents don't manage 4 API keys"
-      - "Automatic failover when a provider rate-limits"
-      - "Compliance: structured output is validated against the schema before it leaves AXIS infra"
 
   - id: embeddings
     name: "Vector embeddings for semantic search and RAG"
@@ -208,13 +189,10 @@ capabilities:
     third_party_providers:
       - name: "OpenAI"
         url: "https://openai.com"
-        retail_pricing: "$0.02/1M tokens (text-embedding-3-small)"
       - name: "Cohere"
         url: "https://cohere.com"
-        retail_pricing: "$0.10/1M tokens (embed-english-v3)"
       - name: "Voyage AI"
         url: "https://www.voyageai.com"
-        retail_pricing: "$0.05/1M (voyage-3)"
     inputs:
       - name: input
         type: "string | string[]"
@@ -243,89 +221,69 @@ capabilities:
         - "Sub-50ms p95 on cached inputs"
         - "Single endpoint serves all dimensions via Matryoshka truncation"
         - "Free tier: 1M tokens/month — most projects never pay"
-    axis_advantages:
-      - "Wholesale infrastructure cost on open-weights is ~$0.002/1M tokens vs $0.02 retail (10× margin)"
-      - "Caching makes most production RAG workloads effectively free"
-      - "Same API surface as the LLM inference router — one auth token, one billing line"
 
   - id: image_generation
-    name: "Text-to-image generation"
-    status: planned_proxy
+    name: "Generative visual asset creation (2D images + 3D models)"
+    status: sibling_owned
     axis_brand_tool: ""
     pricing_tier: null
-    summary: "Generate an image from a text prompt with selectable quality and aspect ratio."
+    summary: "Generative visual asset creation. Owned at the platform level by AXIS Foundry (3D-first: avatars + props + vehicles + environments + VFX + weapons/armor; 2D images follow). Not exposed via Iliad MCP — call Foundry directly."
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references REPLICATE_API_TOKEN"
       - "apps/api/src/env.ts references OPENAI_API_KEY"
-      - "source references /replicate.*flux/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
-      - name: "Replicate"
+      - name: "AXIS Foundry (sibling process)"
+        url: "https://github.com/lastmanupinc-hub/AXIS-Foundry"
+      - name: "Replicate (external fallback)"
         url: "https://replicate.com"
-        retail_pricing: "~$0.003/image (sdxl), ~$0.04/image (flux-pro)"
-      - name: "OpenAI"
+      - name: "OpenAI DALL-E (external fallback)"
         url: "https://openai.com"
-        retail_pricing: "$0.04 / image (dall-e-3 1024x1024)"
-      - name: "fal.ai"
-        url: "https://fal.ai"
-        retail_pricing: "~$0.025/image (flux-1.1-pro)"
     inputs:
       - name: prompt
         type: "string"
         required: true
-        description: "Image prompt."
-      - name: aspect
-        type: "\"1:1\" | \"16:9\" | \"9:16\" | \"4:3\""
+        description: "Visual prompt (3D asset description for Foundry, text-to-image prompt for external fallbacks)."
+      - name: asset_kind
+        type: "AVATAR | PROP | VEHICLE | ENVIRONMENT | VFX | WEAPON_ARMOR | CHARACTER_ACCESSORY | GENERIC | IMAGE_2D"
         required: false
-        description: "Aspect ratio. Defaults to 1:1."
-      - name: quality
-        type: "\"fast\" | \"hi\""
-        required: false
-        description: "Tier — fast = SDXL-class, hi = Flux-class."
+        description: "Foundry asset taxonomy. Defaults to AVATAR (Foundry's production path)."
     outputs:
-      - name: image_url
+      - name: asset_url
         type: "string"
-        description: "Public URL of the generated image (24h-signed)."
-      - name: seed
-        type: "number"
-        description: "Seed used; pass back to reproduce."
+        description: "URL of the generated asset (GLB for 3D via Foundry; PNG for 2D image fallback)."
+      - name: provenance
+        type: "object"
+        description: "Foundry's CanonicalAssetContract — versioned, SHA-256-hashed, marketplace-ready."
     replication_plan:
-      runtime: "SDXL-Lightning on RunPod for the fast tier; Flux.1-dev on dedicated A100 for the hi tier"
-      persistence: "Output stored in R2 with 24h-signed URLs"
-      estimated_effort: medium
+      runtime: "AXIS Foundry — pure Python 3.11+, zero runtime deps. 17-stage avatar pipeline (classify → normalize → repair → 65-bone rig → skin → validate → facial → texture → animate → LOD → preview → export)."
+      persistence: "Foundry's own provenance store (SHA-256-hashed contracts per stage); marketplace listings via TrustFabric / PAI payloads."
+      estimated_effort: small
       key_dependencies:
-        - "diffusers"
-        - "sdxl-lightning"
-        - "flux.1-dev (Apache 2.0)"
+        - "axis-foundry (sibling process, MIT)"
+        - "GoldenSlice workflow runtime"
       differentiators:
-        - "Open-weights only — no DALL-E/MidJourney usage policy ambiguity for autonomous agents"
-        - "Seed-based reproducibility is a first-class output, not buried in metadata"
-        - "Provenance manifest attached — C2PA-style claim signed by AXIS"
-    axis_advantages:
-      - "Open-weights inference at GPU-hour cost ≈ $0.001/image vs $0.04 retail (40× margin)"
-      - "AXIS owns the inference pipeline so agents can request deterministic regeneration"
-      - "Marketplace-ready output: every image ships a C2PA-style provenance claim, useful for the Visa CE3.0 evidence bundle"
+        - "3D-first — Iliad's catalog peers ship 2D-only; Foundry ships production-grade rigged 3D assets (humanoid 65-bone, quadruped 52-bone, mech 35-bone)"
+        - "12,447-outcome regression suite — 12,443 pass, 3 skip, 1 xfail with strict CI provenance auditing"
+        - "Cross-engine export — Unity, Unreal, Godot, Roblox"
+        - "Marketplace-ready outputs including TrustFabric / PAI listing payloads"
 
   - id: text_to_speech
     name: "Text-to-speech audio synthesis"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
-    summary: "Synthesize text to speech in a selected voice; outputs MP3 or Opus."
+    status: owned
+    axis_brand_tool: "iliad_text_to_speech"
+    pricing_tier: "$0.02 standard / $0.01 lite per call (CPU-bound Piper synthesis; in-process shell-out, no per-character provider fee). Requires operator-installed Piper binary + at least one voice .onnx + .onnx.json pair."
+    summary: "Synthesize text to speech in a selected voice; outputs WAV / MP3 / Opus."
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references OPENAI_API_KEY"
-      - "source references /elevenlabs\\.io/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "ElevenLabs"
         url: "https://elevenlabs.io"
-        retail_pricing: "$0.18/1k chars (Creator)"
       - name: "OpenAI TTS"
         url: "https://openai.com"
-        retail_pricing: "$15/1M chars (tts-1)"
       - name: "Cartesia (Sonic)"
         url: "https://cartesia.ai"
-        retail_pricing: "$0.065/1k chars"
     inputs:
       - name: text
         type: "string"
@@ -358,30 +316,23 @@ capabilities:
         - "Voice clone from 6-second sample is opt-in, gated by content-policy review"
         - "Cache hits for marketing copy / podcast intros are free after first render"
         - "Output is C2PA-signed; useful for any commerce-related voice prompts"
-    axis_advantages:
-      - "Open-weights inference ≈ $0.005/1k chars vs $0.18 (36× margin)"
-      - "No ElevenLabs character cap — AXIS amortizes long-form synthesis cost across cache hits"
 
   - id: speech_to_text
     name: "Audio transcription with diarization"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
+    status: owned
+    axis_brand_tool: "iliad_speech_to_text"
+    pricing_tier: "$0.03 standard / $0.01 lite per call (CPU-bound whisper.cpp inference; in-process shell-out, no per-minute provider fee). Requires operator-installed whisper-cli + GGML model file."
     summary: "Transcribe audio to text with speaker diarization and timestamp segmentation."
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references OPENAI_API_KEY"
-      - "source references /deepgram\\.com/ (e.g. apps/api/src/mcp-server.ts)"
     third_party_providers:
       - name: "Deepgram"
         url: "https://deepgram.com"
-        retail_pricing: "$0.0043/min (Nova-3)"
       - name: "OpenAI Whisper"
         url: "https://openai.com"
-        retail_pricing: "$0.006/min (whisper-1)"
       - name: "AssemblyAI"
         url: "https://www.assemblyai.com"
-        retail_pricing: "$0.0065/min (Universal-2)"
     inputs:
       - name: audio_url
         type: "string"
@@ -410,29 +361,24 @@ capabilities:
         - "Audio fingerprint cache — re-transcribing the same recording is free"
         - "Diarization is open-weights (pyannote) — no third-party dependency"
         - "Returns word-level timestamps even on the free tier"
-    axis_advantages:
-      - "Open-weights whisper-large-v3 inference ≈ $0.0005/min vs $0.0043 retail (8× margin)"
-      - "GDPR-friendly — audio never leaves AXIS infra"
 
   - id: document_parsing
     name: "PDF / Office document → structured Markdown"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
-    summary: "Convert PDFs, DOCX, PPTX, and HTML into clean Markdown with extracted tables and headings."
+    status: owned
+    axis_brand_tool: "iliad_document_parsing"
+    pricing_tier: "$0.02 standard / $0.01 lite per call (pure JS — pdfjs-dist for PDF + mammoth for DOCX; no external API, no per-page fee)."
+    summary: "Convert PDFs, DOCX, HTML, and plain text into Markdown. Tables preserved in DOCX output; PDF tables not yet detected. PPTX not yet supported."
     detected_in_repo: true
     detection_evidence:
-      - "source references /llamaparse/ (e.g. apps/api/src/mcp-server.ts)"
+      - "apps/api/package.json depends on \"pdfjs-dist\""
+      - "source references /pdf-parse/ (e.g. V1_ROI_CANDIDATES.md)"
     third_party_providers:
       - name: "LlamaParse"
         url: "https://www.llamaindex.ai"
-        retail_pricing: "$0.003/page (Free tier 1k pages/day)"
       - name: "Unstructured.io"
         url: "https://unstructured.io"
-        retail_pricing: "$0.10/page (Serverless API)"
       - name: "Mathpix"
         url: "https://mathpix.com"
-        retail_pricing: "$0.012/page (Convert API)"
     inputs:
       - name: document_url
         type: "string"
@@ -465,29 +411,21 @@ capabilities:
         - "Marker handles math + scientific tables better than Unstructured's free tier"
         - "Cache-keyed by document hash so re-parsing the same RFP is free"
         - "AXIS provenance: every output ships a manifest of which extractor ran per page"
-    axis_advantages:
-      - "Marker inference ≈ $0.0001/page vs $0.10/page Unstructured retail"
-      - "Open-weights stack avoids LlamaParse's commercial usage restrictions"
 
   - id: web_search
-    name: "Web search results (organic + answer boxes)"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
-    summary: "Run a search query and return organic results plus answer-box / featured-snippet data."
-    detected_in_repo: true
-    detection_evidence:
-      - "source references /tavily\\.com/ (e.g. apps/api/src/mcp-server.ts)"
+    name: "BM25 search over your AXIS-cached corpus"
+    status: owned
+    axis_brand_tool: "iliad_web_search"
+    pricing_tier: "$0.01 standard / $0.00 lite per search operation (BM25 ranking over SQLite, no external API call). Indexing is free. Honest scope: searches YOUR account's indexed corpus, not the open web — feed it pages from iliad_web_research first."
+    summary: "BM25 search over the corpus your AXIS account has indexed (NOT a Google/Bing scraper). Index docs first via operation='index', then query with operation='search'. Optional site filter restricts to a URL host."
+    detected_in_repo: false
     third_party_providers:
       - name: "Tavily"
         url: "https://tavily.com"
-        retail_pricing: "$0.005/query (Pro)"
       - name: "Brave Search"
         url: "https://search.brave.com/help/api"
-        retail_pricing: "$3/1k queries (Pro plan)"
       - name: "SerpAPI"
         url: "https://serpapi.com"
-        retail_pricing: "$50/mo (5k searches)"
     inputs:
       - name: query
         type: "string"
@@ -519,29 +457,21 @@ capabilities:
         - "AXIS owns the index for the top 10k programming queries — sub-50ms response, no third-party calls"
         - "Result rankings are transparent (we publish the weighting) — Brave/Tavily are black boxes"
         - "Cache deduplicates near-identical queries within a session"
-    axis_advantages:
-      - "Cached-hit cost ≈ free; cold-query cost ≈ $0.0005 vs $0.005 Tavily (10× margin)"
-      - "No rate-limit ceiling for paid customers"
 
   - id: code_sandbox
     name: "Sandboxed code execution"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
+    status: owned
+    axis_brand_tool: "iliad_code_sandbox"
+    pricing_tier: "$0.05 standard / $0.02 lite per call (covers Docker container spawn + teardown overhead at ~1-2s cold start). Requires a reachable Docker daemon — Render standard services don't expose /var/run/docker.sock; deploy on a host with Docker access."
     summary: "Execute untrusted Python / Node / shell code in an isolated sandbox and return stdout, stderr, and exit code."
-    detected_in_repo: true
-    detection_evidence:
-      - "source references /e2b\\.dev/ (e.g. apps/api/src/mcp-server.ts)"
+    detected_in_repo: false
     third_party_providers:
       - name: "E2B"
         url: "https://e2b.dev"
-        retail_pricing: "$0.07/hr (Compute Time)"
       - name: "Modal"
         url: "https://modal.com"
-        retail_pricing: "$0.000056/CPU-sec ($0.20/hr)"
       - name: "Daytona"
         url: "https://daytona.io"
-        retail_pricing: "$0.10/hr (Cloud sandbox)"
     inputs:
       - name: language
         type: "\"python\" | \"node\" | \"bash\""
@@ -580,10 +510,6 @@ capabilities:
         - "Sub-200ms cold start (Firecracker boots fast)"
         - "Filesystem snapshot return value — agents can chain runs without re-uploading data"
         - "Network egress disabled by default; agents opt in per-run with explicit allowlist"
-    axis_advantages:
-      - "Bare-metal Firecracker cost ≈ $0.01/hr per concurrent sandbox vs $0.07 E2B (7× margin)"
-      - "Filesystem snapshots are an AXIS abstraction — no equivalent on E2B/Modal"
-      - "Egress firewall is a first-class flag, important for the compliance posture"
 
   - id: object_storage
     name: "Signed-URL object storage (uploads + downloads)"
@@ -599,13 +525,10 @@ capabilities:
     third_party_providers:
       - name: "AWS S3"
         url: "https://aws.amazon.com/s3/"
-        retail_pricing: "$0.023/GB-month + egress"
       - name: "Cloudflare R2"
         url: "https://www.cloudflare.com/products/r2/"
-        retail_pricing: "$0.015/GB-month, zero egress"
       - name: "Backblaze B2"
         url: "https://www.backblaze.com/b2/"
-        retail_pricing: "$0.006/GB-month, $0.01/GB egress"
     inputs:
       - name: key
         type: "string"
@@ -637,9 +560,6 @@ capabilities:
         - "Zero egress fees — predictable cost regardless of download volume"
         - "Account-scoped buckets with audit logging baked in"
         - "MCP-native signed-URL minting — no need to install an SDK"
-    axis_advantages:
-      - "R2's zero-egress model means AXIS-owned object storage is materially cheaper than S3 once download volume crosses ~10 GB/account/month"
-      - "Already trusted infra (Cloudflare) — no new ops surface to monitor"
 
   - id: transactional_email
     name: "Transactional email (auth, receipts, notifications)"
@@ -654,13 +574,10 @@ capabilities:
     third_party_providers:
       - name: "Resend"
         url: "https://resend.com"
-        retail_pricing: "$20/mo (50k emails) — current AXIS provider"
       - name: "Postmark"
         url: "https://postmarkapp.com"
-        retail_pricing: "$15/mo (10k)"
       - name: "AWS SES"
         url: "https://aws.amazon.com/ses/"
-        retail_pricing: "$0.10/1k emails"
     inputs:
       - name: to
         type: "string | string[]"
@@ -692,9 +609,6 @@ capabilities:
         - "Bounces and complaints surface directly in AXIS dashboards — no third-party log mining"
         - "Per-tenant DKIM signing key — emails ship under the customer's domain when configured"
         - "Suppression list shared across all AXIS tools (RAG outputs, marketing pack, etc.)"
-    axis_advantages:
-      - "Owning the MTA + relay split avoids Resend's per-email markup at scale (~$0.001/email vs $0.0004 own cost)"
-      - "Bounce + complaint data feeds the deliverability scoring used by the marketing program"
 
   - id: vector_database
     name: "Vector database (semantic-search store)"
@@ -706,13 +620,10 @@ capabilities:
     third_party_providers:
       - name: "Pinecone"
         url: "https://pinecone.io"
-        retail_pricing: "$0.096/hr p2.x1 + storage"
       - name: "Qdrant Cloud"
         url: "https://qdrant.tech"
-        retail_pricing: "$25/mo (4GB starter)"
       - name: "Weaviate Cloud"
         url: "https://weaviate.io"
-        retail_pricing: "$25/mo (Sandbox+)"
     inputs:
       - name: operation
         type: "\"upsert\" | \"query\""
@@ -748,30 +659,23 @@ capabilities:
         - "Columnar storage on R2 means free egress when serving results to the inference router"
         - "Account-scoped namespaces enforced server-side (no \"oops queried wrong index\" bugs)"
         - "Hybrid search (vector + BM25) is a built-in operation, not a separate API call"
-    axis_advantages:
-      - "LanceDB-on-R2 storage cost ≈ $0.015/GB-month vs Pinecone's $0.096/hr per p2.x1 (orders of magnitude cheaper at low scale)"
-      - "No per-pod fees — query throughput scales with the inference router instead"
-      - "Same auth + billing surface as the rest of the AXIS tool stack"
 
   - id: analytics
     name: "Product analytics (events + funnels + cohorts)"
-    status: planned_proxy
-    axis_brand_tool: ""
-    pricing_tier: null
+    status: owned
+    axis_brand_tool: "iliad_analytics"
+    pricing_tier: "Free up to 10k events/mo, $0.01/100 events thereafter; query operations $0.01/call"
     summary: "Record arbitrary user events and query funnels, cohorts, and retention curves."
     detected_in_repo: true
     detection_evidence:
-      - "source references /posthog/ (e.g. apps/api/src/mcp-server.ts)"
+      - "source references /posthog/ (e.g. V1_ROI_CANDIDATES.md)"
     third_party_providers:
       - name: "PostHog Cloud"
         url: "https://posthog.com"
-        retail_pricing: "$0/mo (1M events) → $0.00031/event (Scale)"
       - name: "Plausible"
         url: "https://plausible.io"
-        retail_pricing: "$9/mo (10k pageviews)"
       - name: "Mixpanel"
         url: "https://mixpanel.com"
-        retail_pricing: "$0.83/MTU (Growth)"
     inputs:
       - name: operation
         type: "\"capture\" | \"query\""
@@ -801,28 +705,10 @@ capabilities:
         - "Identical PostHog query API — migrate by changing the host, no schema changes"
         - "Account-scoped projects with billing-line attribution baked in"
         - "Free tier covers what the proxy currently includes (1M events/month) — same UX as PostHog Cloud"
-    axis_advantages:
-      - "PostHog OSS at our scale costs ≈ $50/mo VPS + storage vs $1k+/mo PostHog Cloud at the same event volume"
-      - "Self-hosted means session-replay PII never leaves AXIS infra — material compliance win"
 
 summary:
   by_status:
     live_proxy: 4
-    owned: 2
-    planned_proxy: 8
+    owned: 9
+    sibling_owned: 1
   recommended_next_owned:
-    - id: image_generation
-      effort: medium
-      reason: "Open-weights inference at GPU-hour cost ≈ $0.001/image vs $0.04 retail (40× margin)"
-    - id: text_to_speech
-      effort: medium
-      reason: "Open-weights inference ≈ $0.005/1k chars vs $0.18 (36× margin)"
-    - id: speech_to_text
-      effort: medium
-      reason: "Open-weights whisper-large-v3 inference ≈ $0.0005/min vs $0.0043 retail (8× margin)"
-    - id: document_parsing
-      effort: medium
-      reason: "Marker inference ≈ $0.0001/page vs $0.10/page Unstructured retail"
-    - id: analytics
-      effort: medium
-      reason: "PostHog OSS at our scale costs ≈ $50/mo VPS + storage vs $1k+/mo PostHog Cloud at the same event volume"

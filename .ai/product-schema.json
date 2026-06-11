@@ -3,9 +3,10 @@
   "schema_version": "1.0",
   "product": "Axis' Iliad",
   "generated_for": "axis-iliad",
-  "generated_at": "2026-05-23",
+  "generated_at": "1970-01-01",
   "mcp_endpoint": "POST /mcp",
   "repo_commerce_profile": {
+    "methodology": "Keyword-signal scan of submitted files — a checklist starting point, not a certification, audit, or legal/compliance advice.",
     "detected_payment_providers": [
       "adyen",
       "affirm",
@@ -30,34 +31,31 @@
       "mandate_management": true
     },
     "ap2_mandate_compliance": {
-      "mandate_data_format": "AP2 Article 2 — standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
+      "mandate_data_format": "AP2 standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
       "mandate_lifecycle": "CREATE → AUTHORIZE (SCA) → ACTIVE → COLLECT → AMEND → CANCEL",
-      "ucp_settlement_path": "UCP Article 5 — settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
+      "ucp_settlement_path": "UCP settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
       "visa_intelligent_commerce": "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding",
       "tap_interop": "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens",
       "ready_for_autonomous_purchase": true
     },
     "sca_exemption_schema": {
+      "note": "Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.",
       "low_value": {
         "threshold_eur": 30,
-        "legal_basis": "AP2 Art. 16(a)",
         "auto_apply": true
       },
       "trusted_beneficiary": {
-        "legal_basis": "AP2 Art. 16(b)",
         "requires_prior_sca": true
       },
       "recurring_fixed": {
-        "legal_basis": "PSD2 Art. 14(2)",
         "sca_on_first": true
       },
       "merchant_initiated": {
-        "legal_basis": "AP2 Art. 18",
         "requires_original_sca_ref": true
       },
       "transaction_risk_analysis": {
         "max_threshold_eur": 500,
-        "legal_basis": "AP2 Art. 16(c)"
+        "depends_on": "acquirer fraud rate"
       }
     },
     "dispute_resolution_schema": {
@@ -87,19 +85,22 @@
       },
       "compelling_evidence_3": {
         "version": "3.0",
-        "match_criteria": [
+        "qualified_data_elements": [
+          "device_id",
           "ip_address",
-          "device_fingerprint",
-          "shipping_address"
+          "email",
+          "shipping_address",
+          "login_id"
         ],
+        "min_matching_data_elements": 2,
         "min_prior_transactions": 2,
+        "min_prior_transaction_age_days": 120,
         "lookback_days": 365,
         "target_reason_codes": [
           "10.2",
           "10.3",
           "10.4"
         ],
-        "estimated_win_rate_lift_pp": 35,
         "auto_assembly_ready": true
       }
     },
@@ -113,28 +114,21 @@
         "transaction_risk_analysis"
       ],
       "frictionless_first": true,
-      "challenge_escalation": "abort_agent_flow_escalate_to_operator",
-      "axis_advantage": "Pre-computed decision tree — 0 API calls, 0 PCI scope, included in $0.50 hardening"
+      "challenge_escalation": "abort_agent_flow_escalate_to_operator"
     },
-    "dispute_win_probability": {
-      "10.4_cnp_fraud": {
-        "base": 0.3,
-        "with_ce3": 0.72
-      },
-      "10.2_no_auth": {
-        "base": 0.25,
-        "with_ce3": 0.65
-      },
-      "13.1_not_received": {
-        "base": 0.7,
-        "with_ce3": 0.75
-      },
-      "13.2_cancelled_recurring": {
-        "base": 0.4,
-        "with_ce3": 0.45
-      },
-      "auto_refund_threshold_usd": 5,
-      "represent_threshold_win_pct": 40
+    "dispute_evidence_requirements": {
+      "ce3_min_prior_undisputed_transactions": 2,
+      "ce3_min_prior_transaction_age_days": 120,
+      "ce3_lookback_window_days": 365,
+      "ce3_min_matching_data_elements": 2,
+      "ce3_qualified_data_elements": [
+        "device_id",
+        "ip_address",
+        "email",
+        "shipping_address",
+        "login_id"
+      ],
+      "represent_vs_refund": "Business decision — follow your operator's dispute policy. AXIS does not publish win-rate estimates."
     }
   },
   "programs": [
@@ -251,6 +245,12 @@
       "tier": "pro",
       "outputs": 16,
       "description": "Packaging README/LICENSE, Dockerfile, docker-compose, GitHub Actions workflows (CI + release), platform manifests (npm/unreal/vscode/dockerhub/github-marketplace), trust-fabric attestation + merkle proof, packaging report, DISTRIBUTABLE.md, and Makefile"
+    },
+    {
+      "slug": "deploy",
+      "tier": "pro",
+      "outputs": 13,
+      "description": "Zero-pipeline-minutes deploy kit covering Render (runtime: image) and Cloudflare (Pages + Containers): stack-aware Dockerfile + .dockerignore, dev compose, render.yaml, GHCR push scripts (bash + ps1), wrangler.pages.toml, wrangler.containers.toml, Cloudflare Worker entry, deploy-cloudflare scripts (bash + ps1), VSCode debug-attach template, and qualification report"
     }
   ],
   "purchase_endpoint": "POST /v1/billing/purchase",
@@ -273,6 +273,6 @@
       }
     }
   },
-  "total_programs": 19,
-  "total_outputs": 124
+  "total_programs": 20,
+  "total_outputs": 137
 }

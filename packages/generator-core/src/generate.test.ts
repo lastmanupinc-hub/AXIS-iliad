@@ -1322,7 +1322,7 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(124);
+    expect(generators.length).toBe(137);
     const paths = generators.map(g => g.path);
     expect(paths).toContain("symbol-index.json");
     expect(paths).toContain("context-map.json");

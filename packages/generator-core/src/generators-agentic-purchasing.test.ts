@@ -106,12 +106,12 @@ describe("generateProductSchema", () => {
     expect(() => JSON.parse(file.content)).not.toThrow();
   });
 
-  it("schema includes all 19 programs", () => {
+  it("schema includes all 20 programs", () => {
     const file = generateProductSchema(ctx, profile);
     const schema = JSON.parse(file.content);
-    expect(schema.programs).toHaveLength(19);
-    expect(schema.total_programs).toBe(19);
-    expect(schema.total_outputs).toBe(124);
+    expect(schema.programs).toHaveLength(20);
+    expect(schema.total_programs).toBe(20);
+    expect(schema.total_outputs).toBe(137);
   });
 
   it("schema includes required structural fields", () => {
@@ -219,10 +219,11 @@ describe("generateNegotiationRules", () => {
     expect(file.content).toContain("Estimated value score");
   });
 
-  it("content includes purchase decision rules", () => {
+  it("content includes purchase decision rules deferring to operator policy", () => {
     const file = generateNegotiationRules(ctx, profile);
-    expect(file.content).toContain("Automatic APPROVE");
-    expect(file.content).toContain("Automatic REJECT");
+    expect(file.content).toContain("operator's spending policy");
+    expect(file.content).toContain("MAY be worth proposing");
+    expect(file.content).toContain("likely unnecessary");
     expect(file.content).toContain("Negotiate");
   });
 
@@ -507,7 +508,7 @@ describe("generateCheckoutFlow — AP2 mandate schema and SCA spec", () => {
     expect(file.content).toContain("Payment Mandate Schema");
   });
 
-  it("mandate schema contains AP2 Article 2 fields", () => {
+  it("mandate schema contains AP2 mandate fields", () => {
     const file = generateCheckoutFlow(stripeCtx, stripeProfile, stripeFiles);
     expect(file.content).toContain("mandate_type");
     expect(file.content).toContain("network_token");
@@ -591,10 +592,11 @@ describe("generateNegotiationRules — AP2/UCP mandate constraints", () => {
     expect(file.content).toContain("$50,000");
   });
 
-  it("includes AP2 Article 6 hard limits", () => {
+  it("includes hard spending limits deferring to operator policy", () => {
     const file = generateNegotiationRules(stripeCtx, stripeProfile, stripeFiles);
-    expect(file.content).toContain("AP2 Article 6");
     expect(file.content).toContain("Hard limits");
+    expect(file.content).toContain("autonomous agent spending rules");
+    expect(file.content).toContain("operator's spending policy always takes precedence");
   });
 
   it("includes Autonomous Purchase Bounds table", () => {
@@ -1002,11 +1004,12 @@ describe("Compelling Evidence 3.0 sections", () => {
     expect(file.content).toContain("10.4");
   });
 
-  it("playbook includes win probability section", () => {
+  it("playbook includes dispute evidence checklist without win-rate estimates", () => {
     const file = generateAgentPurchasingPlaybook(ctx, profile);
-    expect(file.content).toContain("Win-Probability Scoring");
-    expect(file.content).toContain("Agent Decision Matrix");
-    expect(file.content).toContain("AUTO-REPRESENT");
+    expect(file.content).toContain("Dispute Evidence Checklist");
+    expect(file.content).toContain("prior undisputed transactions");
+    expect(file.content).toContain("qualified data elements");
+    expect(file.content).not.toContain("Win-Probability Scoring");
   });
 
   it("playbook includes lighter SCA section", () => {
@@ -1022,10 +1025,11 @@ describe("Compelling Evidence 3.0 sections", () => {
     expect(file.content).toContain("Compelling Evidence 3.0");
   });
 
-  it("negotiation rules includes win probability", () => {
+  it("negotiation rules includes dispute evidence checklist", () => {
     const file = generateNegotiationRules(ctx, profile, stripeFiles);
-    expect(file.content).toContain("Win-Probability Scoring");
-    expect(file.content).toContain("AUTO-REPRESENT");
+    expect(file.content).toContain("Dispute Evidence Checklist");
+    expect(file.content).toContain("operator's dispute policy");
+    expect(file.content).not.toContain("AUTO-REPRESENT");
   });
 
   it("product schema includes CE 3.0 data", () => {
@@ -1046,13 +1050,15 @@ describe("Compelling Evidence 3.0 sections", () => {
     expect(commerce.agent_sca_optimization.exemption_priority).toContain("low_value");
   });
 
-  it("product schema includes dispute win probability model", () => {
+  it("product schema includes dispute evidence requirements without win probabilities", () => {
     const file = generateProductSchema(ctx, profile);
     const schema = JSON.parse(file.content);
     const commerce = schema.repo_commerce_profile;
-    expect(commerce.dispute_win_probability).toBeDefined();
-    expect(commerce.dispute_win_probability.auto_refund_threshold_usd).toBe(5);
-    expect(commerce.dispute_win_probability.represent_threshold_win_pct).toBe(40);
+    expect(commerce.dispute_win_probability).toBeUndefined();
+    expect(commerce.dispute_evidence_requirements).toBeDefined();
+    expect(commerce.dispute_evidence_requirements.ce3_min_prior_undisputed_transactions).toBe(2);
+    expect(commerce.dispute_evidence_requirements.ce3_min_prior_transaction_age_days).toBe(120);
+    expect(commerce.dispute_evidence_requirements.ce3_qualified_data_elements).toContain("device_id");
   });
 
   it("commerce registry includes CE 3.0 in dispute_readiness", () => {
@@ -1064,12 +1070,14 @@ describe("Compelling Evidence 3.0 sections", () => {
     expect(dr.compelling_evidence_3.target_reason_codes).toContain("10.4");
   });
 
-  it("commerce registry includes win probability model", () => {
+  it("commerce registry includes CE 3.0 evidence requirements without win probabilities", () => {
     const file = generateCommerceRegistry(ctx, profile, stripeFiles);
     const registry = JSON.parse(file.content);
     const dr = registry.ap2_compliance_assessment.dispute_readiness;
-    expect(dr.win_probability_model).toBeDefined();
-    expect(dr.win_probability_model.auto_refund_below_usd).toBe(5);
+    expect(dr.win_probability_model).toBeUndefined();
+    expect(dr.compelling_evidence_3.evidence_requirements).toBeDefined();
+    expect(dr.compelling_evidence_3.evidence_requirements.min_prior_undisputed_transactions).toBe(2);
+    expect(dr.represent_vs_refund).toContain("operator's dispute policy");
   });
 });
 
@@ -1080,26 +1088,28 @@ describe("deepened compliance content", () => {
   const ctx = buildContextMap(stripeSnap);
   const profile = buildRepoProfile(stripeSnap);
 
-  it("playbook includes Cost-to-Represent Formula", () => {
+  it("playbook includes CE 3.0 evidence requirements without cost formulas", () => {
     const file = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
-    expect(file.content).toContain("Cost-to-Represent Formula");
-    expect(file.content).toContain("representment_cost");
-    expect(file.content).toContain("net_payoff");
+    expect(file.content).toContain("CE 3.0 Evidence Requirements");
+    expect(file.content).toContain("older than 120 days");
+    expect(file.content).not.toContain("Cost-to-Represent Formula");
   });
 
-  it("negotiation rules include Cost-to-Represent via win probability", () => {
+  it("negotiation rules include dispute evidence requirements via checklist", () => {
     const file = generateNegotiationRules(ctx, profile, stripeFiles);
-    expect(file.content).toContain("Cost-to-Represent Formula");
+    expect(file.content).toContain("CE 3.0 Evidence Requirements");
+    expect(file.content).not.toContain("Cost-to-Represent Formula");
   });
 
-  it("playbook includes AP2 Compliance Scoring article-level assessment", () => {
+  it("playbook includes AP2 readiness scoring capability assessment", () => {
     const file = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
-    expect(file.content).toContain("AP2 Compliance Scoring");
-    expect(file.content).toContain("Art. 2");
-    expect(file.content).toContain("Art. 6");
-    expect(file.content).toContain("Art. 7");
-    expect(file.content).toContain("Art. 11");
+    expect(file.content).toContain("AP2 Readiness Scoring");
+    expect(file.content).toContain("Mandate Format");
+    expect(file.content).toContain("Agent Spending Rules");
+    expect(file.content).toContain("Dispute Handling");
+    expect(file.content).toContain("Token Lifecycle");
     expect(file.content).toContain("Compliance Risk");
+    expect(file.content).toContain("NOT a certification");
   });
 
   it("playbook includes Provider-Specific SCA Thresholds", () => {
@@ -1155,11 +1165,13 @@ describe("deepened compliance content", () => {
     expect(registry.mandate_lifecycle_events[6].event).toBe("CANCEL");
   });
 
-  it("commerce registry includes liability_risk", () => {
+  it("commerce registry includes liability_risk without invented fines or deadlines", () => {
     const file = generateCommerceRegistry(ctx, profile, stripeFiles);
     const registry = JSON.parse(file.content);
     expect(registry.liability_risk).toBeDefined();
-    expect(registry.liability_risk.ap2_non_compliance_fine_usd_month).toBe(50000);
+    expect(registry.liability_risk.ap2_non_compliance_fine_usd_month).toBeUndefined();
+    expect(registry.liability_risk.visa_ic_enrollment_deadline).toBeUndefined();
+    expect(registry.liability_risk.note).toContain("consult your acquirer");
     expect(registry.liability_risk.risk_level).toBeTruthy();
   });
 
@@ -1168,18 +1180,17 @@ describe("deepened compliance content", () => {
     expect(file.content).toContain("commerce_signal_bonus");
   });
 
-  it("negotiation rules include ROI Computation section", () => {
+  it("negotiation rules include Cost Considerations without ROI claims", () => {
     const file = generateNegotiationRules(ctx, profile, stripeFiles);
-    expect(file.content).toContain("ROI Computation");
-    expect(file.content).toContain("axis_cost");
-    expect(file.content).toContain("manual_token_cost");
-    expect(file.content).toContain("savings");
+    expect(file.content).toContain("Cost Considerations");
+    expect(file.content).toContain("does not publish savings or ROI guarantees");
+    expect(file.content).not.toContain("ROI Computation");
   });
 
-  it("checkout flow includes Frictionless Approval Metrics", () => {
+  it("checkout flow includes Frictionless Approval Guidance without invented rates", () => {
     const file = generateCheckoutFlow(ctx, profile, stripeFiles);
-    expect(file.content).toContain("Frictionless Approval Metrics");
-    expect(file.content).toContain("Frictionless approval rate");
+    expect(file.content).toContain("Frictionless Approval Guidance");
+    expect(file.content).not.toContain("85-92%");
   });
 
   it("checkout flow includes Network Token Payload section", () => {

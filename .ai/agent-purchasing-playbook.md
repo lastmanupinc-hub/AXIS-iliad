@@ -16,17 +16,17 @@
 
 Detection results from `500` source files:
 
-- **adyen** detected in 92 file(s)
-- **affirm** detected in 92 file(s)
-- **afterpay** detected in 92 file(s)
-- **amazon_pay** detected in 92 file(s)
-- **apple_pay** detected in 92 file(s)
-- **braintree** detected in 92 file(s)
-- **google_pay** detected in 92 file(s)
-- **klarna** detected in 92 file(s)
-- **paypal** detected in 92 file(s)
-- **square** detected in 92 file(s)
-- **stripe** detected in 92 file(s)
+- **adyen** detected in 97 file(s)
+- **affirm** detected in 97 file(s)
+- **afterpay** detected in 97 file(s)
+- **amazon_pay** detected in 97 file(s)
+- **apple_pay** detected in 97 file(s)
+- **braintree** detected in 97 file(s)
+- **google_pay** detected in 97 file(s)
+- **klarna** detected in 97 file(s)
+- **paypal** detected in 97 file(s)
+- **square** detected in 97 file(s)
+- **stripe** detected in 97 file(s)
 - Checkout flow code: ✅ Detected
 - Recurring/mandate billing: ✅ Detected
 - SCA/3DS2 handling: ✅ Detected
@@ -54,7 +54,7 @@ Detection results from `500` source files:
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 124 structured artifacts across 19 programs.
+Axis' Iliad analyzes codebases and generates 137 structured artifacts across 20 programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 
@@ -73,7 +73,7 @@ POST /mcp
 }
 ```
 
-Returns all 19 programs with tier (free/pro) and generator counts.
+Returns all 20 programs with tier (free/pro) and generator counts.
 Free programs: search, skills, debug.
 Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer).
 
@@ -166,14 +166,16 @@ Network tokenization: ✅ Detected
 
 ### SCA Exemption Decision Matrix
 
-| Exemption | Condition | Legal Basis | Agent Action |
-|-----------|-----------|-------------|-------------|
-| low_value | Transaction < 30 EUR | AP2 Art. 16(a) | Auto-apply when amount qualifies |
-| trusted_beneficiary | Merchant in trusted list | AP2 Art. 16(b) | Requires prior SCA + opt-in |
-| recurring_fixed | Fixed-amount subscription | PSD2 Art. 14(2) | SCA on first, exempt subsequent |
-| merchant_initiated | MIT with stored credential | AP2 Art. 18 | No SCA; requires original SCA ref |
-| secure_corporate | Dedicated corporate card | PSD2 Art. 17 | Exempt from SCA entirely |
-| transaction_risk_analysis | TRA via acquirer | AP2 Art. 16(c) | Exempt up to threshold (€500 max) |
+| Exemption | Condition | Notes | Agent Action |
+|-----------|-----------|-------|-------------|
+| low_value | Transaction < 30 EUR | Issuer-tracked cumulative limits apply | Auto-apply when amount qualifies |
+| trusted_beneficiary | Merchant in trusted list | Cardholder must opt in after a prior SCA | Requires prior SCA + opt-in |
+| recurring_fixed | Fixed-amount subscription | Subsequent collections exempt after first SCA | SCA on first, exempt subsequent |
+| merchant_initiated | MIT with stored credential | Out of SCA scope; original SCA reference needed | No SCA; requires original SCA ref |
+| secure_corporate | Dedicated corporate card | Secure corporate processes are exempt | Exempt from SCA entirely |
+| transaction_risk_analysis | TRA via acquirer | Cap depends on acquirer fraud rate | Exempt up to threshold (€500 max) |
+
+> Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.
 
 ### AP2 Mandate Lifecycle
 
@@ -181,12 +183,12 @@ Network tokenization: ✅ Detected
 CREATE → mandate_id assigned, status=pending_authorization
   └─ SCA CHALLENGE → cardholder authenticates
        └─ AUTHORIZE → status=active, first_collection_date set
-            └─ COLLECT → settlement via UCP Art. 5 clearing path
+            └─ COLLECT → settlement via configured clearing path
                  └─ AMEND → amount/schedule change, re-SCA if material
                       └─ CANCEL → status=cancelled, no further collections
 ```
 
-### UCP Article 5 Settlement Path
+### UCP Settlement Path
 
 ```json
 {
@@ -289,13 +291,13 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
       "device_fingerprint_match": "2+ prior transactions from same device",
       "shipping_address_match": "Delivery to same address as prior undisputed orders",
       "minimum_prior_transactions": 2,
+      "minimum_prior_transaction_age_days": 120,
       "lookback_window_days": 365
     },
     "agent_automation": {
       "auto_collect_ip": true,
       "auto_collect_device_id": true,
-      "auto_match_prior_txns": true,
-      "estimated_assembly_time_ms": 50
+      "auto_match_prior_txns": true
     }
   }
 }
@@ -308,55 +310,43 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
 | IP collection at checkout | ✅ Ready | Required for CE 3.0 IP matching |
 | Device fingerprinting | ⚠️ Verify impl | Required for CE 3.0 device matching |
 | Transaction history query | ✅ Webhook-fed | Required if lookback > 120 days |
-| Auto-payload assembly | ✅ Automatable | Reduces representment time from hours to milliseconds |
+| Auto-payload assembly | ✅ Automatable | Enables scripted evidence assembly at dispute time |
 
-## Dispute Win-Probability Scoring
+## Dispute Evidence Checklist (CE 3.0)
 
-Pre-computed win rates by Visa reason code family. Agents use this to decide represent vs. auto-refund.
+Visa Compelling Evidence 3.0 (CE 3.0) lets merchants remediate qualifying card-not-present
+fraud disputes by documenting a prior history with the same customer. This checklist describes
+WHAT evidence is required — it makes no prediction about dispute outcomes, which depend on
+issuer review and are not something AXIS can estimate.
 
-| Reason Code | Category | Base Win Rate | With CE 3.0 | Agent Decision |
-|------------|----------|---------------|-------------|----------------|
-| 10.1 | EMV Liability Shift | 15% | 20% | Auto-refund unless > $200 |
-| 10.2 | No-Auth Fraud | 25% | 65% | Represent with CE 3.0 |
-| 10.3 | Fraud (Other) | 20% | 55% | Represent if device match |
-| 10.4 | Card-Not-Present Fraud | 30% | 72% | **Represent — CE 3.0 target** |
-| 10.5 | Visa Fraud Monitoring | 10% | 15% | Auto-refund |
-| 13.1 | Merch Not Received | 70% | 75% | Represent with tracking |
-| 13.2 | Cancelled Recurring | 40% | 45% | Represent if no cancel req |
-| 13.3 | Not As Described | 35% | 40% | Represent with product docs |
-| 13.6 | Credit Not Processed | 55% | 58% | Represent with refund proof |
-| 13.7 | Cancelled Service | 50% | 52% | Represent with TOS + usage |
+### CE 3.0 Evidence Requirements
 
-### Agent Decision Matrix
+- [ ] Two or more prior undisputed transactions on the same payment credential
+- [ ] Each prior transaction is older than 120 days (and within 365 days) of the disputed transaction
+- [ ] Each prior transaction matches the disputed transaction on at least 2 qualified data elements:
+  - Device ID / device fingerprint
+  - IP address
+  - Customer email address
+  - Shipping address
+  - Customer account/login ID
+- [ ] Merchandise or service description for each transaction
 
-```
-IF win_probability >= 60% AND amount > $5:
-  → AUTO-REPRESENT with evidence package
-IF win_probability >= 40% AND amount > $50:
-  → REPRESENT with operator notification
-IF win_probability < 40% OR amount < $5:
-  → AUTO-REFUND (cost of representment exceeds expected recovery)
-IF reason_code IN [10.4, 10.2, 10.3] AND ce3_evidence_available:
-  → ALWAYS REPRESENT (CE 3.0 lifts win rate 25-42pp)
-```
+### Evidence to Assemble per Dispute Category
 
-### Cost-to-Represent Formula
+| Reason Code | Category | Evidence to Assemble |
+|------------|----------|----------------------|
+| 10.x | Fraud | CE 3.0 package (above) where eligible; 3DS authentication logs |
+| 13.1 | Merch Not Received | Delivery confirmation, tracking, signed receipt |
+| 13.2 | Cancelled Recurring | Mandate record, cancellation-request history |
+| 13.3 | Not As Described | Product documentation, customer communication |
+| 13.6 | Credit Not Processed | Refund/credit records |
+| 13.7 | Cancelled Service | Terms of service, usage logs |
 
-```
-representment_cost = $5.50 (evidence assembly + submission)
-dispute_amount    = <transaction_amount>
-win_probability   = <from_table_above>
-expected_recovery = dispute_amount × win_probability
-net_payoff        = expected_recovery - representment_cost
+### Represent vs. Refund
 
-IF net_payoff > $0  → REPRESENT
-IF net_payoff ≤ $0  → AUTO-REFUND (cheaper than fighting)
-
-Examples:
-  $200 × 72% = $144 recovery, net $138.50 → REPRESENT  (10.4 + CE3)
-  $10  × 25% = $2.50 recovery, net -$3.00 → REFUND     (10.2 no CE3)
-  $50  × 40% = $20   recovery, net $14.50 → REPRESENT  (13.2)
-```
+Whether to represent a dispute or issue a refund is a business decision that depends on
+evidence quality, amounts at stake, and your operator's risk tolerance. Follow your
+operator's dispute policy — AXIS does not publish win-rate estimates.
 
 ## Lighter SCA Paths — Agent-Optimized Flow
 
@@ -391,44 +381,48 @@ Transaction arrives:
 
 ### Provider-Specific SCA Thresholds
 
-| Network | Low-Value Threshold | TRA / MCSC Cap | Frictionless Approval Rate |
-|---------|--------------------|-----------------|-----------------------------|
-| Visa | €30 | €500 (TRA) | ~85% |
-| Mastercard | €30 | €100 (MCSC) | ~80% |
-| Amex | €30 | €250 (SafeKey) | ~75% |
+| Network | Low-Value Threshold | TRA Cap |
+|---------|--------------------|---------|
+| Visa | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |
+| Mastercard | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |
+| Amex | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |
 
-> Agent optimization: For €30–€100, prefer Visa/Amex TRA (higher cap). For €100–€500, only Visa TRA avoids challenge.
+> Thresholds are set by the PSD2 RTS and depend on your acquirer's reference fraud rate — verify current values with your acquirer before relying on an exemption.
 
-### AXIS Advantage Over Visa IC
+### What This Artifact Provides
 
-| Metric | Visa IC Pilot (April 2026) | Axis' Iliad |
-|--------|---------------------------|--------------|
-| Integration calls | 3-5 API calls per decision | 0 calls — pre-computed in artifact |
-| Time to decision | 200-800ms (network round-trips) | 0ms — decision tree is local |
-| PCI scope | Requires PCI-DSS for token handling | No PCI — uses mandate references |
-| Cost per decision | Per-API-call pricing | Included in $0.50 hardening |
-| Coverage | TAP-enrolled merchants only | Any codebase, any provider |
-| Your repo | ✅ SCA code detected | Pre-configured decision tree |
+The exemption decision tree above is pre-computed into this artifact, so agents can apply it
+locally without extra API calls at decision time. AXIS does not handle card data, so using this
+artifact adds no PCI scope. Exemption eligibility is ultimately decided by your acquirer and
+the issuer — treat the tree as a starting point, not a guarantee.
 
-## AP2 Compliance Scoring — Article-Level Assessment
+Your repo: ✅ SCA code detected — wire the decision tree into your existing flow.
 
-| AP2 Article | Focus | Score | Max | Details |
-|-------------|-------|-------|-----|---------|
-| Art. 2 — Mandate Format | Payment structure | 15/15 | 15 | Mandate schema detected |
-| Art. 6 — Agent Rules | Spending limits | 15/15 | 15 | SCA + recurring + mandate |
-| Art. 7 — Dispute Handling | Evidence + resolution | 15/15 | 15 | Full dispute automation |
-| Art. 11 — Token Lifecycle | TAP + tokenization | 15/15 | 15 | TAP + network tokens active |
+## AP2 Readiness Scoring — Capability Assessment
+
+> Methodology: the scores below come from a keyword-signal scan of this repository.
+> Use them as a checklist starting point — they are NOT a certification, audit, or legal/compliance advice.
+
+| Capability Area | Focus | Score | Max | Details |
+|-----------------|-------|-------|-----|---------|
+| Mandate Format | Payment structure | 15/15 | 15 | Mandate schema detected |
+| Agent Spending Rules | Spending limits | 15/15 | 15 | SCA + recurring + mandate |
+| Dispute Handling | Evidence + resolution | 15/15 | 15 | Full dispute automation |
+| Token Lifecycle | TAP + tokenization | 15/15 | 15 | TAP + network tokens active |
 | **Total** | | **60/60** | **60** | **Grade: A** |
 
 ### Compliance Risk
 
-> ✅ **COMPLIANT** — Full AP2 coverage detected. Maintain compliance through regular AXIS re-analysis.
+> ✅ **FULL SIGNAL COVERAGE** — all scanned areas detected. Remember this is a keyword-level scan, not a compliance certification.
 
 ## Verification Proof
 
 > Generator: `generateAgentPurchasingPlaybook`
 > Checks passed: 8/8
 > Compliance grade: A
+
+> Methodology: this grade is a keyword-signal scan of the repository, useful as a checklist
+> starting point. It is NOT a certification, audit, or legal/compliance advice.
 
 | Check | Status | Evidence |
 |-------|--------|----------|

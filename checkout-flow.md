@@ -50,7 +50,7 @@ Step 5: Inject artifacts into agent context window
 
 ## Payment Mandate Schema (AP2 Fields)
 
-Every autonomous purchase MUST include these AP2 Article 2 mandate fields:
+Every autonomous purchase MUST include these AP2 mandate fields:
 
 ```json
 {
@@ -123,14 +123,15 @@ Purchase Failed?
 | 404 Snapshot Not Found | Re-run analysis with new snapshot |
 | Quota Exceeded | Upgrade tier or wait for quota reset |
 
-## Frictionless Approval Metrics
+## Frictionless Approval Guidance
 
-| Metric | Industry Average | With AXIS Pre-Computation |
-|--------|-----------------|----------------------------|
-| Frictionless approval rate | 70-80% | 85-92% (pre-qualified exemptions) |
-| Challenge rate | 20-30% | 8-15% (agent avoids challenge-prone paths) |
-| Cart abandonment (SCA) | 25-35% | 0% (agent never abandons, escalates instead) |
-| Time to auth decision | 200-800ms | 0ms (local decision tree) |
+Frictionless approval rate and challenge rate vary by issuer, region, and transaction profile —
+AXIS does not publish approval-rate figures. To reduce challenge friction:
+
+- Pre-qualify SCA exemptions (low_value, trusted_beneficiary, recurring) before initiating payment
+- Use stored mandates with prior SCA authorization where available
+- Escalate to your operator instead of abandoning when the issuer requires a challenge
+- Measure your own approval and challenge rates with your PSP's reporting tools
 
 ## Network Token Payload (VTS/MDES)
 
@@ -188,24 +189,22 @@ Transaction arrives:
 
 ### Provider-Specific SCA Thresholds
 
-| Network | Low-Value Threshold | TRA / MCSC Cap | Frictionless Approval Rate |
-|---------|--------------------|-----------------|-----------------------------|
-| Visa | €30 | €500 (TRA) | ~85% |
-| Mastercard | €30 | €100 (MCSC) | ~80% |
-| Amex | €30 | €250 (SafeKey) | ~75% |
+| Network | Low-Value Threshold | TRA Cap |
+|---------|--------------------|---------|
+| Visa | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |
+| Mastercard | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |
+| Amex | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |
 
-> Agent optimization: For €30–€100, prefer Visa/Amex TRA (higher cap). For €100–€500, only Visa TRA avoids challenge.
+> Thresholds are set by the PSD2 RTS and depend on your acquirer's reference fraud rate — verify current values with your acquirer before relying on an exemption.
 
-### AXIS Advantage Over Visa IC
+### What This Artifact Provides
 
-| Metric | Visa IC Pilot (April 2026) | Axis' Iliad |
-|--------|---------------------------|--------------|
-| Integration calls | 3-5 API calls per decision | 0 calls — pre-computed in artifact |
-| Time to decision | 200-800ms (network round-trips) | 0ms — decision tree is local |
-| PCI scope | Requires PCI-DSS for token handling | No PCI — uses mandate references |
-| Cost per decision | Per-API-call pricing | Included in $0.50 hardening |
-| Coverage | TAP-enrolled merchants only | Any codebase, any provider |
-| Your repo | ✅ SCA code detected | Pre-configured decision tree |
+The exemption decision tree above is pre-computed into this artifact, so agents can apply it
+locally without extra API calls at decision time. AXIS does not handle card data, so using this
+artifact adds no PCI scope. Exemption eligibility is ultimately decided by your acquirer and
+the issuer — treat the tree as a starting point, not a guarantee.
+
+Your repo: ✅ SCA code detected — wire the decision tree into your existing flow.
 
 ## Compelling Evidence 3.0 (CE 3.0) — Auto-Generated Payloads
 
@@ -241,13 +240,13 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
       "device_fingerprint_match": "2+ prior transactions from same device",
       "shipping_address_match": "Delivery to same address as prior undisputed orders",
       "minimum_prior_transactions": 2,
+      "minimum_prior_transaction_age_days": 120,
       "lookback_window_days": 365
     },
     "agent_automation": {
       "auto_collect_ip": true,
       "auto_collect_device_id": true,
-      "auto_match_prior_txns": true,
-      "estimated_assembly_time_ms": 50
+      "auto_match_prior_txns": true
     }
   }
 }
@@ -260,13 +259,16 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
 | IP collection at checkout | ✅ Ready | Required for CE 3.0 IP matching |
 | Device fingerprinting | ⚠️ Verify impl | Required for CE 3.0 device matching |
 | Transaction history query | ✅ Webhook-fed | Required if lookback > 120 days |
-| Auto-payload assembly | ✅ Automatable | Reduces representment time from hours to milliseconds |
+| Auto-payload assembly | ✅ Automatable | Enables scripted evidence assembly at dispute time |
 
 ## Verification Proof
 
 > Generator: `generateCheckoutFlow`
 > Checks passed: 8/8
 > Compliance grade: A
+
+> Methodology: this grade is a keyword-signal scan of the repository, useful as a checklist
+> starting point. It is NOT a certification, audit, or legal/compliance advice.
 
 | Check | Status | Evidence |
 |-------|--------|----------|

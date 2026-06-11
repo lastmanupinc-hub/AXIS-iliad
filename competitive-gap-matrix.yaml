@@ -72,9 +72,8 @@ competitors:
         - "AXIS generates artifacts (AGENTS.md, CLAUDE.md, design tokens) — not just retrieves docs"
         - "AXIS analyzes source code structure, domain models, architecture layers"
         - "AXIS has x402/MPP budget negotiation — agent-autonomous billing"
-        - "AXIS has Visa-grade compliance kit (SCA, CE 3.0, dispute lifecycle)"
+        - "AXIS has a commerce-readiness kit (SCA exemptions, CE 3.0 evidence requirements, dispute lifecycle)"
         - "AXIS is deterministic — same repo → byte-identical output (cacheable, auditable)"
-        - "AXIS self-propagates — every artifact instructs next agent to reconnect"
       axis_gaps_to_close:
         - id: gap_c7_001
           description: >
@@ -406,8 +405,8 @@ strategy_targets:
     name: "Compliance Artifact Compiler (fintech CI gate)"
     description: >
       Position prepare_agentic_purchasing as a CI compliance check for fintech
-      engineering teams. The Visa CE 3.0, SCA exemption tree, and dispute
-      win-probability model cannot be reliably reproduced by generic LLMs — this is
+      engineering teams. The CE 3.0 evidence-requirements checklist, SCA exemption
+      tree, and dispute lifecycle artifacts are deterministic and repo-derived — this is
       the moat. Sell as a GitHub Action that fails PRs if compliance grade drops below B.
     revenue_model:
       primary: "$500–5000/mo per engineering team as a compliance gate in their pipeline"
@@ -427,7 +426,7 @@ strategy_targets:
       has_visa_compliance_kit: true
       has_sca_exemption_matrix: true
       has_compelling_evidence_3: true
-      has_win_probability_model: true
+      has_dispute_evidence_checklist: true
       has_dispute_lifecycle: true
       has_tap_ap2_ucp: true
       has_network_tokenization: true

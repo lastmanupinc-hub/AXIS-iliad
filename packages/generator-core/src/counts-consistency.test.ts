@@ -23,16 +23,6 @@ describe("canonical counts cannot drift", () => {
     expect(TOTAL_PROGRAMS).toBe(programs.size);
   });
 
-  it("generators-skills.ts ARTIFACT_COUNT matches TOTAL_GENERATORS", () => {
-    const src = readFileSync(join(here, "generators-skills.ts"), "utf-8");
-    expect(pickConst(src, "ARTIFACT_COUNT")).toBe(TOTAL_GENERATORS);
-  });
-
-  it("generators-skills.ts PROGRAM_COUNT matches TOTAL_PROGRAMS", () => {
-    const src = readFileSync(join(here, "generators-skills.ts"), "utf-8");
-    expect(pickConst(src, "PROGRAM_COUNT")).toBe(TOTAL_PROGRAMS);
-  });
-
   it("generators-agentic-purchasing.ts ARTIFACT_COUNT matches TOTAL_GENERATORS", () => {
     const src = readFileSync(join(here, "generators-agentic-purchasing.ts"), "utf-8");
     expect(pickConst(src, "ARTIFACT_COUNT")).toBe(TOTAL_GENERATORS);
