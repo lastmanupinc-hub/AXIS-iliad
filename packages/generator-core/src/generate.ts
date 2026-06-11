@@ -36,6 +36,21 @@ import {
   generateDistributableGuide,
   generateMakefileWithShipTarget,
 } from "./generators-closer.js";
+import {
+  generateDeployDockerfile,
+  generateDeployDockerignore,
+  generateDeployComposeDev,
+  generateDeployRenderBlueprint,
+  generateDeployScriptBash,
+  generateDeployScriptPwsh,
+  generateDeployVSCodeLaunchTemplate,
+  generateDeployWranglerPages,
+  generateDeployWranglerContainers,
+  generateDeployContainersWorker,
+  generateDeployScriptCloudflareBash,
+  generateDeployScriptCloudflarePwsh,
+  generateDeployQualificationReport,
+} from "./generators-deploy.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]) => GeneratedFile;
 
@@ -124,7 +139,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "export-manifest.yaml": (ctx, profile, files) => generateExportManifest(ctx, profile, files),
   // ─── depth generators ───────────────────────────────────────
   "dependency-hotspots.md": (ctx, _p, files) => generateDependencyHotspots(ctx, files),
-  "symbol-index.json": (_ctx, _p, files) => generateSymbolIndex(files),
+  "symbol-index.json": (ctx, _p, files) => generateSymbolIndex(files, ctx.generated_at),
   "repo-run-stats.json": (ctx, _p, files) => generateRepoRunStats(ctx, _p, files),
   "root-cause-checklist.md": (ctx, _p, files) => generateRootCauseChecklist(ctx, files),
   "workflow-pack.md": (ctx, _p, files) => generateWorkflowPack(ctx, files),
@@ -167,6 +182,20 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "packaging-report.md": (ctx, profile, files) => generateCloserPackagingReport(ctx, profile, files),
   "DISTRIBUTABLE.md": (ctx, profile, files) => generateDistributableGuide(ctx, profile, files),
   "Makefile": (ctx, profile, files) => generateMakefileWithShipTarget(ctx, profile, files),
+  // ─── deploy generators (zero-pipeline-minutes Render existing-image flow) ──
+  "deploy/Dockerfile": (ctx, profile, files) => generateDeployDockerfile(ctx, profile, files),
+  "deploy/.dockerignore": (ctx, profile, files) => generateDeployDockerignore(ctx, profile, files),
+  "deploy/docker-compose.dev.yml": (ctx, profile, files) => generateDeployComposeDev(ctx, profile, files),
+  "deploy/render.yaml": (ctx, profile, files) => generateDeployRenderBlueprint(ctx, profile, files),
+  "deploy/deploy.sh": (ctx, profile, files) => generateDeployScriptBash(ctx, profile, files),
+  "deploy/deploy.ps1": (ctx, profile, files) => generateDeployScriptPwsh(ctx, profile, files),
+  "deploy/vscode-launch.json.template": (ctx, profile, files) => generateDeployVSCodeLaunchTemplate(ctx, profile, files),
+  "deploy/wrangler.pages.toml": (ctx, profile, files) => generateDeployWranglerPages(ctx, profile, files),
+  "deploy/wrangler.containers.toml": (ctx, profile, files) => generateDeployWranglerContainers(ctx, profile, files),
+  "deploy/worker.ts": (ctx, profile, files) => generateDeployContainersWorker(ctx, profile, files),
+  "deploy/deploy-cloudflare.sh": (ctx, profile, files) => generateDeployScriptCloudflareBash(ctx, profile, files),
+  "deploy/deploy-cloudflare.ps1": (ctx, profile, files) => generateDeployScriptCloudflarePwsh(ctx, profile, files),
+  "deploy/deploy-qualification-report.md": (ctx, profile, files) => generateDeployQualificationReport(ctx, profile, files),
 };
 
 // Aliases (user may request with legacy `.ai/` prefix or other naming).
@@ -243,7 +272,8 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
   return {
     snapshot_id: context_map.snapshot_id,
     project_id: context_map.project_id,
-    generated_at: new Date().toISOString(),
+    // Snapshot-derived timestamp — same input must produce byte-identical output.
+    generated_at: context_map.generated_at,
     files: deduped,
     skipped,
   };
@@ -375,6 +405,19 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "packaging-report.md": "closer",
   "DISTRIBUTABLE.md": "closer",
   "Makefile": "closer",
+  "deploy/Dockerfile": "deploy",
+  "deploy/.dockerignore": "deploy",
+  "deploy/docker-compose.dev.yml": "deploy",
+  "deploy/render.yaml": "deploy",
+  "deploy/deploy.sh": "deploy",
+  "deploy/deploy.ps1": "deploy",
+  "deploy/vscode-launch.json.template": "deploy",
+  "deploy/wrangler.pages.toml": "deploy",
+  "deploy/wrangler.containers.toml": "deploy",
+  "deploy/worker.ts": "deploy",
+  "deploy/deploy-cloudflare.sh": "deploy",
+  "deploy/deploy-cloudflare.ps1": "deploy",
+  "deploy/deploy-qualification-report.md": "deploy",
 };
 
 export function listAvailableGenerators(): Array<{ path: string; program: string }> {

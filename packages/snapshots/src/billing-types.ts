@@ -80,7 +80,7 @@ export const ALL_PROGRAMS = [
   "search", "debug", "skills", "frontend", "seo",
   "optimization", "theme", "brand", "superpowers",
   "marketing", "notebook", "obsidian", "mcp",
-  "artifacts", "remotion", "canvas", "algorithmic", "agentic-purchasing", "closer",
+  "artifacts", "remotion", "canvas", "algorithmic", "agentic-purchasing", "closer", "deploy",
 ] as const;
 
 export type ProgramName = typeof ALL_PROGRAMS[number];

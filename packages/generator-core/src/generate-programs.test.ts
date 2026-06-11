@@ -87,15 +87,30 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
     "DISTRIBUTABLE.md",
     "Makefile",
   ],
+  deploy: [
+    "deploy/Dockerfile",
+    "deploy/.dockerignore",
+    "deploy/docker-compose.dev.yml",
+    "deploy/render.yaml",
+    "deploy/deploy.sh",
+    "deploy/deploy.ps1",
+    "deploy/vscode-launch.json.template",
+    "deploy/wrangler.pages.toml",
+    "deploy/wrangler.containers.toml",
+    "deploy/worker.ts",
+    "deploy/deploy-cloudflare.sh",
+    "deploy/deploy-cloudflare.ps1",
+    "deploy/deploy-qualification-report.md",
+  ],
 };
 
-describe("generateFiles — all 19 programs produce valid output", () => {
+describe("generateFiles — all 20 programs produce valid output", () => {
   const input = makeInput(Object.values(PROGRAM_OUTPUTS).flat());
 
-  it("generates 124 files with 0 skipped", () => {
+  it("generates 137 files with 0 skipped", () => {
     const result = generateFiles(input);
     expect(result.skipped).toEqual([]);
-    expect(result.files.length).toBe(124);
+    expect(result.files.length).toBe(137);
   });
 
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -210,9 +225,9 @@ describe("generateFiles — edge cases", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 118 registered generators", () => {
+  it("returns all 137 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(124);
+    expect(generators.length).toBe(137);
   });
 
   it("returns objects with path and program fields", () => {
@@ -225,10 +240,10 @@ describe("listAvailableGenerators", () => {
     }
   });
 
-  it("classifies all 19 programs correctly", () => {
+  it("classifies all 20 programs correctly", () => {
     const generators = listAvailableGenerators();
     const programs = new Set(generators.map(g => g.program));
-    expect(programs.size).toBe(19);
+    expect(programs.size).toBe(20);
     for (const expected of Object.keys(PROGRAM_OUTPUTS)) {
       expect(programs.has(expected), `missing program: ${expected}`).toBe(true);
     }

@@ -309,7 +309,7 @@ describe("Tier Constants", () => {
     expect(TIER_LIMITS.suite.max_projects).toBe(-1);
   });
 
-  it("ALL_PROGRAMS has 19 programs", () => {
-    expect(ALL_PROGRAMS.length).toBe(19);
+  it("ALL_PROGRAMS has 20 programs", () => {
+    expect(ALL_PROGRAMS.length).toBe(20);
   });
 });

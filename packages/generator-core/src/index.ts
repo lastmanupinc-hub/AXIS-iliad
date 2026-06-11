@@ -37,3 +37,18 @@ export {
 	generateDistributableGuide,
 	generateMakefileWithShipTarget,
 } from "./generators-closer.js";
+export {
+	generateDeployDockerfile,
+	generateDeployDockerignore,
+	generateDeployComposeDev,
+	generateDeployRenderBlueprint,
+	generateDeployScriptBash,
+	generateDeployScriptPwsh,
+	generateDeployVSCodeLaunchTemplate,
+	generateDeployWranglerPages,
+	generateDeployWranglerContainers,
+	generateDeployContainersWorker,
+	generateDeployScriptCloudflareBash,
+	generateDeployScriptCloudflarePwsh,
+	generateDeployQualificationReport,
+} from "./generators-deploy.js";
