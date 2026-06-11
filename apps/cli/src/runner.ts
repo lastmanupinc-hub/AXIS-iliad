@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { SnapshotRecord, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
@@ -57,12 +57,39 @@ export function run(scan: ScanResult, projectDir: string, programs?: string[]): 
   };
 }
 
+/**
+ * Deterministic run identity: SHA-256 over the sorted (path, content) pairs.
+ * Random UUIDs and wall-clock timestamps previously leaked into every
+ * generated artifact (and cascaded into the trust-fabric attestation +
+ * merkle proofs derived from them), so two analyze runs on an unchanged
+ * repo were never byte-identical. Same scanned bytes → same identity.
+ */
+function contentFingerprint(files: FileEntry[]): string {
+  const hash = createHash("sha256");
+  const sorted = [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const f of sorted) {
+    hash.update(f.path);
+    hash.update("\u0000");
+    hash.update(f.content);
+    hash.update("\u0000");
+  }
+  return hash.digest("hex");
+}
+
+/**
+ * Fixed sentinel timestamp (reproducible-builds convention, cf.
+ * SOURCE_DATE_EPOCH): generated_at in every artifact derives from
+ * created_at, so a wall-clock value here breaks byte-determinism.
+ */
+const DETERMINISTIC_CREATED_AT = "1970-01-01T00:00:00.000Z";
+
 /** Build a SnapshotRecord without touching the database */
 function buildInMemorySnapshot(scan: ScanResult, manifest: SnapshotManifest): SnapshotRecord {
+  const fingerprint = contentFingerprint(scan.files);
   return {
-    snapshot_id: randomUUID(),
-    project_id: randomUUID(),
-    created_at: new Date().toISOString(),
+    snapshot_id: `cli-${fingerprint.slice(0, 32)}`,
+    project_id: `cli-${fingerprint.slice(32, 64)}`,
+    created_at: DETERMINISTIC_CREATED_AT,
     input_method: "cli_submission",
     manifest,
     file_count: scan.files.length,

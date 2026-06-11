@@ -348,7 +348,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
   const lines: string[] = [];
   lines.push(`# Layout Patterns — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
@@ -525,7 +525,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   const lines: string[] = [];
   lines.push(`# UI Audit — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {

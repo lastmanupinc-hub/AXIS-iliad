@@ -85,7 +85,7 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
   const tokens = {
     $schema: "https://design-tokens.github.io/community-group/format/",
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     styling_approach: stylingApproach,
     project_type: id.type,
     primary_language: id.primary_language,
@@ -949,7 +949,7 @@ export function generateComponentThemeMap(ctx: ContextMap, files?: SourceFile[])
 
   const themeMap = {
     project: ctx.project_identity.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     detected_stack: ctx.detection.frameworks.map(f => ({
       name: f.name,
       version: f.version ?? null,
@@ -1003,7 +1003,7 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
   // Generate a full dark mode token set derived from the project context
   const tokens = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     scheme: "dark",
     detected_stack: {
       frameworks: ctx.detection.frameworks.map(f => `${f.name}${f.version ? " " + f.version : ""}`),

@@ -198,7 +198,7 @@ export function generateParameterPack(ctx: ContextMap, files?: SourceFile[]): Ge
 
   const pack = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     description: "Parameter sets for generative visualizations derived from project metrics",
     parameters: {
       structure: {
@@ -284,7 +284,7 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
 
   lines.push(`# Collection Map — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   lines.push("## Collection Overview");
@@ -416,7 +416,7 @@ export function generateExportManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   lines.push("# Export Manifest");
   lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${new Date().toISOString()}`);
+  lines.push(`# Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("manifest:");
   lines.push(`  project: ${JSON.stringify(id.name)}`);
@@ -643,7 +643,7 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
 
   const matrix = {
     project: id.name,
-    generated: new Date().toISOString(),
+    generated: ctx.generated_at,
     parameters,
     variation_count: variations.length,
     variations,

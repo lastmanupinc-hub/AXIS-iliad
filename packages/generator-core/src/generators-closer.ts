@@ -190,12 +190,12 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
   };
 }
 
-function renderLicense(license: ProjectSignals["selected_license"], holder: string): string {
+function renderLicense(license: ProjectSignals["selected_license"], holder: string, year: string): string {
   if (license === "Proprietary") {
     return [
       `${holder} Proprietary License`,
       "",
-      `Copyright (c) ${new Date().getUTCFullYear()} ${holder}`,
+      `Copyright (c) ${year} ${holder}`,
       "",
       "All rights reserved.",
       "",
@@ -211,7 +211,7 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
       "Version 2.0, January 2004",
       "http://www.apache.org/licenses/",
       "",
-      `Copyright ${new Date().getUTCFullYear()} ${holder}`,
+      `Copyright ${year} ${holder}`,
       "",
       "Licensed under the Apache License, Version 2.0 (the \"License\");",
       "you may not use this file except in compliance with the License.",
@@ -230,7 +230,7 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
   return [
     "MIT License",
     "",
-    `Copyright (c) ${new Date().getUTCFullYear()} ${holder}`,
+    `Copyright (c) ${year} ${holder}`,
     "",
     "Permission is hereby granted, free of charge, to any person obtaining a copy",
     "of this software and associated documentation files (the \"Software\"), to deal",
@@ -330,7 +330,7 @@ export function generatePackagingReadme(
     `- Packaging readiness score: **${score}/100**`,
     `- License strategy: **${signals.selected_license}**`,
     `- Build + release automation included`,
-    `- Signed Merkle attestation included in packaging/trust-fabric`,
+    `- Merkle integrity attestation (content-derived digest, not a cryptographic signature) included in packaging/trust-fabric`,
     "",
     `## Monetization`,
     "",
@@ -363,7 +363,8 @@ export function generatePackagingLicense(
   const signals = detectProjectSignals(ctx, profile, files);
   return {
     path: "packaging/LICENSE",
-    content: renderLicense(signals.selected_license, branding.product_name),
+    // Year is snapshot-derived (ISO timestamp prefix) so output stays deterministic.
+    content: renderLicense(signals.selected_license, branding.product_name, ctx.generated_at.slice(0, 4)),
     content_type: "text/plain",
     program: PROGRAM,
     description: "Commercially suitable licensing file selected from MIT, Apache-2.0, or Proprietary",
@@ -1054,7 +1055,7 @@ export function generateCloserManifestDockerHub(
     "| `NODE_ENV` | `production` | Runtime mode. Set to `development` for verbose logging. |",
     "",
     "## Compliance & Trust",
-    "- Signed Merkle attestation in `packaging/trust-fabric/attestation.json`.",
+    "- Merkle integrity attestation (content-derived digest, not a cryptographic signature) in `packaging/trust-fabric/attestation.json`.",
     "- Multi-stage non-root build (see Dockerfile in the source repo).",
     "- HEALTHCHECK on `/health` so orchestrators can drive rolling restarts.",
     "",
@@ -1135,7 +1136,7 @@ export function generateCloserTrustAttestation(
     {
       schema_version: "1.0",
       certlib_profile: CERTLIB_PROFILE,
-      generated_at: new Date().toISOString(),
+      generated_at: ctx.generated_at,
       snapshot_id: ctx.snapshot_id,
       project_id: ctx.project_id,
       product_name: branding.product_name,
@@ -1158,7 +1159,7 @@ export function generateCloserTrustAttestation(
     content,
     content_type: "application/json",
     program: PROGRAM,
-    description: "Trust Fabric certlib-style attestation with signed Merkle root over package artifacts",
+    description: "Trust Fabric certlib-style attestation with a content-derived Merkle root integrity digest (not a cryptographic signature) over package artifacts",
   };
 }
 
@@ -1239,7 +1240,7 @@ export function generateCloserPackagingReport(
     "## Certification Summary",
     "",
     `- Attestation profile: ${CERTLIB_PROFILE}`,
-    "- Signed Merkle root generated",
+    "- Content-derived Merkle root integrity digest generated (not a cryptographic signature)",
     "- Offline verification supported",
   ].join("\n");
 

@@ -94,7 +94,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
   const config = {
     mcpVersion: "1.0",
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     project_summary: ctx.ai_context.project_summary || null,
     detected_stack: ctx.detection.frameworks.map(fw => ({
       name: fw.name,
@@ -223,7 +223,7 @@ export function generateMcpRegistryMetadata(
 
   const metadata = {
     schema_version: "1.0",
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     registry: {
       name: packageName ?? `${projectName.toLowerCase().replace(/\s+/g, "-")}-mcp-server`,
       version: packageVersion ?? "0.1.0",
@@ -262,7 +262,7 @@ export function generateProtocolSpec(ctx: ContextMap): GeneratedFile {
 
   lines.push(`# Protocol Specification — ${projectName}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Purpose");
   lines.push("");
@@ -1417,7 +1417,7 @@ export function generateMonorepoStructureGuide(ctx: ContextMap): GeneratedFile {
 
   lines.push(`# Monorepo Structure Template — ${projectName}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Recommended Folder Layout");
   lines.push("");
@@ -1536,7 +1536,7 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
 
   lines.push(`# Core Implementation Artifacts — ${projectName}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Purpose");
   lines.push("");
@@ -1974,7 +1974,7 @@ export function generateTestingDocumentationPolishArtifactsGuide(ctx: ContextMap
 
   lines.push(`# Testing, Documentation & Polish Artifacts — ${projectName}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Phase Goal");
   lines.push("");
@@ -2036,7 +2036,7 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("# Connector Map");
   lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${new Date().toISOString()}`);
+  lines.push(`# Generated: ${ctx.generated_at}`);
   if (ctx.ai_context.project_summary) {
     lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
   }
@@ -2351,7 +2351,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
 
   const registry = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     project_summary: ctx.ai_context.project_summary || null,
     detected_stack: ctx.detection.frameworks.map(fw => ({
       name: fw.name,
@@ -2392,7 +2392,7 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
   const lines: string[] = [];
   lines.push("# MCP Server Manifest");
   lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${new Date().toISOString()}`);
+  lines.push(`# Generated: ${ctx.generated_at}`);
   if (ctx.ai_context.project_summary) {
     lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
   }
@@ -2594,7 +2594,7 @@ export function generateFintechMcpSurfacePackage(
 
   lines.push(`# Fintech MCP Surface Package — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Objective");
   lines.push("");
@@ -2715,7 +2715,7 @@ export function generateFintechDomainSchema(
   const lines: string[] = [];
 
   lines.push("schema_version: \"1.0\"");
-  lines.push(`generated_at: ${JSON.stringify(new Date().toISOString())}`);
+  lines.push(`generated_at: ${JSON.stringify(ctx.generated_at)}`);
   lines.push("domain: fintech_mcp_buildout");
   lines.push("project:");
   lines.push(`  name: ${JSON.stringify(ctx.project_identity.name)}`);

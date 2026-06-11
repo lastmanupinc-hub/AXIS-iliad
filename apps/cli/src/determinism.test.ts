@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { SnapshotRecord, FileEntry } from "@axis/snapshots";
+import { run } from "./runner.js";
+import type { ScanResult } from "./scanner.js";
 
 /**
  * eq_086 — Determinism proof
@@ -179,5 +181,49 @@ describe("generator determinism proof", () => {
     const a = runFullPipeline();
     const b = runFullPipeline();
     expect(JSON.stringify(a.skipped)).toBe(JSON.stringify(b.skipped));
+  });
+});
+
+describe("end-to-end run identity determinism (byte-level)", () => {
+  // The CLI `analyze` path previously stamped each run with random UUIDs and a
+  // wall-clock created_at, so two runs on an unchanged repo were never
+  // byte-identical (the drift cascaded into the trust-fabric attestation and
+  // merkle proofs). These tests assert FULL byte equality — no timestamp
+  // stripping allowed.
+  function makeScan(): ScanResult {
+    const files = polyglotFixture.files.map(f => ({ ...f }));
+    return {
+      files,
+      skipped_count: 0,
+      total_bytes: files.reduce((s, f) => s + f.size, 0),
+    };
+  }
+
+  it("two runs on identical input produce byte-identical artifacts, ids, and timestamps", () => {
+    const a = run(makeScan(), "determinism-test");
+    const b = run(makeScan(), "determinism-test");
+
+    expect(a.snapshot_id).toBe(b.snapshot_id);
+    expect(JSON.stringify(a.generator_result)).toBe(JSON.stringify(b.generator_result));
+  });
+
+  it("snapshot identity is derived from content — a one-byte change yields a new id", () => {
+    const a = run(makeScan(), "determinism-test");
+
+    const scan = makeScan();
+    scan.files[0] = { ...scan.files[0], content: scan.files[0].content + " " };
+    const b = run(scan, "determinism-test");
+
+    expect(a.snapshot_id).not.toBe(b.snapshot_id);
+  });
+
+  it("snapshot identity ignores scan order (same bytes, shuffled walk)", () => {
+    const a = run(makeScan(), "determinism-test");
+
+    const scan = makeScan();
+    scan.files.reverse();
+    const b = run(scan, "determinism-test");
+
+    expect(a.snapshot_id).toBe(b.snapshot_id);
   });
 });

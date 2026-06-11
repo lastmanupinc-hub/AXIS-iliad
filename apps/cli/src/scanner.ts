@@ -67,6 +67,12 @@ export function scanDirectory(root: string): ScanResult {
       return; // Permission denied or unreadable
     }
 
+    // readdirSync order is filesystem-dependent (sorted on NTFS, arbitrary on
+    // ext4). Sort so the scanned file order — and the analyzed subset when the
+    // MAX_FILES cap kicks in — is identical across platforms, keeping the
+    // pipeline byte-deterministic for the same repo state.
+    entries.sort();
+
     for (const entry of entries) {
       if (files.length >= MAX_FILES) break;
 

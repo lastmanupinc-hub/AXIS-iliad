@@ -5,13 +5,16 @@ import type { ContextMap, RepoProfile } from "./types.js";
 
 export function buildContextMap(snapshot: SnapshotRecord): ContextMap {
   const parsed = parseRepo(snapshot.files);
-  const now = new Date().toISOString();
+  // Derived from the snapshot, not the wall clock: analysis output is a pure
+  // function of its input, so re-analyzing an unchanged snapshot is
+  // byte-identical (generated_at leaks into nearly every generated artifact).
+  const generatedAt = snapshot.created_at;
 
   return {
     version: "1.0.0",
     snapshot_id: snapshot.snapshot_id,
     project_id: snapshot.project_id,
-    generated_at: now,
+    generated_at: generatedAt,
     project_identity: buildProjectIdentity(snapshot, parsed),
     structure: buildStructure(snapshot, parsed),
     detection: {
@@ -46,7 +49,8 @@ export function buildContextMap(snapshot: SnapshotRecord): ContextMap {
 
 export function buildRepoProfile(snapshot: SnapshotRecord, parsed?: ParseResult): RepoProfile {
   const p = parsed ?? parseRepo(snapshot.files);
-  const now = new Date().toISOString();
+  // Same determinism rule as buildContextMap: timestamp comes from the snapshot.
+  const generatedAt = snapshot.created_at;
 
   const prodDeps = p.dependencies.filter((d) => d.type === "production").length;
   const devDeps = p.dependencies.filter((d) => d.type === "development").length;
@@ -56,7 +60,7 @@ export function buildRepoProfile(snapshot: SnapshotRecord, parsed?: ParseResult)
     version: "1.0.0",
     snapshot_id: snapshot.snapshot_id,
     project_id: snapshot.project_id,
-    generated_at: now,
+    generated_at: generatedAt,
     project: buildProjectIdentity(snapshot, p),
     detection: {
       languages: p.languages,

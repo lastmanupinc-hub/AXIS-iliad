@@ -701,7 +701,7 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   const lines: string[] = [];
   lines.push(`# A/B Test Plan — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
