@@ -14,10 +14,10 @@ project_continuation:
 
   current_identity:
     project_name: "Axis' Iliad"
-    date: "2026-05-23"
-    commit_or_tag: "23fa61e"
-    current_session_id: "session_120"
-    one_sentence_summary: "Axis' Iliad v0.5.3 — owned-tool surface now has comprehensive regression coverage. Session 120 ships 12 new tests: 11 dispatcher-coverage tests (one per owned iliad_* tool exercising the MCP tools/call switch with a minimal valid arg shape, validating that the dispatcher routes correctly + the _usage block carries the right tool name back) plus 1 end-to-end agent-loop composition test that chains 6 owned-tool calls (analytics capture → analytics query → web_search index → web_search search → vector_database upsert → vector_database query) to prove the owned tier composes as an in-AXIS agent loop with cosine self-similarity ≈ 1.0 on the round-trip."
+    date: "2026-06-11"
+    commit_or_tag: "ba3ae57"
+    current_session_id: "session_121"
+    one_sentence_summary: "Axis' Iliad v0.5.3 — strategy-pivot mega-session (121): full market analysis drove a 9-commit execution wave: all marketing/self-propagation and fabricated compliance claims stripped from generators, MCP responses, manifests, REST and web surfaces (pinned by negative tests); generator pipeline made byte-deterministic (137/137 files identical across runs); new zero-dependency publishable package packages/iliad-md (bin iliad) extracted as the first-revenue wedge with a context-freshness GitHub Action; billing made deny-by-default with AXIS_TOKEN_KEY fail-closed; deploy program (20th) accepted; privacy/terms drafts + LAUNCH_RUNBOOK.md added — repo is launch-ready pending the manual runbook steps (npm publish, registries, Stripe, Render env + redeploy)."
 
   executive_truth:
     maturity_estimate:
@@ -4858,4 +4858,72 @@ project_continuation:
     local_only: false
     commit_results: ["23fa61e: Add MCP dispatcher coverage + agent-loop composition tests"]
     push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 23fa61e"]
+    push_results: []
+
+  session_result_121:
+    date: "2026-06-11"
+    session_id: "session_121"
+    selected_move: >
+      Strategy pivot executed end-to-end. A 28-agent market analysis (MCP
+      monetization, agentic-commerce protocols, competitive landscape, all
+      adversarially fact-checked) concluded: repo analysis has a $0 price
+      floor (DeepWiki/Cognition), MCP discovery is human-gated, and
+      "self-propagating artifacts" are classified as tool poisoning by
+      OWASP/registries (delisting risk, not a growth channel). The owner
+      approved the pivot: ship a clean standalone CLI (iliad-md) + GitHub
+      Action as the first-revenue wedge, decontaminate everything, keep the
+      hosted AXIS server as the future home of the up-market commerce audit.
+    selected_move_roi_reason: >
+      The decontamination removes live legal exposure (fabricated Visa
+      fines/deadlines/win-rates shipped to customers) and the delisting
+      risk that would have killed registry distribution. The iliad-md
+      extraction monetizes the strongest, lowest-liability asset (skills
+      artifact generation) through the lowest-friction channel (npx +
+      GitHub Marketplace) without dragging the leaky billing surface along.
+    completed_candidates:
+      - "DECONTAMINATION: marketing/self-propagation blocks removed from skills artifacts, agentic-purchasing fabrications removed (invented $50K/month AP2 fine, fake 2026-10-01 deadline, hardcoded 30-72% dispute win-rate tables, pseudo-legal AP2 article citations, 2300% ROI math, 85-92% frictionless rates), 14 axis_advantages blocks removed from generators-artifacts.ts (incl. the literal NUL byte that hid the file from ripgrep), keyword-scan-not-certification disclaimers added; pinned by generators-decontamination.test.ts."
+      - "DE-INJECTION: INCENTIVES_BLOCK + AXRX_FOOTER + share_to_earn blocks removed from every MCP response; server.json + apps/api/mcp-server.json aligned with the live manifest; /for-agents, /.well-known, llms.txt body, web pages now describe the referral program factually (the feature itself stays as functional opt-in: tools, 402 referral_token, referral-store backend)."
+      - "DETERMINISM: snapshot ids from SHA-256 content fingerprint, epoch created_at sentinel, generated_at from snapshot.created_at, sorted scan order; 137/137 byte-identical artifacts across consecutive runs, byte-level regression tests in generator-core and apps/cli."
+      - "PACKAGE: packages/iliad-md (npm name iliad-md, bin iliad) — zero runtime dependencies (repo-parser/context-engine/tarball-fetcher/scanner vendored), 5 targets (AGENTS.md/CLAUDE.md/.cursorrules/copilot-instructions/GEMINI.md), CRLF-safe check mode for CI, marker protection against clobbering hand-written files, 34 tests. Bare 'iliad' npm name is squatted (abandoned v0.0.0, 2022) — disputable later."
+      - "ACTION: .github/actions/context-freshness composite action (drift check, optional auto-PR via peter-evans/create-pull-request) + warn-only dogfood workflow."
+      - "BILLING: deny-by-default paid entitlements on /v1/account/tier, /v1/account/credits purchase op, AND unauthenticated POST /v1/accounts (adversarial reviewer caught the third); AXIS_TOKEN_KEY fail-closed in production; render.yaml pins AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=false + AXIS_TOKEN_KEY sync:false."
+      - "HONEST COPY: trust banner (snapshots ARE stored, deletable), ForAgentsPage real endpoint + valid JSON-RPC demo, CLI version from package.json, SDK key-prefix doc, Visa-grade claims removed from web/API/mpp surfaces."
+      - "DEPLOY PROGRAM: in-flight generators-deploy.ts accepted as 20th program (137 generators); 20 stale count assertions reconciled."
+      - "DOCS: PRIVACY_POLICY.md + TERMS_OF_SERVICE.md drafts (attorney review required) + LAUNCH_RUNBOOK.md (ordered manual steps with exact commands)."
+    refused_candidates:
+      - "Removing the referral feature entirely: owner kept it as a documented functional opt-in; only propagation pitches were removed."
+      - "Renaming get_referral_code share_instruction / discover_commerce_tools connection snippet: responses to explicit opt-in calls, judged functional not injection."
+    blocked_candidates:
+      - "Everything in LAUNCH_RUNBOOK.md is manual-ops: npm publish (name decided: iliad-md), mcp-publisher publish, Glama/Smithery, GitHub App registration + Marketplace, Stripe price IDs, Render env + redeploy (prod lags main by weeks), attorney review, DB backups, uptime monitor, launch posts."
+      - "Freshness-gate heuristic mismatch (red at HEAD too): scripts/check-artifact-freshness.ts counts domain models differently than the analyzer extractor — needs reconciliation, pre-existing."
+      - "2 Docker-on-Windows test hangs (code-sandbox tests assert Docker-unreachable path but Docker runs on this host) — need an environment guard, pre-existing."
+      - "Parent repo axis-odyssey CLAUDE.md still carries old marketing + wrong tool names against the same live endpoint — different repo."
+    evidence_added:
+      - "Full suite green post-execution: ~4,580 passing; only failures are the 2 pre-existing Docker-environment hangs. pnpm -r build + repo-wide tsc --noEmit clean."
+      - "Adversarial review round: 6 critical/high findings (POST /v1/accounts bypass, CRLF false-drift, scan-cap displacement, surviving axis_advantages blocks, residual product-schema pitch field, 54-file non-determinism) all fixed at root cause and independently re-verified RESOLVED."
+      - "Determinism double-run byte-compare: identical aggregate SHA-256 across 137 files."
+      - "Surface-alignment verifier: 354/354 tests, manifests field-by-field consistent with getMcpServerMeta."
+    verticals_advanced:
+      - "v18_agentic_commerce: compliance artifacts are now honest (evidence requirements instead of invented win rates) — survives sophisticated buyer scrutiny, which the $2K-audit up-market play requires."
+      - "v6_developer_surface: iliad-md + context-freshness Action constitute the new first-revenue wedge product."
+    blockers_removed:
+      - "Legal exposure from fabricated compliance facts shipped to customers."
+      - "Registry delisting risk from response-injection marketing (tool-poisoning-adjacent)."
+      - "Revenue bypass: free self-serve paid tiers and credit minting in production config."
+      - "GitHub PATs encrypted with the public dev fallback key in production (fail-closed now enforced)."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "All manual launch steps in LAUNCH_RUNBOOK.md — none unblock without owner action."
+      - "Freshness gate heuristic, Docker-on-Windows test guards, axis-odyssey CLAUDE.md staleness."
+    local_only: false
+    commit_results:
+      - "5923e3e: Accept deploy program (20th program, 137 generators) and reconcile counts"
+      - "7368697: Strip marketing/self-propagation and fabricated compliance claims from generators"
+      - "818c722: Make the generator pipeline byte-deterministic"
+      - "754b84e: Remove marketing injection from MCP responses; align manifests and REST surfaces"
+      - "d1d5778: Deny-by-default paid entitlements; fail closed without AXIS_TOKEN_KEY in prod"
+      - "c154721: Fix dishonest and broken client copy across web, CLI, and SDK"
+      - "9627a40: Add iliad-md: standalone zero-dependency agent-context CLI (bin: iliad)"
+      - "1489d66: Add context-freshness GitHub Action + dogfood workflow"
+      - "ba3ae57: Add privacy/terms drafts and the manual launch runbook"
     push_results: []
