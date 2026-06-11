@@ -170,6 +170,15 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  packages/iliad-md:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.7.0
+        version: 5.7.3
+
   packages/mpp:
     devDependencies:
       '@types/node':
