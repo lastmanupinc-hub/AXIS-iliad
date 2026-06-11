@@ -4926,4 +4926,5 @@ project_continuation:
       - "9627a40: Add iliad-md: standalone zero-dependency agent-context CLI (bin: iliad)"
       - "1489d66: Add context-freshness GitHub Action + dogfood workflow"
       - "ba3ae57: Add privacy/terms drafts and the manual launch runbook"
-    push_results: []
+      - "2dea846: Update continuation.yaml session_121 with the strategy-pivot execution ledger"
+    push_results: ["pushed to origin/feat/iliad-tool-console — HEAD at 2dea846 (43cdd5c..2dea846, 10 commits)"]
