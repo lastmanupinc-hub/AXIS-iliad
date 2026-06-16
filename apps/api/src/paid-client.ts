@@ -1,56 +1,62 @@
 // ─── PAI'D Payment Processor Client ──────────────────────────────
 //
-// Thin client over https://axis-pai-paid-api-main.onrender.com.
-// Reads PAID_API_KEY, PAID_MERCHANT_ID, PAID_API_BASE_URL, plan IDs,
-// and PAID_WEBHOOK_SIGNING_KEY from process.env. Credentials live in
-// .env.local (gitignored) and in Render env vars in production.
+// Thin client over the PAI'D External API (default
+// https://axis-pai-paid-api-main.onrender.com/v1). Reads PAID_API_KEY,
+// PAID_MERCHANT_ID, PAID_API_BASE_URL, and PAID_WEBHOOK_SIGNING_KEY from
+// process.env. Credentials live in .env.local (gitignored) and in Render
+// env vars in production.
 //
-// Contract (per PAI'D docs):
-//   - POST {PAID_API_BASE_URL}/payment_intents — one-off charges
-//   - POST {PAID_API_BASE_URL}/subscriptions   — recurring plans
-//   - Webhook events delivered to /portal/api/paid/webhook
-//     and signed with HMAC-SHA256 using PAID_WEBHOOK_SIGNING_KEY.
+// Wire format (verified against the live PAI'D Go backend, NOT the stale
+// PAID_EXTERNAL_API.md):
+//   - Auth: `Authorization: Bearer <PAID_API_KEY>` (no request HMAC).
+//   - POST {base}/checkout/sessions → a HOSTED checkout session; PAI'D hosts
+//     the payment page and returns `url`. We redirect the buyer there. PAI'D
+//     does NOT return a Stripe client_secret — there is no inline-Elements
+//     flow on this processor.
+//   - Webhook events delivered to /portal/api/paid/webhook, signed
+//     Standard-Webhooks style (Webhook-Signature: t=<unix>,v1=<hex>) over
+//     "{timestamp}.{rawBody}" keyed by PAID_WEBHOOK_SIGNING_KEY.
 
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 const DEFAULT_BASE_URL = "https://axis-pai-paid-api-main.onrender.com/v1";
 
+// PAI'D runs on Render; a cold free-tier instance can take a few seconds to
+// wake. Cap the synchronous create call so a hung instance can't block the
+// request thread indefinitely.
+const DEFAULT_TIMEOUT_MS = 15_000;
+
+/** Billing cycle. */
 export type PaidPlan = "monthly" | "annual";
+
+/** AXIS plan tiers that route through PAI'D (free/enterprise do not). */
+export type CheckoutPlanId = "starter" | "pro" | "growth";
 
 export interface PaidConfig {
   apiBaseUrl: string;
   apiKey: string;
   merchantId: string;
-  planMonthly?: string;
-  planAnnual?: string;
   webhookSigningKey?: string;
+  timeoutMs?: number;
 }
 
-export interface PaymentIntent {
+/** Hosted-checkout session as returned by POST /checkout/sessions. */
+export interface CheckoutSession {
   id: string;
-  amount: number;
-  currency: string;
-  state: string;
-  client_secret: string;
-  [key: string]: unknown;
-}
-
-export interface Subscription {
-  subscription_id: string;
-  client_secret: string;
+  url: string;
   status: string;
   [key: string]: unknown;
 }
 
-export interface CreateIntentInput {
+export interface CreateCheckoutInput {
+  planId: CheckoutPlanId;
+  cycle: PaidPlan;
+  /** Authoritative price in minor units (cents), resolved server-side. */
   amountCents: number;
-  currency?: string;
-  idempotencyKey?: string;
-}
-
-export interface CreateSubscriptionInput {
-  plan: PaidPlan;
+  description: string;
   customerEmail: string;
+  successUrl: string;
+  cancelUrl: string;
   idempotencyKey?: string;
 }
 
@@ -74,21 +80,43 @@ export function loadPaidConfig(env: NodeJS.ProcessEnv = process.env): PaidConfig
     apiBaseUrl: (env.PAID_API_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, ""),
     apiKey,
     merchantId,
-    planMonthly: env.PAID_PLAN_PRO_MONTHLY,
-    planAnnual: env.PAID_PLAN_PRO_ANNUAL,
     webhookSigningKey: env.PAID_WEBHOOK_SIGNING_KEY,
   };
 }
 
-async function paidPost<T>(path: string, body: unknown, config: PaidConfig): Promise<T> {
-  const res = await fetch(`${config.apiBaseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+/** Map an AXIS plan tier to the PAI'D-side billing tier the webhook activates. */
+export function tierForPlan(planId: CheckoutPlanId): "paid" | "suite" {
+  return planId === "growth" ? "suite" : "paid";
+}
+
+async function paidPost<T>(
+  path: string,
+  body: unknown,
+  config: PaidConfig,
+  idempotencyKey: string,
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${config.apiBaseUrl}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new PaidError(`PAI'D ${path} timed out after ${config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, 504, "");
+    }
+    throw new PaidError(`PAI'D ${path} request failed: ${(err as Error).message}`, 0, "");
+  } finally {
+    clearTimeout(timer);
+  }
   const text = await res.text();
   if (!res.ok) {
     throw new PaidError(`PAI'D ${path} failed (${res.status})`, res.status, text);
@@ -96,53 +124,60 @@ async function paidPost<T>(path: string, body: unknown, config: PaidConfig): Pro
   return JSON.parse(text) as T;
 }
 
-export async function createPaymentIntent(
-  input: CreateIntentInput,
+/**
+ * Create a PAI'D HOSTED checkout session for a one-time charge and return it.
+ * The caller redirects the buyer to `session.url`; fulfilment (tier upgrade)
+ * happens asynchronously via the checkout.session.completed webhook keyed off
+ * the metadata we attach here.
+ *
+ * mode is "payment" (one-time): PAI'D gates mode="subscription" (501) until
+ * the processor enables recurring billing, so we charge once and the webhook
+ * activates the tier. amount_total_minor matches the single ad-hoc line item
+ * so the backend's drift guard passes.
+ */
+export async function createCheckoutSession(
+  input: CreateCheckoutInput,
   config: PaidConfig = loadPaidConfig(),
-): Promise<PaymentIntent> {
+): Promise<CheckoutSession> {
   if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
     throw new Error("amountCents must be a positive integer (cents)");
   }
-  return paidPost<PaymentIntent>(
-    "/payment_intents",
-    {
-      amount: input.amountCents,
-      currency: (input.currency ?? "USD").toUpperCase(),
-      merchant_id: config.merchantId,
-      idempotency_key: input.idempotencyKey ?? randomUUID(),
-    },
-    config,
-  );
-}
-
-export async function createSubscription(
-  input: CreateSubscriptionInput,
-  config: PaidConfig = loadPaidConfig(),
-): Promise<Subscription> {
-  const planId = input.plan === "annual" ? config.planAnnual : config.planMonthly;
-  if (!planId) {
-    throw new Error(
-      `PAID_PLAN_PRO_${input.plan.toUpperCase()} is not set — cannot create ${input.plan} subscription`,
-    );
-  }
   if (!input.customerEmail) throw new Error("customerEmail is required");
-  return paidPost<Subscription>(
-    "/subscriptions",
+  const idem = input.idempotencyKey ?? randomUUID();
+  return paidPost<CheckoutSession>(
+    "/checkout/sessions",
     {
-      merchant_id: config.merchantId,
-      plan_id: planId,
+      mode: "payment",
+      line_items: [
+        {
+          ad_hoc: { amount: input.amountCents, currency: "USD", description: input.description },
+          quantity: 1,
+        },
+      ],
+      payment_method_types: ["card"],
+      amount_total_minor: input.amountCents,
+      currency: "USD",
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
       customer_email: input.customerEmail,
-      idempotency_key: input.idempotencyKey ?? randomUUID(),
+      metadata: {
+        user_email: input.customerEmail,
+        plan_id: input.planId,
+        tier: tierForPlan(input.planId),
+        cycle: input.cycle,
+        kind: "subscription",
+      },
     },
     config,
+    idem,
   );
 }
 
 // ─── Webhook signature verification ──────────────────────────────
 //
 // PAI'D signs webhook payloads with HMAC-SHA256 using the merchant's
-// PAID_WEBHOOK_SIGNING_KEY (whsec_…). The signature is delivered in
-// the `PAID-Signature` header as `t=<unix>,v1=<hex>`, mirroring Stripe.
+// PAID_WEBHOOK_SIGNING_KEY (whsec_…). The signature is delivered in the
+// `Webhook-Signature` header as `t=<unix>,v1=<hex>`, over `{t}.{rawBody}`.
 
 export interface VerifyWebhookOptions {
   rawBody: string;

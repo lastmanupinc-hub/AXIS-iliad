@@ -541,6 +541,26 @@ CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_account_month ON usage_credit
 CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_created ON usage_credit_ledger(created_at);
 `,
   },
+  {
+    version: 22,
+    name: "normalize_account_emails",
+    sql: `
+-- Emails are now stored lowercase (PAID/Stripe webhook echoes may change
+-- casing, and the BINARY-collated email lookup would then miss the account).
+-- Lowercase legacy rows, but leave any row whose lowercase form collides
+-- with another account untouched — rewriting it would violate UNIQUE(email).
+UPDATE accounts SET email = lower(email)
+WHERE email <> lower(email)
+  AND NOT EXISTS (
+    SELECT 1 FROM accounts other
+    WHERE other.account_id <> accounts.account_id
+      AND lower(other.email) = lower(accounts.email)
+  );
+-- Case-insensitive lookups (getAccountByEmail uses COLLATE NOCASE) cannot
+-- use the BINARY-collated UNIQUE(email) index, so add a NOCASE index.
+CREATE INDEX IF NOT EXISTS idx_accounts_email_nocase ON accounts(email COLLATE NOCASE);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

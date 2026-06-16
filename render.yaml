@@ -58,10 +58,20 @@ services:
         value: plan_4cbd5d23-bd77-4421-99b5-4e6ef43b530f
       - key: PAID_API_KEY
         sync: false
-      - key: PAID_API_SECRET
-        sync: false
       - key: PAID_WEBHOOK_SIGNING_KEY
         sync: false
+      # NOTE: PAI'D uses hosted checkout (it hosts the payment page and returns
+      # a redirect URL), so NO Stripe publishable key is needed here, and
+      # PAID_API_SECRET is unused under bearer auth — both intentionally dropped.
+      # PAID_PLAN_PRO_* above are legacy subscription plan IDs; the hosted-
+      # checkout path prices server-side from PLAN_CATALOG and does not use them.
+      # Future Growth-tier plan IDs — map to the "suite" tier in the
+      # PAI'D webhook. Uncomment and fill in once the Growth plans are
+      # created on the PAI'D side:
+      # - key: PAID_PLAN_GROWTH_MONTHLY
+      #   value: plan_xxxxxxxx
+      # - key: PAID_PLAN_GROWTH_ANNUAL
+      #   value: plan_xxxxxxxx
       # ─── Proxied Tool Integrations (Phase 1+) ─────────────────
       - key: FIRECRAWL_API_KEY
         sync: false

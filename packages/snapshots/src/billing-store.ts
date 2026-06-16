@@ -22,13 +22,25 @@ function generateRawKey(): string {
   return `axis_${randomUUID().replace(/-/g, "")}`;
 }
 
+/**
+ * Canonical email form: trimmed + lowercased.
+ *
+ * Payment processors (PAI'D/Stripe) may normalize customer_email casing in
+ * webhook echoes, so emails are stored lowercase and looked up
+ * case-insensitively — otherwise a charged customer whose account email was
+ * typed with mixed case would never be tier-synced.
+ */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 // ─── Accounts ───────────────────────────────────────────────────
 
 export function createAccount(name: string, email: string, tier: BillingTier = "free"): Account {
   const account: Account = {
     account_id: randomUUID(),
     name,
-    email,
+    email: normalizeEmail(email),
     tier,
     created_at: new Date().toISOString(),
   };
@@ -52,7 +64,10 @@ export function getAccount(account_id: string): Account | undefined {
 }
 
 export function getAccountByEmail(email: string): Account | undefined {
-  return getDb().prepare("SELECT * FROM accounts WHERE email = ?").get(email) as Account | undefined;
+  // COLLATE NOCASE also matches legacy rows stored before emails were
+  // normalized to lowercase (migration 22 rewrites them, but skips rows
+  // whose lowercase form collides with another account).
+  return getDb().prepare("SELECT * FROM accounts WHERE email = ? COLLATE NOCASE").get(normalizeEmail(email)) as Account | undefined;
 }
 
 export function updateAccountTier(account_id: string, tier: BillingTier): boolean {

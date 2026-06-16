@@ -105,7 +105,7 @@ import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
-import { handlePaidSubscribe, handlePaidWebhook } from "./paid-handlers.js";
+import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT } from "./counts.js";
@@ -449,8 +449,9 @@ router.post("/v1/checkout", handleCreateCheckout);
 router.get("/v1/account/subscription", handleGetSubscription);
 router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 
-// PAI'D payment processor (subscriptions + webhook)
+// PAI'D payment processor (subscriptions + config probe + webhook)
 router.post("/portal/api/subscribe", handlePaidSubscribe);
+router.get("/portal/api/paid/config", handlePaidConfig);
 router.post("/portal/api/paid/webhook", handlePaidWebhook);
 
 /* v8 ignore next â€” server.ts is never imported by test suites */

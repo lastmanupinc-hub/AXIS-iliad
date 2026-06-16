@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 // ─── Zero-prop page smoke tests ─────────────────────────────────
 // Each test renders the page and verifies it mounts without throwing.
@@ -148,6 +148,152 @@ describe("Page smoke tests — pages with required props", () => {
   it("UploadPage renders with noop callback", () => {
     const { container } = render(<UploadPage onComplete={() => {}} />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── PAI'D checkout flow ────────────────────────────────────────
+
+import { PaidCheckoutPage } from "./pages/PaidCheckoutPage";
+
+/** Route-table fetch stub: matches by URL suffix, falls back to empty 200. */
+function paidFetchStub(routes: Record<string, { status?: number; body: unknown }>) {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    for (const [path, route] of Object.entries(routes)) {
+      if (url.endsWith(path)) {
+        const status = route.status ?? 200;
+        return {
+          ok: status >= 200 && status < 300,
+          status,
+          json: async () => route.body,
+          text: async () => JSON.stringify(route.body),
+          headers: { get: () => null },
+        } as unknown as Response;
+      }
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({}),
+      text: async () => "{}",
+      headers: { get: () => null },
+    } as unknown as Response;
+  });
+}
+
+const PAID_CONFIG_OK = { configured: true };
+const PAID_CONFIG_OFF = { configured: false };
+
+describe("PaidCheckoutPage", () => {
+  afterEach(() => {
+    localStorage.removeItem("axis_api_key");
+  });
+
+  it("renders the unavailable state when PAI'D is not configured", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/portal/api/paid/config": { body: PAID_CONFIG_OFF },
+    }));
+
+    render(<PaidCheckoutPage />);
+
+    await screen.findByText(/Subscription checkout isn't available/i);
+    const back = screen.getByText("Back to Plans");
+    expect(back.getAttribute("href")).toBe("#plans");
+    // No subscribe form when unconfigured.
+    expect(screen.queryByLabelText("Email")).toBeNull();
+  });
+
+  it("renders the subscribe form when configured", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/portal/api/paid/config": { body: PAID_CONFIG_OK },
+    }));
+
+    render(<PaidCheckoutPage />);
+
+    await screen.findByLabelText("Email");
+    expect(screen.getByRole("button", { name: "Continue to checkout" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Monthly" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Annual" })).toBeTruthy();
+  });
+
+  it("redirects the buyer to PAI'D's hosted checkout URL on submit", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/portal/api/paid/config": { body: PAID_CONFIG_OK },
+      "/portal/api/subscribe": { body: { checkout_url: "https://pay.paid.test/cs_redirect", session_id: "cs_redirect", status: "open" } },
+    }));
+
+    // Capture the redirect without navigating jsdom.
+    const original = window.location;
+    const loc = { href: "", hash: "", assign: vi.fn(), replace: vi.fn() };
+    Object.defineProperty(window, "location", { configurable: true, writable: true, value: loc });
+
+    try {
+      render(<PaidCheckoutPage />);
+      const emailInput = await screen.findByLabelText("Email");
+      fireEvent.change(emailInput, { target: { value: "a@b.com" } });
+      fireEvent.click(screen.getByRole("button", { name: "Continue to checkout" }));
+      await waitFor(() => expect(loc.href).toBe("https://pay.paid.test/cs_redirect"));
+    } finally {
+      Object.defineProperty(window, "location", { configurable: true, writable: true, value: original });
+    }
+  });
+
+  it("prompts signup when the subscribe call returns 404 (no account for email)", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/portal/api/paid/config": { body: PAID_CONFIG_OK },
+      "/portal/api/subscribe": { status: 404, body: { error: "No account found for that email" } },
+    }));
+
+    render(<PaidCheckoutPage />);
+
+    const emailInput = await screen.findByLabelText("Email");
+    fireEvent.change(emailInput, { target: { value: "nobody@b.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue to checkout" }));
+
+    await screen.findByText(/No AXIS account exists for that email/i);
+  });
+});
+
+describe("PlansPage PAI'D routing", () => {
+  const starterPlan = { id: "starter", name: "Starter", tagline: "t", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: [] };
+
+  afterEach(() => {
+    localStorage.removeItem("axis_api_key");
+    window.location.hash = "";
+  });
+
+  it("routes Starter to #paid-checkout when PAI'D is configured", async () => {
+    localStorage.setItem("axis_api_key", "axis_test_key");
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/v1/plans": { body: { plans: [starterPlan], features: [] } },
+      "/portal/api/paid/config": { body: PAID_CONFIG_OK },
+    }));
+
+    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Choose Starter" }));
+
+    await waitFor(() => expect(window.location.hash).toBe("#paid-checkout"));
+  });
+
+  it("falls back to the standard Stripe checkout when PAI'D is not configured", async () => {
+    localStorage.setItem("axis_api_key", "axis_test_key");
+    const fetchFn = paidFetchStub({
+      "/v1/plans": { body: { plans: [starterPlan], features: [] } },
+      "/portal/api/paid/config": { body: PAID_CONFIG_OFF },
+      "/v1/checkout": { body: { checkout_url: "https://checkout.example/cs_1", plan_id: "starter", session_id: "cs_1" } },
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Choose Starter" }));
+
+    await waitFor(() => {
+      const urls = fetchFn.mock.calls.map((c) => String(c[0]));
+      expect(urls.some((u) => u.endsWith("/v1/checkout"))).toBe(true);
+    });
+    expect(window.location.hash).not.toBe("#paid-checkout");
   });
 });
 

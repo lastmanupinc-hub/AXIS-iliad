@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb } from "./db.js";
+import { getDb, openMemoryDb, closeDb } from "./db.js";
 import {
   createAccount,
   getAccount,
@@ -71,6 +71,33 @@ describe("Accounts", () => {
   it("rejects duplicate emails", () => {
     createAccount("Alice", "alice@example.com");
     expect(() => createAccount("Alice2", "alice@example.com")).toThrow();
+  });
+
+  it("normalizes email to lowercase on create", () => {
+    const acct = createAccount("Alice", "  Alice@Example.COM  ");
+    expect(acct.email).toBe("alice@example.com");
+    expect(getAccount(acct.account_id)!.email).toBe("alice@example.com");
+  });
+
+  it("retrieves account by email case-insensitively", () => {
+    createAccount("Alice", "alice@example.com");
+    const found = getAccountByEmail("ALICE@Example.com");
+    expect(found).toBeTruthy();
+    expect(found!.name).toBe("Alice");
+  });
+
+  it("finds legacy rows stored with mixed-case emails", () => {
+    // Simulate a pre-normalization row written directly to the table
+    getDb().prepare(
+      "INSERT INTO accounts (account_id, name, email, tier, created_at) VALUES ('legacy1', 'Legacy', 'Legacy@Test.COM', 'free', '2024-01-01')",
+    ).run();
+    expect(getAccountByEmail("legacy@test.com")?.account_id).toBe("legacy1");
+    expect(getAccountByEmail("LEGACY@TEST.COM")?.account_id).toBe("legacy1");
+  });
+
+  it("rejects duplicate emails differing only by case", () => {
+    createAccount("Alice", "alice@example.com");
+    expect(() => createAccount("Alice2", "ALICE@EXAMPLE.COM")).toThrow(/UNIQUE/);
   });
 
   it("upgrades tier from free to paid", () => {
