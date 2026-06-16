@@ -11,6 +11,7 @@ import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
+import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
 import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
@@ -64,6 +65,7 @@ type Page =
   | "for-agents"
   | "examples"
   | "install"
+  | "paid-checkout"
   | "admin"
   | "myanalytics"
   | "tools"
@@ -109,7 +111,7 @@ function getInitialPage(): Page {
 
   const h = location.hash.replace("#", "");
   if (h === "admin" || h === "myanalytics") return hasApiKey() ? (h as Page) : "account";
-  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install") return h as Page;
+  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install" || h === "paid-checkout") return h as Page;
   if (h === "dashboard" && localStorage.getItem("axis_last_result")) return "dashboard";
   return "upload";
 }
@@ -173,6 +175,7 @@ export function App() {
       else if (h === "for-agents") setPage("for-agents");
       else if (h === "examples") setPage("examples");
       else if (h === "install") setPage("install");
+      else if (h === "paid-checkout") setPage("paid-checkout");
       else if (h === "admin") {
         if (isLoggedIn) setPage("admin");
         else {
@@ -448,6 +451,7 @@ export function App() {
           {page === "for-agents" && <ForAgentsPage />}
           {page === "examples" && <ExamplesPage />}
           {page === "install" && <InstallPage />}
+          {page === "paid-checkout" && <PaidCheckoutPage />}
           {page === "tools" && (
             <ToolsIndexPage
               onSelectTool={(toolId) => {

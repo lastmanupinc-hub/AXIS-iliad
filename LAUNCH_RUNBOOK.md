@@ -103,6 +103,57 @@ In the Render dashboard for the `axis-api` service → Environment:
 
 ---
 
+## Step 2b — PAI'D payment rail go-live **[REVENUE]**
+
+PAI'D uses **hosted checkout**: our backend creates a checkout session and we
+redirect the buyer to PAI'D's hosted payment page (no inline Stripe Elements,
+no `client_secret`). The non-secret values (`PAID_API_BASE_URL`,
+`PAID_MERCHANT_ID`) are already committed in `render.yaml`; the two `sync:false`
+secrets below must be set by hand.
+
+1. **Set 2 env values** in the Render dashboard → `axis-api` service →
+   Environment. The values exist in the local `.env.local` (gitignored) —
+   copy them into Render; never commit them or paste them here:
+   - `PAID_API_KEY` — the merchant `sk_live_…` bearer key
+   - `PAID_WEBHOOK_SIGNING_KEY` — the `whsec_…` for inbound webhook verification
+
+   (No `PAID_API_SECRET` and no `PAID_STRIPE_PUBLISHABLE_KEY` — PAI'D hosts the
+   page and authenticates via the bearer key alone.)
+2. **Confirm the PAI'D merchant account is live + chargeable.** The
+   `PAID_MERCHANT_ID` in `render.yaml` must be an onboarding-complete, live
+   merchant on PAI'D (KYC cleared + TF admission `onboarding_complete` + live
+   mode enabled). See the PAI'D-side go-live runbook
+   (`payment processing/docs/AXIS_MERCHANT_GO_LIVE.md`).
+3. **Register the webhook on the PAI'D side** pointing at
+   `https://axis-api-6c7z.onrender.com/portal/api/paid/webhook`, using the same
+   signing key as `PAID_WEBHOOK_SIGNING_KEY`. PAI'D signs the
+   `Webhook-Signature: t=<unix>,v1=<hex>` header over `"{t}.{body}"`; the
+   receiver rejects timestamps older than 300 seconds, so the PAI'D box clock
+   must be sane.
+4. **Redeploy** the `axis-api` service (Manual Deploy → "Deploy latest
+   commit"). Then verify config without leaking anything:
+
+   ```sh
+   curl https://axis-api-6c7z.onrender.com/portal/api/paid/config
+   # expect: {"configured":true}
+   ```
+
+5. **Run ONE live test transaction** with a real card:
+   - the subscribe call returns 200 with a `checkout_url`; the page redirects
+     there and PAI'D's hosted page collects payment;
+   - **confirm the charge actually landed in Stripe** (PAI'D dashboard / Stripe
+     dashboard shows the PaymentIntent) — do NOT trust a 200 alone;
+   - the account tier flips to `paid` after the `checkout.session.completed`
+     webhook arrives;
+   - the change appears in the `tier_changes` table with source `paid_webhook`.
+6. **Pro/Growth via PAI'D (optional):** PAI'D currently processes the **Starter**
+   tier; Pro/Growth still use the Stripe-direct path. To route them through
+   PAI'D too, change `PAID_PLAN_ID` in `apps/api/src/paid-handlers.ts` and lift
+   the `planId === "starter"` gate in `PlansPage.tsx` — `createCheckoutSession`
+   is already tier-generic and prices server-side from `PLAN_CATALOG`.
+
+---
+
 ## Step 3 (e) — GitHub App: create, secret, test install **[FUNNEL]**
 
 Uses `.github/app-manifest.json` as the source of values. Without this,

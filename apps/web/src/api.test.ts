@@ -32,6 +32,9 @@ import {
   createCheckout,
   getSubscription,
   cancelSubscription,
+  getPaidConfig,
+  paidSubscribe,
+  ApiError,
   type SnapshotPayload,
 } from "./api.ts";
 
@@ -648,6 +651,96 @@ describe("getSubscription", () => {
     expect(result.has_active_subscription).toBe(true);
     expect(result.active_subscription?.status).toBe("active");
     expect(fetchFn.mock.calls[0][0]).toBe("/v1/account/subscription");
+  });
+});
+
+// ─── getPaidConfig ───────────────────────────────────────────────
+
+describe("getPaidConfig", () => {
+  it("GETs /portal/api/paid/config and returns the config", async () => {
+    const response = { configured: true, publishable_key: "pk_test_123", plans: { monthly: true, annual: true } };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getPaidConfig();
+
+    expect(result.configured).toBe(true);
+    expect(result.publishable_key).toBe("pk_test_123");
+    expect(result.plans).toEqual({ monthly: true, annual: true });
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/portal/api/paid/config");
+    expect(init.method).toBeUndefined();
+    expect(init.body).toBeUndefined();
+  });
+
+  it("returns the unconfigured shape unchanged", async () => {
+    const fetchFn = mockFetch({ configured: false, publishable_key: null, plans: { monthly: false, annual: false } });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getPaidConfig();
+
+    expect(result.configured).toBe(false);
+    expect(result.publishable_key).toBeNull();
+    expect(result.plans).toEqual({ monthly: false, annual: false });
+  });
+});
+
+// ─── paidSubscribe ───────────────────────────────────────────────
+
+describe("paidSubscribe", () => {
+  it("POSTs plan, email, and idempotency_key to /portal/api/subscribe", async () => {
+    const response = { subscription_id: "sub_1", client_secret: "pi_secret_1", status: "incomplete", publishable_key: "pk_test_123" };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await paidSubscribe("monthly", "alice@example.com", "idem-123");
+
+    expect(result.subscription_id).toBe("sub_1");
+    expect(result.client_secret).toBe("pi_secret_1");
+    expect(result.publishable_key).toBe("pk_test_123");
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/portal/api/subscribe");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ plan: "monthly", email: "alice@example.com", idempotency_key: "idem-123" });
+  });
+
+  it("omits idempotency_key when not provided", async () => {
+    const fetchFn = mockFetch({ subscription_id: "sub_2", client_secret: "cs_2", status: "incomplete", publishable_key: "pk" });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await paidSubscribe("annual", "bob@example.com");
+
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body).toEqual({ plan: "annual", email: "bob@example.com" });
+  });
+
+  it("maps 503 (PAI'D not configured) to ApiError with status and message", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "PAI'D billing is not configured" }, 503));
+
+    const err = await paidSubscribe("monthly", "x@y.com").catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(503);
+    expect((err as ApiError).message).toBe("PAI'D billing is not configured");
+  });
+
+  it("maps 404 (no account for email) to ApiError", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "No account found for that email" }, 404));
+
+    const err = await paidSubscribe("monthly", "nobody@y.com").catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(404);
+    expect((err as ApiError).message).toBe("No account found for that email");
+  });
+
+  it("maps 400 validation errors to ApiError", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "plan must be \"monthly\" or \"annual\"" }, 400));
+
+    const err = await paidSubscribe("monthly", "x@y.com").catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(400);
   });
 });
 

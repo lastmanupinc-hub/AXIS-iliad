@@ -670,6 +670,38 @@ export async function cancelSubscription(): Promise<{ subscription_id: string; s
   return fetchJSON("/v1/account/subscription/cancel", { method: "POST" });
 }
 
+// ─── PAI'D Checkout API ─────────────────────────────────────────
+
+export interface PaidConfig {
+  configured: boolean;
+}
+
+export interface PaidSubscribeResponse {
+  /** PAI'D's hosted checkout page — redirect the buyer here. */
+  checkout_url: string;
+  session_id: string;
+  status: string;
+}
+
+export async function getPaidConfig(): Promise<PaidConfig> {
+  return fetchJSON("/portal/api/paid/config");
+}
+
+export async function paidSubscribe(
+  plan: "monthly" | "annual",
+  email: string,
+  idempotencyKey?: string,
+): Promise<PaidSubscribeResponse> {
+  return fetchJSON("/portal/api/subscribe", {
+    method: "POST",
+    body: JSON.stringify({
+      plan,
+      email,
+      ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+    }),
+  });
+}
+
 // ─── Web Research API (Firecrawl proxy) ─────────────────────────
 
 export interface ScrapeResult {

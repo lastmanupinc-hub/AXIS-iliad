@@ -985,7 +985,11 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // â”€â”€ PAI'D Payment Processor â”€â”€
       "/portal/api/subscribe": {
         post: {
-          summary: "Create a PAI'D subscription (returns Stripe client_secret)",
+          summary: "Create a PAI'D hosted checkout session (returns a redirect URL)",
+          description:
+            "Creates a PAI'D HOSTED checkout session for the Starter plan and returns its checkout_url. " +
+            "The client redirects the buyer to that URL — PAI'D hosts the payment page (there is no inline " +
+            "Stripe Elements / client_secret flow). Tier activation is webhook-driven after the payment completes.",
           operationId: "paidSubscribe",
           tags: ["Payments"],
           requestBody: {
@@ -996,7 +1000,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
                   type: "object",
                   required: ["plan", "email"],
                   properties: {
-                    plan: { type: "string", enum: ["monthly", "annual"] },
+                    plan: { type: "string", enum: ["monthly", "annual"], description: "Billing cycle" },
                     email: { type: "string", format: "email" },
                     idempotency_key: { type: "string" },
                   },
@@ -1006,14 +1010,14 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
           responses: {
             200: {
-              description: "Subscription created",
+              description: "Hosted checkout session created",
               content: {
                 "application/json": {
                   schema: {
                     type: "object",
                     properties: {
-                      subscription_id: { type: "string" },
-                      client_secret: { type: "string" },
+                      checkout_url: { type: "string", description: "PAI'D's hosted checkout page — redirect the buyer here" },
+                      session_id: { type: "string" },
                       status: { type: "string" },
                     },
                   },
@@ -1023,13 +1027,39 @@ export function buildOpenApiSpec(): OpenApiSpec {
             400: { description: "Invalid plan or email" },
             404: { description: "No account found for that email" },
             502: { description: "Payment processor rejected request" },
-            503: { description: "Payment processor not configured" },
+            503: { description: "Payment processor not configured (PAI'D env missing)" },
+          },
+        },
+      },
+      "/portal/api/paid/config": {
+        get: {
+          summary: "PAI'D checkout configuration probe (public, no auth)",
+          description:
+            "Reports whether the PAI'D payment rail can create a hosted checkout session: true when " +
+            "PAID_API_BASE_URL + PAID_MERCHANT_ID + PAID_API_KEY are set. No Stripe publishable key is needed " +
+            "(PAI'D hosts the page). No secret is ever exposed in the response.",
+          operationId: "paidConfig",
+          tags: ["Payments"],
+          responses: {
+            200: {
+              description: "Configuration status",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      configured: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
       "/portal/api/paid/webhook": {
         post: {
-          summary: "PAI'D webhook receiver (PAID-Signature verified)",
+          summary: "PAI'D webhook receiver (Webhook-Signature verified)",
           operationId: "paidWebhook",
           tags: ["Payments"],
           responses: {
