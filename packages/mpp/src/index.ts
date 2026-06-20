@@ -239,6 +239,14 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 1,
     lite_description: "Lite mode: input capped at 5 MiB (standard allows up to 50 MiB) + markdown output capped at 256 KiB (standard caps at 1 MiB).",
   },
+  // AXIS-owned workspace hygiene grader. scan mode is FREE (always); only the
+  // fix mode (remediation plan) is metered. Cheap — pure in-process analysis.
+  iliad_hygiene: {
+    tool: "iliad_hygiene",
+    standard_cents: 5,
+    lite_cents: 2,
+    lite_description: "Lite mode: remediation plan returns ordered steps + .gitignore additions only (standard adds full per-finding detail). Scan mode is always free.",
+  },
   default: {
     tool: "default",
     standard_cents: 50,

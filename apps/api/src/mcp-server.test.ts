@@ -243,13 +243,13 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns the full 27-tool catalog (build-not-redact catalog honesty)", async () => {
+  it("returns the full 28-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
     // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
-    expect(tools.length).toBe(27);
+    expect(tools.length).toBe(28);
     expect(tools.length).toBe(MCP_TOOLS.length);
     // No marketing payload injected into the result
     expect(result.incentives).toBeUndefined();
@@ -1456,9 +1456,9 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 27-tool catalog (build-not-redact)", () => {
+  it("tools array exposes the full 28-tool catalog (build-not-redact)", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(27);
+    expect(tools).toHaveLength(28);
     expect(tools).toHaveLength(MCP_TOOLS.length);
     const allNames = new Set(MCP_TOOLS.map(t => t.name));
     for (const t of tools) {
@@ -1533,11 +1533,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 27 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+  it("body contains 28 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(27);
+    expect(tools).toHaveLength(28);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1573,7 +1573,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
     // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
-    expect(parsed.tools.length).toBe(27);
+    expect(parsed.tools.length).toBe(28);
   });
 
   it("includes free_tools array", async () => {
@@ -1618,7 +1618,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(27);
+    expect(parsed.shareable_manifest.tools).toBe(28);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });
@@ -2231,6 +2231,76 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(result.isError).toBe(false);
     const after = getUsageCreditSummary(accountId, "free").included_credits_used;
     expect(after).toBeGreaterThan(before);
+  });
+
+  it("iliad_hygiene mode=scan is FREE (no credit decrement) and returns a grade", async () => {
+    const { accountId, rawKey } = newFreeAccount("hyg-scan");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 220,
+      method: "tools/call",
+      params: {
+        name: "iliad_hygiene",
+        arguments: {
+          files: [
+            { path: "src/app.ts", content: "export const x = 1;\n" },
+            { path: ".gitignore", content: "node_modules/\n" },
+          ],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text) as Record<string, unknown>;
+    expect(parsed.mode).toBe("scan");
+    expect(["A", "B", "C", "D", "F"]).toContain(parsed.grade);
+    expect(parsed.remediation_plan).toBeUndefined();
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBe(before);
+  });
+
+  it("iliad_hygiene flags a committed secret (grade F) and mode=fix IS metered + returns a plan", async () => {
+    const { accountId, rawKey } = newFreeAccount("hyg-fix");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 221,
+      method: "tools/call",
+      params: {
+        name: "iliad_hygiene",
+        arguments: {
+          mode: "fix",
+          files: [{ path: ".env", content: "STRIPE_SECRET=sk_live_0123456789abcdefghij\n" }],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text) as Record<string, unknown>;
+    expect(parsed.mode).toBe("fix");
+    expect(parsed.grade).toBe("F"); // committed secret caps at F
+    const plan = parsed.remediation_plan as Record<string, unknown>;
+    expect(Array.isArray(plan.ordered_steps)).toBe(true);
+    expect((plan.ordered_steps as unknown[]).length).toBeGreaterThan(0);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("iliad_hygiene dispatches correctly (usage.tool === iliad_hygiene)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 222,
+      method: "tools/call",
+      params: { name: "iliad_hygiene", arguments: { files: [{ path: "a.ts", content: "export const a = 1;" }] } },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.tool).toBe("iliad_hygiene");
   });
 
   it("iliad_speech_to_text returns _not_configured envelope WITHOUT charging", async () => {

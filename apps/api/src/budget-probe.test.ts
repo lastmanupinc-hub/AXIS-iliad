@@ -246,6 +246,14 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/MiB|markdown|capped/i);
   });
 
+  it("returns cheap tier for iliad_hygiene (pure in-process analysis; scan is free)", () => {
+    const tier = getPricingTier("iliad_hygiene");
+    expect(tier.tool).toBe("iliad_hygiene");
+    expect(tier.standard_cents).toBe(5);
+    expect(tier.lite_cents).toBe(2);
+    expect(tier.lite_description).toMatch(/scan|free|remediation/i);
+  });
+
   it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
     for (const tool of [
       "prepare_agentic_purchasing",
@@ -265,6 +273,7 @@ describe("getPricingTier", () => {
       "iliad_text_to_speech",
       "iliad_web_search",
       "iliad_document_parsing",
+      "iliad_hygiene",
       "default",
     ]) {
       const tier = getPricingTier(tool);
@@ -288,6 +297,7 @@ describe("getPricingTier", () => {
       "iliad_text_to_speech",
       "iliad_web_search",
       "iliad_document_parsing",
+      "iliad_hygiene",
     ]) {
       const tier = getPricingTier(tool);
       expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
@@ -312,6 +322,7 @@ describe("getPricingTier", () => {
       "iliad_text_to_speech",
       "iliad_web_search",
       "iliad_document_parsing",
+      "iliad_hygiene",
     ];
     for (const tool of iliadTools) {
       const tier = getPricingTier(tool);

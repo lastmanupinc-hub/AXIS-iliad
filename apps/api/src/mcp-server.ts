@@ -90,6 +90,7 @@ import type { GeneratorResult } from "@axis/generator-core";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT } from "./counts.js";
+import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "axis-iliad";
@@ -2348,6 +2349,48 @@ export const MCP_TOOLS = [
       },
     ],
   })),
+  {
+    name: "iliad_hygiene",
+    description:
+      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, paid) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, route-registration dup-handler analysis) are reported as repo_only_rules, not run. Requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["files"],
+      properties: {
+        files: { type: "array", description: "Inline files [{path, content}] to scan (non-empty; each content <= 5 MB)." },
+        mode: { type: "string", description: "scan (free grade+findings, default) | fix (metered, adds remediation plan).", enum: ["scan", "fix"] },
+        config: { type: "object", description: "Optional threshold overrides: maxFileBytes, coverageA, coverageB, coverageC, todoDebtThreshold." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        mode: { type: "string", description: "Echo of the mode that ran." },
+        grade: { type: "string", description: "Overall hygiene grade A-F (minimum across dimensions)." },
+        reasons: { type: "array", description: "Dimensions that capped the grade below A." },
+        dimensions: { type: "array", description: "Per-dimension grade [{id, grade, detail}]." },
+        counts: { type: "object", description: "{high, medium, low, deferredByPolicy} open-finding counts." },
+        findings: { type: "array", description: "All findings [{id, ruleId, severity, path, message, policy, recommendedAction}]." },
+        remediation_plan: { type: "object", description: "fix mode only: {ordered_steps, gitignore_additions, summary}." },
+        scanned: { type: "object", description: "{files, bytes} actually analyzed." },
+        paid_fix_hint: { type: "string", description: "scan mode only: how to obtain the metered remediation plan." },
+        repo_only_rules: { type: "array", description: "Rules that need a live repo and were not run." },
+      },
+    },
+    annotations: toolAnnotations("Workspace Hygiene", true, true),
+    examples: [
+      {
+        name: "Free scan of a small file set",
+        input: { files: [{ path: "src/app.ts", content: "// TODO: implement\nexport const x = 1;" }, { path: ".gitignore", content: "node_modules/\n" }] },
+        output: '{"mode":"scan","grade":"B","dimensions":[],"counts":{"high":0,"medium":0,"low":1,"deferredByPolicy":0},"findings":[]}',
+      },
+      {
+        name: "Paid fix plan for a committed secret",
+        input: { mode: "fix", files: [{ path: ".env", content: "STRIPE_KEY=sk_live_0123456789abcdefghij" }] },
+        output: '{"mode":"fix","grade":"F","remediation_plan":{"ordered_steps":[],"gitignore_additions":[".env"],"summary":"..."}}',
+      },
+    ],
+  },
 ];
 
 // â”€â”€â”€ Response builders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2444,7 +2487,8 @@ type MeteredMcpTool =
   | "iliad_speech_to_text"
   | "iliad_text_to_speech"
   | "iliad_web_search"
-  | "iliad_document_parsing";
+  | "iliad_document_parsing"
+  | "iliad_hygiene";
 
 function meterMcpToolCredits(
   req: IncomingMessage,
@@ -2490,6 +2534,64 @@ function filterGeneratorsByEntitlement(
 }
 
 // â”€â”€â”€ Tool: analyze_files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+function coerceHygieneFiles(args: Record<string, unknown>): HygieneFile[] {
+  const rawFiles = args.files;
+  if (!Array.isArray(rawFiles) || rawFiles.length === 0)
+    throw new Error("iliad_hygiene: `files` must be a non-empty array of {path, content}.");
+  return rawFiles.map((f: unknown) => {
+    const file = f as Record<string, unknown>;
+    if (typeof file.path !== "string" || typeof file.content !== "string")
+      throw new Error("iliad_hygiene: each file must have path (string) and content (string).");
+    const path = file.path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/+/, "");
+    if (path.includes("..")) throw new Error(`iliad_hygiene: invalid file path: ${file.path as string}`);
+    const size = Buffer.byteLength(file.content, "utf-8");
+    if (size > MAX_FILE_CONTENT_BYTES)
+      throw new Error(`iliad_hygiene: file ${path} exceeds max content size (${MAX_FILE_CONTENT_BYTES / 1024 / 1024} MB).`);
+    return { path, content: file.content, size };
+  });
+}
+
+/**
+ * iliad_hygiene - content-based workspace hygiene grader.
+ * mode='scan' (default) is FREE: grade A-F + findings, no credit charge.
+ * mode='fix' is METERED (paid): adds a prioritized remediation plan. Metering is
+ * selective inside the handler (mirrors iliad_web_search billing only `search`).
+ */
+function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_hygiene needs Authorization: Bearer <api_key>.");
+  }
+  // Tier file-count cap (mirrors analyze_files) — guards against a CPU/event-loop
+  // DoS from an oversized file set on a single-threaded synchronous scan.
+  const limits = TIER_LIMITS[auth.account.tier];
+  const rawCount = Array.isArray(args.files) ? args.files.length : 0;
+  if (rawCount > limits.max_files_per_snapshot) {
+    throw new Error(`File limit: ${rawCount} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`);
+  }
+  const mode = args.mode === "fix" ? "fix" : "scan";
+  const files = coerceHygieneFiles(args);
+  const config =
+    args.config && typeof args.config === "object" && !Array.isArray(args.config)
+      ? (args.config as Record<string, number>)
+      : undefined;
+  const report = runHygieneScan(files, config);
+
+  if (mode === "scan") {
+    // FREE path - no meterMcpToolCredits call.
+    return JSON.stringify(
+      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered)." },
+      null,
+      2,
+    );
+  }
+
+  // PAID path - bill before producing the remediation plan.
+  meterMcpToolCredits(req, auth.account, "iliad_hygiene");
+  const plan = buildRemediationPlan(report);
+  return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
+}
 
 export async function runAnalyzeFiles(
   args: Record<string, unknown>,
@@ -4099,6 +4201,9 @@ export async function dispatch(
           case "iliad_document_parsing":
             text = await runDocumentParsingDispatch(toolArgs, req);
             break;
+          case "iliad_hygiene":
+            text = runHygiene(toolArgs, req);
+            break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned
             // implementation is on the roadmap. They share a single handler
@@ -4300,9 +4405,8 @@ export function getMcpServerMeta(): Record<string, unknown> {
       endpoint: "https://axis-api-6c7z.onrender.com/v1/mcp",
     },
     // Metadata mirrors tools/list — every tool we advertise. Catalog
-    // honesty under the revised policy is build-not-redact: as remaining
-    // planned-capability stubs get owned implementations, the count stays
-    // 27 and the surface stays consistent.
+    // honesty under the revised policy is build-not-redact: the count
+    // tracks MCP_TOOLS (and MCP_TOOL_COUNT) and the surface stays consistent.
     tools: MCP_TOOLS.map((t) => ({
       name: t.name,
       description: t.description,
