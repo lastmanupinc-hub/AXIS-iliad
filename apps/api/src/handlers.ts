@@ -3189,6 +3189,46 @@ export async function handleAgentJson(
   });
 }
 
+// --- GET /.well-known/ai-plugin.json  -  OpenAI/ChatGPT plugin manifest -----
+
+export async function handleAiPlugin(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    schema_version: "v1",
+    name_for_human: "Axis' Iliad",
+    name_for_model: "axis_iliad",
+    description_for_human: `Analyze any codebase and generate ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.`,
+    description_for_model: `Deterministic snapshot-based generation of ${ARTIFACT_COUNT}+ artifacts (AGENTS.md, CLAUDE.md, .cursorrules, agentic-purchasing readiness kits, and more) across ${PROGRAM_COUNT} specialized programs. Free discovery tools require no auth; analysis tools are usage-priced. Call POST /v1/analyze with a github_url or files, or use the MCP endpoint at /mcp.`,
+    auth: { type: "none" },
+    api: {
+      type: "openapi",
+      url: "https://axis-api-6c7z.onrender.com/openapi.json",
+      is_user_authenticated: false,
+    },
+    logo_url: "https://axis-iliad.jonathanarvay.com/logo.png",
+    contact_email: "support@jonathanarvay.com",
+    legal_info_url: "https://axis-iliad.jonathanarvay.com/terms",
+    mcp_endpoint: "/mcp",
+  });
+}
+
+// --- GET /.well-known/oauth-protected-resource  -  RFC 9728 metadata --------
+
+export async function handleOAuthProtectedResource(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  sendJSON(res, 200, {
+    resource: "https://axis-api-6c7z.onrender.com/mcp",
+    authorization_servers: ["https://axis-iliad.jonathanarvay.com"],
+    scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
+    bearer_methods_supported: ["header"],
+    resource_documentation: "https://axis-iliad.jonathanarvay.com/for-agents",
+  });
+}
+
 // â”€â”€â”€ GET /health  -  scanner-friendly health probe â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function handleHealthRedirect(

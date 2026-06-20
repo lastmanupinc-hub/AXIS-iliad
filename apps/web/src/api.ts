@@ -256,6 +256,30 @@ export interface AdminActivityResponse {
   count: number;
 }
 
+export interface McpUsageResponse {
+  windows: {
+    total: number;
+    last_24h: number;
+    last_7d: number;
+    last_30d: number;
+  };
+  summary: {
+    since: string;
+    window_days: number;
+    total_calls: number;
+    unique_accounts: number;
+    anonymous_calls: number;
+    by_tool: Record<string, number>;
+    by_source: Record<string, number>;
+    by_probe_class: Record<string, number>;
+  };
+  new_vs_returning: {
+    window_days: number;
+    new_accounts: number;
+    returning_accounts: number;
+  };
+}
+
 export interface FunnelMetrics {
   total_accounts: number;
   total_seats: number;
@@ -614,6 +638,10 @@ export async function getAdminAccounts(limit = 50, offset = 0): Promise<AdminAcc
 
 export async function getAdminActivity(limit = 50): Promise<AdminActivityResponse> {
   return fetchJSON(`/v1/admin/activity?limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function getMcpUsage(windowDays = 30): Promise<McpUsageResponse> {
+  return fetchJSON(`/v1/admin/mcp-usage?window_days=${encodeURIComponent(String(windowDays))}`);
 }
 
 export async function trackAnalyticsEvent(

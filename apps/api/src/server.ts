@@ -55,6 +55,8 @@ import {
   handleGlamaJson,
   handleAgentJson,
   handleOAuthAuthorizationServer,
+  handleAiPlugin,
+  handleOAuthProtectedResource,
   handleHealthRedirect,
   handleDocsRedirect,
   handlePricingLanding,
@@ -98,7 +100,7 @@ import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
@@ -219,6 +221,11 @@ router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/glama.json", handleGlamaJson);
 router.get("/.well-known/agent.json", handleAgentJson);
 router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
+router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
+router.get("/.well-known/ai-plugin.json", handleAiPlugin);
+
+// Root-level discovery aliases probed by crawlers that skip the .well-known prefix
+router.get("/agents.json", handleAgentJson);
 
 // MCP discovery under prefixed paths (for compatibility)
 router.get("/mcp/.well-known/mcp.json", handleMcpServerJson);
@@ -425,6 +432,7 @@ router.post("/v1/account/analytics/events", handleTrackAnalyticsEvent);
 router.get("/v1/admin/stats", handleAdminStats);
 router.get("/v1/admin/accounts", handleAdminAccounts);
 router.get("/v1/admin/activity", handleAdminActivity);
+router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
 
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);

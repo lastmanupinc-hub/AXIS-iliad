@@ -26,6 +26,8 @@ import {
   handleOpenApiJson,
   handlePerformance,
   handlePerformanceReputation,
+  handleAiPlugin,
+  handleOAuthProtectedResource,
 } from "./handlers.js";
 
 // â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -75,6 +77,9 @@ beforeAll(async () => {
   router.get("/openapi.json", handleOpenApiJson);
   router.get("/performance", handlePerformance);
   router.get("/performance/reputation", handlePerformanceReputation);
+  router.get("/.well-known/ai-plugin.json", handleAiPlugin);
+  router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
+  router.get("/agents.json", handleAgentJson);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -560,5 +565,105 @@ describe("GET /performance/reputation", () => {
   it("contains notes", () => {
     expect(json.notes).toBeDefined();
     expect(typeof json.notes).toBe("string");
+  });
+});
+
+// â”€â”€â”€ GET /.well-known/ai-plugin.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("GET /.well-known/ai-plugin.json", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/.well-known/ai-plugin.json");
+    status = r.status;
+    headers = r.headers;
+    json = JSON.parse(r.body);
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns application/json content-type", () => {
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("declares the v1 schema version", () => {
+    expect(json.schema_version).toBe("v1");
+  });
+
+  it("contains a model name and description", () => {
+    expect(json.name_for_model).toBe("axis_iliad");
+    expect(typeof json.description_for_model).toBe("string");
+  });
+
+  it("points api.url at the openapi spec", () => {
+    const api = json.api as Record<string, unknown>;
+    expect(api.type).toBe("openapi");
+    expect(String(api.url)).toContain("openapi.json");
+  });
+
+  it("declares no-auth access", () => {
+    expect((json.auth as Record<string, unknown>).type).toBe("none");
+  });
+});
+
+// â”€â”€â”€ GET /.well-known/oauth-protected-resource â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("GET /.well-known/oauth-protected-resource", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/.well-known/oauth-protected-resource");
+    status = r.status;
+    headers = r.headers;
+    json = JSON.parse(r.body);
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns application/json content-type", () => {
+    expect(String(headers["content-type"])).toContain("application/json");
+  });
+
+  it("identifies the MCP resource", () => {
+    expect(String(json.resource)).toContain("/mcp");
+  });
+
+  it("lists at least one authorization server", () => {
+    expect(Array.isArray(json.authorization_servers)).toBe(true);
+    expect((json.authorization_servers as string[]).length).toBeGreaterThan(0);
+  });
+
+  it("advertises header bearer method", () => {
+    expect(json.bearer_methods_supported).toContain("header");
+  });
+});
+
+// â”€â”€â”€ GET /agents.json (root alias of /.well-known/agent.json) â”€â”€â”€â”€â”€
+
+describe("GET /agents.json", () => {
+  let status: number;
+  let json: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/agents.json");
+    status = r.status;
+    json = JSON.parse(r.body);
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("serves the same agent manifest (name + mcp_endpoint)", () => {
+    expect(json.name).toBe("Axis' Iliad");
+    expect(json.mcp_endpoint).toBe("/mcp");
   });
 });
