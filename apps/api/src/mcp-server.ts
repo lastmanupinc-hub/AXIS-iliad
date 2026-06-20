@@ -80,6 +80,7 @@ import {
   getPersistenceBalance,
   consumeUsageCredits,
   getUsageCreditSummary,
+  recordMcpUsage,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -130,6 +131,30 @@ export function classifyProbe(userAgent: string): ProbeClass {
   return "unknown";
 }
 
+// Finer-grained client attribution than ProbeClass: which tool/agent is calling.
+const SOURCE_PATTERNS: { pattern: RegExp; source: string }[] = [
+  { pattern: /claude|anthropic/i, source: "claude" },
+  { pattern: /cursor/i, source: "cursor" },
+  { pattern: /copilot/i, source: "copilot" },
+  { pattern: /windsurf/i, source: "windsurf" },
+  { pattern: /cline/i, source: "cline" },
+  { pattern: /\bcontinue\b/i, source: "continue" },
+  { pattern: /aider/i, source: "aider" },
+  { pattern: /chatgpt|openai|gpt-/i, source: "openai" },
+  { pattern: /smithery/i, source: "smithery" },
+  { pattern: /glama/i, source: "glama" },
+  { pattern: /node-fetch|undici|axios|python-requests|curl|httpx|go-http/i, source: "script" },
+];
+
+/** Map a User-Agent to a canonical client source (claude, cursor, …) for telemetry. */
+export function detectMcpSource(userAgent: string): string {
+  if (!userAgent) return "unknown";
+  for (const { pattern, source } of SOURCE_PATTERNS) {
+    if (pattern.test(userAgent)) return source;
+  }
+  return "other";
+}
+
 interface IntentCapture {
   tool: string;
   intent: string | null;
@@ -169,8 +194,22 @@ export function logMcpCall(toolName: string, userId: string | null, ip: string, 
   _counters.byTool[toolName] = (_counters.byTool[toolName] ?? 0) + 1;
   const ua = typeof headers?.["user-agent"] === "string" ? headers["user-agent"] : "unknown";
   const ref = headers?.["referer"] ?? headers?.["referrer"] ?? "none";
-  const probeClass = classifyProbe(typeof ua === "string" ? ua : "");
-  captureIntent(toolName, null, typeof ua === "string" ? ua : "");
+  const uaForDetect = ua === "unknown" ? "" : ua;
+  const probeClass = classifyProbe(uaForDetect);
+  captureIntent(toolName, null, uaForDetect);
+  // Persist the call so totals survive restarts (in-memory _counters do not).
+  // Telemetry must never break the request path, so swallow any failure.
+  try {
+    recordMcpUsage({
+      account_id: userId,
+      tool: toolName,
+      source: detectMcpSource(uaForDetect),
+      probe_class: probeClass,
+      user_agent: ua,
+    });
+  } catch {
+    /* telemetry is best-effort */
+  }
   if (shouldEmitRuntimeLogs()) {
     console.log(`[MCP CALL] tool=${toolName} user=${userId ?? "anonymous"} ip=${ip} probe=${probeClass} ua=${ua} ref=${ref} time=${now.toISOString()}`);
   }

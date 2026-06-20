@@ -39,6 +39,7 @@ describe("openMemoryDb", () => {
       "generator_results",
       "github_tokens",
       "lemon_squeezy_subscriptions",
+      "mcp_usage",
       "oauth_access_tokens",
       "oauth_authorization_codes",
       "oauth_clients",
@@ -335,14 +336,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(22);
+    expect(getSchemaVersion(db)).toBe(23);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(22);
+    expect(result.current_version).toBe(23);
   });
 
   it("creates rate_limits table via migration", () => {
@@ -379,9 +380,10 @@ describe("migration framework", () => {
 
   it("migration 22 lowercases legacy mixed-case account emails but skips case-colliding rows", () => {
     const db = openMemoryDb();
-    // Simulate a pre-v22 database: drop the migration record, then insert
-    // legacy rows as they would have existed before normalization.
-    db.prepare("DELETE FROM schema_migrations WHERE version = 22").run();
+    // Simulate a pre-v22 database: drop the migration records from v22 onward
+    // (>= so the rollback still reaches v22 as later migrations are added),
+    // then insert legacy rows as they would have existed before normalization.
+    db.prepare("DELETE FROM schema_migrations WHERE version >= 22").run();
     const insert = db.prepare(
       "INSERT INTO accounts (account_id, name, email, tier, created_at) VALUES (?, ?, ?, 'free', '2024-01-01')",
     );
@@ -390,8 +392,8 @@ describe("migration framework", () => {
     insert.run("a3", "Mixed", "Dupe@Test.com"); // lowercasing would collide with a2
 
     const result = runMigrations(db);
-    expect(result.applied).toBe(1);
-    expect(result.current_version).toBe(22);
+    expect(result.applied).toBeGreaterThanOrEqual(1); // v22 (+ any later migrations) re-applied
+    expect(result.current_version).toBe(23);
 
     const email = (id: string) =>
       (db.prepare("SELECT email FROM accounts WHERE account_id = ?").get(id) as { email: string }).email;
