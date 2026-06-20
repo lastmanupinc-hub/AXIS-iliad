@@ -47,9 +47,13 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      # ─── PAI'D Payment Processor (axis-pai-paid-api-main) ──────
+      # ─── PAI'D Payment Processor (axis-pai-paid-api) ──────
+      # Custom domain api.trustfabric.ai is a CNAME onto the same Render
+      # service as axis-pai-paid-api-main.onrender.com (verified: identical
+      # /health + root manifest, service "axis-pai-paid-api"). Using the
+      # custom domain so this survives a Render service rename/migration.
       - key: PAID_API_BASE_URL
-        value: https://axis-pai-paid-api-main.onrender.com/v1
+        value: https://api.trustfabric.ai/v1
       - key: PAID_MERCHANT_ID
         value: acct_7ec95648-c529-4ee2-9ab4-3fd22953ac1c
       - key: PAID_PLAN_PRO_MONTHLY

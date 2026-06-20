@@ -79,14 +79,16 @@ PAI'D hosts the payment page and settles into Stripe; your backend just creates 
 redirects. Non-secret values (`PAID_API_BASE_URL`, `PAID_MERCHANT_ID`, the Pro plan IDs) are
 **already committed in `render.yaml`** — you only add the two secrets and take the merchant live.
 
-### B1. Resolve the PAI'D host (decision — do this first)
+### B1. PAI'D host — RESOLVED (verified same service)
 
-`render.yaml` points `PAID_API_BASE_URL` at `https://axis-pai-paid-api-main.onrender.com/v1`,
-but your startup logs show PAI'D live at **`api.trustfabric.ai`**. These must agree.
+The two hosts are the **same Render service**: `api.trustfabric.ai` is a CNAME onto
+`axis-pai-paid-api-main.onrender.com` (both return identical `/health` + root manifest,
+`service: "axis-pai-paid-api"`). No mismatch — the old value was already live. `render.yaml`
+now uses the custom domain `https://api.trustfabric.ai/v1` (durable across a service rename).
 
-- [ ] Decide the canonical PAI'D API host and make `PAID_API_BASE_URL` match it (keep the `/v1` suffix).
-- [ ] If `api.trustfabric.ai` is the real one, update `render.yaml` (a one-line change — I can do it)
-      **and** set the same value in the Render dashboard.
+- [ ] **Mirror it in the Render dashboard:** set `PAID_API_BASE_URL=https://api.trustfabric.ai/v1`
+      on the `axis-api` service (env var values in the dashboard override `render.yaml`), then redeploy.
+      Functionally optional today (both URLs hit the same backend), but keeps dashboard ↔ blueprint in sync.
 
 ### B2. Take the PAI'D merchant live
 

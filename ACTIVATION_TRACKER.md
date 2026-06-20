@@ -44,10 +44,12 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done · 🚧 blocked
 
 ## Open decisions / blockers
 
-- **🚧 B1 PAI'D host mismatch (needs owner):** `render.yaml` `PAID_API_BASE_URL` =
-  `https://axis-pai-paid-api-main.onrender.com/v1`, but startup logs show PAI'D at
-  `api.trustfabric.ai`. These must agree before E-B/E-C. Owner to confirm canonical host;
-  then Claude updates `render.yaml` (one line). → tracked as **C-blocker**, not yet actioned.
+- **✅ B1 PAI'D host — RESOLVED 2026-06-20 (no mismatch).** Probed both: `api.trustfabric.ai`
+  is a CNAME onto the same Render service as `axis-pai-paid-api-main.onrender.com` (identical
+  `/health` + root manifest, `service: "axis-pai-paid-api"`). `render.yaml` `PAID_API_BASE_URL`
+  switched to the durable custom domain `https://api.trustfabric.ai/v1` (uncommitted edit).
+  Remaining owner action: mirror that value in the Render dashboard + redeploy (dashboard env
+  overrides the blueprint). Functionally optional — both URLs already hit the same backend.
 
 ---
 
@@ -80,14 +82,18 @@ Legend: ⬜ not started · 🔄 in progress · ✅ done · 🚧 blocked
 - Files touched: `apps/api/src/handlers.ts`, `server.ts`, `mcp-server.ts`, `well-known-handlers.test.ts`;
   `packages/snapshots/src/db.ts`, `db.test.ts`, `index.ts`, `mcp-usage-store.ts` (+test).
 
-### 2026-06-20 — C2.5 shipped (uncommitted)
+### 2026-06-20 — C2.5 shipped + C1/C2/C2.5 committed
 - **C2.5 ✅** private dashboard: `GET /v1/admin/mcp-usage` behind `requireAdmin` (`ADMIN_API_KEY`
   gate) + AdminPage panel. `admin.test.ts` 27 pass; api+web tsc clean. Added `ADMIN_API_KEY` to SETUP.
-- Files: `apps/api/src/admin.ts`, `server.ts`, `admin.test.ts`; `apps/web/src/api.ts`,
-  `pages/AdminPage.tsx`; `SETUP_PAID_STRIPE_MCP.md`.
+- **Committed** on `feat/iliad-tool-console` (3 commits; owner's in-flight hygiene work left untouched
+  in the working tree — `mcp-server.ts` was hunk-split so only my telemetry hunks were committed):
+  - `f3b715b` feat(api): persist MCP usage telemetry in mcp_usage table (C2)
+  - `3eb2d2a` feat(api): missing MCP discovery routes + private admin usage dashboard (C1 + C2.5)
+  - `14e4eee` docs: activation tracker + paid/Stripe/MCP external setup checklist
+- **Not pushed.** Owner's uncommitted hygiene files remain: `hygiene.ts(.test)`, `mcp-server.ts`
+  (hygiene hunks), `mpp/src/index.ts`, `counts.ts`, `budget-probe/mcp-server/prepare-purchasing` tests.
 
-> **Resume hint for next session:** Status board → C1/C2/C2.5 done, all uncommitted on branch
-> `feat/iliad-tool-console`. Decide: (a) commit the C1+C2+C2.5 work (3 logical commits suggested:
-> discovery routes / mcp_usage telemetry / admin dashboard), (b) if owner answered B1, action the
-> `render.yaml` PAI'D host fix, or (c) start an external track from SETUP_PAID_STRIPE_MCP.md.
+> **Resume hint for next session:** C1/C2/C2.5 committed (not pushed). Remaining: **B1** (PAI'D host
+> reconcile — see Open decisions; gather/confirm canonical host then one-line `render.yaml` fix), or
+> start an external track from `SETUP_PAID_STRIPE_MCP.md`. Don't commit the owner's hygiene files.
 > Known noise: the slow api suite hits a Docker-on-Windows code-sandbox timeout — ignore it.
