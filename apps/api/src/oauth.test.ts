@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb, createOAuthState, getAccountByGitHubId } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44412;
 let server: Server;
+let testPort = 0;
 
 // ─── HTTP helper (follows redirects manually) ────────────────────
 
@@ -15,7 +16,7 @@ interface Res { status: number; headers: Record<string, string>; data: string }
 async function req(method: string, path: string): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -34,12 +35,14 @@ async function req(method: string, path: string): Promise<Res> {
 }
 
 describe("OAuth API routes", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     openMemoryDb();
     const router = new Router();
     router.get("/v1/auth/github", handleGitHubOAuthStart);
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
-    server = createApp(router, TEST_PORT);
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
   });
 
   afterAll(() => {

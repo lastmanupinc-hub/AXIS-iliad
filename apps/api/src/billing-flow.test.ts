@@ -1,15 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, handleGetSnapshot, handleGetContext, handleGetGeneratedFiles, handleGetGeneratedFile, handleSearchExport, handleHealthCheck } from "./handlers.js";
 import { handleCreateAccount, handleGetAccount, handleCreateApiKey, handleListApiKeys, handleRevokeApiKey, handleGetUsage, handleGetAnalyticsSummary, handleUpdateTier, handleUpdatePrograms, handleGetCredits } from "./billing.js";
 import { handleInviteSeat, handleListSeats, handleAcceptSeat, handleRevokeSeat, handleGetPlans } from "./funnel.js";
 import { handleExportZip } from "./export.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44402;
 let server: Server;
+let testPort = 0;
 
 // ─── HTTP helper ────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ async function req(
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -77,8 +78,9 @@ beforeAll(async () => {
   router.get("/v1/account/seats", handleListSeats);
   router.post("/v1/account/seats/:seat_id/accept", handleAcceptSeat);
   router.post("/v1/account/seats/:seat_id/revoke", handleRevokeSeat);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {
@@ -556,7 +558,7 @@ describe("billing handler branch coverage", () => {
       };
       const http = require("node:http");
       const r = http.request(
-        { hostname: "127.0.0.1", port: TEST_PORT, path: "/v1/account/tier", method: "POST", headers },
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/account/tier", method: "POST", headers },
         (res: import("node:http").IncomingMessage) => {
           const chunks: Buffer[] = [];
           res.on("data", (c: Buffer) => chunks.push(c));

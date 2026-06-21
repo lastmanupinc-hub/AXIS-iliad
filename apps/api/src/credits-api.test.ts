@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck } from "./handlers.js";
 import {
   handleCreateAccount,
@@ -13,8 +14,8 @@ import {
 } from "./billing.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44415;
 let server: Server;
+let testPort = 0;
 
 // ─── HTTP helper ────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ async function req(
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -62,8 +63,9 @@ beforeAll(async () => {
   router.post("/v1/account/tier", handleUpdateTier);
   router.get("/v1/account/credits", handleGetCredits);
   router.post("/v1/account/credits", handleAddCredits);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {
@@ -225,7 +227,7 @@ describe("POST /v1/account/credits", () => {
     const r = await new Promise<Res>((resolve, reject) => {
       const h: Record<string, string> = { "Content-Type": "application/json", "Authorization": `Bearer ${api_key}` };
       const rq = require("node:http").request(
-        { hostname: "127.0.0.1", port: TEST_PORT, path: "/v1/account/credits", method: "POST", headers: h },
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/account/credits", method: "POST", headers: h },
         (res: import("node:http").IncomingMessage) => {
           const chunks: Buffer[] = [];
           res.on("data", (c: Buffer) => chunks.push(c));

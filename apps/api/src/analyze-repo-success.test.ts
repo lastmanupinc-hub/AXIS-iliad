@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleMcpPost } from "./mcp-server.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -25,8 +26,8 @@ vi.mock("./github.js", () => ({
   })),
 }));
 
-const TEST_PORT = 44525;
 let server: Server;
+let testPort = 0;
 let apiKey = "";
 
 // ─── HTTP helper ────────────────────────────────────────────────
@@ -42,7 +43,7 @@ async function post(path: string, body: unknown, authKey?: string): Promise<Res>
     };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "POST", headers },
+      { hostname: "127.0.0.1", port: testPort, path, method: "POST", headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -67,8 +68,9 @@ beforeAll(async () => {
   resetRateLimits();
   const router = new Router();
   router.post("/mcp", handleMcpPost);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 150));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 
   // Create suite-tier account so payment gate passes and full bundle is returned
   const acct = createAccount("RepoTest", "repo-test@example.com", "suite");

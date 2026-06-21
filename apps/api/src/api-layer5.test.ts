@@ -12,7 +12,8 @@ import {
   createApiKey,
   createWebhook,
 } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import {
   handleCreateWebhook,
   handleListWebhooks,
@@ -39,8 +40,8 @@ import {
 } from "./admin.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const PORT = 44493;
 let server: Server;
+let testPort = 0;
 
 interface Res {
   status: number;
@@ -60,7 +61,7 @@ async function req(
     const r = http.request(
       {
         hostname: "127.0.0.1",
-        port: PORT,
+        port: testPort,
         path,
         method,
         headers: { "Content-Type": "application/json", ...headers },
@@ -110,8 +111,9 @@ beforeAll(async () => {
   router.get("/v1/admin/accounts", handleAdminAccounts);
   router.get("/v1/admin/activity", handleAdminActivity);
 
-  server = createApp(router, PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 
   const paid = createAccount("Paid User", "paid@test.com", "paid");
   const pKey = createApiKey(paid.account_id, "paid-key");
