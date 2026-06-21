@@ -88,12 +88,19 @@ export function getUsageCreditSummary(account_id: string, tier: BillingTier, mon
   };
 }
 
-export function consumeUsageCredits(
-  account_id: string,
-  tier: BillingTier,
-  tool: string,
-  amountCents: number,
-): UsageCreditChargeResult {
+interface ChargeComputation {
+  month_key: string;
+  summary: UsageCreditSummary;
+  credits_required: number;
+  included_credits_applied: number;
+  overage_credits: number;
+  nextIncludedUsed: number;
+  nextIncludedRemaining: number;
+  effective_overage_cents: number;
+}
+
+/** Pure charge math — no DB writes. Shared by previewUsageCredits (the gate) and consumeUsageCredits (the commit). */
+function computeCharge(account_id: string, tier: BillingTier, amountCents: number): ChargeComputation {
   const month_key = getMonthKey();
   const base_credits_required = creditsFromUsdCents(amountCents);
   const referral = tier === "free"
@@ -106,6 +113,56 @@ export function consumeUsageCredits(
   const nextIncludedUsed = summary.included_credits_used + included_credits_applied;
   const nextIncludedRemaining = Math.max(0, summary.monthly_allowance - nextIncludedUsed);
   const effective_overage_cents = overage_credits > 0 ? Math.ceil((overage_credits * 18) / 100) : 0;
+  return {
+    month_key,
+    summary,
+    credits_required,
+    included_credits_applied,
+    overage_credits,
+    nextIncludedUsed,
+    nextIncludedRemaining,
+    effective_overage_cents,
+  };
+}
+
+function toChargeResult(c: ChargeComputation, tool: string): UsageCreditChargeResult {
+  return {
+    plan_id: c.summary.plan_id,
+    month_key: c.month_key,
+    monthly_allowance: c.summary.monthly_allowance,
+    included_credits_used: c.nextIncludedUsed,
+    included_credits_remaining: c.nextIncludedRemaining,
+    overage_credits_this_month: c.summary.overage_credits_this_month + c.overage_credits,
+    tool,
+    credits_required: c.credits_required,
+    included_credits_applied: c.included_credits_applied,
+    overage_credits: c.overage_credits,
+    effective_overage_cents: c.effective_overage_cents,
+  };
+}
+
+/**
+ * Read-only preview of what consumeUsageCredits WOULD charge — performs NO DB
+ * write. Used as the pre-authorization gate: a call can be rejected (402) for
+ * exceeding included credits without committing a debit, and the actual debit
+ * can be deferred until the metered work succeeds.
+ */
+export function previewUsageCredits(
+  account_id: string,
+  tier: BillingTier,
+  tool: string,
+  amountCents: number,
+): UsageCreditChargeResult {
+  return toChargeResult(computeCharge(account_id, tier, amountCents), tool);
+}
+
+export function consumeUsageCredits(
+  account_id: string,
+  tier: BillingTier,
+  tool: string,
+  amountCents: number,
+): UsageCreditChargeResult {
+  const c = computeCharge(account_id, tier, amountCents);
 
   const db = getDb();
   db.prepare(
@@ -119,10 +176,10 @@ export function consumeUsageCredits(
        updated_at = excluded.updated_at`,
   ).run(
     account_id,
-    month_key,
-    summary.plan_id,
-    summary.monthly_allowance,
-    nextIncludedUsed,
+    c.month_key,
+    c.summary.plan_id,
+    c.summary.monthly_allowance,
+    c.nextIncludedUsed,
     new Date().toISOString(),
   );
 
@@ -133,27 +190,15 @@ export function consumeUsageCredits(
   ).run(
     randomUUID(),
     account_id,
-    month_key,
-    summary.plan_id,
+    c.month_key,
+    c.summary.plan_id,
     tool,
     amountCents,
-    credits_required,
-    included_credits_applied,
-    overage_credits,
+    c.credits_required,
+    c.included_credits_applied,
+    c.overage_credits,
     new Date().toISOString(),
   );
 
-  return {
-    plan_id: summary.plan_id,
-    month_key,
-    monthly_allowance: summary.monthly_allowance,
-    included_credits_used: nextIncludedUsed,
-    included_credits_remaining: nextIncludedRemaining,
-    overage_credits_this_month: summary.overage_credits_this_month + overage_credits,
-    tool,
-    credits_required,
-    included_credits_applied,
-    overage_credits,
-    effective_overage_cents,
-  };
+  return toChargeResult(c, tool);
 }

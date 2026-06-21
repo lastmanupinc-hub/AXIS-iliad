@@ -78,6 +78,7 @@ import {
   createReferralCode,
   getReferralCredits,
   getPersistenceBalance,
+  previewUsageCredits,
   consumeUsageCredits,
   getUsageCreditSummary,
   recordMcpUsage,
@@ -437,7 +438,7 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
     throw new Error("iliad_transactional_email: `reply_to` must be a string.");
   }
 
-  meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_transactional_email");
   const result = await sendTransactionalEmail(
     {
       to: rawTo as string | string[],
@@ -448,6 +449,7 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
     },
     config,
   );
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
@@ -481,8 +483,9 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
       }
     }
   }
-  meterMcpToolCredits(req, auth.account, "iliad_embeddings");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
@@ -741,8 +744,9 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
     throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
   }
 
-  meterMcpToolCredits(req, auth.account, "iliad_llm_inference");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_llm_inference");
   const result = await runLlmCompletion(opts);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
@@ -2490,32 +2494,72 @@ type MeteredMcpTool =
   | "iliad_document_parsing"
   | "iliad_hygiene";
 
+/** A pre-authorized charge — the tool + resolved price, ready to commit on success. */
+interface AuthorizedCharge {
+  tool: MeteredMcpTool;
+  amountCents: number;
+}
+
+/**
+ * Pre-authorize a metered call WITHOUT debiting. Throws a 402 payment-required
+ * error if the call would exceed the account's included monthly credits — so the
+ * caller is rejected before any work runs AND without a partial charge (the old
+ * path wrote the debit first, then threw, charging for a call that did nothing).
+ * Returns the resolved charge to commit via captureMcpToolCredits once the work
+ * succeeds. Gate half of the auth/capture pattern that guarantees a credit is
+ * debited only when the tool call actually succeeds.
+ */
+function authorizeMcpToolCredits(
+  req: IncomingMessage,
+  account: { account_id: string; tier: "free" | "paid" | "suite" },
+  tool: MeteredMcpTool,
+): AuthorizedCharge {
+  const mode = resolveAgentMode(req);
+  const pricing = getPricingTier(tool);
+  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+  const charge = previewUsageCredits(account.account_id, account.tier, tool, amountCents);
+  if (charge.effective_overage_cents > 0) {
+    throw new Error(buildMcpPaymentRequiredError(
+      tool,
+      account.account_id,
+      `${tool} exceeded included monthly credits. This call needs ${charge.credits_required} credits (${charge.included_credits_applied} included, ${charge.overage_credits} overage). Overage due now: $${(charge.effective_overage_cents / 100).toFixed(2)}.`,
+      req,
+      {
+        usage_credits: {
+          plan_id: charge.plan_id,
+          monthly_allowance: charge.monthly_allowance,
+          included_credits_used: charge.included_credits_used,
+          included_credits_remaining: charge.included_credits_remaining,
+          overage_credits_this_month: charge.overage_credits_this_month,
+        },
+      },
+    ));
+  }
+  return { tool, amountCents };
+}
+
+/** Commit a previously-authorized charge. Call ONLY after the metered work succeeds. */
+function captureMcpToolCredits(
+  account: { account_id: string; tier: "free" | "paid" | "suite" },
+  charge: AuthorizedCharge,
+): void {
+  consumeUsageCredits(account.account_id, account.tier, charge.tool, charge.amountCents);
+}
+
+/**
+ * Authorize + immediately capture. Use ONLY for handlers whose metered work
+ * cannot fail after this point (pure local compute). Handlers that do fallible
+ * work afterward (external fetches, provider calls, subprocess spawns) must
+ * instead authorize up front, run the work, and capture on success — so a failed
+ * call never debits the caller.
+ */
 function meterMcpToolCredits(
   req: IncomingMessage,
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   tool: MeteredMcpTool,
 ): void {
-  const mode = resolveAgentMode(req);
-  const pricing = getPricingTier(tool);
-  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-  const charge = consumeUsageCredits(account.account_id, account.tier, tool, amountCents);
-  if (charge.effective_overage_cents <= 0) return;
-
-  throw new Error(buildMcpPaymentRequiredError(
-    tool,
-    account.account_id,
-    `${tool} exceeded included monthly credits. This call needs ${charge.credits_required} credits (${charge.included_credits_applied} included, ${charge.overage_credits} overage). Overage due now: $${(charge.effective_overage_cents / 100).toFixed(2)}.`,
-    req,
-    {
-      usage_credits: {
-        plan_id: charge.plan_id,
-        monthly_allowance: charge.monthly_allowance,
-        included_credits_used: charge.included_credits_used,
-        included_credits_remaining: charge.included_credits_remaining,
-        overage_credits_this_month: charge.overage_credits_this_month,
-      },
-    },
-  ));
+  const charge = authorizeMcpToolCredits(req, account, tool);
+  captureMcpToolCredits(account, charge);
 }
 
 // â”€â”€â”€ Tool: analyze_files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2765,7 +2809,7 @@ export async function runAnalyzeRepo(
     ));
   }
 
-  meterMcpToolCredits(req, account, "analyze_repo");
+  const charge = authorizeMcpToolCredits(req, account, "analyze_repo");
 
   /* v8 ignore start â€” quota exceeded path requires exhausting account limits */
   const quota = checkQuota(auth.account.account_id);
@@ -2833,6 +2877,10 @@ export async function runAnalyzeRepo(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
+
+  // All work succeeded — commit the charge now. Never before the GitHub fetch or
+  // generation, so a failed analyze_repo never debits the caller.
+  captureMcpToolCredits(account, charge);
 
   return JSON.stringify(
     {
