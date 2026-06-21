@@ -158,7 +158,7 @@
     ]
   },
   "try_it": {
-    "web": "https://axis-iliad.jonathanarvay.com",
+    "web": "https://iliad.trustfabric.ai",
     "cli": "axis analyze ./your-project",
     "github": "axis github https://github.com/you/your-repo"
   }

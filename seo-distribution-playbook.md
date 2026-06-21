@@ -4,13 +4,13 @@
 Make Axis Iliad the first result for agentic purchasing and MCP tool discovery by combining technical SEO with targeted developer-channel distribution.
 
 ## Canonical Landing URLs
-- https://axis-iliad.jonathanarvay.com/for-agents
-- https://axis-iliad.jonathanarvay.com/mcp
-- https://axis-iliad.jonathanarvay.com/pricing
-- https://axis-iliad.jonathanarvay.com/llms.txt
-- https://axis-iliad.jonathanarvay.com/.well-known/axis.json
-- https://axis-iliad.jonathanarvay.com/.well-known/capabilities.json
-- https://axis-iliad.jonathanarvay.com/.well-known/mcp.json
+- https://iliad.trustfabric.ai/for-agents
+- https://iliad.trustfabric.ai/mcp
+- https://iliad.trustfabric.ai/pricing
+- https://iliad.trustfabric.ai/llms.txt
+- https://iliad.trustfabric.ai/.well-known/axis.json
+- https://iliad.trustfabric.ai/.well-known/capabilities.json
+- https://iliad.trustfabric.ai/.well-known/mcp.json
 
 ## Smithery Submission Pack
 Use this description in the listing:
@@ -27,11 +27,11 @@ Suggested tags:
 - developer-tools
 
 Primary endpoint:
-- https://axis-iliad.jonathanarvay.com/mcp
+- https://iliad.trustfabric.ai/mcp
 
 Discovery endpoints:
-- https://axis-iliad.jonathanarvay.com/v1/mcp/tools
-- https://axis-iliad.jonathanarvay.com/for-agents
+- https://iliad.trustfabric.ai/v1/mcp/tools
+- https://iliad.trustfabric.ai/for-agents
 
 ## Reddit Launch Copy
 
@@ -87,7 +87,7 @@ Includes:
 
 Add this entry:
 
-- [Axis Iliad](https://axis-iliad.jonathanarvay.com/mcp) - AI codebase analyzer and MCP tools for generating AGENTS.md, CLAUDE.md, context artifacts, and agentic purchasing readiness workflows.
+- [Axis Iliad](https://iliad.trustfabric.ai/mcp) - AI codebase analyzer and MCP tools for generating AGENTS.md, CLAUDE.md, context artifacts, and agentic purchasing readiness workflows.
 
 Suggested category:
 - Developer Tools

@@ -334,9 +334,9 @@ export function build402NegotiationBody(
     accepted_payment_schemes: acceptedPaymentSchemes,
     referral_token: options.referral_token ?? null,
     // Direct links for agents to surface to the user or use autonomously
-    payment_url: `${process.env.WEB_BASE_URL ?? "https://axis-iliad.jonathanarvay.com"}/billing`,
-    checkout_url: `${process.env.WEB_BASE_URL ?? "https://axis-iliad.jonathanarvay.com"}/billing#checkout-paid`,
-    go_pro_url: "https://axis-iliad.jonathanarvay.com/billing",
+    payment_url: `${process.env.WEB_BASE_URL ?? "https://iliad.trustfabric.ai"}/billing`,
+    checkout_url: `${process.env.WEB_BASE_URL ?? "https://iliad.trustfabric.ai"}/billing#checkout-paid`,
+    go_pro_url: "https://iliad.trustfabric.ai/billing",
     retry_after_payment: "After payment completes, re-send the original request with your API key in Authorization: Bearer <key>. No additional steps required — the server processes it immediately.",
     x402: {
       amount: String(tier.standard_cents * 10_000),

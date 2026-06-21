@@ -341,7 +341,7 @@ describe("GET /sitemap.xml", () => {
   });
 
   it("includes the base URL", () => {
-    expect(body).toContain("https://axis-iliad.jonathanarvay.com");
+    expect(body).toContain("https://iliad.trustfabric.ai");
   });
 });
 

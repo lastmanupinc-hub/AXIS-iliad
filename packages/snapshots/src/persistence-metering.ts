@@ -87,7 +87,7 @@ export function meterPersistenceOp(
   if (tier === "free") {
     return {
       ok: false,
-      reason: "Persistence requires a paid plan. Upgrade at axis-iliad.jonathanarvay.com/billing.",
+      reason: "Persistence requires a paid plan. Upgrade at iliad.trustfabric.ai/billing.",
     };
   }
 
@@ -97,7 +97,7 @@ export function meterPersistenceOp(
   if (balance < cost) {
     return {
       ok: false,
-      reason: `Insufficient persistence credits. Need ${cost}, have ${balance}. Purchase more at axis-iliad.jonathanarvay.com/billing.`,
+      reason: `Insufficient persistence credits. Need ${cost}, have ${balance}. Purchase more at iliad.trustfabric.ai/billing.`,
     };
   }
 

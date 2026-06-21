@@ -212,7 +212,7 @@ export async function handleCreateAccount(
       `Creating an account at the ${tier} tier requires payment. Create a free account, then start a checkout via POST /v1/checkout.`,
       {
         checkout_endpoint: "POST /v1/checkout",
-        plans_url: "https://axis-iliad.jonathanarvay.com/#plans",
+        plans_url: "https://iliad.trustfabric.ai/#plans",
         requested_tier: tier,
       },
     );
@@ -458,7 +458,7 @@ export async function handleUpdateTier(
       `Upgrading to the ${tier} tier requires payment. Start a checkout via POST /v1/checkout or pick a plan on the plans page.`,
       {
         checkout_endpoint: "POST /v1/checkout",
-        plans_url: "https://axis-iliad.jonathanarvay.com/#plans",
+        plans_url: "https://iliad.trustfabric.ai/#plans",
         current_tier: previousTier,
         requested_tier: tier,
       },
@@ -760,7 +760,7 @@ export async function handleAddCredits(
 
   const tier = ctx.account!.tier;
   if (tier === "free") {
-    sendError(res, 403, ErrorCode.FORBIDDEN, "Persistence credits require a paid plan. Upgrade at axis-iliad.jonathanarvay.com/billing.");
+    sendError(res, 403, ErrorCode.FORBIDDEN, "Persistence credits require a paid plan. Upgrade at iliad.trustfabric.ai/billing.");
     return;
   }
 
@@ -802,7 +802,7 @@ export async function handleAddCredits(
       "Purchasing persistence credits requires payment. Start a checkout via POST /v1/checkout or pick a plan on the plans page.",
       {
         checkout_endpoint: "POST /v1/checkout",
-        plans_url: "https://axis-iliad.jonathanarvay.com/#plans",
+        plans_url: "https://iliad.trustfabric.ai/#plans",
         requested_credits: credits,
       },
     );

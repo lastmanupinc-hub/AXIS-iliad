@@ -160,7 +160,7 @@ function resolveCheckoutBaseUrl(req?: IncomingMessage): string {
 
   // In production, default to the known web frontend rather than the API host.
   if (process.env.NODE_ENV === "production") {
-    return "https://axis-iliad.jonathanarvay.com";
+    return "https://iliad.trustfabric.ai";
   }
 
   return "http://localhost:5173";

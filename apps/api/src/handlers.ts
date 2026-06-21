@@ -224,8 +224,8 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
       if (mppResult === null) {
         // MPP not configured ï¿½ return 402 with negotiation data
         const paymentMessage = enabled
-          ? `${program} exceeded included monthly credits and requires overage payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`
-          : `${program} requires a paid plan or per-call payment. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+          ? `${program} exceeded included monthly credits and requires overage payment. Upgrade at iliad.trustfabric.ai/billing.`
+          : `${program} requires a paid plan or per-call payment. Upgrade at iliad.trustfabric.ai/billing.`;
         sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
           program,
           tier: auth.account.tier,
@@ -475,7 +475,7 @@ export async function handleCreateSnapshot(
           {
             blocked_programs: proList,
             allowed_programs: [...allowedPrograms].sort(),
-            upgrade_url: "https://axis-iliad.jonathanarvay.com/#plans",
+            upgrade_url: "https://iliad.trustfabric.ai/#plans",
             tier: auth.account.tier,
             price_per_call: `$${(amountCents / 100).toFixed(2)}`,
             ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id),
@@ -509,7 +509,7 @@ export async function handleCreateSnapshot(
         {
           blocked_programs: proList,
           allowed_programs: [...anonAllowed].sort(),
-          upgrade_url: "https://axis-iliad.jonathanarvay.com/#plans",
+          upgrade_url: "https://iliad.trustfabric.ai/#plans",
           tier: "anonymous",
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
           create_account_url: "https://axis-api-6c7z.onrender.com/v1/accounts",
@@ -1509,7 +1509,7 @@ export async function handleAnalyze(
           meta: { account_id: auth.account.account_id, tier: auth.account.tier, programs: blockedPrograms.join(","), mode },
         });
         if (mppResult === null) {
-          const paymentMessage = `analyze_repo requires $${(amountCents / 100).toFixed(2)} MPP credit (or Pro tier). This returns the full ${ARTIFACT_COUNT}-artifact AXIS bundle. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+          const paymentMessage = `analyze_repo requires $${(amountCents / 100).toFixed(2)} MPP credit (or Pro tier). This returns the full ${ARTIFACT_COUNT}-artifact AXIS bundle. Upgrade at iliad.trustfabric.ai/billing.`;
           sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
             blocked_programs: blockedPrograms,
             tier: auth.account.tier,
@@ -1867,7 +1867,7 @@ export async function handlePreparePurchasing(
       });
 
       if (mppResult === null) {
-        const paymentMessage = `prepare_agentic_purchasing requires $${(amountCents / 100).toFixed(2)} MPP credit (or Pro tier). This returns Purchasing Readiness Score + full hardening artifacts. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+        const paymentMessage = `prepare_agentic_purchasing requires $${(amountCents / 100).toFixed(2)} MPP credit (or Pro tier). This returns Purchasing Readiness Score + full hardening artifacts. Upgrade at iliad.trustfabric.ai/billing.`;
         sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
           blocked_programs: blockedPrograms,
           tier: auth.account.tier,
@@ -2339,7 +2339,7 @@ export async function handleSecurityTxt(
     "Contact: https://github.com/lastmanupinc-hub/axis-iliad/security/advisories",
     "Expires: 2027-04-15T00:00:00.000Z",
     "Preferred-Languages: en",
-    "Canonical: https://axis-iliad.jonathanarvay.com/.well-known/security.txt",
+    "Canonical: https://iliad.trustfabric.ai/.well-known/security.txt",
     "Policy: https://github.com/lastmanupinc-hub/axis-iliad/security/policy",
     "Hiring: https://github.com/lastmanupinc-hub",
   ];
@@ -2388,12 +2388,12 @@ export async function handleRobotsTxt(
     "# Primary tool: prepare_agentic_purchasing",
     "# Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)",
     "# Pay-per-run: $0.50 for full-suite analyze via Stripe MPP",
-    "# Full documentation: https://axis-iliad.jonathanarvay.com/for-agents",
-    "# Security: https://axis-iliad.jonathanarvay.com/.well-known/security.txt",
+    "# Full documentation: https://iliad.trustfabric.ai/for-agents",
+    "# Security: https://iliad.trustfabric.ai/.well-known/security.txt",
     "",
     "# Discovery endpoints: GET /.well-known/axis.json, GET /.well-known/agent.json, GET /openapi.json",
     "",
-    "Sitemap: https://axis-iliad.jonathanarvay.com/sitemap.xml",
+    "Sitemap: https://iliad.trustfabric.ai/sitemap.xml",
   ];
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(lines.join("\n"));
@@ -2403,7 +2403,7 @@ export async function handleSitemapXml(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const base = "https://axis-iliad.jonathanarvay.com";
+  const base = "https://iliad.trustfabric.ai";
   const now = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const urls: Array<{ loc: string; changefreq: string; priority: string }> = [
@@ -2523,16 +2523,16 @@ export async function handleOAuthAuthorizationServer(
   res: ServerResponse,
 ): Promise<void> {
   sendJSON(res, 200, {
-    issuer: "https://axis-iliad.jonathanarvay.com",
-    authorization_endpoint: "https://axis-iliad.jonathanarvay.com/oauth/authorize",
-    token_endpoint: "https://axis-iliad.jonathanarvay.com/oauth/token",
-    jwks_uri: "https://axis-iliad.jonathanarvay.com/oauth/jwks",
-    introspection_endpoint: "https://axis-iliad.jonathanarvay.com/oauth/introspect",
+    issuer: "https://iliad.trustfabric.ai",
+    authorization_endpoint: "https://iliad.trustfabric.ai/oauth/authorize",
+    token_endpoint: "https://iliad.trustfabric.ai/oauth/token",
+    jwks_uri: "https://iliad.trustfabric.ai/oauth/jwks",
+    introspection_endpoint: "https://iliad.trustfabric.ai/oauth/introspect",
     scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     token_endpoint_auth_methods_supported: ["client_secret_basic", "client_secret_post"],
-    service_documentation: "https://axis-iliad.jonathanarvay.com/for-agents",
+    service_documentation: "https://iliad.trustfabric.ai/for-agents",
     ui_locales_supported: ["en"],
   });
 }
@@ -2864,8 +2864,8 @@ export async function handleForAgents(
               error: "Payment Required",
               price: "0.50",
               currency: "USD",
-              payment_url: "https://axis-iliad.jonathanarvay.com/billing",
-              checkout_url: "https://axis-iliad.jonathanarvay.com/billing#checkout-paid",
+              payment_url: "https://iliad.trustfabric.ai/billing",
+              checkout_url: "https://iliad.trustfabric.ai/billing#checkout-paid",
               retry_after_payment: "Re-send the original request with your API key after completing payment.",
               error_code: "TIER_REQUIRED",
               agent_message: "AXIS can complete this request after payment. Retry with an MPP credential, switch to lite mode, or stay on the free discovery tools first.",
@@ -3172,7 +3172,7 @@ export async function handleAgentJson(
       model: "usage-based MPP ($0.50 per run)",
       pro: "$29/month â€” unlimited + all features",
     },
-    homepage: "https://axis-iliad.jonathanarvay.com",
+    homepage: "https://iliad.trustfabric.ai",
     mcp_endpoint: "/mcp",
     endpoints: {
       analyze: "POST /v1/analyze",
@@ -3207,9 +3207,9 @@ export async function handleAiPlugin(
       url: "https://axis-api-6c7z.onrender.com/openapi.json",
       is_user_authenticated: false,
     },
-    logo_url: "https://axis-iliad.jonathanarvay.com/logo.png",
+    logo_url: "https://iliad.trustfabric.ai/logo.png",
     contact_email: "support@jonathanarvay.com",
-    legal_info_url: "https://axis-iliad.jonathanarvay.com/terms",
+    legal_info_url: "https://iliad.trustfabric.ai/terms",
     mcp_endpoint: "/mcp",
   });
 }
@@ -3222,10 +3222,10 @@ export async function handleOAuthProtectedResource(
 ): Promise<void> {
   sendJSON(res, 200, {
     resource: "https://axis-api-6c7z.onrender.com/mcp",
-    authorization_servers: ["https://axis-iliad.jonathanarvay.com"],
+    authorization_servers: ["https://iliad.trustfabric.ai"],
     scopes_supported: ["mcp:read", "mcp:write", "mcp:admin"],
     bearer_methods_supported: ["header"],
-    resource_documentation: "https://axis-iliad.jonathanarvay.com/for-agents",
+    resource_documentation: "https://iliad.trustfabric.ai/for-agents",
   });
 }
 
@@ -3251,7 +3251,7 @@ export async function handleDocsRedirect(
   res: ServerResponse,
 ): Promise<void> {
   sendJSON(res, 200, {
-    docs: "https://axis-iliad.jonathanarvay.com/docs",
+    docs: "https://iliad.trustfabric.ai/docs",
     openapi: "/v1/docs",
     markdown: "/v1/docs.md",
     description: "Axis' Iliad documentation and API reference",
@@ -3267,7 +3267,7 @@ export async function handlePricingLanding(
   sendJSON(res, 200, {
     title: "Axis Iliad Pricing",
     description: "Pricing and plans for Axis Iliad, including free and pro tiers for AI codebase analysis and MCP tools.",
-    web_pricing_page: "https://axis-iliad.jonathanarvay.com/#plans",
+    web_pricing_page: "https://iliad.trustfabric.ai/#plans",
     api_plans_endpoint: "/v1/plans",
     docs: "/v1/docs",
     for_agents: "/for-agents",
@@ -3503,7 +3503,7 @@ export async function handleFirecrawlScrape(
       meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research" },
     });
     if (mppResult === null) {
-      const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page. Upgrade at axis-iliad.jonathanarvay.com/billing.`;
+      const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page. Upgrade at iliad.trustfabric.ai/billing.`;
       sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
         ...buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id),
       });

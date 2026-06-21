@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/@axis/mpp.svg)](https://www.npmjs.com/package/@axis/mpp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-`@axis/mpp` is the open-source protocol primitive extracted from [Axis' Iliad](https://axis-iliad.jonathanarvay.com). It lets any Node.js HTTP server speak the **x402 / Machine Payments Protocol** so AI agents can negotiate price, downgrade to a lite tier, and retry without a human in the loop.
+`@axis/mpp` is the open-source protocol primitive extracted from [Axis' Iliad](https://iliad.trustfabric.ai). It lets any Node.js HTTP server speak the **x402 / Machine Payments Protocol** so AI agents can negotiate price, downgrade to a lite tier, and retry without a human in the loop.
 
 ```
 agent → request
@@ -224,7 +224,7 @@ Used only by `build402NegotiationBody` when present:
 ## Related
 
 - [`mppx`](https://www.npmjs.com/package/mppx) — runtime payment validation layer (Stripe / USDC). Use `@axis/mpp` for protocol shape and `mppx` for actual charging.
-- [Axis' Iliad](https://axis-iliad.jonathanarvay.com) — the reference implementation; calls `@axis/mpp` from all paid handlers.
+- [Axis' Iliad](https://iliad.trustfabric.ai) — the reference implementation; calls `@axis/mpp` from all paid handlers.
 - [x402 specification](https://www.x402.org) — open standard this package implements.
 
 ---
