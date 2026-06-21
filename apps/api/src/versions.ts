@@ -2,18 +2,26 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
 import {
+  getSnapshot,
   listGenerationVersions,
   getGenerationVersion,
   diffGenerationVersions,
 } from "@axis/snapshots";
+import { assertSnapshotAccess } from "./handlers.js";
 
 /** GET /v1/snapshots/:snapshot_id/versions — list generation versions */
 export async function handleListVersions(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
+  const snapshot = getSnapshot(snapshot_id);
+  if (!snapshot) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
+    return;
+  }
+  if (!assertSnapshotAccess(req, res, snapshot)) return;
   const versions = listGenerationVersions(snapshot_id);
 
   sendJSON(res, 200, { snapshot_id, versions, count: versions.length });
@@ -21,11 +29,17 @@ export async function handleListVersions(
 
 /** GET /v1/snapshots/:snapshot_id/versions/:version_number — get specific version */
 export async function handleGetVersion(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id, version_number } = params;
+  const snapshot = getSnapshot(snapshot_id);
+  if (!snapshot) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
+    return;
+  }
+  if (!assertSnapshotAccess(req, res, snapshot)) return;
   const vNum = parseInt(version_number, 10);
 
   if (isNaN(vNum) || vNum < 1) {
@@ -49,6 +63,12 @@ export async function handleDiffVersions(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
+  const snapshot = getSnapshot(snapshot_id);
+  if (!snapshot) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
+    return;
+  }
+  if (!assertSnapshotAccess(req, res, snapshot)) return;
   /* v8 ignore next — req.url always present in tests */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
 

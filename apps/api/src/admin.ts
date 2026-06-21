@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError } from "./router.js";
-import { requireAuth } from "./billing.js";
+import { requireAuth, constantTimeEqual } from "./billing.js";
 import type { AuthContext } from "./billing.js";
 import {
   getSystemStats,
@@ -27,7 +27,7 @@ function requireAdmin(req: IncomingMessage, res: ServerResponse): AuthContext | 
 
   const authHeader = req.headers.authorization;
   const rawKey = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  if (rawKey !== adminKey) {
+  if (rawKey === null || !constantTimeEqual(rawKey, adminKey)) {
     sendError(res, 403, "FORBIDDEN", "Admin access required");
     return null;
   }

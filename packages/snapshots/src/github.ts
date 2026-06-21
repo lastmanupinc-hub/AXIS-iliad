@@ -77,7 +77,7 @@ export async function fetchGitHubRepo(
   token?: string,
 ): Promise<GitHubFetchResult> {
   const { owner, repo, ref } = parseGitHubUrl(url);
-  const tarballUrl = `https://api.github.com/repos/${owner}/${repo}/tarball/${ref}`;
+  const tarballUrl = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/tarball/${ref.split("/").map(encodeURIComponent).join("/")}`;
 
   const buffer = await httpGetBuffer(tarballUrl, token);
   const decompressed = gunzipSync(buffer);
@@ -90,19 +90,40 @@ export async function fetchGitHubRepo(
 
 function httpGetBuffer(url: string, token?: string): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const headers: Record<string, string> = {
+    const baseHeaders: Record<string, string> = {
       "User-Agent": "axis-iliad/0.2.0",
       Accept: "application/vnd.github+json",
     };
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      baseHeaders["Authorization"] = `Bearer ${token}`;
     }
+    const originHost = new URL(url).hostname;
 
     const doRequest = (requestUrl: string, redirectCount: number) => {
       if (redirectCount > 5) {
         reject(new Error("Too many redirects"));
         return;
       }
+      let parsed: URL;
+      try {
+        parsed = new URL(requestUrl);
+      } catch {
+        reject(new Error("Invalid redirect URL"));
+        return;
+      }
+      if (parsed.protocol !== "https:") {
+        reject(new Error("Refusing to follow non-HTTPS redirect"));
+        return;
+      }
+      // Never send the bearer token to a host other than the original. GitHub's
+      // tarball 302 → codeload is pre-signed and needs no auth header, so
+      // stripping it on a cross-host hop is safe and prevents token leakage.
+      const headers =
+        parsed.hostname === originHost
+          ? baseHeaders
+          : Object.fromEntries(
+              Object.entries(baseHeaders).filter(([k]) => k.toLowerCase() !== "authorization"),
+            );
 
       httpsGet(requestUrl, { headers, timeout: 30_000 }, (res) => {
         // Follow redirects (GitHub API returns 302 for tarball)

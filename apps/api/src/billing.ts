@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { ErrorCode, log } from "./logger.js";
 import { getClientWindow, getClientIp } from "./rate-limiter.js";
@@ -113,6 +114,17 @@ export function requireAuth(req: IncomingMessage, res: ServerResponse): AuthCont
   return ctx;
 }
 
+/**
+ * Constant-time secret comparison. Hashes both sides to a fixed length first
+ * (timingSafeEqual requires equal-length buffers) so neither length nor content
+ * leaks via comparison timing. Use for all high-privilege key checks.
+ */
+export function constantTimeEqual(a: string, b: string): boolean {
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 /** True when the caller presented the ADMIN_API_KEY (owner/admin gate). */
 function isAdminCaller(req: IncomingMessage): boolean {
   const ownerKey = process.env.ADMIN_API_KEY;
@@ -128,7 +140,7 @@ function isAdminCaller(req: IncomingMessage): boolean {
     rawKey = xAxisKey;
   }
 
-  return rawKey === ownerKey;
+  return rawKey !== null && constantTimeEqual(rawKey, ownerKey);
 }
 
 /**
