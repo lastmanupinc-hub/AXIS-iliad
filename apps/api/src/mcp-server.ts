@@ -1889,13 +1889,13 @@ export const MCP_TOOLS = [
     examples: [
       {
         name: "Send a simple notification",
-        input: { to: "alice@example.com", subject: "Your snapshot is ready", body_text: "Hi Alice, your AXIS snapshot finished. Open https://axis-iliad.jonathanarvay.com/dashboard to view." },
-        output: '{"message_id":"re_abc123","delivered_to":["alice@example.com"],"from":"noreply@axis-iliad.jonathanarvay.com","subject":"Your snapshot is ready"}',
+        input: { to: "alice@example.com", subject: "Your snapshot is ready", body_text: "Hi Alice, your AXIS snapshot finished. Open https://iliad.trustfabric.ai/dashboard to view." },
+        output: '{"message_id":"re_abc123","delivered_to":["alice@example.com"],"from":"noreply@iliad.trustfabric.ai","subject":"Your snapshot is ready"}',
       },
       {
         name: "Send HTML to multiple recipients with reply-to",
-        input: { to: ["alice@example.com", "bob@example.com"], subject: "Weekly digest", body_html: "<h1>This week</h1><p>...</p>", reply_to: "support@axis-iliad.jonathanarvay.com" },
-        output: '{"message_id":"re_xyz789","delivered_to":["alice@example.com","bob@example.com"],"from":"noreply@axis-iliad.jonathanarvay.com","subject":"Weekly digest"}',
+        input: { to: ["alice@example.com", "bob@example.com"], subject: "Weekly digest", body_html: "<h1>This week</h1><p>...</p>", reply_to: "support@iliad.trustfabric.ai" },
+        output: '{"message_id":"re_xyz789","delivered_to":["alice@example.com","bob@example.com"],"from":"noreply@iliad.trustfabric.ai","subject":"Weekly digest"}',
       },
     ],
   },

@@ -20,6 +20,6 @@ Allow: /v1/
 # Primary tool: prepare_agentic_purchasing
 # Use case: Hardens codebases for autonomous purchasing (readiness score, AP2/UCP/Visa compliance, negotiation playbooks, checkout rules)
 # Pay-per-run: $0.50 via Stripe MPP
-# Full documentation: https://axis-iliad.jonathanarvay.com/for-agents
+# Full documentation: https://iliad.trustfabric.ai/for-agents
 
-Sitemap: https://axis-iliad.jonathanarvay.com/sitemap.xml
+Sitemap: https://iliad.trustfabric.ai/sitemap.xml

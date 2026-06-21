@@ -11,7 +11,7 @@
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Report security vulnerabilities to: **security@axis-iliad.jonathanarvay.com**
+Report security vulnerabilities to: **security@iliad.trustfabric.ai**
 
 Include in your report:
 - Description of the vulnerability

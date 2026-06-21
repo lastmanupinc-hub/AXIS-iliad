@@ -20,7 +20,7 @@ Each example includes the **free-tier Search program** output:
 - **CLAUDE.md** — 10-point condensed cheat sheet for fast onboarding
 - **.cursorrules** — Domain-specific coding conventions and constraints
 
-> **Want the full 102 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, and 70+ more files. [Try it →](https://axis-iliad.jonathanarvay.com)
+> **Want the full 102 artifacts?** The Pro tier generates design tokens, brand guidelines, debug playbooks, SEO analysis, generated components, Remotion scripts, and 70+ more files. [Try it →](https://iliad.trustfabric.ai)
 
 ## Full AXIS Output (102 artifacts across 18 programs)
 
@@ -50,13 +50,13 @@ Each example includes the **free-tier Search program** output:
 
 1. Browse any example's `generated/` folder to see the free-tier artifacts
 2. Compare `AGENTS.md` across projects to see how AXIS adapts to each stack
-3. Try it on your own repo: [axis-iliad.jonathanarvay.com](https://axis-iliad.jonathanarvay.com)
+3. Try it on your own repo: [iliad.trustfabric.ai](https://iliad.trustfabric.ai)
 
 ## Try It
 
 ```bash
 # Via web
-https://axis-iliad.jonathanarvay.com
+https://iliad.trustfabric.ai
 
 # Via CLI
 axis analyze ./your-project

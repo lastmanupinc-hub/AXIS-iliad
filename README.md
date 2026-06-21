@@ -6,7 +6,7 @@
 
 [![Tests](https://img.shields.io/badge/tests-4076%20passing-brightgreen)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Coverage](https://img.shields.io/badge/coverage-91.5%25-green)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
-[![Website](https://img.shields.io/badge/website-axis-iliad.jonathanarvay.com-0ea5e9)](https://axis-iliad.jonathanarvay.com)
+[![Website](https://img.shields.io/badge/website-iliad.trustfabric.ai-0ea5e9)](https://iliad.trustfabric.ai)
 [![API](https://img.shields.io/badge/API-live-blue)](https://axis-api-6c7z.onrender.com/v1/health)
 [![Version](https://img.shields.io/badge/version-0.5.0-blue)](https://github.com/lastmanupinc-hub/axis-iliad/releases)
 [![License](https://img.shields.io/badge/license-private-lightgrey)](#license)
@@ -336,7 +336,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to add a generator, endpoint, o
 
 ---
 
-**Website**: `https://axis-iliad.jonathanarvay.com` · **Live API**: `https://axis-api-6c7z.onrender.com` · **Docs**: `https://axis-api-6c7z.onrender.com/v1/docs` · **MCP**: `https://axis-api-6c7z.onrender.com/mcp`
+**Website**: `https://iliad.trustfabric.ai` · **Live API**: `https://axis-api-6c7z.onrender.com` · **Docs**: `https://axis-api-6c7z.onrender.com/v1/docs` · **MCP**: `https://axis-api-6c7z.onrender.com/mcp`
 
 ## License
 

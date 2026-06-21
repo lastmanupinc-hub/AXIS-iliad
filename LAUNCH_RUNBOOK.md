@@ -162,9 +162,9 @@ Uses `.github/app-manifest.json` as the source of values. Without this,
 1. Go to <https://github.com/settings/apps/new> and create the app with the
    manifest's values:
    - Name: `Axis Iliad Compliance`
-   - Homepage: `https://axis-iliad.jonathanarvay.com`
+   - Homepage: `https://iliad.trustfabric.ai`
    - Webhook URL: `https://axis-api-6c7z.onrender.com/v1/github/webhook`, active
-   - Callback/redirect: `https://axis-iliad.jonathanarvay.com/install/github/callback`
+   - Callback/redirect: `https://iliad.trustfabric.ai/install/github/callback`
    - Events: `push`, `pull_request`
    - Permissions: checks **write**, contents **read**, metadata **read**,
      pull requests **read**

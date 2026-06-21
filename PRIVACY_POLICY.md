@@ -17,7 +17,7 @@
 
 Axis Iliad ("Axis", "we", "us") is a hosted codebase-analysis and artifact-generation
 service. The API is served at `https://axis-api-6c7z.onrender.com` and the web dashboard
-at `https://axis-iliad.jonathanarvay.com`. The service is also reachable as an MCP
+at `https://iliad.trustfabric.ai`. The service is also reachable as an MCP
 (Model Context Protocol) server at the `/mcp` endpoint.
 
 [LEGAL ENTITY NAME AND REGISTERED ADDRESS — TO BE COMPLETED BY COUNSEL]
