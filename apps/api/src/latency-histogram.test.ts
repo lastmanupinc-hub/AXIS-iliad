@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleMetrics, recordLatency, getLatencyStats, resetLatencyStats } from "./metrics.js";
 import { handleLiveness } from "./metrics.js";
 
-const TEST_PORT = 44504;
+let testPort = 0;
 
 // ─── Unit tests for histogram internals ─────────────────────────
 
@@ -138,7 +139,7 @@ interface Res { status: number; headers: Record<string, string>; body: string }
 function rawReq(method: string, path: string): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -163,8 +164,9 @@ describe("Latency histograms in /v1/metrics", () => {
     const router = new Router();
     router.get("/v1/health/live", handleLiveness);
     router.get("/v1/metrics", handleMetrics);
-    server = createApp(router, TEST_PORT);
-    await new Promise((r) => setTimeout(r, 200));
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
   });
 
   afterAll(async () => {

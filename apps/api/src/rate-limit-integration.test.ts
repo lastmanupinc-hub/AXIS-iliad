@@ -1,17 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck } from "./handlers.js";
 import { resetRateLimits, LIMITS } from "./rate-limiter.js";
 
-const TEST_PORT = 44531;
 let server: Server;
+let testPort = 0;
 
 function get(path: string, headers: Record<string, string> = {}): Promise<{ status: number; headers: Record<string, string>; body: string }> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "GET", headers },
+      { hostname: "127.0.0.1", port: testPort, path, method: "GET", headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -35,8 +36,9 @@ beforeAll(async () => {
   resetRateLimits();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(() => {

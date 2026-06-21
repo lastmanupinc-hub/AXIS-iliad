@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router, sendJSON, sendError } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { ErrorCode, initRequest, getRequestId, getRequestStart } from "./logger.js";
 import { handleCreateSnapshot, handleHealthCheck } from "./handlers.js";
 import type { ServerResponse } from "node:http";
@@ -76,8 +77,8 @@ describe("logger", () => {
 
 // ─── Integration tests for request ID + error code in responses ─
 
-const TEST_PORT = 44399;
 let server: Server;
+let testPort = 0;
 
 async function req(
   method: string,
@@ -87,7 +88,7 @@ async function req(
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : undefined;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers: { "Content-Type": "application/json" } },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers: { "Content-Type": "application/json" } },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -115,10 +116,10 @@ beforeAll(async () => {
   router.get("/v1/health", handleHealthCheck);
   router.post("/v1/snapshots", handleCreateSnapshot);
 
-  // Use createApp for full middleware (request ID, logging)
-  const { createApp } = await import("./router.js");
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  // Use createApp (via startTestServer) for full middleware (request ID, logging)
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {
@@ -172,7 +173,7 @@ describe("request logging middleware", () => {
   it("invalid JSON returns INVALID_JSON error code", async () => {
     const r = await new Promise<{ status: number; headers: Record<string, string>; data: unknown }>((resolve, reject) => {
       const httpReq = require("node:http").request(
-        { hostname: "127.0.0.1", port: TEST_PORT, path: "/v1/snapshots", method: "POST", headers: { "Content-Type": "application/json" } },
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/snapshots", method: "POST", headers: { "Content-Type": "application/json" } },
         (res: import("node:http").IncomingMessage) => {
           const chunks: Buffer[] = [];
           res.on("data", (c: Buffer) => chunks.push(c));

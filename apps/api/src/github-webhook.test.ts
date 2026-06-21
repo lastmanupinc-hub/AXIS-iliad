@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleGitHubWebhook, verifyGitHubSignature, resetGitHubWebhookState } from "./github-webhook.js";
 
-const TEST_PORT = 44540;
 const WEBHOOK_SECRET = "test_github_webhook_secret_xyz";
 let server: Server;
+let testPort = 0;
 
 interface Res { status: number; data: Record<string, unknown> | string }
 
@@ -19,7 +20,7 @@ async function req(
   return new Promise((resolve, reject) => {
     const http = require("node:http") as typeof import("node:http");
     const r = http.request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers: { "Content-Type": "application/json", ...headers } },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers: { "Content-Type": "application/json", ...headers } },
       (response) => {
         const chunks: Buffer[] = [];
         response.on("data", (c: Buffer) => chunks.push(c));
@@ -45,8 +46,9 @@ beforeAll(async () => {
   process.env.GITHUB_WEBHOOK_SECRET = WEBHOOK_SECRET;
   const router = new Router();
   router.post("/v1/github/webhook", handleGitHubWebhook);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {
