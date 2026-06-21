@@ -8,7 +8,7 @@ import { Router, createApp } from "./router.js";
 import { handleMcpPost } from "./mcp-server.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44532;
+let serverPort = 0; // OS-assigned ephemeral port, set once the server is listening
 let server: Server;
 let suiteApiKey = "";  // suite tier — bypasses all gates; used for the "first call succeeds" baseline
 let paidApiKey = "";   // paid tier + all programs + quota pre-exhausted; used for quota-exceeded test
@@ -26,7 +26,7 @@ async function post(path: string, body: unknown, authKey?: string): Promise<Res>
     };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "POST", headers },
+      { hostname: "127.0.0.1", port: serverPort, path, method: "POST", headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -67,8 +67,17 @@ beforeAll(async () => {
   resetRateLimits();
   const router = new Router();
   router.post("/mcp", handleMcpPost);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 150));
+  // Ephemeral port (0) avoids cross-worker port collisions; await the actual
+  // 'listening' event instead of a fixed sleep, which races under CI parallelism
+  // and caused intermittent ECONNREFUSED. Reject loudly on a bind error.
+  server = createApp(router, 0);
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    if (server.listening) resolve();
+    else server.once("listening", () => resolve());
+  });
+  const addr = server.address();
+  serverPort = addr && typeof addr === "object" ? addr.port : 0;
 
   // Suite account — success baseline
   const suiteAcct = createAccount("QuotaTest-Suite", "quota-suite@example.com", "suite");
