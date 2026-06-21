@@ -6,7 +6,6 @@ import { getDb } from "@axis/snapshots";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
-import type { Account } from "@axis/snapshots";
 
 // JWT configuration - read from .pem files in project root, with fallback for tests and containers
 let JWT_PRIVATE_KEY: string;

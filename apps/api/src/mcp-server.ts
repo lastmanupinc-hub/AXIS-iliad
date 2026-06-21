@@ -2518,21 +2518,6 @@ function meterMcpToolCredits(
   ));
 }
 
-/** Filter generators to only include programs the account has access to. */
-function filterGeneratorsByEntitlement(
-  generators: ReturnType<typeof listAvailableGenerators>,
-  account_id: string,
-): { allowed: ReturnType<typeof listAvailableGenerators>; blocked: string[] } {
-  const blocked = new Set<string>();
-  const allowed = generators.filter(g => {
-    if (MCP_FREE_PROGRAMS.has(g.program)) return true;
-    if (isProgramEnabled(account_id, g.program)) return true;
-    blocked.add(g.program);
-    return false;
-  });
-  return { allowed, blocked: [...blocked] };
-}
-
 // â”€â”€â”€ Tool: analyze_files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function coerceHygieneFiles(args: Record<string, unknown>): HygieneFile[] {

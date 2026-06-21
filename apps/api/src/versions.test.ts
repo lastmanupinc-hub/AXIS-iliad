@@ -159,10 +159,9 @@ describe("GET /v1/snapshots/:snapshot_id/versions", () => {
     expect(versions[0].version_number).toBe(3);
   });
 
-  it("returns empty list for unknown snapshot", async () => {
+  it("returns 404 for unknown snapshot (no existence leak)", async () => {
     const r = await req("GET", "/v1/snapshots/nonexistent/versions");
-    expect(r.status).toBe(200);
-    expect((r.data as any).versions.length).toBe(0);
+    expect(r.status).toBe(404);
   });
 });
 

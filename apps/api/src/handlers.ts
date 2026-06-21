@@ -97,7 +97,7 @@ function buildPaymentRequiredPayload(
 // â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
-function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
+export function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
   if (!snapshot.account_id) return true; // anonymous snapshot  -  accessible by ID knowledge
   const auth = resolveAuth(req);
   if (!auth.account) {
