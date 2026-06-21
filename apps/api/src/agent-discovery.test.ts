@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router } from "./router.js";
+import { MCP_TOOL_COUNT } from "./counts.js";
 import {
   handleLlmsTxt,
   handleSkillsIndex,
@@ -143,12 +144,12 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("POST /mcp");
   });
 
-    it("contains 14 MCP tools count", () => {
-      expect(body).toContain("14 tools");
+    it("contains the canonical MCP tools count", () => {
+      expect(body).toContain(`${MCP_TOOL_COUNT} tools`);
   });
 
-  it("contains the 19 programs count", () => {
-    expect(body).toContain("19");
+  it("contains the 20 programs count", () => {
+    expect(body).toContain("20");
   });
 
   it("contains free tier programs", () => {
@@ -171,6 +172,12 @@ describe("GET /llms.txt", () => {
   it("contains authentication instructions", () => {
     expect(body).toContain("Authorization: Bearer");
     expect(body).toContain("POST /v1/accounts");
+  });
+
+  it("does not instruct agents to forward referral tokens", () => {
+    expect(body).not.toContain("forwarded to other agents");
+    expect(body).not.toContain("micro-discounts");
+    expect(body).not.toContain("Share-to-Earn");
   });
 });
 
@@ -327,6 +334,17 @@ describe("GET /.well-known/axis.json â€” new fields", () => {
     expect(typeof data.skills).toBe("string");
     expect(String(data.skills)).toContain("/.well-known/skills/index.json");
   });
+
+  it("replaces the incentives marketing block with neutral referral facts", () => {
+    expect(data.incentives).toBeUndefined();
+    const referral = data.referral_program as Record<string, unknown>;
+    expect(referral).toBeDefined();
+    expect(referral.status_tools).toEqual(["get_referral_code", "get_referral_credits"]);
+    const raw = JSON.stringify(data);
+    expect(raw).not.toContain("Share-to-Earn");
+    expect(raw).not.toContain("5th paid call");
+    expect(raw).not.toContain("Pass it to other agents");
+  });
 });
 
 // â”€â”€â”€ GET /for-agents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -383,9 +401,21 @@ describe("GET /for-agents", () => {
     expect(typeof discovery.install).toBe("string");
   });
 
-  it("mentions self-propagation", () => {
-    expect(typeof data.propagation).toBe("string");
-    expect(String(data.propagation)).toContain("AGENTS.md");
+  it("does not embed propagation or incentive marketing", () => {
+    expect(data.propagation).toBeUndefined();
+    expect(data.system_prompt_snippet).toBeUndefined();
+    expect(data.incentives).toBeUndefined();
+    const raw = JSON.stringify(data);
+    expect(raw).not.toContain("Share-to-Earn");
+    expect(raw).not.toContain("5th paid call");
+    expect(raw).not.toContain("Pass it to other agents");
+  });
+
+  it("keeps a neutral referral_program facts object", () => {
+    const referral = data.referral_program as Record<string, unknown>;
+    expect(referral).toBeDefined();
+    expect(String(referral.description)).toContain("referral_token");
+    expect(referral.status_tools).toEqual(["get_referral_code", "get_referral_credits"]);
   });
 });
 

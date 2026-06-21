@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -19,7 +19,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 **Primary Language**: TypeScript
 **Framework Stack**: React
 
-**Description**: AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specialized programs: context maps, debug playbooks, governance files, design tokens, SEO analysis, brand systems, and more.
+**Description**: A monorepo that leverages TypeScript and modern tooling.
 
 ## Target Audience
 
@@ -36,10 +36,10 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 ### Value Propositions
 
 1. **React Stack** — Built on React ^19.1.0 with stack-native patterns throughout
-2. **387 API Endpoints** — 202 GET, 165 POST, 20 DELETE across 46 source files
-3. **131 Domain Entities** — AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry and 126 more
-4. **Test-Driven Quality** — Verified with vitest across 131 test files
-5. **Clean Architecture** — monorepo, containerized (0.64 separation score)
+2. **497 API Endpoints** — 272 GET, 204 POST, 21 DELETE across 59 source files
+3. **264 Domain Entities** — AuthContext, EmailConfig, ResendErrorResponse, ResendSuccessResponse, SendEmailOptions and 259 more
+4. **Test-Driven Quality** — Verified with vitest across 151 test files
+5. **Clean Architecture** — monorepo, containerized (0.65 separation score)
 
 ## Distribution Channels
 
@@ -62,4 +62,5 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 ## Source-Derived Messaging
 
-- **README tagline**: AI-native development operating system. Upload or point at any codebase — get 87 generated artifacts across 18 specializ
+- **README tagline**: **Stack:** Go + Svelte + PostgreSQL + Docker
+- **README tagline**: **Stack:** Python + TypeScript

@@ -1,5 +1,5 @@
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
-export { generateFiles, listAvailableGenerators } from "./generate.js";
+export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
@@ -13,7 +13,7 @@ export { generateCampaignBrief, generateFunnelMap, generateSequencePack, generat
 export { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 export { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 export { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
-export { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary } from "./generators-artifacts.js";
+export { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml, generateCapabilityMap } from "./generators-artifacts.js";
 export { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 export { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 export { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
@@ -37,3 +37,18 @@ export {
 	generateDistributableGuide,
 	generateMakefileWithShipTarget,
 } from "./generators-closer.js";
+export {
+	generateDeployDockerfile,
+	generateDeployDockerignore,
+	generateDeployComposeDev,
+	generateDeployRenderBlueprint,
+	generateDeployScriptBash,
+	generateDeployScriptPwsh,
+	generateDeployVSCodeLaunchTemplate,
+	generateDeployWranglerPages,
+	generateDeployWranglerContainers,
+	generateDeployContainersWorker,
+	generateDeployScriptCloudflareBash,
+	generateDeployScriptCloudflarePwsh,
+	generateDeployQualificationReport,
+} from "./generators-deploy.js";

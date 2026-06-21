@@ -431,7 +431,7 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
 
   lines.push("# Messaging System");
   lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${new Date().toISOString()}`);
+  lines.push(`# Generated: ${ctx.generated_at}`);
   if (ctx.ai_context.project_summary) {
     lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
   }
@@ -584,7 +584,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   const lines: string[] = [];
   lines.push(`# Channel Rulebook — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {

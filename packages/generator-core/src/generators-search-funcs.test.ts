@@ -167,7 +167,7 @@ describe("generateRepoProfileYAML — toYAML edge cases", () => {
     });
 
     const result = generateRepoProfileYAML(profile);
-    expect(result.path).toBe(".ai/repo-profile.yaml");
+    expect(result.path).toBe("repo-profile.yaml");
     expect(result.content_type).toBe("application/yaml");
     expect(result.content).toContain("Build a web app");
     expect(result.content).toContain("objectives:");

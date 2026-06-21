@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 215 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Quick Reference
 
@@ -17,21 +17,21 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 129,202 LOC |
+| Files | 500 files, 133,500 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 268 | 87,403 | 73.9% |
-| JSON | 66 | 11,089 | 9.4% |
-| YAML | 58 | 9,206 | 7.8% |
-| Markdown | 83 | 7,742 | 6.5% |
-| JavaScript | 8 | 2,093 | 1.8% |
+| TypeScript | 283 | 93,770 | 76.5% |
+| YAML | 57 | 9,885 | 8.1% |
+| JSON | 60 | 8,079 | 6.6% |
+| Markdown | 74 | 7,944 | 6.5% |
+| JavaScript | 8 | 2,093 | 1.7% |
 | CSS | 1 | 675 | 0.6% |
-| HTML | 1 | 120 | 0.1% |
-| Dockerfile | 1 | 20 | 0% |
+| HTML | 1 | 158 | 0.1% |
+| Dockerfile | 1 | 21 | 0% |
 
 ## Detected Stack (with evidence)
 
@@ -43,9 +43,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - apps/ (monorepo_apps)
 - packages/ (monorepo_packages)
-- payment-processing-output/ (project_directory)
 - examples/ (project_directory)
 - mcp/ (project_directory)
+- payment-processing-output/ (project_directory)
 - packaging/ (project_directory)
 - .github/ (project_directory)
 - algorithmic/ (project_directory)
@@ -71,9 +71,9 @@ These files have many inbound or outbound imports — changes here cascade:
 
 | File | Inbound | Outbound | Risk |
 |------|---------|----------|------|
-| `apps/web/src/App.tsx` | 1 | 17 | 90% |
-| `apps/web/src/api.ts` | 17 | 0 | 85% |
-| `apps/web/src/pages.test.tsx` | 0 | 15 | 75% |
+| `apps/web/src/App.tsx` | 1 | 21 | 100% |
+| `apps/web/src/api.ts` | 19 | 0 | 95% |
+| `apps/web/src/pages.test.tsx` | 0 | 17 | 85% |
 | `apps/web/src/pages/DashboardPage.tsx` | 1 | 10 | 55% |
 | `apps/web/src/components/Toast.tsx` | 4 | 0 | 20% |
 | `apps/web/src/components/AxisIcons.tsx` | 4 | 0 | 20% |
@@ -94,18 +94,38 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Model | Kind | Language | Fields | Source |
 |-------|------|----------|--------|--------|
 | AuthContext | interface | TypeScript | 3 | `apps/api/src/billing.ts` |
+| EmailConfig | interface | TypeScript | 2 | `apps/api/src/email.ts` |
+| ResendErrorResponse | interface | TypeScript | 3 | `apps/api/src/email.ts` |
+| ResendSuccessResponse | interface | TypeScript | 1 | `apps/api/src/email.ts` |
+| SendEmailOptions | interface | TypeScript | 5 | `apps/api/src/email.ts` |
+| SendEmailResult | interface | TypeScript | 4 | `apps/api/src/email.ts` |
+| EmbeddingsConfig | interface | TypeScript | 2 | `apps/api/src/embeddings.ts` |
+| EmbeddingsResult | interface | TypeScript | 4 | `apps/api/src/embeddings.ts` |
+| OpenAIEmbeddingResponse | interface | TypeScript | 5 | `apps/api/src/embeddings.ts` |
+| OpenAIErrorResponse | interface | TypeScript | 3 | `apps/api/src/embeddings.ts` |
 | EnvSpec | interface | TypeScript | 5 | `apps/api/src/env.ts` |
 | ValidationError | interface | TypeScript | 2 | `apps/api/src/env.ts` |
 | ValidationResult | interface | TypeScript | 3 | `apps/api/src/env.ts` |
 | ZipEntry | interface | TypeScript | 4 | `apps/api/src/export.ts` |
+| PullRequestPayload | interface | TypeScript | 5 | `apps/api/src/github-webhook.ts` |
+| PushPayload | interface | TypeScript | 7 | `apps/api/src/github-webhook.ts` |
+| SnapshotTarget | interface | TypeScript | 5 | `apps/api/src/github-webhook.ts` |
+| FirecrawlCrawlRequest | interface | TypeScript | 5 | `apps/api/src/handlers.ts` |
+| FirecrawlCrawlResponse | interface | TypeScript | 4 | `apps/api/src/handlers.ts` |
+| FirecrawlScrapeRequest | interface | TypeScript | 6 | `apps/api/src/handlers.ts` |
+| FirecrawlScrapeResponse | interface | TypeScript | 5 | `apps/api/src/handlers.ts` |
 | IntentCapture | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
 | JsonRpcRequest | interface | TypeScript | 4 | `apps/api/src/mcp-server.ts` |
 | McpCallCounters | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
+| PlannedCapability | interface | TypeScript | 7 | `apps/api/src/mcp-server.ts` |
 | RpcError | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
 | RpcSuccess | interface | TypeScript | 3 | `apps/api/src/mcp-server.ts` |
 | HistogramEntry | interface | TypeScript | 3 | `apps/api/src/metrics.ts` |
 | CacheKey | type_alias | TypeScript | 2 | `apps/api/src/mpp.ts` |
 | OAuthClientRow | interface | TypeScript | 3 | `apps/api/src/oauth-server-simple.ts` |
+| PresignOptions | interface | TypeScript | 5 | `apps/api/src/object-storage.ts` |
+| PresignResult | interface | TypeScript | 5 | `apps/api/src/object-storage.ts` |
+| R2Config | interface | TypeScript | 4 | `apps/api/src/object-storage.ts` |
 | OpenApiSpec | interface | TypeScript | 6 | `apps/api/src/openapi.ts` |
 | CreateIntentInput | interface | TypeScript | 3 | `apps/api/src/paid-client.ts` |
 | CreateSubscriptionInput | interface | TypeScript | 3 | `apps/api/src/paid-client.ts` |
@@ -116,26 +136,41 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | WindowEntry | interface | TypeScript | 2 | `apps/api/src/rate-limiter.ts` |
 | AppHandle | interface | TypeScript | 3 | `apps/api/src/router.ts` |
 | Route | interface | TypeScript | 4 | `apps/api/src/router.ts` |
+| QueryOptions | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
+| VectorMatch | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
+| VectorRecord | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
 | CliArgs | interface | TypeScript | 5 | `apps/cli/src/cli.ts` |
 | AxisConfig | interface | TypeScript | 2 | `apps/cli/src/credential-store.ts` |
 | RunResult | interface | TypeScript | 4 | `apps/cli/src/runner.ts` |
 | ScanResult | interface | TypeScript | 3 | `apps/cli/src/scanner.ts` |
 | WriteResult | interface | TypeScript | 3 | `apps/cli/src/writer.ts` |
 | Account | interface | TypeScript | 5 | `apps/web/src/api.ts` |
+| AdminAccountsResponse | interface | TypeScript | 4 | `apps/web/src/api.ts` |
+| AdminAccountSummary | interface | TypeScript | 5 | `apps/web/src/api.ts` |
+| AdminActivityEvent | interface | TypeScript | 6 | `apps/web/src/api.ts` |
+| AdminActivityResponse | interface | TypeScript | 2 | `apps/web/src/api.ts` |
+| AdminStats | interface | TypeScript | 5 | `apps/web/src/api.ts` |
+| ApiEndpointUsage | interface | TypeScript | 4 | `apps/web/src/api.ts` |
 | ApiKeyInfo | interface | TypeScript | 5 | `apps/web/src/api.ts` |
+| ApiStatusUsage | interface | TypeScript | 2 | `apps/web/src/api.ts` |
 | ContextMap | interface | TypeScript | 8 | `apps/web/src/api.ts` |
+| CrawlPage | interface | TypeScript | 3 | `apps/web/src/api.ts` |
+| CrawlResult | interface | TypeScript | 4 | `apps/web/src/api.ts` |
 | CreditsInfo | interface | TypeScript | 7 | `apps/web/src/api.ts` |
+| FunnelMetrics | interface | TypeScript | 8 | `apps/web/src/api.ts` |
 | GeneratedFile | interface | TypeScript | 5 | `apps/web/src/api.ts` |
 | GeneratedFilesResponse | interface | TypeScript | 6 | `apps/web/src/api.ts` |
+| MyAnalyticsSummary | interface | TypeScript | 11 | `apps/web/src/api.ts` |
 | PlanDefinition | interface | TypeScript | 6 | `apps/web/src/api.ts` |
-| PlanFeature | interface | TypeScript | 4 | `apps/web/src/api.ts` |
+| PlanFeature | interface | TypeScript | 6 | `apps/web/src/api.ts` |
 | RepoProfile | interface | TypeScript | 4 | `apps/web/src/api.ts` |
+| ScrapeResult | interface | TypeScript | 4 | `apps/web/src/api.ts` |
 | SearchResponse | interface | TypeScript | 5 | `apps/web/src/api.ts` |
 | SearchResult | interface | TypeScript | 4 | `apps/web/src/api.ts` |
 | Seat | interface | TypeScript | 7 | `apps/web/src/api.ts` |
 | SnapshotPayload | interface | TypeScript | 6 | `apps/web/src/api.ts` |
 | SnapshotResponse | interface | TypeScript | 8 | `apps/web/src/api.ts` |
-| SubscriptionInfo | interface | TypeScript | 11 | `apps/web/src/api.ts` |
+| SubscriptionInfo | interface | TypeScript | 12 | `apps/web/src/api.ts` |
 | SymbolResult | interface | TypeScript | 5 | `apps/web/src/api.ts` |
 | SymbolsResponse | interface | TypeScript | 3 | `apps/web/src/api.ts` |
 | UpgradePrompt | interface | TypeScript | 9 | `apps/web/src/api.ts` |
@@ -154,17 +189,23 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Props | interface | TypeScript | 2 | `apps/web/src/components/StatusBar.tsx` |
 | Toast | interface | TypeScript | 4 | `apps/web/src/components/Toast.tsx` |
 | ToastContextValue | interface | TypeScript | 1 | `apps/web/src/components/Toast.tsx` |
+| ToolPageProps | interface | TypeScript | 11 | `apps/web/src/components/ToolPage.tsx` |
+| ToolPricing | interface | TypeScript | 5 | `apps/web/src/components/ToolPage.tsx` |
 | Props | interface | TypeScript | 4 | `apps/web/src/components/UpsellModal.tsx` |
 | Props | interface | TypeScript | 2 | `apps/web/src/pages/DashboardPage.tsx` |
 | ProgramDoc | interface | TypeScript | 13 | `apps/web/src/pages/DocsPage.tsx` |
 | Example | interface | TypeScript | 7 | `apps/web/src/pages/ExamplesPage.tsx` |
 | Step | interface | TypeScript | 4 | `apps/web/src/pages/HelpPage.tsx` |
 | TroubleshootItem | interface | TypeScript | 2 | `apps/web/src/pages/HelpPage.tsx` |
+| StrategyItem | interface | TypeScript | 3 | `apps/web/src/pages/MyAnalyticsPage.tsx` |
 | Props | interface | TypeScript | 2 | `apps/web/src/pages/PlansPage.tsx` |
 | ProgramDef | interface | TypeScript | 7 | `apps/web/src/pages/ProgramsPage.tsx` |
 | Props | interface | TypeScript | 1 | `apps/web/src/pages/ProgramsPage.tsx` |
 | QAItem | interface | TypeScript | 3 | `apps/web/src/pages/QAPage.tsx` |
 | Section | interface | TypeScript | 2 | `apps/web/src/pages/TermsPage.tsx` |
+| Props | interface | TypeScript | 1 | `apps/web/src/pages/tools/WebResearchPage.tsx` |
+| Props | interface | TypeScript | 1 | `apps/web/src/pages/ToolsIndexPage.tsx` |
+| ToolCatalogEntry | interface | TypeScript | 8 | `apps/web/src/pages/ToolsIndexPage.tsx` |
 | Props | interface | TypeScript | 1 | `apps/web/src/pages/UploadPage.tsx` |
 | ImportMeta | interface | TypeScript | 1 | `apps/web/src/vite-env.d.ts` |
 | ImportMetaEnv | interface | TypeScript | 1 | `apps/web/src/vite-env.d.ts` |
@@ -183,9 +224,14 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Edge | interface | TypeScript | 3 | `packages/generator-core/src/generators-algorithmic.ts` |
 | Node | interface | TypeScript | 7 | `packages/generator-core/src/generators-algorithmic.ts` |
 | DashboardData | interface | TypeScript | 6 | `packages/generator-core/src/generators-artifacts.ts` |
+| Entry | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-artifacts.ts` |
+| Model | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-artifacts.ts` |
+| ResellCapability | interface | TypeScript | 10 | `packages/generator-core/src/generators-artifacts.ts` |
+| ResellProvider | interface | TypeScript | 3 | `packages/generator-core/src/generators-artifacts.ts` |
+| Route | type_alias | TypeScript | 3 | `packages/generator-core/src/generators-artifacts.ts` |
 | BrandingConfig | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
 | MerkleBundle | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
-| ProjectSignals | interface | TypeScript | 7 | `packages/generator-core/src/generators-closer.ts` |
+| ProjectSignals | interface | TypeScript | 10 | `packages/generator-core/src/generators-closer.ts` |
 | MyComponentProps | interface | TypeScript | 2 | `packages/generator-core/src/generators-frontend.ts` |
 | CancelParams | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
 | CancelRequest | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
@@ -255,7 +301,10 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | McpToolCallResult | interface | TypeScript | 5 | `packages/sdk/src/index.ts` |
 | OpenApiSpec | interface | TypeScript | 4 | `packages/sdk/src/index.ts` |
 | SnapshotResult | interface | TypeScript | 7 | `packages/sdk/src/index.ts` |
+| AccountApiAnalyticsSummary | interface | TypeScript | 7 | `packages/snapshots/src/billing-store.ts` |
 | AccountSummary | interface | TypeScript | 7 | `packages/snapshots/src/billing-store.ts` |
+| ApiEndpointUsage | interface | TypeScript | 4 | `packages/snapshots/src/billing-store.ts` |
+| ApiStatusUsage | interface | TypeScript | 2 | `packages/snapshots/src/billing-store.ts` |
 | QuotaCheck | interface | TypeScript | 6 | `packages/snapshots/src/billing-store.ts` |
 | RecentActivity | interface | TypeScript | 5 | `packages/snapshots/src/billing-store.ts` |
 | SystemStats | interface | TypeScript | 7 | `packages/snapshots/src/billing-store.ts` |
@@ -273,7 +322,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | FunnelMetrics | interface | TypeScript | 8 | `packages/snapshots/src/funnel-store.ts` |
 | FunnelEvent | interface | TypeScript | 6 | `packages/snapshots/src/funnel-types.ts` |
 | PlanDefinition | interface | TypeScript | 6 | `packages/snapshots/src/funnel-types.ts` |
-| PlanFeature | interface | TypeScript | 4 | `packages/snapshots/src/funnel-types.ts` |
+| PlanFeature | interface | TypeScript | 6 | `packages/snapshots/src/funnel-types.ts` |
 | Seat | interface | TypeScript | 8 | `packages/snapshots/src/funnel-types.ts` |
 | UpgradePrompt | interface | TypeScript | 9 | `packages/snapshots/src/funnel-types.ts` |
 | GitHubToken | interface | TypeScript | 10 | `packages/snapshots/src/github-token-store.ts` |
@@ -285,6 +334,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | ReferralCode | interface | TypeScript | 3 | `packages/snapshots/src/referral-store.ts` |
 | ReferralConversion | interface | TypeScript | 4 | `packages/snapshots/src/referral-store.ts` |
 | ReferralCredits | interface | TypeScript | 8 | `packages/snapshots/src/referral-store.ts` |
+| ReferralTokenUsageModifier | interface | TypeScript | 3 | `packages/snapshots/src/referral-store.ts` |
 | CodeSymbol | interface | TypeScript | 6 | `packages/snapshots/src/search-store.ts` |
 | SearchIndexEntry | interface | TypeScript | 3 | `packages/snapshots/src/search-store.ts` |
 | SearchResult | interface | TypeScript | 4 | `packages/snapshots/src/search-store.ts` |
@@ -296,6 +346,8 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | SnapshotInput | interface | TypeScript | 4 | `packages/snapshots/src/types.ts` |
 | SnapshotManifest | interface | TypeScript | 10 | `packages/snapshots/src/types.ts` |
 | SnapshotRecord | interface | TypeScript | 10 | `packages/snapshots/src/types.ts` |
+| UsageCreditChargeResult | interface | TypeScript | 5 | `packages/snapshots/src/usage-credit-metering.ts` |
+| UsageCreditSummary | interface | TypeScript | 6 | `packages/snapshots/src/usage-credit-metering.ts` |
 | FileDiff | interface | TypeScript | 4 | `packages/snapshots/src/version-store.ts` |
 | GenerationVersion | interface | TypeScript | 7 | `packages/snapshots/src/version-store.ts` |
 | VersionDiff | interface | TypeScript | 8 | `packages/snapshots/src/version-store.ts` |
@@ -305,9 +357,6 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | Webhook | interface | TypeScript | 8 | `packages/snapshots/src/webhook-store.ts` |
 | WebhookDelivery | interface | TypeScript | 11 | `packages/snapshots/src/webhook-store.ts` |
 | WebhookRow | interface | TypeScript | 8 | `packages/snapshots/src/webhook-store.ts` |
-| averypayplatformConfig | interface | TypeScript | 2 | `payment-processing-output/generated-component.tsx` |
-| Edge | interface | TypeScript | 3 | `payment-processing-output/generative-sketch.ts` |
-| Node | interface | TypeScript | 7 | `payment-processing-output/generative-sketch.ts` |
 
 ## Route Map
 
@@ -413,6 +462,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/v1/account/keys` | apps/api/src/billing-flow.test.ts |
 | POST | `/v1/account/keys/:key_id/revoke` | apps/api/src/billing-flow.test.ts |
 | GET | `/v1/account/usage` | apps/api/src/billing-flow.test.ts |
+| GET | `/v1/account/analytics/summary` | apps/api/src/billing-flow.test.ts |
 | POST | `/v1/account/tier` | apps/api/src/billing-flow.test.ts |
 | POST | `/v1/account/programs` | apps/api/src/billing-flow.test.ts |
 | GET | `/v1/account/credits` | apps/api/src/billing-flow.test.ts |
@@ -494,6 +544,8 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | POST | `/v1/account/upgrade-prompt/dismiss` | apps/api/src/funnel-api.test.ts |
 | GET | `/v1/account/funnel` | apps/api/src/funnel-api.test.ts |
 | GET | `/v1/funnel/metrics` | apps/api/src/funnel-api.test.ts |
+| POST | `/v1/account/analytics/events` | apps/api/src/funnel-api.test.ts |
+| POST | `/v1/github/webhook` | apps/api/src/github-webhook.test.ts |
 | POST | `/v1/snapshots` | apps/api/src/handler-edge-cases.test.ts |
 | GET | `/health` | apps/api/src/handler-edge-cases.test.ts |
 | GET | `/v1/projects/:project_id/context` | apps/api/src/handler-edge-cases.test.ts |
@@ -640,6 +692,9 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | POST | `/v1/prepare-for-agentic-purchasing` | apps/api/src/server.ts |
 | POST | `/v1/analyze` | apps/api/src/server.ts |
 | POST | `/v1/github/analyze` | apps/api/src/server.ts |
+| POST | `/v1/github/webhook` | apps/api/src/server.ts |
+| POST | `/v1/research/scrape` | apps/api/src/server.ts |
+| POST | `/v1/research/crawl` | apps/api/src/server.ts |
 | GET | `/.well-known/axis.json` | apps/api/src/server.ts |
 | GET | `/.well-known/capabilities.json` | apps/api/src/server.ts |
 | GET | `/.well-known/mcp.json` | apps/api/src/server.ts |
@@ -653,6 +708,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/sitemap.xml` | apps/api/src/server.ts |
 | GET | `/health` | apps/api/src/server.ts |
 | GET | `/docs` | apps/api/src/server.ts |
+| GET | `/pricing` | apps/api/src/server.ts |
 | GET | `/openapi.json` | apps/api/src/server.ts |
 | GET | `/llms.txt` | apps/api/src/server.ts |
 | GET | `/.well-known/skills/index.json` | apps/api/src/server.ts |
@@ -696,6 +752,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/v1/account/keys` | apps/api/src/server.ts |
 | POST | `/v1/account/keys/:key_id/revoke` | apps/api/src/server.ts |
 | GET | `/v1/account/usage` | apps/api/src/server.ts |
+| GET | `/v1/account/analytics/summary` | apps/api/src/server.ts |
 | GET | `/v1/account/quota` | apps/api/src/server.ts |
 | POST | `/v1/account/tier` | apps/api/src/server.ts |
 | POST | `/v1/account/programs` | apps/api/src/server.ts |
@@ -715,6 +772,7 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | POST | `/v1/account/upgrade-prompt/dismiss` | apps/api/src/server.ts |
 | GET | `/v1/account/funnel` | apps/api/src/server.ts |
 | GET | `/v1/funnel/metrics` | apps/api/src/server.ts |
+| POST | `/v1/account/analytics/events` | apps/api/src/server.ts |
 | GET | `/v1/admin/stats` | apps/api/src/server.ts |
 | GET | `/v1/admin/accounts` | apps/api/src/server.ts |
 | GET | `/v1/admin/activity` | apps/api/src/server.ts |
@@ -796,6 +854,9 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/health` | packages/generator-core/src/generator-sourcefile-branches.test.ts |
 | GET | `/api/health` | packages/generator-core/src/generator-sourcefile-branches6.test.ts |
 | POST | `/webhook` | packages/generator-core/src/generators-agentic-purchasing.test.ts |
+| POST | `/v1/my-tool` | packages/mpp/README.md |
+| POST | `/v1/my-tool` | packages/mpp/README.md |
+| POST | `/v1/my-tool` | packages/mpp/README.md |
 | GET | `/users/:id` | packages/repo-parser/src/perf.bench.ts |
 | POST | `/users` | packages/repo-parser/src/perf.bench.ts |
 
@@ -872,7 +933,7 @@ import {
   handleRemotionGenerate,
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
-... (417 more lines)
+... (433 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -891,19 +952,19 @@ import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
+import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
 // React requires a class for getDerivedStateFromError; this thin wrapper
-// keeps the rest of the codebase class-free per .cursorrules.
-
-class ErrorCatcher extends Component<{ children: ReactNode; fallback: (error: Error, reset: () => void) => ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-... (301 more lines)
+... (465 more lines)
 ```
 
 ### `apps/web/src/main.tsx`

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -56,7 +56,6 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 - Minimum viable example that proves value in < 5 minutes
 - Known limitations documented honestly
 - Current known issues:
-  - No CI/CD pipeline detected
   - No lockfile found — dependency versions may be inconsistent
 
 ### Metrics
@@ -70,17 +69,17 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 ### Key Activation Moments (by domain entity)
 - Works with **AuthContext** (interface) for the first time
-- Works with **EnvSpec** (interface) for the first time
-- Works with **ValidationError** (interface) for the first time
-- Works with **ValidationResult** (interface) for the first time
-- Works with **ZipEntry** (interface) for the first time
+- Works with **EmailConfig** (interface) for the first time
+- Works with **ResendErrorResponse** (interface) for the first time
+- Works with **ResendSuccessResponse** (interface) for the first time
+- Works with **SendEmailOptions** (interface) for the first time
 
 ### Action Triggers (POST routes)
 - `POST /v1/accounts` — apps/api/src/admin.test.ts
 - `POST /v1/snapshots` — apps/api/src/admin.test.ts
-- `POST /v1/snapshots` — apps/api/src/api-branches.test.ts
-- `POST /v1/db/maintenance` — apps/api/src/api-branches.test.ts
-- `POST /v1/search/index` — apps/api/src/api-branches.test.ts
+- `POST /probe-intent` — apps/api/src/agent-discovery.test.ts
+- `POST /mcp` — apps/api/src/analyze-repo-success.test.ts
+- `POST /v1/analyze` — apps/api/src/analyze.test.ts
 
 ### Metrics
 - Feature usage depth (which features are used first)

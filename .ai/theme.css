@@ -8,9 +8,9 @@
    Type:        monorepo
    Language:    TypeScript
    Stack:       React
-   Total LOC:   93,769
-   Routes:      387 (202 GET · 165 POST)
-   Models:      131 domain models
+   Total LOC:   122,625
+   Routes:      497 (272 GET · 204 POST)
+   Models:      264 domain models
    ─────────────────────────────────────────────────────── */
 
 :root {
@@ -195,6 +195,91 @@
   animation: shimmer 1.5s infinite;
 }
 
+/* ─── Base Reset (index.css baseline) ────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--surface-page);
+  color: var(--color-neutral-900);
+  font-size: var(--font-size-base);
+}
+
+h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd { margin: 0; }
+h1 { font-size: var(--font-size-4xl); line-height: 1.15; font-weight: 700; }
+h2 { font-size: var(--font-size-2xl); line-height: 1.25; font-weight: 600; }
+h3 { font-size: var(--font-size-xl);  line-height: 1.3;  font-weight: 600; }
+h4 { font-size: var(--font-size-lg);  line-height: 1.35; font-weight: 600; }
+
+p { max-width: 70ch; }
+
+a {
+  color: var(--color-primary-600);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+a:hover { color: var(--color-primary-700); }
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+code, kbd, samp {
+  background: var(--surface-inset);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.35em;
+}
+pre {
+  background: var(--surface-inset);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  overflow-x: auto;
+}
+pre code { background: transparent; padding: 0; }
+
+img, picture, video, canvas, svg { display: block; max-width: 100%; height: auto; }
+
+button, input, optgroup, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--color-neutral-200);
+  margin: var(--space-6) 0;
+}
+
+table { border-collapse: collapse; width: 100%; }
+th, td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+th { font-weight: 600; }
+
 /* ─── Component Primitives ───────────────────────────────── */
 
 .surface-card {
@@ -234,116 +319,20 @@
   clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
 }
 
-/* ─── Domain Model Component Scaffolds ───────────────────── */
-/*     Auto-derived from project domain models.               */
-/*     Rename and extend these for your actual components.     */
+/* ─── Domain Model Component Hints ───────────────────────── */
+/*    Use .surface-card / .surface-elevated for cards backed by these models. */
+/*    Add model-specific tweaks in your own stylesheet, not here.            */
 
-/* AuthContext — interface (3 fields) */
-.auth-context-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.auth-context-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* EnvSpec — interface (5 fields) */
-.env-spec-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.env-spec-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ValidationError — interface (2 fields) */
-.validation-error-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.validation-error-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ValidationResult — interface (3 fields) */
-.validation-result-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.validation-result-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ZipEntry — interface (4 fields) */
-.zip-entry-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.zip-entry-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* HistogramEntry — interface (3 fields) */
-.histogram-entry-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.histogram-entry-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* OpenApiSpec — interface (6 fields) */
-.open-api-spec-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.open-api-spec-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
-
-/* WindowEntry — interface (2 fields) */
-.window-entry-card {
-  background: var(--surface-card);
-  border: 1px solid var(--color-neutral-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-}
-.window-entry-surface {
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-}
+/*   .auth-context-card    — AuthContext (interface, 3 fields). Apply .surface-card. */
+/*   .email-config-card    — EmailConfig (interface, 2 fields). Apply .surface-card. */
+/*   .resend-error-response-card    — ResendErrorResponse (interface, 3 fields). Apply .surface-card. */
+/*   .resend-success-response-card    — ResendSuccessResponse (interface, 1 fields). Apply .surface-card. */
+/*   .send-email-options-card    — SendEmailOptions (interface, 5 fields). Apply .surface-card. */
+/*   .send-email-result-card    — SendEmailResult (interface, 4 fields). Apply .surface-card. */
+/*   .embeddings-config-card    — EmbeddingsConfig (interface, 2 fields). Apply .surface-card. */
+/*   .embeddings-result-card    — EmbeddingsResult (interface, 4 fields). Apply .surface-card. */
 
 /* ─── Detected Style Files ─────────────────────────────── */
 /*
    apps/web/src/index.css (770 lines)
-   payment-processing-output/theme.css (226 lines)
 */

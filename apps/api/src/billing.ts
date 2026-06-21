@@ -113,7 +113,8 @@ export function requireAuth(req: IncomingMessage, res: ServerResponse): AuthCont
   return ctx;
 }
 
-function hasPrivateAnalyticsAccess(req: IncomingMessage): boolean {
+/** True when the caller presented the ADMIN_API_KEY (owner/admin gate). */
+function isAdminCaller(req: IncomingMessage): boolean {
   const ownerKey = process.env.ADMIN_API_KEY;
   if (!ownerKey) return false;
 
@@ -129,6 +130,22 @@ function hasPrivateAnalyticsAccess(req: IncomingMessage): boolean {
 
   return rawKey === ownerKey;
 }
+
+/**
+ * Deny-by-default gate for self-serve entitlement grants (tier upgrades and
+ * persistence-credit minting). Allowed only when:
+ *  - AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS === "true" (explicit dev/demo opt-in), or
+ *  - the flag is unset AND we are running under tests (NODE_ENV=test / VITEST),
+ *    so suites can keep using self-upgrade as a fixture helper.
+ * Any other explicit value of the flag (including "false") denies.
+ */
+function selfServeEntitlementsAllowed(): boolean {
+  const flag = process.env.AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS;
+  if (flag !== undefined && flag !== "") return flag === "true";
+  return process.env.NODE_ENV === "test" || process.env.VITEST === "true";
+}
+
+const TIER_RANK: Record<BillingTier, number> = { free: 0, paid: 1, suite: 2 };
 
 // ─── Billing API Handlers ───────────────────────────────────────
 
@@ -180,6 +197,25 @@ export async function handleCreateAccount(
   const existing = getAccountByEmail(email);
   if (existing) {
     sendError(res, 409, ErrorCode.CONFLICT, "An account with this email already exists");
+    return;
+  }
+
+  // Deny-by-default: this endpoint is public and unauthenticated, so creating
+  // an account directly at a paid tier would sidestep the payment gate on
+  // POST /v1/account/tier entirely. Only the admin key or an explicit
+  // AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=true opt-in may mint paid/suite
+  // accounts without payment; everyone else starts free and upgrades through
+  // checkout.
+  if (tier !== "free" && !isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
+    sendError(
+      res, 402, ErrorCode.PAYMENT_REQUIRED,
+      `Creating an account at the ${tier} tier requires payment. Create a free account, then start a checkout via POST /v1/checkout.`,
+      {
+        checkout_endpoint: "POST /v1/checkout",
+        plans_url: "https://axis-iliad.jonathanarvay.com/#plans",
+        requested_tier: tier,
+      },
+    );
     return;
   }
 
@@ -355,7 +391,7 @@ export async function handleGetAnalyticsSummary(
   const ctx = requireAuth(req, res);
   if (!ctx) return;
 
-  if (!hasPrivateAnalyticsAccess(req)) {
+  if (!isAdminCaller(req)) {
     sendError(res, 403, ErrorCode.FORBIDDEN, "Private analytics access is restricted to the owner account");
     return;
   }
@@ -411,6 +447,25 @@ export async function handleUpdateTier(
   }
 
   const previousTier = ctx.account!.tier;
+
+  // Deny-by-default: upgrades to paid/suite require payment. Only the admin
+  // key or an explicit AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=true opt-in may
+  // grant a higher tier directly. Downgrades remain self-serve.
+  const isPaidUpgrade = TIER_RANK[tier] > TIER_RANK[previousTier];
+  if (isPaidUpgrade && !isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
+    sendError(
+      res, 402, ErrorCode.PAYMENT_REQUIRED,
+      `Upgrading to the ${tier} tier requires payment. Start a checkout via POST /v1/checkout or pick a plan on the plans page.`,
+      {
+        checkout_endpoint: "POST /v1/checkout",
+        plans_url: "https://axis-iliad.jonathanarvay.com/#plans",
+        current_tier: previousTier,
+        requested_tier: tier,
+      },
+    );
+    return;
+  }
+
   updateAccountTier(ctx.account!.account_id, tier);
   const updated = getAccount(ctx.account!.account_id);
 
@@ -735,6 +790,22 @@ export async function handleAddCredits(
 
   if (credits > 10_000) {
     sendError(res, 400, ErrorCode.INVALID_FORMAT, "credits cannot exceed 10000 per grant");
+    return;
+  }
+
+  // Deny-by-default: minting persistence credits without payment is restricted
+  // to the admin key or an explicit AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=true
+  // opt-in. (The suite monthly grant is auto-applied via GET /v1/account/credits.)
+  if (!isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
+    sendError(
+      res, 402, ErrorCode.PAYMENT_REQUIRED,
+      "Purchasing persistence credits requires payment. Start a checkout via POST /v1/checkout or pick a plan on the plans page.",
+      {
+        checkout_endpoint: "POST /v1/checkout",
+        plans_url: "https://axis-iliad.jonathanarvay.com/#plans",
+        requested_credits: credits,
+      },
+    );
     return;
   }
 

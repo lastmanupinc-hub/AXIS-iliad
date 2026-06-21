@@ -84,11 +84,11 @@ const MINIMAL_FILES: FileEntry[] = [
 
 describe("debug generator — Go Echo framework branches", () => {
   const s = snap({ name: "echo-api", files: GO_ECHO_FILES });
-  const allDebug = [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"];
+  const allDebug = ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"];
   const result = generateFiles(input(s, allDebug));
 
   it("debug-playbook includes Echo framework debugging steps", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Echo");
     expect(f!.content).toContain("Route 404");
@@ -96,13 +96,13 @@ describe("debug generator — Go Echo framework branches", () => {
   });
 
   it("debug-playbook includes Go Module in quick reference", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f!.content).toContain("Go Module");
     expect(f!.content).toContain("github.com/example/echoapp");
   });
 
   it("debug-playbook includes Go triage steps", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f!.content).toContain("go build");
     expect(f!.content).toContain("go test");
   });
@@ -148,10 +148,10 @@ describe("debug generator — Go Echo framework branches", () => {
 
 describe("debug generator — Go Chi framework branches", () => {
   const s = snap({ name: "chi-api", files: GO_CHI_FILES });
-  const result = generateFiles(input(s, [".ai/debug-playbook.md", "tracing-rules.md"]));
+  const result = generateFiles(input(s, ["debug-playbook.md", "tracing-rules.md"]));
 
   it("debug-playbook includes Chi framework debugging steps", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Chi");
     expect(f!.content).toContain("Route conflicts");
@@ -159,7 +159,7 @@ describe("debug generator — Go Chi framework branches", () => {
   });
 
   it("debug-playbook does NOT include Go stdlib HTTP debugging section (Chi is detected)", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     // Chi is detected, so Go stdlib debugging section should NOT appear
     expect(f!.content).not.toContain("#### Go stdlib HTTP");
   });
@@ -175,10 +175,10 @@ describe("debug generator — Go Chi framework branches", () => {
 
 describe("debug generator — Go Gin framework branches", () => {
   const s = snap({ name: "gin-api", files: GO_GIN_FILES });
-  const result = generateFiles(input(s, [".ai/debug-playbook.md"]));
+  const result = generateFiles(input(s, ["debug-playbook.md"]));
 
   it("debug-playbook includes Gin framework debugging steps", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Gin");
     expect(f!.content).toContain("SetMode");
@@ -186,17 +186,17 @@ describe("debug generator — Go Gin framework branches", () => {
   });
 
   it("debug-playbook does NOT include Go stdlib HTTP debugging section (Gin is detected)", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f!.content).not.toContain("#### Go stdlib HTTP");
   });
 });
 
 describe("debug generator — Go stdlib HTTP (no framework)", () => {
   const s = snap({ name: "go-stdlib", files: GO_STDLIB_FILES });
-  const result = generateFiles(input(s, [".ai/debug-playbook.md", "root-cause-checklist.md"]));
+  const result = generateFiles(input(s, ["debug-playbook.md", "root-cause-checklist.md"]));
 
   it("debug-playbook includes Go stdlib HTTP section", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Go stdlib HTTP");
     expect(f!.content).toContain("Handler panics");
@@ -204,7 +204,7 @@ describe("debug generator — Go stdlib HTTP (no framework)", () => {
   });
 
   it("debug-playbook does NOT include Echo/Chi/Gin debugging sections", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f!.content).not.toContain("#### Echo");
     expect(f!.content).not.toContain("#### Chi (Go Router)");
     expect(f!.content).not.toContain("#### Gin (Go HTTP)");
@@ -220,10 +220,10 @@ describe("debug generator — Go stdlib HTTP (no framework)", () => {
 
 describe("debug generator — Express/Fastify branches", () => {
   const s = snap({ name: "express-app", files: EXPRESS_FILES });
-  const result = generateFiles(input(s, [".ai/debug-playbook.md"]));
+  const result = generateFiles(input(s, ["debug-playbook.md"]));
 
   it("debug-playbook includes API Server debugging steps", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("API Server");
     expect(f!.content).toContain("Route 404");

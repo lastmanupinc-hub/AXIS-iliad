@@ -26,6 +26,9 @@ keys.env
 .ai-vitest-latest.txt
 vitest-api-src-output.txt
 
+# Claude Code local session state
+.claude/
+
 # Local-only generated fintech MCP artifacts
 repo-run-stats.json
 mcp/fintech-mcp-surface-package.md

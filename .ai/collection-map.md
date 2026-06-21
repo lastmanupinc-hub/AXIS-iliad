@@ -1,6 +1,6 @@
 # Collection Map — axis-iliad
 
-Generated: 2026-04-11T22:24:47.574Z
+Generated: 2026-05-23T03:31:46.322Z
 
 ## Collection Overview
 
@@ -9,7 +9,7 @@ metrics, and architecture of axis-iliad.
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -22,7 +22,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 ### 1. Dependency Network
 
 - **Type**: Force-directed graph
-- **Nodes**: 6 (entry points + hotspots)
+- **Nodes**: 7 (entry points + hotspots)
 - **Edges**: Based on import graph density
 - **Color mapping**: Language → hue
 - **Animation**: Continuous force simulation
@@ -32,20 +32,20 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 - **Type**: Concentric ring visualization
 - **Rings**: One per language, radius ∝ LOC percentage
-  - TypeScript: 71.2% → radius 214px
-  - YAML: 16% → radius 48px
-  - JSON: 6.9% → radius 21px
-  - Markdown: 4.2% → radius 13px
-  - CSS: 0.9% → radius 3px
-  - JavaScript: 0.7% → radius 2px
+  - TypeScript: 76.5% → radius 230px
+  - YAML: 8.1% → radius 24px
+  - JSON: 6.6% → radius 20px
+  - Markdown: 6.5% → radius 20px
+  - JavaScript: 1.7% → radius 5px
+  - CSS: 0.6% → radius 2px
   - HTML: 0.1% → radius 0px
-  - Dockerfile: 0.1% → radius 0px
+  - Dockerfile: 0% → radius 0px
 - **Animation**: Slow rotation, pulse on interaction
 
 ### 3. Architecture Terrain
 
 - **Type**: Topographic height map
-- **Elevation**: Architecture score 0.64/100 → height multiplier
+- **Elevation**: Architecture score 0.65/100 → height multiplier
 - **Ridges**: monorepo, containerized
 - **Strata**:
   - presentation: apps, frontend
@@ -54,13 +54,13 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 ### 4. Hotspot Constellation
 
 - **Type**: Star field / particle system
-- **Stars**: 6 hotspot files
+- **Stars**: 7 hotspot files
 - **Brightest stars (highest risk)**:
-  - `apps/web/src/api.ts` (risk: 0.8, connections: 16)
-  - `apps/web/src/App.tsx` (risk: 0.8, connections: 15)
-  - `apps/web/src/pages/DashboardPage.tsx` (risk: 0.5, connections: 10)
-  - `apps/web/src/components/Toast.tsx` (risk: 0.1, connections: 3)
-  - `apps/web/src/components/AxisIcons.tsx` (risk: 0.1, connections: 3)
+  - `apps/web/src/App.tsx` (risk: 1.0, connections: 22)
+  - `apps/web/src/api.ts` (risk: 0.9, connections: 19)
+  - `apps/web/src/pages.test.tsx` (risk: 0.8, connections: 17)
+  - `apps/web/src/pages/DashboardPage.tsx` (risk: 0.6, connections: 11)
+  - `apps/web/src/components/Toast.tsx` (risk: 0.2, connections: 4)
 - **Brightness**: risk_score mapped to luminosity
 - **Size**: inbound + outbound connections
 - **Animation**: Twinkling, slow drift
@@ -71,11 +71,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 |----------|-------|
 | Total Pieces | 4 |
 | Source Project | axis-iliad |
-| Data Points | 16 |
-| Domain Models | 131 |
-| Routes | 387 |
-| Total Files | 432 |
-| Total LOC | 95217 |
+| Data Points | 17 |
+| Domain Models | 264 |
+| Routes | 497 |
+| Total Files | 500 |
+| Total LOC | 133500 |
 | Render Target | Canvas 2D / WebGL |
 | Parameter Pack | parameter-pack.json |
 
@@ -86,26 +86,25 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 g
 i
 t
+h
+u
+b
+/
+a
+c
+t
 i
-g
-n
 o
-r
-e
- 
-(
-0
-.
-1
- 
-K
-B
-)
-
-
-A
-G
-E
-N
-T
+n
+s
+/
+c
+o
+m
+p
+l
+i
+a
+n
+c
 ```

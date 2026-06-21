@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { openMemoryDb, closeDb, recordMcpUsage } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { handleCreateAccount } from "./billing.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage } from "./admin.js";
 import { handleCreateSnapshot, handleHealthCheck } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -58,6 +58,7 @@ beforeAll(async () => {
   router.get("/v1/admin/stats", handleAdminStats);
   router.get("/v1/admin/accounts", handleAdminAccounts);
   router.get("/v1/admin/activity", handleAdminActivity);
+  router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
   server = createApp(router, TEST_PORT);
   await new Promise<void>((r) => setTimeout(r, 100));
 
@@ -163,6 +164,50 @@ describe("GET /v1/admin/activity", () => {
     const r = await req("GET", "/v1/admin/activity?limit=1", undefined, apiKey);
     expect(r.status).toBe(200);
     expect((r.data.events as unknown[]).length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("GET /v1/admin/mcp-usage", () => {
+  it("requires authentication", async () => {
+    const r = await req("GET", "/v1/admin/mcp-usage");
+    expect(r.status).toBe(401);
+  });
+
+  it("returns 403 for a non-admin key", async () => {
+    const r = await req("GET", "/v1/admin/mcp-usage", undefined, nonAdminKey);
+    expect(r.status).toBe(403);
+  });
+
+  it("returns persistent MCP usage analytics for the admin key", async () => {
+    recordMcpUsage({ account_id: "acc_x", tool: "analyze_repo", source: "claude", probe_class: "dev-tool" });
+    recordMcpUsage({ account_id: null, tool: "list_programs", source: "smithery", probe_class: "registry-crawler" });
+
+    const r = await req("GET", "/v1/admin/mcp-usage", undefined, apiKey);
+    expect(r.status).toBe(200);
+
+    const windows = r.data.windows as Record<string, number>;
+    expect(windows.total).toBeGreaterThanOrEqual(2);
+    expect(typeof windows.last_24h).toBe("number");
+    expect(typeof windows.last_7d).toBe("number");
+    expect(typeof windows.last_30d).toBe("number");
+
+    const summary = r.data.summary as Record<string, unknown>;
+    expect(summary.window_days).toBe(30);
+    expect((summary.by_source as Record<string, number>)["claude"]).toBeGreaterThanOrEqual(1);
+    expect(summary.anonymous_calls).toBeGreaterThanOrEqual(1);
+    expect((summary.by_tool as Record<string, number>)["analyze_repo"]).toBeGreaterThanOrEqual(1);
+
+    expect(r.data.new_vs_returning).toBeDefined();
+    expect(typeof (r.data.new_vs_returning as Record<string, number>).new_accounts).toBe("number");
+  });
+
+  it("honors a custom window_days param (clamped)", async () => {
+    const r = await req("GET", "/v1/admin/mcp-usage?window_days=7", undefined, apiKey);
+    expect(r.status).toBe(200);
+    expect((r.data.summary as Record<string, unknown>).window_days).toBe(7);
+
+    const clamped = await req("GET", "/v1/admin/mcp-usage?window_days=9999", undefined, apiKey);
+    expect((clamped.data.summary as Record<string, unknown>).window_days).toBe(365);
   });
 });
 

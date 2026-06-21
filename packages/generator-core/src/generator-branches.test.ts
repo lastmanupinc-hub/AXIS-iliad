@@ -214,21 +214,21 @@ const GO_MULTI_LANG_FILES: FileEntry[] = [
 describe("Vue project branches", () => {
   const s = snap({ name: "vue-app", files: VUE_FILES });
   const allOutputs = [
-    ".ai/seo-rules.md", ".ai/frontend-rules.md", "component-guidelines.md",
+    "seo-rules.md", "frontend-rules.md", "component-guidelines.md",
     "AGENTS.md", "CLAUDE.md", ".cursorrules",
-    ".ai/debug-playbook.md", ".ai/design-tokens.json", "theme-guidelines.md",
+    "debug-playbook.md", "design-tokens.json", "theme-guidelines.md",
     "notebook-summary.md", "obsidian-skill-pack.md",
   ];
   const result = generateFiles(input(s, allOutputs));
 
   it("SEO: hits Vue SSR branch", () => {
-    const f = getFile(result, ".ai/seo-rules.md");
+    const f = getFile(result, "seo-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.toLowerCase()).toMatch(/vue|ssr|server/i);
   });
 
   it("frontend: hits Vue component rules", () => {
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toMatch(/vue|composition|setup/i);
   });
@@ -256,17 +256,17 @@ describe("Vue project branches", () => {
 describe("Svelte project branches", () => {
   const s = snap({ name: "svelte-app", files: SVELTE_FILES });
   const result = generateFiles(input(s, [
-    ".ai/seo-rules.md", ".ai/frontend-rules.md", "component-guidelines.md",
+    "seo-rules.md", "frontend-rules.md", "component-guidelines.md",
   ]));
 
   it("SEO: hits Svelte SSR branch", () => {
-    const f = getFile(result, ".ai/seo-rules.md");
+    const f = getFile(result, "seo-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.toLowerCase()).toMatch(/svelte|ssr|server/i);
   });
 
   it("frontend: hits Svelte reactive declarations", () => {
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.toLowerCase()).toMatch(/svelte|reactive/i);
   });
@@ -275,19 +275,19 @@ describe("Svelte project branches", () => {
 describe("React SPA (no Next.js) branches", () => {
   const s = snap({ name: "react-spa", files: REACT_SPA_FILES });
   const result = generateFiles(input(s, [
-    ".ai/seo-rules.md", ".ai/frontend-rules.md", "component-guidelines.md",
+    "seo-rules.md", "frontend-rules.md", "component-guidelines.md",
     "generated-component.tsx", "dashboard-widget.tsx",
     "superpower-pack.md", "automation-pipeline.yaml",
   ]));
 
   it("SEO: hits React SPA branch (not Next.js SSR)", () => {
-    const f = getFile(result, ".ai/seo-rules.md");
+    const f = getFile(result, "seo-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.toLowerCase()).toMatch(/react|spa|client/i);
   });
 
   it("frontend: hits React-only layout", () => {
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.toLowerCase()).toContain("react");
   });
@@ -303,7 +303,7 @@ describe("Python + Django branches", () => {
   const s = snap({ name: "django-app", files: PYTHON_DJANGO_FILES, type: "web_application" });
   const result = generateFiles(input(s, [
     "AGENTS.md", "CLAUDE.md", ".cursorrules",
-    ".ai/debug-playbook.md", "tracing-rules.md",
+    "debug-playbook.md", "tracing-rules.md",
     "notebook-summary.md", "study-brief.md",
     "superpower-pack.md", "test-generation-rules.md",
     "mcp-config.json", "connector-map.yaml",
@@ -349,7 +349,7 @@ describe("Python + Django branches", () => {
 describe("Express/Jest project branches", () => {
   const s = snap({ name: "express-api", files: EXPRESS_FILES, type: "api_server" });
   const result = generateFiles(input(s, [
-    ".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md",
+    "debug-playbook.md", "incident-template.md", "tracing-rules.md",
     "AGENTS.md", ".cursorrules",
     "superpower-pack.md", "test-generation-rules.md",
     "mcp-config.json",
@@ -357,7 +357,7 @@ describe("Express/Jest project branches", () => {
   ]));
 
   it("debug: hits Express/Fastify API Server section", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content.toLowerCase()).toMatch(/express|api|middleware/i);
   });
@@ -467,7 +467,7 @@ describe("yarn + webpack + jest project branches", () => {
 describe("styled-components project branches", () => {
   const s = snap({ name: "styled-app", files: STYLED_COMPONENTS_FILES });
   const result = generateFiles(input(s, [
-    ".ai/design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json",
+    "design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json",
   ]));
 
   it("theme: hits CSS-in-JS / styled-components branch", () => {
@@ -477,7 +477,7 @@ describe("styled-components project branches", () => {
   });
 
   it("theme: design tokens include styled method", () => {
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(50);
   });
@@ -512,11 +512,11 @@ describe("Sass project branches", () => {
 describe("Rich routes branches", () => {
   const s = snap({ name: "rich-routes", files: RICH_ROUTES_FILES });
   const result = generateFiles(input(s, [
-    ".ai/seo-rules.md", "schema-recommendations.json", "route-priority-map.md",
+    "seo-rules.md", "schema-recommendations.json", "route-priority-map.md",
     "content-audit.md", "meta-tag-audit.json",
-    ".ai/frontend-rules.md", "component-guidelines.md",
+    "frontend-rules.md", "component-guidelines.md",
     "cro-playbook.md",
-    ".ai/debug-playbook.md",
+    "debug-playbook.md",
   ]));
 
   it("SEO: schema recommendations include blog/pricing/faq routes", () => {
@@ -568,10 +568,10 @@ describe("Rich routes branches", () => {
 describe("Empty/minimal project branches", () => {
   const s = snap({ name: "minimal", files: EMPTY_PROJECT_FILES });
   const result = generateFiles(input(s, [
-    ".ai/seo-rules.md", "route-priority-map.md", "content-audit.md",
+    "seo-rules.md", "route-priority-map.md", "content-audit.md",
     "AGENTS.md", "CLAUDE.md", ".cursorrules",
-    ".ai/debug-playbook.md", "tracing-rules.md",
-    ".ai/frontend-rules.md",
+    "debug-playbook.md", "tracing-rules.md",
+    "frontend-rules.md",
     "superpower-pack.md", "test-generation-rules.md",
     "remotion-script.ts", "asset-checklist.md",
     "notebook-summary.md", "study-brief.md", "research-threads.md",
@@ -580,12 +580,12 @@ describe("Empty/minimal project branches", () => {
     "brand-guidelines.md", "content-constraints.md", "messaging-system.yaml",
     "campaign-brief.md",
     "mcp-config.json",
-    ".ai/optimization-rules.md", "prompt-diff-report.md",
+    "optimization-rules.md", "prompt-diff-report.md",
     "parameter-pack.json",
   ]));
 
   it("SEO: hits no-framework fallback", () => {
-    const f = getFile(result, ".ai/seo-rules.md");
+    const f = getFile(result, "seo-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(50);
   });
@@ -615,7 +615,7 @@ describe("Empty/minimal project branches", () => {
   });
 
   it("debug: no hotspots, no routes, no test framework", () => {
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(50);
   });
@@ -627,7 +627,7 @@ describe("Empty/minimal project branches", () => {
   });
 
   it("frontend: no framework fallback", () => {
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(50);
   });
@@ -717,7 +717,7 @@ describe("Empty/minimal project branches", () => {
   });
 
   it("optimization: small project path", () => {
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(50);
   });
@@ -747,12 +747,12 @@ describe("Large project branches (LOC/file thresholds)", () => {
   // 60 files × 1000 LOC = 60,000 LOC → triggers "large project" thresholds
   const s = snap({ name: "large-app", files: makeLargeFiles(60, 1000), type: "web_application" });
   const result = generateFiles(input(s, [
-    ".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md",
+    "optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md",
     "superpower-pack.md",
   ]));
 
   it("optimization: hits large project (>50K LOC) branch", () => {
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(100);
   });
@@ -780,11 +780,11 @@ describe("Medium project branches (20-50 files, 10-30K LOC)", () => {
   // 30 files × 500 LOC = 15,000 LOC
   const s = snap({ name: "medium-app", files: makeLargeFiles(30, 500), type: "web_application" });
   const result = generateFiles(input(s, [
-    ".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json",
+    "optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json",
   ]));
 
   it("optimization: hits medium project (>10K LOC) branch", () => {
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(100);
   });
@@ -799,7 +799,7 @@ describe("Medium project branches (20-50 files, 10-30K LOC)", () => {
 describe("Go multi-language project branches", () => {
   const s = snap({ name: "go-multi", files: GO_MULTI_LANG_FILES });
   const result = generateFiles(input(s, [
-    ".ai/optimization-rules.md", "cost-estimate.json",
+    "optimization-rules.md", "cost-estimate.json",
     "AGENTS.md",
     "notebook-summary.md",
   ]));
@@ -855,12 +855,12 @@ describe("No-Tailwind styling branches", () => {
   // React project without tailwind.config.ts
   const s = snap({ name: "no-tailwind", files: REACT_SPA_FILES });
   const result = generateFiles(input(s, [
-    ".ai/frontend-rules.md", "component-guidelines.md",
-    ".ai/design-tokens.json", "theme-guidelines.md",
+    "frontend-rules.md", "component-guidelines.md",
+    "design-tokens.json", "theme-guidelines.md",
   ]));
 
   it("frontend: no Tailwind styling approach", () => {
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content.length).toBeGreaterThan(50);
   });
@@ -1424,7 +1424,7 @@ describe("Optimization build-tool fallback branches", () => {
     inp.context_map.detection.build_tools = ["gradle"];
     inp.context_map.detection.test_frameworks = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     // No vite/webpack/tsc/eslint-specific optimization tips
     expect(f!.content).not.toContain("Vite");
@@ -1465,7 +1465,7 @@ describe("Debug branches without Prisma", () => {
       { name: "express", confidence: 0.9, signals: ["server.ts"] },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).not.toContain("Prisma");
   });
@@ -1514,7 +1514,7 @@ describe("Frontend route and framework branches", () => {
     inp.context_map.detection.frameworks = [];
     inp.context_map.detection.test_frameworks = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
   });
 
@@ -1540,12 +1540,12 @@ describe("Frontend Svelte framework branch (non-React/Next.js)", () => {
     const s = snap({ name: "svelte-app", files: [
       { path: "App.svelte", content: "<script>let name='world'</script>", size: 35, language: null },
     ]});
-    const inp = input(s, [".ai/frontend-rules.md"]);
+    const inp = input(s, ["frontend-rules.md"]);
     inp.context_map.detection.frameworks = [
       { name: "Svelte", confidence: 0.9, signals: ["App.svelte"] },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).not.toContain("Server Component");
     expect(f!.content).not.toContain("Route Handlers");
@@ -1589,11 +1589,11 @@ describe("Optimization empty hotspots + entry_points", () => {
     const s = snap({ name: "small-proj", files: [
       { path: "index.ts", content: "console.log(1)", size: 15, language: null },
     ]});
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.dependency_graph.hotspots = [];
     inp.context_map.entry_points = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).not.toContain("Dependency Hotspots");
     expect(f!.content).not.toContain("Entry Points");
@@ -1687,13 +1687,13 @@ describe("Debug empty routes + layer boundaries + conventions", () => {
     const s = snap({ name: "no-routes", files: [
       { path: "lib.ts", content: "export {}", size: 12, language: null },
     ]});
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     inp.context_map.routes = [];
     inp.context_map.architecture_signals.layer_boundaries = [];
     inp.context_map.ai_context.conventions = [];
     inp.context_map.ai_context.warnings = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).not.toContain("Route Map");
     expect(f!.content).not.toContain("Check Layer Boundaries");
@@ -1778,7 +1778,7 @@ describe("Theme without tailwind or PostCSS", () => {
     const inp = input(s, ["design-tokens.json"]);
     inp.context_map.detection.frameworks = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
   });
 });
@@ -2010,10 +2010,10 @@ describe("Optimization npm-only package manager", () => {
     const s = snap({ name: "npm-proj", files: [
       { path: "app.ts", content: "export {}", size: 12, language: null },
     ]});
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.detection.package_managers = ["npm"];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("npm");
   });
@@ -2345,12 +2345,12 @@ describe("Debug framework-specific branches", () => {
     const s = snap({ name: "prisma-debug", files: [
       { path: "schema.prisma", content: "model User {}", size: 20, language: null },
     ]});
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     inp.context_map.detection.frameworks = [
       { name: "Prisma", confidence: 0.9, signals: ["schema.prisma"] },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Prisma");
     expect(f!.content).toContain("prisma migrate dev");
@@ -2360,12 +2360,12 @@ describe("Debug framework-specific branches", () => {
     const s = snap({ name: "express-debug", files: [
       { path: "server.ts", content: "app.get", size: 15, language: null },
     ]});
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     inp.context_map.detection.frameworks = [
       { name: "Express", confidence: 0.9, signals: ["express"] },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("API Server");
     expect(f!.content).toContain("Route 404");
@@ -2484,9 +2484,9 @@ describe("Theme CSS framework branches", () => {
     const s = snap({ name: "css-mod", files: [
       { path: "App.module.css", content: ".root { color: red }", size: 25, language: null },
     ]});
-    const inp = input(s, [".ai/design-tokens.json"]);
+    const inp = input(s, ["design-tokens.json"]);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
   });
 
@@ -2494,12 +2494,12 @@ describe("Theme CSS framework branches", () => {
     const s = snap({ name: "styled-proj", files: [
       { path: "App.tsx", content: "styled.div", size: 20, language: null },
     ]});
-    const inp = input(s, [".ai/design-tokens.json"]);
+    const inp = input(s, ["design-tokens.json"]);
     inp.context_map.dependency_graph.external_dependencies = [
       { name: "styled-components", version: "6.0.0" },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
   });
 
@@ -2560,13 +2560,13 @@ describe("Layer 4 branch coverage", () => {
 
   it("optimization-rules: renders hotspot table when hotspots exist", () => {
     const s = snap({ name: "hot-proj", files: NEXTJS_FILES });
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.dependency_graph.hotspots = [
       { path: "src/core.ts", inbound_count: 12, outbound_count: 8, risk_score: 0.85 },
       { path: "src/utils.ts", inbound_count: 6, outbound_count: 4, risk_score: 0.55 },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("src/core.ts");
     expect(f!.content).toContain("Dependency Hotspots");
@@ -2577,12 +2577,12 @@ describe("Layer 4 branch coverage", () => {
       { path: "src/index.ts", content: "export {}", size: 12, language: null },
       { path: "src/main.ts", content: "start()", size: 10, language: null },
     ]});
-    const inp = input(s, [".ai/optimization-rules.md"]);
+    const inp = input(s, ["optimization-rules.md"]);
     inp.context_map.entry_points = [
       { path: "src/index.ts", type: "app_entry", description: "Main entry" },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/optimization-rules.md");
+    const f = getFile(result, "optimization-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Entry Points");
   });
@@ -2731,7 +2731,7 @@ describe("Layer 4 branch coverage", () => {
       { layer: "data", directories: ["models"] },
     ];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Layer Boundaries");
   });
@@ -2744,7 +2744,7 @@ describe("Layer 4 branch coverage", () => {
     inp.context_map.ai_context.conventions = [];
     inp.context_map.ai_context.warnings = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("No linter configured");
     expect(f!.content).toContain("No formatter");
@@ -2758,7 +2758,7 @@ describe("Layer 4 branch coverage", () => {
     inp.context_map.ai_context.conventions = ["Linter: eslint", "Formatter: prettier"];
     inp.context_map.ai_context.warnings = [];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("project health looks good");
   });
@@ -2882,9 +2882,9 @@ describe("Layer 4 branch coverage", () => {
       { path: "src/styles/main.scss", content: "$color: red;", size: 15 },
       { path: "src/App.tsx", content: "export default () => <div/>;", size: 30 },
     ]});
-    const inp = input(s, [".ai/design-tokens.json"]);
+    const inp = input(s, ["design-tokens.json"]);
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/design-tokens.json");
+    const f = getFile(result, "design-tokens.json");
     expect(f).toBeDefined();
     const tokens = JSON.parse(f!.content);
     expect(tokens.styling_approach).toBe("sass");
@@ -3234,10 +3234,10 @@ describe("Layer 5 branch coverage", () => {
   // Line 116: playwright E2E
   it("frontend-rules mentions Playwright E2E tests", () => {
     const s = snap({ files: REACT_SPA_FILES });
-    const inp = input(s, [".ai/frontend-rules.md"]);
+    const inp = input(s, ["frontend-rules.md"]);
     inp.context_map.detection.test_frameworks = ["vitest", "playwright"];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Playwright");
   });
@@ -3245,10 +3245,10 @@ describe("Layer 5 branch coverage", () => {
   // Line 118: cypress E2E
   it("frontend-rules mentions Cypress E2E tests", () => {
     const s = snap({ files: REACT_SPA_FILES });
-    const inp = input(s, [".ai/frontend-rules.md"]);
+    const inp = input(s, ["frontend-rules.md"]);
     inp.context_map.detection.test_frameworks = ["jest", "cypress"];
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/frontend-rules.md");
+    const f = getFile(result, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Cypress");
   });
@@ -3429,14 +3429,16 @@ describe("Layer 5 branch coverage", () => {
   });
 
   // ── generators-artifacts.ts ────────────────────────────────
-  // Line 37: non-React component scaffold
-  it("generated-component uses scaffold comment for Vue project", () => {
+  // Vue path emits a Vue SFC App shell rather than the prior `<slot />` snippet.
+  it("generated-component emits a Vue SFC app shell for Vue project", () => {
     const s = snap({ files: VUE_FILES });
     const inp = input(s, ["generated-component.tsx"]);
     const result = generateFiles(inp);
     const f = getFile(result, "generated-component.tsx");
     expect(f).toBeDefined();
-    expect(f!.content).toContain("Generated component scaffold");
+    expect(f!.content).toContain("<template>");
+    expect(f!.content).toContain("<script setup lang=\"ts\">");
+    expect(f!.content).toContain("Vue 3 app shell");
   });
 
   // Lines 458-459: no hotspots → low coupling message
@@ -3455,10 +3457,10 @@ describe("Layer 5 branch coverage", () => {
   // toYAML null branch
   it("repo-profile.yaml handles null values in profile", () => {
     const s = snap({ files: REACT_SPA_FILES });
-    const inp = input(s, [".ai/repo-profile.yaml"]);
+    const inp = input(s, ["repo-profile.yaml"]);
     (inp.repo_profile as Record<string, unknown>).goals = null;
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/repo-profile.yaml");
+    const f = getFile(result, "repo-profile.yaml");
     expect(f).toBeDefined();
     expect(f!.content).toContain("null");
   });
@@ -3541,14 +3543,15 @@ describe("Layer 6 branch coverage", () => {
   });
 
   // ── generators-artifacts.ts ────────────────────────────────
-  // Line 37 ??: empty frameworks → fallback to primary_language
-  it("generated-component falls back to primary_language when no frameworks", () => {
+  // No framework detected → vanilla DOM factory (not a React/Svelte/Vue shell).
+  it("generated-component falls back to vanilla DOM factory when no frameworks", () => {
     const s = snap({ files: EMPTY_PROJECT_FILES });
     const inp = input(s, ["generated-component.tsx"]);
     const result = generateFiles(inp);
     const f = getFile(result, "generated-component.tsx");
     expect(f).toBeDefined();
-    expect(f!.content).toContain("Generated component scaffold");
+    expect(f!.content).toContain("vanilla DOM app factory");
+    expect(f!.content).toMatch(/export function create\w+/);
   });
 
   // Lines 458-459: component-library with non-React framework
@@ -3694,7 +3697,7 @@ describe("Layer 6 branch coverage", () => {
   // Lines 53-60: entry_points iteration in debug-playbook
   it("debug-playbook lists entry point suspects", () => {
     const s = snap({ files: EXPRESS_FILES });
-    const inp = input(s, [".ai/debug-playbook.md"]);
+    const inp = input(s, ["debug-playbook.md"]);
     if (inp.context_map.entry_points.length === 0) {
       inp.context_map.entry_points.push({
         path: "src/index.ts",
@@ -3702,7 +3705,7 @@ describe("Layer 6 branch coverage", () => {
       });
     }
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("src/index.ts");
   });
@@ -3906,9 +3909,9 @@ describe("Layer 6 branch coverage", () => {
     it("optimization-rules warns for large projects (>50K LOC)", () => {
       const files = makeLargeFiles(500, 110);
       const s = snap({ files });
-      const inp = input(s, [".ai/optimization-rules.md"]);
+      const inp = input(s, ["optimization-rules.md"]);
       const result = generateFiles(inp);
-      const f = getFile(result, ".ai/optimization-rules.md");
+      const f = getFile(result, "optimization-rules.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("exceeds most context windows");
     });
@@ -3916,9 +3919,9 @@ describe("Layer 6 branch coverage", () => {
     it("optimization-rules notes medium projects (10-50K LOC)", () => {
       const files = makeLargeFiles(100, 150);
       const s = snap({ files });
-      const inp = input(s, [".ai/optimization-rules.md"]);
+      const inp = input(s, ["optimization-rules.md"]);
       const result = generateFiles(inp);
-      const f = getFile(result, ".ai/optimization-rules.md");
+      const f = getFile(result, "optimization-rules.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("large context windows");
     });
@@ -4389,12 +4392,12 @@ describe("Layer 6 branch coverage", () => {
 
     it("debug-playbook lists high-risk hotspot files", () => {
       const s = snap({ files: REACT_SPA_FILES });
-      const inp = input(s, [".ai/debug-playbook.md"]);
+      const inp = input(s, ["debug-playbook.md"]);
       inp.context_map.dependency_graph.hotspots.push(
         { path: "src/critical.ts", risk_score: 0.9, inbound_count: 15, outbound_count: 8 }
       );
       const result = generateFiles(inp);
-      const f = getFile(result, ".ai/debug-playbook.md");
+      const f = getFile(result, "debug-playbook.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("High-Risk Files");
       expect(f!.content).toContain("src/critical.ts");
@@ -4601,22 +4604,22 @@ describe("Layer 6 branch coverage", () => {
     // optimization: empty project (line 20 totalFiles=0), patterns (line 147)
     it("optimization-rules with empty project covers zero-files ternary", () => {
       const s = snap({ files: [] });
-      const inp = input(s, [".ai/optimization-rules.md"]);
+      const inp = input(s, ["optimization-rules.md"]);
       const result = generateFiles(inp);
-      const f = getFile(result, ".ai/optimization-rules.md");
+      const f = getFile(result, "optimization-rules.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("comfortably fits");
     });
 
     it("optimization-rules with architecture patterns", () => {
       const s = snap({ files: REACT_SPA_FILES });
-      const inp = input(s, [".ai/optimization-rules.md"]);
+      const inp = input(s, ["optimization-rules.md"]);
       inp.context_map.architecture_signals.patterns_detected = ["MVC", "Repository"];
       inp.context_map.dependency_graph.hotspots.push(
         { path: "src/core.ts", risk_score: 5.0, inbound_count: 8, outbound_count: 6 }
       );
       const result = generateFiles(inp);
-      const f = getFile(result, ".ai/optimization-rules.md");
+      const f = getFile(result, "optimization-rules.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("Architecture Patterns");
       expect(f!.content).toContain("Dependency Hotspots");
@@ -4798,13 +4801,13 @@ describe("Layer 6 branch coverage", () => {
     // optimization: optimization-rules.md with warnings (line 147 TRUE)
     it("optimization-rules includes warnings section when present", () => {
       const s = snap({ files: REACT_SPA_FILES });
-      const inp = input(s, [".ai/optimization-rules.md"]);
+      const inp = input(s, ["optimization-rules.md"]);
       inp.context_map.ai_context.warnings = [
         "No test files detected",
         "No CI/CD pipeline detected",
       ];
       const result = generateFiles(inp);
-      const f = getFile(result, ".ai/optimization-rules.md");
+      const f = getFile(result, "optimization-rules.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("Optimization Warnings");
       expect(f!.content).toContain("No test files detected");

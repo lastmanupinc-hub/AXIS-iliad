@@ -177,7 +177,7 @@ export function generateSourceMap(ctx: ContextMap, files?: SourceFile[]): Genera
 
   const sourceMap = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     structure: {
       total_files: ctx.structure.total_files,
       total_directories: ctx.structure.total_directories,
@@ -637,7 +637,7 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
 
   const index = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     total_citations: citations.length,
     by_type: {
       documentation: citations.filter(c => c.type === "documentation").length,

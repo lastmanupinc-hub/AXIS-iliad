@@ -326,7 +326,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
 
   const registry = {
     project: ctx.project_identity.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     project_summary: ctx.ai_context.project_summary || null,
     detected_stack: ctx.detection.frameworks.map(fw => ({
       name: fw.name,
@@ -843,7 +843,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   const lines: string[] = [];
   lines.push("# Automation Pipeline");
   lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${new Date().toISOString()}`);
+  lines.push(`# Generated: ${ctx.generated_at}`);
   if (ctx.ai_context.project_summary) {
     lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
   }

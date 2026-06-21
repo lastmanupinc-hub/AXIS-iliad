@@ -1,8 +1,8 @@
 {
   "version": "1.0.0",
-  "snapshot_id": "56f35484-90df-4fed-bd85-90b7545be9e3",
-  "project_id": "86360ec8-d5a3-4358-a674-b16fa514c555",
-  "generated_at": "2026-05-14T02:05:24.101Z",
+  "snapshot_id": "9eee24ae-a411-463d-aa12-3cfa23eab83d",
+  "project_id": "c76ea892-a03f-4747-8070-8eecf419fb91",
+  "generated_at": "2026-05-23T03:31:45.700Z",
   "project_identity": {
     "name": "axis-iliad",
     "type": "monorepo",
@@ -13,14 +13,21 @@
   },
   "structure": {
     "total_files": 500,
-    "total_directories": 64,
-    "total_loc": 129202,
+    "total_directories": 65,
+    "total_loc": 133500,
     "file_tree_summary": [
       {
         "path": ".github/actions/compliance-check/action.yml",
         "type": "file",
         "language": "YAML",
-        "loc": 113,
+        "loc": 248,
+        "role": "config"
+      },
+      {
+        "path": ".github/app-manifest.json",
+        "type": "file",
+        "language": "JSON",
+        "loc": 24,
         "role": "config"
       },
       {
@@ -34,7 +41,7 @@
         "path": ".github/workflows/compliance-check.yml",
         "type": "file",
         "language": "YAML",
-        "loc": 20,
+        "loc": 21,
         "role": "config"
       },
       {
@@ -48,7 +55,7 @@
         "path": ".gitignore",
         "type": "file",
         "language": null,
-        "loc": 18,
+        "loc": 20,
         "role": "config"
       },
       {
@@ -83,7 +90,7 @@
         "path": "AGENTS.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 222,
+        "loc": 223,
         "role": "documentation"
       },
       {
@@ -174,7 +181,7 @@
         "path": "apps/api/src/agent-discovery.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 460,
+        "loc": 461,
         "role": "test"
       },
       {
@@ -223,14 +230,14 @@
         "path": "apps/api/src/billing-flow.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 434,
+        "loc": 468,
         "role": "test"
       },
       {
         "path": "apps/api/src/billing.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 527,
+        "loc": 585,
         "role": "source"
       },
       {
@@ -244,14 +251,21 @@
         "path": "apps/api/src/checkout-email.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 242,
+        "loc": 256,
+        "role": "test"
+      },
+      {
+        "path": "apps/api/src/counts-consistency.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 36,
         "role": "test"
       },
       {
         "path": "apps/api/src/counts.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 4,
+        "loc": 6,
         "role": "source"
       },
       {
@@ -304,6 +318,34 @@
         "role": "test"
       },
       {
+        "path": "apps/api/src/email.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 200,
+        "role": "test"
+      },
+      {
+        "path": "apps/api/src/email.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 117,
+        "role": "source"
+      },
+      {
+        "path": "apps/api/src/embeddings.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 166,
+        "role": "test"
+      },
+      {
+        "path": "apps/api/src/embeddings.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 94,
+        "role": "source"
+      },
+      {
         "path": "apps/api/src/env.test.ts",
         "type": "file",
         "language": "TypeScript",
@@ -314,7 +356,7 @@
         "path": "apps/api/src/env.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 96,
+        "loc": 116,
         "role": "source"
       },
       {
@@ -342,14 +384,28 @@
         "path": "apps/api/src/funnel-api.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 490,
+        "loc": 520,
         "role": "test"
       },
       {
         "path": "apps/api/src/funnel.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 220,
+        "loc": 289,
+        "role": "source"
+      },
+      {
+        "path": "apps/api/src/github-webhook.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 242,
+        "role": "test"
+      },
+      {
+        "path": "apps/api/src/github-webhook.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 238,
         "role": "source"
       },
       {
@@ -398,7 +454,7 @@
         "path": "apps/api/src/handlers.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 2841,
+        "loc": 3180,
         "role": "source"
       },
       {
@@ -433,14 +489,14 @@
         "path": "apps/api/src/mcp-server.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 1908,
+        "loc": 1923,
         "role": "test"
       },
       {
         "path": "apps/api/src/mcp-server.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 2368,
+        "loc": 3105,
         "role": "source"
       },
       {
@@ -514,6 +570,20 @@
         "role": "source"
       },
       {
+        "path": "apps/api/src/object-storage.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 129,
+        "role": "test"
+      },
+      {
+        "path": "apps/api/src/object-storage.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 124,
+        "role": "source"
+      },
+      {
         "path": "apps/api/src/openapi.test.ts",
         "type": "file",
         "language": "TypeScript",
@@ -524,7 +594,7 @@
         "path": "apps/api/src/openapi.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 1575,
+        "loc": 1698,
         "role": "source"
       },
       {
@@ -636,7 +706,7 @@
         "path": "apps/api/src/router.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 314,
+        "loc": 338,
         "role": "source"
       },
       {
@@ -671,7 +741,7 @@
         "path": "apps/api/src/server.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 349,
+        "loc": 361,
         "role": "source"
       },
       {
@@ -685,7 +755,7 @@
         "path": "apps/api/src/stripe-branches.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 857,
+        "loc": 878,
         "role": "test"
       },
       {
@@ -699,7 +769,7 @@
         "path": "apps/api/src/stripe.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 364,
+        "loc": 495,
         "role": "source"
       },
       {
@@ -708,6 +778,20 @@
         "language": "TypeScript",
         "loc": 174,
         "role": "test"
+      },
+      {
+        "path": "apps/api/src/vector-db.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 168,
+        "role": "test"
+      },
+      {
+        "path": "apps/api/src/vector-db.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 180,
+        "role": "source"
       },
       {
         "path": "apps/api/src/versions.test.ts",
@@ -867,7 +951,7 @@
         "path": "apps/web/index.html",
         "type": "file",
         "language": "HTML",
-        "loc": 120,
+        "loc": 158,
         "role": "unknown"
       },
       {
@@ -888,21 +972,21 @@
         "path": "apps/web/src/api.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 522,
+        "loc": 523,
         "role": "test"
       },
       {
         "path": "apps/web/src/api.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 451,
+        "loc": 605,
         "role": "source"
       },
       {
         "path": "apps/web/src/App.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 290,
+        "loc": 433,
         "role": "source"
       },
       {
@@ -983,6 +1067,13 @@
         "role": "source"
       },
       {
+        "path": "apps/web/src/components/ToolPage.tsx",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 147,
+        "role": "source"
+      },
+      {
         "path": "apps/web/src/components/UpsellModal.tsx",
         "type": "file",
         "language": "TypeScript",
@@ -1011,6 +1102,13 @@
         "role": "source"
       },
       {
+        "path": "apps/web/src/pages/AdminPage.tsx",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 194,
+        "role": "source"
+      },
+      {
         "path": "apps/web/src/pages/DashboardPage.tsx",
         "type": "file",
         "language": "TypeScript",
@@ -1021,7 +1119,7 @@
         "path": "apps/web/src/pages/DocsPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 1248,
+        "loc": 1249,
         "role": "source"
       },
       {
@@ -1035,49 +1133,70 @@
         "path": "apps/web/src/pages/ForAgentsPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 700,
+        "loc": 152,
         "role": "source"
       },
       {
         "path": "apps/web/src/pages/HelpPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 723,
+        "loc": 734,
         "role": "source"
       },
       {
         "path": "apps/web/src/pages/InstallPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 185,
+        "loc": 186,
+        "role": "source"
+      },
+      {
+        "path": "apps/web/src/pages/MyAnalyticsPage.tsx",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 218,
         "role": "source"
       },
       {
         "path": "apps/web/src/pages/PlansPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 224,
+        "loc": 231,
         "role": "source"
       },
       {
         "path": "apps/web/src/pages/ProgramsPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 282,
+        "loc": 300,
         "role": "source"
       },
       {
         "path": "apps/web/src/pages/QAPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 367,
+        "loc": 372,
         "role": "source"
       },
       {
         "path": "apps/web/src/pages/TermsPage.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 318,
+        "loc": 331,
+        "role": "source"
+      },
+      {
+        "path": "apps/web/src/pages/tools/WebResearchPage.tsx",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 198,
+        "role": "source"
+      },
+      {
+        "path": "apps/web/src/pages/ToolsIndexPage.tsx",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 185,
         "role": "source"
       },
       {
@@ -1091,7 +1210,7 @@
         "path": "apps/web/src/pages.test.tsx",
         "type": "file",
         "language": "TypeScript",
-        "loc": 115,
+        "loc": 125,
         "role": "test"
       },
       {
@@ -1140,7 +1259,7 @@
         "path": "architecture-summary.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 1695,
+        "loc": 1721,
         "role": "documentation"
       },
       {
@@ -1217,7 +1336,7 @@
         "path": "axis_all_tools.yaml",
         "type": "file",
         "language": "YAML",
-        "loc": 810,
+        "loc": 816,
         "role": "unknown"
       },
       {
@@ -1385,7 +1504,7 @@
         "path": "CLAUDE.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 185,
+        "loc": 186,
         "role": "documentation"
       },
       {
@@ -1413,7 +1532,7 @@
         "path": "competitive-gap-matrix.yaml",
         "type": "file",
         "language": "YAML",
-        "loc": 557,
+        "loc": 620,
         "role": "unknown"
       },
       {
@@ -1441,7 +1560,7 @@
         "path": "connector-map.yaml",
         "type": "file",
         "language": "YAML",
-        "loc": 262,
+        "loc": 264,
         "role": "unknown"
       },
       {
@@ -1455,14 +1574,14 @@
         "path": "content-constraints.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 46,
+        "loc": 47,
         "role": "documentation"
       },
       {
         "path": "CONTRIBUTING.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 52,
+        "loc": 87,
         "role": "documentation"
       },
       {
@@ -1532,7 +1651,7 @@
         "path": "cro-playbook.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 536,
+        "loc": 541,
         "role": "documentation"
       },
       {
@@ -1616,7 +1735,7 @@
         "path": "Dockerfile",
         "type": "file",
         "language": "Dockerfile",
-        "loc": 20,
+        "loc": 21,
         "role": "build"
       },
       {
@@ -1658,7 +1777,7 @@
         "path": "embed-snippet.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 49,
+        "loc": 50,
         "role": "source"
       },
       {
@@ -1823,6 +1942,13 @@
         "role": "unknown"
       },
       {
+        "path": "FRONTEND_DEEP_DIVE.md",
+        "type": "file",
+        "language": "Markdown",
+        "loc": 406,
+        "role": "documentation"
+      },
+      {
         "path": "funnel-map.md",
         "type": "file",
         "language": "Markdown",
@@ -1875,7 +2001,7 @@
         "path": "graph-prompt-map.json",
         "type": "file",
         "language": "JSON",
-        "loc": 2503,
+        "loc": 2602,
         "role": "unknown"
       },
       {
@@ -1893,10 +2019,17 @@
         "role": "unknown"
       },
       {
+        "path": "iliad-agentic-platform-strategy.yaml",
+        "type": "file",
+        "language": "YAML",
+        "loc": 588,
+        "role": "unknown"
+      },
+      {
         "path": "incident-template.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 364,
+        "loc": 373,
         "role": "documentation"
       },
       {
@@ -1917,7 +2050,7 @@
         "path": "layout-patterns.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 57,
+        "loc": 55,
         "role": "documentation"
       },
       {
@@ -1925,6 +2058,13 @@
         "type": "file",
         "language": "Markdown",
         "loc": 54,
+        "role": "documentation"
+      },
+      {
+        "path": "llms.txt",
+        "type": "file",
+        "language": null,
+        "loc": 19,
         "role": "documentation"
       },
       {
@@ -2015,7 +2155,7 @@
         "path": "mcp/fintech-mcp-surface-package.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 139,
+        "loc": 157,
         "role": "documentation"
       },
       {
@@ -2162,7 +2302,7 @@
         "path": "notebook-summary.md",
         "type": "file",
         "language": "Markdown",
-        "loc": 81,
+        "loc": 82,
         "role": "documentation"
       },
       {
@@ -2327,6 +2467,13 @@
         "role": "config"
       },
       {
+        "path": "packages/generator-core/src/counts-consistency.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 37,
+        "role": "test"
+      },
+      {
         "path": "packages/generator-core/src/file-excerpt-utils.ts",
         "type": "file",
         "language": "TypeScript",
@@ -2344,7 +2491,7 @@
         "path": "packages/generator-core/src/generate-programs.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 242,
+        "loc": 243,
         "role": "test"
       },
       {
@@ -2365,14 +2512,14 @@
         "path": "packages/generator-core/src/generate.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 1232,
+        "loc": 1228,
         "role": "test"
       },
       {
         "path": "packages/generator-core/src/generate.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 350,
+        "loc": 365,
         "role": "source"
       },
       {
@@ -2386,14 +2533,14 @@
         "path": "packages/generator-core/src/generator-branches.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 4235,
+        "loc": 4238,
         "role": "test"
       },
       {
         "path": "packages/generator-core/src/generator-sourcefile-branches.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 422,
+        "loc": 425,
         "role": "test"
       },
       {
@@ -2456,7 +2603,7 @@
         "path": "packages/generator-core/src/generator-sourcefile-branches18.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 540,
+        "loc": 541,
         "role": "test"
       },
       {
@@ -2526,7 +2673,7 @@
         "path": "packages/generator-core/src/generator-sourcefile-branches9.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 688,
+        "loc": 689,
         "role": "test"
       },
       {
@@ -2540,7 +2687,7 @@
         "path": "packages/generator-core/src/generators-agentic-purchasing.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 1083,
+        "loc": 1084,
         "role": "source"
       },
       {
@@ -2554,7 +2701,7 @@
         "path": "packages/generator-core/src/generators-artifacts.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 626,
+        "loc": 1981,
         "role": "source"
       },
       {
@@ -2575,14 +2722,14 @@
         "path": "packages/generator-core/src/generators-closer.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 159,
+        "loc": 161,
         "role": "test"
       },
       {
         "path": "packages/generator-core/src/generators-closer.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 825,
+        "loc": 1302,
         "role": "source"
       },
       {
@@ -2610,7 +2757,7 @@
         "path": "packages/generator-core/src/generators-mcp.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 2486,
+        "loc": 2537,
         "role": "source"
       },
       {
@@ -2680,7 +2827,7 @@
         "path": "packages/generator-core/src/generators-theme.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 915,
+        "loc": 987,
         "role": "source"
       },
       {
@@ -2719,10 +2866,17 @@
         "role": "config"
       },
       {
+        "path": "packages/mpp/README.md",
+        "type": "file",
+        "language": "Markdown",
+        "loc": 133,
+        "role": "documentation"
+      },
+      {
         "path": "packages/mpp/src/index.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 234,
+        "loc": 250,
         "role": "source"
       },
       {
@@ -2925,7 +3079,7 @@
         "path": "packages/snapshots/src/billing-store.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 276,
+        "loc": 369,
         "role": "source"
       },
       {
@@ -2960,14 +3114,14 @@
         "path": "packages/snapshots/src/db.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 319,
+        "loc": 322,
         "role": "test"
       },
       {
         "path": "packages/snapshots/src/db.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 615,
+        "loc": 662,
         "role": "source"
       },
       {
@@ -3009,14 +3163,14 @@
         "path": "packages/snapshots/src/funnel-types.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 153,
+        "loc": 164,
         "role": "source"
       },
       {
         "path": "packages/snapshots/src/funnel.test.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 354,
+        "loc": 369,
         "role": "test"
       },
       {
@@ -3058,7 +3212,7 @@
         "path": "packages/snapshots/src/index.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 174,
+        "loc": 184,
         "role": "source"
       },
       {
@@ -3114,7 +3268,7 @@
         "path": "packages/snapshots/src/referral-store.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 157,
+        "loc": 181,
         "role": "source"
       },
       {
@@ -3177,7 +3331,7 @@
         "path": "packages/snapshots/src/stripe-store.ts",
         "type": "file",
         "language": "TypeScript",
-        "loc": 113,
+        "loc": 140,
         "role": "source"
       },
       {
@@ -3192,6 +3346,20 @@
         "type": "file",
         "language": "TypeScript",
         "loc": 42,
+        "role": "source"
+      },
+      {
+        "path": "packages/snapshots/src/usage-credit-metering.test.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 53,
+        "role": "test"
+      },
+      {
+        "path": "packages/snapshots/src/usage-credit-metering.ts",
+        "type": "file",
+        "language": "TypeScript",
+        "loc": 145,
         "role": "source"
       },
       {
@@ -3347,191 +3515,18 @@
         "language": "Markdown",
         "loc": 72,
         "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/brand-guidelines.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 34,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/campaign-brief.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 22,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/canvas-spec.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 197,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/capability-registry.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 86,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/channel-rulebook.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 54,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/citation-index.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 116,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/CLAUDE.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 22,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/collection-map.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 49,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/component-guidelines.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 15,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/component-library.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 275,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/component-theme-map.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 2059,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/connector-map.yaml",
-        "type": "file",
-        "language": "YAML",
-        "loc": 40,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/content-audit.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 60,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/content-constraints.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 35,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/cost-estimate.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 283,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/cro-playbook.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 54,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/dark-mode-tokens.json",
-        "type": "file",
-        "language": "JSON",
-        "loc": 117,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/dashboard-widget.tsx",
-        "type": "file",
-        "language": "TypeScript",
-        "loc": 8,
-        "role": "source"
-      },
-      {
-        "path": "payment-processing-output/dependency-hotspots.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 45,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/embed-snippet.ts",
-        "type": "file",
-        "language": "TypeScript",
-        "loc": 40,
-        "role": "source"
-      },
-      {
-        "path": "payment-processing-output/export-manifest.yaml",
-        "type": "file",
-        "language": "YAML",
-        "loc": 76,
-        "role": "unknown"
-      },
-      {
-        "path": "payment-processing-output/funnel-map.md",
-        "type": "file",
-        "language": "Markdown",
-        "loc": 42,
-        "role": "documentation"
-      },
-      {
-        "path": "payment-processing-output/generated-component.tsx",
-        "type": "file",
-        "language": "TypeScript",
-        "loc": 11,
-        "role": "source"
-      },
-      {
-        "path": "payment-processing-output/generative-sketch.ts",
-        "type": "file",
-        "language": "TypeScript",
-        "loc": 116,
-        "role": "source"
       }
     ],
     "top_level_layout": [
       {
         "name": "apps",
         "purpose": "monorepo_apps",
-        "file_count": 145
+        "file_count": 161
       },
       {
         "name": "packages",
         "purpose": "monorepo_packages",
-        "file_count": 140
-      },
-      {
-        "name": "payment-processing-output",
-        "purpose": "project_directory",
-        "file_count": 32
+        "file_count": 144
       },
       {
         "name": "examples",
@@ -3544,6 +3539,11 @@
         "file_count": 16
       },
       {
+        "name": "payment-processing-output",
+        "purpose": "project_directory",
+        "file_count": 8
+      },
+      {
         "name": "packaging",
         "purpose": "project_directory",
         "file_count": 7
@@ -3551,7 +3551,7 @@
       {
         "name": ".github",
         "purpose": "project_directory",
-        "file_count": 4
+        "file_count": 5
       },
       {
         "name": "algorithmic",
@@ -3609,33 +3609,33 @@
     "languages": [
       {
         "name": "TypeScript",
-        "file_count": 268,
-        "loc": 87403,
-        "loc_percent": 73.9
-      },
-      {
-        "name": "JSON",
-        "file_count": 66,
-        "loc": 11089,
-        "loc_percent": 9.4
+        "file_count": 283,
+        "loc": 93770,
+        "loc_percent": 76.5
       },
       {
         "name": "YAML",
-        "file_count": 58,
-        "loc": 9206,
-        "loc_percent": 7.8
+        "file_count": 57,
+        "loc": 9885,
+        "loc_percent": 8.1
+      },
+      {
+        "name": "JSON",
+        "file_count": 60,
+        "loc": 8079,
+        "loc_percent": 6.6
       },
       {
         "name": "Markdown",
-        "file_count": 83,
-        "loc": 7742,
+        "file_count": 74,
+        "loc": 7944,
         "loc_percent": 6.5
       },
       {
         "name": "JavaScript",
         "file_count": 8,
         "loc": 2093,
-        "loc_percent": 1.8
+        "loc_percent": 1.7
       },
       {
         "name": "CSS",
@@ -3646,13 +3646,13 @@
       {
         "name": "HTML",
         "file_count": 1,
-        "loc": 120,
+        "loc": 158,
         "loc_percent": 0.1
       },
       {
         "name": "Dockerfile",
         "file_count": 1,
-        "loc": 20,
+        "loc": 21,
         "loc_percent": 0
       }
     ],
@@ -3870,6 +3870,22 @@
       },
       {
         "source": "apps/web/src/App.tsx",
+        "target": "apps/web/src/pages/AdminPage.tsx"
+      },
+      {
+        "source": "apps/web/src/App.tsx",
+        "target": "apps/web/src/pages/MyAnalyticsPage.tsx"
+      },
+      {
+        "source": "apps/web/src/App.tsx",
+        "target": "apps/web/src/pages/ToolsIndexPage.tsx"
+      },
+      {
+        "source": "apps/web/src/App.tsx",
+        "target": "apps/web/src/pages/tools/WebResearchPage.tsx"
+      },
+      {
+        "source": "apps/web/src/App.tsx",
         "target": "apps/web/src/components/Toast.tsx"
       },
       {
@@ -3989,12 +4005,24 @@
         "target": "apps/web/src/components/AxisIcons.tsx"
       },
       {
+        "source": "apps/web/src/pages/MyAnalyticsPage.tsx",
+        "target": "apps/web/src/api.ts"
+      },
+      {
         "source": "apps/web/src/pages/PlansPage.tsx",
         "target": "apps/web/src/api.ts"
       },
       {
         "source": "apps/web/src/pages/QAPage.tsx",
         "target": "apps/web/src/components/AxisIcons.tsx"
+      },
+      {
+        "source": "apps/web/src/pages/tools/WebResearchPage.tsx",
+        "target": "apps/web/src/components/ToolPage.tsx"
+      },
+      {
+        "source": "apps/web/src/pages/tools/WebResearchPage.tsx",
+        "target": "apps/web/src/api.ts"
       },
       {
         "source": "apps/web/src/pages/UploadPage.tsx",
@@ -4046,6 +4074,14 @@
       },
       {
         "source": "apps/web/src/pages.test.tsx",
+        "target": "apps/web/src/pages/AdminPage.tsx"
+      },
+      {
+        "source": "apps/web/src/pages.test.tsx",
+        "target": "apps/web/src/pages/MyAnalyticsPage.tsx"
+      },
+      {
+        "source": "apps/web/src/pages.test.tsx",
         "target": "apps/web/src/pages/PlansPage.tsx"
       },
       {
@@ -4085,20 +4121,20 @@
       {
         "path": "apps/web/src/App.tsx",
         "inbound_count": 1,
-        "outbound_count": 17,
-        "risk_score": 0.9
+        "outbound_count": 21,
+        "risk_score": 1
       },
       {
         "path": "apps/web/src/api.ts",
-        "inbound_count": 17,
+        "inbound_count": 19,
         "outbound_count": 0,
-        "risk_score": 0.85
+        "risk_score": 0.95
       },
       {
         "path": "apps/web/src/pages.test.tsx",
         "inbound_count": 0,
-        "outbound_count": 15,
-        "risk_score": 0.75
+        "outbound_count": 17,
+        "risk_score": 0.85
       },
       {
         "path": "apps/web/src/pages/DashboardPage.tsx",
@@ -4629,6 +4665,11 @@
       "source_file": "apps/api/src/billing-flow.test.ts"
     },
     {
+      "path": "/v1/account/analytics/summary",
+      "method": "GET",
+      "source_file": "apps/api/src/billing-flow.test.ts"
+    },
+    {
       "path": "/v1/account/tier",
       "method": "POST",
       "source_file": "apps/api/src/billing-flow.test.ts"
@@ -5032,6 +5073,16 @@
       "path": "/v1/funnel/metrics",
       "method": "GET",
       "source_file": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/account/analytics/events",
+      "method": "POST",
+      "source_file": "apps/api/src/funnel-api.test.ts"
+    },
+    {
+      "path": "/v1/github/webhook",
+      "method": "POST",
+      "source_file": "apps/api/src/github-webhook.test.ts"
     },
     {
       "path": "/v1/snapshots",
@@ -5764,6 +5815,21 @@
       "source_file": "apps/api/src/server.ts"
     },
     {
+      "path": "/v1/github/webhook",
+      "method": "POST",
+      "source_file": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/research/scrape",
+      "method": "POST",
+      "source_file": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/research/crawl",
+      "method": "POST",
+      "source_file": "apps/api/src/server.ts"
+    },
+    {
       "path": "/.well-known/axis.json",
       "method": "GET",
       "source_file": "apps/api/src/server.ts"
@@ -5825,6 +5891,11 @@
     },
     {
       "path": "/docs",
+      "method": "GET",
+      "source_file": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/pricing",
       "method": "GET",
       "source_file": "apps/api/src/server.ts"
     },
@@ -6044,6 +6115,11 @@
       "source_file": "apps/api/src/server.ts"
     },
     {
+      "path": "/v1/account/analytics/summary",
+      "method": "GET",
+      "source_file": "apps/api/src/server.ts"
+    },
+    {
       "path": "/v1/account/quota",
       "method": "GET",
       "source_file": "apps/api/src/server.ts"
@@ -6136,6 +6212,11 @@
     {
       "path": "/v1/funnel/metrics",
       "method": "GET",
+      "source_file": "apps/api/src/server.ts"
+    },
+    {
+      "path": "/v1/account/analytics/events",
+      "method": "POST",
       "source_file": "apps/api/src/server.ts"
     },
     {
@@ -6544,6 +6625,21 @@
       "source_file": "packages/generator-core/src/generators-agentic-purchasing.test.ts"
     },
     {
+      "path": "/v1/my-tool",
+      "method": "POST",
+      "source_file": "packages/mpp/README.md"
+    },
+    {
+      "path": "/v1/my-tool",
+      "method": "POST",
+      "source_file": "packages/mpp/README.md"
+    },
+    {
+      "path": "/v1/my-tool",
+      "method": "POST",
+      "source_file": "packages/mpp/README.md"
+    },
+    {
       "path": "/users/:id",
       "method": "GET",
       "source_file": "packages/repo-parser/src/perf.bench.ts"
@@ -6561,6 +6657,69 @@
       "language": "TypeScript",
       "field_count": 3,
       "source_file": "apps/api/src/billing.ts"
+    },
+    {
+      "name": "EmailConfig",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 2,
+      "source_file": "apps/api/src/email.ts"
+    },
+    {
+      "name": "ResendErrorResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/api/src/email.ts"
+    },
+    {
+      "name": "ResendSuccessResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 1,
+      "source_file": "apps/api/src/email.ts"
+    },
+    {
+      "name": "SendEmailOptions",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/email.ts"
+    },
+    {
+      "name": "SendEmailResult",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/api/src/email.ts"
+    },
+    {
+      "name": "EmbeddingsConfig",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 2,
+      "source_file": "apps/api/src/embeddings.ts"
+    },
+    {
+      "name": "EmbeddingsResult",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/api/src/embeddings.ts"
+    },
+    {
+      "name": "OpenAIEmbeddingResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/embeddings.ts"
+    },
+    {
+      "name": "OpenAIErrorResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/api/src/embeddings.ts"
     },
     {
       "name": "EnvSpec",
@@ -6591,6 +6750,55 @@
       "source_file": "apps/api/src/export.ts"
     },
     {
+      "name": "PullRequestPayload",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/github-webhook.ts"
+    },
+    {
+      "name": "PushPayload",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 7,
+      "source_file": "apps/api/src/github-webhook.ts"
+    },
+    {
+      "name": "SnapshotTarget",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/github-webhook.ts"
+    },
+    {
+      "name": "FirecrawlCrawlRequest",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/handlers.ts"
+    },
+    {
+      "name": "FirecrawlCrawlResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/api/src/handlers.ts"
+    },
+    {
+      "name": "FirecrawlScrapeRequest",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 6,
+      "source_file": "apps/api/src/handlers.ts"
+    },
+    {
+      "name": "FirecrawlScrapeResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/handlers.ts"
+    },
+    {
       "name": "IntentCapture",
       "kind": "interface",
       "language": "TypeScript",
@@ -6609,6 +6817,13 @@
       "kind": "interface",
       "language": "TypeScript",
       "field_count": 5,
+      "source_file": "apps/api/src/mcp-server.ts"
+    },
+    {
+      "name": "PlannedCapability",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 7,
       "source_file": "apps/api/src/mcp-server.ts"
     },
     {
@@ -6645,6 +6860,27 @@
       "language": "TypeScript",
       "field_count": 3,
       "source_file": "apps/api/src/oauth-server-simple.ts"
+    },
+    {
+      "name": "PresignOptions",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/object-storage.ts"
+    },
+    {
+      "name": "PresignResult",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/api/src/object-storage.ts"
+    },
+    {
+      "name": "R2Config",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/api/src/object-storage.ts"
     },
     {
       "name": "OpenApiSpec",
@@ -6717,6 +6953,27 @@
       "source_file": "apps/api/src/router.ts"
     },
     {
+      "name": "QueryOptions",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/api/src/vector-db.ts"
+    },
+    {
+      "name": "VectorMatch",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/api/src/vector-db.ts"
+    },
+    {
+      "name": "VectorRecord",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/api/src/vector-db.ts"
+    },
+    {
       "name": "CliArgs",
       "kind": "interface",
       "language": "TypeScript",
@@ -6759,10 +7016,59 @@
       "source_file": "apps/web/src/api.ts"
     },
     {
+      "name": "AdminAccountsResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "AdminAccountSummary",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "AdminActivityEvent",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 6,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "AdminActivityResponse",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 2,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "AdminStats",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "ApiEndpointUsage",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
       "name": "ApiKeyInfo",
       "kind": "interface",
       "language": "TypeScript",
       "field_count": 5,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "ApiStatusUsage",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 2,
       "source_file": "apps/web/src/api.ts"
     },
     {
@@ -6773,10 +7079,31 @@
       "source_file": "apps/web/src/api.ts"
     },
     {
+      "name": "CrawlPage",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "CrawlResult",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
       "name": "CreditsInfo",
       "kind": "interface",
       "language": "TypeScript",
       "field_count": 7,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "FunnelMetrics",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 8,
       "source_file": "apps/web/src/api.ts"
     },
     {
@@ -6794,6 +7121,13 @@
       "source_file": "apps/web/src/api.ts"
     },
     {
+      "name": "MyAnalyticsSummary",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 11,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
       "name": "PlanDefinition",
       "kind": "interface",
       "language": "TypeScript",
@@ -6804,11 +7138,18 @@
       "name": "PlanFeature",
       "kind": "interface",
       "language": "TypeScript",
-      "field_count": 4,
+      "field_count": 6,
       "source_file": "apps/web/src/api.ts"
     },
     {
       "name": "RepoProfile",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "apps/web/src/api.ts"
+    },
+    {
+      "name": "ScrapeResult",
       "kind": "interface",
       "language": "TypeScript",
       "field_count": 4,
@@ -6853,7 +7194,7 @@
       "name": "SubscriptionInfo",
       "kind": "interface",
       "language": "TypeScript",
-      "field_count": 11,
+      "field_count": 12,
       "source_file": "apps/web/src/api.ts"
     },
     {
@@ -6983,6 +7324,20 @@
       "source_file": "apps/web/src/components/Toast.tsx"
     },
     {
+      "name": "ToolPageProps",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 11,
+      "source_file": "apps/web/src/components/ToolPage.tsx"
+    },
+    {
+      "name": "ToolPricing",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "apps/web/src/components/ToolPage.tsx"
+    },
+    {
       "name": "Props",
       "kind": "interface",
       "language": "TypeScript",
@@ -7025,6 +7380,13 @@
       "source_file": "apps/web/src/pages/HelpPage.tsx"
     },
     {
+      "name": "StrategyItem",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "apps/web/src/pages/MyAnalyticsPage.tsx"
+    },
+    {
       "name": "Props",
       "kind": "interface",
       "language": "TypeScript",
@@ -7058,6 +7420,27 @@
       "language": "TypeScript",
       "field_count": 2,
       "source_file": "apps/web/src/pages/TermsPage.tsx"
+    },
+    {
+      "name": "Props",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 1,
+      "source_file": "apps/web/src/pages/tools/WebResearchPage.tsx"
+    },
+    {
+      "name": "Props",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 1,
+      "source_file": "apps/web/src/pages/ToolsIndexPage.tsx"
+    },
+    {
+      "name": "ToolCatalogEntry",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 8,
+      "source_file": "apps/web/src/pages/ToolsIndexPage.tsx"
     },
     {
       "name": "Props",
@@ -7186,6 +7569,41 @@
       "source_file": "packages/generator-core/src/generators-artifacts.ts"
     },
     {
+      "name": "Entry",
+      "kind": "type_alias",
+      "language": "TypeScript",
+      "field_count": 2,
+      "source_file": "packages/generator-core/src/generators-artifacts.ts"
+    },
+    {
+      "name": "Model",
+      "kind": "type_alias",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "packages/generator-core/src/generators-artifacts.ts"
+    },
+    {
+      "name": "ResellCapability",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 10,
+      "source_file": "packages/generator-core/src/generators-artifacts.ts"
+    },
+    {
+      "name": "ResellProvider",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "packages/generator-core/src/generators-artifacts.ts"
+    },
+    {
+      "name": "Route",
+      "kind": "type_alias",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "packages/generator-core/src/generators-artifacts.ts"
+    },
+    {
       "name": "BrandingConfig",
       "kind": "interface",
       "language": "TypeScript",
@@ -7203,7 +7621,7 @@
       "name": "ProjectSignals",
       "kind": "interface",
       "language": "TypeScript",
-      "field_count": 7,
+      "field_count": 10,
       "source_file": "packages/generator-core/src/generators-closer.ts"
     },
     {
@@ -7690,10 +8108,31 @@
       "source_file": "packages/sdk/src/index.ts"
     },
     {
+      "name": "AccountApiAnalyticsSummary",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 7,
+      "source_file": "packages/snapshots/src/billing-store.ts"
+    },
+    {
       "name": "AccountSummary",
       "kind": "interface",
       "language": "TypeScript",
       "field_count": 7,
+      "source_file": "packages/snapshots/src/billing-store.ts"
+    },
+    {
+      "name": "ApiEndpointUsage",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 4,
+      "source_file": "packages/snapshots/src/billing-store.ts"
+    },
+    {
+      "name": "ApiStatusUsage",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 2,
       "source_file": "packages/snapshots/src/billing-store.ts"
     },
     {
@@ -7819,7 +8258,7 @@
       "name": "PlanFeature",
       "kind": "interface",
       "language": "TypeScript",
-      "field_count": 4,
+      "field_count": 6,
       "source_file": "packages/snapshots/src/funnel-types.ts"
     },
     {
@@ -7900,6 +8339,13 @@
       "source_file": "packages/snapshots/src/referral-store.ts"
     },
     {
+      "name": "ReferralTokenUsageModifier",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 3,
+      "source_file": "packages/snapshots/src/referral-store.ts"
+    },
+    {
       "name": "CodeSymbol",
       "kind": "interface",
       "language": "TypeScript",
@@ -7977,6 +8423,20 @@
       "source_file": "packages/snapshots/src/types.ts"
     },
     {
+      "name": "UsageCreditChargeResult",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 5,
+      "source_file": "packages/snapshots/src/usage-credit-metering.ts"
+    },
+    {
+      "name": "UsageCreditSummary",
+      "kind": "interface",
+      "language": "TypeScript",
+      "field_count": 6,
+      "source_file": "packages/snapshots/src/usage-credit-metering.ts"
+    },
+    {
       "name": "FileDiff",
       "kind": "interface",
       "language": "TypeScript",
@@ -8038,27 +8498,6 @@
       "language": "TypeScript",
       "field_count": 8,
       "source_file": "packages/snapshots/src/webhook-store.ts"
-    },
-    {
-      "name": "averypayplatformConfig",
-      "kind": "interface",
-      "language": "TypeScript",
-      "field_count": 2,
-      "source_file": "payment-processing-output/generated-component.tsx"
-    },
-    {
-      "name": "Edge",
-      "kind": "interface",
-      "language": "TypeScript",
-      "field_count": 3,
-      "source_file": "payment-processing-output/generative-sketch.ts"
-    },
-    {
-      "name": "Node",
-      "kind": "interface",
-      "language": "TypeScript",
-      "field_count": 7,
-      "source_file": "payment-processing-output/generative-sketch.ts"
     }
   ],
   "sql_schema": [],
@@ -8079,13 +8518,13 @@
     "separation_score": 0.65
   },
   "ai_context": {
-    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 215 domain models.",
+    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
     "key_abstractions": [
       "apps/ (monorepo_apps)",
       "packages/ (monorepo_packages)",
-      "payment-processing-output/ (project_directory)",
       "examples/ (project_directory)",
       "mcp/ (project_directory)",
+      "payment-processing-output/ (project_directory)",
       "packaging/ (project_directory)",
       ".github/ (project_directory)",
       "algorithmic/ (project_directory)"
@@ -8100,5 +8539,5 @@
       "No lockfile found — dependency versions may be inconsistent"
     ]
   },
-  "source_file_tree": ".github/actions/compliance-check/action.yml (4.4 KB)\n.github/workflows/ci.yml (4.7 KB)\n.github/workflows/compliance-check.yml (0.5 KB)\n.github/workflows/release.yml (0.6 KB)\n.gitignore (0.4 KB)\n.prettierrc.json (0.1 KB)\n.tmp-vitest.json (68.7 KB)\nab-test-plan.md (2.8 KB)\nagent-purchasing-playbook.md (16.9 KB)\nAGENTS.md (13.9 KB)\nalgorithmic-pack.json (7.9 KB)\nalgorithmic/begin.yaml (1.8 KB)\nalgorithmic/continuation.yaml (2.4 KB)\nalgorithmic/MEMORY.yaml (2.9 KB)\nalgorithmic/schemas/output-contract.schema.json (1.8 KB)\napps/api/check-table.js (0.3 KB)\napps/api/gen-keys.js (0.3 KB)\napps/api/keys.env (4.3 KB)\napps/api/mcp-server.json (10.3 KB)\napps/api/package.json (0.7 KB)\napps/api/src/admin.test.ts (10.0 KB)\napps/api/src/admin.ts (2.8 KB)\napps/api/src/agent-discovery.test.ts (19.0 KB)\napps/api/src/analyze-repo-success.test.ts (5.0 KB)\napps/api/src/analyze.test.ts (17.6 KB)\napps/api/src/api-branches.test.ts (22.0 KB)\napps/api/src/api-layer5.test.ts (10.6 KB)\napps/api/src/api.test.ts (20.7 KB)\napps/api/src/b-grade-upgrade.test.ts (8.6 KB)\napps/api/src/billing-flow.test.ts (24.6 KB)\napps/api/src/billing.ts (21.3 KB)\napps/api/src/budget-probe.test.ts (34.3 KB)\napps/api/src/checkout-email.test.ts (11.7 KB)\napps/api/src/counts.ts (0.2 KB)\napps/api/src/crash-resilience.test.ts (6.3 KB)\napps/api/src/credits-api.test.ts (10.9 KB)\napps/api/src/db-endpoints.test.ts (4.1 KB)\napps/api/src/deletion.test.ts (5.6 KB)\napps/api/src/deployment.test.ts (6.9 KB)\napps/api/src/e2e-flows.test.ts (22.8 KB)\napps/api/src/e2e-smoke.test.ts (4.5 KB)\napps/api/src/env.test.ts (8.3 KB)\napps/api/src/env.ts (5.7 KB)\napps/api/src/export-edge-cases.test.ts (9.9 KB)\napps/api/src/export.test.ts (13.4 KB)\napps/api/src/export.ts (6.7 KB)\napps/api/src/funnel-api.test.ts (28.0 KB)\napps/api/src/funnel.ts (8.9 KB)\napps/api/src/github.test.ts (6.0 KB)\napps/api/src/github.ts (0.2 KB)\napps/api/src/handler-edge-cases.test.ts (11.8 KB)\napps/api/src/handler-shutdown.test.ts (2.8 KB)\napps/api/src/handler-validation.test.ts (11.4 KB)\napps/api/src/handlers-deep.test.ts (18.7 KB)\napps/api/src/handlers.ts (155.2 KB)\napps/api/src/latency-histogram.test.ts (9.1 KB)\napps/api/src/logger.test.ts (3.7 KB)\napps/api/src/logger.ts (3.1 KB)\napps/api/src/logging.test.ts (8.5 KB)\napps/api/src/mcp-server.test.ts (82.2 KB)\napps/api/src/mcp-server.ts (110.1 KB)\napps/api/src/metrics-branches.test.ts (2.5 KB)\napps/api/src/metrics.test.ts (4.3 KB)\napps/api/src/metrics.ts (6.5 KB)\napps/api/src/mpp.test.ts (8.5 KB)\napps/api/src/mpp.ts (6.4 KB)\napps/api/src/multi-tenancy.test.ts (20.0 KB)\napps/api/src/oauth-server-simple.ts (5.8 KB)\napps/api/src/oauth-server.ts (8.1 KB)\napps/api/src/oauth.test.ts (8.0 KB)\napps/api/src/oauth.ts (3.4 KB)\napps/api/src/openapi.test.ts (15.3 KB)\napps/api/src/openapi.ts (67.5 KB)\napps/api/src/paid-client.test.ts (6.8 KB)\napps/api/src/paid-client.ts (5.6 KB)\napps/api/src/paid-handlers.test.ts (8.3 KB)\napps/api/src/paid-handlers.ts (6.9 KB)\napps/api/src/prepare-purchasing.test.ts (19.4 KB)\napps/api/src/production-startup.test.ts (8.5 KB)\napps/api/src/programs-billing.test.ts (12.8 KB)\napps/api/src/quota-guardrails.test.ts (7.4 KB)\napps/api/src/quota.test.ts (4.5 KB)\napps/api/src/rate-limit-integration.test.ts (3.2 KB)\napps/api/src/rate-limiter.test.ts (13.8 KB)\napps/api/src/rate-limiter.ts (6.5 KB)\napps/api/src/request-limits.test.ts (3.9 KB)\napps/api/src/router-branches.test.ts (12.5 KB)\napps/api/src/router.test.ts (15.0 KB)\napps/api/src/router.ts (15.2 KB)\napps/api/src/search-api.test.ts (13.8 KB)\napps/api/src/security.test.ts (7.1 KB)\napps/api/src/server-lifecycle.test.ts (7.0 KB)\napps/api/src/server-routes.test.ts (5.9 KB)\napps/api/src/server.ts (16.8 KB)\napps/api/src/snapshot-auth.test.ts (13.4 KB)\napps/api/src/stripe-branches.test.ts (38.6 KB)\napps/api/src/stripe.test.ts (10.1 KB)\napps/api/src/stripe.ts (15.8 KB)\napps/api/src/validation.test.ts (8.1 KB)\napps/api/src/versions.test.ts (8.1 KB)\napps/api/src/versions.ts (2.5 KB)\napps/api/src/webhook-branches.test.ts (16.3 KB)\napps/api/src/webhooks.test.ts (13.6 KB)\napps/api/src/webhooks.ts (5.4 KB)\napps/api/src/well-known-handlers.test.ts (16.6 KB)\napps/api/tsconfig.json (0.2 KB)\napps/cli/package.json (0.5 KB)\napps/cli/src/cli-auth.test.ts (7.6 KB)\napps/cli/src/cli-commands.test.ts (8.7 KB)\napps/cli/src/cli-edge-cases.test.ts (14.4 KB)\napps/cli/src/cli-pipeline.test.ts (9.3 KB)\napps/cli/src/cli.test.ts (13.9 KB)\napps/cli/src/cli.ts (9.9 KB)\napps/cli/src/credential-store.test.ts (8.4 KB)\napps/cli/src/credential-store.ts (3.2 KB)\napps/cli/src/determinism.test.ts (6.9 KB)\napps/cli/src/runner.test.ts (6.5 KB)\napps/cli/src/runner.ts (11.2 KB)\napps/cli/src/scanner.ts (4.3 KB)\napps/cli/src/writer.ts (0.9 KB)\napps/cli/tsconfig.json (0.4 KB)\napps/web/index.html (6.9 KB)\napps/web/package.json (0.5 KB)\napps/web/public/robots.txt (0.8 KB)\napps/web/src/api.test.ts (23.9 KB)\napps/web/src/api.ts (18.7 KB)\napps/web/src/App.tsx (16.1 KB)\napps/web/src/components/AxisIcons.tsx (8.9 KB)\napps/web/src/components/CommandPalette.tsx (6.6 KB)\napps/web/src/components/FilesTab.tsx (4.7 KB)\napps/web/src/components/GeneratedTab.tsx (4.1 KB)\napps/web/src/components/GraphTab.tsx (4.8 KB)\napps/web/src/components/OverviewTab.tsx (8.8 KB)\napps/web/src/components/ProgramLauncher.tsx (7.4 KB)\napps/web/src/components/SearchTab.tsx (11.1 KB)\napps/web/src/components/SignUpModal.tsx (3.9 KB)\napps/web/src/components/StatusBar.tsx (2.3 KB)\napps/web/src/components/Toast.tsx (3.8 KB)\napps/web/src/components/UpsellModal.tsx (5.2 KB)\napps/web/src/index.css (18.5 KB)\napps/web/src/main.tsx (0.2 KB)\napps/web/src/pages.test.tsx (5.1 KB)\napps/web/src/pages/AccountPage.tsx (24.1 KB)\napps/web/src/pages/DashboardPage.tsx (8.2 KB)\napps/web/src/pages/DocsPage.tsx (71.5 KB)\napps/web/src/pages/ExamplesPage.tsx (24.1 KB)\napps/web/src/pages/ForAgentsPage.tsx (50.4 KB)\napps/web/src/pages/HelpPage.tsx (41.9 KB)\napps/web/src/pages/InstallPage.tsx (8.4 KB)\napps/web/src/pages/PlansPage.tsx (9.3 KB)\napps/web/src/pages/ProgramsPage.tsx (13.9 KB)\napps/web/src/pages/QAPage.tsx (24.3 KB)\napps/web/src/pages/TermsPage.tsx (19.4 KB)\napps/web/src/pages/UploadPage.tsx (29.2 KB)\napps/web/src/upload-utils-zip.test.ts (9.0 KB)\napps/web/src/upload-utils.test.ts (5.8 KB)\napps/web/src/upload-utils.ts (4.1 KB)\napps/web/src/vite-env.d.ts (0.2 KB)\napps/web/tsconfig.json (0.5 KB)\napps/web/vite.config.ts (0.2 KB)\narchitecture-summary.md (79.4 KB)\nartifact-spec.md (8.8 KB)\nartifacts/begin.yaml (1.8 KB)\nartifacts/continuation.yaml (2.4 KB)\nartifacts/MEMORY.yaml (3.1 KB)\nartifacts/schemas/output-contract.schema.json (1.8 KB)\nasset-checklist.md (1.3 KB)\nasset-guidelines.md (1.7 KB)\nautomated remedial action.yaml (7.5 KB)\nautomation-pipeline.yaml (3.1 KB)\naxis_all_tools.yaml (22.6 KB)\nAXIS_Board_Pitch.md (30.7 KB)\nAXIS_DEMO_REPORT.md (12.3 KB)\naxis_master_blueprint.yaml (9.6 KB)\naxis-analyze-results.json (1.1 KB)\nbegin.yaml (17.6 KB)\nbrand-board.md (5.1 KB)\nbrand-guidelines.md (3.0 KB)\nbrand/begin.yaml (1.8 KB)\nbrand/continuation.yaml (2.4 KB)\nbrand/MEMORY.yaml (3.0 KB)\nbrand/schemas/output-contract.schema.json (1.8 KB)\ncampaign-brief.md (2.3 KB)\ncanvas-pack.md (9.7 KB)\ncanvas-spec.json (3.8 KB)\ncanvas/begin.yaml (1.8 KB)\ncanvas/continuation.yaml (2.4 KB)\ncanvas/MEMORY.yaml (2.8 KB)\ncanvas/schemas/output-contract.schema.json (1.8 KB)\ncapability_inventory.yaml (31.7 KB)\ncapability-registry.json (2.5 KB)\nCHANGELOG.md (7.8 KB)\nchannel-rulebook.md (3.6 KB)\ncheckout-flow.md (10.5 KB)\ncitation-index.json (6.7 KB)\nCLAUDE.md (9.7 KB)\ncloudflare-pages.md (1.5 KB)\ncollection-map.md (2.4 KB)\ncommerce-registry.json (6.3 KB)\ncompetitive-gap-matrix.yaml (27.6 KB)\ncomponent-guidelines.md (3.3 KB)\ncomponent-library.json (7.9 KB)\ncomponent-theme-map.json (9.5 KB)\nconnector-map.yaml (6.5 KB)\ncontent-audit.md (3.8 KB)\ncontent-constraints.md (2.9 KB)\nCONTRIBUTING.md (3.1 KB)\ncost-estimate.json (5.7 KB)\ncov.txt (210.1 KB)\ncov2.txt (212.0 KB)\ncov3.txt (9.6 KB)\ncov5.txt (218.4 KB)\ncov6.txt (218.4 KB)\ncov7.txt (219.0 KB)\ncov8.txt (219.5 KB)\ncoverage-full.txt (249.9 KB)\ncro-playbook.md (36.1 KB)\ndaily-maintenance-runbook.yaml (6.2 KB)\ndark-mode-tokens.json (3.2 KB)\ndashboard-widget.tsx (3.6 KB)\ndebug/begin.yaml (3.6 KB)\ndebug/continuation.yaml (2.4 KB)\ndebug/MEMORY.yaml (5.5 KB)\ndebug/schemas/output-contract.schema.json (1.8 KB)\ndependency-hotspots.md (8.1 KB)\nDISTRIBUTABLE.md (0.6 KB)\ndocker-ci-run3.txt (24.3 KB)\ndocker-compose.yml (0.5 KB)\nDockerfile (0.7 KB)\ne2e_full_human_ai_x402.mjs (52.8 KB)\ne2e_round2.mjs (15.1 KB)\ne2e_ui_audit.yaml (39.3 KB)\ne2e_wiring_audit.mjs (46.9 KB)\ne2e_wiring_audit.yaml (31.5 KB)\nembed-snippet.ts (2.1 KB)\neslint.config.js (0.2 KB)\nexamples/01-paid-platform/generated/AGENTS.md (1.9 KB)\nexamples/01-paid-platform/generated/CLAUDE.md (0.9 KB)\nexamples/01-paid-platform/README.md (0.9 KB)\nexamples/02-axis-scalpel/generated/AGENTS.md (1.4 KB)\nexamples/02-axis-scalpel/generated/CLAUDE.md (0.8 KB)\nexamples/02-axis-scalpel/README.md (0.7 KB)\nexamples/03-spacey/generated/AGENTS.md (1.4 KB)\nexamples/03-spacey/generated/CLAUDE.md (0.8 KB)\nexamples/03-spacey/README.md (0.7 KB)\nexamples/04-slate-certification/generated/AGENTS.md (1.7 KB)\nexamples/04-slate-certification/generated/CLAUDE.md (0.7 KB)\nexamples/04-slate-certification/README.md (0.7 KB)\nexamples/05-ruuuun/generated/AGENTS.md (1.8 KB)\nexamples/05-ruuuun/generated/CLAUDE.md (0.8 KB)\nexamples/05-ruuuun/README.md (0.8 KB)\nexamples/README.json (6.0 KB)\nexamples/README.md (4.3 KB)\nexport-manifest.yaml (2.2 KB)\nfrontend/begin.yaml (3.6 KB)\nfrontend/continuation.yaml (2.4 KB)\nfrontend/MEMORY.yaml (5.8 KB)\nfrontend/schemas/output-contract.schema.json (1.8 KB)\nfunnel-map.md (3.0 KB)\ngenerate-keys.js (0.6 KB)\ngenerated-component.tsx (1.6 KB)\ngenerated-posts.json (2.3 KB)\ngenerative-sketch.js (8.3 KB)\ngenerative-sketch.ts (4.1 KB)\nglama.json (0.1 KB)\ngraph-prompt-map.json (59.2 KB)\nhuman user audt.yaml (24.9 KB)\nhygiene and memory.yaml (8.7 KB)\nincident-template.md (24.0 KB)\nlaunch-checklist.md (3.9 KB)\nlaunch-content.md (6.0 KB)\nlayout-patterns.md (2.5 KB)\nlinking-policy.md (3.7 KB)\nls-coverage.txt (250.3 KB)\nMakefile (0.4 KB)\nmarketing-pack.md (9.7 KB)\nmarketing/begin.yaml (1.8 KB)\nmarketing/continuation.yaml (2.4 KB)\nmarketing/MEMORY.yaml (2.8 KB)\nmarketing/schemas/output-contract.schema.json (1.8 KB)\nmcp-config.json (12.7 KB)\nmcp-registry-metadata.json (0.6 KB)\nmcp/begin.yaml (1.8 KB)\nmcp/build-artifacts.md (1.0 KB)\nmcp/continuation.yaml (2.4 KB)\nmcp/core-implementation-artifacts.md (16.5 KB)\nmcp/fintech-domain-schema.yaml (2.9 KB)\nmcp/fintech-mcp-surface-package.md (7.8 KB)\nmcp/MEMORY.yaml (2.7 KB)\nmcp/monorepo-structure.md (3.2 KB)\nmcp/package-json.package.template.json (0.6 KB)\nmcp/package-json.root.template.json (0.7 KB)\nmcp/project-setup.md (0.9 KB)\nmcp/README.md (1.9 KB)\nmcp/schemas/output-contract.schema.json (2.1 KB)\nmcp/testing-documentation-polish-artifacts.md (2.0 KB)\nmcp/tsconfig.package.template.json (0.7 KB)\nmcp/tsconfig.root.template.json (1.1 KB)\nmemory generator.yaml (7.6 KB)\nmessaging-system.yaml (2.5 KB)\nmeta-tag-audit.json (24.5 KB)\nnegotiation-rules.md (7.6 KB)\nnotebook-summary.md (4.0 KB)\nnotebook/begin.yaml (1.8 KB)\nnotebook/continuation.yaml (2.4 KB)\nnotebook/MEMORY.yaml (2.9 KB)\nnotebook/schemas/output-contract.schema.json (1.8 KB)\nobsidian-skill-pack.md (3.2 KB)\nobsidian-vault-pack.md (9.3 KB)\nobsidian/begin.yaml (1.8 KB)\nobsidian/continuation.yaml (2.4 KB)\nobsidian/MEMORY.yaml (2.8 KB)\nobsidian/schemas/output-contract.schema.json (1.8 KB)\noptimization-rules.md (6.3 KB)\noptimization/begin.yaml (2.5 KB)\noptimization/continuation.yaml (2.4 KB)\noptimization/MEMORY.yaml (3.7 KB)\noptimization/schemas/output-contract.schema.json (1.8 KB)\npackage.json (1.5 KB)\npackages/context-engine/package.json (0.9 KB)\npackages/context-engine/src/engine-branches.test.ts (27.5 KB)\npackages/context-engine/src/engine-branches2.test.ts (7.6 KB)\npackages/context-engine/src/engine-branches3.test.ts (7.5 KB)\npackages/context-engine/src/engine-edge.test.ts (8.7 KB)\npackages/context-engine/src/engine.test.ts (13.8 KB)\npackages/context-engine/src/engine.ts (19.0 KB)\npackages/context-engine/src/index.ts (0.1 KB)\npackages/context-engine/src/types.ts (2.7 KB)\npackages/context-engine/tsconfig.json (0.2 KB)\npackages/generator-core/package.json (1.1 KB)\npackages/generator-core/src/file-excerpt-utils.ts (5.4 KB)\npackages/generator-core/src/fw-helpers.ts (0.5 KB)\npackages/generator-core/src/generate-programs.test.ts (12.9 KB)\npackages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)\npackages/generator-core/src/generate-validation.test.ts (8.8 KB)\npackages/generator-core/src/generate.test.ts (67.6 KB)\npackages/generator-core/src/generate.ts (22.7 KB)\npackages/generator-core/src/generator-alt-profiles.test.ts (17.0 KB)\npackages/generator-core/src/generator-branches.test.ts (217.7 KB)\npackages/generator-core/src/generator-sourcefile-branches.test.ts (20.9 KB)\npackages/generator-core/src/generator-sourcefile-branches10.test.ts (34.2 KB)\npackages/generator-core/src/generator-sourcefile-branches11.test.ts (21.4 KB)\npackages/generator-core/src/generator-sourcefile-branches12.test.ts (16.3 KB)\npackages/generator-core/src/generator-sourcefile-branches13.test.ts (10.5 KB)\npackages/generator-core/src/generator-sourcefile-branches14.test.ts (13.8 KB)\npackages/generator-core/src/generator-sourcefile-branches15.test.ts (9.2 KB)\npackages/generator-core/src/generator-sourcefile-branches16.test.ts (22.5 KB)\npackages/generator-core/src/generator-sourcefile-branches17.test.ts (15.9 KB)\npackages/generator-core/src/generator-sourcefile-branches18.test.ts (28.8 KB)\npackages/generator-core/src/generator-sourcefile-branches19.test.ts (12.6 KB)\npackages/generator-core/src/generator-sourcefile-branches2.test.ts (23.9 KB)\npackages/generator-core/src/generator-sourcefile-branches20.test.ts (9.5 KB)\npackages/generator-core/src/generator-sourcefile-branches3.test.ts (31.0 KB)\npackages/generator-core/src/generator-sourcefile-branches4.test.ts (24.7 KB)\npackages/generator-core/src/generator-sourcefile-branches5.test.ts (29.0 KB)\npackages/generator-core/src/generator-sourcefile-branches6.test.ts (26.0 KB)\npackages/generator-core/src/generator-sourcefile-branches7.test.ts (36.7 KB)\npackages/generator-core/src/generator-sourcefile-branches8.test.ts (49.1 KB)\npackages/generator-core/src/generator-sourcefile-branches9.test.ts (33.5 KB)\npackages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)\npackages/generator-core/src/generators-agentic-purchasing.ts (61.2 KB)\npackages/generator-core/src/generators-algorithmic.ts (26.2 KB)\npackages/generator-core/src/generators-artifacts.ts (28.2 KB)\npackages/generator-core/src/generators-brand.ts (32.2 KB)\npackages/generator-core/src/generators-canvas.ts (27.1 KB)\npackages/generator-core/src/generators-closer.test.ts (6.9 KB)\npackages/generator-core/src/generators-closer.ts (28.3 KB)\npackages/generator-core/src/generators-debug.ts (42.0 KB)\npackages/generator-core/src/generators-frontend.ts (27.6 KB)\npackages/generator-core/src/generators-marketing.ts (35.4 KB)\npackages/generator-core/src/generators-mcp.ts (115.7 KB)\npackages/generator-core/src/generators-notebook.ts (24.9 KB)\npackages/generator-core/src/generators-obsidian.ts (28.5 KB)\npackages/generator-core/src/generators-optimization.ts (26.1 KB)\npackages/generator-core/src/generators-remotion.ts (32.1 KB)\npackages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)\npackages/generator-core/src/generators-search.ts (26.2 KB)\npackages/generator-core/src/generators-seo.ts (35.8 KB)\npackages/generator-core/src/generators-skills.ts (42.7 KB)\npackages/generator-core/src/generators-superpowers.ts (37.4 KB)\npackages/generator-core/src/generators-theme.ts (45.9 KB)\npackages/generator-core/src/index.ts (4.0 KB)\npackages/generator-core/src/pipeline.test.ts (9.7 KB)\npackages/generator-core/src/types.ts (0.6 KB)\npackages/generator-core/tsconfig.json (0.2 KB)\npackages/mpp/package.json (0.9 KB)\npackages/mpp/src/index.ts (12.7 KB)\npackages/mpp/tsconfig.json (0.2 KB)\npackages/repo-parser/package.json (0.9 KB)\npackages/repo-parser/src/domain-extractor.test.ts (7.7 KB)\npackages/repo-parser/src/domain-extractor.ts (6.7 KB)\npackages/repo-parser/src/framework-detector.test.ts (13.7 KB)\npackages/repo-parser/src/framework-detector.ts (7.7 KB)\npackages/repo-parser/src/import-resolver.test.ts (8.6 KB)\npackages/repo-parser/src/import-resolver.ts (3.8 KB)\npackages/repo-parser/src/index.ts (0.6 KB)\npackages/repo-parser/src/language-detector.test.ts (3.7 KB)\npackages/repo-parser/src/language-detector.ts (1.7 KB)\npackages/repo-parser/src/parser-branches.test.ts (13.2 KB)\npackages/repo-parser/src/parser-branches2.test.ts (7.1 KB)\npackages/repo-parser/src/parser-branches3.test.ts (10.1 KB)\npackages/repo-parser/src/parser.test.ts (9.7 KB)\npackages/repo-parser/src/parser.ts (15.2 KB)\npackages/repo-parser/src/perf.bench.ts (6.1 KB)\npackages/repo-parser/src/sql-extractor.test.ts (8.9 KB)\npackages/repo-parser/src/sql-extractor.ts (4.3 KB)\npackages/repo-parser/src/types.ts (2.0 KB)\npackages/repo-parser/tsconfig.json (0.2 KB)\npackages/sdk/package.json (0.4 KB)\npackages/sdk/src/index.test.ts (11.3 KB)\npackages/sdk/src/index.ts (7.4 KB)\npackages/sdk/tsconfig.json (0.2 KB)\npackages/snapshots/package.json (0.9 KB)\npackages/snapshots/src/b-grade-upgrade.test.ts (8.4 KB)\npackages/snapshots/src/billing-edge-cases.test.ts (14.5 KB)\npackages/snapshots/src/billing-store.ts (13.1 KB)\npackages/snapshots/src/billing-types.ts (4.0 KB)\npackages/snapshots/src/billing.test.ts (12.2 KB)\npackages/snapshots/src/coverage-gaps.test.ts (22.8 KB)\npackages/snapshots/src/db-maintenance.test.ts (6.7 KB)\npackages/snapshots/src/db.test.ts (15.9 KB)\npackages/snapshots/src/db.ts (23.5 KB)\npackages/snapshots/src/email-store.test.ts (10.7 KB)\npackages/snapshots/src/email-store.ts (9.0 KB)\npackages/snapshots/src/funnel-edge-cases.test.ts (10.7 KB)\npackages/snapshots/src/funnel-store.test.ts (3.8 KB)\npackages/snapshots/src/funnel-store.ts (15.1 KB)\npackages/snapshots/src/funnel-types.ts (7.0 KB)\npackages/snapshots/src/funnel.test.ts (17.4 KB)\npackages/snapshots/src/github-http.test.ts (12.7 KB)\npackages/snapshots/src/github-tarball.test.ts (14.1 KB)\npackages/snapshots/src/github-token-branches.test.ts (3.8 KB)\npackages/snapshots/src/github-token-store.ts (5.1 KB)\npackages/snapshots/src/github.ts (8.9 KB)\npackages/snapshots/src/index.ts (5.8 KB)\npackages/snapshots/src/oauth-store.test.ts (8.5 KB)\npackages/snapshots/src/oauth-store.ts (4.6 KB)\npackages/snapshots/src/perf.bench.ts (6.9 KB)\npackages/snapshots/src/persistence-metering.test.ts (9.9 KB)\npackages/snapshots/src/persistence-metering.ts (4.9 KB)\npackages/snapshots/src/referral-e2e.test.ts (10.5 KB)\npackages/snapshots/src/referral-store.test.ts (10.5 KB)\npackages/snapshots/src/referral-store.ts (9.8 KB)\npackages/snapshots/src/search-store.test.ts (6.8 KB)\npackages/snapshots/src/search-store.ts (9.7 KB)\npackages/snapshots/src/search-symbols.test.ts (9.3 KB)\npackages/snapshots/src/store-layer5.test.ts (4.0 KB)\npackages/snapshots/src/store-validation.test.ts (15.6 KB)\npackages/snapshots/src/store.test.ts (10.8 KB)\npackages/snapshots/src/store.ts (9.3 KB)\npackages/snapshots/src/stripe-store.test.ts (8.5 KB)\npackages/snapshots/src/stripe-store.ts (5.1 KB)\npackages/snapshots/src/tier-audit.ts (3.8 KB)\npackages/snapshots/src/types.ts (1.1 KB)\npackages/snapshots/src/version-store.ts (5.1 KB)\npackages/snapshots/src/webhook-http.test.ts (13.3 KB)\npackages/snapshots/src/webhook-retry.test.ts (16.6 KB)\npackages/snapshots/src/webhook-store.ts (14.2 KB)\npackages/snapshots/tsconfig.json (0.2 KB)\npackaging-report.md (1.3 KB)\npackaging/manifests/dockerhub-repository.md (0.3 KB)\npackaging/manifests/github-marketplace-listing.md (0.5 KB)\npackaging/manifests/npm-package.json (0.4 KB)\npackaging/manifests/vscode-extension.json (0.4 KB)\npackaging/README.md (1.2 KB)\npackaging/trust-fabric/attestation.json (2.8 KB)\npackaging/trust-fabric/merkle-proof.json (5.2 KB)\nparameter-pack.json (2.2 KB)\npayment-processing-output/ab-test-plan.md (2.4 KB)\npayment-processing-output/AGENTS.md (2.0 KB)\npayment-processing-output/architecture-summary.md (3.2 KB)\npayment-processing-output/artifact-spec.md (2.2 KB)\npayment-processing-output/asset-checklist.md (1.2 KB)\npayment-processing-output/asset-guidelines.md (1.7 KB)\npayment-processing-output/automation-pipeline.yaml (2.1 KB)\npayment-processing-output/brand-board.md (4.0 KB)\npayment-processing-output/brand-guidelines.md (2.5 KB)\npayment-processing-output/campaign-brief.md (1.6 KB)\npayment-processing-output/canvas-spec.json (3.5 KB)\npayment-processing-output/capability-registry.json (1.8 KB)\npayment-processing-output/channel-rulebook.md (2.6 KB)\npayment-processing-output/citation-index.json (2.6 KB)\npayment-processing-output/CLAUDE.md (0.9 KB)\npayment-processing-output/collection-map.md (2.2 KB)\npayment-processing-output/component-guidelines.md (0.8 KB)\npayment-processing-output/component-library.json (5.6 KB)\npayment-processing-output/component-theme-map.json (58.8 KB)\npayment-processing-output/connector-map.yaml (0.9 KB)\npayment-processing-output/content-audit.md (4.4 KB)\npayment-processing-output/content-constraints.md (2.4 KB)\npayment-processing-output/cost-estimate.json (6.5 KB)\npayment-processing-output/cro-playbook.md (3.0 KB)\npayment-processing-output/dark-mode-tokens.json (2.8 KB)\npayment-processing-output/dashboard-widget.tsx (0.2 KB)\npayment-processing-output/dependency-hotspots.md (2.3 KB)\npayment-processing-output/embed-snippet.ts (1.4 KB)\npayment-processing-output/export-manifest.yaml (2.2 KB)\npayment-processing-output/funnel-map.md (2.2 KB)\npayment-processing-output/generated-component.tsx (0.5 KB)\npayment-processing-output/generative-sketch.ts (3.9 KB)"
+  "source_file_tree": ".github/actions/compliance-check/action.yml (12.3 KB)\n.github/app-manifest.json (0.9 KB)\n.github/workflows/ci.yml (4.7 KB)\n.github/workflows/compliance-check.yml (0.7 KB)\n.github/workflows/release.yml (0.6 KB)\n.gitignore (0.5 KB)\n.prettierrc.json (0.1 KB)\n.tmp-vitest.json (68.7 KB)\nab-test-plan.md (2.8 KB)\nagent-purchasing-playbook.md (16.9 KB)\nAGENTS.md (14.4 KB)\nalgorithmic-pack.json (7.9 KB)\nalgorithmic/begin.yaml (1.8 KB)\nalgorithmic/continuation.yaml (2.4 KB)\nalgorithmic/MEMORY.yaml (2.9 KB)\nalgorithmic/schemas/output-contract.schema.json (1.8 KB)\napps/api/check-table.js (0.3 KB)\napps/api/gen-keys.js (0.3 KB)\napps/api/keys.env (4.3 KB)\napps/api/mcp-server.json (10.4 KB)\napps/api/package.json (0.7 KB)\napps/api/src/admin.test.ts (10.0 KB)\napps/api/src/admin.ts (2.8 KB)\napps/api/src/agent-discovery.test.ts (21.0 KB)\napps/api/src/analyze-repo-success.test.ts (5.0 KB)\napps/api/src/analyze.test.ts (19.1 KB)\napps/api/src/api-branches.test.ts (22.0 KB)\napps/api/src/api-layer5.test.ts (10.6 KB)\napps/api/src/api.test.ts (20.7 KB)\napps/api/src/b-grade-upgrade.test.ts (8.6 KB)\napps/api/src/billing-flow.test.ts (26.8 KB)\napps/api/src/billing.ts (23.8 KB)\napps/api/src/budget-probe.test.ts (34.3 KB)\napps/api/src/checkout-email.test.ts (12.6 KB)\napps/api/src/counts-consistency.test.ts (1.8 KB)\napps/api/src/counts.ts (1.0 KB)\napps/api/src/crash-resilience.test.ts (6.3 KB)\napps/api/src/credits-api.test.ts (10.9 KB)\napps/api/src/db-endpoints.test.ts (4.1 KB)\napps/api/src/deletion.test.ts (5.6 KB)\napps/api/src/deployment.test.ts (6.9 KB)\napps/api/src/e2e-flows.test.ts (22.8 KB)\napps/api/src/e2e-smoke.test.ts (4.5 KB)\napps/api/src/email.test.ts (8.9 KB)\napps/api/src/email.ts (5.6 KB)\napps/api/src/embeddings.test.ts (7.3 KB)\napps/api/src/embeddings.ts (5.2 KB)\napps/api/src/env.test.ts (8.3 KB)\napps/api/src/env.ts (10.0 KB)\napps/api/src/export-edge-cases.test.ts (9.9 KB)\napps/api/src/export.test.ts (13.4 KB)\napps/api/src/export.ts (6.7 KB)\napps/api/src/funnel-api.test.ts (29.7 KB)\napps/api/src/funnel.ts (11.0 KB)\napps/api/src/github-webhook.test.ts (9.7 KB)\napps/api/src/github-webhook.ts (10.5 KB)\napps/api/src/github.test.ts (6.0 KB)\napps/api/src/github.ts (0.2 KB)\napps/api/src/handler-edge-cases.test.ts (11.8 KB)\napps/api/src/handler-shutdown.test.ts (2.8 KB)\napps/api/src/handler-validation.test.ts (11.4 KB)\napps/api/src/handlers-deep.test.ts (18.7 KB)\napps/api/src/handlers.ts (176.0 KB)\napps/api/src/latency-histogram.test.ts (9.1 KB)\napps/api/src/logger.test.ts (3.7 KB)\napps/api/src/logger.ts (3.1 KB)\napps/api/src/logging.test.ts (8.5 KB)\napps/api/src/mcp-server.test.ts (83.2 KB)\napps/api/src/mcp-server.ts (155.8 KB)\napps/api/src/metrics-branches.test.ts (2.5 KB)\napps/api/src/metrics.test.ts (4.3 KB)\napps/api/src/metrics.ts (6.5 KB)\napps/api/src/mpp.test.ts (8.5 KB)\napps/api/src/mpp.ts (6.4 KB)\napps/api/src/multi-tenancy.test.ts (20.0 KB)\napps/api/src/oauth-server-simple.ts (5.8 KB)\napps/api/src/oauth-server.ts (8.1 KB)\napps/api/src/oauth.test.ts (8.0 KB)\napps/api/src/oauth.ts (3.4 KB)\napps/api/src/object-storage.test.ts (7.3 KB)\napps/api/src/object-storage.ts (8.1 KB)\napps/api/src/openapi.test.ts (15.3 KB)\napps/api/src/openapi.ts (75.9 KB)\napps/api/src/paid-client.test.ts (6.8 KB)\napps/api/src/paid-client.ts (5.6 KB)\napps/api/src/paid-handlers.test.ts (8.3 KB)\napps/api/src/paid-handlers.ts (6.9 KB)\napps/api/src/prepare-purchasing.test.ts (19.5 KB)\napps/api/src/production-startup.test.ts (8.5 KB)\napps/api/src/programs-billing.test.ts (12.8 KB)\napps/api/src/quota-guardrails.test.ts (7.4 KB)\napps/api/src/quota.test.ts (4.5 KB)\napps/api/src/rate-limit-integration.test.ts (3.2 KB)\napps/api/src/rate-limiter.test.ts (13.8 KB)\napps/api/src/rate-limiter.ts (6.5 KB)\napps/api/src/request-limits.test.ts (3.9 KB)\napps/api/src/router-branches.test.ts (12.5 KB)\napps/api/src/router.test.ts (15.0 KB)\napps/api/src/router.ts (17.0 KB)\napps/api/src/search-api.test.ts (13.8 KB)\napps/api/src/security.test.ts (7.1 KB)\napps/api/src/server-lifecycle.test.ts (7.0 KB)\napps/api/src/server-routes.test.ts (5.9 KB)\napps/api/src/server.ts (17.6 KB)\napps/api/src/snapshot-auth.test.ts (13.4 KB)\napps/api/src/stripe-branches.test.ts (39.8 KB)\napps/api/src/stripe.test.ts (10.1 KB)\napps/api/src/stripe.ts (21.1 KB)\napps/api/src/validation.test.ts (8.1 KB)\napps/api/src/vector-db.test.ts (7.6 KB)\napps/api/src/vector-db.ts (8.9 KB)\napps/api/src/versions.test.ts (8.1 KB)\napps/api/src/versions.ts (2.5 KB)\napps/api/src/webhook-branches.test.ts (16.3 KB)\napps/api/src/webhooks.test.ts (13.6 KB)\napps/api/src/webhooks.ts (5.4 KB)\napps/api/src/well-known-handlers.test.ts (19.2 KB)\napps/api/tsconfig.json (0.2 KB)\napps/cli/package.json (0.5 KB)\napps/cli/src/cli-auth.test.ts (7.6 KB)\napps/cli/src/cli-commands.test.ts (8.7 KB)\napps/cli/src/cli-edge-cases.test.ts (14.4 KB)\napps/cli/src/cli-pipeline.test.ts (9.3 KB)\napps/cli/src/cli.test.ts (13.9 KB)\napps/cli/src/cli.ts (9.9 KB)\napps/cli/src/credential-store.test.ts (8.4 KB)\napps/cli/src/credential-store.ts (3.2 KB)\napps/cli/src/determinism.test.ts (6.9 KB)\napps/cli/src/runner.test.ts (6.5 KB)\napps/cli/src/runner.ts (11.2 KB)\napps/cli/src/scanner.ts (4.3 KB)\napps/cli/src/writer.ts (0.9 KB)\napps/cli/tsconfig.json (0.4 KB)\napps/web/index.html (8.2 KB)\napps/web/package.json (0.5 KB)\napps/web/public/robots.txt (0.8 KB)\napps/web/src/api.test.ts (24.1 KB)\napps/web/src/api.ts (23.5 KB)\napps/web/src/App.tsx (22.1 KB)\napps/web/src/components/AxisIcons.tsx (8.9 KB)\napps/web/src/components/CommandPalette.tsx (6.6 KB)\napps/web/src/components/FilesTab.tsx (4.7 KB)\napps/web/src/components/GeneratedTab.tsx (4.1 KB)\napps/web/src/components/GraphTab.tsx (4.8 KB)\napps/web/src/components/OverviewTab.tsx (8.8 KB)\napps/web/src/components/ProgramLauncher.tsx (7.4 KB)\napps/web/src/components/SearchTab.tsx (11.1 KB)\napps/web/src/components/SignUpModal.tsx (3.9 KB)\napps/web/src/components/StatusBar.tsx (2.3 KB)\napps/web/src/components/Toast.tsx (3.8 KB)\napps/web/src/components/ToolPage.tsx (6.2 KB)\napps/web/src/components/UpsellModal.tsx (5.2 KB)\napps/web/src/index.css (18.5 KB)\napps/web/src/main.tsx (0.2 KB)\napps/web/src/pages.test.tsx (5.6 KB)\napps/web/src/pages/AccountPage.tsx (24.1 KB)\napps/web/src/pages/AdminPage.tsx (6.1 KB)\napps/web/src/pages/DashboardPage.tsx (8.2 KB)\napps/web/src/pages/DocsPage.tsx (71.7 KB)\napps/web/src/pages/ExamplesPage.tsx (24.1 KB)\napps/web/src/pages/ForAgentsPage.tsx (5.4 KB)\napps/web/src/pages/HelpPage.tsx (42.9 KB)\napps/web/src/pages/InstallPage.tsx (8.6 KB)\napps/web/src/pages/MyAnalyticsPage.tsx (8.3 KB)\napps/web/src/pages/PlansPage.tsx (10.0 KB)\napps/web/src/pages/ProgramsPage.tsx (14.9 KB)\napps/web/src/pages/QAPage.tsx (24.5 KB)\napps/web/src/pages/TermsPage.tsx (20.3 KB)\napps/web/src/pages/tools/WebResearchPage.tsx (8.1 KB)\napps/web/src/pages/ToolsIndexPage.tsx (9.5 KB)\napps/web/src/pages/UploadPage.tsx (29.3 KB)\napps/web/src/upload-utils-zip.test.ts (9.0 KB)\napps/web/src/upload-utils.test.ts (5.8 KB)\napps/web/src/upload-utils.ts (4.1 KB)\napps/web/src/vite-env.d.ts (0.2 KB)\napps/web/tsconfig.json (0.5 KB)\napps/web/vite.config.ts (0.2 KB)\narchitecture-summary.md (80.1 KB)\nartifact-spec.md (8.8 KB)\nartifacts/begin.yaml (1.8 KB)\nartifacts/continuation.yaml (2.4 KB)\nartifacts/MEMORY.yaml (3.1 KB)\nartifacts/schemas/output-contract.schema.json (1.8 KB)\nasset-checklist.md (1.3 KB)\nasset-guidelines.md (1.7 KB)\nautomated remedial action.yaml (7.5 KB)\nautomation-pipeline.yaml (3.1 KB)\naxis_all_tools.yaml (23.6 KB)\nAXIS_Board_Pitch.md (30.7 KB)\nAXIS_DEMO_REPORT.md (12.3 KB)\naxis_master_blueprint.yaml (9.6 KB)\naxis-analyze-results.json (1.1 KB)\nbegin.yaml (17.6 KB)\nbrand-board.md (5.1 KB)\nbrand-guidelines.md (3.0 KB)\nbrand/begin.yaml (1.8 KB)\nbrand/continuation.yaml (2.4 KB)\nbrand/MEMORY.yaml (3.0 KB)\nbrand/schemas/output-contract.schema.json (1.8 KB)\ncampaign-brief.md (2.3 KB)\ncanvas-pack.md (9.7 KB)\ncanvas-spec.json (3.8 KB)\ncanvas/begin.yaml (1.8 KB)\ncanvas/continuation.yaml (2.4 KB)\ncanvas/MEMORY.yaml (2.8 KB)\ncanvas/schemas/output-contract.schema.json (1.8 KB)\ncapability_inventory.yaml (31.7 KB)\ncapability-registry.json (2.5 KB)\nCHANGELOG.md (7.8 KB)\nchannel-rulebook.md (3.6 KB)\ncheckout-flow.md (10.5 KB)\ncitation-index.json (6.7 KB)\nCLAUDE.md (10.0 KB)\ncloudflare-pages.md (1.5 KB)\ncollection-map.md (2.4 KB)\ncommerce-registry.json (6.3 KB)\ncompetitive-gap-matrix.yaml (31.4 KB)\ncomponent-guidelines.md (3.3 KB)\ncomponent-library.json (7.9 KB)\ncomponent-theme-map.json (9.5 KB)\nconnector-map.yaml (6.6 KB)\ncontent-audit.md (3.8 KB)\ncontent-constraints.md (2.9 KB)\nCONTRIBUTING.md (6.4 KB)\ncost-estimate.json (5.7 KB)\ncov.txt (210.1 KB)\ncov2.txt (212.0 KB)\ncov3.txt (9.6 KB)\ncov5.txt (218.4 KB)\ncov6.txt (218.4 KB)\ncov7.txt (219.0 KB)\ncov8.txt (219.5 KB)\ncoverage-full.txt (249.9 KB)\ncro-playbook.md (36.5 KB)\ndaily-maintenance-runbook.yaml (6.2 KB)\ndark-mode-tokens.json (3.2 KB)\ndashboard-widget.tsx (3.7 KB)\ndebug/begin.yaml (3.6 KB)\ndebug/continuation.yaml (2.4 KB)\ndebug/MEMORY.yaml (5.5 KB)\ndebug/schemas/output-contract.schema.json (1.8 KB)\ndependency-hotspots.md (8.1 KB)\nDISTRIBUTABLE.md (0.6 KB)\ndocker-ci-run3.txt (24.3 KB)\ndocker-compose.yml (0.5 KB)\nDockerfile (0.9 KB)\ne2e_full_human_ai_x402.mjs (52.8 KB)\ne2e_round2.mjs (15.1 KB)\ne2e_ui_audit.yaml (39.3 KB)\ne2e_wiring_audit.mjs (46.9 KB)\ne2e_wiring_audit.yaml (31.5 KB)\nembed-snippet.ts (2.2 KB)\neslint.config.js (0.2 KB)\nexamples/01-paid-platform/generated/AGENTS.md (1.9 KB)\nexamples/01-paid-platform/generated/CLAUDE.md (0.9 KB)\nexamples/01-paid-platform/README.md (0.9 KB)\nexamples/02-axis-scalpel/generated/AGENTS.md (1.4 KB)\nexamples/02-axis-scalpel/generated/CLAUDE.md (0.8 KB)\nexamples/02-axis-scalpel/README.md (0.7 KB)\nexamples/03-spacey/generated/AGENTS.md (1.4 KB)\nexamples/03-spacey/generated/CLAUDE.md (0.8 KB)\nexamples/03-spacey/README.md (0.7 KB)\nexamples/04-slate-certification/generated/AGENTS.md (1.7 KB)\nexamples/04-slate-certification/generated/CLAUDE.md (0.7 KB)\nexamples/04-slate-certification/README.md (0.7 KB)\nexamples/05-ruuuun/generated/AGENTS.md (1.8 KB)\nexamples/05-ruuuun/generated/CLAUDE.md (0.8 KB)\nexamples/05-ruuuun/README.md (0.8 KB)\nexamples/README.json (6.0 KB)\nexamples/README.md (4.3 KB)\nexport-manifest.yaml (2.2 KB)\nFRONTEND_DEEP_DIVE.md (19.1 KB)\nfrontend/begin.yaml (3.6 KB)\nfrontend/continuation.yaml (2.4 KB)\nfrontend/MEMORY.yaml (5.8 KB)\nfrontend/schemas/output-contract.schema.json (1.8 KB)\nfunnel-map.md (3.0 KB)\ngenerate-keys.js (0.6 KB)\ngenerated-component.tsx (1.6 KB)\ngenerated-posts.json (2.3 KB)\ngenerative-sketch.js (8.3 KB)\ngenerative-sketch.ts (4.1 KB)\nglama.json (0.1 KB)\ngraph-prompt-map.json (61.6 KB)\nhuman user audt.yaml (24.9 KB)\nhygiene and memory.yaml (8.7 KB)\niliad-agentic-platform-strategy.yaml (29.4 KB)\nincident-template.md (24.7 KB)\nlaunch-checklist.md (3.9 KB)\nlaunch-content.md (6.0 KB)\nlayout-patterns.md (2.4 KB)\nlinking-policy.md (3.7 KB)\nllms.txt (0.8 KB)\nls-coverage.txt (250.3 KB)\nMakefile (0.4 KB)\nmarketing-pack.md (9.7 KB)\nmarketing/begin.yaml (1.8 KB)\nmarketing/continuation.yaml (2.4 KB)\nmarketing/MEMORY.yaml (2.8 KB)\nmarketing/schemas/output-contract.schema.json (1.8 KB)\nmcp-config.json (12.9 KB)\nmcp-registry-metadata.json (0.6 KB)\nmcp/begin.yaml (1.8 KB)\nmcp/build-artifacts.md (1.0 KB)\nmcp/continuation.yaml (2.4 KB)\nmcp/core-implementation-artifacts.md (16.5 KB)\nmcp/fintech-domain-schema.yaml (2.9 KB)\nmcp/fintech-mcp-surface-package.md (8.6 KB)\nmcp/MEMORY.yaml (2.7 KB)\nmcp/monorepo-structure.md (3.2 KB)\nmcp/package-json.package.template.json (0.6 KB)\nmcp/package-json.root.template.json (0.7 KB)\nmcp/project-setup.md (0.9 KB)\nmcp/README.md (1.9 KB)\nmcp/schemas/output-contract.schema.json (2.1 KB)\nmcp/testing-documentation-polish-artifacts.md (2.0 KB)\nmcp/tsconfig.package.template.json (0.7 KB)\nmcp/tsconfig.root.template.json (1.1 KB)\nmemory generator.yaml (7.6 KB)\nmessaging-system.yaml (2.5 KB)\nmeta-tag-audit.json (24.5 KB)\nnegotiation-rules.md (7.6 KB)\nnotebook-summary.md (4.0 KB)\nnotebook/begin.yaml (1.8 KB)\nnotebook/continuation.yaml (2.4 KB)\nnotebook/MEMORY.yaml (2.9 KB)\nnotebook/schemas/output-contract.schema.json (1.8 KB)\nobsidian-skill-pack.md (3.2 KB)\nobsidian-vault-pack.md (9.3 KB)\nobsidian/begin.yaml (1.8 KB)\nobsidian/continuation.yaml (2.4 KB)\nobsidian/MEMORY.yaml (2.8 KB)\nobsidian/schemas/output-contract.schema.json (1.8 KB)\noptimization-rules.md (6.3 KB)\noptimization/begin.yaml (2.5 KB)\noptimization/continuation.yaml (2.4 KB)\noptimization/MEMORY.yaml (3.7 KB)\noptimization/schemas/output-contract.schema.json (1.8 KB)\npackage.json (1.5 KB)\npackages/context-engine/package.json (0.9 KB)\npackages/context-engine/src/engine-branches.test.ts (27.5 KB)\npackages/context-engine/src/engine-branches2.test.ts (7.6 KB)\npackages/context-engine/src/engine-branches3.test.ts (7.5 KB)\npackages/context-engine/src/engine-edge.test.ts (8.7 KB)\npackages/context-engine/src/engine.test.ts (13.8 KB)\npackages/context-engine/src/engine.ts (19.0 KB)\npackages/context-engine/src/index.ts (0.1 KB)\npackages/context-engine/src/types.ts (2.7 KB)\npackages/context-engine/tsconfig.json (0.2 KB)\npackages/generator-core/package.json (1.1 KB)\npackages/generator-core/src/counts-consistency.test.ts (1.9 KB)\npackages/generator-core/src/file-excerpt-utils.ts (5.4 KB)\npackages/generator-core/src/fw-helpers.ts (0.5 KB)\npackages/generator-core/src/generate-programs.test.ts (13.0 KB)\npackages/generator-core/src/generate-symbol-index.test.ts (10.0 KB)\npackages/generator-core/src/generate-validation.test.ts (8.7 KB)\npackages/generator-core/src/generate.test.ts (68.0 KB)\npackages/generator-core/src/generate.ts (24.0 KB)\npackages/generator-core/src/generator-alt-profiles.test.ts (16.9 KB)\npackages/generator-core/src/generator-branches.test.ts (217.6 KB)\npackages/generator-core/src/generator-sourcefile-branches.test.ts (21.3 KB)\npackages/generator-core/src/generator-sourcefile-branches10.test.ts (34.0 KB)\npackages/generator-core/src/generator-sourcefile-branches11.test.ts (21.4 KB)\npackages/generator-core/src/generator-sourcefile-branches12.test.ts (16.3 KB)\npackages/generator-core/src/generator-sourcefile-branches13.test.ts (10.5 KB)\npackages/generator-core/src/generator-sourcefile-branches14.test.ts (13.8 KB)\npackages/generator-core/src/generator-sourcefile-branches15.test.ts (9.2 KB)\npackages/generator-core/src/generator-sourcefile-branches16.test.ts (22.4 KB)\npackages/generator-core/src/generator-sourcefile-branches17.test.ts (15.9 KB)\npackages/generator-core/src/generator-sourcefile-branches18.test.ts (28.9 KB)\npackages/generator-core/src/generator-sourcefile-branches19.test.ts (12.6 KB)\npackages/generator-core/src/generator-sourcefile-branches2.test.ts (23.8 KB)\npackages/generator-core/src/generator-sourcefile-branches20.test.ts (9.5 KB)\npackages/generator-core/src/generator-sourcefile-branches3.test.ts (30.9 KB)\npackages/generator-core/src/generator-sourcefile-branches4.test.ts (24.7 KB)\npackages/generator-core/src/generator-sourcefile-branches5.test.ts (29.0 KB)\npackages/generator-core/src/generator-sourcefile-branches6.test.ts (25.9 KB)\npackages/generator-core/src/generator-sourcefile-branches7.test.ts (36.6 KB)\npackages/generator-core/src/generator-sourcefile-branches8.test.ts (49.0 KB)\npackages/generator-core/src/generator-sourcefile-branches9.test.ts (33.7 KB)\npackages/generator-core/src/generators-agentic-purchasing.test.ts (52.9 KB)\npackages/generator-core/src/generators-agentic-purchasing.ts (61.9 KB)\npackages/generator-core/src/generators-algorithmic.ts (26.2 KB)\npackages/generator-core/src/generators-artifacts.ts (105.4 KB)\npackages/generator-core/src/generators-brand.ts (32.2 KB)\npackages/generator-core/src/generators-canvas.ts (27.1 KB)\npackages/generator-core/src/generators-closer.test.ts (7.3 KB)\npackages/generator-core/src/generators-closer.ts (51.8 KB)\npackages/generator-core/src/generators-debug.ts (42.0 KB)\npackages/generator-core/src/generators-frontend.ts (27.6 KB)\npackages/generator-core/src/generators-marketing.ts (35.4 KB)\npackages/generator-core/src/generators-mcp.ts (120.3 KB)\npackages/generator-core/src/generators-notebook.ts (24.9 KB)\npackages/generator-core/src/generators-obsidian.ts (28.5 KB)\npackages/generator-core/src/generators-optimization.ts (26.1 KB)\npackages/generator-core/src/generators-remotion.ts (32.1 KB)\npackages/generator-core/src/generators-search-funcs.test.ts (11.8 KB)\npackages/generator-core/src/generators-search.ts (26.1 KB)\npackages/generator-core/src/generators-seo.ts (35.8 KB)\npackages/generator-core/src/generators-skills.ts (43.1 KB)\npackages/generator-core/src/generators-superpowers.ts (37.4 KB)\npackages/generator-core/src/generators-theme.ts (49.9 KB)\npackages/generator-core/src/index.ts (4.1 KB)\npackages/generator-core/src/pipeline.test.ts (9.6 KB)\npackages/generator-core/src/types.ts (0.6 KB)\npackages/generator-core/tsconfig.json (0.2 KB)\npackages/mpp/package.json (0.9 KB)\npackages/mpp/README.md (8.8 KB)\npackages/mpp/src/index.ts (13.7 KB)\npackages/mpp/tsconfig.json (0.2 KB)\npackages/repo-parser/package.json (0.9 KB)\npackages/repo-parser/src/domain-extractor.test.ts (7.7 KB)\npackages/repo-parser/src/domain-extractor.ts (6.7 KB)\npackages/repo-parser/src/framework-detector.test.ts (13.7 KB)\npackages/repo-parser/src/framework-detector.ts (7.7 KB)\npackages/repo-parser/src/import-resolver.test.ts (8.6 KB)\npackages/repo-parser/src/import-resolver.ts (3.8 KB)\npackages/repo-parser/src/index.ts (0.6 KB)\npackages/repo-parser/src/language-detector.test.ts (3.7 KB)\npackages/repo-parser/src/language-detector.ts (1.7 KB)\npackages/repo-parser/src/parser-branches.test.ts (13.2 KB)\npackages/repo-parser/src/parser-branches2.test.ts (7.1 KB)\npackages/repo-parser/src/parser-branches3.test.ts (10.1 KB)\npackages/repo-parser/src/parser.test.ts (9.7 KB)\npackages/repo-parser/src/parser.ts (15.2 KB)\npackages/repo-parser/src/perf.bench.ts (6.1 KB)\npackages/repo-parser/src/sql-extractor.test.ts (8.9 KB)\npackages/repo-parser/src/sql-extractor.ts (4.3 KB)\npackages/repo-parser/src/types.ts (2.0 KB)\npackages/repo-parser/tsconfig.json (0.2 KB)\npackages/sdk/package.json (0.4 KB)\npackages/sdk/src/index.test.ts (13.2 KB)\npackages/sdk/src/index.ts (7.4 KB)\npackages/sdk/tsconfig.json (0.2 KB)\npackages/snapshots/package.json (0.9 KB)\npackages/snapshots/src/b-grade-upgrade.test.ts (8.4 KB)\npackages/snapshots/src/billing-edge-cases.test.ts (14.5 KB)\npackages/snapshots/src/billing-store.ts (16.1 KB)\npackages/snapshots/src/billing-types.ts (4.0 KB)\npackages/snapshots/src/billing.test.ts (12.2 KB)\npackages/snapshots/src/coverage-gaps.test.ts (22.8 KB)\npackages/snapshots/src/db-maintenance.test.ts (6.7 KB)\npackages/snapshots/src/db.test.ts (16.0 KB)\npackages/snapshots/src/db.ts (25.2 KB)\npackages/snapshots/src/email-store.test.ts (10.7 KB)\npackages/snapshots/src/email-store.ts (9.0 KB)\npackages/snapshots/src/funnel-edge-cases.test.ts (10.7 KB)\npackages/snapshots/src/funnel-store.test.ts (3.8 KB)\npackages/snapshots/src/funnel-store.ts (15.1 KB)\npackages/snapshots/src/funnel-types.ts (6.6 KB)\npackages/snapshots/src/funnel.test.ts (18.1 KB)\npackages/snapshots/src/github-http.test.ts (12.7 KB)\npackages/snapshots/src/github-tarball.test.ts (14.1 KB)\npackages/snapshots/src/github-token-branches.test.ts (3.8 KB)\npackages/snapshots/src/github-token-store.ts (5.1 KB)\npackages/snapshots/src/github.ts (8.9 KB)\npackages/snapshots/src/index.ts (6.3 KB)\npackages/snapshots/src/oauth-store.test.ts (8.5 KB)\npackages/snapshots/src/oauth-store.ts (4.6 KB)\npackages/snapshots/src/perf.bench.ts (6.9 KB)\npackages/snapshots/src/persistence-metering.test.ts (9.9 KB)\npackages/snapshots/src/persistence-metering.ts (4.9 KB)\npackages/snapshots/src/referral-e2e.test.ts (10.3 KB)\npackages/snapshots/src/referral-store.test.ts (10.6 KB)\npackages/snapshots/src/referral-store.ts (10.9 KB)\npackages/snapshots/src/search-store.test.ts (6.8 KB)\npackages/snapshots/src/search-store.ts (9.7 KB)\npackages/snapshots/src/search-symbols.test.ts (9.3 KB)\npackages/snapshots/src/store-layer5.test.ts (4.0 KB)\npackages/snapshots/src/store-validation.test.ts (15.6 KB)\npackages/snapshots/src/store.test.ts (10.8 KB)\npackages/snapshots/src/store.ts (9.3 KB)\npackages/snapshots/src/stripe-store.test.ts (8.5 KB)\npackages/snapshots/src/stripe-store.ts (6.2 KB)\npackages/snapshots/src/tier-audit.ts (3.8 KB)\npackages/snapshots/src/types.ts (1.1 KB)\npackages/snapshots/src/usage-credit-metering.test.ts (2.6 KB)\npackages/snapshots/src/usage-credit-metering.ts (5.6 KB)\npackages/snapshots/src/version-store.ts (5.1 KB)\npackages/snapshots/src/webhook-http.test.ts (13.3 KB)\npackages/snapshots/src/webhook-retry.test.ts (16.6 KB)\npackages/snapshots/src/webhook-store.ts (14.2 KB)\npackages/snapshots/tsconfig.json (0.2 KB)\npackaging-report.md (1.3 KB)\npackaging/manifests/dockerhub-repository.md (0.3 KB)\npackaging/manifests/github-marketplace-listing.md (0.5 KB)\npackaging/manifests/npm-package.json (0.4 KB)\npackaging/manifests/vscode-extension.json (0.4 KB)\npackaging/README.md (1.2 KB)\npackaging/trust-fabric/attestation.json (2.8 KB)\npackaging/trust-fabric/merkle-proof.json (5.2 KB)\nparameter-pack.json (2.2 KB)\npayment-processing-output/ab-test-plan.md (2.4 KB)\npayment-processing-output/AGENTS.md (2.0 KB)\npayment-processing-output/architecture-summary.md (3.2 KB)\npayment-processing-output/artifact-spec.md (2.2 KB)\npayment-processing-output/asset-checklist.md (1.2 KB)\npayment-processing-output/asset-guidelines.md (1.7 KB)\npayment-processing-output/automation-pipeline.yaml (2.1 KB)\npayment-processing-output/brand-board.md (4.0 KB)"
 }

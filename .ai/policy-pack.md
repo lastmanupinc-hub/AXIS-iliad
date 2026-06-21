@@ -14,7 +14,9 @@ rules:
   - no_stub_implementations: true
   - no_placeholder_data: true
   - convention: "TypeScript strict mode"
-  - convention: "pnpm workspaces"
+  - convention: "Linter configured"
+  - convention: "Formatter configured"
+  - convention: "Makefile build"
 ```
 
 ## Policy: Boundary Enforcement
@@ -60,7 +62,6 @@ rules:
 
 These project-specific warnings must be addressed in all AI-generated code:
 
-- ⚠️ No CI/CD pipeline detected
 - ⚠️ No lockfile found — dependency versions may be inconsistent
 
 ## Policy: Framework-Specific Rules
@@ -73,6 +74,7 @@ These project-specific warnings must be addressed in all AI-generated code:
 
 ## Detected Project Configs
 
+- `.prettierrc.json`
 - `apps/api/package.json`
 - `apps/api/tsconfig.json`
 - `apps/cli/package.json`
@@ -80,29 +82,40 @@ These project-specific warnings must be addressed in all AI-generated code:
 - `apps/web/package.json`
 - `apps/web/tsconfig.json`
 - `apps/web/vite.config.ts`
-- `package.json`
 
 ## Config Contents
+
+### `.prettierrc.json`
+
+```json
+{
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "printWidth": 100
+}
+
+```
 
 ### `apps/api/package.json`
 
 ```json
 {
   "name": "@axis/api",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "npx tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --test dist/**/*.test.js"
+    "test": "echo skipped â€” run vitest from root"
   },
   "dependencies": {
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-... (10 more lines)
+    "@axis/mpp": "workspace:*",
+... (15 more lines)
 ```
 
 ### `apps/api/tsconfig.json`
@@ -118,25 +131,4 @@ These project-specific warnings must be addressed in all AI-generated code:
   "exclude": ["src/**/*.test.ts"]
 }
 
-```
-
-### `apps/cli/package.json`
-
-```json
-{
-  "name": "@axis/cli",
-  "version": "0.5.0",
-  "private": true,
-  "type": "module",
-  "bin": {
-    "axis": "./bin/axis.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/cli.js"
-  },
-  "dependencies": {
-    "@axis/snapshots": "workspace:*",
-    "@axis/repo-parser": "workspace:*",
-... (8 more lines)
 ```

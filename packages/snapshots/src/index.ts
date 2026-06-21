@@ -14,7 +14,7 @@ export {
   saveGeneratorResult,
   getGeneratorResult,
 } from "./store.js";
-export { getDb, openMemoryDb, closeDb, runMigrations, getSchemaVersion, walCheckpoint, vacuum, integrityCheck, getDbStats, purgeStaleData, runMaintenance } from "./db.js";
+export { getDb, peekDb, openMemoryDb, closeDb, runMigrations, getSchemaVersion, walCheckpoint, vacuum, integrityCheck, getDbStats, purgeStaleData, runMaintenance } from "./db.js";
 export type { DbMaintenanceResult } from "./db.js";
 
 // Search
@@ -208,3 +208,19 @@ export {
   applyReferralDiscount,
   buildIncentivesSummary,
 } from "./referral-store.js";
+
+// MCP usage telemetry (persistent per-call tracking)
+export type {
+  McpUsageInput,
+  McpUsageRow,
+  McpUsageWindows,
+  McpUsageSummary,
+  McpNewVsReturning,
+} from "./mcp-usage-store.js";
+export {
+  recordMcpUsage,
+  getMcpUsageWindows,
+  getMcpUsageSummary,
+  getMcpUsageNewVsReturning,
+  getRecentMcpUsage,
+} from "./mcp-usage-store.js";

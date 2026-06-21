@@ -190,7 +190,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 
   lines.push(`# Scene Plan — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Video Overview");
   lines.push("");
@@ -362,7 +362,7 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, file
 
   const config = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     composition: {
       id: `${compName}Video`,
       width: 1920,
@@ -455,7 +455,7 @@ export function generateAssetChecklist(ctx: ContextMap, files?: SourceFile[]): G
 
   lines.push(`# Asset Checklist — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("## Required Assets");
   lines.push("");
@@ -552,7 +552,7 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   const lines: string[] = [];
   lines.push(`# Storyboard — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("Frame-by-frame storyboard for a 60-second project showcase video.");
   lines.push("");

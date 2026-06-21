@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:48.154Z",
+  "generated_at": "2026-05-23T03:31:46.770Z",
   "scheme": "dark",
   "detected_stack": {
     "frameworks": [
@@ -123,14 +123,8 @@
   },
   "source_theme_files": [
     "apps/web/src/index.css",
-    "packages/generator-core/src/generators-theme.ts",
-    "payment-processing-output/component-theme-map.json",
-    "payment-processing-output/dark-mode-tokens.json",
-    "payment-processing-output/theme-guidelines.md",
-    "payment-processing-output/theme.css",
-    "theme/begin.yaml",
-    "theme/continuation.yaml",
-    "theme/MEMORY.yaml",
-    "theme/schemas/output-contract.schema.json"
+    "component-theme-map.json",
+    "dark-mode-tokens.json",
+    "packages/generator-core/src/generators-theme.ts"
   ]
 }

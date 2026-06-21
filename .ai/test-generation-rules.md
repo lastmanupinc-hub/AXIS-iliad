@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -55,21 +55,21 @@ These models were detected in the codebase. Each should have factory helpers and
 | Model | Kind | Fields | Source |
 |-------|------|--------|--------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmailConfig` | interface | 2 | `apps/api/src/email.ts` |
+| `ResendErrorResponse` | interface | 3 | `apps/api/src/email.ts` |
+| `ResendSuccessResponse` | interface | 1 | `apps/api/src/email.ts` |
+| `SendEmailOptions` | interface | 5 | `apps/api/src/email.ts` |
+| `SendEmailResult` | interface | 4 | `apps/api/src/email.ts` |
+| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
+| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
+| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
+| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
 | `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
 | `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
 | `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
-| `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
-| `OpenApiSpec` | interface | 6 | `apps/api/src/openapi.ts` |
-| `WindowEntry` | interface | 2 | `apps/api/src/rate-limiter.ts` |
-| `AppHandle` | interface | 3 | `apps/api/src/router.ts` |
-| `Route` | interface | 4 | `apps/api/src/router.ts` |
-| `CliArgs` | interface | 5 | `apps/cli/src/cli.ts` |
-| `AxisConfig` | interface | 2 | `apps/cli/src/credential-store.ts` |
-| `RunResult` | interface | 4 | `apps/cli/src/runner.ts` |
-| `ScanResult` | interface | 3 | `apps/cli/src/scanner.ts` |
-| `WriteResult` | interface | 3 | `apps/cli/src/writer.ts` |
-| *... and 116 more* | | | |
+| `PullRequestPayload` | interface | 5 | `apps/api/src/github-webhook.ts` |
+| *... and 249 more* | | | |
 
 ### Factory Helper Pattern
 
@@ -83,14 +83,14 @@ export function makeAuthContext(overrides: Partial<AuthContext> = {}): AuthConte
   };
 }
 
-export function makeEnvSpec(overrides: Partial<EnvSpec> = {}): EnvSpec {
+export function makeEmailConfig(overrides: Partial<EmailConfig> = {}): EmailConfig {
   return {
     // fill in required fields with sensible test defaults
     ...overrides,
   };
 }
 
-export function makeValidationError(overrides: Partial<ValidationError> = {}): ValidationError {
+export function makeResendErrorResponse(overrides: Partial<ResendErrorResponse> = {}): ResendErrorResponse {
   return {
     // fill in required fields with sensible test defaults
     ...overrides,
@@ -103,9 +103,9 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 
 - **`ProgramDoc`** (13 fields) — test with partial input, null fields, and boundary values
 - **`ParseResult`** (13 fields) — test with partial input, null fields, and boundary values
+- **`SubscriptionInfo`** (12 fields) — test with partial input, null fields, and boundary values
 - **`RepoProfile`** (12 fields) — test with partial input, null fields, and boundary values
 - **`StripeSubscription`** (12 fields) — test with partial input, null fields, and boundary values
-- **`SubscriptionInfo`** (11 fields) — test with partial input, null fields, and boundary values
 
 ## Test Categories
 
@@ -157,63 +157,63 @@ export function makeValidationError(overrides: Partial<ValidationError> = {}): V
 
 | File | Lines |
 |------|-------|
-| `apps/api/src/admin.test.ts` | 232 |
+| `apps/api/src/admin.test.ts` | 265 |
+| `apps/api/src/agent-discovery.test.ts` | 569 |
+| `apps/api/src/analyze-repo-success.test.ts` | 137 |
+| `apps/api/src/analyze.test.ts` | 487 |
 | `apps/api/src/api-branches.test.ts` | 606 |
-| `apps/api/src/api-layer5.test.ts` | 282 |
-| `apps/api/src/api.test.ts` | 432 |
+| `apps/api/src/api-layer5.test.ts` | 284 |
+| `apps/api/src/api.test.ts` | 464 |
 | `apps/api/src/b-grade-upgrade.test.ts` | 228 |
-| `apps/api/src/billing-flow.test.ts` | 548 |
-| `apps/api/src/checkout-email.test.ts` | 308 |
-| `apps/api/src/crash-resilience.test.ts` | 158 |
-| `apps/api/src/credits-api.test.ts` | 262 |
-| `apps/api/src/db-endpoints.test.ts` | 108 |
-| `apps/api/src/deletion.test.ts` | 148 |
-| `apps/api/src/deployment.test.ts` | 208 |
+| `apps/api/src/billing-flow.test.ts` | 596 |
+| `apps/api/src/budget-probe.test.ts` | 833 |
+| `apps/api/src/checkout-email.test.ts` | 322 |
+| `apps/api/src/counts-consistency.test.ts` | 46 |
 
 ## Reference Test
 
-### `apps/api/src/logger.test.ts`
+### `apps/api/src/counts-consistency.test.ts`
 
 ```typescript
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { log } from "./logger.js";
+import { describe, it, expect } from "vitest";
+import {
+  ARTIFACT_COUNT,
+  PROGRAM_COUNT,
+  MCP_TOOL_COUNT,
+  MCP_TOOL_COUNT_INCLUDING_PLANNED,
+  ENDPOINT_COUNT,
+} from "./counts.js";
+import { MCP_TOOLS, PLANNED_CAPABILITY_NAMES } from "./mcp-server.js";
+import { listAvailableGenerators } from "@axis/generator-core";
 
-describe("LOG_LEVEL filtering", () => {
-  afterEach(() => {
-    delete process.env.LOG_LEVEL;
-    vi.restoreAllMocks();
+describe("counts.ts consistency", () => {
+  it("ARTIFACT_COUNT equals the live generator registry size", () => {
+    expect(ARTIFACT_COUNT).toBe(listAvailableGenerators().length);
   });
 
-  it("writes info by default (LOG_LEVEL unset)", () => {
-    const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    log("info", "test_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-    expect(parsed.level).toBe("info");
-    expect(parsed.msg).toBe("test_msg");
+  it("PROGRAM_COUNT equals the distinct generator-program count", () => {
+    const programs = new Set(listAvailableGenerators().map(g => g.program));
+    expect(PROGRAM_COUNT).toBe(programs.size);
   });
 
-  it("writes error to stderr", () => {
-    const spy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-    log("error", "err_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-    expect(parsed.level).toBe("error");
+  it("MCP_TOOL_COUNT equals the public tools/list size (planned stubs excluded)", () => {
+    // Public count = MCP_TOOLS length minus the planned-capability stubs that
+    // tools/list hides by default. Drives the "honest catalog" surface area
+    // we publish to MCP registries.
+    const publicTools = MCP_TOOLS.filter(t => !PLANNED_CAPABILITY_NAMES.has(t.name));
+    expect(MCP_TOOL_COUNT).toBe(publicTools.length);
   });
 
-  it("writes warn to stdout", () => {
-    const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    log("warn", "warn_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-    expect(parsed.level).toBe("warn");
+  it("MCP_TOOL_COUNT_INCLUDING_PLANNED equals the live MCP_TOOLS array length", () => {
+    expect(MCP_TOOL_COUNT_INCLUDING_PLANNED).toBe(MCP_TOOLS.length);
   });
 
-  it("writes debug when LOG_LEVEL=debug", () => {
-    process.env.LOG_LEVEL = "debug";
-    const spy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
-    log("debug", "debug_msg");
-    expect(spy).toHaveBeenCalledOnce();
-    const parsed = JSON.parse(spy.mock.calls[0][0] as string);
-... (54 more lines)
+  it("MCP_TOOL_COUNT is strictly less than MCP_TOOL_COUNT_INCLUDING_PLANNED while planned stubs exist", () => {
+    expect(MCP_TOOL_COUNT).toBeLessThanOrEqual(MCP_TOOL_COUNT_INCLUDING_PLANNED);
+    if (PLANNED_CAPABILITY_NAMES.size > 0) {
+      expect(MCP_TOOL_COUNT).toBeLessThan(MCP_TOOL_COUNT_INCLUDING_PLANNED);
+    }
+  });
+
+... (6 more lines)
 ```

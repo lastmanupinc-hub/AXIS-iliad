@@ -155,7 +155,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "How do referral rewards affect billing?",
-    answer: "The more agents you refer, the less you effectively spend per call (up to 0.02% benefit). Reward state resets each billing cycle.",
+    answer: "The referral program is opt-in: paid calls return a referral_token, and unique conversions attributed to your token earn usage credits that lower your effective dollars per call (up to 0.02% benefit). Reward state resets each billing cycle.",
   },
 
   // Technical

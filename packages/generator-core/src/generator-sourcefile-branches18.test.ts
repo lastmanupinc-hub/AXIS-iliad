@@ -256,9 +256,9 @@ describe("frontend: domain model table overflow — branch 12 (line 123)", () =>
       kind: "interface",
       field_count: i + 1,
     }));
-    const inp = withModels(input(snap(), [".ai/frontend-rules.md"]), models);
+    const inp = withModels(input(snap(), ["frontend-rules.md"]), models);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/frontend-rules.md");
+    const f = getFile(res, "frontend-rules.md");
     expect(f).toBeDefined();
     // domainModels.length > 12 → "... and X more" appended
     expect(f!.content).toMatch(/\+\s*\d+\s*more|\*\.\.\. and \d+ more\*/);
@@ -267,12 +267,12 @@ describe("frontend: domain model table overflow — branch 12 (line 123)", () =>
 
 describe("frontend: SQL schema → database-backed UI — branch 13 (line 130)", () => {
   it("generates database-backed UI section when SQL schema is present", () => {
-    const inp = withSqlSchema(input(snap(), [".ai/frontend-rules.md"]), [
+    const inp = withSqlSchema(input(snap(), ["frontend-rules.md"]), [
       { name: "users", columns: [{ name: "id", type: "INTEGER", nullable: false }, { name: "email", type: "TEXT", nullable: false }] },
       { name: "posts", columns: [{ name: "id", type: "INTEGER", nullable: false }, { name: "title", type: "TEXT", nullable: true }] },
     ]);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/frontend-rules.md");
+    const f = getFile(res, "frontend-rules.md");
     expect(f).toBeDefined();
     // sql_schema.length > 0 → "Database-Backed UI" section
     expect(f!.content).toContain("Database");
@@ -493,9 +493,10 @@ describe("artifacts: Svelte component scaffold — branch 0 (line 20)", () => {
     const res = generateFiles(inp);
     const f = getFile(res, "generated-component.tsx");
     expect(f).toBeDefined();
-    // Branch 0 (isSvelte) → Svelte <script lang="ts"> syntax
+    // Branch 0 (isSvelte) → Svelte <script lang="ts"> shell with main+sections
     expect(f!.content).toContain("<script lang=\"ts\">");
-    expect(f!.content).toContain("<slot />");
+    expect(f!.content).toMatch(/<main[^>]+class=/);
+    expect(f!.content).toContain("<section>");
   });
 });
 

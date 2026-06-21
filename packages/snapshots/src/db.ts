@@ -541,6 +541,49 @@ CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_account_month ON usage_credit
 CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_created ON usage_credit_ledger(created_at);
 `,
   },
+  {
+    version: 22,
+    name: "normalize_account_emails",
+    sql: `
+-- Emails are now stored lowercase (PAID/Stripe webhook echoes may change
+-- casing, and the BINARY-collated email lookup would then miss the account).
+-- Lowercase legacy rows, but leave any row whose lowercase form collides
+-- with another account untouched — rewriting it would violate UNIQUE(email).
+UPDATE accounts SET email = lower(email)
+WHERE email <> lower(email)
+  AND NOT EXISTS (
+    SELECT 1 FROM accounts other
+    WHERE other.account_id <> accounts.account_id
+      AND lower(other.email) = lower(accounts.email)
+  );
+-- Case-insensitive lookups (getAccountByEmail uses COLLATE NOCASE) cannot
+-- use the BINARY-collated UNIQUE(email) index, so add a NOCASE index.
+CREATE INDEX IF NOT EXISTS idx_accounts_email_nocase ON accounts(email COLLATE NOCASE);
+`,
+  },
+  {
+    version: 23,
+    name: "add_mcp_usage",
+    sql: `
+-- Persistent per-call MCP telemetry (the in-process counters in mcp-server.ts
+-- reset on every restart). account_id is nullable (anonymous free-tool calls
+-- have none) and intentionally carries NO foreign key: telemetry must never
+-- block account deletion nor fail an insert because of account lifecycle.
+CREATE TABLE IF NOT EXISTS mcp_usage (
+  usage_id TEXT PRIMARY KEY,
+  account_id TEXT,
+  tool TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'unknown',
+  probe_class TEXT NOT NULL DEFAULT 'unknown',
+  user_agent TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_created ON mcp_usage(created_at);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_tool ON mcp_usage(tool);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_account ON mcp_usage(account_id);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_source ON mcp_usage(source);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {
@@ -603,6 +646,16 @@ export function openMemoryDb(): Database.Database {
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA_V1);
   runMigrations(db);
+  return db;
+}
+
+/**
+ * Return the current database handle WITHOUT lazily opening one. Use this for
+ * fire-and-forget telemetry that must be a silent no-op when no DB is open
+ * (e.g. a unit test that never called openMemoryDb) — getDb() would otherwise
+ * open the production axis.db file as a side effect.
+ */
+export function peekDb(): Database.Database | null {
   return db;
 }
 

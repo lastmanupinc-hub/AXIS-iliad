@@ -11,8 +11,11 @@ import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
+import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -49,7 +52,26 @@ function ErrorBoundary({ children }: { children: ReactNode }) {
   );
 }
 
-type Page = "upload" | "dashboard" | "plans" | "account" | "docs" | "help" | "qa" | "programs" | "terms" | "for-agents" | "examples" | "install" | "admin" | "myanalytics";
+type Page =
+  | "upload"
+  | "dashboard"
+  | "plans"
+  | "account"
+  | "docs"
+  | "help"
+  | "qa"
+  | "programs"
+  | "terms"
+  | "for-agents"
+  | "examples"
+  | "install"
+  | "paid-checkout"
+  | "admin"
+  | "myanalytics"
+  | "tools"
+  // Sub-tool pages — each click-driven console for a single backend capability.
+  // Hash format: "#tools/web-research" → "tool-web-research".
+  | "tool-web-research";
 
 const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics"]);
 
@@ -65,6 +87,18 @@ function pageFromPathname(pathname: string): Page | null {
   if (normalized === "/docs") return "docs";
   if (normalized === "/install") return "install";
   if (normalized === "/programs") return "programs";
+  if (normalized === "/tools") return "tools";
+  if (normalized === "/tools/web-research") return "tool-web-research";
+  return null;
+}
+
+/** Parse a sub-tool hash like "tools/web-research" into a Page enum value. */
+function pageFromHash(hash: string): Page | null {
+  const h = hash.replace(/^#/, "");
+  if (!h) return null;
+  if (h === "tools") return "tools";
+  if (h === "tools/web-research") return "tool-web-research";
+  // Future tool subpages: extend this match block in lockstep with the Page union above.
   return null;
 }
 
@@ -72,9 +106,12 @@ function getInitialPage(): Page {
   const pathPage = pageFromPathname(location.pathname);
   if (pathPage) return pathPage;
 
+  const subPage = pageFromHash(location.hash);
+  if (subPage) return subPage;
+
   const h = location.hash.replace("#", "");
   if (h === "admin" || h === "myanalytics") return hasApiKey() ? (h as Page) : "account";
-  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install") return h as Page;
+  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install" || h === "paid-checkout") return h as Page;
   if (h === "dashboard" && localStorage.getItem("axis_last_result")) return "dashboard";
   return "upload";
 }
@@ -120,6 +157,12 @@ export function App() {
         return;
       }
 
+      const subPage = pageFromHash(location.hash);
+      if (subPage) {
+        setPage(subPage);
+        return;
+      }
+
       const h = location.hash.replace("#", "");
       const isLoggedIn = hasApiKey();
       if (h === "plans") setPage("plans");
@@ -132,6 +175,7 @@ export function App() {
       else if (h === "for-agents") setPage("for-agents");
       else if (h === "examples") setPage("examples");
       else if (h === "install") setPage("install");
+      else if (h === "paid-checkout") setPage("paid-checkout");
       else if (h === "admin") {
         if (isLoggedIn) setPage("admin");
         else {
@@ -158,6 +202,14 @@ export function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  /** Map a Page enum to the hash it should set in the URL. Sub-tool pages
+   *  use a sub-path style (#tools/web-research) for readability. */
+  const hashForPage = useCallback((p: Page): string => {
+    if (p === "upload") return "";
+    if (p === "tool-web-research") return "tools/web-research";
+    return p;
+  }, []);
+
   const nav = useCallback((p: Page) => {
     if (AUTH_ONLY_PAGES.has(p) && !hasApiKey()) {
       setPage("account");
@@ -169,8 +221,8 @@ export function App() {
     setPage(p);
     setPageKey((k) => k + 1);
     setNavOpen(false);
-    location.hash = p === "upload" ? "" : p;
-  }, []);
+    location.hash = hashForPage(p);
+  }, [hashForPage]);
 
   const handleUploadComplete = useCallback((data: SnapshotResponse) => {
     const isLoggedIn = !!localStorage.getItem("axis_api_key");
@@ -259,9 +311,14 @@ export function App() {
 
   // Command palette actions
   const paletteActions = useMemo<PaletteAction[]>(() => {
+    // Ctrl+2 belongs to Dashboard when a result exists (matches the keyboard
+    // handler below and the HelpPage shortcut table); Programs holds it otherwise.
     const actions: PaletteAction[] = [
       { id: "nav-analyze", label: "Go to Analyze", icon: "", shortcut: "Ctrl+1", section: "Navigation", onSelect: () => nav("upload") },
-      { id: "nav-programs", label: "Go to Programs", icon: "", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("programs") },
+      ...(result
+        ? [{ id: "nav-dashboard", label: "Go to Dashboard", icon: "", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("dashboard") }]
+        : []),
+      { id: "nav-programs", label: "Go to Programs", icon: "", ...(result ? {} : { shortcut: "Ctrl+2" }), section: "Navigation", onSelect: () => nav("programs") },
       { id: "nav-plans", label: "Go to Plans", icon: "", shortcut: "Ctrl+3", section: "Navigation", onSelect: () => nav("plans") },
       { id: "nav-account", label: "Go to Account", icon: "", shortcut: "Ctrl+4", section: "Navigation", onSelect: () => nav("account") },
       { id: "nav-docs", label: "Go to Docs", icon: "", shortcut: "Ctrl+5", section: "Navigation", onSelect: () => nav("docs") },
@@ -274,16 +331,6 @@ export function App() {
         { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
       );
     }
-    if (result) {
-      actions.splice(1, 0, {
-        id: "nav-dashboard",
-        label: "Go to Dashboard",
-        icon: "",
-        shortcut: "Ctrl+2",
-        section: "Navigation",
-        onSelect: () => nav("dashboard"),
-      });
-    }
     return actions;
   }, [result, nav, privateAccess]);
 
@@ -293,8 +340,10 @@ export function App() {
       if (!e.ctrlKey && !e.metaKey) return;
       const key = e.key;
       if (key === "1") { e.preventDefault(); nav("upload"); }
-      else if (key === "2") { e.preventDefault(); nav("programs"); }
+      // Ctrl+2 → Dashboard when a result exists (per HelpPage shortcut table),
+      // Programs otherwise so the key is never dead.
       else if (key === "2" && result) { e.preventDefault(); nav("dashboard"); }
+      else if (key === "2") { e.preventDefault(); nav("programs"); }
       else if (key === "3") { e.preventDefault(); nav("plans"); }
       else if (key === "4") { e.preventDefault(); nav("account"); }
       else if (key === "5") { e.preventDefault(); nav("docs"); }
@@ -323,6 +372,7 @@ export function App() {
           {result && (
             <button className={`btn ${page === "dashboard" ? "btn-primary" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
           )}
+          <button className={`btn ${page === "tools" || page.startsWith("tool-") ? "btn-primary" : ""}`} onClick={() => nav("tools")}>Tools</button>
           <button className={`btn ${page === "programs" ? "btn-primary" : ""}`} onClick={() => nav("programs")}>Programs</button>
           <button className={`btn ${page === "plans" ? "btn-primary" : ""}`} onClick={() => nav("plans")}>Plans</button>
           <button className={`btn ${page === "account" ? "btn-primary" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
@@ -359,6 +409,7 @@ export function App() {
           {result && (
             <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
           )}
+          <button className={`nav-drawer-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}>Tools</button>
           <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
           <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
           <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
@@ -375,7 +426,7 @@ export function App() {
 
       {/* Trust / privacy banner — always visible */}
       <div className="trust-banner" role="note" aria-label="Privacy and IP protection statement">
-        <span className="trust-item"><strong>Code never stored</strong> — we analyze and discard</span>
+        <span className="trust-item"><strong>Snapshots are stored</strong> — they power re-runs and exports; delete anytime via the API (DELETE /v1/snapshots/:id)</span>
         <span className="trust-sep">·</span>
         <span className="trust-item"><strong>Never used for AI training</strong></span>
         <span className="trust-sep">·</span>
@@ -400,6 +451,18 @@ export function App() {
           {page === "for-agents" && <ForAgentsPage />}
           {page === "examples" && <ExamplesPage />}
           {page === "install" && <InstallPage />}
+          {page === "paid-checkout" && <PaidCheckoutPage />}
+          {page === "tools" && (
+            <ToolsIndexPage
+              onSelectTool={(toolId) => {
+                if (toolId === "tools/web-research") nav("tool-web-research");
+                else if (toolId === "tools/analyze") nav("upload");
+                else if (toolId === "tools/list-programs") nav("programs");
+                // Future tools: add cases here as their ToolPage instances ship.
+              }}
+            />
+          )}
+          {page === "tool-web-research" && <WebResearchPage onBack={() => nav("tools")} />}
         </div>
       </ErrorBoundary>
 

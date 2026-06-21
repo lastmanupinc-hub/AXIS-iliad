@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.554Z",
+  "generated_at": "2026-05-23T03:31:46.299Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
@@ -27,22 +27,22 @@
       "id": "api-surface",
       "from": 180,
       "duration": 90,
-      "label": "API Surface (387 routes)",
-      "data_points": 387
+      "label": "API Surface (497 routes)",
+      "data_points": 497
     },
     {
       "id": "data-model",
       "from": 270,
       "duration": 90,
-      "label": "Data Model (131 entities)",
-      "data_points": 131
+      "label": "Data Model (264 entities)",
+      "data_points": 264
     },
     {
       "id": "complexity",
       "from": 360,
       "duration": 90,
-      "label": "Complexity Hotspots (6)",
-      "data_points": 6
+      "label": "Complexity Hotspots (7)",
+      "data_points": 7
     },
     {
       "id": "architecture",
@@ -86,44 +86,45 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 66752,
-          "percent": 71.2
+          "loc": 93770,
+          "percent": 76.5
         },
         {
           "name": "YAML",
-          "loc": 14963,
-          "percent": 16
+          "loc": 9885,
+          "percent": 8.1
         },
         {
           "name": "JSON",
-          "loc": 6426,
-          "percent": 6.9
+          "loc": 8079,
+          "percent": 6.6
         },
         {
           "name": "Markdown",
-          "loc": 3944,
-          "percent": 4.2
-        },
-        {
-          "name": "CSS",
-          "loc": 849,
-          "percent": 0.9
+          "loc": 7944,
+          "percent": 6.5
         },
         {
           "name": "JavaScript",
-          "loc": 673,
-          "percent": 0.7
+          "loc": 2093,
+          "percent": 1.7
+        },
+        {
+          "name": "CSS",
+          "loc": 675,
+          "percent": 0.6
         }
       ],
       "build_tools": [
-        "vite"
+        "vite",
+        "make"
       ],
       "test_frameworks": [
         "vitest"
       ]
     },
     "api_surface": {
-      "total_routes": 387,
+      "total_routes": 497,
       "routes": [
         {
           "method": "GET",
@@ -156,6 +157,61 @@
           "source": "apps/api/src/admin.test.ts"
         },
         {
+          "method": "GET",
+          "path": "/llms.txt",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/.well-known/skills/index.json",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/docs.md",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/.well-known/axis.json",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/for-agents",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/install",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/install/:platform",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/probe-intent",
+          "source": "apps/api/src/agent-discovery.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/mcp",
+          "source": "apps/api/src/analyze-repo-success.test.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/analyze",
+          "source": "apps/api/src/analyze.test.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/.well-known/axis.json",
+          "source": "apps/api/src/analyze.test.ts"
+        },
+        {
           "method": "POST",
           "path": "/v1/snapshots",
           "source": "apps/api/src/api-branches.test.ts"
@@ -169,69 +225,59 @@
           "method": "DELETE",
           "path": "/v1/snapshots/:snapshot_id",
           "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/projects/:project_id/context",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/projects/:project_id/generated-files",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/projects/:project_id/generated-files/:file_path",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "DELETE",
-          "path": "/v1/projects/:project_id",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/health",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/db/stats",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/v1/db/maintenance",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/v1/search/index",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/v1/search/query",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/v1/search/:snapshot_id/stats",
-          "source": "apps/api/src/api-branches.test.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/v1/debug/analyze",
-          "source": "apps/api/src/api-branches.test.ts"
         }
       ]
     },
     "data_model": {
-      "total_models": 131,
+      "total_models": 264,
       "models": [
         {
           "name": "AuthContext",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "EmailConfig",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "ResendErrorResponse",
+          "kind": "interface",
+          "fields": 3
+        },
+        {
+          "name": "ResendSuccessResponse",
+          "kind": "interface",
+          "fields": 1
+        },
+        {
+          "name": "SendEmailOptions",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "SendEmailResult",
+          "kind": "interface",
+          "fields": 4
+        },
+        {
+          "name": "EmbeddingsConfig",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "EmbeddingsResult",
+          "kind": "interface",
+          "fields": 4
+        },
+        {
+          "name": "OpenAIEmbeddingResponse",
+          "kind": "interface",
+          "fields": 5
+        },
+        {
+          "name": "OpenAIErrorResponse",
           "kind": "interface",
           "fields": 3
         },
@@ -256,87 +302,48 @@
           "fields": 4
         },
         {
-          "name": "HistogramEntry",
-          "kind": "interface",
-          "fields": 3
-        },
-        {
-          "name": "OpenApiSpec",
-          "kind": "interface",
-          "fields": 6
-        },
-        {
-          "name": "WindowEntry",
-          "kind": "interface",
-          "fields": 2
-        },
-        {
-          "name": "AppHandle",
-          "kind": "interface",
-          "fields": 3
-        },
-        {
-          "name": "Route",
-          "kind": "interface",
-          "fields": 4
-        },
-        {
-          "name": "CliArgs",
+          "name": "PullRequestPayload",
           "kind": "interface",
           "fields": 5
-        },
-        {
-          "name": "AxisConfig",
-          "kind": "interface",
-          "fields": 2
-        },
-        {
-          "name": "RunResult",
-          "kind": "interface",
-          "fields": 4
-        },
-        {
-          "name": "ScanResult",
-          "kind": "interface",
-          "fields": 3
-        },
-        {
-          "name": "WriteResult",
-          "kind": "interface",
-          "fields": 3
         }
       ]
     },
     "hotspots": [
       {
-        "path": "apps/web/src/api.ts",
-        "inbound": 16,
-        "outbound": 0,
-        "risk": 0.8
-      },
-      {
         "path": "apps/web/src/App.tsx",
         "inbound": 1,
-        "outbound": 14,
-        "risk": 0.75
+        "outbound": 21,
+        "risk": 1
+      },
+      {
+        "path": "apps/web/src/api.ts",
+        "inbound": 19,
+        "outbound": 0,
+        "risk": 0.95
+      },
+      {
+        "path": "apps/web/src/pages.test.tsx",
+        "inbound": 0,
+        "outbound": 17,
+        "risk": 0.85
       },
       {
         "path": "apps/web/src/pages/DashboardPage.tsx",
         "inbound": 1,
-        "outbound": 9,
-        "risk": 0.5
+        "outbound": 10,
+        "risk": 0.55
       },
       {
         "path": "apps/web/src/components/Toast.tsx",
-        "inbound": 3,
+        "inbound": 4,
         "outbound": 0,
-        "risk": 0.15
+        "risk": 0.2
       },
       {
         "path": "apps/web/src/components/AxisIcons.tsx",
-        "inbound": 3,
+        "inbound": 4,
         "outbound": 0,
-        "risk": 0.15
+        "risk": 0.2
       },
       {
         "path": "apps/web/src/upload-utils.ts",
@@ -346,7 +353,7 @@
       }
     ],
     "architecture": {
-      "separation_score": 0.64,
+      "separation_score": 0.65,
       "patterns": [
         "monorepo",
         "containerized"
@@ -359,20 +366,20 @@
       ]
     },
     "abstractions": [
-      "packages/ (monorepo_packages)",
       "apps/ (monorepo_apps)",
+      "packages/ (monorepo_packages)",
+      "examples/ (project_directory)",
+      "mcp/ (project_directory)",
       "payment-processing-output/ (project_directory)",
-      "search/ (project_directory)",
-      "algorithmic/ (project_directory)",
-      "artifacts/ (project_directory)",
-      "brand/ (project_directory)",
-      "canvas/ (project_directory)"
+      "packaging/ (project_directory)",
+      ".github/ (project_directory)",
+      "algorithmic/ (project_directory)"
     ]
   },
   "detected_stack": {
     "primary_language": "TypeScript",
-    "total_files": 432,
-    "total_loc": 95217
+    "total_files": 500,
+    "total_loc": 133500
   },
   "source_media_files": null
 }

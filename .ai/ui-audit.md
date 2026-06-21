@@ -1,10 +1,10 @@
 # UI Audit — axis-iliad
 
-Generated: 2026-04-11T22:24:48.028Z
+Generated: 2026-05-23T03:31:46.686Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -20,7 +20,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | Styling | CSS/SCSS |
 | TypeScript | Yes |
 | UI Libraries | uuid |
-| Total Routes | 387 |
+| Total Routes | 497 |
 | Entry Points | 0 |
 
 ## Accessibility Checklist
@@ -56,10 +56,10 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | /v1/admin/stats | ⚠️ Verify | ⚠️ Verify | Yes |
 | /v1/admin/accounts | ⚠️ Verify | ⚠️ Verify | Yes |
 | /v1/admin/activity | ⚠️ Verify | ⚠️ Verify | Yes |
-| /v1/snapshots | ⚠️ Verify | ⚠️ Verify | Yes |
-| /v1/snapshots/:snapshot_id | ⚠️ Verify | ⚠️ Verify | Yes |
-| /v1/snapshots/:snapshot_id | ⚠️ Verify | ⚠️ Verify | Yes |
-| /v1/projects/:project_id/context | ⚠️ Verify | ⚠️ Verify | Yes |
+| /llms.txt | ⚠️ Verify | ⚠️ Verify | Yes |
+| /.well-known/skills/index.json | ⚠️ Verify | ⚠️ Verify | Yes |
+| /v1/docs.md | ⚠️ Verify | ⚠️ Verify | Yes |
+| /.well-known/axis.json | ⚠️ Verify | ⚠️ Verify | Yes |
 
 ## Audit Score
 
@@ -77,23 +77,22 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 | Component | Exports | Lines |
 |-----------|---------|-------|
-| `apps/web/src/App.tsx` | export function App() { ... } | 286 |
+| `apps/web/src/App.tsx` | export function App() { ... } | 490 |
 | `apps/web/src/components/AxisIcons.tsx` | export function Icon({ ... } | 111 |
 | `apps/web/src/components/CommandPalette.tsx` | export interface PaletteAction { ... }, export function CommandPalette({ ... } | 214 |
 | `apps/web/src/components/FilesTab.tsx` | export function FilesTab({ ... } | 126 |
 | `apps/web/src/components/GeneratedTab.tsx` | export function GeneratedTab({ ... } | 118 |
 | `apps/web/src/components/GraphTab.tsx` | export function GraphTab({ ... } | 128 |
 | `apps/web/src/components/OverviewTab.tsx` | export function OverviewTab({ ... } | 223 |
-| `apps/web/src/components/ProgramLauncher.tsx` | export function ProgramLauncher({ ... } | 165 |
+| `apps/web/src/components/ProgramLauncher.tsx` | export function ProgramLauncher({ ... } | 169 |
 | `apps/web/src/components/SearchTab.tsx` | export function SearchTab({ ... } | 307 |
 | `apps/web/src/components/SignUpModal.tsx` | export function SignUpModal({ ... } | 122 |
 | `apps/web/src/components/StatusBar.tsx` | export function StatusBar({ ... } | 76 |
 | `apps/web/src/components/Toast.tsx` | export function useToast() { ... }, export function ToastProvider({ ... } | 115 |
+| `apps/web/src/components/ToolPage.tsx` | export interface ToolPricing { ... }, export interface ToolPageProps { ... }, export function ToolPage({ ... } | 189 |
+| `apps/web/src/components/UpsellModal.tsx` | export function UpsellModal({ ... } | 123 |
 | `apps/web/src/main.tsx` | default | 11 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 573 |
-| `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 158 |
 
 ## Detected Style Files
 
 - `apps/web/src/index.css` (770 lines)
-- `payment-processing-output/theme.css` (226 lines)

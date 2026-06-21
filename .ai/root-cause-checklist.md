@@ -1,6 +1,6 @@
 # Root Cause Checklist — axis-iliad
 
-> monorepo | TypeScript | 432 files | 95,217 LOC
+> monorepo | TypeScript | 500 files | 133,500 LOC
 
 **Stack:** React ^19.1.0
 
@@ -16,7 +16,7 @@
 - [ ] What is the minimum input/state to trigger it?
 - [ ] Does it reproduce in all environments (dev, staging, prod)?
 - [ ] Is it timing-dependent (race condition, timeout)?
-- [ ] `pnpm test` — do existing tests pass? (vitest)
+- [ ] `npm test` — do existing tests pass? (vitest)
 
 ## Step 2: Isolation
 
@@ -55,34 +55,83 @@ Which layer does the error surface in?
 Check these entities for state corruption or relationship violations:
 
 - [ ] `AuthContext` (interface, 3 fields) — `apps/api/src/billing.ts`
+- [ ] `EmailConfig` (interface, 2 fields) — `apps/api/src/email.ts`
+- [ ] `ResendErrorResponse` (interface, 3 fields) — `apps/api/src/email.ts`
+- [ ] `ResendSuccessResponse` (interface, 1 fields) — `apps/api/src/email.ts`
+- [ ] `SendEmailOptions` (interface, 5 fields) — `apps/api/src/email.ts`
+- [ ] `SendEmailResult` (interface, 4 fields) — `apps/api/src/email.ts`
+- [ ] `EmbeddingsConfig` (interface, 2 fields) — `apps/api/src/embeddings.ts`
+- [ ] `EmbeddingsResult` (interface, 4 fields) — `apps/api/src/embeddings.ts`
+- [ ] `OpenAIEmbeddingResponse` (interface, 5 fields) — `apps/api/src/embeddings.ts`
+- [ ] `OpenAIErrorResponse` (interface, 3 fields) — `apps/api/src/embeddings.ts`
 - [ ] `EnvSpec` (interface, 5 fields) — `apps/api/src/env.ts`
 - [ ] `ValidationError` (interface, 2 fields) — `apps/api/src/env.ts`
 - [ ] `ValidationResult` (interface, 3 fields) — `apps/api/src/env.ts`
 - [ ] `ZipEntry` (interface, 4 fields) — `apps/api/src/export.ts`
+- [ ] `PullRequestPayload` (interface, 5 fields) — `apps/api/src/github-webhook.ts`
+- [ ] `PushPayload` (interface, 7 fields) — `apps/api/src/github-webhook.ts`
+- [ ] `SnapshotTarget` (interface, 5 fields) — `apps/api/src/github-webhook.ts`
+- [ ] `FirecrawlCrawlRequest` (interface, 5 fields) — `apps/api/src/handlers.ts`
+- [ ] `FirecrawlCrawlResponse` (interface, 4 fields) — `apps/api/src/handlers.ts`
+- [ ] `FirecrawlScrapeRequest` (interface, 6 fields) — `apps/api/src/handlers.ts`
+- [ ] `FirecrawlScrapeResponse` (interface, 5 fields) — `apps/api/src/handlers.ts`
+- [ ] `IntentCapture` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
+- [ ] `JsonRpcRequest` (interface, 4 fields) — `apps/api/src/mcp-server.ts`
+- [ ] `McpCallCounters` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
+- [ ] `PlannedCapability` (interface, 7 fields) — `apps/api/src/mcp-server.ts`
+- [ ] `RpcError` (interface, 5 fields) — `apps/api/src/mcp-server.ts`
+- [ ] `RpcSuccess` (interface, 3 fields) — `apps/api/src/mcp-server.ts`
 - [ ] `HistogramEntry` (interface, 3 fields) — `apps/api/src/metrics.ts`
+- [ ] `CacheKey` (type_alias, 2 fields) — `apps/api/src/mpp.ts`
+- [ ] `OAuthClientRow` (interface, 3 fields) — `apps/api/src/oauth-server-simple.ts`
+- [ ] `PresignOptions` (interface, 5 fields) — `apps/api/src/object-storage.ts`
+- [ ] `PresignResult` (interface, 5 fields) — `apps/api/src/object-storage.ts`
+- [ ] `R2Config` (interface, 4 fields) — `apps/api/src/object-storage.ts`
 - [ ] `OpenApiSpec` (interface, 6 fields) — `apps/api/src/openapi.ts`
+- [ ] `CreateIntentInput` (interface, 3 fields) — `apps/api/src/paid-client.ts`
+- [ ] `CreateSubscriptionInput` (interface, 3 fields) — `apps/api/src/paid-client.ts`
+- [ ] `PaidConfig` (interface, 6 fields) — `apps/api/src/paid-client.ts`
+- [ ] `PaymentIntent` (interface, 6 fields) — `apps/api/src/paid-client.ts`
+- [ ] `Subscription` (interface, 4 fields) — `apps/api/src/paid-client.ts`
+- [ ] `VerifyWebhookOptions` (interface, 4 fields) — `apps/api/src/paid-client.ts`
 - [ ] `WindowEntry` (interface, 2 fields) — `apps/api/src/rate-limiter.ts`
 - [ ] `AppHandle` (interface, 3 fields) — `apps/api/src/router.ts`
 - [ ] `Route` (interface, 4 fields) — `apps/api/src/router.ts`
+- [ ] `QueryOptions` (interface, 3 fields) — `apps/api/src/vector-db.ts`
+- [ ] `VectorMatch` (interface, 3 fields) — `apps/api/src/vector-db.ts`
+- [ ] `VectorRecord` (interface, 3 fields) — `apps/api/src/vector-db.ts`
 - [ ] `CliArgs` (interface, 5 fields) — `apps/cli/src/cli.ts`
 - [ ] `AxisConfig` (interface, 2 fields) — `apps/cli/src/credential-store.ts`
 - [ ] `RunResult` (interface, 4 fields) — `apps/cli/src/runner.ts`
 - [ ] `ScanResult` (interface, 3 fields) — `apps/cli/src/scanner.ts`
 - [ ] `WriteResult` (interface, 3 fields) — `apps/cli/src/writer.ts`
 - [ ] `Account` (interface, 5 fields) — `apps/web/src/api.ts`
+- [ ] `AdminAccountsResponse` (interface, 4 fields) — `apps/web/src/api.ts`
+- [ ] `AdminAccountSummary` (interface, 5 fields) — `apps/web/src/api.ts`
+- [ ] `AdminActivityEvent` (interface, 6 fields) — `apps/web/src/api.ts`
+- [ ] `AdminActivityResponse` (interface, 2 fields) — `apps/web/src/api.ts`
+- [ ] `AdminStats` (interface, 5 fields) — `apps/web/src/api.ts`
+- [ ] `ApiEndpointUsage` (interface, 4 fields) — `apps/web/src/api.ts`
 - [ ] `ApiKeyInfo` (interface, 5 fields) — `apps/web/src/api.ts`
+- [ ] `ApiStatusUsage` (interface, 2 fields) — `apps/web/src/api.ts`
 - [ ] `ContextMap` (interface, 8 fields) — `apps/web/src/api.ts`
+- [ ] `CrawlPage` (interface, 3 fields) — `apps/web/src/api.ts`
+- [ ] `CrawlResult` (interface, 4 fields) — `apps/web/src/api.ts`
+- [ ] `CreditsInfo` (interface, 7 fields) — `apps/web/src/api.ts`
+- [ ] `FunnelMetrics` (interface, 8 fields) — `apps/web/src/api.ts`
 - [ ] `GeneratedFile` (interface, 5 fields) — `apps/web/src/api.ts`
 - [ ] `GeneratedFilesResponse` (interface, 6 fields) — `apps/web/src/api.ts`
+- [ ] `MyAnalyticsSummary` (interface, 11 fields) — `apps/web/src/api.ts`
 - [ ] `PlanDefinition` (interface, 6 fields) — `apps/web/src/api.ts`
-- [ ] `PlanFeature` (interface, 4 fields) — `apps/web/src/api.ts`
+- [ ] `PlanFeature` (interface, 6 fields) — `apps/web/src/api.ts`
 - [ ] `RepoProfile` (interface, 4 fields) — `apps/web/src/api.ts`
+- [ ] `ScrapeResult` (interface, 4 fields) — `apps/web/src/api.ts`
 - [ ] `SearchResponse` (interface, 5 fields) — `apps/web/src/api.ts`
 - [ ] `SearchResult` (interface, 4 fields) — `apps/web/src/api.ts`
 - [ ] `Seat` (interface, 7 fields) — `apps/web/src/api.ts`
 - [ ] `SnapshotPayload` (interface, 6 fields) — `apps/web/src/api.ts`
 - [ ] `SnapshotResponse` (interface, 8 fields) — `apps/web/src/api.ts`
-- [ ] `SubscriptionInfo` (interface, 11 fields) — `apps/web/src/api.ts`
+- [ ] `SubscriptionInfo` (interface, 12 fields) — `apps/web/src/api.ts`
 - [ ] `SymbolResult` (interface, 5 fields) — `apps/web/src/api.ts`
 - [ ] `SymbolsResponse` (interface, 3 fields) — `apps/web/src/api.ts`
 - [ ] `UpgradePrompt` (interface, 9 fields) — `apps/web/src/api.ts`
@@ -101,29 +150,98 @@ Check these entities for state corruption or relationship violations:
 - [ ] `Props` (interface, 2 fields) — `apps/web/src/components/StatusBar.tsx`
 - [ ] `Toast` (interface, 4 fields) — `apps/web/src/components/Toast.tsx`
 - [ ] `ToastContextValue` (interface, 1 fields) — `apps/web/src/components/Toast.tsx`
+- [ ] `ToolPageProps` (interface, 11 fields) — `apps/web/src/components/ToolPage.tsx`
+- [ ] `ToolPricing` (interface, 5 fields) — `apps/web/src/components/ToolPage.tsx`
+- [ ] `Props` (interface, 4 fields) — `apps/web/src/components/UpsellModal.tsx`
 - [ ] `Props` (interface, 2 fields) — `apps/web/src/pages/DashboardPage.tsx`
 - [ ] `ProgramDoc` (interface, 13 fields) — `apps/web/src/pages/DocsPage.tsx`
+- [ ] `Example` (interface, 7 fields) — `apps/web/src/pages/ExamplesPage.tsx`
 - [ ] `Step` (interface, 4 fields) — `apps/web/src/pages/HelpPage.tsx`
 - [ ] `TroubleshootItem` (interface, 2 fields) — `apps/web/src/pages/HelpPage.tsx`
+- [ ] `StrategyItem` (interface, 3 fields) — `apps/web/src/pages/MyAnalyticsPage.tsx`
 - [ ] `Props` (interface, 2 fields) — `apps/web/src/pages/PlansPage.tsx`
 - [ ] `ProgramDef` (interface, 7 fields) — `apps/web/src/pages/ProgramsPage.tsx`
 - [ ] `Props` (interface, 1 fields) — `apps/web/src/pages/ProgramsPage.tsx`
 - [ ] `QAItem` (interface, 3 fields) — `apps/web/src/pages/QAPage.tsx`
 - [ ] `Section` (interface, 2 fields) — `apps/web/src/pages/TermsPage.tsx`
+- [ ] `Props` (interface, 1 fields) — `apps/web/src/pages/tools/WebResearchPage.tsx`
+- [ ] `Props` (interface, 1 fields) — `apps/web/src/pages/ToolsIndexPage.tsx`
+- [ ] `ToolCatalogEntry` (interface, 8 fields) — `apps/web/src/pages/ToolsIndexPage.tsx`
 - [ ] `Props` (interface, 1 fields) — `apps/web/src/pages/UploadPage.tsx`
 - [ ] `ImportMeta` (interface, 1 fields) — `apps/web/src/vite-env.d.ts`
 - [ ] `ImportMetaEnv` (interface, 1 fields) — `apps/web/src/vite-env.d.ts`
+- [ ] `DashboardData` (interface, 6 fields) — `dashboard-widget.tsx`
+- [ ] `AgentBudget` (interface, 0 fields) — `embed-snippet.ts`
+- [ ] `Build402Options` (interface, 0 fields) — `embed-snippet.ts`
+- [ ] `PricingTier` (interface, 0 fields) — `embed-snippet.ts`
+- [ ] `axisiliadProps` (interface, 3 fields) — `generated-component.tsx`
+- [ ] `PaletteAction` (interface, 0 fields) — `generated-component.tsx`
+- [ ] `Edge` (interface, 3 fields) — `generative-sketch.ts`
+- [ ] `Node` (interface, 7 fields) — `generative-sketch.ts`
 - [ ] `ContextMap` (interface, 10 fields) — `packages/context-engine/src/types.ts`
 - [ ] `RepoProfile` (interface, 12 fields) — `packages/context-engine/src/types.ts`
+- [ ] `CommerceSignals` (interface, 10 fields) — `packages/generator-core/src/generators-agentic-purchasing.ts`
+- [ ] `ComplianceGradeResult` (interface, 3 fields) — `packages/generator-core/src/generators-agentic-purchasing.ts`
 - [ ] `Edge` (interface, 3 fields) — `packages/generator-core/src/generators-algorithmic.ts`
 - [ ] `Node` (interface, 7 fields) — `packages/generator-core/src/generators-algorithmic.ts`
 - [ ] `DashboardData` (interface, 6 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `Entry` (type_alias, 2 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `Model` (type_alias, 4 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `ResellCapability` (interface, 10 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `ResellProvider` (interface, 3 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `Route` (type_alias, 3 fields) — `packages/generator-core/src/generators-artifacts.ts`
+- [ ] `BrandingConfig` (interface, 3 fields) — `packages/generator-core/src/generators-closer.ts`
+- [ ] `MerkleBundle` (interface, 3 fields) — `packages/generator-core/src/generators-closer.ts`
+- [ ] `ProjectSignals` (interface, 10 fields) — `packages/generator-core/src/generators-closer.ts`
 - [ ] `MyComponentProps` (interface, 2 fields) — `packages/generator-core/src/generators-frontend.ts`
+- [ ] `CancelParams` (interface, 1 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `CancelRequest` (type_alias, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `CapabilityAdvertisement` (interface, 5 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ClientInfo` (interface, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `InitializeParams` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `InitializeResult` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `InitializeResult` (type_alias, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `JsonRpcError` (type_alias, 5 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `JsonRpcErrorObject` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `JsonRpcErrorResponse` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `JsonRpcRequest` (type_alias, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `JsonRpcSuccess` (type_alias, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ProgressNotification` (type_alias, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ProgressParams` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `PromptArgument` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `PromptDefinition` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `PromptGetParams` (interface, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `PromptGetResult` (interface, 1 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `PromptMessage` (interface, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `RegisteredSchema` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ResourceContent` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ResourceDefinition` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ResourceReadParams` (interface, 1 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ResourceReadResult` (interface, 1 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ResourcesListResult` (interface, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ResourceTemplate` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ServerInfo` (interface, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `SessionContext` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `StandardSchemaV1` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `StandardSchemaV1` (type_alias, 6 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolCall` (type_alias, 2 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolCallResult` (interface, 3 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolContentBlock` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolDefinition` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolDefinition` (type_alias, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolSchema` (interface, 4 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `ToolsListResult` (interface, 1 fields) — `packages/generator-core/src/generators-mcp.ts`
+- [ ] `TransportAdapter` (interface, 0 fields) — `packages/generator-core/src/generators-mcp.ts`
 - [ ] `RemotionTheme` (interface, 4 fields) — `packages/generator-core/src/generators-remotion.ts`
 - [ ] `GeneratedFile` (interface, 5 fields) — `packages/generator-core/src/types.ts`
 - [ ] `GeneratorInput` (interface, 4 fields) — `packages/generator-core/src/types.ts`
 - [ ] `GeneratorResult` (interface, 6 fields) — `packages/generator-core/src/types.ts`
 - [ ] `SourceFile` (interface, 3 fields) — `packages/generator-core/src/types.ts`
+- [ ] `AgentBudget` (interface, 5 fields) — `packages/mpp/src/index.ts`
+- [ ] `Build402Options` (interface, 2 fields) — `packages/mpp/src/index.ts`
+- [ ] `ChargeOptions` (type_alias, 5 fields) — `packages/mpp/src/index.ts`
+- [ ] `MppResult` (type_alias, 1 fields) — `packages/mpp/src/index.ts`
+- [ ] `PricingTier` (interface, 4 fields) — `packages/mpp/src/index.ts`
 - [ ] `DomainModel` (interface, 5 fields) — `packages/repo-parser/src/domain-extractor.ts`
 - [ ] `FrameworkRule` (interface, 4 fields) — `packages/repo-parser/src/framework-detector.ts`
 - [ ] `DepGroups` (interface, 3 fields) — `packages/repo-parser/src/parser.ts`
@@ -135,7 +253,19 @@ Check these entities for state corruption or relationship violations:
 - [ ] `ImportEdge` (interface, 2 fields) — `packages/repo-parser/src/types.ts`
 - [ ] `LanguageStats` (interface, 4 fields) — `packages/repo-parser/src/types.ts`
 - [ ] `ParseResult` (interface, 13 fields) — `packages/repo-parser/src/types.ts`
+- [ ] `AnalyzeFilesInput` (interface, 5 fields) — `packages/sdk/src/index.ts`
+- [ ] `AnalyzeRepoInput` (interface, 1 fields) — `packages/sdk/src/index.ts`
+- [ ] `ArtifactEntry` (interface, 3 fields) — `packages/sdk/src/index.ts`
+- [ ] `AxisClientOptions` (interface, 3 fields) — `packages/sdk/src/index.ts`
+- [ ] `FileEntry` (interface, 2 fields) — `packages/sdk/src/index.ts`
+- [ ] `HealthResponse` (interface, 4 fields) — `packages/sdk/src/index.ts`
+- [ ] `McpToolCallResult` (interface, 5 fields) — `packages/sdk/src/index.ts`
+- [ ] `OpenApiSpec` (interface, 4 fields) — `packages/sdk/src/index.ts`
+- [ ] `SnapshotResult` (interface, 7 fields) — `packages/sdk/src/index.ts`
+- [ ] `AccountApiAnalyticsSummary` (interface, 7 fields) — `packages/snapshots/src/billing-store.ts`
 - [ ] `AccountSummary` (interface, 7 fields) — `packages/snapshots/src/billing-store.ts`
+- [ ] `ApiEndpointUsage` (interface, 4 fields) — `packages/snapshots/src/billing-store.ts`
+- [ ] `ApiStatusUsage` (interface, 2 fields) — `packages/snapshots/src/billing-store.ts`
 - [ ] `QuotaCheck` (interface, 6 fields) — `packages/snapshots/src/billing-store.ts`
 - [ ] `RecentActivity` (interface, 5 fields) — `packages/snapshots/src/billing-store.ts`
 - [ ] `SystemStats` (interface, 7 fields) — `packages/snapshots/src/billing-store.ts`
@@ -153,7 +283,7 @@ Check these entities for state corruption or relationship violations:
 - [ ] `FunnelMetrics` (interface, 8 fields) — `packages/snapshots/src/funnel-store.ts`
 - [ ] `FunnelEvent` (interface, 6 fields) — `packages/snapshots/src/funnel-types.ts`
 - [ ] `PlanDefinition` (interface, 6 fields) — `packages/snapshots/src/funnel-types.ts`
-- [ ] `PlanFeature` (interface, 4 fields) — `packages/snapshots/src/funnel-types.ts`
+- [ ] `PlanFeature` (interface, 6 fields) — `packages/snapshots/src/funnel-types.ts`
 - [ ] `Seat` (interface, 8 fields) — `packages/snapshots/src/funnel-types.ts`
 - [ ] `UpgradePrompt` (interface, 9 fields) — `packages/snapshots/src/funnel-types.ts`
 - [ ] `GitHubToken` (interface, 10 fields) — `packages/snapshots/src/github-token-store.ts`
@@ -162,6 +292,10 @@ Check these entities for state corruption or relationship violations:
 - [ ] `TarParseResult` (interface, 3 fields) — `packages/snapshots/src/github.ts`
 - [ ] `GitHubTokenResponse` (interface, 3 fields) — `packages/snapshots/src/oauth-store.ts`
 - [ ] `GitHubUser` (interface, 4 fields) — `packages/snapshots/src/oauth-store.ts`
+- [ ] `ReferralCode` (interface, 3 fields) — `packages/snapshots/src/referral-store.ts`
+- [ ] `ReferralConversion` (interface, 4 fields) — `packages/snapshots/src/referral-store.ts`
+- [ ] `ReferralCredits` (interface, 8 fields) — `packages/snapshots/src/referral-store.ts`
+- [ ] `ReferralTokenUsageModifier` (interface, 3 fields) — `packages/snapshots/src/referral-store.ts`
 - [ ] `CodeSymbol` (interface, 6 fields) — `packages/snapshots/src/search-store.ts`
 - [ ] `SearchIndexEntry` (interface, 3 fields) — `packages/snapshots/src/search-store.ts`
 - [ ] `SearchResult` (interface, 4 fields) — `packages/snapshots/src/search-store.ts`
@@ -173,6 +307,8 @@ Check these entities for state corruption or relationship violations:
 - [ ] `SnapshotInput` (interface, 4 fields) — `packages/snapshots/src/types.ts`
 - [ ] `SnapshotManifest` (interface, 10 fields) — `packages/snapshots/src/types.ts`
 - [ ] `SnapshotRecord` (interface, 10 fields) — `packages/snapshots/src/types.ts`
+- [ ] `UsageCreditChargeResult` (interface, 5 fields) — `packages/snapshots/src/usage-credit-metering.ts`
+- [ ] `UsageCreditSummary` (interface, 6 fields) — `packages/snapshots/src/usage-credit-metering.ts`
 - [ ] `FileDiff` (interface, 4 fields) — `packages/snapshots/src/version-store.ts`
 - [ ] `GenerationVersion` (interface, 7 fields) — `packages/snapshots/src/version-store.ts`
 - [ ] `VersionDiff` (interface, 8 fields) — `packages/snapshots/src/version-store.ts`
@@ -182,9 +318,6 @@ Check these entities for state corruption or relationship violations:
 - [ ] `Webhook` (interface, 8 fields) — `packages/snapshots/src/webhook-store.ts`
 - [ ] `WebhookDelivery` (interface, 11 fields) — `packages/snapshots/src/webhook-store.ts`
 - [ ] `WebhookRow` (interface, 8 fields) — `packages/snapshots/src/webhook-store.ts`
-- [ ] `averypayplatformConfig` (interface, 2 fields) — `payment-processing-output/generated-component.tsx`
-- [ ] `Edge` (interface, 3 fields) — `payment-processing-output/generative-sketch.ts`
-- [ ] `Node` (interface, 7 fields) — `payment-processing-output/generative-sketch.ts`
 
 ## Step 5: Suspect Files (by coupling)
 
@@ -192,19 +325,21 @@ High-coupling files are more likely to be involved in cross-cutting bugs:
 
 | File | Risk | Inbound | Outbound |
 |------|------|---------|----------|
-| `apps/web/src/api.ts` | 80% | 16 | 0 |
-| `apps/web/src/App.tsx` | 75% | 1 | 14 |
-| `apps/web/src/pages/DashboardPage.tsx` | 50% | 1 | 9 |
-| `apps/web/src/components/Toast.tsx` | 15% | 3 | 0 |
-| `apps/web/src/components/AxisIcons.tsx` | 15% | 3 | 0 |
+| `apps/web/src/App.tsx` | 100% | 1 | 21 |
+| `apps/web/src/api.ts` | 95% | 19 | 0 |
+| `apps/web/src/pages.test.tsx` | 85% | 0 | 17 |
+| `apps/web/src/pages/DashboardPage.tsx` | 55% | 1 | 10 |
+| `apps/web/src/components/Toast.tsx` | 20% | 4 | 0 |
+| `apps/web/src/components/AxisIcons.tsx` | 20% | 4 | 0 |
 | `apps/web/src/upload-utils.ts` | 15% | 3 | 0 |
 
 ## Step 6: Verification
 
 - [ ] Does the fix resolve the original reproduction case?
-- [ ] Do all existing tests still pass? (`pnpm test`)
+- [ ] Do all existing tests still pass? (`npm test`)
 - [ ] Is a new test added for this specific failure mode?
-- [ ] Has the fix been reviewed for side effects on 6 coupled hotspot files?
+- [ ] Has the fix been reviewed for side effects on 7 coupled hotspot files?
+- [ ] Does CI pass? (github_actions)
 
 ## Step 7: Prevention
 
@@ -212,13 +347,13 @@ High-coupling files are more likely to be involved in cross-cutting bugs:
 - [ ] Add monitoring/alerting for this failure class
 - [ ] Update incident template if this is a new category
 - [ ] Document root cause in team knowledge base
-- [ ] ⚠️ **No CI detected** — consider adding automated checks to catch regressions
 
 ## Entry Point Source (for Step 2 Isolation)
 
 ### `apps/api/src/server.ts`
 
 ```typescript
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
 import {
   handleCreateSnapshot,
@@ -243,8 +378,7 @@ import {
   handleRemotionGenerate,
   handleCanvasGenerate,
   handleAlgorithmicGenerate,
-  handleGitHubAnalyze,
-... (209 more lines)
+... (433 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -260,22 +394,22 @@ import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
 import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
+import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-  render() {
-    if (this.state.error) {
-      return (
-... (261 more lines)
+// React requires a class for getDerivedStateFromError; this thin wrapper
+... (465 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -313,16 +447,17 @@ createRoot(document.getElementById("root")!).render(
 
 - `export function App() { ... }`
 
-### `apps/web/src/pages/DashboardPage.tsx` exports
-
-- `export function DashboardPage({ ... }`
-
 ## Suspect File Source
 
 ### `apps/web/src/api.ts`
 
 ```typescript
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
+const isLocalHost =
+  typeof window === "undefined" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
 
 // ─── Snapshot types ─────────────────────────────────────────────
 
@@ -342,12 +477,7 @@ export interface SnapshotResponse {
   snapshot_id: string;
   project_id: string;
   status: string;
-  context_map: ContextMap;
-  repo_profile: RepoProfile;
-  generated_files: Array<{ path: string; program: string; description: string }>;
-}
-
-... (446 more lines)
+... (696 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -363,51 +493,51 @@ import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
 import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
+import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-  render() {
-    if (this.state.error) {
-      return (
-... (261 more lines)
+// React requires a class for getDerivedStateFromError; this thin wrapper
+... (465 more lines)
 ```
 
-### `apps/web/src/pages/DashboardPage.tsx`
+### `apps/web/src/pages.test.tsx`
 
 ```tsx
-import { useState, useEffect } from "react";
-import type { SnapshotResponse, GeneratedFile } from "../api.ts";
-import { getGeneratedFiles, runProgram, downloadExport } from "../api.ts";
-import { OverviewTab } from "../components/OverviewTab.tsx";
-import { FilesTab } from "../components/FilesTab.tsx";
-import { GraphTab } from "../components/GraphTab.tsx";
-import { GeneratedTab } from "../components/GeneratedTab.tsx";
-import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
-import { SearchTab } from "../components/SearchTab.tsx";
-import { useToast } from "../components/Toast.tsx";
+/**
+ * @vitest-environment happy-dom
+ */
 
-interface Props {
-  result: SnapshotResponse;
-  onGeneratedCountChange?: (count: number) => void;
-}
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render } from "@testing-library/react";
 
-const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
-type Tab = (typeof TABS)[number];
+// ─── Zero-prop page smoke tests ─────────────────────────────────
+// Each test renders the page and verifies it mounts without throwing.
 
-export function DashboardPage({ result, onGeneratedCountChange }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("Overview");
-  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
-  const [downloading, setDownloading] = useState(false);
-  const { toast } = useToast();
+import { DocsPage } from "./pages/DocsPage";
+import { ExamplesPage } from "./pages/ExamplesPage";
+import { ForAgentsPage } from "./pages/ForAgentsPage";
+import { HelpPage } from "./pages/HelpPage";
+import { InstallPage } from "./pages/InstallPage";
+import { QAPage } from "./pages/QAPage";
+import { TermsPage } from "./pages/TermsPage";
 
-... (133 more lines)
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url.endsWith("/v1/plans")) {
+      return {
+        ok: true,
+... (137 more lines)
 ```

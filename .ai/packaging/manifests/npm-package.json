@@ -1,0 +1,20 @@
+{
+  "name": "axis-iliad",
+  "version": "1.0.0",
+  "description": "Production-grade axis-iliad packaging and release kit",
+  "type": "module",
+  "license": "SEE LICENSE IN packaging/LICENSE",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "axis-iliad",
+    "typescript",
+    "react"
+  ]
+}

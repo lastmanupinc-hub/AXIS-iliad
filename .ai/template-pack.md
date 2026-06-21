@@ -1,10 +1,10 @@
 # Template Pack — axis-iliad
 
-Generated: 2026-04-11T22:24:48.214Z
+Generated: 2026-05-23T03:31:46.803Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -102,7 +102,7 @@ What was changed and why.
 ---
 type: concept
 project: axis-iliad
-tags: ["packages/ (monorepo_packages)", "apps/ (monorepo_apps)", "payment-processing-output/ (project_directory)"]
+tags: ["apps/ (monorepo_apps)", "packages/ (monorepo_packages)", "examples/ (project_directory)"]
 ---
 # {{title}}
 
@@ -149,5 +149,5 @@ sprint:
 
 ## Source File Summary
 
-Total source files: 432
-Config files: apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json, packages/generator-core/tsconfig.json, packages/repo-parser/package.json, packages/repo-parser/tsconfig.json, packages/snapshots/package.json, packages/snapshots/tsconfig.json, tsconfig.base.json, vitest.config.ts
+Total source files: 500
+Config files: .prettierrc.json, apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json, packages/generator-core/tsconfig.json, packages/mpp/package.json, packages/mpp/tsconfig.json, packages/repo-parser/package.json, packages/repo-parser/tsconfig.json, packages/sdk/package.json, packages/sdk/tsconfig.json, packages/snapshots/package.json, packages/snapshots/tsconfig.json, packaging/manifests/npm-package.json

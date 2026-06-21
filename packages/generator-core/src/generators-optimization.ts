@@ -182,7 +182,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   }
 
   return {
-    path: ".ai/optimization-rules.md",
+    path: "optimization-rules.md",
     content: lines.join("\n"),
     content_type: "text/markdown",
     program: "optimization",
@@ -449,7 +449,7 @@ export function generateCostEstimate(ctx: ContextMap, profile: RepoProfile, file
 
   const estimate = {
     project: ctx.project_identity.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     summary: {
       total_files: totalFiles,
       total_loc: totalLoc,
@@ -492,7 +492,7 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
   const lines: string[] = [];
   lines.push(`# Token Budget Plan — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   lines.push("## Project Token Profile");

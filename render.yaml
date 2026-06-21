@@ -19,6 +19,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # 32+ char secret used to AES-256-GCM encrypt stored GitHub tokens.
+      # The API fails closed (refuses to encrypt) in production if unset.
+      - key: AXIS_TOKEN_KEY
+        sync: false
+      # Deny-by-default: self-serve tier upgrades / credit minting are
+      # disabled in production — upgrades must go through POST /v1/checkout.
+      - key: AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS
+        value: "false"
       - key: DATABASE_PATH
         value: /data/axis.db
       - key: LOG_LEVEL
@@ -39,9 +47,13 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      # ─── PAI'D Payment Processor (axis-pai-paid-api-main) ──────
+      # ─── PAI'D Payment Processor (axis-pai-paid-api) ──────
+      # Custom domain api.trustfabric.ai is a CNAME onto the same Render
+      # service as axis-pai-paid-api-main.onrender.com (verified: identical
+      # /health + root manifest, service "axis-pai-paid-api"). Using the
+      # custom domain so this survives a Render service rename/migration.
       - key: PAID_API_BASE_URL
-        value: https://axis-pai-paid-api-main.onrender.com/v1
+        value: https://api.trustfabric.ai/v1
       - key: PAID_MERCHANT_ID
         value: acct_7ec95648-c529-4ee2-9ab4-3fd22953ac1c
       - key: PAID_PLAN_PRO_MONTHLY
@@ -50,10 +62,20 @@ services:
         value: plan_4cbd5d23-bd77-4421-99b5-4e6ef43b530f
       - key: PAID_API_KEY
         sync: false
-      - key: PAID_API_SECRET
-        sync: false
       - key: PAID_WEBHOOK_SIGNING_KEY
         sync: false
+      # NOTE: PAI'D uses hosted checkout (it hosts the payment page and returns
+      # a redirect URL), so NO Stripe publishable key is needed here, and
+      # PAID_API_SECRET is unused under bearer auth — both intentionally dropped.
+      # PAID_PLAN_PRO_* above are legacy subscription plan IDs; the hosted-
+      # checkout path prices server-side from PLAN_CATALOG and does not use them.
+      # Future Growth-tier plan IDs — map to the "suite" tier in the
+      # PAI'D webhook. Uncomment and fill in once the Growth plans are
+      # created on the PAI'D side:
+      # - key: PAID_PLAN_GROWTH_MONTHLY
+      #   value: plan_xxxxxxxx
+      # - key: PAID_PLAN_GROWTH_ANNUAL
+      #   value: plan_xxxxxxxx
       # ─── Proxied Tool Integrations (Phase 1+) ─────────────────
       - key: FIRECRAWL_API_KEY
         sync: false

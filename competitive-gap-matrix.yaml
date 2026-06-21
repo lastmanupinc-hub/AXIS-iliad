@@ -72,9 +72,8 @@ competitors:
         - "AXIS generates artifacts (AGENTS.md, CLAUDE.md, design tokens) — not just retrieves docs"
         - "AXIS analyzes source code structure, domain models, architecture layers"
         - "AXIS has x402/MPP budget negotiation — agent-autonomous billing"
-        - "AXIS has Visa-grade compliance kit (SCA, CE 3.0, dispute lifecycle)"
+        - "AXIS has a commerce-readiness kit (SCA exemptions, CE 3.0 evidence requirements, dispute lifecycle)"
         - "AXIS is deterministic — same repo → byte-identical output (cacheable, auditable)"
-        - "AXIS self-propagates — every artifact instructs next agent to reconnect"
       axis_gaps_to_close:
         - id: gap_c7_001
           description: >
@@ -192,6 +191,17 @@ competitors:
           priority: CRITICAL
           gap_type: distribution_channel
           cost_to_build: medium   # GitHub App manifest + webhook handler
+          completion_status: complete
+          completion_note: >
+            Code surface delivered: apps/api/src/github-webhook.ts (HMAC-SHA256
+            X-Hub-Signature-256 verification, X-GitHub-Delivery dedup cache,
+            push/pull_request/installation/ping event router, fire-and-forget
+            snapshot dispatch). Route POST /v1/github/webhook wired in server.ts.
+            .github/app-manifest.json provides the manifest-flow bootstrap.
+            env.ts documents GITHUB_WEBHOOK_SECRET + GITHUB_TOKEN. 20 tests cover
+            signature verification (8) and HTTP behavior (12). Manual prerequisite:
+            register the App at github.com/settings/apps/new (or use the manifest
+            flow), set GITHUB_WEBHOOK_SECRET in production env, install on repos.
 
         - id: gap_cr_002
           description: >
@@ -275,6 +285,11 @@ strategy_targets:
           priority: CRITICAL
           cost_to_build: medium
           oss_blocker: true
+          completion_status: complete
+          completion_note: >
+            packages/mpp/ published with parseAgentBudget, negotiatePrice, build402NegotiationBody,
+            PRICING_TIERS, LEGACY_TOOL_ALIASES, getPricingTier, resolveAgentMode. apps/api/src/mpp.ts
+            re-exports from @axis/mpp. (Session 100, commit 4b537ba.)
 
         - id: gap_s1_002
           description: >
@@ -283,6 +298,13 @@ strategy_targets:
           priority: HIGH
           cost_to_build: low
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            packages/mpp/README.md ships agent-first quickstart + Express/Hono/Fastify/bare-Node
+            recipes, full API reference, env-var table, and "Why MPP?" comparison. LICENSE added
+            so the npm-declared files: ["dist", "README.md", "LICENSE"] resolve cleanly.
+            Closes the discoverability gap that blocked external MCP server operators from
+            using @axis/mpp after session_100's publish.
 
         - id: gap_s1_003
           description: >
@@ -337,6 +359,12 @@ strategy_targets:
           priority: CRITICAL
           cost_to_build: medium
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            Closed by the same code surface as gap_cr_001 — the webhook handler
+            reuses fetchGitHubRepo + createSnapshot from @axis/snapshots so push
+            and pull_request events automatically build snapshots. See gap_cr_001
+            completion_note for file list. (Session 103.)
 
         - id: gap_s2_002
           description: >
@@ -377,8 +405,8 @@ strategy_targets:
     name: "Compliance Artifact Compiler (fintech CI gate)"
     description: >
       Position prepare_agentic_purchasing as a CI compliance check for fintech
-      engineering teams. The Visa CE 3.0, SCA exemption tree, and dispute
-      win-probability model cannot be reliably reproduced by generic LLMs — this is
+      engineering teams. The CE 3.0 evidence-requirements checklist, SCA exemption
+      tree, and dispute lifecycle artifacts are deterministic and repo-derived — this is
       the moat. Sell as a GitHub Action that fails PRs if compliance grade drops below B.
     revenue_model:
       primary: "$500–5000/mo per engineering team as a compliance gate in their pipeline"
@@ -398,7 +426,7 @@ strategy_targets:
       has_visa_compliance_kit: true
       has_sca_exemption_matrix: true
       has_compelling_evidence_3: true
-      has_win_probability_model: true
+      has_dispute_evidence_checklist: true
       has_dispute_lifecycle: true
       has_tap_ap2_ucp: true
       has_network_tokenization: true
@@ -412,6 +440,12 @@ strategy_targets:
           priority: CRITICAL
           cost_to_build: low
           oss_blocker: true
+          completion_status: complete
+          completion_note: >
+            .github/actions/compliance-check/action.yml composite action shipped with
+            min-grade gate, step summary, WAF-fallback local grading, and lite-mode default.
+            .github/workflows/compliance-check.yml example workflow on PR/push.
+            (Session 100, commit 4b537ba.)
 
         - id: gap_s3_002
           description: >
@@ -421,6 +455,15 @@ strategy_targets:
           priority: HIGH
           cost_to_build: low
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            .github/actions/compliance-check/action.yml step "Publish Check Run with grade letter"
+            posts a named Check Run "Axis Compliance: <grade>" to the PR head commit (extracted
+            from $GITHUB_EVENT_PATH so it appears in the PR Checks tab, not the merge commit).
+            Payload built via jq, summary includes grade letter + N/8 checks + minimum required.
+            Gracefully degrades to a ::warning:: if checks:write permission is missing. Example
+            workflow .github/workflows/compliance-check.yml grants the permission and documents
+            the requirement inline.
 
         - id: gap_s3_003
           description: >
@@ -430,6 +473,11 @@ strategy_targets:
           priority: HIGH
           cost_to_build: low
           oss_blocker: false
+          completion_status: complete
+          completion_note: >
+            computeComplianceGrade() exported from @axis/generator-core. handleCreateSnapshot
+            (201) and handleGetSnapshot (200) both return compliance_grade: {grade, checks_passed,
+            checks_total}. Null-safe; no regressions. (Session 100, commit 4b537ba.)
 
         - id: gap_s3_004
           description: >
@@ -521,32 +569,44 @@ gap_completion_queue:
       gap_id: gap_s3_001
       description: "GitHub Action for compliance check (CRITICAL, low cost, OSS blocker)"
       strategy: strategy_3_compliance_artifact_compiler
+      completion_status: complete
+      completed_session: session_100
 
     - rank: 2
       gap_id: gap_s1_001
       description: "@axis/mpp publishable npm package with middleware (CRITICAL, medium cost, OSS blocker)"
       strategy: strategy_1_x402_mcp_gateway
+      completion_status: complete
+      completed_session: session_100
 
     - rank: 3
       gap_id: gap_cr_001
       description: "GitHub App manifest + webhook handler (CRITICAL, medium cost)"
       strategy: strategy_2_codebase_intelligence_api
+      completion_status: complete
+      completed_session: session_103
 
     - rank: 4
       gap_id: gap_s2_001
       description: "GitHub App manifest + webhook handler — same as above, consolidated"
       strategy: strategy_2_codebase_intelligence_api
       note: "Overlaps with gap_cr_001 — single build satisfies both"
+      completion_status: complete
+      completed_session: session_103
 
     - rank: 5
       gap_id: gap_s3_002
       description: "Compliance grade in PR Check Run (HIGH, low cost)"
       strategy: strategy_3_compliance_artifact_compiler
+      completion_status: complete
+      completed_session: session_102
 
     - rank: 6
       gap_id: gap_s3_003
       description: "compliance_grade in snapshot response body (HIGH, low cost)"
       strategy: strategy_3_compliance_artifact_compiler
+      completion_status: complete
+      completed_session: session_100
 
     - rank: 7
       gap_id: gap_c7_001
@@ -572,6 +632,8 @@ gap_completion_queue:
       gap_id: gap_s1_002
       description: "MCP monetization starter kit (HIGH, low cost)"
       strategy: strategy_1_x402_mcp_gateway
+      completion_status: complete
+      completed_session: session_101
 
     - rank: 12
       gap_id: gap_s2_002

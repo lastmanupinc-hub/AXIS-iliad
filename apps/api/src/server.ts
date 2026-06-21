@@ -25,6 +25,7 @@ import {
   handleAlgorithmicGenerate,
   handleAgenticPurchasingGenerate,
   handleCloserGenerate,
+  handleDeployGenerate,
   handleGitHubAnalyze,
   handleAnalyze,
   handleFirecrawlScrape,
@@ -54,6 +55,8 @@ import {
   handleGlamaJson,
   handleAgentJson,
   handleOAuthAuthorizationServer,
+  handleAiPlugin,
+  handleOAuthProtectedResource,
   handleHealthRedirect,
   handleDocsRedirect,
   handlePricingLanding,
@@ -97,13 +100,14 @@ import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
-import { handlePaidSubscribe, handlePaidWebhook } from "./paid-handlers.js";
+import { handleGitHubWebhook } from "./github-webhook.js";
+import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT } from "./counts.js";
@@ -193,6 +197,7 @@ router.post("/v1/canvas/generate", handleCanvasGenerate);
 router.post("/v1/algorithmic/generate", handleAlgorithmicGenerate);
 router.post("/v1/agentic-purchasing/generate", handleAgenticPurchasingGenerate);
 router.post("/v1/closer/generate", handleCloserGenerate);
+router.post("/v1/deploy/generate", handleDeployGenerate);
 router.post("/v1/prepare-for-agentic-purchasing", handlePreparePurchasing);
 
 // Unified one-call analysis endpoint
@@ -200,6 +205,9 @@ router.post("/v1/analyze", handleAnalyze);
 
 // GitHub URL intake
 router.post("/v1/github/analyze", handleGitHubAnalyze);
+
+// GitHub App webhook (push / pull_request / installation events)
+router.post("/v1/github/webhook", handleGitHubWebhook);
 
 // Firecrawl proxy â€” web research (Phase 1)
 router.post("/v1/research/scrape", handleFirecrawlScrape);
@@ -213,6 +221,11 @@ router.get("/.well-known/security.txt", handleSecurityTxt);
 router.get("/.well-known/glama.json", handleGlamaJson);
 router.get("/.well-known/agent.json", handleAgentJson);
 router.get("/.well-known/oauth-authorization-server", handleOAuthAuthorizationServer);
+router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
+router.get("/.well-known/ai-plugin.json", handleAiPlugin);
+
+// Root-level discovery aliases probed by crawlers that skip the .well-known prefix
+router.get("/agents.json", handleAgentJson);
 
 // MCP discovery under prefixed paths (for compatibility)
 router.get("/mcp/.well-known/mcp.json", handleMcpServerJson);
@@ -419,6 +432,7 @@ router.post("/v1/account/analytics/events", handleTrackAnalyticsEvent);
 router.get("/v1/admin/stats", handleAdminStats);
 router.get("/v1/admin/accounts", handleAdminAccounts);
 router.get("/v1/admin/activity", handleAdminActivity);
+router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
 
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);
@@ -443,8 +457,9 @@ router.post("/v1/checkout", handleCreateCheckout);
 router.get("/v1/account/subscription", handleGetSubscription);
 router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 
-// PAI'D payment processor (subscriptions + webhook)
+// PAI'D payment processor (subscriptions + config probe + webhook)
 router.post("/portal/api/subscribe", handlePaidSubscribe);
+router.get("/portal/api/paid/config", handlePaidConfig);
 router.post("/portal/api/paid/webhook", handlePaidWebhook);
 
 /* v8 ignore next â€” server.ts is never imported by test suites */

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 215 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -58,18 +58,18 @@ These domain models were detected in the codebase. Use their type names in compo
 | Type | Kind | Fields | Source |
 |------|------|--------|--------|
 | `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
+| `EmailConfig` | interface | 2 | `apps/api/src/email.ts` |
+| `ResendErrorResponse` | interface | 3 | `apps/api/src/email.ts` |
+| `ResendSuccessResponse` | interface | 1 | `apps/api/src/email.ts` |
+| `SendEmailOptions` | interface | 5 | `apps/api/src/email.ts` |
+| `SendEmailResult` | interface | 4 | `apps/api/src/email.ts` |
+| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
+| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
+| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
+| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
 | `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
 | `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
-| `ValidationResult` | interface | 3 | `apps/api/src/env.ts` |
-| `ZipEntry` | interface | 4 | `apps/api/src/export.ts` |
-| `IntentCapture` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `JsonRpcRequest` | interface | 4 | `apps/api/src/mcp-server.ts` |
-| `McpCallCounters` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `RpcError` | interface | 5 | `apps/api/src/mcp-server.ts` |
-| `RpcSuccess` | interface | 3 | `apps/api/src/mcp-server.ts` |
-| `HistogramEntry` | interface | 3 | `apps/api/src/metrics.ts` |
-| `CacheKey` | type_alias | 2 | `apps/api/src/mpp.ts` |
-| *... and 203 more* | | | |
+| *... and 252 more* | | | |
 
 **Rule**: Component prop types must reference these detected types, not re-define them. Import from the canonical source file.
 

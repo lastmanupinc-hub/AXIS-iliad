@@ -238,7 +238,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           summary: "Analyze a codebase â€” one call returns all AI context files with adoption hints",
           description:
             `Analyze any GitHub repo or uploaded codebase and return ${ARTIFACT_COUNT} structured AI artifacts across ${PROGRAM_COUNT} programs (AGENTS.md, CLAUDE.md, .cursorrules, MCP config, brand guidelines, debug playbooks, etc.). ` +
-            "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.52 per-call MPP credit. " +
+            "Free tier callers receive 3 programs (search, skills, debug). Full bundle requires Pro tier or a $0.50 per-call MPP credit. " +
             "If the caller lacks access, the server returns HTTP 402 with a machine-readable payment body containing payment_url, checkout_url, and retry_after_payment instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402 received, present checkout_url to user or use autonomous payment if authorized. (3) After payment, retry the identical request â€” no extra steps. " +
             "Pass X-Agent-Budget header to negotiate lite mode ($0.15, 3 programs). Pass X-Agent-Mode: lite explicitly. " +
@@ -247,7 +247,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           tags: ["Analyze"],
           "x-payment": {
             model: "stripe_x402",
-            price_usd: "0.52",
+            price_usd: "0.50",
             lite_price_usd: "0.15",
             free_programs: ["search", "skills", "debug"],
             description: "Returns HTTP 402 for free-tier callers requesting paid programs. Body contains payment_url (Stripe checkout), checkout_url, and retry_after_payment instructions. Agent should present checkout_url to user or use autonomous payment if authorized, then retry.",
@@ -266,7 +266,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
                 type: "object",
                 properties: {
                   error: { type: "string", example: "Payment Required" },
-                  price: { type: "string", example: "0.52" },
+                  price: { type: "string", example: "0.50" },
                   currency: { type: "string", example: "USD" },
                   payment_url: { type: "string", description: "Stripe billing page for the caller's account" },
                   checkout_url: { type: "string", description: "Direct Stripe checkout URL for Pro plan" },
@@ -286,7 +286,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         post: {
           summary: "Generate agentic purchasing readiness assessment â€” AP2/UCP/Visa compliance, negotiation playbook, autonomous checkout rules",
           description:
-            "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence, win probability model, lighter SCA paths (0ms vs 200-800ms Visa IC), and autonomous checkout rules. " +
+            "Full purchasing-readiness audit. Returns score 0-100, AP2/Visa compliance checklist, Compelling Evidence 3.0 dispute evidence requirements, SCA exemption paths, and autonomous checkout rules." +
             "Requires Pro tier or $0.50 MPP credit. HTTP 402 returned for free-tier callers with payment_url and retry instructions. " +
             "**Agent flow**: (1) Call with API key. (2) If 402, present checkout_url or pay autonomously. (3) Retry after payment.",
           operationId: "prepareForAgenticPurchasing",
@@ -985,7 +985,11 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // â”€â”€ PAI'D Payment Processor â”€â”€
       "/portal/api/subscribe": {
         post: {
-          summary: "Create a PAI'D subscription (returns Stripe client_secret)",
+          summary: "Create a PAI'D hosted checkout session (returns a redirect URL)",
+          description:
+            "Creates a PAI'D HOSTED checkout session for the Starter plan and returns its checkout_url. " +
+            "The client redirects the buyer to that URL — PAI'D hosts the payment page (there is no inline " +
+            "Stripe Elements / client_secret flow). Tier activation is webhook-driven after the payment completes.",
           operationId: "paidSubscribe",
           tags: ["Payments"],
           requestBody: {
@@ -996,7 +1000,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
                   type: "object",
                   required: ["plan", "email"],
                   properties: {
-                    plan: { type: "string", enum: ["monthly", "annual"] },
+                    plan: { type: "string", enum: ["monthly", "annual"], description: "Billing cycle" },
                     email: { type: "string", format: "email" },
                     idempotency_key: { type: "string" },
                   },
@@ -1006,14 +1010,14 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
           responses: {
             200: {
-              description: "Subscription created",
+              description: "Hosted checkout session created",
               content: {
                 "application/json": {
                   schema: {
                     type: "object",
                     properties: {
-                      subscription_id: { type: "string" },
-                      client_secret: { type: "string" },
+                      checkout_url: { type: "string", description: "PAI'D's hosted checkout page — redirect the buyer here" },
+                      session_id: { type: "string" },
                       status: { type: "string" },
                     },
                   },
@@ -1023,13 +1027,39 @@ export function buildOpenApiSpec(): OpenApiSpec {
             400: { description: "Invalid plan or email" },
             404: { description: "No account found for that email" },
             502: { description: "Payment processor rejected request" },
-            503: { description: "Payment processor not configured" },
+            503: { description: "Payment processor not configured (PAI'D env missing)" },
+          },
+        },
+      },
+      "/portal/api/paid/config": {
+        get: {
+          summary: "PAI'D checkout configuration probe (public, no auth)",
+          description:
+            "Reports whether the PAI'D payment rail can create a hosted checkout session: true when " +
+            "PAID_API_BASE_URL + PAID_MERCHANT_ID + PAID_API_KEY are set. No Stripe publishable key is needed " +
+            "(PAI'D hosts the page). No secret is ever exposed in the response.",
+          operationId: "paidConfig",
+          tags: ["Payments"],
+          responses: {
+            200: {
+              description: "Configuration status",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      configured: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
       "/portal/api/paid/webhook": {
         post: {
-          summary: "PAI'D webhook receiver (PAID-Signature verified)",
+          summary: "PAI'D webhook receiver (Webhook-Signature verified)",
           operationId: "paidWebhook",
           tags: ["Payments"],
           responses: {

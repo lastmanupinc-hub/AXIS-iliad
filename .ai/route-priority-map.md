@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -18,16 +18,32 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 |-------|----------|------------|-------|--------|
 | `/` | 1.0 | weekly | Yes | Homepage — highest priority |
 | `/` | 1.0 | weekly | Yes | Homepage — highest priority |
+| `/` | 1.0 | weekly | Yes | Homepage — highest priority |
+| `/` | 1.0 | weekly | Yes | Homepage — highest priority |
 | `/v1/plans` | 0.9 | monthly | Yes | Conversion page — high commercial intent |
 | `/v1/plans` | 0.9 | monthly | Yes | Conversion page — high commercial intent |
 | `/v1/plans` | 0.9 | monthly | Yes | Conversion page — high commercial intent |
+| `/pricing` | 0.9 | monthly | Yes | Conversion page — high commercial intent |
 | `/v1/plans` | 0.9 | monthly | Yes | Conversion page — high commercial intent |
 | `/users/:userId/posts/:postId` | 0.8 | weekly | Yes | Content page — high traffic potential |
+| `/v1/docs.md` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
 | `/v1/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
+| `/mcp/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
 | `/v1/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
+| `/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
+| `/v1/docs.md` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
+| `/mcp/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
+| `/docs` | 0.7 | monthly | Yes | Documentation — long-tail SEO value |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/admin/stats` | 0.5 | monthly | Yes | Standard page |
 | `/v1/admin/activity` | 0.5 | monthly | Yes | Standard page |
+| `/llms.txt` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/skills/index.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/axis.json` | 0.5 | monthly | Yes | Standard page |
+| `/for-agents` | 0.5 | monthly | Yes | Standard page |
+| `/v1/install` | 0.5 | monthly | Yes | Standard page |
+| `/v1/install/:platform` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/axis.json` | 0.5 | monthly | Yes | Standard page |
 | `/v1/snapshots/:snapshot_id` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/context` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/generated-files` | 0.5 | monthly | Yes | Standard page |
@@ -52,6 +68,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/projects/:project_id/generated-files` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/generated-files/:file_path*` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/export` | 0.5 | monthly | Yes | Standard page |
+| `/for-agents` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
@@ -85,6 +102,10 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/health/live` | 0.5 | monthly | Yes | Standard page |
 | `/v1/metrics` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
+| `/mcp` | 0.5 | monthly | Yes | Standard page |
+| `/v1/mcp/server.json` | 0.5 | monthly | Yes | Standard page |
+| `/v1/stats` | 0.5 | monthly | Yes | Standard page |
+| `/ping` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health/live` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health/ready` | 0.5 | monthly | Yes | Standard page |
@@ -104,6 +125,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/programs` | 0.5 | monthly | Yes | Standard page |
+| `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/test/fast` | 0.5 | monthly | Yes | Standard page |
 | `/v1/test/slow` | 0.5 | monthly | Yes | Standard page |
@@ -129,6 +151,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/health/live` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health/ready` | 0.5 | monthly | Yes | Standard page |
 | `/v1/metrics` | 0.5 | monthly | Yes | Standard page |
+| `/performance` | 0.5 | monthly | Yes | Standard page |
+| `/performance/reputation` | 0.5 | monthly | Yes | Standard page |
 | `/v1/db/stats` | 0.5 | monthly | Yes | Standard page |
 | `/v1/snapshots/:snapshot_id` | 0.5 | monthly | Yes | Standard page |
 | `/v1/snapshots/:snapshot_id/versions` | 0.5 | monthly | Yes | Standard page |
@@ -137,10 +161,37 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/projects/:project_id/context` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/generated-files` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/generated-files/:file_path*` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/axis.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/capabilities.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/mcp.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/security.txt` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/glama.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/agent.json` | 0.5 | monthly | Yes | Standard page |
+| `/mcp/.well-known/mcp.json` | 0.5 | monthly | Yes | Standard page |
+| `/mcp/.well-known/agent.json` | 0.5 | monthly | Yes | Standard page |
+| `/robots.txt` | 0.5 | monthly | Yes | Standard page |
+| `/sitemap.xml` | 0.5 | monthly | Yes | Standard page |
+| `/health` | 0.5 | monthly | Yes | Standard page |
+| `/openapi.json` | 0.5 | monthly | Yes | Standard page |
+| `/llms.txt` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/skills/index.json` | 0.5 | monthly | Yes | Standard page |
+| `/for-agents` | 0.5 | monthly | Yes | Standard page |
+| `/v1/install` | 0.5 | monthly | Yes | Standard page |
+| `/v1/install/:platform` | 0.5 | monthly | Yes | Standard page |
 | `/v1/search/:snapshot_id/stats` | 0.5 | monthly | Yes | Standard page |
 | `/v1/search/:snapshot_id/symbols` | 0.5 | monthly | Yes | Standard page |
 | `/v1/projects/:project_id/export` | 0.5 | monthly | Yes | Standard page |
 | `/v1/programs` | 0.5 | monthly | Yes | Standard page |
+| `/mcp` | 0.5 | monthly | Yes | Standard page |
+| `/mcp/` | 0.5 | monthly | Yes | Standard page |
+| `/v1/mcp` | 0.5 | monthly | Yes | Standard page |
+| `/v1/mcp/` | 0.5 | monthly | Yes | Standard page |
+| `/favicon.ico` | 0.5 | monthly | Yes | Standard page |
+| `/mcp/sse` | 0.5 | monthly | Yes | Standard page |
+| `/mcp/mcp/*` | 0.5 | monthly | Yes | Standard page |
+| `/v1/stats` | 0.5 | monthly | Yes | Standard page |
+| `/v1/mcp/server.json` | 0.5 | monthly | Yes | Standard page |
+| `/v1/mcp/tools` | 0.5 | monthly | Yes | Standard page |
 | `/v1/billing/history` | 0.5 | monthly | Yes | Standard page |
 | `/v1/billing/proration` | 0.5 | monthly | Yes | Standard page |
 | `/v1/funnel/metrics` | 0.5 | monthly | Yes | Standard page |
@@ -152,14 +203,27 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/snapshots/:snapshot_id/versions/:version_number` | 0.5 | monthly | Yes | Standard page |
 | `/v1/snapshots/:snapshot_id/diff` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/agent.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/glama.json` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/security.txt` | 0.5 | monthly | Yes | Standard page |
+| `/.well-known/capabilities.json` | 0.5 | monthly | Yes | Standard page |
+| `/robots.txt` | 0.5 | monthly | Yes | Standard page |
+| `/sitemap.xml` | 0.5 | monthly | Yes | Standard page |
+| `/health` | 0.5 | monthly | Yes | Standard page |
+| `/openapi.json` | 0.5 | monthly | Yes | Standard page |
+| `/performance` | 0.5 | monthly | Yes | Standard page |
+| `/performance/reputation` | 0.5 | monthly | Yes | Standard page |
 | `/health` | 0.5 | monthly | Yes | Standard page |
 | `/v1/health` | 0.5 | monthly | Yes | Standard page |
 | `/health` | 0.5 | monthly | Yes | Standard page |
 | `/users/:id` | 0.5 | monthly | Yes | Standard page |
 | `/v1/auth/github` | 0.3 | yearly | No | Auth page — minimal SEO value |
 | `/v1/auth/github/callback` | 0.3 | yearly | No | Auth page — minimal SEO value |
+| `/.well-known/oauth-authorization-server` | 0.3 | yearly | No | Auth page — minimal SEO value |
 | `/v1/auth/github` | 0.3 | yearly | No | Auth page — minimal SEO value |
 | `/v1/auth/github/callback` | 0.3 | yearly | No | Auth page — minimal SEO value |
+| `/oauth/authorize` | 0.3 | yearly | No | Auth page — minimal SEO value |
+| `/oauth/jwks` | 0.3 | yearly | No | Auth page — minimal SEO value |
 | `/v1/admin/accounts` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/seats` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/upgrade-prompt` | 0.1 | never | No | User-specific page — noindex |
@@ -171,6 +235,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/account` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/keys` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/usage` | 0.1 | never | No | User-specific page — noindex |
+| `/v1/account/analytics/summary` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/credits` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/seats` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/seats` | 0.1 | never | No | User-specific page — noindex |
@@ -194,9 +259,14 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 | `/v1/account` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/usage` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/quota` | 0.1 | never | No | User-specific page — noindex |
+| `/v1/accounts` | 0.1 | never | No | User-specific page — noindex |
+| `/v1/accounts/` | 0.1 | never | No | User-specific page — noindex |
+| `/accounts` | 0.1 | never | No | User-specific page — noindex |
+| `/accounts/` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/keys` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/usage` | 0.1 | never | No | User-specific page — noindex |
+| `/v1/account/analytics/summary` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/quota` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/github-token` | 0.1 | never | No | User-specific page — noindex |
 | `/v1/account/credits` | 0.1 | never | No | User-specific page — noindex |
@@ -221,9 +291,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 
 ## Summary
 
-- **Total routes:** 202
-- **Indexable:** 140
-- **Noindex:** 62
+- **Total routes:** 272
+- **Indexable:** 201
+- **Noindex:** 71
 
 ## API Routes (Excluded)
 
@@ -231,6 +301,9 @@ These routes should NOT appear in sitemap or be indexed:
 
 - `POST /v1/accounts`
 - `POST /v1/snapshots`
+- `POST /probe-intent`
+- `POST /mcp`
+- `POST /v1/analyze`
 - `POST /v1/snapshots`
 - `DELETE /v1/snapshots/:snapshot_id`
 - `DELETE /v1/projects/:project_id`
@@ -268,6 +341,7 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/remotion/generate`
 - `POST /v1/canvas/generate`
 - `POST /v1/algorithmic/generate`
+- `POST /v1/agentic-purchasing/generate`
 - `POST /v1/github/analyze`
 - `POST /v1/accounts`
 - `POST /v1/account/tier`
@@ -283,6 +357,7 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/account/seats`
 - `POST /v1/account/seats/:seat_id/accept`
 - `POST /v1/account/seats/:seat_id/revoke`
+- `POST /probe-intent`
 - `POST /v1/accounts`
 - `POST /v1/account/seats`
 - `POST /v1/webhooks/stripe`
@@ -313,6 +388,8 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/account/seats/:seat_id/accept`
 - `POST /v1/account/seats/:seat_id/revoke`
 - `POST /v1/account/upgrade-prompt/dismiss`
+- `POST /v1/account/analytics/events`
+- `POST /v1/github/webhook`
 - `POST /v1/snapshots`
 - `POST /v1/debug/analyze`
 - `POST /v1/snapshots`
@@ -325,6 +402,9 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/github/analyze`
 - `POST /v1/debug/analyze`
 - `POST /v1/snapshots`
+- `POST /mcp`
+- `POST /v1/accounts`
+- `POST /v1/account/keys`
 - `POST /v1/snapshots`
 - `DELETE /v1/snapshots/:snapshot_id`
 - `DELETE /v1/projects/:project_id`
@@ -336,9 +416,14 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/account/tier`
 - `POST /v1/account/programs`
 - `POST /v1/accounts`
+- `POST /portal/api/subscribe`
+- `POST /portal/api/paid/webhook`
+- `POST /v1/prepare-for-agentic-purchasing`
+- `POST /v1/accounts`
 - `POST /v1/account/keys`
 - `POST /v1/account/tier`
 - `POST /v1/account/programs`
+- `POST /mcp`
 - `POST /v1/accounts`
 - `POST /echo`
 - `POST /status/:code`
@@ -364,10 +449,26 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/remotion/generate`
 - `POST /v1/canvas/generate`
 - `POST /v1/algorithmic/generate`
+- `POST /v1/agentic-purchasing/generate`
+- `POST /v1/closer/generate`
+- `POST /v1/prepare-for-agentic-purchasing`
+- `POST /v1/analyze`
 - `POST /v1/github/analyze`
+- `POST /v1/github/webhook`
+- `POST /v1/research/scrape`
+- `POST /v1/research/crawl`
+- `POST /probe-intent`
 - `POST /v1/search/index`
 - `POST /v1/search/query`
+- `POST /mcp`
+- `POST /mcp/`
+- `POST /v1/mcp`
+- `POST /v1/mcp/`
+- `POST /mcp/sse`
+- `POST /mcp/mcp/*`
+- `DELETE /mcp/mcp/*`
 - `POST /v1/accounts`
+- `POST /accounts`
 - `POST /v1/account/keys`
 - `POST /v1/account/keys/:key_id/revoke`
 - `POST /v1/account/tier`
@@ -379,12 +480,17 @@ These routes should NOT appear in sitemap or be indexed:
 - `POST /v1/account/seats/:seat_id/accept`
 - `POST /v1/account/seats/:seat_id/revoke`
 - `POST /v1/account/upgrade-prompt/dismiss`
+- `POST /v1/account/analytics/events`
+- `POST /oauth/token`
+- `POST /oauth/introspect`
 - `POST /v1/account/webhooks`
 - `DELETE /v1/account/webhooks/:webhook_id`
 - `POST /v1/account/webhooks/:webhook_id/toggle`
 - `POST /v1/webhooks/stripe`
 - `POST /v1/checkout`
 - `POST /v1/account/subscription/cancel`
+- `POST /portal/api/subscribe`
+- `POST /portal/api/paid/webhook`
 - `POST /v1/snapshots`
 - `POST /v1/accounts`
 - `POST /v1/account/tier`
@@ -418,6 +524,10 @@ These routes should NOT appear in sitemap or be indexed:
 - `GET /api/users`
 - `POST /api/users`
 - `GET /api/health`
+- `POST /webhook`
+- `POST /v1/my-tool`
+- `POST /v1/my-tool`
+- `POST /v1/my-tool`
 - `POST /users`
 
 ## robots.txt Recommendations
@@ -427,8 +537,11 @@ User-agent: *
 Allow: /
 Disallow: /v1/auth/github
 Disallow: /v1/auth/github/callback
+Disallow: /.well-known/oauth-authorization-server
 Disallow: /v1/auth/github
 Disallow: /v1/auth/github/callback
+Disallow: /oauth/authorize
+Disallow: /oauth/jwks
 Disallow: /v1/admin/accounts
 Disallow: /v1/account/seats
 Disallow: /v1/account/upgrade-prompt
@@ -440,6 +553,7 @@ Disallow: /v1/account/github-token
 Disallow: /v1/account
 Disallow: /v1/account/keys
 Disallow: /v1/account/usage
+Disallow: /v1/account/analytics/summary
 Disallow: /v1/account/credits
 Disallow: /v1/account/seats
 Disallow: /v1/account/seats
@@ -463,9 +577,14 @@ Disallow: /v1/account/usage
 Disallow: /v1/account
 Disallow: /v1/account/usage
 Disallow: /v1/account/quota
+Disallow: /v1/accounts
+Disallow: /v1/accounts/
+Disallow: /accounts
+Disallow: /accounts/
 Disallow: /v1/account
 Disallow: /v1/account/keys
 Disallow: /v1/account/usage
+Disallow: /v1/account/analytics/summary
 Disallow: /v1/account/quota
 Disallow: /v1/account/github-token
 Disallow: /v1/account/credits
@@ -496,16 +615,16 @@ Sitemap: https://yoursite.com/sitemap.xml
 
 | File | Exports | Lines |
 |------|---------|-------|
-| `apps/api/src/handlers.ts` | export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze        = ..., export const handleFrontendAudit       = ..., export const handleSeoAnalyze          = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate       = ..., export const handleBrandGenerate       = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate   = ..., export const handleNotebookGenerate    = ..., export const handleObsidianAnalyze     = ..., export const handleMcpProvision        = ..., export const handleArtifactsGenerate   = ..., export const handleRemotionGenerate    = ..., export const handleCanvasGenerate      = ..., export const handleAlgorithmicGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats(, export async function handleDbMaintenance(, export async function handleGetGeneratedFile(, export async function handleSearchExport(, export async function handleSkillsGenerate(, export async function handleGitHubAnalyze( | 910 |
-| `apps/api/src/router.ts` | export class Router { ... }, export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }, export function sendError(, export async function readBody(req: IncomingMessage): Promise<string> { ... }, export interface AppHandle { ... }, export function isShuttingDown(): boolean { ... }, export function createApp(router: Router, port: number): Server { ... } | 314 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 573 |
-| `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 158 |
-| `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1292 |
-| `apps/web/src/pages/HelpPage.tsx` | export function HelpPage() { ... } | 758 |
-| `apps/web/src/pages/PlansPage.tsx` | export function PlansPage({ ... } | 242 |
-| `apps/web/src/pages/ProgramsPage.tsx` | export function ProgramsPage({ ... } | 313 |
-| `apps/web/src/pages/QAPage.tsx` | export function QAPage() { ... } | 392 |
-| `apps/web/src/pages/TermsPage.tsx` | export function TermsPage() { ... } | 357 |
+| `apps/api/src/handlers.ts` | export const PROGRAM_OUTPUTS: Record<string, string[]> = ..., export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }, export const handleDebugAnalyze        = ..., export const handleFrontendAudit       = ..., export const handleSeoAnalyze          = ..., export const handleOptimizationAnalyze = ..., export const handleThemeGenerate       = ..., export const handleBrandGenerate       = ..., export const handleSuperpowersGenerate = ..., export const handleMarketingGenerate   = ..., export const handleNotebookGenerate    = ..., export const handleObsidianAnalyze     = ..., export const handleMcpProvision        = ..., export const handleArtifactsGenerate   = ..., export const handleRemotionGenerate    = ..., export const handleCanvasGenerate      = ..., export const handleAlgorithmicGenerate = ..., export const handleAgenticPurchasingGenerate = ..., export const handleCloserGenerate = ..., export async function handleCreateSnapshot(, export async function handleGetSnapshot(, export async function handleDeleteSnapshot(, export async function handleDeleteProject(, export async function handleGetContext(, export async function handleGetGeneratedFiles(, export async function handleHealthCheck(, export async function handleDbStats(, export async function handleDbMaintenance(, export async function handleGetGeneratedFile(, export async function handleSearchExport( | 3684 |
+| `apps/api/src/paid-handlers.ts` | export async function handlePaidSubscribe(, export async function handlePaidWebhook( | 206 |
+| `apps/api/src/router.ts` | export class Router { ... }, export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }, export function sendError(, export async function readBody(req: IncomingMessage): Promise<string> { ... }, export interface AppHandle { ... }, export function isShuttingDown(): boolean { ... }, export function createApp(router: Router, port: number): Server { ... } | 438 |
+| `apps/web/src/components/ToolPage.tsx` | export interface ToolPricing { ... }, export interface ToolPageProps { ... }, export function ToolPage({ ... } | 189 |
+| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 630 |
+| `apps/web/src/pages/AdminPage.tsx` | export function AdminPage() { ... } | 206 |
+| `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 197 |
+| `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1293 |
+| `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 505 |
+| `apps/web/src/pages/ForAgentsPage.tsx` | export function ForAgentsPage() { ... } | 168 |
 
 ## Route Handler Example
 

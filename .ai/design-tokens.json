@@ -1,7 +1,7 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "project": "axis-iliad",
-  "generated_at": "2026-05-14T02:05:24.883Z",
+  "generated_at": "2026-05-23T03:31:46.065Z",
   "styling_approach": "plain-css",
   "project_type": "monorepo",
   "primary_language": "TypeScript",
@@ -21,28 +21,28 @@
   "languages": [
     {
       "name": "TypeScript",
-      "file_count": 268,
-      "loc_percent": 73.9
-    },
-    {
-      "name": "JSON",
-      "file_count": 66,
-      "loc_percent": 9.4
+      "file_count": 283,
+      "loc_percent": 76.5
     },
     {
       "name": "YAML",
-      "file_count": 58,
-      "loc_percent": 7.8
+      "file_count": 57,
+      "loc_percent": 8.1
+    },
+    {
+      "name": "JSON",
+      "file_count": 60,
+      "loc_percent": 6.6
     },
     {
       "name": "Markdown",
-      "file_count": 83,
+      "file_count": 74,
       "loc_percent": 6.5
     },
     {
       "name": "JavaScript",
       "file_count": 8,
-      "loc_percent": 1.8
+      "loc_percent": 1.7
     },
     {
       "name": "CSS",
@@ -67,7 +67,7 @@
       "containerized"
     ],
     "total_files": 500,
-    "total_loc": 129202
+    "total_loc": 133500
   },
   "colors": {
     "primary": {
@@ -264,8 +264,6 @@
     "dark-mode-tokens.json",
     "packages/generator-core/src/generators-theme.ts",
     "packages/snapshots/src/github-token-branches.test.ts",
-    "packages/snapshots/src/github-token-store.ts",
-    "payment-processing-output/component-theme-map.json",
-    "payment-processing-output/dark-mode-tokens.json"
+    "packages/snapshots/src/github-token-store.ts"
   ]
 }

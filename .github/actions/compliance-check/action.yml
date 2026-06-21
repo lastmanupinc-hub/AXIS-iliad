@@ -22,6 +22,19 @@ inputs:
     description: "Use lite mode ($0.15/run) instead of standard ($0.50/run)"
     required: false
     default: "true"
+  github-token:
+    description: >
+      Token used to publish a Check Run named "Axis Compliance: <grade>" to the
+      commit. Defaults to the workflow's GITHUB_TOKEN. The calling workflow must
+      grant `permissions: checks: write` for the Check Run to appear in the PR
+      Checks tab. If the token lacks permission or the API call fails, the step
+      logs a warning and the action still passes/fails on the grade gate.
+    required: false
+    default: ${{ github.token }}
+  post-check-run:
+    description: "Set to 'false' to skip publishing the named Check Run (still gates on grade)."
+    required: false
+    default: "true"
 
 outputs:
   grade:
@@ -177,6 +190,84 @@ runs:
         echo "| Grade | **$GRADE** |" >> "$GITHUB_STEP_SUMMARY"
         echo "| Checks passed | $CHECKS_PASSED / 8 |" >> "$GITHUB_STEP_SUMMARY"
         echo "| Minimum required | ${{ inputs.minimum-grade }} |" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Publish Check Run with grade letter
+      if: ${{ inputs.post-check-run == 'true' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        ACTUAL_GRADE: ${{ steps.grade.outputs.grade }}
+        CHECKS_PASSED: ${{ steps.grade.outputs.checks_passed }}
+        MINIMUM_GRADE: ${{ inputs.minimum-grade }}
+      run: |
+        if [ -z "$GH_TOKEN" ]; then
+          echo "::notice::No github-token supplied; skipping Check Run publication."
+          exit 0
+        fi
+
+        declare -A GRADE_RANK=(["A"]=4 ["B"]=3 ["C"]=2 ["D"]=1)
+        ACTUAL_RANK=${GRADE_RANK[$ACTUAL_GRADE]:-1}
+        MINIMUM_RANK=${GRADE_RANK[$MINIMUM_GRADE]:-3}
+
+        if [ "$ACTUAL_RANK" -ge "$MINIMUM_RANK" ]; then
+          CONCLUSION="success"
+          STATUS_LINE="Grade $ACTUAL_GRADE meets minimum $MINIMUM_GRADE"
+        else
+          CONCLUSION="failure"
+          STATUS_LINE="Grade $ACTUAL_GRADE is below minimum $MINIMUM_GRADE"
+        fi
+
+        # On pull_request events, GITHUB_SHA points to the merge commit;
+        # the Check Run must be attached to the head commit so it shows in
+        # the PR Checks tab next to the source branch.
+        HEAD_SHA="${GITHUB_SHA}"
+        if [ -n "$GITHUB_EVENT_PATH" ] && [ -f "$GITHUB_EVENT_PATH" ]; then
+          PR_HEAD_SHA=$(jq -r '.pull_request.head.sha // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || true)
+          if [ -n "$PR_HEAD_SHA" ]; then
+            HEAD_SHA="$PR_HEAD_SHA"
+          fi
+        fi
+
+        export ACTUAL_GRADE CHECKS_PASSED MINIMUM_GRADE STATUS_LINE HEAD_SHA CONCLUSION
+
+        PAYLOAD=$(jq -n \
+          --arg grade "$ACTUAL_GRADE" \
+          --arg checks "$CHECKS_PASSED" \
+          --arg min "$MINIMUM_GRADE" \
+          --arg status "$STATUS_LINE" \
+          --arg sha "$HEAD_SHA" \
+          --arg conclusion "$CONCLUSION" \
+          '{
+            name: ("Axis Compliance: " + $grade),
+            head_sha: $sha,
+            status: "completed",
+            conclusion: $conclusion,
+            output: {
+              title: ("Compliance grade " + $grade + " (" + $checks + "/8 checks)"),
+              summary: ("Axis AP2/Visa compliance grade for this commit: **" + $grade
+                + "** (" + $checks + "/8 checks passed).\n\nMinimum required: **"
+                + $min + "**. " + $status + "."),
+            },
+          }')
+
+        HTTP_STATUS=$(curl -s -o axis-check-run-response.json -w "%{http_code}" \
+          -X POST \
+          "https://api.github.com/repos/${GITHUB_REPOSITORY}/check-runs" \
+          -H "Authorization: Bearer ${GH_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          -H "Content-Type: application/json" \
+          --data "$PAYLOAD" || echo "000")
+
+        if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+          echo "Posted Check Run 'Axis Compliance: $ACTUAL_GRADE' to ${HEAD_SHA}."
+        else
+          echo "::warning::Failed to post Check Run (HTTP $HTTP_STATUS). Grant 'permissions: checks: write' in the calling workflow, or set post-check-run: false to silence this notice."
+          if [ -f axis-check-run-response.json ]; then
+            head -c 400 axis-check-run-response.json
+            echo
+          fi
+        fi
 
     - name: Enforce minimum grade
       shell: bash

@@ -154,17 +154,179 @@ describe("getPricingTier", () => {
     expect(tier.lite_cents).toBe(25);
   });
 
-  it("all tiers have lite_cents <= standard_cents", () => {
-    for (const tool of ["prepare_agentic_purchasing", "analyze_repo", "analyze_files", "improve_my_agent_with_axis", "default"]) {
+  // ─── Tier coverage for the 4 new iliad_* tools landed sessions 105-108 ─
+  // (V1_ROI_CANDIDATES Tier-1 #3.) Confirms the pricing surface no longer
+  // falls through to default for the AXIS-owned and live-proxy tools.
+
+  it("returns near-free tier for iliad_object_storage (owned, signing is essentially free)", () => {
+    const tier = getPricingTier("iliad_object_storage");
+    expect(tier.tool).toBe("iliad_object_storage");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/1h|24h|quota|free/i);
+  });
+
+  it("returns near-free tier for iliad_vector_database (owned, sub-ms cosine in SQLite)", () => {
+    const tier = getPricingTier("iliad_vector_database");
+    expect(tier.tool).toBe("iliad_vector_database");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/top_k|namespace|free/i);
+  });
+
+  it("returns markup-over-OpenAI tier for iliad_embeddings (proxy, real provider cost upstream)", () => {
+    const tier = getPricingTier("iliad_embeddings");
+    expect(tier.tool).toBe("iliad_embeddings");
+    expect(tier.standard_cents).toBe(5);
+    expect(tier.lite_cents).toBe(2);
+    expect(tier.lite_description).toMatch(/single-string|batch/i);
+  });
+
+  it("returns markup-over-Resend tier for iliad_transactional_email (proxy, real provider cost upstream)", () => {
+    const tier = getPricingTier("iliad_transactional_email");
+    expect(tier.tool).toBe("iliad_transactional_email");
+    expect(tier.standard_cents).toBe(2);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/recipient|plaintext|HTML/i);
+  });
+
+  it("returns near-free tier for iliad_analytics (owned, SQLite events + aggregations)", () => {
+    const tier = getPricingTier("iliad_analytics");
+    expect(tier.tool).toBe("iliad_analytics");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/batch|limit|free/i);
+  });
+
+  it("returns low-markup tier for iliad_llm_inference (in-process inference, CPU-bound)", () => {
+    const tier = getPricingTier("iliad_llm_inference");
+    expect(tier.tool).toBe("iliad_llm_inference");
+    expect(tier.standard_cents).toBe(2);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/max_tokens|temperature|deterministic/i);
+  });
+
+  it("returns container-spawn tier for iliad_code_sandbox (ephemeral Docker per call)", () => {
+    const tier = getPricingTier("iliad_code_sandbox");
+    expect(tier.tool).toBe("iliad_code_sandbox");
+    expect(tier.standard_cents).toBe(5);
+    expect(tier.lite_cents).toBe(2);
+    expect(tier.lite_description).toMatch(/timeout|seconds|python|bash/i);
+  });
+
+  it("returns mid tier for iliad_speech_to_text (CPU-bound whisper.cpp)", () => {
+    const tier = getPricingTier("iliad_speech_to_text");
+    expect(tier.tool).toBe("iliad_speech_to_text");
+    expect(tier.standard_cents).toBe(3);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/seconds|audio|word_timestamps/i);
+  });
+
+  it("returns near-free tier for iliad_text_to_speech (Piper is fast on CPU)", () => {
+    const tier = getPricingTier("iliad_text_to_speech");
+    expect(tier.tool).toBe("iliad_text_to_speech");
+    expect(tier.standard_cents).toBe(2);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/text|chars|wav|format/i);
+  });
+
+  it("returns near-free tier for iliad_web_search (BM25 over SQLite, no external API)", () => {
+    const tier = getPricingTier("iliad_web_search");
+    expect(tier.tool).toBe("iliad_web_search");
+    expect(tier.standard_cents).toBe(1);
+    expect(tier.lite_cents).toBe(0);
+    expect(tier.lite_description).toMatch(/max_results|indexing|free/i);
+  });
+
+  it("returns near-free tier for iliad_document_parsing (pure JS pdfjs + mammoth)", () => {
+    const tier = getPricingTier("iliad_document_parsing");
+    expect(tier.tool).toBe("iliad_document_parsing");
+    expect(tier.standard_cents).toBe(2);
+    expect(tier.lite_cents).toBe(1);
+    expect(tier.lite_description).toMatch(/MiB|markdown|capped/i);
+  });
+
+  it("returns cheap tier for iliad_hygiene (pure in-process analysis; scan is free)", () => {
+    const tier = getPricingTier("iliad_hygiene");
+    expect(tier.tool).toBe("iliad_hygiene");
+    expect(tier.standard_cents).toBe(5);
+    expect(tier.lite_cents).toBe(2);
+    expect(tier.lite_description).toMatch(/scan|free|remediation/i);
+  });
+
+  it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
+    for (const tool of [
+      "prepare_agentic_purchasing",
+      "analyze_repo",
+      "analyze_files",
+      "improve_my_agent_with_axis",
+      "iliad_web_research",
+      "iliad_web_research_crawl",
+      "iliad_object_storage",
+      "iliad_vector_database",
+      "iliad_embeddings",
+      "iliad_transactional_email",
+      "iliad_analytics",
+      "iliad_llm_inference",
+      "iliad_code_sandbox",
+      "iliad_speech_to_text",
+      "iliad_text_to_speech",
+      "iliad_web_search",
+      "iliad_document_parsing",
+      "iliad_hygiene",
+      "default",
+    ]) {
       const tier = getPricingTier(tool);
-      expect(tier.lite_cents).toBeLessThanOrEqual(tier.standard_cents);
+      expect(tier.lite_cents, `${tool}.lite_cents > ${tool}.standard_cents`).toBeLessThanOrEqual(tier.standard_cents);
     }
   });
 
-  it("all tiers have non-empty lite_description", () => {
-    for (const tool of ["prepare_agentic_purchasing", "analyze_repo", "improve_my_agent_with_axis"]) {
+  it("all tiers have non-empty lite_description (including the iliad_* entries)", () => {
+    for (const tool of [
+      "prepare_agentic_purchasing",
+      "analyze_repo",
+      "improve_my_agent_with_axis",
+      "iliad_object_storage",
+      "iliad_vector_database",
+      "iliad_embeddings",
+      "iliad_transactional_email",
+      "iliad_analytics",
+      "iliad_llm_inference",
+      "iliad_code_sandbox",
+      "iliad_speech_to_text",
+      "iliad_text_to_speech",
+      "iliad_web_search",
+      "iliad_document_parsing",
+      "iliad_hygiene",
+    ]) {
       const tier = getPricingTier(tool);
-      expect(tier.lite_description.length).toBeGreaterThan(0);
+      expect(tier.lite_description.length, `${tool}.lite_description is empty`).toBeGreaterThan(0);
+    }
+  });
+
+  it("no iliad_* tool falls back to the default tier", () => {
+    // Honest pricing means every iliad_* tool has its own entry. If a new
+    // iliad_* tool ships without a PRICING_TIERS row, this test catches it
+    // before the MPP 402 surface starts charging the default $0.50.
+    const iliadTools = [
+      "iliad_web_research",
+      "iliad_web_research_crawl",
+      "iliad_object_storage",
+      "iliad_vector_database",
+      "iliad_embeddings",
+      "iliad_transactional_email",
+      "iliad_analytics",
+      "iliad_llm_inference",
+      "iliad_code_sandbox",
+      "iliad_speech_to_text",
+      "iliad_text_to_speech",
+      "iliad_web_search",
+      "iliad_document_parsing",
+      "iliad_hygiene",
+    ];
+    for (const tool of iliadTools) {
+      const tier = getPricingTier(tool);
+      expect(tier.tool, `${tool} fell through to default tier`).toBe(tool);
     }
   });
 });
@@ -323,19 +485,19 @@ describe("build402NegotiationBody", () => {
     expect(actions.switch_lite).toContain("$0.25");
   });
 
-  it("includes compliance_value with CE 3.0 and win probability", () => {
+  it("includes compliance_value with CE 3.0 evidence checklist and methodology note", () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     const cv = body.compliance_value as Record<string, unknown>;
     expect(cv).toBeDefined();
-    expect(cv.what_you_get).toContain("Visa-grade");
+    expect(cv.what_you_get).toContain("readiness kit");
+    expect(cv.what_you_get).not.toContain("Visa-grade");
     const includes = cv.includes as string[];
     expect(includes.some(s => s.includes("CE 3.0"))).toBe(true);
-    expect(includes.some(s => s.includes("Win probability"))).toBe(true);
-    expect(includes.some(s => s.includes("Lighter SCA"))).toBe(true);
+    expect(includes.some(s => s.includes("SCA exemption"))).toBe(true);
     expect(includes.some(s => s.includes("TAP"))).toBe(true);
-    const vs = cv.vs_visa_ic_pilot as Record<string, Record<string, unknown>>;
-    expect(vs.axis.api_calls).toBe(0);
-    expect(vs.axis.latency_ms).toBe(0);
+    expect(includes.some(s => s.includes("Win probability"))).toBe(false);
+    expect(cv.methodology_note).toContain("not a certification");
+    expect(cv.vs_visa_ic_pilot).toBeUndefined();
   });
 });
 

@@ -256,6 +256,30 @@ export interface AdminActivityResponse {
   count: number;
 }
 
+export interface McpUsageResponse {
+  windows: {
+    total: number;
+    last_24h: number;
+    last_7d: number;
+    last_30d: number;
+  };
+  summary: {
+    since: string;
+    window_days: number;
+    total_calls: number;
+    unique_accounts: number;
+    anonymous_calls: number;
+    by_tool: Record<string, number>;
+    by_source: Record<string, number>;
+    by_probe_class: Record<string, number>;
+  };
+  new_vs_returning: {
+    window_days: number;
+    new_accounts: number;
+    returning_accounts: number;
+  };
+}
+
 export interface FunnelMetrics {
   total_accounts: number;
   total_seats: number;
@@ -616,6 +640,10 @@ export async function getAdminActivity(limit = 50): Promise<AdminActivityRespons
   return fetchJSON(`/v1/admin/activity?limit=${encodeURIComponent(String(limit))}`);
 }
 
+export async function getMcpUsage(windowDays = 30): Promise<McpUsageResponse> {
+  return fetchJSON(`/v1/admin/mcp-usage?window_days=${encodeURIComponent(String(windowDays))}`);
+}
+
 export async function trackAnalyticsEvent(
   eventType: string,
   metadata?: Record<string, unknown>,
@@ -668,4 +696,85 @@ export async function getSubscription(): Promise<SubscriptionInfo> {
 
 export async function cancelSubscription(): Promise<{ subscription_id: string; status: string; message: string }> {
   return fetchJSON("/v1/account/subscription/cancel", { method: "POST" });
+}
+
+// ─── PAI'D Checkout API ─────────────────────────────────────────
+
+export interface PaidConfig {
+  configured: boolean;
+}
+
+export interface PaidSubscribeResponse {
+  /** PAI'D's hosted checkout page — redirect the buyer here. */
+  checkout_url: string;
+  session_id: string;
+  status: string;
+}
+
+export async function getPaidConfig(): Promise<PaidConfig> {
+  return fetchJSON("/portal/api/paid/config");
+}
+
+export async function paidSubscribe(
+  plan: "monthly" | "annual",
+  email: string,
+  idempotencyKey?: string,
+): Promise<PaidSubscribeResponse> {
+  return fetchJSON("/portal/api/subscribe", {
+    method: "POST",
+    body: JSON.stringify({
+      plan,
+      email,
+      ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
+    }),
+  });
+}
+
+// ─── Web Research API (Firecrawl proxy) ─────────────────────────
+
+export interface ScrapeResult {
+  success: boolean;
+  data?: {
+    url: string;
+    markdown: string;
+    metadata: Record<string, unknown>;
+  };
+  cache?: { hit: boolean; age_seconds?: number; hit_count?: number; ttl_remaining_seconds?: number };
+  error?: string;
+}
+
+export interface CrawlPage {
+  url: string;
+  markdown: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface CrawlResult {
+  success: boolean;
+  data?: {
+    url: string;
+    pages_crawled: number;
+    pages: CrawlPage[];
+  };
+  cache?: { warmed_entries?: number };
+  error?: string;
+}
+
+export async function scrapeUrl(
+  url: string,
+  opts?: { only_main_content?: boolean },
+): Promise<ScrapeResult> {
+  return fetchJSON("/v1/research/scrape", {
+    method: "POST",
+    body: JSON.stringify({ url, only_main_content: opts?.only_main_content ?? true }),
+    timeoutMs: 60_000,
+  });
+}
+
+export async function crawlDomain(url: string, limit = 10): Promise<CrawlResult> {
+  return fetchJSON("/v1/research/crawl", {
+    method: "POST",
+    body: JSON.stringify({ url, limit }),
+    timeoutMs: 120_000,
+  });
 }

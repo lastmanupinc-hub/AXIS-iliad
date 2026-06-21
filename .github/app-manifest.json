@@ -1,0 +1,24 @@
+{
+  "name": "Axis Iliad Compliance",
+  "url": "https://axis-iliad.jonathanarvay.com",
+  "hook_attributes": {
+    "url": "https://axis-api-6c7z.onrender.com/v1/github/webhook",
+    "active": true
+  },
+  "redirect_url": "https://axis-iliad.jonathanarvay.com/install/github/callback",
+  "callback_urls": [
+    "https://axis-iliad.jonathanarvay.com/install/github/callback"
+  ],
+  "description": "Runs AP2/Visa agentic-commerce compliance grading on every push and pull request. Installs the Axis' Iliad GitHub Action under .github/workflows/ and surfaces a 'Axis Compliance: <grade>' Check Run on the head commit. Snapshots prime the analyze cache so subsequent CLI / MCP calls return in <1s.",
+  "public": true,
+  "default_events": [
+    "push",
+    "pull_request"
+  ],
+  "default_permissions": {
+    "checks": "write",
+    "contents": "read",
+    "metadata": "read",
+    "pull_requests": "read"
+  }
+}

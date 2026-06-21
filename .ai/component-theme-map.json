@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.432Z",
+  "generated_at": "2026-05-23T03:31:46.089Z",
   "detected_stack": [
     {
       "name": "React",
@@ -10,12 +10,12 @@
   ],
   "primary_language": "TypeScript",
   "summary": {
-    "total_components": 24,
+    "total_components": 33,
     "by_type": {
       "custom": 13,
       "decorative": 1,
-      "overlay": 1,
-      "page": 9
+      "overlay": 2,
+      "page": 17
     }
   },
   "components": [
@@ -143,6 +143,29 @@
       ]
     },
     {
+      "name": "ToolPage",
+      "path": "apps/web/src/components/ToolPage.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "UpsellModal",
+      "path": "apps/web/src/components/UpsellModal.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "overlay",
+      "token_categories": [
+        "colors",
+        "typography",
+        "z_index",
+        "shadows",
+        "border_radius"
+      ]
+    },
+    {
       "name": "main",
       "path": "apps/web/src/main.tsx",
       "directory": "apps/web/src",
@@ -155,6 +178,16 @@
     {
       "name": "AccountPage",
       "path": "apps/web/src/pages/AccountPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "AdminPage",
+      "path": "apps/web/src/pages/AdminPage.tsx",
       "directory": "apps/web/src/pages",
       "component_type": "page",
       "token_categories": [
@@ -183,8 +216,48 @@
       ]
     },
     {
+      "name": "ExamplesPage",
+      "path": "apps/web/src/pages/ExamplesPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ForAgentsPage",
+      "path": "apps/web/src/pages/ForAgentsPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
       "name": "HelpPage",
       "path": "apps/web/src/pages/HelpPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "InstallPage",
+      "path": "apps/web/src/pages/InstallPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "MyAnalyticsPage",
+      "path": "apps/web/src/pages/MyAnalyticsPage.tsx",
       "directory": "apps/web/src/pages",
       "component_type": "page",
       "token_categories": [
@@ -233,6 +306,26 @@
       ]
     },
     {
+      "name": "WebResearchPage",
+      "path": "apps/web/src/pages/tools/WebResearchPage.tsx",
+      "directory": "apps/web/src/pages/tools",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "ToolsIndexPage",
+      "path": "apps/web/src/pages/ToolsIndexPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
       "name": "UploadPage",
       "path": "apps/web/src/pages/UploadPage.tsx",
       "directory": "apps/web/src/pages",
@@ -244,8 +337,8 @@
     },
     {
       "name": "dashboard-widget",
-      "path": "payment-processing-output/dashboard-widget.tsx",
-      "directory": "payment-processing-output",
+      "path": "dashboard-widget.tsx",
+      "directory": "",
       "component_type": "custom",
       "token_categories": [
         "colors",
@@ -254,8 +347,8 @@
     },
     {
       "name": "generated-component",
-      "path": "payment-processing-output/generated-component.tsx",
-      "directory": "payment-processing-output",
+      "path": "generated-component.tsx",
+      "directory": "",
       "component_type": "custom",
       "token_categories": [
         "colors",
@@ -287,13 +380,13 @@
     "apps/web/src/components/SignUpModal.tsx",
     "apps/web/src/components/StatusBar.tsx",
     "apps/web/src/components/Toast.tsx",
+    "apps/web/src/components/ToolPage.tsx",
+    "apps/web/src/components/UpsellModal.tsx",
     "apps/web/src/main.tsx",
     "apps/web/src/pages/AccountPage.tsx",
+    "apps/web/src/pages/AdminPage.tsx",
     "apps/web/src/pages/DashboardPage.tsx",
     "apps/web/src/pages/DocsPage.tsx",
-    "apps/web/src/pages/HelpPage.tsx",
-    "apps/web/src/pages/PlansPage.tsx",
-    "apps/web/src/pages/ProgramsPage.tsx",
-    "apps/web/src/pages/QAPage.tsx"
+    "apps/web/src/pages/ExamplesPage.tsx"
   ]
 }

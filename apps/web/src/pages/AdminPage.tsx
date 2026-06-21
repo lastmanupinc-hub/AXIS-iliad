@@ -5,10 +5,12 @@ import {
   getAdminAccounts,
   getAdminActivity,
   getFunnelMetrics,
+  getMcpUsage,
   type AdminStats,
   type AdminAccountsResponse,
   type AdminActivityResponse,
   type FunnelMetrics,
+  type McpUsageResponse,
 } from "../api.ts";
 
 export function AdminPage() {
@@ -18,21 +20,24 @@ export function AdminPage() {
   const [accounts, setAccounts] = useState<AdminAccountsResponse | null>(null);
   const [activity, setActivity] = useState<AdminActivityResponse | null>(null);
   const [funnelMetrics, setFunnelMetrics] = useState<FunnelMetrics | null>(null);
+  const [mcpUsage, setMcpUsage] = useState<McpUsageResponse | null>(null);
 
   async function loadAdminData() {
     setLoading(true);
     setError(null);
     try {
-      const [statsRes, accountsRes, activityRes, funnelRes] = await Promise.all([
+      const [statsRes, accountsRes, activityRes, funnelRes, mcpUsageRes] = await Promise.all([
         getAdminStats(),
         getAdminAccounts(25, 0),
         getAdminActivity(25),
         getFunnelMetrics(),
+        getMcpUsage(30),
       ]);
       setStats(statsRes);
       setAccounts(accountsRes);
       setActivity(activityRes);
       setFunnelMetrics(funnelRes.metrics);
+      setMcpUsage(mcpUsageRes);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         setError("Admin access required. Use an admin API key.");
@@ -109,6 +114,82 @@ export function AdminPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {mcpUsage && (
+        <>
+          <div className="card">
+            <h3>MCP Usage (persistent — survives restarts)</h3>
+            <p>
+              Live tool-call telemetry from the MCP server. Window: last{" "}
+              {mcpUsage.summary.window_days} days.
+            </p>
+          </div>
+          <div className="grid grid-3">
+            <div className="card">
+              <div className="stat-label">Calls (24h / 7d / 30d)</div>
+              <div>
+                {mcpUsage.windows.last_24h.toLocaleString()} /{" "}
+                {mcpUsage.windows.last_7d.toLocaleString()} /{" "}
+                {mcpUsage.windows.last_30d.toLocaleString()}
+              </div>
+            </div>
+            <div className="card">
+              <div className="stat-label">Unique vs Anonymous</div>
+              <div>
+                {mcpUsage.summary.unique_accounts.toLocaleString()} /{" "}
+                {mcpUsage.summary.anonymous_calls.toLocaleString()}
+              </div>
+            </div>
+            <div className="card">
+              <div className="stat-label">New vs Returning</div>
+              <div>
+                {mcpUsage.new_vs_returning.new_accounts.toLocaleString()} /{" "}
+                {mcpUsage.new_vs_returning.returning_accounts.toLocaleString()}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-2">
+            <div className="card">
+              <h3>Calls by Source</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Source</th>
+                    <th>Calls</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(mcpUsage.summary.by_source).map(([source, count]) => (
+                    <tr key={source}>
+                      <td>{source}</td>
+                      <td>{count.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="card">
+              <h3>Calls by Tool</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tool</th>
+                    <th>Calls</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(mcpUsage.summary.by_tool).map(([tool, count]) => (
+                    <tr key={tool}>
+                      <td>{tool}</td>
+                      <td>{count.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       <div className="grid grid-2">

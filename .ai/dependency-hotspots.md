@@ -1,10 +1,10 @@
 # Dependency Hotspots — axis-iliad
 
-Generated: 2026-04-11T22:24:47.577Z
+Generated: 2026-05-23T03:31:46.326Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -18,54 +18,55 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 |----------|-------|
 | High (>7) | 0 |
 | Medium (4–7) | 0 |
-| Low (≤4) | 6 |
-| **Total** | **6** |
+| Low (≤4) | 7 |
+| **Total** | **7** |
 
 ## Hotspot Files
 
 | File | Risk | Inbound | Outbound | Total Connections |
 |------|------|---------|----------|-------------------|
-| `apps/web/src/api.ts` | 🟢 0.8 | 16 | 0 | 16 |
-| `apps/web/src/App.tsx` | 🟢 0.8 | 1 | 14 | 15 |
-| `apps/web/src/pages/DashboardPage.tsx` | 🟢 0.5 | 1 | 9 | 10 |
-| `apps/web/src/components/Toast.tsx` | 🟢 0.1 | 3 | 0 | 3 |
-| `apps/web/src/components/AxisIcons.tsx` | 🟢 0.1 | 3 | 0 | 3 |
+| `apps/web/src/App.tsx` | 🟢 1.0 | 1 | 21 | 22 |
+| `apps/web/src/api.ts` | 🟢 0.9 | 19 | 0 | 19 |
+| `apps/web/src/pages.test.tsx` | 🟢 0.8 | 0 | 17 | 17 |
+| `apps/web/src/pages/DashboardPage.tsx` | 🟢 0.6 | 1 | 10 | 11 |
+| `apps/web/src/components/Toast.tsx` | 🟢 0.2 | 4 | 0 | 4 |
+| `apps/web/src/components/AxisIcons.tsx` | 🟢 0.2 | 4 | 0 | 4 |
 | `apps/web/src/upload-utils.ts` | 🟢 0.1 | 3 | 0 | 3 |
 
 ## Coupling Analysis
 
+### `apps/web/src/App.tsx`
+
+- **Risk Score**: 1.0/10
+- **Inbound**: 1 files depend on this
+- **Outbound**: 21 dependencies
+- **Refactor Priority**: LOW — acceptable coupling
+
 ### `apps/web/src/api.ts`
 
-- **Risk Score**: 0.8/10
-- **Inbound**: 16 files depend on this
+- **Risk Score**: 0.9/10
+- **Inbound**: 19 files depend on this
 - **Outbound**: 0 dependencies
 - **Refactor Priority**: LOW — acceptable coupling
 
-### `apps/web/src/App.tsx`
+### `apps/web/src/pages.test.tsx`
 
 - **Risk Score**: 0.8/10
-- **Inbound**: 1 files depend on this
-- **Outbound**: 14 dependencies
+- **Inbound**: 0 files depend on this
+- **Outbound**: 17 dependencies
 - **Refactor Priority**: LOW — acceptable coupling
 
 ### `apps/web/src/pages/DashboardPage.tsx`
 
-- **Risk Score**: 0.5/10
+- **Risk Score**: 0.6/10
 - **Inbound**: 1 files depend on this
-- **Outbound**: 9 dependencies
+- **Outbound**: 10 dependencies
 - **Refactor Priority**: LOW — acceptable coupling
 
 ### `apps/web/src/components/Toast.tsx`
 
-- **Risk Score**: 0.1/10
-- **Inbound**: 3 files depend on this
-- **Outbound**: 0 dependencies
-- **Refactor Priority**: LOW — acceptable coupling
-
-### `apps/web/src/components/AxisIcons.tsx`
-
-- **Risk Score**: 0.1/10
-- **Inbound**: 3 files depend on this
+- **Risk Score**: 0.2/10
+- **Inbound**: 4 files depend on this
 - **Outbound**: 0 dependencies
 - **Refactor Priority**: LOW — acceptable coupling
 
@@ -75,19 +76,19 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 |---------|---------|-------------|
 | @axis/context-engine | workspace:* | Stable |
 | @axis/generator-core | workspace:* | Stable |
+| @axis/mpp | workspace:* | Stable |
 | @axis/repo-parser | workspace:* | Stable |
 | @axis/snapshots | workspace:* | Stable |
+| @jmondi/oauth2-server | ^4.2.2 | Stable |
+| jsonwebtoken | ^9.0.3 | Stable |
+| mppx | ^0.5.12 | Pre-1.0 — unstable API |
 | jszip | ^3.10.1 | Stable |
 | react | ^19.1.0 | Stable |
 | react-dom | ^19.1.0 | Stable |
 | better-sqlite3 | ^12.8.0 | Stable |
 | uuid | ^11.1.0 | Stable |
 | @types/better-sqlite3 | ^7.6.13 | Stable |
-| @types/node | ^22.0.0 | Stable |
-| ts-node | ^10.9.2 | Stable |
-| typescript | ^5.7.0 | Stable |
-| @types/react | ^19.1.2 | Stable |
-| @types/react-dom | ^19.1.2 | Stable |
+| @types/jsonwebtoken | ^9.0.10 | Stable |
 
 ## Recommendations
 
@@ -107,17 +108,12 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 - `export interface Account { ... }`
 - `export interface ApiKeyInfo { ... }`
 - `export interface UsageSummary { ... }`
-- `export interface PlanDefinition { ... }`
-- `export interface PlanFeature { ... }`
+- `export interface ApiEndpointUsage { ... }`
+- `export interface ApiStatusUsage { ... }`
 
 ### `apps/web/src/App.tsx`
 
 - `export function App() { ... }`
-
-### `apps/web/src/components/Toast.tsx`
-
-- `export function useToast() { ... }`
-- `export function ToastProvider({ ... }`
 
 ### `apps/web/src/pages/DashboardPage.tsx`
 
@@ -128,7 +124,12 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 ### `apps/web/src/api.ts`
 
 ```typescript
-const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
+const isLocalHost =
+  typeof window === "undefined" ||
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
 
 // ─── Snapshot types ─────────────────────────────────────────────
 
@@ -148,12 +149,7 @@ export interface SnapshotResponse {
   snapshot_id: string;
   project_id: string;
   status: string;
-  context_map: ContextMap;
-  repo_profile: RepoProfile;
-  generated_files: Array<{ path: string; program: string; description: string }>;
-}
-
-... (446 more lines)
+... (696 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -169,53 +165,22 @@ import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
 import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
+import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error("UI crash:", error); }
-  render() {
-    if (this.state.error) {
-      return (
-... (261 more lines)
-```
-
-### `apps/web/src/components/Toast.tsx`
-
-```tsx
-import { useState, useEffect, useCallback, useRef, createContext, useContext, type ReactNode } from "react";
-
-// ─── Types ──────────────────────────────────────────────────────
-
-type ToastLevel = "info" | "success" | "error" | "warning";
-
-interface Toast {
-  id: number;
-  level: ToastLevel;
-  message: string;
-  expiresAt: number;
-}
-
-interface ToastContextValue {
-  toast: (level: ToastLevel, message: string, durationMs?: number) => void;
-}
-
-const ToastContext = createContext<ToastContextValue>({
-  toast: () => {},
-});
-
-export function useToast() {
-  return useContext(ToastContext);
-}
-
-... (90 more lines)
+// React requires a class for getDerivedStateFromError; this thin wrapper
+... (465 more lines)
 ```
 
 ### `apps/web/src/pages/DashboardPage.tsx`
@@ -223,13 +188,14 @@ export function useToast() {
 ```tsx
 import { useState, useEffect } from "react";
 import type { SnapshotResponse, GeneratedFile } from "../api.ts";
-import { getGeneratedFiles, runProgram, downloadExport } from "../api.ts";
+import { getGeneratedFiles, runProgram, downloadExport, ApiError } from "../api.ts";
 import { OverviewTab } from "../components/OverviewTab.tsx";
 import { FilesTab } from "../components/FilesTab.tsx";
 import { GraphTab } from "../components/GraphTab.tsx";
 import { GeneratedTab } from "../components/GeneratedTab.tsx";
 import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
 import { SearchTab } from "../components/SearchTab.tsx";
+import { UpsellModal } from "../components/UpsellModal.tsx";
 import { useToast } from "../components/Toast.tsx";
 
 interface Props {
@@ -240,11 +206,41 @@ interface Props {
 const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
 type Tab = (typeof TABS)[number];
 
-export function DashboardPage({ result, onGeneratedCountChange }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("Overview");
-  const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
-  const [downloading, setDownloading] = useState(false);
-  const { toast } = useToast();
+function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: number; onDownload: () => void; downloading: boolean }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed || fileCount === 0) return null;
 
-... (133 more lines)
+  return (
+... (172 more lines)
+```
+
+### `apps/web/src/pages.test.tsx`
+
+```tsx
+/**
+ * @vitest-environment happy-dom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render } from "@testing-library/react";
+
+// ─── Zero-prop page smoke tests ─────────────────────────────────
+// Each test renders the page and verifies it mounts without throwing.
+
+import { DocsPage } from "./pages/DocsPage";
+import { ExamplesPage } from "./pages/ExamplesPage";
+import { ForAgentsPage } from "./pages/ForAgentsPage";
+import { HelpPage } from "./pages/HelpPage";
+import { InstallPage } from "./pages/InstallPage";
+import { QAPage } from "./pages/QAPage";
+import { TermsPage } from "./pages/TermsPage";
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url.endsWith("/v1/plans")) {
+      return {
+        ok: true,
+... (137 more lines)
 ```

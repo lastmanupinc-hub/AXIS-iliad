@@ -39,6 +39,7 @@ describe("openMemoryDb", () => {
       "generator_results",
       "github_tokens",
       "lemon_squeezy_subscriptions",
+      "mcp_usage",
       "oauth_access_tokens",
       "oauth_authorization_codes",
       "oauth_clients",
@@ -97,6 +98,7 @@ describe("openMemoryDb", () => {
     expect(names).toContain("idx_symbols_snapshot");
     expect(names).toContain("idx_symbols_name");
     expect(names).toContain("idx_symbols_type");
+    expect(names).toContain("idx_accounts_email_nocase");
   });
 
   it("is idempotent — calling twice resets the handle", () => {
@@ -334,14 +336,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(21);
+    expect(getSchemaVersion(db)).toBe(23);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(21);
+    expect(result.current_version).toBe(23);
   });
 
   it("creates rate_limits table via migration", () => {
@@ -374,5 +376,30 @@ describe("migration framework", () => {
     expect(() =>
       db.prepare("INSERT INTO search_index (snapshot_id, file_path, line_number, content) VALUES (?, ?, ?, ?)").run("missing", "file.ts", 1, "hello"),
     ).toThrow(/FOREIGN KEY/);
+  });
+
+  it("migration 22 lowercases legacy mixed-case account emails but skips case-colliding rows", () => {
+    const db = openMemoryDb();
+    // Simulate a pre-v22 database: drop the migration records from v22 onward
+    // (>= so the rollback still reaches v22 as later migrations are added),
+    // then insert legacy rows as they would have existed before normalization.
+    db.prepare("DELETE FROM schema_migrations WHERE version >= 22").run();
+    const insert = db.prepare(
+      "INSERT INTO accounts (account_id, name, email, tier, created_at) VALUES (?, ?, ?, 'free', '2024-01-01')",
+    );
+    insert.run("a1", "Legacy", "Legacy@Test.COM");
+    insert.run("a2", "Lower", "dupe@test.com");
+    insert.run("a3", "Mixed", "Dupe@Test.com"); // lowercasing would collide with a2
+
+    const result = runMigrations(db);
+    expect(result.applied).toBeGreaterThanOrEqual(1); // v22 (+ any later migrations) re-applied
+    expect(result.current_version).toBe(23);
+
+    const email = (id: string) =>
+      (db.prepare("SELECT email FROM accounts WHERE account_id = ?").get(id) as { email: string }).email;
+    expect(email("a1")).toBe("legacy@test.com");
+    expect(email("a2")).toBe("dupe@test.com");
+    // Left untouched — rewriting it would violate UNIQUE(email)
+    expect(email("a3")).toBe("Dupe@Test.com");
   });
 });

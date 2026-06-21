@@ -22,7 +22,7 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile, files?
 
   const spec = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     design_system: {
       colors: brandColors,
       typography: {
@@ -121,7 +121,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
 
   lines.push(`# Social Pack — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
@@ -241,7 +241,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
 
   lines.push(`# Poster Layouts — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   lines.push("## Layout A: Tech Overview (A4 Portrait)");
@@ -373,7 +373,7 @@ export function generateCanvasAssetGuidelines(ctx: ContextMap, files?: SourceFil
 
   lines.push(`# Asset Guidelines — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   lines.push("## Color System");
@@ -482,7 +482,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   const lines: string[] = [];
   lines.push(`# Brand Board — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
   lines.push("Comprehensive visual identity reference for all project-branded outputs.");
   lines.push("");

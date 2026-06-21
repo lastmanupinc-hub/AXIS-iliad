@@ -1,12 +1,12 @@
 # Brand Board — axis-iliad
 
-Generated: 2026-04-11T22:24:48.238Z
+Generated: 2026-05-23T03:31:46.818Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Color Palette
 
@@ -85,32 +85,31 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 ### Stack Badge Bar
 
 - `React`
-- `TypeScript` — 71% of codebase
-- `YAML` — 16% of codebase
+- `TypeScript` — 77% of codebase
+- `YAML` — 8% of codebase
 - `JSON` — 7% of codebase
 
 ### Key Abstractions for Branding
 
-- **packages/ (monorepo_packages)** — candidate for conceptual branding element
 - **apps/ (monorepo_apps)** — candidate for conceptual branding element
+- **packages/ (monorepo_packages)** — candidate for conceptual branding element
+- **examples/ (project_directory)** — candidate for conceptual branding element
+- **mcp/ (project_directory)** — candidate for conceptual branding element
 - **payment-processing-output/ (project_directory)** — candidate for conceptual branding element
-- **search/ (project_directory)** — candidate for conceptual branding element
-- **algorithmic/ (project_directory)** — candidate for conceptual branding element
 
 ### Domain Models
 
 Consider domain-specific iconography for:
 
 - **AuthContext** (interface) — 3 fields, from apps/api/src/billing.ts
-- **EnvSpec** (interface) — 5 fields, from apps/api/src/env.ts
-- **ValidationError** (interface) — 2 fields, from apps/api/src/env.ts
-- **ValidationResult** (interface) — 3 fields, from apps/api/src/env.ts
-- **ZipEntry** (interface) — 4 fields, from apps/api/src/export.ts
-- **HistogramEntry** (interface) — 3 fields, from apps/api/src/metrics.ts
+- **EmailConfig** (interface) — 2 fields, from apps/api/src/email.ts
+- **ResendErrorResponse** (interface) — 3 fields, from apps/api/src/email.ts
+- **ResendSuccessResponse** (interface) — 1 fields, from apps/api/src/email.ts
+- **SendEmailOptions** (interface) — 5 fields, from apps/api/src/email.ts
+- **SendEmailResult** (interface) — 4 fields, from apps/api/src/email.ts
 
 ### Brand Warnings
 
-> ⚠ No CI/CD pipeline detected
 > ⚠ No lockfile found — dependency versions may be inconsistent
 
 ## Spacing & Layout Tokens
@@ -144,7 +143,7 @@ Consider domain-specific iconography for:
 - `brand/continuation.yaml`
 - `brand/MEMORY.yaml`
 - `brand/schemas/output-contract.schema.json`
+- `brand-board.md`
 - `brand-guidelines.md`
 - `packages/generator-core/src/generators-brand.ts`
 - `payment-processing-output/brand-board.md`
-- `payment-processing-output/brand-guidelines.md`

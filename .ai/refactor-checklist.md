@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -18,7 +18,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 432 file
 |-----------|-------|--------|
 | High (>5.0) | 0 | Refactor with full test coverage first |
 | Medium (2-5) | 0 | Refactor when touching for features |
-| Low (<2) | 6 | Refactor opportunistically |
+| Low (<2) | 7 | Refactor opportunistically |
 
 ## Pre-Refactor Checklist
 
@@ -60,23 +60,23 @@ Models with a high field count are strong candidates for decomposition or value-
 |-------|------|--------|--------|
 | `ProgramDoc` | interface | 13 ⚠️ large | `apps/web/src/pages/DocsPage.tsx` |
 | `ParseResult` | interface | 13 ⚠️ large | `packages/repo-parser/src/types.ts` |
+| `SubscriptionInfo` | interface | 12 ⚠️ large | `apps/web/src/api.ts` |
 | `RepoProfile` | interface | 12 ⚠️ large | `packages/context-engine/src/types.ts` |
 | `StripeSubscription` | interface | 12 ⚠️ large | `packages/snapshots/src/stripe-store.ts` |
-| `SubscriptionInfo` | interface | 11 ⚠️ large | `apps/web/src/api.ts` |
+| `MyAnalyticsSummary` | interface | 11 ⚠️ large | `apps/web/src/api.ts` |
+| `ToolPageProps` | interface | 11 ⚠️ large | `apps/web/src/components/ToolPage.tsx` |
 | `WebhookDelivery` | interface | 11 ⚠️ large | `packages/snapshots/src/webhook-store.ts` |
 | `ContextMap` | interface | 10 ⚠️ large | `packages/context-engine/src/types.ts` |
-| `EmailDelivery` | interface | 10 ⚠️ large | `packages/snapshots/src/email-store.ts` |
-| `GitHubToken` | interface | 10 ⚠️ large | `packages/snapshots/src/github-token-store.ts` |
-| `SnapshotManifest` | interface | 10 ⚠️ large | `packages/snapshots/src/types.ts` |
-| *... and 121 more* | | | |
+| `CommerceSignals` | interface | 10 ⚠️ large | `packages/generator-core/src/generators-agentic-purchasing.ts` |
+| *... and 254 more* | | | |
 
 ### Decomposition Candidates
 
 - **`ProgramDoc`** (13 fields) — consider extracting related field groups into value objects
 - **`ParseResult`** (13 fields) — consider extracting related field groups into value objects
+- **`SubscriptionInfo`** (12 fields) — consider extracting related field groups into value objects
 - **`RepoProfile`** (12 fields) — consider extracting related field groups into value objects
 - **`StripeSubscription`** (12 fields) — consider extracting related field groups into value objects
-- **`SubscriptionInfo`** (11 fields) — consider extracting related field groups into value objects
 
 ## Architecture Alignment
 

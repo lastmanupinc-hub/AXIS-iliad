@@ -150,9 +150,9 @@ describe("generators-debug.ts — source file branches", () => {
   const s = snap({ name: "debug-sf-app", files: SNAPSHOT_FILES });
 
   describe("generateDebugPlaybook with source files", () => {
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md"], ALL_DEBUG_FILES));
+    const inp = withHotspots(input(s, ["debug-playbook.md"], ALL_DEBUG_FILES));
     const result = generateFiles(inp);
-    const f = getFile(result, ".ai/debug-playbook.md");
+    const f = getFile(result, "debug-playbook.md");
 
     it("produces a debug playbook", () => {
       expect(f).toBeDefined();
@@ -241,11 +241,11 @@ describe("generators-debug.ts — source file branches", () => {
   });
 
   describe("debug generators without source files produce no source sections", () => {
-    const inp = withHotspots(input(s, [".ai/debug-playbook.md", "tracing-rules.md"], undefined));
+    const inp = withHotspots(input(s, ["debug-playbook.md", "tracing-rules.md"], undefined));
     const result = generateFiles(inp);
 
     it("debug playbook has no entry point source section", () => {
-      const f = getFile(result, ".ai/debug-playbook.md");
+      const f = getFile(result, "debug-playbook.md");
       expect(f).toBeDefined();
       expect(f!.content).not.toContain("Entry Point Source (for tracing)");
     });
@@ -273,12 +273,18 @@ describe("generators-artifacts.ts — source file branches", () => {
       expect(f).toBeDefined();
     });
 
-    it("includes reference to existing components", () => {
-      expect(f!.content).toContain("Reference: existing components found in project");
+    it("renders an App-shaped React component with ErrorBoundary", () => {
+      // generated-component.tsx is now a full App shell, not a snippet listing
+      // sibling components. We assert the structural primitives: a default
+      // export, an ErrorBoundary class, and Section/Routes/Models wrappers.
+      expect(f!.content).toMatch(/export default \w+/);
+      expect(f!.content).toContain("class ErrorBoundary");
+      expect(f!.content).toContain("<Section ");
     });
 
-    it("lists component exports", () => {
-      expect(f!.content).toMatch(/Header|Footer/);
+    it("inlines route + model data tables from the snapshot", () => {
+      expect(f!.content).toContain("const ROUTES:");
+      expect(f!.content).toContain("const MODELS:");
     });
   });
 

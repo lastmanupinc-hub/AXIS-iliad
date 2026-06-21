@@ -66,8 +66,8 @@ describe("generator pipeline hardening", () => {
 
     // Core outputs should be present
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
-    expect(paths).toContain(".ai/repo-profile.yaml");
+    expect(paths).toContain("context-map.json");
+    expect(paths).toContain("repo-profile.yaml");
     expect(paths).toContain("architecture-summary.md");
     expect(paths).toContain("AGENTS.md");
 
@@ -79,11 +79,11 @@ describe("generator pipeline hardening", () => {
     // Request every known output
     const input = makeInput([
       "AGENTS.md", "CLAUDE.md", ".cursorrules",
-      ".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md",
-      ".ai/frontend-rules.md", "component-guidelines.md",
-      ".ai/seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md",
-      ".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json",
-      ".ai/design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json",
+      "debug-playbook.md", "incident-template.md", "tracing-rules.md",
+      "frontend-rules.md", "component-guidelines.md",
+      "seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md",
+      "optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json",
+      "design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json",
       "brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml",
       "superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md",
       "campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md",

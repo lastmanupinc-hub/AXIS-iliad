@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb, createSnapshot, createAccount, createApiKey } from "@axis/snapshots";
+import { openMemoryDb, closeDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -190,13 +190,11 @@ describe("POST /mcp — initialize", () => {
     const info = result.serverInfo as Record<string, unknown>;
     expect(info.name).toBe("axis-iliad");
     expect(result.instructions).toContain("analyze");
-    // incentives + monetization + axis_capabilities injected by serialization layer into every success result
-    const incentives = result.incentives as Record<string, unknown>;
-    expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(typeof incentives.description).toBe("string");
-    const axisCaps = result.axis_capabilities as Record<string, unknown>;
-    expect(axisCaps.artifact_count).toBe(99);
-    expect(axisCaps.programs).toBe(19);
+    // No marketing payload is injected into the serialization layer —
+    // results carry only the standard JSON-RPC fields.
+    expect(result.incentives).toBeUndefined();
+    expect(result.monetization).toBeUndefined();
+    expect(result.axis_capabilities).toBeUndefined();
   });
 
   it("includes Mcp-Session-Id header on initialize", async () => {
@@ -214,13 +212,14 @@ describe("POST /mcp — initialize", () => {
 });
 
 describe("POST /mcp — ping", () => {
-  it("returns result with incentives block", async () => {
+  it("returns a plain result with no injected marketing keys", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 4, method: "ping" });
     expect(r.status).toBe(200);
     const d = r.data as Record<string, unknown>;
     const result = d.result as Record<string, unknown>;
-    expect(result.incentives).toBeDefined();
-    expect(result.axis_capabilities).toBeDefined();
+    expect(result.incentives).toBeUndefined();
+    expect(result.monetization).toBeUndefined();
+    expect(result.axis_capabilities).toBeUndefined();
   });
 });
 
@@ -244,19 +243,17 @@ describe("GET /v1/stats — anonymous call counters", () => {
 });
 
 describe("POST /mcp — tools/list", () => {
-  it("returns all 15 tools with incentives block", async () => {
+  it("returns the full 28-tool catalog (build-not-redact catalog honesty)", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 5, method: "tools/list" });
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<Record<string, unknown>>;
+    // Catalog honesty (revised): every advertised tool is in MCP_TOOLS.
+    expect(tools.length).toBe(28);
     expect(tools.length).toBe(MCP_TOOLS.length);
-    expect(tools.length).toBe(15);
-    // incentives injected into every success result
-    const incentives = result.incentives as Record<string, unknown>;
-    expect(incentives.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(typeof incentives.description).toBe("string");
-    const axisCaps = result.axis_capabilities as Record<string, unknown>;
-    expect(axisCaps.artifact_count).toBe(99);
+    // No marketing payload injected into the result
+    expect(result.incentives).toBeUndefined();
+    expect(result.axis_capabilities).toBeUndefined();
   });
 
   it("each tool has name, description, inputSchema", async () => {
@@ -299,28 +296,26 @@ describe("POST /mcp — tools/list", () => {
     expect(analyzeRepo!.description).toContain("private repos require a stored GitHub token");
   });
 
-  it("incentives keys appear before tools key in serialized result", async () => {
+  it("tools/list result carries no injected marketing keys", async () => {
     const r = await post("/mcp", { jsonrpc: "2.0", id: 7, method: "tools/list" });
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const keys = Object.keys(result);
-    const incentivesIdx = keys.indexOf("incentives");
-    const toolsIdx = keys.indexOf("tools");
-    expect(incentivesIdx).toBeLessThan(toolsIdx);
-    expect(keys.indexOf("monetization")).toBeLessThan(toolsIdx);
-    expect(keys.indexOf("axis_capabilities")).toBeLessThan(toolsIdx);
+    expect(keys).not.toContain("incentives");
+    expect(keys).not.toContain("monetization");
+    expect(keys).not.toContain("axis_capabilities");
   });
 
-  it("tools/call result has incentives before content key", async () => {
+  it("tools/call result carries content without injected marketing keys", async () => {
     const r = await post("/mcp", {
       jsonrpc: "2.0", id: 7, method: "tools/call",
       params: { name: "list_programs", arguments: {} },
     });
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const keys = Object.keys(result);
-    const incentivesIdx = keys.indexOf("incentives");
-    const contentIdx = keys.indexOf("content");
-    expect(incentivesIdx).toBeGreaterThanOrEqual(0);
-    expect(incentivesIdx).toBeLessThan(contentIdx);
+    expect(keys).toContain("content");
+    expect(keys).not.toContain("incentives");
+    expect(keys).not.toContain("monetization");
+    expect(keys).not.toContain("axis_capabilities");
   });
 
   it("every tool schema has examples array", () => {
@@ -349,7 +344,7 @@ describe("POST /mcp — tools/list", () => {
     expect(analyzeRepo).toBeDefined();
     expect(analyzeRepo!.description).toContain("snapshot_id plus an artifacts listing");
     expect(analyzeRepo!.description).toContain("Use this when the source of truth is a GitHub repo URL");
-    expect(analyzeRepo!.description).toContain("$0.52 standard, $0.15 lite budget mode");
+    expect(analyzeRepo!.description).toContain("$0.50 standard, $0.15 lite budget mode");
     expect(analyzeRepo!.description).toContain("authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors");
   });
 });
@@ -1029,7 +1024,7 @@ describe("POST /mcp — notifications", () => {
   });
 });
 
-describe("GET /mcp — JSON manifest with incentives-first", () => {
+describe("GET /mcp — JSON manifest", () => {
   it("returns 200 with application/json content-type", async () => {
     const r = await get("/mcp");
     expect(r.status).toBe(200);
@@ -1037,37 +1032,28 @@ describe("GET /mcp — JSON manifest with incentives-first", () => {
     expect(ct).toContain("application/json");
   });
 
-  it("incentives key is the first key after server in the result object", async () => {
+  it("does not embed an incentives marketing section", async () => {
     const r = await get("/mcp");
     const data = r.data as Record<string, unknown>;
-    const keys = Object.keys(data);
-    expect(keys[0]).toBe("server");
-    expect(keys[1]).toBe("incentives");
-  });
-
-  it("incentives appear within the first 200 bytes of the JSON body", async () => {
-    const r = await get("/mcp");
+    expect(data.incentives).toBeUndefined();
     const raw = JSON.stringify(r.data);
-    const idx = raw.indexOf('"incentives"');
-    expect(idx).toBeGreaterThanOrEqual(0);
-    expect(idx).toBeLessThan(200);
+    expect(raw).not.toContain('"incentives"');
+    expect(raw).not.toContain("Share-to-Earn");
   });
 
   it("contains required manifest fields", async () => {
     const r = await get("/mcp");
     const data = r.data as Record<string, unknown>;
     expect(data.server).toBeDefined();
-    expect(data.incentives).toBeDefined();
     expect(data.tools).toBeDefined();
     expect(data._meta).toBeDefined();
     const server = data.server as Record<string, unknown>;
     expect(server.name).toBe("axis-iliad");
     expect(server.endpoint).toBeDefined();
-    const inc = data.incentives as Record<string, unknown>;
-    expect(inc.program_name).toBe("Share-to-Earn Micro-Discounts");
-    expect(typeof inc.description).toBe("string");
-    expect(typeof inc.how_it_works).toBe("string");
-    expect(Array.isArray(inc.key_exports)).toBe(true);
+    // Pricing/auth metadata stays — facts, not growth-hack instructions.
+    const meta = data._meta as Record<string, unknown>;
+    expect(meta.authentication).toBeDefined();
+    expect(meta.monetization).toBeDefined();
   });
 });
 
@@ -1079,12 +1065,14 @@ describe("GET /mcp/docs — human-readable HTML docs", () => {
     expect(ct).toContain("text/html");
   });
 
-  it("body contains Axis' Iliad heading and incentives", async () => {
+  it("body contains Axis' Iliad heading without referral marketing", async () => {
     const r = await get("/mcp/docs");
     const body = String(r.data);
     expect(body).toContain("Axis' Iliad");
-    expect(body).toContain("Incentives");
-    expect(body).toContain("referral_token");
+    expect(body).toContain("Pricing");
+    expect(body).not.toContain("Incentives");
+    expect(body).not.toContain("referral_token");
+    expect(body).not.toContain("5th paid call free");
   });
 });
 
@@ -1178,7 +1166,8 @@ describe("POST /mcp — branch coverage: request id is null/undefined", () => {
     const d = r.data as Record<string, unknown>;
     expect(d.id).toBeNull();
     const result = d.result as Record<string, unknown>;
-    expect(result.incentives).toBeDefined();
+    expect(result).toBeDefined();
+    expect(result.incentives).toBeUndefined();
   });
 });
 
@@ -1241,9 +1230,9 @@ describe("POST /mcp — branch coverage: anonymous snapshots", () => {
 // ─── runSearchTools unit tests ───────────────────────────────────
 
 describe("runSearchTools — no query returns all programs", () => {
-  it("returns all 19 programs when q is omitted", () => {
+  it("returns all 20 programs when q is omitted", () => {
     const parsed = JSON.parse(runSearchTools({}));
-    expect(parsed.total_matches).toBe(19);
+    expect(parsed.total_matches).toBe(20);
     expect(Array.isArray(parsed.results)).toBe(true);
   });
 
@@ -1431,7 +1420,7 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
     expect(result.isError).toBe(false);
     const content = result.content as Array<{ type: string; text: string }>;
     const parsed = JSON.parse(content[0].text);
-    expect(parsed.total_matches).toBe(19);
+    expect(parsed.total_matches).toBe(20);
   });
 
   it("tool name appears in MCP_TOOLS", () => {
@@ -1467,10 +1456,14 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array has 15 entries derived from MCP_TOOLS", () => {
+  it("tools array exposes the full 28-tool catalog (build-not-redact)", () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
-    expect(tools).toHaveLength(15);
-    expect(tools.map(t => t.name)).toEqual(MCP_TOOLS.map(t => t.name));
+    expect(tools).toHaveLength(28);
+    expect(tools).toHaveLength(MCP_TOOLS.length);
+    const allNames = new Set(MCP_TOOLS.map(t => t.name));
+    for (const t of tools) {
+      expect(allNames.has(t.name)).toBe(true);
+    }
   });
 
   it("each tool entry has name and description only", () => {
@@ -1540,11 +1533,11 @@ describe("GET /v1/mcp/server.json", () => {
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("body contains 15 tools", async () => {
+  it("body contains 28 tools (full catalog, build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     const r = await get("/v1/mcp/server.json");
     const data = r.data as Record<string, unknown>;
     const tools = data.tools as unknown[];
-    expect(tools).toHaveLength(15);
+    expect(tools).toHaveLength(28);
   });
 
   it("body contains _meta.categories array", async () => {
@@ -1579,7 +1572,8 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.axis_iliad).toBeDefined();
     expect(parsed.tools).toBeDefined();
     expect(Array.isArray(parsed.tools)).toBe(true);
-    expect(parsed.tools.length).toBe(15);
+    // discover_commerce_tools mirrors the full advertised catalog (build-not-redact).
+    expect(parsed.tools.length).toBe(28);
   });
 
   it("includes free_tools array", async () => {
@@ -1624,7 +1618,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     const parsed = JSON.parse(content[0].text);
     expect(parsed.shareable_manifest).toBeDefined();
     expect(typeof parsed.system_prompt_snippet).toBe("string");
-    expect(parsed.shareable_manifest.tools).toBe(15);
+    expect(parsed.shareable_manifest.tools).toBe(28);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });
@@ -2107,5 +2101,540 @@ describe("POST /mcp — batch JSON-RPC (array of requests)", () => {
     ]);
     // Batch is not supported — should return error (invalid request or parse error)
     expect(r.status).toBe(400);
+  });
+});
+
+// ─── Plan-credit metering on owned iliad_* tools ─────────────────
+//
+// Session 119 wired meterMcpToolCredits into every owned iliad_*
+// tool so MCP calls deduct plan credits and throw a payment_required
+// envelope when the monthly allowance is exhausted. These tests
+// verify:
+//   1. Successful tool calls increment the account's
+//      included_credits_used counter (proves the meter ran).
+//   2. iliad_web_search bills only `search`, not `index`.
+//   3. _not_configured envelopes do NOT consume credits.
+//   4. Suite tier passes through (allowance covers the call).
+//   5. Once monthly allowance is artificially exhausted, the next
+//      call returns the payment_required envelope.
+
+describe("POST /mcp — owned-tool metering", () => {
+  // Use a fresh isolated account per metering test so the credit
+  // counters don't accumulate cross-test noise.
+  function newFreeAccount(seed: string): { accountId: string; rawKey: string } {
+    const acc = createAccount(`Metering-${seed}`, `metering-${seed}@test.com`, "free");
+    const key = createApiKey(acc.account_id, `metering-${seed}-key`).rawKey;
+    return { accountId: acc.account_id, rawKey: key };
+  }
+
+  it("free-tier iliad_vector_database upsert increments included_credits_used", async () => {
+    const { accountId, rawKey } = newFreeAccount("vec-upsert");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 200,
+      method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: {
+          operation: "upsert",
+          namespace: "metering-test",
+          vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3] }],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    // 1¢ tier → at least 1 credit consumed.
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("suite-tier iliad_vector_database upsert passes through and reports tier=suite", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 201,
+      method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: {
+          operation: "upsert",
+          namespace: "metering-suite",
+          vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3] }],
+        },
+      },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.tier).toBe("suite");
+    expect(usage.tool).toBe("iliad_vector_database");
+  });
+
+  it("iliad_web_search operation=index is FREE (no credit decrement)", async () => {
+    const { accountId, rawKey } = newFreeAccount("ws-index");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 202,
+      method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: {
+          operation: "index",
+          namespace: "metering-test",
+          document: { doc_id: "d1", content: "axis iliad metering test" },
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBe(before);
+  });
+
+  it("iliad_web_search operation=search IS metered (credit decrement)", async () => {
+    const { accountId, rawKey } = newFreeAccount("ws-search");
+    // Index a doc first (free), then search (metered).
+    await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 203,
+      method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: {
+          operation: "index",
+          namespace: "metering-test",
+          document: { doc_id: "d1", content: "axis iliad metering test" },
+        },
+      },
+    }, rawKey);
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 204,
+      method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: {
+          operation: "search",
+          namespace: "metering-test",
+          query: "axis",
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("iliad_hygiene mode=scan is FREE (no credit decrement) and returns a grade", async () => {
+    const { accountId, rawKey } = newFreeAccount("hyg-scan");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 220,
+      method: "tools/call",
+      params: {
+        name: "iliad_hygiene",
+        arguments: {
+          files: [
+            { path: "src/app.ts", content: "export const x = 1;\n" },
+            { path: ".gitignore", content: "node_modules/\n" },
+          ],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text) as Record<string, unknown>;
+    expect(parsed.mode).toBe("scan");
+    expect(["A", "B", "C", "D", "F"]).toContain(parsed.grade);
+    expect(parsed.remediation_plan).toBeUndefined();
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBe(before);
+  });
+
+  it("iliad_hygiene flags a committed secret (grade F) and mode=fix IS metered + returns a plan", async () => {
+    const { accountId, rawKey } = newFreeAccount("hyg-fix");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 221,
+      method: "tools/call",
+      params: {
+        name: "iliad_hygiene",
+        arguments: {
+          mode: "fix",
+          files: [{ path: ".env", content: "STRIPE_SECRET=sk_live_0123456789abcdefghij\n" }],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text) as Record<string, unknown>;
+    expect(parsed.mode).toBe("fix");
+    expect(parsed.grade).toBe("F"); // committed secret caps at F
+    const plan = parsed.remediation_plan as Record<string, unknown>;
+    expect(Array.isArray(plan.ordered_steps)).toBe(true);
+    expect((plan.ordered_steps as unknown[]).length).toBeGreaterThan(0);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("iliad_hygiene dispatches correctly (usage.tool === iliad_hygiene)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 222,
+      method: "tools/call",
+      params: { name: "iliad_hygiene", arguments: { files: [{ path: "a.ts", content: "export const a = 1;" }] } },
+    }, apiKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.tool).toBe("iliad_hygiene");
+  });
+
+  it("iliad_speech_to_text returns _not_configured envelope WITHOUT charging", async () => {
+    const { accountId, rawKey } = newFreeAccount("stt-not-cfg");
+    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 205,
+      method: "tools/call",
+      params: {
+        name: "iliad_speech_to_text",
+        arguments: { audio_url: "https://example.com/clip.mp3" },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(false);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as Record<string, unknown>;
+    expect(parsed._not_configured).toBe(true);
+    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    expect(after).toBe(before);
+  });
+
+  it("free-tier returns payment_required envelope after monthly allowance is exhausted", async () => {
+    const { accountId, rawKey } = newFreeAccount("vec-exhaust");
+    // Burn through the 10k-credit free allowance via direct ledger
+    // writes — much faster than 10k MCP calls. Each iteration uses
+    // 6 credits (= 1¢ tier). 1667 iterations × 6 = 10,002 used.
+    for (let i = 0; i < 1700; i++) {
+      const r = consumeUsageCredits(accountId, "free", "iliad_vector_database", 1);
+      if (r.effective_overage_cents > 0) break;
+    }
+    const summary = getUsageCreditSummary(accountId, "free");
+    expect(summary.included_credits_remaining).toBeLessThan(6);
+
+    // Next MCP call should now overage and return the payment_required envelope.
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 206,
+      method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: {
+          operation: "upsert",
+          namespace: "metering-exhaust",
+          vectors: [{ id: "v1", vector: [0.1, 0.2, 0.3] }],
+        },
+      },
+    }, rawKey);
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(result.isError).toBe(true);
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text) as Record<string, unknown>;
+    // buildMcpPaymentRequiredError shape: build402NegotiationBody + extras.
+    expect(parsed.error).toBe("Payment Required");
+    expect(parsed.message).toContain("exceeded included monthly credits");
+    expect(parsed.price).toBe("0.01");
+    expect(parsed.price_per_call).toBe("$0.01");
+    expect(typeof parsed.referral_token).toBe("string");
+    // usage_credits block is attached via the `extra` arg from meterMcpToolCredits.
+    const usage = parsed.usage_credits as Record<string, unknown>;
+    expect(typeof usage.plan_id).toBe("string");
+    expect(typeof usage.monthly_allowance).toBe("number");
+  });
+});
+
+// ─── Owned-tool dispatcher coverage ──────────────────────────────
+//
+// One test per owned iliad_* tool exercising the MCP dispatch path
+// with a minimal valid argument shape. This catches dispatcher
+// routing regressions (a missing case, wrong handler, swapped
+// names) and verifies the _usage block carries the right tool name
+// back for every owned tool.
+//
+// In the CI environment most operator-dependent prerequisites
+// (Docker, GGUF model, whisper.cpp, Piper voices) are absent, so
+// these calls return _not_configured envelopes. That's the right
+// shape to assert against — we're testing the dispatcher, not the
+// underlying runtime.
+
+describe("POST /mcp — owned-tool dispatcher coverage", () => {
+  function parseToolResult(r: Res): { isError: boolean; parsed: Record<string, unknown>; usage: Record<string, unknown> } {
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(content[0].text) as Record<string, unknown>;
+    } catch {
+      // Some error texts are plain strings ("Error: ..."); coerce so tests can still assert shape.
+      parsed = { _raw: content[0].text };
+    }
+    return {
+      isError: result.isError === true,
+      parsed,
+      usage: (result._usage as Record<string, unknown>) ?? {},
+    };
+  }
+
+  it("iliad_object_storage dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 300, method: "tools/call",
+      params: { name: "iliad_object_storage", arguments: { key: "test/k", operation: "put" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_object_storage");
+  });
+
+  it("iliad_vector_database dispatches correctly (suite tier passes through)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 301, method: "tools/call",
+      params: {
+        name: "iliad_vector_database",
+        arguments: { operation: "upsert", namespace: "dispatcher-cov", vectors: [{ id: "x", vector: [0.1] }] },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.operation).toBe("upsert");
+    expect(usage.tool).toBe("iliad_vector_database");
+  });
+
+  it("iliad_embeddings dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 302, method: "tools/call",
+      params: { name: "iliad_embeddings", arguments: { input: "axis test" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_embeddings");
+  });
+
+  it("iliad_transactional_email dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 303, method: "tools/call",
+      params: {
+        name: "iliad_transactional_email",
+        arguments: { to: "test@example.com", subject: "test", body_text: "body" },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_transactional_email");
+  });
+
+  it("iliad_analytics dispatches correctly (suite tier passes through)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 304, method: "tools/call",
+      params: {
+        name: "iliad_analytics",
+        arguments: { operation: "capture", namespace: "dispatcher-cov", event: { event: "test" } },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.operation).toBe("capture");
+    expect(usage.tool).toBe("iliad_analytics");
+  });
+
+  it("iliad_llm_inference dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 305, method: "tools/call",
+      params: { name: "iliad_llm_inference", arguments: { prompt: "hi" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_llm_inference");
+  });
+
+  it("iliad_code_sandbox dispatches correctly (returns _not_configured without Docker)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 306, method: "tools/call",
+      params: { name: "iliad_code_sandbox", arguments: { language: "python", code: "print(1)" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    // Either we got the _not_configured envelope (CI) or we ran (local dev has Docker).
+    // Both are valid dispatcher outcomes.
+    expect(isError).toBe(false);
+    expect(usage.tool).toBe("iliad_code_sandbox");
+    if (parsed._not_configured !== true) {
+      expect(typeof parsed.stdout).toBe("string");
+      expect(typeof parsed.exit_code).toBe("number");
+    }
+  }, 60_000);
+
+  it("iliad_speech_to_text dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 307, method: "tools/call",
+      params: { name: "iliad_speech_to_text", arguments: { audio_url: "https://x.com/a.mp3" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_speech_to_text");
+  });
+
+  it("iliad_text_to_speech dispatches correctly (returns _not_configured in CI)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 308, method: "tools/call",
+      params: { name: "iliad_text_to_speech", arguments: { text: "hello" } },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed._not_configured).toBe(true);
+    expect(usage.tool).toBe("iliad_text_to_speech");
+  });
+
+  it("iliad_web_search dispatches correctly (suite tier passes through)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 309, method: "tools/call",
+      params: {
+        name: "iliad_web_search",
+        arguments: { operation: "count", namespace: "dispatcher-cov" },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.operation).toBe("count");
+    expect(typeof parsed.total).toBe("number");
+    expect(usage.tool).toBe("iliad_web_search");
+  });
+
+  it("iliad_document_parsing dispatches correctly (plain text passthrough)", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0", id: 310, method: "tools/call",
+      params: {
+        name: "iliad_document_parsing",
+        arguments: { document_base64: Buffer.from("hello world", "utf8").toString("base64") },
+      },
+    }, apiKey);
+    const { isError, parsed, usage } = parseToolResult(r);
+    expect(isError).toBe(false);
+    expect(parsed.format_detected).toBe("text");
+    expect(parsed.markdown).toBe("hello world");
+    expect(usage.tool).toBe("iliad_document_parsing");
+  });
+});
+
+// ─── Agent-loop composition test ─────────────────────────────────
+//
+// End-to-end agent flow exercising the owned-tier as a composable
+// unit: capture an event, look up its count, index a doc, search
+// for it, store the search hit as a vector. Validates that
+// account-scoped state is consistent across tools (each call
+// scopes via the same account_id) and that the agent can chain
+// owned tools without leaving AXIS.
+
+describe("POST /mcp — owned-tier agent loop composition", () => {
+  function callTool(tool: string, args: Record<string, unknown>, id: number, key: string): Promise<Res> {
+    return post("/mcp", {
+      jsonrpc: "2.0", id, method: "tools/call",
+      params: { name: tool, arguments: args },
+    }, key);
+  }
+
+  it("agent runs analytics + web_search + vector_database end-to-end against its own corpus", async () => {
+    // Use the suite-tier key so credits are never the bottleneck.
+    const ns = "agent-loop-" + Date.now();
+
+    // 1. Capture an event.
+    const captureR = await callTool("iliad_analytics", {
+      operation: "capture",
+      namespace: ns,
+      event: { event: "page_view", user_id: "u_test", properties: { url: "https://docs/intro" } },
+    }, 400, apiKey);
+    expect(captureR.status).toBe(200);
+    const captureResult = (captureR.data as Record<string, unknown>).result as Record<string, unknown>;
+    expect(captureResult.isError).toBe(false);
+
+    // 2. Query the event count back. Should be at least 1.
+    const queryR = await callTool("iliad_analytics", {
+      operation: "query",
+      namespace: ns,
+      query: { kind: "count" },
+    }, 401, apiKey);
+    expect(queryR.status).toBe(200);
+    const queryParsed = JSON.parse(
+      ((queryR.data as Record<string, unknown>).result as { content: Array<{ text: string }> }).content[0].text,
+    ) as Record<string, unknown>;
+    const queryInner = queryParsed.result as { total?: number };
+    expect(queryInner.total).toBeGreaterThanOrEqual(1);
+
+    // 3. Index a document.
+    const indexR = await callTool("iliad_web_search", {
+      operation: "index",
+      namespace: ns,
+      document: { doc_id: "d1", url: "https://docs/intro", content: "AXIS Iliad is a deterministic codebase analyzer." },
+    }, 402, apiKey);
+    expect(indexR.status).toBe(200);
+    expect((indexR.data as Record<string, unknown>).result).toMatchObject({ isError: false });
+
+    // 4. Search for it (BM25 should match).
+    const searchR = await callTool("iliad_web_search", {
+      operation: "search",
+      namespace: ns,
+      query: "deterministic codebase",
+    }, 403, apiKey);
+    const searchParsed = JSON.parse(
+      ((searchR.data as Record<string, unknown>).result as { content: Array<{ text: string }> }).content[0].text,
+    ) as Record<string, unknown>;
+    const hits = searchParsed.hits as Array<{ doc_id: string; score: number }>;
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+    expect(hits[0].doc_id).toBe("d1");
+    expect(hits[0].score).toBeGreaterThan(0);
+
+    // 5. Store an embedding-shaped vector keyed off the search hit.
+    const upsertR = await callTool("iliad_vector_database", {
+      operation: "upsert",
+      namespace: ns,
+      vectors: [{ id: hits[0].doc_id, vector: [0.5, 0.5, 0.5], metadata: { source: hits[0].doc_id } }],
+    }, 404, apiKey);
+    expect(upsertR.status).toBe(200);
+    expect((upsertR.data as Record<string, unknown>).result).toMatchObject({ isError: false });
+
+    // 6. Query the vector store with the same vector — should match itself.
+    const vqueryR = await callTool("iliad_vector_database", {
+      operation: "query",
+      namespace: ns,
+      query: { vector: [0.5, 0.5, 0.5], top_k: 3 },
+    }, 405, apiKey);
+    const vqueryParsed = JSON.parse(
+      ((vqueryR.data as Record<string, unknown>).result as { content: Array<{ text: string }> }).content[0].text,
+    ) as Record<string, unknown>;
+    const matches = vqueryParsed.matches as Array<{ id: string; score: number }>;
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(matches[0].id).toBe("d1");
+    // Cosine self-similarity ≈ 1.
+    expect(matches[0].score).toBeGreaterThan(0.99);
   });
 });

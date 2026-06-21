@@ -53,8 +53,8 @@ describe("generateFiles", () => {
   it("always includes core search outputs", () => {
     const result = generateFiles(makeInput([]));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
-    expect(paths).toContain(".ai/repo-profile.yaml");
+    expect(paths).toContain("context-map.json");
+    expect(paths).toContain("repo-profile.yaml");
     expect(paths).toContain("architecture-summary.md");
   });
 
@@ -67,30 +67,30 @@ describe("generateFiles", () => {
   });
 
   it("generates debug files when requested", () => {
-    const result = generateFiles(makeInput([".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md"]));
+    const result = generateFiles(makeInput(["debug-playbook.md", "incident-template.md", "tracing-rules.md"]));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/debug-playbook.md");
+    expect(paths).toContain("debug-playbook.md");
     expect(paths).toContain("incident-template.md");
     expect(paths).toContain("tracing-rules.md");
   });
 
   it("generates frontend files when requested", () => {
-    const result = generateFiles(makeInput([".ai/frontend-rules.md", "component-guidelines.md"]));
+    const result = generateFiles(makeInput(["frontend-rules.md", "component-guidelines.md"]));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/frontend-rules.md");
+    expect(paths).toContain("frontend-rules.md");
     expect(paths).toContain("component-guidelines.md");
   });
 
   it("resolves aliases", () => {
     const result = generateFiles(makeInput(["context-map.json", "CURSOR.md"]));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
+    expect(paths).toContain("context-map.json");
     expect(paths).toContain(".cursorrules");
   });
 
   it("deduplicates when alias and canonical both requested", () => {
-    const result = generateFiles(makeInput([".ai/context-map.json", "context-map.json"]));
-    const ctxFiles = result.files.filter(f => f.path === ".ai/context-map.json");
+    const result = generateFiles(makeInput(["context-map.json", "context-map.json"]));
+    const ctxFiles = result.files.filter(f => f.path === "context-map.json");
     expect(ctxFiles.length).toBe(1);
   });
 
@@ -109,7 +109,7 @@ describe("generateFiles", () => {
 
   it("each file has program and content_type", () => {
     const result = generateFiles(makeInput([
-      "AGENTS.md", ".ai/debug-playbook.md", ".ai/frontend-rules.md",
+      "AGENTS.md", "debug-playbook.md", "frontend-rules.md",
     ]));
     for (const file of result.files) {
       expect(file.program).toBeTruthy();
@@ -124,14 +124,14 @@ describe("search generators content", () => {
   const result = generateFiles(input);
 
   it("context-map.json is valid JSON", () => {
-    const file = result.files.find(f => f.path === ".ai/context-map.json")!;
+    const file = result.files.find(f => f.path === "context-map.json")!;
     const parsed = JSON.parse(file.content);
     expect(parsed.version).toBe("1.0.0");
     expect(parsed.project_identity.name).toBe("test-app");
   });
 
   it("repo-profile.yaml contains project name", () => {
-    const file = result.files.find(f => f.path === ".ai/repo-profile.yaml")!;
+    const file = result.files.find(f => f.path === "repo-profile.yaml")!;
     expect(file.content).toContain("test-app");
     expect(file.content).toContain("version:");
   });
@@ -165,10 +165,10 @@ describe("skills generators content", () => {
 });
 
 describe("debug generators content", () => {
-  const result = generateFiles(makeInput([".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md"]));
+  const result = generateFiles(makeInput(["debug-playbook.md", "incident-template.md", "tracing-rules.md"]));
 
   it("debug playbook has triage steps", () => {
-    const file = result.files.find(f => f.path === ".ai/debug-playbook.md")!;
+    const file = result.files.find(f => f.path === "debug-playbook.md")!;
     expect(file.content.toLowerCase()).toContain("triage");
     expect(file.content.length).toBeGreaterThan(200);
   });
@@ -185,10 +185,10 @@ describe("debug generators content", () => {
 });
 
 describe("frontend generators content", () => {
-  const result = generateFiles(makeInput([".ai/frontend-rules.md", "component-guidelines.md"]));
+  const result = generateFiles(makeInput(["frontend-rules.md", "component-guidelines.md"]));
 
   it("frontend rules mention component conventions", () => {
-    const file = result.files.find(f => f.path === ".ai/frontend-rules.md")!;
+    const file = result.files.find(f => f.path === "frontend-rules.md")!;
     expect(file.content.length).toBeGreaterThan(200);
   });
 
@@ -199,7 +199,7 @@ describe("frontend generators content", () => {
 });
 
 describe("seo generators content", () => {
-  const result = generateFiles(makeInput([".ai/seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md"]));
+  const result = generateFiles(makeInput(["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md"]));
 
   it("generates all 4 seo files", () => {
     const seoFiles = result.files.filter(f => f.program === "seo");
@@ -207,7 +207,7 @@ describe("seo generators content", () => {
   });
 
   it("seo-rules.md contains meta tag guidance", () => {
-    const file = result.files.find(f => f.path === ".ai/seo-rules.md")!;
+    const file = result.files.find(f => f.path === "seo-rules.md")!;
     expect(file.content).toContain("Meta Tags");
     expect(file.content).toContain("Structured Data");
     expect(file.content.length).toBeGreaterThan(200);
@@ -236,7 +236,7 @@ describe("seo generators content", () => {
 });
 
 describe("optimization generators content", () => {
-  const result = generateFiles(makeInput([".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json"]));
+  const result = generateFiles(makeInput(["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json"]));
 
   it("generates all 3 optimization files", () => {
     const optFiles = result.files.filter(f => f.program === "optimization");
@@ -244,7 +244,7 @@ describe("optimization generators content", () => {
   });
 
   it("optimization-rules.md has context budget and high-value files", () => {
-    const file = result.files.find(f => f.path === ".ai/optimization-rules.md")!;
+    const file = result.files.find(f => f.path === "optimization-rules.md")!;
     expect(file.content).toContain("Context Window Budget");
     expect(file.content).toContain("High-Value Files");
     expect(file.content).toContain("test-app");
@@ -274,12 +274,12 @@ describe("optimization generators content", () => {
   it("resolves optimization-rules.md alias", () => {
     const result2 = generateFiles(makeInput(["optimization-rules.md"]));
     const paths = result2.files.map(f => f.path);
-    expect(paths).toContain(".ai/optimization-rules.md");
+    expect(paths).toContain("optimization-rules.md");
   });
 });
 
 describe("theme generators content", () => {
-  const result = generateFiles(makeInput([".ai/design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json"]));
+  const result = generateFiles(makeInput(["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json"]));
 
   it("generates all 4 theme files", () => {
     const themeFiles = result.files.filter(f => f.program === "theme");
@@ -287,7 +287,7 @@ describe("theme generators content", () => {
   });
 
   it("design-tokens.json is valid JSON with color and typography tokens", () => {
-    const file = result.files.find(f => f.path === ".ai/design-tokens.json")!;
+    const file = result.files.find(f => f.path === "design-tokens.json")!;
     const parsed = JSON.parse(file.content);
     expect(parsed.colors).toBeTruthy();
     expect(parsed.typography).toBeTruthy();
@@ -325,7 +325,7 @@ describe("theme generators content", () => {
   it("resolves design-tokens.json alias", () => {
     const result2 = generateFiles(makeInput(["design-tokens.json"]));
     const paths = result2.files.map(f => f.path);
-    expect(paths).toContain(".ai/design-tokens.json");
+    expect(paths).toContain("design-tokens.json");
   });
 });
 
@@ -620,11 +620,12 @@ describe("artifacts generators content", () => {
     expect(artFiles.length).toBe(4);
   });
 
-  it("generated-component.tsx has component scaffold", () => {
+  it("generated-component.tsx is an App-shaped React component", () => {
     const file = result.files.find(f => f.path === "generated-component.tsx")!;
-    expect(file.content).toContain("container");
-    expect(file.content).toContain("content");
-    expect(file.content.length).toBeGreaterThan(100);
+    expect(file.content).toMatch(/export default \w+/);
+    expect(file.content).toContain("class ErrorBoundary");
+    expect(file.content).toContain("function Section");
+    expect(file.content.length).toBeGreaterThan(500);
   });
 
   it("dashboard-widget.tsx has project stats", () => {
@@ -1011,68 +1012,70 @@ describe("depth generators content", () => {
     expect(file.content.length).toBeGreaterThan(350);
   });
 
-  it("mcp/package-json.root.template.json is valid root package template", () => {
+  it("mcp/package-json.root.template.json is a clean, package-manager-aware root template", () => {
     const file = result.files.find(f => f.path === "mcp/package-json.root.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
     expect(parsed.private).toBe(true);
-    expect(parsed.packageManager).toBeTruthy();
-    expect(Array.isArray(parsed.workspaces)).toBe(true);
-    expect(parsed.workspaces).toContain("apps/*");
-    expect(parsed.workspaces).toContain("packages/*");
-    expect(parsed.scripts).toBeTruthy();
+    expect(parsed.packageManager).toMatch(/^(pnpm|yarn|bun|npm)@/);
+    // Scripts now mirror the detected package manager's CLI surface.
     expect(parsed.scripts.build).toBeTruthy();
     expect(parsed.scripts.test).toBeTruthy();
     expect(parsed.scripts.lint).toBeTruthy();
-    expect(parsed.scripts.publish).toBeTruthy();
-    expect(parsed.scripts["build:turbo"]).toBeTruthy();
-    expect(parsed.scripts["test:turbo"]).toBeTruthy();
-    expect(parsed.scripts["lint:turbo"]).toBeTruthy();
-    expect(parsed.dependencies?.zod).toBeTruthy();
+    expect(parsed.scripts.typecheck).toBeTruthy();
+    // No hardcoded zod dependency anymore — templates should not ship opinions
+    // on app-level libraries.
+    expect(parsed.dependencies?.zod).toBeUndefined();
     expect(parsed.devDependencies?.typescript).toBeTruthy();
-    expect(parsed.devDependencies?.vitest).toBeTruthy();
-    expect(parsed.devDependencies?.turbo).toBeTruthy();
     expect(file.content_type).toBe("application/json");
   });
 
-  it("mcp/package-json.package.template.json is valid package template", () => {
+  it("mcp/package-json.package.template.json uses ESM exports (not legacy main/types)", () => {
     const file = result.files.find(f => f.path === "mcp/package-json.package.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
-    expect(parsed.main).toBe("dist/index.js");
-    expect(parsed.types).toBe("dist/index.d.ts");
-    expect(parsed.scripts).toBeTruthy();
+    // ESM packages should declare their public surface via `exports`, not
+    // top-level `main` + `types`. Legacy `main` field is no longer emitted.
+    expect(parsed.main).toBeUndefined();
+    expect(parsed.type).toBe("module");
+    expect(parsed.exports?.["."]?.import).toBe("./dist/index.js");
+    expect(parsed.exports?.["."]?.types).toBe("./dist/index.d.ts");
     expect(parsed.scripts.build).toBeTruthy();
     expect(parsed.scripts.test).toBeTruthy();
     expect(parsed.scripts.lint).toBeTruthy();
-    expect(parsed.scripts.publish).toBeTruthy();
-    expect(parsed.peerDependencies?.zod).toBeTruthy();
+    expect(parsed.scripts.prepublishOnly).toBeTruthy();
+    // No hardcoded zod peerDependency anymore.
+    expect(parsed.peerDependencies?.zod).toBeUndefined();
     expect(parsed.devDependencies?.typescript).toBeTruthy();
-    expect(parsed.devDependencies?.vitest).toBeTruthy();
     expect(file.content_type).toBe("application/json");
   });
 
-  it("mcp/tsconfig.root.template.json has strict ESM and monorepo paths", () => {
+  it("mcp/tsconfig.root.template.json has strict ESM settings; paths/references derive from detected layout", () => {
     const file = result.files.find(f => f.path === "mcp/tsconfig.root.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
     expect(parsed.compilerOptions?.strict).toBe(true);
     expect(parsed.compilerOptions?.module).toBe("NodeNext");
     expect(parsed.compilerOptions?.moduleResolution).toBe("NodeNext");
-    expect(parsed.compilerOptions?.paths?.["@apps/*"]).toBeTruthy();
-    expect(parsed.compilerOptions?.paths?.["@packages/*"]).toBeTruthy();
+    expect(parsed.compilerOptions?.composite).toBe(true);
+    expect(parsed.compilerOptions?.incremental).toBe(true);
+    expect(Array.isArray(parsed.include)).toBe(true);
+    expect(parsed.include.length).toBeGreaterThan(0);
     expect(file.content_type).toBe("application/json");
   });
 
-  it("mcp/tsconfig.package.template.json has strict package output settings", () => {
+  it("mcp/tsconfig.package.template.json has strict, composite + incremental output settings", () => {
     const file = result.files.find(f => f.path === "mcp/tsconfig.package.template.json")!;
     expect(file.program).toBe("mcp");
     const parsed = JSON.parse(file.content);
-    expect(parsed.extends).toContain("tsconfig");
-    expect(parsed.compilerOptions?.strict).toBe(true);
     expect(parsed.compilerOptions?.outDir).toBe("dist");
-    expect(parsed.compilerOptions?.module).toBe("NodeNext");
-    expect(parsed.compilerOptions?.moduleResolution).toBe("NodeNext");
+    expect(parsed.compilerOptions?.rootDir).toBe("src");
+    expect(parsed.compilerOptions?.composite).toBe(true);
+    expect(parsed.compilerOptions?.incremental).toBe(true);
+    // Either extends a base config OR inlines strict + NodeNext settings.
+    const inheritsBase = typeof parsed.extends === "string" && parsed.extends.includes("tsconfig");
+    const inlinesStrict = parsed.compilerOptions?.strict === true && parsed.compilerOptions?.module === "NodeNext";
+    expect(inheritsBase || inlinesStrict).toBe(true);
     expect(file.content_type).toBe("application/json");
   });
 
@@ -1319,10 +1322,10 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(118);
+    expect(generators.length).toBe(137);
     const paths = generators.map(g => g.path);
-    expect(paths).toContain(".ai/symbol-index.json");
-    expect(paths).toContain(".ai/context-map.json");
+    expect(paths).toContain("symbol-index.json");
+    expect(paths).toContain("context-map.json");
     expect(paths).toContain("AGENTS.md");
     expect(paths).toContain("remotion-script.ts");
     expect(paths).toContain("render-config.json");

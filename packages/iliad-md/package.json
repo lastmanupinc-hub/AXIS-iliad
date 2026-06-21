@@ -1,0 +1,41 @@
+{
+  "name": "iliad-md",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Generate and maintain AGENTS.md, CLAUDE.md, .cursorrules, .github/copilot-instructions.md, and GEMINI.md from static repository analysis. Deterministic, zero runtime dependencies.",
+  "keywords": [
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+    "copilot-instructions",
+    "gemini-md",
+    "llm-context",
+    "codebase-analysis",
+    "cli"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lastmanupinc-hub/axis-iliad.git",
+    "directory": "packages/iliad-md"
+  },
+  "bin": {
+    "iliad": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,10 +1,10 @@
 # Channel Rulebook — axis-iliad
 
-Generated: 2026-04-11T22:24:48.157Z
+Generated: 2026-05-23T03:31:46.777Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -22,7 +22,7 @@ Channel-specific brand and content rules for consistent communication.
 | Person | Second person ("you") |
 | Code examples | Required for every concept |
 | Max paragraph length | 3 sentences |
-| Key terms | AuthContext, EnvSpec, ValidationError, ValidationResult, ZipEntry |
+| Key terms | AuthContext, EmailConfig, ResendErrorResponse, ResendSuccessResponse, SendEmailOptions |
 | Emoji | None |
 | CTA style | Inline links, "Learn more" |
 
@@ -104,4 +104,7 @@ Channel-specific brand and content rules for consistent communication.
 
 These files should comply with channel rules:
 
-- `README.md` (9179 bytes)
+- `examples/01-paid-platform/README.md` (947 bytes)
+- `examples/02-axis-scalpel/README.md` (724 bytes)
+- `examples/03-spacey/README.md` (748 bytes)
+- `examples/04-slate-certification/README.md` (722 bytes)

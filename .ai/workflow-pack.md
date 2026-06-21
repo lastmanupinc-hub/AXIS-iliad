@@ -17,7 +17,7 @@ steps:
   - name: write_tests
     action: Add tests using vitest
   - name: validate
-    action: Run vite
+    action: Run vite && make
   - name: review
     action: Check against component-guidelines.md and frontend-rules.md
 ```
@@ -56,6 +56,8 @@ steps:
     action: Ensure new code has tests
   - name: dependency_check
     action: Check dependency-hotspots.md for coupling increase
+  - name: ci_check
+    action: Verify github_actions pipeline passes
 ```
 
 ## Workflow: Refactor
@@ -78,22 +80,23 @@ steps:
 
 ## Detected Config Files
 
-- `apps/api/package.json` (25 lines)
+- `.prettierrc.json` (7 lines)
+- `apps/api/package.json` (30 lines)
 - `apps/api/tsconfig.json` (10 lines)
 - `apps/cli/package.json` (23 lines)
 - `apps/cli/tsconfig.json` (18 lines)
 - `apps/web/package.json` (24 lines)
-- `apps/web/tsconfig.json` (19 lines)
+- `apps/web/tsconfig.json` (20 lines)
 - `apps/web/vite.config.ts` (13 lines)
-- `package.json` (20 lines)
-- `packages/context-engine/package.json` (22 lines)
-- `packages/context-engine/tsconfig.json` (10 lines)
+- `mcp/tsconfig.package.template.json` (36 lines)
+- `mcp/tsconfig.root.template.json` (60 lines)
 
 ## Entry Points
 
 ### `apps/api/src/server.ts`
 
 ```typescript
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
 import {
   handleCreateSnapshot,
@@ -113,8 +116,7 @@ import {
   handleMarketingGenerate,
   handleNotebookGenerate,
   handleObsidianAnalyze,
-  handleMcpProvision,
-... (214 more lines)
+... (438 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -130,17 +132,17 @@ import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
 import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
+import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
+import { ExamplesPage } from "./pages/ExamplesPage.tsx";
+import { InstallPage } from "./pages/InstallPage.tsx";
+import { AdminPage } from "./pages/AdminPage.tsx";
+import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
+import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
+import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
-import type { SnapshotResponse } from "./api.ts";
-
-// ─── Error Boundary ─────────────────────────────────────────────
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
-... (266 more lines)
+... (470 more lines)
 ```
 
 ### `apps/web/src/main.tsx`

@@ -6,6 +6,9 @@ import {
   getSystemStats,
   listAllAccounts,
   getRecentActivity,
+  getMcpUsageWindows,
+  getMcpUsageSummary,
+  getMcpUsageNewVsReturning,
 } from "@axis/snapshots";
 
 /**
@@ -77,4 +80,29 @@ export async function handleAdminActivity(
 
   const events = getRecentActivity(limit);
   sendJSON(res, 200, { events, count: events.length });
+}
+
+/**
+ * GET /v1/admin/mcp-usage — persistent MCP call telemetry (admin only).
+ * Optional ?window_days=N (default 30, clamped 1..365) sets the analytics window.
+ */
+export async function handleAdminMcpUsage(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAdmin(req, res);
+  if (!ctx) return;
+
+  /* v8 ignore next — req.url always present in tests */
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const windowDays = Math.min(
+    Math.max(parseInt(url.searchParams.get("window_days") ?? "30", 10) || 30, 1),
+    365,
+  );
+
+  sendJSON(res, 200, {
+    windows: getMcpUsageWindows(),
+    summary: getMcpUsageSummary({ windowDays }),
+    new_vs_returning: getMcpUsageNewVsReturning({ windowDays }),
+  });
 }

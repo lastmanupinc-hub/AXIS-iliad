@@ -422,7 +422,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
 
   const graphMap = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     project_summary: ctx.ai_context.project_summary || null,
     detected_stack: ctx.detection.frameworks.map(fw => ({
       name: fw.name,
@@ -593,7 +593,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   const lines: string[] = [];
   lines.push(`# Template Pack — ${id.name}`);
   lines.push("");
-  lines.push(`Generated: ${new Date().toISOString()}`);
+  lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {

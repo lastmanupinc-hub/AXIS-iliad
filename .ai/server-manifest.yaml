@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
-# Generated: 2026-04-11T22:24:48.193Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+# Generated: 2026-05-23T03:31:46.793Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -48,7 +48,7 @@ server:
             enum: [search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic]
 
     - name: list_routes
-      description: List all 387 detected routes
+      description: List all 497 detected routes
       input_schema:
         type: object
         properties:
@@ -64,6 +64,114 @@ server:
           id:
             type: string
             description: Primary key or identifier for AuthContext
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_emailconfig
+      description: Query EmailConfig records (interface, 2 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EmailConfig
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_resenderrorresponse
+      description: Query ResendErrorResponse records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ResendErrorResponse
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_resendsuccessresponse
+      description: Query ResendSuccessResponse records (interface, 1 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for ResendSuccessResponse
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_sendemailoptions
+      description: Query SendEmailOptions records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for SendEmailOptions
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_sendemailresult
+      description: Query SendEmailResult records (interface, 4 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for SendEmailResult
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_embeddingsconfig
+      description: Query EmbeddingsConfig records (interface, 2 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EmbeddingsConfig
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_embeddingsresult
+      description: Query EmbeddingsResult records (interface, 4 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for EmbeddingsResult
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_openaiembeddingresponse
+      description: Query OpenAIEmbeddingResponse records (interface, 5 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for OpenAIEmbeddingResponse
+          filter:
+            type: object
+            description: Optional filter criteria
+
+    - name: query_openaierrorresponse
+      description: Query OpenAIErrorResponse records (interface, 3 fields)
+      input_schema:
+        type: object
+        properties:
+          id:
+            type: string
+            description: Primary key or identifier for OpenAIErrorResponse
           filter:
             type: object
             description: Optional filter criteria
@@ -92,114 +200,6 @@ server:
             type: object
             description: Optional filter criteria
 
-    - name: query_validationresult
-      description: Query ValidationResult records (interface, 3 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for ValidationResult
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_zipentry
-      description: Query ZipEntry records (interface, 4 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for ZipEntry
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_histogramentry
-      description: Query HistogramEntry records (interface, 3 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for HistogramEntry
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_openapispec
-      description: Query OpenApiSpec records (interface, 6 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for OpenApiSpec
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_windowentry
-      description: Query WindowEntry records (interface, 2 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for WindowEntry
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_apphandle
-      description: Query AppHandle records (interface, 3 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for AppHandle
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_route
-      description: Query Route records (interface, 4 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for Route
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_cliargs
-      description: Query CliArgs records (interface, 5 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for CliArgs
-          filter:
-            type: object
-            description: Optional filter criteria
-
-    - name: query_axisconfig
-      description: Query AxisConfig records (interface, 2 fields)
-      input_schema:
-        type: object
-        properties:
-          id:
-            type: string
-            description: Primary key or identifier for AxisConfig
-          filter:
-            type: object
-            description: Optional filter criteria
-
   resources:
     - uri: project://context-map
       name: Project Context Map
@@ -221,6 +221,51 @@ server:
       mime_type: application/json
       description: interface with 3 fields (apps/api/src/billing.ts)
 
+    - uri: model://EmailConfig
+      name: EmailConfig
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/email.ts)
+
+    - uri: model://ResendErrorResponse
+      name: ResendErrorResponse
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/email.ts)
+
+    - uri: model://ResendSuccessResponse
+      name: ResendSuccessResponse
+      mime_type: application/json
+      description: interface with 1 field (apps/api/src/email.ts)
+
+    - uri: model://SendEmailOptions
+      name: SendEmailOptions
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/email.ts)
+
+    - uri: model://SendEmailResult
+      name: SendEmailResult
+      mime_type: application/json
+      description: interface with 4 fields (apps/api/src/email.ts)
+
+    - uri: model://EmbeddingsConfig
+      name: EmbeddingsConfig
+      mime_type: application/json
+      description: interface with 2 fields (apps/api/src/embeddings.ts)
+
+    - uri: model://EmbeddingsResult
+      name: EmbeddingsResult
+      mime_type: application/json
+      description: interface with 4 fields (apps/api/src/embeddings.ts)
+
+    - uri: model://OpenAIEmbeddingResponse
+      name: OpenAIEmbeddingResponse
+      mime_type: application/json
+      description: interface with 5 fields (apps/api/src/embeddings.ts)
+
+    - uri: model://OpenAIErrorResponse
+      name: OpenAIErrorResponse
+      mime_type: application/json
+      description: interface with 3 fields (apps/api/src/embeddings.ts)
+
     - uri: model://EnvSpec
       name: EnvSpec
       mime_type: application/json
@@ -241,55 +286,10 @@ server:
       mime_type: application/json
       description: interface with 4 fields (apps/api/src/export.ts)
 
-    - uri: model://HistogramEntry
-      name: HistogramEntry
+    - uri: model://PullRequestPayload
+      name: PullRequestPayload
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/metrics.ts)
-
-    - uri: model://OpenApiSpec
-      name: OpenApiSpec
-      mime_type: application/json
-      description: interface with 6 fields (apps/api/src/openapi.ts)
-
-    - uri: model://WindowEntry
-      name: WindowEntry
-      mime_type: application/json
-      description: interface with 2 fields (apps/api/src/rate-limiter.ts)
-
-    - uri: model://AppHandle
-      name: AppHandle
-      mime_type: application/json
-      description: interface with 3 fields (apps/api/src/router.ts)
-
-    - uri: model://Route
-      name: Route
-      mime_type: application/json
-      description: interface with 4 fields (apps/api/src/router.ts)
-
-    - uri: model://CliArgs
-      name: CliArgs
-      mime_type: application/json
-      description: interface with 5 fields (apps/cli/src/cli.ts)
-
-    - uri: model://AxisConfig
-      name: AxisConfig
-      mime_type: application/json
-      description: interface with 2 fields (apps/cli/src/credential-store.ts)
-
-    - uri: model://RunResult
-      name: RunResult
-      mime_type: application/json
-      description: interface with 4 fields (apps/cli/src/runner.ts)
-
-    - uri: model://ScanResult
-      name: ScanResult
-      mime_type: application/json
-      description: interface with 3 fields (apps/cli/src/scanner.ts)
-
-    - uri: model://WriteResult
-      name: WriteResult
-      mime_type: application/json
-      description: interface with 3 fields (apps/cli/src/writer.ts)
+      description: interface with 5 fields (apps/api/src/github-webhook.ts)
 
   prompts:
     - name: review_code
@@ -322,34 +322,34 @@ server:
       version: "workspace:*"
     - name: @axis/generator-core
       version: "workspace:*"
+    - name: @axis/mpp
+      version: "workspace:*"
     - name: @axis/repo-parser
       version: "workspace:*"
     - name: @axis/snapshots
       version: "workspace:*"
-    - name: jszip
-      version: "^3.10.1"
-    - name: react
-      version: "^19.1.0"
-    - name: react-dom
-      version: "^19.1.0"
-    - name: better-sqlite3
-      version: "^12.8.0"
+    - name: @jmondi/oauth2-server
+      version: "^4.2.2"
+    - name: jsonwebtoken
+      version: "^9.0.3"
+    - name: mppx
+      version: "^0.5.12"
 
   # Detected Server/Tool Files
   source_files:
+    - path: "apps/api/mcp-server.json"
+      exports: []
+    - path: "apps/api/src/mcp-server.test.ts"
+      exports: []
+    - path: "apps/api/src/mcp-server.ts"
+      exports: ["export const MCP_PROTOCOL_VERSION = ...", "export type ProbeClass = ...", "export function classifyProbe(userAgent: string): ProbeClass { ... }", "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }", "export function getIntentLog(): IntentCapture[] { ... }"]
+    - path: "apps/api/src/oauth-server.ts"
+      exports: ["export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }"]
     - path: "apps/api/src/server.ts"
       exports: ["export const app = ..."]
     - path: "mcp/begin.yaml"
       exports: []
+    - path: "mcp/build-artifacts.md"
+      exports: []
     - path: "mcp/continuation.yaml"
-      exports: []
-    - path: "mcp/MEMORY.yaml"
-      exports: []
-    - path: "mcp/schemas/output-contract.schema.json"
-      exports: []
-    - path: "mcp-config.json"
-      exports: []
-    - path: "packages/generator-core/src/generators-mcp.ts"
-      exports: ["export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile { ... }", "export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile { ... }", "export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]): GeneratedFile { ... }", "export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile { ..."]
-    - path: "payment-processing-output/mcp-config.json"
       exports: []

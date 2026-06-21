@@ -51,20 +51,20 @@ function makeInput(requested: string[] = []): GeneratorInput {
 
 // All generators organized by program
 const PROGRAM_OUTPUTS: Record<string, string[]> = {
-  search: [".ai/context-map.json", ".ai/repo-profile.yaml", "architecture-summary.md", "dependency-hotspots.md", ".ai/symbol-index.json", "repo-run-stats.json"],
+  search: ["context-map.json", "repo-profile.yaml", "architecture-summary.md", "dependency-hotspots.md", "symbol-index.json", "repo-run-stats.json"],
   skills: ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"],
-  debug: [".ai/debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
-  frontend: [".ai/frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
-  seo: [".ai/seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json"],
-  optimization: [".ai/optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
-  theme: [".ai/design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
+  debug: ["debug-playbook.md", "incident-template.md", "tracing-rules.md", "root-cause-checklist.md"],
+  frontend: ["frontend-rules.md", "component-guidelines.md", "layout-patterns.md", "ui-audit.md"],
+  seo: ["seo-rules.md", "schema-recommendations.json", "route-priority-map.md", "content-audit.md", "meta-tag-audit.json"],
+  optimization: ["optimization-rules.md", "prompt-diff-report.md", "cost-estimate.json", "token-budget-plan.md"],
+  theme: ["design-tokens.json", "theme.css", "theme-guidelines.md", "component-theme-map.json", "dark-mode-tokens.json"],
   brand: ["brand-guidelines.md", "voice-and-tone.md", "content-constraints.md", "messaging-system.yaml", "channel-rulebook.md"],
   superpowers: ["superpower-pack.md", "workflow-registry.json", "test-generation-rules.md", "refactor-checklist.md", "automation-pipeline.yaml"],
   marketing: ["campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md", "ab-test-plan.md"],
   notebook: ["notebook-summary.md", "source-map.json", "study-brief.md", "research-threads.md", "citation-index.json"],
   obsidian: ["obsidian-skill-pack.md", "vault-rules.md", "graph-prompt-map.json", "linking-policy.md", "template-pack.md"],
   mcp: ["mcp-config.json", "mcp-registry-metadata.json", "protocol-spec.md", "spec.types.ts", "mcp/README.md", "mcp/project-setup.md", "mcp/build-artifacts.md", "mcp/package-json.root.template.json", "mcp/package-json.package.template.json", "mcp/tsconfig.root.template.json", "mcp/tsconfig.package.template.json", "mcp/monorepo-structure.md", "mcp/core-implementation-artifacts.md", "mcp/testing-documentation-polish-artifacts.md", "connector-map.yaml", "capability-registry.json", "server-manifest.yaml", "mcp/fintech-mcp-surface-package.md", "mcp/fintech-domain-schema.yaml"],
-  artifacts: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json"],
+  artifacts: ["generated-component.tsx", "dashboard-widget.tsx", "embed-snippet.ts", "artifact-spec.md", "component-library.json", "prd.md", "design.md", "tasks.md", "context.md", "index.html", "capability-map.yaml"],
   remotion: ["remotion-script.ts", "scene-plan.md", "render-config.json", "asset-checklist.md", "storyboard.md"],
   canvas: ["canvas-spec.json", "social-pack.md", "poster-layouts.md", "asset-guidelines.md", "brand-board.md"],
   algorithmic: ["generative-sketch.ts", "parameter-pack.json", "collection-map.md", "export-manifest.yaml", "variation-matrix.json"],
@@ -87,15 +87,30 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
     "DISTRIBUTABLE.md",
     "Makefile",
   ],
+  deploy: [
+    "deploy/Dockerfile",
+    "deploy/.dockerignore",
+    "deploy/docker-compose.dev.yml",
+    "deploy/render.yaml",
+    "deploy/deploy.sh",
+    "deploy/deploy.ps1",
+    "deploy/vscode-launch.json.template",
+    "deploy/wrangler.pages.toml",
+    "deploy/wrangler.containers.toml",
+    "deploy/worker.ts",
+    "deploy/deploy-cloudflare.sh",
+    "deploy/deploy-cloudflare.ps1",
+    "deploy/deploy-qualification-report.md",
+  ],
 };
 
-describe("generateFiles — all 19 programs produce valid output", () => {
+describe("generateFiles — all 20 programs produce valid output", () => {
   const input = makeInput(Object.values(PROGRAM_OUTPUTS).flat());
 
-  it("generates 118 files with 0 skipped", () => {
+  it("generates 137 files with 0 skipped", () => {
     const result = generateFiles(input);
     expect(result.skipped).toEqual([]);
-    expect(result.files.length).toBe(118);
+    expect(result.files.length).toBe(137);
   });
 
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
@@ -163,15 +178,15 @@ describe("generateFiles — edge cases", () => {
   it("always includes core 3 search outputs even with empty requested_outputs", () => {
     const result = generateFiles(makeInput([]));
     const paths = result.files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
-    expect(paths).toContain(".ai/repo-profile.yaml");
+    expect(paths).toContain("context-map.json");
+    expect(paths).toContain("repo-profile.yaml");
     expect(paths).toContain("architecture-summary.md");
     expect(result.files.length).toBe(3);
   });
 
   it("deduplicates when both alias and canonical are requested", () => {
     const result = generateFiles(makeInput(["context-map.json", ".ai/context-map.json"]));
-    const ctxMapFiles = result.files.filter(f => f.path === ".ai/context-map.json");
+    const ctxMapFiles = result.files.filter(f => f.path === "context-map.json");
     expect(ctxMapFiles.length).toBe(1);
   });
 
@@ -182,16 +197,17 @@ describe("generateFiles — edge cases", () => {
     expect(result.skipped[0].reason).toContain("No generator");
   });
 
-  it("resolves all aliases correctly", () => {
+  it("resolves all legacy .ai/-prefixed aliases to bare canonical names", () => {
     const aliases = [
       ["CURSOR.md", ".cursorrules"],
-      ["context-map.json", ".ai/context-map.json"],
-      ["repo-profile.yaml", ".ai/repo-profile.yaml"],
-      ["debug-playbook.md", ".ai/debug-playbook.md"],
-      ["frontend-rules.md", ".ai/frontend-rules.md"],
-      ["seo-rules.md", ".ai/seo-rules.md"],
-      ["optimization-rules.md", ".ai/optimization-rules.md"],
-      ["design-tokens.json", ".ai/design-tokens.json"],
+      [".ai/context-map.json", "context-map.json"],
+      [".ai/repo-profile.yaml", "repo-profile.yaml"],
+      [".ai/debug-playbook.md", "debug-playbook.md"],
+      [".ai/frontend-rules.md", "frontend-rules.md"],
+      [".ai/seo-rules.md", "seo-rules.md"],
+      [".ai/optimization-rules.md", "optimization-rules.md"],
+      [".ai/design-tokens.json", "design-tokens.json"],
+      [".ai/symbol-index.json", "symbol-index.json"],
     ];
     for (const [alias, canonical] of aliases) {
       const result = generateFiles(makeInput([alias]));
@@ -209,9 +225,9 @@ describe("generateFiles — edge cases", () => {
 });
 
 describe("listAvailableGenerators", () => {
-  it("returns all 118 registered generators", () => {
+  it("returns all 137 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(118);
+    expect(generators.length).toBe(137);
   });
 
   it("returns objects with path and program fields", () => {
@@ -224,10 +240,10 @@ describe("listAvailableGenerators", () => {
     }
   });
 
-  it("classifies all 19 programs correctly", () => {
+  it("classifies all 20 programs correctly", () => {
     const generators = listAvailableGenerators();
     const programs = new Set(generators.map(g => g.program));
-    expect(programs.size).toBe(19);
+    expect(programs.size).toBe(20);
     for (const expected of Object.keys(PROGRAM_OUTPUTS)) {
       expect(programs.has(expected), `missing program: ${expected}`).toBe(true);
     }
@@ -259,9 +275,9 @@ describe("listAvailableGenerators", () => {
   it("includes all known output paths", () => {
     const generators = listAvailableGenerators();
     const paths = generators.map(g => g.path);
-    expect(paths).toContain(".ai/context-map.json");
+    expect(paths).toContain("context-map.json");
     expect(paths).toContain("AGENTS.md");
-    expect(paths).toContain(".ai/debug-playbook.md");
+    expect(paths).toContain("debug-playbook.md");
     expect(paths).toContain("campaign-brief.md");
     expect(paths).toContain("generative-sketch.ts");
   });

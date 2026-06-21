@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:47.154Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.",
+  "generated_at": "2026-05-23T03:31:45.975Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -9,7 +9,7 @@
       "confidence": 0.95
     }
   ],
-  "total_recommendations": 24,
+  "total_recommendations": 31,
   "recommendations": [
     {
       "page": "/",
@@ -20,6 +20,17 @@
         "url",
         "description",
         "potentialAction (SearchAction)"
+      ]
+    },
+    {
+      "page": "/v1/docs.md",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
       ]
     },
     {
@@ -64,6 +75,17 @@
         "description",
         "offers.price",
         "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/mcp/docs",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
       ]
     },
     {
@@ -90,6 +112,50 @@
       ]
     },
     {
+      "page": "/docs",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/pricing",
+      "schema_type": "Product",
+      "priority": "medium",
+      "fields": [
+        "name",
+        "description",
+        "offers.price",
+        "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/v1/docs.md",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/mcp/docs",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
       "page": "/v1/plans",
       "schema_type": "Product",
       "priority": "medium",
@@ -98,6 +164,72 @@
         "description",
         "offers.price",
         "offers.priceCurrency"
+      ]
+    },
+    {
+      "page": "/docs",
+      "schema_type": "TechArticle",
+      "priority": "medium",
+      "fields": [
+        "headline",
+        "author",
+        "datePublished",
+        "proficiencyLevel"
+      ]
+    },
+    {
+      "page": "/llms.txt",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/skills/index.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/axis.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/for-agents",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/axis.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
       ]
     },
     {
@@ -112,7 +244,40 @@
       ]
     },
     {
+      "page": "/for-agents",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
       "page": "/health",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/mcp",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/ping",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -178,94 +343,6 @@
       ]
     },
     {
-      "page": "/ok",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/manual-500",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/manual-422",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/health",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/up",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/echo",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/items/:id",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/files/:path*",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
       "page": "(all deep routes)",
       "schema_type": "BreadcrumbList",
       "priority": "medium",
@@ -277,14 +354,19 @@
   ],
   "source_page_files": [
     "apps/web/index.html",
+    "apps/web/src/components/ToolPage.tsx",
     "apps/web/src/pages/AccountPage.tsx",
+    "apps/web/src/pages/AdminPage.tsx",
     "apps/web/src/pages/DashboardPage.tsx",
     "apps/web/src/pages/DocsPage.tsx",
+    "apps/web/src/pages/ExamplesPage.tsx",
+    "apps/web/src/pages/ForAgentsPage.tsx",
     "apps/web/src/pages/HelpPage.tsx",
+    "apps/web/src/pages/InstallPage.tsx",
+    "apps/web/src/pages/MyAnalyticsPage.tsx",
     "apps/web/src/pages/PlansPage.tsx",
     "apps/web/src/pages/ProgramsPage.tsx",
     "apps/web/src/pages/QAPage.tsx",
-    "apps/web/src/pages/TermsPage.tsx",
-    "apps/web/src/pages/UploadPage.tsx"
+    "apps/web/src/pages/TermsPage.tsx"
   ]
 }

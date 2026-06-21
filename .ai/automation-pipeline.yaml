@@ -1,28 +1,28 @@
 # Automation Pipeline
 # Project: axis-iliad
-# Generated: 2026-04-11T22:24:48.218Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+# Generated: 2026-05-23T03:31:46.808Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 pipeline:
   name: "axis-iliad-automation"
-  ci_platform: github-actions
-  package_manager: pnpm
+  ci_platform: github_actions
+  package_manager: npm
 
   stages:
 
     - name: install
       description: Install dependencies
       commands:
-        - pnpm install
+        - npm install
       cache:
         key: dependencies
-        paths: [~/.pnpm-store]
+        paths: [node_modules]
 
     - name: lint
       description: Static analysis and linting
       depends_on: [install]
       commands:
-        - pnpm tsc --noEmit
+        - npx tsc --noEmit
       fail_fast: true
 
     - name: test
@@ -30,7 +30,7 @@ pipeline:
       depends_on: [install]
       parallel_with: [lint]
       commands:
-        - pnpm vitest run
+        - npx vitest run
       coverage:
         minimum: 80
         report_format: lcov
@@ -39,7 +39,7 @@ pipeline:
       description: Build production artifacts
       depends_on: [lint, test]
       commands:
-        - pnpm -r build
+        - npm build
       artifacts:
         paths: [dist/, build/]
         retention: 30d
@@ -49,7 +49,7 @@ pipeline:
       depends_on: [install]
       parallel_with: [lint, test]
       commands:
-        - pnpm audit --audit-level=high
+        - npm audit --audit-level=high
       allow_failure: true
 
     - name: deploy_staging
@@ -93,6 +93,14 @@ pipeline:
 
   # ─── Detected CI / Config Files ─────────────────────
   source_files:
+    - path: ".github/actions/compliance-check/action.yml"
+      lines: 290
+    - path: ".github/workflows/ci.yml"
+      lines: 154
+    - path: ".github/workflows/compliance-check.yml"
+      lines: 29
+    - path: ".github/workflows/release.yml"
+      lines: 25
     - path: "algorithmic/begin.yaml"
       lines: 27
     - path: "algorithmic/continuation.yaml"
@@ -107,13 +115,5 @@ pipeline:
       lines: 43
     - path: "automated remedial action.yaml"
       lines: 106
-    - path: "axis_all_tools.yaml"
-      lines: 840
-    - path: "axis_master_blueprint.yaml"
-      lines: 415
-    - path: "begin.yaml"
-      lines: 297
-    - path: "brand/begin.yaml"
-      lines: 27
-    - path: "brand/continuation.yaml"
-      lines: 83
+    - path: "automation-pipeline.yaml"
+      lines: 120

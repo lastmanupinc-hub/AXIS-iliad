@@ -487,10 +487,10 @@ describe("seo: content-audit source content files and page components", () => {
 /* ----------------------------------------------------------------- */
 describe("seo: seo-rules SPA warning", () => {
   it("warns about client-rendered React SPA", () => {
-    const inp = input(snap(), [".ai/seo-rules.md"]);
+    const inp = input(snap(), ["seo-rules.md"]);
     addFw(inp, "React");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/seo-rules.md");
+    const f = getFile(res, "seo-rules.md");
     expect(f!.content).toContain("Client-rendered");
   });
 });
@@ -523,9 +523,9 @@ describe("debug: playbook with project description", () => {
       { path: "README.md", content: "# MyApp\n\nA high-performance API server for data processing.", size: 60 },
       { path: "src/index.ts", content: 'console.log("hi");', size: 20 },
     ];
-    const inp = input(snap({ files }), [".ai/debug-playbook.md"]);
+    const inp = input(snap({ files }), ["debug-playbook.md"]);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("A high-performance API server");
   });
 });
@@ -539,10 +539,10 @@ describe("debug: playbook Prisma + SQL schema", () => {
       { path: "src/index.ts", content: 'import { PrismaClient } from "@prisma/client";', size: 50 },
       { path: "schema.sql", content: "CREATE TABLE users (id INT PRIMARY KEY, name TEXT);\nCREATE TABLE orders (id INT PRIMARY KEY, user_id INT REFERENCES users(id));", size: 120 },
     ];
-    const inp = input(snap({ files }), [".ai/debug-playbook.md"]);
+    const inp = input(snap({ files }), ["debug-playbook.md"]);
     addFw(inp, "Prisma");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("Prisma");
     expect(f!.content).toContain("prisma migrate dev");
     expect(f!.content).toContain("Tables in schema");
@@ -555,10 +555,10 @@ describe("debug: playbook Prisma + SQL schema", () => {
 /* ----------------------------------------------------------------- */
 describe("debug: playbook Svelte framework", () => {
   it("renders Svelte debugging section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Svelte");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("Svelte");
     expect(f!.content).toContain("Reactivity bugs");
     expect(f!.content).toContain("$state");
@@ -937,10 +937,10 @@ describe("canvas: asset-guidelines asset file detection", () => {
 /* ----------------------------------------------------------------- */
 describe("debug: playbook React-specific section", () => {
   it("includes React debugging tips", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "React");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("React");
     expect(f!.content).toContain("stale closures");
     expect(f!.content).toContain("useEffect");
@@ -960,10 +960,10 @@ describe("frontend: frontend-rules component file source", () => {
         size: 80,
       });
     }
-    const inp = input(snap(), [".ai/frontend-rules.md"], comps);
+    const inp = input(snap(), ["frontend-rules.md"], comps);
     addFw(inp, "React");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/frontend-rules.md");
+    const f = getFile(res, "frontend-rules.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Comp0");
   });
@@ -1040,10 +1040,10 @@ describe("search: architecture-summary pattern detection", () => {
 /* ----------------------------------------------------------------- */
 describe("optimization: optimization-rules with frameworks", () => {
   it("renders framework-specific optimization tips", () => {
-    const inp = input(snap(), [".ai/optimization-rules.md"]);
+    const inp = input(snap(), ["optimization-rules.md"]);
     addFw(inp, "Next.js", "Prisma");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/optimization-rules.md");
+    const f = getFile(res, "optimization-rules.md");
     expect(f).toBeDefined();
   });
 });

@@ -42,7 +42,20 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "FIRECRAWL_API_KEY", required: false, type: "string", description: "API key for Firecrawl web scraping service (https://firecrawl.dev)" },
   { key: "REPLICATE_API_TOKEN", required: false, type: "string", description: "API token for Replicate image/video generation (https://replicate.com)" },
   { key: "FASTIO_API_KEY", required: false, type: "string", description: "API key for Fastio persistent storage and RAG (https://fast.io)" },
-  { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com)" },
+  { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com). Used by the internal welcome/upgrade/usage-alert pipeline in @axis/snapshots and by the agent-facing iliad_transactional_email MCP tool (proxy mode)." },
+  { key: "RESEND_FROM_ADDRESS", required: false, type: "string", description: "Verified Resend sender address used as the From: header for iliad_transactional_email. Must be a domain you've verified in the Resend dashboard. When unset, iliad_transactional_email returns a structured _not_configured envelope." },
+  // GitHub App webhook (push / pull_request → background snapshot)
+  { key: "GITHUB_WEBHOOK_SECRET", required: false, type: "string", description: "Shared secret from the GitHub App settings. Verifies X-Hub-Signature-256 on POST /v1/github/webhook. If unset, the endpoint returns 503 so the App retries until ops finishes the deploy." },
+  { key: "GITHUB_TOKEN", required: false, type: "string", description: "Personal-access token fallback used when fetching tarballs for webhook-triggered snapshots and the /v1/github/analyze handler when no per-account token is stored." },
+  // Embeddings proxy (iliad_embeddings — AXIS-branded wrapper over OpenAI /v1/embeddings today;
+  // future module swap to fastembed-ONNX is documented in capability-map.yaml).
+  { key: "OPENAI_API_KEY", required: false, type: "string", description: "OpenAI API key. Currently used as the backend for iliad_embeddings (proxy mode). When unset, the tool returns a structured `_not_configured: true` envelope listing the missing env var so callers can branch without parsing free text." },
+  { key: "OPENAI_EMBEDDING_MODEL", required: false, type: "string", default: "text-embedding-3-small", description: "OpenAI embedding model used by iliad_embeddings. Defaults to text-embedding-3-small. Override to text-embedding-3-large or any compatible model on a per-deploy basis." },
+  // Object storage (iliad_object_storage — AXIS-owned via Cloudflare R2)
+  { key: "R2_ACCOUNT_ID", required: false, type: "string", description: "Cloudflare account ID; forms part of the R2 host (<account>.r2.cloudflarestorage.com). All four R2_* vars must be set for iliad_object_storage to issue signed URLs; otherwise the tool returns a structured `not_configured` envelope." },
+  { key: "R2_ACCESS_KEY_ID", required: false, type: "string", description: "R2 API token access key. Use the 'Object Read & Write' template scoped to a single bucket so a compromised key cannot escalate." },
+  { key: "R2_SECRET_ACCESS_KEY", required: false, type: "string", description: "R2 API token secret key (treat as a password). Pairs with R2_ACCESS_KEY_ID." },
+  { key: "R2_BUCKET", required: false, type: "string", description: "Bucket name iliad_object_storage signs URLs against. Keys inside the bucket are prefixed with accounts/<account_id>/ for per-tenant isolation." },
 ];
 
 export interface ValidationError {

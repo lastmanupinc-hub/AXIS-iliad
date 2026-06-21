@@ -1,28 +1,28 @@
 # Token Budget Plan — axis-iliad
 
-Generated: 2026-04-11T22:24:48.051Z
+Generated: 2026-05-23T03:31:46.699Z
 
 ## Project Token Profile
 
 | Metric | Value |
 |--------|-------|
-| Total LOC | 93,769 |
-| Total Files | 428 |
-| Est. Total Tokens | 421,961 |
-| Avg Tokens/File | 986 |
+| Total LOC | 122,625 |
+| Total Files | 485 |
+| Est. Total Tokens | 551,813 |
+| Avg Tokens/File | 1,138 |
 
 ## Token Budget by Language
 
 | Language | LOC | Tokens | % of Budget |
 |----------|-----|--------|-------------|
-| TypeScript | 66,752 | 300,384 | 71.2% |
-| YAML | 14,963 | 67,334 | 16.0% |
-| JSON | 6,426 | 28,917 | 6.9% |
-| Markdown | 3,944 | 17,748 | 4.2% |
-| CSS | 849 | 3,821 | 0.9% |
-| JavaScript | 673 | 3,029 | 0.7% |
-| HTML | 113 | 509 | 0.1% |
-| Dockerfile | 49 | 221 | 0.1% |
+| TypeScript | 93,770 | 421,965 | 76.5% |
+| YAML | 9,885 | 44,483 | 8.1% |
+| JSON | 8,079 | 36,356 | 6.6% |
+| Markdown | 7,944 | 35,748 | 6.5% |
+| JavaScript | 2,093 | 9,419 | 1.7% |
+| CSS | 675 | 3,038 | 0.6% |
+| HTML | 158 | 711 | 0.1% |
+| Dockerfile | 21 | 95 | 0.0% |
 
 ## Context Window Allocation
 
@@ -57,15 +57,15 @@ Generated: 2026-04-11T22:24:48.051Z
 | Operation | Input | Output | Daily | Monthly Cost (GPT-4o) |
 |-----------|-------|--------|-------|----------------------|
 | Code review (1 file) | 1,500 | 500 | 10 | $1.93 |
-| API endpoint work (387 routes detected) | 8,000 | 2,000 | 5 | $4.40 |
-| Hotspot refactor (6 hotspots, avg 873 tok each) | 12,000 | 1,500 | 3 | $2.97 |
-| Domain model change (131 models) | 8,000 | 2,500 | 2 | $1.98 |
-| Documentation | 21,098 | 1,500 | 2 | $2.98 |
+| API endpoint work (497 routes detected) | 8,000 | 2,000 | 5 | $4.40 |
+| Hotspot refactor (7 hotspots, avg 1287 tok each) | 12,000 | 1,500 | 3 | $2.97 |
+| Domain model change (264 models) | 8,000 | 2,500 | 2 | $1.98 |
+| Documentation | 27,591 | 1,500 | 2 | $3.70 |
 
 > Token estimates derived from detected project signals: routes, hotspots, domain models, and average file size.
 
 ## Source-Verified Token Estimate
 
-- Source files scanned: 432
-- Total source lines: 112,878
-- Estimated tokens: ~507,951
+- Source files scanned: 500
+- Total source lines: 156,665
+- Estimated tokens: ~704,993

@@ -1,9 +1,14 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 
-/** Canonical counts — mirrors apps/api/src/counts.ts */
-const ARTIFACT_COUNT = 102;
-const PROGRAM_COUNT = 18;
+/**
+ * Canonical counts — must equal `listAvailableGenerators().length` and the
+ * unique program count from GENERATOR_PROGRAMS. The counts.consistency.test
+ * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
+ * drift fails CI.
+ */
+const ARTIFACT_COUNT = 137;
+const PROGRAM_COUNT = 20;
 
 /**
  * Program: agentic-purchasing
@@ -109,6 +114,9 @@ function buildVerificationProof(signals: CommerceSignals, generatorName: string)
     `> Checks passed: ${passed}/${total}`,
     `> Compliance grade: ${passed >= 6 ? "A" : passed >= 4 ? "B" : passed >= 2 ? "C" : "D"}`,
     ``,
+    `> Methodology: this grade is a keyword-signal scan of the repository, useful as a checklist`,
+    `> starting point. It is NOT a certification, audit, or legal/compliance advice.`,
+    ``,
     `| Check | Status | Evidence |`,
     `|-------|--------|----------|`,
     rows,
@@ -142,25 +150,28 @@ function buildAP2ComplianceScoring(signals: CommerceSignals): string {
   const grade = total >= 50 ? "A" : total >= 35 ? "B" : total >= 20 ? "C" : "D";
 
   return [
-    `## AP2 Compliance Scoring — Article-Level Assessment`,
+    `## AP2 Readiness Scoring — Capability Assessment`,
     ``,
-    `| AP2 Article | Focus | Score | Max | Details |`,
-    `|-------------|-------|-------|-----|---------|`,
-    `| Art. 2 — Mandate Format | Payment structure | ${art2}/15 | 15 | ${art2 >= 10 ? "Mandate schema detected" : art2 >= 5 ? "Partial mandate support" : "No mandate structure"} |`,
-    `| Art. 6 — Agent Rules | Spending limits | ${art6}/15 | 15 | ${art6 >= 10 ? "SCA + recurring + mandate" : art6 >= 5 ? "Partial SCA coverage" : "No spending controls"} |`,
-    `| Art. 7 — Dispute Handling | Evidence + resolution | ${art7}/15 | 15 | ${art7 >= 10 ? "Full dispute automation" : art7 >= 5 ? "Basic dispute handling" : "No dispute flow"} |`,
-    `| Art. 11 — Token Lifecycle | TAP + tokenization | ${art11}/15 | 15 | ${art11 >= 10 ? "TAP + network tokens active" : art11 >= 5 ? "Partial token support" : "No token lifecycle"} |`,
+    `> Methodology: the scores below come from a keyword-signal scan of this repository.`,
+    `> Use them as a checklist starting point — they are NOT a certification, audit, or legal/compliance advice.`,
+    ``,
+    `| Capability Area | Focus | Score | Max | Details |`,
+    `|-----------------|-------|-------|-----|---------|`,
+    `| Mandate Format | Payment structure | ${art2}/15 | 15 | ${art2 >= 10 ? "Mandate schema detected" : art2 >= 5 ? "Partial mandate support" : "No mandate structure"} |`,
+    `| Agent Spending Rules | Spending limits | ${art6}/15 | 15 | ${art6 >= 10 ? "SCA + recurring + mandate" : art6 >= 5 ? "Partial SCA coverage" : "No spending controls"} |`,
+    `| Dispute Handling | Evidence + resolution | ${art7}/15 | 15 | ${art7 >= 10 ? "Full dispute automation" : art7 >= 5 ? "Basic dispute handling" : "No dispute flow"} |`,
+    `| Token Lifecycle | TAP + tokenization | ${art11}/15 | 15 | ${art11 >= 10 ? "TAP + network tokens active" : art11 >= 5 ? "Partial token support" : "No token lifecycle"} |`,
     `| **Total** | | **${total}/60** | **60** | **Grade: ${grade}** |`,
     ``,
     `### Compliance Risk`,
     ``,
     total < 20
-      ? `> ⚠️ **HIGH RISK** — AP2 non-compliance may incur Visa fines up to $50,000/month. Prioritize mandate format (Art. 2) and SCA handling (Art. 6).`
+      ? `> ⚠️ **MAJOR GAPS** — most scanned signal areas are missing. Prioritize mandate format and SCA handling. Consult your acquirer and current card-network bulletins for program requirements.`
       : total < 35
-        ? `> ⚠️ **MODERATE RISK** — Key AP2 gaps detected. Address dispute handling (Art. 7) and token lifecycle (Art. 11) before production.`
+        ? `> ⚠️ **MODERATE GAPS** — key signal areas missing. Address dispute handling and token lifecycle before production.`
         : total < 50
-          ? `> ✅ **LOW RISK** — Core AP2 compliance achieved. Strengthen dispute automation and token lifecycle for full coverage.`
-          : `> ✅ **COMPLIANT** — Full AP2 coverage detected. Maintain compliance through regular AXIS re-analysis.`,
+          ? `> ✅ **GOOD COVERAGE** — core signal areas detected. Strengthen dispute automation and token lifecycle for fuller coverage.`
+          : `> ✅ **FULL SIGNAL COVERAGE** — all scanned areas detected. Remember this is a keyword-level scan, not a compliance certification.`,
   ].join("\n");
 }
 
@@ -200,13 +211,13 @@ function buildCompellingEvidence3Section(signals: CommerceSignals): string {
     `      "device_fingerprint_match": "2+ prior transactions from same device",`,
     `      "shipping_address_match": "Delivery to same address as prior undisputed orders",`,
     `      "minimum_prior_transactions": 2,`,
+    `      "minimum_prior_transaction_age_days": 120,`,
     `      "lookback_window_days": 365`,
     `    },`,
     `    "agent_automation": {`,
     `      "auto_collect_ip": ${signals.has_webhooks},`,
     `      "auto_collect_device_id": ${signals.has_checkout},`,
-    `      "auto_match_prior_txns": ${signals.has_dispute_handling && signals.has_webhooks},`,
-    `      "estimated_assembly_time_ms": ${signals.has_dispute_handling ? 50 : 500}`,
+    `      "auto_match_prior_txns": ${signals.has_dispute_handling && signals.has_webhooks}`,
     `    }`,
     `  }`,
     `}`,
@@ -219,59 +230,47 @@ function buildCompellingEvidence3Section(signals: CommerceSignals): string {
     `| IP collection at checkout | ${signals.has_checkout ? "✅ Ready" : "❌ Add to checkout"} | Required for CE 3.0 IP matching |`,
     `| Device fingerprinting | ${signals.has_checkout ? "⚠️ Verify impl" : "❌ Not detected"} | Required for CE 3.0 device matching |`,
     `| Transaction history query | ${signals.has_webhooks ? "✅ Webhook-fed" : "❌ No event source"} | Required if lookback > 120 days |`,
-    `| Auto-payload assembly | ${signals.has_dispute_handling && signals.has_webhooks ? "✅ Automatable" : "⚠️ Manual assembly"} | Reduces representment time from hours to milliseconds |`,
+    `| Auto-payload assembly | ${signals.has_dispute_handling && signals.has_webhooks ? "✅ Automatable" : "⚠️ Manual assembly"} | Enables scripted evidence assembly at dispute time |`,
   ].join("\n");
 }
 
-function buildWinProbabilitySection(): string {
+function buildDisputeEvidenceChecklist(): string {
   return [
-    `## Dispute Win-Probability Scoring`,
+    `## Dispute Evidence Checklist (CE 3.0)`,
     ``,
-    `Pre-computed win rates by Visa reason code family. Agents use this to decide represent vs. auto-refund.`,
+    `Visa Compelling Evidence 3.0 (CE 3.0) lets merchants remediate qualifying card-not-present`,
+    `fraud disputes by documenting a prior history with the same customer. This checklist describes`,
+    `WHAT evidence is required — it makes no prediction about dispute outcomes, which depend on`,
+    `issuer review and are not something AXIS can estimate.`,
     ``,
-    `| Reason Code | Category | Base Win Rate | With CE 3.0 | Agent Decision |`,
-    `|------------|----------|---------------|-------------|----------------|`,
-    `| 10.1 | EMV Liability Shift | 15% | 20% | Auto-refund unless > $200 |`,
-    `| 10.2 | No-Auth Fraud | 25% | 65% | Represent with CE 3.0 |`,
-    `| 10.3 | Fraud (Other) | 20% | 55% | Represent if device match |`,
-    `| 10.4 | Card-Not-Present Fraud | 30% | 72% | **Represent — CE 3.0 target** |`,
-    `| 10.5 | Visa Fraud Monitoring | 10% | 15% | Auto-refund |`,
-    `| 13.1 | Merch Not Received | 70% | 75% | Represent with tracking |`,
-    `| 13.2 | Cancelled Recurring | 40% | 45% | Represent if no cancel req |`,
-    `| 13.3 | Not As Described | 35% | 40% | Represent with product docs |`,
-    `| 13.6 | Credit Not Processed | 55% | 58% | Represent with refund proof |`,
-    `| 13.7 | Cancelled Service | 50% | 52% | Represent with TOS + usage |`,
+    `### CE 3.0 Evidence Requirements`,
     ``,
-    `### Agent Decision Matrix`,
+    `- [ ] Two or more prior undisputed transactions on the same payment credential`,
+    `- [ ] Each prior transaction is older than 120 days (and within 365 days) of the disputed transaction`,
+    `- [ ] Each prior transaction matches the disputed transaction on at least 2 qualified data elements:`,
+    `  - Device ID / device fingerprint`,
+    `  - IP address`,
+    `  - Customer email address`,
+    `  - Shipping address`,
+    `  - Customer account/login ID`,
+    `- [ ] Merchandise or service description for each transaction`,
     ``,
-    `\`\`\``,
-    `IF win_probability >= 60% AND amount > $5:`,
-    `  → AUTO-REPRESENT with evidence package`,
-    `IF win_probability >= 40% AND amount > $50:`,
-    `  → REPRESENT with operator notification`,
-    `IF win_probability < 40% OR amount < $5:`,
-    `  → AUTO-REFUND (cost of representment exceeds expected recovery)`,
-    `IF reason_code IN [10.4, 10.2, 10.3] AND ce3_evidence_available:`,
-    `  → ALWAYS REPRESENT (CE 3.0 lifts win rate 25-42pp)`,
-    `\`\`\``,
+    `### Evidence to Assemble per Dispute Category`,
     ``,
-    `### Cost-to-Represent Formula`,
+    `| Reason Code | Category | Evidence to Assemble |`,
+    `|------------|----------|----------------------|`,
+    `| 10.x | Fraud | CE 3.0 package (above) where eligible; 3DS authentication logs |`,
+    `| 13.1 | Merch Not Received | Delivery confirmation, tracking, signed receipt |`,
+    `| 13.2 | Cancelled Recurring | Mandate record, cancellation-request history |`,
+    `| 13.3 | Not As Described | Product documentation, customer communication |`,
+    `| 13.6 | Credit Not Processed | Refund/credit records |`,
+    `| 13.7 | Cancelled Service | Terms of service, usage logs |`,
     ``,
-    `\`\`\``,
-    `representment_cost = $5.50 (evidence assembly + submission)`,
-    `dispute_amount    = <transaction_amount>`,
-    `win_probability   = <from_table_above>`,
-    `expected_recovery = dispute_amount × win_probability`,
-    `net_payoff        = expected_recovery - representment_cost`,
+    `### Represent vs. Refund`,
     ``,
-    `IF net_payoff > $0  → REPRESENT`,
-    `IF net_payoff ≤ $0  → AUTO-REFUND (cheaper than fighting)`,
-    ``,
-    `Examples:`,
-    `  $200 × 72% = $144 recovery, net $138.50 → REPRESENT  (10.4 + CE3)`,
-    `  $10  × 25% = $2.50 recovery, net -$3.00 → REFUND     (10.2 no CE3)`,
-    `  $50  × 40% = $20   recovery, net $14.50 → REPRESENT  (13.2)`,
-    `\`\`\``,
+    `Whether to represent a dispute or issue a refund is a business decision that depends on`,
+    `evidence quality, amounts at stake, and your operator's risk tolerance. Follow your`,
+    `operator's dispute policy — AXIS does not publish win-rate estimates.`,
   ].join("\n");
 }
 
@@ -310,35 +309,33 @@ function buildLighterScaSection(signals: CommerceSignals): string {
     ``,
     `### Provider-Specific SCA Thresholds`,
     ``,
-    `| Network | Low-Value Threshold | TRA / MCSC Cap | Frictionless Approval Rate |`,
-    `|---------|--------------------|-----------------|-----------------------------|`,
-    `| Visa | €30 | €500 (TRA) | ~85% |`,
-    `| Mastercard | €30 | €100 (MCSC) | ~80% |`,
-    `| Amex | €30 | €250 (SafeKey) | ~75% |`,
+    `| Network | Low-Value Threshold | TRA Cap |`,
+    `|---------|--------------------|---------|`,
+    `| Visa | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |`,
+    `| Mastercard | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |`,
+    `| Amex | €30 (PSD2 RTS) | Up to €500, tiered by acquirer fraud rate |`,
     ``,
-    `> Agent optimization: For €30–€100, prefer Visa/Amex TRA (higher cap). For €100–€500, only Visa TRA avoids challenge.`,
+    `> Thresholds are set by the PSD2 RTS and depend on your acquirer's reference fraud rate — verify current values with your acquirer before relying on an exemption.`,
     ``,
-    `### AXIS Advantage Over Visa IC`,
+    `### What This Artifact Provides`,
     ``,
-    `| Metric | Visa IC Pilot (April 2026) | Axis' Iliad |`,
-    `|--------|---------------------------|--------------|`,
-    `| Integration calls | 3-5 API calls per decision | 0 calls — pre-computed in artifact |`,
-    `| Time to decision | 200-800ms (network round-trips) | 0ms — decision tree is local |`,
-    `| PCI scope | Requires PCI-DSS for token handling | No PCI — uses mandate references |`,
-    `| Cost per decision | Per-API-call pricing | Included in $0.50 hardening |`,
-    `| Coverage | TAP-enrolled merchants only | Any codebase, any provider |`,
-    signals.has_sca ? `| Your repo | ✅ SCA code detected | Pre-configured decision tree |` : `| Your repo | ❌ No SCA code | Decision tree generated anyway |`,
+    `The exemption decision tree above is pre-computed into this artifact, so agents can apply it`,
+    `locally without extra API calls at decision time. AXIS does not handle card data, so using this`,
+    `artifact adds no PCI scope. Exemption eligibility is ultimately decided by your acquirer and`,
+    `the issuer — treat the tree as a starting point, not a guarantee.`,
+    ``,
+    signals.has_sca ? `Your repo: ✅ SCA code detected — wire the decision tree into your existing flow.` : `Your repo: ❌ No SCA code detected — the decision tree is generated as a starting point.`,
   ].join("\n");
 }
 
 function buildTapInteropSection(signals: CommerceSignals): string {
   const scaExemptionRows = [
-    `| low_value | Transaction < 30 EUR | AP2 Art. 16(a) | Auto-apply when amount qualifies |`,
-    `| trusted_beneficiary | Merchant in trusted list | AP2 Art. 16(b) | Requires prior SCA + opt-in |`,
-    `| recurring_fixed | Fixed-amount subscription | PSD2 Art. 14(2) | SCA on first, exempt subsequent |`,
-    `| merchant_initiated | MIT with stored credential | AP2 Art. 18 | No SCA; requires original SCA ref |`,
-    `| secure_corporate | Dedicated corporate card | PSD2 Art. 17 | Exempt from SCA entirely |`,
-    `| transaction_risk_analysis | TRA via acquirer | AP2 Art. 16(c) | Exempt up to threshold (€500 max) |`,
+    `| low_value | Transaction < 30 EUR | Issuer-tracked cumulative limits apply | Auto-apply when amount qualifies |`,
+    `| trusted_beneficiary | Merchant in trusted list | Cardholder must opt in after a prior SCA | Requires prior SCA + opt-in |`,
+    `| recurring_fixed | Fixed-amount subscription | Subsequent collections exempt after first SCA | SCA on first, exempt subsequent |`,
+    `| merchant_initiated | MIT with stored credential | Out of SCA scope; original SCA reference needed | No SCA; requires original SCA ref |`,
+    `| secure_corporate | Dedicated corporate card | Secure corporate processes are exempt | Exempt from SCA entirely |`,
+    `| transaction_risk_analysis | TRA via acquirer | Cap depends on acquirer fraud rate | Exempt up to threshold (€500 max) |`,
   ].join("\n");
 
   return [
@@ -347,7 +344,7 @@ function buildTapInteropSection(signals: CommerceSignals): string {
     `### Token Action Protocol (TAP) Integration`,
     ``,
     `TAP status: ${signals.has_tap_protocol ? "✅ TAP protocol references detected" : "⚠️ No TAP integration — implement token lifecycle management"}`,
-    `Network tokenization: ${signals.has_network_tokenization ? "✅ Detected" : "❌ Not detected — required for Visa IC compliance"}`,
+    `Network tokenization: ${signals.has_network_tokenization ? "✅ Detected" : "❌ Not detected — verify availability with your PSP if you plan to use network tokens"}`,
     ``,
     `\`\`\`json`,
     `{`,
@@ -368,9 +365,11 @@ function buildTapInteropSection(signals: CommerceSignals): string {
     ``,
     `### SCA Exemption Decision Matrix`,
     ``,
-    `| Exemption | Condition | Legal Basis | Agent Action |`,
-    `|-----------|-----------|-------------|-------------|`,
+    `| Exemption | Condition | Notes | Agent Action |`,
+    `|-----------|-----------|-------|-------------|`,
     scaExemptionRows,
+    ``,
+    `> Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.`,
     ``,
     `### AP2 Mandate Lifecycle`,
     ``,
@@ -378,12 +377,12 @@ function buildTapInteropSection(signals: CommerceSignals): string {
     `CREATE → mandate_id assigned, status=pending_authorization`,
     `  └─ SCA CHALLENGE → cardholder authenticates`,
     `       └─ AUTHORIZE → status=active, first_collection_date set`,
-    `            └─ COLLECT → settlement via UCP Art. 5 clearing path`,
+    `            └─ COLLECT → settlement via configured clearing path`,
     `                 └─ AMEND → amount/schedule change, re-SCA if material`,
     `                      └─ CANCEL → status=cancelled, no further collections`,
     `\`\`\``,
     ``,
-    `### UCP Article 5 Settlement Path`,
+    `### UCP Settlement Path`,
     ``,
     `\`\`\`json`,
     `{`,
@@ -550,7 +549,7 @@ ${ap2ProviderRows}
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 81 structured artifacts across 17 programs.
+Axis' Iliad analyzes codebases and generates ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 
@@ -569,9 +568,9 @@ POST /mcp
 }
 \`\`\`
 
-Returns all 17 programs with tier (free/pro) and generator counts.
+Returns all ${PROGRAM_COUNT} programs with tier (free/pro) and generator counts.
 Free programs: search, skills, debug.
-Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing).
+Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer).
 
 ### Step 2 — Obtain an API Key (if not already held)
 \`\`\`
@@ -641,7 +640,7 @@ ${buildDisputeFlowSection(signals)}
 
 ${buildCompellingEvidence3Section(signals)}
 
-${buildWinProbabilitySection()}
+${buildDisputeEvidenceChecklist()}
 
 ${buildLighterScaSection(signals)}
 
@@ -674,9 +673,10 @@ export function generateProductSchema(
     schema_version: "1.0",
     product: "Axis' Iliad",
     generated_for: ctx.project_identity.name,
-    generated_at: new Date().toISOString().split("T")[0],
+    generated_at: ctx.generated_at.split("T")[0],
     mcp_endpoint: "POST /mcp",
     repo_commerce_profile: {
+      methodology: "Keyword-signal scan of submitted files — a checklist starting point, not a certification, audit, or legal/compliance advice.",
       detected_payment_providers: signals.detected_providers,
       capabilities: {
         checkout_flow: signals.has_checkout,
@@ -689,19 +689,20 @@ export function generateProductSchema(
         mandate_management: signals.has_mandate_management,
       },
       ap2_mandate_compliance: {
-        mandate_data_format: "AP2 Article 2 — standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
+        mandate_data_format: "AP2 standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
         mandate_lifecycle: "CREATE → AUTHORIZE (SCA) → ACTIVE → COLLECT → AMEND → CANCEL",
-        ucp_settlement_path: "UCP Article 5 — settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
+        ucp_settlement_path: "UCP settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
         visa_intelligent_commerce: "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding",
         tap_interop: "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens",
         ready_for_autonomous_purchase: signals.detected_providers.length > 0 || signals.has_checkout,
       },
       sca_exemption_schema: {
-        low_value: { threshold_eur: 30, legal_basis: "AP2 Art. 16(a)", auto_apply: true },
-        trusted_beneficiary: { legal_basis: "AP2 Art. 16(b)", requires_prior_sca: true },
-        recurring_fixed: { legal_basis: "PSD2 Art. 14(2)", sca_on_first: true },
-        merchant_initiated: { legal_basis: "AP2 Art. 18", requires_original_sca_ref: true },
-        transaction_risk_analysis: { max_threshold_eur: 500, legal_basis: "AP2 Art. 16(c)" },
+        note: "Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.",
+        low_value: { threshold_eur: 30, auto_apply: true },
+        trusted_beneficiary: { requires_prior_sca: true },
+        recurring_fixed: { sca_on_first: true },
+        merchant_initiated: { requires_original_sca_ref: true },
+        transaction_risk_analysis: { max_threshold_eur: 500, depends_on: "acquirer fraud rate" },
       },
       dispute_resolution_schema: {
         pre_dispute: { mechanism: "CDRN/RDR", sla_hours: 72 },
@@ -710,11 +711,12 @@ export function generateProductSchema(
         arbitration: { filing_fee_usd: 500, finality: "binding" },
         compelling_evidence_3: {
           version: "3.0",
-          match_criteria: ["ip_address", "device_fingerprint", "shipping_address"],
+          qualified_data_elements: ["device_id", "ip_address", "email", "shipping_address", "login_id"],
+          min_matching_data_elements: 2,
           min_prior_transactions: 2,
+          min_prior_transaction_age_days: 120,
           lookback_days: 365,
           target_reason_codes: ["10.2", "10.3", "10.4"],
-          estimated_win_rate_lift_pp: 35,
           auto_assembly_ready: signals.has_dispute_handling && signals.has_webhooks,
         },
       },
@@ -722,15 +724,14 @@ export function generateProductSchema(
         exemption_priority: ["low_value", "trusted_beneficiary", "recurring_fixed", "merchant_initiated", "secure_corporate", "transaction_risk_analysis"],
         frictionless_first: true,
         challenge_escalation: "abort_agent_flow_escalate_to_operator",
-        axis_advantage: "Pre-computed decision tree — 0 API calls, 0 PCI scope, included in $0.50 hardening",
       },
-      dispute_win_probability: {
-        "10.4_cnp_fraud": { base: 0.30, with_ce3: 0.72 },
-        "10.2_no_auth": { base: 0.25, with_ce3: 0.65 },
-        "13.1_not_received": { base: 0.70, with_ce3: 0.75 },
-        "13.2_cancelled_recurring": { base: 0.40, with_ce3: 0.45 },
-        auto_refund_threshold_usd: 5,
-        represent_threshold_win_pct: 40,
+      dispute_evidence_requirements: {
+        ce3_min_prior_undisputed_transactions: 2,
+        ce3_min_prior_transaction_age_days: 120,
+        ce3_lookback_window_days: 365,
+        ce3_min_matching_data_elements: 2,
+        ce3_qualified_data_elements: ["device_id", "ip_address", "email", "shipping_address", "login_id"],
+        represent_vs_refund: "Business decision — follow your operator's dispute policy. AXIS does not publish win-rate estimates.",
       },
     },
     programs: [
@@ -747,11 +748,13 @@ export function generateProductSchema(
       { slug: "notebook",          tier: "pro",  outputs: 5,  description: "Notebook summary, source map, study brief, research threads, citation index" },
       { slug: "obsidian",          tier: "pro",  outputs: 5,  description: "Obsidian skill pack, vault rules, graph prompt map, linking policy, template pack" },
       { slug: "mcp",               tier: "pro",  outputs: 19, description: "MCP config, registry metadata, protocol/types, implementation guides, connector/capability manifests, fintech surface package, and fintech domain schema" },
-      { slug: "artifacts",         tier: "pro",  outputs: 5,  description: "Generated component, dashboard widget, embed snippet, artifact spec, component library" },
+      { slug: "artifacts",         tier: "pro",  outputs: 11, description: "Generated component, dashboard widget, embed snippet, artifact spec, component library, PRD, design doc, tasks breakdown, session context, root index.html, capability map" },
       { slug: "remotion",          tier: "pro",  outputs: 5,  description: "Remotion script, scene plan, render config, asset checklist, storyboard" },
       { slug: "canvas",            tier: "pro",  outputs: 5,  description: "Canvas spec, social pack, poster layouts, asset guidelines, brand board" },
       { slug: "algorithmic",       tier: "pro",  outputs: 5,  description: "Generative sketch, parameter pack, collection map, export manifest, variation matrix" },
       { slug: "agentic-purchasing",tier: "pro",  outputs: 5,  description: "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry" },
+      { slug: "closer",            tier: "pro",  outputs: 16, description: "Packaging README/LICENSE, Dockerfile, docker-compose, GitHub Actions workflows (CI + release), platform manifests (npm/unreal/vscode/dockerhub/github-marketplace), trust-fabric attestation + merkle proof, packaging report, DISTRIBUTABLE.md, and Makefile" },
+      { slug: "deploy",            tier: "pro",  outputs: 13, description: "Zero-pipeline-minutes deploy kit covering Render (runtime: image) and Cloudflare (Pages + Containers): stack-aware Dockerfile + .dockerignore, dev compose, render.yaml, GHCR push scripts (bash + ps1), wrangler.pages.toml, wrangler.containers.toml, Cloudflare Worker entry, deploy-cloudflare scripts (bash + ps1), VSCode debug-attach template, and qualification report" },
     ],
     purchase_endpoint: "POST /v1/billing/purchase",
     auth: { type: "bearer", header: "Authorization", format: "Bearer <api_key>" },
@@ -841,7 +844,7 @@ Step 5: Inject artifacts into agent context window
 
 ## Payment Mandate Schema (AP2 Fields)
 
-Every autonomous purchase MUST include these AP2 Article 2 mandate fields:
+Every autonomous purchase MUST include these AP2 mandate fields:
 
 \`\`\`json
 {
@@ -914,14 +917,15 @@ Purchase Failed?
 | 404 Snapshot Not Found | Re-run analysis with new snapshot |
 | Quota Exceeded | Upgrade tier or wait for quota reset |
 
-## Frictionless Approval Metrics
+## Frictionless Approval Guidance
 
-| Metric | Industry Average | With AXIS Pre-Computation |
-|--------|-----------------|----------------------------|
-| Frictionless approval rate | 70-80% | 85-92% (pre-qualified exemptions) |
-| Challenge rate | 20-30% | 8-15% (agent avoids challenge-prone paths) |
-| Cart abandonment (SCA) | 25-35% | 0% (agent never abandons, escalates instead) |
-| Time to auth decision | 200-800ms | 0ms (local decision tree) |
+Frictionless approval rate and challenge rate vary by issuer, region, and transaction profile —
+AXIS does not publish approval-rate figures. To reduce challenge friction:
+
+- Pre-qualify SCA exemptions (low_value, trusted_beneficiary, recurring) before initiating payment
+- Use stored mandates with prior SCA authorization where available
+- Escalate to your operator instead of abandoning when the issuer requires a challenge
+- Measure your own approval and challenge rates with your PSP's reporting tools
 
 ## Network Token Payload (VTS/MDES)
 
@@ -1011,29 +1015,25 @@ Where \`commerce_signal_bonus\` = detected_providers × 0.15 + (has_sca ? 0.10 :
 
 **Estimated value score for ${name}:** ${((loc / 1000) * 0.4 + (fileCount / 10) * 0.3 + (complexity === "high" ? 3 : complexity === "medium" ? 2 : 1) * 0.3 + signals.detected_providers.length * 0.15 + (signals.has_sca ? 0.10 : 0) + (signals.has_dispute_handling ? 0.10 : 0)).toFixed(2)}
 
-## ROI Computation
+## Cost Considerations
 
-\`\`\`
-axis_cost          = $0.50 per program (pro tier)
-manual_token_cost  = ~8,000 tokens × $0.003/1k = $0.024 per file
-files_in_project   = ${fileCount}
-manual_total       = $${(fileCount * 0.024).toFixed(2)}
-axis_total         = $0.50 (all ${fileCount} files in one call)
-ROI                = (manual_total - axis_total) / axis_total
-                   = ${(((fileCount * 0.024) - 0.50) / 0.50 * 100).toFixed(0)}% savings
-\`\`\`
-
-> **Verdict:** ${fileCount * 0.024 > 0.50 ? `AXIS saves $${(fileCount * 0.024 - 0.50).toFixed(2)} per analysis cycle.` : "Project is small enough that manual analysis may be comparable in cost."}
+AXIS pro programs are priced per call ($0.50 standard, $0.15–$0.25 lite mode). Whether a
+purchase is worthwhile depends on your task, your context budget, and the alternatives
+available to you. AXIS does not publish savings or ROI guarantees — measure cost and
+output quality on your own workload.
 
 ## Purchase Rules
 
-### Automatic APPROVE when:
+Follow your operator's spending policy. Do not authorize spend that your operator has not
+explicitly delegated to you, and surface any proposed purchase that falls outside that policy.
+
+### Signals a purchase MAY be worth proposing (subject to operator policy):
 - Project has > 1,000 LOC and agent session > 30 minutes expected
 - Task requires modifying or extending > 3 source files
 - Agent lacks AGENTS.md in current context window
 - Codebase uses > 2 detected frameworks (integration complexity)
 
-### Automatic REJECT when:
+### Signals a purchase is likely unnecessary:
 - Project has < 100 LOC (micro-project, not worth structured context)
 - Snapshot for this repo was generated in the last 1 hour
 - Agent is in read-only information gathering mode
@@ -1046,23 +1046,24 @@ ROI                = (manual_total - axis_total) / axis_total
 
 ## Comparison Matrix
 
-| Approach | Token Cost | Quality | Time |
-|----------|-----------|---------|------|
-| AXIS analyze | ~500 tokens | 95% | Instant |
-| Manual grep + read | ~8,000 tokens | 60% | 15 min |
-| LLM summarization | ~3,000 tokens | 70% | 5 min |
+| Approach | What You Get | Trade-off |
+|----------|--------------|-----------|
+| AXIS analyze | Deterministic artifact set generated from the full file tree | Paid call for pro programs |
+| Manual grep + read | Raw file contents you interpret yourself | Token cost scales with repo size |
+| LLM summarization | Lossy narrative summary | Quality varies by model and prompt |
 
-**Verdict:** AXIS analysis is the optimal approach for codebases > 500 LOC.
+Token usage and output quality vary by repo, model, and task — benchmark on your own workload
+before standardizing on any approach.
 
 ## AP2/UCP Mandate Compliance Constraints
 
-Agents must NOT exceed these limits without explicit operator approval:
+Example conservative defaults — your operator's spending policy always takes precedence:
 
 | Provider | Mandate Scope | Constraint | Risk Level | Max Per-Session Cap |
 |----------|---------------|-----------|-----------|---------------------|
 ${mandateRows}
 
-**Hard limits (AP2 Article 6 — Autonomous Agent Spending Rules):**
+**Hard limits (recommended autonomous agent spending rules):**
 1. No single payment > 10% of monthly credit balance without confirmation
 2. No payment to new merchant_id in first 30 minutes of session
 3. All recurring mandates require operator opt-in (agent cannot self-authorize)
@@ -1096,7 +1097,7 @@ ${mandateRows}
 Network tokenization status: ${signals.has_network_tokenization ? "✅ Detected — agents may use stored DPANs for frictionless negotiation" : "⚠️ Not detected — agents must fall back to PAN-based flows"}
 Mandate management: ${signals.has_mandate_management ? "✅ Detected — mandate amendment negotiation enabled" : "⚠️ Not detected — agents cannot negotiate mandate terms"}
 
-${buildWinProbabilitySection()}
+${buildDisputeEvidenceChecklist()}
 
 ${buildVerificationProof(signals, "generateNegotiationRules")}
 `;
@@ -1106,7 +1107,7 @@ ${buildVerificationProof(signals, "generateNegotiationRules")}
     content,
     content_type: "text/markdown",
     program: "agentic-purchasing",
-    description: "Agent negotiation rules — value assessment, AP2/UCP mandate constraints, autonomous purchase bounds, and ROI comparison",
+    description: "Agent negotiation rules — value assessment, AP2/UCP mandate constraints, autonomous purchase bounds, and cost considerations",
   };
 }
 
@@ -1133,7 +1134,7 @@ export function generateCommerceRegistry(
     registry_version: "1.0",
     product: "Axis' Iliad",
     project: ctx.project_identity.name,
-    generated_at: new Date().toISOString().split("T")[0],
+    generated_at: ctx.generated_at.split("T")[0],
     axis_base_url: "https://api.axis-iliad.com",
     mcp_endpoint: "POST /mcp",
     repo_commerce_signals: {
@@ -1149,6 +1150,7 @@ export function generateCommerceRegistry(
       total_payment_files: signals.total_payment_files,
     },
     ap2_compliance_assessment: {
+      methodology: "Keyword-signal scan of repository files — a checklist starting point, not a certification, audit, or legal/compliance advice.",
       readiness_score: ap2ReadyScore,
       max_score: 100,
       interpretation: ap2ReadyScore >= 70 ? "production-ready" : ap2ReadyScore >= 40 ? "partially-ready" : "needs-work",
@@ -1156,10 +1158,10 @@ export function generateCommerceRegistry(
         ...(!signals.detected_providers.length ? ["No payment provider integration detected"] : []),
         ...(!signals.has_checkout ? ["No checkout flow implementation detected"] : []),
         ...(!signals.has_sca ? ["SCA/3DS2 handling not detected — required for EU/UK PSD2 compliance"] : []),
-        ...(!signals.has_dispute_handling ? ["No dispute/refund handling — required for AP2 Article 7 compliance"] : []),
-        ...(!signals.has_webhooks ? ["No payment webhooks — required for mandate event processing"] : []),
-        ...(!signals.has_network_tokenization ? ["Network tokenization not detected — required for Visa IC compliance"] : []),
-        ...(!signals.has_mandate_management ? ["No mandate management — required for AP2 recurring payment compliance"] : []),
+        ...(!signals.has_dispute_handling ? ["No dispute/refund handling detected — implement dispute and refund flows before production"] : []),
+        ...(!signals.has_webhooks ? ["No payment webhooks — needed for mandate event processing"] : []),
+        ...(!signals.has_network_tokenization ? ["Network tokenization not detected — verify availability with your PSP if you plan to use network tokens"] : []),
+        ...(!signals.has_mandate_management ? ["No mandate management detected — needed for recurring mandate workflows"] : []),
       ],
       visa_intelligent_commerce: {
         network_tokenization: signals.has_network_tokenization ? "detected" : signals.detected_providers.includes("stripe") || signals.detected_providers.includes("adyen") ? "likely-supported" : "unknown",
@@ -1176,14 +1178,15 @@ export function generateCommerceRegistry(
           supported: true,
           auto_assembly_ready: signals.has_dispute_handling && signals.has_webhooks,
           target_reason_codes: ["10.2", "10.3", "10.4"],
-          estimated_win_rate_lift: "25-42 percentage points on CNP fraud disputes",
+          evidence_requirements: {
+            min_prior_undisputed_transactions: 2,
+            min_prior_transaction_age_days: 120,
+            lookback_window_days: 365,
+            min_matching_data_elements: 2,
+            qualified_data_elements: ["device_id", "ip_address", "email", "shipping_address", "login_id"],
+          },
         },
-        win_probability_model: {
-          "10.4_cnp_fraud": { base_pct: 30, with_ce3_pct: 72 },
-          "13.1_not_received": { base_pct: 70, with_ce3_pct: 75 },
-          auto_refund_below_usd: 5,
-          represent_above_win_pct: 40,
-        },
+        represent_vs_refund: "Business decision — follow your operator's dispute policy. AXIS does not publish win-rate estimates.",
       },
       verification_proof: {
         checks_passed: [
@@ -1272,15 +1275,14 @@ export function generateCommerceRegistry(
     mandate_lifecycle_events: [
       { event: "CREATE", description: "Mandate ID assigned, status=pending_authorization" },
       { event: "AUTHORIZE", description: "SCA challenge completed, status=active" },
-      { event: "COLLECT", description: "Payment collected via UCP Art. 5 clearing" },
+      { event: "COLLECT", description: "Payment collected via the configured clearing system" },
       { event: "AMEND", description: "Amount or schedule changed, re-SCA if material" },
       { event: "SUSPEND", description: "Temporarily paused, no collections" },
       { event: "RESUME", description: "Reactivated after suspension" },
       { event: "CANCEL", description: "Terminated, no further collections" },
     ],
     liability_risk: {
-      ap2_non_compliance_fine_usd_month: 50000,
-      visa_ic_enrollment_deadline: "2026-10-01",
+      note: "Non-compliance consequences (fines, enrollment deadlines, program requirements) vary by acquirer, card network, and region — consult your acquirer and current network bulletins.",
       psd2_sca_enforcement: "active",
       risk_level: ap2ReadyScore >= 70 ? "low" : ap2ReadyScore >= 40 ? "moderate" : "high",
     },
@@ -1291,6 +1293,6 @@ export function generateCommerceRegistry(
     content: JSON.stringify(registry, null, 2),
     content_type: "application/json",
     program: "agentic-purchasing",
-    description: "Agent commerce registry — repo commerce signals, AP2 compliance assessment, Visa IC profile, and AXIS catalog",
+    description: "Agent commerce registry — repo commerce signals, heuristic AP2 readiness assessment, network tokenization profile, and AXIS catalog",
   };
 }

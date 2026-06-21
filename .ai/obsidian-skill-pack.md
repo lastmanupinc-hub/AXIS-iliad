@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -66,7 +66,7 @@ Reusable AI prompt fragments for this project context:
 ```
 I'm working on axis-iliad, a monorepo built with TypeScript.
 Stack: React.
-Conventions: TypeScript strict mode; pnpm workspaces.
+Conventions: TypeScript strict mode; Linter configured; Formatter configured.
 ```
 
 ### Code Review Prompt
@@ -91,14 +91,14 @@ Help me trace this from the entry point to the failure.
 ```
 I'm working with the following domain models in axis-iliad:
 - AuthContext (interface, 3 fields) — defined in apps/api/src/billing.ts
-- EnvSpec (interface, 5 fields) — defined in apps/api/src/env.ts
-- ValidationError (interface, 2 fields) — defined in apps/api/src/env.ts
-- ValidationResult (interface, 3 fields) — defined in apps/api/src/env.ts
-- ZipEntry (interface, 4 fields) — defined in apps/api/src/export.ts
-- HistogramEntry (interface, 3 fields) — defined in apps/api/src/metrics.ts
-- OpenApiSpec (interface, 6 fields) — defined in apps/api/src/openapi.ts
-- WindowEntry (interface, 2 fields) — defined in apps/api/src/rate-limiter.ts
-  ... and 123 more
+- EmailConfig (interface, 2 fields) — defined in apps/api/src/email.ts
+- ResendErrorResponse (interface, 3 fields) — defined in apps/api/src/email.ts
+- ResendSuccessResponse (interface, 1 fields) — defined in apps/api/src/email.ts
+- SendEmailOptions (interface, 5 fields) — defined in apps/api/src/email.ts
+- SendEmailResult (interface, 4 fields) — defined in apps/api/src/email.ts
+- EmbeddingsConfig (interface, 2 fields) — defined in apps/api/src/embeddings.ts
+- EmbeddingsResult (interface, 4 fields) — defined in apps/api/src/embeddings.ts
+  ... and 256 more
 
 When generating code that uses these types, import from their source files and
 do not redefine them.
@@ -129,9 +129,9 @@ vault/
 
 ## Detected Config Files for Vault Import
 
+- `.prettierrc.json`
 - `apps/api/package.json`
 - `apps/api/tsconfig.json`
 - `apps/cli/package.json`
 - `apps/cli/tsconfig.json`
 - `apps/web/package.json`
-- `apps/web/tsconfig.json`

@@ -236,7 +236,7 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
   }
 
   return {
-    path: ".ai/seo-rules.md",
+    path: "seo-rules.md",
     content: lines.join("\n"),
     content_type: "text/markdown",
     program: "seo",
@@ -348,7 +348,7 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
 
   const output = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     project_summary: ctx.ai_context.project_summary || null,
     detected_stack: ctx.detection.frameworks.map(fw => ({
       name: fw.name,
@@ -732,7 +732,7 @@ export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): Gen
 
   const audit = {
     project: id.name,
-    generated_at: new Date().toISOString(),
+    generated_at: ctx.generated_at,
     project_summary: ctx.ai_context.project_summary || null,
     detected_stack: ctx.detection.frameworks.map(fw => ({
       name: fw.name,

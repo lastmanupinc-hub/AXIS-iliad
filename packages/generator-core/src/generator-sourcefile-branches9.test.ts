@@ -59,8 +59,8 @@ function getFile(result: ReturnType<typeof generateFiles>, path: string) {
 describe("project_summary FALSE path coverage", () => {
   const allPsSummaryOutputs = [
     "campaign-brief.md", "funnel-map.md", "sequence-pack.md", "cro-playbook.md",
-    ".ai/seo-rules.md", "route-priority-map.md", "content-audit.md",
-    ".ai/frontend-rules.md", "layout-patterns.md", "ui-audit.md",
+    "seo-rules.md", "route-priority-map.md", "content-audit.md",
+    "frontend-rules.md", "layout-patterns.md", "ui-audit.md",
     "refactor-checklist.md", "test-generation-rules.md", "automation-pipeline.yaml",
     "voice-and-tone.md", "brand-board.md", "content-constraints.md",
     "linking-policy.md", "server-manifest.yaml", "connector-map.yaml",
@@ -173,10 +173,10 @@ describe("marketing: cro-playbook warnings", () => {
 
 describe("seo: seo-rules framework-specific sections", () => {
   it("renders Next.js SEO section", () => {
-    const inp = input(snap(), [".ai/seo-rules.md"]);
+    const inp = input(snap(), ["seo-rules.md"]);
     addFw(inp, "Next.js");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/seo-rules.md");
+    const f = getFile(res, "seo-rules.md");
     expect(f!.content).toContain("Next.js");
     expect(f!.content).toContain("generateMetadata");
   });
@@ -235,30 +235,30 @@ describe("seo: meta-tag-audit with SvelteKit routes", () => {
 
 describe("debug: playbook with Express framework", () => {
   it("renders Express-specific debugging section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Express");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("Express");
   });
 });
 
 describe("debug: playbook with SvelteKit", () => {
   it("renders SvelteKit-specific debugging", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "SvelteKit");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("SvelteKit");
   });
 });
 
 describe("debug: playbook with Next.js", () => {
   it("renders Next.js-specific debugging", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Next.js");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("Next.js");
   });
 });
@@ -327,10 +327,10 @@ describe("frontend: frontend-rules source analysis", () => {
       content: 'export function Button() { return <button>Click</button>; }\n// l2\n// l3\n// l4\n// l5\n',
       size: 100,
     };
-    const inp = input(snap(), [".ai/frontend-rules.md"], [comp]);
+    const inp = input(snap(), ["frontend-rules.md"], [comp]);
     addFw(inp, "React");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/frontend-rules.md");
+    const f = getFile(res, "frontend-rules.md");
     expect(f!.content).toContain("Button");
   });
 });
@@ -353,10 +353,10 @@ describe("frontend: frontend-rules with Vue framework", () => {
       content: '<template><div>{{ msg }}</div></template>\n<script setup>\nconst msg = "hi";\n</script>\n',
       size: 80,
     };
-    const inp = input(snap(), [".ai/frontend-rules.md"], [comp]);
+    const inp = input(snap(), ["frontend-rules.md"], [comp]);
     addFw(inp, "Vue.js");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/frontend-rules.md");
+    const f = getFile(res, "frontend-rules.md");
     expect(f!.content).toContain("Vue");
   });
 });
@@ -423,12 +423,12 @@ describe("superpowers: automation-pipeline with CI and test tools", () => {
 /* ================================================================= */
 
 describe("artifacts: generated-component with many component files", () => {
-  it("renders component exemplar and reference", () => {
+  it("renders an App-shaped React component (sibling components no longer inlined)", () => {
     const comps: SourceFile[] = [];
     for (let i = 0; i < 5; i++) {
       comps.push({
         path: `src/components/Widget${i}.tsx`,
-        content: `export function Widget${i}() { return <div>W${i}</div>; }\nexport default Widget${i};\n// l3\n// l4\n// l5\n`,
+        content: `export function Widget${i}() { return <div>W${i}</div>; }\nexport default Widget${i};\n`,
         size: 100,
       });
     }
@@ -437,7 +437,11 @@ describe("artifacts: generated-component with many component files", () => {
     const res = generateFiles(inp);
     const f = getFile(res, "generated-component.tsx");
     expect(f).toBeDefined();
-    expect(f!.content).toContain("Widget");
+    // The new App-shaped output exports an `App` (or PascalCase project-named)
+    // component and renders Routes/Models/EntryPoints sections — it no longer
+    // dumps sibling components into trailing comments.
+    expect(f!.content).toMatch(/export default \w+/);
+    expect(f!.content).toContain("<Section ");
   });
 });
 
@@ -715,12 +719,12 @@ describe("optimization: optimization-rules with hotspot excerpts", () => {
       content: 'export function heavy() { /* complex */ }\n// l2\n// l3\n// l4\n// l5\n',
       size: 100,
     };
-    const inp = input(snap(), [".ai/optimization-rules.md"], [src]);
+    const inp = input(snap(), ["optimization-rules.md"], [src]);
     inp.context_map.dependency_graph.hotspots = [
       { path: "src/core.ts", inbound_count: 15, outbound_count: 8, risk_score: 9.0 },
     ];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/optimization-rules.md");
+    const f = getFile(res, "optimization-rules.md");
     expect(f!.content).toContain("core.ts");
   });
 });
@@ -824,9 +828,9 @@ describe("framework-detector: svelte.config.js detection", () => {
       { path: "src/routes/+page.svelte", content: "<h1>Hi</h1>", size: 15 },
       { path: "package.json", content: '{"dependencies":{"@sveltejs/kit":"^1"}}', size: 40 },
     ];
-    const inp = input(snap({ files }), [".ai/frontend-rules.md"]);
+    const inp = input(snap({ files }), ["frontend-rules.md"]);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/frontend-rules.md");
+    const f = getFile(res, "frontend-rules.md");
     expect(f).toBeDefined();
   });
 });

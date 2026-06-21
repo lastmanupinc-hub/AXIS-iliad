@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Required so the action can publish "Axis Compliance: <grade>"
+      # as a named Check Run on the head commit. Without this the
+      # action falls back to a warning and the gate still runs.
+      checks: write
 
     steps:
       - uses: actions/checkout@v5

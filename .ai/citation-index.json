@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-04-11T22:24:48.183Z",
+  "generated_at": "2026-05-23T03:31:46.785Z",
   "total_citations": 16,
   "by_type": {
     "documentation": 1,
@@ -102,6 +102,17 @@
       ]
     },
     {
+      "id": "dep-@axis/mpp",
+      "type": "library",
+      "title": "@axis/mpp @ workspace:*",
+      "source": "https://www.npmjs.com/package/@axis/mpp",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "@axis/mpp"
+      ]
+    },
+    {
       "id": "dep-@axis/repo-parser",
       "type": "library",
       "title": "@axis/repo-parser @ workspace:*",
@@ -121,6 +132,39 @@
       "tags": [
         "dependency",
         "@axis/snapshots"
+      ]
+    },
+    {
+      "id": "dep-@jmondi/oauth2-server",
+      "type": "library",
+      "title": "@jmondi/oauth2-server @ ^4.2.2",
+      "source": "https://www.npmjs.com/package/@jmondi/oauth2-server",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "@jmondi/oauth2-server"
+      ]
+    },
+    {
+      "id": "dep-jsonwebtoken",
+      "type": "library",
+      "title": "jsonwebtoken @ ^9.0.3",
+      "source": "https://www.npmjs.com/package/jsonwebtoken",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "jsonwebtoken"
+      ]
+    },
+    {
+      "id": "dep-mppx",
+      "type": "library",
+      "title": "mppx @ ^0.5.12",
+      "source": "https://www.npmjs.com/package/mppx",
+      "relevance": "reference",
+      "tags": [
+        "dependency",
+        "mppx"
       ]
     },
     {
@@ -144,67 +188,23 @@
         "dependency",
         "react"
       ]
-    },
-    {
-      "id": "dep-react-dom",
-      "type": "library",
-      "title": "react-dom @ ^19.1.0",
-      "source": "https://www.npmjs.com/package/react-dom",
-      "relevance": "reference",
-      "tags": [
-        "dependency",
-        "react-dom"
-      ]
-    },
-    {
-      "id": "dep-better-sqlite3",
-      "type": "library",
-      "title": "better-sqlite3 @ ^12.8.0",
-      "source": "https://www.npmjs.com/package/better-sqlite3",
-      "relevance": "reference",
-      "tags": [
-        "dependency",
-        "better-sqlite3"
-      ]
-    },
-    {
-      "id": "dep-uuid",
-      "type": "library",
-      "title": "uuid @ ^11.1.0",
-      "source": "https://www.npmjs.com/package/uuid",
-      "relevance": "reference",
-      "tags": [
-        "dependency",
-        "uuid"
-      ]
-    },
-    {
-      "id": "dep-@types/better-sqlite3",
-      "type": "library",
-      "title": "@types/better-sqlite3 @ ^7.6.13",
-      "source": "https://www.npmjs.com/package/@types/better-sqlite3",
-      "relevance": "reference",
-      "tags": [
-        "dependency",
-        "@types/better-sqlite3"
-      ]
     }
   ],
-  "source_file_count": 432,
+  "source_file_count": 500,
   "source_entry_points": [
     {
       "path": "apps/api/src/server.ts",
       "exports": [
         "export const app = ..."
       ],
-      "lines": 234
+      "lines": 458
     },
     {
       "path": "apps/web/src/App.tsx",
       "exports": [
         "export function App() { ... }"
       ],
-      "lines": 286
+      "lines": 490
     },
     {
       "path": "apps/web/src/main.tsx",
@@ -240,24 +240,30 @@
         "export { ... }",
         "export { ... }",
         "export { ... }",
+        "export { ... }",
+        "export { ... }",
+        "export type { ... }",
         "export { ... }"
       ],
-      "lines": 20
+      "lines": 40
     },
     {
-      "path": "packages/repo-parser/src/index.ts",
+      "path": "packages/mpp/src/index.ts",
       "exports": [
-        "export type { ... }",
-        "export { ... }",
-        "export { ... }",
-        "export { ... }",
-        "export { ... }",
-        "export { ... }",
-        "export type { ... }",
-        "export { ... }",
-        "export type { ... }"
+        "export type ChargeOptions = ...",
+        "export type MppResult = ...",
+        "export interface AgentBudget { ... }",
+        "export interface PricingTier { ... }",
+        "export interface Build402Options { ... }",
+        "export const PRICING_TIERS: Record<string, PricingTier> = ...",
+        "export const LEGACY_TOOL_ALIASES: Record<string, string> = ...",
+        "export function getPricingTier(tool: string): PricingTier { ... }",
+        "export function negotiatePrice(",
+        "export function build402NegotiationBody(",
+        "export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined { ... }",
+        "export function resolveAgentMode(req: IncomingMessage): \"standard\" | \"lite\" { ... }"
       ],
-      "lines": 10
+      "lines": 325
     }
   ]
 }

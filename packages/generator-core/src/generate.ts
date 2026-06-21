@@ -13,7 +13,7 @@ import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generat
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
 import { generateMcpConfig, generateMcpRegistryMetadata, generateProtocolSpec, generateSpecTypes, generateMcpReadme, generateProjectSetupGuide, generateBuildArtifactsGuide, generateRootPackageJsonTemplate, generatePackagePackageJsonTemplate, generateRootTsconfigTemplate, generatePackageTsconfigTemplate, generateMonorepoStructureGuide, generateCoreImplementationArtifactsGuide, generateTestingDocumentationPolishArtifactsGuide, generateConnectorMap, generateCapabilityRegistry, generateServerManifest, generateFintechMcpSurfacePackage, generateFintechDomainSchema } from "./generators-mcp.js";
-import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary } from "./generators-artifacts.js";
+import { generateComponent, generateDashboardWidget, generateEmbedSnippet, generateArtifactSpec, generateComponentLibrary, generatePrd, generateDesignDoc, generateTasksMd, generateContextMd, generateIndexHtml, generateCapabilityMap } from "./generators-artifacts.js";
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
@@ -36,29 +36,44 @@ import {
   generateDistributableGuide,
   generateMakefileWithShipTarget,
 } from "./generators-closer.js";
+import {
+  generateDeployDockerfile,
+  generateDeployDockerignore,
+  generateDeployComposeDev,
+  generateDeployRenderBlueprint,
+  generateDeployScriptBash,
+  generateDeployScriptPwsh,
+  generateDeployVSCodeLaunchTemplate,
+  generateDeployWranglerPages,
+  generateDeployWranglerContainers,
+  generateDeployContainersWorker,
+  generateDeployScriptCloudflareBash,
+  generateDeployScriptCloudflarePwsh,
+  generateDeployQualificationReport,
+} from "./generators-deploy.js";
 
 type GeneratorFn = (ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]) => GeneratedFile;
 
 const REGISTRY: Record<string, GeneratorFn> = {
-  ".ai/context-map.json": (ctx, _p, files) => generateContextMapJSON(ctx, files),
-  ".ai/repo-profile.yaml": (_ctx, profile, files) => generateRepoProfileYAML(profile, files),
+  "context-map.json": (ctx, _p, files) => generateContextMapJSON(ctx, files),
+  "repo-profile.yaml": (_ctx, profile, files) => generateRepoProfileYAML(profile, files),
   "architecture-summary.md": (ctx, _p, files) => generateArchitectureSummary(ctx, files),
   "AGENTS.md": (ctx, _p, files) => generateAgentsMD(ctx, files),
   "CLAUDE.md": (ctx, _p, files) => generateClaudeMD(ctx, files),
   ".cursorrules": (ctx, _p, files) => generateCursorRules(ctx, files),
-  ".ai/debug-playbook.md": (ctx, _p, files) => generateDebugPlaybook(ctx, files),
+  "debug-playbook.md": (ctx, _p, files) => generateDebugPlaybook(ctx, files),
   "incident-template.md": (ctx, _p, files) => generateIncidentTemplate(ctx, files),
   "tracing-rules.md": (ctx, _p, files) => generateTracingRules(ctx, files),
-  ".ai/frontend-rules.md": (ctx, _p, files) => generateFrontendRules(ctx, files),
+  "frontend-rules.md": (ctx, _p, files) => generateFrontendRules(ctx, files),
   "component-guidelines.md": (ctx, _p, files) => generateComponentGuidelines(ctx, files),
-  ".ai/seo-rules.md": (ctx, _p, files) => generateSeoRules(ctx, files),
+  "seo-rules.md": (ctx, _p, files) => generateSeoRules(ctx, files),
   "schema-recommendations.json": (ctx, _p, files) => generateSchemaRecommendations(ctx, files),
   "route-priority-map.md": (ctx, _p, files) => generateRoutePriorityMap(ctx, files),
   "content-audit.md": (ctx, _p, files) => generateContentAudit(ctx, files),
-  ".ai/optimization-rules.md": (ctx, _p, files) => generateOptimizationRules(ctx, files),
+  "optimization-rules.md": (ctx, _p, files) => generateOptimizationRules(ctx, files),
   "prompt-diff-report.md": (ctx, profile, files) => generatePromptDiffReport(ctx, profile, files),
   "cost-estimate.json": (ctx, profile, files) => generateCostEstimate(ctx, profile, files),
-  ".ai/design-tokens.json": (ctx, _p, files) => generateDesignTokens(ctx, files),
+  "design-tokens.json": (ctx, _p, files) => generateDesignTokens(ctx, files),
   "theme.css": (ctx, _p, files) => generateThemeCss(ctx, files),
   "theme-guidelines.md": (ctx, _p, files) => generateThemeGuidelines(ctx, files),
   "component-theme-map.json": (ctx, _p, files) => generateComponentThemeMap(ctx, files),
@@ -91,8 +106,8 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "mcp/build-artifacts.md": (ctx, _p, _files) => generateBuildArtifactsGuide(ctx),
   "mcp/package-json.root.template.json": (ctx, _p, _files) => generateRootPackageJsonTemplate(ctx),
   "mcp/package-json.package.template.json": (ctx, _p, _files) => generatePackagePackageJsonTemplate(ctx),
-  "mcp/tsconfig.root.template.json": (_ctx, _p, _files) => generateRootTsconfigTemplate(),
-  "mcp/tsconfig.package.template.json": (_ctx, _p, _files) => generatePackageTsconfigTemplate(),
+  "mcp/tsconfig.root.template.json": (ctx, _p, _files) => generateRootTsconfigTemplate(ctx),
+  "mcp/tsconfig.package.template.json": (ctx, _p, _files) => generatePackageTsconfigTemplate(ctx),
   "mcp/monorepo-structure.md": (ctx, _p, _files) => generateMonorepoStructureGuide(ctx),
   "mcp/core-implementation-artifacts.md": (ctx, _p, _files) => generateCoreImplementationArtifactsGuide(ctx),
   "mcp/testing-documentation-polish-artifacts.md": (ctx, _p, _files) => generateTestingDocumentationPolishArtifactsGuide(ctx),
@@ -104,6 +119,12 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "dashboard-widget.tsx": (ctx, _p, files) => generateDashboardWidget(ctx, files),
   "embed-snippet.ts": (ctx, _p, files) => generateEmbedSnippet(ctx, files),
   "artifact-spec.md": (ctx, profile, files) => generateArtifactSpec(ctx, profile, files),
+  "prd.md": (ctx, profile, files) => generatePrd(ctx, profile, files),
+  "design.md": (ctx, profile, files) => generateDesignDoc(ctx, profile, files),
+  "tasks.md": (ctx, profile, files) => generateTasksMd(ctx, profile, files),
+  "context.md": (ctx, profile, files) => generateContextMd(ctx, profile, files),
+  "index.html": (ctx, profile, files) => generateIndexHtml(ctx, profile, files),
+  "capability-map.yaml": (ctx, profile, files) => generateCapabilityMap(ctx, profile, files),
   "remotion-script.ts": (ctx, _p, files) => generateRemotionScript(ctx, files),
   "scene-plan.md": (ctx, _p, files) => generateScenePlan(ctx, files),
   "render-config.json": (ctx, profile, files) => generateRenderConfig(ctx, profile, files),
@@ -118,7 +139,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "export-manifest.yaml": (ctx, profile, files) => generateExportManifest(ctx, profile, files),
   // ─── depth generators ───────────────────────────────────────
   "dependency-hotspots.md": (ctx, _p, files) => generateDependencyHotspots(ctx, files),
-  ".ai/symbol-index.json": (_ctx, _p, files) => generateSymbolIndex(files),
+  "symbol-index.json": (ctx, _p, files) => generateSymbolIndex(files, ctx.generated_at),
   "repo-run-stats.json": (ctx, _p, files) => generateRepoRunStats(ctx, _p, files),
   "root-cause-checklist.md": (ctx, _p, files) => generateRootCauseChecklist(ctx, files),
   "workflow-pack.md": (ctx, _p, files) => generateWorkflowPack(ctx, files),
@@ -147,9 +168,9 @@ const REGISTRY: Record<string, GeneratorFn> = {
   // ─── closer generators ─────────────────────────────────────
   "packaging/README.md": (ctx, profile, files) => generatePackagingReadme(ctx, profile, files),
   "packaging/LICENSE": (ctx, profile, files) => generatePackagingLicense(ctx, profile, files),
-  "Dockerfile": (ctx, profile, _files) => generateCloserDockerfile(ctx, profile),
-  "docker-compose.yml": (ctx, _profile, _files) => generateCloserDockerCompose(ctx),
-  ".github/workflows/ci.yml": (_ctx, _profile, _files) => generateCloserCiWorkflow(),
+  "Dockerfile": (ctx, profile, files) => generateCloserDockerfile(ctx, profile, files),
+  "docker-compose.yml": (ctx, profile, files) => generateCloserDockerCompose(ctx, profile, files),
+  ".github/workflows/ci.yml": (ctx, profile, files) => generateCloserCiWorkflow(ctx, profile, files),
   ".github/workflows/release.yml": (ctx, profile, files) => generateCloserReleaseWorkflow(ctx, profile, files),
   "packaging/manifests/npm-package.json": (ctx, profile, files) => generateCloserManifestNpm(ctx, profile, files),
   "packaging/manifests/unreal.uplugin": (ctx, profile, files) => generateCloserManifestUnreal(ctx, profile, files),
@@ -161,19 +182,36 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "packaging-report.md": (ctx, profile, files) => generateCloserPackagingReport(ctx, profile, files),
   "DISTRIBUTABLE.md": (ctx, profile, files) => generateDistributableGuide(ctx, profile, files),
   "Makefile": (ctx, profile, files) => generateMakefileWithShipTarget(ctx, profile, files),
+  // ─── deploy generators (zero-pipeline-minutes Render existing-image flow) ──
+  "deploy/Dockerfile": (ctx, profile, files) => generateDeployDockerfile(ctx, profile, files),
+  "deploy/.dockerignore": (ctx, profile, files) => generateDeployDockerignore(ctx, profile, files),
+  "deploy/docker-compose.dev.yml": (ctx, profile, files) => generateDeployComposeDev(ctx, profile, files),
+  "deploy/render.yaml": (ctx, profile, files) => generateDeployRenderBlueprint(ctx, profile, files),
+  "deploy/deploy.sh": (ctx, profile, files) => generateDeployScriptBash(ctx, profile, files),
+  "deploy/deploy.ps1": (ctx, profile, files) => generateDeployScriptPwsh(ctx, profile, files),
+  "deploy/vscode-launch.json.template": (ctx, profile, files) => generateDeployVSCodeLaunchTemplate(ctx, profile, files),
+  "deploy/wrangler.pages.toml": (ctx, profile, files) => generateDeployWranglerPages(ctx, profile, files),
+  "deploy/wrangler.containers.toml": (ctx, profile, files) => generateDeployWranglerContainers(ctx, profile, files),
+  "deploy/worker.ts": (ctx, profile, files) => generateDeployContainersWorker(ctx, profile, files),
+  "deploy/deploy-cloudflare.sh": (ctx, profile, files) => generateDeployScriptCloudflareBash(ctx, profile, files),
+  "deploy/deploy-cloudflare.ps1": (ctx, profile, files) => generateDeployScriptCloudflarePwsh(ctx, profile, files),
+  "deploy/deploy-qualification-report.md": (ctx, profile, files) => generateDeployQualificationReport(ctx, profile, files),
 };
 
-// Aliases (user may request with different naming)
+// Aliases (user may request with legacy `.ai/` prefix or other naming).
+// Canonical paths are bare basenames — the writer/exporter prepends the
+// output directory. Legacy `.ai/foo` requests resolve to the bare name.
 const ALIASES: Record<string, string> = {
   "CURSOR.md": ".cursorrules",
-  "context-map.json": ".ai/context-map.json",
-  "repo-profile.yaml": ".ai/repo-profile.yaml",
-  ".ai/project-profile.yaml": ".ai/repo-profile.yaml",
-  "debug-playbook.md": ".ai/debug-playbook.md",
-  "frontend-rules.md": ".ai/frontend-rules.md",
-  "seo-rules.md": ".ai/seo-rules.md",
-  "optimization-rules.md": ".ai/optimization-rules.md",
-  "design-tokens.json": ".ai/design-tokens.json",
+  ".ai/context-map.json": "context-map.json",
+  ".ai/repo-profile.yaml": "repo-profile.yaml",
+  ".ai/project-profile.yaml": "repo-profile.yaml",
+  ".ai/debug-playbook.md": "debug-playbook.md",
+  ".ai/frontend-rules.md": "frontend-rules.md",
+  ".ai/seo-rules.md": "seo-rules.md",
+  ".ai/optimization-rules.md": "optimization-rules.md",
+  ".ai/design-tokens.json": "design-tokens.json",
+  ".ai/symbol-index.json": "symbol-index.json",
 };
 
 /** Validate a GeneratedFile has all required non-empty string fields. Returns error message or null. */
@@ -195,8 +233,8 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
 
   // Always include the core search outputs
   const outputSet = new Set(requested_outputs);
-  outputSet.add(".ai/context-map.json");
-  outputSet.add(".ai/repo-profile.yaml");
+  outputSet.add("context-map.json");
+  outputSet.add("repo-profile.yaml");
   outputSet.add("architecture-summary.md");
 
   for (const requested of outputSet) {
@@ -234,7 +272,8 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
   return {
     snapshot_id: context_map.snapshot_id,
     project_id: context_map.project_id,
-    generated_at: new Date().toISOString(),
+    // Snapshot-derived timestamp — same input must produce byte-identical output.
+    generated_at: context_map.generated_at,
     files: deduped,
     skipped,
   };
@@ -242,35 +281,35 @@ export function generateFiles(input: GeneratorInput): GeneratorResult {
 
 // ─── Program classification for each generator output ─────────
 const GENERATOR_PROGRAMS: Record<string, string> = {
-  ".ai/context-map.json": "search",
-  ".ai/repo-profile.yaml": "search",
+  "context-map.json": "search",
+  "repo-profile.yaml": "search",
   "architecture-summary.md": "search",
   "dependency-hotspots.md": "search",
-  ".ai/symbol-index.json": "search",
+  "symbol-index.json": "search",
   "repo-run-stats.json": "search",
   "AGENTS.md": "skills",
   "CLAUDE.md": "skills",
   ".cursorrules": "skills",
   "workflow-pack.md": "skills",
   "policy-pack.md": "skills",
-  ".ai/debug-playbook.md": "debug",
+  "debug-playbook.md": "debug",
   "incident-template.md": "debug",
   "tracing-rules.md": "debug",
   "root-cause-checklist.md": "debug",
-  ".ai/frontend-rules.md": "frontend",
+  "frontend-rules.md": "frontend",
   "component-guidelines.md": "frontend",
   "layout-patterns.md": "frontend",
   "ui-audit.md": "frontend",
-  ".ai/seo-rules.md": "seo",
+  "seo-rules.md": "seo",
   "schema-recommendations.json": "seo",
   "route-priority-map.md": "seo",
   "content-audit.md": "seo",
   "meta-tag-audit.json": "seo",
-  ".ai/optimization-rules.md": "optimization",
+  "optimization-rules.md": "optimization",
   "prompt-diff-report.md": "optimization",
   "cost-estimate.json": "optimization",
   "token-budget-plan.md": "optimization",
-  ".ai/design-tokens.json": "theme",
+  "design-tokens.json": "theme",
   "theme.css": "theme",
   "theme-guidelines.md": "theme",
   "component-theme-map.json": "theme",
@@ -324,6 +363,12 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "embed-snippet.ts": "artifacts",
   "artifact-spec.md": "artifacts",
   "component-library.json": "artifacts",
+  "prd.md": "artifacts",
+  "design.md": "artifacts",
+  "tasks.md": "artifacts",
+  "context.md": "artifacts",
+  "index.html": "artifacts",
+  "capability-map.yaml": "artifacts",
   "remotion-script.ts": "remotion",
   "scene-plan.md": "remotion",
   "render-config.json": "remotion",
@@ -360,6 +405,19 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "packaging-report.md": "closer",
   "DISTRIBUTABLE.md": "closer",
   "Makefile": "closer",
+  "deploy/Dockerfile": "deploy",
+  "deploy/.dockerignore": "deploy",
+  "deploy/docker-compose.dev.yml": "deploy",
+  "deploy/render.yaml": "deploy",
+  "deploy/deploy.sh": "deploy",
+  "deploy/deploy.ps1": "deploy",
+  "deploy/vscode-launch.json.template": "deploy",
+  "deploy/wrangler.pages.toml": "deploy",
+  "deploy/wrangler.containers.toml": "deploy",
+  "deploy/worker.ts": "deploy",
+  "deploy/deploy-cloudflare.sh": "deploy",
+  "deploy/deploy-cloudflare.ps1": "deploy",
+  "deploy/deploy-qualification-report.md": "deploy",
 };
 
 export function listAvailableGenerators(): Array<{ path: string; program: string }> {
@@ -370,3 +428,9 @@ export function listAvailableGenerators(): Array<{ path: string; program: string
     /* v8 ignore stop */
   }));
 }
+
+/** Canonical artifact count — derived from REGISTRY so it cannot drift. */
+export const TOTAL_GENERATORS = Object.keys(REGISTRY).length;
+
+/** Canonical program count — derived from GENERATOR_PROGRAMS so it cannot drift. */
+export const TOTAL_PROGRAMS = new Set(Object.values(GENERATOR_PROGRAMS)).size;

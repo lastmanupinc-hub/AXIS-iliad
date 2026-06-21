@@ -1,10 +1,10 @@
 # Layout Patterns — axis-iliad
 
-Generated: 2026-04-11T22:24:48.025Z
+Generated: 2026-05-23T03:31:46.683Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 432 files across 20 top-level directories. It defines 131 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
 
 ## Detected Stack
 
@@ -56,12 +56,12 @@ src/
 | GET /v1/admin/stats | DashboardLayout |
 | GET /v1/admin/accounts | DashboardLayout |
 | GET /v1/admin/activity | DashboardLayout |
-| POST /v1/snapshots | DashboardLayout |
-| GET /v1/snapshots/:snapshot_id | DashboardLayout |
-| DELETE /v1/snapshots/:snapshot_id | DashboardLayout |
-| GET /v1/projects/:project_id/context | DashboardLayout |
-| GET /v1/projects/:project_id/generated-files | DashboardLayout |
-| GET /v1/projects/:project_id/generated-files/:file_path | DashboardLayout |
+| GET /llms.txt | DashboardLayout |
+| GET /.well-known/skills/index.json | DashboardLayout |
+| GET /v1/docs.md | DashboardLayout |
+| GET /.well-known/axis.json | DashboardLayout |
+| GET /for-agents | DashboardLayout |
+| GET /v1/install | DashboardLayout |
 
 ## Grid System
 
@@ -81,5 +81,4 @@ src/
 
 | File | Exports |
 |------|---------|
-| `payment-processing-output/layout-patterns.md` | default |
-| `payment-processing-output/poster-layouts.md` | default |
+| `layout-patterns.md` | default |

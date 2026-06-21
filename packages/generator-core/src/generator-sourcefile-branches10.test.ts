@@ -82,9 +82,9 @@ describe("generators with inert source files (no entry points, no pattern matche
   });
 
   it("covers empty-result inner branches for theme generators", () => {
-    const inp = input(snap(), [".ai/design-tokens.json", "theme.css", "theme-guidelines.md"], [INERT]);
+    const inp = input(snap(), ["design-tokens.json", "theme.css", "theme-guidelines.md"], [INERT]);
     const res = generateFiles(inp);
-    expect(getFile(res, ".ai/design-tokens.json")).toBeDefined();
+    expect(getFile(res, "design-tokens.json")).toBeDefined();
     expect(getFile(res, "theme.css")).toBeDefined();
     expect(getFile(res, "theme-guidelines.md")).toBeDefined();
   });
@@ -121,9 +121,9 @@ describe("generators with inert source files (no entry points, no pattern matche
   });
 
   it("covers empty-result inner branches for optimization generators", () => {
-    const inp = input(snap(), [".ai/optimization-rules.md", "prompt-diff-report.md"], [INERT]);
+    const inp = input(snap(), ["optimization-rules.md", "prompt-diff-report.md"], [INERT]);
     const res = generateFiles(inp);
-    expect(getFile(res, ".ai/optimization-rules.md")).toBeDefined();
+    expect(getFile(res, "optimization-rules.md")).toBeDefined();
     expect(getFile(res, "prompt-diff-report.md")).toBeDefined();
   });
 
@@ -160,9 +160,9 @@ describe("generators with inert source files (no entry points, no pattern matche
   });
 
   it("covers empty-result inner branches for frontend generators", () => {
-    const inp = input(snap(), [".ai/frontend-rules.md", "layout-patterns.md", "component-guidelines.md"], [INERT]);
+    const inp = input(snap(), ["frontend-rules.md", "layout-patterns.md", "component-guidelines.md"], [INERT]);
     const res = generateFiles(inp);
-    expect(getFile(res, ".ai/frontend-rules.md")).toBeDefined();
+    expect(getFile(res, "frontend-rules.md")).toBeDefined();
     expect(getFile(res, "layout-patterns.md")).toBeDefined();
   });
 
@@ -186,61 +186,61 @@ describe("generators with inert source files (no entry points, no pattern matche
 
 describe("debug: Go package manager path", () => {
   it("renders Go build/test commands when PM is go", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.detection.package_managers = ["go"];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("go");
   });
 });
 
 describe("debug: Next.js framework path", () => {
   it("renders Next.js debug section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Next.js");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("next");
   });
 });
 
 describe("debug: SvelteKit framework path", () => {
   it("renders SvelteKit debug section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "SvelteKit");
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("svelte");
   });
 });
 
 describe("debug: Echo and Chi Go framework paths", () => {
   it("renders Echo debug section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Echo");
     inp.context_map.detection.package_managers = ["go"];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("echo");
   });
 
   it("renders Chi debug section", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Chi");
     inp.context_map.detection.package_managers = ["go"];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("chi");
   });
 });
 
 describe("debug: Prisma with empty SQL schema", () => {
   it("skips SQL table listing when schema is empty", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Prisma");
     inp.context_map.sql_schema = [];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("prisma");
     expect(f!.content).not.toContain("Tables in schema");
   });
@@ -248,21 +248,21 @@ describe("debug: Prisma with empty SQL schema", () => {
 
 describe("debug: no trace entry points with source files", () => {
   it("skips trace section when no entry points among source files", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"], [INERT]);
+    const inp = input(snap(), ["debug-playbook.md"], [INERT]);
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f).toBeDefined();
   });
 });
 
 describe("debug: hotspot paths not matching source files", () => {
   it("skips suspect file section when hotspot paths miss source files", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"], [INERT]);
+    const inp = input(snap(), ["debug-playbook.md"], [INERT]);
     inp.context_map.dependency_graph.hotspots = [
       { path: "pkg/nonexistent/service.go", inbound_count: 10, outbound_count: 5, risk_score: 8.0 },
     ];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f).toBeDefined();
   });
 });
@@ -487,14 +487,14 @@ describe("seo: meta-tag-audit title generation", () => {
 
 describe("debug: pnpm package manager with Prisma", () => {
   it("uses 'pnpm exec' prefix for Prisma migrate", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     addFw(inp, "Prisma");
     inp.context_map.detection.package_managers = ["pnpm"];
     inp.context_map.sql_schema = [
       { name: "users", column_count: 5, foreign_key_count: 0, index_count: 1 },
     ];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("pnpm exec");
     expect(f!.content).toContain("prisma");
   });
@@ -506,7 +506,7 @@ describe("debug: pnpm package manager with Prisma", () => {
 
 describe("debug: lowercase framework name fallback paths", () => {
   it("resolves 'next' via getFw fallback", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.detection.frameworks.push({
       name: "next",
       confidence: 0.9,
@@ -514,12 +514,12 @@ describe("debug: lowercase framework name fallback paths", () => {
       evidence: ["test"],
     });
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("Next.js");
   });
 
   it("resolves 'sveltekit' via getFw fallback", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.detection.frameworks.push({
       name: "sveltekit",
       confidence: 0.9,
@@ -527,12 +527,12 @@ describe("debug: lowercase framework name fallback paths", () => {
       evidence: ["test"],
     });
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("sveltekit");
   });
 
   it("resolves 'echo' via getFw fallback", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.detection.frameworks.push({
       name: "echo",
       confidence: 0.9,
@@ -541,7 +541,7 @@ describe("debug: lowercase framework name fallback paths", () => {
     });
     inp.context_map.detection.package_managers = ["go"];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content.toLowerCase()).toContain("echo");
   });
 });
@@ -552,13 +552,13 @@ describe("debug: lowercase framework name fallback paths", () => {
 
 describe("debug: production dependency without version", () => {
   it("renders dependency without @ version suffix", () => {
-    const inp = input(snap(), [".ai/debug-playbook.md"]);
+    const inp = input(snap(), ["debug-playbook.md"]);
     inp.context_map.dependency_graph.external_dependencies = [
       { name: "express", version: null, type: "production" },
       { name: "lodash", version: "4.17.21", type: "production" },
     ];
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/debug-playbook.md");
+    const f = getFile(res, "debug-playbook.md");
     expect(f!.content).toContain("`express`");
     expect(f!.content).not.toContain("express` @");
     expect(f!.content).toContain("@ 4.17.21");
@@ -627,11 +627,11 @@ describe("seo: route-priority-map with no-export route files", () => {
 
 describe("search: repo-profile YAML with null fields", () => {
   it("serializes profile that includes null values", () => {
-    const inp = input(snap(), [".ai/repo-profile.yaml"]);
+    const inp = input(snap(), ["repo-profile.yaml"]);
     // Force a null field in the profile
     (inp.repo_profile as Record<string, unknown>).custom_field = null;
     const res = generateFiles(inp);
-    const f = getFile(res, ".ai/repo-profile.yaml");
+    const f = getFile(res, "repo-profile.yaml");
     expect(f!.content).toContain("null");
   });
 });

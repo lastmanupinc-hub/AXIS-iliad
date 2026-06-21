@@ -203,8 +203,8 @@ describe("API integration", () => {
     const files = data.files as Array<{ path: string }>;
     expect(files.length).toBeGreaterThanOrEqual(3);
     const paths = files.map(f => f.path);
-    expect(paths).toContain(".ai/context-map.json");
-    expect(paths).toContain(".ai/repo-profile.yaml");
+    expect(paths).toContain("context-map.json");
+    expect(paths).toContain("repo-profile.yaml");
     expect(paths).toContain("architecture-summary.md");
   });
 

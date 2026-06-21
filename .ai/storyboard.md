@@ -1,6 +1,6 @@
 # Storyboard — axis-iliad
 
-Generated: 2026-04-11T22:24:48.235Z
+Generated: 2026-05-23T03:31:46.815Z
 
 Frame-by-frame storyboard for a 60-second project showcase video.
 
@@ -9,8 +9,8 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 ```
 ┌────────────────────────────────────┐
 │                                    │
-│              AXIS-ILIAD                  │
-│                                                                                                           AI-native development operatin     │
+│               AXIS-ILIAD                   │
+│                monorepo                │
 │                                    │
 └────────────────────────────────────┘
 ```
@@ -28,8 +28,8 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 │  └──────┘ └──────┘ └──────┘       │
 │                                    │
 │  Languages:                        │
-│    TypeScript   ██████████████ 71%     │
-│    YAML         ███ 16%     │
+│    TypeScript   ███████████████ 77%     │
+│    YAML         ██ 8%     │
 │    JSON         █ 7%     │
 └────────────────────────────────────┘
 ```
@@ -57,7 +57,7 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 
 - **Animation**: Layers build from bottom up, connections animate between them
 - **Narration**: "A clean [separation_score]-point architecture with clear boundaries"
-- **Labels**: packages/ (monorepo_packages), apps/ (monorepo_apps), payment-processing-output/ (project_directory), search/ (project_directory)
+- **Labels**: apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory), mcp/ (project_directory)
 
 ## Scene 4: Code Health (0:30–0:45)
 
@@ -67,9 +67,9 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 │  ━━━━━━━━━━━━━━━━━━━ 85/100       │
 │                                    │
 │  Hotspots:                         │
-│  🟢 apps/web/src/api.ts       1/10  │
 │  🟢 apps/web/src/App.tsx      1/10  │
-│  🟢 c/pages/DashboardPage.tsx 1/10  │
+│  🟢 apps/web/src/api.ts       1/10  │
+│  🟢 ps/web/src/pages.test.tsx 1/10  │
 └────────────────────────────────────┘
 ```
 
@@ -81,7 +81,7 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 ```
 ┌────────────────────────────────────┐
 │                                    │
-│              AXIS-ILIAD                  │
+│               AXIS-ILIAD                   │
 │                                    │
 │     Analyzed by Axis' Iliad       │
 │                                    │
