@@ -2,11 +2,12 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router, sendJSON, sendError } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck, handleCreateSnapshot } from "./handlers.js";
 import { resetRateLimits, LIMITS } from "./rate-limiter.js";
 
-const TEST_PORT = 44401;
 let server: Server;
+let testPort = 0;
 
 async function req(
   method: string,
@@ -18,7 +19,7 @@ async function req(
     const payload = body ? JSON.stringify(body) : undefined;
     const reqHeaders: Record<string, string> = { "Content-Type": "application/json", ...headers };
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers: reqHeaders },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers: reqHeaders },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -45,9 +46,9 @@ beforeAll(async () => {
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
   router.post("/v1/snapshots", handleCreateSnapshot);
-  const { createApp } = await import("./router.js");
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

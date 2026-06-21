@@ -1,4 +1,6 @@
 import { randomUUID, createHmac } from "node:crypto";
+import * as https from "node:https";
+import * as http from "node:http";
 import { getDb } from "./db.js";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -283,7 +285,7 @@ export function processRetryQueue(
       // Production path: fire-and-forget HTTP POST
       try {
         const url = new URL(wh.url);
-        const mod = url.protocol === "https:" ? require("node:https") : require("node:http");
+        const mod = url.protocol === "https:" ? https : http;
         const req = mod.request(
           {
             hostname: url.hostname,

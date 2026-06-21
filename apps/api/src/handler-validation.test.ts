@@ -2,11 +2,12 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, makeProgramHandler, PROGRAM_OUTPUTS } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44418;
 let server: Server;
+let testPort = 0;
 
 // ─── HTTP helper ────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ async function req(
   return new Promise((resolve, reject) => {
     const payload = body !== undefined ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers: { "Content-Type": "application/json", ...headers } },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers: { "Content-Type": "application/json", ...headers } },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -52,9 +53,9 @@ beforeAll(async () => {
   router.post("/v1/snapshots", handleCreateSnapshot);
   router.post("/v1/debug/analyze", makeProgramHandler("debug", PROGRAM_OUTPUTS.debug));
 
-  const { createApp } = await import("./router.js");
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

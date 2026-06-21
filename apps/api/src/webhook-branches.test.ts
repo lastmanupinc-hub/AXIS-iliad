@@ -19,7 +19,8 @@ import {
   getActiveWebhooksForEvent,
   type WebhookEventType,
 } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import {
   handleCreateWebhook,
   handleListWebhooks,
@@ -29,10 +30,10 @@ import {
 } from "./webhooks.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const API_PORT = 44475;
 const RECEIVER_PORT = 44476;
 
 let apiServer: Server;
+let apiPort = 0;
 let receiverServer: Server;
 
 // Track what the webhook receiver gets
@@ -64,7 +65,7 @@ async function req(
     const r = http.request(
       {
         hostname: "127.0.0.1",
-        port: API_PORT,
+        port: apiPort,
         path,
         method,
         headers: { "Content-Type": "application/json", ...headers },
@@ -130,8 +131,9 @@ beforeAll(async () => {
   router.delete("/v1/account/webhooks/:webhook_id", handleDeleteWebhook);
   router.post("/v1/account/webhooks/:webhook_id/toggle", handleToggleWebhook);
   router.get("/v1/account/webhooks/:webhook_id/deliveries", handleWebhookDeliveries);
-  apiServer = createApp(router, API_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  const ts = await startTestServer(router);
+  apiServer = ts.server;
+  apiPort = ts.port;
 });
 
 afterEach(() => {
@@ -333,7 +335,7 @@ describe("webhooks.ts create handler remaining branches", () => {
   it("rejects invalid JSON body", async () => {
     const r: Res = await new Promise((resolve, reject) => {
       const rr = http.request(
-        { hostname: "127.0.0.1", port: API_PORT, path: "/v1/account/webhooks", method: "POST",
+        { hostname: "127.0.0.1", port: apiPort, path: "/v1/account/webhooks", method: "POST",
           headers: { "Content-Type": "application/json", ...acctA.headers } },
         (resp) => {
           const chunks: Buffer[] = [];
@@ -388,7 +390,7 @@ describe("webhooks.ts toggle handler remaining branches", () => {
 
     const r: Res = await new Promise((resolve, reject) => {
       const rr = http.request(
-        { hostname: "127.0.0.1", port: API_PORT, path: `/v1/account/webhooks/${whId}/toggle`, method: "POST",
+        { hostname: "127.0.0.1", port: apiPort, path: `/v1/account/webhooks/${whId}/toggle`, method: "POST",
           headers: { "Content-Type": "application/json", ...acctA.headers } },
         (resp) => {
           const chunks: Buffer[] = [];

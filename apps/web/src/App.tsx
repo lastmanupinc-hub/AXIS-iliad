@@ -20,7 +20,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
+import { getAdminStats, type SnapshotResponse } from "./api.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
 // React requires a class for getDerivedStateFromError; this thin wrapper
@@ -266,13 +266,8 @@ export function App() {
         await getAdminStats();
         if (!cancelled) setPrivateAccess(true);
       } catch (err) {
-        if (!cancelled) {
-          if (err instanceof ApiError && err.status === 403) {
-            setPrivateAccess(false);
-          } else {
-            setPrivateAccess(false);
-          }
-        }
+        // Any failure (403 forbidden, network error, etc.) means no admin access.
+        if (!cancelled) setPrivateAccess(false);
       }
     }
 

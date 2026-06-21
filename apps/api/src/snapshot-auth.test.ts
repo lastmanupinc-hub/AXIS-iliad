@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb, getDb, recordUsage } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, handleGetSnapshot } from "./handlers.js";
 import { handleCreateAccount, handleUpdateTier } from "./billing.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44419;
 let server: Server;
+let testPort = 0;
 
 // ─── HTTP helper ────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ async function req(
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -57,8 +58,9 @@ beforeAll(async () => {
   router.post("/v1/accounts", handleCreateAccount);
   router.post("/v1/account/tier", handleUpdateTier);
 
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

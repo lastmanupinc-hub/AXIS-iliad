@@ -285,13 +285,6 @@ export function createApp(router: Router, port: number): Server {
       }
     }
 
-    /* v8 ignore next 4 — OPTIONS preflight tested in router.test.ts but V8 doesn't credit */
-    if (req.method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
     // MCP endpoint only accepts GET and POST — reject other methods cleanly
     if (req.url?.startsWith("/mcp") && req.method !== "GET" && req.method !== "POST") {
       res.writeHead(405, { "Allow": "GET, POST" });

@@ -17,7 +17,8 @@ import {
   indexSnapshotContent,
   trackEvent,
 } from "@axis/snapshots";
-import { Router, createApp, sendJSON } from "./router.js";
+import { Router, sendJSON } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -48,8 +49,8 @@ import { buildOpenApiSpec } from "./openapi.js";
 import { listAvailableGenerators } from "@axis/generator-core";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44470;
 let server: Server;
+let testPort = 0;
 
 // ─── HTTP helper ────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ async function req(
     const r = require("node:http").request(
       {
         hostname: "127.0.0.1",
-        port: TEST_PORT,
+        port: testPort,
         path,
         method,
         headers: { "Content-Type": "application/json", ...headers },
@@ -219,8 +220,9 @@ beforeAll(async () => {
   router.post("/v1/account/upgrade-prompt/dismiss", handleDismissUpgradePrompt);
   router.get("/v1/account/funnel", handleGetFunnelStatus);
 
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

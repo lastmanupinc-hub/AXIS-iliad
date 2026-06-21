@@ -13,18 +13,19 @@ import {
   getSearchIndexStats,
   getDb,
 } from "@axis/snapshots";
-import { Router, createApp, sendJSON } from "./router.js";
+import { Router, sendJSON } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleGetSnapshot, handleDeleteSnapshot, handleDeleteProject } from "./handlers.js";
 
-const TEST_PORT = 44427;
 let server: Server;
+let testPort = 0;
 
 interface Res { status: number; headers: Record<string, string>; body: string }
 
 function rawReq(method: string, path: string): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -49,8 +50,9 @@ beforeAll(async () => {
   router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
   router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);
   router.delete("/v1/projects/:project_id", handleDeleteProject);
-  server = createApp(router, TEST_PORT);
-  await new Promise((r) => setTimeout(r, 200));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

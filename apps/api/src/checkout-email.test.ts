@@ -9,15 +9,16 @@ import {
   setEmailProvider,
   type EmailMessage,
 } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
 import { handleInviteSeat, handleListSeats, handleGetPlans } from "./funnel.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { resetRateLimits } from "./rate-limiter.js";
 import { createHmac } from "node:crypto";
 
-const TEST_PORT = 44501;
 let server: Server;
+let testPort = 0;
 const WEBHOOK_SECRET = "test_webhook_secret_eq169";
 
 interface Res { status: number; headers: Record<string, string>; data: Record<string, unknown> }
@@ -32,7 +33,7 @@ async function req(
     const payload = body ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined;
     const hdrs: Record<string, string> = { "Content-Type": "application/json", ...headers };
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers: hdrs },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers: hdrs },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -85,11 +86,9 @@ beforeAll(async () => {
   router.get("/v1/account/subscription", handleGetSubscription);
   router.post("/v1/account/subscription/cancel", handleCancelSubscription);
 
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => {
-    if (server.listening) resolve();
-    else server.once("listening", resolve);
-  });
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(() => {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { openMemoryDb, closeDb } from "@axis/snapshots";
 import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import {
   handleCreateSnapshot,
   handleSkillsGenerate,
@@ -16,8 +17,8 @@ import {
 } from "./billing.js";
 import { handleInviteSeat } from "./funnel.js";
 
-const TEST_PORT = 44411;
 let server: Server;
+let testPort = 0;
 
 async function req(
   method: string,
@@ -30,7 +31,7 @@ async function req(
     const r = require("node:http").request(
       {
         hostname: "127.0.0.1",
-        port: TEST_PORT,
+        port: testPort,
         path,
         method,
         headers: { "Content-Type": "application/json", ...headers },
@@ -64,9 +65,9 @@ beforeAll(async () => {
   router.post("/v1/account/programs", handleUpdatePrograms);
   router.post("/v1/account/seats", handleInviteSeat);
 
-  const { createApp } = await import("./router.js");
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

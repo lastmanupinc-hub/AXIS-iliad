@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb, recordMcpUsage } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage } from "./admin.js";
 import { handleCreateSnapshot, handleHealthCheck } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44429;
 let server: Server;
+let testPort = 0;
 
 interface Res { status: number; headers: Record<string, string>; data: Record<string, unknown> }
 
@@ -23,7 +24,7 @@ async function req(
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -59,8 +60,9 @@ beforeAll(async () => {
   router.get("/v1/admin/accounts", handleAdminAccounts);
   router.get("/v1/admin/activity", handleAdminActivity);
   router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 
   // Create an admin account
   const acct = await req("POST", "/v1/accounts", { name: "Admin Tester", email: "admin@test.com" });

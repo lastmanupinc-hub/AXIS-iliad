@@ -18,7 +18,8 @@ import {
   saveGeneratorResult,
   recordUsage,
 } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -34,8 +35,8 @@ import {
 } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44480;
 let server: Server;
+let testPort = 0;
 
 // ─── Mock fetchGitHubRepo ──────────────────────────────────────
 
@@ -73,7 +74,7 @@ async function req(
     const r = require("node:http").request(
       {
         hostname: "127.0.0.1",
-        port: TEST_PORT,
+        port: testPort,
         path,
         method,
         headers: { "Content-Type": "application/json", ...headers },
@@ -169,8 +170,9 @@ beforeAll(async () => {
   router.post("/v1/github/analyze", handleGitHubAnalyze);
   router.post("/v1/debug/analyze", makeProgramHandler("debug", PROGRAM_OUTPUTS.debug));
 
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {

@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { openMemoryDb, closeDb, createWebhook, listWebhooks, getWebhook, deleteWebhook, updateWebhookActive, getActiveWebhooksForEvent, recordDelivery, getDeliveries, signPayload, dispatchWebhookEvent } from "@axis/snapshots";
-import { Router, createApp } from "./router.js";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleHealthCheck } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44430;
 let server: Server;
+let testPort = 0;
 
 interface Res { status: number; headers: Record<string, string>; data: Record<string, unknown> }
 
@@ -23,7 +24,7 @@ async function req(
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (authKey) headers["Authorization"] = `Bearer ${authKey}`;
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method, headers },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -59,8 +60,9 @@ beforeAll(async () => {
   router.delete("/v1/account/webhooks/:webhook_id", handleDeleteWebhook);
   router.post("/v1/account/webhooks/:webhook_id/toggle", handleToggleWebhook);
   router.get("/v1/account/webhooks/:webhook_id/deliveries", handleWebhookDeliveries);
-  server = createApp(router, TEST_PORT);
-  await new Promise<void>((r) => setTimeout(r, 100));
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 
   const acct = await req("POST", "/v1/accounts", { name: "Webhook Tester", email: "webhook@test.com" });
   apiKey = (acct.data as any).api_key.raw_key;
@@ -281,7 +283,7 @@ describe("POST /v1/account/webhooks/:webhook_id/toggle — branch coverage", () 
         "Authorization": `Bearer ${apiKey}`,
       };
       const r = require("node:http").request(
-        { hostname: "127.0.0.1", port: TEST_PORT, path: `/v1/account/webhooks/${webhookId}/toggle`, method: "POST", headers },
+        { hostname: "127.0.0.1", port: testPort, path: `/v1/account/webhooks/${webhookId}/toggle`, method: "POST", headers },
         (res: import("node:http").IncomingMessage) => {
           const chunks: Buffer[] = [];
           res.on("data", (c: Buffer) => chunks.push(c));
