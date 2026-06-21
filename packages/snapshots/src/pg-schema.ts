@@ -1,0 +1,483 @@
+// Postgres schema for Iliad (Neon) — the cumulative result of the SQLite
+// SCHEMA_V1 + all 22 migrations, in final form, ported to Postgres DDL.
+// Neon starts fresh, so we apply one idempotent schema and stamp the baseline
+// at the latest version; future changes go in PG_MIGRATIONS (version > 23).
+// See NEON_MIGRATION_PLAN.md. FTS5 (search_fts) is replaced by a tsvector column.
+import { sql } from "./pg.js";
+
+export const PG_LATEST_VERSION = 23;
+
+// Ordering matters for FKs (accounts before dependents; oauth_refresh_tokens
+// before oauth_access_tokens). Timestamps stay TEXT (app writes ISO strings).
+// 0/1 "boolean" columns stay INTEGER (least churn vs the existing app code).
+const PG_SCHEMA = `
+CREATE TABLE IF NOT EXISTS accounts (
+  account_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  tier TEXT NOT NULL DEFAULT 'free',
+  created_at TEXT NOT NULL,
+  github_id TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_github_id ON accounts(github_id) WHERE github_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_accounts_email_lower ON accounts(lower(email));
+
+CREATE TABLE IF NOT EXISTS projects (
+  project_id TEXT PRIMARY KEY,
+  project_name TEXT NOT NULL,
+  account_id TEXT REFERENCES accounts(account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_projects_account ON projects(account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_anon ON projects(project_name) WHERE account_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_name_account ON projects(project_name, account_id) WHERE account_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS snapshots (
+  snapshot_id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(project_id),
+  created_at TEXT NOT NULL,
+  input_method TEXT NOT NULL,
+  manifest TEXT NOT NULL,
+  file_count INTEGER NOT NULL,
+  total_size_bytes INTEGER NOT NULL,
+  files TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'processing',
+  account_id TEXT REFERENCES accounts(account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_snapshots_project ON snapshots(project_id);
+CREATE INDEX IF NOT EXISTS idx_snapshots_account ON snapshots(account_id);
+
+CREATE TABLE IF NOT EXISTS context_maps (
+  snapshot_id TEXT PRIMARY KEY REFERENCES snapshots(snapshot_id),
+  data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS repo_profiles (
+  snapshot_id TEXT PRIMARY KEY REFERENCES snapshots(snapshot_id),
+  data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS generator_results (
+  snapshot_id TEXT PRIMARY KEY REFERENCES snapshots(snapshot_id),
+  data TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS api_keys (
+  key_id TEXT PRIMARY KEY,
+  key_hash TEXT UNIQUE NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  label TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  revoked_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_api_keys_account ON api_keys(account_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+
+CREATE TABLE IF NOT EXISTS program_entitlements (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program TEXT NOT NULL,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (account_id, program)
+);
+
+CREATE TABLE IF NOT EXISTS usage_records (
+  usage_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  program TEXT NOT NULL,
+  snapshot_id TEXT NOT NULL,
+  generators_run INTEGER NOT NULL DEFAULT 0,
+  input_files INTEGER NOT NULL DEFAULT 0,
+  input_bytes INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_usage_account ON usage_records(account_id);
+CREATE INDEX IF NOT EXISTS idx_usage_account_program ON usage_records(account_id, program);
+CREATE INDEX IF NOT EXISTS idx_usage_created ON usage_records(created_at);
+
+CREATE TABLE IF NOT EXISTS seats (
+  seat_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  email TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'member',
+  invited_by TEXT NOT NULL,
+  accepted_at TEXT,
+  revoked_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_seats_account ON seats(account_id);
+CREATE INDEX IF NOT EXISTS idx_seats_email ON seats(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_seats_account_email ON seats(account_id, email) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS funnel_events (
+  event_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  event_type TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_funnel_account ON funnel_events(account_id);
+CREATE INDEX IF NOT EXISTS idx_funnel_stage ON funnel_events(stage);
+CREATE INDEX IF NOT EXISTS idx_funnel_type ON funnel_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_funnel_created ON funnel_events(created_at);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  client_key TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 0,
+  reset_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_reset ON rate_limits(reset_at);
+
+-- search_index + Postgres full-text (replaces the SQLite FTS5 search_fts table).
+CREATE TABLE IF NOT EXISTS search_index (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  snapshot_id TEXT NOT NULL REFERENCES snapshots(snapshot_id),
+  file_path TEXT NOT NULL,
+  line_number INTEGER NOT NULL,
+  content TEXT NOT NULL,
+  content_tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED
+);
+CREATE INDEX IF NOT EXISTS idx_search_snapshot ON search_index(snapshot_id);
+CREATE INDEX IF NOT EXISTS idx_search_tsv ON search_index USING GIN (content_tsv);
+
+CREATE TABLE IF NOT EXISTS webhooks (
+  webhook_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  url TEXT NOT NULL,
+  events TEXT NOT NULL,
+  secret TEXT,
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_webhooks_account ON webhooks(account_id);
+CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(active);
+
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+  delivery_id TEXT PRIMARY KEY,
+  webhook_id TEXT NOT NULL REFERENCES webhooks(webhook_id),
+  event_type TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  status_code INTEGER,
+  response_body TEXT,
+  success INTEGER NOT NULL DEFAULT 0,
+  attempted_at TEXT NOT NULL,
+  attempt_number INTEGER NOT NULL DEFAULT 1,
+  next_retry_at TEXT,
+  dead_lettered INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_deliveries_webhook ON webhook_deliveries(webhook_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_attempted ON webhook_deliveries(attempted_at);
+CREATE INDEX IF NOT EXISTS idx_deliveries_retry ON webhook_deliveries(next_retry_at) WHERE next_retry_at IS NOT NULL AND dead_lettered = 0 AND success = 0;
+
+CREATE TABLE IF NOT EXISTS generation_versions (
+  version_id TEXT PRIMARY KEY,
+  snapshot_id TEXT NOT NULL REFERENCES snapshots(snapshot_id),
+  version_number INTEGER NOT NULL,
+  program TEXT,
+  files TEXT NOT NULL,
+  file_count INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gv_snapshot ON generation_versions(snapshot_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gv_snapshot_version ON generation_versions(snapshot_id, version_number);
+
+CREATE TABLE IF NOT EXISTS github_tokens (
+  token_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  label TEXT NOT NULL DEFAULT 'default',
+  token_prefix TEXT NOT NULL,
+  encrypted_token TEXT NOT NULL,
+  scopes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  expires_at TEXT,
+  last_used_at TEXT,
+  last_validated_at TEXT,
+  valid INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_github_tokens_account ON github_tokens(account_id);
+
+CREATE TABLE IF NOT EXISTS tier_changes (
+  change_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  from_tier TEXT NOT NULL,
+  to_tier TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT 'user_request',
+  proration_amount INTEGER NOT NULL DEFAULT 0,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tier_changes_account ON tier_changes(account_id);
+CREATE INDEX IF NOT EXISTS idx_tier_changes_created ON tier_changes(created_at);
+
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state TEXT PRIMARY KEY,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS email_deliveries (
+  delivery_id TEXT PRIMARY KEY,
+  to_email TEXT NOT NULL,
+  template TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  variables TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  provider_id TEXT,
+  error TEXT,
+  created_at TEXT NOT NULL,
+  sent_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_email_to ON email_deliveries(to_email);
+CREATE INDEX IF NOT EXISTS idx_email_status ON email_deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_email_created ON email_deliveries(created_at);
+
+CREATE TABLE IF NOT EXISTS lemon_squeezy_subscriptions (
+  subscription_id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  variant_id TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  current_period_start TEXT,
+  current_period_end TEXT,
+  card_brand TEXT,
+  card_last_four TEXT,
+  cancel_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ls_account ON lemon_squeezy_subscriptions(account_id);
+CREATE INDEX IF NOT EXISTS idx_ls_customer ON lemon_squeezy_subscriptions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_ls_status ON lemon_squeezy_subscriptions(status);
+
+CREATE TABLE IF NOT EXISTS persistence_credits (
+  credit_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  credits_delta INTEGER NOT NULL,
+  operation TEXT NOT NULL,
+  snapshot_id TEXT REFERENCES snapshots(snapshot_id),
+  balance_after INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_pcredits_account ON persistence_credits(account_id);
+CREATE INDEX IF NOT EXISTS idx_pcredits_created ON persistence_credits(created_at);
+
+CREATE TABLE IF NOT EXISTS oauth_clients (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  secret TEXT NOT NULL,
+  redirect_uris TEXT NOT NULL,
+  scopes TEXT NOT NULL DEFAULT '[]',
+  grant_types TEXT NOT NULL DEFAULT '["authorization_code"]',
+  is_confidential INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS oauth_authorization_codes (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(id),
+  user_id TEXT NOT NULL REFERENCES accounts(account_id),
+  code TEXT UNIQUE NOT NULL,
+  code_challenge TEXT,
+  code_challenge_method TEXT,
+  redirect_uri TEXT NOT NULL,
+  scopes TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_client ON oauth_authorization_codes(client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_user ON oauth_authorization_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_auth_codes_code ON oauth_authorization_codes(code);
+
+CREATE TABLE IF NOT EXISTS oauth_refresh_tokens (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(id),
+  user_id TEXT NOT NULL REFERENCES accounts(account_id),
+  refresh_token TEXT UNIQUE NOT NULL,
+  scopes TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_client ON oauth_refresh_tokens(client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_user ON oauth_refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_refresh_tokens_token ON oauth_refresh_tokens(refresh_token);
+
+CREATE TABLE IF NOT EXISTS oauth_access_tokens (
+  id TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(id),
+  user_id TEXT NOT NULL REFERENCES accounts(account_id),
+  access_token TEXT UNIQUE NOT NULL,
+  refresh_token_id TEXT REFERENCES oauth_refresh_tokens(id),
+  scopes TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_client ON oauth_access_tokens(client_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_user ON oauth_access_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_oauth_access_tokens_token ON oauth_access_tokens(access_token);
+
+CREATE TABLE IF NOT EXISTS code_symbols (
+  symbol_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  snapshot_id TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  symbol_name TEXT NOT NULL,
+  symbol_type TEXT NOT NULL,
+  line_number INTEGER NOT NULL,
+  parent TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_symbols_snapshot ON code_symbols(snapshot_id);
+CREATE INDEX IF NOT EXISTS idx_symbols_name ON code_symbols(snapshot_id, lower(symbol_name));
+CREATE INDEX IF NOT EXISTS idx_symbols_type ON code_symbols(snapshot_id, symbol_type);
+
+CREATE TABLE IF NOT EXISTS stripe_subscriptions (
+  subscription_id TEXT PRIMARY KEY,
+  customer_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  price_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  current_period_start TEXT,
+  current_period_end TEXT,
+  card_brand TEXT,
+  card_last_four TEXT,
+  cancel_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_stripe_account ON stripe_subscriptions(account_id);
+CREATE INDEX IF NOT EXISTS idx_stripe_customer ON stripe_subscriptions(customer_id);
+CREATE INDEX IF NOT EXISTS idx_stripe_status ON stripe_subscriptions(status);
+
+CREATE TABLE IF NOT EXISTS referral_codes (
+  code TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_account ON referral_codes(account_id);
+
+CREATE TABLE IF NOT EXISTS referral_conversions (
+  conversion_id TEXT PRIMARY KEY,
+  referrer_account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  referee_account_id TEXT NOT NULL UNIQUE,
+  converted_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_referral_conversions_referrer ON referral_conversions(referrer_account_id);
+
+CREATE TABLE IF NOT EXISTS referral_credits (
+  account_id TEXT PRIMARY KEY REFERENCES accounts(account_id),
+  earned_credits_millicents INTEGER NOT NULL DEFAULT 0,
+  lifetime_referrals INTEGER NOT NULL DEFAULT 0,
+  free_calls_remaining INTEGER NOT NULL DEFAULT 0,
+  last_reset_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  initial_grant_given INTEGER NOT NULL DEFAULT 0,
+  paid_call_count INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS account_api_calls (
+  call_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  method TEXT NOT NULL,
+  path TEXT NOT NULL,
+  status_code INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_account_api_calls_account ON account_api_calls(account_id);
+CREATE INDEX IF NOT EXISTS idx_account_api_calls_created ON account_api_calls(created_at);
+CREATE INDEX IF NOT EXISTS idx_account_api_calls_path ON account_api_calls(path);
+
+CREATE TABLE IF NOT EXISTS usage_credit_monthly (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  plan_id TEXT NOT NULL,
+  monthly_allowance INTEGER NOT NULL,
+  included_credits_used INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, month_key)
+);
+CREATE INDEX IF NOT EXISTS idx_usage_credit_monthly_month ON usage_credit_monthly(month_key);
+
+CREATE TABLE IF NOT EXISTS usage_credit_ledger (
+  entry_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  plan_id TEXT NOT NULL,
+  tool TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  credits_required INTEGER NOT NULL,
+  included_credits_applied INTEGER NOT NULL,
+  overage_credits INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_account_month ON usage_credit_ledger(account_id, month_key);
+CREATE INDEX IF NOT EXISTS idx_usage_credit_ledger_created ON usage_credit_ledger(created_at);
+
+CREATE TABLE IF NOT EXISTS mcp_usage (
+  usage_id TEXT PRIMARY KEY,
+  account_id TEXT,
+  tool TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'unknown',
+  probe_class TEXT NOT NULL DEFAULT 'unknown',
+  user_agent TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_created ON mcp_usage(created_at);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_tool ON mcp_usage(tool);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_account ON mcp_usage(account_id);
+CREATE INDEX IF NOT EXISTS idx_mcp_usage_source ON mcp_usage(source);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  applied_at TEXT NOT NULL
+);
+`;
+
+// Future Postgres-only migrations (version > PG_LATEST_VERSION) go here.
+interface PgMigration { version: number; name: string; sql: string }
+const PG_MIGRATIONS: PgMigration[] = [];
+
+/**
+ * Stand up / upgrade the Postgres schema. Idempotent: applies the cumulative
+ * baseline, stamps it at PG_LATEST_VERSION, then runs any PG_MIGRATIONS beyond it.
+ */
+export async function runPgMigrations(): Promise<{ current_version: number; applied: number }> {
+  await sql.exec(PG_SCHEMA);
+
+  const row = await sql.one<{ v: number | null }>("SELECT MAX(version) AS v FROM schema_migrations");
+  let current = row?.v ?? 0;
+  if (current < PG_LATEST_VERSION) {
+    await sql.run(
+      "INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?) ON CONFLICT (version) DO NOTHING",
+      [PG_LATEST_VERSION, "pg_baseline_v23", new Date().toISOString()],
+    );
+    current = PG_LATEST_VERSION;
+  }
+
+  let applied = 0;
+  for (const m of PG_MIGRATIONS.filter((m) => m.version > current).sort((a, b) => a.version - b.version)) {
+    await sql.exec(m.sql);
+    await sql.run("INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)", [
+      m.version,
+      m.name,
+      new Date().toISOString(),
+    ]);
+    applied++;
+    current = m.version;
+  }
+  return { current_version: current, applied };
+}
+
+export async function getPgSchemaVersion(): Promise<number> {
+  const row = await sql.one<{ v: number | null }>("SELECT MAX(version) AS v FROM schema_migrations");
+  return row?.v ?? 0;
+}
+
+/** Drop every Iliad table (test teardown / clean reprovision). */
+export async function dropAllPgTables(): Promise<void> {
+  await sql.exec(`
+    DO $$ DECLARE r RECORD;
+    BEGIN
+      FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+      END LOOP;
+    END $$;
+  `);
+}
