@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
@@ -80,6 +80,8 @@ import {
   getPersistenceBalance,
   previewUsageCredits,
   consumeUsageCredits,
+  getIdempotentResult,
+  saveIdempotentResult,
   getUsageCreditSummary,
   recordMcpUsage,
 } from "@axis/snapshots";
@@ -2569,6 +2571,21 @@ function meterMcpToolCredits(
   captureMcpToolCredits(account, charge);
 }
 
+/** Read the optional Idempotency-Key request header (trimmed, length-capped). */
+function readIdempotencyKey(req: IncomingMessage): string | null {
+  const raw = req.headers["idempotency-key"];
+  const key = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof key !== "string") return null;
+  const trimmed = key.trim();
+  if (!trimmed || trimmed.length > 255) return null;
+  return trimmed;
+}
+
+/** Stable hash of a tool call's identity — detects an Idempotency-Key reused with different arguments. */
+function hashToolRequest(tool: string, args: Record<string, unknown>): string {
+  return createHash("sha256").update(`${tool}\n${JSON.stringify(args)}`).digest("hex");
+}
+
 // â”€â”€â”€ Tool: analyze_files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function coerceHygieneFiles(args: Record<string, unknown>): HygieneFile[] {
@@ -4172,6 +4189,31 @@ export async function dispatch(
       const auth = resolveAuth(req);
       const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
       logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>);
+
+      // Idempotency: a retry carrying the same Idempotency-Key returns the
+      // original result and never re-charges. Only successful results are stored
+      // (a failed call doesn't charge, so it stays retryable).
+      const idempotencyKey = readIdempotencyKey(req);
+      const requestHash = idempotencyKey ? hashToolRequest(canonicalToolName, toolArgs) : "";
+      if (idempotencyKey && auth.account) {
+        const cached = getIdempotentResult(auth.account.account_id, idempotencyKey);
+        if (cached) {
+          if (cached.request_hash !== requestHash) {
+            return rpcErr(id, RPC_INVALID_PARAMS, "Idempotency-Key already used with different arguments");
+          }
+          return rpcOk(id, {
+            ...toolOk(cached.response),
+            _usage: {
+              tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
+              credits_remaining: getPersistenceBalance(auth.account.account_id),
+              usage_credits: getUsageCreditSummary(auth.account.account_id, auth.account.tier),
+              tool: canonicalToolName,
+            },
+            _idempotent_replay: true,
+          });
+        }
+      }
+
       try {
         let text: string;
         switch (canonicalToolName) {
@@ -4264,6 +4306,11 @@ export async function dispatch(
             }
             return rpcErr(id, RPC_INVALID_PARAMS, `Unknown tool: ${toolName}`);
           }
+        }
+        // Store the successful result so a same-key retry replays it instead of
+        // re-running and re-charging. (Reached only when the switch didn't throw.)
+        if (idempotencyKey && auth.account) {
+          saveIdempotentResult(auth.account.account_id, idempotencyKey, requestHash, text);
         }
         return rpcOk(id, {
           ...toolOk(text),

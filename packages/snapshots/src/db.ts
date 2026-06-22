@@ -584,6 +584,25 @@ CREATE INDEX IF NOT EXISTS idx_mcp_usage_account ON mcp_usage(account_id);
 CREATE INDEX IF NOT EXISTS idx_mcp_usage_source ON mcp_usage(source);
 `,
   },
+  {
+    version: 24,
+    name: "add_idempotency_keys",
+    sql: `
+-- Idempotency for the paid MCP path. A client may send an Idempotency-Key on a
+-- tools/call so a transport retry returns the original result instead of
+-- re-charging. Keyed per account; request_hash detects key reuse with different
+-- arguments. No foreign key (telemetry-grade — must never block account deletion).
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  account_id TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL,
+  request_hash TEXT NOT NULL,
+  response TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, idempotency_key)
+);
+CREATE INDEX IF NOT EXISTS idx_idempotency_created ON idempotency_keys(created_at);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

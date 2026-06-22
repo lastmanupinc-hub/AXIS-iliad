@@ -1,0 +1,90 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { IncomingMessage } from "node:http";
+import {
+  openMemoryDb,
+  closeDb,
+  createAccount,
+  createApiKey,
+  getUsageCreditSummary,
+} from "@axis/snapshots";
+import { dispatch } from "./mcp-server.js";
+import { resetAnalyticsForTests } from "./analytics.js";
+
+// iliad_analytics is metered, runs entirely locally, and has no entitlement gate
+// — an ideal probe for the charge/replay behavior.
+const ARGS = { operation: "query", namespace: "ns-idem", query: { kind: "count" } };
+
+function mockReq(rawKey: string, idempotencyKey?: string): IncomingMessage {
+  const headers: Record<string, string> = { authorization: `Bearer ${rawKey}` };
+  if (idempotencyKey) headers["idempotency-key"] = idempotencyKey;
+  return { headers, socket: { remoteAddress: "127.0.0.1" } } as unknown as IncomingMessage;
+}
+
+function call(
+  rawKey: string,
+  idemKey: string | undefined,
+  id: number,
+  args: Record<string, unknown> = ARGS,
+) {
+  return dispatch("tools/call", { name: "iliad_analytics", arguments: args }, id, mockReq(rawKey, idemKey));
+}
+
+function resultOf(rpc: unknown): Record<string, unknown> {
+  return (rpc as { result: Record<string, unknown> }).result;
+}
+
+describe("MCP idempotency (dispatch)", () => {
+  let rawKey: string;
+  let accountId: string;
+
+  beforeEach(() => {
+    openMemoryDb();
+    // analytics_events is lazily created with a module-level init flag that
+    // outlives the in-memory DB reset — reset it so the table exists in this DB.
+    resetAnalyticsForTests();
+    const acct = createAccount("Idem", "idem@example.com", "paid");
+    accountId = acct.account_id;
+    rawKey = createApiKey(acct.account_id).rawKey;
+  });
+  afterEach(() => {
+    closeDb();
+  });
+
+  const used = () => getUsageCreditSummary(accountId, "paid").included_credits_used;
+
+  it("replays the result and does NOT re-charge on a repeated Idempotency-Key", async () => {
+    const before = used();
+
+    const first = resultOf(await call(rawKey, "key-A", 1));
+    expect(first.isError).toBeFalsy();
+    const afterFirst = used();
+    expect(afterFirst).toBeGreaterThan(before); // charged once
+
+    const second = resultOf(await call(rawKey, "key-A", 2));
+    expect(second._idempotent_replay).toBe(true);
+    expect(used()).toBe(afterFirst); // NOT re-charged
+
+    const firstText = (first.content as Array<{ text: string }>)[0].text;
+    const secondText = (second.content as Array<{ text: string }>)[0].text;
+    expect(secondText).toBe(firstText); // identical result replayed
+  });
+
+  it("rejects a key reused with different arguments", async () => {
+    await call(rawKey, "key-B", 1);
+    const reuse = (await call(rawKey, "key-B", 2, { ...ARGS, namespace: "ns-other" })) as {
+      error?: { message: string };
+    };
+    expect(reuse.error).toBeTruthy();
+    expect(reuse.error!.message).toContain("different arguments");
+  });
+
+  it("charges every call when no Idempotency-Key is sent", async () => {
+    const before = used();
+    await call(rawKey, undefined, 1);
+    const mid = used();
+    await call(rawKey, undefined, 2);
+    const after = used();
+    expect(mid).toBeGreaterThan(before);
+    expect(after).toBeGreaterThan(mid); // both charged — no dedup without a key
+  });
+});
