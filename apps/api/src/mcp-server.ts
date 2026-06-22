@@ -389,8 +389,9 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
   }
 
   const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
-  meterMcpToolCredits(req, auth.account, "iliad_object_storage");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
   const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
+  captureMcpToolCredits(auth.account, charge);
 
   return JSON.stringify({
     url: presigned.url,
@@ -542,8 +543,9 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
         metadata: (r.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     }
-    meterMcpToolCredits(req, auth.account, "iliad_vector_database");
+    const charge = authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
     upsertVectors(scopedNs, cleaned);
+    captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "upsert",
       namespace: scopedNs,
@@ -572,8 +574,9 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
     top_k,
     filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
   };
-  meterMcpToolCredits(req, auth.account, "iliad_vector_database");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
   const matches = queryVectors(scopedNs, queryOpts);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({
     operation: "query",
     namespace: scopedNs,
@@ -623,8 +626,9 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
         }
         return e as AnalyticsEvent;
       });
-      meterMcpToolCredits(req, auth.account, "iliad_analytics");
+      const charge = authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
       captureEvents(scopedNs, cleaned);
+      captureMcpToolCredits(auth.account, charge);
       return JSON.stringify({
         operation: "capture",
         namespace: scopedNs,
@@ -635,8 +639,9 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
     if (!single || typeof single !== "object") {
       throw new Error("iliad_analytics: capture requires `event` (object) or `events` (array).");
     }
-    meterMcpToolCredits(req, auth.account, "iliad_analytics");
+    const charge = authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
     captureEvent(scopedNs, single as AnalyticsEvent);
+    captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "capture",
       namespace: scopedNs,
@@ -660,8 +665,9 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
       "iliad_analytics: query.kind must be one of count, count_by_event, distinct_users, count_by_bucket.",
     );
   }
-  meterMcpToolCredits(req, auth.account, "iliad_analytics");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
   const result = queryAnalytics(scopedNs, q as unknown as AnalyticsQuery);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({
     operation: "query",
     namespace: scopedNs,
@@ -863,8 +869,9 @@ function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): stri
     // Per pricing tier: only `search` is metered. index / delete /
     // delete_namespace / count are free since they don't consume the
     // BM25-ranking CPU that the search op pays for.
-    meterMcpToolCredits(req, auth.account, "iliad_web_search");
+    const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = searchDocuments(scopedNs, opts);
+    captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "search",
       namespace: scopedNs,
@@ -2617,8 +2624,9 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   }
 
   // PAID path - bill before producing the remediation plan.
-  meterMcpToolCredits(req, auth.account, "iliad_hygiene");
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_hygiene");
   const plan = buildRemediationPlan(report);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
 }
 
@@ -2682,7 +2690,7 @@ export async function runAnalyzeFiles(
     ));
   }
 
-  meterMcpToolCredits(req, account, "analyze_files");
+  const charge = authorizeMcpToolCredits(req, account, "analyze_files");
 
   /* quota exceeded and file limit paths â€” tested in quota-guardrails.test.ts */
   const quota = checkQuota(account.account_id);
@@ -2743,6 +2751,10 @@ export async function runAnalyzeFiles(
     resolveStage(auth.account.account_id),
     { snapshot_id: snapshot.snapshot_id, programs: [...programs], files: files.length, source: "mcp" },
   );
+
+  // All work succeeded — commit the charge now. Never before checkQuota / the
+  // file-limit guard / generation, so a failed analyze_files debits nothing.
+  captureMcpToolCredits(account, charge);
 
   return JSON.stringify(
     {
@@ -3872,7 +3884,7 @@ export async function runPreparePurchasing(
     ));
   }
 
-  meterMcpToolCredits(req, auth.account, "prepare_agentic_purchasing");
+  const charge = authorizeMcpToolCredits(req, auth.account, "prepare_agentic_purchasing");
 
   /* v8 ignore start â€” quota exceeded and file limit paths require exhausting account limits in test */
   const quota = checkQuota(auth.account.account_id);
@@ -4040,6 +4052,10 @@ export async function runPreparePurchasing(
   artifactsMap["agent_system_prompt.md"] = agentSystemPrompt;
 
   const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
+
+  // All work succeeded — commit the charge now. Never before checkQuota / the
+  // file-limit guard / generation, so a failed call debits nothing.
+  captureMcpToolCredits(auth.account, charge);
 
   return JSON.stringify(
     {
