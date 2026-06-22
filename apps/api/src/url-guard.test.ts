@@ -17,6 +17,20 @@ describe("url-guard / isBlockedIp", () => {
     }
   });
 
+  it("blocks alternate IPv6 spellings of loopback/metadata (the proven bypasses)", () => {
+    for (const ip of [
+      "0::1", "0:0:0:0:0:0:0:1", // uncompressed loopback
+      "::ffff:7f00:1", // hex IPv4-mapped 127.0.0.1
+      "::ffff:a9fe:a9fe", // hex IPv4-mapped 169.254.169.254 (metadata)
+      "::ffff:169.254.169.254", // dotted IPv4-mapped metadata
+      "64:ff9b::a9fe:a9fe", // NAT64 metadata
+      "64:ff9b::169.254.169.254", // NAT64 metadata (dotted)
+      "2001:db8::1", // documentation range
+    ]) {
+      expect(isBlockedIp(ip), ip).toBe(true);
+    }
+  });
+
   it("allows public IPs", () => {
     for (const ip of ["8.8.8.8", "1.1.1.1", "93.184.216.34", "2606:4700:4700::1111"]) {
       expect(isBlockedIp(ip), ip).toBe(false);
@@ -46,6 +60,18 @@ describe("url-guard / assertPublicUrl", () => {
     await expect(assertPublicUrl("http://169.254.169.254/latest/meta-data/")).rejects.toThrow(/disallowed/);
     await expect(assertPublicUrl("http://10.0.0.5:8080/")).rejects.toThrow(/disallowed/);
     await expect(assertPublicUrl("https://[::1]/")).rejects.toThrow(/disallowed/);
+  });
+
+  it("rejects numeric IPv4 encodings and alternate IPv6 literals (no DNS divergence)", async () => {
+    // Blocked either by the numeric-host reject or (when the URL parser normalizes
+    // them to a dotted IP) by the IP range check — both mean "not reachable".
+    const blocked = /not allowed|disallowed/;
+    await expect(assertPublicUrl("http://2130706433/")).rejects.toThrow(blocked); // decimal 127.0.0.1
+    await expect(assertPublicUrl("http://0x7f000001/")).rejects.toThrow(blocked); // hex
+    await expect(assertPublicUrl("http://017700000001/")).rejects.toThrow(blocked); // octal
+    await expect(assertPublicUrl("http://127.0.0.1./")).rejects.toThrow(blocked); // trailing dot
+    await expect(assertPublicUrl("http://[0::1]/")).rejects.toThrow(/disallowed/);
+    await expect(assertPublicUrl("http://[::ffff:7f00:1]/")).rejects.toThrow(/disallowed/);
   });
 
   it("rejects localhost-family hostnames", async () => {

@@ -94,7 +94,7 @@ import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS }
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
-import { firecrawlScrape, firecrawlCrawl } from "./web-research.js";
+import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchNotConfigured } from "./web-research.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "axis-iliad";
@@ -1027,11 +1027,18 @@ async function runWebResearch(args: Record<string, unknown>, req: IncomingMessag
   if (typeof url !== "string" || !url) {
     throw new Error("iliad_web_research: `url` (string) is required.");
   }
-  const result = await firecrawlScrape(url, args.only_main_content !== false);
-  // Meter only on a real scrape — never on the _not_configured envelope.
-  if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_web_research");
+  if (args.only_main_content !== undefined && typeof args.only_main_content !== "boolean") {
+    throw new Error("iliad_web_research: `only_main_content` must be a boolean when provided.");
   }
+  // _not_configured takes precedence and never charges.
+  if (!isFirecrawlConfigured()) {
+    return JSON.stringify(webResearchNotConfigured("iliad_web_research"), null, 2);
+  }
+  // Authorize (gate over-budget) BEFORE the paid Firecrawl call; capture only on
+  // success — so a call at the credit ceiling can't get free external work.
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_research");
+  const result = await firecrawlScrape(url, args.only_main_content !== false);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
@@ -1044,14 +1051,19 @@ async function runWebResearchCrawl(args: Record<string, unknown>, req: IncomingM
   if (typeof url !== "string" || !url) {
     throw new Error("iliad_web_research_crawl: `url` (string) is required.");
   }
+  if (args.only_main_content !== undefined && typeof args.only_main_content !== "boolean") {
+    throw new Error("iliad_web_research_crawl: `only_main_content` must be a boolean when provided.");
+  }
   const limit = typeof args.limit === "number" ? Math.floor(args.limit) : 10;
   if (!Number.isFinite(limit) || limit < 1 || limit > 100) {
     throw new Error("iliad_web_research_crawl: `limit` must be between 1 and 100.");
   }
-  const result = await firecrawlCrawl(url, limit, args.only_main_content !== false);
-  if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
+  if (!isFirecrawlConfigured()) {
+    return JSON.stringify(webResearchNotConfigured("iliad_web_research_crawl"), null, 2);
   }
+  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
+  const result = await firecrawlCrawl(url, limit, args.only_main_content !== false);
+  captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
