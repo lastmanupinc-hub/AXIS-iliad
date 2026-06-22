@@ -26,6 +26,31 @@ export function consumeOAuthState(state: string): boolean {
   return result.changes > 0;
 }
 
+// ─── One-time auth code (OAuth → web app handoff) ──────────────
+// In-memory, single-use, short-TTL. The callback redirects with this opaque code
+// instead of the raw API key, so the key never lands in the URL / browser history
+// / Referer header / access logs. (Single API instance; a restart inside the ~60s
+// window just makes the user re-login.)
+const AUTH_CODE_TTL_MS = 60 * 1000;
+const authCodes = new Map<string, { rawKey: string; expiresAt: number }>();
+
+export function createAuthCode(rawKey: string): string {
+  const now = Date.now();
+  for (const [c, e] of authCodes) if (now > e.expiresAt) authCodes.delete(c); // lazy sweep
+  const code = randomBytes(32).toString("hex");
+  authCodes.set(code, { rawKey, expiresAt: now + AUTH_CODE_TTL_MS });
+  return code;
+}
+
+/** Consume a one-time code, returning the raw API key once (or null if unknown/expired). */
+export function consumeAuthCode(code: string): string | null {
+  const entry = authCodes.get(code);
+  if (!entry) return null;
+  authCodes.delete(code); // single-use
+  if (Date.now() > entry.expiresAt) return null;
+  return entry.rawKey;
+}
+
 // ─── GitHub OAuth helpers ───────────────────────────────────────
 
 export function getGitHubAuthUrl(clientId: string, redirectUri: string, state: string): string {
