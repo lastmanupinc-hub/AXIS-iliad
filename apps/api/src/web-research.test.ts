@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IncomingMessage } from "node:http";
 import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import type { Server } from "node:http";
 import { firecrawlScrape, firecrawlCrawl, isWebResearchNotConfigured } from "./web-research.js";
 import { dispatch } from "./mcp-server.js";
+import { putCachedScrape } from "@axis/snapshots";
+import { Router } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
+import { handleFirecrawlScrape } from "./handlers.js";
 
 const ORIGINAL_KEY = process.env.FIRECRAWL_API_KEY;
 function restoreKey() {
@@ -95,5 +100,59 @@ describe("web-research MCP dispatch wiring", () => {
     const text = await callText("iliad_web_research_crawl", { url: "https://example.com", limit: 999 }, 2);
     expect(text).not.toContain("Unknown tool");
     expect(text).toContain("limit");
+  });
+});
+
+describe("POST /v1/research/scrape — 24h shared cache", () => {
+  let server: Server;
+  let testPort = 0;
+  let apiKey = "";
+
+  beforeEach(async () => {
+    openMemoryDb();
+    const acct = createAccount("Cache", "cache@test.com", "paid");
+    apiKey = createApiKey(acct.account_id).rawKey;
+    delete process.env.FIRECRAWL_API_KEY; // prove the cache short-circuits before any Firecrawl call
+    const router = new Router();
+    router.post("/v1/research/scrape", handleFirecrawlScrape);
+    const ts = await startTestServer(router);
+    server = ts.server;
+    testPort = ts.port;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    closeDb();
+    restoreKey();
+  });
+
+  async function post(url: string, key: string): Promise<{ status: number; data: any }> {
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify({ url });
+      const r = require("node:http").request(
+        { hostname: "127.0.0.1", port: testPort, path: "/v1/research/scrape", method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` } },
+        (res: IncomingMessage) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c: Buffer) => chunks.push(c));
+          res.on("end", () => {
+            let data: unknown;
+            try { data = JSON.parse(Buffer.concat(chunks).toString("utf-8")); } catch { data = {}; }
+            resolve({ status: res.statusCode ?? 0, data });
+          });
+        },
+      );
+      r.on("error", reject);
+      r.write(payload);
+      r.end();
+    });
+  }
+
+  it("serves a cache hit for $0 without calling Firecrawl", async () => {
+    putCachedScrape("https://example.com/doc", "# cached markdown", { title: "Doc" }, 200);
+    const r = await post("https://example.com/doc", apiKey);
+    expect(r.status).toBe(200); // would be 503 (Firecrawl unconfigured) if it didn't hit cache
+    expect(r.data.cached).toBe(true);
+    expect(r.data.cost).toContain("$0.00");
+    expect(r.data.data.markdown).toBe("# cached markdown");
   });
 });

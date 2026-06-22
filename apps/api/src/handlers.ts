@@ -39,6 +39,8 @@ import {
   consumeFreeCall,
   recordPaidCall,
   consumeUsageCredits,
+  getCachedScrape,
+  putCachedScrape,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -3488,6 +3490,21 @@ export async function handleFirecrawlScrape(
     return;
   }
 
+  // 24h shared scrape cache — if any AXIS agent scraped this URL in the last
+  // 24h, serve it for $0 (no Firecrawl call, no charge, no quota consumed).
+  const cachedScrape = getCachedScrape(url);
+  if (cachedScrape) {
+    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, cached: true });
+    sendJSON(res, 200, {
+      success: true,
+      cached: true,
+      cache_age_seconds: cachedScrape.age_seconds,
+      cost: "$0.00 (24h shared cache hit)",
+      data: { url: cachedScrape.url, markdown: cachedScrape.markdown, metadata: cachedScrape.metadata },
+    });
+    return;
+  }
+
   const budget = parseAgentBudget(req);
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier("iliad_web_research");
@@ -3564,12 +3581,18 @@ export async function handleFirecrawlScrape(
 
       trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode });
 
+      const scrapedMarkdown = firecrawlData.data?.markdown ?? "";
+      const scrapedMetadata = (firecrawlData.data?.metadata ?? {}) as Record<string, unknown>;
+      // Populate the 24h shared cache so the next caller of this URL pays $0.
+      putCachedScrape(url, scrapedMarkdown, scrapedMetadata, 200);
+
       sendJSON(res, 200, {
         success: true,
+        cached: false,
         data: {
           url,
-          markdown: firecrawlData.data?.markdown ?? "",
-          metadata: firecrawlData.data?.metadata ?? {},
+          markdown: scrapedMarkdown,
+          metadata: scrapedMetadata,
         },
       });
     } catch (err) {
