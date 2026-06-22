@@ -16,6 +16,7 @@
 // the load cost unless they actually parse something.
 
 import fs from "node:fs/promises";
+import { safeFetch } from "./url-guard.js";
 
 export interface ParseOptions {
   /** Public URL the API can fetch (https, max 50 MiB). One of document_url XOR document_base64. */
@@ -87,7 +88,7 @@ async function downloadDocument(url: string): Promise<Buffer> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MAX_DOWNLOAD_TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await safeFetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const lenHeader = res.headers.get("content-length");
     if (lenHeader) {
