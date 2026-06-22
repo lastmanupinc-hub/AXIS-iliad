@@ -48,7 +48,10 @@ function resolveImportPath(
   importPath: string,
   knownFiles: Set<string>,
 ): string | null {
-  const dir = fromFile.substring(0, fromFile.lastIndexOf("/"));
+  // lastIndexOf returns -1 for a repo-root file (no slash); substring(0, -1) would
+  // drop the last char and corrupt the dir, so handle root files explicitly.
+  const slash = fromFile.lastIndexOf("/");
+  const dir = slash === -1 ? "" : fromFile.substring(0, slash);
   const base = importPath.startsWith("./") || importPath.startsWith("../")
     ? normalizePath(dir + "/" + importPath)
     : importPath;

@@ -6,6 +6,6 @@ export function hasFw(ctx: ContextMap, ...names: string[]): boolean {
 }
 
 /** Case-insensitive lookup: find a framework detection entry by name. */
-export function getFw(ctx: ContextMap, name: string) {
+export function getFw(ctx: ContextMap, name: string): ContextMap["detection"]["frameworks"][number] | undefined {
   return ctx.detection.frameworks.find(f => f.name.toLowerCase() === name.toLowerCase());
 }
