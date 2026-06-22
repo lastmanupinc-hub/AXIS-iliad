@@ -197,6 +197,15 @@ describe("exchangeGitHubCode", () => {
 
     await expect(exchangeGitHubCode("cid", "csecret", "x")).rejects.toThrow("bad_code");
   });
+
+  it("throws when a 200 response carries no access_token", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ token_type: "bearer", scope: "read:user" }), // no access_token, no error
+    } as Response);
+
+    await expect(exchangeGitHubCode("cid", "csecret", "weird")).rejects.toThrow("no access_token");
+  });
 });
 
 // ─── getGitHubUser (mocked fetch) ───────────────────────────────

@@ -70,8 +70,17 @@ export async function exchangeGitHubCode(
   if (data.error) {
     throw new Error(`GitHub OAuth error: ${data.error_description ?? data.error}`);
   }
+  // A 200 with no access_token (malformed/unexpected body) previously slipped
+  // through `as unknown as` and propagated `access_token: undefined` downstream.
+  if (typeof data.access_token !== "string" || data.access_token === "") {
+    throw new Error("GitHub token exchange returned no access_token");
+  }
 
-  return data as unknown as GitHubTokenResponse;
+  return {
+    access_token: data.access_token,
+    token_type: data.token_type ?? "bearer",
+    scope: data.scope ?? "",
+  };
 }
 
 export interface GitHubUser {
