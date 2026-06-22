@@ -216,7 +216,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
                     : isLoggedIn
                       ? `Choose ${plan.name}`
                       : `Sign Up for ${plan.name}`}
-            </button>            {plan.price_monthly_cents > 0 && plan.price_monthly_cents !== -1 && (
+            </button>            {plan.price_monthly_cents > 0 && (
               <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                 By subscribing you agree to our{" "}
                 <a href="#terms" style={{ color: "var(--accent)" }}>Terms of Service</a>.

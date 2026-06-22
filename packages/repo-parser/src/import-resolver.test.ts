@@ -38,6 +38,17 @@ describe("extractImports", () => {
     expect(edges).toEqual([{ source: "src/index.ts", target: "src/lazy.ts" }]);
   });
 
+  it("resolves a relative import from a repo-root file (no leading dir)", () => {
+    // Regression: lastIndexOf('/') === -1 for a root file → substring(0,-1)
+    // dropped the last char and broke resolution.
+    const files = makeFiles([
+      { path: "index.ts", content: 'import { foo } from "./foo";' },
+      { path: "foo.ts", content: "export const foo = 1;" },
+    ]);
+    const edges = extractImports(files);
+    expect(edges).toEqual([{ source: "index.ts", target: "foo.ts" }]);
+  });
+
   it("resolves imports without extension by trying .ts/.tsx/.js/.jsx", () => {
     const files = makeFiles([
       { path: "src/app.ts", content: 'import { run } from "./runner";' },
