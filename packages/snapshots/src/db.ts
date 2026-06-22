@@ -652,6 +652,23 @@ CREATE INDEX IF NOT EXISTS idx_scrape_cache_created ON scrape_cache(created_at);
 CREATE INDEX IF NOT EXISTS idx_scrape_cache_hits ON scrape_cache(hit_count DESC);
 `,
   },
+  {
+    version: 27,
+    name: "add_free_scrape_pool",
+    sql: `
+-- Per-account free Firecrawl page pool: 100 pages/calendar-month, shared between
+-- scrape + crawl. Pages beyond the pool bill at the 1¢/page floor. Counter keyed
+-- by (account_id, month_key) so it resets on the first of each month.
+CREATE TABLE IF NOT EXISTS account_free_scrape_pool (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  free_scrapes_used INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, month_key)
+);
+CREATE INDEX IF NOT EXISTS idx_free_scrape_pool_month ON account_free_scrape_pool(month_key);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

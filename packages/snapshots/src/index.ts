@@ -224,6 +224,14 @@ export {
   getScrapeCacheStats,
 } from "./scrape-cache-store.js";
 
+// Free Firecrawl page pool (100 pages/account/month, scrape + crawl)
+export type { FreeScrapeConsumption, FreeScrapePoolStatus } from "./free-scrape-pool-store.js";
+export {
+  FREE_SCRAPE_POOL_MONTHLY,
+  consumeFreeScrapes,
+  getFreeScrapePoolStatus,
+} from "./free-scrape-pool-store.js";
+
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {
