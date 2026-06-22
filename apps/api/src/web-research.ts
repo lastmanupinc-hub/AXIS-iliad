@@ -40,7 +40,12 @@ export function isWebResearchNotConfigured(v: unknown): v is WebResearchNotConfi
   return Boolean(v && typeof v === "object" && (v as { _not_configured?: unknown })._not_configured === true);
 }
 
-function notConfigured(tool: string): WebResearchNotConfigured {
+/** True when FIRECRAWL_API_KEY is configured — lets a caller short-circuit before metering. */
+export function isFirecrawlConfigured(): boolean {
+  return Boolean(process.env.FIRECRAWL_API_KEY);
+}
+
+export function webResearchNotConfigured(tool: string): WebResearchNotConfigured {
   return {
     _not_configured: true,
     tool,
@@ -80,7 +85,7 @@ export async function firecrawlScrape(
   url: string,
   onlyMainContent = true,
 ): Promise<ScrapeResult | WebResearchNotConfigured> {
-  if (!process.env.FIRECRAWL_API_KEY) return notConfigured("iliad_web_research");
+  if (!process.env.FIRECRAWL_API_KEY) return webResearchNotConfigured("iliad_web_research");
   const res = await firecrawlPost(
     SCRAPE_URL,
     { url, formats: ["markdown"], onlyMainContent, timeout: SCRAPE_TIMEOUT_MS },
@@ -99,7 +104,7 @@ export async function firecrawlCrawl(
   limit: number,
   onlyMainContent = true,
 ): Promise<CrawlResult | WebResearchNotConfigured> {
-  if (!process.env.FIRECRAWL_API_KEY) return notConfigured("iliad_web_research_crawl");
+  if (!process.env.FIRECRAWL_API_KEY) return webResearchNotConfigured("iliad_web_research_crawl");
   const res = await firecrawlPost(
     CRAWL_URL,
     { url, limit, allowBackendLinks: false, scrapeOptions: { formats: ["markdown"], onlyMainContent }, timeout: CRAWL_TIMEOUT_MS },
