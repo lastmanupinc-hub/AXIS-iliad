@@ -1,0 +1,216 @@
+# ILIAD_PRODUCT_READINESS_SCORECARD.yaml
+# Purpose: High-resolution tracking of Axis Iliad as a reliable, scalable, monetizable MCP/agent platform.
+# Update rule: Only change scores with concrete, verifiable evidence (merged code, live system, or tracked metrics).
+# Calibration (2026-06-22): scores ground-truthed against the actual repo. The original draft was authored
+#   from the outside and (a) understated the engineering — observability, rate limiting, security, and CI are
+#   more built than scored — and (b) overstated monetization EXECUTION by crediting *capability* as *revenue*.
+#   `where_to_look` paths were corrected to this repo's real layout (TS monorepo: apps/api, apps/web, packages/*;
+#   there is no ProgramPipeline.js / mcp/ / frontend/).
+# Last updated: 2026-06-22
+
+meta:
+  product: "Axis Iliad"
+  repo: "lastmanupinc-hub/axis-iliad"
+  version: "2026-06-22"
+  methodology: "Each criterion scored 0-10. Category score = average of its criteria. Overall = weighted average."
+  calibration_note: "Capability is not revenue. Engineering criteria are evidenced in code; ME-01 (live paying users) is the one score that can ONLY move on real Stripe/PAI'D dashboard data, which is not visible from the repo."
+
+overall:
+  current_score: 6.8
+  target_score: 10.0
+  trend: "build improving; monetization execution is the lagging dimension"
+  next_milestone: "First sustained, tracked paid conversions — distribution + activation, not more platform engineering"
+  composition_insight: |
+    Re-weighting the calibrated criteria barely moves the headline (7.0 -> 6.8), but the shape changes:
+    production_infrastructure_ops rises 6.5 -> 7.8 and monetization_execution falls 7.5 -> 4.3 (the heaviest
+    category at 25%). The original scorecard masked the real bottleneck by scoring "we built the payment rails"
+    as "we have growing paid users." The platform is more production-ready than the build-out criteria implied;
+    the gap is getting users to it and converting them.
+
+categories:
+  - name: core_product
+    current_score: 7.75
+    target_score: 10
+    weight: 25
+    criteria:
+      - id: CP-01
+        description: "All programs consistently generate high-quality, production-usable artifacts"
+        measurement: ">=90% of generated artifacts across a 10+ repo sample rated 'usable / minor edits' by structured review."
+        where_to_look:
+          - "packages/generator-core/src/"
+          - "apps/api/src/handlers.ts (makeProgramHandler, PROGRAM_OUTPUTS)"
+          - "apps/api/src/counts.ts (ARTIFACT_COUNT, PROGRAM_COUNT — derived, not hardcoded)"
+        current_status: 8
+        evidence: "Pipeline works; program/artifact counts derive dynamically from generator-core. Deterministic output."
+        gaps: "No structured per-program quality scoring on a real repo sample; bottom programs unmeasured."
+        action_items:
+          - "Score the bottom 3 programs on a fixed repo sample; add an artifact-quality check to CI."
+
+      - id: CP-02
+        description: "MCP server is reliable and feature-complete for agent workflows"
+        measurement: "All advertised tools work; concurrent requests handled; <1% error rate over 7 days; consistent structured output."
+        where_to_look:
+          - "apps/api/src/mcp-server.ts"
+          - "packages/snapshots/src/mcp-usage-store.ts (persistent per-call telemetry)"
+          - "packages/snapshots/src/idempotency-store.ts (retry-safe paid path)"
+          - "https://axis-api-6c7z.onrender.com/mcp (live)"
+        current_status: 7.5
+        evidence: "Live, registry-listed; full tool dispatch; idempotency on the paid path; per-call telemetry now persisted."
+        gaps: "The <1% error-rate-over-7-days bar is unproven — the telemetry to PROVE it only just landed."
+        action_items:
+          - "Publish a 7-day error-rate + latency readout from mcp_usage / metrics before claiming 8+."
+
+  - name: safety_compliance_implementation
+    current_score: 7.25
+    target_score: 10
+    weight: 15
+    criteria:
+      - id: SC-01
+        description: "Clear and enforceable data handling + privacy practices"
+        measurement: "Policies match implementation; no sensitive data kept longer than needed; clean independent review = 10."
+        where_to_look:
+          - "PRIVACY_POLICY.md"
+          - "TERMS_OF_SERVICE.md (mirrored in apps/web/src/pages/TermsPage.tsx)"
+          - "SECURITY.md"
+          - "packages/snapshots/src/db.ts (purgeStaleData, runMaintenance, deleteSnapshot, deleteProject)"
+        current_status: 7
+        evidence: "Policy + terms + security docs exist; retention/deletion flows implemented (purgeStaleData, deleteSnapshot/Project, runMaintenance)."
+        gaps: "No external review; data-flow map not formally reconciled against the policy text."
+        action_items:
+          - "Map actual data flows against PRIVACY_POLICY.md; confirm retention windows are enforced on a schedule."
+
+      - id: SC-02
+        description: "Secure handling of user repositories and credentials"
+        measurement: "No needless long-lived storage of repo/tokens; secrets never logged; scoped/encrypted tokens; isolated analysis."
+        where_to_look:
+          - "HARDENING_AUDIT.md (7 fixes applied: unauth IDOR, token-leak-on-redirect, timing-unsafe admin key, webhook crash, billing auth/capture, ...)"
+          - "packages/snapshots/src/github-token-store.ts (AES-256-GCM, prod refuses dev fallback)"
+          - "packages/snapshots/src/billing-store.ts (API keys sha256-hashed at rest)"
+          - "apps/api/src/code-sandbox.ts (Docker-isolated, NetworkMode:none)"
+        current_status: 7.5
+        evidence: "Tokens AES-256-GCM; API keys hashed at rest; constant-time admin/key compares; signed webhooks w/ replay window; sandbox genuinely isolated; SQL fully parameterized."
+        gaps: "SSRF guards on server-side fetch (document-parsing/STT) still open; session still a localStorage bearer (cookie Stage A landed; B/C pending). Both tracked in HARDENING_AUDIT.md."
+        action_items:
+          - "Land the SSRF host-guard + the cookie cutover Stages B/C."
+
+  - name: production_infrastructure_ops
+    current_score: 7.83
+    target_score: 10
+    weight: 20
+    criteria:
+      - id: PI-01
+        description: "Observability and operational visibility"
+        measurement: "Metrics for success rate, latency (p50/p95/p99), error rate, volume; alerts on critical thresholds; <10min diagnosis."
+        where_to_look:
+          - "apps/api/src/metrics.ts (latency histograms, recordLatency, HistogramEntry)"
+          - "apps/api/src/logger.ts (structured logs, request_id, ErrorCode)"
+          - "apps/api/src/server.ts (/v1/metrics, /v1/health/live, /v1/health/ready)"
+          - "apps/api/src/admin.ts + mcp-usage-store (admin MCP-usage dashboard)"
+        current_status: 7.5
+        evidence: "Latency histograms, structured request-scoped logging, liveness/readiness + /v1/metrics endpoints, and a persistent MCP-usage telemetry + admin dashboard all exist."
+        gaps: "Instrumentation is solid; ALERTING is the missing piece — no automated threshold alerts wired to a channel."
+        action_items:
+          - "Add alerting (error-rate / p99 / health) onto the metrics already emitted — the cheapest real gain on this scorecard."
+
+      - id: PI-02
+        description: "Reliable deployment and change management"
+        measurement: "Automated, reversible, low-risk deploys; safe migration rollout; <30min to prod with rollback."
+        where_to_look:
+          - ".github/workflows/ (ci.yml, compliance-check.yml, context-freshness.yml, release.yml)"
+          - "render.yaml + Dockerfile"
+          - "packages/snapshots/src/db.ts (versioned forward-only MIGRATIONS, currently v25)"
+        current_status: 8
+        evidence: "~2,300 tests across 161 files gate every PR via CI; compliance + context-freshness gates; versioned migrations; Render + Docker deploy."
+        gaps: "No canary/staged rollout; rollback procedure not formally documented/tested; single instance."
+        action_items:
+          - "Document + rehearse a rollback; consider a staging environment before canary."
+
+      - id: PI-03
+        description: "Rate limiting, quotas, and abuse protection"
+        measurement: "Public + MCP endpoints have enforceable, tiered limits and quotas; abuse detectable/mitigable."
+        where_to_look:
+          - "apps/api/src/rate-limiter.ts (auth-aware tiered limits, RateLimit-* headers, trusted-proxy client IP)"
+          - "packages/snapshots/src/billing-store.ts (checkQuota, TIER_LIMITS, max_snapshots_per_month)"
+          - "packages/snapshots/src/usage-credit-metering.ts (per-tool credit metering + overage)"
+        current_status: 8
+        evidence: "Tiered (free vs authenticated) rate limiting with standard headers and trusted-proxy-aware IP; monthly quotas via checkQuota/TIER_LIMITS; per-tool usage-credit metering with allowance + overage."
+        gaps: "No anomaly/abuse DETECTION layer (limits are enforced, but spikes aren't flagged); quota dashboards thin."
+        action_items:
+          - "Add simple abuse signals (per-IP/per-account spike detection) on top of the existing limiter."
+
+  - name: monetization_strategy
+    current_score: 8.0
+    target_score: 10
+    weight: 15
+    criteria:
+      - id: MS-01
+        description: "Clear, tested, and optimized pricing & packaging"
+        measurement: "Freemium tiers clearly communicated; free->paid conversion tracked; pricing validated/iterated on feedback."
+        where_to_look:
+          - "apps/web/src/pages/PlansPage.tsx + packages/snapshots PLAN_CATALOG"
+          - "apps/api/src/billing.ts (tiers, PERSISTENCE_CREDIT_PACKS), paid-handlers.ts, stripe.ts"
+          - "apps/api/src/credit-pack-handlers.ts (credit-pack top-ups via PAI'D — PR #24)"
+        current_status: 8
+        evidence: "Freemium + per-tool metering + credit packs live; two pay rails (Stripe-direct + PAI'D hosted). Packaging is clear."
+        gaps: "Conversion/sensitivity not yet VALIDATED with real data; no pricing experiment run."
+        action_items:
+          - "Instrument and read the free->paid funnel; iterate pricing only once there is conversion data."
+
+  - name: monetization_execution
+    current_score: 4.3
+    target_score: 10
+    weight: 25
+    criteria:
+      - id: ME-01
+        description: "Live paying users with measurable growth"
+        measurement: "Consistent paid conversions (pro unlocks or agent payments) with visible MoM growth; revenue/active-paid tracked."
+        where_to_look:
+          - "Stripe dashboard + PAI'D ledger (NOT visible from the repo — authoritative source for this score)"
+          - "ACTIVATION_TRACKER.md"
+        current_status: 3.5
+        evidence: "Payment capability is real and tested (Stripe-direct, PAI'D hosted checkout, credit-pack top-ups, agent x402 metering). But capability != revenue."
+        gaps: "No evidence of sustained paying users or MoM growth; the active workstream is explicitly a $0 -> revenue effort. This is the platform's real bottleneck."
+        action_items:
+          - "Land the FIRST sustained paid conversions and surface MRR / active-paid in ACTIVATION_TRACKER.md."
+          - "Wire the Stripe/PAI'D revenue number into a tracked metric so this score moves on data, not estimate."
+
+      - id: ME-02
+        description: "Repeatable user acquisition and activation"
+        measurement: "Measurable visitor -> first analysis -> paid path; activation rate + time-to-value tracked and improving."
+        where_to_look:
+          - "ACTIVATION_TRACKER.md"
+          - "apps/web/src/ (UploadPage, onboarding) + funnel-store (FunnelMetrics: conversion_rate, activation_rate)"
+          - "MCP registry listings + SEO assets (llms.txt, /for-agents, sitemap)"
+        current_status: 5
+        evidence: "Onboarding is low-friction (GitHub URL intake, public site); funnel-store already computes conversion/activation rates; SEO/agent-discovery surfaces exist."
+        gaps: "The acquisition -> activation -> conversion LOOP is unproven and unoptimized; the instrumentation to drive it (mcp_usage, funnel metrics) is new and not yet acted on."
+        action_items:
+          - "Stand up the funnel readout, set an activation baseline, and run one distribution experiment (registry/SEO)."
+
+overall_readiness:
+  current_score: 6.8
+  target_score: 10.0
+  definition_of_10: |
+    A new user uploads a repo and gets high-quality, usable artifacts in <5 minutes.
+    The platform runs reliably with observability AND alerting and tiered rate limiting (limits exist; alerting is the gap).
+    Paid conversion is healthy and GROWING on tracked data.
+    The system absorbs significantly higher load without architectural change.
+
+priority_focus_areas:
+  high:
+    - "Monetization execution: first sustained, TRACKED paid conversions (ME-01) — the real bottleneck, heaviest weight."
+    - "Distribution + activation loop: instrument the funnel, set a baseline, run one registry/SEO experiment (ME-02)."
+    - "Alerting on the metrics already emitted (PI-01) — cheapest engineering gain remaining."
+  medium:
+    - "Finish the tracked security backlog: SSRF guards + cookie cutover Stages B/C (SC-02)."
+    - "Publish a 7-day MCP error-rate/latency readout to substantiate CP-02."
+    - "Per-program artifact-quality scoring on a fixed repo sample (CP-01)."
+  low:
+    - "Canary/staged rollout + rehearsed rollback (PI-02)."
+    - "Prepare for a future SOC 2 / higher-assurance review."
+
+notes: |
+  Calibrated against the live repo on 2026-06-22. The engineering build-out (observability, rate limiting,
+  security, CI, billing correctness) is genuinely strong and was UNDER-scored in the original draft; the gap
+  is monetization EXECUTION, which was OVER-scored by treating built payment rails as realized revenue.
+  Treat ME-01 as the north star: it can only move on real Stripe/PAI'D dashboard data, not on shipped code.
