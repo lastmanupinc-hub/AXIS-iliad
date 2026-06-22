@@ -108,6 +108,7 @@ import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthInt
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
+import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
@@ -415,6 +416,11 @@ router.get("/v1/billing/proration", handleProrationPreview);
 // Persistence Credits
 router.get("/v1/account/credits", handleGetCredits);
 router.post("/v1/account/credits", handleAddCredits);
+
+// Credit-pack top-ups (paid persistence-credit purchases via PAI'D)
+router.get("/v1/credits/packs", handleListCreditPacks);
+router.post("/v1/credits/topup", handleCreateCreditTopup);
+router.get("/v1/credits/purchases", handleListMyPurchases);
 
 // Plans & Funnel
 router.get("/v1/plans", handleGetPlans);

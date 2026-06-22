@@ -173,6 +173,59 @@ export async function createCheckoutSession(
   );
 }
 
+export interface CreateTopupCheckoutInput {
+  /** Authoritative price in minor units (cents), resolved server-side. */
+  amountCents: number;
+  description: string;
+  successUrl: string;
+  cancelUrl: string;
+  /** Forwarded to PAI'D → Stripe → the webhook. Must carry `type` for routing. */
+  metadata: Record<string, string>;
+  customerEmail?: string;
+  idempotencyKey?: string;
+}
+
+/**
+ * Create a one-shot hosted checkout session via PAI'D for a NON-subscription
+ * purchase (credit-pack top-ups, one-time fees). Same wire shape as
+ * createCheckoutSession but carries caller-supplied metadata (so the webhook can
+ * route fulfilment) and needs no plan/cycle/email. Money lands in PAI'D's Stripe
+ * balance; PAI'D forwards checkout.session.completed to our webhook to grant.
+ */
+export async function createTopupCheckoutSession(
+  input: CreateTopupCheckoutInput,
+  config: PaidConfig = loadPaidConfig(),
+): Promise<CheckoutSession> {
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+    throw new Error("amountCents must be a positive integer (cents)");
+  }
+  if (!input.successUrl || !input.cancelUrl) {
+    throw new Error("successUrl and cancelUrl are required");
+  }
+  const idem = input.idempotencyKey ?? randomUUID();
+  return paidPost<CheckoutSession>(
+    "/checkout/sessions",
+    {
+      mode: "payment",
+      line_items: [
+        {
+          ad_hoc: { amount: input.amountCents, currency: "USD", description: input.description },
+          quantity: 1,
+        },
+      ],
+      payment_method_types: ["card"],
+      amount_total_minor: input.amountCents,
+      currency: "USD",
+      success_url: input.successUrl,
+      cancel_url: input.cancelUrl,
+      ...(input.customerEmail ? { customer_email: input.customerEmail } : {}),
+      metadata: input.metadata,
+    },
+    config,
+    idem,
+  );
+}
+
 // ─── Webhook signature verification ──────────────────────────────
 //
 // PAI'D signs webhook payloads with HMAC-SHA256 using the merchant's
