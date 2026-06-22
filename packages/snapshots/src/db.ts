@@ -603,6 +603,32 @@ CREATE TABLE IF NOT EXISTS idempotency_keys (
 CREATE INDEX IF NOT EXISTS idx_idempotency_created ON idempotency_keys(created_at);
 `,
   },
+  {
+    version: 25,
+    name: "add_credit_pack_purchases",
+    sql: `
+-- Audit + idempotency ledger for paid credit-pack top-ups routed through PAI'D.
+-- The spendable balance still lives in persistence_credits (granted on payment
+-- success); this table only tracks the purchase lifecycle so a webhook retry
+-- can't double-grant. The partial UNIQUE on paid_session_id enforces one
+-- purchase per PAI'D checkout session.
+CREATE TABLE IF NOT EXISTS credit_pack_purchases (
+  purchase_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  pack_id TEXT NOT NULL,
+  credits INTEGER NOT NULL,
+  price_cents INTEGER NOT NULL,
+  paid_session_id TEXT,
+  paid_payment_intent_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  succeeded_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_credit_packs_account ON credit_pack_purchases(account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_packs_session ON credit_pack_purchases(paid_session_id) WHERE paid_session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_credit_packs_status ON credit_pack_purchases(status);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

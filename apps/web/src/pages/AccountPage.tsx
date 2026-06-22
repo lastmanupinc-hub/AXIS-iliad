@@ -7,6 +7,7 @@ import {
   revokeApiKey,
   getUsage,
   getCredits,
+  createCreditTopup,
   createCheckout,
   getSubscription,
   cancelSubscription,
@@ -37,6 +38,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [seats, setSeats] = useState<{ seats: Seat[]; count: number; limit: number; remaining: number } | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
   const [credits, setCredits] = useState<CreditsInfo | null>(null);
+  const [topupBusy, setTopupBusy] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -429,6 +431,37 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
               <div className="stat-label">Tier</div>
             </div>
           </div>
+          {credits.credit_packs.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: 8 }}>
+                Buy more credits — secure checkout via PAI'D
+              </div>
+              <div className="grid grid-3">
+                {credits.credit_packs.map((p) => (
+                  <button
+                    key={p.pack_id}
+                    type="button"
+                    className="btn"
+                    disabled={topupBusy !== null}
+                    onClick={async () => {
+                      setTopupBusy(p.pack_id);
+                      try {
+                        const session = await createCreditTopup(p.pack_id);
+                        window.location.href = session.checkout_url;
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : "Top-up failed");
+                        setTopupBusy(null);
+                      }
+                    }}
+                  >
+                    {topupBusy === p.pack_id
+                      ? "Redirecting…"
+                      : `${p.credits.toLocaleString()} credits — $${(p.price_cents / 100).toFixed(0)}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {credits.ledger.length > 0 && (
             <details style={{ marginTop: 12 }}>
               <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}>Recent transactions</summary>

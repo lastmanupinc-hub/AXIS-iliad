@@ -199,6 +199,17 @@ export {
 } from "./idempotency-store.js";
 export type { IdempotentRecord } from "./idempotency-store.js";
 
+// Credit-pack top-ups — one-shot persistence-credit purchases routed through PAI'D.
+export type { CreditPackPurchase, CreditPackStatus, CreditPackCatalogEntry } from "./credit-pack-store.js";
+export {
+  listCreditPackCatalog,
+  getCreditPack,
+  recordPendingPurchase,
+  markPurchaseSucceeded,
+  getPurchaseBySession,
+  listPurchasesByAccount,
+} from "./credit-pack-store.js";
+
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {

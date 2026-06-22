@@ -33,6 +33,7 @@ describe("openMemoryDb", () => {
       "api_keys",
       "code_symbols",
       "context_maps",
+      "credit_pack_purchases",
       "email_deliveries",
       "funnel_events",
       "generation_versions",
@@ -337,14 +338,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(24);
+    expect(getSchemaVersion(db)).toBe(25);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(24);
+    expect(result.current_version).toBe(25);
   });
 
   it("creates rate_limits table via migration", () => {
@@ -394,7 +395,7 @@ describe("migration framework", () => {
 
     const result = runMigrations(db);
     expect(result.applied).toBeGreaterThanOrEqual(1); // v22 (+ any later migrations) re-applied
-    expect(result.current_version).toBe(24);
+    expect(result.current_version).toBe(25);
 
     const email = (id: string) =>
       (db.prepare("SELECT email FROM accounts WHERE account_id = ?").get(id) as { email: string }).email;

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, getAccountByEmail } from "@axis/snapshots";
+import { openMemoryDb, closeDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -446,5 +446,54 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     const lines = stdoutSpy.mock.calls.map((c) => String(c[0])).join("");
     expect(lines).toContain("defaulting tier to paid");
     expect(lines).toContain("plan_does_not_exist");
+  });
+});
+
+describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
+  it("grants credits once on checkout.session.completed and is idempotent", async () => {
+    const acct = await createAccount("topup-webhook@test.com");
+    const accountId = acct.account_id as string;
+    recordPendingPurchase({
+      account_id: accountId,
+      pack_id: "pack_100",
+      credits: 100,
+      price_cents: 500,
+      paid_session_id: "cs_topup_1",
+    });
+    expect(getPersistenceBalance(accountId)).toBe(0);
+
+    const body = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_topup_1", payment_intent: "pi_topup_1", metadata: { type: "axis_credit_topup" } } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.status).toBe(200);
+    expect(r.data.credit_topup).toBe(true);
+    expect(r.data.credits).toBe(100);
+    expect(getPersistenceBalance(accountId)).toBe(100);
+
+    // Webhook retry — no second grant.
+    const again = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(again.status).toBe(200);
+    expect(again.data.credit_topup).toBe(false);
+    expect(getPersistenceBalance(accountId)).toBe(100);
+  });
+
+  it("leaves the account tier unchanged for a topup event", async () => {
+    const acct = await createAccount("topup-tier@test.com");
+    recordPendingPurchase({
+      account_id: acct.account_id as string,
+      pack_id: "pack_500",
+      credits: 500,
+      price_cents: 2000,
+      paid_session_id: "cs_topup_2",
+    });
+    const body = JSON.stringify({
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_topup_2", metadata: { type: "axis_credit_topup" } } },
+    });
+    const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(r.data.tier_change).toBeUndefined();
+    expect(getAccountByEmail("topup-tier@test.com")?.tier).toBe("free");
   });
 });

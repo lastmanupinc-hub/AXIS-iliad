@@ -604,6 +604,46 @@ export async function getCredits(): Promise<CreditsInfo> {
   return fetchJSON("/v1/account/credits");
 }
 
+// ─── Credit-pack top-ups (paid, via PAI'D hosted checkout) ──────────
+export interface CreditPack {
+  pack_id: string;
+  credits: number;
+  price_cents: number;
+}
+
+export async function listCreditPacks(): Promise<{ packs: CreditPack[] }> {
+  return fetchJSON("/v1/credits/packs");
+}
+
+export interface TopupSession {
+  checkout_url: string;
+  session_id: string;
+  pack_id: string;
+  credits: number;
+  price_cents: number;
+}
+
+export async function createCreditTopup(packId: string): Promise<TopupSession> {
+  return fetchJSON("/v1/credits/topup", {
+    method: "POST",
+    body: JSON.stringify({ pack_id: packId }),
+  });
+}
+
+export interface CreditPurchase {
+  purchase_id: string;
+  pack_id: string;
+  credits: number;
+  price_cents: number;
+  status: "pending" | "succeeded";
+  created_at: string;
+  succeeded_at: string | null;
+}
+
+export async function listMyCreditPurchases(): Promise<{ purchases: CreditPurchase[] }> {
+  return fetchJSON("/v1/credits/purchases");
+}
+
 // ─── Seats API ──────────────────────────────────────────────────
 
 export interface Seat {

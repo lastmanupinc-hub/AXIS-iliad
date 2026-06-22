@@ -29,6 +29,7 @@ import {
   updateAccountTier,
   logTierChange,
   trackEvent,
+  markPurchaseSucceeded,
   PLAN_CATALOG,
 } from "@axis/snapshots";
 
@@ -297,6 +298,39 @@ export async function handlePaidWebhook(
 
   const obj = event.data?.object ?? {};
   const meta = (obj.metadata ?? {}) as Record<string, unknown>;
+
+  // Credit-pack top-up fulfilment — a one-shot purchase, not a tier change.
+  // Grant the credits exactly once (markPurchaseSucceeded is idempotent on the
+  // session id, so a webhook retry returns null and re-grants nothing).
+  if (eventType === "checkout.session.completed" && meta.type === "axis_credit_topup") {
+    const sessionId =
+      (typeof obj.id === "string" && obj.id) ||
+      (typeof obj.session_id === "string" ? obj.session_id : "");
+    const paymentIntentId = typeof obj.payment_intent === "string" ? obj.payment_intent : undefined;
+    if (!sessionId) {
+      sendJSON(res, 200, { received: true, event: eventType, handled: false, reason: "no_session_id" });
+      return;
+    }
+    const granted = markPurchaseSucceeded(sessionId, paymentIntentId);
+    if (granted) {
+      trackEvent(granted.account_id, "upgrade_completed", "conversion", {
+        kind: "credit_topup",
+        pack_id: granted.pack_id,
+        credits: String(granted.credits),
+        price_cents: String(granted.price_cents),
+        session_id: sessionId,
+      });
+    }
+    sendJSON(res, 200, {
+      received: true,
+      event: eventType,
+      handled: true,
+      credit_topup: Boolean(granted),
+      credits: granted?.credits ?? 0,
+    });
+    return;
+  }
+
   // For hosted checkout the buyer email rides in metadata.user_email; for
   // subscription events it's customer_email/email on the object.
   const customerEmail = (meta.user_email ?? obj.customer_email ?? obj.email) as string | undefined;
