@@ -314,6 +314,19 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
+/** Trade a one-time OAuth code (from the callback redirect) for the API key. */
+export async function exchangeOAuthCode(code: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/v1/auth/exchange`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) throw new Error(`OAuth exchange failed: ${res.status}`);
+  const data = (await res.json()) as { api_key?: string };
+  if (!data.api_key) throw new Error("OAuth exchange returned no api_key");
+  return data.api_key;
+}
+
 async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
   const controller = new AbortController();
   const { timeoutMs: customTimeout, ...fetchInit } = init ?? {};

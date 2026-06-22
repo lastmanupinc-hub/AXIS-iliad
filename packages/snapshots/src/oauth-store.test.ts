@@ -4,6 +4,8 @@ import { createAccount, getAccountByEmail, resolveApiKey } from "./billing-store
 import {
   createOAuthState,
   consumeOAuthState,
+  createAuthCode,
+  consumeAuthCode,
   getGitHubAuthUrl,
   exchangeGitHubCode,
   getGitHubUser,
@@ -156,6 +158,22 @@ describe("OAuth migration", () => {
 });
 
 // ─── exchangeGitHubCode (mocked fetch) ──────────────────────────
+
+describe("one-time auth code", () => {
+  it("hands back the raw key exactly once (single-use)", () => {
+    const code = createAuthCode("axis_rawkey_abc");
+    expect(consumeAuthCode(code)).toBe("axis_rawkey_abc");
+    expect(consumeAuthCode(code)).toBeNull(); // already consumed
+  });
+
+  it("returns null for an unknown code", () => {
+    expect(consumeAuthCode("does-not-exist")).toBeNull();
+  });
+
+  it("issues distinct codes per call", () => {
+    expect(createAuthCode("k1")).not.toBe(createAuthCode("k2"));
+  });
+});
 
 describe("exchangeGitHubCode", () => {
   afterEach(() => { vi.restoreAllMocks(); });

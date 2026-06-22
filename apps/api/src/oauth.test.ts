@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import { openMemoryDb, closeDb, createOAuthState, getAccountByGitHubId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange } from "./oauth.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
 let server: Server;
@@ -13,10 +13,12 @@ let testPort = 0;
 
 interface Res { status: number; headers: Record<string, string>; data: string }
 
-async function req(method: string, path: string): Promise<Res> {
+async function req(method: string, path: string, body?: unknown): Promise<Res> {
   return new Promise((resolve, reject) => {
+    const payload = body !== undefined ? JSON.stringify(body) : undefined;
+    const headers: Record<string, string> = payload ? { "Content-Type": "application/json" } : {};
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: testPort, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -30,6 +32,7 @@ async function req(method: string, path: string): Promise<Res> {
       },
     );
     r.on("error", reject);
+    if (payload) r.write(payload);
     r.end();
   });
 }
@@ -40,6 +43,7 @@ describe("OAuth API routes", () => {
     const router = new Router();
     router.get("/v1/auth/github", handleGitHubOAuthStart);
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
+    router.post("/v1/auth/exchange", handleOAuthExchange);
     const ts = await startTestServer(router);
     server = ts.server;
     testPort = ts.port;
@@ -158,13 +162,23 @@ describe("OAuth API routes", () => {
       const res = await req("GET", `/v1/auth/github/callback?code=valid_code&state=${state}`);
       expect(res.status).toBe(302);
       expect(res.headers.location).toContain("http://localhost:3000/account?");
-      expect(res.headers.location).toContain("key=axis_");
+      expect(res.headers.location).toContain("code=");
       expect(res.headers.location).toContain("login=github");
+      expect(res.headers.location).not.toContain("axis_"); // raw key never in the URL
+      expect(res.headers["referrer-policy"]).toBe("no-referrer");
 
       // Verify account was created and linked
       const acct = getAccountByGitHubId("12345");
       expect(acct).toBeDefined();
       expect(acct!.name).toBe("Test User");
+
+      // The one-time code exchanges (exactly once) for the real API key.
+      const handoff = new URL(res.headers.location).searchParams.get("code")!;
+      const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
+      expect(exch.status).toBe(200);
+      expect(JSON.parse(exch.data).api_key).toMatch(/^axis_/);
+      const again = await req("POST", "/v1/auth/exchange", { code: handoff });
+      expect(again.status).toBe(400); // single-use
     } finally {
       fetchSpy.mockRestore();
       delete process.env.GITHUB_CLIENT_ID;

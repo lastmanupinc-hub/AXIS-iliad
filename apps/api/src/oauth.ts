@@ -1,9 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { sendJSON, sendError } from "./router.js";
+import { sendJSON, sendError, readBody } from "./router.js";
 import { ErrorCode } from "./logger.js";
 import {
   createOAuthState,
   consumeOAuthState,
+  createAuthCode,
+  consumeAuthCode,
   getGitHubAuthUrl,
   exchangeGitHubCode,
   getGitHubUser,
@@ -88,15 +90,47 @@ export async function handleGitHubOAuthCallback(
     // Store the GitHub access token (encrypted) for later API use
     saveGitHubToken(account.account_id, tokenResponse.access_token, "oauth");
 
-    // Redirect to web app with the API key
+    // Hand the key to the web app via a one-time code, NOT the URL — so the raw
+    // key never appears in the address bar, browser history, Referer, or logs.
+    const handoffCode = createAuthCode(rawKey);
     const redirectUrl = new URL("/account", webAppUrl);
-    redirectUrl.searchParams.set("key", rawKey);
+    redirectUrl.searchParams.set("code", handoffCode);
     redirectUrl.searchParams.set("login", "github");
-    res.writeHead(302, { Location: redirectUrl.toString() });
+    res.writeHead(302, {
+      Location: redirectUrl.toString(),
+      "Referrer-Policy": "no-referrer",
+      "Cache-Control": "no-store",
+    });
     res.end();
   } catch (err) {
     const msg = err instanceof Error ? err.message : "OAuth exchange failed";
     res.writeHead(302, { Location: `${webAppUrl}/account?error=${encodeURIComponent(msg)}` });
     res.end();
   }
+}
+
+/** POST /v1/auth/exchange — trade a one-time OAuth code for the API key (body: { code }). */
+export async function handleOAuthExchange(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  let body: { code?: unknown };
+  try {
+    body = JSON.parse(await readBody(req));
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+  const code = body.code;
+  if (typeof code !== "string" || !code) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "code is required");
+    return;
+  }
+  const rawKey = consumeAuthCode(code);
+  if (!rawKey) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Invalid or expired code");
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store");
+  sendJSON(res, 200, { api_key: rawKey });
 }

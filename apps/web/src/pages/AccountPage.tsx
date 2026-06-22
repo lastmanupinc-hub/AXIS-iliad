@@ -13,6 +13,7 @@ import {
   listSeats,
   inviteSeat,
   revokeSeat,
+  exchangeOAuthCode,
   type Account,
   type ApiKeyInfo,
   type UsageSummary,
@@ -49,20 +50,25 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
 
   const isLoggedIn = !!localStorage.getItem("axis_api_key");
 
-  // Handle OAuth redirect (key in URL params)
+  // Handle the OAuth callback: trade the one-time ?code= for the API key — the
+  // key is never placed in the URL. Scrub the URL immediately, either way.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const oauthKey = params.get("key");
+    const oauthCode = params.get("code");
     const oauthLogin = params.get("login");
     const oauthError = params.get("error");
     if (oauthError) {
       setError(`GitHub login failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
-    } else if (oauthKey && oauthLogin === "github") {
-      localStorage.setItem("axis_api_key", oauthKey);
+    } else if (oauthCode && oauthLogin === "github") {
       window.history.replaceState({}, "", window.location.pathname);
-      onAuthChange?.();
-      window.location.reload();
+      exchangeOAuthCode(oauthCode)
+        .then((apiKey) => {
+          localStorage.setItem("axis_api_key", apiKey);
+          onAuthChange?.();
+          window.location.reload();
+        })
+        .catch((e) => setError(`GitHub login failed: ${e instanceof Error ? e.message : "exchange error"}`));
     }
   }, [onAuthChange]);
 

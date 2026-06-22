@@ -141,6 +141,8 @@ export type { GitHubTokenResponse, GitHubUser } from "./oauth-store.js";
 export {
   createOAuthState,
   consumeOAuthState,
+  createAuthCode,
+  consumeAuthCode,
   getGitHubAuthUrl,
   exchangeGitHubCode,
   getGitHubUser,
