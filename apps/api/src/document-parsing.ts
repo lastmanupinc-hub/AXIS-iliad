@@ -55,6 +55,24 @@ export interface NotConfiguredResult {
 const MAX_DOC_BYTES = 52_428_800; // 50 MiB
 const MAX_DOWNLOAD_TIMEOUT_MS = 60_000;
 const MAX_MARKDOWN_CHARS = 1_048_576; // 1 MiB output cap with truncation marker
+const MAX_PDF_PAGES = 500; // page-bomb guard — cap pages extracted from one PDF
+const PARSE_TIME_BUDGET_MS = 20_000; // wall-clock budget for PDF page extraction
+const DOCX_PARSE_TIMEOUT_MS = 20_000; // mammoth runs uninterrupted; bound the wait
+
+/**
+ * Reject with `label` if `p` doesn't settle within `ms`. The underlying work is
+ * not cancelled (no worker thread), so this bounds the response time, not the CPU
+ * spent — a decompression bomb still burns cycles in the background until it ends.
+ */
+export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => {
+      const t = setTimeout(() => reject(new Error(label)), ms);
+      t.unref();
+    }),
+  ]);
+}
 
 // ─── Validation ─────────────────────────────────────────────────
 
@@ -212,8 +230,17 @@ async function parsePdf(buf: Buffer): Promise<PdfExtractResult> {
   });
   const doc = await loadingTask.promise;
   const pages: string[] = [];
+  // Page-bomb / slow-PDF guard: cap both the page count AND the wall-clock spent.
+  // The loop awaits between pages, so both bounds are actually enforceable here.
+  const maxPages = Math.min(doc.numPages, MAX_PDF_PAGES);
+  const start = Date.now();
+  let stoppedAt = 0;
   try {
-    for (let p = 1; p <= doc.numPages; p++) {
+    for (let p = 1; p <= maxPages; p++) {
+      if (Date.now() - start > PARSE_TIME_BUDGET_MS) {
+        stoppedAt = p - 1;
+        break;
+      }
       const page = await doc.getPage(p);
       const content = await page.getTextContent();
       const items = content.items as Array<{ str?: string }>;
@@ -222,6 +249,11 @@ async function parsePdf(buf: Buffer): Promise<PdfExtractResult> {
     }
   } finally {
     await doc.destroy();
+  }
+  if (stoppedAt > 0) {
+    pages.push(`--- parsing stopped after ${stoppedAt} pages (time budget exceeded; document has ${doc.numPages}) ---`);
+  } else if (doc.numPages > MAX_PDF_PAGES) {
+    pages.push(`--- truncated: extracted first ${MAX_PDF_PAGES} of ${doc.numPages} pages ---`);
   }
   return {
     markdown: pages.join("\n\n").trim(),
@@ -253,7 +285,11 @@ async function parseDocx(buf: Buffer): Promise<DocxExtractResult> {
   } catch (err) {
     throw new Error(`docx_runtime_missing: ${err instanceof Error ? err.message : String(err)}`);
   }
-  const result = await mammothMod.convertToMarkdown!({ buffer: buf });
+  const result = await withTimeout(
+    mammothMod.convertToMarkdown!({ buffer: buf }),
+    DOCX_PARSE_TIMEOUT_MS,
+    "docx_parse_timeout",
+  );
   // Count rendered tables by occurrence of a markdown table-header rule
   // ("| --- |" pattern). Cheap heuristic but matches mammoth's actual
   // output shape.

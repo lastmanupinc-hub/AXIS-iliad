@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   runDocumentParsing,
   validateParseOptions,
+  withTimeout,
   type NotConfiguredResult,
   type ParseResult,
 } from "./document-parsing.js";
@@ -13,6 +14,16 @@ function isNotConfigured(r: unknown): r is NotConfiguredResult {
 function isParsed(r: unknown): r is ParseResult {
   return Boolean(r && typeof r === "object" && !(r as { _not_configured?: unknown })._not_configured);
 }
+
+describe("withTimeout (parse guards)", () => {
+  it("returns the value when the promise settles in time", async () => {
+    await expect(withTimeout(Promise.resolve(42), 1000, "nope")).resolves.toBe(42);
+  });
+  it("rejects with the label when the work is too slow", async () => {
+    const never = new Promise<never>(() => {});
+    await expect(withTimeout(never, 20, "docx_parse_timeout")).rejects.toThrow("docx_parse_timeout");
+  });
+});
 
 // ─── Validation ─────────────────────────────────────────────────
 
