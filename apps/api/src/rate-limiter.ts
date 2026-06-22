@@ -99,11 +99,26 @@ function startCleanup() {
   if (cleanupTimer.unref) cleanupTimer.unref();
 }
 
+/** Number of trusted proxies in front of the app (Render fronts it with one LB). */
+function trustedProxyHops(): number {
+  const n = process.env.TRUSTED_PROXY_HOPS ? parseInt(process.env.TRUSTED_PROXY_HOPS, 10) : 1;
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}
+
 export function getClientIp(req: IncomingMessage): string {
   const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string") {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
+  if (typeof forwarded === "string" && forwarded.length > 0) {
+    // X-Forwarded-For is "client, proxy1, proxy2…" where each hop APPENDS the peer
+    // it saw. Only the rightmost `hops` entries were added by our own proxies and
+    // are trustworthy; everything to their left is client-supplied and spoofable.
+    // Taking the leftmost (the old behavior) let a caller forge a fresh bucket per
+    // request and bypass the limit. The real client is the entry our outermost
+    // trusted proxy recorded.
+    const list = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    const idx = list.length - trustedProxyHops();
+    if (idx >= 0 && list[idx]) return list[idx];
+    // Fewer entries than configured hops → didn't traverse the expected chain;
+    // fall back to the real TCP peer below.
   }
   return req.socket.remoteAddress ?? "unknown";
 }
