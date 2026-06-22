@@ -36,27 +36,55 @@ function isTestFile(path: string): boolean {
     path.startsWith("test/");
 }
 
+/**
+ * From the index of an opening "{", return the brace-balanced body (exclusive of
+ * the braces) and the index just past the matching "}". null if unbalanced. This
+ * replaces a `\{([^}]*)\}` capture, which stopped at the first "}" and dropped
+ * every field after a nested type.
+ */
+function balancedBraceBody(content: string, openIndex: number): { body: string; end: number } | null {
+  let depth = 0;
+  for (let i = openIndex; i < content.length; i++) {
+    if (content[i] === "{") depth++;
+    else if (content[i] === "}" && --depth === 0) {
+      return { body: content.slice(openIndex + 1, i), end: i + 1 };
+    }
+  }
+  return null;
+}
+
+/**
+ * Run `pattern` (which must end at the opening "{") over `content`, handing the
+ * captured name + the brace-balanced body to `onMatch`, then resume scanning past
+ * the full (possibly nested) body so inner braces never truncate a definition.
+ */
+function collectBraceTypes(
+  content: string,
+  pattern: RegExp,
+  onMatch: (name: string, body: string) => void,
+): void {
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(content)) !== null) {
+    const openIndex = match.index + match[0].length - 1; // the trailing "{"
+    const balanced = balancedBraceBody(content, openIndex);
+    if (!balanced) continue;
+    onMatch(match[1], balanced.body);
+    pattern.lastIndex = balanced.end;
+  }
+}
+
 function extractGoModels(file: FileEntry): DomainModel[] {
   const models: DomainModel[] = [];
 
-  // Go structs
-  const structPattern = /type\s+(\w+)\s+struct\s*\{([^}]*)\}/gs;
-  let match: RegExpExecArray | null;
-  while ((match = structPattern.exec(file.content)) !== null) {
-    const name = match[1];
-    if (name[0] !== name[0].toUpperCase()) continue; // skip unexported
-    const fields = parseGoFields(match[2]);
-    models.push({ name, kind: "struct", language: "Go", fields, source_file: file.path });
-  }
+  collectBraceTypes(file.content, /type\s+(\w+)\s+struct\s*\{/g, (name, body) => {
+    if (name[0] !== name[0].toUpperCase()) return; // skip unexported
+    models.push({ name, kind: "struct", language: "Go", fields: parseGoFields(body), source_file: file.path });
+  });
 
-  // Go interfaces
-  const ifacePattern = /type\s+(\w+)\s+interface\s*\{([^}]*)\}/gs;
-  while ((match = ifacePattern.exec(file.content)) !== null) {
-    const name = match[1];
-    if (name[0] !== name[0].toUpperCase()) continue;
-    const fields = parseGoMethods(match[2]);
-    models.push({ name, kind: "interface", language: "Go", fields, source_file: file.path });
-  }
+  collectBraceTypes(file.content, /type\s+(\w+)\s+interface\s*\{/g, (name, body) => {
+    if (name[0] !== name[0].toUpperCase()) return;
+    models.push({ name, kind: "interface", language: "Go", fields: parseGoMethods(body), source_file: file.path });
+  });
 
   return models;
 }
@@ -67,14 +95,11 @@ function parseGoFields(body: string): Array<{ name: string; type: string }> {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("//")) continue;
+    // The regex requires "name<space>type", so single-token embedded types
+    // (e.g. `io.Reader` on its own line) simply don't match — no extra guard needed.
     const fieldMatch = trimmed.match(/^(\w+)\s+(\S+)/);
     if (fieldMatch) {
-      // Skip embedded types (only one token on the line)
-      const tokens = trimmed.split(/\s+/);
-      /* v8 ignore next — regex /^(\w+)\s+(\S+)/ guarantees ≥2 tokens */
-      if (tokens.length >= 2) {
-        fields.push({ name: fieldMatch[1], type: fieldMatch[2] });
-      }
+      fields.push({ name: fieldMatch[1], type: fieldMatch[2] });
     }
   }
   return fields;
@@ -98,34 +123,22 @@ function parseGoMethods(body: string): Array<{ name: string; type: string }> {
 function extractTSModels(file: FileEntry): DomainModel[] {
   const models: DomainModel[] = [];
 
-  // TypeScript interfaces
-  const ifacePattern = /(?:export\s+)?interface\s+(\w+)(?:\s+extends\s+\w+)?\s*\{([^}]*)\}/gs;
-  let match: RegExpExecArray | null;
-  while ((match = ifacePattern.exec(file.content)) !== null) {
-    const name = match[1];
-    const fields = parseTSFields(match[2]);
-    models.push({ name, kind: "interface", language: "TypeScript", fields, source_file: file.path });
-  }
+  // TypeScript interfaces ([^{]* absorbs an `extends A, B<T>` clause up to the brace).
+  collectBraceTypes(file.content, /(?:export\s+)?interface\s+(\w+)[^{]*\{/g, (name, body) => {
+    models.push({ name, kind: "interface", language: "TypeScript", fields: parseTSFields(body), source_file: file.path });
+  });
 
   // TypeScript type aliases with object shape
-  const typePattern = /(?:export\s+)?type\s+(\w+)\s*=\s*\{([^}]*)\}/gs;
-  while ((match = typePattern.exec(file.content)) !== null) {
-    const name = match[1];
-    const fields = parseTSFields(match[2]);
-    models.push({ name, kind: "type_alias", language: "TypeScript", fields, source_file: file.path });
-  }
+  collectBraceTypes(file.content, /(?:export\s+)?type\s+(\w+)\s*=\s*\{/g, (name, body) => {
+    models.push({ name, kind: "type_alias", language: "TypeScript", fields: parseTSFields(body), source_file: file.path });
+  });
 
   // TypeScript enums
-  const enumPattern = /(?:export\s+)?enum\s+(\w+)\s*\{([^}]*)\}/gs;
-  while ((match = enumPattern.exec(file.content)) !== null) {
-    const name = match[1];
-    const members = match[2].split(",").map((m) => m.trim()).filter(Boolean);
-    const fields = members.map((m) => {
-      const cleaned = m.split("=")[0].trim();
-      return { name: cleaned, type: "member" };
-    });
+  collectBraceTypes(file.content, /(?:export\s+)?enum\s+(\w+)\s*\{/g, (name, body) => {
+    const members = body.split(",").map((m) => m.trim()).filter(Boolean);
+    const fields = members.map((m) => ({ name: m.split("=")[0].trim(), type: "member" }));
     models.push({ name, kind: "enum", language: "TypeScript", fields, source_file: file.path });
-  }
+  });
 
   return models;
 }
@@ -168,7 +181,7 @@ function parsePyFields(classBody: string): Array<{ name: string; type: string }>
   for (const line of lines) {
     const trimmed = line.trim();
     // Stop at next class or top-level definition
-    if (/^class\s+\w+/.test(trimmed) || /^def\s+(?!__init__)/.test(trimmed) && !line.startsWith(" ")) break;
+    if (/^class\s+\w+/.test(trimmed) || (/^def\s+(?!__init__)/.test(trimmed) && !line.startsWith(" "))) break;
 
     // self.name: type = value
     const typedMatch = trimmed.match(/self\.(\w+)\s*:\s*(\w+)/);

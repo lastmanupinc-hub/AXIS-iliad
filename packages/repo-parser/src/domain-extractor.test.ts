@@ -270,4 +270,43 @@ class Second:
       expect(first!.fields[0].name).toBe("a");
     });
   });
+
+  describe("nested braces (regression)", () => {
+    it("keeps fields after a nested anonymous struct (Go)", () => {
+      const models = extractDomainModels([
+        makeFile("domain/order.go", `package domain
+
+type Order struct {
+	ID    int
+	Addr  struct {
+		Street string
+		Zip    string
+	}
+	Total int
+}
+`),
+      ]);
+      expect(models).toHaveLength(1);
+      const names = models[0].fields.map((f) => f.name);
+      // Old [^}]* truncated at the inner "}" and dropped Total.
+      expect(names).toContain("ID");
+      expect(names).toContain("Total");
+    });
+
+    it("keeps fields after a nested object type (TypeScript)", () => {
+      const models = extractDomainModels([
+        makeFile("src/types.ts", `export interface Config {
+  id: string;
+  nested: { a: number; b: number };
+  name: string;
+}
+`),
+      ]);
+      const cfg = models.find((m) => m.name === "Config");
+      expect(cfg).toBeDefined();
+      const names = cfg!.fields.map((f) => f.name);
+      expect(names).toContain("id");
+      expect(names).toContain("name"); // dropped by the old first-"}" truncation
+    });
+  });
 });
