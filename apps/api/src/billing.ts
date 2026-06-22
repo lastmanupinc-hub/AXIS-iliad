@@ -58,10 +58,29 @@ function normalizeBillingTierInput(raw: unknown): BillingTier | null {
   return null;
 }
 
+/** Name of the first-party session cookie set by POST /v1/auth/exchange. */
+export const SESSION_COOKIE = "axis_session";
+
 /**
- * Extract and resolve API key from Authorization header.
- * Sets auth context on the request. Does NOT reject anonymous requests —
- * callers can check context.anonymous to enforce auth when needed.
+ * Read the API key from the HttpOnly session cookie (first-party browser
+ * sessions). Returns null when the cookie is absent or empty.
+ */
+function readSessionCookie(req: IncomingMessage): string | null {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq !== -1 && part.slice(0, eq).trim() === SESSION_COOKIE) {
+      return decodeURIComponent(part.slice(eq + 1).trim()) || null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract and resolve the API key from the Authorization header, X-Axis-Key, or
+ * the first-party HttpOnly session cookie. Sets auth context on the request; does
+ * NOT reject anonymous requests — callers check context.anonymous to enforce auth.
  */
 export function resolveAuth(req: IncomingMessage): AuthContext {
   const cached = AUTH_CONTEXT.get(req);
@@ -76,6 +95,9 @@ export function resolveAuth(req: IncomingMessage): AuthContext {
     rawKey = authHeader.slice(7);
   } else if (typeof xAxisKey === "string" && xAxisKey) {
     rawKey = xAxisKey;
+  } else {
+    // First-party browser session (HttpOnly cookie set by /v1/auth/exchange).
+    rawKey = readSessionCookie(req);
   }
 
   if (!rawKey) {

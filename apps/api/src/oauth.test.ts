@@ -3,7 +3,9 @@ import type { Server } from "node:http";
 import { openMemoryDb, closeDb, createOAuthState, getAccountByGitHubId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout } from "./oauth.js";
+import { resolveAuth } from "./billing.js";
+import { sendJSON } from "./router.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
 let server: Server;
@@ -13,10 +15,13 @@ let testPort = 0;
 
 interface Res { status: number; headers: Record<string, string>; data: string }
 
-async function req(method: string, path: string, body?: unknown): Promise<Res> {
+async function req(method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<Res> {
   return new Promise((resolve, reject) => {
     const payload = body !== undefined ? JSON.stringify(body) : undefined;
-    const headers: Record<string, string> = payload ? { "Content-Type": "application/json" } : {};
+    const headers: Record<string, string> = {
+      ...(payload ? { "Content-Type": "application/json" } : {}),
+      ...extraHeaders,
+    };
     const r = require("node:http").request(
       { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
@@ -26,6 +31,7 @@ async function req(method: string, path: string, body?: unknown): Promise<Res> {
           const h: Record<string, string> = {};
           for (const [k, v] of Object.entries(res.headers)) {
             if (typeof v === "string") h[k] = v;
+            else if (Array.isArray(v)) h[k] = v.join("; "); // e.g. set-cookie
           }
           resolve({ status: res.statusCode ?? 0, headers: h, data: Buffer.concat(chunks).toString("utf-8") });
         });
@@ -44,6 +50,12 @@ describe("OAuth API routes", () => {
     router.get("/v1/auth/github", handleGitHubOAuthStart);
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
     router.post("/v1/auth/exchange", handleOAuthExchange);
+    router.post("/v1/auth/logout", handleOAuthLogout);
+    // Minimal authed probe to exercise the cookie path through resolveAuth.
+    router.get("/whoami", async (r, s) => {
+      const auth = resolveAuth(r);
+      sendJSON(s, 200, { anonymous: auth.anonymous, account_id: auth.account?.account_id ?? null });
+    });
     const ts = await startTestServer(router);
     server = ts.server;
     testPort = ts.port;
@@ -177,6 +189,19 @@ describe("OAuth API routes", () => {
       const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
       expect(exch.status).toBe(200);
       expect(JSON.parse(exch.data).api_key).toMatch(/^axis_/);
+
+      // Exchange also establishes the first-party HttpOnly session cookie.
+      const setCookie = exch.headers["set-cookie"];
+      expect(setCookie).toContain("axis_session=");
+      expect(setCookie).toContain("HttpOnly");
+      expect(setCookie).toContain("SameSite=Lax");
+      expect(setCookie).toContain("Path=/");
+      // The cookie alone authenticates a request — no Authorization header.
+      const cookie = setCookie.split(";")[0];
+      const who = await req("GET", "/whoami", undefined, { Cookie: cookie });
+      expect(JSON.parse(who.data).anonymous).toBe(false);
+      expect(JSON.parse(who.data).account_id).toBe(acct!.account_id);
+
       const again = await req("POST", "/v1/auth/exchange", { code: handoff });
       expect(again.status).toBe(400); // single-use
     } finally {
@@ -227,5 +252,15 @@ describe("OAuth API routes", () => {
       delete process.env.GITHUB_CLIENT_ID;
       delete process.env.GITHUB_CLIENT_SECRET;
     }
+  });
+
+  // ─── /v1/auth/logout ──────────────────────────────────────────
+
+  it("logout clears the session cookie server-side", async () => {
+    const res = await req("POST", "/v1/auth/logout");
+    expect(res.status).toBe(200);
+    expect(res.headers["set-cookie"]).toContain("axis_session=;");
+    expect(res.headers["set-cookie"]).toContain("Max-Age=0");
+    expect(res.headers["set-cookie"]).toContain("HttpOnly");
   });
 });
