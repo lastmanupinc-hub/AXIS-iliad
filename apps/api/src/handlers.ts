@@ -41,6 +41,8 @@ import {
   consumeUsageCredits,
   getCachedScrape,
   putCachedScrape,
+  consumeFreeScrapes,
+  getFreeScrapePoolStatus,
 } from "@axis/snapshots";
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -3647,11 +3649,15 @@ export async function handleFirecrawlCrawl(
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier("iliad_web_research_crawl");
   const perPageCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-  const estimatedAmountCents = perPageCents * limit;
+  // Estimate the PAID portion: pages beyond the 100/month free pool. A crawl
+  // fully covered by the pool needs no upfront payment.
+  const poolStatus = getFreeScrapePoolStatus(auth.account.account_id);
+  const estimatedUnfunded = Math.max(0, limit - poolStatus.remaining);
+  const estimatedAmountCents = perPageCents * estimatedUnfunded;
 
-  // Check quota
+  // Check quota — only require payment when there are paid (unfunded) pages.
   const quota = checkQuota(auth.account.account_id);
-  if (!quota.allowed) {
+  if (!quota.allowed && estimatedAmountCents > 0) {
     const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, estimatedAmountCents, {
       currency: "usd",
       decimals: 2,
@@ -3708,25 +3714,32 @@ export async function handleFirecrawlCrawl(
     const firecrawlData = (await firecrawlRes.json()) as FirecrawlCrawlResponse;
 
     const pagesCrawled = firecrawlData.data?.scrapeResults?.length ?? 0;
-    const finalAmountCents = perPageCents * pagesCrawled;
+    // Draw down the free pool for the pages actually returned; bill only the
+    // unfunded remainder at the per-page (1¢) floor.
+    const poolDraw = consumeFreeScrapes(auth.account.account_id, pagesCrawled);
+    const finalAmountCents = perPageCents * poolDraw.unfunded;
 
-    // Charge after successful crawl based on actual pages returned.
-    const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, finalAmountCents, {
-      currency: "usd",
-      decimals: 2,
-      description: `Firecrawl web crawl (${pagesCrawled} pages) - ${url.slice(0, 50)}...`,
-      meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit), pages_crawled: String(pagesCrawled) },
-    });
-
-    if (chargeResult === null) {
-      sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after crawl complete");
-      return;
+    if (finalAmountCents > 0) {
+      const chargeResult = await chargeWithDiscounts(req, res, auth.account.account_id, finalAmountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `Firecrawl web crawl (${poolDraw.unfunded} paid / ${pagesCrawled} pages) - ${url.slice(0, 50)}...`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit), pages_crawled: String(pagesCrawled), paid_pages: String(poolDraw.unfunded) },
+      });
+      if (chargeResult === null) {
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after crawl complete");
+        return;
+      }
     }
 
     trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
 
     sendJSON(res, 200, {
       success: true,
+      free_pages_used: poolDraw.consumed,
+      free_pages_remaining: poolDraw.remaining,
+      paid_pages: poolDraw.unfunded,
+      cost: `$${(finalAmountCents / 100).toFixed(2)}`,
       data: {
         url,
         pages_crawled: pagesCrawled,

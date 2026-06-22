@@ -120,8 +120,11 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
   },
   iliad_web_research_crawl: {
     tool: "iliad_web_research_crawl",
-    standard_cents: 25,
-    lite_cents: 12,
+    // 1¢/page floor — billed only for pages beyond the 100/month free pool
+    // (account_free_scrape_pool). Undercuts Firecrawl-direct to pull crawl
+    // traffic onto AXIS, where the 24h shared cache further bounds wholesale cost.
+    standard_cents: 1,
+    lite_cents: 1,
     lite_description: "Lite mode: crawl up to 5 pages (standard allows up to 100)",
   },
   // ─── AXIS-owned iliad_* tools ───────────────────────────────

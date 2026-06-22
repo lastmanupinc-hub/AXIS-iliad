@@ -29,6 +29,7 @@ describe("openMemoryDb", () => {
     const userTables = names.filter((n) => n !== "sqlite_sequence");
     expect(userTables).toEqual([
       "account_api_calls",
+      "account_free_scrape_pool",
       "accounts",
       "api_keys",
       "code_symbols",
@@ -339,14 +340,14 @@ describe("migration framework", () => {
 
   it("getSchemaVersion returns latest version", () => {
     const db = openMemoryDb();
-    expect(getSchemaVersion(db)).toBe(26);
+    expect(getSchemaVersion(db)).toBe(27);
   });
 
   it("runMigrations is idempotent — second call applies nothing", () => {
     const db = openMemoryDb();
     const result = runMigrations(db);
     expect(result.applied).toBe(0);
-    expect(result.current_version).toBe(26);
+    expect(result.current_version).toBe(27);
   });
 
   it("creates rate_limits table via migration", () => {
@@ -396,7 +397,7 @@ describe("migration framework", () => {
 
     const result = runMigrations(db);
     expect(result.applied).toBeGreaterThanOrEqual(1); // v22 (+ any later migrations) re-applied
-    expect(result.current_version).toBe(26);
+    expect(result.current_version).toBe(27);
 
     const email = (id: string) =>
       (db.prepare("SELECT email FROM accounts WHERE account_id = ?").get(id) as { email: string }).email;
