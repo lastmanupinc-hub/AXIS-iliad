@@ -190,6 +190,12 @@ export {
   previewUsageCredits,
   consumeUsageCredits,
 } from "./usage-credit-metering.js";
+export {
+  getIdempotentResult,
+  saveIdempotentResult,
+  pruneIdempotencyKeys,
+} from "./idempotency-store.js";
+export type { IdempotentRecord } from "./idempotency-store.js";
 
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
