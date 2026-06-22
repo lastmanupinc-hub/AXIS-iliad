@@ -23,7 +23,7 @@ is a prioritized backlog.
 ## ⏭ Correctness (smaller, mostly safe)
 - **`iliad_code_sandbox` stdin is broken** — `code-sandbox.ts:308` pipes `code + stdin` as one stream, so runtime stdin is executed as source. Deliver source separately. *(MEDIUM)*
 - **Domain-extractor drops fields on nested braces** — `repo-parser/src/domain-extractor.ts` `\{([^}]*)\}` stops at the first `}`; nested types under-report (affects the model count). Depth-count braces. *(MEDIUM)*
-- **`web_research`/`web_research_crawl` advertised in `tools/list` but missing from the `tools/call` dispatcher** — MCP callers get "Unknown tool". Wire the cases or drop the schemas. *(MEDIUM)*
+- **✅ `web_research`/`web_research_crawl` wired into the MCP dispatcher — DONE.** They were advertised in `tools/list` but missing from `tools/call` (callers got "Unknown tool"). Added `web-research.ts` (Firecrawl scrape/crawl core + `_not_configured` envelope) and `runWebResearch`/`runWebResearchCrawl`, metering after success (the meter-after pattern), plus the two `MeteredMcpTool` entries. MCP bills flat-per-call like every other MCP tool; the REST `/v1/research/*` path keeps its per-page x402 billing. *(MEDIUM → addressed; follow-up polish: dedupe the Firecrawl fetch now shared in shape with `handlers.ts`)*
 - `resolveImportPath` mis-handles root-file relative imports (`import-resolver.ts:51`); `paid-client.ts:124` `JSON.parse` should throw `PaidError`; `applyReferralDiscount` always returns 0 (dead). *(LOW)*
 
 ## ⏭ Polish (zero/low risk — quick wins)

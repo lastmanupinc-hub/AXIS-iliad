@@ -94,6 +94,7 @@ import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS }
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
+import { firecrawlScrape, firecrawlCrawl } from "./web-research.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
 const SERVER_NAME = "axis-iliad";
@@ -1013,6 +1014,43 @@ async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessag
   // Don't meter those — the container never spawned.
   if (!isNotConfiguredResult(result)) {
     meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+  }
+  return JSON.stringify(result, null, 2);
+}
+
+async function runWebResearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_web_research needs Authorization: Bearer <api_key>.");
+  }
+  const url = args.url;
+  if (typeof url !== "string" || !url) {
+    throw new Error("iliad_web_research: `url` (string) is required.");
+  }
+  const result = await firecrawlScrape(url, args.only_main_content !== false);
+  // Meter only on a real scrape — never on the _not_configured envelope.
+  if (!isNotConfiguredResult(result)) {
+    meterMcpToolCredits(req, auth.account, "iliad_web_research");
+  }
+  return JSON.stringify(result, null, 2);
+}
+
+async function runWebResearchCrawl(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_web_research_crawl needs Authorization: Bearer <api_key>.");
+  }
+  const url = args.url;
+  if (typeof url !== "string" || !url) {
+    throw new Error("iliad_web_research_crawl: `url` (string) is required.");
+  }
+  const limit = typeof args.limit === "number" ? Math.floor(args.limit) : 10;
+  if (!Number.isFinite(limit) || limit < 1 || limit > 100) {
+    throw new Error("iliad_web_research_crawl: `limit` must be between 1 and 100.");
+  }
+  const result = await firecrawlCrawl(url, limit, args.only_main_content !== false);
+  if (!isNotConfiguredResult(result)) {
+    meterMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
   }
   return JSON.stringify(result, null, 2);
 }
@@ -2501,7 +2539,9 @@ type MeteredMcpTool =
   | "iliad_text_to_speech"
   | "iliad_web_search"
   | "iliad_document_parsing"
-  | "iliad_hygiene";
+  | "iliad_hygiene"
+  | "iliad_web_research"
+  | "iliad_web_research_crawl";
 
 /** A pre-authorized charge — the tool + resolved price, ready to commit on success. */
 interface AuthorizedCharge {
@@ -4294,6 +4334,12 @@ export async function dispatch(
             break;
           case "iliad_hygiene":
             text = runHygiene(toolArgs, req);
+            break;
+          case "iliad_web_research":
+            text = await runWebResearch(toolArgs, req);
+            break;
+          case "iliad_web_research_crawl":
+            text = await runWebResearchCrawl(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned
