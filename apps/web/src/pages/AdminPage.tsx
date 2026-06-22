@@ -6,11 +6,13 @@ import {
   getAdminActivity,
   getFunnelMetrics,
   getMcpUsage,
+  getAdminRevenue,
   type AdminStats,
   type AdminAccountsResponse,
   type AdminActivityResponse,
   type FunnelMetrics,
   type McpUsageResponse,
+  type AdminRevenue,
 } from "../api.ts";
 
 export function AdminPage() {
@@ -21,23 +23,26 @@ export function AdminPage() {
   const [activity, setActivity] = useState<AdminActivityResponse | null>(null);
   const [funnelMetrics, setFunnelMetrics] = useState<FunnelMetrics | null>(null);
   const [mcpUsage, setMcpUsage] = useState<McpUsageResponse | null>(null);
+  const [revenue, setRevenue] = useState<AdminRevenue | null>(null);
 
   async function loadAdminData() {
     setLoading(true);
     setError(null);
     try {
-      const [statsRes, accountsRes, activityRes, funnelRes, mcpUsageRes] = await Promise.all([
+      const [statsRes, accountsRes, activityRes, funnelRes, mcpUsageRes, revenueRes] = await Promise.all([
         getAdminStats(),
         getAdminAccounts(25, 0),
         getAdminActivity(25),
         getFunnelMetrics(),
         getMcpUsage(30),
+        getAdminRevenue(),
       ]);
       setStats(statsRes);
       setAccounts(accountsRes);
       setActivity(activityRes);
       setFunnelMetrics(funnelRes.metrics);
       setMcpUsage(mcpUsageRes);
+      setRevenue(revenueRes);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         setError("Admin access required. Use an admin API key.");
@@ -79,6 +84,48 @@ export function AdminPage() {
           <div>{error}</div>
         )}
       </div>
+
+      {revenue && (
+        <div className="card">
+          <h3 style={{ marginBottom: 12 }}>
+            Growth &amp; Revenue{" "}
+            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 400 }}>
+              (ME-01 readiness source)
+            </span>
+          </h3>
+          <div className="grid grid-3">
+            <div>
+              <div className="stat-label">Est. MRR</div>
+              <div>${(revenue.revenue.estimated_mrr_cents / 100).toLocaleString()}/mo</div>
+            </div>
+            <div>
+              <div className="stat-label">Paid accounts</div>
+              <div>{(revenue.accounts.paid + revenue.accounts.suite).toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="stat-label">Active subscriptions</div>
+              <div>{revenue.revenue.active_subscriptions.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="stat-label">Metered overage (this month)</div>
+              <div>${(revenue.revenue.metered_overage_cents_this_month / 100).toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="stat-label">New accounts (7d / 30d)</div>
+              <div>{revenue.accounts.new_7d} / {revenue.accounts.new_30d}</div>
+            </div>
+            <div>
+              <div className="stat-label">Free → paid conversion</div>
+              <div>{(revenue.funnel.conversion_rate * 100).toFixed(1)}%</div>
+            </div>
+          </div>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 8 }}>
+            Concrete: paid accounts, subscriptions, metered overage, account growth, conversion. MRR is an
+            estimate (paid×${revenue.revenue.mrr_basis_cents.paid / 100} + suite×$
+            {revenue.revenue.mrr_basis_cents.suite / 100}).
+          </p>
+        </div>
+      )}
 
       {stats && (
         <div className="grid grid-3">

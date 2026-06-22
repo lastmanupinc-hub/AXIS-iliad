@@ -100,7 +100,7 @@ import { handleExportZip } from "./export.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, runSearchTools, getMcpCallCounters } from "./mcp-server.js";
 import { buildOpenApiSpec } from "./openapi.js";
 import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout } from "./oauth.js";
@@ -439,6 +439,7 @@ router.get("/v1/admin/stats", handleAdminStats);
 router.get("/v1/admin/accounts", handleAdminAccounts);
 router.get("/v1/admin/activity", handleAdminActivity);
 router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
+router.get("/v1/admin/revenue", handleAdminRevenue);
 
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);

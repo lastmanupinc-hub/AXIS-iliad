@@ -4,7 +4,7 @@ import { openMemoryDb, closeDb, recordMcpUsage } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
-import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage } from "./admin.js";
+import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
 import { handleCreateSnapshot, handleHealthCheck } from "./handlers.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -60,6 +60,7 @@ beforeAll(async () => {
   router.get("/v1/admin/accounts", handleAdminAccounts);
   router.get("/v1/admin/activity", handleAdminActivity);
   router.get("/v1/admin/mcp-usage", handleAdminMcpUsage);
+  router.get("/v1/admin/revenue", handleAdminRevenue);
   const ts = await startTestServer(router);
   server = ts.server;
   testPort = ts.port;
@@ -166,6 +167,30 @@ describe("GET /v1/admin/activity", () => {
     const r = await req("GET", "/v1/admin/activity?limit=1", undefined, apiKey);
     expect(r.status).toBe(200);
     expect((r.data.events as unknown[]).length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("GET /v1/admin/revenue", () => {
+  it("rejects unauthenticated requests", async () => {
+    const r = await req("GET", "/v1/admin/revenue");
+    expect(r.status).toBe(401);
+  });
+
+  it("rejects a non-admin key", async () => {
+    const r = await req("GET", "/v1/admin/revenue", undefined, nonAdminKey);
+    expect(r.status).toBe(403);
+  });
+
+  it("returns the growth + revenue readout for an admin", async () => {
+    const r = await req("GET", "/v1/admin/revenue", undefined, apiKey);
+    expect(r.status).toBe(200);
+    const d = r.data as any;
+    expect(d.accounts.total).toBeGreaterThanOrEqual(2); // admin + regular from setup
+    expect(d.revenue.mrr_basis_cents).toEqual({ paid: 2900, suite: 29900 });
+    expect(typeof d.revenue.estimated_mrr_cents).toBe("number");
+    expect(typeof d.revenue.metered_overage_cents_this_month).toBe("number");
+    expect(typeof d.funnel.conversion_rate).toBe("number");
+    expect(typeof d.mcp_engagement.total_calls).toBe("number");
   });
 });
 

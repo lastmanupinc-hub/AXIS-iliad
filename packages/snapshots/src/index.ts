@@ -74,6 +74,10 @@ export {
   getFunnelMetrics,
 } from "./funnel-store.js";
 
+// Growth & revenue snapshot (data source for the ME-01 readiness score)
+export type { GrowthSnapshot } from "./growth-store.js";
+export { getGrowthSnapshot } from "./growth-store.js";
+
 // Webhooks
 export type { WebhookEventType, Webhook, WebhookDelivery, RetryCandidate } from "./webhook-store.js";
 export { VALID_WEBHOOK_EVENTS, MAX_RETRY_ATTEMPTS, RETRY_BACKOFF_BASE_MS } from "./webhook-store.js";
