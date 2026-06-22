@@ -283,7 +283,7 @@ export function UploadPage({ onComplete }: Props) {
     // Log payload size to help diagnose upload failures
     const jsonBody = JSON.stringify(payload);
     const payloadMB = (jsonBody.length / 1_048_576).toFixed(1);
-    console.log(`[AXIS] Upload payload: ${files.length} files, ${payloadMB} MB JSON`);
+    if (import.meta.env.DEV) console.log(`[AXIS] Upload payload: ${files.length} files, ${payloadMB} MB JSON`);
 
     if (jsonBody.length > 50_000_000) {
       setError(`Upload too large (${payloadMB} MB). Reduce file count or remove large files. Max is 50 MB.`);

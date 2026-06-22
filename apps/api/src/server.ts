@@ -110,7 +110,7 @@ import { handleGitHubWebhook } from "./github-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { validateEnv } from "./env.js";
 import { log } from "./logger.js";
-import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT } from "./counts.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
 // â”€â”€â”€ Startup env validation (fail-fast) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /* v8 ignore start â€” server.ts startup block not imported by tests */
@@ -130,7 +130,7 @@ router.get("/", async (_req, res) => {
   const { sendJSON } = await import("./router.js");
   sendJSON(res, 200, {
     name: "Axis' Iliad API",
-    version: "0.5.3",
+    version: API_VERSION,
     docs: "/v1/docs",
     health: "/v1/health",
     llms: "/llms.txt",

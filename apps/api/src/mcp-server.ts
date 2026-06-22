@@ -92,7 +92,7 @@ import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
-import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT } from "./counts.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
@@ -100,7 +100,7 @@ const SERVER_NAME = "axis-iliad";
 const REGISTRY_DISPLAY_NAME = "Axis' Iliad";
 const SERVER_SLUG = "axis-iliad";
 const REGISTRY_VERSION = "0.5.0";
-const SERVER_VERSION = "0.5.3";
+const SERVER_VERSION = API_VERSION;
 
 interface McpCallCounters {
   total: number;

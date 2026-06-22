@@ -48,7 +48,7 @@ import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
-import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
 // â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -740,7 +740,7 @@ export async function handleHealthCheck(
   sendJSON(res, ready ? 200 : 503, {
     status: ready ? "ok" : "shutting_down",
     service: "axis-api",
-    version: "0.5.3",
+    version: API_VERSION,
     timestamp: new Date().toISOString(),
   });
 }
@@ -2113,7 +2113,7 @@ export async function handleWellKnown(
       status_tools: ["get_referral_code", "get_referral_credits"],
     },
     tagline: `Analyze any codebase. Generate ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs.`,
-    version: "0.5.3",
+    version: API_VERSION,
     description: "Submit source files or a GitHub URL. AXIS returns structured AI context files  -  AGENTS.md, .cursorrules, CLAUDE.md, debug playbooks, brand guidelines, and more  -  each tuned to your specific codebase. Every file includes an adoption_hint telling you exactly where to place it.",
     analyze_endpoint: {
       method: "POST",
@@ -2183,7 +2183,7 @@ export async function handleCapabilities(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.3",
+    version: API_VERSION,
     description: `Semantic capability manifest for agent tool discovery. Analyzes codebases, generates ${ARTIFACT_COUNT} artifacts across ${PROGRAM_COUNT} programs. Full agentic commerce hardening including AP2/UCP/Visa IC compliance.`,
     keywords: [
       "AP2", "AP2-compliance", "Article-2", "UN-CISG",
@@ -2706,7 +2706,7 @@ export async function handleForAgents(
   }
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.3",
+    version: API_VERSION,
     referral_program: {
       description: "Opt-in referral program: paid calls return a referral_token; unique conversions attributed to a token earn usage credits (capped per call, 30-day reset).",
       status_tools: ["get_referral_code", "get_referral_credits"],
@@ -3159,7 +3159,7 @@ export async function handleAgentJson(
 ): Promise<void> {
   sendJSON(res, 200, {
     name: "Axis' Iliad",
-    version: "0.5.3",
+    version: API_VERSION,
     description: `Deterministic snapshot-based generation of ${ARTIFACT_COUNT}+ artifacts across ${PROGRAM_COUNT} specialized programs`,
     capabilities: {
       core: "AI-native development operating system",
@@ -3237,7 +3237,7 @@ export async function handleHealthRedirect(
 ): Promise<void> {
   sendJSON(res, 200, {
     status: "healthy",
-    version: "0.5.3",
+    version: API_VERSION,
     timestamp: new Date().toISOString(),
     uptime: "OK",
     details: "/v1/health for full health check",
@@ -3337,7 +3337,7 @@ export async function handlePerformance(
 
   sendJSON(res, 200, {
     status: "ok",
-    version: "0.5.3",
+    version: API_VERSION,
     timestamp: new Date().toISOString(),
     metrics: {
       uptime_seconds: uptimeSeconds,

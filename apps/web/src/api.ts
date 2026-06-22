@@ -386,7 +386,7 @@ export async function createSnapshot(payload: SnapshotPayload, preSerializedBody
     ).blob();
     body = compressed;
     extraHeaders["Content-Encoding"] = "gzip";
-    console.log(`[AXIS] Compressed ${(json.length / 1_048_576).toFixed(1)} MB → ${(compressed.size / 1_048_576).toFixed(1)} MB`);
+    if (import.meta.env.DEV) console.log(`[AXIS] Compressed ${(json.length / 1_048_576).toFixed(1)} MB → ${(compressed.size / 1_048_576).toFixed(1)} MB`);
   }
 
   return fetchJSON<SnapshotResponse>("/v1/snapshots", {

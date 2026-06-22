@@ -22,3 +22,6 @@ export const ARTIFACT_COUNT = TOTAL_GENERATORS;
 export const PROGRAM_COUNT = TOTAL_PROGRAMS;
 export const MCP_TOOL_COUNT = 28;
 export const ENDPOINT_COUNT = 143;
+
+/** API/server version. Single source — keep in lockstep with apps/api/package.json. */
+export const API_VERSION = "0.5.3";
