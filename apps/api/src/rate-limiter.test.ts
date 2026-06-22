@@ -45,9 +45,11 @@ afterEach(() => {
 // ─── getClientIp ────────────────────────────────────────────────
 
 describe("getClientIp", () => {
-  it("extracts first IP from x-forwarded-for", () => {
+  it("uses the rightmost (proxy-recorded) IP, not the spoofable leftmost", () => {
+    // The leftmost entry is client-supplied; with one trusted proxy (default) the
+    // real client is the rightmost entry our proxy appended.
     const req = makeReq({ "x-forwarded-for": "1.2.3.4, 10.0.0.1, 10.0.0.2" });
-    expect(getClientIp(req)).toBe("1.2.3.4");
+    expect(getClientIp(req)).toBe("10.0.0.2");
   });
 
   it("returns single IP from x-forwarded-for", () => {
@@ -68,8 +70,20 @@ describe("getClientIp", () => {
   });
 
   it("trims whitespace from x-forwarded-for entries", () => {
-    const req = makeReq({ "x-forwarded-for": "  3.3.3.3  , 4.4.4.4" });
-    expect(getClientIp(req)).toBe("3.3.3.3");
+    const req = makeReq({ "x-forwarded-for": "  3.3.3.3  , 4.4.4.4  " });
+    expect(getClientIp(req)).toBe("4.4.4.4");
+  });
+
+  it("respects TRUSTED_PROXY_HOPS for multi-proxy chains", () => {
+    const prev = process.env.TRUSTED_PROXY_HOPS;
+    process.env.TRUSTED_PROXY_HOPS = "2";
+    try {
+      const req = makeReq({ "x-forwarded-for": "9.9.9.9, 10.0.0.1, 10.0.0.2" });
+      expect(getClientIp(req)).toBe("10.0.0.1"); // length(3) - hops(2) = index 1
+    } finally {
+      if (prev === undefined) delete process.env.TRUSTED_PROXY_HOPS;
+      else process.env.TRUSTED_PROXY_HOPS = prev;
+    }
   });
 
   it("handles IPv6 addresses", () => {
