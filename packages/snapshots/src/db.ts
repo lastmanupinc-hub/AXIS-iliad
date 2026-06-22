@@ -629,6 +629,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_packs_session ON credit_pack_purcha
 CREATE INDEX IF NOT EXISTS idx_credit_packs_status ON credit_pack_purchases(status);
 `,
   },
+  {
+    version: 26,
+    name: "add_scrape_cache",
+    sql: `
+-- 24h shared cache for Firecrawl scrape responses, deduplicated network-wide by
+-- normalized-URL hash. A cache hit serves the next caller for $0 (no Firecrawl
+-- call, no charge). Absolute expires_at so restarts don't extend stale entries.
+CREATE TABLE IF NOT EXISTS scrape_cache (
+  url_hash TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  markdown TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  status_code INTEGER NOT NULL DEFAULT 200,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  hit_count INTEGER NOT NULL DEFAULT 0,
+  last_hit_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_expires ON scrape_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_created ON scrape_cache(created_at);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_hits ON scrape_cache(hit_count DESC);
+`,
+  },
 ];
 
 function ensureMigrationsTable(database: Database.Database): void {

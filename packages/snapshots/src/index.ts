@@ -214,6 +214,16 @@ export {
   listPurchasesByAccount,
 } from "./credit-pack-store.js";
 
+// 24h shared scrape cache (Firecrawl dedup across the network)
+export type { CachedScrape, ScrapeCacheStats } from "./scrape-cache-store.js";
+export {
+  normalizeUrl,
+  getCachedScrape,
+  putCachedScrape,
+  cleanupExpiredScrapes,
+  getScrapeCacheStats,
+} from "./scrape-cache-store.js";
+
 // Referral System
 export type { ReferralCode, ReferralConversion, ReferralCredits, ReferralTokenUsageModifier } from "./referral-store.js";
 export {
