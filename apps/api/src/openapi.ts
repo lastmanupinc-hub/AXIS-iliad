@@ -1,5 +1,5 @@
 // â”€â”€â”€ OpenAPI 3.1 Specification for Axis' Iliad API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT, API_VERSION } from "./counts.js";
 
 export interface OpenApiSpec {
   openapi: string;
@@ -22,7 +22,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
     openapi: "3.1.0",
     info: {
       title: "Axis' Iliad API",
-      version: "0.5.3",
+      version: API_VERSION,
       description:
         "Axis' Iliad provides AI-powered code analysis, context mapping, and multi-program file generation. " +
         `Submit a codebase snapshot and AXIS produces tailored configuration files, analysis reports, and generator outputs across ${PROGRAM_COUNT} programs (${ARTIFACT_COUNT} artifacts).`,

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { healthCheck, type SnapshotResponse } from "../api.ts";
+import { APP_VERSION } from "../version.ts";
 
 interface Props {
   snapshot: SnapshotResponse | null;
@@ -68,7 +69,7 @@ export function StatusBar({ snapshot, fileCount }: Props) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <span title="Ctrl+K for command palette">⌘K commands</span>
-        <span>Axis' Iliad v0.5.0</span>
+        <span>Axis' Iliad v{APP_VERSION}</span>
       </div>
     </footer>
   );

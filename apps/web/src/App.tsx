@@ -21,6 +21,7 @@ import { CommandPalette, type PaletteAction } from "./components/CommandPalette.
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
 import { getAdminStats, type SnapshotResponse } from "./api.ts";
+import { APP_VERSION } from "./version.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
 // React requires a class for getDerivedStateFromError; this thin wrapper
@@ -358,7 +359,7 @@ export function App() {
           <h1 style={{ margin: 0, cursor: "pointer" }} onClick={handleReset}>
             Axis' Iliad
           </h1>
-          <span className="badge badge-accent">v0.5.0</span>
+          <span className="badge badge-accent">v{APP_VERSION}</span>
         </div>
 
         {/* Desktop nav — hidden on mobile */}
