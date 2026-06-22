@@ -187,6 +187,7 @@ export type { UsageCreditPlanId, UsageCreditSummary, UsageCreditChargeResult } f
 export {
   creditsFromUsdCents,
   getUsageCreditSummary,
+  previewUsageCredits,
   consumeUsageCredits,
 } from "./usage-credit-metering.js";
 
