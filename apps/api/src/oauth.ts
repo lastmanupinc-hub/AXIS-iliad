@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError, readBody } from "./router.js";
 import { ErrorCode } from "./logger.js";
+import { SESSION_COOKIE } from "./billing.js";
 import {
   createOAuthState,
   consumeOAuthState,
@@ -19,6 +20,29 @@ function getOAuthConfig() {
   const callbackUrl = process.env.GITHUB_CALLBACK_URL ?? "http://localhost:4000/v1/auth/github/callback";
   const webAppUrl = process.env.AXIS_WEB_URL ?? "http://localhost:3000";
   return { clientId, clientSecret, callbackUrl, webAppUrl };
+}
+
+/** ~30-day session lifetime for the first-party cookie. */
+const SESSION_COOKIE_MAX_AGE_S = 30 * 24 * 60 * 60;
+
+/**
+ * Build a Set-Cookie value for the first-party session. HttpOnly keeps the key
+ * out of reach of any XSS; SameSite=Lax blocks cross-site POST/XHR (CSRF) while
+ * surviving top-level navigations; Secure is set when the web app is served over
+ * HTTPS. The cookie rides only on same-site requests, so it's a harmless no-op
+ * until the API is served same-site with the web app — the response body still
+ * carries the key during the cutover. Pass maxAgeSeconds=0 to clear it.
+ */
+function sessionCookie(value: string, maxAgeSeconds: number, webAppUrl: string): string {
+  const secure = webAppUrl.startsWith("https://");
+  return [
+    `${SESSION_COOKIE}=${value}`,
+    "HttpOnly",
+    "SameSite=Lax",
+    "Path=/",
+    `Max-Age=${maxAgeSeconds}`,
+    secure ? "Secure" : "",
+  ].filter(Boolean).join("; ");
 }
 
 /** GET /v1/auth/github — initiate GitHub OAuth flow */
@@ -132,5 +156,19 @@ export async function handleOAuthExchange(
     return;
   }
   res.setHeader("Cache-Control", "no-store");
+  // Establish a first-party HttpOnly session cookie. Effective once the API is
+  // served same-site with the web app; until then it's simply not sent and the
+  // body key is used (kept for backward compatibility during the cutover).
+  res.setHeader("Set-Cookie", sessionCookie(encodeURIComponent(rawKey), SESSION_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
   sendJSON(res, 200, { api_key: rawKey });
+}
+
+/** POST /v1/auth/logout — clear the first-party session cookie (HttpOnly, so it must be cleared server-side). */
+export async function handleOAuthLogout(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Set-Cookie", sessionCookie("", 0, getOAuthConfig().webAppUrl));
+  sendJSON(res, 200, { ok: true });
 }
