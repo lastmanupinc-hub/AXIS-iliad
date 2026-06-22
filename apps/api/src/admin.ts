@@ -9,6 +9,8 @@ import {
   getMcpUsageWindows,
   getMcpUsageSummary,
   getMcpUsageNewVsReturning,
+  getGrowthSnapshot,
+  getFunnelMetrics,
 } from "@axis/snapshots";
 
 /**
@@ -104,5 +106,37 @@ export async function handleAdminMcpUsage(
     windows: getMcpUsageWindows(),
     summary: getMcpUsageSummary({ windowDays }),
     new_vs_returning: getMcpUsageNewVsReturning({ windowDays }),
+  });
+}
+
+/**
+ * GET /v1/admin/revenue — growth & revenue readout (admin only). The data source
+ * for the ME-01 monetization-execution score: concrete account growth + metered
+ * overage + active subscriptions, a transparent MRR estimate, and the funnel's
+ * conversion/activation rates — all from local data, no external dashboards.
+ */
+export async function handleAdminRevenue(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = requireAdmin(req, res);
+  if (!ctx) return;
+
+  const growth = getGrowthSnapshot();
+  const funnel = getFunnelMetrics();
+  const mcp = getMcpUsageSummary({ windowDays: 30 });
+
+  sendJSON(res, 200, {
+    ...growth,
+    funnel: {
+      conversion_rate: funnel.conversion_rate,
+      activation_rate: funnel.activation_rate,
+      by_stage: funnel.by_stage,
+    },
+    mcp_engagement: {
+      window_days: mcp.window_days,
+      total_calls: mcp.total_calls,
+      unique_accounts: mcp.unique_accounts,
+    },
   });
 }

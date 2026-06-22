@@ -657,6 +657,23 @@ export async function getMcpUsage(windowDays = 30): Promise<McpUsageResponse> {
   return fetchJSON(`/v1/admin/mcp-usage?window_days=${encodeURIComponent(String(windowDays))}`);
 }
 
+export interface AdminRevenue {
+  generated_at: string;
+  accounts: { total: number; free: number; paid: number; suite: number; new_24h: number; new_7d: number; new_30d: number };
+  revenue: {
+    estimated_mrr_cents: number;
+    mrr_basis_cents: { paid: number; suite: number };
+    metered_overage_cents_this_month: number;
+    active_subscriptions: number;
+  };
+  funnel: { conversion_rate: number; activation_rate: number; by_stage: Record<string, number> };
+  mcp_engagement: { window_days: number; total_calls: number; unique_accounts: number };
+}
+
+export async function getAdminRevenue(): Promise<AdminRevenue> {
+  return fetchJSON("/v1/admin/revenue");
+}
+
 export async function trackAnalyticsEvent(
   eventType: string,
   metadata?: Record<string, unknown>,
