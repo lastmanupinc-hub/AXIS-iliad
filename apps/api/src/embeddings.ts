@@ -52,6 +52,9 @@ interface OpenAIErrorResponse {
   error: { message: string; type?: string; code?: string };
 }
 
+/** Upper bound on the embeddings provider round-trip before we abort. */
+const EMBEDDINGS_TIMEOUT_MS = 30_000;
+
 /**
  * Call OpenAI's /v1/embeddings endpoint. Pure function over `fetch` so
  * tests can pass a stub. Throws Error with a descriptive message on
@@ -85,6 +88,9 @@ export async function computeEmbeddings(
   }
 
   const url = `${baseUrl}/embeddings`;
+  // Bound the provider call so a stalled upstream can't hang the request forever.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), EMBEDDINGS_TIMEOUT_MS);
   let resp: Response;
   try {
     resp = await fetchImpl(url, {
@@ -94,11 +100,14 @@ export async function computeEmbeddings(
         "Authorization": `Bearer ${config.api_key}`,
       },
       body: JSON.stringify({ input: inputs, model: config.model }),
+      signal: controller.signal,
     });
   } catch (err) {
     // Network-layer errors (DNS, connect, abort) get a normalized message
     // so the MCP envelope doesn't expose stack-trace internals.
     throw new Error(`Embeddings provider unreachable: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!resp.ok) {

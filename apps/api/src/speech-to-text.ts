@@ -34,6 +34,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import { safeFetch } from "./url-guard.js";
 
 export interface TranscriptionOptions {
   /** Public URL the API can fetch (HTTPS, max 100 MiB). One of audio_url XOR audio_base64. */
@@ -234,7 +235,7 @@ async function downloadAudio(url: string, dest: string): Promise<void> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MAX_DOWNLOAD_TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await safeFetch(url, { signal: controller.signal });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status} ${res.statusText}`);
     }
