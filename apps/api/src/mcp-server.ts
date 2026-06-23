@@ -85,12 +85,14 @@ import {
   saveIdempotentResult,
   getUsageCreditSummary,
   recordMcpUsage,
+  extractSymbols,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
+import { runSpecificityPass } from "./living-architecture.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
@@ -1167,7 +1169,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode per repo. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
+      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite, $25 engineer per repo. Engineer mode (X-Agent-Mode: engineer — Living Architecture) adds a verified LLM specificity pass: a living-architecture.md whose every architectural claim is grounded in the repo's extracted facts or dropped. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
     inputSchema: {
       type: "object",
       required: ["github_url"],
@@ -2981,6 +2983,39 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
 }
 
+/**
+ * Engineer mode only: append the verified Living Architecture artifact (E5) to
+ * the generator result so it persists + lists like any other artifact. Reuses
+ * the local runCompletion; degrades to a labeled doc when no model is
+ * configured. NEVER throws — engineer enrichment must not fail analyze_repo, and
+ * the deterministic core artifacts are emitted regardless. A fixed seed +
+ * temperature 0 keep it reproducible across re-analyses of the same repo (which
+ * is what the Stage 2 drift detector compares).
+ */
+async function maybeAppendLivingArchitecture(
+  generated: GeneratorResult,
+  ctxMap: ContextMap,
+  sourceFiles: Array<{ path: string; content: string }>,
+  req: IncomingMessage,
+): Promise<void> {
+  if (resolveAgentMode(req) !== "engineer") return;
+  try {
+    const symbols = extractSymbols(sourceFiles);
+    const art = await runSpecificityPass(ctxMap, symbols, runLlmCompletion, { seed: 42 });
+    generated.files.push({
+      path: art.path,
+      content: art.content,
+      content_type: "text/markdown",
+      program: "living-architecture",
+      description: art.report.configured
+        ? `Engineer: ${art.report.kept}/${art.report.proposed} architectural claims verified against the repo`
+        : "Engineer: Living Architecture (no local model configured on this instance)",
+    });
+  } catch {
+    // Best-effort; the deterministic core already succeeded.
+  }
+}
+
 export async function runAnalyzeFiles(
   args: Record<string, unknown>,
   req: IncomingMessage,
@@ -3080,6 +3115,7 @@ export async function runAnalyzeFiles(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3225,6 +3261,7 @@ export async function runAnalyzeRepo(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3532,6 +3569,7 @@ export async function runImproveMyAgent(
     requested_outputs: freeOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4283,6 +4321,7 @@ export async function runPreparePurchasing(
     requested_outputs: allOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
