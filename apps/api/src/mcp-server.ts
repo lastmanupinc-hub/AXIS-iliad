@@ -187,7 +187,7 @@ export function getIntentLog(): IntentCapture[] {
   return [..._intentLog];
 }
 
-export function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string[] | undefined>): void {
+export async function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string[] | undefined>): Promise<void> {
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   if (today !== _counters.todayDate) {
@@ -205,7 +205,7 @@ export function logMcpCall(toolName: string, userId: string | null, ip: string, 
   // Persist the call so totals survive restarts (in-memory _counters do not).
   // Telemetry must never break the request path, so swallow any failure.
   try {
-    recordMcpUsage({
+    await recordMcpUsage({
       account_id: userId,
       tool: toolName,
       source: detectMcpSource(uaForDetect),
@@ -339,8 +339,8 @@ function runPlannedCapability(capability: PlannedCapability): string {
 /** Cap on operator-supplied TTL. 24h matches the doc surface. */
 const OBJECT_STORAGE_MAX_TTL_SECONDS = 86400;
 
-function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+async function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     // Anonymous calls cannot scope to an account; reject early. The wider
     // dispatcher returns this string as the tool result text, and the
@@ -392,9 +392,9 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
   }
 
   const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
   const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
 
   return JSON.stringify({
     url: presigned.url,
@@ -407,7 +407,7 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
 }
 
 async function runTransactionalEmail(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_transactional_email needs Authorization: Bearer <api_key>.");
   }
@@ -442,7 +442,7 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
     throw new Error("iliad_transactional_email: `reply_to` must be a string.");
   }
 
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_transactional_email");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_transactional_email");
   const result = await sendTransactionalEmail(
     {
       to: rawTo as string | string[],
@@ -453,12 +453,12 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
     },
     config,
   );
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
 async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_embeddings needs Authorization: Bearer <api_key>.");
   }
@@ -487,9 +487,9 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
       }
     }
   }
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
@@ -498,8 +498,8 @@ const VECTOR_UPSERT_MAX_BATCH = 256;
 /** Hard cap on top_k so a single query can't read an entire namespace. */
 const VECTOR_QUERY_MAX_TOP_K = 100;
 
-function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_vector_database needs Authorization: Bearer <api_key>.");
   }
@@ -546,9 +546,9 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
         metadata: (r.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     }
-    const charge = authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
+    const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
     upsertVectors(scopedNs, cleaned);
-    captureMcpToolCredits(auth.account, charge);
+    await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "upsert",
       namespace: scopedNs,
@@ -577,9 +577,9 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
     top_k,
     filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
   };
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
   const matches = queryVectors(scopedNs, queryOpts);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({
     operation: "query",
     namespace: scopedNs,
@@ -590,8 +590,8 @@ function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage):
 /** Cap on a single capture batch to keep request size bounded. */
 const ANALYTICS_CAPTURE_MAX_BATCH = 500;
 
-function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+async function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_analytics needs Authorization: Bearer <api_key>.");
   }
@@ -629,9 +629,9 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
         }
         return e as AnalyticsEvent;
       });
-      const charge = authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
+      const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
       captureEvents(scopedNs, cleaned);
-      captureMcpToolCredits(auth.account, charge);
+      await captureMcpToolCredits(auth.account, charge);
       return JSON.stringify({
         operation: "capture",
         namespace: scopedNs,
@@ -642,9 +642,9 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
     if (!single || typeof single !== "object") {
       throw new Error("iliad_analytics: capture requires `event` (object) or `events` (array).");
     }
-    const charge = authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
+    const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
     captureEvent(scopedNs, single as AnalyticsEvent);
-    captureMcpToolCredits(auth.account, charge);
+    await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "capture",
       namespace: scopedNs,
@@ -668,9 +668,9 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
       "iliad_analytics: query.kind must be one of count, count_by_event, distinct_users, count_by_bucket.",
     );
   }
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
   const result = queryAnalytics(scopedNs, q as unknown as AnalyticsQuery);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({
     operation: "query",
     namespace: scopedNs,
@@ -679,7 +679,7 @@ function runAnalytics(args: Record<string, unknown>, req: IncomingMessage): stri
 }
 
 async function runLlmInference(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_llm_inference needs Authorization: Bearer <api_key>.");
   }
@@ -753,14 +753,14 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
     throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
   }
 
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_llm_inference");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_llm_inference");
   const result = await runLlmCompletion(opts);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
 async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_document_parsing needs Authorization: Bearer <api_key>.");
   }
@@ -783,7 +783,7 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   // those branches mean the input was unsupported/malformed/unreachable
   // (operator-level issues), not a value the caller asked for.
   if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
   }
   return JSON.stringify(result, null, 2);
 }
@@ -796,8 +796,8 @@ function isNotConfiguredResult(value: unknown): boolean {
 /** Cap on a single index batch to keep request size bounded. */
 const WEB_SEARCH_INDEX_MAX_BATCH = 100;
 
-function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_web_search needs Authorization: Bearer <api_key>.");
   }
@@ -872,9 +872,9 @@ function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): stri
     // Per pricing tier: only `search` is metered. index / delete /
     // delete_namespace / count are free since they don't consume the
     // BM25-ranking CPU that the search op pays for.
-    const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
+    const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = searchDocuments(scopedNs, opts);
-    captureMcpToolCredits(auth.account, charge);
+    await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "search",
       namespace: scopedNs,
@@ -915,7 +915,7 @@ function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): stri
 }
 
 async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_text_to_speech needs Authorization: Bearer <api_key>.");
   }
@@ -944,13 +944,13 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   // missing, etc.) — those are operator-setup gaps, not work the
   // caller successfully completed.
   if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
+    await meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
   }
   return JSON.stringify(result, null, 2);
 }
 
 async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_speech_to_text needs Authorization: Bearer <api_key>.");
   }
@@ -978,13 +978,13 @@ async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessa
   };
   const result = await runTranscription(opts);
   if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
+    await meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
   }
   return JSON.stringify(result, null, 2);
 }
 
 async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_code_sandbox needs Authorization: Bearer <api_key>.");
   }
@@ -1013,13 +1013,13 @@ async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessag
   // Docker daemon unreachable / dockerode import failed → _not_configured.
   // Don't meter those — the container never spawned.
   if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+    await meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
   }
   return JSON.stringify(result, null, 2);
 }
 
 async function runWebResearch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_web_research needs Authorization: Bearer <api_key>.");
   }
@@ -1036,14 +1036,14 @@ async function runWebResearch(args: Record<string, unknown>, req: IncomingMessag
   }
   // Authorize (gate over-budget) BEFORE the paid Firecrawl call; capture only on
   // success — so a call at the credit ceiling can't get free external work.
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_research");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_research");
   const result = await firecrawlScrape(url, args.only_main_content !== false);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
 async function runWebResearchCrawl(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_web_research_crawl needs Authorization: Bearer <api_key>.");
   }
@@ -1061,9 +1061,9 @@ async function runWebResearchCrawl(args: Record<string, unknown>, req: IncomingM
   if (!isFirecrawlConfigured()) {
     return JSON.stringify(webResearchNotConfigured("iliad_web_research_crawl"), null, 2);
   }
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
   const result = await firecrawlCrawl(url, limit, args.only_main_content !== false);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
 
@@ -2715,14 +2715,14 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
   }, null, 2);
 }
 
-function buildMcpPaymentRequiredError(
+async function buildMcpPaymentRequiredError(
   tool: MeteredMcpTool,
   accountId: string,
   message: string,
   req: IncomingMessage,
   extra?: Record<string, unknown>,
-): string {
-  const referralToken = createReferralCode(accountId).code;
+): Promise<string> {
+  const referralToken = (await createReferralCode(accountId)).code;
   return JSON.stringify(
     {
       ...build402NegotiationBody(tool, parseAgentBudget(req), {
@@ -2782,17 +2782,17 @@ interface AuthorizedCharge {
  * succeeds. Gate half of the auth/capture pattern that guarantees a credit is
  * debited only when the tool call actually succeeds.
  */
-function authorizeMcpToolCredits(
+async function authorizeMcpToolCredits(
   req: IncomingMessage,
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   tool: MeteredMcpTool,
-): AuthorizedCharge {
+): Promise<AuthorizedCharge> {
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier(tool);
   const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-  const charge = previewUsageCredits(account.account_id, account.tier, tool, amountCents);
+  const charge = await previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
-    throw new Error(buildMcpPaymentRequiredError(
+    throw new Error(await buildMcpPaymentRequiredError(
       tool,
       account.account_id,
       `${tool} exceeded included monthly credits. This call needs ${charge.credits_required} credits (${charge.included_credits_applied} included, ${charge.overage_credits} overage). Overage due now: $${(charge.effective_overage_cents / 100).toFixed(2)}.`,
@@ -2812,11 +2812,11 @@ function authorizeMcpToolCredits(
 }
 
 /** Commit a previously-authorized charge. Call ONLY after the metered work succeeds. */
-function captureMcpToolCredits(
+async function captureMcpToolCredits(
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   charge: AuthorizedCharge,
-): void {
-  consumeUsageCredits(account.account_id, account.tier, charge.tool, charge.amountCents);
+): Promise<void> {
+  await consumeUsageCredits(account.account_id, account.tier, charge.tool, charge.amountCents);
 }
 
 /**
@@ -2826,13 +2826,13 @@ function captureMcpToolCredits(
  * instead authorize up front, run the work, and capture on success — so a failed
  * call never debits the caller.
  */
-function meterMcpToolCredits(
+async function meterMcpToolCredits(
   req: IncomingMessage,
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   tool: MeteredMcpTool,
-): void {
-  const charge = authorizeMcpToolCredits(req, account, tool);
-  captureMcpToolCredits(account, charge);
+): Promise<void> {
+  const charge = await authorizeMcpToolCredits(req, account, tool);
+  await captureMcpToolCredits(account, charge);
 }
 
 /** Read the optional Idempotency-Key request header (trimmed, length-capped). */
@@ -2875,8 +2875,8 @@ function coerceHygieneFiles(args: Record<string, unknown>): HygieneFile[] {
  * mode='fix' is METERED (paid): adds a prioritized remediation plan. Metering is
  * selective inside the handler (mirrors iliad_web_search billing only `search`).
  */
-function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+async function runHygiene(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error("Authentication required: iliad_hygiene needs Authorization: Bearer <api_key>.");
   }
@@ -2905,9 +2905,9 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   }
 
   // PAID path - bill before producing the remediation plan.
-  const charge = authorizeMcpToolCredits(req, auth.account, "iliad_hygiene");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_hygiene");
   const plan = buildRemediationPlan(report);
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
 }
 
@@ -2915,7 +2915,7 @@ export async function runAnalyzeFiles(
   args: Record<string, unknown>,
   req: IncomingMessage,
 ): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error(
       auth.anonymous
@@ -2956,13 +2956,19 @@ export async function runAnalyzeFiles(
   });
 
   const account = auth.account;
-  const blockedPrograms = listAvailableGenerators()
-    .filter(g => !MCP_FREE_PROGRAMS.has(g.program) && !isProgramEnabled(account.account_id, g.program))
+  const _generatorsForGate = listAvailableGenerators();
+  const _programEnabled = new Map(
+    await Promise.all(
+      _generatorsForGate.map(async g => [g.program, await isProgramEnabled(account.account_id, g.program)] as const),
+    ),
+  );
+  const blockedPrograms = _generatorsForGate
+    .filter(g => !MCP_FREE_PROGRAMS.has(g.program) && !_programEnabled.get(g.program))
     .map(g => g.program)
     .filter((program, index, all) => all.indexOf(program) === index)
     .sort();
   if (blockedPrograms.length > 0) {
-    throw new Error(buildMcpPaymentRequiredError(
+    throw new Error(await buildMcpPaymentRequiredError(
       "analyze_files",
       account.account_id,
       `analyze_files requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. Use list_programs, search_and_discover_tools, or free programs only to stay on the free path.`,
@@ -2971,10 +2977,10 @@ export async function runAnalyzeFiles(
     ));
   }
 
-  const charge = authorizeMcpToolCredits(req, account, "analyze_files");
+  const charge = await authorizeMcpToolCredits(req, account, "analyze_files");
 
   /* quota exceeded and file limit paths â€” tested in quota-guardrails.test.ts */
-  const quota = checkQuota(account.account_id);
+  const quota = await checkQuota(account.account_id);
   if (!quota.allowed) {
     throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   }
@@ -2995,14 +3001,14 @@ export async function runAnalyzeFiles(
     requested_outputs: requestedOutputs,
   };
 
-  const snapshot = createSnapshot(
+  const snapshot = await createSnapshot(
     { input_method: "api_submission", manifest, files },
     auth.account.account_id,
   );
   const ctxMap = buildContextMap(snapshot);
   const repoProfile = buildRepoProfile(snapshot);
-  saveContextMap(snapshot.snapshot_id, ctxMap);
-  saveRepoProfile(snapshot.snapshot_id, repoProfile);
+  await saveContextMap(snapshot.snapshot_id, ctxMap);
+  await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
   const generated = generateFiles({
     context_map: ctxMap,
@@ -3010,13 +3016,13 @@ export async function runAnalyzeFiles(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
-  saveGeneratorResult(snapshot.snapshot_id, generated);
-  updateSnapshotStatus(snapshot.snapshot_id, "ready");
+  await saveGeneratorResult(snapshot.snapshot_id, generated);
+  await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    recordUsage(
+    await recordUsage(
       auth.account!.account_id,
       program,
       snapshot.snapshot_id,
@@ -3026,16 +3032,16 @@ export async function runAnalyzeFiles(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
-  trackEvent(
+  await trackEvent(
     auth.account.account_id,
     "snapshot_created",
-    resolveStage(auth.account.account_id),
+    await resolveStage(auth.account.account_id),
     { snapshot_id: snapshot.snapshot_id, programs: [...programs], files: files.length, source: "mcp" },
   );
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
   // file-limit guard / generation, so a failed analyze_files debits nothing.
-  captureMcpToolCredits(account, charge);
+  await captureMcpToolCredits(account, charge);
 
   return JSON.stringify(
     {
@@ -3065,7 +3071,7 @@ export async function runAnalyzeRepo(
   args: Record<string, unknown>,
   req: IncomingMessage,
 ): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error(
       auth.anonymous
@@ -3087,13 +3093,19 @@ export async function runAnalyzeRepo(
   }
 
   const account = auth.account;
-  const blockedPrograms = listAvailableGenerators()
-    .filter(g => !MCP_FREE_PROGRAMS.has(g.program) && !isProgramEnabled(account.account_id, g.program))
+  const _generatorsForGate = listAvailableGenerators();
+  const _programEnabled = new Map(
+    await Promise.all(
+      _generatorsForGate.map(async g => [g.program, await isProgramEnabled(account.account_id, g.program)] as const),
+    ),
+  );
+  const blockedPrograms = _generatorsForGate
+    .filter(g => !MCP_FREE_PROGRAMS.has(g.program) && !_programEnabled.get(g.program))
     .map(g => g.program)
     .filter((program, index, all) => all.indexOf(program) === index)
     .sort();
   if (blockedPrograms.length > 0) {
-    throw new Error(buildMcpPaymentRequiredError(
+    throw new Error(await buildMcpPaymentRequiredError(
       "analyze_repo",
       account.account_id,
       `analyze_repo requires $0.50 MPP credit (or Pro tier) when the full ${ARTIFACT_COUNT}-artifact bundle is requested. This is the paid full-analysis path; discovery remains free on list_programs, search_and_discover_tools, and discover_commerce_tools.`,
@@ -3102,15 +3114,15 @@ export async function runAnalyzeRepo(
     ));
   }
 
-  const charge = authorizeMcpToolCredits(req, account, "analyze_repo");
+  const charge = await authorizeMcpToolCredits(req, account, "analyze_repo");
 
   /* v8 ignore start â€” quota exceeded path requires exhausting account limits */
-  const quota = checkQuota(auth.account.account_id);
+  const quota = await checkQuota(auth.account.account_id);
   if (!quota.allowed) throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   /* v8 ignore stop */
 
   const token =
-    getGitHubTokenDecrypted(auth.account.account_id) ??
+    (await getGitHubTokenDecrypted(auth.account.account_id)) ??
     (process.env.GITHUB_TOKEN ?? undefined);
 
   let fetchResult: Awaited<ReturnType<typeof fetchGitHubRepo>>;
@@ -3140,14 +3152,14 @@ export async function runAnalyzeRepo(
     requested_outputs: requestedOutputs,
   };
 
-  const snapshot = createSnapshot(
+  const snapshot = await createSnapshot(
     { input_method: "github_repo_url" as InputMethod, manifest, files },
     auth.account.account_id,
   );
   const ctxMap = buildContextMap(snapshot);
   const repoProfile = buildRepoProfile(snapshot);
-  saveContextMap(snapshot.snapshot_id, ctxMap);
-  saveRepoProfile(snapshot.snapshot_id, repoProfile);
+  await saveContextMap(snapshot.snapshot_id, ctxMap);
+  await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
   const generated = generateFiles({
     context_map: ctxMap,
@@ -3155,13 +3167,13 @@ export async function runAnalyzeRepo(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
-  saveGeneratorResult(snapshot.snapshot_id, generated);
-  updateSnapshotStatus(snapshot.snapshot_id, "ready");
+  await saveGeneratorResult(snapshot.snapshot_id, generated);
+  await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    recordUsage(
+    await recordUsage(
       auth.account!.account_id,
       program,
       snapshot.snapshot_id,
@@ -3173,7 +3185,7 @@ export async function runAnalyzeRepo(
 
   // All work succeeded — commit the charge now. Never before the GitHub fetch or
   // generation, so a failed analyze_repo never debits the caller.
-  captureMcpToolCredits(account, charge);
+  await captureMcpToolCredits(account, charge);
 
   return JSON.stringify(
     {
@@ -3397,7 +3409,7 @@ export async function runImproveMyAgent(
   args: Record<string, unknown>,
   req: IncomingMessage,
 ): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error(
       auth.anonymous
@@ -3428,7 +3440,7 @@ export async function runImproveMyAgent(
   });
 
   /* v8 ignore start â€” quota paths */
-  const quota = checkQuota(auth.account.account_id);
+  const quota = await checkQuota(auth.account.account_id);
   if (!quota.allowed) throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   const limits = TIER_LIMITS[auth.account.tier];
   if (files.length > limits.max_files_per_snapshot) {
@@ -3447,14 +3459,14 @@ export async function runImproveMyAgent(
     requested_outputs: freeOutputs,
   };
 
-  const snapshot = createSnapshot(
+  const snapshot = await createSnapshot(
     { input_method: "api_submission", manifest, files },
     auth.account.account_id,
   );
   const ctxMap = buildContextMap(snapshot);
   const repoProfile = buildRepoProfile(snapshot);
-  saveContextMap(snapshot.snapshot_id, ctxMap);
-  saveRepoProfile(snapshot.snapshot_id, repoProfile);
+  await saveContextMap(snapshot.snapshot_id, ctxMap);
+  await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
   const generated = generateFiles({
     context_map: ctxMap,
@@ -3462,13 +3474,13 @@ export async function runImproveMyAgent(
     requested_outputs: freeOutputs,
     source_files: snapshot.files,
   });
-  saveGeneratorResult(snapshot.snapshot_id, generated);
-  updateSnapshotStatus(snapshot.snapshot_id, "ready");
+  await saveGeneratorResult(snapshot.snapshot_id, generated);
+  await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    recordUsage(auth.account!.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, files.reduce((s, f) => s + (f.size ?? 0), 0));
+    await recordUsage(auth.account!.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, files.reduce((s, f) => s + (f.size ?? 0), 0));
   }
 
   // Check what context files are missing
@@ -3737,13 +3749,13 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
 
 // â”€â”€â”€ Tool: get_referral_code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export function runGetReferralCode(req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+export async function runGetReferralCode(req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (auth.anonymous || !auth.account) {
     throw new Error("Authentication required. Include Authorization: Bearer <api_key>");
   }
-  const code = createReferralCode(auth.account.account_id);
-  const credits = getReferralCredits(auth.account.account_id);
+  const code = await createReferralCode(auth.account.account_id);
+  const credits = await getReferralCredits(auth.account.account_id);
   return JSON.stringify({
     referral_token: code.code,
     share_instruction: "Pass this referral_token to other agents in prepare_agentic_purchasing args, or include it in your AGENTS.md / system prompt. As referrals grow, your effective dollar cost goes down. Rewards reset each billing cycle.",
@@ -3767,14 +3779,14 @@ export function runGetReferralCode(req: IncomingMessage): string {
 
 // â”€â”€â”€ Tool: get_referral_credits â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export function runCheckReferralCredits(req: IncomingMessage): string {
-  const auth = resolveAuth(req);
+export async function runCheckReferralCredits(req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
   if (auth.anonymous || !auth.account) {
     throw new Error("Authentication required. Include Authorization: Bearer <api_key>");
   }
-  const code = createReferralCode(auth.account.account_id);
-  const credits = getReferralCredits(auth.account.account_id);
-  const balance = getPersistenceBalance(auth.account.account_id);
+  const code = await createReferralCode(auth.account.account_id);
+  const credits = await getReferralCredits(auth.account.account_id);
+  const balance = await getPersistenceBalance(auth.account.account_id);
   return JSON.stringify({
     referral_token: code.code,
     earned_credits_millicents: credits.earned_credits_millicents,
@@ -3836,25 +3848,25 @@ export function runListPrograms(): string {
 // â”€â”€â”€ Tool: get_snapshot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
-export function runGetSnapshot(
+export async function runGetSnapshot(
   args: Record<string, unknown>,
   req: IncomingMessage,
-): string {
+): Promise<string> {
   const { snapshot_id } = args;
   if (typeof snapshot_id !== "string" || !snapshot_id)
     throw new Error("snapshot_id is required");
 
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) throw new Error(`Snapshot not found: ${snapshot_id}`);
 
   if (snapshot.account_id) {
-    const auth = resolveAuth(req);
+    const auth = await resolveAuth(req);
     if (!auth.account || auth.account.account_id !== snapshot.account_id) {
       throw new Error("Snapshot not found");
     }
   }
 
-  const generated = getGeneratorResult(snapshot_id) as GeneratorResult | undefined;
+  const generated = await getGeneratorResult(snapshot_id) as GeneratorResult | undefined;
   return JSON.stringify(
     {
       snapshot_id: snapshot.snapshot_id,
@@ -3879,26 +3891,26 @@ export function runGetSnapshot(
 
 // â”€â”€â”€ Tool: get_artifact â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export function runGetArtifact(
+export async function runGetArtifact(
   args: Record<string, unknown>,
   req: IncomingMessage,
-): string {
+): Promise<string> {
   const { snapshot_id, path: filePath } = args;
   if (typeof snapshot_id !== "string" || !snapshot_id)
     throw new Error("snapshot_id is required");
   if (typeof filePath !== "string" || !filePath) throw new Error("path is required");
 
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) throw new Error(`Snapshot not found: ${snapshot_id}`);
 
   if (snapshot.account_id) {
-    const auth = resolveAuth(req);
+    const auth = await resolveAuth(req);
     if (!auth.account || auth.account.account_id !== snapshot.account_id) {
       throw new Error("Snapshot not found");
     }
   }
 
-  const generated = getGeneratorResult(snapshot_id) as GeneratorResult | undefined;
+  const generated = await getGeneratorResult(snapshot_id) as GeneratorResult | undefined;
   if (!generated) throw new Error("No generated artifacts for this snapshot");
 
   const normalized = filePath.replace(/^\.\//, "");
@@ -3915,11 +3927,11 @@ export function runGetArtifact(
 
 // â”€â”€â”€ Tool: closer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export function runCloser(
+export async function runCloser(
   args: Record<string, unknown>,
   req: IncomingMessage,
-): string {
-  const auth = resolveAuth(req);
+): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error(
       auth.anonymous
@@ -3938,18 +3950,18 @@ export function runCloser(
     throw new Error("snapshot_id is required");
   }
 
-  const snapshot = getSnapshot(snapshotId);
+  const snapshot = await getSnapshot(snapshotId);
   if (!snapshot) throw new Error(`Snapshot not found: ${snapshotId}`);
   if (snapshot.account_id && snapshot.account_id !== auth.account.account_id) {
     throw new Error("Snapshot not found");
   }
 
-  if (!isProgramEnabled(auth.account.account_id, "closer")) {
+  if (!(await isProgramEnabled(auth.account.account_id, "closer"))) {
     throw new Error("closer requires a paid plan or entitlement. Upgrade account program access first.");
   }
 
-  const contextMap = getContextMap(snapshotId) as ContextMap | undefined;
-  const repoProfile = getRepoProfile(snapshotId) as RepoProfile | undefined;
+  const contextMap = await getContextMap(snapshotId) as ContextMap | undefined;
+  const repoProfile = await getRepoProfile(snapshotId) as RepoProfile | undefined;
   if (!contextMap || !repoProfile) {
     throw new Error("No context for this snapshot â€” run analyze_repo or analyze_files first");
   }
@@ -3986,19 +3998,19 @@ export function runCloser(
     source_files: sourceFiles,
   });
 
-  const existing = getGeneratorResult(snapshotId) as GeneratorResult | undefined;
+  const existing = await getGeneratorResult(snapshotId) as GeneratorResult | undefined;
   const merged = new Map<string, (typeof generated.files)[number]>();
   for (const file of existing?.files ?? []) merged.set(file.path, file);
   for (const file of generated.files) merged.set(file.path, file);
 
-  saveGeneratorResult(snapshotId, {
+  await saveGeneratorResult(snapshotId, {
     ...generated,
     files: [...merged.values()],
     skipped: [...(existing?.skipped ?? []), ...generated.skipped],
   });
-  updateSnapshotStatus(snapshotId, "ready");
+  await updateSnapshotStatus(snapshotId, "ready");
 
-  recordUsage(
+  await recordUsage(
     auth.account.account_id,
     "closer",
     snapshotId,
@@ -4026,11 +4038,11 @@ export function runCloser(
 
 // ─── Tool: deploy ───────────────────────────────────────────────
 
-export function runDeploy(
+export async function runDeploy(
   args: Record<string, unknown>,
   req: IncomingMessage,
-): string {
-  const auth = resolveAuth(req);
+): Promise<string> {
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error(
       auth.anonymous
@@ -4042,18 +4054,18 @@ export function runDeploy(
   const snapshotId = typeof args.snapshot_id === "string" ? args.snapshot_id.trim() : "";
   if (!snapshotId) throw new Error("snapshot_id is required");
 
-  const snapshot = getSnapshot(snapshotId);
+  const snapshot = await getSnapshot(snapshotId);
   if (!snapshot) throw new Error(`Snapshot not found: ${snapshotId}`);
   if (snapshot.account_id && snapshot.account_id !== auth.account.account_id) {
     throw new Error("Snapshot not found");
   }
 
-  if (!isProgramEnabled(auth.account.account_id, "deploy")) {
+  if (!(await isProgramEnabled(auth.account.account_id, "deploy"))) {
     throw new Error("deploy requires a paid plan or entitlement. Upgrade account program access first.");
   }
 
-  const contextMap = getContextMap(snapshotId) as ContextMap | undefined;
-  const repoProfile = getRepoProfile(snapshotId) as RepoProfile | undefined;
+  const contextMap = await getContextMap(snapshotId) as ContextMap | undefined;
+  const repoProfile = await getRepoProfile(snapshotId) as RepoProfile | undefined;
   if (!contextMap || !repoProfile) {
     throw new Error("No context for this snapshot — run analyze_repo or analyze_files first");
   }
@@ -4066,19 +4078,19 @@ export function runDeploy(
     source_files: snapshot.files,
   });
 
-  const existing = getGeneratorResult(snapshotId) as GeneratorResult | undefined;
+  const existing = await getGeneratorResult(snapshotId) as GeneratorResult | undefined;
   const merged = new Map<string, (typeof generated.files)[number]>();
   for (const file of existing?.files ?? []) merged.set(file.path, file);
   for (const file of generated.files) merged.set(file.path, file);
 
-  saveGeneratorResult(snapshotId, {
+  await saveGeneratorResult(snapshotId, {
     ...generated,
     files: [...merged.values()],
     skipped: [...(existing?.skipped ?? []), ...generated.skipped],
   });
-  updateSnapshotStatus(snapshotId, "ready");
+  await updateSnapshotStatus(snapshotId, "ready");
 
-  recordUsage(
+  await recordUsage(
     auth.account.account_id,
     "deploy",
     snapshotId,
@@ -4110,7 +4122,7 @@ export async function runPreparePurchasing(
   args: Record<string, unknown>,
   req: IncomingMessage,
 ): Promise<string> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     throw new Error(
       auth.anonymous
@@ -4153,11 +4165,16 @@ export async function runPreparePurchasing(
   const generators = listAvailableGenerators();
   // Check entitlements for purchasing programs BEFORE quota â€”
   // entitlement failures tell the user to pay, quota is rate limiting.
+  const _purchasingEnabled = new Map(
+    await Promise.all(
+      PURCHASING_PROGRAMS.map(async p => [p, await isProgramEnabled(auth.account!.account_id, p)] as const),
+    ),
+  );
   const purchasingBlocked = PURCHASING_PROGRAMS.filter(
-    p => !MCP_FREE_PROGRAMS.has(p) && !isProgramEnabled(auth.account!.account_id, p),
+    p => !MCP_FREE_PROGRAMS.has(p) && !_purchasingEnabled.get(p),
   );
   if (purchasingBlocked.length > 0) {
-    throw new Error(buildMcpPaymentRequiredError(
+    throw new Error(await buildMcpPaymentRequiredError(
       "prepare_agentic_purchasing",
       auth.account.account_id,
       "prepare_agentic_purchasing requires $0.50 MPP credit (or Pro tier). This returns Purchasing Readiness Score + full hardening artifacts.",
@@ -4166,10 +4183,10 @@ export async function runPreparePurchasing(
     ));
   }
 
-  const charge = authorizeMcpToolCredits(req, auth.account, "prepare_agentic_purchasing");
+  const charge = await authorizeMcpToolCredits(req, auth.account, "prepare_agentic_purchasing");
 
   /* v8 ignore start â€” quota exceeded and file limit paths require exhausting account limits in test */
-  const quota = checkQuota(auth.account.account_id);
+  const quota = await checkQuota(auth.account.account_id);
   if (!quota.allowed) {
     throw new Error(`Quota exceeded: ${quota.reason ?? "Quota exceeded"}`);
   }
@@ -4198,14 +4215,14 @@ export async function runPreparePurchasing(
     requested_outputs: allOutputs,
   };
 
-  const snapshot = createSnapshot(
+  const snapshot = await createSnapshot(
     { input_method: "api_submission", manifest, files },
     auth.account.account_id,
   );
   const ctxMap = buildContextMap(snapshot);
   const repoProfile = buildRepoProfile(snapshot);
-  saveContextMap(snapshot.snapshot_id, ctxMap);
-  saveRepoProfile(snapshot.snapshot_id, repoProfile);
+  await saveContextMap(snapshot.snapshot_id, ctxMap);
+  await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
   const generated = generateFiles({
     context_map: ctxMap,
@@ -4213,13 +4230,13 @@ export async function runPreparePurchasing(
     requested_outputs: allOutputs,
     source_files: snapshot.files,
   });
-  saveGeneratorResult(snapshot.snapshot_id, generated);
-  updateSnapshotStatus(snapshot.snapshot_id, "ready");
+  await saveGeneratorResult(snapshot.snapshot_id, generated);
+  await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
   const programs = new Set(generated.files.map(f => f.program));
   for (const program of programs) {
     const pFiles = generated.files.filter(f => f.program === program);
-    recordUsage(
+    await recordUsage(
       auth.account!.account_id,
       program,
       snapshot.snapshot_id,
@@ -4228,10 +4245,10 @@ export async function runPreparePurchasing(
       files.reduce((s, f) => s + (f.size ?? 0), 0),
     );
   }
-  trackEvent(
+  await trackEvent(
     auth.account.account_id,
     "snapshot_created",
-    resolveStage(auth.account.account_id),
+    await resolveStage(auth.account.account_id),
     {
       snapshot_id: snapshot.snapshot_id,
       programs: [...programs],
@@ -4244,9 +4261,9 @@ export async function runPreparePurchasing(
 
   // â”€â”€ Referral tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (typeof referral_token === "string" && referral_token.length > 0) {
-    const referral = lookupReferralCode(referral_token);
+    const referral = await lookupReferralCode(referral_token);
     if (referral && referral.account_id !== auth.account!.account_id) {
-      recordReferralConversion(referral.account_id, auth.account!.account_id);
+      await recordReferralConversion(referral.account_id, auth.account!.account_id);
     }
   }
   const artifactPaths = generated.files.map(f => f.path);
@@ -4337,7 +4354,7 @@ export async function runPreparePurchasing(
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
   // file-limit guard / generation, so a failed call debits nothing.
-  captureMcpToolCredits(auth.account, charge);
+  await captureMcpToolCredits(auth.account, charge);
 
   return JSON.stringify(
     {
@@ -4451,9 +4468,9 @@ export async function dispatch(
         return rpcErr(id, RPC_INVALID_PARAMS, "tools/call requires 'name' as string");
       }
       const canonicalToolName = normalizeToolName(toolName);
-      const auth = resolveAuth(req);
+      const auth = await resolveAuth(req);
       const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.socket?.remoteAddress ?? "unknown";
-      logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>);
+      await logMcpCall(canonicalToolName, auth.anonymous ? null : (auth.account?.account_id ?? null), ip, req.headers as Record<string, string | string[] | undefined>);
 
       // Idempotency: a retry carrying the same Idempotency-Key returns the
       // original result and never re-charges. Only successful results are stored
@@ -4461,7 +4478,7 @@ export async function dispatch(
       const idempotencyKey = readIdempotencyKey(req);
       const requestHash = idempotencyKey ? hashToolRequest(canonicalToolName, toolArgs) : "";
       if (idempotencyKey && auth.account) {
-        const cached = getIdempotentResult(auth.account.account_id, idempotencyKey);
+        const cached = await getIdempotentResult(auth.account.account_id, idempotencyKey);
         if (cached) {
           if (cached.request_hash !== requestHash) {
             return rpcErr(id, RPC_INVALID_PARAMS, "Idempotency-Key already used with different arguments");
@@ -4470,8 +4487,8 @@ export async function dispatch(
             ...toolOk(cached.response),
             _usage: {
               tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
-              credits_remaining: getPersistenceBalance(auth.account.account_id),
-              usage_credits: getUsageCreditSummary(auth.account.account_id, auth.account.tier),
+              credits_remaining: await getPersistenceBalance(auth.account.account_id),
+              usage_credits: await getUsageCreditSummary(auth.account.account_id, auth.account.tier),
               tool: canonicalToolName,
             },
             _idempotent_replay: true,
@@ -4492,10 +4509,10 @@ export async function dispatch(
             text = runListPrograms();
             break;
           case "get_snapshot":
-            text = runGetSnapshot(toolArgs, req);
+            text = await runGetSnapshot(toolArgs, req);
             break;
           case "get_artifact":
-            text = runGetArtifact(toolArgs, req);
+            text = await runGetArtifact(toolArgs, req);
             break;
           case "prepare_agentic_purchasing_preview":
             text = runPreparePurchasingPreview(toolArgs);
@@ -4504,10 +4521,10 @@ export async function dispatch(
             text = await runPreparePurchasing(toolArgs, req);
             break;
           case "closer":
-            text = runCloser(toolArgs, req);
+            text = await runCloser(toolArgs, req);
             break;
           case "deploy":
-            text = runDeploy(toolArgs, req);
+            text = await runDeploy(toolArgs, req);
             break;
           case "search_and_discover_tools":
             text = runSearchTools(toolArgs);
@@ -4522,16 +4539,16 @@ export async function dispatch(
             text = runDiscoverAgenticPurchasingNeeds(toolArgs);
             break;
           case "get_referral_code":
-            text = runGetReferralCode(req);
+            text = await runGetReferralCode(req);
             break;
           case "get_referral_credits":
-            text = runCheckReferralCredits(req);
+            text = await runCheckReferralCredits(req);
             break;
           case "iliad_object_storage":
-            text = runObjectStorage(toolArgs, req);
+            text = await runObjectStorage(toolArgs, req);
             break;
           case "iliad_vector_database":
-            text = runVectorDatabase(toolArgs, req);
+            text = await runVectorDatabase(toolArgs, req);
             break;
           case "iliad_embeddings":
             text = await runEmbeddings(toolArgs, req);
@@ -4540,7 +4557,7 @@ export async function dispatch(
             text = await runTransactionalEmail(toolArgs, req);
             break;
           case "iliad_analytics":
-            text = runAnalytics(toolArgs, req);
+            text = await runAnalytics(toolArgs, req);
             break;
           case "iliad_llm_inference":
             text = await runLlmInference(toolArgs, req);
@@ -4555,13 +4572,13 @@ export async function dispatch(
             text = await runTextToSpeech(toolArgs, req);
             break;
           case "iliad_web_search":
-            text = runWebSearch(toolArgs, req);
+            text = await runWebSearch(toolArgs, req);
             break;
           case "iliad_document_parsing":
             text = await runDocumentParsingDispatch(toolArgs, req);
             break;
           case "iliad_hygiene":
-            text = runHygiene(toolArgs, req);
+            text = await runHygiene(toolArgs, req);
             break;
           case "iliad_web_research":
             text = await runWebResearch(toolArgs, req);
@@ -4584,14 +4601,14 @@ export async function dispatch(
         // Store the successful result so a same-key retry replays it instead of
         // re-running and re-charging. (Reached only when the switch didn't throw.)
         if (idempotencyKey && auth.account) {
-          saveIdempotentResult(auth.account.account_id, idempotencyKey, requestHash, text);
+          await saveIdempotentResult(auth.account.account_id, idempotencyKey, requestHash, text);
         }
         return rpcOk(id, {
           ...toolOk(text),
           _usage: {
             tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
-            credits_remaining: auth.account ? getPersistenceBalance(auth.account.account_id) : null,
-            usage_credits: auth.account ? getUsageCreditSummary(auth.account.account_id, auth.account.tier) : null,
+            credits_remaining: auth.account ? await getPersistenceBalance(auth.account.account_id) : null,
+            usage_credits: auth.account ? await getUsageCreditSummary(auth.account.account_id, auth.account.tier) : null,
             tool: canonicalToolName,
           },
         });

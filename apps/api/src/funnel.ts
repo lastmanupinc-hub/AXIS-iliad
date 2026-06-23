@@ -80,7 +80,7 @@ export async function handleInviteSeat(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   if (ctx.account!.tier === "free") {
@@ -110,14 +110,14 @@ export async function handleInviteSeat(
     return;
   }
 
-  const existing = getSeatByEmail(ctx.account!.account_id, email);
+  const existing = await getSeatByEmail(ctx.account!.account_id, email);
   if (existing) {
     sendError(res, 409, ErrorCode.CONFLICT, "This email already has an active seat");
     return;
   }
 
   try {
-    const seat = inviteSeat(ctx.account!.account_id, email, role as SeatRole, ctx.account!.account_id);
+    const seat = await inviteSeat(ctx.account!.account_id, email, role as SeatRole, ctx.account!.account_id);
 
     // Send invitation email (fire-and-forget)
     // v8 ignore next
@@ -149,7 +149,7 @@ export async function handleListSeats(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   /* v8 ignore next — req.url always present in tests */
@@ -157,10 +157,10 @@ export async function handleListSeats(
   const includeRevoked = url.searchParams.get("include_revoked") === "true";
 
   const seats = includeRevoked
-    ? getAllSeats(ctx.account!.account_id)
-    : getActiveSeats(ctx.account!.account_id);
+    ? await getAllSeats(ctx.account!.account_id)
+    : await getActiveSeats(ctx.account!.account_id);
 
-  const seatCount = getSeatCount(ctx.account!.account_id);
+  const seatCount = await getSeatCount(ctx.account!.account_id);
   const seatLimit = SEAT_LIMITS[ctx.account!.tier];
 
   sendJSON(res, 200, {
@@ -185,11 +185,11 @@ export async function handleAcceptSeat(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const { seat_id } = params;
-  const seat = getSeat(seat_id);
+  const seat = await getSeat(seat_id);
   if (!seat) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Seat invitation not found");
     return;
@@ -198,7 +198,7 @@ export async function handleAcceptSeat(
     sendError(res, 403, ErrorCode.FORBIDDEN, "This invitation is for a different email address");
     return;
   }
-  const ok = acceptSeat(seat_id);
+  const ok = await acceptSeat(seat_id);
   if (!ok) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Seat invitation not found or already accepted/revoked");
     return;
@@ -212,16 +212,16 @@ export async function handleRevokeSeat(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const { seat_id } = params;
-  const seat = getSeat(seat_id);
+  const seat = await getSeat(seat_id);
   if (!seat || seat.account_id !== ctx.account!.account_id) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Seat not found or already revoked");
     return;
   }
-  const ok = revokeSeat(seat_id);
+  const ok = await revokeSeat(seat_id);
   if (!ok) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Seat not found or already revoked");
     return;
@@ -236,11 +236,11 @@ export async function handleGetUpgradePrompt(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  const prompt = generateUpgradePrompt(ctx.account!.account_id);
-  const stage = resolveStage(ctx.account!.account_id);
+  const prompt = await generateUpgradePrompt(ctx.account!.account_id);
+  const stage = await resolveStage(ctx.account!.account_id);
 
   if (!prompt) {
     sendJSON(res, 200, { prompt: null, stage, message: "No upgrade recommended at this time" });
@@ -248,7 +248,7 @@ export async function handleGetUpgradePrompt(
   }
 
   // Track that we showed the prompt
-  trackEvent(ctx.account!.account_id, "upgrade_prompt_shown", "upgrade_shown", {
+  await trackEvent(ctx.account!.account_id, "upgrade_prompt_shown", "upgrade_shown", {
     trigger: prompt.trigger,
     recommended_tier: prompt.recommended_tier,
   });
@@ -261,14 +261,14 @@ export async function handleDismissUpgradePrompt(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const raw = await readBody(req);
   let body: Record<string, unknown> = {};
   try { body = raw ? JSON.parse(raw) : {}; } catch { /* empty is fine */ }
 
-  trackEvent(ctx.account!.account_id, "upgrade_prompt_dismissed", resolveStage(ctx.account!.account_id), {
+  await trackEvent(ctx.account!.account_id, "upgrade_prompt_dismissed", await resolveStage(ctx.account!.account_id), {
     reason: body.reason ?? "not_specified",
   });
 
@@ -280,15 +280,15 @@ export async function handleGetFunnelStatus(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   /* v8 ignore next — req.url always present in tests */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const limit = parseInt(url.searchParams.get("limit") ?? "20", 10);
 
-  const stage = resolveStage(ctx.account!.account_id);
-  const events = getAccountEvents(ctx.account!.account_id, Math.min(limit, 100));
+  const stage = await resolveStage(ctx.account!.account_id);
+  const events = await getAccountEvents(ctx.account!.account_id, Math.min(limit, 100));
 
   sendJSON(res, 200, {
     account_id: ctx.account!.account_id,
@@ -308,10 +308,10 @@ export async function handleGetFunnelMetrics(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  const metrics = getFunnelMetrics();
+  const metrics = await getFunnelMetrics();
   sendJSON(res, 200, { metrics });
 }
 
@@ -320,7 +320,7 @@ export async function handleTrackAnalyticsEvent(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const raw = await readBody(req);
@@ -348,12 +348,12 @@ export async function handleTrackAnalyticsEvent(
 
   const resolvedStage = typeof stage === "string" && ALLOWED_FUNNEL_STAGES.includes(stage as FunnelStage)
     ? stage as FunnelStage
-    : resolveStage(ctx.account!.account_id);
+    : await resolveStage(ctx.account!.account_id);
 
   const safeMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata)
     ? metadata as Record<string, unknown>
     : {};
 
-  trackEvent(ctx.account!.account_id, eventType as FunnelEventType, resolvedStage, safeMetadata);
+  await trackEvent(ctx.account!.account_id, eventType as FunnelEventType, resolvedStage, safeMetadata);
   sendJSON(res, 201, { tracked: true, event_type: eventType, stage: resolvedStage });
 }

@@ -46,7 +46,7 @@ export async function handleCreateCreditTopup(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (auth.anonymous || !auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
     return;
@@ -137,7 +137,7 @@ export async function handleListMyPurchases(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (auth.anonymous || !auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
     return;

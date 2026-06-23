@@ -5,7 +5,7 @@ import { initRequest, getRequestId, getRequestStart, log, ErrorCode, type ErrorC
 import { checkRateLimit } from "./rate-limiter.js";
 import { resolveAuth } from "./billing.js";
 import { recordRequest, recordLatency } from "./metrics.js";
-import { walCheckpoint, closeDb, recordApiCall, checkQuota, getPersistenceBalance } from "@axis/snapshots";
+import { recordApiCall, checkQuota, getPersistenceBalance, runPgMigrations, closePool } from "@axis/snapshots";
 
 // Store request reference on response for sendJSON gzip negotiation
 const REQUEST_REF = new WeakMap<ServerResponse, IncomingMessage>();
@@ -215,7 +215,7 @@ export function createApp(router: Router, port: number): Server {
   _shuttingDown = false;
   const requestTimeoutMs = parseInt(process.env.REQUEST_TIMEOUT_MS ?? "120000", 10);
 
-  const server = createServer((req, res) => {
+  const server = createServer(async (req, res) => {
     // Store request ref for gzip negotiation in sendJSON
     REQUEST_REF.set(res, req);
     // Per-request timeout
@@ -262,14 +262,14 @@ export function createApp(router: Router, port: number): Server {
     }
 
     // Rate limiting (before route handling — auth-aware)
-    const auth = resolveAuth(req);
+    const auth = await resolveAuth(req);
     if (!checkRateLimit(req, res, { authenticated: !auth.anonymous && auth.account !== null })) return;
 
     // Axis agent headers — quota and tier info injected on every authenticated response
     // so agents can pre-check budget before committing to a paid call.
     if (auth.account) {
       try {
-        const quota = checkQuota(auth.account.account_id);
+        const quota = await checkQuota(auth.account.account_id);
         const remaining = quota.limits.max_snapshots_per_month === -1
           ? "unlimited"
           : String(Math.max(0, quota.limits.max_snapshots_per_month - quota.usage.snapshots_this_month));
@@ -277,7 +277,7 @@ export function createApp(router: Router, port: number): Server {
         res.setHeader("X-Axis-Tier", auth.account.tier);
         res.setHeader("X-Axis-Quota-Remaining", remaining);
         res.setHeader("X-Axis-Quota-Limit", limit);
-        const credits = getPersistenceBalance(auth.account.account_id);
+        const credits = await getPersistenceBalance(auth.account.account_id);
         res.setHeader("X-Axis-Credits-Balance", String(credits));
         res.setHeader("X-Axis-Request-Cost", "0.00");
       } catch {
@@ -294,7 +294,7 @@ export function createApp(router: Router, port: number): Server {
 
     // Log after response completes
     /* v8 ignore start — V8 quirk: finish callback ternaries for duration/status/level */
-    res.on("finish", () => {
+    res.on("finish", async () => {
       const start = getRequestStart(res);
       const duration = start ? Date.now() - start : undefined;
       const status = res.statusCode ?? 200;
@@ -305,7 +305,7 @@ export function createApp(router: Router, port: number): Server {
       if (auth.account && req.method && req.url) {
         // Persist per-account endpoint usage for MyAnalytics recommendations.
         try {
-          recordApiCall(auth.account.account_id, req.method, req.url, status);
+          await recordApiCall(auth.account.account_id, req.method, req.url, status);
         } catch {
           // Never fail request handling due to analytics write errors.
         }
@@ -358,9 +358,27 @@ export function createApp(router: Router, port: number): Server {
   server.keepAliveTimeout = keepAliveMs;
   server.headersTimeout = keepAliveMs + 5000;
 
-  server.listen(port, () => {
-    log("info", "server_start", { port, service: "axis-api" });
-  });
+  const startListening = () =>
+    server.listen(port, () => {
+      log("info", "server_start", { port, service: "axis-api" });
+    });
+
+  // The data layer is async Postgres (Neon); run migrations before serving
+  // traffic (they no longer run lazily on first query). Tests manage their own
+  // DB lifecycle, so skip the boot migration there.
+  if (process.env.NODE_ENV === "test" || process.env.VITEST === "true") {
+    startListening();
+  } else {
+    void runPgMigrations()
+      .then(({ current_version }) => {
+        log("info", "pg_migrations_applied", { current_version });
+        startListening();
+      })
+      .catch((err: unknown) => {
+        log("error", "pg_migrations_failed", { error: err instanceof Error ? err.message : String(err) });
+        process.exitCode = 1;
+      });
+  }
 
   const shutdown = async (timeout = 10_000): Promise<void> => {
     if (_shuttingDown) return;
@@ -389,15 +407,14 @@ export function createApp(router: Router, port: number): Server {
       ]);
     }
 
-    // WAL checkpoint + close database before exit
+    // Close the Postgres pool before exit.
     try {
-      const cpResult = walCheckpoint();
-      log("info", "shutdown_wal_checkpoint", { success: cpResult.success, ...cpResult.details });
+      await closePool();
+      log("info", "shutdown_db_closed", {});
     } catch (err) {
       // v8 ignore next
-      log("error", "shutdown_wal_checkpoint_failed", { error: (err as Error).message });
+      log("error", "shutdown_db_close_failed", { error: (err as Error).message });
     }
-    closeDb();
 
     log("info", "shutdown_complete", {});
   };

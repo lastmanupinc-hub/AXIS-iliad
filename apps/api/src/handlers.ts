@@ -70,28 +70,28 @@ async function chargeWithDiscounts(
   const tool = opts.meta?.tool ?? opts.meta?.program ?? "default";
   const overageCents = tier === "free"
     ? amountCents
-    : consumeUsageCredits(accountId, tier, tool, amountCents).effective_overage_cents;
+    : (await consumeUsageCredits(accountId, tier, tool, amountCents)).effective_overage_cents;
 
   res.setHeader("X-Axis-Request-Cost", (overageCents / 100).toFixed(2));
 
   // Plan credits covered this call fully â€” no overage payment required.
   if (overageCents <= 0) return { status: 200 };
 
-  if (consumeFreeCall(accountId)) return { status: 200 };
+  if (await consumeFreeCall(accountId)) return { status: 200 };
   const result = await chargeMpp(req, res, { ...opts, amount: String(overageCents) });
   if (result && result.status === 200) {
-    recordPaidCall(accountId);
+    await recordPaidCall(accountId);
   }
   return result;
 }
 
-function buildPaymentRequiredPayload(
+async function buildPaymentRequiredPayload(
   tool: string,
   message: string,
   budget?: AgentBudget,
   accountId?: string,
-): Record<string, unknown> {
-  const referralToken = accountId ? createReferralCode(accountId).code : null;
+): Promise<Record<string, unknown>> {
+  const referralToken = accountId ? (await createReferralCode(accountId)).code : null;
   return build402NegotiationBody(tool, budget, {
     message,
     referral_token: referralToken,
@@ -101,9 +101,9 @@ function buildPaymentRequiredPayload(
 // â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Check if the current user can access a snapshot. Returns true if allowed, sends error and returns false if not. */
-export function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): boolean {
+export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { account_id: string | null }): Promise<boolean> {
   if (!snapshot.account_id) return true; // anonymous snapshot  -  accessible by ID knowledge
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
     return false;
@@ -116,10 +116,10 @@ export function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, 
 }
 
 /** Check if the current user can access a project. Returns true if allowed. */
-function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): boolean {
-  const owner = getProjectOwner(project_id);
+async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolean> {
+  const owner = await getProjectOwner(project_id);
   if (!owner) return true; // anonymous project
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
     return false;
@@ -195,7 +195,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   return async function (req: IncomingMessage, res: ServerResponse): Promise<void> {
     // Billing gate for pro programs ï¿½ $0.50 per call
     if (isPro) {
-      const auth = resolveAuth(req);
+      const auth = await resolveAuth(req);
 
       // Require authentication for pro programs
       if (auth.anonymous || !auth.account) {
@@ -204,9 +204,9 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
       }
 
       // Check if program is enabled for this account
-      const enabled = isProgramEnabled(auth.account.account_id, program);
+      const enabled = await isProgramEnabled(auth.account.account_id, program);
       if (!enabled) {
-        trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
+        await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
           reason: `program_not_enabled:${program}`,
           source: "program_handler",
         });
@@ -234,7 +234,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
           program,
           tier: auth.account.tier,
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-          ...buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id),
+          ...(await buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id)),
         });
       }
       // 402 challenge issued or payment failed ï¿½ stop processing
@@ -264,15 +264,15 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
       return;
     }
 
-    const contextMap = getContextMap(snapshotId) as ContextMap | undefined;
-    const repoProfile = getRepoProfile(snapshotId) as RepoProfile | undefined;
+    const contextMap = (await getContextMap(snapshotId)) as ContextMap | undefined;
+    const repoProfile = (await getRepoProfile(snapshotId)) as RepoProfile | undefined;
     if (!contextMap || !repoProfile) {
       sendError(res, 404, ErrorCode.CONTEXT_PENDING, "No context for this snapshot \u2014 run POST /v1/snapshots first");
       return;
     }
 
     const requestedOutputs = (rawOutputs as string[] | undefined) ?? defaultOutputs;
-    const snapshot = getSnapshot(snapshotId);
+    const snapshot = await getSnapshot(snapshotId);
     const result = generateFiles({
       context_map: contextMap,
       repo_profile: repoProfile,
@@ -284,9 +284,9 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
 
     // Record usage for authenticated pro program calls
     if (isPro) {
-      const auth = resolveAuth(req);
+      const auth = await resolveAuth(req);
       if (auth.account) {
-        recordUsage(
+        await recordUsage(
           auth.account.account_id,
           program,
           snapshotId,
@@ -385,14 +385,14 @@ export async function handleCreateSnapshot(
   };
 
   // Reject invalid/revoked keys (key provided but not valid)
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.anonymous && !auth.account) {
     sendError(res, 401, ErrorCode.INVALID_KEY, "Invalid or revoked API key");
     return;
   }
   // Check quota if authenticated
   if (auth.account) {
-    const quota = checkQuota(auth.account.account_id);
+    const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
       // Determine if the user is requesting ONLY free programs.
@@ -409,7 +409,7 @@ export async function handleCreateSnapshot(
       if (onlyFreePrograms) {
         // Free-program-only requests bypass quota entirely â€” free programs are always available
       } else {
-        trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
+        await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason });
         const budget = parseAgentBudget(req);
         const mode = resolveAgentMode(req);
         const pricing = getPricingTier("analyze_repo");
@@ -425,7 +425,7 @@ export async function handleCreateSnapshot(
           sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
             tier: quota.tier,
             usage: quota.usage,
-            ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id),
+            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
@@ -482,7 +482,7 @@ export async function handleCreateSnapshot(
             upgrade_url: "https://iliad.trustfabric.ai/#plans",
             tier: auth.account.tier,
             price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-            ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id),
+            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
           },
         );
       }
@@ -517,22 +517,22 @@ export async function handleCreateSnapshot(
           tier: "anonymous",
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
           create_account_url: "https://axis-api-6c7z.onrender.com/v1/accounts",
-          ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget),
+          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget)),
         },
       );
       return;
     }
   }
 
-  const snapshot = createSnapshot(input, auth.account?.account_id);
+  const snapshot = await createSnapshot(input, auth.account?.account_id);
 
   // Process synchronously for v1 (production: queue to worker)
   try {
     const contextMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
 
-    saveContextMap(snapshot.snapshot_id, contextMap);
-    saveRepoProfile(snapshot.snapshot_id, repoProfile);
+    await saveContextMap(snapshot.snapshot_id, contextMap);
+    await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
     // Generate output files
     const generated = generateFiles({
@@ -541,17 +541,17 @@ export async function handleCreateSnapshot(
       requested_outputs: snapshot.manifest.requested_outputs,
       source_files: snapshot.files,
     });
-    saveGeneratorResult(snapshot.snapshot_id, generated);
-    updateSnapshotStatus(snapshot.snapshot_id, "ready");
+    await saveGeneratorResult(snapshot.snapshot_id, generated);
+    await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
     // Record usage per program if authenticated
     if (auth.account) {
       const programs = new Set(generated.files.map(f => f.program));
       for (const program of programs) {
         const programFiles = generated.files.filter(f => f.program === program);
-        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
+        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, input.files.reduce((s, f) => s + f.size, 0));
       }
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         files: files.length,
@@ -569,7 +569,7 @@ export async function handleCreateSnapshot(
     });
   /* v8 ignore start  -  requires internal processing function to throw */
   } catch (err) {
-    updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "snapshot_processing_failed", {
       request_id: getRequestId(res),
       snapshot_id: snapshot.snapshot_id,
@@ -589,12 +589,12 @@ export async function handleGetSnapshot(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
-  if (!assertSnapshotAccess(_req, res, snapshot)) return;
+  if (!(await assertSnapshotAccess(_req, res, snapshot))) return;
 
   sendJSON(res, 200, {
     snapshot_id: snapshot.snapshot_id,
@@ -615,21 +615,21 @@ export async function handleDeleteSnapshot(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
   // Delete requires auth for owned snapshots
   if (snapshot.account_id) {
-    const ctx = requireAuth(_req, res);
+    const ctx = await requireAuth(_req, res);
     if (!ctx) return;
     if (ctx.account!.account_id !== snapshot.account_id) {
       sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
       return;
     }
   }
-  const deleted = deleteSnapshot(snapshot_id);
+  const deleted = await deleteSnapshot(snapshot_id);
   /* v8 ignore next 3  -  deleteSnapshot always succeeds when snapshot exists */
   if (!deleted) {
     sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to delete snapshot");
@@ -645,16 +645,16 @@ export async function handleDeleteProject(
 ): Promise<void> {
   const { project_id } = params;
   // Delete requires auth for owned projects
-  const owner = getProjectOwner(project_id);
+  const owner = await getProjectOwner(project_id);
   if (owner) {
-    const ctx = requireAuth(_req, res);
+    const ctx = await requireAuth(_req, res);
     if (!ctx) return;
     if (ctx.account!.account_id !== owner) {
       sendError(res, 404, ErrorCode.NOT_FOUND, "Project not found");
       return;
     }
   }
-  const snapshots = getProjectSnapshots(project_id);
+  const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     // Check if the project itself exists
     let db;
@@ -670,7 +670,7 @@ export async function handleDeleteProject(
       return;
     }
   }
-  const result = deleteProject(project_id);
+  const result = await deleteProject(project_id);
   sendJSON(res, 200, { deleted: true, project_id, deleted_snapshots: result.deleted_snapshots });
 }
 
@@ -680,16 +680,16 @@ export async function handleGetContext(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id } = params;
-  if (!assertProjectAccess(_req, res, project_id)) return;
-  const snapshots = getProjectSnapshots(project_id);
+  if (!(await assertProjectAccess(_req, res, project_id))) return;
+  const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
     return;
   }
 
   const latest = snapshots[snapshots.length - 1];
-  const contextMap = getContextMap(latest.snapshot_id);
-  const repoProfile = getRepoProfile(latest.snapshot_id);
+  const contextMap = await getContextMap(latest.snapshot_id);
+  const repoProfile = await getRepoProfile(latest.snapshot_id);
 
   if (!contextMap || !repoProfile) {
     sendError(res, 404, ErrorCode.CONTEXT_PENDING, "Context not yet available  -  snapshot may still be processing");
@@ -709,18 +709,18 @@ export async function handleGetGeneratedFiles(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id } = params;
-  if (!assertProjectAccess(_req, res, project_id)) return;
-  const snapshots = getProjectSnapshots(project_id);
+  if (!(await assertProjectAccess(_req, res, project_id))) return;
+  const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
     return;
   }
 
   const latest = snapshots[snapshots.length - 1];
-  const contextMap = getContextMap(latest.snapshot_id);
-  const repoProfile = getRepoProfile(latest.snapshot_id);
+  const contextMap = await getContextMap(latest.snapshot_id);
+  const repoProfile = await getRepoProfile(latest.snapshot_id);
 
-  const generated = getGeneratorResult(latest.snapshot_id) as GeneratorResult | undefined;
+  const generated = (await getGeneratorResult(latest.snapshot_id)) as GeneratorResult | undefined;
   /* v8 ignore next 3  -  V8 quirk: tested but V8 won't credit */
   if (!generated) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No generated files available yet");
@@ -774,15 +774,15 @@ export async function handleGetGeneratedFile(
   params: Record<string, string>,
 ): Promise<void> {
   const { project_id, file_path } = params;
-  if (!assertProjectAccess(_req, res, project_id)) return;
-  const snapshots = getProjectSnapshots(project_id);
+  if (!(await assertProjectAccess(_req, res, project_id))) return;
+  const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
     return;
   }
 
   const latest = snapshots[snapshots.length - 1];
-  const generated = getGeneratorResult(latest.snapshot_id) as GeneratorResult | undefined;
+  const generated = (await getGeneratorResult(latest.snapshot_id)) as GeneratorResult | undefined;
   /* v8 ignore next 3  -  V8 quirk: no-generated check tested but V8 won't credit */
   if (!generated) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No generated files available yet");
@@ -825,7 +825,7 @@ export async function handleSearchExport(
     return;
   }
 
-  const generated = getGeneratorResult(snapshotId) as GeneratorResult | undefined;
+  const generated = (await getGeneratorResult(snapshotId)) as GeneratorResult | undefined;
   if (!generated) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No results for this snapshot  -  run POST /v1/snapshots first");
     return;
@@ -865,15 +865,15 @@ export async function handleSkillsGenerate(
     return;
   }
 
-  const contextMap = getContextMap(snapshotId) as ContextMap | undefined;
-  const repoProfile = getRepoProfile(snapshotId) as RepoProfile | undefined;
+  const contextMap = (await getContextMap(snapshotId)) as ContextMap | undefined;
+  const repoProfile = (await getRepoProfile(snapshotId)) as RepoProfile | undefined;
   if (!contextMap || !repoProfile) {
     sendError(res, 404, ErrorCode.CONTEXT_PENDING, "No context for this snapshot \u2014 run POST /v1/snapshots first");
     return;
   }
 
   const requestedOutputs = (rawOutputs as string[] | undefined) ?? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"];
-  const snapshot = getSnapshot(snapshotId);
+  const snapshot = await getSnapshot(snapshotId);
   const result = generateFiles({
     context_map: contextMap,
     repo_profile: repoProfile,
@@ -933,9 +933,9 @@ export async function handleGitHubAnalyze(
     // Priority: 1) explicit token in request, 2) stored token for authenticated user, 3) env var
     let token = typeof rawToken === "string" ? rawToken : undefined;
     if (!token) {
-      const auth = resolveAuth(req);
+      const auth = await resolveAuth(req);
       if (auth.account) {
-        token = getGitHubTokenDecrypted(auth.account.account_id) ?? undefined;
+        token = (await getGitHubTokenDecrypted(auth.account.account_id)) ?? undefined;
       }
     }
     if (!token) {
@@ -964,16 +964,16 @@ export async function handleGitHubAnalyze(
   }
 
   // Check quota if authenticated
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.anonymous && !auth.account) {
     sendError(res, 401, ErrorCode.INVALID_KEY, "Invalid or revoked API key");
     return;
   }
   if (auth.account) {
-    const quota = checkQuota(auth.account.account_id);
+    const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore next 11  -  requires exhausting rate quota in tests */
     if (!quota.allowed) {
-      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
+      await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "github" });
       const budget = parseAgentBudget(req);
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier("analyze_repo");
@@ -989,7 +989,7 @@ export async function handleGitHubAnalyze(
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
           tier: quota.tier,
           usage: quota.usage,
-          ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id),
+          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1010,14 +1010,14 @@ export async function handleGitHubAnalyze(
     github_url: githubUrl,
   };
 
-  const snapshot = createSnapshot(input, auth.account?.account_id);
+  const snapshot = await createSnapshot(input, auth.account?.account_id);
 
   try {
     const contextMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
 
-    saveContextMap(snapshot.snapshot_id, contextMap);
-    saveRepoProfile(snapshot.snapshot_id, repoProfile);
+    await saveContextMap(snapshot.snapshot_id, contextMap);
+    await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
     const generated = generateFiles({
       context_map: contextMap,
@@ -1025,8 +1025,8 @@ export async function handleGitHubAnalyze(
       requested_outputs: [],
       source_files: snapshot.files,
     });
-    saveGeneratorResult(snapshot.snapshot_id, generated);
-    updateSnapshotStatus(snapshot.snapshot_id, "ready");
+    await saveGeneratorResult(snapshot.snapshot_id, generated);
+    await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
     // Record usage per program if authenticated
     if (auth.account) {
@@ -1034,9 +1034,9 @@ export async function handleGitHubAnalyze(
       const totalBytes = fetchResult.files.reduce((s, f) => s + f.size, 0);
       for (const program of programs) {
         const programFiles = generated.files.filter(f => f.program === program);
-        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
+        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, fetchResult.files.length, totalBytes);
       }
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         source: "github",
@@ -1063,7 +1063,7 @@ export async function handleGitHubAnalyze(
     });
   /* v8 ignore start  -  requires internal function to throw during processing */
   } catch (err) {
-    updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "github_snapshot_processing_failed", {
       request_id: getRequestId(res),
       snapshot_id: snapshot.snapshot_id,
@@ -1099,19 +1099,19 @@ export async function handleSearchIndex(
     return;
   }
 
-  const snapshot = getSnapshot(snapshotId);
+  const snapshot = await getSnapshot(snapshotId);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
-  if (!assertSnapshotAccess(req, res, snapshot)) return;
+  if (!(await assertSnapshotAccess(req, res, snapshot))) return;
 
   const files = (snapshot.files as Array<{ path: string; content: string }>).filter(
     (f) => typeof f.path === "string" && typeof f.content === "string",
   );
 
-  const result = indexSnapshotContent(snapshotId, files);
-  const symbolResult = indexSymbols(snapshotId, files);
+  const result = await indexSnapshotContent(snapshotId, files);
+  const symbolResult = await indexSymbols(snapshotId, files);
 
   sendJSON(res, 200, {
     snapshot_id: snapshotId,
@@ -1154,11 +1154,11 @@ export async function handleSearchQuery(
   const limit = typeof body.limit === "number" ? Math.min(Math.max(1, body.limit), 200) : 50;
 
   // Ownership check: verify the caller can access this snapshot
-  const snapshot = getSnapshot(snapshotId);
-  if (snapshot && !assertSnapshotAccess(req, res, snapshot)) return;
+  const snapshot = await getSnapshot(snapshotId);
+  if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
 
-  const results = searchSnapshotContent(snapshotId, query, { limit });
-  const stats = getSearchIndexStats(snapshotId);
+  const results = await searchSnapshotContent(snapshotId, query, { limit });
+  const stats = await getSearchIndexStats(snapshotId);
 
   sendJSON(res, 200, {
     snapshot_id: snapshotId,
@@ -1175,9 +1175,9 @@ export async function handleSearchStats(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
-  const snapshot = getSnapshot(snapshot_id);
-  if (snapshot && !assertSnapshotAccess(_req, res, snapshot)) return;
-  const stats = getSearchIndexStats(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
+  if (snapshot && !(await assertSnapshotAccess(_req, res, snapshot))) return;
+  const stats = await getSearchIndexStats(snapshot_id);
 
   sendJSON(res, 200, {
     snapshot_id,
@@ -1191,9 +1191,9 @@ export async function handleSearchSymbols(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   // v8 ignore next
-  if (snapshot && !assertSnapshotAccess(req, res, snapshot)) return;
+  if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
 
   // v8 ignore next
   const url = new URL(req.url ?? "/", "http://localhost");
@@ -1203,8 +1203,8 @@ export async function handleSearchSymbols(
   // v8 ignore next
   const limit = limitParam ? Math.min(Math.max(1, parseInt(limitParam, 10) || 50), 200) : 50;
 
-  const results = searchSymbols(snapshot_id, { name, type, limit });
-  const stats = getSymbolStats(snapshot_id);
+  const results = await searchSymbols(snapshot_id, { name, type, limit });
+  const stats = await getSymbolStats(snapshot_id);
 
   sendJSON(res, 200, {
     snapshot_id,
@@ -1395,7 +1395,7 @@ export async function handleAnalyze(
 
   const inlineContent = body.inline_content !== false;
 
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.anonymous && !auth.account) {
     sendError(res, 401, ErrorCode.INVALID_KEY, "Invalid or revoked API key");
     return;
@@ -1423,7 +1423,7 @@ export async function handleAnalyze(
     try {
       let token = typeof body.token === "string" ? body.token : undefined;
       if (!token && auth.account) {
-        token = getGitHubTokenDecrypted(auth.account.account_id) ?? undefined;
+        token = (await getGitHubTokenDecrypted(auth.account.account_id)) ?? undefined;
       }
       if (!token) token = process.env.GITHUB_TOKEN ?? undefined;
       fetchResult = await fetchGitHubRepo(githubUrl, token || undefined);
@@ -1498,8 +1498,11 @@ export async function handleAnalyze(
   if (auth.account) {
     // Enforce program-level billing FIRST: check which paid programs the user lacks access to.
     if (requestedPaidPrograms.length > 0) {
+      const requestedPaidProgramsEnabled = await Promise.all(
+        requestedPaidPrograms.map(p => isProgramEnabled(auth.account!.account_id, p)),
+      );
       const blockedPrograms = requestedPaidPrograms.filter(
-        p => !isProgramEnabled(auth.account!.account_id, p),
+        (_p, i) => !requestedPaidProgramsEnabled[i],
       );
       if (blockedPrograms.length > 0) {
         const budget = parseAgentBudget(req);
@@ -1518,17 +1521,17 @@ export async function handleAnalyze(
             blocked_programs: blockedPrograms,
             tier: auth.account.tier,
             price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-            ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id),
+            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
       }
     }
 
-    const quota = checkQuota(auth.account.account_id);
+    const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
-      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
+      await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", { reason: quota.reason, source: "analyze" });
       const budget = parseAgentBudget(req);
       const mode = resolveAgentMode(req);
       const pricing = getPricingTier("analyze_repo");
@@ -1544,7 +1547,7 @@ export async function handleAnalyze(
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
           tier: quota.tier,
           usage: quota.usage,
-          ...buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id),
+          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1589,14 +1592,14 @@ export async function handleAnalyze(
     ...(githubUrl ? { github_url: githubUrl } : {}),
   };
 
-  const snapshot = createSnapshot(input, auth.account?.account_id);
+  const snapshot = await createSnapshot(input, auth.account?.account_id);
 
   try {
     const contextMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
 
-    saveContextMap(snapshot.snapshot_id, contextMap);
-    saveRepoProfile(snapshot.snapshot_id, repoProfile);
+    await saveContextMap(snapshot.snapshot_id, contextMap);
+    await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
     const generated = generateFiles({
       context_map: contextMap,
@@ -1604,17 +1607,17 @@ export async function handleAnalyze(
       requested_outputs: allOutputs,
       source_files: snapshot.files,
     });
-    saveGeneratorResult(snapshot.snapshot_id, generated);
-    updateSnapshotStatus(snapshot.snapshot_id, "ready");
+    await saveGeneratorResult(snapshot.snapshot_id, generated);
+    await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
     if (auth.account) {
       const programs = new Set(generated.files.map(f => f.program));
       const totalBytes = files.reduce((s, f) => s + (f.size ?? 0), 0);
       for (const program of programs) {
         const programFiles = generated.files.filter(f => f.program === program);
-        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
+        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, programFiles.length, files.length, totalBytes);
       }
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         source: "analyze",
@@ -1662,7 +1665,7 @@ export async function handleAnalyze(
     });
   /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
-    updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "analyze_failed", {
       request_id: getRequestId(res),
       snapshot_id: snapshot.snapshot_id,
@@ -1791,7 +1794,7 @@ export async function handlePreparePurchasing(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
 
   let body: Record<string, unknown>;
   try {
@@ -1851,9 +1854,12 @@ export async function handlePreparePurchasing(
       return;
     }
 
-    const blockedPrograms = proPrograms.filter(p => !isProgramEnabled(auth.account!.account_id, p));
+    const proProgramsEnabled = await Promise.all(
+      proPrograms.map(p => isProgramEnabled(auth.account!.account_id, p)),
+    );
+    const blockedPrograms = proPrograms.filter((_p, i) => !proProgramsEnabled[i]);
     if (blockedPrograms.length > 0) {
-      trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
+      await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
         reason: `program_not_enabled:${blockedPrograms.join(",")}`,
         source: "prepare_agentic_purchasing",
       });
@@ -1876,7 +1882,7 @@ export async function handlePreparePurchasing(
           blocked_programs: blockedPrograms,
           tier: auth.account.tier,
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-          ...buildPaymentRequiredPayload("prepare_agentic_purchasing", paymentMessage, budget, auth.account.account_id),
+          ...(await buildPaymentRequiredPayload("prepare_agentic_purchasing", paymentMessage, budget, auth.account.account_id)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1884,7 +1890,7 @@ export async function handlePreparePurchasing(
   }
 
   if (auth.account) {
-    const quota = checkQuota(auth.account.account_id);
+    const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path */
     if (!quota.allowed) {
       const budget = parseAgentBudget(req);
@@ -1902,7 +1908,7 @@ export async function handlePreparePurchasing(
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
           tier: quota.tier,
           usage: quota.usage,
-          ...buildPaymentRequiredPayload("prepare_agentic_purchasing", quota.reason ?? "Quota exceeded", budget, auth.account.account_id),
+          ...(await buildPaymentRequiredPayload("prepare_agentic_purchasing", quota.reason ?? "Quota exceeded", budget, auth.account.account_id)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1928,7 +1934,7 @@ export async function handlePreparePurchasing(
     requested_outputs: allOutputs,
   };
 
-  const snapshot = createSnapshot(
+  const snapshot = await createSnapshot(
     { input_method: "api_submission", manifest, files },
     auth.account?.account_id,
   );
@@ -1936,8 +1942,8 @@ export async function handlePreparePurchasing(
   try {
     const ctxMap = buildContextMap(snapshot);
     const repoProfile = buildRepoProfile(snapshot);
-    saveContextMap(snapshot.snapshot_id, ctxMap);
-    saveRepoProfile(snapshot.snapshot_id, repoProfile);
+    await saveContextMap(snapshot.snapshot_id, ctxMap);
+    await saveRepoProfile(snapshot.snapshot_id, repoProfile);
 
     const generated = generateFiles({
       context_map: ctxMap,
@@ -1945,17 +1951,17 @@ export async function handlePreparePurchasing(
       requested_outputs: allOutputs,
       source_files: snapshot.files,
     });
-    saveGeneratorResult(snapshot.snapshot_id, generated);
-    updateSnapshotStatus(snapshot.snapshot_id, "ready");
+    await saveGeneratorResult(snapshot.snapshot_id, generated);
+    await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
     if (auth.account) {
       const programs = new Set(generated.files.map(f => f.program));
       const totalBytes = files.reduce((s, f) => s + (f.size ?? 0), 0);
       for (const program of programs) {
         const pFiles = generated.files.filter(f => f.program === program);
-        recordUsage(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
+        await recordUsage(auth.account.account_id, program, snapshot.snapshot_id, pFiles.length, files.length, totalBytes);
       }
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), {
         snapshot_id: snapshot.snapshot_id,
         programs: [...programs],
         source: "prepare_agentic_purchasing",
@@ -1965,16 +1971,16 @@ export async function handlePreparePurchasing(
 
       // â”€â”€ Referral tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       if (typeof referral_token === "string" && referral_token.length > 0) {
-        const referral = lookupReferralCode(referral_token as string);
+        const referral = await lookupReferralCode(referral_token as string);
         if (referral && referral.account_id !== auth.account.account_id) {
-          recordReferralConversion(referral.account_id, auth.account.account_id);
+          await recordReferralConversion(referral.account_id, auth.account.account_id);
         }
       }
     }
 
     // Generate referral code for authenticated users
-    const myReferralCode = auth.account ? createReferralCode(auth.account.account_id) : null;
-    const myCredits = auth.account ? getReferralCredits(auth.account.account_id) : null;
+    const myReferralCode = auth.account ? await createReferralCode(auth.account.account_id) : null;
+    const myCredits = auth.account ? await getReferralCredits(auth.account.account_id) : null;
 
     const artifactPaths = generated.files.map(f => f.path);
     const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
@@ -2090,7 +2096,7 @@ export async function handlePreparePurchasing(
     });
   /* v8 ignore start  -  requires internal function to throw */
   } catch (err) {
-    updateSnapshotStatus(snapshot.snapshot_id, "failed");
+    await updateSnapshotStatus(snapshot.snapshot_id, "failed");
     log("error", "prepare_purchasing_failed", {
       request_id: getRequestId(res),
       snapshot_id: snapshot.snapshot_id,
@@ -3486,7 +3492,7 @@ export async function handleFirecrawlScrape(
     return;
   }
 
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required for web research");
     return;
@@ -3494,9 +3500,9 @@ export async function handleFirecrawlScrape(
 
   // 24h shared scrape cache — if any AXIS agent scraped this URL in the last
   // 24h, serve it for $0 (no Firecrawl call, no charge, no quota consumed).
-  const cachedScrape = getCachedScrape(url);
+  const cachedScrape = await getCachedScrape(url);
   if (cachedScrape) {
-    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, cached: true });
+    await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, cached: true });
     sendJSON(res, 200, {
       success: true,
       cached: true,
@@ -3513,7 +3519,7 @@ export async function handleFirecrawlScrape(
   const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
 
   // Check quota before attempting Firecrawl call
-  const quota = checkQuota(auth.account.account_id);
+  const quota = await checkQuota(auth.account.account_id);
   if (!quota.allowed) {
     const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
       currency: "usd",
@@ -3524,7 +3530,7 @@ export async function handleFirecrawlScrape(
     if (mppResult === null) {
       const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page. Upgrade at iliad.trustfabric.ai/billing.`;
       sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
-        ...buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id),
+        ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id)),
       });
     }
     if (mppResult === null || mppResult.status === 402) return;
@@ -3581,12 +3587,12 @@ export async function handleFirecrawlScrape(
         return;
       }
 
-      trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, mode });
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, mode });
 
       const scrapedMarkdown = firecrawlData.data?.markdown ?? "";
       const scrapedMetadata = (firecrawlData.data?.metadata ?? {}) as Record<string, unknown>;
       // Populate the 24h shared cache so the next caller of this URL pays $0.
-      putCachedScrape(url, scrapedMarkdown, scrapedMetadata, 200);
+      await putCachedScrape(url, scrapedMarkdown, scrapedMetadata, 200);
 
       sendJSON(res, 200, {
         success: true,
@@ -3639,7 +3645,7 @@ export async function handleFirecrawlCrawl(
     return;
   }
 
-  const auth = resolveAuth(req);
+  const auth = await resolveAuth(req);
   if (!auth.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required for web research");
     return;
@@ -3651,12 +3657,12 @@ export async function handleFirecrawlCrawl(
   const perPageCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
   // Estimate the PAID portion: pages beyond the 100/month free pool. A crawl
   // fully covered by the pool needs no upfront payment.
-  const poolStatus = getFreeScrapePoolStatus(auth.account.account_id);
+  const poolStatus = await getFreeScrapePoolStatus(auth.account.account_id);
   const estimatedUnfunded = Math.max(0, limit - poolStatus.remaining);
   const estimatedAmountCents = perPageCents * estimatedUnfunded;
 
   // Check quota — only require payment when there are paid (unfunded) pages.
-  const quota = checkQuota(auth.account.account_id);
+  const quota = await checkQuota(auth.account.account_id);
   if (!quota.allowed && estimatedAmountCents > 0) {
     const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, estimatedAmountCents, {
       currency: "usd",
@@ -3666,7 +3672,7 @@ export async function handleFirecrawlCrawl(
     });
     if (mppResult === null) {
       sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires up to $${(estimatedAmountCents / 100).toFixed(2)} for ${limit} requested pages`, {
-        ...buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id),
+        ...(await buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id)),
       });
     }
     if (mppResult === null || mppResult.status === 402) return;
@@ -3716,7 +3722,7 @@ export async function handleFirecrawlCrawl(
     const pagesCrawled = firecrawlData.data?.scrapeResults?.length ?? 0;
     // Draw down the free pool for the pages actually returned; bill only the
     // unfunded remainder at the per-page (1¢) floor.
-    const poolDraw = consumeFreeScrapes(auth.account.account_id, pagesCrawled);
+    const poolDraw = await consumeFreeScrapes(auth.account.account_id, pagesCrawled);
     const finalAmountCents = perPageCents * poolDraw.unfunded;
 
     if (finalAmountCents > 0) {
@@ -3732,7 +3738,7 @@ export async function handleFirecrawlCrawl(
       }
     }
 
-    trackEvent(auth.account.account_id, "snapshot_created", resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+    await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
 
     sendJSON(res, 200, {
       success: true,

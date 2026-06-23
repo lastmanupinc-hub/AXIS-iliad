@@ -18,7 +18,7 @@ export async function handleCreateWebhook(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const raw = await readBody(req);
@@ -69,7 +69,7 @@ export async function handleCreateWebhook(
     return;
   }
 
-  const webhook = createWebhook(
+  const webhook = await createWebhook(
     ctx.account!.account_id,
     url,
     events as WebhookEventType[],
@@ -84,11 +84,11 @@ export async function handleListWebhooks(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next — V8 quirk: auth guard tested in webhooks.test.ts */
   if (!ctx) return;
 
-  const webhooks = listWebhooks(ctx.account!.account_id);
+  const webhooks = await listWebhooks(ctx.account!.account_id);
   // Redact secrets in listing
   const safe = webhooks.map((w) => ({
     ...w,
@@ -104,18 +104,18 @@ export async function handleDeleteWebhook(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const { webhook_id } = params;
-  const existing = getWebhook(webhook_id);
+  const existing = await getWebhook(webhook_id);
 
   if (!existing || existing.account_id !== ctx.account!.account_id) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Webhook not found");
     return;
   }
 
-  deleteWebhook(webhook_id);
+  await deleteWebhook(webhook_id);
   sendJSON(res, 200, { deleted: true, webhook_id });
 }
 
@@ -125,11 +125,11 @@ export async function handleToggleWebhook(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const { webhook_id } = params;
-  const existing = getWebhook(webhook_id);
+  const existing = await getWebhook(webhook_id);
 
   if (!existing || existing.account_id !== ctx.account!.account_id) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Webhook not found");
@@ -150,7 +150,7 @@ export async function handleToggleWebhook(
     return;
   }
 
-  updateWebhookActive(webhook_id, body.active);
+  await updateWebhookActive(webhook_id, body.active);
   sendJSON(res, 200, { webhook_id, active: body.active });
 }
 
@@ -160,11 +160,11 @@ export async function handleWebhookDeliveries(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const { webhook_id } = params;
-  const existing = getWebhook(webhook_id);
+  const existing = await getWebhook(webhook_id);
 
   if (!existing || existing.account_id !== ctx.account!.account_id) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Webhook not found");
@@ -176,6 +176,6 @@ export async function handleWebhookDeliveries(
   /* v8 ignore next — V8 quirk on compound Math.min/max/parseInt */
   const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "20", 10) || 20, 1), 100);
 
-  const deliveries = getDeliveries(webhook_id, limit);
+  const deliveries = await getDeliveries(webhook_id, limit);
   sendJSON(res, 200, { deliveries, count: deliveries.length });
 }

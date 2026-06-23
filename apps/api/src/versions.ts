@@ -16,13 +16,13 @@ export async function handleListVersions(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
   if (!assertSnapshotAccess(req, res, snapshot)) return;
-  const versions = listGenerationVersions(snapshot_id);
+  const versions = await listGenerationVersions(snapshot_id);
 
   sendJSON(res, 200, { snapshot_id, versions, count: versions.length });
 }
@@ -34,7 +34,7 @@ export async function handleGetVersion(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id, version_number } = params;
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
@@ -47,7 +47,7 @@ export async function handleGetVersion(
     return;
   }
 
-  const version = getGenerationVersion(snapshot_id, vNum);
+  const version = await getGenerationVersion(snapshot_id, vNum);
   if (!version) {
     sendError(res, 404, ErrorCode.NOT_FOUND, `Version ${vNum} not found for snapshot ${snapshot_id}`);
     return;
@@ -63,7 +63,7 @@ export async function handleDiffVersions(
   params: Record<string, string>,
 ): Promise<void> {
   const { snapshot_id } = params;
-  const snapshot = getSnapshot(snapshot_id);
+  const snapshot = await getSnapshot(snapshot_id);
   if (!snapshot) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
@@ -85,7 +85,7 @@ export async function handleDiffVersions(
     return;
   }
 
-  const diff = diffGenerationVersions(snapshot_id, oldV, newV);
+  const diff = await diffGenerationVersions(snapshot_id, oldV, newV);
   if (!diff) {
     sendError(res, 404, ErrorCode.NOT_FOUND, `One or both versions not found for snapshot ${snapshot_id}`);
     return;
