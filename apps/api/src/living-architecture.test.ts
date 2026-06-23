@@ -1,10 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { buildFactOracle, verifyClaims, claimDropReason, type ArchClaim, type ExtractedSymbol } from "./living-architecture.js";
+import {
+  buildFactOracle,
+  verifyClaims,
+  claimDropReason,
+  parseClaims,
+  renderLivingArchitecture,
+  runSpecificityPass,
+  type ArchClaim,
+  type ExtractedSymbol,
+  type CompletionFn,
+} from "./living-architecture.js";
 import type { ContextMap } from "@axis/context-engine";
 
 // Minimal ContextMap carrying only the fields the oracle reads.
 function ctxFixture(): ContextMap {
   return {
+    project_identity: { name: "demo-repo", type: "monorepo", primary_language: "typescript", description: null, repo_url: null, go_module: null },
     structure: {
       file_tree_summary: [
         { path: "src/server.ts", type: "file", language: "typescript", loc: 100, role: "source" },
@@ -113,5 +124,108 @@ describe("verifyClaims — the structured contract", () => {
 
   it("empty claims → empty result", () => {
     expect(verifyClaims([], oracle)).toEqual({ kept: [], dropped: [] });
+  });
+});
+
+describe("parseClaims (defensive)", () => {
+  it("parses a clean JSON array", () => {
+    const text = JSON.stringify([
+      { type: "symbol", evidence: { file: "a.ts", symbol: "x" }, insight: "x does y" },
+      { type: "route", evidence: { route: { method: "GET", path: "/" } }, insight: "root" },
+    ]);
+    const c = parseClaims(text, 40);
+    expect(c.length).toBe(2);
+    expect(c[0].type).toBe("symbol");
+  });
+
+  it("extracts the array from surrounding prose", () => {
+    const text = 'Here are the claims:\n[{"type":"dependency","evidence":{"dep":"express"},"insight":"uses express"}]\nDone.';
+    const c = parseClaims(text, 40);
+    expect(c.length).toBe(1);
+    expect(c[0].evidence.dep).toBe("express");
+  });
+
+  it("skips malformed elements (bad type, missing insight, non-object)", () => {
+    const text = JSON.stringify([
+      { type: "bogus", evidence: {}, insight: "x" },
+      { type: "symbol", evidence: { file: "a" } }, // no insight
+      "not an object",
+      { type: "model", evidence: { model: "M" }, insight: "ok" },
+    ]);
+    const c = parseClaims(text, 40);
+    expect(c.length).toBe(1);
+    expect(c[0].type).toBe("model");
+  });
+
+  it("caps to max and returns [] on garbage", () => {
+    const many = JSON.stringify(Array.from({ length: 10 }, () => ({ type: "dependency", evidence: { dep: "x" }, insight: "i" })));
+    expect(parseClaims(many, 3).length).toBe(3);
+    expect(parseClaims("no json here", 40)).toEqual([]);
+    expect(parseClaims("{not an array}", 40)).toEqual([]);
+  });
+});
+
+describe("renderLivingArchitecture", () => {
+  it("groups kept claims by type and reports verification counts + dropped reasons", () => {
+    const md = renderLivingArchitecture(
+      "demo",
+      [
+        { type: "symbol", evidence: { file: "a.ts", symbol: "foo", line: 3 }, insight: "foo bootstraps the app" },
+        { type: "dependency", evidence: { dep: "express" }, insight: "HTTP via express" },
+      ],
+      [{ claim: { type: "route", evidence: { route: { method: "GET", path: "/x" } }, insight: "ghost route" }, reason: "route GET /x not found" }],
+      3,
+    );
+    expect(md).toContain("# Living Architecture — demo");
+    expect(md).toContain("## Key symbols");
+    expect(md).toContain("foo bootstraps the app");
+    expect(md).toContain("foo in a.ts:3");
+    expect(md).toContain("## Dependencies");
+    expect(md).toContain("- Claims proposed: 3");
+    expect(md).toContain("- Verified (kept): 2");
+    expect(md).toContain("- Dropped (unverifiable): 1");
+    expect(md).toMatch(/ghost route.*route GET \/x not found/);
+  });
+
+  it("handles the all-dropped case", () => {
+    expect(renderLivingArchitecture("demo", [], [], 0)).toContain("No claims survived verification");
+  });
+});
+
+describe("runSpecificityPass (orchestrator)", () => {
+  const ctx = ctxFixture();
+
+  it("returns a verified artifact: keeps grounded claims, drops hallucinated ones", async () => {
+    const fake: CompletionFn = async () => ({
+      text: JSON.stringify([
+        { type: "symbol", evidence: { file: "src/util.ts", symbol: "User" }, insight: "User is the core model type" }, // keep
+        { type: "symbol", evidence: { file: "src/util.ts", symbol: "ghostFn" }, insight: "ghostFn does magic" }, // drop
+        { type: "route", evidence: { route: { method: "GET", path: "/health" } }, insight: "health check route" }, // keep
+        { type: "dependency", evidence: { dep: "left-pad" }, insight: "uses left-pad" }, // drop
+      ]),
+    });
+    const art = await runSpecificityPass(ctx, symbols, fake, { seed: 7 });
+    expect(art.path).toBe("living-architecture.md");
+    expect(art.report).toEqual({ configured: true, proposed: 4, kept: 2, dropped: 2 });
+    expect(art.content).toContain("User is the core model type");
+    expect(art.content).toContain("health check route");
+    expect(art.content).toContain("### Dropped claims");
+    expect(art.content).toMatch(/ghostFn does magic.*not found/);
+  });
+
+  it("degrades to a configured:false doc when no model is configured", async () => {
+    const notConfigured: CompletionFn = async () => ({ _not_configured: true });
+    const art = await runSpecificityPass(ctx, symbols, notConfigured);
+    expect(art.report.configured).toBe(false);
+    expect(art.report.proposed).toBe(0);
+    expect(art.content).toContain("no local model is configured");
+  });
+
+  it("degrades gracefully if the completion throws", async () => {
+    const boom: CompletionFn = async () => {
+      throw new Error("native load failed");
+    };
+    const art = await runSpecificityPass(ctx, symbols, boom);
+    expect(art.report.configured).toBe(false);
   });
 });
