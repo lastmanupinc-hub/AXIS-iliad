@@ -299,9 +299,15 @@ describe("X-Agent-Mode: engineer tier", () => {
 
   it("only the IMPLEMENTED engineer tools carry an engineer price", () => {
     const priced = Object.values(PRICING_TIERS).filter(t => t.engineer_cents !== undefined).map(t => t.tool).sort();
-    // Built: E1 hygiene, E2 object_storage, E3 web_search, E5 analyze_repo (Living
-    // Architecture). prepare_agentic_purchasing (E9) and embeddings (E12) are NOT —
-    // they must not advertise/charge an engineer tier until their handler ships.
-    expect(priced).toEqual(["analyze_files", "analyze_repo", "iliad_hygiene", "iliad_object_storage", "iliad_web_search"]);
+    // Built engineer tiers so far (E1-E3 + E5 + E9). Pinned so an unbuilt tool
+    // can't silently advertise/charge an engineer price.
+    expect(priced).toEqual([
+      "analyze_files",
+      "analyze_repo",
+      "iliad_hygiene",
+      "iliad_object_storage",
+      "iliad_web_search",
+      "prepare_agentic_purchasing",
+    ]);
   });
 });
