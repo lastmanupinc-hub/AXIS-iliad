@@ -194,6 +194,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: max_tokens capped at 256 + temperature locked at 0 for cheaper, more deterministic output.",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Constrained Inference): decoding is grammar-constrained to your json_schema AND the output is validated against it — guaranteed-valid structured output, in-process.",
   },
   // AXIS-owned code sandbox: ephemeral Docker container per call.
   // Real marginal cost is the spawn/teardown overhead (1-2s cold)

@@ -297,6 +297,6 @@ describe("X-Agent-Mode: engineer tier", () => {
     // E1 hygiene, E2 object_storage, E3 web_search are built; analyze_repo (E5),
     // prepare_agentic_purchasing (E9), embeddings (E12) are NOT — they must not
     // advertise/charge an engineer tier until their handler implements it.
-    expect(priced).toEqual(["iliad_hygiene", "iliad_object_storage", "iliad_web_search"]);
+    expect(priced).toEqual(["iliad_hygiene", "iliad_llm_inference", "iliad_object_storage", "iliad_web_search"]);
   });
 });

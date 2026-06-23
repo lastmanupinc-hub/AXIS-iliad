@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateAgainstSchema, parseJsonOutput, isUsableSchema } from "./json-schema-validate.js";
+import { validateAgainstSchema, parseJsonOutput, isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
 
 const ok = (v: unknown, s: unknown) => expect(validateAgainstSchema(v, s).valid).toBe(true);
 const bad = (v: unknown, s: unknown) => expect(validateAgainstSchema(v, s).valid).toBe(false);
@@ -76,6 +76,30 @@ describe("parseJsonOutput", () => {
     expect(parseJsonOutput('Here you go: {"a":1} — done')).toEqual({ a: 1 });
     expect(parseJsonOutput("[1,2,3]")).toEqual([1, 2, 3]);
     expect(parseJsonOutput("no json here")).toBeUndefined();
+  });
+});
+
+describe("validateStructuredOutput", () => {
+  const schema = { type: "object", required: ["n"], properties: { n: { type: "integer" } } };
+  it("parses + validates valid model output", () => {
+    const r = validateStructuredOutput('{"n": 5}', schema);
+    expect(r.valid).toBe(true);
+    expect(r.parsed).toEqual({ n: 5 });
+  });
+  it("extracts JSON from prose then validates", () => {
+    const r = validateStructuredOutput('Sure: {"n": 5}', schema);
+    expect(r.valid).toBe(true);
+  });
+  it("flags schema-invalid output", () => {
+    const r = validateStructuredOutput('{"n": "five"}', schema);
+    expect(r.valid).toBe(false);
+    expect(r.errors.length).toBeGreaterThan(0);
+  });
+  it("flags non-JSON output", () => {
+    const r = validateStructuredOutput("I cannot do that", schema);
+    expect(r.valid).toBe(false);
+    expect(r.parsed).toBeUndefined();
+    expect(r.errors[0]).toMatch(/parseable JSON/);
   });
 });
 

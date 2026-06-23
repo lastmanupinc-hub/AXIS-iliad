@@ -118,6 +118,20 @@ export function parseJsonOutput(text: string): unknown {
   }
 }
 
+/**
+ * Parse + validate model output against a schema in one step — the engineer-mode
+ * "guaranteed-valid" check. parsed=undefined + valid=false when the text isn't
+ * parseable JSON.
+ */
+export function validateStructuredOutput(text: string, schema: unknown): { parsed: unknown; valid: boolean; errors: string[] } {
+  const parsed = parseJsonOutput(text);
+  if (parsed === undefined) {
+    return { parsed: undefined, valid: false, errors: ["model output did not contain parseable JSON"] };
+  }
+  const { valid, errors } = validateAgainstSchema(parsed, schema);
+  return { parsed, valid, errors };
+}
+
 /** Shallow well-formedness check on a caller-supplied schema (object with a
  *  recognized shape). Rejects obviously-bad schemas before constraining a decode. */
 export function isUsableSchema(schema: unknown): boolean {
