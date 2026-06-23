@@ -1064,16 +1064,19 @@ async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessag
   // Docker daemon unreachable / dockerode import failed → _not_configured.
   // Don't meter those — the container never spawned.
   if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
-    // Engineer mode: attach a signed attestation binding this code to this output.
+    // Engineer mode: build the signed attestation BEFORE metering, so a signing-
+    // key misconfiguration fails the call rather than charging for a missing
+    // attestation. attestRun is pure crypto over the already-capped inputs.
     if (resolveAgentMode(req) === "engineer") {
       const attestation = attestRun(
         { language, code: args.code, stdin: opts.stdin },
         { stdout: result.stdout, stderr: result.stderr, exit_code: result.exit_code },
         auth.account.account_id,
       );
+      meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
       return JSON.stringify({ ...result, attestation }, null, 2);
     }
+    meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
   }
   return JSON.stringify(result, null, 2);
 }
@@ -2151,7 +2154,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_code_sandbox",
     description:
-      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Engineer mode (X-Agent-Mode: engineer — Verified Exec, $0.25): the result includes a signed Ed25519 attestation binding code-hash → output-hash + an append-only chain entry, so another agent can verify the run without re-executing it. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Engineer mode (X-Agent-Mode: engineer — Verified Exec, $0.25): the result includes an Ed25519-signed attestation binding code-hash → output-hash + a per-account hash-chain entry, so another agent that pins AXIS's published key can verify the run without re-executing it. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["language", "code"],

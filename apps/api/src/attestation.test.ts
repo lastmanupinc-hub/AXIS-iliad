@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { attestRun, verifyAttestation, hashInput, hashOutput, resetChainForTests, resetKeyForTests, type Attestation } from "./attestation.js";
+import { attestRun, verifyAttestation, verifyChainLink, hashInput, hashOutput, resetChainForTests, resetKeyForTests, type Attestation } from "./attestation.js";
 
 const input = { language: "python", code: "print(1)", stdin: "" };
 const output = { stdout: "1\n", stderr: "", exit_code: 0 };
@@ -40,41 +40,59 @@ describe("attestRun / verifyAttestation", () => {
     expect(verifyAttestation(att)).toBe(true);
   });
 
-  it("rejects tampering of any signed field", () => {
+  it("rejects tampering of any signed field (incl. chain + leaf)", () => {
     const att = attestRun(input, output, "acc-1");
-    const tamper = (patch: Partial<Attestation>) => verifyAttestation({ ...att, ...patch });
-    expect(tamper({ code_sha256: hashInput({ ...input, code: "evil()" }) })).toBe(false);
-    expect(tamper({ output_sha256: hashOutput({ ...output, stdout: "fake" }) })).toBe(false);
-    expect(tamper({ exit_code: 1 })).toBe(false);
-    expect(tamper({ account_id: "acc-2" })).toBe(false);
-    expect(tamper({ signature: Buffer.from("nope").toString("base64") })).toBe(false);
+    const t = (patch: Partial<Attestation>) => verifyAttestation({ ...att, ...patch });
+    expect(t({ code_sha256: hashInput({ ...input, code: "evil()" }) })).toBe(false);
+    expect(t({ output_sha256: hashOutput({ ...output, stdout: "fake" }) })).toBe(false);
+    expect(t({ exit_code: 1 })).toBe(false);
+    expect(t({ account_id: "acc-2" })).toBe(false);
+    expect(t({ attestation_hash: "0".repeat(64) })).toBe(false);
+    expect(t({ chain: { ...att.chain, prev_root: "0".repeat(64) } })).toBe(false);
+    expect(t({ chain: { ...att.chain, index: 99 } })).toBe(false);
+    expect(t({ signature: Buffer.from("nope").toString("base64") })).toBe(false);
   });
 
-  it("rejects a swapped public key (signature no longer matches)", () => {
+  it("pins provenance with expectedPublicKey", () => {
     const att = attestRun(input, output, "acc-1");
-    resetKeyForTests();
-    const other = attestRun(input, output, "acc-1"); // forces a fresh ephemeral key
-    expect(verifyAttestation({ ...att, public_key: other.public_key })).toBe(false);
+    expect(verifyAttestation(att, { expectedPublicKey: att.public_key })).toBe(true);
+    expect(verifyAttestation(att, { expectedPublicKey: "someone-elses-key" })).toBe(false);
+  });
+
+  it("a forged binding signed with an attacker key fails against the pinned AXIS key", () => {
+    const real = attestRun(input, output, "acc-1");
+    const axisKey = real.public_key;
+    resetKeyForTests(); // simulate a different process / attacker key
+    const forged = attestRun({ ...input, code: "rm -rf /" }, { stdout: "all clean", stderr: "", exit_code: 0 }, "acc-1");
+    expect(verifyAttestation(forged)).toBe(true); // self-consistent...
+    expect(verifyAttestation(forged, { expectedPublicKey: axisKey })).toBe(false); // ...but not AXIS's
   });
 });
 
-describe("attestation chain (merkle tie-in)", () => {
-  it("links successive attestations (prev_root chains, index increments)", () => {
+describe("per-account hash-chain", () => {
+  it("links successive attestations within an account; verifyChainLink confirms ordering", () => {
     const a = attestRun(input, output, "acc-1");
     const b = attestRun({ ...input, code: "print(2)" }, output, "acc-1");
     expect(a.chain.index).toBe(0);
     expect(b.chain.index).toBe(1);
-    expect(b.chain.prev_root).toBe(a.chain.root); // b builds on a's root
-    expect(a.chain.root).not.toBe(b.chain.root);
-    expect(verifyAttestation(a)).toBe(true);
-    expect(verifyAttestation(b)).toBe(true);
+    expect(b.chain.prev_root).toBe(a.chain.root);
+    expect(verifyChainLink(a, b)).toBe(true);
+    expect(verifyChainLink(b, a)).toBe(false); // wrong order
   });
 
-  it("reproduces the input+output binding but keeps each attestation chain-unique", () => {
-    const a = attestRun(input, output, "acc-1");
-    const b = attestRun(input, output, "acc-1");
-    expect(b.code_sha256).toBe(a.code_sha256);
-    expect(b.output_sha256).toBe(a.output_sha256);
-    expect(b.chain.root).not.toBe(a.chain.root);
+  it("keeps each account's chain independent (no cross-account interleave)", () => {
+    const a1 = attestRun(input, output, "acc-1");
+    const b1 = attestRun(input, output, "acc-2");
+    expect(a1.chain.index).toBe(0);
+    expect(b1.chain.index).toBe(0); // independent chains both start at 0
+    expect(verifyChainLink(a1, b1)).toBe(false); // different accounts don't link
+  });
+});
+
+describe("signing key handling", () => {
+  it("FAILS LOUD when a configured key is present but malformed (no silent ephemeral downgrade)", () => {
+    resetKeyForTests();
+    process.env.AXIS_ATTESTATION_PRIVATE_KEY = "not-a-real-key";
+    expect(() => attestRun(input, output, "acc-1")).toThrow();
   });
 });
