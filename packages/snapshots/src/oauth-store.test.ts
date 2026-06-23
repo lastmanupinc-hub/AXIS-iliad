@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { openMemoryDb, closeDb, getDb } from "./db.js";
+import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import { createAccount, getAccountByEmail, resolveApiKey } from "./billing-store.js";
 import {
   createOAuthState,
@@ -14,40 +15,39 @@ import {
   upsertAccountByGitHub,
 } from "./oauth-store.js";
 
-beforeEach(() => { openMemoryDb(); });
-afterEach(() => { closeDb(); });
+beforeEach(async () => { await resetTestDb(); });
 
 // ─── OAuth state (CSRF protection) ──────────────────────────────
 
 describe("OAuth state management", () => {
-  it("creates a random 64-char hex state", () => {
-    const state = createOAuthState();
+  it("creates a random 64-char hex state", async () => {
+    const state = await createOAuthState();
     expect(state).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it("consumes a valid state exactly once", () => {
-    const state = createOAuthState();
-    expect(consumeOAuthState(state)).toBe(true);
-    expect(consumeOAuthState(state)).toBe(false);
+  it("consumes a valid state exactly once", async () => {
+    const state = await createOAuthState();
+    expect(await consumeOAuthState(state)).toBe(true);
+    expect(await consumeOAuthState(state)).toBe(false);
   });
 
-  it("rejects unknown state", () => {
-    expect(consumeOAuthState("nonexistent")).toBe(false);
+  it("rejects unknown state", async () => {
+    expect(await consumeOAuthState("nonexistent")).toBe(false);
   });
 
-  it("rejects expired state", () => {
-    const state = createOAuthState();
+  it("rejects expired state", async () => {
+    const state = await createOAuthState();
     // Manually backdate the created_at to > 10 minutes ago
     const expired = new Date(Date.now() - 11 * 60 * 1000).toISOString();
-    getDb().prepare("UPDATE oauth_states SET created_at = ? WHERE state = ?").run(expired, state);
-    expect(consumeOAuthState(state)).toBe(false);
+    await sql.run("UPDATE oauth_states SET created_at = ? WHERE state = ?", [expired, state]);
+    expect(await consumeOAuthState(state)).toBe(false);
   });
 });
 
 // ─── GitHub auth URL builder ────────────────────────────────────
 
 describe("getGitHubAuthUrl", () => {
-  it("builds correct GitHub authorize URL", () => {
+  it("builds correct GitHub authorize URL", async () => {
     const url = getGitHubAuthUrl("my-client-id", "http://localhost:4000/callback", "abc123");
     expect(url).toContain("https://github.com/login/oauth/authorize?");
     expect(url).toContain("client_id=my-client-id");
@@ -60,74 +60,74 @@ describe("getGitHubAuthUrl", () => {
 // ─── GitHub ID linking ──────────────────────────────────────────
 
 describe("GitHub ID linking", () => {
-  it("links and retrieves account by github_id", () => {
-    const acct = createAccount("Bob", "bob@example.com");
-    linkGitHubId(acct.account_id, "12345");
+  it("links and retrieves account by github_id", async () => {
+    const acct = await createAccount("Bob", "bob@example.com");
+    await linkGitHubId(acct.account_id, "12345");
 
-    const found = getAccountByGitHubId("12345");
+    const found = await getAccountByGitHubId("12345");
     expect(found).toBeDefined();
     expect(found!.account_id).toBe(acct.account_id);
   });
 
-  it("returns undefined for unknown github_id", () => {
-    expect(getAccountByGitHubId("99999")).toBeUndefined();
+  it("returns undefined for unknown github_id", async () => {
+    expect(await getAccountByGitHubId("99999")).toBeUndefined();
   });
 
-  it("returns false when linking to nonexistent account", () => {
-    expect(linkGitHubId("no-such-account", "12345")).toBe(false);
+  it("returns false when linking to nonexistent account", async () => {
+    expect(await linkGitHubId("no-such-account", "12345")).toBe(false);
   });
 });
 
 // ─── Account upsert by GitHub ───────────────────────────────────
 
 describe("upsertAccountByGitHub", () => {
-  it("creates new account when no match exists", () => {
-    const { account, rawKey } = upsertAccountByGitHub(42, "Alice", "alice@gh.com");
+  it("creates new account when no match exists", async () => {
+    const { account, rawKey } = await upsertAccountByGitHub(42, "Alice", "alice@gh.com");
     expect(account.name).toBe("Alice");
     expect(account.email).toBe("alice@gh.com");
     expect(rawKey).toMatch(/^axis_/);
 
     // Verify github_id was linked
-    const found = getAccountByGitHubId("42");
+    const found = await getAccountByGitHubId("42");
     expect(found!.account_id).toBe(account.account_id);
 
     // Verify key resolves
-    const resolved = resolveApiKey(rawKey);
+    const resolved = await resolveApiKey(rawKey);
     expect(resolved).toBeDefined();
     expect(resolved!.account.account_id).toBe(account.account_id);
   });
 
-  it("matches existing account by github_id", () => {
-    const existing = createAccount("Bob", "bob@example.com");
-    linkGitHubId(existing.account_id, "100");
+  it("matches existing account by github_id", async () => {
+    const existing = await createAccount("Bob", "bob@example.com");
+    await linkGitHubId(existing.account_id, "100");
 
-    const { account, rawKey } = upsertAccountByGitHub(100, "Bob Updated", "bob-new@example.com");
+    const { account, rawKey } = await upsertAccountByGitHub(100, "Bob Updated", "bob-new@example.com");
     expect(account.account_id).toBe(existing.account_id);
     expect(rawKey).toMatch(/^axis_/);
   });
 
-  it("matches existing account by email and links github_id", () => {
-    const existing = createAccount("Carol", "carol@example.com");
+  it("matches existing account by email and links github_id", async () => {
+    const existing = await createAccount("Carol", "carol@example.com");
 
-    const { account, rawKey } = upsertAccountByGitHub(200, "Carol GH", "carol@example.com");
+    const { account, rawKey } = await upsertAccountByGitHub(200, "Carol GH", "carol@example.com");
     expect(account.account_id).toBe(existing.account_id);
     expect(rawKey).toMatch(/^axis_/);
 
     // github_id should now be linked
-    const found = getAccountByGitHubId("200");
+    const found = await getAccountByGitHubId("200");
     expect(found!.account_id).toBe(existing.account_id);
   });
 
-  it("uses fallback name and email when null", () => {
-    const { account } = upsertAccountByGitHub(300, null, null);
+  it("uses fallback name and email when null", async () => {
+    const { account } = await upsertAccountByGitHub(300, null, null);
     expect(account.name).toBe("github-300");
     expect(account.email).toBe("300@github.oauth");
   });
 
-  it("creates new account when email doesn't match", () => {
-    createAccount("Dave", "dave@example.com");
+  it("creates new account when email doesn't match", async () => {
+    await createAccount("Dave", "dave@example.com");
 
-    const { account } = upsertAccountByGitHub(400, "Eve", "eve@example.com");
+    const { account } = await upsertAccountByGitHub(400, "Eve", "eve@example.com");
     expect(account.email).toBe("eve@example.com");
     expect(account.name).toBe("Eve");
   });
@@ -136,41 +136,45 @@ describe("upsertAccountByGitHub", () => {
 // ─── Migration v9 check ─────────────────────────────────────────
 
 describe("OAuth migration", () => {
-  it("accounts table has github_id column", () => {
-    const cols = getDb().pragma("table_info(accounts)") as Array<{ name: string }>;
+  it("accounts table has github_id column", async () => {
+    // Postgres equivalent of SQLite's pragma table_info(accounts).
+    const cols = await sql.many<{ name: string }>(
+      "SELECT column_name AS name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'accounts'",
+    );
     const names = cols.map((c) => c.name);
     expect(names).toContain("github_id");
   });
 
-  it("oauth_states table exists", () => {
-    const tables = getDb()
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='oauth_states'")
-      .all() as Array<{ name: string }>;
+  it("oauth_states table exists", async () => {
+    // Postgres equivalent of querying SQLite's sqlite_master for the table.
+    const tables = await sql.many<{ name: string }>(
+      "SELECT tablename AS name FROM pg_tables WHERE schemaname = current_schema() AND tablename = 'oauth_states'",
+    );
     expect(tables).toHaveLength(1);
   });
 
-  it("github_id unique index enforced", () => {
-    const a1 = createAccount("X", "x@test.com");
-    const a2 = createAccount("Y", "y@test.com");
-    linkGitHubId(a1.account_id, "unique-gh-id");
-    expect(() => linkGitHubId(a2.account_id, "unique-gh-id")).toThrow();
+  it("github_id unique index enforced", async () => {
+    const a1 = await createAccount("X", "x@test.com");
+    const a2 = await createAccount("Y", "y@test.com");
+    await linkGitHubId(a1.account_id, "unique-gh-id");
+    await expect(linkGitHubId(a2.account_id, "unique-gh-id")).rejects.toThrow();
   });
 });
 
 // ─── exchangeGitHubCode (mocked fetch) ──────────────────────────
 
 describe("one-time auth code", () => {
-  it("hands back the raw key exactly once (single-use)", () => {
+  it("hands back the raw key exactly once (single-use)", async () => {
     const code = createAuthCode("axis_rawkey_abc");
     expect(consumeAuthCode(code)).toBe("axis_rawkey_abc");
     expect(consumeAuthCode(code)).toBeNull(); // already consumed
   });
 
-  it("returns null for an unknown code", () => {
+  it("returns null for an unknown code", async () => {
     expect(consumeAuthCode("does-not-exist")).toBeNull();
   });
 
-  it("issues distinct codes per call", () => {
+  it("issues distinct codes per call", async () => {
     expect(createAuthCode("k1")).not.toBe(createAuthCode("k2"));
   });
 });

@@ -20,6 +20,7 @@ export type { DbMaintenanceResult } from "./db.js";
 // callers init with runPgMigrations() and shut down with closePool(). See NEON_MIGRATION_PLAN.md.
 export { sql, getPool, peekPool, closePool, pgPlaceholders } from "./pg.js";
 export { runPgMigrations, getPgSchemaVersion, dropAllPgTables, PG_LATEST_VERSION } from "./pg-schema.js";
+export { resetTestDb, closeTestDb } from "./pg-test.js";
 
 // Search
 export type { SearchIndexEntry, SearchResult, CodeSymbol, SymbolSearchResult, SymbolType } from "./search-store.js";

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleMetrics, recordLatency, getLatencyStats, resetLatencyStats } from "./metrics.js";
@@ -15,7 +15,7 @@ describe("recordLatency — histogram bucketing", () => {
     resetLatencyStats();
   });
 
-  it("records a single latency observation", () => {
+  it("records a single latency observation", async () => {
     recordLatency("GET", "/v1/health", 15);
     const stats = getLatencyStats();
     const entry = stats.routes.get("GET /v1/health");
@@ -24,7 +24,7 @@ describe("recordLatency — histogram bucketing", () => {
     expect(entry!.sum).toBe(15);
   });
 
-  it("accumulates multiple observations for same route", () => {
+  it("accumulates multiple observations for same route", async () => {
     recordLatency("GET", "/v1/health", 10);
     recordLatency("GET", "/v1/health", 20);
     recordLatency("GET", "/v1/health", 30);
@@ -34,7 +34,7 @@ describe("recordLatency — histogram bucketing", () => {
     expect(entry!.sum).toBe(60);
   });
 
-  it("tracks separate routes independently", () => {
+  it("tracks separate routes independently", async () => {
     recordLatency("GET", "/v1/health", 5);
     recordLatency("POST", "/v1/snapshots", 100);
     const stats = getLatencyStats();
@@ -43,7 +43,7 @@ describe("recordLatency — histogram bucketing", () => {
     expect(stats.routes.get("POST /v1/snapshots")!.count).toBe(1);
   });
 
-  it("places observation in correct histogram buckets", () => {
+  it("places observation in correct histogram buckets", async () => {
     // 15ms should be in buckets: 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, +Inf
     // But NOT in buckets: 5, 10
     recordLatency("GET", "/v1/test", 15);
@@ -59,7 +59,7 @@ describe("recordLatency — histogram bucketing", () => {
     expect(entry.buckets[4]).toBe(0);  // <=100ms: not stored
   });
 
-  it("handles observation exactly on bucket boundary", () => {
+  it("handles observation exactly on bucket boundary", async () => {
     recordLatency("GET", "/v1/test", 10);
     const stats = getLatencyStats();
     const entry = stats.routes.get("GET /v1/test")!;
@@ -68,14 +68,14 @@ describe("recordLatency — histogram bucketing", () => {
     expect(entry.buckets[2]).toBe(0);  // <=25ms: not stored (cumulated on output)
   });
 
-  it("handles very fast requests (< 5ms)", () => {
+  it("handles very fast requests (< 5ms)", async () => {
     recordLatency("GET", "/v1/test", 2);
     const stats = getLatencyStats();
     const entry = stats.routes.get("GET /v1/test")!;
     expect(entry.buckets[0]).toBe(1);  // <=5ms: yes
   });
 
-  it("handles slow requests (> 10s)", () => {
+  it("handles slow requests (> 10s)", async () => {
     recordLatency("GET", "/v1/test", 15000);
     const stats = getLatencyStats();
     const entry = stats.routes.get("GET /v1/test")!;
@@ -88,26 +88,26 @@ describe("recordLatency — histogram bucketing", () => {
     expect(entry.count).toBe(1);
   });
 
-  it("normalizes UUIDs in paths to :id", () => {
+  it("normalizes UUIDs in paths to :id", async () => {
     recordLatency("GET", "/v1/snapshots/a1b2c3d4-e5f6-7890-abcd-ef1234567890/context", 10);
     const stats = getLatencyStats();
     expect(stats.routes.has("GET /v1/snapshots/:id/context")).toBe(true);
   });
 
-  it("normalizes multiple UUIDs in same path", () => {
+  it("normalizes multiple UUIDs in same path", async () => {
     recordLatency("POST", "/v1/accounts/a1b2c3d4-e5f6-7890-abcd-ef1234567890/keys/b2c3d4e5-f6a7-8901-bcde-f12345678901/revoke", 10);
     const stats = getLatencyStats();
     expect(stats.routes.has("POST /v1/accounts/:id/keys/:id/revoke")).toBe(true);
   });
 
-  it("strips query strings from route", () => {
+  it("strips query strings from route", async () => {
     recordLatency("GET", "/v1/snapshots?since=2024-01-01&limit=10", 10);
     const stats = getLatencyStats();
     expect(stats.routes.has("GET /v1/snapshots")).toBe(true);
     expect(stats.routes.has("GET /v1/snapshots?since=2024-01-01&limit=10")).toBe(false);
   });
 
-  it("groups same normalized routes together", () => {
+  it("groups same normalized routes together", async () => {
     recordLatency("GET", "/v1/snapshots/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/context", 5);
     recordLatency("GET", "/v1/snapshots/11111111-2222-3333-4444-555555555555/context", 15);
     const stats = getLatencyStats();
@@ -116,7 +116,7 @@ describe("recordLatency — histogram bucketing", () => {
     expect(entry!.sum).toBe(20);
   });
 
-  it("resetLatencyStats clears all data", () => {
+  it("resetLatencyStats clears all data", async () => {
     recordLatency("GET", "/v1/test", 10);
     recordLatency("POST", "/v1/other", 20);
     expect(getLatencyStats().routes.size).toBe(2);
@@ -124,7 +124,7 @@ describe("recordLatency — histogram bucketing", () => {
     expect(getLatencyStats().routes.size).toBe(0);
   });
 
-  it("returns standard Prometheus bucket boundaries", () => {
+  it("returns standard Prometheus bucket boundaries", async () => {
     const stats = getLatencyStats();
     expect(stats.buckets).toEqual([5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]);
   });
@@ -160,7 +160,7 @@ function rawReq(method: string, path: string): Promise<Res> {
 
 describe("Latency histograms in /v1/metrics", () => {
   beforeAll(async () => {
-    openMemoryDb();
+    await resetTestDb();
     const router = new Router();
     router.get("/v1/health/live", handleLiveness);
     router.get("/v1/metrics", handleMetrics);
@@ -171,7 +171,6 @@ describe("Latency histograms in /v1/metrics", () => {
 
   afterAll(async () => {
     server.close();
-    closeDb();
     await new Promise((r) => setTimeout(r, 100));
   });
 

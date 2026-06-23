@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
 import {
   handlePreparePurchasing,
@@ -73,9 +73,9 @@ const validBody = {
 };
 
 beforeAll(async () => {
-  openMemoryDb();
-  const suiteAccount = createAccount("suite-test", "suite@test.local", "suite");
-  const suiteKey = createApiKey(suiteAccount.account_id);
+  await resetTestDb();
+  const suiteAccount = await createAccount("suite-test", "suite@test.local", "suite");
+  const suiteKey = await createApiKey(suiteAccount.account_id);
   suiteApiKey = suiteKey.rawKey;
   const router = new Router();
   router.post("/v1/prepare-for-agentic-purchasing", handlePreparePurchasing);
@@ -90,57 +90,56 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ─── computePurchasingReadinessScore — pure function ────────────
 
 describe("computePurchasingReadinessScore", () => {
-  it("returns 0 for empty paths", () => {
+  it("returns 0 for empty paths", async () => {
     const { score, gaps, strengths } = computePurchasingReadinessScore([]);
     expect(score).toBe(0);
     expect(strengths).toEqual([]);
     expect(gaps.length).toBeGreaterThan(0);
   });
 
-  it("awards commerce_artifacts points for agent-purchasing-playbook.md", () => {
+  it("awards commerce_artifacts points for agent-purchasing-playbook.md", async () => {
     const { score, strengths } = computePurchasingReadinessScore(["agent-purchasing-playbook.md"]);
     expect(score).toBeGreaterThanOrEqual(PURCHASING_READINESS_WEIGHTS.commerce_artifacts);
     expect(strengths).toContain("commerce artifacts");
   });
 
-  it("awards commerce_artifacts points for commerce-registry.json", () => {
+  it("awards commerce_artifacts points for commerce-registry.json", async () => {
     const { score } = computePurchasingReadinessScore(["commerce-registry.json"]);
     expect(score).toBeGreaterThanOrEqual(PURCHASING_READINESS_WEIGHTS.commerce_artifacts);
   });
 
-  it("awards commerce_artifacts points for product-schema.json", () => {
+  it("awards commerce_artifacts points for product-schema.json", async () => {
     const { score } = computePurchasingReadinessScore(["product-schema.json"]);
     expect(score).toBeGreaterThanOrEqual(PURCHASING_READINESS_WEIGHTS.commerce_artifacts);
   });
 
-  it("awards commerce_artifacts points for checkout-flow.md", () => {
+  it("awards commerce_artifacts points for checkout-flow.md", async () => {
     const { score } = computePurchasingReadinessScore(["checkout-flow.md"]);
     expect(score).toBeGreaterThanOrEqual(PURCHASING_READINESS_WEIGHTS.commerce_artifacts);
   });
 
-  it("awards mcp_configs points for mcp-config.json", () => {
+  it("awards mcp_configs points for mcp-config.json", async () => {
     const { score, strengths } = computePurchasingReadinessScore(["mcp-config.json"]);
     expect(score).toBeGreaterThanOrEqual(PURCHASING_READINESS_WEIGHTS.mcp_configs);
     expect(strengths).toContain("mcp configs");
   });
 
-  it("awards mcp_configs points for capability-registry", () => {
+  it("awards mcp_configs points for capability-registry", async () => {
     const { strengths } = computePurchasingReadinessScore(["capability-registry.json"]);
     expect(strengths).toContain("mcp configs");
   });
 
-  it("awards mcp_configs points for mcp-playbook.md", () => {
+  it("awards mcp_configs points for mcp-playbook.md", async () => {
     const { strengths } = computePurchasingReadinessScore(["mcp-playbook.md"]);
     expect(strengths).toContain("mcp configs");
   });
 
-  it("awards compliance_checklist points for negotiation-rules.md", () => {
+  it("awards compliance_checklist points for negotiation-rules.md", async () => {
     const { score, strengths } = computePurchasingReadinessScore(["negotiation-rules.md"]);
     // compliance_checklist (15) + negotiation_playbook (15) both match
     expect(score).toBeGreaterThanOrEqual(
@@ -150,38 +149,38 @@ describe("computePurchasingReadinessScore", () => {
     expect(strengths).toContain("negotiation playbook");
   });
 
-  it("awards debug_playbook points for .ai/debug-playbook.md", () => {
+  it("awards debug_playbook points for .ai/debug-playbook.md", async () => {
     const { strengths } = computePurchasingReadinessScore([".ai/debug-playbook.md"]);
     expect(strengths).toContain("debug playbook");
   });
 
-  it("awards optimization_rules points for .ai/optimization-rules.md", () => {
+  it("awards optimization_rules points for .ai/optimization-rules.md", async () => {
     const { strengths } = computePurchasingReadinessScore([".ai/optimization-rules.md"]);
     expect(strengths).toContain("optimization rules");
   });
 
-  it("awards onboarding_docs points for AGENTS.md", () => {
+  it("awards onboarding_docs points for AGENTS.md", async () => {
     const { strengths } = computePurchasingReadinessScore(["AGENTS.md"]);
     expect(strengths).toContain("onboarding docs");
   });
 
-  it("awards onboarding_docs points for CLAUDE.md", () => {
+  it("awards onboarding_docs points for CLAUDE.md", async () => {
     const { strengths } = computePurchasingReadinessScore(["CLAUDE.md"]);
     expect(strengths).toContain("onboarding docs");
   });
 
-  it("awards onboarding_docs points for .cursorrules", () => {
+  it("awards onboarding_docs points for .cursorrules", async () => {
     const { strengths } = computePurchasingReadinessScore([".cursorrules"]);
     expect(strengths).toContain("onboarding docs");
   });
 
-  it("does NOT award onboarding_docs for a partial match (sub/AGENTS.md)", () => {
+  it("does NOT award onboarding_docs for a partial match (sub/AGENTS.md)", async () => {
     // only exact path matches count for onboarding_docs
     const { strengths } = computePurchasingReadinessScore(["sub/AGENTS.md"]);
     expect(strengths).not.toContain("onboarding docs");
   });
 
-  it("caps at 100 for full artifact set", () => {
+  it("caps at 100 for full artifact set", async () => {
     const fullSet = [
       "agent-purchasing-playbook.md",
       "mcp-config.json",
@@ -194,14 +193,14 @@ describe("computePurchasingReadinessScore", () => {
     expect(score).toBe(100);
   });
 
-  it("is deterministic — same input same output", () => {
+  it("is deterministic — same input same output", async () => {
     const paths = ["agent-purchasing-playbook.md", "mcp-config.json", "AGENTS.md"];
     const a = computePurchasingReadinessScore(paths);
     const b = computePurchasingReadinessScore(paths);
     expect(a).toEqual(b);
   });
 
-  it("gaps + strengths cover all 7 categories", () => {
+  it("gaps + strengths cover all 7 categories", async () => {
     const { gaps, strengths } = computePurchasingReadinessScore([]);
     expect(gaps.length + strengths.length).toBe(7);
   });
@@ -210,23 +209,23 @@ describe("computePurchasingReadinessScore", () => {
 // ─── PURCHASING_PROGRAMS constant ───────────────────────────────
 
 describe("PURCHASING_PROGRAMS", () => {
-  it("includes agentic-purchasing", () => {
+  it("includes agentic-purchasing", async () => {
     expect(PURCHASING_PROGRAMS).toContain("agentic-purchasing");
   });
 
-  it("includes debug", () => {
+  it("includes debug", async () => {
     expect(PURCHASING_PROGRAMS).toContain("debug");
   });
 
-  it("includes mcp", () => {
+  it("includes mcp", async () => {
     expect(PURCHASING_PROGRAMS).toContain("mcp");
   });
 
-  it("includes optimization", () => {
+  it("includes optimization", async () => {
     expect(PURCHASING_PROGRAMS).toContain("optimization");
   });
 
-  it("has at least 8 programs", () => {
+  it("has at least 8 programs", async () => {
     expect(PURCHASING_PROGRAMS.length).toBeGreaterThanOrEqual(8);
   });
 });
@@ -304,20 +303,20 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     result = r.data as Record<string, unknown>;
   });
 
-  it("returns snapshot_id and project_id", () => {
+  it("returns snapshot_id and project_id", async () => {
     expect(typeof result.snapshot_id).toBe("string");
     expect(typeof result.project_id).toBe("string");
     expect(result.status).toBe("ready");
   });
 
-  it("returns purchasing_readiness_score as a number 0–100", () => {
+  it("returns purchasing_readiness_score as a number 0–100", async () => {
     const score = result.purchasing_readiness_score as number;
     expect(typeof score).toBe("number");
     expect(score).toBeGreaterThanOrEqual(0);
     expect(score).toBeLessThanOrEqual(100);
   });
 
-  it("returns upgrade_offer with readiness conversion messaging", () => {
+  it("returns upgrade_offer with readiness conversion messaging", async () => {
     const offer = result.upgrade_offer as Record<string, unknown>;
     expect(String(offer.agent_conversion_message)).toContain("ready for autonomous spending");
     expect(String(offer.plan)).toContain("$29/month");
@@ -331,7 +330,7 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     expect(["production-ready", "partially-ready", "needs-work"]).toContain(bd.interpretation);
   });
 
-  it("replaces the incentives pitch with a neutral referral_program facts object", () => {
+  it("replaces the incentives pitch with a neutral referral_program facts object", async () => {
     expect(result.incentives).toBeUndefined();
     const referral = result.referral_program as Record<string, unknown>;
     expect(referral).toBeDefined();
@@ -344,17 +343,17 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     expect(raw).not.toContain("Share-to-Earn");
   });
 
-  it("returns programs_executed array", () => {
+  it("returns programs_executed array", async () => {
     expect(Array.isArray(result.programs_executed)).toBe(true);
     expect((result.programs_executed as string[]).length).toBeGreaterThan(0);
   });
 
-  it("returns artifact_count > 0", () => {
+  it("returns artifact_count > 0", async () => {
     expect(typeof result.artifact_count).toBe("number");
     expect(result.artifact_count as number).toBeGreaterThan(0);
   });
 
-  it("returns purchasing_artifacts array", () => {
+  it("returns purchasing_artifacts array", async () => {
     expect(Array.isArray(result.purchasing_artifacts)).toBe(true);
     const items = result.purchasing_artifacts as Array<Record<string, unknown>>;
     if (items.length > 0) {
@@ -363,7 +362,7 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     }
   });
 
-  it("returns all_artifacts array with path, program, description", () => {
+  it("returns all_artifacts array with path, program, description", async () => {
     const all = result.all_artifacts as Array<Record<string, unknown>>;
     expect(Array.isArray(all)).toBe(true);
     expect(all.length).toBeGreaterThan(0);
@@ -372,7 +371,7 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     expect(typeof all[0].description).toBe("string");
   });
 
-  it("returns how_to_call_axis_again section", () => {
+  it("returns how_to_call_axis_again section", async () => {
     const how = result.how_to_call_axis_again as Record<string, unknown>;
     expect(typeof how.note).toBe("string");
     expect(how.rest_endpoint).toBeDefined();
@@ -380,20 +379,20 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     expect(how.retrieve_artifact).toBeDefined();
   });
 
-  it("how_to_call_axis_again.rest_endpoint has correct path", () => {
+  it("how_to_call_axis_again.rest_endpoint has correct path", async () => {
     const how = result.how_to_call_axis_again as Record<string, unknown>;
     const endpoint = how.rest_endpoint as Record<string, unknown>;
     expect(endpoint.path).toBe("/v1/prepare-for-agentic-purchasing");
     expect(endpoint.method).toBe("POST");
   });
 
-  it("how_to_call_axis_again.mcp_tool has correct name", () => {
+  it("how_to_call_axis_again.mcp_tool has correct name", async () => {
     const how = result.how_to_call_axis_again as Record<string, unknown>;
     const tool = how.mcp_tool as Record<string, unknown>;
     expect(tool.name).toBe("prepare_agentic_purchasing");
   });
 
-  it("how_to_call_axis_again.retrieve_artifact contains snapshot_id", () => {
+  it("how_to_call_axis_again.retrieve_artifact contains snapshot_id", async () => {
     const how = result.how_to_call_axis_again as Record<string, unknown>;
     const ra = how.retrieve_artifact as Record<string, unknown>;
     expect(ra.snapshot_id).toBe(result.snapshot_id);
@@ -414,16 +413,16 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
 describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
   const tool = MCP_TOOLS.find(t => t.name === "prepare_agentic_purchasing");
 
-  it("is registered in MCP_TOOLS", () => {
+  it("is registered in MCP_TOOLS", async () => {
     expect(tool).toBeDefined();
   });
 
-  it("has a non-empty description", () => {
+  it("has a non-empty description", async () => {
     expect(typeof tool?.description).toBe("string");
     expect(tool!.description.length).toBeGreaterThan(20);
   });
 
-  it("requires project_name, project_type, frameworks, goals, files", () => {
+  it("requires project_name, project_type, frameworks, goals, files", async () => {
     expect(tool?.inputSchema.required).toContain("project_name");
     expect(tool?.inputSchema.required).toContain("project_type");
     expect(tool?.inputSchema.required).toContain("frameworks");
@@ -431,7 +430,7 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(tool?.inputSchema.required).toContain("files");
   });
 
-  it("has focus as optional enum property", () => {
+  it("has focus as optional enum property", async () => {
     const focusProp = (tool?.inputSchema.properties as Record<string, unknown>)?.focus as Record<string, unknown>;
     expect(focusProp?.enum).toContain("full");
     expect(focusProp?.enum).toContain("purchasing");
@@ -439,7 +438,7 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(focusProp?.enum).toContain("optimization");
   });
 
-  it("has focus_areas as optional array property with compliance areas", () => {
+  it("has focus_areas as optional array property with compliance areas", async () => {
     const props = tool?.inputSchema.properties as Record<string, Record<string, unknown>>;
     const fa = props?.focus_areas;
     expect(fa?.type).toBe("array");
@@ -451,25 +450,25 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(items?.enum).toContain("tokenization");
   });
 
-  it("has budget_per_run_cents as optional number property", () => {
+  it("has budget_per_run_cents as optional number property", async () => {
     const props = tool?.inputSchema.properties as Record<string, Record<string, unknown>>;
     const bpc = props?.budget_per_run_cents;
     expect(bpc?.type).toBe("number");
   });
 
-  it("has spending_window as optional enum property", () => {
+  it("has spending_window as optional enum property", async () => {
     const props = tool?.inputSchema.properties as Record<string, Record<string, unknown>>;
     const sw = props?.spending_window;
     expect(sw?.enum).toContain("per_call");
     expect(sw?.enum).toContain("monthly");
   });
 
-  it("description mentions CE 3.0 and dispute capabilities", () => {
+  it("description mentions CE 3.0 and dispute capabilities", async () => {
     expect(tool!.description).toContain("CE 3.0");
     expect(tool!.description).toContain("dispute");
   });
 
-  it("MCP_TOOLS array contains the full 29-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", () => {
+  it("MCP_TOOLS array contains the full 29-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
     expect(MCP_TOOLS.length).toBe(29);
   });
 });

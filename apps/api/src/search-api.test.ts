@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb, getDb, indexSnapshotContent, searchSnapshotContent, getSearchIndexStats, indexSymbols } from "@axis/snapshots";
+import { resetTestDb, sql, indexSnapshotContent, searchSnapshotContent, getSearchIndexStats, indexSymbols } from "@axis/snapshots";
 import {
   handleSearchIndex,
   handleSearchQuery,
@@ -93,36 +93,32 @@ function makeRes(): { res: ServerResponse; captured: () => CapturedResponse } {
 }
 
 // Seed snapshot data
-function seedSnapshot(snapshotId = "snap1") {
-  const db = getDb();
-  const projectExists = db.prepare("SELECT 1 FROM projects WHERE project_id = 'p1'").get();
+async function seedSnapshot(snapshotId = "snap1") {
+  const projectExists = await sql.one("SELECT 1 FROM projects WHERE project_id = 'p1'");
   if (!projectExists) {
-    db.prepare("INSERT INTO projects (project_id, project_name) VALUES ('p1', 'Test Project')").run();
+    await sql.run("INSERT INTO projects (project_id, project_name) VALUES ('p1', 'Test Project')");
   }
   const files = [
     { path: "src/index.ts", content: "import { foo } from './foo';\nexport default foo;\n", size: 50 },
     { path: "src/foo.ts", content: "export const foo = 42;\nexport const bar = 'hello';\n", size: 55 },
     { path: "README.md", content: "# Test Project\nA sample project\n", size: 35 },
   ];
-  db.prepare(
+  await sql.run(
     "INSERT OR REPLACE INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(snapshotId, "p1", "2024-01-01", "api_submission", "{}", files.length, 140, JSON.stringify(files), "ready");
+    [snapshotId, "p1", "2024-01-01", "api_submission", "{}", files.length, 140, JSON.stringify(files), "ready"],
+  );
   return files;
 }
 
-beforeEach(() => {
-  openMemoryDb();
-});
-
-afterEach(() => {
-  closeDb();
+beforeEach(async () => {
+  await resetTestDb();
 });
 
 // ─── handleSearchIndex ──────────────────────────────────────────
 
 describe("handleSearchIndex", () => {
   it("indexes snapshot files and returns counts including indexed_symbols", async () => {
-    seedSnapshot();
+    await seedSnapshot();
     const req = makeReq({ snapshot_id: "snap1" });
     const { res, captured } = makeRes();
     await handleSearchIndex(req, res);
@@ -151,9 +147,9 @@ describe("handleSearchIndex", () => {
 // ─── handleSearchQuery ──────────────────────────────────────────
 
 describe("handleSearchQuery", () => {
-  beforeEach(() => {
-    const files = seedSnapshot();
-    indexSnapshotContent("snap1", files);
+  beforeEach(async () => {
+    const files = await seedSnapshot();
+    await indexSnapshotContent("snap1", files);
   });
 
   it("returns matching results for a query", async () => {
@@ -211,8 +207,8 @@ describe("handleSearchQuery", () => {
 
 describe("handleSearchStats", () => {
   it("returns stats for an indexed snapshot", async () => {
-    const files = seedSnapshot();
-    indexSnapshotContent("snap1", files);
+    const files = await seedSnapshot();
+    await indexSnapshotContent("snap1", files);
 
     const req = makeGetReq();
     const { res, captured } = makeRes();
@@ -277,28 +273,28 @@ describe("handleSearchQuery — invalid JSON", () => {
 
 // ─── handleSearchSymbols ────────────────────────────────────────
 
-function seedSnapshotWithCode(snapshotId = "code-snap") {
-  const db = getDb();
-  const projectExists = db.prepare("SELECT 1 FROM projects WHERE project_id = 'codep'").get();
+async function seedSnapshotWithCode(snapshotId = "code-snap") {
+  const projectExists = await sql.one("SELECT 1 FROM projects WHERE project_id = 'codep'");
   if (!projectExists) {
-    db.prepare("INSERT INTO projects (project_id, project_name) VALUES ('codep', 'Code Project')").run();
+    await sql.run("INSERT INTO projects (project_id, project_name) VALUES ('codep', 'Code Project')");
   }
   const files = [
     { path: "src/handlers.ts", content: "export function handleCreate() {}\nexport async function handleDelete() {}\n", size: 70 },
     { path: "src/models.ts", content: "export class UserModel {}\nexport interface UserPayload { id: string; }\n", size: 70 },
   ];
-  db.prepare(
+  await sql.run(
     "INSERT OR REPLACE INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(snapshotId, "codep", "2024-01-01", "api_submission", "{}", files.length, 140, JSON.stringify(files), "ready");
+    [snapshotId, "codep", "2024-01-01", "api_submission", "{}", files.length, 140, JSON.stringify(files), "ready"],
+  );
   return files;
 }
 
 describe("handleSearchSymbols", () => {
   const snapId = "code-snap";
 
-  beforeEach(() => {
-    const files = seedSnapshotWithCode(snapId);
-    indexSymbols(snapId, files.map((f) => ({ path: f.path, content: f.content })));
+  beforeEach(async () => {
+    const files = await seedSnapshotWithCode(snapId);
+    await indexSymbols(snapId, files.map((f) => ({ path: f.path, content: f.content })));
   });
 
   it("returns all symbols with no query params", async () => {

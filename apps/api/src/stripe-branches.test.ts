@@ -8,9 +8,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi, afterEach } 
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
-  getDb,
+  resetTestDb,
+  sql,
   createAccount,
   createApiKey,
   upsertSubscription,
@@ -78,7 +77,7 @@ function signStripePayload(payload: string, ts: number = Math.floor(Date.now() /
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
   process.env.STRIPE_PRICE_ID_PAID = "price_paid_171";
@@ -98,7 +97,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
   delete process.env.STRIPE_WEBHOOK_SECRET;
   delete process.env.STRIPE_PRICE_ID_PAID;
   delete process.env.STRIPE_PRICE_ID_SUITE;
@@ -156,8 +154,8 @@ function buildSubscriptionEvent(
   };
 }
 
-function seedSubscription(accountId: string, subscriptionId: string, priceId = "price_paid_171") {
-  upsertSubscription({
+async function seedSubscription(accountId: string, subscriptionId: string, priceId = "price_paid_171") {
+  await upsertSubscription({
     subscription_id: subscriptionId,
     customer_id: `cus_${subscriptionId}`,
     account_id: accountId,
@@ -177,8 +175,8 @@ function seedSubscription(accountId: string, subscriptionId: string, priceId = "
 
 describe("handleCreateCheckout branches", () => {
   it("returns 201 with checkout_url on successful Stripe API call", async () => {
-    const account = createAccount("Checkout OK", "checkout-ok-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Checkout OK", "checkout-ok-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
       ok: true,
@@ -200,8 +198,8 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("returns 201 for suite tier checkout", async () => {
-    const account = createAccount("Suite Checkout", "suite-checkout-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Suite Checkout", "suite-checkout-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
       ok: true,
@@ -222,8 +220,8 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("returns 502 when Stripe API returns non-ok response", async () => {
-    const account = createAccount("Checkout Fail", "checkout-fail-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Checkout Fail", "checkout-fail-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
       ok: false,
@@ -241,8 +239,8 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("returns 502 when fetch throws network error", async () => {
-    const account = createAccount("Checkout Net Err", "checkout-neterr-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Checkout Net Err", "checkout-neterr-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce(new Error("ECONNREFUSED")));
 
@@ -257,10 +255,10 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("returns 409 when account already has active subscription", async () => {
-    const account = createAccount("Conflict Sub", "conflict-sub-171@test.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Conflict Sub", "conflict-sub-171@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
-    seedSubscription(account.account_id, "sub_conflict_171");
+    await seedSubscription(account.account_id, "sub_conflict_171");
 
     const r = await req("POST", "/v1/checkout",
       { tier: "paid" },
@@ -272,8 +270,8 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("returns 503 when Stripe price ID not configured for tier", async () => {
-    const account = createAccount("No Price", "no-price-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("No Price", "no-price-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const savedPaid = process.env.STRIPE_PRICE_ID_PAID;
     delete process.env.STRIPE_PRICE_ID_PAID;
@@ -290,8 +288,8 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("returns 400 on invalid JSON body", async () => {
-    const account = createAccount("Bad JSON Checkout", "badjson-checkout-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Bad JSON Checkout", "badjson-checkout-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const r = await req("POST", "/v1/checkout",
       "not-json{{{",
@@ -302,8 +300,8 @@ describe("handleCreateCheckout branches", () => {
   });
 
   it("uses AXIS_WEB_URL fallback when CORS_ORIGIN is wildcard", async () => {
-    const account = createAccount("Wildcard CORS", "wildcard-cors-171@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Wildcard CORS", "wildcard-cors-171@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const savedCors = process.env.CORS_ORIGIN;
     const savedWeb = process.env.AXIS_WEB_URL;
@@ -333,10 +331,10 @@ describe("handleCreateCheckout branches", () => {
 
 describe("handleCancelSubscription branches", () => {
   it("successfully cancels subscription via Stripe API", async () => {
-    const account = createAccount("Cancel OK", "cancel-ok-171@test.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Cancel OK", "cancel-ok-171@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
-    seedSubscription(account.account_id, "sub_cancel_ok_171");
+    await seedSubscription(account.account_id, "sub_cancel_ok_171");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({ ok: true }));
 
@@ -351,10 +349,10 @@ describe("handleCancelSubscription branches", () => {
   });
 
   it("returns 502 when Stripe API returns non-ok for cancel", async () => {
-    const account = createAccount("Cancel Fail", "cancel-fail-171@test.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Cancel Fail", "cancel-fail-171@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
-    upsertSubscription({
+    await upsertSubscription({
       subscription_id: "sub_cancel_fail_171",
       customer_id: "cust_fail",
       account_id: account.account_id,
@@ -383,10 +381,10 @@ describe("handleCancelSubscription branches", () => {
   });
 
   it("returns 502 when cancel fetch throws network error", async () => {
-    const account = createAccount("Cancel Net", "cancel-net-171@test.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Cancel Net", "cancel-net-171@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
-    upsertSubscription({
+    await upsertSubscription({
       subscription_id: "sub_cancel_net_171",
       customer_id: "cust_net",
       account_id: account.account_id,
@@ -413,10 +411,10 @@ describe("handleCancelSubscription branches", () => {
   });
 
   it("returns 503 when Stripe secret key not configured for cancel", async () => {
-    const account = createAccount("Cancel No Key", "cancel-nokey-171@test.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Cancel No Key", "cancel-nokey-171@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
-    upsertSubscription({
+    await upsertSubscription({
       subscription_id: "sub_cancel_nokey_171",
       customer_id: "cust_nokey",
       account_id: account.account_id,
@@ -449,7 +447,7 @@ describe("handleCancelSubscription branches", () => {
 
 describe("syncTierFromStripeSubscription via webhook", () => {
   it("upgrades to paid tier on checkout.session.completed", async () => {
-    const account = createAccount("Upgrade Paid", "upgrade-paid-171@test.com", "free");
+    const account = await createAccount("Upgrade Paid", "upgrade-paid-171@test.com", "free");
 
     const payload = JSON.stringify(buildCheckoutEvent(account.account_id, "sub_upgrade_paid_171", "paid"));
     const r = await req("POST", "/v1/webhooks/stripe", payload, {
@@ -459,12 +457,12 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
 
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("paid");
   });
 
   it("upgrades to suite tier on checkout.session.completed", async () => {
-    const account = createAccount("Suite Upgrade", "suite-upgrade-171@test.com", "paid");
+    const account = await createAccount("Suite Upgrade", "suite-upgrade-171@test.com", "paid");
 
     const emails: EmailMessage[] = [];
     setEmailProvider(async (msg) => {
@@ -478,7 +476,7 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("suite");
 
     await new Promise((r) => setTimeout(r, 50));
@@ -490,8 +488,8 @@ describe("syncTierFromStripeSubscription via webhook", () => {
   });
 
   it("downgrades to free on customer.subscription.deleted", async () => {
-    const account = createAccount("Downgrade Delete", "downgrade-delete-171@test.com", "paid");
-    seedSubscription(account.account_id, "sub_downgrade_delete_171");
+    const account = await createAccount("Downgrade Delete", "downgrade-delete-171@test.com", "paid");
+    await seedSubscription(account.account_id, "sub_downgrade_delete_171");
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.deleted", "sub_downgrade_delete_171", account.account_id, {
@@ -505,13 +503,13 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
 
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free");
   });
 
   it("downgrades to free on unpaid subscription", async () => {
-    const account = createAccount("Downgrade Unpaid", "downgrade-unpaid-171@test.com", "paid");
-    seedSubscription(account.account_id, "sub_downgrade_unpaid_171");
+    const account = await createAccount("Downgrade Unpaid", "downgrade-unpaid-171@test.com", "paid");
+    await seedSubscription(account.account_id, "sub_downgrade_unpaid_171");
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_downgrade_unpaid_171", account.account_id, {
@@ -523,13 +521,13 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free");
   });
 
   it("keeps current tier on past_due status", async () => {
-    const account = createAccount("Past Due Keep", "past-due-keep-171@test.com", "paid");
-    seedSubscription(account.account_id, "sub_past_due_keep_171");
+    const account = await createAccount("Past Due Keep", "past-due-keep-171@test.com", "paid");
+    await seedSubscription(account.account_id, "sub_past_due_keep_171");
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_past_due_keep_171", account.account_id, {
@@ -541,13 +539,13 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("paid"); // No change for past_due
   });
 
   it("does not change tier when already at target", async () => {
-    const account = createAccount("Same Tier", "same-tier-171@test.com", "paid");
-    seedSubscription(account.account_id, "sub_same_tier_171");
+    const account = await createAccount("Same Tier", "same-tier-171@test.com", "paid");
+    await seedSubscription(account.account_id, "sub_same_tier_171");
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_same_tier_171", account.account_id),
@@ -557,13 +555,13 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("paid"); // No change
   });
 
   it("ignores unknown price_id (no tier change)", async () => {
-    const account = createAccount("Unknown Price", "unknown-price-171@test.com", "free");
-    seedSubscription(account.account_id, "sub_unknown_price_171", "price_unknown");
+    const account = await createAccount("Unknown Price", "unknown-price-171@test.com", "free");
+    await seedSubscription(account.account_id, "sub_unknown_price_171", "price_unknown");
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_unknown_price_171", account.account_id, {
@@ -575,15 +573,15 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free"); // No change
   });
 
   it("preserves created_at on subscription update", async () => {
-    const account = createAccount("Preserve Created", "preserve-created-171@test.com", "free");
-    seedSubscription(account.account_id, "sub_preserve_171");
+    const account = await createAccount("Preserve Created", "preserve-created-171@test.com", "free");
+    await seedSubscription(account.account_id, "sub_preserve_171");
 
-    const originalSub = getSubscription("sub_preserve_171");
+    const originalSub = await getSubscription("sub_preserve_171");
     const originalCreatedAt = originalSub!.created_at;
 
     // Small delay to ensure updated_at would differ
@@ -596,13 +594,13 @@ describe("syncTierFromStripeSubscription via webhook", () => {
       "stripe-signature": signStripePayload(payload),
     });
 
-    const updated = getSubscription("sub_preserve_171");
+    const updated = await getSubscription("sub_preserve_171");
     expect(updated!.created_at).toBe(originalCreatedAt);
   });
 
   it("handles invoice.payment_failed — marks subscription past_due", async () => {
-    const account = createAccount("Invoice Fail", "invoice-fail-171@test.com", "paid");
-    seedSubscription(account.account_id, "sub_invoice_fail_171");
+    const account = await createAccount("Invoice Fail", "invoice-fail-171@test.com", "paid");
+    await seedSubscription(account.account_id, "sub_invoice_fail_171");
 
     const payload = JSON.stringify({
       type: "invoice.payment_failed",
@@ -621,12 +619,12 @@ describe("syncTierFromStripeSubscription via webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
 
-    const updated = getSubscription("sub_invoice_fail_171");
+    const updated = await getSubscription("sub_invoice_fail_171");
     expect(updated!.status).toBe("past_due");
   });
 
   it("handles checkout.session.completed with no subscription ID gracefully", async () => {
-    const account = createAccount("No Sub ID", "no-sub-id-171@test.com", "free");
+    const account = await createAccount("No Sub ID", "no-sub-id-171@test.com", "free");
 
     const payload = JSON.stringify({
       type: "checkout.session.completed",
@@ -747,8 +745,8 @@ describe("additional branch coverage", () => {
   });
 
   it("tsToISO returns null when ts === 0 (covers ts===0 branch)", async () => {
-    const account = createAccount("TS Zero", "ts-zero-branches@test.com", "free");
-    seedSubscription(account.account_id, "sub_tszero_branches");
+    const account = await createAccount("TS Zero", "ts-zero-branches@test.com", "free");
+    await seedSubscription(account.account_id, "sub_tszero_branches");
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_tszero_branches", account.account_id, {
@@ -762,14 +760,14 @@ describe("additional branch coverage", () => {
     });
 
     expect(r.status).toBe(200);
-    const sub = getSubscription("sub_tszero_branches");
+    const sub = await getSubscription("sub_tszero_branches");
     expect(sub!.current_period_start).toBeNull();
     expect(sub!.current_period_end).toBeNull();
     expect(sub!.cancel_at).toBeNull();
   });
 
   it("checkout session resolved via metadata.account_id (no client_reference_id)", async () => {
-    const account = createAccount("Meta Only", "meta-only-branches@test.com", "free");
+    const account = await createAccount("Meta Only", "meta-only-branches@test.com", "free");
 
     const payload = JSON.stringify({
       type: "checkout.session.completed",
@@ -788,7 +786,7 @@ describe("additional branch coverage", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("paid");
   });
 
@@ -815,7 +813,7 @@ describe("additional branch coverage", () => {
   });
 
   it("checkout suite tier with STRIPE_PRICE_ID_SUITE unset → priceId='' → no tier sync", async () => {
-    const account = createAccount("Suite No Env", "suite-noenv-branches@test.com", "free");
+    const account = await createAccount("Suite No Env", "suite-noenv-branches@test.com", "free");
 
     const savedSuite = process.env.STRIPE_PRICE_ID_SUITE;
     delete process.env.STRIPE_PRICE_ID_SUITE;
@@ -838,14 +836,14 @@ describe("additional branch coverage", () => {
 
     expect(r.status).toBe(200);
     // priceId is "" so syncTier is skipped — tier stays free
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free");
 
     process.env.STRIPE_PRICE_ID_SUITE = savedSuite;
   });
 
   it("checkout with unknown tier → priceId='' → no tier sync", async () => {
-    const account = createAccount("Unknown Tier WH", "unknown-tier-wh-branches@test.com", "free");
+    const account = await createAccount("Unknown Tier WH", "unknown-tier-wh-branches@test.com", "free");
 
     const payload = JSON.stringify({
       type: "checkout.session.completed",
@@ -864,7 +862,7 @@ describe("additional branch coverage", () => {
     });
 
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free"); // No change for unknown tier
   });
 
@@ -889,7 +887,7 @@ describe("additional branch coverage", () => {
   });
 
   it("subscription.created with metadata account_id and no existing DB record (covers metadata fallback + new created_at)", async () => {
-    const account = createAccount("Meta Fallback New", "meta-fallback-new-branches@test.com", "free");
+    const account = await createAccount("Meta Fallback New", "meta-fallback-new-branches@test.com", "free");
     // Do NOT seed a subscription — new sub, no existing DB record
 
     const payload = JSON.stringify({
@@ -914,10 +912,10 @@ describe("additional branch coverage", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
 
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("paid");
 
-    const sub = getSubscription("sub_meta_new_branch");
+    const sub = await getSubscription("sub_meta_new_branch");
     expect(sub).not.toBeNull();
     expect(sub!.account_id).toBe(account.account_id);
   });
@@ -937,12 +935,12 @@ describe("additional branch coverage", () => {
 
   it("checkout webhook for non-existent accountId with priceId set — hits !account return in syncTier", async () => {
     // Create account + subscription, then delete the account so syncTier finds no account
-    const account = createAccount("Ghost Acct", "ghost-acct-branches@test.com", "free");
-    seedSubscription(account.account_id, "sub_ghost_acct_branch");
+    const account = await createAccount("Ghost Acct", "ghost-acct-branches@test.com", "free");
+    await seedSubscription(account.account_id, "sub_ghost_acct_branch");
     // Disable FK checks so upsertSubscription can re-run with a deleted account_id,
     // then delete the account so getAccount returns null inside syncTierFromStripeSubscription
-    getDb().pragma("foreign_keys = OFF");
-    getDb().prepare("DELETE FROM accounts WHERE account_id = ?").run(account.account_id);
+    await sql.run("SET session_replication_role = replica");
+    await sql.run("DELETE FROM accounts WHERE account_id = ?", [account.account_id]);
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_ghost_acct_branch", account.account_id),
@@ -951,14 +949,14 @@ describe("additional branch coverage", () => {
       "stripe-signature": signStripePayload(payload),
     });
 
-    getDb().pragma("foreign_keys = ON");
+    await sql.run("SET session_replication_role = origin");
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     // No crash — syncTierFromStripeSubscription returned early since account was deleted
   });
 
   it("checkout webhook without metadata.tier → tier='' → priceId='' → no sync (covers meta?.tier ?? '' right side)", async () => {
-    const account = createAccount("No Tier Meta", "no-tier-meta-branches@test.com", "free");
+    const account = await createAccount("No Tier Meta", "no-tier-meta-branches@test.com", "free");
     const payload = JSON.stringify({
       type: "checkout.session.completed",
       data: {
@@ -975,12 +973,12 @@ describe("additional branch coverage", () => {
       "stripe-signature": signStripePayload(payload),
     });
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free"); // no priceId → tier unchanged
   });
 
   it("checkout webhook paid tier when STRIPE_PRICE_ID_PAID unset → priceId='' (covers env ?? '' right side)", async () => {
-    const account = createAccount("Paid No Env", "paid-noenv-branches@test.com", "free");
+    const account = await createAccount("Paid No Env", "paid-noenv-branches@test.com", "free");
     const savedPaid = process.env.STRIPE_PRICE_ID_PAID;
     delete process.env.STRIPE_PRICE_ID_PAID;
     const payload = JSON.stringify({
@@ -999,14 +997,14 @@ describe("additional branch coverage", () => {
       "stripe-signature": signStripePayload(payload),
     });
     expect(r.status).toBe(200);
-    const updated = getAccount(account.account_id);
+    const updated = await getAccount(account.account_id);
     expect(updated!.tier).toBe("free"); // priceId="" → syncTier skipped
     process.env.STRIPE_PRICE_ID_PAID = savedPaid;
   });
 
   it("subscription event with no items field → priceId='' (covers items?.data ?? '' right side)", async () => {
-    const account = createAccount("No Items Sub", "no-items-sub-branches@test.com", "free");
-    seedSubscription(account.account_id, "sub_no_items_branch");
+    const account = await createAccount("No Items Sub", "no-items-sub-branches@test.com", "free");
+    await seedSubscription(account.account_id, "sub_no_items_branch");
 
     const payload = JSON.stringify({
       type: "customer.subscription.updated",
@@ -1031,8 +1029,8 @@ describe("additional branch coverage", () => {
   });
 
   it("checkout fetch throws non-Error object → covers String(err) branch at L371", async () => {
-    const account = createAccount("NonErr Checkout", "nonerr-checkout-branches@test.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("NonErr Checkout", "nonerr-checkout-branches@test.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     vi.stubGlobal("fetch", vi.fn().mockRejectedValueOnce("string_network_error"));
 
@@ -1052,10 +1050,10 @@ describe("additional branch coverage", () => {
   });
 
   it("cancel subscription fetch throws non-Error object → covers String(err) branch at L461", async () => {
-    const account = createAccount("NonErr Cancel", "nonerr-cancel-branches@test.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("NonErr Cancel", "nonerr-cancel-branches@test.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
-    upsertSubscription({
+    await upsertSubscription({
       subscription_id: "sub_nonerr_cancel_branch",
       customer_id: "cust_nonerr",
       account_id: account.account_id,

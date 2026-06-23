@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp, sendJSON, sendError } from "./router.js";
 import {
   handleCreateSnapshot,
@@ -89,11 +89,11 @@ const testPayload = {
 };
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
 
   // Create suite account for pro program tests
-  const suiteAccount = createAccount("test-suite", "suite@test.com", "suite");
-  const { rawKey } = createApiKey(suiteAccount.account_id, "test");
+  const suiteAccount = await createAccount("test-suite", "suite@test.com", "suite");
+  const { rawKey } = await createApiKey(suiteAccount.account_id, "test");
   suiteApiKey = rawKey;
 
   const router = new Router();
@@ -136,7 +136,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 describe("API integration", () => {

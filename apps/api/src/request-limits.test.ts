@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
@@ -54,7 +54,7 @@ function slowReq(method: string, path: string): Promise<Res> {
 beforeAll(async () => {
   // Very short timeout for testing
   process.env.REQUEST_TIMEOUT_MS = "500";
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
 
   // Normal fast endpoint
@@ -77,7 +77,6 @@ beforeAll(async () => {
 afterAll(async () => {
   delete process.env.REQUEST_TIMEOUT_MS;
   server.close();
-  closeDb();
   await new Promise((r) => setTimeout(r, 100));
 });
 

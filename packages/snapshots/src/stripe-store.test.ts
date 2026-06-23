@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb } from "./db.js";
+import { resetTestDb } from "./pg-test.js";
 import { createAccount, updateAccountTier, getAccount } from "./billing-store.js";
 import {
   upsertSubscription,
@@ -13,14 +13,13 @@ import {
   priceToTier,
 } from "./stripe-store.js";
 
-beforeEach(() => {
-  openMemoryDb();
+beforeEach(async () => {
+  await resetTestDb();
   process.env.STRIPE_PRICE_ID_PAID = "price_paid_123";
   process.env.STRIPE_PRICE_ID_SUITE = "price_suite_456";
 });
 
 afterEach(() => {
-  closeDb();
   delete process.env.STRIPE_PRICE_ID_PAID;
   delete process.env.STRIPE_PRICE_ID_SUITE;
 });
@@ -62,12 +61,12 @@ describe("priceToTier", () => {
 // ─── Subscription CRUD ─────────────────────────────────────────
 
 describe("Subscription CRUD", () => {
-  it("creates and retrieves a subscription", () => {
-    const acct = createAccount("Alice", "alice@test.com", "free");
+  it("creates and retrieves a subscription", async () => {
+    const acct = await createAccount("Alice", "alice@test.com", "free");
     const sub = makeSub(acct.account_id);
-    upsertSubscription(sub);
+    await upsertSubscription(sub);
 
-    const found = getSubscription("sub_001");
+    const found = await getSubscription("sub_001");
     expect(found).toBeTruthy();
     expect(found!.subscription_id).toBe("sub_001");
     expect(found!.account_id).toBe(acct.account_id);
@@ -76,159 +75,159 @@ describe("Subscription CRUD", () => {
     expect(found!.price_id).toBe("price_paid_123");
   });
 
-  it("upserts (updates) an existing subscription", () => {
-    const acct = createAccount("Bob", "bob@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id));
+  it("upserts (updates) an existing subscription", async () => {
+    const acct = await createAccount("Bob", "bob@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id));
 
-    upsertSubscription(makeSub(acct.account_id, {
+    await upsertSubscription(makeSub(acct.account_id, {
       status: "past_due" as const,
       updated_at: "2025-01-15T00:00:00Z",
     }));
 
-    const found = getSubscription("sub_001");
+    const found = await getSubscription("sub_001");
     expect(found!.status).toBe("past_due");
     expect(found!.updated_at).toBe("2025-01-15T00:00:00Z");
   });
 
-  it("retrieves subscription by account", () => {
-    const acct = createAccount("Charlie", "charlie@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id));
+  it("retrieves subscription by account", async () => {
+    const acct = await createAccount("Charlie", "charlie@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id));
 
-    const found = getSubscriptionByAccount(acct.account_id);
+    const found = await getSubscriptionByAccount(acct.account_id);
     expect(found).toBeTruthy();
     expect(found!.account_id).toBe(acct.account_id);
   });
 
-  it("returns null for nonexistent subscription", () => {
-    expect(getSubscription("nope")).toBeNull();
+  it("returns null for nonexistent subscription", async () => {
+    expect(await getSubscription("nope")).toBeNull();
   });
 
-  it("returns null for account with no subscription", () => {
-    const acct = createAccount("Dan", "dan@test.com", "free");
-    expect(getSubscriptionByAccount(acct.account_id)).toBeNull();
+  it("returns null for account with no subscription", async () => {
+    const acct = await createAccount("Dan", "dan@test.com", "free");
+    expect(await getSubscriptionByAccount(acct.account_id)).toBeNull();
   });
 });
 
 // ─── Active subscription filtering ─────────────────────────────
 
 describe("Active subscription filtering", () => {
-  it("returns active subscription", () => {
-    const acct = createAccount("Eve", "eve@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id));
+  it("returns active subscription", async () => {
+    const acct = await createAccount("Eve", "eve@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id));
 
-    const active = getActiveSubscriptionByAccount(acct.account_id);
+    const active = await getActiveSubscriptionByAccount(acct.account_id);
     expect(active).toBeTruthy();
     expect(active!.status).toBe("active");
   });
 
-  it("returns trialing as active", () => {
-    const acct = createAccount("Frank", "frank@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { status: "trialing" as const }));
+  it("returns trialing as active", async () => {
+    const acct = await createAccount("Frank", "frank@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { status: "trialing" as const }));
 
-    const active = getActiveSubscriptionByAccount(acct.account_id);
+    const active = await getActiveSubscriptionByAccount(acct.account_id);
     expect(active).toBeTruthy();
     expect(active!.status).toBe("trialing");
   });
 
-  it("does not return canceled subscription as active", () => {
-    const acct = createAccount("Grace", "grace@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { status: "canceled" as const }));
+  it("does not return canceled subscription as active", async () => {
+    const acct = await createAccount("Grace", "grace@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { status: "canceled" as const }));
 
-    const active = getActiveSubscriptionByAccount(acct.account_id);
+    const active = await getActiveSubscriptionByAccount(acct.account_id);
     expect(active).toBeNull();
   });
 
-  it("does not return past_due subscription as active", () => {
-    const acct = createAccount("Heidi", "heidi@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { status: "past_due" as const }));
+  it("does not return past_due subscription as active", async () => {
+    const acct = await createAccount("Heidi", "heidi@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { status: "past_due" as const }));
 
-    expect(getActiveSubscriptionByAccount(acct.account_id)).toBeNull();
+    expect(await getActiveSubscriptionByAccount(acct.account_id)).toBeNull();
   });
 
-  it("does not return unpaid subscription as active", () => {
-    const acct = createAccount("Ivan2", "ivan2@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { status: "unpaid" as const }));
+  it("does not return unpaid subscription as active", async () => {
+    const acct = await createAccount("Ivan2", "ivan2@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { status: "unpaid" as const }));
 
-    expect(getActiveSubscriptionByAccount(acct.account_id)).toBeNull();
+    expect(await getActiveSubscriptionByAccount(acct.account_id)).toBeNull();
   });
 });
 
 // ─── Status update ──────────────────────────────────────────────
 
 describe("updateSubscriptionStatus", () => {
-  it("updates subscription status", () => {
-    const acct = createAccount("Ivan", "ivan@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id));
+  it("updates subscription status", async () => {
+    const acct = await createAccount("Ivan", "ivan@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id));
 
-    const updated = updateSubscriptionStatus("sub_001", "canceled");
+    const updated = await updateSubscriptionStatus("sub_001", "canceled");
     expect(updated).toBe(true);
 
-    const found = getSubscription("sub_001");
+    const found = await getSubscription("sub_001");
     expect(found!.status).toBe("canceled");
   });
 
-  it("returns false for nonexistent subscription", () => {
-    expect(updateSubscriptionStatus("nope", "canceled")).toBe(false);
+  it("returns false for nonexistent subscription", async () => {
+    expect(await updateSubscriptionStatus("nope", "canceled")).toBe(false);
   });
 });
 
 // ─── List & Delete ──────────────────────────────────────────────
 
 describe("listSubscriptionsByAccount", () => {
-  it("lists all subscriptions for an account", () => {
-    const acct = createAccount("Judy", "judy@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { subscription_id: "sub_a" }));
-    upsertSubscription(makeSub(acct.account_id, {
+  it("lists all subscriptions for an account", async () => {
+    const acct = await createAccount("Judy", "judy@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { subscription_id: "sub_a" }));
+    await upsertSubscription(makeSub(acct.account_id, {
       subscription_id: "sub_b",
       status: "canceled" as const,
       created_at: "2025-02-01T00:00:00Z",
     }));
 
-    const list = listSubscriptionsByAccount(acct.account_id);
+    const list = await listSubscriptionsByAccount(acct.account_id);
     expect(list.length).toBe(2);
   });
 });
 
 describe("deleteSubscription", () => {
-  it("deletes a subscription", () => {
-    const acct = createAccount("Ken", "ken@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id));
+  it("deletes a subscription", async () => {
+    const acct = await createAccount("Ken", "ken@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id));
 
-    expect(deleteSubscription("sub_001")).toBe(true);
-    expect(getSubscription("sub_001")).toBeNull();
+    expect(await deleteSubscription("sub_001")).toBe(true);
+    expect(await getSubscription("sub_001")).toBeNull();
   });
 
-  it("returns false for nonexistent subscription", () => {
-    expect(deleteSubscription("nope")).toBe(false);
+  it("returns false for nonexistent subscription", async () => {
+    expect(await deleteSubscription("nope")).toBe(false);
   });
 });
 
 // ─── getActiveSubscriptionTier ──────────────────────────────────
 
 describe("getActiveSubscriptionTier", () => {
-  it("returns paid for active paid subscription", () => {
-    const acct = createAccount("Liam", "liam@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { price_id: "price_paid_123" }));
+  it("returns paid for active paid subscription", async () => {
+    const acct = await createAccount("Liam", "liam@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { price_id: "price_paid_123" }));
 
-    expect(getActiveSubscriptionTier(acct.account_id)).toBe("paid");
+    expect(await getActiveSubscriptionTier(acct.account_id)).toBe("paid");
   });
 
-  it("returns suite for active suite subscription", () => {
-    const acct = createAccount("Mia", "mia@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { price_id: "price_suite_456" }));
+  it("returns suite for active suite subscription", async () => {
+    const acct = await createAccount("Mia", "mia@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { price_id: "price_suite_456" }));
 
-    expect(getActiveSubscriptionTier(acct.account_id)).toBe("suite");
+    expect(await getActiveSubscriptionTier(acct.account_id)).toBe("suite");
   });
 
-  it("returns null when no active subscription", () => {
-    const acct = createAccount("Noah", "noah@test.com", "free");
-    expect(getActiveSubscriptionTier(acct.account_id)).toBeNull();
+  it("returns null when no active subscription", async () => {
+    const acct = await createAccount("Noah", "noah@test.com", "free");
+    expect(await getActiveSubscriptionTier(acct.account_id)).toBeNull();
   });
 
-  it("returns null when subscription is canceled", () => {
-    const acct = createAccount("Olivia", "olivia@test.com", "free");
-    upsertSubscription(makeSub(acct.account_id, { status: "canceled" as const }));
+  it("returns null when subscription is canceled", async () => {
+    const acct = await createAccount("Olivia", "olivia@test.com", "free");
+    await upsertSubscription(makeSub(acct.account_id, { status: "canceled" as const }));
 
-    expect(getActiveSubscriptionTier(acct.account_id)).toBeNull();
+    expect(await getActiveSubscriptionTier(acct.account_id)).toBeNull();
   });
 });

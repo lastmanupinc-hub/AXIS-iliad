@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, handleGetSnapshot, handleGetContext, handleGetGeneratedFiles, handleGetGeneratedFile, handleSearchExport, handleHealthCheck } from "./handlers.js";
@@ -52,7 +52,7 @@ async function req(
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
@@ -85,7 +85,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 beforeEach(() => {

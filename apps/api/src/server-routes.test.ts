@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { resetRateLimits } from "./rate-limiter.js";
 
 const TEST_PORT = 44490;
@@ -43,7 +43,7 @@ function req(method: string, path: string): Promise<Res> {
 
 beforeAll(async () => {
   process.env.PORT = String(TEST_PORT);
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const mod = await import("./server.js");
@@ -54,7 +54,6 @@ beforeAll(async () => {
 afterAll(async () => {
   if (appServer?.shutdown) await appServer.shutdown(2000);
   else appServer?.close();
-  closeDb();
 });
 
 beforeEach(() => {

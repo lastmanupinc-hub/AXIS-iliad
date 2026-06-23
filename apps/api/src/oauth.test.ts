@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createOAuthState, getAccountByGitHubId } from "@axis/snapshots";
+import { resetTestDb, createOAuthState, getAccountByGitHubId } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout } from "./oauth.js";
@@ -45,7 +45,7 @@ async function req(method: string, path: string, body?: unknown, extraHeaders?: 
 
 describe("OAuth API routes", () => {
   beforeAll(async () => {
-    openMemoryDb();
+    await resetTestDb();
     const router = new Router();
     router.get("/v1/auth/github", handleGitHubOAuthStart);
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
@@ -53,7 +53,7 @@ describe("OAuth API routes", () => {
     router.post("/v1/auth/logout", handleOAuthLogout);
     // Minimal authed probe to exercise the cookie path through resolveAuth.
     router.get("/whoami", async (r, s) => {
-      const auth = resolveAuth(r);
+      const auth = await resolveAuth(r);
       sendJSON(s, 200, { anonymous: auth.anonymous, account_id: auth.account?.account_id ?? null });
     });
     const ts = await startTestServer(router);
@@ -63,7 +63,6 @@ describe("OAuth API routes", () => {
 
   afterAll(() => {
     server.close();
-    closeDb();
   });
 
   beforeEach(() => {
@@ -157,7 +156,7 @@ describe("OAuth API routes", () => {
     process.env.GITHUB_CLIENT_ID = "test-id";
     process.env.GITHUB_CLIENT_SECRET = "test-secret";
     process.env.AXIS_WEB_URL = "http://localhost:3000";
-    const state = createOAuthState();
+    const state = await createOAuthState();
 
     // Mock fetch: first call = token exchange, second call = user profile
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -180,7 +179,7 @@ describe("OAuth API routes", () => {
       expect(res.headers["referrer-policy"]).toBe("no-referrer");
 
       // Verify account was created and linked
-      const acct = getAccountByGitHubId("12345");
+      const acct = await getAccountByGitHubId("12345");
       expect(acct).toBeDefined();
       expect(acct!.name).toBe("Test User");
 
@@ -215,7 +214,7 @@ describe("OAuth API routes", () => {
   it("redirects with error when GitHub token exchange fails", async () => {
     process.env.GITHUB_CLIENT_ID = "test-id";
     process.env.GITHUB_CLIENT_SECRET = "test-secret";
-    const state = createOAuthState();
+    const state = await createOAuthState();
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     fetchSpy.mockResolvedValueOnce({
@@ -238,7 +237,7 @@ describe("OAuth API routes", () => {
   it("redirects with error on non-Error throw", async () => {
     process.env.GITHUB_CLIENT_ID = "test-id";
     process.env.GITHUB_CLIENT_SECRET = "test-secret";
-    const state = createOAuthState();
+    const state = await createOAuthState();
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     fetchSpy.mockRejectedValueOnce("string-error");

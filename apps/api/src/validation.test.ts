@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import {
@@ -54,7 +54,7 @@ async function req(
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.post("/v1/snapshots", handleCreateSnapshot);
   router.post("/v1/search/export", handleSearchExport);
@@ -72,7 +72,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 describe("body schema validation", () => {

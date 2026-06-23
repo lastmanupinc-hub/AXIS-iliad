@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { openMemoryDb, closeDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -86,9 +86,9 @@ function parseZip(buf: Buffer): ZipFileEntry[] {
 // ─── Server + seed data ─────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
 
-  const snap = createSnapshot({
+  const snap = await createSnapshot({
     input_method: "repo_snapshot_upload",
     manifest: {
       project_name: "export-test-project",
@@ -103,7 +103,7 @@ beforeAll(async () => {
   projectId = snap.project_id;
   snapshotId = snap.snapshot_id;
 
-  saveGeneratorResult(snapshotId, {
+  await saveGeneratorResult(snapshotId, {
     snapshot_id: snapshotId,
     generated_at: new Date().toISOString(),
     files: [
@@ -122,7 +122,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   server?.close();
-  closeDb();
 });
 
 // ─── Tests ──────────────────────────────────────────────────────
@@ -226,7 +225,7 @@ describe("Export ZIP handler", () => {
 
   it("sanitizes path traversal in file paths", async () => {
     // Save a generator result with path traversal attempts
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -253,7 +252,7 @@ describe("Export ZIP handler", () => {
     expect(paths).toContain("a/b/c.txt");
 
     // Restore original data for subsequent tests
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -265,7 +264,7 @@ describe("Export ZIP handler", () => {
   });
 
   it("handles UTF-8 filenames", async () => {
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -281,7 +280,7 @@ describe("Export ZIP handler", () => {
     expect(entries[0].content).toBe("UTF-8 content");
 
     // Restore
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -293,7 +292,7 @@ describe("Export ZIP handler", () => {
   });
 
   it("handles single-file ZIP", async () => {
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -309,7 +308,7 @@ describe("Export ZIP handler", () => {
     expect(entries[0].content).toBe("single");
 
     // Restore
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -321,7 +320,7 @@ describe("Export ZIP handler", () => {
   });
 
   it("handles empty content files", async () => {
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -338,7 +337,7 @@ describe("Export ZIP handler", () => {
     expect(entries[0].uncompressedSize).toBe(0);
 
     // Restore
-    saveGeneratorResult(snapshotId, {
+    await saveGeneratorResult(snapshotId, {
       snapshot_id: snapshotId,
       generated_at: new Date().toISOString(),
       files: [
@@ -356,7 +355,7 @@ describe("Export ZIP handler", () => {
 
   it("returns 404 when project has snapshots but no generated files", async () => {
     // Create a new project with a snapshot but no generator result
-    const snap2 = createSnapshot({
+    const snap2 = await createSnapshot({
       input_method: "repo_snapshot_upload",
       manifest: {
         project_name: "empty-gen-project",

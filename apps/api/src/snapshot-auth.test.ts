@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, getDb, recordUsage } from "@axis/snapshots";
+import { resetTestDb, sql, recordUsage } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, handleGetSnapshot } from "./handlers.js";
@@ -49,7 +49,7 @@ async function req(
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const router = new Router();
@@ -67,7 +67,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 beforeEach(() => {
@@ -125,7 +124,7 @@ describe("auth — invalid key", () => {
   it("returns 401 INVALID_KEY for revoked key", async () => {
     const { key, accountId } = await createTestAccount("revoked", "revoked@test.com");
     // Revoke the key directly in DB
-    getDb().prepare("UPDATE api_keys SET revoked_at = ? WHERE account_id = ?").run(new Date().toISOString(), accountId);
+    await sql.run("UPDATE api_keys SET revoked_at = ? WHERE account_id = ?", [new Date().toISOString(), accountId]);
 
     const r = await req("POST", "/v1/snapshots", validSnapshot("revoked-proj"), key);
     expect(r.status).toBe(401);
@@ -140,7 +139,7 @@ describe("auth — quota exceeded", () => {
     const { key, accountId } = await createTestAccount("quota", "quota@test.com");
     // Seed 9 usage records with fake snapshot_ids (won't create real projects)
     for (let i = 0; i < 9; i++) {
-      recordUsage(accountId, "search", `fake-snap-${i}`, 1, 1, 100);
+      await recordUsage(accountId, "search", `fake-snap-${i}`, 1, 1, 100);
     }
     // 10th snapshot via real HTTP — should succeed (monthly count = 9 < 10)
     const ok = await req("POST", "/v1/snapshots", validSnapshot("quota-project"), key);
@@ -157,7 +156,7 @@ describe("auth — quota exceeded", () => {
     const { key, accountId } = await createTestAccount("freequota", "freequota@test.com");
     // Exhaust quota
     for (let i = 0; i < 10; i++) {
-      recordUsage(accountId, "search", `fake-snap-${i}`, 1, 1, 100);
+      await recordUsage(accountId, "search", `fake-snap-${i}`, 1, 1, 100);
     }
     // Free-only request should still succeed
     const r = await req("POST", "/v1/snapshots", validSnapshot("free-project"), key);

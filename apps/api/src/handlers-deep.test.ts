@@ -8,8 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createAccount,
   createApiKey,
   createSnapshot,
@@ -110,19 +109,19 @@ let seedProjectId: string;
 // ─── Setup ──────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
-  const paid = createAccount("Paid User", "paid-gh@test.com", "paid");
-  const paidKey = createApiKey(paid.account_id, "gh-paid");
+  const paid = await createAccount("Paid User", "paid-gh@test.com", "paid");
+  const paidKey = await createApiKey(paid.account_id, "gh-paid");
   paidAuth = { account_id: paid.account_id, headers: { Authorization: `Bearer ${paidKey.rawKey}` } };
 
-  const free = createAccount("Free User", "free-gh@test.com", "free");
-  const freeKey = createApiKey(free.account_id, "gh-free");
+  const free = await createAccount("Free User", "free-gh@test.com", "free");
+  const freeKey = await createApiKey(free.account_id, "gh-free");
   freeAuth = { account_id: free.account_id, headers: { Authorization: `Bearer ${freeKey.rawKey}` } };
 
   // Seed a snapshot with context + generated results
-  const snap = createSnapshot({
+  const snap = await createSnapshot({
     input_method: "api_submission",
     manifest: {
       project_name: "deep-test",
@@ -136,21 +135,21 @@ beforeAll(async () => {
   seedSnapshotId = snap.snapshot_id;
   seedProjectId = snap.project_id;
 
-  saveContextMap(seedSnapshotId, {
+  await saveContextMap(seedSnapshotId, {
     version: "1.0.0",
     snapshot_id: seedSnapshotId,
     project_id: seedProjectId,
     project_identity: { name: "deep-test" },
     structure: { total_files: 1 },
   });
-  saveRepoProfile(seedSnapshotId, {
+  await saveRepoProfile(seedSnapshotId, {
     version: "1.0.0",
     snapshot_id: seedSnapshotId,
     project_id: seedProjectId,
     project: { name: "deep-test" },
     health: { has_tests: false },
   });
-  saveGeneratorResult(seedSnapshotId, {
+  await saveGeneratorResult(seedSnapshotId, {
     snapshot_id: seedSnapshotId,
     generated_at: new Date().toISOString(),
     files: [
@@ -179,7 +178,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ─── handleGetSnapshot success path ─────────────────────────────
@@ -196,7 +194,7 @@ describe("handleGetSnapshot / handleDeleteSnapshot success", () => {
 
   it("DELETE /v1/snapshots/:id deletes successfully", async () => {
     // Create a disposable snapshot for deletion
-    const snap = createSnapshot({
+    const snap = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "delete-me", project_type: "x", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "x", size: 1 }],
@@ -271,7 +269,7 @@ describe("handleSearchExport edge cases", () => {
   });
 
   it("returns 404 for snapshot without generated result", async () => {
-    const noGen = createSnapshot({
+    const noGen = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "no-gen", project_type: "x", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "x", size: 1 }],
@@ -305,7 +303,7 @@ describe("handleSkillsGenerate edge cases", () => {
   });
 
   it("returns CONTEXT_PENDING for snapshot without context", async () => {
-    const noCtx = createSnapshot({
+    const noCtx = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "no-ctx-sk", project_type: "x", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "x", size: 1 }],
@@ -474,7 +472,7 @@ describe("handleGitHubAnalyze", () => {
 
 describe("handleDeleteProject edge cases", () => {
   it("deletes project that has snapshots", async () => {
-    const snap = createSnapshot({
+    const snap = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "del-proj", project_type: "x", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "x", size: 1 }],

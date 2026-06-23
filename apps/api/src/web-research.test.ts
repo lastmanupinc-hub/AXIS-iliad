@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IncomingMessage } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import type { Server } from "node:http";
 import { firecrawlScrape, firecrawlCrawl, isWebResearchNotConfigured } from "./web-research.js";
 import { dispatch } from "./mcp-server.js";
@@ -68,14 +68,13 @@ describe("web-research core", () => {
 describe("web-research MCP dispatch wiring", () => {
   let rawKey: string;
 
-  beforeEach(() => {
-    openMemoryDb();
-    const acct = createAccount("WR", "wr@example.com", "paid");
-    rawKey = createApiKey(acct.account_id).rawKey;
+  beforeEach(async () => {
+    await resetTestDb();
+    const acct = await createAccount("WR", "wr@example.com", "paid");
+    rawKey = (await createApiKey(acct.account_id)).rawKey;
     delete process.env.FIRECRAWL_API_KEY; // exercise the _not_configured path — no network
   });
   afterEach(() => {
-    closeDb();
     restoreKey();
   });
 
@@ -109,9 +108,9 @@ describe("POST /v1/research/scrape — 24h shared cache", () => {
   let apiKey = "";
 
   beforeEach(async () => {
-    openMemoryDb();
-    const acct = createAccount("Cache", "cache@test.com", "paid");
-    apiKey = createApiKey(acct.account_id).rawKey;
+    await resetTestDb();
+    const acct = await createAccount("Cache", "cache@test.com", "paid");
+    apiKey = (await createApiKey(acct.account_id)).rawKey;
     delete process.env.FIRECRAWL_API_KEY; // prove the cache short-circuits before any Firecrawl call
     const router = new Router();
     router.post("/v1/research/scrape", handleFirecrawlScrape);
@@ -122,7 +121,6 @@ describe("POST /v1/research/scrape — 24h shared cache", () => {
 
   afterEach(async () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    closeDb();
     restoreKey();
   });
 
@@ -148,7 +146,7 @@ describe("POST /v1/research/scrape — 24h shared cache", () => {
   }
 
   it("serves a cache hit for $0 without calling Firecrawl", async () => {
-    putCachedScrape("https://example.com/doc", "# cached markdown", { title: "Doc" }, 200);
+    await putCachedScrape("https://example.com/doc", "# cached markdown", { title: "Doc" }, 200);
     const r = await post("https://example.com/doc", apiKey);
     expect(r.status).toBe(200); // would be 503 (Firecrawl unconfigured) if it didn't hit cache
     expect(r.data.cached).toBe(true);

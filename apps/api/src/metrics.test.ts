@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck } from "./handlers.js";
@@ -34,7 +34,7 @@ function rawReq(method: string, path: string): Promise<Res> {
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
   router.get("/v1/health/live", handleLiveness);
@@ -47,7 +47,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   server.close();
-  closeDb();
   await new Promise((r) => setTimeout(r, 100));
 });
 

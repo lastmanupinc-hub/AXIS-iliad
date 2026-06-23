@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { handleHealthCheck } from "./handlers.js";
 
@@ -31,15 +31,14 @@ function rawReq(method: string, path: string, port = TEST_PORT): Promise<Res> {
 describe("crash-resilience: keep-alive tuning + process error handlers", () => {
   let server: Server & { shutdown?: (t?: number) => Promise<void> };
 
-  beforeAll(() => {
-    openMemoryDb();
+  beforeAll(async () => {
+    await resetTestDb();
   });
 
   afterAll(async () => {
     if (server?.listening) {
       await new Promise<void>((r) => server.close(() => r()));
     }
-    closeDb();
   });
 
   afterEach(() => {

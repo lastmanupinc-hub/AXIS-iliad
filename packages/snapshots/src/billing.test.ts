@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getDb, openMemoryDb, closeDb } from "./db.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import {
   createAccount,
   getAccount,
@@ -22,14 +23,13 @@ import { TIER_LIMITS, ALL_PROGRAMS } from "./billing-types.js";
 import { createSnapshot } from "./store.js";
 import type { SnapshotInput } from "./types.js";
 
-beforeEach(() => { openMemoryDb(); });
-afterEach(() => { closeDb(); });
+beforeEach(async () => { await resetTestDb(); });
 
 // ─── Accounts ───────────────────────────────────────────────────
 
 describe("Accounts", () => {
-  it("creates a free account with correct fields", () => {
-    const acct = createAccount("Alice", "alice@example.com");
+  it("creates a free account with correct fields", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
     expect(acct.account_id).toBeTruthy();
     expect(acct.name).toBe("Alice");
     expect(acct.email).toBe("alice@example.com");
@@ -37,81 +37,81 @@ describe("Accounts", () => {
     expect(acct.created_at).toBeTruthy();
   });
 
-  it("creates a paid account", () => {
-    const acct = createAccount("Bob", "bob@example.com", "paid");
+  it("creates a paid account", async () => {
+    const acct = await createAccount("Bob", "bob@example.com", "paid");
     expect(acct.tier).toBe("paid");
   });
 
-  it("creates a suite account and auto-enables all programs", () => {
-    const acct = createAccount("Corp", "corp@example.com", "suite");
+  it("creates a suite account and auto-enables all programs", async () => {
+    const acct = await createAccount("Corp", "corp@example.com", "suite");
     expect(acct.tier).toBe("suite");
-    const ents = getEntitlements(acct.account_id);
+    const ents = await getEntitlements(acct.account_id);
     expect(ents.length).toBe(ALL_PROGRAMS.length);
   });
 
-  it("retrieves account by ID", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const found = getAccount(acct.account_id);
+  it("retrieves account by ID", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const found = await getAccount(acct.account_id);
     expect(found).toBeTruthy();
     expect(found!.account_id).toBe(acct.account_id);
   });
 
-  it("retrieves account by email", () => {
-    createAccount("Alice", "alice@example.com");
-    const found = getAccountByEmail("alice@example.com");
+  it("retrieves account by email", async () => {
+    await createAccount("Alice", "alice@example.com");
+    const found = await getAccountByEmail("alice@example.com");
     expect(found).toBeTruthy();
     expect(found!.name).toBe("Alice");
   });
 
-  it("returns undefined for unknown account", () => {
-    expect(getAccount("nonexistent")).toBeUndefined();
-    expect(getAccountByEmail("nobody@example.com")).toBeUndefined();
+  it("returns undefined for unknown account", async () => {
+    expect(await getAccount("nonexistent")).toBeUndefined();
+    expect(await getAccountByEmail("nobody@example.com")).toBeUndefined();
   });
 
-  it("rejects duplicate emails", () => {
-    createAccount("Alice", "alice@example.com");
-    expect(() => createAccount("Alice2", "alice@example.com")).toThrow();
+  it("rejects duplicate emails", async () => {
+    await createAccount("Alice", "alice@example.com");
+    await expect(createAccount("Alice2", "alice@example.com")).rejects.toThrow();
   });
 
-  it("normalizes email to lowercase on create", () => {
-    const acct = createAccount("Alice", "  Alice@Example.COM  ");
+  it("normalizes email to lowercase on create", async () => {
+    const acct = await createAccount("Alice", "  Alice@Example.COM  ");
     expect(acct.email).toBe("alice@example.com");
-    expect(getAccount(acct.account_id)!.email).toBe("alice@example.com");
+    expect((await getAccount(acct.account_id))!.email).toBe("alice@example.com");
   });
 
-  it("retrieves account by email case-insensitively", () => {
-    createAccount("Alice", "alice@example.com");
-    const found = getAccountByEmail("ALICE@Example.com");
+  it("retrieves account by email case-insensitively", async () => {
+    await createAccount("Alice", "alice@example.com");
+    const found = await getAccountByEmail("ALICE@Example.com");
     expect(found).toBeTruthy();
     expect(found!.name).toBe("Alice");
   });
 
-  it("finds legacy rows stored with mixed-case emails", () => {
+  it("finds legacy rows stored with mixed-case emails", async () => {
     // Simulate a pre-normalization row written directly to the table
-    getDb().prepare(
+    await sql.run(
       "INSERT INTO accounts (account_id, name, email, tier, created_at) VALUES ('legacy1', 'Legacy', 'Legacy@Test.COM', 'free', '2024-01-01')",
-    ).run();
-    expect(getAccountByEmail("legacy@test.com")?.account_id).toBe("legacy1");
-    expect(getAccountByEmail("LEGACY@TEST.COM")?.account_id).toBe("legacy1");
+    );
+    expect((await getAccountByEmail("legacy@test.com"))?.account_id).toBe("legacy1");
+    expect((await getAccountByEmail("LEGACY@TEST.COM"))?.account_id).toBe("legacy1");
   });
 
-  it("rejects duplicate emails differing only by case", () => {
-    createAccount("Alice", "alice@example.com");
-    expect(() => createAccount("Alice2", "ALICE@EXAMPLE.COM")).toThrow(/UNIQUE/);
+  it("rejects duplicate emails differing only by case", async () => {
+    await createAccount("Alice", "alice@example.com");
+    await expect(createAccount("Alice2", "ALICE@EXAMPLE.COM")).rejects.toThrow(/UNIQUE/);
   });
 
-  it("upgrades tier from free to paid", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const ok = updateAccountTier(acct.account_id, "paid");
+  it("upgrades tier from free to paid", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const ok = await updateAccountTier(acct.account_id, "paid");
     expect(ok).toBe(true);
-    const updated = getAccount(acct.account_id);
+    const updated = await getAccount(acct.account_id);
     expect(updated!.tier).toBe("paid");
   });
 
-  it("upgrade to suite auto-enables all programs", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    updateAccountTier(acct.account_id, "suite");
-    const ents = getEntitlements(acct.account_id);
+  it("upgrade to suite auto-enables all programs", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    await updateAccountTier(acct.account_id, "suite");
+    const ents = await getEntitlements(acct.account_id);
     expect(ents.length).toBe(ALL_PROGRAMS.length);
   });
 });
@@ -119,9 +119,9 @@ describe("Accounts", () => {
 // ─── API Keys ───────────────────────────────────────────────────
 
 describe("API Keys", () => {
-  it("creates an API key with axis_ prefix", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const { apiKey, rawKey } = createApiKey(acct.account_id, "test-key");
+  it("creates an API key with axis_ prefix", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const { apiKey, rawKey } = await createApiKey(acct.account_id, "test-key");
     expect(rawKey).toMatch(/^axis_[0-9a-f]{32}$/);
     expect(apiKey.key_id).toBeTruthy();
     expect(apiKey.account_id).toBe(acct.account_id);
@@ -129,39 +129,39 @@ describe("API Keys", () => {
     expect(apiKey.revoked_at).toBeNull();
   });
 
-  it("resolves a valid raw key to account", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const { rawKey } = createApiKey(acct.account_id);
-    const resolved = resolveApiKey(rawKey);
+  it("resolves a valid raw key to account", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const { rawKey } = await createApiKey(acct.account_id);
+    const resolved = await resolveApiKey(rawKey);
     expect(resolved).toBeTruthy();
     expect(resolved!.account.account_id).toBe(acct.account_id);
     expect(resolved!.account.name).toBe("Alice");
   });
 
-  it("returns undefined for unknown key", () => {
-    expect(resolveApiKey("axis_0000000000000000000000000000dead")).toBeUndefined();
+  it("returns undefined for unknown key", async () => {
+    expect(await resolveApiKey("axis_0000000000000000000000000000dead")).toBeUndefined();
   });
 
-  it("returns undefined for revoked key", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const { apiKey, rawKey } = createApiKey(acct.account_id);
-    revokeApiKey(apiKey.key_id);
-    expect(resolveApiKey(rawKey)).toBeUndefined();
+  it("returns undefined for revoked key", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const { apiKey, rawKey } = await createApiKey(acct.account_id);
+    await revokeApiKey(apiKey.key_id);
+    expect(await resolveApiKey(rawKey)).toBeUndefined();
   });
 
-  it("lists all keys for an account", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    createApiKey(acct.account_id, "key-1");
-    createApiKey(acct.account_id, "key-2");
-    const keys = listApiKeys(acct.account_id);
+  it("lists all keys for an account", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    await createApiKey(acct.account_id, "key-1");
+    await createApiKey(acct.account_id, "key-2");
+    const keys = await listApiKeys(acct.account_id);
     expect(keys.length).toBe(2);
   });
 
-  it("revoked keys still appear in list", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const { apiKey } = createApiKey(acct.account_id);
-    revokeApiKey(apiKey.key_id);
-    const keys = listApiKeys(acct.account_id);
+  it("revoked keys still appear in list", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const { apiKey } = await createApiKey(acct.account_id);
+    await revokeApiKey(apiKey.key_id);
+    const keys = await listApiKeys(acct.account_id);
     expect(keys.length).toBe(1);
     expect(keys[0].revoked_at).toBeTruthy();
   });
@@ -170,41 +170,41 @@ describe("API Keys", () => {
 // ─── Program Entitlements ───────────────────────────────────────
 
 describe("Program Entitlements", () => {
-  it("free tier has built-in programs only", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    expect(isProgramEnabled(acct.account_id, "search")).toBe(true);
-    expect(isProgramEnabled(acct.account_id, "skills")).toBe(true);
-    expect(isProgramEnabled(acct.account_id, "debug")).toBe(true);
-    expect(isProgramEnabled(acct.account_id, "seo")).toBe(false);
-    expect(isProgramEnabled(acct.account_id, "marketing")).toBe(false);
+  it("free tier has built-in programs only", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    expect(await isProgramEnabled(acct.account_id, "search")).toBe(true);
+    expect(await isProgramEnabled(acct.account_id, "skills")).toBe(true);
+    expect(await isProgramEnabled(acct.account_id, "debug")).toBe(true);
+    expect(await isProgramEnabled(acct.account_id, "seo")).toBe(false);
+    expect(await isProgramEnabled(acct.account_id, "marketing")).toBe(false);
   });
 
-  it("suite tier has all programs", () => {
-    const acct = createAccount("Corp", "corp@example.com", "suite");
+  it("suite tier has all programs", async () => {
+    const acct = await createAccount("Corp", "corp@example.com", "suite");
     for (const p of ALL_PROGRAMS) {
-      expect(isProgramEnabled(acct.account_id, p)).toBe(true);
+      expect(await isProgramEnabled(acct.account_id, p)).toBe(true);
     }
   });
 
-  it("paid tier uses entitlements table", () => {
-    const acct = createAccount("Bob", "bob@example.com", "paid");
-    expect(isProgramEnabled(acct.account_id, "seo")).toBe(false);
-    enableProgram(acct.account_id, "seo");
-    expect(isProgramEnabled(acct.account_id, "seo")).toBe(true);
-    disableProgram(acct.account_id, "seo");
-    expect(isProgramEnabled(acct.account_id, "seo")).toBe(false);
+  it("paid tier uses entitlements table", async () => {
+    const acct = await createAccount("Bob", "bob@example.com", "paid");
+    expect(await isProgramEnabled(acct.account_id, "seo")).toBe(false);
+    await enableProgram(acct.account_id, "seo");
+    expect(await isProgramEnabled(acct.account_id, "seo")).toBe(true);
+    await disableProgram(acct.account_id, "seo");
+    expect(await isProgramEnabled(acct.account_id, "seo")).toBe(false);
   });
 
-  it("returns false for unknown account", () => {
-    expect(isProgramEnabled("nonexistent", "search")).toBe(false);
+  it("returns false for unknown account", async () => {
+    expect(await isProgramEnabled("nonexistent", "search")).toBe(false);
   });
 
-  it("getEntitlements returns enabled programs only", () => {
-    const acct = createAccount("Bob", "bob@example.com", "paid");
-    enableProgram(acct.account_id, "seo");
-    enableProgram(acct.account_id, "brand");
-    disableProgram(acct.account_id, "seo");
-    const ents = getEntitlements(acct.account_id);
+  it("getEntitlements returns enabled programs only", async () => {
+    const acct = await createAccount("Bob", "bob@example.com", "paid");
+    await enableProgram(acct.account_id, "seo");
+    await enableProgram(acct.account_id, "brand");
+    await disableProgram(acct.account_id, "seo");
+    const ents = await getEntitlements(acct.account_id);
     expect(ents.length).toBe(1);
     expect(ents[0].program).toBe("brand");
   });
@@ -213,13 +213,13 @@ describe("Program Entitlements", () => {
 // ─── Usage Tracking ─────────────────────────────────────────────
 
 describe("Usage Tracking", () => {
-  it("records usage and retrieves summary", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    recordUsage(acct.account_id, "search", "snap-1", 3, 10, 5000);
-    recordUsage(acct.account_id, "search", "snap-2", 2, 5, 2500);
-    recordUsage(acct.account_id, "debug", "snap-1", 1, 10, 5000);
+  it("records usage and retrieves summary", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    await recordUsage(acct.account_id, "search", "snap-1", 3, 10, 5000);
+    await recordUsage(acct.account_id, "search", "snap-2", 2, 5, 2500);
+    await recordUsage(acct.account_id, "debug", "snap-1", 1, 10, 5000);
 
-    const summary = getUsageSummary(acct.account_id);
+    const summary = await getUsageSummary(acct.account_id);
     expect(summary.length).toBe(2);
 
     const searchSummary = summary.find(s => s.program === "search")!;
@@ -232,13 +232,13 @@ describe("Usage Tracking", () => {
     expect(debugSummary.total_runs).toBe(1);
   });
 
-  it("tracks monthly snapshot count by distinct snapshot_id", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    recordUsage(acct.account_id, "search", "snap-1", 1, 1, 100);
-    recordUsage(acct.account_id, "debug", "snap-1", 1, 1, 100);  // same snapshot
-    recordUsage(acct.account_id, "search", "snap-2", 1, 1, 100);
+  it("tracks monthly snapshot count by distinct snapshot_id", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    await recordUsage(acct.account_id, "search", "snap-1", 1, 1, 100);
+    await recordUsage(acct.account_id, "debug", "snap-1", 1, 1, 100);  // same snapshot
+    await recordUsage(acct.account_id, "search", "snap-2", 1, 1, 100);
 
-    const count = getMonthlySnapshotCount(acct.account_id);
+    const count = await getMonthlySnapshotCount(acct.account_id);
     expect(count).toBe(2); // snap-1 and snap-2 (deduplicated)
   });
 });
@@ -246,72 +246,72 @@ describe("Usage Tracking", () => {
 // ─── Quota Enforcement ──────────────────────────────────────────
 
 describe("Quota Enforcement", () => {
-  it("allows usage under free tier limits", () => {
-    const acct = createAccount("Alice", "alice@example.com");
-    const check = checkQuota(acct.account_id);
+  it("allows usage under free tier limits", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
+    const check = await checkQuota(acct.account_id);
     expect(check.allowed).toBe(true);
     expect(check.tier).toBe("free");
     expect(check.usage.snapshots_this_month).toBe(0);
   });
 
-  it("blocks after reaching monthly snapshot limit", () => {
-    const acct = createAccount("Alice", "alice@example.com");
+  it("blocks after reaching monthly snapshot limit", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
     // Record 10 distinct snapshots (free tier limit)
     for (let i = 0; i < TIER_LIMITS.free.max_snapshots_per_month; i++) {
-      recordUsage(acct.account_id, "search", `snap-${i}`, 1, 1, 100);
+      await recordUsage(acct.account_id, "search", `snap-${i}`, 1, 1, 100);
     }
-    const check = checkQuota(acct.account_id);
+    const check = await checkQuota(acct.account_id);
     expect(check.allowed).toBe(false);
     expect(check.reason).toContain("Monthly snapshot limit");
   });
 
-  it("suite tier is never blocked by snapshot count", () => {
-    const acct = createAccount("Corp", "corp@example.com", "suite");
+  it("suite tier is never blocked by snapshot count", async () => {
+    const acct = await createAccount("Corp", "corp@example.com", "suite");
     for (let i = 0; i < 50; i++) {
-      recordUsage(acct.account_id, "search", `snap-${i}`, 1, 1, 100);
+      await recordUsage(acct.account_id, "search", `snap-${i}`, 1, 1, 100);
     }
-    const check = checkQuota(acct.account_id);
+    const check = await checkQuota(acct.account_id);
     expect(check.allowed).toBe(true);
   });
 
-  it("blocks free tier after project limit", () => {
-    const acct = createAccount("Alice", "alice@example.com");
+  it("blocks free tier after project limit", async () => {
+    const acct = await createAccount("Alice", "alice@example.com");
     // Create a real snapshot so the project_id exists in the snapshots table
     const input: SnapshotInput = {
       input_method: "api_submission",
       manifest: { project_name: "proj-1", project_type: "saas_web_app", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "a", size: 1 }],
     };
-    const snap1 = createSnapshot(input);
-    recordUsage(acct.account_id, "search", snap1.snapshot_id, 1, 1, 100);
+    const snap1 = await createSnapshot(input);
+    await recordUsage(acct.account_id, "search", snap1.snapshot_id, 1, 1, 100);
 
     // Second snapshot under a different project
     const input2: SnapshotInput = {
       ...input,
       manifest: { ...input.manifest, project_name: "proj-2" },
     };
-    const snap2 = createSnapshot(input2);
-    recordUsage(acct.account_id, "search", snap2.snapshot_id, 1, 1, 100);
+    const snap2 = await createSnapshot(input2);
+    await recordUsage(acct.account_id, "search", snap2.snapshot_id, 1, 1, 100);
 
     // Free tier allows 1 project, now we have 2
-    const check = checkQuota(acct.account_id);
+    const check = await checkQuota(acct.account_id);
     expect(check.allowed).toBe(false);
     expect(check.reason).toContain("Project limit");
   });
 
-  it("returns not-allowed for unknown account", () => {
-    const check = checkQuota("nonexistent");
+  it("returns not-allowed for unknown account", async () => {
+    const check = await checkQuota("nonexistent");
     expect(check.allowed).toBe(false);
     expect(check.reason).toContain("Account not found");
   });
 
-  it("paid tier has higher limits", () => {
-    const acct = createAccount("Bob", "bob@example.com", "paid");
+  it("paid tier has higher limits", async () => {
+    const acct = await createAccount("Bob", "bob@example.com", "paid");
     // 10 snapshots is fine for paid (limit is 200)
     for (let i = 0; i < 10; i++) {
-      recordUsage(acct.account_id, "search", `snap-${i}`, 1, 1, 100);
+      await recordUsage(acct.account_id, "search", `snap-${i}`, 1, 1, 100);
     }
-    const check = checkQuota(acct.account_id);
+    const check = await checkQuota(acct.account_id);
     expect(check.allowed).toBe(true);
     expect(check.tier).toBe("paid");
   });

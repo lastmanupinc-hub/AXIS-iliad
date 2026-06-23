@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleMcpPost } from "./mcp-server.js";
@@ -64,7 +64,7 @@ async function post(path: string, body: unknown, authKey?: string): Promise<Res>
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.post("/mcp", handleMcpPost);
@@ -73,14 +73,13 @@ beforeAll(async () => {
   testPort = ts.port;
 
   // Create suite-tier account so payment gate passes and full bundle is returned
-  const acct = createAccount("RepoTest", "repo-test@example.com", "suite");
-  const key = createApiKey(acct.account_id, "repo-test-key");
+  const acct = await createAccount("RepoTest", "repo-test@example.com", "suite");
+  const key = await createApiKey(acct.account_id, "repo-test-key");
   apiKey = key.rawKey;
 });
 
 afterAll(() => {
   server?.close();
-  closeDb();
 });
 
 // ─── Tests ──────────────────────────────────────────────────────

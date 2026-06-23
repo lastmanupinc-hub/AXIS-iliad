@@ -12,7 +12,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import {
   handleAgentJson,
@@ -64,7 +64,7 @@ const TEST_PORT = 44519;
 let server: Server;
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/.well-known/agent.json", handleAgentJson);
   router.get("/.well-known/glama.json", handleGlamaJson);
@@ -91,7 +91,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // â”€â”€â”€ GET /.well-known/agent.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -110,32 +109,32 @@ describe("GET /.well-known/agent.json", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains name field", () => {
+  it("contains name field", async () => {
     expect(json.name).toBe("Axis' Iliad");
   });
 
-  it("contains version field", () => {
+  it("contains version field", async () => {
     expect(json.version).toBe("0.5.3");
   });
 
-  it("contains capabilities object", () => {
+  it("contains capabilities object", async () => {
     expect(json.capabilities).toBeDefined();
     expect(typeof json.capabilities).toBe("object");
   });
 
-  it("contains mcp_endpoint", () => {
+  it("contains mcp_endpoint", async () => {
     expect(json.mcp_endpoint).toBe("/mcp");
   });
 
-  it("contains endpoints object", () => {
+  it("contains endpoints object", async () => {
     expect(json.endpoints).toBeDefined();
     expect(typeof json.endpoints).toBe("object");
   });
@@ -155,15 +154,15 @@ describe("GET /.well-known/glama.json", () => {
     json = JSON.parse(r.body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains mcp endpoint and description", () => {
+  it("contains mcp endpoint and description", async () => {
     expect(typeof json.mcp_endpoint).toBe("string");
     expect(String(json.mcp_endpoint)).toContain("/v1/mcp");
     expect(typeof json.description).toBe("string");
@@ -184,31 +183,31 @@ describe("GET /.well-known/security.txt", () => {
     body = r.body;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns text/plain content-type", () => {
+  it("returns text/plain content-type", async () => {
     expect(String(headers["content-type"])).toContain("text/plain");
   });
 
-  it("contains Contact field", () => {
+  it("contains Contact field", async () => {
     expect(body).toContain("Contact:");
   });
 
-  it("contains Expires field", () => {
+  it("contains Expires field", async () => {
     expect(body).toContain("Expires:");
   });
 
-  it("contains Canonical field", () => {
+  it("contains Canonical field", async () => {
     expect(body).toContain("Canonical:");
   });
 
-  it("contains Preferred-Languages field", () => {
+  it("contains Preferred-Languages field", async () => {
     expect(body).toContain("Preferred-Languages: en");
   });
 
-  it("contains security email", () => {
+  it("contains security email", async () => {
     expect(body).toContain("security@jonathanarvay.com");
   });
 });
@@ -229,32 +228,32 @@ describe("GET /.well-known/capabilities.json", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains name field", () => {
+  it("contains name field", async () => {
     expect(json.name).toBe("Axis' Iliad");
   });
 
-  it("contains capabilities object with purchasing_readiness", () => {
+  it("contains capabilities object with purchasing_readiness", async () => {
     const caps = json.capabilities as Record<string, unknown>;
     expect(caps).toBeDefined();
     expect(caps.purchasing_readiness).toBeDefined();
   });
 
-  it("contains mcp section with tools array", () => {
+  it("contains mcp section with tools array", async () => {
     const mcp = json.mcp as Record<string, unknown>;
     expect(mcp).toBeDefined();
     expect(Array.isArray(mcp.tools)).toBe(true);
     expect((mcp.tools as string[]).length).toBeGreaterThan(0);
   });
 
-  it("contains keywords array", () => {
+  it("contains keywords array", async () => {
     expect(Array.isArray(json.keywords)).toBe(true);
     expect((json.keywords as string[]).length).toBeGreaterThan(0);
   });
@@ -274,28 +273,28 @@ describe("GET /robots.txt", () => {
     body = r.body;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns text/plain content-type", () => {
+  it("returns text/plain content-type", async () => {
     expect(String(headers["content-type"])).toContain("text/plain");
   });
 
-  it("contains User-agent directive", () => {
+  it("contains User-agent directive", async () => {
     expect(body).toContain("User-agent: *");
   });
 
-  it("contains Allow directive", () => {
+  it("contains Allow directive", async () => {
     expect(body).toContain("Allow: /");
   });
 
-  it("contains Sitemap directive", () => {
+  it("contains Sitemap directive", async () => {
     expect(body).toContain("Sitemap:");
     expect(body).toContain("sitemap.xml");
   });
 
-  it("allows AI bot crawlers", () => {
+  it("allows AI bot crawlers", async () => {
     expect(body).toContain("GPTBot");
     expect(body).toContain("ClaudeBot");
   });
@@ -315,24 +314,24 @@ describe("GET /sitemap.xml", () => {
     body = r.body;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/xml content-type", () => {
+  it("returns application/xml content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/xml");
   });
 
-  it("contains XML declaration", () => {
+  it("contains XML declaration", async () => {
     expect(body).toContain('<?xml version="1.0"');
   });
 
-  it("contains urlset element", () => {
+  it("contains urlset element", async () => {
     expect(body).toContain("<urlset");
     expect(body).toContain("</urlset>");
   });
 
-  it("contains url entries with loc, lastmod, changefreq, priority", () => {
+  it("contains url entries with loc, lastmod, changefreq, priority", async () => {
     expect(body).toContain("<url>");
     expect(body).toContain("<loc>");
     expect(body).toContain("<lastmod>");
@@ -340,7 +339,7 @@ describe("GET /sitemap.xml", () => {
     expect(body).toContain("<priority>");
   });
 
-  it("includes the base URL", () => {
+  it("includes the base URL", async () => {
     expect(body).toContain("https://iliad.trustfabric.ai");
   });
 });
@@ -361,28 +360,28 @@ describe("GET /health", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains status: healthy", () => {
+  it("contains status: healthy", async () => {
     expect(json.status).toBe("healthy");
   });
 
-  it("contains version field", () => {
+  it("contains version field", async () => {
     expect(json.version).toBe("0.5.3");
   });
 
-  it("contains timestamp", () => {
+  it("contains timestamp", async () => {
     expect(json.timestamp).toBeDefined();
     expect(typeof json.timestamp).toBe("string");
   });
 
-  it("contains details pointing to /v1/health", () => {
+  it("contains details pointing to /v1/health", async () => {
     expect(json.details).toContain("/v1/health");
   });
 });
@@ -403,23 +402,23 @@ describe("GET /docs", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains docs URL", () => {
+  it("contains docs URL", async () => {
     expect(json.docs).toBeDefined();
   });
 
-  it("contains openapi reference", () => {
+  it("contains openapi reference", async () => {
     expect(json.openapi).toBe("/v1/docs");
   });
 
-  it("contains markdown reference", () => {
+  it("contains markdown reference", async () => {
     expect(json.markdown).toBe("/v1/docs.md");
   });
 });
@@ -440,25 +439,25 @@ describe("GET /openapi.json", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains openapi version field", () => {
+  it("contains openapi version field", async () => {
     expect(json.openapi).toBeDefined();
     expect(typeof json.openapi).toBe("string");
   });
 
-  it("contains info object", () => {
+  it("contains info object", async () => {
     expect(json.info).toBeDefined();
     expect(typeof json.info).toBe("object");
   });
 
-  it("contains paths object", () => {
+  it("contains paths object", async () => {
     expect(json.paths).toBeDefined();
     expect(typeof json.paths).toBe("object");
     expect(Object.keys(json.paths as object).length).toBeGreaterThan(0);
@@ -481,33 +480,33 @@ describe("GET /performance", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains status: ok", () => {
+  it("contains status: ok", async () => {
     expect(json.status).toBe("ok");
   });
 
-  it("contains version field", () => {
+  it("contains version field", async () => {
     expect(json.version).toBe("0.5.3");
   });
 
-  it("contains timestamp", () => {
+  it("contains timestamp", async () => {
     expect(json.timestamp).toBeDefined();
     expect(typeof json.timestamp).toBe("string");
   });
 
-  it("contains metrics object", () => {
+  it("contains metrics object", async () => {
     expect(json.metrics).toBeDefined();
     expect(typeof json.metrics).toBe("object");
   });
 
-  it("contains endpoints object", () => {
+  it("contains endpoints object", async () => {
     expect(json.endpoints).toBeDefined();
     expect(typeof json.endpoints).toBe("object");
   });
@@ -529,40 +528,40 @@ describe("GET /performance/reputation", () => {
     json = JSON.parse(body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("contains status: ok", () => {
+  it("contains status: ok", async () => {
     expect(json.status).toBe("ok");
   });
 
-  it("contains reputation_score", () => {
+  it("contains reputation_score", async () => {
     expect(json.reputation_score).toBeDefined();
     expect(typeof json.reputation_score).toBe("number");
     expect(json.reputation_score).toBeGreaterThanOrEqual(0);
     expect(json.reputation_score).toBeLessThanOrEqual(100);
   });
 
-  it("contains trust_signals object", () => {
+  it("contains trust_signals object", async () => {
     expect(json.trust_signals).toBeDefined();
     expect(typeof json.trust_signals).toBe("object");
   });
 
-  it("contains chiark_compatibility", () => {
+  it("contains chiark_compatibility", async () => {
     expect(json.chiark_compatibility).toBeDefined();
   });
 
-  it("contains last_probe timestamp", () => {
+  it("contains last_probe timestamp", async () => {
     expect(json.last_probe).toBeDefined();
     expect(typeof json.last_probe).toBe("string");
   });
 
-  it("contains notes", () => {
+  it("contains notes", async () => {
     expect(json.notes).toBeDefined();
     expect(typeof json.notes).toBe("string");
   });
@@ -582,30 +581,30 @@ describe("GET /.well-known/ai-plugin.json", () => {
     json = JSON.parse(r.body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("declares the v1 schema version", () => {
+  it("declares the v1 schema version", async () => {
     expect(json.schema_version).toBe("v1");
   });
 
-  it("contains a model name and description", () => {
+  it("contains a model name and description", async () => {
     expect(json.name_for_model).toBe("axis_iliad");
     expect(typeof json.description_for_model).toBe("string");
   });
 
-  it("points api.url at the openapi spec", () => {
+  it("points api.url at the openapi spec", async () => {
     const api = json.api as Record<string, unknown>;
     expect(api.type).toBe("openapi");
     expect(String(api.url)).toContain("openapi.json");
   });
 
-  it("declares no-auth access", () => {
+  it("declares no-auth access", async () => {
     expect((json.auth as Record<string, unknown>).type).toBe("none");
   });
 });
@@ -624,24 +623,24 @@ describe("GET /.well-known/oauth-protected-resource", () => {
     json = JSON.parse(r.body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns application/json content-type", () => {
+  it("returns application/json content-type", async () => {
     expect(String(headers["content-type"])).toContain("application/json");
   });
 
-  it("identifies the MCP resource", () => {
+  it("identifies the MCP resource", async () => {
     expect(String(json.resource)).toContain("/mcp");
   });
 
-  it("lists at least one authorization server", () => {
+  it("lists at least one authorization server", async () => {
     expect(Array.isArray(json.authorization_servers)).toBe(true);
     expect((json.authorization_servers as string[]).length).toBeGreaterThan(0);
   });
 
-  it("advertises header bearer method", () => {
+  it("advertises header bearer method", async () => {
     expect(json.bearer_methods_supported).toContain("header");
   });
 });
@@ -658,11 +657,11 @@ describe("GET /agents.json", () => {
     json = JSON.parse(r.body);
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("serves the same agent manifest (name + mcp_endpoint)", () => {
+  it("serves the same agent manifest (name + mcp_endpoint)", async () => {
     expect(json.name).toBe("Axis' Iliad");
     expect(json.mcp_endpoint).toBe("/mcp");
   });

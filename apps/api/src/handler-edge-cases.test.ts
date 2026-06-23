@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createSnapshot,
   saveContextMap,
   saveRepoProfile,
@@ -84,11 +83,11 @@ async function req(
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   // Seed a valid snapshot with context + profile + generated files
-  const snap = createSnapshot({
+  const snap = await createSnapshot({
     input_method: "api_submission",
     manifest: {
       project_name: "edge-case-project",
@@ -102,21 +101,21 @@ beforeAll(async () => {
   projectId = snap.project_id;
   snapshotId = snap.snapshot_id;
 
-  saveContextMap(snapshotId, {
+  await saveContextMap(snapshotId, {
     version: "1.0.0",
     snapshot_id: snapshotId,
     project_id: projectId,
     project_identity: { name: "edge-case-project" },
     structure: { total_files: 1 },
   });
-  saveRepoProfile(snapshotId, {
+  await saveRepoProfile(snapshotId, {
     version: "1.0.0",
     snapshot_id: snapshotId,
     project_id: projectId,
     project: { name: "edge-case-project" },
     health: { has_tests: false },
   });
-  saveGeneratorResult(snapshotId, {
+  await saveGeneratorResult(snapshotId, {
     snapshot_id: snapshotId,
     generated_at: new Date().toISOString(),
     files: [
@@ -142,7 +141,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ─── Manifest field type validation ─────────────────────────────
@@ -323,7 +321,7 @@ describe("context and generated-files edge cases", () => {
 
   it("handleGetContext returns CONTEXT_PENDING when profile missing", async () => {
     // Create a project with snapshot but no context/profile saved
-    const snap2 = createSnapshot({
+    const snap2 = await createSnapshot({
       input_method: "api_submission",
       manifest: {
         project_name: "no-context-project",

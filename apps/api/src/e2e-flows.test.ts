@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import { once } from "node:events";
-import { openMemoryDb, closeDb, saveGenerationVersion } from "@axis/snapshots";
+import { resetTestDb, saveGenerationVersion } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import {
   handleCreateSnapshot,
@@ -88,7 +88,7 @@ const testPayload = {
 };
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
 
   // Health / metrics / db
@@ -157,7 +157,6 @@ afterAll(async () => {
       server!.close((err) => (err ? reject(err) : resolve())),
     );
   }
-  closeDb();
 });
 
 beforeEach(() => {
@@ -232,13 +231,13 @@ describe("Flow 2: version history (generate → re-generate → list → diff)",
     snapshotId = (r.data as Record<string, unknown>).snapshot_id as string;
   });
 
-  it("seeds generation versions for testing", () => {
+  it("seeds generation versions for testing", async () => {
     expect(snapshotId).toBeTruthy();
-    saveGenerationVersion(snapshotId, [
+    await saveGenerationVersion(snapshotId, [
       { path: "AGENTS.md", content: "# Agents v1" },
       { path: "CLAUDE.md", content: "# Claude v1" },
     ], "skills");
-    saveGenerationVersion(snapshotId, [
+    await saveGenerationVersion(snapshotId, [
       { path: "AGENTS.md", content: "# Agents v2 — updated" },
       { path: "CLAUDE.md", content: "# Claude v2 — updated" },
       { path: "NEW.md", content: "# New file" },

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import {
   cosineSimilarity,
   upsertVectors,
@@ -10,12 +10,8 @@ import {
   resetVectorDbForTests,
 } from "./vector-db.js";
 
-beforeAll(() => {
-  openMemoryDb();
-});
-
-afterAll(() => {
-  closeDb();
+beforeAll(async () => {
+  await resetTestDb();
 });
 
 beforeEach(() => {
@@ -25,30 +21,30 @@ beforeEach(() => {
 // ─── cosineSimilarity ───────────────────────────────────────────
 
 describe("cosineSimilarity", () => {
-  it("returns 1 for identical vectors", () => {
+  it("returns 1 for identical vectors", async () => {
     expect(cosineSimilarity([1, 2, 3], [1, 2, 3])).toBeCloseTo(1, 6);
   });
 
-  it("returns -1 for opposite vectors", () => {
+  it("returns -1 for opposite vectors", async () => {
     expect(cosineSimilarity([1, 2, 3], [-1, -2, -3])).toBeCloseTo(-1, 6);
   });
 
-  it("returns 0 for orthogonal vectors", () => {
+  it("returns 0 for orthogonal vectors", async () => {
     expect(cosineSimilarity([1, 0, 0], [0, 1, 0])).toBeCloseTo(0, 6);
   });
 
-  it("is scale-invariant", () => {
+  it("is scale-invariant", async () => {
     const a = [1, 2, 3];
     const b = [2, 4, 6];
     expect(cosineSimilarity(a, b)).toBeCloseTo(1, 6);
   });
 
-  it("returns 0 when either vector is all-zero", () => {
+  it("returns 0 when either vector is all-zero", async () => {
     expect(cosineSimilarity([0, 0, 0], [1, 2, 3])).toBe(0);
     expect(cosineSimilarity([1, 2, 3], [0, 0, 0])).toBe(0);
   });
 
-  it("throws on dimension mismatch", () => {
+  it("throws on dimension mismatch", async () => {
     expect(() => cosineSimilarity([1, 2], [1, 2, 3])).toThrow(/dimension mismatch/i);
   });
 });
@@ -56,7 +52,7 @@ describe("cosineSimilarity", () => {
 // ─── upsertVectors + queryVectors ───────────────────────────────
 
 describe("upsertVectors + queryVectors lifecycle", () => {
-  it("round-trips a single vector and returns it as the top match", () => {
+  it("round-trips a single vector and returns it as the top match", async () => {
     upsertVectors("ns1", [{ id: "v1", vector: [1, 0, 0] }]);
     const results = queryVectors("ns1", { vector: [1, 0, 0], top_k: 5 });
     expect(results).toHaveLength(1);
@@ -64,7 +60,7 @@ describe("upsertVectors + queryVectors lifecycle", () => {
     expect(results[0].score).toBeCloseTo(1, 5);
   });
 
-  it("ranks more-similar vectors higher", () => {
+  it("ranks more-similar vectors higher", async () => {
     upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0] },
       { id: "v2", vector: [0.9, 0.1, 0] },
@@ -78,7 +74,7 @@ describe("upsertVectors + queryVectors lifecycle", () => {
     expect(results[2].score).toBeGreaterThan(results[3].score);
   });
 
-  it("limits results to top_k", () => {
+  it("limits results to top_k", async () => {
     upsertVectors("ns1", Array.from({ length: 50 }, (_, i) => ({
       id: `v${i}`,
       vector: [Math.cos(i * 0.1), Math.sin(i * 0.1), 0],
@@ -87,7 +83,7 @@ describe("upsertVectors + queryVectors lifecycle", () => {
     expect(queryVectors("ns1", { vector: [1, 0, 0], top_k: 10 })).toHaveLength(10);
   });
 
-  it("preserves metadata through the round-trip", () => {
+  it("preserves metadata through the round-trip", async () => {
     upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0], metadata: { source: "doc1.md", page: 3 } },
     ]);
@@ -95,7 +91,7 @@ describe("upsertVectors + queryVectors lifecycle", () => {
     expect(m.metadata).toEqual({ source: "doc1.md", page: 3 });
   });
 
-  it("upsert replaces existing rows with the same id", () => {
+  it("upsert replaces existing rows with the same id", async () => {
     upsertVectors("ns1", [{ id: "v1", vector: [1, 0, 0], metadata: { v: 1 } }]);
     upsertVectors("ns1", [{ id: "v1", vector: [0, 1, 0], metadata: { v: 2 } }]);
     expect(countVectors("ns1")).toBe(1);
@@ -103,7 +99,7 @@ describe("upsertVectors + queryVectors lifecycle", () => {
     expect(m.metadata).toEqual({ v: 2 });
   });
 
-  it("rejects mismatched dimensions in a single batch", () => {
+  it("rejects mismatched dimensions in a single batch", async () => {
     expect(() =>
       upsertVectors("ns1", [
         { id: "v1", vector: [1, 2, 3] },
@@ -112,13 +108,13 @@ describe("upsertVectors + queryVectors lifecycle", () => {
     ).toThrow(/dimension mismatch/i);
   });
 
-  it("rejects non-finite values", () => {
+  it("rejects non-finite values", async () => {
     expect(() =>
       upsertVectors("ns1", [{ id: "v1", vector: [1, NaN, 3] }]),
     ).toThrow(/non-finite/i);
   });
 
-  it("rejects empty batches and empty vectors", () => {
+  it("rejects empty batches and empty vectors", async () => {
     expect(() => upsertVectors("ns1", [])).toThrow(/non-empty array/i);
     expect(() => upsertVectors("ns1", [{ id: "v1", vector: [] }])).toThrow(/empty vector/i);
   });
@@ -127,14 +123,14 @@ describe("upsertVectors + queryVectors lifecycle", () => {
 // ─── Namespace isolation ────────────────────────────────────────
 
 describe("namespace isolation", () => {
-  it("queries inside one namespace cannot see another's rows", () => {
+  it("queries inside one namespace cannot see another's rows", async () => {
     upsertVectors("ns-a", [{ id: "v1", vector: [1, 0, 0] }]);
     upsertVectors("ns-b", [{ id: "v2", vector: [1, 0, 0] }]);
     expect(queryVectors("ns-a", { vector: [1, 0, 0], top_k: 10 }).map(r => r.id)).toEqual(["v1"]);
     expect(queryVectors("ns-b", { vector: [1, 0, 0], top_k: 10 }).map(r => r.id)).toEqual(["v2"]);
   });
 
-  it("deleteNamespace only affects the target namespace", () => {
+  it("deleteNamespace only affects the target namespace", async () => {
     upsertVectors("ns-a", [{ id: "v1", vector: [1, 0, 0] }]);
     upsertVectors("ns-b", [{ id: "v2", vector: [1, 0, 0] }]);
     expect(deleteNamespace("ns-a")).toBe(1);
@@ -146,7 +142,7 @@ describe("namespace isolation", () => {
 // ─── filter clause ──────────────────────────────────────────────
 
 describe("metadata filter", () => {
-  it("excludes rows whose metadata doesn't match", () => {
+  it("excludes rows whose metadata doesn't match", async () => {
     upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0], metadata: { type: "doc" } },
       { id: "v2", vector: [1, 0, 0], metadata: { type: "image" } },
@@ -155,7 +151,7 @@ describe("metadata filter", () => {
     expect(docs.map(r => r.id)).toEqual(["v1"]);
   });
 
-  it("excludes rows with no metadata when a filter is provided", () => {
+  it("excludes rows with no metadata when a filter is provided", async () => {
     upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0] },
       { id: "v2", vector: [1, 0, 0], metadata: { type: "doc" } },
@@ -168,7 +164,7 @@ describe("metadata filter", () => {
 // ─── Tiebreak determinism ──────────────────────────────────────
 
 describe("determinism", () => {
-  it("ties break on id ascending so output is stable", () => {
+  it("ties break on id ascending so output is stable", async () => {
     upsertVectors("ns1", [
       { id: "zeta", vector: [1, 0, 0] },
       { id: "alpha", vector: [1, 0, 0] },
@@ -182,26 +178,26 @@ describe("determinism", () => {
 // ─── scopeNamespace ────────────────────────────────────────────
 
 describe("scopeNamespace", () => {
-  it("prefixes with account id and a sentinel", () => {
+  it("prefixes with account id and a sentinel", async () => {
     expect(scopeNamespace("acct-1", "docs")).toBe("acct:acct-1:docs");
   });
 
-  it("falls back to 'default' when raw is empty", () => {
+  it("falls back to 'default' when raw is empty", async () => {
     expect(scopeNamespace("acct-1", "")).toBe("acct:acct-1:default");
     expect(scopeNamespace("acct-1", undefined)).toBe("acct:acct-1:default");
   });
 
-  it("rejects path-traversal-style names", () => {
+  it("rejects path-traversal-style names", async () => {
     expect(() => scopeNamespace("acct-1", "..")).toThrow(/must not contain/i);
     expect(() => scopeNamespace("acct-1", "a/b")).toThrow(/must not contain/i);
     expect(() => scopeNamespace("acct-1", "a\\b")).toThrow(/must not contain/i);
   });
 
-  it("rejects overlong names", () => {
+  it("rejects overlong names", async () => {
     expect(() => scopeNamespace("acct-1", "a".repeat(201))).toThrow(/200/);
   });
 
-  it("rejects empty account ids", () => {
+  it("rejects empty account ids", async () => {
     expect(() => scopeNamespace("", "ns")).toThrow(/account_id is required/i);
   });
 });

@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createSnapshot,
   saveGenerationVersion,
   listGenerationVersions,
@@ -46,10 +45,10 @@ async function req(method: string, path: string): Promise<Res> {
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
-  const snap = createSnapshot({
+  const snap = await createSnapshot({
     input_method: "api_submission",
     manifest: { project_name: "version-test", project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] },
     files: [{ path: "index.ts", content: "export default 1;", size: 18 }],
@@ -57,18 +56,18 @@ beforeAll(async () => {
   snapshotId = snap.snapshot_id;
 
   // Create version history
-  saveGenerationVersion(snapshotId, [
+  await saveGenerationVersion(snapshotId, [
     { path: "AGENTS.md", content: "# Agents v1\nInitial" },
     { path: "CLAUDE.md", content: "# Claude v1" },
   ], "skills");
 
-  saveGenerationVersion(snapshotId, [
+  await saveGenerationVersion(snapshotId, [
     { path: "AGENTS.md", content: "# Agents v2\nUpdated with new rules" },
     { path: "CLAUDE.md", content: "# Claude v1" },
     { path: "CURSOR.md", content: "# Cursor rules" },
   ], "skills");
 
-  saveGenerationVersion(snapshotId, [
+  await saveGenerationVersion(snapshotId, [
     { path: "AGENTS.md", content: "# Agents v3\nFinal" },
   ], "skills");
 
@@ -84,67 +83,66 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 // ─── Unit tests ─────────────────────────────────────────────────
 
 describe("version-store unit tests", () => {
-  it("saveGenerationVersion auto-increments version number", () => {
-    const versions = listGenerationVersions(snapshotId);
+  it("saveGenerationVersion auto-increments version number", async () => {
+    const versions = await listGenerationVersions(snapshotId);
     expect(versions.length).toBe(3);
     expect(versions[0]!.version_number).toBe(3); // newest first
     expect(versions[1]!.version_number).toBe(2);
     expect(versions[2]!.version_number).toBe(1);
   });
 
-  it("getGenerationVersion retrieves full file content", () => {
-    const v1 = getGenerationVersion(snapshotId, 1);
+  it("getGenerationVersion retrieves full file content", async () => {
+    const v1 = await getGenerationVersion(snapshotId, 1);
     expect(v1).toBeDefined();
     expect(v1!.files.length).toBe(2);
     expect(v1!.files[0]!.path).toBe("AGENTS.md");
     expect(v1!.files[0]!.content).toContain("v1");
   });
 
-  it("getGenerationVersion returns undefined for nonexistent version", () => {
-    expect(getGenerationVersion(snapshotId, 99)).toBeUndefined();
+  it("getGenerationVersion returns undefined for nonexistent version", async () => {
+    expect(await getGenerationVersion(snapshotId, 99)).toBeUndefined();
   });
 
-  it("diffGenerationVersions detects added files", () => {
-    const diff = diffGenerationVersions(snapshotId, 1, 2)!;
+  it("diffGenerationVersions detects added files", async () => {
+    const diff = (await diffGenerationVersions(snapshotId, 1, 2))!;
     expect(diff).toBeDefined();
     const added = diff.files.filter((f) => f.status === "added");
     expect(added.length).toBe(1);
     expect(added[0]!.path).toBe("CURSOR.md");
   });
 
-  it("diffGenerationVersions detects modified files", () => {
-    const diff = diffGenerationVersions(snapshotId, 1, 2)!;
+  it("diffGenerationVersions detects modified files", async () => {
+    const diff = (await diffGenerationVersions(snapshotId, 1, 2))!;
     const modified = diff.files.filter((f) => f.status === "modified");
     expect(modified.length).toBe(1);
     expect(modified[0]!.path).toBe("AGENTS.md");
   });
 
-  it("diffGenerationVersions detects unchanged files", () => {
-    const diff = diffGenerationVersions(snapshotId, 1, 2)!;
+  it("diffGenerationVersions detects unchanged files", async () => {
+    const diff = (await diffGenerationVersions(snapshotId, 1, 2))!;
     const unchanged = diff.files.filter((f) => f.status === "unchanged");
     expect(unchanged.length).toBe(1);
     expect(unchanged[0]!.path).toBe("CLAUDE.md");
   });
 
-  it("diffGenerationVersions detects removed files", () => {
-    const diff = diffGenerationVersions(snapshotId, 2, 3)!;
+  it("diffGenerationVersions detects removed files", async () => {
+    const diff = (await diffGenerationVersions(snapshotId, 2, 3))!;
     const removed = diff.files.filter((f) => f.status === "removed");
     expect(removed.length).toBe(2); // CLAUDE.md and CURSOR.md removed
   });
 
-  it("diffGenerationVersions summary is correct", () => {
-    const diff = diffGenerationVersions(snapshotId, 1, 2)!;
+  it("diffGenerationVersions summary is correct", async () => {
+    const diff = (await diffGenerationVersions(snapshotId, 1, 2))!;
     expect(diff.summary).toEqual({ added: 1, removed: 0, modified: 1, unchanged: 1 });
   });
 
-  it("diffGenerationVersions returns undefined for missing versions", () => {
-    expect(diffGenerationVersions(snapshotId, 1, 99)).toBeUndefined();
+  it("diffGenerationVersions returns undefined for missing versions", async () => {
+    expect(await diffGenerationVersions(snapshotId, 1, 99)).toBeUndefined();
   });
 });
 

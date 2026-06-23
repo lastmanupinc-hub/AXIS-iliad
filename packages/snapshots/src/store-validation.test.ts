@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   createSnapshot,
   getSnapshot,
@@ -11,7 +11,8 @@ import {
   saveGeneratorResult,
   getGeneratorResult,
 } from "./store.js";
-import { openMemoryDb, closeDb, getDb } from "./db.js";
+import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import type { SnapshotInput } from "./types.js";
 
 function makeInput(overrides?: Partial<SnapshotInput>): SnapshotInput {
@@ -29,234 +30,234 @@ function makeInput(overrides?: Partial<SnapshotInput>): SnapshotInput {
   };
 }
 
-beforeEach(() => { openMemoryDb(); });
-afterEach(() => { closeDb(); });
+beforeEach(async () => { await resetTestDb(); });
 
 // ─── isValidContextMap — shallow validation gaps ────────────────
 
 describe("ContextMap validation edge cases", () => {
-  it("rejects context map with empty project_identity object", () => {
-    const snap = createSnapshot(makeInput());
+  it("rejects context map with empty project_identity object", async () => {
+    const snap = await createSnapshot(makeInput());
     // Empty {} passes `typeof === 'object' && !== null` but is semantically empty
     // The current validator DOES accept this — test proves the boundary
-    saveContextMap(snap.snapshot_id, {
+    await saveContextMap(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: {},
     });
-    const found = getContextMap(snap.snapshot_id);
+    const found = await getContextMap(snap.snapshot_id);
     // Passes validation because {} is a non-null object
     expect(found).toBeTruthy();
   });
 
-  it("rejects context map where project_identity is null", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map where project_identity is null", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: null,
     });
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects context map where project_identity is a string", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map where project_identity is a string", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: "not-an-object",
     });
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects context map missing version field", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map missing version field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: { name: "test" },
     });
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects context map with numeric version", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map with numeric version", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: 1,
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: { name: "test" },
     });
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects context map with numeric project_id", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map with numeric project_id", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: 12345,
       project_identity: { name: "test" },
     });
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects context map where data is an array", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, [1, 2, 3]);
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+  it("rejects context map where data is an array", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, [1, 2, 3]);
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 });
 
 // ─── isValidRepoProfile — shallow validation gaps ───────────────
 
 describe("RepoProfile validation edge cases", () => {
-  it("accepts repo profile with empty project object", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("accepts repo profile with empty project object", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: {},
     });
-    const found = getRepoProfile(snap.snapshot_id);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeTruthy();
   });
 
-  it("rejects repo profile where project is null", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile where project is null", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: null,
     });
-    expect(getRepoProfile(snap.snapshot_id)).toBeUndefined();
+    expect(await getRepoProfile(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects repo profile where project is a number", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile where project is a number", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: 42,
     });
-    expect(getRepoProfile(snap.snapshot_id)).toBeUndefined();
+    expect(await getRepoProfile(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects repo profile missing version", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile missing version", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: { name: "test" },
     });
-    expect(getRepoProfile(snap.snapshot_id)).toBeUndefined();
+    expect(await getRepoProfile(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects repo profile with boolean project_id", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile with boolean project_id", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: true,
       project: { name: "test" },
     });
-    expect(getRepoProfile(snap.snapshot_id)).toBeUndefined();
+    expect(await getRepoProfile(snap.snapshot_id)).toBeUndefined();
   });
 });
 
 // ─── isValidGeneratorResult — edge cases ────────────────────────
 
 describe("GeneratorResult validation edge cases", () => {
-  it("rejects generator result with files as object instead of array", () => {
-    const snap = createSnapshot(makeInput());
-    saveGeneratorResult(snap.snapshot_id, {
+  it("rejects generator result with files as object instead of array", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveGeneratorResult(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       generated_at: "2025-01-01T00:00:00Z",
       files: { a: 1, b: 2 },
     });
-    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+    expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects generator result missing generated_at", () => {
-    const snap = createSnapshot(makeInput());
-    saveGeneratorResult(snap.snapshot_id, {
+  it("rejects generator result missing generated_at", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveGeneratorResult(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       files: [],
     });
-    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+    expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects generator result with numeric generated_at", () => {
-    const snap = createSnapshot(makeInput());
-    saveGeneratorResult(snap.snapshot_id, {
+  it("rejects generator result with numeric generated_at", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveGeneratorResult(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       generated_at: 1234567890,
       files: [],
     });
-    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+    expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("rejects generator result missing snapshot_id", () => {
-    const snap = createSnapshot(makeInput());
-    saveGeneratorResult(snap.snapshot_id, {
+  it("rejects generator result missing snapshot_id", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveGeneratorResult(snap.snapshot_id, {
       generated_at: "2025-01-01T00:00:00Z",
       files: [],
     });
-    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+    expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("accepts generator result with empty files array", () => {
-    const snap = createSnapshot(makeInput());
-    saveGeneratorResult(snap.snapshot_id, {
+  it("accepts generator result with empty files array", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveGeneratorResult(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       generated_at: "2025-01-01T00:00:00Z",
       files: [],
     });
-    const found = getGeneratorResult(snap.snapshot_id) as Record<string, unknown>;
+    const found = (await getGeneratorResult(snap.snapshot_id)) as Record<string, unknown>;
     expect(found).toBeTruthy();
     expect(Array.isArray(found.files)).toBe(true);
   });
 
-  it("rejects data that is a string", () => {
-    const snap = createSnapshot(makeInput());
+  it("rejects data that is a string", async () => {
+    const snap = await createSnapshot(makeInput());
     // Directly insert a valid JSON string (not an object)
-    getDb()
-      .prepare("INSERT OR REPLACE INTO generator_results (snapshot_id, data) VALUES (?, ?)")
-      .run(snap.snapshot_id, JSON.stringify("just a string"));
-    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+    await sql.run(
+      "INSERT OR REPLACE INTO generator_results (snapshot_id, data) VALUES (?, ?)",
+      [snap.snapshot_id, JSON.stringify("just a string")],
+    );
+    expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 });
 
 // ─── Project reuse on same project_name ─────────────────────────
 
 describe("project reuse", () => {
-  it("second snapshot with same project_name reuses project_id", () => {
+  it("second snapshot with same project_name reuses project_id", async () => {
     const name = `reuse-${Date.now()}`;
-    const snap1 = createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: name } }));
-    const snap2 = createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: name } }));
+    const snap1 = await createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: name } }));
+    const snap2 = await createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: name } }));
     expect(snap1.project_id).toBe(snap2.project_id);
     expect(snap1.snapshot_id).not.toBe(snap2.snapshot_id);
   });
 
-  it("different project_names get different project_ids", () => {
-    const snap1 = createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: `p1-${Date.now()}` } }));
-    const snap2 = createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: `p2-${Date.now()}` } }));
+  it("different project_names get different project_ids", async () => {
+    const snap1 = await createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: `p1-${Date.now()}` } }));
+    const snap2 = await createSnapshot(makeInput({ manifest: { ...makeInput().manifest, project_name: `p2-${Date.now()}` } }));
     expect(snap1.project_id).not.toBe(snap2.project_id);
   });
 
-  it("getProjectSnapshots returns all snapshots for reused project", () => {
+  it("getProjectSnapshots returns all snapshots for reused project", async () => {
     const name = `multi-${Date.now()}`;
     const m = { ...makeInput().manifest, project_name: name };
-    const snap1 = createSnapshot(makeInput({ manifest: m }));
-    const snap2 = createSnapshot(makeInput({ manifest: m }));
-    const snap3 = createSnapshot(makeInput({ manifest: m }));
-    const all = getProjectSnapshots(snap1.project_id);
+    const snap1 = await createSnapshot(makeInput({ manifest: m }));
+    const snap2 = await createSnapshot(makeInput({ manifest: m }));
+    const snap3 = await createSnapshot(makeInput({ manifest: m }));
+    const all = await getProjectSnapshots(snap1.project_id);
     expect(all.length).toBe(3);
     expect(all.map(s => s.snapshot_id)).toContain(snap1.snapshot_id);
     expect(all.map(s => s.snapshot_id)).toContain(snap2.snapshot_id);
@@ -267,25 +268,25 @@ describe("project reuse", () => {
 // ─── updateSnapshotStatus edge cases ────────────────────────────
 
 describe("updateSnapshotStatus edge cases", () => {
-  it("returns false for non-existent snapshot_id", () => {
-    const result = updateSnapshotStatus("nonexistent-snapshot-id", "ready");
+  it("returns false for non-existent snapshot_id", async () => {
+    const result = await updateSnapshotStatus("nonexistent-snapshot-id", "ready");
     expect(result).toBe(false);
   });
 
-  it("returns true and updates for valid snapshot", () => {
-    const snap = createSnapshot(makeInput());
+  it("returns true and updates for valid snapshot", async () => {
+    const snap = await createSnapshot(makeInput());
     expect(snap.status).toBe("processing");
-    const result = updateSnapshotStatus(snap.snapshot_id, "ready");
+    const result = await updateSnapshotStatus(snap.snapshot_id, "ready");
     expect(result).toBe(true);
-    const found = getSnapshot(snap.snapshot_id)!;
+    const found = (await getSnapshot(snap.snapshot_id))!;
     expect(found.status).toBe("ready");
   });
 
-  it("can transition through multiple statuses", () => {
-    const snap = createSnapshot(makeInput());
-    updateSnapshotStatus(snap.snapshot_id, "ready");
-    updateSnapshotStatus(snap.snapshot_id, "failed");
-    const found = getSnapshot(snap.snapshot_id)!;
+  it("can transition through multiple statuses", async () => {
+    const snap = await createSnapshot(makeInput());
+    await updateSnapshotStatus(snap.snapshot_id, "ready");
+    await updateSnapshotStatus(snap.snapshot_id, "failed");
+    const found = (await getSnapshot(snap.snapshot_id))!;
     expect(found.status).toBe("failed");
   });
 });
@@ -293,71 +294,71 @@ describe("updateSnapshotStatus edge cases", () => {
 // ─── isValidContextMap — exhaustive branch inversions (Layer 10) ─────
 
 describe("ContextMap validation — missing field branches", () => {
-  it("rejects context map saved as a primitive string", () => {
-    const snap = createSnapshot(makeInput());
+  it("rejects context map saved as a primitive string", async () => {
+    const snap = await createSnapshot(makeInput());
     // Save a string → JSON.parse gives a string → typeof !== "object" → FALSE
-    saveContextMap(snap.snapshot_id, "not an object");
-    const found = getContextMap(snap.snapshot_id);
+    await saveContextMap(snap.snapshot_id, "not an object");
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects context map saved as null", () => {
-    const snap = createSnapshot(makeInput());
+  it("rejects context map saved as null", async () => {
+    const snap = await createSnapshot(makeInput());
     // Save null → JSON.parse gives null → typeof null === "object" TRUE, data === null TRUE → FALSE
-    saveContextMap(snap.snapshot_id, null);
-    const found = getContextMap(snap.snapshot_id);
+    await saveContextMap(snap.snapshot_id, null);
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects context map saved as a number", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, 42);
-    const found = getContextMap(snap.snapshot_id);
+  it("rejects context map saved as a number", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, 42);
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects context map with missing version field", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map with missing version field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: { name: "test" },
     });
-    const found = getContextMap(snap.snapshot_id);
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects context map with missing snapshot_id field", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map with missing snapshot_id field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: "1.0.0",
       project_id: snap.project_id,
       project_identity: { name: "test" },
     });
-    const found = getContextMap(snap.snapshot_id);
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects context map with missing project_id field", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map with missing project_id field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_identity: { name: "test" },
     });
-    const found = getContextMap(snap.snapshot_id);
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects context map with numeric version", () => {
-    const snap = createSnapshot(makeInput());
-    saveContextMap(snap.snapshot_id, {
+  it("rejects context map with numeric version", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveContextMap(snap.snapshot_id, {
       version: 123,
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: { name: "test" },
     });
-    const found = getContextMap(snap.snapshot_id);
+    const found = await getContextMap(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 });
@@ -365,77 +366,77 @@ describe("ContextMap validation — missing field branches", () => {
 // ─── isValidRepoProfile — exhaustive branch inversions (Layer 10) ────
 
 describe("RepoProfile validation — missing field branches", () => {
-  it("rejects repo profile saved as a primitive string", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, "not an object");
-    const found = getRepoProfile(snap.snapshot_id);
+  it("rejects repo profile saved as a primitive string", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, "not an object");
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects repo profile saved as null", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, null);
-    const found = getRepoProfile(snap.snapshot_id);
+  it("rejects repo profile saved as null", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, null);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects repo profile with missing version field", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile with missing version field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       // version: missing
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: { name: "test" },
     });
-    const found = getRepoProfile(snap.snapshot_id);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects repo profile with missing snapshot_id field", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile with missing snapshot_id field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       // snapshot_id: missing
       project_id: snap.project_id,
       project: { name: "test" },
     });
-    const found = getRepoProfile(snap.snapshot_id);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects repo profile with missing project_id field", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile with missing project_id field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       // project_id: missing
       project: { name: "test" },
     });
-    const found = getRepoProfile(snap.snapshot_id);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects repo profile with null project field", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile with null project field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: null,
     });
-    const found = getRepoProfile(snap.snapshot_id);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 
-  it("rejects repo profile with missing project field", () => {
-    const snap = createSnapshot(makeInput());
-    saveRepoProfile(snap.snapshot_id, {
+  it("rejects repo profile with missing project field", async () => {
+    const snap = await createSnapshot(makeInput());
+    await saveRepoProfile(snap.snapshot_id, {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       // project: missing → typeof undefined !== "object"
     });
-    const found = getRepoProfile(snap.snapshot_id);
+    const found = await getRepoProfile(snap.snapshot_id);
     expect(found).toBeUndefined();
   });
 });
