@@ -247,7 +247,9 @@ export function parseClaims(text: string, max: number): ArchClaim[] {
     if (typeof r.type !== "string" || !CLAIM_TYPES.has(r.type)) continue;
     if (typeof r.insight !== "string" || r.insight.trim().length === 0) continue;
     const evidence = r.evidence && typeof r.evidence === "object" && !Array.isArray(r.evidence) ? (r.evidence as ClaimEvidence) : {};
-    out.push({ type: r.type as ClaimType, evidence, insight: r.insight.slice(0, 500) });
+    // Collapse all whitespace (incl. newlines) so a crafted insight can't inject a
+    // standalone "## Verification"/"- " line that confuses the drift parser or the PR body.
+    out.push({ type: r.type as ClaimType, evidence, insight: r.insight.replace(/\s+/g, " ").trim().slice(0, 500) });
   }
   return out;
 }
@@ -279,19 +281,23 @@ const TYPE_HEADINGS: Record<ClaimType, string> = {
   import: "Module relationships",
 };
 
+// Stable fact-identity label. Drift detection keys on THIS (deterministic from
+// the facts), not the LLM prose (which rewords the same fact across model
+// builds). No parens — the drift parser extracts the `_(…)_` span — and no line
+// numbers, so a symbol moving lines isn't mistaken for architecture drift.
 function evidenceLabel(c: ArchClaim): string {
   const e = c.evidence;
   switch (c.type) {
     case "symbol":
-      return `${e.symbol} in ${e.file}${e.line ? `:${e.line}` : ""}`;
+      return `symbol ${e.symbol} in ${e.file}`;
     case "route":
-      return `${e.route?.method} ${e.route?.path}`;
+      return `route ${e.route?.method?.toUpperCase()} ${e.route?.path}`;
     case "model":
       return `model ${e.model}`;
     case "dependency":
-      return `dep ${e.dep}`;
+      return `dependency ${e.dep}`;
     case "import":
-      return `${e.import?.source} → ${e.import?.target}`;
+      return `import ${e.import?.source} → ${e.import?.target}`;
     default:
       return c.type;
   }
@@ -302,8 +308,8 @@ export function renderLivingArchitecture(projectName: string, kept: ArchClaim[],
   const lines: string[] = [
     `# Living Architecture — ${projectName}`,
     "",
-    "> Engineer-mode analysis. Every statement below is verified against the repository's",
-    "> extracted facts; claims that could not be grounded were dropped (see Verification).",
+    "> Engineer-mode analysis. Every claim below is grounded in a real repository fact",
+    "> (shown in parentheses); claims that couldn't be grounded were dropped (see Verification).",
     "",
   ];
 
@@ -407,6 +413,13 @@ function notConfiguredDoc(name: string): string {
     "> Engineer-mode specificity pass is available, but no local model is configured on",
     "> this AXIS instance (set AXIS_LLM_MODEL_PATH to a GGUF model). The deterministic",
     "> analysis artifacts are unaffected.",
+    "",
+    // A Verification block so the drift parser reads a clean empty insight set
+    // (not "the whole architecture vanished") if a degraded doc is ever committed.
+    "## Verification",
+    "- Claims proposed: 0",
+    "- Verified (kept): 0",
+    "- Dropped (unverifiable): 0",
     "",
   ].join("\n");
 }

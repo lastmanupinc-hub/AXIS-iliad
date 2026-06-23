@@ -54,7 +54,8 @@ export function parsePushEvent(payload: unknown): PushInfo | null {
   if (!repo || typeof repo !== "object") return null;
   const r = repo as Record<string, unknown>;
 
-  const repo_full_name = typeof r.full_name === "string" ? r.full_name : null;
+  // Validate the owner/repo shape — guards splitRepo + the PR target downstream.
+  const repo_full_name = typeof r.full_name === "string" && /^[\w.-]+\/[\w.-]+$/.test(r.full_name) ? r.full_name : null;
   const html_url =
     typeof r.html_url === "string" ? r.html_url : typeof r.clone_url === "string" ? r.clone_url : null;
   const ref = typeof p.ref === "string" ? p.ref : null;
@@ -76,22 +77,19 @@ export function parsePushEvent(payload: unknown): PushInfo | null {
 }
 
 /**
- * Pull the architectural insight lines from a living-architecture.md body. Stops
- * at the Verification footer (so dropped-claim lines and counts don't count as
- * content) and strips the trailing evidence label so cosmetic evidence-format
- * changes don't read as drift.
+ * Pull the deterministic fact-identity labels (the `_(…)_` spans) from a
+ * living-architecture.md body. Drift is diffed on THESE, not the LLM prose,
+ * which rewords the same fact across model builds. Stops at the Verification
+ * footer so counts / dropped-claim lines don't count as content.
  */
 export function extractInsights(markdown: string): string[] {
   const out: string[] = [];
   for (const rawLine of markdown.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (line === "## Verification") break;
-    if (line.startsWith("- ")) {
-      let insight = line.slice(2).trim();
-      const labelAt = insight.indexOf(" _(");
-      if (labelAt !== -1) insight = insight.slice(0, labelAt).trim();
-      if (insight.length > 0) out.push(insight);
-    }
+    if (!line.startsWith("- ")) continue;
+    const m = line.match(/_\(([^()]*)\)_\s*$/);
+    if (m && m[1].trim().length > 0) out.push(m[1].trim());
   }
   return out;
 }

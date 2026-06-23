@@ -256,6 +256,11 @@ describe("X-Agent-Mode: engineer tier", () => {
     expect(resolveAgentMode(reqWithMode())).toBe("standard");
   });
 
+  it("resolveAgentMode normalizes a duplicated (array) X-Agent-Mode header", () => {
+    const req = { headers: { "x-agent-mode": ["engineer", "lite"] } } as unknown as http.IncomingMessage;
+    expect(resolveAgentMode(req)).toBe("engineer");
+  });
+
   it("priceForMode returns the engineer price when a tool defines one", () => {
     const tier = getPricingTier("iliad_object_storage");
     expect(tier.engineer_cents).toBe(5);

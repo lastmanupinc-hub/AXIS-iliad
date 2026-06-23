@@ -3002,6 +3002,9 @@ async function maybeAppendLivingArchitecture(
   try {
     const symbols = extractSymbols(sourceFiles);
     const art = await runSpecificityPass(ctxMap, symbols, runLlmCompletion, { seed: 42 });
+    // Guard against a future generator claiming the same path (saveGeneratorResult
+    // keys by path → silent last-wins collision otherwise).
+    if (generated.files.some((f) => f.path === art.path)) return;
     generated.files.push({
       path: art.path,
       content: art.content,

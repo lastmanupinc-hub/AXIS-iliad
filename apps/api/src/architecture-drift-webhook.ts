@@ -21,6 +21,24 @@ import { buildContextMap } from "@axis/context-engine";
 
 const ARTIFACT_PATH = ".axis/living-architecture.md";
 
+// Best-effort per-process replay + concurrency guards. GitHub retries/replays
+// deliveries and analysis is expensive (repo fetch + local model), so drop
+// duplicate deliveries and concurrent same-repo jobs before doing the work.
+const seenDeliveries = new Map<string, number>();
+const inFlightRepos = new Set<string>();
+const DELIVERY_TTL_MS = 15 * 60 * 1000;
+
+function isDuplicateDelivery(deliveryId: string | undefined): boolean {
+  if (!deliveryId) return false;
+  const now = Date.now();
+  for (const [id, ts] of seenDeliveries) {
+    if (now - ts > DELIVERY_TTL_MS) seenDeliveries.delete(id);
+  }
+  if (seenDeliveries.has(deliveryId)) return true;
+  seenDeliveries.set(deliveryId, now);
+  return false;
+}
+
 export type DriftStatus = "no_token" | "model_not_configured" | "no_drift" | "pr_opened" | "pr_skipped";
 
 export interface DriftOutcome {
@@ -39,7 +57,7 @@ export interface DriftDeps {
 function buildPrBody(drift: DriftResult): string {
   const lines = [
     "AXIS detected that this repository's architecture drifted from the committed `.axis/living-architecture.md`.",
-    "Every claim in the update is verified against the repo's extracted facts — hallucinated claims are dropped.",
+    "Every claim in the update is grounded in a real repo fact (shown in parentheses) — ungrounded claims are dropped.",
     "",
   ];
   if (drift.added.length > 0) lines.push("**New / changed insights:**", ...drift.added.map((a) => `- ${a}`), "");
@@ -60,7 +78,9 @@ function splitRepo(fullName: string): { owner: string; repo: string } {
 export async function processArchitectureDrift(push: PushInfo, deps: DriftDeps): Promise<DriftOutcome> {
   if (!deps.token) return { status: "no_token" };
 
-  const fr = await deps.fetchRepo(push.html_url, deps.token);
+  // Derive the fetch target from repo_full_name — the SAME field the PR is opened
+  // against — so a crafted payload can't fetch repo A but write the PR to repo B.
+  const fr = await deps.fetchRepo(`https://github.com/${push.repo_full_name}`, deps.token);
   const baseline = fr.files.find((f) => f.path === ARTIFACT_PATH)?.content ?? "";
 
   const analyzed = await deps.analyze(fr.files);
@@ -156,10 +176,27 @@ export async function handleArchitectureDriftWebhook(req: IncomingMessage, res: 
     return;
   }
 
+  // Replay + concurrency guards before the expensive async work.
+  const deliveryHeader = req.headers["x-github-delivery"];
+  const deliveryId = Array.isArray(deliveryHeader) ? deliveryHeader[0] : deliveryHeader;
+  if (isDuplicateDelivery(deliveryId)) {
+    sendJSON(res, 202, { ignored: "duplicate delivery" });
+    return;
+  }
+  if (inFlightRepos.has(push.repo_full_name)) {
+    sendJSON(res, 202, { ignored: "drift job already running for this repo" });
+    return;
+  }
+
   // Ack now; the analysis + PR can take seconds (repo fetch + local model + GitHub
   // calls), and GitHub wants a fast response.
   sendJSON(res, 202, { accepted: true, repo: push.repo_full_name });
-  void processArchitectureDrift(push, defaultDriftDeps()).catch((err) => {
-    console.error("architecture-drift processing failed:", err instanceof Error ? err.message : err);
-  });
+  inFlightRepos.add(push.repo_full_name);
+  void processArchitectureDrift(push, defaultDriftDeps())
+    .catch((err) => {
+      console.error("architecture-drift processing failed:", err instanceof Error ? err.message : err);
+    })
+    .finally(() => {
+      inFlightRepos.delete(push.repo_full_name);
+    });
 }

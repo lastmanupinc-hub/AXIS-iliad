@@ -16,7 +16,7 @@ const push: PushInfo = {
 
 // A living-architecture doc shaped like the renderer's output (insights + footer).
 function doc(insights: string[]): string {
-  return ["# Living Architecture — r", "", "## Key symbols", ...insights.map((i) => `- ${i} _(x)_`), "", "## Verification", `- Verified (kept): ${insights.length}`].join("\n");
+  return ["# Living Architecture — r", "", "## Key symbols", ...insights.map((i) => `- some prose _(${i})_`), "", "## Verification", `- Verified (kept): ${insights.length}`].join("\n");
 }
 
 function makeDeps(opts: {

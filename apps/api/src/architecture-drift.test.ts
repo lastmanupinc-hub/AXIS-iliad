@@ -71,7 +71,7 @@ describe("extractInsights + diffArchitecture", () => {
       "# Living Architecture — demo",
       "",
       "## Key symbols",
-      ...insights.map((i) => `- ${i} _(foo in a.ts:3)_`),
+      ...insights.map((i) => `- some prose _(${i})_`), // drift keys on the _(label)_, so vary it per item
       "",
       "## Verification",
       `- Claims proposed: ${insights.length + dropped}`,
@@ -94,5 +94,11 @@ describe("extractInsights + diffArchitecture", () => {
     expect(r.drifted).toBe(true);
     expect(r.added).toEqual(["C"]);
     expect(r.removed).toEqual(["A"]);
+  });
+
+  it("ignores prose rewording — drift keys on the evidence label, not the LLM prose", () => {
+    const a = ["# x", "## Key symbols", "- Express powers the HTTP layer _(dependency express)_", "", "## Verification"].join("\n");
+    const b = ["# x", "## Key symbols", "- The server routes via Express _(dependency express)_", "", "## Verification"].join("\n");
+    expect(diffArchitecture(a, b)).toEqual({ drifted: false, added: [], removed: [] });
   });
 });

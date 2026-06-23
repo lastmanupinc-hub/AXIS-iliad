@@ -471,7 +471,10 @@ export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined 
 export type AgentMode = "standard" | "lite" | "engineer";
 
 export function resolveAgentMode(req: IncomingMessage): AgentMode {
-  const mode = req.headers["x-agent-mode"];
+  // Node folds a duplicated header into a string[]; normalize so a paying
+  // engineer caller isn't silently downgraded to standard by a repeated header.
+  const raw = req.headers["x-agent-mode"];
+  const mode = Array.isArray(raw) ? raw[0] : raw;
   if (mode === "lite") return "lite";
   if (mode === "engineer") return "engineer";
   return "standard";

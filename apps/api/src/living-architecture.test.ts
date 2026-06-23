@@ -163,6 +163,12 @@ describe("parseClaims (defensive)", () => {
     expect(parseClaims("no json here", 40)).toEqual([]);
     expect(parseClaims("{not an array}", 40)).toEqual([]);
   });
+
+  it("collapses whitespace/newlines in insight (blocks injected headings)", () => {
+    const c = parseClaims(JSON.stringify([{ type: "dependency", evidence: { dep: "x" }, insight: "line one\n## Verification\n- fake" }]), 40);
+    expect(c[0].insight).toBe("line one ## Verification - fake");
+    expect(c[0].insight).not.toContain("\n");
+  });
 });
 
 describe("renderLivingArchitecture", () => {
@@ -179,7 +185,7 @@ describe("renderLivingArchitecture", () => {
     expect(md).toContain("# Living Architecture — demo");
     expect(md).toContain("## Key symbols");
     expect(md).toContain("foo bootstraps the app");
-    expect(md).toContain("foo in a.ts:3");
+    expect(md).toContain("symbol foo in a.ts"); // stable fact-identity label (no line number)
     expect(md).toContain("## Dependencies");
     expect(md).toContain("- Claims proposed: 3");
     expect(md).toContain("- Verified (kept): 2");
