@@ -36,7 +36,7 @@
 
 **Bundle:** Engineer Pass (subscription / credit-pack) unlocks `engineer` across all tools at a discount; Agency/white-label tier on top (resale + higher referral caps). Per-tool designer prices in the design note.
 
-**Build order (begin.yaml ranked):** E0 → E1 → E2 → E3 → (E4 after #33) → E5 → E9 → E6 → rest.
+**Build order (begin.yaml ranked):** ✅ **E0 DONE** (branch `feat/engineer-tier`, commit — `priceForMode` one-door contract + 402 advertisement + 4 tools priced; mpp.test 19/19) → **E1 (next)** → E2 → E3 → (E4 after Neon PR #33) → E5 → E9 → E6 → rest.
 
 ---
 
