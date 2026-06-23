@@ -4405,19 +4405,18 @@ export async function runPreparePurchasing(
   artifactsMap["agent_system_prompt.md"] = agentSystemPrompt;
 
   // ── Engineer mode: append the deployable commerce-integration bundle (E9) ──
-  // Deterministic, never throws — the standard artifacts already succeeded.
+  // Built BEFORE captureMcpToolCredits and deliberately NOT swallowed: at the
+  // $250 engineer price the bundle IS the deliverable, so a build failure must
+  // fail the call (capture never runs → no charge) rather than silently charge
+  // for standard-only output. Builders are pure + deterministic.
   const engineerArtifacts: string[] = [];
   if (agentMode === "engineer") {
-    try {
-      const signals = detectCommerceSignals(snapshot.files);
-      for (const a of buildCommerceIntegrationBundle(ctxMap, signals, 100)) {
-        if (artifactsMap[a.path] === undefined) {
-          artifactsMap[a.path] = a.content;
-          engineerArtifacts.push(a.path);
-        }
+    const signals = detectCommerceSignals(snapshot.files);
+    for (const a of buildCommerceIntegrationBundle(ctxMap, signals, 100)) {
+      if (artifactsMap[a.path] === undefined) {
+        artifactsMap[a.path] = a.content;
+        engineerArtifacts.push(a.path);
       }
-    } catch {
-      // Best-effort enrichment.
     }
   }
 
