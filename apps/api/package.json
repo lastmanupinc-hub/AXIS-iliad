@@ -13,6 +13,7 @@
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
     "@axis/mpp": "workspace:*",
+    "@axis/paid-client": "workspace:*",
     "@axis/repo-parser": "workspace:*",
     "@axis/snapshots": "workspace:*",
     "@jmondi/oauth2-server": "^4.2.2",

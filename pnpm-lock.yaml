@@ -41,6 +41,9 @@ importers:
       '@axis/mpp':
         specifier: workspace:*
         version: link:../../packages/mpp
+      '@axis/paid-client':
+        specifier: workspace:*
+        version: link:../../packages/paid-client
       '@axis/repo-parser':
         specifier: workspace:*
         version: link:../../packages/repo-parser
@@ -180,6 +183,15 @@ importers:
         version: 5.7.3
 
   packages/mpp:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.7.0
+        version: 5.7.3
+
+  packages/paid-client:
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
