@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
-import { presignR2Url, presignR2List, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
+import { presignR2Url, presignR2List, presignR2Copy, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
   upsertVectors,
   queryVectors,
@@ -369,13 +369,13 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
   const rawOp = args.operation;
   const rawTtl = args.ttl_seconds;
 
-  // delete/list and content-addressed put are the Managed Bucket (engineer) ops.
+  // delete/list/copy and content-addressed put are the Managed Bucket (engineer) ops.
   const OP_METHOD: Record<string, R2Operation> = { put: "PUT", get: "GET", delete: "DELETE" };
-  const validOps = engineer ? ["put", "get", "delete", "list"] : ["put", "get"];
+  const validOps = engineer ? ["put", "get", "delete", "list", "copy"] : ["put", "get"];
   if (typeof rawOp !== "string" || !validOps.includes(rawOp)) {
     throw new Error(
       `iliad_object_storage: \`operation\` must be one of ${validOps.join("/")}.` +
-        (engineer ? "" : " Send X-Agent-Mode: engineer for delete / list / content-addressed dedup (Managed Bucket)."),
+        (engineer ? "" : " Send X-Agent-Mode: engineer for delete / list / copy / content-addressed dedup (Managed Bucket)."),
     );
   }
   if (typeof rawKey !== "string" || rawKey.length === 0) {
@@ -395,11 +395,21 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
   // Content-addressed put: caller supplies the sha256 of the bytes → dedup key.
   const isCas = rawOp === "put" && engineer && typeof args.content_sha256 === "string";
   let scopedKey: string;
+  let scopedSource: string | null = null;
   try {
     if (rawOp === "list") {
       scopedKey = scopeAccountKey(auth.account.account_id, rawKey.replace(/\/?$/, "/"));
     } else if (isCas) {
       scopedKey = casKey(auth.account.account_id, args.content_sha256 as string, typeof args.ext === "string" ? args.ext : undefined);
+    } else if (rawOp === "copy") {
+      const rawSource = args.source_key;
+      if (typeof rawSource !== "string" || rawSource.length === 0) {
+        throw new Error("`source_key` is required for copy and must be a non-empty string");
+      }
+      // Both source and dest are scoped to the caller's account, so a copy can
+      // never read from or write outside accounts/<id>/.
+      scopedSource = scopeAccountKey(auth.account.account_id, rawSource);
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
     } else {
       scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
     }
@@ -411,9 +421,14 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
   const presigned =
     rawOp === "list"
       ? presignR2List(config, scopedKey, ttl)
-      : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl });
+      : rawOp === "copy"
+        ? presignR2Copy(config, scopedSource as string, scopedKey, ttl)
+        : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl });
   captureMcpToolCredits(auth.account, charge);
 
+  // COPY requires the caller to echo the signed x-amz-copy-source header on the PUT.
+  const requiredHeaders =
+    rawOp === "copy" ? (presigned as { required_headers?: Record<string, string> }).required_headers : undefined;
   return JSON.stringify({
     url: presigned.url,
     expires_at: presigned.expires_at,
@@ -421,6 +436,7 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     scoped_key: scopedKey,
     operation: rawOp,
     ...(isCas ? { content_addressed: true } : {}),
+    ...(requiredHeaders ? { source_scoped_key: scopedSource, required_headers: requiredHeaders } : {}),
     ttl_seconds: ttl,
   }, null, 2);
 }
@@ -1864,15 +1880,16 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list operations and content-addressed dedup keys (content_sha256).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations and content-addressed dedup keys (content_sha256).",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
       properties: {
         key: { type: "string", description: "Object key (max 1024 chars), or the prefix for operation=list. Path traversal and leading-/ are rejected." },
-        operation: { type: "string", description: "put / get (standard). delete / list and content-addressed put require X-Agent-Mode: engineer (Managed Bucket).", enum: ["put", "get", "delete", "list"] },
+        operation: { type: "string", description: "put / get (standard). delete / list / copy and content-addressed put require X-Agent-Mode: engineer (Managed Bucket).", enum: ["put", "get", "delete", "list", "copy"] },
         content_sha256: { type: "string", description: "Engineer mode: 64-char hex sha256 of the bytes you'll PUT. When set, the object lands under accounts/<id>/cas/<sha256> so identical content dedupes." },
         ext: { type: "string", description: "Engineer mode: optional extension appended to the content-addressed key (e.g. 'png')." },
+        source_key: { type: "string", description: "Engineer mode (operation=copy): source object key to copy from, scoped to your account; `key` is the destination. Echo the returned required_headers on the PUT." },
         ttl_seconds: { type: "number", description: "Signed-URL lifetime, 1..86400. Defaults to 3600." },
       },
     },

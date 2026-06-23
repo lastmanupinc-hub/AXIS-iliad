@@ -103,6 +103,7 @@ function buildSignedR2Url(
   extraQuery: Array<[string, string]>,
   ttl_seconds: number,
   now?: Date,
+  extraSignedHeaders: Array<[string, string]> = [],
 ): { url: string; expires_at: string; host: string } {
   const t = now ?? new Date();
   // AMZ-Date: YYYYMMDDTHHMMSSZ, no millis, no separators.
@@ -114,6 +115,15 @@ function buildSignedR2Url(
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
   const credential = `${config.access_key_id}/${credentialScope}`;
 
+  // Headers to sign: host is always present, plus any extras (e.g.
+  // x-amz-copy-source for server-side COPY). Lowercased + sorted by name per
+  // SigV4. With no extras this collapses to exactly "host" — byte-identical.
+  const headerPairs = [["host", host] as [string, string], ...extraSignedHeaders]
+    .map(([k, v]) => [k.toLowerCase(), v] as [string, string])
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const signedHeaderList = headerPairs.map(([k]) => k).join(";");
+  const canonicalHeaders = headerPairs.map(([k, v]) => `${k}:${v}\n`).join("");
+
   // SigV4 canonical query string: percent-encoded (manual, so spaces are %20
   // not +), sorted by the ENCODED key. X-Amz-* params first, then extras.
   const encodedQuery = ([
@@ -121,7 +131,7 @@ function buildSignedR2Url(
     ["X-Amz-Credential", credential],
     ["X-Amz-Date", amzDate],
     ["X-Amz-Expires", String(ttl_seconds)],
-    ["X-Amz-SignedHeaders", "host"],
+    ["X-Amz-SignedHeaders", signedHeaderList],
     ...extraQuery,
   ] as Array<[string, string]>)
     .map(([k, v]) => [encodeRfc3986(k), encodeRfc3986(v)] as const)
@@ -130,7 +140,7 @@ function buildSignedR2Url(
     .join("&");
 
   // Canonical request — pre-signed payload hash is the literal "UNSIGNED-PAYLOAD".
-  const canonicalRequest = [method, canonicalUri, encodedQuery, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const canonicalRequest = [method, canonicalUri, encodedQuery, canonicalHeaders, signedHeaderList, "UNSIGNED-PAYLOAD"].join("\n");
   const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
   const signingKey = deriveSigningKey(config.secret_access_key, dateStamp, region, service);
   const signature = createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
@@ -220,6 +230,42 @@ export function presignR2List(config: R2Config, prefix: string, ttl_seconds: num
     now,
   );
   return { ...signed, bucket: config.bucket, key: prefix };
+}
+
+/**
+ * Pre-sign a server-side COPY: a PUT to `destKey` carrying a signed
+ * x-amz-copy-source header that points at `sourceKey`. R2 duplicates the object
+ * internally — the bytes never transit the agent. Both keys must already be
+ * account-scoped by the caller (this function does NOT scope them). The returned
+ * `required_headers` MUST be sent verbatim on the PUT or the signature won't
+ * match (x-amz-copy-source is a signed header).
+ */
+export function presignR2Copy(
+  config: R2Config,
+  sourceKey: string,
+  destKey: string,
+  ttl_seconds: number,
+  now?: Date,
+): PresignResult & { required_headers: Record<string, string> } {
+  if (!config.account_id || !config.access_key_id || !config.secret_access_key || !config.bucket) {
+    throw new Error("presignR2Copy: incomplete R2 config");
+  }
+  if (!Number.isFinite(ttl_seconds) || ttl_seconds <= 0 || ttl_seconds > 604800) {
+    throw new Error(`presignR2Copy: ttl_seconds must be 1..604800 (got ${ttl_seconds})`);
+  }
+  // S3 copy-source is /<bucket>/<url-encoded-key>; encodeS3Path encodes each
+  // segment but preserves "/", matching what the client must send.
+  const copySource = `/${config.bucket}/${encodeS3Path(sourceKey)}`;
+  const signed = buildSignedR2Url(
+    config,
+    "PUT",
+    `/${config.bucket}/${encodeS3Path(destKey)}`,
+    [],
+    ttl_seconds,
+    now,
+    [["x-amz-copy-source", copySource]],
+  );
+  return { ...signed, bucket: config.bucket, key: destKey, required_headers: { "x-amz-copy-source": copySource } };
 }
 
 const SHA256_HEX = /^[0-9a-f]{64}$/;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { presignR2Url, presignR2List, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Config } from "./object-storage.js";
+import { presignR2Url, presignR2List, presignR2Copy, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Config } from "./object-storage.js";
 
 // ─── readR2ConfigFromEnv ────────────────────────────────────────
 
@@ -194,6 +194,47 @@ describe("presignR2List", () => {
   it("rejects ttl out of range + incomplete config", () => {
     expect(() => presignR2List(config, "p/", 0, fixedNow)).toThrow(/ttl_seconds/i);
     expect(() => presignR2List({ ...config, bucket: "" } as R2Config, "p/", 60, fixedNow)).toThrow(/incomplete R2 config/i);
+  });
+});
+
+describe("presignR2Copy (server-side copy)", () => {
+  const config: R2Config = {
+    account_id: "test-account",
+    access_key_id: "AKIAEXAMPLE",
+    secret_access_key: "examplesecret",
+    bucket: "axis-test",
+  };
+  const fixedNow = new Date("2026-05-22T10:00:00.000Z");
+
+  it("signs a PUT to the dest key with x-amz-copy-source as a signed header", () => {
+    const r = presignR2Copy(config, "accounts/acc-1/src.txt", "accounts/acc-1/dst.txt", 300, fixedNow);
+    const url = new URL(r.url);
+    expect(url.pathname).toBe("/axis-test/accounts/acc-1/dst.txt"); // dest rides in the path
+    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("host;x-amz-copy-source");
+    expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
+    // source rides in the required header, NOT the URL path.
+    expect(r.required_headers["x-amz-copy-source"]).toBe("/axis-test/accounts/acc-1/src.txt");
+    expect(r.key).toBe("accounts/acc-1/dst.txt");
+  });
+
+  it("is deterministic", () => {
+    const a = presignR2Copy(config, "accounts/acc-1/s", "accounts/acc-1/d", 300, fixedNow);
+    const b = presignR2Copy(config, "accounts/acc-1/s", "accounts/acc-1/d", 300, fixedNow);
+    expect(a.url).toBe(b.url);
+    expect(a.required_headers["x-amz-copy-source"]).toBe(b.required_headers["x-amz-copy-source"]);
+  });
+
+  it("binds the signature to the copy-source — the source can't be tampered (it's a signed header)", () => {
+    const a = presignR2Copy(config, "accounts/acc-1/src-A", "accounts/acc-1/d", 300, fixedNow);
+    const b = presignR2Copy(config, "accounts/acc-1/src-B", "accounts/acc-1/d", 300, fixedNow);
+    const sigA = new URL(a.url).searchParams.get("X-Amz-Signature");
+    const sigB = new URL(b.url).searchParams.get("X-Amz-Signature");
+    expect(sigA).not.toBe(sigB);
+  });
+
+  it("rejects ttl out of range + incomplete config", () => {
+    expect(() => presignR2Copy(config, "s", "d", 0, fixedNow)).toThrow(/ttl_seconds/i);
+    expect(() => presignR2Copy({ ...config, secret_access_key: "" } as R2Config, "s", "d", 60, fixedNow)).toThrow(/incomplete R2 config/i);
   });
 });
 
