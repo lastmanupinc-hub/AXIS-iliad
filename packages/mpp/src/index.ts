@@ -78,6 +78,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 50,
     lite_cents: 25,
     lite_description: "Lite mode: purchasing readiness score + top 3 gaps only (no full artifact bundle)",
+    engineer_cents: 25000,
+    engineer_description: "Engineer mode (Commerce Integration): a deployable x402/AP2/PAI'D endpoint + runnable sandbox test + schema-validatable CE 3.0 pack + transparent dispute-readiness score — a working integration, not just a score.",
   },
   analyze_repo: {
     tool: "analyze_repo",

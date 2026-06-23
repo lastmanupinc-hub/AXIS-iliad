@@ -89,8 +89,9 @@ import {
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
+import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
@@ -1379,7 +1380,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration, $250): also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score). Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -4403,6 +4404,23 @@ export async function runPreparePurchasing(
   ].join("\n");
   artifactsMap["agent_system_prompt.md"] = agentSystemPrompt;
 
+  // ── Engineer mode: append the deployable commerce-integration bundle (E9) ──
+  // Deterministic, never throws — the standard artifacts already succeeded.
+  const engineerArtifacts: string[] = [];
+  if (agentMode === "engineer") {
+    try {
+      const signals = detectCommerceSignals(snapshot.files);
+      for (const a of buildCommerceIntegrationBundle(ctxMap, signals, 100)) {
+        if (artifactsMap[a.path] === undefined) {
+          artifactsMap[a.path] = a.content;
+          engineerArtifacts.push(a.path);
+        }
+      }
+    } catch {
+      // Best-effort enrichment.
+    }
+  }
+
   const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
@@ -4445,6 +4463,7 @@ export async function runPreparePurchasing(
         snapshot_url: `https://axis-api-6c7z.onrender.com/v1/snapshots/${snapshot.snapshot_id}`,
       },
       artifacts: artifactsMap,
+      ...(engineerArtifacts.length > 0 ? { engineer_artifacts: engineerArtifacts } : {}),
       programs_executed: [...programs],
       artifact_count: Object.keys(artifactsMap).length,
       purchasing_artifacts: purchasingFiles.map(f => ({
