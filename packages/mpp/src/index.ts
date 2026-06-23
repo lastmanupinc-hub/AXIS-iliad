@@ -56,6 +56,13 @@ export interface PricingTier {
   standard_cents: number;
   lite_cents: number;
   lite_description: string;
+  /**
+   * Optional premium "engineer" tier — the over-the-top, deep+novel mode for a
+   * tool (X-Agent-Mode: engineer). Tools without it fall back to standard, so
+   * sending the flag is always safe. See V1_ROI_CANDIDATES.md → Tier E.
+   */
+  engineer_cents?: number;
+  engineer_description?: string;
 }
 
 export interface Build402Options {
@@ -71,18 +78,24 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 50,
     lite_cents: 25,
     lite_description: "Lite mode: purchasing readiness score + top 3 gaps only (no full artifact bundle)",
+    engineer_cents: 25000,
+    engineer_description: "Engineer mode (Commerce Integration): a deployable x402/AP2/PAI'D endpoint + runnable sandbox test + schema-validatable CE 3.0 pack + transparent dispute-readiness score — a working integration, not just a score.",
   },
   analyze_repo: {
     tool: "analyze_repo",
     standard_cents: 50,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    engineer_cents: 2500,
+    engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
   analyze_files: {
     tool: "analyze_files",
     standard_cents: 50,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    engineer_cents: 2500,
+    engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
   improve_my_agent_with_axis: {
     tool: "improve_my_agent_with_axis",
@@ -138,6 +151,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 1,
     lite_cents: 0,
     lite_description: "Free tier: signed URL with 1h TTL cap (standard allows up to 24h).",
+    engineer_cents: 5,
+    engineer_description: "Engineer mode (Managed Bucket): full lifecycle (list/copy/delete) + content-addressed dedup keys + mint-time content-type/size policy.",
   },
   iliad_vector_database: {
     tool: "iliad_vector_database",
@@ -185,6 +200,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: max_tokens capped at 256 + temperature locked at 0 for cheaper, more deterministic output.",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Constrained Inference): decoding is grammar-constrained to your json_schema AND the output is validated against it — guaranteed-valid structured output, in-process.",
   },
   // AXIS-owned code sandbox: ephemeral Docker container per call.
   // Real marginal cost is the spawn/teardown overhead (1-2s cold)
@@ -198,6 +215,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: timeout_seconds capped at 10 (standard allows up to 600) + python/bash only (no node).",
+    engineer_cents: 25,
+    engineer_description: "Engineer mode (Verified Exec): an Ed25519-signed attestation binding code-hash → output-hash + a per-account hash-chain entry, so another agent that pins AXIS's published key can verify the result without re-running it.",
   },
   // AXIS-owned audio transcription via whisper.cpp + ffmpeg-static.
   // CPU-bound inference but throughput is reasonable (base.en runs
@@ -231,6 +250,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 1,
     lite_cents: 0,
     lite_description: "Free tier: max_results capped at 10 (standard allows up to 100). Indexing is always free.",
+    engineer_cents: 25,
+    engineer_description: "Engineer mode (Answer Engine): returns a grounded extractive answer with [n] citation spans over your corpus, lexically reranked, refusing on weak evidence — a private Perplexity over the documents you indexed.",
   },
   // AXIS-owned document parser: pdfjs-dist for PDF + mammoth for
   // DOCX + pure JS for HTML/text/markdown. All parsing happens
@@ -249,6 +270,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: remediation plan returns ordered steps + .gitignore additions only (standard adds full per-finding detail). Scan mode is always free.",
+    engineer_cents: 500,
+    engineer_description: "Engineer mode (Security Engineer): the fix as a git-applyable unified-diff patch (.gitignore auto-fixes) + a SARIF 2.1.0 log of all findings for CI code-scanning gates.",
   },
   default: {
     tool: "default",
@@ -351,6 +374,17 @@ export function build402NegotiationBody(
     pricing: {
       standard: { amount_cents: tier.standard_cents, currency: "usd", description: `Full ${tool} run with all artifacts` },
       lite: { amount_cents: tier.lite_cents, currency: "usd", description: tier.lite_description },
+      // Premium "over-the-top" tier — advertised only for tools that define it.
+      ...(tier.engineer_cents !== undefined
+        ? {
+            engineer: {
+              amount_cents: tier.engineer_cents,
+              currency: "usd",
+              description: tier.engineer_description ?? `Engineer mode: deep + novel ${tool}`,
+              how: "Send X-Agent-Mode: engineer",
+            },
+          }
+        : {}),
     },
     negotiation: negotiation ?? {
       amount_cents: tier.standard_cents,
@@ -440,7 +474,25 @@ export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined 
 }
 
 /** Read X-Agent-Mode header. Returns "lite" or "standard". */
-export function resolveAgentMode(req: IncomingMessage): "standard" | "lite" {
-  const mode = req.headers["x-agent-mode"];
-  return mode === "lite" ? "lite" : "standard";
+export type AgentMode = "standard" | "lite" | "engineer";
+
+export function resolveAgentMode(req: IncomingMessage): AgentMode {
+  // Node folds a duplicated header into a string[]; normalize so a paying
+  // engineer caller isn't silently downgraded to standard by a repeated header.
+  const raw = req.headers["x-agent-mode"];
+  const mode = Array.isArray(raw) ? raw[0] : raw;
+  if (mode === "lite") return "lite";
+  if (mode === "engineer") return "engineer";
+  return "standard";
+}
+
+/**
+ * One door for mode → price (cents). `engineer` is the premium tier; tools that
+ * don't define an engineer price fall back to standard so the flag is always
+ * safe to send and never under-charges.
+ */
+export function priceForMode(tier: PricingTier, mode: AgentMode): number {
+  if (mode === "engineer") return tier.engineer_cents ?? tier.standard_cents;
+  if (mode === "lite") return tier.lite_cents;
+  return tier.standard_cents;
 }

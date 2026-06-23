@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
-import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
+import { presignR2Url, presignR2List, presignR2Copy, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
   upsertVectors,
   queryVectors,
@@ -45,6 +45,7 @@ import {
   addDocument as addSearchDocument,
   addDocuments as addSearchDocuments,
   searchDocuments,
+  answerFromHits,
   deleteDocument as deleteSearchDocument,
   deleteSearchNamespace,
   countSearchDocuments,
@@ -84,16 +85,21 @@ import {
   saveIdempotentResult,
   getUsageCreditSummary,
   recordMcpUsage,
+  extractSymbols,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
+import { runSpecificityPass } from "./living-architecture.js";
+import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
+import { attestRun } from "./attestation.js";
+import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
-import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
+import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
-import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
+import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchNotConfigured } from "./web-research.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
@@ -363,15 +369,22 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     }, null, 2);
   }
 
+  const engineer = resolveAgentMode(req) === "engineer";
   const rawKey = args.key;
   const rawOp = args.operation;
   const rawTtl = args.ttl_seconds;
 
+  // delete/list/copy and content-addressed put are the Managed Bucket (engineer) ops.
+  const OP_METHOD: Record<string, R2Operation> = { put: "PUT", get: "GET", delete: "DELETE" };
+  const validOps = engineer ? ["put", "get", "delete", "list", "copy"] : ["put", "get"];
+  if (typeof rawOp !== "string" || !validOps.includes(rawOp)) {
+    throw new Error(
+      `iliad_object_storage: \`operation\` must be one of ${validOps.join("/")}.` +
+        (engineer ? "" : " Send X-Agent-Mode: engineer for delete / list / copy / content-addressed dedup (Managed Bucket)."),
+    );
+  }
   if (typeof rawKey !== "string" || rawKey.length === 0) {
     throw new Error("iliad_object_storage: `key` is required and must be a non-empty string.");
-  }
-  if (rawOp !== "put" && rawOp !== "get") {
-    throw new Error("iliad_object_storage: `operation` must be \"put\" or \"get\".");
   }
   let ttl = 3600;
   if (rawTtl !== undefined) {
@@ -384,24 +397,59 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     ttl = Math.floor(rawTtl);
   }
 
+  // Content-addressed put: caller supplies the sha256 of the bytes → dedup key.
+  const isCas = rawOp === "put" && engineer && typeof args.content_sha256 === "string";
   let scopedKey: string;
+  let scopedSource: string | null = null;
   try {
-    scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    if (rawOp === "list") {
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey.replace(/\/?$/, "/"));
+    } else if (isCas) {
+      scopedKey = casKey(auth.account.account_id, args.content_sha256 as string, typeof args.ext === "string" ? args.ext : undefined);
+    } else if (rawOp === "copy") {
+      const rawSource = args.source_key;
+      if (typeof rawSource !== "string" || rawSource.length === 0) {
+        throw new Error("`source_key` is required for copy and must be a non-empty string");
+      }
+      // Both source and dest are scoped to the caller's account, so a copy can
+      // never read from or write outside accounts/<id>/.
+      scopedSource = scopeAccountKey(auth.account.account_id, rawSource);
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    } else {
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    }
   } catch (err) {
     throw new Error(err instanceof Error ? `iliad_object_storage: ${err.message}` : String(err));
   }
 
-  const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
+  // Engineer mint-time policy: pin Content-Type / exact size on a PUT (signed).
+  const putPolicy: { content_type?: string; content_length?: number } = {};
+  if (engineer && rawOp === "put") {
+    if (typeof args.content_type === "string") putPolicy.content_type = args.content_type;
+    if (typeof args.content_length === "number") putPolicy.content_length = args.content_length;
+  }
+
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
-  const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
+  const presigned =
+    rawOp === "list"
+      ? presignR2List(config, scopedKey, ttl)
+      : rawOp === "copy"
+        ? presignR2Copy(config, scopedSource as string, scopedKey, ttl)
+        : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl, ...putPolicy });
   captureMcpToolCredits(auth.account, charge);
 
+  // COPY (x-amz-copy-source) and mint-time PUT policy (content-type/length) each
+  // return signed headers the caller MUST echo verbatim on the request.
+  const requiredHeaders = (presigned as { required_headers?: Record<string, string> }).required_headers;
   return JSON.stringify({
     url: presigned.url,
     expires_at: presigned.expires_at,
     bucket: presigned.bucket,
     scoped_key: scopedKey,
-    operation: method,
+    operation: rawOp,
+    ...(isCas ? { content_addressed: true } : {}),
+    ...(scopedSource ? { source_scoped_key: scopedSource } : {}),
+    ...(requiredHeaders ? { required_headers: requiredHeaders } : {}),
     ttl_seconds: ttl,
   }, null, 2);
 }
@@ -753,9 +801,30 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
     throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
   }
 
+  // Engineer mode (Constrained Inference): a json_schema is required (it IS the
+  // contract). Decoding is grammar-constrained to it AND the output is validated
+  // against it. The schema is required BEFORE the charge, so an engineer call
+  // without one doesn't bill — binding the engineer charge to the engineer feature.
+  const engineer = resolveAgentMode(req) === "engineer";
+  if (engineer) {
+    if (!isUsableSchema(args.json_schema)) {
+      throw new Error("iliad_llm_inference: engineer mode requires a usable `json_schema` (the structured-output contract).");
+    }
+    opts.json_schema = args.json_schema;
+  }
+
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_llm_inference");
   const result = await runLlmCompletion(opts);
   captureMcpToolCredits(auth.account, charge);
+
+  if (engineer && "text" in result) {
+    const structured = validateStructuredOutput(result.text, args.json_schema);
+    return JSON.stringify(
+      { ...result, structured: { schema_constrained: true, valid: structured.valid, parsed: structured.parsed, schema_errors: structured.errors } },
+      null,
+      2,
+    );
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -789,7 +858,7 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
 }
 
 /** Shape-guard for the _not_configured envelope shared across the owned tools. */
-function isNotConfiguredResult(value: unknown): boolean {
+function isNotConfiguredResult(value: unknown): value is { _not_configured: true } {
   return Boolean(value && typeof value === "object" && (value as { _not_configured?: unknown })._not_configured === true);
 }
 
@@ -875,12 +944,19 @@ function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): stri
     const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = searchDocuments(scopedNs, opts);
     captureMcpToolCredits(auth.account, charge);
+    // Engineer mode (Answer Engine): a grounded extractive answer with citation
+    // spans over the hits, or a refusal on weak evidence. Charged at the engineer
+    // price automatically via E0's priceForMode.
+    const answer = resolveAgentMode(req) === "engineer" ? answerFromHits(args.query, hits) : null;
     return JSON.stringify({
       operation: "search",
       namespace: scopedNs,
       query: args.query,
       total_in_namespace: countSearchDocuments(scopedNs),
       hits,
+      ...(answer
+        ? { answer: answer.answer, citations: answer.citations, refused: answer.refused, reason: answer.reason }
+        : {}),
     }, null, 2);
   }
 
@@ -1013,6 +1089,18 @@ async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessag
   // Docker daemon unreachable / dockerode import failed → _not_configured.
   // Don't meter those — the container never spawned.
   if (!isNotConfiguredResult(result)) {
+    // Engineer mode: build the signed attestation BEFORE metering, so a signing-
+    // key misconfiguration fails the call rather than charging for a missing
+    // attestation. attestRun is pure crypto over the already-capped inputs.
+    if (resolveAgentMode(req) === "engineer") {
+      const attestation = attestRun(
+        { language, code: args.code, stdin: opts.stdin },
+        { stdout: result.stdout, stderr: result.stderr, exit_code: result.exit_code },
+        auth.account.account_id,
+      );
+      meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+      return JSON.stringify({ ...result, attestation }, null, 2);
+    }
     meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
   }
   return JSON.stringify(result, null, 2);
@@ -1117,7 +1205,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode per repo. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
+      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode, $25 engineer per repo. Engineer mode (X-Agent-Mode: engineer — Living Architecture) adds a verified LLM specificity pass: a living-architecture.md whose every architectural claim is grounded in the repo's extracted facts or dropped. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
     inputSchema: {
       type: "object",
       required: ["github_url"],
@@ -1329,7 +1417,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration, $250): also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score). Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -1838,13 +1926,18 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces).",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
       properties: {
-        key: { type: "string", description: "Object key (max 1024 chars). Path traversal and leading-/ are rejected." },
-        operation: { type: "string", description: "Pre-sign upload (put) or download (get).", enum: ["put", "get"] },
+        key: { type: "string", description: "Object key (max 1024 chars), or the prefix for operation=list. Path traversal and leading-/ are rejected." },
+        operation: { type: "string", description: "put / get (standard). delete / list / copy and content-addressed put require X-Agent-Mode: engineer (Managed Bucket).", enum: ["put", "get", "delete", "list", "copy"] },
+        content_sha256: { type: "string", description: "Engineer mode: 64-char hex sha256 of the bytes you'll PUT. When set, the object lands under accounts/<id>/cas/<sha256> so identical content dedupes." },
+        ext: { type: "string", description: "Engineer mode: optional extension appended to the content-addressed key (e.g. 'png')." },
+        source_key: { type: "string", description: "Engineer mode (operation=copy): source object key to copy from, scoped to your account; `key` is the destination. Echo the returned required_headers on the PUT." },
+        content_type: { type: "string", description: "Engineer mode (put): pin the Content-Type the upload must send (signed; R2 rejects a mismatch). Printable ASCII type/subtype, ≤255 chars. Echo via required_headers." },
+        content_length: { type: "number", description: "Engineer mode (put): pin the EXACT byte size the upload must be (signed; ≤5 GiB). Pairs with content_sha256 for verified content-addressed writes." },
         ttl_seconds: { type: "number", description: "Signed-URL lifetime, 1..86400. Defaults to 3600." },
       },
     },
@@ -2023,7 +2116,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_llm_inference",
     description:
-      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Requires Authorization: Bearer <api_key>.",
+      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -2036,12 +2129,14 @@ export const MCP_TOOLS = [
         top_p: { type: "number", description: "Top-p nucleus sampling in (0, 1]. Defaults 0.95." },
         seed: { type: "number", description: "Optional seed for reproducible output." },
         stop: { type: "array", description: "Stop sequences. Generation halts when any string in the array is produced." },
+        json_schema: { type: "object", description: "Engineer mode (required): a JSON Schema. Decoding is grammar-constrained to it and the output is validated against it; returns a `structured` block." },
       },
     },
     outputSchema: {
       type: "object" as const,
       properties: {
         text: { type: "string", description: "Generated completion text." },
+        structured: { type: "object", description: "Engineer mode only: { schema_constrained, valid, parsed, schema_errors } — the guaranteed-valid structured-output verdict." },
         model_used: { type: "string", description: "Basename of the GGUF model file used." },
         prompt_tokens: { type: "number", description: "Token count of the input prompt (best-effort)." },
         completion_tokens: { type: "number", description: "Token count of the generated text (best-effort)." },
@@ -2086,7 +2181,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_code_sandbox",
     description:
-      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Engineer mode (X-Agent-Mode: engineer — Verified Exec, $0.25): the result includes an Ed25519-signed attestation binding code-hash → output-hash + a per-account hash-chain entry, so another agent that pins AXIS's published key can verify the run without re-executing it. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["language", "code"],
@@ -2204,7 +2299,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_search",
     description:
-      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via SQLite. Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via SQLite. Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Engineer mode (X-Agent-Mode: engineer — Answer Engine, $0.25): search also returns a grounded extractive answer with [n] citation spans over your corpus, reranked, refusing on weak evidence. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -2464,7 +2559,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_hygiene",
     description:
-      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, paid) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, route-registration dup-handler analysis) are reported as repo_only_rules, not run. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, paid) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, route-registration dup-handler analysis) are reported as repo_only_rules, not run. Engineer mode (X-Agent-Mode: engineer — Security Engineer, $5): the fix arrives as a git-applyable unified-diff patch + a SARIF 2.1.0 log for CI code-scanning. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["files"],
@@ -2789,7 +2884,7 @@ function authorizeMcpToolCredits(
 ): AuthorizedCharge {
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier(tool);
-  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+  const amountCents = priceForMode(pricing, mode);
   const charge = previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
     throw new Error(buildMcpPaymentRequiredError(
@@ -2887,7 +2982,8 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   if (rawCount > limits.max_files_per_snapshot) {
     throw new Error(`File limit: ${rawCount} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`);
   }
-  const mode = args.mode === "fix" ? "fix" : "scan";
+  const wantEngineer = resolveAgentMode(req) === "engineer";
+  const mode = wantEngineer || args.mode === "fix" ? "fix" : "scan";
   const files = coerceHygieneFiles(args);
   const config =
     args.config && typeof args.config === "object" && !Array.isArray(args.config)
@@ -2898,17 +2994,67 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   if (mode === "scan") {
     // FREE path - no meterMcpToolCredits call.
     return JSON.stringify(
-      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered)." },
+      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered), or send X-Agent-Mode: engineer for a git-applyable patch + SARIF (Security Engineer tier)." },
       null,
       2,
     );
   }
 
-  // PAID path - bill before producing the remediation plan.
+  // PAID path - bill before producing the plan. Engineer mode (X-Agent-Mode:
+  // engineer) charges the engineer price automatically via priceForMode.
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_hygiene");
   const plan = buildRemediationPlan(report);
   captureMcpToolCredits(auth.account, charge);
+  if (wantEngineer) {
+    return JSON.stringify(
+      {
+        mode: "engineer",
+        ...report,
+        remediation_plan: plan,
+        patch: buildHygienePatch(report, files),
+        sarif: buildHygieneSarif(report),
+      },
+      null,
+      2,
+    );
+  }
   return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
+}
+
+/**
+ * Engineer mode only: append the verified Living Architecture artifact (E5) to
+ * the generator result so it persists + lists like any other artifact. Reuses
+ * the local runCompletion; degrades to a labeled doc when no model is
+ * configured. NEVER throws — engineer enrichment must not fail analyze_repo, and
+ * the deterministic core artifacts are emitted regardless. A fixed seed +
+ * temperature 0 keep it reproducible across re-analyses of the same repo (which
+ * is what the Stage 2 drift detector compares).
+ */
+async function maybeAppendLivingArchitecture(
+  generated: GeneratorResult,
+  ctxMap: ContextMap,
+  sourceFiles: Array<{ path: string; content: string }>,
+  req: IncomingMessage,
+): Promise<void> {
+  if (resolveAgentMode(req) !== "engineer") return;
+  try {
+    const symbols = extractSymbols(sourceFiles);
+    const art = await runSpecificityPass(ctxMap, symbols, runLlmCompletion, { seed: 42 });
+    // Guard against a future generator claiming the same path (saveGeneratorResult
+    // keys by path → silent last-wins collision otherwise).
+    if (generated.files.some((f) => f.path === art.path)) return;
+    generated.files.push({
+      path: art.path,
+      content: art.content,
+      content_type: "text/markdown",
+      program: "living-architecture",
+      description: art.report.configured
+        ? `Engineer: ${art.report.kept}/${art.report.proposed} architectural claims verified against the repo`
+        : "Engineer: Living Architecture (no local model configured on this instance)",
+    });
+  } catch {
+    // Best-effort; the deterministic core already succeeded.
+  }
 }
 
 export async function runAnalyzeFiles(
@@ -3010,6 +3156,7 @@ export async function runAnalyzeFiles(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3155,6 +3302,7 @@ export async function runAnalyzeRepo(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3462,6 +3610,7 @@ export async function runImproveMyAgent(
     requested_outputs: freeOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4213,6 +4362,7 @@ export async function runPreparePurchasing(
     requested_outputs: allOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   saveGeneratorResult(snapshot.snapshot_id, generated);
   updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4333,6 +4483,22 @@ export async function runPreparePurchasing(
   ].join("\n");
   artifactsMap["agent_system_prompt.md"] = agentSystemPrompt;
 
+  // ── Engineer mode: append the deployable commerce-integration bundle (E9) ──
+  // Built BEFORE captureMcpToolCredits and deliberately NOT swallowed: at the
+  // $250 engineer price the bundle IS the deliverable, so a build failure must
+  // fail the call (capture never runs → no charge) rather than silently charge
+  // for standard-only output. Builders are pure + deterministic.
+  const engineerArtifacts: string[] = [];
+  if (agentMode === "engineer") {
+    const signals = detectCommerceSignals(snapshot.files);
+    for (const a of buildCommerceIntegrationBundle(ctxMap, signals, 100)) {
+      if (artifactsMap[a.path] === undefined) {
+        artifactsMap[a.path] = a.content;
+        engineerArtifacts.push(a.path);
+      }
+    }
+  }
+
   const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
@@ -4375,6 +4541,7 @@ export async function runPreparePurchasing(
         snapshot_url: `https://axis-api-6c7z.onrender.com/v1/snapshots/${snapshot.snapshot_id}`,
       },
       artifacts: artifactsMap,
+      ...(engineerArtifacts.length > 0 ? { engineer_artifacts: engineerArtifacts } : {}),
       programs_executed: [...programs],
       artifact_count: Object.keys(artifactsMap).length,
       purchasing_artifacts: purchasingFiles.map(f => ({

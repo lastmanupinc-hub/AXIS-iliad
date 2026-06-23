@@ -9,6 +9,8 @@ import {
   scopeSearchNamespace,
   tokenize,
   resetWebSearchForTests,
+  answerFromHits,
+  type SearchHit,
 } from "./web-search.js";
 
 describe("web-search — tokenize", () => {
@@ -260,5 +262,48 @@ describe("web-search — scopeSearchNamespace", () => {
     addDocument(nsB, { doc_id: "d2", content: "gamma" });
     expect(countSearchDocuments(nsA)).toBe(1);
     expect(countSearchDocuments(nsB)).toBe(2);
+  });
+});
+
+// ─── Engineer tier (E3): Answer Engine ──────────────────────────
+describe("web-search — Answer Engine (engineer tier)", () => {
+  const hit = (doc_id: string, snippet: string, score: number, title: string | null = null): SearchHit => ({
+    doc_id, url: `https://ex.com/${doc_id}`, title, snippet, score, metadata: null,
+  });
+
+  it("assembles a grounded answer with [n] citation spans from on-topic hits", () => {
+    const hits = [
+      hit("a", "AXIS is a deterministic codebase analyzer. It generates artifacts.", 2.0, "Intro"),
+      hit("b", "The analyzer runs over any repo.", 1.5),
+    ];
+    const r = answerFromHits("deterministic codebase analyzer", hits, { max_citations: 2 });
+    expect(r.refused).toBe(false);
+    expect(r.answer).toContain("[1]");
+    expect(r.citations.length).toBeGreaterThanOrEqual(1);
+    expect(r.citations[0].doc_id).toBe("a");
+    expect(r.citations[0].span.length).toBeGreaterThan(0);
+  });
+
+  it("lexical rerank pulls a broadly-covering hit above a single-term BM25 spike", () => {
+    const hits = [
+      hit("spike", "deterministic deterministic deterministic deterministic.", 9.0),
+      hit("covers", "a deterministic codebase analyzer for repos.", 2.0),
+    ];
+    const r = answerFromHits("deterministic codebase analyzer", hits);
+    expect(r.refused).toBe(false);
+    expect(r.reranked[0].doc_id).toBe("covers"); // coverage beat the frequency spike
+  });
+
+  it("refuses on weak evidence (low query-term coverage)", () => {
+    const r = answerFromHits("deterministic codebase analyzer", [hit("a", "an unrelated note about weather and traffic.", 0.4)]);
+    expect(r.refused).toBe(true);
+    expect(r.answer).toBe("");
+    expect(r.reason).toMatch(/insufficient evidence/i);
+  });
+
+  it("refuses when there are no hits", () => {
+    const r = answerFromHits("anything", []);
+    expect(r.refused).toBe(true);
+    expect(r.reason).toMatch(/no document/i);
   });
 });

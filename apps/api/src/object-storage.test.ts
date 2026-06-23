@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Config } from "./object-storage.js";
+import { presignR2Url, presignR2List, presignR2Copy, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Config } from "./object-storage.js";
 
 // ─── readR2ConfigFromEnv ────────────────────────────────────────
 
@@ -137,9 +137,12 @@ describe("presignR2Url", () => {
     expect(r.url).toContain("/axis-test/folder/file%20with%20spaces.png?");
   });
 
-  it("rejects unsupported HTTP methods", () => {
+  it("supports DELETE (Managed Bucket) and rejects genuinely off-contract methods", () => {
+    const del = presignR2Url({ config, method: "DELETE", key: "k.txt", ttl_seconds: 60, now: fixedNow });
+    expect(del.url).toContain("/axis-test/k.txt?");
+    expect(new URL(del.url).searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
     // @ts-expect-error — exercising runtime guard for an off-contract method
-    expect(() => presignR2Url({ config, method: "DELETE", key: "k", ttl_seconds: 60 })).toThrow(/unsupported method/i);
+    expect(() => presignR2Url({ config, method: "POST", key: "k", ttl_seconds: 60 })).toThrow(/unsupported method/i);
   });
 
   it("rejects ttl out of range", () => {
@@ -158,5 +161,151 @@ describe("presignR2Url", () => {
     const b = presignR2Url({ config, method: "PUT", key: "k.txt", ttl_seconds: 600, now: fixedNow });
     expect(a.url).toBe(b.url);
     expect(a.expires_at).toBe(b.expires_at);
+  });
+});
+
+// ─── Engineer tier (E2): Managed Bucket — list + content-addressed keys ──
+describe("presignR2Url — mint-time PUT policy (content-type / size)", () => {
+  const config: R2Config = {
+    account_id: "test-account",
+    access_key_id: "AKIAEXAMPLE",
+    secret_access_key: "examplesecret",
+    bucket: "axis-test",
+  };
+  const fixedNow = new Date("2026-05-22T10:00:00.000Z");
+  const put = (extra: { content_type?: string; content_length?: number; method?: "GET" | "PUT" | "DELETE" }) =>
+    presignR2Url({ config, method: extra.method ?? "PUT", key: "accounts/acc-1/f", ttl_seconds: 300, now: fixedNow, content_type: extra.content_type, content_length: extra.content_length });
+
+  it("pins Content-Type as a signed header and returns it in required_headers", () => {
+    const r = put({ content_type: "image/png" });
+    expect(new URL(r.url).searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host");
+    expect(r.required_headers).toEqual({ "content-type": "image/png" });
+  });
+
+  it("pins exact Content-Length as a signed header", () => {
+    const r = put({ content_length: 4096 });
+    expect(new URL(r.url).searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;host");
+    expect(r.required_headers).toEqual({ "content-length": "4096" });
+  });
+
+  it("signs both, lexically sorted (content-length;content-type;host)", () => {
+    const r = put({ content_type: "application/json", content_length: 10 });
+    expect(new URL(r.url).searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;content-type;host");
+    expect(r.required_headers).toEqual({ "content-type": "application/json", "content-length": "10" });
+  });
+
+  it("rejects a Content-Type with CR/LF — header-injection guard", () => {
+    expect(() => put({ content_type: "image/png\r\nX-Evil: 1" })).toThrow(/header-injection|printable|control/i);
+    expect(() => put({ content_type: "a/b\nc" })).toThrow();
+  });
+
+  it("rejects content_type that isn't type/subtype, or is too long", () => {
+    expect(() => put({ content_type: "notamimetype" })).toThrow(/type\/subtype/i);
+    expect(() => put({ content_type: "a/" + "x".repeat(300) })).toThrow(/255/);
+  });
+
+  it("rejects policy on a non-PUT method (PUT only)", () => {
+    expect(() => put({ method: "GET", content_type: "image/png" })).toThrow(/PUT only/i);
+    expect(() => put({ method: "DELETE", content_length: 1 })).toThrow(/PUT only/i);
+  });
+
+  it("rejects bad content_length (negative, non-integer, over 5 GiB)", () => {
+    expect(() => put({ content_length: -1 })).toThrow(/non-negative integer/i);
+    expect(() => put({ content_length: 3.5 })).toThrow(/integer/i);
+    expect(() => put({ content_length: 5 * 1024 * 1024 * 1024 + 1 })).toThrow(/ceiling|exceed/i);
+  });
+
+  it("emits NO required_headers for a plain PUT and stays deterministic", () => {
+    const plain = presignR2Url({ config, method: "PUT", key: "accounts/acc-1/f", ttl_seconds: 300, now: fixedNow });
+    expect(plain.required_headers).toBeUndefined();
+    expect(new URL(plain.url).searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+    expect(put({ content_type: "image/png", content_length: 7 }).url).toBe(put({ content_type: "image/png", content_length: 7 }).url);
+  });
+});
+
+describe("presignR2List", () => {
+  const config: R2Config = {
+    account_id: "test-account",
+    access_key_id: "AKIAEXAMPLE",
+    secret_access_key: "examplesecret",
+    bucket: "axis-test",
+  };
+  const fixedNow = new Date("2026-05-22T10:00:00.000Z");
+
+  it("signs a bucket-level ListObjectsV2 GET with list-type=2 + prefix", () => {
+    const r = presignR2List(config, "accounts/acc-1/", 300, fixedNow);
+    const url = new URL(r.url);
+    expect(url.pathname).toBe("/axis-test"); // bucket-level, no object key
+    expect(url.searchParams.get("list-type")).toBe("2");
+    expect(url.searchParams.get("prefix")).toBe("accounts/acc-1/");
+    expect(url.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
+    expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.key).toBe("accounts/acc-1/");
+  });
+
+  it("is deterministic", () => {
+    const a = presignR2List(config, "accounts/acc-1/", 300, fixedNow);
+    const b = presignR2List(config, "accounts/acc-1/", 300, fixedNow);
+    expect(a.url).toBe(b.url);
+  });
+
+  it("rejects ttl out of range + incomplete config", () => {
+    expect(() => presignR2List(config, "p/", 0, fixedNow)).toThrow(/ttl_seconds/i);
+    expect(() => presignR2List({ ...config, bucket: "" } as R2Config, "p/", 60, fixedNow)).toThrow(/incomplete R2 config/i);
+  });
+});
+
+describe("presignR2Copy (server-side copy)", () => {
+  const config: R2Config = {
+    account_id: "test-account",
+    access_key_id: "AKIAEXAMPLE",
+    secret_access_key: "examplesecret",
+    bucket: "axis-test",
+  };
+  const fixedNow = new Date("2026-05-22T10:00:00.000Z");
+
+  it("signs a PUT to the dest key with x-amz-copy-source as a signed header", () => {
+    const r = presignR2Copy(config, "accounts/acc-1/src.txt", "accounts/acc-1/dst.txt", 300, fixedNow);
+    const url = new URL(r.url);
+    expect(url.pathname).toBe("/axis-test/accounts/acc-1/dst.txt"); // dest rides in the path
+    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("host;x-amz-copy-source");
+    expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
+    // source rides in the required header, NOT the URL path.
+    expect(r.required_headers["x-amz-copy-source"]).toBe("/axis-test/accounts/acc-1/src.txt");
+    expect(r.key).toBe("accounts/acc-1/dst.txt");
+  });
+
+  it("is deterministic", () => {
+    const a = presignR2Copy(config, "accounts/acc-1/s", "accounts/acc-1/d", 300, fixedNow);
+    const b = presignR2Copy(config, "accounts/acc-1/s", "accounts/acc-1/d", 300, fixedNow);
+    expect(a.url).toBe(b.url);
+    expect(a.required_headers["x-amz-copy-source"]).toBe(b.required_headers["x-amz-copy-source"]);
+  });
+
+  it("binds the signature to the copy-source — the source can't be tampered (it's a signed header)", () => {
+    const a = presignR2Copy(config, "accounts/acc-1/src-A", "accounts/acc-1/d", 300, fixedNow);
+    const b = presignR2Copy(config, "accounts/acc-1/src-B", "accounts/acc-1/d", 300, fixedNow);
+    const sigA = new URL(a.url).searchParams.get("X-Amz-Signature");
+    const sigB = new URL(b.url).searchParams.get("X-Amz-Signature");
+    expect(sigA).not.toBe(sigB);
+  });
+
+  it("rejects ttl out of range + incomplete config", () => {
+    expect(() => presignR2Copy(config, "s", "d", 0, fixedNow)).toThrow(/ttl_seconds/i);
+    expect(() => presignR2Copy({ ...config, secret_access_key: "" } as R2Config, "s", "d", 60, fixedNow)).toThrow(/incomplete R2 config/i);
+  });
+});
+
+describe("casKey (content-addressed dedup)", () => {
+  const hash = "a".repeat(64);
+  it("maps a sha256 to accounts/<id>/cas/<sha256> (identical content → same key)", () => {
+    expect(casKey("acc-1", hash)).toBe(`accounts/acc-1/cas/${hash}`);
+  });
+  it("appends a safe lowercased extension when given", () => {
+    expect(casKey("acc-1", hash, "PNG")).toBe(`accounts/acc-1/cas/${hash}.png`);
+  });
+  it("rejects a non-sha256 hash (incl. uppercase hex)", () => {
+    expect(() => casKey("acc-1", "not-a-hash")).toThrow(/64-char.*hex/i);
+    expect(() => casKey("acc-1", "A".repeat(64))).toThrow(/hex/i);
   });
 });

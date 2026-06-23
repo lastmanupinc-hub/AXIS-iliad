@@ -18,6 +18,7 @@
 
 import path from "node:path";
 import fs from "node:fs/promises";
+import { isUsableSchema } from "./json-schema-validate.js";
 
 export interface CompletionOptions {
   /** User prompt text. Required. */
@@ -36,6 +37,8 @@ export interface CompletionOptions {
   seed?: number;
   /** Stop sequences. Generation halts when any string in the array is produced. */
   stop?: string[];
+  /** Engineer mode: a JSON Schema to grammar-constrain decoding to + validate against. */
+  json_schema?: unknown;
 }
 
 export interface CompletionResult {
@@ -82,6 +85,7 @@ type LlamaModel = Awaited<ReturnType<Awaited<ReturnType<LlamaModule["getLlama"]>
 
 let _module: LlamaModule | null = null;
 let _model: LlamaModel | null = null;
+let _llama: Awaited<ReturnType<LlamaModule["getLlama"]>> | null = null;
 let _modelPath: string | null = null;
 let _loadPromise: Promise<void> | null = null;
 
@@ -96,6 +100,7 @@ async function ensureLoaded(modelPath: string): Promise<void> {
       _module = (await import("node-llama-cpp")) as LlamaModule;
     }
     const llama = await _module.getLlama();
+    _llama = llama;
     _model = await llama.loadModel({ modelPath });
     _modelPath = modelPath;
   })();
@@ -109,6 +114,7 @@ async function ensureLoaded(modelPath: string): Promise<void> {
 /** Test-only helper. Drops the cached model handle so a subsequent call reloads. */
 export function resetLlmForTests(): void {
   _model = null;
+  _llama = null;
   _modelPath = null;
   _loadPromise = null;
   // Intentionally do NOT null out _module — re-importing the native
@@ -166,6 +172,9 @@ export function validateCompletionOptions(opts: CompletionOptions): void {
       }
     }
   }
+  if (opts.json_schema !== undefined && !isUsableSchema(opts.json_schema)) {
+    throw new Error("runCompletion: json_schema must be a usable JSON schema object");
+  }
 }
 
 // ─── Public entrypoint ──────────────────────────────────────────
@@ -198,14 +207,25 @@ export async function runCompletion(
       systemPrompt: opts.system ?? "You are a helpful assistant.",
     });
 
-    const text = await session.prompt(opts.prompt, {
+    const promptOpts: Record<string, unknown> = {
       temperature: opts.temperature ?? 0.7,
       topK: opts.top_k ?? 40,
       topP: opts.top_p ?? 0.95,
       maxTokens: opts.max_tokens ?? 512,
       seed: opts.seed,
       customStopTriggers: opts.stop,
-    });
+    };
+    if (opts.json_schema !== undefined && _llama) {
+      try {
+        // Grammar-constrain generation to the schema. Defensive: an unsupported
+        // runtime/schema degrades to unconstrained — the handler's post-validation
+        // still reports validity.
+        promptOpts.grammar = await (_llama as unknown as { createGrammarForJsonSchema(s: unknown): Promise<unknown> }).createGrammarForJsonSchema(opts.json_schema);
+      } catch {
+        /* unconstrained fallback */
+      }
+    }
+    const text = await session.prompt(opts.prompt, promptOpts as Parameters<typeof session.prompt>[1]);
 
     // Token counts: best-effort via the model's tokenizer. The chat
     // session doesn't return counts directly, so we count after the fact.

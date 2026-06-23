@@ -25,13 +25,14 @@ import { Mppx, stripe, tempo } from "mppx/server";
 import { shouldEmitRuntimeLogs } from "./logger.js";
 
 // Re-export all pure protocol utilities from the OSS @axis/mpp package.
-export type { ChargeOptions, MppResult, AgentBudget, PricingTier, Build402Options } from "@axis/mpp";
+export type { ChargeOptions, MppResult, AgentBudget, PricingTier, Build402Options, AgentMode } from "@axis/mpp";
 export {
   getPricingTier,
   negotiatePrice,
   build402NegotiationBody,
   parseAgentBudget,
   resolveAgentMode,
+  priceForMode,
   PRICING_TIERS,
   LEGACY_TOOL_ALIASES,
 } from "@axis/mpp";

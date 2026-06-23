@@ -18,7 +18,7 @@ const PROGRAM_COUNT = 20;
 
 // ─── Commerce Signal Detection ────────────────────────────────────
 
-interface CommerceSignals {
+export interface CommerceSignals {
   detected_providers: string[];
   has_checkout: boolean;
   has_recurring: boolean;
@@ -45,7 +45,7 @@ const PROVIDER_PATTERNS: Record<string, RegExp> = {
   afterpay:   /afterpay|clearpay/i,
 };
 
-function detectCommerceSignals(files: SourceFile[] | undefined): CommerceSignals {
+export function detectCommerceSignals(files: SourceFile[] | undefined): CommerceSignals {
   if (!files || files.length === 0) {
     return { detected_providers: [], has_checkout: false, has_recurring: false, has_sca: false, has_dispute_handling: false, has_webhooks: false, has_tap_protocol: false, has_network_tokenization: false, has_mandate_management: false, total_payment_files: 0 };
   }
