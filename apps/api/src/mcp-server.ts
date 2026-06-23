@@ -95,6 +95,7 @@ import type { GeneratorResult } from "@axis/generator-core";
 import { runSpecificityPass } from "./living-architecture.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
+import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
@@ -800,9 +801,30 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
     throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
   }
 
+  // Engineer mode (Constrained Inference): a json_schema is required (it IS the
+  // contract). Decoding is grammar-constrained to it AND the output is validated
+  // against it. The schema is required BEFORE the charge, so an engineer call
+  // without one doesn't bill — binding the engineer charge to the engineer feature.
+  const engineer = resolveAgentMode(req) === "engineer";
+  if (engineer) {
+    if (!isUsableSchema(args.json_schema)) {
+      throw new Error("iliad_llm_inference: engineer mode requires a usable `json_schema` (the structured-output contract).");
+    }
+    opts.json_schema = args.json_schema;
+  }
+
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_llm_inference");
   const result = await runLlmCompletion(opts);
   captureMcpToolCredits(auth.account, charge);
+
+  if (engineer && "text" in result) {
+    const structured = validateStructuredOutput(result.text, args.json_schema);
+    return JSON.stringify(
+      { ...result, structured: { schema_constrained: true, valid: structured.valid, parsed: structured.parsed, schema_errors: structured.errors } },
+      null,
+      2,
+    );
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -2094,7 +2116,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_llm_inference",
     description:
-      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Requires Authorization: Bearer <api_key>.",
+      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -2107,12 +2129,14 @@ export const MCP_TOOLS = [
         top_p: { type: "number", description: "Top-p nucleus sampling in (0, 1]. Defaults 0.95." },
         seed: { type: "number", description: "Optional seed for reproducible output." },
         stop: { type: "array", description: "Stop sequences. Generation halts when any string in the array is produced." },
+        json_schema: { type: "object", description: "Engineer mode (required): a JSON Schema. Decoding is grammar-constrained to it and the output is validated against it; returns a `structured` block." },
       },
     },
     outputSchema: {
       type: "object" as const,
       properties: {
         text: { type: "string", description: "Generated completion text." },
+        structured: { type: "object", description: "Engineer mode only: { schema_constrained, valid, parsed, schema_errors } — the guaranteed-valid structured-output verdict." },
         model_used: { type: "string", description: "Basename of the GGUF model file used." },
         prompt_tokens: { type: "number", description: "Token count of the input prompt (best-effort)." },
         completion_tokens: { type: "number", description: "Token count of the generated text (best-effort)." },

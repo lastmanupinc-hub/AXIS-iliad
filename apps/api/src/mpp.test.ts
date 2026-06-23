@@ -299,13 +299,15 @@ describe("X-Agent-Mode: engineer tier", () => {
 
   it("only the IMPLEMENTED engineer tools carry an engineer price", () => {
     const priced = Object.values(PRICING_TIERS).filter(t => t.engineer_cents !== undefined).map(t => t.tool).sort();
-    // Built engineer tiers so far (E1-E3 + E5 + E9 + E6). Pinned so an unbuilt
+    // Built engineer tiers in the integrated tier: E1-E3, E5, E6, E8, E9 (8 tools).
+    // E4 (vector) is Neon-blocked; E7/E10/E11/E12 unbuilt. Pinned so an unbuilt
     // tool can't silently advertise/charge an engineer price.
     expect(priced).toEqual([
       "analyze_files",
       "analyze_repo",
       "iliad_code_sandbox",
       "iliad_hygiene",
+      "iliad_llm_inference",
       "iliad_object_storage",
       "iliad_web_search",
       "prepare_agentic_purchasing",
