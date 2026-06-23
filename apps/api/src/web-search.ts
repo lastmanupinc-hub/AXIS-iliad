@@ -142,6 +142,7 @@ const MAX_CONTENT_BYTES = 1_048_576; // 1 MiB
 const MAX_METADATA_BYTES = 65_536;   // 64 KiB
 const MAX_QUERY_CHARS = 1024;
 const MAX_DOC_ID_CHARS = 200;
+const MAX_TITLE_CHARS = 2048; // titles are short; bound them so the rerank/tf pass can't be DoS'd
 const DEFAULT_MAX_RESULTS = 10;
 const HARD_MAX_RESULTS = 100;
 
@@ -166,8 +167,13 @@ function validateDocument(d: SearchDocument): { tfJson: string; metadataJson: st
       throw new Error("addDocument: url must be a non-empty string when provided");
     }
   }
-  if (d.title !== undefined && typeof d.title !== "string") {
-    throw new Error("addDocument: title must be a string when provided");
+  if (d.title !== undefined) {
+    if (typeof d.title !== "string") {
+      throw new Error("addDocument: title must be a string when provided");
+    }
+    if (d.title.length > MAX_TITLE_CHARS) {
+      throw new Error(`addDocument: title exceeds ${MAX_TITLE_CHARS} chars`);
+    }
   }
   let metadataJson: string | null = null;
   if (d.metadata !== undefined) {

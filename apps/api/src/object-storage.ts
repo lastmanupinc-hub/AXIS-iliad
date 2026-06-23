@@ -90,6 +90,58 @@ function deriveSigningKey(secretAccessKey: string, dateStamp: string, region: st
  * in `config`); callers handle "not configured" upstream by checking
  * `readR2ConfigFromEnv() === null` instead.
  */
+/**
+ * Core SigV4 pre-signer for R2 — signs `method` on `canonicalUri` with
+ * `extraQuery` params merged into the canonical query string. Single-sourced so
+ * presignR2Url (object ops) and presignR2List (bucket list) can't drift.
+ * Path-style addressing: the bucket lives in canonicalUri, not the host.
+ */
+function buildSignedR2Url(
+  config: R2Config,
+  method: string,
+  canonicalUri: string,
+  extraQuery: Array<[string, string]>,
+  ttl_seconds: number,
+  now?: Date,
+): { url: string; expires_at: string; host: string } {
+  const t = now ?? new Date();
+  // AMZ-Date: YYYYMMDDTHHMMSSZ, no millis, no separators.
+  const amzDate = t.toISOString().replace(/[:\-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const region = "auto"; // R2 only honors "auto" in SigV4
+  const service = "s3";
+  const host = `${config.account_id}.r2.cloudflarestorage.com`;
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const credential = `${config.access_key_id}/${credentialScope}`;
+
+  // SigV4 canonical query string: percent-encoded (manual, so spaces are %20
+  // not +), sorted by the ENCODED key. X-Amz-* params first, then extras.
+  const encodedQuery = ([
+    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential", credential],
+    ["X-Amz-Date", amzDate],
+    ["X-Amz-Expires", String(ttl_seconds)],
+    ["X-Amz-SignedHeaders", "host"],
+    ...extraQuery,
+  ] as Array<[string, string]>)
+    .map(([k, v]) => [encodeRfc3986(k), encodeRfc3986(v)] as const)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
+
+  // Canonical request — pre-signed payload hash is the literal "UNSIGNED-PAYLOAD".
+  const canonicalRequest = [method, canonicalUri, encodedQuery, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
+  const signingKey = deriveSigningKey(config.secret_access_key, dateStamp, region, service);
+  const signature = createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
+
+  return {
+    url: `https://${host}${canonicalUri}?${encodedQuery}&X-Amz-Signature=${signature}`,
+    expires_at: new Date(t.getTime() + ttl_seconds * 1000).toISOString(),
+    host,
+  };
+}
+
 export function presignR2Url({ config, method, key, ttl_seconds, now }: PresignOptions): PresignResult {
   if (!config.account_id || !config.access_key_id || !config.secret_access_key || !config.bucket) {
     throw new Error("presignR2Url: incomplete R2 config");
@@ -102,65 +154,8 @@ export function presignR2Url({ config, method, key, ttl_seconds, now }: PresignO
     // lower 24h cap at the MCP dispatcher layer.
     throw new Error(`presignR2Url: ttl_seconds must be 1..604800 (got ${ttl_seconds})`);
   }
-
-  const t = now ?? new Date();
-  // AMZ-Date: YYYYMMDDTHHMMSSZ, no millis, no separators.
-  const amzDate = t.toISOString().replace(/[:\-]|\.\d{3}/g, "");
-  const dateStamp = amzDate.slice(0, 8);
-  const region = "auto"; // R2 only honors "auto" in SigV4
-  const service = "s3";
-  const host = `${config.account_id}.r2.cloudflarestorage.com`;
-  // Path-style addressing — bucket lives in the URI, not the hostname.
-  const canonicalUri = `/${config.bucket}/${encodeS3Path(key)}`;
-  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const credential = `${config.access_key_id}/${credentialScope}`;
-
-  // Query params for the pre-signed URL. Order doesn't matter here —
-  // we sort them lexicographically before joining (canonical query
-  // string requirement).
-  const queryEntries: Array<[string, string]> = [
-    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
-    ["X-Amz-Credential", credential],
-    ["X-Amz-Date", amzDate],
-    ["X-Amz-Expires", String(ttl_seconds)],
-    ["X-Amz-SignedHeaders", "host"],
-  ];
-  // SigV4 canonical query string: percent-encoded, sorted by key.
-  // URLSearchParams encodes `/` as `%2F`, which we need; but it also
-  // uses `+` for spaces, while SigV4 requires `%20`. Manual encode keeps
-  // the rules deterministic.
-  const encodedQuery = queryEntries
-    .map(([k, v]) => [encodeRfc3986(k), encodeRfc3986(v)] as const)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join("&");
-
-  // Canonical request:
-  //   <method>\n<canonical-uri>\n<canonical-query>\n<canonical-headers>\n<signed-headers>\n<payload-hash>
-  // For pre-signed URLs, payload hash is the literal "UNSIGNED-PAYLOAD".
-  const canonicalRequest = [
-    method,
-    canonicalUri,
-    encodedQuery,
-    `host:${host}\n`, // canonical headers — note trailing newline within
-    "host",            // signed-headers list
-    "UNSIGNED-PAYLOAD",
-  ].join("\n");
-
-  const stringToSign = [
-    "AWS4-HMAC-SHA256",
-    amzDate,
-    credentialScope,
-    sha256Hex(canonicalRequest),
-  ].join("\n");
-
-  const signingKey = deriveSigningKey(config.secret_access_key, dateStamp, region, service);
-  const signature = createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
-
-  const url = `https://${host}${canonicalUri}?${encodedQuery}&X-Amz-Signature=${signature}`;
-  const expires_at = new Date(t.getTime() + ttl_seconds * 1000).toISOString();
-
-  return { url, expires_at, host, bucket: config.bucket, key };
+  const signed = buildSignedR2Url(config, method, `/${config.bucket}/${encodeS3Path(key)}`, [], ttl_seconds, now);
+  return { ...signed, bucket: config.bucket, key };
 }
 
 // RFC 3986 unreserved set: A-Za-z0-9 - _ . ~ everything else gets encoded.
@@ -215,41 +210,16 @@ export function presignR2List(config: R2Config, prefix: string, ttl_seconds: num
   if (!Number.isFinite(ttl_seconds) || ttl_seconds <= 0 || ttl_seconds > 604800) {
     throw new Error(`presignR2List: ttl_seconds must be 1..604800 (got ${ttl_seconds})`);
   }
-  const t = now ?? new Date();
-  const amzDate = t.toISOString().replace(/[:\-]|\.\d{3}/g, "");
-  const dateStamp = amzDate.slice(0, 8);
-  const region = "auto";
-  const service = "s3";
-  const host = `${config.account_id}.r2.cloudflarestorage.com`;
-  const canonicalUri = `/${config.bucket}`;
-  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-  const credential = `${config.access_key_id}/${credentialScope}`;
-  const queryEntries: Array<[string, string]> = [
-    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
-    ["X-Amz-Credential", credential],
-    ["X-Amz-Date", amzDate],
-    ["X-Amz-Expires", String(ttl_seconds)],
-    ["X-Amz-SignedHeaders", "host"],
-    ["list-type", "2"],
-    ["max-keys", "1000"], // bound the response page per signed mint
-    ["prefix", prefix],
-  ];
-  const encodedQuery = queryEntries
-    .map(([k, v]) => [encodeRfc3986(k), encodeRfc3986(v)] as const)
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join("&");
-  const canonicalRequest = ["GET", canonicalUri, encodedQuery, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
-  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
-  const signingKey = deriveSigningKey(config.secret_access_key, dateStamp, region, service);
-  const signature = createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
-  return {
-    url: `https://${host}${canonicalUri}?${encodedQuery}&X-Amz-Signature=${signature}`,
-    expires_at: new Date(t.getTime() + ttl_seconds * 1000).toISOString(),
-    host,
-    bucket: config.bucket,
-    key: prefix,
-  };
+  // Bucket-level ListObjectsV2; max-keys bounds the response page per mint.
+  const signed = buildSignedR2Url(
+    config,
+    "GET",
+    `/${config.bucket}`,
+    [["list-type", "2"], ["max-keys", "1000"], ["prefix", prefix]],
+    ttl_seconds,
+    now,
+  );
+  return { ...signed, bucket: config.bucket, key: prefix };
 }
 
 const SHA256_HEX = /^[0-9a-f]{64}$/;
