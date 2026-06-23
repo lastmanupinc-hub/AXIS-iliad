@@ -56,6 +56,13 @@ export interface PricingTier {
   standard_cents: number;
   lite_cents: number;
   lite_description: string;
+  /**
+   * Optional premium "engineer" tier — the over-the-top, deep+novel mode for a
+   * tool (X-Agent-Mode: engineer). Tools without it fall back to standard, so
+   * sending the flag is always safe. See V1_ROI_CANDIDATES.md → Tier E.
+   */
+  engineer_cents?: number;
+  engineer_description?: string;
 }
 
 export interface Build402Options {
@@ -71,12 +78,16 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 50,
     lite_cents: 25,
     lite_description: "Lite mode: purchasing readiness score + top 3 gaps only (no full artifact bundle)",
+    engineer_cents: 25000,
+    engineer_description: "Engineer mode (Commerce Integration): scaffolds a live x402/AP2 endpoint wired to PAI'D + sandbox transaction test + submittable Compelling-Evidence 3.0 pack + per-reason-code win-probability simulation.",
   },
   analyze_repo: {
     tool: "analyze_repo",
     standard_cents: 50,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    engineer_cents: 2500,
+    engineer_description: "Engineer mode (Living Architecture): the deterministic 133-artifact skeleton + a verified LLM specificity pass (unverifiable claims dropped) + push-triggered PR drift mode.",
   },
   analyze_files: {
     tool: "analyze_files",
@@ -138,6 +149,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 1,
     lite_cents: 0,
     lite_description: "Free tier: signed URL with 1h TTL cap (standard allows up to 24h).",
+    engineer_cents: 5,
+    engineer_description: "Engineer mode (Managed Bucket): full lifecycle (list/copy/delete) + content-addressed dedup keys + mint-time content-type/size policy.",
   },
   iliad_vector_database: {
     tool: "iliad_vector_database",
@@ -155,6 +168,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: single-string input only (standard allows batches up to 2048).",
+    engineer_cents: 2,
+    engineer_description: "Engineer mode (Domain Embeddings): owned ONNX base + Matryoshka dimension truncation + a per-corpus adapter so retrieval beats generic models on the caller's own data.",
   },
   // Resend transactional: $0.0004/email beyond free 3k/mo tier.
   // AXIS markup covers DKIM/SPF setup + suppression-list management
@@ -351,6 +366,17 @@ export function build402NegotiationBody(
     pricing: {
       standard: { amount_cents: tier.standard_cents, currency: "usd", description: `Full ${tool} run with all artifacts` },
       lite: { amount_cents: tier.lite_cents, currency: "usd", description: tier.lite_description },
+      // Premium "over-the-top" tier — advertised only for tools that define it.
+      ...(tier.engineer_cents !== undefined
+        ? {
+            engineer: {
+              amount_cents: tier.engineer_cents,
+              currency: "usd",
+              description: tier.engineer_description ?? `Engineer mode: deep + novel ${tool}`,
+              how: "Send X-Agent-Mode: engineer",
+            },
+          }
+        : {}),
     },
     negotiation: negotiation ?? {
       amount_cents: tier.standard_cents,
@@ -440,7 +466,22 @@ export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined 
 }
 
 /** Read X-Agent-Mode header. Returns "lite" or "standard". */
-export function resolveAgentMode(req: IncomingMessage): "standard" | "lite" {
+export type AgentMode = "standard" | "lite" | "engineer";
+
+export function resolveAgentMode(req: IncomingMessage): AgentMode {
   const mode = req.headers["x-agent-mode"];
-  return mode === "lite" ? "lite" : "standard";
+  if (mode === "lite") return "lite";
+  if (mode === "engineer") return "engineer";
+  return "standard";
+}
+
+/**
+ * One door for mode → price (cents). `engineer` is the premium tier; tools that
+ * don't define an engineer price fall back to standard so the flag is always
+ * safe to send and never under-charges.
+ */
+export function priceForMode(tier: PricingTier, mode: AgentMode): number {
+  if (mode === "engineer") return tier.engineer_cents ?? tier.standard_cents;
+  if (mode === "lite") return tier.lite_cents;
+  return tier.standard_cents;
 }

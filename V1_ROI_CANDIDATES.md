@@ -14,6 +14,32 @@
 
 ---
 
+## Tier E — Engineer Tier (premium "over-the-top" upsell · `X-Agent-Mode: engineer`)
+
+**Directive (2026-06-23):** add a third mode (`engineer`) on top of the existing lite/standard pricing. Base stays free/cheap; engineer is depth + novelty at a designer price. Per `begin.yaml` `no_go_rules` ("don't expand breadth before core paths are strong"; "no automation/AI without structured contracts") the canonical **contract (E0) is the unblocking foundation** — every per-tool upgrade is forbidden breadth until E0 lands. Execute in ranked order; commit after each.
+
+| # | ID | Title (engineer mode) | Size | ROI | Novel hook · proof of completion |
+|---|---|---|---|---|---|
+| **E0** | **eng-mode-contract** | Wire `X-Agent-Mode: engineer` as a 3rd MPP tier: engineer price in PRICING_TIERS, plumb the mode through the credit/charge path + the 402 negotiation body; default → standard. | S | **92** | Foundation — unblocks all below, opens a new revenue loop, one-door pricing contract. Proof: a tool called with `engineer` mode charges the engineer price and the 402 advertises it; counts-consistency test pins the new tier. |
+| E1 | hygiene-security-engineer | `iliad_hygiene`: remediation as an **applyable unified-diff patch + SARIF** (not just a plan). | M | 84 | Ships the fix, not the to-do. Deterministic (no AI-without-contract risk). Proof: engineer scan returns a valid `patch` + `sarif`. |
+| E2 | storage-managed-bucket | `iliad_object_storage`: list/delete/copy ops + content-addressed dedup keys + mint-time content-type/size policy. | S–M | 80 | Full lifecycle, storage-with-a-brain. Pure owned extension. Proof: list/delete/copy round-trip + dedup hash. |
+| E3 | search-answer-engine | `iliad_web_search`: hybrid BM25⊕vector + rerank + grounded **answer with citation spans** (refuse on weak evidence). | M | 82 | Private Perplexity over the user's corpus. Needs E0. Proof: answer + spans + a refusal case. |
+| E4 | vector-managed-memory | `iliad_vector_database` → **pgvector/HNSW on Neon** + hybrid fusion + recency decay + semantic-dedup upsert. | L | 79 | Managed *forgetting*. BLOCKED on Neon PR #33 merge. Proof: large namespace + ANN query. |
+| E5 | living-architecture | `analyze_repo`: deterministic skeleton + **verified LLM specificity pass** (drop unverifiable claims) + push-triggered PR drift mode. | XL | 86 | Repo-specific, not repo-shaped, without losing the determinism guarantee. Flagship. Needs E0. |
+| E6 | sandbox-verified-exec | `iliad_code_sandbox`: persistent session + **signed (code-hash→output-hash) attestation** (Trust-Fabric merkle tie-in). | L | 81 | Provable compute another agent trusts without re-running. |
+| E7 | doc-intelligence | `iliad_document_parsing`: OCR + table/layout fidelity + **extract-to-caller-schema** + retrieval chunking. | M–L | 77 | Typed data, not just markdown. |
+| E8 | constrained-inference | `iliad_llm_inference`: grammar/JSON-schema-**constrained decoding** + worker isolation + streaming. | M | 75 | Guaranteed-valid structured output, in-process. |
+| E9 | commerce-integration | `prepare_agentic_purchasing`: scaffold a **live x402/AP2 endpoint wired to PAI'D** + sandbox txn test + submittable CE 3.0 pack + win-probability sim. | XL | 83 | Working integration, not a score. Enterprise flagship. |
+| E10 | voice-brand-kit | TTS/STT: owned voice cloning + **persona auto-derived from the `brand`/`voice-and-tone` artifacts**; STT diarization + custom vocab. | L | 72 | Brand artifact → consistent owned voice (only the generator suite can do this). |
+| E11 | deliverability + product-intel | email + analytics: SPF/DKIM/DMARC autoconfig + warmup + inbox-placement; funnels/cohorts **auto-wired from the `marketing` artifact**. | M | 70 | Self-instrumenting funnel; deliverability engineering. |
+| E12 | domain-embeddings | `iliad_embeddings`: owned ONNX + Matryoshka truncation + per-corpus adapter; pipes into E4. | M | 68 | Embeddings better on *their* data, owned (pairs with proxy-kill #34). |
+
+**Bundle:** Engineer Pass (subscription / credit-pack) unlocks `engineer` across all tools at a discount; Agency/white-label tier on top (resale + higher referral caps). Per-tool designer prices in the design note.
+
+**Build order (begin.yaml ranked):** E0 → E1 → E2 → E3 → (E4 after #33) → E5 → E9 → E6 → rest.
+
+---
+
 ## Tier 1 — MUST-SHIP for v1 (blocks launch)
 
 | # | ID | Title | Maturity | Effort | ROI | Proof for v1 |

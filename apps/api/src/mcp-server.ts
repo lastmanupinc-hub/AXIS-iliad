@@ -91,7 +91,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
-import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
+import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchNotConfigured } from "./web-research.js";
@@ -2789,7 +2789,7 @@ function authorizeMcpToolCredits(
 ): AuthorizedCharge {
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier(tool);
-  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+  const amountCents = priceForMode(pricing, mode);
   const charge = previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
     throw new Error(buildMcpPaymentRequiredError(
