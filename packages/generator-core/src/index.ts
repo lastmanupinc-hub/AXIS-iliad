@@ -17,8 +17,8 @@ export { generateComponent, generateDashboardWidget, generateEmbedSnippet, gener
 export { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 export { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 export { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
-export { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, computeComplianceGrade } from "./generators-agentic-purchasing.js";
-export type { ComplianceGradeResult } from "./generators-agentic-purchasing.js";
+export { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, computeComplianceGrade, detectCommerceSignals } from "./generators-agentic-purchasing.js";
+export type { ComplianceGradeResult, CommerceSignals } from "./generators-agentic-purchasing.js";
 export {
 	generatePackagingReadme,
 	generatePackagingLicense,
