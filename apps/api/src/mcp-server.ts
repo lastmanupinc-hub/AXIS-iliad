@@ -417,18 +417,25 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     throw new Error(err instanceof Error ? `iliad_object_storage: ${err.message}` : String(err));
   }
 
+  // Engineer mint-time policy: pin Content-Type / exact size on a PUT (signed).
+  const putPolicy: { content_type?: string; content_length?: number } = {};
+  if (engineer && rawOp === "put") {
+    if (typeof args.content_type === "string") putPolicy.content_type = args.content_type;
+    if (typeof args.content_length === "number") putPolicy.content_length = args.content_length;
+  }
+
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
   const presigned =
     rawOp === "list"
       ? presignR2List(config, scopedKey, ttl)
       : rawOp === "copy"
         ? presignR2Copy(config, scopedSource as string, scopedKey, ttl)
-        : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl });
+        : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl, ...putPolicy });
   captureMcpToolCredits(auth.account, charge);
 
-  // COPY requires the caller to echo the signed x-amz-copy-source header on the PUT.
-  const requiredHeaders =
-    rawOp === "copy" ? (presigned as { required_headers?: Record<string, string> }).required_headers : undefined;
+  // COPY (x-amz-copy-source) and mint-time PUT policy (content-type/length) each
+  // return signed headers the caller MUST echo verbatim on the request.
+  const requiredHeaders = (presigned as { required_headers?: Record<string, string> }).required_headers;
   return JSON.stringify({
     url: presigned.url,
     expires_at: presigned.expires_at,
@@ -436,7 +443,8 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     scoped_key: scopedKey,
     operation: rawOp,
     ...(isCas ? { content_addressed: true } : {}),
-    ...(requiredHeaders ? { source_scoped_key: scopedSource, required_headers: requiredHeaders } : {}),
+    ...(scopedSource ? { source_scoped_key: scopedSource } : {}),
+    ...(requiredHeaders ? { required_headers: requiredHeaders } : {}),
     ttl_seconds: ttl,
   }, null, 2);
 }
@@ -1880,7 +1888,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations and content-addressed dedup keys (content_sha256).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces).",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
@@ -1890,6 +1898,8 @@ export const MCP_TOOLS = [
         content_sha256: { type: "string", description: "Engineer mode: 64-char hex sha256 of the bytes you'll PUT. When set, the object lands under accounts/<id>/cas/<sha256> so identical content dedupes." },
         ext: { type: "string", description: "Engineer mode: optional extension appended to the content-addressed key (e.g. 'png')." },
         source_key: { type: "string", description: "Engineer mode (operation=copy): source object key to copy from, scoped to your account; `key` is the destination. Echo the returned required_headers on the PUT." },
+        content_type: { type: "string", description: "Engineer mode (put): pin the Content-Type the upload must send (signed; R2 rejects a mismatch). Printable ASCII type/subtype, ≤255 chars. Echo via required_headers." },
+        content_length: { type: "number", description: "Engineer mode (put): pin the EXACT byte size the upload must be (signed; ≤5 GiB). Pairs with content_sha256 for verified content-addressed writes." },
         ttl_seconds: { type: "number", description: "Signed-URL lifetime, 1..86400. Defaults to 3600." },
       },
     },

@@ -165,6 +165,64 @@ describe("presignR2Url", () => {
 });
 
 // ─── Engineer tier (E2): Managed Bucket — list + content-addressed keys ──
+describe("presignR2Url — mint-time PUT policy (content-type / size)", () => {
+  const config: R2Config = {
+    account_id: "test-account",
+    access_key_id: "AKIAEXAMPLE",
+    secret_access_key: "examplesecret",
+    bucket: "axis-test",
+  };
+  const fixedNow = new Date("2026-05-22T10:00:00.000Z");
+  const put = (extra: { content_type?: string; content_length?: number; method?: "GET" | "PUT" | "DELETE" }) =>
+    presignR2Url({ config, method: extra.method ?? "PUT", key: "accounts/acc-1/f", ttl_seconds: 300, now: fixedNow, content_type: extra.content_type, content_length: extra.content_length });
+
+  it("pins Content-Type as a signed header and returns it in required_headers", () => {
+    const r = put({ content_type: "image/png" });
+    expect(new URL(r.url).searchParams.get("X-Amz-SignedHeaders")).toBe("content-type;host");
+    expect(r.required_headers).toEqual({ "content-type": "image/png" });
+  });
+
+  it("pins exact Content-Length as a signed header", () => {
+    const r = put({ content_length: 4096 });
+    expect(new URL(r.url).searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;host");
+    expect(r.required_headers).toEqual({ "content-length": "4096" });
+  });
+
+  it("signs both, lexically sorted (content-length;content-type;host)", () => {
+    const r = put({ content_type: "application/json", content_length: 10 });
+    expect(new URL(r.url).searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;content-type;host");
+    expect(r.required_headers).toEqual({ "content-type": "application/json", "content-length": "10" });
+  });
+
+  it("rejects a Content-Type with CR/LF — header-injection guard", () => {
+    expect(() => put({ content_type: "image/png\r\nX-Evil: 1" })).toThrow(/header-injection|printable|control/i);
+    expect(() => put({ content_type: "a/b\nc" })).toThrow();
+  });
+
+  it("rejects content_type that isn't type/subtype, or is too long", () => {
+    expect(() => put({ content_type: "notamimetype" })).toThrow(/type\/subtype/i);
+    expect(() => put({ content_type: "a/" + "x".repeat(300) })).toThrow(/255/);
+  });
+
+  it("rejects policy on a non-PUT method (PUT only)", () => {
+    expect(() => put({ method: "GET", content_type: "image/png" })).toThrow(/PUT only/i);
+    expect(() => put({ method: "DELETE", content_length: 1 })).toThrow(/PUT only/i);
+  });
+
+  it("rejects bad content_length (negative, non-integer, over 5 GiB)", () => {
+    expect(() => put({ content_length: -1 })).toThrow(/non-negative integer/i);
+    expect(() => put({ content_length: 3.5 })).toThrow(/integer/i);
+    expect(() => put({ content_length: 5 * 1024 * 1024 * 1024 + 1 })).toThrow(/ceiling|exceed/i);
+  });
+
+  it("emits NO required_headers for a plain PUT and stays deterministic", () => {
+    const plain = presignR2Url({ config, method: "PUT", key: "accounts/acc-1/f", ttl_seconds: 300, now: fixedNow });
+    expect(plain.required_headers).toBeUndefined();
+    expect(new URL(plain.url).searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+    expect(put({ content_type: "image/png", content_length: 7 }).url).toBe(put({ content_type: "image/png", content_length: 7 }).url);
+  });
+});
+
 describe("presignR2List", () => {
   const config: R2Config = {
     account_id: "test-account",

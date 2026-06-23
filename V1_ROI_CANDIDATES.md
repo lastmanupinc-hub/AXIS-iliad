@@ -36,7 +36,7 @@
 
 **Bundle:** Engineer Pass (subscription / credit-pack) unlocks `engineer` across all tools at a discount; Agency/white-label tier on top (resale + higher referral caps). Per-tool designer prices in the design note.
 
-**Build order (begin.yaml ranked):** ✅ **E0** (`priceForMode` contract; 21/21) → ✅ **E1** (hygiene patch + SARIF; 44/44) → ✅ **E2** (Managed Bucket: list/delete/CAS/**copy**; 30/30) → ✅ **E3** (Answer Engine: grounded answer + citations + refusal; 57/57) → ✅ **harden→polish→develop→harden→polish pass** (fixed patch-apply + billing-ladder HIGHs; single-sourced SigV4; capped title DoS; added server-side COPY; COPY audited multi-tenant-safe) → ⛔ **E4 BLOCKED** (vector Managed Memory needs Neon/pgvector → PR #33) → **E5 (next unblocked — XL flagship)** → E9 → E6 → rest. E0–E3 (+COPY, +hardening) = a clean, PR-able batch on `feat/engineer-tier`, each commit build+test green.
+**Build order (begin.yaml ranked):** ✅ **E0** (`priceForMode` contract; 21/21) → ✅ **E1** (hygiene patch + SARIF; 44/44) → ✅ **E2** (Managed Bucket: list/delete/CAS/copy + **mint-time content-type/size policy**; 38/38 — acceptance criteria fully met) → ✅ **E3** (Answer Engine: grounded answer + citations + refusal; 57/57) → ✅ **harden→polish→develop→harden→polish pass** (fixed patch-apply + billing-ladder HIGHs; single-sourced SigV4; capped title DoS; added server-side COPY; COPY audited multi-tenant-safe) → ⛔ **E4 BLOCKED** (vector Managed Memory needs Neon/pgvector → PR #33) → **E5 (next unblocked — XL flagship)** → E9 → E6 → rest. E0–E3 (+COPY, +hardening) = a clean, PR-able batch on `feat/engineer-tier`, each commit build+test green.
 
 ---
 

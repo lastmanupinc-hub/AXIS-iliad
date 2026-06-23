@@ -31,6 +31,10 @@ export interface PresignOptions {
   ttl_seconds: number;
   /** Optional override of `new Date()` for deterministic tests. */
   now?: Date;
+  /** Engineer mint-time policy (PUT only): pin the Content-Type the upload must send (signed header). */
+  content_type?: string;
+  /** Engineer mint-time policy (PUT only): pin the EXACT body size in bytes the upload must be (signed header). */
+  content_length?: number;
 }
 
 export interface PresignResult {
@@ -39,6 +43,8 @@ export interface PresignResult {
   host: string;
   bucket: string;
   key: string;
+  /** Headers the caller MUST send verbatim (signed) — set for COPY and mint-time PUT policy. */
+  required_headers?: Record<string, string>;
 }
 
 /** Sentinel returned when any of the R2 env vars are missing. */
@@ -83,13 +89,33 @@ function deriveSigningKey(secretAccessKey: string, dateStamp: string, region: st
   return hmac(kService, "aws4_request");
 }
 
-/**
- * Produce a pre-signed URL valid for `ttl_seconds`. Returns the URL plus
- * the expiry timestamp (ISO 8601) and the resolved host/bucket/key for
- * client-side logging. Throws only on programmer errors (missing fields
- * in `config`); callers handle "not configured" upstream by checking
- * `readR2ConfigFromEnv() === null` instead.
- */
+// ─── Mint-time PUT policy validators ───────────────────────────
+// content_type becomes a SIGNED header, so its bytes land verbatim in the
+// canonical-headers block AND the client's request — reject anything that isn't
+// printable single-line ASCII (a CR/LF would inject headers into both).
+const MAX_PUT_BYTES = 5 * 1024 * 1024 * 1024; // 5 GiB — R2 single-PUT ceiling
+
+function assertContentType(ct: string): void {
+  if (ct.length === 0 || ct.length > 255) {
+    throw new Error("content_type must be 1..255 chars");
+  }
+  if (!/^[\x20-\x7e]+$/.test(ct)) {
+    throw new Error("content_type must be printable ASCII with no control characters (header-injection guard)");
+  }
+  if (!/^[\w.+-]+\/[\w.+-]+/.test(ct)) {
+    throw new Error("content_type must look like type/subtype");
+  }
+}
+
+function assertContentLength(n: number): void {
+  if (!Number.isInteger(n) || n < 0) {
+    throw new Error("content_length must be a non-negative integer");
+  }
+  if (n > MAX_PUT_BYTES) {
+    throw new Error(`content_length exceeds the ${MAX_PUT_BYTES}-byte single-PUT ceiling`);
+  }
+}
+
 /**
  * Core SigV4 pre-signer for R2 — signs `method` on `canonicalUri` with
  * `extraQuery` params merged into the canonical query string. Single-sourced so
@@ -152,7 +178,14 @@ function buildSignedR2Url(
   };
 }
 
-export function presignR2Url({ config, method, key, ttl_seconds, now }: PresignOptions): PresignResult {
+/**
+ * Produce a pre-signed URL valid for `ttl_seconds` (plus expiry + host/bucket/key
+ * for logging). On PUT, optional content_type/content_length are signed as a
+ * mint-time policy R2 enforces (returned in required_headers). Throws on
+ * programmer errors (incomplete config, bad policy); callers handle "not
+ * configured" upstream via readR2ConfigFromEnv().
+ */
+export function presignR2Url({ config, method, key, ttl_seconds, now, content_type, content_length }: PresignOptions): PresignResult {
   if (!config.account_id || !config.access_key_id || !config.secret_access_key || !config.bucket) {
     throw new Error("presignR2Url: incomplete R2 config");
   }
@@ -164,8 +197,31 @@ export function presignR2Url({ config, method, key, ttl_seconds, now }: PresignO
     // lower 24h cap at the MCP dispatcher layer.
     throw new Error(`presignR2Url: ttl_seconds must be 1..604800 (got ${ttl_seconds})`);
   }
-  const signed = buildSignedR2Url(config, method, `/${config.bucket}/${encodeS3Path(key)}`, [], ttl_seconds, now);
-  return { ...signed, bucket: config.bucket, key };
+
+  // Mint-time policy: pin Content-Type / exact Content-Length as signed headers
+  // so R2 rejects a mismatched upload. PUT only.
+  const extraHeaders: Array<[string, string]> = [];
+  if (content_type !== undefined || content_length !== undefined) {
+    if (method !== "PUT") {
+      throw new Error("presignR2Url: content_type/content_length apply to PUT only");
+    }
+    if (content_type !== undefined) {
+      assertContentType(content_type);
+      extraHeaders.push(["content-type", content_type]);
+    }
+    if (content_length !== undefined) {
+      assertContentLength(content_length);
+      extraHeaders.push(["content-length", String(content_length)]);
+    }
+  }
+
+  const signed = buildSignedR2Url(config, method, `/${config.bucket}/${encodeS3Path(key)}`, [], ttl_seconds, now, extraHeaders);
+  return {
+    ...signed,
+    bucket: config.bucket,
+    key,
+    ...(extraHeaders.length > 0 ? { required_headers: Object.fromEntries(extraHeaders) } : {}),
+  };
 }
 
 // RFC 3986 unreserved set: A-Za-z0-9 - _ . ~ everything else gets encoded.
