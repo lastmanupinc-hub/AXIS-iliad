@@ -166,6 +166,32 @@ describe("POST /portal/api/subscribe", () => {
     expect(sent.metadata.user_email).toBe("case-sub@test.com");
   });
 
+  it("routes Growth (not just Starter) through PAI'D with the right price + tier metadata", async () => {
+    await createAccount("subscribe-growth@test.com");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: "cs_growth", url: "https://pay/cs_growth", status: "open" }), { status: 200 }),
+    );
+    const r = await req("POST", "/portal/api/subscribe", { plan: "monthly", plan_id: "growth", email: "subscribe-growth@test.com" });
+    expect(r.status).toBe(200);
+    const init = fetchSpy.mock.calls[0]![1] as RequestInit;
+    const sent = JSON.parse(String(init.body)) as { amount_total_minor: number; metadata: { plan_id: string; tier: string } };
+    expect(sent.amount_total_minor).toBe(29900); // Growth monthly $299, not Starter $29
+    expect(sent.metadata.plan_id).toBe("growth");
+    expect(sent.metadata.tier).toBe("suite"); // → webhook upgrades the account to suite
+  });
+
+  it("defaults to Starter when no plan_id is sent (back-compat)", async () => {
+    await createAccount("subscribe-default@test.com");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: "cs_def", url: "https://pay/cs_def", status: "open" }), { status: 200 }),
+    );
+    await req("POST", "/portal/api/subscribe", { plan: "monthly", email: "subscribe-default@test.com" });
+    const init = fetchSpy.mock.calls[0]![1] as RequestInit;
+    const sent = JSON.parse(String(init.body)) as { amount_total_minor: number; metadata: { plan_id: string } };
+    expect(sent.amount_total_minor).toBe(2900); // Starter
+    expect(sent.metadata.plan_id).toBe("starter");
+  });
+
   it("never reaches the real network — fetch is mocked", () => {
     expect(vi.isMockFunction(globalThis.fetch)).toBe(true);
   });

@@ -25,6 +25,7 @@ import {
   resolvePaidWebhookSecret,
   PaidError,
   type PaidPlan,
+  type CheckoutPlanId,
 } from "./paid-client.js";
 import {
   getAccountByEmail,
@@ -35,11 +36,17 @@ import {
   PLAN_CATALOG,
 } from "@axis/snapshots";
 
-// PAI'D currently processes the Starter tier for AXIS Iliad; Pro/Growth stay
-// on the Stripe-direct path (apps/api/src/stripe.ts). To route those through
-// PAI'D too, generalize the plan_id below and lift the starter gate in
-// PlansPage — createCheckoutSession is already tier-generic.
-const PAID_PLAN_ID = "starter" as const;
+// All tiers (Starter/Pro/Growth) route through PAI'D. The plan id comes from the
+// request; Starter is the default for back-compat with the old single-tier body.
+const DEFAULT_PAID_PLAN_ID: CheckoutPlanId = "starter";
+
+/** Normalize a requested plan to a PAI'D checkout plan id (accepts tier aliases). */
+function resolvePaidPlanId(raw: unknown): CheckoutPlanId {
+  if (raw === "starter" || raw === "pro" || raw === "growth") return raw;
+  if (raw === "suite") return "growth";
+  if (raw === "paid") return "starter";
+  return DEFAULT_PAID_PLAN_ID;
+}
 
 /** Resolve the authoritative price (minor units) for a plan + cycle. */
 function planPriceCents(planId: string, cycle: PaidPlan): number | null {
@@ -76,7 +83,7 @@ export async function handlePaidSubscribe(
   res: ServerResponse,
 ): Promise<void> {
   const raw = await readBody(req);
-  let body: { plan?: unknown; email?: unknown; idempotency_key?: unknown };
+  let body: { plan?: unknown; plan_id?: unknown; email?: unknown; idempotency_key?: unknown };
   try {
     body = raw ? JSON.parse(raw) : {};
   } catch {
@@ -112,9 +119,10 @@ export async function handlePaidSubscribe(
     return;
   }
 
-  const amountCents = planPriceCents(PAID_PLAN_ID, plan as PaidPlan);
+  const planId = resolvePaidPlanId(body.plan_id);
+  const amountCents = planPriceCents(planId, plan as PaidPlan);
   if (amountCents === null) {
-    log("error", "PAI'D plan price unavailable", { plan_id: PAID_PLAN_ID, cycle: plan });
+    log("error", "PAI'D plan price unavailable", { plan_id: planId, cycle: plan });
     sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Plan price unavailable");
     return;
   }
@@ -123,10 +131,10 @@ export async function handlePaidSubscribe(
   try {
     const session = await createCheckoutSession(
       {
-        planId: PAID_PLAN_ID,
+        planId,
         cycle: plan as PaidPlan,
         amountCents,
-        description: `AXIS Iliad ${PAID_PLAN_ID} (${plan})`,
+        description: `AXIS Iliad ${planId} (${plan})`,
         // Use the stored account email (canonical lowercase) so the
         // user_email PAI'D echoes back in the webhook maps onto the same
         // account, even for legacy mixed-case rows.

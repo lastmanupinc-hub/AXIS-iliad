@@ -20,6 +20,12 @@ export function PaidCheckoutPage() {
   const [plan, setPlan] = useState<"monthly" | "annual">("monthly");
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Which tier the buyer picked on the Plans page (Starter is the back-compat default).
+  const [planId] = useState<"starter" | "pro" | "growth">(() => {
+    const p = sessionStorage.getItem("axis_paid_plan");
+    return p === "pro" || p === "growth" ? p : "starter";
+  });
+  const planLabel = planId.charAt(0).toUpperCase() + planId.slice(1);
 
   const isLoggedIn = !!localStorage.getItem("axis_api_key");
 
@@ -59,7 +65,7 @@ export function PaidCheckoutPage() {
     setError(null);
     setStep("redirecting");
     try {
-      const result = await paidSubscribe(plan, trimmedEmail, crypto.randomUUID());
+      const result = await paidSubscribe(plan, trimmedEmail, crypto.randomUUID(), planId);
       // PAI'D hosts the payment page — hand off the browser to it.
       window.location.href = result.checkout_url;
     } catch (err) {
@@ -107,7 +113,7 @@ export function PaidCheckoutPage() {
   const submitting = step === "redirecting";
   return (
     <div className="card" style={{ maxWidth: 520, margin: "40px auto" }}>
-      <h2 style={{ marginBottom: 4 }}>Subscribe to Starter</h2>
+      <h2 style={{ marginBottom: 4 }}>Subscribe to {planLabel}</h2>
       <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: 16 }}>
         Billed securely through PAI'D. We'll take you to PAI'D's hosted checkout to enter payment.
         Your account is matched by email.

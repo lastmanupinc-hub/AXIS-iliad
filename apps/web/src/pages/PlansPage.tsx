@@ -43,20 +43,20 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
     // Trigger checkout
     setCheckoutLoading(planId);
     setCheckoutError(null);
-    // Starter (tier "paid") can use the embedded PAI'D checkout when the
-    // server has it configured. Probe lazily on click; any failure falls
-    // through to the standard Stripe checkout below.
-    if (planId === "starter") {
-      try {
-        const cfg = await getPaidConfig();
-        if (cfg.configured) {
-          setCheckoutLoading(null);
-          window.location.hash = "paid-checkout";
-          return;
-        }
-      } catch {
-        // Config probe failed — use the standard Stripe checkout.
+    // All paid tiers route through PAI'D when the server has it configured.
+    // Probe lazily on click; any failure falls through to the standard Stripe
+    // checkout below. The chosen tier is handed to the checkout page via
+    // sessionStorage so it can request the right plan.
+    try {
+      const cfg = await getPaidConfig();
+      if (cfg.configured) {
+        sessionStorage.setItem("axis_paid_plan", planId);
+        setCheckoutLoading(null);
+        window.location.hash = "paid-checkout";
+        return;
       }
+    } catch {
+      // Config probe failed — use the standard Stripe checkout.
     }
     try {
       const result = await createCheckout(planId as "starter" | "pro" | "growth", annual ? "annual" : "monthly");
