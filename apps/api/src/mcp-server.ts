@@ -45,6 +45,7 @@ import {
   addDocument as addSearchDocument,
   addDocuments as addSearchDocuments,
   searchDocuments,
+  answerFromHits,
   deleteDocument as deleteSearchDocument,
   deleteSearchNamespace,
   countSearchDocuments,
@@ -893,12 +894,19 @@ function runWebSearch(args: Record<string, unknown>, req: IncomingMessage): stri
     const charge = authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = searchDocuments(scopedNs, opts);
     captureMcpToolCredits(auth.account, charge);
+    // Engineer mode (Answer Engine): a grounded extractive answer with citation
+    // spans over the hits, or a refusal on weak evidence. Charged at the engineer
+    // price automatically via E0's priceForMode.
+    const answer = resolveAgentMode(req) === "engineer" ? answerFromHits(args.query, hits) : null;
     return JSON.stringify({
       operation: "search",
       namespace: scopedNs,
       query: args.query,
       total_in_namespace: countSearchDocuments(scopedNs),
       hits,
+      ...(answer
+        ? { answer: answer.answer, citations: answer.citations, refused: answer.refused, reason: answer.reason }
+        : {}),
     }, null, 2);
   }
 

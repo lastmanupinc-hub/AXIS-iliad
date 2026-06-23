@@ -246,6 +246,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 1,
     lite_cents: 0,
     lite_description: "Free tier: max_results capped at 10 (standard allows up to 100). Indexing is always free.",
+    engineer_cents: 25,
+    engineer_description: "Engineer mode (Answer Engine): returns a grounded extractive answer with [n] citation spans over your corpus, lexically reranked, refusing on weak evidence — a private Perplexity over the documents you indexed.",
   },
   // AXIS-owned document parser: pdfjs-dist for PDF + mammoth for
   // DOCX + pure JS for HTML/text/markdown. All parsing happens

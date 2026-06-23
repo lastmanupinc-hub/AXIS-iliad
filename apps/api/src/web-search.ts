@@ -415,3 +415,91 @@ export function scopeSearchNamespace(
   }
   return `acct:${account_id}:${ns}`;
 }
+
+// ─── Engineer tier (E3): Answer Engine ──────────────────────────
+//
+// A DETERMINISTIC extractive answer over the account's own BM25 corpus: a lexical
+// rerank by query-term coverage, then assemble the best sentence from each top
+// hit into a grounded answer carrying [n] citation spans. Refuses when the best
+// span covers too few of the query terms — no LLM, no hallucinated confidence.
+// True BM25⊕vector fusion + a cross-encoder is E4 (needs pgvector).
+
+export interface AnswerCitation {
+  n: number;
+  doc_id: string;
+  title: string | null;
+  url: string | null;
+  span: string;
+  score: number;
+}
+
+export interface AnswerResult {
+  answer: string;
+  citations: AnswerCitation[];
+  refused: boolean;
+  reason: string;
+  reranked: SearchHit[];
+}
+
+/** Best sentence in `text` by distinct-query-token coverage (ties → first). */
+function bestSpan(text: string, queryTokens: Set<string>): { span: string; coverage: number } {
+  const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  const candidates = sentences.length > 0 ? sentences : [text.trim()];
+  let best = candidates[0] ?? "";
+  let bestCov = -1;
+  for (const s of candidates) {
+    const toks = new Set(tokenize(s));
+    let hit = 0;
+    for (const q of queryTokens) if (toks.has(q)) hit++;
+    const cov = queryTokens.size > 0 ? hit / queryTokens.size : 0;
+    if (cov > bestCov) { bestCov = cov; best = s; }
+  }
+  return { span: best, coverage: Math.max(0, bestCov) };
+}
+
+/**
+ * Build a grounded extractive answer from ranked BM25 hits. Reranks by
+ * BM25-score × (1 + best-span coverage) so broadly on-topic hits beat
+ * single-term spikes; refuses when even the top hit's best span covers fewer
+ * than `min_coverage` of the query's distinct terms.
+ */
+export function answerFromHits(
+  query: string,
+  hits: SearchHit[],
+  opts?: { max_citations?: number; min_coverage?: number },
+): AnswerResult {
+  const maxCit = Math.max(1, Math.min(opts?.max_citations ?? 3, 10));
+  const minCov = opts?.min_coverage ?? 0.5;
+  const queryTokens = new Set(tokenize(query));
+
+  const scored = hits.map(h => {
+    const { coverage } = bestSpan(`${h.title ?? ""} ${h.snippet}`, queryTokens);
+    // Coverage-primary rerank: how many distinct query terms the hit addresses,
+    // scaled by a log of the BM25 magnitude — so a high-frequency single-term
+    // spike can't outrank a hit that actually covers the question.
+    return { h, coverage, rerank: coverage * (1 + Math.log(1 + Math.max(0, h.score))) };
+  });
+  scored.sort((a, b) => (b.rerank - a.rerank) || (a.h.doc_id < b.h.doc_id ? -1 : a.h.doc_id > b.h.doc_id ? 1 : 0));
+  const reranked = scored.map(s => s.h);
+  const maxCoverage = scored.reduce((m, s) => Math.max(m, s.coverage), 0);
+
+  if (scored.length === 0 || maxCoverage < minCov) {
+    return {
+      answer: "",
+      citations: [],
+      refused: true,
+      reason:
+        scored.length === 0
+          ? "No document in your indexed corpus matches the query."
+          : `Insufficient evidence: the best match covers only ${Math.round(maxCoverage * 100)}% of the query terms (need ${Math.round(minCov * 100)}%). Index more sources or rephrase.`,
+      reranked,
+    };
+  }
+
+  const citations: AnswerCitation[] = scored.slice(0, maxCit).map((s, i) => {
+    const { span } = bestSpan(s.h.snippet, queryTokens);
+    return { n: i + 1, doc_id: s.h.doc_id, title: s.h.title, url: s.h.url, span, score: Math.round(s.rerank * 1000) / 1000 };
+  });
+  const answer = citations.map(c => `${c.span} [${c.n}]`).join(" ");
+  return { answer, citations, refused: false, reason: "", reranked };
+}
