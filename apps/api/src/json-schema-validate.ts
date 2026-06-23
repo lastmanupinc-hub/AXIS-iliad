@@ -57,6 +57,7 @@ function validate(value: unknown, schema: unknown, path: string, errors: string[
     if (typeof s.maxLength === "number" && str.length > s.maxLength) errors.push(`${path}: longer than maxLength ${s.maxLength}`);
   } else if (t === "number") {
     const n = value as number;
+    if (!Number.isFinite(n)) errors.push(`${path}: must be a finite number`); // reject NaN/Infinity
     if (typeof s.minimum === "number" && n < s.minimum) errors.push(`${path}: below minimum ${s.minimum}`);
     if (typeof s.maximum === "number" && n > s.maximum) errors.push(`${path}: above maximum ${s.maximum}`);
   } else if (t === "array") {
@@ -68,18 +69,22 @@ function validate(value: unknown, schema: unknown, path: string, errors: string[
     }
   } else if (t === "object") {
     const obj = value as Record<string, unknown>;
+    // OWN-property semantics throughout — `key in obj` would walk the prototype
+    // chain, so a model emitting {"__proto__":…} or a schema requiring
+    // "constructor"/"toString" would falsely pass (a valid:true on invalid data).
+    const has = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
     if (Array.isArray(s.required)) {
       for (const key of s.required) {
-        if (typeof key === "string" && !(key in obj)) errors.push(`${path}.${key}: required property missing`);
+        if (typeof key === "string" && !has(obj, key)) errors.push(`${path}.${key}: required property missing`);
       }
     }
     const props = s.properties && typeof s.properties === "object" ? (s.properties as Record<string, unknown>) : {};
     for (const [key, sub] of Object.entries(props)) {
-      if (key in obj) validate(obj[key], sub, `${path}.${key}`, errors, depth + 1);
+      if (has(obj, key)) validate(obj[key], sub, `${path}.${key}`, errors, depth + 1);
     }
     if (s.additionalProperties === false) {
       for (const key of Object.keys(obj)) {
-        if (!(key in props)) errors.push(`${path}.${key}: additional property not allowed`);
+        if (!has(props, key)) errors.push(`${path}.${key}: additional property not allowed`);
       }
     }
   }

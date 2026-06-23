@@ -54,6 +54,19 @@ describe("validateAgainstSchema — objects", () => {
     expect(r.valid).toBe(false);
     expect(r.errors.some((e) => e.includes("$.age"))).toBe(true);
   });
+
+  it("rejects prototype-named keys (no in-operator chain bypass)", () => {
+    const s = { type: "object", properties: { a: {} }, additionalProperties: false };
+    bad(JSON.parse('{"a":1,"__proto__":{"z":1}}'), s); // own __proto__ extra → rejected
+    bad(JSON.parse('{"a":1,"constructor":1}'), s); // constructor extra → rejected
+    bad({ a: 1 }, { type: "object", required: ["constructor"], properties: { a: {} } }); // absent required not satisfied via proto
+    bad({ a: 1 }, { type: "object", required: ["toString"], properties: { a: {} } });
+  });
+
+  it("rejects NaN / Infinity for type number", () => {
+    bad(NaN, { type: "number" });
+    bad(Infinity, { type: "number", minimum: 0 });
+  });
 });
 
 describe("validateAgainstSchema — const + depth guard", () => {
