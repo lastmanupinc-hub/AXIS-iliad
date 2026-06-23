@@ -36,7 +36,7 @@
 
 **Bundle:** Engineer Pass (subscription / credit-pack) unlocks `engineer` across all tools at a discount; Agency/white-label tier on top (resale + higher referral caps). Per-tool designer prices in the design note.
 
-**Build order (begin.yaml ranked):** ✅ **E0 DONE** (`priceForMode` one-door contract + 402 advertisement; mpp.test 19/19) → ✅ **E1 DONE** (hygiene Security Engineer: applyable patch + SARIF; 42/42) → **E2 (next)** → E3 → (E4 after Neon PR #33) → E5 → E9 → E6 → rest. All on branch `feat/engineer-tier`.
+**Build order (begin.yaml ranked):** ✅ **E0** (`priceForMode` contract; 19/19) → ✅ **E1** (hygiene patch + SARIF; 42/42) → ✅ **E2 DONE** (Managed Bucket: list/delete/CAS dedup; 26/26) → **E3 (next)** → (E4 after Neon PR #33) → E5 → E9 → E6 → rest. All on branch `feat/engineer-tier` (E0–E2 = 3 commits, each build+test green).
 
 ---
 
