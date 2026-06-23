@@ -32,20 +32,31 @@ function normalizeCheckoutPlanId(raw: unknown): CheckoutPlanId | null {
   return null;
 }
 
+/**
+ * Extract the bare Stripe price id, tolerating a value pasted with a trailing
+ * label (e.g. `price_1Tk… (monthly $29.00)` → `price_1Tk…`). Guards against the
+ * common dashboard copy-paste that makes Stripe return "No such price".
+ */
+export function cleanPriceId(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const m = value.trim().match(/^(price_[A-Za-z0-9]+)/);
+  return m ? m[1] : value.trim();
+}
+
 function resolveCheckoutPriceId(planId: CheckoutPlanId, billingCycle: "monthly" | "annual"): string | undefined {
   switch (planId) {
     case "starter":
-      return billingCycle === "annual"
+      return cleanPriceId(billingCycle === "annual"
         ? process.env.STRIPE_PRICE_ID_STARTER_ANNUAL ?? process.env.STRIPE_PRICE_ID_PAID_ANNUAL
-        : process.env.STRIPE_PRICE_ID_STARTER ?? process.env.STRIPE_PRICE_ID_PAID;
+        : process.env.STRIPE_PRICE_ID_STARTER ?? process.env.STRIPE_PRICE_ID_PAID);
     case "pro":
-      return billingCycle === "annual"
+      return cleanPriceId(billingCycle === "annual"
         ? process.env.STRIPE_PRICE_ID_PRO_ANNUAL
-        : process.env.STRIPE_PRICE_ID_PRO;
+        : process.env.STRIPE_PRICE_ID_PRO);
     case "growth":
-      return billingCycle === "annual"
+      return cleanPriceId(billingCycle === "annual"
         ? process.env.STRIPE_PRICE_ID_GROWTH_ANNUAL ?? process.env.STRIPE_PRICE_ID_SUITE
-        : process.env.STRIPE_PRICE_ID_GROWTH ?? process.env.STRIPE_PRICE_ID_SUITE;
+        : process.env.STRIPE_PRICE_ID_GROWTH ?? process.env.STRIPE_PRICE_ID_SUITE);
   }
 }
 

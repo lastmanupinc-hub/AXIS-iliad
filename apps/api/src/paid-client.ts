@@ -71,16 +71,42 @@ export class PaidError extends Error {
   }
 }
 
+/**
+ * Resolve PAI'D's base URL, tolerating the three names the estate uses for it:
+ * PAI'D server reads `PAID_API_URL`, Iliad `PAID_API_BASE_URL`, Avatar `PAID_BASE_URL`.
+ */
+export function resolvePaidBaseUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.PAID_API_BASE_URL ?? env.PAID_API_URL ?? env.PAID_BASE_URL;
+}
+
+/**
+ * Resolve the PAI'D webhook secret. PAI'D **signs** with `PAID_WEBHOOK_SECRET`; Iliad
+ * historically **verified** with `PAID_WEBHOOK_SIGNING_KEY`. Accept either so a name
+ * mismatch can't silently reject fulfilment webhooks (payment ok, grant never applied).
+ */
+export function resolvePaidWebhookSecret(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  return env.PAID_WEBHOOK_SIGNING_KEY ?? env.PAID_WEBHOOK_SECRET;
+}
+
+/** True when PAI'D can be reached as a merchant — tolerant of the base-URL name variants. */
+export function isPaidConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(
+    resolvePaidBaseUrl(env) &&
+    (env.PAID_MERCHANT_ID || env.PAID_ACCOUNT_ID) &&
+    env.PAID_API_KEY,
+  );
+}
+
 export function loadPaidConfig(env: NodeJS.ProcessEnv = process.env): PaidConfig {
   const apiKey = env.PAID_API_KEY;
   const merchantId = env.PAID_MERCHANT_ID ?? env.PAID_ACCOUNT_ID;
   if (!apiKey) throw new Error("PAID_API_KEY is not set (see .env.local)");
   if (!merchantId) throw new Error("PAID_MERCHANT_ID is not set (see .env.local)");
   return {
-    apiBaseUrl: (env.PAID_API_BASE_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, ""),
+    apiBaseUrl: (resolvePaidBaseUrl(env) ?? DEFAULT_BASE_URL).replace(/\/+$/, ""),
     apiKey,
     merchantId,
-    webhookSigningKey: env.PAID_WEBHOOK_SIGNING_KEY,
+    webhookSigningKey: resolvePaidWebhookSecret(env),
   };
 }
 

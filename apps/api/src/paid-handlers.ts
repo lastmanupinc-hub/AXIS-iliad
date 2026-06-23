@@ -21,6 +21,8 @@ import {
   createCheckoutSession,
   loadPaidConfig,
   verifyPaidWebhookSignature,
+  isPaidConfigured,
+  resolvePaidWebhookSecret,
   PaidError,
   type PaidPlan,
 } from "./paid-client.js";
@@ -176,10 +178,7 @@ export async function handlePaidConfig(
   res: ServerResponse,
 ): Promise<void> {
   const env = process.env;
-  const configured =
-    Boolean(env.PAID_API_BASE_URL) &&
-    Boolean(env.PAID_MERCHANT_ID || env.PAID_ACCOUNT_ID) &&
-    Boolean(env.PAID_API_KEY);
+  const configured = isPaidConfigured(env);
   sendJSON(res, 200, { configured });
 }
 
@@ -260,7 +259,7 @@ export async function handlePaidWebhook(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const signingKey = process.env.PAID_WEBHOOK_SIGNING_KEY;
+  const signingKey = resolvePaidWebhookSecret();
   if (!signingKey) {
     sendError(res, 503, ErrorCode.INTERNAL_ERROR, "PAID webhook signing key not configured");
     return;
