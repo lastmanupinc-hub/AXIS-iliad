@@ -93,7 +93,7 @@ import type { GeneratorResult } from "@axis/generator-core";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
-import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
+import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchNotConfigured } from "./web-research.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
@@ -2887,7 +2887,8 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   if (rawCount > limits.max_files_per_snapshot) {
     throw new Error(`File limit: ${rawCount} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`);
   }
-  const mode = args.mode === "fix" ? "fix" : "scan";
+  const wantEngineer = resolveAgentMode(req) === "engineer";
+  const mode = wantEngineer || args.mode === "fix" ? "fix" : "scan";
   const files = coerceHygieneFiles(args);
   const config =
     args.config && typeof args.config === "object" && !Array.isArray(args.config)
@@ -2898,16 +2899,30 @@ function runHygiene(args: Record<string, unknown>, req: IncomingMessage): string
   if (mode === "scan") {
     // FREE path - no meterMcpToolCredits call.
     return JSON.stringify(
-      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered)." },
+      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered), or send X-Agent-Mode: engineer for a git-applyable patch + SARIF (Security Engineer tier)." },
       null,
       2,
     );
   }
 
-  // PAID path - bill before producing the remediation plan.
+  // PAID path - bill before producing the plan. Engineer mode (X-Agent-Mode:
+  // engineer) charges the engineer price automatically via priceForMode.
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_hygiene");
   const plan = buildRemediationPlan(report);
   captureMcpToolCredits(auth.account, charge);
+  if (wantEngineer) {
+    return JSON.stringify(
+      {
+        mode: "engineer",
+        ...report,
+        remediation_plan: plan,
+        patch: buildHygienePatch(report, files),
+        sarif: buildHygieneSarif(report),
+      },
+      null,
+      2,
+    );
+  }
   return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
 }
 

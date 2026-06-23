@@ -264,6 +264,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: remediation plan returns ordered steps + .gitignore additions only (standard adds full per-finding detail). Scan mode is always free.",
+    engineer_cents: 500,
+    engineer_description: "Engineer mode (Security Engineer): the fix as a git-applyable unified-diff patch (.gitignore auto-fixes) + a SARIF 2.1.0 log of all findings for CI code-scanning gates.",
   },
   default: {
     tool: "default",

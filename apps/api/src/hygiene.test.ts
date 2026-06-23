@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
+import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 
 const f = (path: string, content: string): HygieneFile => ({ path, content, size: Buffer.byteLength(content, "utf-8") });
 
@@ -153,5 +153,58 @@ describe("iliad_hygiene rule engine", () => {
     const r = runHygieneScan([f("assets/a.obj", body), f("assets/b.obj", body)]);
     const dup = r.findings.find(x => x.ruleId === "duplicate_content");
     expect(dup?.recommendedAction).toMatch(/remove the redundant/);
+  });
+});
+
+// ─── Engineer tier (E1): patch + SARIF ──────────────────────────
+// Minimal applier for the two patch shapes this engine emits, so the test
+// proves the patch is semantically correct (not just well-formed).
+function applyGitignorePatch(original: string, patch: string): string {
+  const adds = patch.split("\n").filter(l => l.startsWith("+") && !l.startsWith("+++")).map(l => l.slice(1));
+  if (patch.includes("--- /dev/null")) return adds.join("\n") + "\n";
+  return original.replace(/\n+$/, "") + "\n" + adds.join("\n") + "\n";
+}
+
+describe("iliad_hygiene — engineer tier (patch + SARIF)", () => {
+  it("creates a /dev/null .gitignore patch when none exists, and it applies", () => {
+    const files = [f("dist/app.js", "console.log(1)")];
+    const patch = buildHygienePatch(runHygieneScan(files), files);
+    expect(patch).toContain("--- /dev/null");
+    expect(patch).toContain("+++ b/.gitignore");
+    expect(patch).toContain("@@ -0,0 +1,");
+    expect(patch).toMatch(/^\+dist\/$/m);
+    expect(applyGitignorePatch("", patch)).toContain("dist/");
+  });
+
+  it("appends to an existing .gitignore with the last line as context, and it applies", () => {
+    const existing = "node_modules/\n";
+    const files = [f("dist/app.js", "x"), f(".gitignore", existing)];
+    const patch = buildHygienePatch(runHygieneScan(files), files);
+    expect(patch).toContain("--- a/.gitignore");
+    expect(patch).toContain(" node_modules/"); // single context line
+    expect(patch).toMatch(/^\+dist\/$/m);
+    const applied = applyGitignorePatch(existing, patch);
+    expect(applied).toContain("node_modules/");
+    expect(applied).toContain("dist/");
+  });
+
+  it("returns an empty patch when there is nothing safely auto-fixable", () => {
+    const files = [f("src/a.ts", "export const a = 1;\n"), f("src/a.test.ts", "test('a',()=>{})\n")];
+    expect(buildHygienePatch(runHygieneScan(files), files)).toBe("");
+  });
+
+  it("emits a valid SARIF 2.1.0 log with severity→level mapping", () => {
+    const files = [f("config.ts", 'export const KEY = "sk_live_0123456789abcdefghij";\n')];
+    const sarif = buildHygieneSarif(runHygieneScan(files)) as Record<string, unknown>;
+    expect(sarif.version).toBe("2.1.0");
+    const run = (sarif.runs as Array<Record<string, unknown>>)[0];
+    const driver = (run.tool as Record<string, Record<string, unknown>>).driver;
+    expect(driver.name).toBe("iliad-hygiene");
+    const results = run.results as Array<Record<string, unknown>>;
+    expect(results.length).toBeGreaterThan(0);
+    const secret = results.find(r => r.ruleId === "secret_scan")!;
+    expect(secret.level).toBe("error"); // high → error
+    const loc = (secret.locations as Array<Record<string, Record<string, Record<string, string>>>>)[0];
+    expect(loc.physicalLocation.artifactLocation.uri).toBe("config.ts");
   });
 });
