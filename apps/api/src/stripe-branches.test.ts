@@ -937,10 +937,14 @@ describe("additional branch coverage", () => {
     // Create account + subscription, then delete the account so syncTier finds no account
     const account = await createAccount("Ghost Acct", "ghost-acct-branches@test.com", "free");
     await seedSubscription(account.account_id, "sub_ghost_acct_branch");
-    // Disable FK checks so upsertSubscription can re-run with a deleted account_id,
-    // then delete the account so getAccount returns null inside syncTierFromStripeSubscription
-    await sql.run("SET session_replication_role = replica");
-    await sql.run("DELETE FROM accounts WHERE account_id = ?", [account.account_id]);
+    // Delete the account while its subscription still references it, so getAccount
+    // returns null inside syncTierFromStripeSubscription. SET LOCAL
+    // session_replication_role = replica disables FK triggers for this transaction;
+    // the dedicated tx client guarantees the bypass and the DELETE share one connection.
+    await sql.tx(async (c) => {
+      await c.query("SET LOCAL session_replication_role = replica");
+      await c.query("DELETE FROM accounts WHERE account_id = $1", [account.account_id]);
+    });
 
     const payload = JSON.stringify(
       buildSubscriptionEvent("customer.subscription.updated", "sub_ghost_acct_branch", account.account_id),
@@ -949,7 +953,6 @@ describe("additional branch coverage", () => {
       "stripe-signature": signStripePayload(payload),
     });
 
-    await sql.run("SET session_replication_role = origin");
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     // No crash — syncTierFromStripeSubscription returned early since account was deleted

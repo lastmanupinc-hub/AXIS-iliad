@@ -21,6 +21,7 @@ export type { DbMaintenanceResult } from "./db.js";
 export { sql, getPool, peekPool, closePool, pgPlaceholders } from "./pg.js";
 export { runPgMigrations, getPgSchemaVersion, dropAllPgTables, PG_LATEST_VERSION } from "./pg-schema.js";
 export { resetTestDb, closeTestDb } from "./pg-test.js";
+export { getPgDbStats, pgIntegrityCheck, runPgMaintenance } from "./pg-maintenance.js";
 
 // Search
 export type { SearchIndexEntry, SearchResult, CodeSymbol, SymbolSearchResult, SymbolType } from "./search-store.js";

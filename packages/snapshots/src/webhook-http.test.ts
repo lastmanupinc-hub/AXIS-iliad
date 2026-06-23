@@ -225,8 +225,7 @@ describe("processRetryQueue — production HTTP dispatch (no sendFn)", () => {
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"retry":true}', 500, "server error", false, 1);
 
     // Move next_retry_at to the past so it's eligible
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
 
     const count = await processRetryQueue(); // no sendFn — production path
     expect(count).toBe(1);
@@ -251,8 +250,7 @@ describe("processRetryQueue — production HTTP dispatch (no sendFn)", () => {
     const wh = await createWebhook(acct.account_id, `http://127.0.0.1:${RECEIVER_PORT}/retry-sig`, ["snapshot.created"], "retry-secret");
 
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"signed_retry":true}', 500, "error", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
 
     await processRetryQueue();
     await new Promise((r) => setTimeout(r, 300));
@@ -266,8 +264,7 @@ describe("processRetryQueue — production HTTP dispatch (no sendFn)", () => {
     const wh = await createWebhook(acct.account_id, `http://127.0.0.1:${RECEIVER_PORT}/retry-fail`, ["snapshot.created"]);
 
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"will_fail":true}', 500, "error", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
 
     nextReceiverStatus = 503;
     await processRetryQueue();
@@ -285,8 +282,7 @@ describe("processRetryQueue — production HTTP dispatch (no sendFn)", () => {
     const wh = await createWebhook(acct.account_id, "http://127.0.0.1:44499/dead", ["snapshot.created"]);
 
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"conn_error":true}', null, "refused", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
 
     await processRetryQueue();
     await new Promise((r) => setTimeout(r, 500));
@@ -303,8 +299,7 @@ describe("processRetryQueue — production HTTP dispatch (no sendFn)", () => {
     const wh = await createWebhook(acct.account_id, `http://127.0.0.1:${RECEIVER_PORT}/tmp`, ["snapshot.created"]);
 
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"url_err":true}', 500, "error", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
     // Break the URL after seeding
     await sql.run("UPDATE webhooks SET url = ? WHERE webhook_id = ?", ["://broken", wh.webhook_id]);
 

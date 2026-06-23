@@ -227,7 +227,7 @@ describe("GeneratorResult validation edge cases", () => {
     const snap = await createSnapshot(makeInput());
     // Directly insert a valid JSON string (not an object)
     await sql.run(
-      "INSERT OR REPLACE INTO generator_results (snapshot_id, data) VALUES (?, ?)",
+      "INSERT INTO generator_results (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data",
       [snap.snapshot_id, JSON.stringify("just a string")],
     );
     expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();

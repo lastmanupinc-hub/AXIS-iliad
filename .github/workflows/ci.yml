@@ -18,6 +18,22 @@ jobs:
       matrix:
         node-version: [20, 22]
 
+    # Phase 6 of the Neon migration: the suite runs against a real Postgres
+    # (the data layer is async pg; tests provision/truncate via resetTestDb).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: axis_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v5
 
@@ -42,6 +58,8 @@ jobs:
         run: pnpm -r build
 
       - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/axis_test
         run: npx vitest run --coverage --coverage.provider=v8 --coverage.reporter=text --coverage.reporter=json-summary --coverage.reportDir=coverage
 
       - name: Type-check
@@ -109,12 +127,12 @@ jobs:
           docker push ghcr.io/lastmanupinc-hub/axis-api:latest
           docker push ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }}
 
-  # GöÇGöÇ Deploy API to Render GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+  # Gï¿½ï¿½Gï¿½ï¿½ Deploy API to Render Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½
   # Render pulls the pre-built image from ghcr.io/lastmanupinc-hub/axis-api:latest
   # Configure Render service to use "Image" deploy with that URL.
-  # No build minutes consumed GÇö image is built by GitHub Actions above.
+  # No build minutes consumed Gï¿½ï¿½ image is built by GitHub Actions above.
 
-  # GöÇGöÇ Deploy Web to Cloudflare Pages GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+  # Gï¿½ï¿½Gï¿½ï¿½ Deploy Web to Cloudflare Pages Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½
   deploy-web:
     runs-on: ubuntu-latest
     needs: build-and-test

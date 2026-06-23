@@ -240,7 +240,7 @@ describe("getFunnelMetrics — deeper coverage", () => {
     await trackEvent(acct.account_id, "account_created", "signup", {});
     // Backdate one event to 48h ago
     const old = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    await sql.run("UPDATE funnel_events SET created_at = ? WHERE rowid = (SELECT MIN(rowid) FROM funnel_events)", [old]);
+    await sql.run("UPDATE funnel_events SET created_at = ? WHERE event_id = (SELECT event_id FROM funnel_events ORDER BY created_at ASC LIMIT 1)", [old]);
     // Add a recent event
     await trackEvent(acct.account_id, "snapshot_created", "activation", {});
 

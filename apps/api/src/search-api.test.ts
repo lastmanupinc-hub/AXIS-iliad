@@ -104,7 +104,7 @@ async function seedSnapshot(snapshotId = "snap1") {
     { path: "README.md", content: "# Test Project\nA sample project\n", size: 35 },
   ];
   await sql.run(
-    "INSERT OR REPLACE INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET project_id = EXCLUDED.project_id, created_at = EXCLUDED.created_at, input_method = EXCLUDED.input_method, manifest = EXCLUDED.manifest, file_count = EXCLUDED.file_count, total_size_bytes = EXCLUDED.total_size_bytes, files = EXCLUDED.files, status = EXCLUDED.status",
     [snapshotId, "p1", "2024-01-01", "api_submission", "{}", files.length, 140, JSON.stringify(files), "ready"],
   );
   return files;
@@ -283,7 +283,7 @@ async function seedSnapshotWithCode(snapshotId = "code-snap") {
     { path: "src/models.ts", content: "export class UserModel {}\nexport interface UserPayload { id: string; }\n", size: 70 },
   ];
   await sql.run(
-    "INSERT OR REPLACE INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET project_id = EXCLUDED.project_id, created_at = EXCLUDED.created_at, input_method = EXCLUDED.input_method, manifest = EXCLUDED.manifest, file_count = EXCLUDED.file_count, total_size_bytes = EXCLUDED.total_size_bytes, files = EXCLUDED.files, status = EXCLUDED.status",
     [snapshotId, "codep", "2024-01-01", "api_submission", "{}", files.length, 140, JSON.stringify(files), "ready"],
   );
   return files;

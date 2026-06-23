@@ -29,8 +29,8 @@ import {
   indexSymbols,
   searchSymbols,
   getSymbolStats,
-  runMaintenance,
-  getDbStats,
+  runPgMaintenance,
+  getPgDbStats,
   getGitHubTokenDecrypted,
   lookupReferralCode,
   recordReferralConversion,
@@ -753,7 +753,7 @@ export async function handleDbStats(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const stats = getDbStats();
+  const stats = await getPgDbStats();
   /* v8 ignore next  -  V8 quirk: stats always succeed in test DB */
   sendJSON(res, stats.success ? 200 : 500, stats);
 }
@@ -762,7 +762,7 @@ export async function handleDbMaintenance(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const results = runMaintenance();
+  const results = await runPgMaintenance();
   const allOk = results.every((r) => r.success);
   /* v8 ignore next  -  V8 quirk: maintenance always succeeds in test DB */
   sendJSON(res, allOk ? 200 : 500, { results, success: allOk });

@@ -97,8 +97,7 @@ describe("getPendingRetries", () => {
     // Set next_retry_at to the past
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"r":1}', 500, "err", false, 1);
     // Manually set next_retry_at to now-1s so it's eligible
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
     const pending = await getPendingRetries();
     expect(pending.length).toBeGreaterThanOrEqual(1);
     expect(pending[0]!.webhook_id).toBe(wh.webhook_id);
@@ -177,8 +176,7 @@ describe("processRetryQueue", () => {
     // Record a failed delivery
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", false, 1);
     // Set next_retry_at to the past
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second')", []);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ?", [new Date(Date.now() - 1000).toISOString()]);
 
     const calls: Array<{ url: string; headers: Record<string, string> }> = [];
     const sendFn = async (_wh: { url: string }, _payload: string, headers: Record<string, string>) => {
@@ -203,39 +201,33 @@ describe("processRetryQueue", () => {
     expect(retryDelivery!.success).toBe(true);
   });
 
-  // FLAG(pg): this whole test relies on SQLite-only db.pragma("foreign_keys = OFF/ON")
-  // to insert an orphan webhook_deliveries row that violates the FK to webhooks.
-  // Postgres has no per-statement pragma; the nearest equivalent
-  // (SET session_replication_role = replica) is connection-scoped and unreliable on
-  // a pooled connection (each sql.* call may run on a different client). Needs a
-  // manual rewrite — e.g. keep the webhook row, deactivate it, or seed via sql.tx
-  // on one client with session_replication_role set inside the transaction.
   it("dead-letters when webhook is deleted", async () => {
     const acct = await createAccount("Test", "process-2@test.com");
     const wh = await createWebhook(acct.account_id, "https://example.com/hook", ["snapshot.created"]);
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE webhook_id = ?", [wh.webhook_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE webhook_id = ?", [new Date(Date.now() - 1000).toISOString(), wh.webhook_id]);
 
-    // Remove deliveries first (FK), then delete webhook, then re-insert orphan with FK off
+    // Remove deliveries first (FK), then delete webhook, then re-insert an orphan row
+    // that violates the FK to webhooks. SET LOCAL session_replication_role = replica
+    // disables FK triggers for the duration of this transaction; the dedicated tx
+    // client guarantees the bypass and the INSERT share one connection.
     await sql.run("DELETE FROM webhook_deliveries WHERE webhook_id = ?", [wh.webhook_id]);
     await deleteWebhook(wh.webhook_id);
-    // FLAG(pg): no sql equivalent for db.pragma("foreign_keys = OFF") — see test-level note above.
-    await sql.run("SET session_replication_role = replica", []);
-    // FLAG(pg): datetime('now') is SQLite-only — Postgres needs e.g. now()::text.
-    await sql.run(
-      "INSERT INTO webhook_deliveries (delivery_id, webhook_id, event_type, payload, status_code, response_body, success, attempted_at, attempt_number, next_retry_at, dead_lettered) VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'), 1, datetime('now', '-1 second'), 0)",
-      ["retry-orphan-del", wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err"],
-    );
-    await sql.run("SET session_replication_role = origin", []);
+    const now = new Date().toISOString();
+    const pastRetry = new Date(Date.now() - 1000).toISOString();
+    await sql.tx(async (c) => {
+      await c.query("SET LOCAL session_replication_role = replica");
+      await c.query(
+        "INSERT INTO webhook_deliveries (delivery_id, webhook_id, event_type, payload, status_code, response_body, success, attempted_at, attempt_number, next_retry_at, dead_lettered) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, 1, $8, 0)",
+        ["retry-orphan-del", wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", now, pastRetry],
+      );
+    });
 
     const processed = await processRetryQueue();
     expect(processed).toBe(1);
 
     // Original delivery should be marked dead-lettered in-place
-    await sql.run("SET session_replication_role = replica", []);
     const row = await sql.one("SELECT dead_lettered, response_body FROM webhook_deliveries WHERE delivery_id = ?", ["retry-orphan-del"]) as any;
-    await sql.run("SET session_replication_role = origin", []);
     expect(row.dead_lettered).toBe(1);
     expect(row.response_body).toBe("webhook_disabled_or_deleted");
   });
@@ -244,8 +236,7 @@ describe("processRetryQueue", () => {
     const acct = await createAccount("Test", "process-3@test.com");
     const wh = await createWebhook(acct.account_id, "https://example.com/hook", ["snapshot.created"]);
     const d = await recordDelivery(wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE delivery_id = ?", [d.delivery_id]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE delivery_id = ?", [new Date(Date.now() - 1000).toISOString(), d.delivery_id]);
 
     await updateWebhookActive(wh.webhook_id, false);
 
@@ -264,8 +255,7 @@ describe("processRetryQueue", () => {
     const acct = await createAccount("Test", "process-4@test.com");
     const wh = await createWebhook(acct.account_id, "https://example.com/hook", ["snapshot.created"]);
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second')", []);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ?", [new Date(Date.now() - 1000).toISOString()]);
 
     const sendFn = async () => ({ status_code: 500, response_body: "still failing", success: false });
     await processRetryQueue(sendFn as any);
@@ -283,8 +273,7 @@ describe("processRetryQueue", () => {
     const wh = await createWebhook(acct.account_id, "https://example.com/hook", ["snapshot.created"]);
     // Record at attempt MAX-1 so next is the max
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", false, MAX_RETRY_ATTEMPTS - 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second') WHERE attempt_number = ?", [MAX_RETRY_ATTEMPTS - 1]);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ? WHERE attempt_number = ?", [new Date(Date.now() - 1000).toISOString(), MAX_RETRY_ATTEMPTS - 1]);
 
     const sendFn = async () => ({ status_code: 500, response_body: "still failing", success: false });
     await processRetryQueue(sendFn as any);
@@ -317,8 +306,7 @@ describe("getPendingRetries empty result", () => {
     const acct = await createAccount("Test", "catch-path@test.com");
     const wh = await createWebhook(acct.account_id, "https://example.com/hook", ["snapshot.created"], "my-secret");
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"x":1}', 500, "err", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second')", []);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ?", [new Date(Date.now() - 1000).toISOString()]);
 
     const sendFn = async () => { throw new Error("network failure"); };
 
@@ -340,8 +328,7 @@ describe("getPendingRetries empty result", () => {
     const acct = await createAccount("Test", "sig-path@test.com");
     const wh = await createWebhook(acct.account_id, "https://example.com/hook", ["snapshot.created"], "my-secret-key");
     await recordDelivery(wh.webhook_id, "snapshot.created", '{"test":true}', 500, "err", false, 1);
-    // FLAG(pg): datetime('now', '-1 second') is SQLite-only — Postgres needs e.g. (now() - interval '1 second')::text.
-    await sql.run("UPDATE webhook_deliveries SET next_retry_at = datetime('now', '-1 second')", []);
+    await sql.run("UPDATE webhook_deliveries SET next_retry_at = ?", [new Date(Date.now() - 1000).toISOString()]);
 
     let capturedHeaders: Record<string, string> = {};
     const sendFn = async (_wh: unknown, _payload: string, headers: Record<string, string>) => {

@@ -179,19 +179,19 @@ describe("snapshot corruption resilience", () => {
 
   it("getContextMap returns undefined for corrupted data", async () => {
     const snap = await createSnapshot(makeInput());
-    await sql.run("INSERT OR REPLACE INTO context_maps (snapshot_id, data) VALUES (?, ?)", [snap.snapshot_id, "not-json"]);
+    await sql.run("INSERT INTO context_maps (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data", [snap.snapshot_id, "not-json"]);
     expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
   it("getRepoProfile returns undefined for corrupted data", async () => {
     const snap = await createSnapshot(makeInput());
-    await sql.run("INSERT OR REPLACE INTO repo_profiles (snapshot_id, data) VALUES (?, ?)", [snap.snapshot_id, "{broken"]);
+    await sql.run("INSERT INTO repo_profiles (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data", [snap.snapshot_id, "{broken"]);
     expect(await getRepoProfile(snap.snapshot_id)).toBeUndefined();
   });
 
   it("getGeneratorResult returns undefined for corrupted data", async () => {
     const snap = await createSnapshot(makeInput());
-    await sql.run("INSERT OR REPLACE INTO generator_results (snapshot_id, data) VALUES (?, ?)", [snap.snapshot_id, "nope"]);
+    await sql.run("INSERT INTO generator_results (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data", [snap.snapshot_id, "nope"]);
     expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 
