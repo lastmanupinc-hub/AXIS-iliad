@@ -207,6 +207,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: timeout_seconds capped at 10 (standard allows up to 600) + python/bash only (no node).",
+    engineer_cents: 25,
+    engineer_description: "Engineer mode (Verified Exec): a signed Ed25519 attestation binding code-hash → output-hash + an append-only chain entry, so another agent can trust the result without re-running it.",
   },
   // AXIS-owned audio transcription via whisper.cpp + ffmpeg-static.
   // CPU-bound inference but throughput is reasonable (base.en runs

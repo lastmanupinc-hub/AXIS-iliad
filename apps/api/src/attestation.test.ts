@@ -17,6 +17,12 @@ describe("hashInput / hashOutput", () => {
     expect(hashInput(input)).not.toBe(hashInput({ ...input, language: "node" }));
   });
 
+  it("has unambiguous field boundaries (no code/stdin separator collision)", () => {
+    expect(hashInput({ language: "python", code: "a", stdin: "b c" })).not.toBe(
+      hashInput({ language: "python", code: "a b", stdin: "c" }),
+    );
+  });
+
   it("output hash covers only stdout/stderr/exit_code (duration/image ignored)", () => {
     const withNoise = { ...output, duration_ms: 999, image: "img" } as unknown as typeof output;
     expect(hashOutput(output)).toBe(hashOutput(withNoise));
