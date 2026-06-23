@@ -157,11 +157,10 @@ function safeParseMetadata(raw: string): Record<string, unknown> {
 }
 
 export async function getAccountEvents(account_id: string, limit = 50): Promise<FunnelEvent[]> {
-  // FLAG(rowid): SQLite `rowid` tiebreaker dropped — funnel_events has a TEXT PK
-  // (event_id) and no monotonic serial column in pg-schema, so there is no
-  // Postgres equivalent. Ordering now relies on created_at DESC alone.
+  // seq (monotonic IDENTITY) is the deterministic tiebreaker for events sharing
+  // an identical created_at — restoring the old SQLite rowid ordering.
   const rows = await sql.many<Omit<FunnelEvent, "metadata"> & { metadata: string }>(
-    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC LIMIT ?",
+    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC, seq DESC LIMIT ?",
     [account_id, limit],
   );
 
@@ -169,9 +168,8 @@ export async function getAccountEvents(account_id: string, limit = 50): Promise<
 }
 
 export async function getLatestEvent(account_id: string): Promise<FunnelEvent | undefined> {
-  // FLAG(rowid): SQLite `rowid` tiebreaker dropped (see getAccountEvents).
   const row = await sql.one<Omit<FunnelEvent, "metadata"> & { metadata: string }>(
-    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC LIMIT 1",
+    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC, seq DESC LIMIT 1",
     [account_id],
   );
 
@@ -180,9 +178,8 @@ export async function getLatestEvent(account_id: string): Promise<FunnelEvent | 
 }
 
 export async function getEventsByType(account_id: string, event_type: FunnelEventType): Promise<FunnelEvent[]> {
-  // FLAG(rowid): SQLite `rowid` tiebreaker dropped (see getAccountEvents).
   const rows = await sql.many<Omit<FunnelEvent, "metadata"> & { metadata: string }>(
-    "SELECT * FROM funnel_events WHERE account_id = ? AND event_type = ? ORDER BY created_at DESC",
+    "SELECT * FROM funnel_events WHERE account_id = ? AND event_type = ? ORDER BY created_at DESC, seq DESC",
     [account_id, event_type],
   );
 

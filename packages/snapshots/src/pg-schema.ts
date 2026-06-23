@@ -111,7 +111,10 @@ CREATE TABLE IF NOT EXISTS funnel_events (
   event_type TEXT NOT NULL,
   stage TEXT NOT NULL,
   metadata TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  -- Monotonic insertion order: restores the SQLite rowid tiebreaker so events
+  -- sharing an identical created_at still sort deterministically (newest first).
+  seq BIGINT GENERATED ALWAYS AS IDENTITY
 );
 CREATE INDEX IF NOT EXISTS idx_funnel_account ON funnel_events(account_id);
 CREATE INDEX IF NOT EXISTS idx_funnel_stage ON funnel_events(stage);
@@ -490,7 +493,16 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 // Future Postgres-only migrations (version > PG_LATEST_VERSION) go here.
 interface PgMigration { version: number; name: string; sql: string }
-const PG_MIGRATIONS: PgMigration[] = [];
+const PG_MIGRATIONS: PgMigration[] = [
+  {
+    // Existing DBs created before the seq column: add it so the created_at-DESC
+    // ordering has a deterministic tiebreaker. Fresh DBs already have it from the
+    // baseline, so ADD COLUMN IF NOT EXISTS is a no-op there.
+    version: 28,
+    name: "funnel_events_seq_tiebreaker",
+    sql: `ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS seq BIGINT GENERATED ALWAYS AS IDENTITY;`,
+  },
+];
 
 /**
  * Stand up / upgrade the Postgres schema. Idempotent: applies the cumulative
