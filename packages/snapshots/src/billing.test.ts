@@ -97,7 +97,7 @@ describe("Accounts", () => {
 
   it("rejects duplicate emails differing only by case", async () => {
     await createAccount("Alice", "alice@example.com");
-    await expect(createAccount("Alice2", "ALICE@EXAMPLE.COM")).rejects.toThrow(/UNIQUE/);
+    await expect(createAccount("Alice2", "ALICE@EXAMPLE.COM")).rejects.toThrow(/duplicate key|unique/i);
   });
 
   it("upgrades tier from free to paid", async () => {
