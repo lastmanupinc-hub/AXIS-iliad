@@ -231,6 +231,7 @@ export function presignR2List(config: R2Config, prefix: string, ttl_seconds: num
     ["X-Amz-Expires", String(ttl_seconds)],
     ["X-Amz-SignedHeaders", "host"],
     ["list-type", "2"],
+    ["max-keys", "1000"], // bound the response page per signed mint
     ["prefix", prefix],
   ];
   const encodedQuery = queryEntries

@@ -476,8 +476,10 @@ export function answerFromHits(
     const { coverage } = bestSpan(`${h.title ?? ""} ${h.snippet}`, queryTokens);
     // Coverage-primary rerank: how many distinct query terms the hit addresses,
     // scaled by a log of the BM25 magnitude — so a high-frequency single-term
-    // spike can't outrank a hit that actually covers the question.
-    return { h, coverage, rerank: coverage * (1 + Math.log(1 + Math.max(0, h.score))) };
+    // spike can't outrank a hit that actually covers the question. Non-finite
+    // scores (only reachable via a direct caller, not MCP) coerce to 0.
+    const score = Number.isFinite(h.score) ? Math.max(0, h.score) : 0;
+    return { h, coverage, rerank: coverage * (1 + Math.log(1 + score)) };
   });
   scored.sort((a, b) => (b.rerank - a.rerank) || (a.h.doc_id < b.h.doc_id ? -1 : a.h.doc_id > b.h.doc_id ? 1 : 0));
   const reranked = scored.map(s => s.h);

@@ -78,16 +78,12 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 50,
     lite_cents: 25,
     lite_description: "Lite mode: purchasing readiness score + top 3 gaps only (no full artifact bundle)",
-    engineer_cents: 25000,
-    engineer_description: "Engineer mode (Commerce Integration): scaffolds a live x402/AP2 endpoint wired to PAI'D + sandbox transaction test + submittable Compelling-Evidence 3.0 pack + per-reason-code win-probability simulation.",
   },
   analyze_repo: {
     tool: "analyze_repo",
     standard_cents: 50,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
-    engineer_cents: 2500,
-    engineer_description: "Engineer mode (Living Architecture): the deterministic 133-artifact skeleton + a verified LLM specificity pass (unverifiable claims dropped) + push-triggered PR drift mode.",
   },
   analyze_files: {
     tool: "analyze_files",
@@ -168,8 +164,6 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: single-string input only (standard allows batches up to 2048).",
-    engineer_cents: 2,
-    engineer_description: "Engineer mode (Domain Embeddings): owned ONNX base + Matryoshka dimension truncation + a per-corpus adapter so retrieval beats generic models on the caller's own data.",
   },
   // Resend transactional: $0.0004/email beyond free 3k/mo tier.
   // AXIS markup covers DKIM/SPF setup + suppression-list management

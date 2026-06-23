@@ -543,26 +543,46 @@ export function buildHygieneSarif(report: HygieneReport): Record<string, unknown
 export function buildHygienePatch(report: HygieneReport, files: HygieneFile[]): string {
   const additions = buildRemediationPlan(report).gitignore_additions;
   if (additions.length === 0) return "";
-  const added = additions.map(a => `+${a}`).join("\n");
   const existing = files.find(f => f.path === ".gitignore");
+  const raw = existing?.content ?? "";
 
-  const existingLines = existing ? existing.content.split("\n") : [];
-  if (existingLines.length > 0 && existingLines[existingLines.length - 1] === "") existingLines.pop();
+  // Match the file's dominant EOL on added/context bodies (split() strips it),
+  // so we never mix LF into a CRLF file.
+  const cr = raw.includes("\r\n") ? "\r" : "";
+  const lines = raw.split(/\r?\n/);
+  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  const add = additions.map(a => `+${a}${cr}`);
 
-  // New file, or present-but-empty: create-style add.
-  if (!existing || existingLines.length === 0) {
+  // New file, or present-but-empty: create-style add against /dev/null.
+  if (!existing || lines.length === 0) {
     const minus = existing ? "--- a/.gitignore" : "--- /dev/null";
-    return [minus, "+++ b/.gitignore", `@@ -0,0 +1,${additions.length} @@`, added, ""].join("\n");
+    return [minus, "+++ b/.gitignore", `@@ -0,0 +1,${additions.length} @@`, ...add, ""].join("\n");
   }
 
-  // Append after the last content line; that line is the single context line.
-  const n = existingLines.length;
+  const n = lines.length;
+  const last = lines[n - 1];
+  // File ends with a newline: a plain context line is enough.
+  if (/\n$/.test(raw)) {
+    return [
+      "--- a/.gitignore",
+      "+++ b/.gitignore",
+      `@@ -${n},1 +${n},${additions.length + 1} @@`,
+      ` ${last}${cr}`,
+      ...add,
+      "",
+    ].join("\n");
+  }
+  // No trailing newline: `git apply` needs the standard "remove the no-newline
+  // last line, re-add it newline-terminated, then append" form, or the hunk is
+  // rejected.
   return [
     "--- a/.gitignore",
     "+++ b/.gitignore",
     `@@ -${n},1 +${n},${additions.length + 1} @@`,
-    ` ${existingLines[n - 1]}`,
-    added,
+    `-${last}${cr}`,
+    "\\ No newline at end of file",
+    `+${last}${cr}`,
+    ...add,
     "",
   ].join("\n");
 }

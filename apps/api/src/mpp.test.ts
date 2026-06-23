@@ -257,9 +257,9 @@ describe("X-Agent-Mode: engineer tier", () => {
   });
 
   it("priceForMode returns the engineer price when a tool defines one", () => {
-    const tier = getPricingTier("analyze_repo");
-    expect(tier.engineer_cents).toBe(2500);
-    expect(priceForMode(tier, "engineer")).toBe(2500);
+    const tier = getPricingTier("iliad_object_storage");
+    expect(tier.engineer_cents).toBe(5);
+    expect(priceForMode(tier, "engineer")).toBe(5);
     expect(priceForMode(tier, "standard")).toBe(tier.standard_cents);
     expect(priceForMode(tier, "lite")).toBe(tier.lite_cents);
   });
@@ -271,22 +271,32 @@ describe("X-Agent-Mode: engineer tier", () => {
   });
 
   it("the 402 body advertises the engineer tier only when present", () => {
-    const withEng = build402NegotiationBody("prepare_agentic_purchasing");
+    const withEng = build402NegotiationBody("iliad_web_search");
     const eng = (withEng.pricing as Record<string, unknown>).engineer as Record<string, unknown> | undefined;
     expect(eng).toBeDefined();
-    expect(eng!.amount_cents).toBe(25000);
+    expect(eng!.amount_cents).toBe(25);
     expect(String(eng!.how)).toContain("X-Agent-Mode: engineer");
 
     const withoutEng = build402NegotiationBody("iliad_transactional_email");
     expect((withoutEng.pricing as Record<string, unknown>).engineer).toBeUndefined();
   });
 
-  it("every engineer_cents is a positive premium with a description (sane ladder)", () => {
+  it("every engineer_cents is a STRICT premium over standard (no inverted/under-charging ladder)", () => {
     for (const tier of Object.values(PRICING_TIERS)) {
       if (tier.engineer_cents !== undefined) {
-        expect(tier.engineer_cents, `${tier.tool} engineer_cents`).toBeGreaterThan(0);
+        // An engineer tier must cost more than standard — otherwise X-Agent-Mode:
+        // engineer under-charges. Only price tiers whose engineer behavior ships.
+        expect(tier.engineer_cents, `${tier.tool} engineer_cents must exceed standard_cents`).toBeGreaterThan(tier.standard_cents);
         expect(tier.engineer_description, `${tier.tool} engineer_description`).toBeTruthy();
       }
     }
+  });
+
+  it("only the IMPLEMENTED engineer tools carry an engineer price", () => {
+    const priced = Object.values(PRICING_TIERS).filter(t => t.engineer_cents !== undefined).map(t => t.tool).sort();
+    // E1 hygiene, E2 object_storage, E3 web_search are built; analyze_repo (E5),
+    // prepare_agentic_purchasing (E9), embeddings (E12) are NOT — they must not
+    // advertise/charge an engineer tier until their handler implements it.
+    expect(priced).toEqual(["iliad_hygiene", "iliad_object_storage", "iliad_web_search"]);
   });
 });

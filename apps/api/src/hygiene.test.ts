@@ -193,6 +193,22 @@ describe("iliad_hygiene — engineer tier (patch + SARIF)", () => {
     expect(buildHygienePatch(runHygieneScan(files), files)).toBe("");
   });
 
+  it("handles a .gitignore with NO trailing newline (emits the no-newline marker so git apply accepts it)", () => {
+    const files = [f("dist/app.js", "x"), f(".gitignore", "node_modules/")]; // no final newline
+    const patch = buildHygienePatch(runHygieneScan(files), files);
+    expect(patch).toContain("\\ No newline at end of file");
+    expect(patch).toContain("-node_modules/");
+    expect(patch).toContain("+node_modules/");
+    expect(patch).toMatch(/^\+dist\/$/m);
+  });
+
+  it("matches CRLF line endings on context + added lines", () => {
+    const files = [f("dist/app.js", "x"), f(".gitignore", "node_modules/\r\n")];
+    const patch = buildHygienePatch(runHygieneScan(files), files);
+    expect(patch).toContain(" node_modules/\r"); // context carries the file's \r
+    expect(patch).toContain("+dist/\r");          // added line matches the file's EOL
+  });
+
   it("emits a valid SARIF 2.1.0 log with severity→level mapping", () => {
     const files = [f("config.ts", 'export const KEY = "sk_live_0123456789abcdefghij";\n')];
     const sarif = buildHygieneSarif(runHygieneScan(files)) as Record<string, unknown>;
