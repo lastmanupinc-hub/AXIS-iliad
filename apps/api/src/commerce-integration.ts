@@ -200,3 +200,197 @@ export function buildX402EndpointTest(): string {
   ];
   return lines.join("\n");
 }
+
+// ─── Compelling Evidence 3.0 pack (field-complete + JSON Schema) ───
+
+const FILL = "<FILL>";
+
+/**
+ * Build a submittable CE 3.0 evidence document + a JSON Schema that validates it.
+ * Upgrades the standard kit's `<placeholder>` template into a concrete, schema-
+ * validatable artifact for Visa dispute codes 10.2 / 10.3 / 10.4. Deterministic.
+ */
+export function buildCe3Evidence(signals: CommerceSignals, projectName: string): { json: string; schema: string } {
+  const autoDerivable: string[] = [];
+  if (signals.has_webhooks) autoDerivable.push("transaction timestamps (from webhook logs)");
+  if (signals.has_network_tokenization) autoDerivable.push("payment_credential_id (network token)");
+  if (signals.has_checkout) autoDerivable.push("shipping_address / account_id (checkout)");
+
+  const txn = (note: string) => ({
+    transaction_id: FILL,
+    date: FILL,
+    amount_cents: 0,
+    currency: "usd",
+    payment_credential_id: FILL,
+    data_elements: { device_id: FILL, ip_address: FILL, shipping_address: FILL, account_id: FILL },
+    _note: note,
+  });
+
+  const evidence = {
+    compelling_evidence_version: "3.0",
+    target_dispute_codes: ["10.2", "10.3", "10.4"],
+    merchant: { name: projectName, mcc: FILL },
+    disputed_transaction: txn("the transaction being disputed"),
+    prior_undisputed_transactions: [
+      txn("prior undisputed #1 — same payment credential as the disputed transaction"),
+      txn("prior undisputed #2 — same payment credential"),
+    ],
+    matched_elements: ["device_id", "ip_address"],
+    automation: {
+      generated_by: "AXIS engineer tier (prepare_agentic_purchasing)",
+      fields_auto_derivable: autoDerivable,
+      requirement:
+        "CE 3.0 needs >=2 prior undisputed transactions sharing the disputed payment credential, each matching >=2 data elements with the disputed transaction.",
+    },
+  };
+
+  const txnSchema = {
+    type: "object",
+    required: ["transaction_id", "date", "amount_cents", "payment_credential_id", "data_elements"],
+    properties: {
+      transaction_id: { type: "string" },
+      date: { type: "string" },
+      amount_cents: { type: "integer", minimum: 0 },
+      currency: { type: "string" },
+      payment_credential_id: { type: "string" },
+      data_elements: {
+        type: "object",
+        properties: {
+          device_id: { type: "string" },
+          ip_address: { type: "string" },
+          shipping_address: { type: "string" },
+          account_id: { type: "string" },
+        },
+      },
+    },
+  };
+
+  const schema = {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    title: "Compelling Evidence 3.0 submission",
+    type: "object",
+    required: ["compelling_evidence_version", "target_dispute_codes", "merchant", "disputed_transaction", "prior_undisputed_transactions", "matched_elements"],
+    properties: {
+      compelling_evidence_version: { const: "3.0" },
+      target_dispute_codes: { type: "array", items: { enum: ["10.2", "10.3", "10.4"] } },
+      merchant: { type: "object", required: ["name"], properties: { name: { type: "string" }, mcc: { type: "string" } } },
+      disputed_transaction: { $ref: "#/$defs/txn" },
+      prior_undisputed_transactions: { type: "array", minItems: 2, items: { $ref: "#/$defs/txn" } },
+      matched_elements: {
+        type: "array",
+        minItems: 2,
+        uniqueItems: true,
+        items: { enum: ["device_id", "ip_address", "shipping_address", "account_id"] },
+      },
+    },
+    $defs: { txn: txnSchema },
+  };
+
+  return { json: JSON.stringify(evidence, null, 2), schema: JSON.stringify(schema, null, 2) };
+}
+
+// ─── Transparent dispute-readiness score (NOT a win-rate prediction) ───
+
+interface ReadinessDimension {
+  key: string;
+  label: string;
+  present: boolean;
+  remedy: string;
+}
+
+export interface DisputeReadiness {
+  score: number;
+  grade: string;
+  dimensions: ReadinessDimension[];
+  gaps: ReadinessDimension[];
+  md: string;
+}
+
+/**
+ * Score whether the caller can ASSEMBLE Compelling Evidence 3.0 — evidence-capture
+ * readiness, NOT dispute-win odds (AXIS makes no outcome prediction). Each
+ * dimension is a binary signal detected from the repo; score = present / total.
+ */
+export function buildDisputeReadiness(signals: CommerceSignals, projectName: string): DisputeReadiness {
+  const dimensions: ReadinessDimension[] = [
+    {
+      key: "transaction_history",
+      label: "Prior-transaction logging (>=2 undisputed transactions retrievable)",
+      present: signals.has_webhooks || signals.has_dispute_handling,
+      remedy: "Persist a webhook-driven transaction log so prior undisputed transactions can be retrieved.",
+    },
+    {
+      key: "credential_matching",
+      label: "Payment-credential matching across transactions",
+      present: signals.has_network_tokenization || signals.has_mandate_management,
+      remedy: "Store a stable payment-credential id (network token / mandate id) on every transaction.",
+    },
+    {
+      key: "ip_capture",
+      label: "Per-transaction IP address capture",
+      present: signals.has_webhooks,
+      remedy: "Record the client IP address on each transaction.",
+    },
+    {
+      key: "address_account",
+      label: "Shipping address / account id on record",
+      present: signals.has_checkout,
+      remedy: "Capture shipping address and account id at checkout.",
+    },
+    {
+      key: "device_fingerprint",
+      label: "Device id / fingerprint capture",
+      present: false, // not detectable from source — always surfaced as a verify item
+      remedy: "Add device fingerprinting (cannot be confirmed from code — verify manually).",
+    },
+    {
+      key: "dispute_automation",
+      label: "Dispute-evidence assembly automation",
+      present: signals.has_dispute_handling,
+      remedy: "Automate CE 3.0 pack assembly from your transaction store.",
+    },
+  ];
+
+  const present = dimensions.filter((d) => d.present);
+  const gaps = dimensions.filter((d) => !d.present);
+  const score = Math.round((present.length / dimensions.length) * 100);
+  const grade = score >= 85 ? "A" : score >= 70 ? "B" : score >= 50 ? "C" : "D";
+
+  const md = [
+    `# Dispute / CE 3.0 Readiness — ${projectName}`,
+    "",
+    "> A transparent measure of whether you can ASSEMBLE Compelling Evidence 3.0. It",
+    "> scores evidence-capture readiness, NOT dispute-win odds — AXIS makes no",
+    "> prediction about dispute outcomes.",
+    "",
+    `**Readiness: ${score}/100 (grade ${grade})** — ${present.length}/${dimensions.length} evidence dimensions in place.`,
+    "",
+    "## In place",
+    ...(present.length > 0 ? present.map((d) => `- ${d.label}`) : ["- _(none yet)_"]),
+    "",
+    "## Gaps to close",
+    ...(gaps.length > 0 ? gaps.map((d) => `- **${d.label}** — ${d.remedy}`) : ["- _(none — all evidence dimensions in place)_"]),
+    "",
+    "## How this is scored",
+    "Each dimension is a binary signal detected from your repository; the score is",
+    "dimensions-present / total. CE 3.0 requires >=2 prior undisputed transactions",
+    "sharing the disputed payment credential, each matching >=2 data elements.",
+    "",
+  ].join("\n");
+
+  return { score, grade, dimensions, gaps, md };
+}
+
+/** Assemble the full engineer-mode commerce-integration bundle (5 artifacts). */
+export function buildCommerceIntegrationBundle(ctx: ContextMap, signals: CommerceSignals, priceCents: number): CommerceArtifact[] {
+  const projectName = ctx.project_identity.name;
+  const ce3 = buildCe3Evidence(signals, projectName);
+  const readiness = buildDisputeReadiness(signals, projectName);
+  return [
+    { path: "x402-paid-endpoint.ts", content: buildX402Endpoint(ctx, signals, priceCents), content_type: "text/typescript" },
+    { path: "x402-endpoint.test.ts", content: buildX402EndpointTest(), content_type: "text/typescript" },
+    { path: "ce3-evidence.json", content: ce3.json, content_type: "application/json" },
+    { path: "ce3-evidence.schema.json", content: ce3.schema, content_type: "application/json" },
+    { path: "dispute-readiness.md", content: readiness.md, content_type: "text/markdown" },
+  ];
+}
