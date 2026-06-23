@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -58,56 +58,57 @@ function rowToVersion(row: VersionRow): GenerationVersion {
 }
 
 /** Save a new version of generated files for a snapshot. Auto-increments version_number. */
-export function saveGenerationVersion(
+export async function saveGenerationVersion(
   snapshot_id: string,
   files: VersionFile[],
   program?: string,
-): GenerationVersion {
-  const db = getDb();
+): Promise<GenerationVersion> {
   const version_id = randomUUID();
   const created_at = new Date().toISOString();
 
   // Get next version number
-  const last = db.prepare(
+  const last = await sql.one<{ max_v: number | null }>(
     "SELECT MAX(version_number) as max_v FROM generation_versions WHERE snapshot_id = ?",
-  ).get(snapshot_id) as { max_v: number | null };
-  const version_number = (last.max_v ?? 0) + 1;
+    [snapshot_id],
+  );
+  const version_number = (last?.max_v ?? 0) + 1;
 
   const filesJson = JSON.stringify(files);
 
-  db.prepare(
+  await sql.run(
     "INSERT INTO generation_versions (version_id, snapshot_id, version_number, program, files, file_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).run(version_id, snapshot_id, version_number, program ?? null, filesJson, files.length, created_at);
+    [version_id, snapshot_id, version_number, program ?? null, filesJson, files.length, created_at],
+  );
 
   return { version_id, snapshot_id, version_number, program: program ?? null, files, file_count: files.length, created_at };
 }
 
 /** List all versions for a snapshot (newest first). Does NOT include file content by default. */
-export function listGenerationVersions(snapshot_id: string): Omit<GenerationVersion, "files">[] {
-  const db = getDb();
-  const rows = db.prepare(
+export async function listGenerationVersions(snapshot_id: string): Promise<Omit<GenerationVersion, "files">[]> {
+  const rows = await sql.many<Omit<VersionRow, "files">>(
     "SELECT version_id, snapshot_id, version_number, program, file_count, created_at FROM generation_versions WHERE snapshot_id = ? ORDER BY version_number DESC",
-  ).all(snapshot_id) as Array<Omit<VersionRow, "files">>;
+    [snapshot_id],
+  );
   return rows;
 }
 
 /** Get a specific version with full file content. */
-export function getGenerationVersion(snapshot_id: string, version_number: number): GenerationVersion | undefined {
-  const db = getDb();
-  const row = db.prepare(
+export async function getGenerationVersion(snapshot_id: string, version_number: number): Promise<GenerationVersion | undefined> {
+  const row = await sql.one<VersionRow>(
     "SELECT * FROM generation_versions WHERE snapshot_id = ? AND version_number = ?",
-  ).get(snapshot_id, version_number) as VersionRow | undefined;
+    [snapshot_id, version_number],
+  );
   return row ? rowToVersion(row) : undefined;
 }
 
 /** Compute a diff between two versions of the same snapshot. */
-export function diffGenerationVersions(
+export async function diffGenerationVersions(
   snapshot_id: string,
   old_version: number,
   new_version: number,
-): VersionDiff | undefined {
-  const oldV = getGenerationVersion(snapshot_id, old_version);
-  const newV = getGenerationVersion(snapshot_id, new_version);
+): Promise<VersionDiff | undefined> {
+  const oldV = await getGenerationVersion(snapshot_id, old_version);
+  const newV = await getGenerationVersion(snapshot_id, new_version);
   if (!oldV || !newV) return undefined;
 
   const oldMap = new Map(oldV.files.map((f) => [f.path, f.content]));

@@ -1,5 +1,5 @@
 import { randomUUID, createHash, createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 
 // ─── Encryption helpers (AES-256-GCM) ───────────────────────────
 
@@ -69,13 +69,13 @@ export interface GitHubToken {
 
 // ─── Store functions ────────────────────────────────────────────
 
-export function saveGitHubToken(
+export async function saveGitHubToken(
   account_id: string,
   rawToken: string,
   label: string = "default",
   scopes: string[] = [],
   expires_at?: string,
-): GitHubToken {
+): Promise<GitHubToken> {
   const token_id = randomUUID();
   const encrypted = encrypt(rawToken);
   const token_prefix = rawToken.slice(0, 8);
@@ -94,56 +94,62 @@ export function saveGitHubToken(
     valid: 1,
   };
 
-  getDb().prepare(
+  await sql.run(
     `INSERT INTO github_tokens
        (token_id, account_id, label, token_prefix, encrypted_token, scopes, created_at, expires_at, last_used_at, last_validated_at, valid)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    token.token_id, token.account_id, token.label, token.token_prefix,
-    encrypted, token.scopes, token.created_at, token.expires_at,
-    token.last_used_at, token.last_validated_at, token.valid,
+    [
+      token.token_id, token.account_id, token.label, token.token_prefix,
+      encrypted, token.scopes, token.created_at, token.expires_at,
+      token.last_used_at, token.last_validated_at, token.valid,
+    ],
   );
 
   return token;
 }
 
-export function getGitHubTokens(account_id: string): GitHubToken[] {
-  return getDb().prepare(
+export async function getGitHubTokens(account_id: string): Promise<GitHubToken[]> {
+  return await sql.many<GitHubToken>(
     "SELECT token_id, account_id, label, token_prefix, scopes, created_at, expires_at, last_used_at, last_validated_at, valid FROM github_tokens WHERE account_id = ? ORDER BY created_at DESC",
-  ).all(account_id) as GitHubToken[];
+    [account_id],
+  );
 }
 
-export function getGitHubTokenDecrypted(account_id: string, token_id?: string): string | undefined {
+export async function getGitHubTokenDecrypted(account_id: string, token_id?: string): Promise<string | undefined> {
   const query = token_id
     ? "SELECT encrypted_token FROM github_tokens WHERE account_id = ? AND token_id = ? AND valid = 1"
     : "SELECT encrypted_token FROM github_tokens WHERE account_id = ? AND valid = 1 ORDER BY created_at DESC LIMIT 1";
   const params = token_id ? [account_id, token_id] : [account_id];
-  const row = getDb().prepare(query).get(...params) as { encrypted_token: string } | undefined;
+  const row = await sql.one<{ encrypted_token: string }>(query, params);
   if (!row) return undefined;
   return decrypt(row.encrypted_token);
 }
 
-export function deleteGitHubToken(account_id: string, token_id: string): boolean {
-  const result = getDb().prepare(
+export async function deleteGitHubToken(account_id: string, token_id: string): Promise<boolean> {
+  const result = await sql.run(
     "DELETE FROM github_tokens WHERE account_id = ? AND token_id = ?",
-  ).run(account_id, token_id);
-  return result.changes > 0;
+    [account_id, token_id],
+  );
+  return result.rowCount > 0;
 }
 
-export function markTokenUsed(token_id: string): void {
-  getDb().prepare(
+export async function markTokenUsed(token_id: string): Promise<void> {
+  await sql.run(
     "UPDATE github_tokens SET last_used_at = ? WHERE token_id = ?",
-  ).run(new Date().toISOString(), token_id);
+    [new Date().toISOString(), token_id],
+  );
 }
 
-export function markTokenInvalid(token_id: string): void {
-  getDb().prepare(
+export async function markTokenInvalid(token_id: string): Promise<void> {
+  await sql.run(
     "UPDATE github_tokens SET valid = 0 WHERE token_id = ?",
-  ).run(token_id);
+    [token_id],
+  );
 }
 
-export function markTokenValidated(token_id: string, scopes: string[]): void {
-  getDb().prepare(
+export async function markTokenValidated(token_id: string, scopes: string[]): Promise<void> {
+  await sql.run(
     "UPDATE github_tokens SET last_validated_at = ?, scopes = ?, valid = 1 WHERE token_id = ?",
-  ).run(new Date().toISOString(), scopes.join(","), token_id);
+    [new Date().toISOString(), scopes.join(","), token_id],
+  );
 }

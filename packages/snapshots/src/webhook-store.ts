@@ -1,7 +1,7 @@
 import { randomUUID, createHmac } from "node:crypto";
 import * as https from "node:https";
 import * as http from "node:http";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -69,20 +69,20 @@ function rowToWebhook(row: WebhookRow): Webhook {
   };
 }
 
-export function createWebhook(
+export async function createWebhook(
   account_id: string,
   url: string,
   events: WebhookEventType[],
   secret?: string,
-): Webhook {
-  const db = getDb();
+): Promise<Webhook> {
   const now = new Date().toISOString();
   const webhook_id = randomUUID();
   const eventsJson = JSON.stringify(events);
 
-  db.prepare(
+  await sql.run(
     "INSERT INTO webhooks (webhook_id, account_id, url, events, secret, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)",
-  ).run(webhook_id, account_id, url, eventsJson, secret ?? null, now, now);
+    [webhook_id, account_id, url, eventsJson, secret ?? null, now, now],
+  );
 
   return {
     webhook_id,
@@ -96,43 +96,41 @@ export function createWebhook(
   };
 }
 
-export function listWebhooks(account_id: string): Webhook[] {
-  const db = getDb();
-  const rows = db.prepare(
+export async function listWebhooks(account_id: string): Promise<Webhook[]> {
+  const rows = await sql.many<WebhookRow>(
     "SELECT * FROM webhooks WHERE account_id = ? ORDER BY created_at DESC",
-  ).all(account_id) as WebhookRow[];
+    [account_id],
+  );
   return rows.map(rowToWebhook);
 }
 
-export function getWebhook(webhook_id: string): Webhook | undefined {
-  const db = getDb();
-  const row = db.prepare("SELECT * FROM webhooks WHERE webhook_id = ?").get(webhook_id) as WebhookRow | undefined;
+export async function getWebhook(webhook_id: string): Promise<Webhook | undefined> {
+  const row = await sql.one<WebhookRow>("SELECT * FROM webhooks WHERE webhook_id = ?", [webhook_id]);
   return row ? rowToWebhook(row) : undefined;
 }
 
-export function deleteWebhook(webhook_id: string): boolean {
-  const db = getDb();
-  const result = db.prepare("DELETE FROM webhooks WHERE webhook_id = ?").run(webhook_id);
-  return result.changes > 0;
+export async function deleteWebhook(webhook_id: string): Promise<boolean> {
+  const result = await sql.run("DELETE FROM webhooks WHERE webhook_id = ?", [webhook_id]);
+  return result.rowCount > 0;
 }
 
-export function updateWebhookActive(webhook_id: string, active: boolean): boolean {
-  const db = getDb();
+export async function updateWebhookActive(webhook_id: string, active: boolean): Promise<boolean> {
   const now = new Date().toISOString();
-  const result = db.prepare(
+  const result = await sql.run(
     "UPDATE webhooks SET active = ?, updated_at = ? WHERE webhook_id = ?",
-  ).run(active ? 1 : 0, now, webhook_id);
-  return result.changes > 0;
+    [active ? 1 : 0, now, webhook_id],
+  );
+  return result.rowCount > 0;
 }
 
 // ─── Webhook delivery ───────────────────────────────────────────
 
-export function getActiveWebhooksForEvent(event_type: WebhookEventType): Webhook[] {
-  const db = getDb();
+export async function getActiveWebhooksForEvent(event_type: WebhookEventType): Promise<Webhook[]> {
   // SQLite JSON containment: events column is a JSON array, search for matching event
-  const rows = db.prepare(
+  const rows = await sql.many<WebhookRow>(
     "SELECT * FROM webhooks WHERE active = 1 AND events LIKE ?",
-  ).all(`%"${event_type}"%`) as WebhookRow[];
+    [`%"${event_type}"%`],
+  );
   return rows.map(rowToWebhook);
 }
 
@@ -141,7 +139,7 @@ export function computeNextRetryAt(attempt_number: number): string {
   return new Date(Date.now() + delayMs).toISOString();
 }
 
-export function recordDelivery(
+export async function recordDelivery(
   webhook_id: string,
   event_type: string,
   payload: string,
@@ -149,8 +147,7 @@ export function recordDelivery(
   response_body: string | null,
   success: boolean,
   attempt_number = 1,
-): WebhookDelivery {
-  const db = getDb();
+): Promise<WebhookDelivery> {
   const delivery_id = randomUUID();
   const attempted_at = new Date().toISOString();
 
@@ -165,18 +162,19 @@ export function recordDelivery(
     }
   }
 
-  db.prepare(
+  await sql.run(
     "INSERT INTO webhook_deliveries (delivery_id, webhook_id, event_type, payload, status_code, response_body, success, attempted_at, attempt_number, next_retry_at, dead_lettered) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(delivery_id, webhook_id, event_type, payload, status_code, response_body, success ? 1 : 0, attempted_at, attempt_number, next_retry_at, dead_lettered ? 1 : 0);
+    [delivery_id, webhook_id, event_type, payload, status_code, response_body, success ? 1 : 0, attempted_at, attempt_number, next_retry_at, dead_lettered ? 1 : 0],
+  );
 
   return { delivery_id, webhook_id, event_type, payload, status_code, response_body, success, attempted_at, attempt_number, next_retry_at, dead_lettered };
 }
 
-export function getDeliveries(webhook_id: string, limit = 20): WebhookDelivery[] {
-  const db = getDb();
-  const rows = db.prepare(
+export async function getDeliveries(webhook_id: string, limit = 20): Promise<WebhookDelivery[]> {
+  const rows = await sql.many<Omit<WebhookDelivery, "success" | "dead_lettered"> & { success: number; dead_lettered: number }>(
     "SELECT * FROM webhook_deliveries WHERE webhook_id = ? ORDER BY attempted_at DESC LIMIT ?",
-  ).all(webhook_id, limit) as Array<Omit<WebhookDelivery, "success" | "dead_lettered"> & { success: number; dead_lettered: number }>;
+    [webhook_id, limit],
+  );
   return rows.map(({ success, dead_lettered, ...rest }) => ({ ...rest, success: success === 1, dead_lettered: dead_lettered === 1 }));
 }
 
@@ -191,10 +189,9 @@ export interface RetryCandidate {
 }
 
 /** Get deliveries due for retry (next_retry_at ≤ now, not dead-lettered, not succeeded). */
-export function getPendingRetries(limit = 50): RetryCandidate[] {
-  const db = getDb();
+export async function getPendingRetries(limit = 50): Promise<RetryCandidate[]> {
   const now = new Date().toISOString();
-  return db.prepare(
+  return await sql.many<RetryCandidate>(
     `SELECT delivery_id, webhook_id, event_type, payload, attempt_number
      FROM webhook_deliveries
      WHERE next_retry_at IS NOT NULL
@@ -203,43 +200,43 @@ export function getPendingRetries(limit = 50): RetryCandidate[] {
        AND success = 0
      ORDER BY next_retry_at ASC
      LIMIT ?`,
-  ).all(now, limit) as RetryCandidate[];
+    [now, limit],
+  );
 }
 
 /** Mark a delivery as consumed (clear its retry schedule). */
-export function clearRetrySchedule(delivery_id: string): void {
-  const db = getDb();
-  db.prepare("UPDATE webhook_deliveries SET next_retry_at = NULL WHERE delivery_id = ?").run(delivery_id);
+export async function clearRetrySchedule(delivery_id: string): Promise<void> {
+  await sql.run("UPDATE webhook_deliveries SET next_retry_at = NULL WHERE delivery_id = ?", [delivery_id]);
 }
 
 /** Get all dead-lettered deliveries for a webhook. */
-export function getDeadLetters(webhook_id: string, limit = 50): WebhookDelivery[] {
-  const db = getDb();
-  const rows = db.prepare(
+export async function getDeadLetters(webhook_id: string, limit = 50): Promise<WebhookDelivery[]> {
+  const rows = await sql.many<Omit<WebhookDelivery, "success" | "dead_lettered"> & { success: number; dead_lettered: number }>(
     "SELECT * FROM webhook_deliveries WHERE webhook_id = ? AND dead_lettered = 1 ORDER BY attempted_at DESC LIMIT ?",
-  ).all(webhook_id, limit) as Array<Omit<WebhookDelivery, "success" | "dead_lettered"> & { success: number; dead_lettered: number }>;
+    [webhook_id, limit],
+  );
   return rows.map(({ success, dead_lettered, ...rest }) => ({ ...rest, success: success === 1, dead_lettered: dead_lettered === 1 }));
 }
 
 /** Process retry queue — fetch due retries and re-dispatch them. Returns count processed. */
-export function processRetryQueue(
+export async function processRetryQueue(
   sendFn?: (wh: Webhook, payload: string, headers: Record<string, string>) => Promise<{ status_code: number | null; response_body: string | null; success: boolean }>,
-): number {
-  const pending = getPendingRetries();
+): Promise<number> {
+  const pending = await getPendingRetries();
   if (pending.length === 0) return 0;
 
   let processed = 0;
   for (const candidate of pending) {
     // Clear the old delivery's retry schedule
-    clearRetrySchedule(candidate.delivery_id);
+    await clearRetrySchedule(candidate.delivery_id);
 
-    const wh = getWebhook(candidate.webhook_id);
+    const wh = await getWebhook(candidate.webhook_id);
     if (!wh || !wh.active) {
       // Webhook was deleted or disabled — mark original delivery as dead-lettered in place
-      const db = getDb();
-      db.prepare(
+      await sql.run(
         "UPDATE webhook_deliveries SET dead_lettered = 1, next_retry_at = NULL, response_body = ? WHERE delivery_id = ?",
-      ).run("webhook_disabled_or_deleted", candidate.delivery_id);
+        ["webhook_disabled_or_deleted", candidate.delivery_id],
+      );
       processed++;
       continue;
     }
@@ -259,7 +256,7 @@ export function processRetryQueue(
       // Synchronous path for testing
       sendFn(wh, candidate.payload, headers)
         .then((result) => {
-          recordDelivery(
+          void recordDelivery(
             wh.webhook_id,
             candidate.event_type,
             candidate.payload,
@@ -270,7 +267,7 @@ export function processRetryQueue(
           );
         })
         .catch((err: Error) => {
-          recordDelivery(
+          void recordDelivery(
             wh.webhook_id,
             candidate.event_type,
             candidate.payload,
@@ -300,23 +297,23 @@ export function processRetryQueue(
             res.on("data", (d?: Buffer) => { if (d) chunks.push(d); });
             res.on("end", () => {
               const body = Buffer.concat(chunks).toString("utf-8").slice(0, 1000);
-              recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, res.statusCode ?? 0, body, (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300, nextAttempt);
+              void recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, res.statusCode ?? 0, body, (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300, nextAttempt);
             });
           },
         );
         req.on("error", (err: Error) => {
-          recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, null, err.message, false, nextAttempt);
+          void recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, null, err.message, false, nextAttempt);
         });
         /* v8 ignore start — timeout fires only on slow external HTTP targets */
         req.on("timeout", () => {
           req.destroy();
-          recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, null, "timeout", false, nextAttempt);
+          void recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, null, "timeout", false, nextAttempt);
         });
         /* v8 ignore stop */
         req.write(candidate.payload);
         req.end();
       } catch (err) {
-        recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, null, String(err), false, nextAttempt);
+        void recordDelivery(wh.webhook_id, candidate.event_type, candidate.payload, null, String(err), false, nextAttempt);
       }
       /* v8 ignore stop */
     }
@@ -331,11 +328,11 @@ export function signPayload(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
-export function dispatchWebhookEvent(
+export async function dispatchWebhookEvent(
   event_type: WebhookEventType,
   data: Record<string, unknown>,
-): void {
-  const webhooks = getActiveWebhooksForEvent(event_type);
+): Promise<void> {
+  const webhooks = await getActiveWebhooksForEvent(event_type);
   if (webhooks.length === 0) return;
 
   const payload = JSON.stringify({ event: event_type, data, timestamp: new Date().toISOString() });
@@ -370,23 +367,23 @@ export function dispatchWebhookEvent(
           res.on("data", (d?: Buffer) => { if (d) chunks.push(d); });
           res.on("end", () => {
             const body = Buffer.concat(chunks).toString("utf-8").slice(0, 1000);
-            recordDelivery(wh.webhook_id, event_type, payload, res.statusCode ?? 0, body, (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300, 1);
+            void recordDelivery(wh.webhook_id, event_type, payload, res.statusCode ?? 0, body, (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300, 1);
           });
         },
       );
       req.on("error", (err: Error) => {
-        recordDelivery(wh.webhook_id, event_type, payload, null, err.message, false, 1);
+        void recordDelivery(wh.webhook_id, event_type, payload, null, err.message, false, 1);
       });
       /* v8 ignore start — timeout fires only on slow external HTTP targets */
       req.on("timeout", () => {
         req.destroy();
-        recordDelivery(wh.webhook_id, event_type, payload, null, "timeout", false, 1);
+        void recordDelivery(wh.webhook_id, event_type, payload, null, "timeout", false, 1);
       });
       /* v8 ignore stop */
       req.write(payload);
       req.end();
     } catch (err) {
-      recordDelivery(wh.webhook_id, event_type, payload, null, String(err), false, 1);
+      void recordDelivery(wh.webhook_id, event_type, payload, null, String(err), false, 1);
     }
     /* v8 ignore stop */
   }

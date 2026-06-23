@@ -7,7 +7,7 @@
 // PERSISTENCE_CREDIT_PACKS / addPersistenceCredits — no parallel balance.
 
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql, pgPlaceholders } from "./pg.js";
 import { PERSISTENCE_CREDIT_PACKS } from "./billing-types.js";
 import { addPersistenceCredits } from "./persistence-metering.js";
 
@@ -42,13 +42,13 @@ export function getCreditPack(pack_id: string): CreditPackCatalogEntry | null {
 }
 
 /** Record a PENDING purchase keyed by the PAI'D checkout session id. */
-export function recordPendingPurchase(input: {
+export async function recordPendingPurchase(input: {
   account_id: string;
   pack_id: string;
   credits: number;
   price_cents: number;
   paid_session_id: string;
-}): CreditPackPurchase {
+}): Promise<CreditPackPurchase> {
   const purchase: CreditPackPurchase = {
     purchase_id: randomUUID(),
     account_id: input.account_id,
@@ -61,13 +61,11 @@ export function recordPendingPurchase(input: {
     created_at: new Date().toISOString(),
     succeeded_at: null,
   };
-  getDb()
-    .prepare(
-      `INSERT INTO credit_pack_purchases
-        (purchase_id, account_id, pack_id, credits, price_cents, paid_session_id, paid_payment_intent_id, status, created_at, succeeded_at)
-       VALUES (?, ?, ?, ?, ?, ?, NULL, 'pending', ?, NULL)`,
-    )
-    .run(
+  await sql.run(
+    `INSERT INTO credit_pack_purchases
+      (purchase_id, account_id, pack_id, credits, price_cents, paid_session_id, paid_payment_intent_id, status, created_at, succeeded_at)
+     VALUES (?, ?, ?, ?, ?, ?, NULL, 'pending', ?, NULL)`,
+    [
       purchase.purchase_id,
       purchase.account_id,
       purchase.pack_id,
@@ -75,7 +73,8 @@ export function recordPendingPurchase(input: {
       purchase.price_cents,
       purchase.paid_session_id,
       purchase.created_at,
-    );
+    ],
+  );
   return purchase;
 }
 
@@ -85,41 +84,50 @@ export function recordPendingPurchase(input: {
  * already settled — so a webhook retry never double-grants. The status flip and
  * the credit grant run in one transaction.
  */
-export function markPurchaseSucceeded(
+export async function markPurchaseSucceeded(
   paid_session_id: string,
   payment_intent_id?: string,
-): CreditPackPurchase | null {
-  const db = getDb();
-  const settle = db.transaction((sessionId: string, pi: string | null): CreditPackPurchase | null => {
-    const row = db
-      .prepare(`SELECT * FROM credit_pack_purchases WHERE paid_session_id = ?`)
-      .get(sessionId) as CreditPackPurchase | undefined;
+): Promise<CreditPackPurchase | null> {
+  const pi = payment_intent_id ?? null;
+  return await sql.tx<CreditPackPurchase | null>(async (client) => {
+    const sel = await client.query<CreditPackPurchase>(
+      pgPlaceholders(`SELECT * FROM credit_pack_purchases WHERE paid_session_id = ?`),
+      [paid_session_id],
+    );
+    const row = sel.rows[0];
     if (!row || row.status === "succeeded") return null; // unknown or already granted
     const now = new Date().toISOString();
-    db.prepare(
-      `UPDATE credit_pack_purchases
-          SET status = 'succeeded', succeeded_at = ?, paid_payment_intent_id = ?
-        WHERE purchase_id = ? AND status = 'pending'`,
-    ).run(now, pi, row.purchase_id);
-    addPersistenceCredits(row.account_id, row.credits, "purchase");
+    await client.query(
+      pgPlaceholders(
+        `UPDATE credit_pack_purchases
+            SET status = 'succeeded', succeeded_at = ?, paid_payment_intent_id = ?
+          WHERE purchase_id = ? AND status = 'pending'`,
+      ),
+      [now, pi, row.purchase_id],
+    );
+    await addPersistenceCredits(row.account_id, row.credits, "purchase");
     return { ...row, status: "succeeded", succeeded_at: now, paid_payment_intent_id: pi };
   });
-  return settle(paid_session_id, payment_intent_id ?? null);
 }
 
-export function getPurchaseBySession(paid_session_id: string): CreditPackPurchase | null {
+export async function getPurchaseBySession(
+  paid_session_id: string,
+): Promise<CreditPackPurchase | null> {
   return (
-    (getDb()
-      .prepare(`SELECT * FROM credit_pack_purchases WHERE paid_session_id = ?`)
-      .get(paid_session_id) as CreditPackPurchase | undefined) ?? null
+    (await sql.one<CreditPackPurchase>(
+      `SELECT * FROM credit_pack_purchases WHERE paid_session_id = ?`,
+      [paid_session_id],
+    )) ?? null
   );
 }
 
-export function listPurchasesByAccount(account_id: string, limit = 50): CreditPackPurchase[] {
-  return getDb()
-    .prepare(
-      `SELECT * FROM credit_pack_purchases
-        WHERE account_id = ? ORDER BY created_at DESC LIMIT ?`,
-    )
-    .all(account_id, limit) as CreditPackPurchase[];
+export async function listPurchasesByAccount(
+  account_id: string,
+  limit = 50,
+): Promise<CreditPackPurchase[]> {
+  return await sql.many<CreditPackPurchase>(
+    `SELECT * FROM credit_pack_purchases
+      WHERE account_id = ? ORDER BY created_at DESC LIMIT ?`,
+    [account_id, limit],
+  );
 }

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import { getAccount, getMonthlySnapshotCount, getEntitlements } from "./billing-store.js";
 import { TIER_LIMITS, ALL_PROGRAMS } from "./billing-types.js";
 import type { BillingTier } from "./billing-types.js";
@@ -21,19 +21,19 @@ import {
 
 // ─── Seats ──────────────────────────────────────────────────────
 
-export function inviteSeat(
+export async function inviteSeat(
   account_id: string,
   email: string,
   role: SeatRole,
   invited_by: string,
-): Seat {
-  const account = getAccount(account_id);
+): Promise<Seat> {
+  const account = await getAccount(account_id);
   if (!account) throw new Error("Account not found");
 
   // Check seat limit
   const limit = SEAT_LIMITS[account.tier];
   if (limit !== -1) {
-    const active = getActiveSeats(account_id);
+    const active = await getActiveSeats(account_id);
     if (active.length >= limit) {
       throw new Error(`Seat limit reached (${limit} for ${account.tier} tier)`);
     }
@@ -50,77 +50,86 @@ export function inviteSeat(
     created_at: new Date().toISOString(),
   };
 
-  getDb().prepare(
+  await sql.run(
     `INSERT INTO seats (seat_id, account_id, email, role, invited_by, accepted_at, revoked_at, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(seat.seat_id, seat.account_id, seat.email, seat.role, seat.invited_by, seat.accepted_at, seat.revoked_at, seat.created_at);
+    [seat.seat_id, seat.account_id, seat.email, seat.role, seat.invited_by, seat.accepted_at, seat.revoked_at, seat.created_at],
+  );
 
-  trackEvent(account_id, "seat_invited", resolveStage(account_id), { email, role });
+  await trackEvent(account_id, "seat_invited", await resolveStage(account_id), { email, role });
   return seat;
 }
 
-export function acceptSeat(seat_id: string): boolean {
-  const result = getDb().prepare(
+export async function acceptSeat(seat_id: string): Promise<boolean> {
+  const result = await sql.run(
     "UPDATE seats SET accepted_at = ? WHERE seat_id = ? AND accepted_at IS NULL AND revoked_at IS NULL",
-  ).run(new Date().toISOString(), seat_id);
+    [new Date().toISOString(), seat_id],
+  );
 
-  if (result.changes > 0) {
-    const seat = getSeat(seat_id);
+  if (result.rowCount > 0) {
+    const seat = await getSeat(seat_id);
     /* v8 ignore next — V8 quirk: seat always exists after successful update */
-    if (seat) trackEvent(seat.account_id, "seat_accepted", resolveStage(seat.account_id), { email: seat.email });
+    if (seat) await trackEvent(seat.account_id, "seat_accepted", await resolveStage(seat.account_id), { email: seat.email });
   }
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
-export function revokeSeat(seat_id: string): boolean {
-  const seat = getSeat(seat_id);
-  const result = getDb().prepare(
+export async function revokeSeat(seat_id: string): Promise<boolean> {
+  const seat = await getSeat(seat_id);
+  const result = await sql.run(
     "UPDATE seats SET revoked_at = ? WHERE seat_id = ? AND revoked_at IS NULL",
-  ).run(new Date().toISOString(), seat_id);
+    [new Date().toISOString(), seat_id],
+  );
 
-  if (result.changes > 0 && seat) {
-    trackEvent(seat.account_id, "seat_removed", resolveStage(seat.account_id), { email: seat.email });
+  if (result.rowCount > 0 && seat) {
+    await trackEvent(seat.account_id, "seat_removed", await resolveStage(seat.account_id), { email: seat.email });
   }
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
-export function getSeat(seat_id: string): Seat | undefined {
-  return getDb().prepare("SELECT * FROM seats WHERE seat_id = ?").get(seat_id) as Seat | undefined;
+export async function getSeat(seat_id: string): Promise<Seat | undefined> {
+  return await sql.one<Seat>("SELECT * FROM seats WHERE seat_id = ?", [seat_id]);
 }
 
-export function getActiveSeats(account_id: string): Seat[] {
-  return getDb().prepare(
+export async function getActiveSeats(account_id: string): Promise<Seat[]> {
+  return await sql.many<Seat>(
     "SELECT * FROM seats WHERE account_id = ? AND revoked_at IS NULL ORDER BY created_at",
-  ).all(account_id) as Seat[];
+    [account_id],
+  );
 }
 
-export function getAllSeats(account_id: string): Seat[] {
-  return getDb().prepare(
+export async function getAllSeats(account_id: string): Promise<Seat[]> {
+  return await sql.many<Seat>(
     "SELECT * FROM seats WHERE account_id = ? ORDER BY created_at DESC",
-  ).all(account_id) as Seat[];
+    [account_id],
+  );
 }
 
-export function getSeatByEmail(account_id: string, email: string): Seat | undefined {
-  return getDb().prepare(
+export async function getSeatByEmail(account_id: string, email: string): Promise<Seat | undefined> {
+  return await sql.one<Seat>(
     "SELECT * FROM seats WHERE account_id = ? AND email = ? AND revoked_at IS NULL",
-  ).get(account_id, email) as Seat | undefined;
+    [account_id, email],
+  );
 }
 
-export function getSeatCount(account_id: string): number {
-  const row = getDb().prepare(
+export async function getSeatCount(account_id: string): Promise<number> {
+  const row = await sql.one<{ count: number }>(
     "SELECT COUNT(*) as count FROM seats WHERE account_id = ? AND revoked_at IS NULL",
-  ).get(account_id) as { count: number };
-  return row.count;
+    [account_id],
+  );
+  // FLAG(aggregate): pg COUNT(*) returns a string/bigint — row.count may be a
+  // string at runtime; downstream `>=` numeric comparisons may need Number().
+  return row!.count;
 }
 
 // ─── Funnel Event Tracking ──────────────────────────────────────
 
-export function trackEvent(
+export async function trackEvent(
   account_id: string,
   event_type: FunnelEventType,
   stage: FunnelStage,
   metadata: Record<string, unknown> = {},
-): FunnelEvent {
+): Promise<FunnelEvent> {
   const event: FunnelEvent = {
     event_id: randomUUID(),
     account_id,
@@ -130,10 +139,11 @@ export function trackEvent(
     created_at: new Date().toISOString(),
   };
 
-  getDb().prepare(
+  await sql.run(
     `INSERT INTO funnel_events (event_id, account_id, event_type, stage, metadata, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
-  ).run(event.event_id, event.account_id, event.event_type, event.stage, JSON.stringify(event.metadata), event.created_at);
+    [event.event_id, event.account_id, event.event_type, event.stage, JSON.stringify(event.metadata), event.created_at],
+  );
 
   return event;
 }
@@ -146,27 +156,35 @@ function safeParseMetadata(raw: string): Record<string, unknown> {
   }
 }
 
-export function getAccountEvents(account_id: string, limit = 50): FunnelEvent[] {
-  const rows = getDb().prepare(
-    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?",
-  ).all(account_id, limit) as (Omit<FunnelEvent, "metadata"> & { metadata: string })[];
+export async function getAccountEvents(account_id: string, limit = 50): Promise<FunnelEvent[]> {
+  // FLAG(rowid): SQLite `rowid` tiebreaker dropped — funnel_events has a TEXT PK
+  // (event_id) and no monotonic serial column in pg-schema, so there is no
+  // Postgres equivalent. Ordering now relies on created_at DESC alone.
+  const rows = await sql.many<Omit<FunnelEvent, "metadata"> & { metadata: string }>(
+    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC LIMIT ?",
+    [account_id, limit],
+  );
 
   return rows.map(r => ({ ...r, metadata: safeParseMetadata(r.metadata) }));
 }
 
-export function getLatestEvent(account_id: string): FunnelEvent | undefined {
-  const row = getDb().prepare(
-    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1",
-  ).get(account_id) as (Omit<FunnelEvent, "metadata"> & { metadata: string }) | undefined;
+export async function getLatestEvent(account_id: string): Promise<FunnelEvent | undefined> {
+  // FLAG(rowid): SQLite `rowid` tiebreaker dropped (see getAccountEvents).
+  const row = await sql.one<Omit<FunnelEvent, "metadata"> & { metadata: string }>(
+    "SELECT * FROM funnel_events WHERE account_id = ? ORDER BY created_at DESC LIMIT 1",
+    [account_id],
+  );
 
   if (!row) return undefined;
   return { ...row, metadata: safeParseMetadata(row.metadata) };
 }
 
-export function getEventsByType(account_id: string, event_type: FunnelEventType): FunnelEvent[] {
-  const rows = getDb().prepare(
-    "SELECT * FROM funnel_events WHERE account_id = ? AND event_type = ? ORDER BY created_at DESC, rowid DESC",
-  ).all(account_id, event_type) as (Omit<FunnelEvent, "metadata"> & { metadata: string })[];
+export async function getEventsByType(account_id: string, event_type: FunnelEventType): Promise<FunnelEvent[]> {
+  // FLAG(rowid): SQLite `rowid` tiebreaker dropped (see getAccountEvents).
+  const rows = await sql.many<Omit<FunnelEvent, "metadata"> & { metadata: string }>(
+    "SELECT * FROM funnel_events WHERE account_id = ? AND event_type = ? ORDER BY created_at DESC",
+    [account_id, event_type],
+  );
 
   return rows.map(r => ({ ...r, metadata: safeParseMetadata(r.metadata) }));
 }
@@ -174,21 +192,21 @@ export function getEventsByType(account_id: string, event_type: FunnelEventType)
 // ─── Stage Resolution ───────────────────────────────────────────
 
 /** Compute the current funnel stage for an account based on their history. */
-export function resolveStage(account_id: string): FunnelStage {
-  const account = getAccount(account_id);
+export async function resolveStage(account_id: string): Promise<FunnelStage> {
+  const account = await getAccount(account_id);
   if (!account) return "visitor";
 
   // Check if they've upgraded
   if (account.tier === "paid" || account.tier === "suite") {
     // Check for expansion events (seats, programs added)
-    const expansionEvents = getEventsByType(account_id, "seat_invited");
-    const programEvents = getEventsByType(account_id, "program_added");
+    const expansionEvents = await getEventsByType(account_id, "seat_invited");
+    const programEvents = await getEventsByType(account_id, "program_added");
     if (expansionEvents.length > 0 || programEvents.length > 0) return "expansion";
     return "conversion";
   }
 
   // Free tier — check usage progression
-  const snapshotCount = getMonthlySnapshotCount(account_id);
+  const snapshotCount = await getMonthlySnapshotCount(account_id);
   const limits = TIER_LIMITS.free;
 
   // Check if they've hit limits
@@ -197,7 +215,7 @@ export function resolveStage(account_id: string): FunnelStage {
   // Check engagement threshold
   if (snapshotCount >= ENGAGEMENT_THRESHOLD) {
     // Check for churn risk — any activity in last N days?
-    const latest = getLatestEvent(account_id);
+    const latest = await getLatestEvent(account_id);
     if (latest) {
       const daysSince = (Date.now() - new Date(latest.created_at).getTime()) / (1000 * 60 * 60 * 24);
       /* v8 ignore next — V8 quirk: both paths tested in stage resolution tests */
@@ -215,20 +233,20 @@ export function resolveStage(account_id: string): FunnelStage {
 // ─── Upgrade Prompt Engine ──────────────────────────────────────
 
 /** Generate a contextual upgrade prompt based on current usage and stage. */
-export function generateUpgradePrompt(account_id: string): UpgradePrompt | null {
-  const account = getAccount(account_id);
+export async function generateUpgradePrompt(account_id: string): Promise<UpgradePrompt | null> {
+  const account = await getAccount(account_id);
   if (!account) return null;
 
   // Suite users don't need upgrade prompts
   if (account.tier === "suite") return null;
 
-  const stage = resolveStage(account_id);
-  const snapshotCount = getMonthlySnapshotCount(account_id);
+  const stage = await resolveStage(account_id);
+  const snapshotCount = await getMonthlySnapshotCount(account_id);
   const limits = TIER_LIMITS[account.tier];
 
   // Paid → Suite upgrade
   if (account.tier === "paid") {
-    const seatCount = getSeatCount(account_id);
+    const seatCount = await getSeatCount(account_id);
     const seatLimit = SEAT_LIMITS.paid;
 
     if (seatCount >= seatLimit) {
@@ -364,37 +382,42 @@ export interface FunnelMetrics {
 }
 
 /** Compute aggregate funnel metrics across all accounts. */
-export function getFunnelMetrics(): FunnelMetrics {
-  const db = getDb();
+export async function getFunnelMetrics(): Promise<FunnelMetrics> {
+  // FLAG(aggregate): every COUNT(*) below (total, byTier counts, seat count,
+  // events24h, events7d) returns a string/bigint under pg. The values flow into
+  // arithmetic (converted/total ratios, total - byStage subtraction) and the
+  // FunnelMetrics numeric fields — these may need Number() coercion for correct
+  // results. Left as-is per "no business-logic change"; flagged for review.
+  const totalRow = await sql.one<{ count: number }>("SELECT COUNT(*) as count FROM accounts");
+  const total = totalRow!.count;
 
-  const totalRow = db.prepare("SELECT COUNT(*) as count FROM accounts").get() as { count: number };
-  const total = totalRow.count;
-
-  const tierRows = db.prepare(
+  const tierRows = await sql.many<{ tier: BillingTier; count: number }>(
     "SELECT tier, COUNT(*) as count FROM accounts GROUP BY tier",
-  ).all() as { tier: BillingTier; count: number }[];
+  );
 
   const byTier: Record<BillingTier, number> = { free: 0, paid: 0, suite: 0 };
   for (const row of tierRows) byTier[row.tier] = row.count;
 
-  const seatRow = db.prepare(
+  const seatRow = await sql.one<{ count: number }>(
     "SELECT COUNT(*) as count FROM seats WHERE revoked_at IS NULL",
-  ).get() as { count: number };
+  );
 
   const now = new Date();
   const day_ago = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const week_ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const events24h = db.prepare(
+  const events24h = await sql.one<{ count: number }>(
     "SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= ?",
-  ).get(day_ago) as { count: number };
+    [day_ago],
+  );
 
-  const events7d = db.prepare(
+  const events7d = await sql.one<{ count: number }>(
     "SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= ?",
-  ).get(week_ago) as { count: number };
+    [week_ago],
+  );
 
   // Compute stage distribution — resolve stage for each account
-  const accounts = db.prepare("SELECT account_id FROM accounts").all() as { account_id: string }[];
+  const accounts = await sql.many<{ account_id: string }>("SELECT account_id FROM accounts");
   const byStage: Record<FunnelStage, number> = {
     visitor: 0, signup: 0, activation: 0, engagement: 0,
     limit_hit: 0, upgrade_shown: 0, trial_start: 0,
@@ -402,7 +425,7 @@ export function getFunnelMetrics(): FunnelMetrics {
   };
 
   for (const { account_id } of accounts) {
-    const stage = resolveStage(account_id);
+    const stage = await resolveStage(account_id);
     byStage[stage]++;
   }
 
@@ -416,8 +439,8 @@ export function getFunnelMetrics(): FunnelMetrics {
     by_tier: byTier,
     conversion_rate: total > 0 ? converted / total : 0,
     activation_rate: total > 0 ? activated / total : 0,
-    total_seats: seatRow.count,
-    events_last_24h: events24h.count,
-    events_last_7d: events7d.count,
+    total_seats: seatRow!.count,
+    events_last_24h: events24h!.count,
+    events_last_7d: events7d!.count,
   };
 }

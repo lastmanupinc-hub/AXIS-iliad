@@ -4,22 +4,21 @@ import type {
   SnapshotRecord,
   SnapshotStatus,
 } from "./types.js";
-import { getDb } from "./db.js";
+import { sql, pgPlaceholders } from "./pg.js";
 
 // ─── Snapshot CRUD ──────────────────────────────────────────────
 
-export function createSnapshot(input: SnapshotInput, account_id?: string): SnapshotRecord {
-  const db = getDb();
+export async function createSnapshot(input: SnapshotInput, account_id?: string): Promise<SnapshotRecord> {
   const snapshot_id = randomUUID();
 
   // Resolve project_id: reuse existing or create new (scoped by account to prevent cross-account collisions)
   const existingProject = account_id
-    ? db.prepare("SELECT project_id FROM projects WHERE project_name = ? AND account_id = ?").get(input.manifest.project_name, account_id) as { project_id: string } | undefined
-    : db.prepare("SELECT project_id FROM projects WHERE project_name = ? AND account_id IS NULL").get(input.manifest.project_name) as { project_id: string } | undefined;
+    ? await sql.one<{ project_id: string }>("SELECT project_id FROM projects WHERE project_name = ? AND account_id = ?", [input.manifest.project_name, account_id])
+    : await sql.one<{ project_id: string }>("SELECT project_id FROM projects WHERE project_name = ? AND account_id IS NULL", [input.manifest.project_name]);
   const project_id = existingProject?.project_id ?? randomUUID();
 
   if (!existingProject) {
-    db.prepare("INSERT INTO projects (project_id, project_name, account_id) VALUES (?, ?, ?)").run(project_id, input.manifest.project_name, account_id ?? null);
+    await sql.run("INSERT INTO projects (project_id, project_name, account_id) VALUES (?, ?, ?)", [project_id, input.manifest.project_name, account_id ?? null]);
   }
 
   const record: SnapshotRecord = {
@@ -35,20 +34,21 @@ export function createSnapshot(input: SnapshotInput, account_id?: string): Snaps
     account_id: account_id ?? null,
   };
 
-  db.prepare(
+  await sql.run(
     `INSERT INTO snapshots (snapshot_id, project_id, created_at, input_method, manifest, file_count, total_size_bytes, files, status, account_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    record.snapshot_id,
-    record.project_id,
-    record.created_at,
-    record.input_method,
-    JSON.stringify(record.manifest),
-    record.file_count,
-    record.total_size_bytes,
-    JSON.stringify(record.files),
-    record.status,
-    record.account_id,
+    [
+      record.snapshot_id,
+      record.project_id,
+      record.created_at,
+      record.input_method,
+      JSON.stringify(record.manifest),
+      record.file_count,
+      record.total_size_bytes,
+      JSON.stringify(record.files),
+      record.status,
+      record.account_id,
+    ],
   );
 
   return record;
@@ -73,69 +73,64 @@ function rowToSnapshot(row: Record<string, unknown>): SnapshotRecord | undefined
   }
 }
 
-export function getSnapshot(snapshot_id: string): SnapshotRecord | undefined {
-  const row = getDb().prepare("SELECT * FROM snapshots WHERE snapshot_id = ?").get(snapshot_id) as Record<string, unknown> | undefined;
+export async function getSnapshot(snapshot_id: string): Promise<SnapshotRecord | undefined> {
+  const row = await sql.one<Record<string, unknown>>("SELECT * FROM snapshots WHERE snapshot_id = ?", [snapshot_id]);
   return row ? rowToSnapshot(row) : undefined;
 }
 
-export function updateSnapshotStatus(
+export async function updateSnapshotStatus(
   snapshot_id: string,
   status: SnapshotStatus,
-): boolean {
-  const result = getDb().prepare("UPDATE snapshots SET status = ? WHERE snapshot_id = ?").run(status, snapshot_id);
-  return result.changes > 0;
+): Promise<boolean> {
+  const result = await sql.run("UPDATE snapshots SET status = ? WHERE snapshot_id = ?", [status, snapshot_id]);
+  return result.rowCount > 0;
 }
 
-export function getProjectSnapshots(project_id: string): SnapshotRecord[] {
-  const rows = getDb().prepare("SELECT * FROM snapshots WHERE project_id = ? ORDER BY created_at ASC").all(project_id) as Record<string, unknown>[];
+export async function getProjectSnapshots(project_id: string): Promise<SnapshotRecord[]> {
+  const rows = await sql.many<Record<string, unknown>>("SELECT * FROM snapshots WHERE project_id = ? ORDER BY created_at ASC", [project_id]);
   return rows.map(rowToSnapshot).filter((r): r is SnapshotRecord => r !== undefined);
 }
 
-export function getProjectOwner(project_id: string): string | null {
-  const row = getDb().prepare("SELECT account_id FROM projects WHERE project_id = ?").get(project_id) as { account_id: string | null } | undefined;
+export async function getProjectOwner(project_id: string): Promise<string | null> {
+  const row = await sql.one<{ account_id: string | null }>("SELECT account_id FROM projects WHERE project_id = ?", [project_id]);
   return row?.account_id ?? null;
 }
 
 /** Delete a snapshot and all associated data (context map, repo profile, generator results, search index). */
-export function deleteSnapshot(snapshot_id: string): boolean {
-  const db = getDb();
-  const tx = db.transaction(() => {
-    db.prepare("DELETE FROM search_fts WHERE rowid IN (SELECT id FROM search_index WHERE snapshot_id = ?)").run(snapshot_id);
-    db.prepare("DELETE FROM search_index WHERE snapshot_id = ?").run(snapshot_id);
-    db.prepare("DELETE FROM generator_results WHERE snapshot_id = ?").run(snapshot_id);
-    db.prepare("DELETE FROM repo_profiles WHERE snapshot_id = ?").run(snapshot_id);
-    db.prepare("DELETE FROM context_maps WHERE snapshot_id = ?").run(snapshot_id);
-    const result = db.prepare("DELETE FROM snapshots WHERE snapshot_id = ?").run(snapshot_id);
-    return result.changes > 0;
+export async function deleteSnapshot(snapshot_id: string): Promise<boolean> {
+  return await sql.tx(async (client) => {
+    await client.query(pgPlaceholders("DELETE FROM search_index WHERE snapshot_id = ?"), [snapshot_id]);
+    await client.query(pgPlaceholders("DELETE FROM generator_results WHERE snapshot_id = ?"), [snapshot_id]);
+    await client.query(pgPlaceholders("DELETE FROM repo_profiles WHERE snapshot_id = ?"), [snapshot_id]);
+    await client.query(pgPlaceholders("DELETE FROM context_maps WHERE snapshot_id = ?"), [snapshot_id]);
+    const result = await client.query(pgPlaceholders("DELETE FROM snapshots WHERE snapshot_id = ?"), [snapshot_id]);
+    return (result.rowCount ?? 0) > 0;
   });
-  return tx();
 }
 
 /** Delete a project and ALL its snapshots (cascading). Returns count of snapshots deleted. */
-export function deleteProject(project_id: string): { deleted_snapshots: number } {
-  const db = getDb();
-  const snapshots = db.prepare("SELECT snapshot_id FROM snapshots WHERE project_id = ?").all(project_id) as { snapshot_id: string }[];
-  const tx = db.transaction(() => {
+export async function deleteProject(project_id: string): Promise<{ deleted_snapshots: number }> {
+  const snapshots = await sql.many<{ snapshot_id: string }>("SELECT snapshot_id FROM snapshots WHERE project_id = ?", [project_id]);
+  await sql.tx(async (client) => {
     for (const { snapshot_id } of snapshots) {
-      db.prepare("DELETE FROM search_fts WHERE rowid IN (SELECT id FROM search_index WHERE snapshot_id = ?)").run(snapshot_id);
-      db.prepare("DELETE FROM search_index WHERE snapshot_id = ?").run(snapshot_id);
-      db.prepare("DELETE FROM generator_results WHERE snapshot_id = ?").run(snapshot_id);
-      db.prepare("DELETE FROM repo_profiles WHERE snapshot_id = ?").run(snapshot_id);
-      db.prepare("DELETE FROM context_maps WHERE snapshot_id = ?").run(snapshot_id);
-      db.prepare("DELETE FROM snapshots WHERE snapshot_id = ?").run(snapshot_id);
+      await client.query(pgPlaceholders("DELETE FROM search_index WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM generator_results WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM repo_profiles WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM context_maps WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM snapshots WHERE snapshot_id = ?"), [snapshot_id]);
     }
-    db.prepare("DELETE FROM projects WHERE project_id = ?").run(project_id);
+    await client.query(pgPlaceholders("DELETE FROM projects WHERE project_id = ?"), [project_id]);
   });
-  tx();
   return { deleted_snapshots: snapshots.length };
 }
 
 // ─── Context Map persistence ────────────────────────────────────
 
-export function saveContextMap(snapshot_id: string, data: unknown): void {
-  getDb().prepare(
-    "INSERT OR REPLACE INTO context_maps (snapshot_id, data) VALUES (?, ?)",
-  ).run(snapshot_id, JSON.stringify(data));
+export async function saveContextMap(snapshot_id: string, data: unknown): Promise<void> {
+  await sql.run(
+    "INSERT INTO context_maps (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data",
+    [snapshot_id, JSON.stringify(data)],
+  );
 }
 
 /** Runtime shape check — validates minimum required ContextMap fields */
@@ -148,8 +143,8 @@ function isValidContextMap(data: unknown): boolean {
     && typeof d.project_identity === "object" && d.project_identity !== null;
 }
 
-export function getContextMap(snapshot_id: string): unknown | undefined {
-  const row = getDb().prepare("SELECT data FROM context_maps WHERE snapshot_id = ?").get(snapshot_id) as { data: string } | undefined;
+export async function getContextMap(snapshot_id: string): Promise<unknown | undefined> {
+  const row = await sql.one<{ data: string }>("SELECT data FROM context_maps WHERE snapshot_id = ?", [snapshot_id]);
   if (!row) return undefined;
   try {
     const parsed = JSON.parse(row.data);
@@ -161,10 +156,11 @@ export function getContextMap(snapshot_id: string): unknown | undefined {
 
 // ─── Repo Profile persistence ───────────────────────────────────
 
-export function saveRepoProfile(snapshot_id: string, data: unknown): void {
-  getDb().prepare(
-    "INSERT OR REPLACE INTO repo_profiles (snapshot_id, data) VALUES (?, ?)",
-  ).run(snapshot_id, JSON.stringify(data));
+export async function saveRepoProfile(snapshot_id: string, data: unknown): Promise<void> {
+  await sql.run(
+    "INSERT INTO repo_profiles (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data",
+    [snapshot_id, JSON.stringify(data)],
+  );
 }
 
 /** Runtime shape check — validates minimum required RepoProfile fields */
@@ -177,8 +173,8 @@ function isValidRepoProfile(data: unknown): boolean {
     && typeof d.project === "object" && d.project !== null;
 }
 
-export function getRepoProfile(snapshot_id: string): unknown | undefined {
-  const row = getDb().prepare("SELECT data FROM repo_profiles WHERE snapshot_id = ?").get(snapshot_id) as { data: string } | undefined;
+export async function getRepoProfile(snapshot_id: string): Promise<unknown | undefined> {
+  const row = await sql.one<{ data: string }>("SELECT data FROM repo_profiles WHERE snapshot_id = ?", [snapshot_id]);
   if (!row) return undefined;
   try {
     const parsed = JSON.parse(row.data);
@@ -190,10 +186,11 @@ export function getRepoProfile(snapshot_id: string): unknown | undefined {
 
 // ─── Generator Result persistence ───────────────────────────────
 
-export function saveGeneratorResult(snapshot_id: string, data: unknown): void {
-  getDb().prepare(
-    "INSERT OR REPLACE INTO generator_results (snapshot_id, data) VALUES (?, ?)",
-  ).run(snapshot_id, JSON.stringify(data));
+export async function saveGeneratorResult(snapshot_id: string, data: unknown): Promise<void> {
+  await sql.run(
+    "INSERT INTO generator_results (snapshot_id, data) VALUES (?, ?) ON CONFLICT (snapshot_id) DO UPDATE SET data = EXCLUDED.data",
+    [snapshot_id, JSON.stringify(data)],
+  );
 }
 
 /** Runtime shape check — validates minimum required GeneratorResult fields */
@@ -205,8 +202,8 @@ function isValidGeneratorResult(data: unknown): boolean {
     && Array.isArray(d.files);
 }
 
-export function getGeneratorResult(snapshot_id: string): unknown | undefined {
-  const row = getDb().prepare("SELECT data FROM generator_results WHERE snapshot_id = ?").get(snapshot_id) as { data: string } | undefined;
+export async function getGeneratorResult(snapshot_id: string): Promise<unknown | undefined> {
+  const row = await sql.one<{ data: string }>("SELECT data FROM generator_results WHERE snapshot_id = ?", [snapshot_id]);
   if (!row) return undefined;
   try {
     const parsed = JSON.parse(row.data);

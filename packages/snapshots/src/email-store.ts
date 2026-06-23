@@ -1,4 +1,4 @@
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import { randomUUID } from "node:crypto";
 
 // ─── Email types ────────────────────────────────────────────────
@@ -123,7 +123,7 @@ export function renderTemplate(
 
 // ─── Delivery tracking ──────────────────────────────────────────
 
-export function recordEmailDelivery(msg: EmailMessage, status: "pending" | "sent" | "failed", providerId?: string, error?: string): EmailDelivery {
+export async function recordEmailDelivery(msg: EmailMessage, status: "pending" | "sent" | "failed", providerId?: string, error?: string): Promise<EmailDelivery> {
   const delivery: EmailDelivery = {
     delivery_id: randomUUID(),
     to_email: msg.to,
@@ -137,33 +137,37 @@ export function recordEmailDelivery(msg: EmailMessage, status: "pending" | "sent
     sent_at: status === "sent" ? new Date().toISOString() : null,
   };
 
-  getDb().prepare(
+  await sql.run(
     `INSERT INTO email_deliveries (delivery_id, to_email, template, subject, variables, status, provider_id, error, created_at, sent_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    delivery.delivery_id, delivery.to_email, delivery.template, delivery.subject,
-    delivery.variables, delivery.status, delivery.provider_id, delivery.error,
-    delivery.created_at, delivery.sent_at,
+    [
+      delivery.delivery_id, delivery.to_email, delivery.template, delivery.subject,
+      delivery.variables, delivery.status, delivery.provider_id, delivery.error,
+      delivery.created_at, delivery.sent_at,
+    ],
   );
 
   return delivery;
 }
 
-export function getEmailDeliveries(toEmail?: string, limit: number = 50): EmailDelivery[] {
+export async function getEmailDeliveries(toEmail?: string, limit: number = 50): Promise<EmailDelivery[]> {
   if (toEmail) {
-    return getDb()
-      .prepare("SELECT * FROM email_deliveries WHERE to_email = ? ORDER BY created_at DESC LIMIT ?")
-      .all(toEmail, limit) as EmailDelivery[];
+    return await sql.many<EmailDelivery>(
+      "SELECT * FROM email_deliveries WHERE to_email = ? ORDER BY created_at DESC LIMIT ?",
+      [toEmail, limit],
+    );
   }
-  return getDb()
-    .prepare("SELECT * FROM email_deliveries ORDER BY created_at DESC LIMIT ?")
-    .all(limit) as EmailDelivery[];
+  return await sql.many<EmailDelivery>(
+    "SELECT * FROM email_deliveries ORDER BY created_at DESC LIMIT ?",
+    [limit],
+  );
 }
 
-export function getEmailDelivery(deliveryId: string): EmailDelivery | undefined {
-  return getDb()
-    .prepare("SELECT * FROM email_deliveries WHERE delivery_id = ?")
-    .get(deliveryId) as EmailDelivery | undefined;
+export async function getEmailDelivery(deliveryId: string): Promise<EmailDelivery | undefined> {
+  return await sql.one<EmailDelivery>(
+    "SELECT * FROM email_deliveries WHERE delivery_id = ?",
+    [deliveryId],
+  );
 }
 
 // ─── Provider registry ──────────────────────────────────────────
@@ -194,15 +198,15 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailDelivery> {
   const provider = _provider;
   if (!provider) {
     // No provider configured — record as pending (queue for later)
-    return recordEmailDelivery(msg, "pending");
+    return await recordEmailDelivery(msg, "pending");
   }
 
   try {
     const result = await provider(msg);
-    return recordEmailDelivery(msg, "sent", result.provider_id);
+    return await recordEmailDelivery(msg, "sent", result.provider_id);
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    return recordEmailDelivery(msg, "failed", undefined, errorMsg);
+    return await recordEmailDelivery(msg, "failed", undefined, errorMsg);
   }
 }
 

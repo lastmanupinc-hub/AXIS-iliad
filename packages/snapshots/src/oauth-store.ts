@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import { createAccount, getAccountByEmail, createApiKey } from "./billing-store.js";
 import type { Account } from "./billing-types.js";
 
@@ -7,23 +7,23 @@ import type { Account } from "./billing-types.js";
 
 const STATE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-export function createOAuthState(): string {
+export async function createOAuthState(): Promise<string> {
   const state = randomBytes(32).toString("hex");
-  getDb()
-    .prepare("INSERT INTO oauth_states (state, created_at) VALUES (?, ?)")
-    .run(state, new Date().toISOString());
+  await sql.run(
+    "INSERT INTO oauth_states (state, created_at) VALUES (?, ?)",
+    [state, new Date().toISOString()],
+  );
   return state;
 }
 
-export function consumeOAuthState(state: string): boolean {
-  const db = getDb();
+export async function consumeOAuthState(state: string): Promise<boolean> {
   // Delete expired states first
   const cutoff = new Date(Date.now() - STATE_TTL_MS).toISOString();
-  db.prepare("DELETE FROM oauth_states WHERE created_at < ?").run(cutoff);
+  await sql.run("DELETE FROM oauth_states WHERE created_at < ?", [cutoff]);
 
   // Try to consume
-  const result = db.prepare("DELETE FROM oauth_states WHERE state = ?").run(state);
-  return result.changes > 0;
+  const result = await sql.run("DELETE FROM oauth_states WHERE state = ?", [state]);
+  return result.rowCount > 0;
 }
 
 // ─── One-time auth code (OAuth → web app handoff) ──────────────
@@ -132,17 +132,16 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
 
 // ─── Account upsert by GitHub identity ──────────────────────────
 
-export function getAccountByGitHubId(githubId: string): Account | undefined {
-  return getDb()
-    .prepare("SELECT * FROM accounts WHERE github_id = ?")
-    .get(githubId) as Account | undefined;
+export async function getAccountByGitHubId(githubId: string): Promise<Account | undefined> {
+  return await sql.one<Account>("SELECT * FROM accounts WHERE github_id = ?", [githubId]);
 }
 
-export function linkGitHubId(accountId: string, githubId: string): boolean {
-  const result = getDb()
-    .prepare("UPDATE accounts SET github_id = ? WHERE account_id = ?")
-    .run(githubId, accountId);
-  return result.changes > 0;
+export async function linkGitHubId(accountId: string, githubId: string): Promise<boolean> {
+  const result = await sql.run(
+    "UPDATE accounts SET github_id = ? WHERE account_id = ?",
+    [githubId, accountId],
+  );
+  return result.rowCount > 0;
 }
 
 /**
@@ -150,26 +149,26 @@ export function linkGitHubId(accountId: string, githubId: string): boolean {
  * Priority: match by github_id → match by email → create new.
  * Returns the account and a fresh API key.
  */
-export function upsertAccountByGitHub(
+export async function upsertAccountByGitHub(
   githubId: number,
   name: string | null,
   email: string | null,
-): { account: Account; rawKey: string } {
+): Promise<{ account: Account; rawKey: string }> {
   const gid = String(githubId);
 
   // 1. Match by github_id
-  const byGid = getAccountByGitHubId(gid);
+  const byGid = await getAccountByGitHubId(gid);
   if (byGid) {
-    const { rawKey } = createApiKey(byGid.account_id, "oauth-login");
+    const { rawKey } = await createApiKey(byGid.account_id, "oauth-login");
     return { account: byGid, rawKey };
   }
 
   // 2. Match by email — link github_id
   if (email) {
-    const byEmail = getAccountByEmail(email);
+    const byEmail = await getAccountByEmail(email);
     if (byEmail) {
-      linkGitHubId(byEmail.account_id, gid);
-      const { rawKey } = createApiKey(byEmail.account_id, "oauth-login");
+      await linkGitHubId(byEmail.account_id, gid);
+      const { rawKey } = await createApiKey(byEmail.account_id, "oauth-login");
       return { account: byEmail, rawKey };
     }
   }
@@ -177,8 +176,8 @@ export function upsertAccountByGitHub(
   // 3. Create new account
   const displayName = name ?? `github-${githubId}`;
   const acctEmail = email ?? `${githubId}@github.oauth`;
-  const account = createAccount(displayName, acctEmail);
-  linkGitHubId(account.account_id, gid);
-  const { rawKey } = createApiKey(account.account_id, "oauth-login");
+  const account = await createAccount(displayName, acctEmail);
+  await linkGitHubId(account.account_id, gid);
+  const { rawKey } = await createApiKey(account.account_id, "oauth-login");
   return { account, rawKey };
 }

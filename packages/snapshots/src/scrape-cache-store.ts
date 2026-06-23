@@ -15,7 +15,7 @@
 //   - hit_count incremented on every fetch for telemetry (pre-warm candidates).
 
 import { createHash } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 
 export interface CachedScrape {
   url: string;
@@ -62,34 +62,33 @@ function hashUrl(url: string): string {
  * Look up a cached scrape result by URL. Returns null if absent or expired.
  * On hit, atomically increments hit_count.
  */
-export function getCachedScrape(url: string): CachedScrape | null {
-  const db = getDb();
+export async function getCachedScrape(url: string): Promise<CachedScrape | null> {
   const url_hash = hashUrl(url);
   const now = new Date().toISOString();
 
-  const row = db.prepare(
+  const row = await sql.one<{
+    url: string;
+    markdown: string;
+    metadata: string;
+    status_code: number;
+    created_at: string;
+    expires_at: string;
+    hit_count: number;
+  }>(
     `SELECT url, markdown, metadata, status_code, created_at, expires_at, hit_count
        FROM scrape_cache
       WHERE url_hash = ? AND expires_at > ?`,
-  ).get(url_hash, now) as
-    | {
-        url: string;
-        markdown: string;
-        metadata: string;
-        status_code: number;
-        created_at: string;
-        expires_at: string;
-        hit_count: number;
-      }
-    | undefined;
+    [url_hash, now],
+  );
 
   if (!row) return null;
 
-  db.prepare(
+  await sql.run(
     `UPDATE scrape_cache
        SET hit_count = hit_count + 1, last_hit_at = ?
      WHERE url_hash = ?`,
-  ).run(now, url_hash);
+    [now, url_hash],
+  );
 
   let metadata: Record<string, unknown> = {};
   try {
@@ -115,23 +114,22 @@ export function getCachedScrape(url: string): CachedScrape | null {
  * Store a scrape result. Upserts on URL hash — newer scrapes replace older ones
  * with a fresh TTL. Only success responses (2xx) should be cached by convention.
  */
-export function putCachedScrape(
+export async function putCachedScrape(
   url: string,
   markdown: string,
   metadata: Record<string, unknown> = {},
   statusCode = 200,
   ttlSeconds: number = DEFAULT_TTL_SECONDS,
-): void {
+): Promise<void> {
   if (!url || typeof url !== "string") return;
   if (typeof markdown !== "string") return;
 
-  const db = getDb();
   const url_hash = hashUrl(url);
   const normalized = normalizeUrl(url);
   const now = new Date();
   const expires = new Date(now.getTime() + ttlSeconds * 1000);
 
-  db.prepare(
+  await sql.run(
     `INSERT INTO scrape_cache
        (url_hash, url, markdown, metadata, status_code, created_at, expires_at, hit_count, last_hit_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, 0, NULL)
@@ -144,35 +142,38 @@ export function putCachedScrape(
        expires_at = excluded.expires_at,
        hit_count = 0,
        last_hit_at = NULL`,
-  ).run(
-    url_hash,
-    normalized,
-    markdown,
-    JSON.stringify(metadata),
-    statusCode,
-    now.toISOString(),
-    expires.toISOString(),
+    [
+      url_hash,
+      normalized,
+      markdown,
+      JSON.stringify(metadata),
+      statusCode,
+      now.toISOString(),
+      expires.toISOString(),
+    ],
   );
 }
 
 /** Remove all expired entries. Returns the number of rows deleted. */
-export function cleanupExpiredScrapes(): number {
-  const db = getDb();
+export async function cleanupExpiredScrapes(): Promise<number> {
   const now = new Date().toISOString();
-  return db.prepare(`DELETE FROM scrape_cache WHERE expires_at <= ?`).run(now).changes;
+  return (await sql.run(`DELETE FROM scrape_cache WHERE expires_at <= ?`, [now])).rowCount;
 }
 
 /** Aggregate cache stats for /v1/db/stats and analytics. */
-export function getScrapeCacheStats(): ScrapeCacheStats {
-  const db = getDb();
-  const summary = db.prepare(
+export async function getScrapeCacheStats(): Promise<ScrapeCacheStats> {
+  const summary = (await sql.one<{
+    total_entries: number;
+    total_hits: number;
+    oldest_created: string | null;
+  }>(
     `SELECT COUNT(*) AS total_entries, COALESCE(SUM(hit_count), 0) AS total_hits, MIN(created_at) AS oldest_created
        FROM scrape_cache`,
-  ).get() as { total_entries: number; total_hits: number; oldest_created: string | null };
+  ))!;
 
-  const hottest = db.prepare(
+  const hottest = await sql.one<{ url: string; hit_count: number }>(
     `SELECT url, hit_count FROM scrape_cache ORDER BY hit_count DESC, created_at ASC LIMIT 1`,
-  ).get() as { url: string; hit_count: number } | undefined;
+  );
 
   const oldestAgeHours = summary.oldest_created
     ? (Date.now() - new Date(summary.oldest_created).getTime()) / (1000 * 60 * 60)
@@ -190,6 +191,6 @@ export function getScrapeCacheStats(): ScrapeCacheStats {
 }
 
 /** Test/debug helper — purge all cache entries. */
-export function _clearScrapeCacheForTests(): void {
-  getDb().prepare("DELETE FROM scrape_cache").run();
+export async function _clearScrapeCacheForTests(): Promise<void> {
+  await sql.run("DELETE FROM scrape_cache");
 }

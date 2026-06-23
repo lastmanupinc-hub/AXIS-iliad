@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 import { TIER_LIMITS } from "./billing-types.js";
 
@@ -60,13 +60,13 @@ export function calculateProration(
 
 // ─── Store functions ────────────────────────────────────────────
 
-export function logTierChange(
+export async function logTierChange(
   account_id: string,
   from_tier: BillingTier,
   to_tier: BillingTier,
   reason: string = "user_request",
   metadata: Record<string, unknown> = {},
-): TierChange {
+): Promise<TierChange> {
   const proration = calculateProration(from_tier, to_tier);
 
   const change: TierChange = {
@@ -80,26 +80,29 @@ export function logTierChange(
     created_at: new Date().toISOString(),
   };
 
-  getDb().prepare(
+  await sql.run(
     `INSERT INTO tier_changes
        (change_id, account_id, from_tier, to_tier, reason, proration_amount, metadata, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    change.change_id, change.account_id, change.from_tier, change.to_tier,
-    change.reason, change.proration_amount, change.metadata, change.created_at,
+    [
+      change.change_id, change.account_id, change.from_tier, change.to_tier,
+      change.reason, change.proration_amount, change.metadata, change.created_at,
+    ],
   );
 
   return change;
 }
 
-export function getTierHistory(account_id: string, limit: number = 50): TierChange[] {
-  return getDb().prepare(
+export async function getTierHistory(account_id: string, limit: number = 50): Promise<TierChange[]> {
+  return await sql.many<TierChange>(
     "SELECT * FROM tier_changes WHERE account_id = ? ORDER BY created_at DESC LIMIT ?",
-  ).all(account_id, limit) as TierChange[];
+    [account_id, limit],
+  );
 }
 
-export function getLastTierChange(account_id: string): TierChange | undefined {
-  return getDb().prepare(
+export async function getLastTierChange(account_id: string): Promise<TierChange | undefined> {
+  return await sql.one<TierChange>(
     "SELECT * FROM tier_changes WHERE account_id = ? ORDER BY created_at DESC LIMIT 1",
-  ).get(account_id) as TierChange | undefined;
+    [account_id],
+  );
 }
