@@ -84,12 +84,16 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 50,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    engineer_cents: 2500,
+    engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
   analyze_files: {
     tool: "analyze_files",
     standard_cents: 50,
     lite_cents: 15,
     lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    engineer_cents: 2500,
+    engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
   improve_my_agent_with_axis: {
     tool: "improve_my_agent_with_axis",
@@ -467,7 +471,10 @@ export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined 
 export type AgentMode = "standard" | "lite" | "engineer";
 
 export function resolveAgentMode(req: IncomingMessage): AgentMode {
-  const mode = req.headers["x-agent-mode"];
+  // Node folds a duplicated header into a string[]; normalize so a paying
+  // engineer caller isn't silently downgraded to standard by a repeated header.
+  const raw = req.headers["x-agent-mode"];
+  const mode = Array.isArray(raw) ? raw[0] : raw;
   if (mode === "lite") return "lite";
   if (mode === "engineer") return "engineer";
   return "standard";

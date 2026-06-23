@@ -256,6 +256,11 @@ describe("X-Agent-Mode: engineer tier", () => {
     expect(resolveAgentMode(reqWithMode())).toBe("standard");
   });
 
+  it("resolveAgentMode normalizes a duplicated (array) X-Agent-Mode header", () => {
+    const req = { headers: { "x-agent-mode": ["engineer", "lite"] } } as unknown as http.IncomingMessage;
+    expect(resolveAgentMode(req)).toBe("engineer");
+  });
+
   it("priceForMode returns the engineer price when a tool defines one", () => {
     const tier = getPricingTier("iliad_object_storage");
     expect(tier.engineer_cents).toBe(5);
@@ -294,9 +299,9 @@ describe("X-Agent-Mode: engineer tier", () => {
 
   it("only the IMPLEMENTED engineer tools carry an engineer price", () => {
     const priced = Object.values(PRICING_TIERS).filter(t => t.engineer_cents !== undefined).map(t => t.tool).sort();
-    // E1 hygiene, E2 object_storage, E3 web_search are built; analyze_repo (E5),
-    // prepare_agentic_purchasing (E9), embeddings (E12) are NOT — they must not
-    // advertise/charge an engineer tier until their handler implements it.
-    expect(priced).toEqual(["iliad_hygiene", "iliad_object_storage", "iliad_web_search"]);
+    // Built: E1 hygiene, E2 object_storage, E3 web_search, E5 analyze_repo (Living
+    // Architecture). prepare_agentic_purchasing (E9) and embeddings (E12) are NOT —
+    // they must not advertise/charge an engineer tier until their handler ships.
+    expect(priced).toEqual(["analyze_files", "analyze_repo", "iliad_hygiene", "iliad_object_storage", "iliad_web_search"]);
   });
 });
