@@ -113,13 +113,13 @@ export async function getSeatByEmail(account_id: string, email: string): Promise
 }
 
 export async function getSeatCount(account_id: string): Promise<number> {
-  const row = await sql.one<{ count: number }>(
+  const row = await sql.one<{ count: string | number }>(
     "SELECT COUNT(*) as count FROM seats WHERE account_id = ? AND revoked_at IS NULL",
     [account_id],
   );
-  // FLAG(aggregate): pg COUNT(*) returns a string/bigint — row.count may be a
-  // string at runtime; downstream `>=` numeric comparisons may need Number().
-  return row!.count;
+  // pg COUNT(*) returns a string/bigint — coerce so downstream `>=` comparisons
+  // are numeric, not lexicographic.
+  return Number(row?.count ?? 0);
 }
 
 // ─── Funnel Event Tracking ──────────────────────────────────────
@@ -383,22 +383,21 @@ export interface FunnelMetrics {
 
 /** Compute aggregate funnel metrics across all accounts. */
 export async function getFunnelMetrics(): Promise<FunnelMetrics> {
-  // FLAG(aggregate): every COUNT(*) below (total, byTier counts, seat count,
-  // events24h, events7d) returns a string/bigint under pg. The values flow into
-  // arithmetic (converted/total ratios, total - byStage subtraction) and the
-  // FunnelMetrics numeric fields — these may need Number() coercion for correct
-  // results. Left as-is per "no business-logic change"; flagged for review.
-  const totalRow = await sql.one<{ count: number }>("SELECT COUNT(*) as count FROM accounts");
-  const total = totalRow!.count;
+  // pg COUNT(*) returns a string/bigint — every aggregate read below is coerced
+  // with Number() at the read site so the downstream arithmetic (converted/total
+  // ratios, total - byStage subtraction) and FunnelMetrics numeric fields stay
+  // numeric.
+  const totalRow = await sql.one<{ count: string | number }>("SELECT COUNT(*) as count FROM accounts");
+  const total = Number(totalRow?.count ?? 0);
 
-  const tierRows = await sql.many<{ tier: BillingTier; count: number }>(
+  const tierRows = await sql.many<{ tier: BillingTier; count: string | number }>(
     "SELECT tier, COUNT(*) as count FROM accounts GROUP BY tier",
   );
 
   const byTier: Record<BillingTier, number> = { free: 0, paid: 0, suite: 0 };
-  for (const row of tierRows) byTier[row.tier] = row.count;
+  for (const row of tierRows) byTier[row.tier] = Number(row.count ?? 0);
 
-  const seatRow = await sql.one<{ count: number }>(
+  const seatRow = await sql.one<{ count: string | number }>(
     "SELECT COUNT(*) as count FROM seats WHERE revoked_at IS NULL",
   );
 
@@ -406,12 +405,12 @@ export async function getFunnelMetrics(): Promise<FunnelMetrics> {
   const day_ago = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const week_ago = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const events24h = await sql.one<{ count: number }>(
+  const events24h = await sql.one<{ count: string | number }>(
     "SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= ?",
     [day_ago],
   );
 
-  const events7d = await sql.one<{ count: number }>(
+  const events7d = await sql.one<{ count: string | number }>(
     "SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= ?",
     [week_ago],
   );
@@ -439,8 +438,8 @@ export async function getFunnelMetrics(): Promise<FunnelMetrics> {
     by_tier: byTier,
     conversion_rate: total > 0 ? converted / total : 0,
     activation_rate: total > 0 ? activated / total : 0,
-    total_seats: seatRow!.count,
-    events_last_24h: events24h!.count,
-    events_last_7d: events7d!.count,
+    total_seats: Number(seatRow?.count ?? 0),
+    events_last_24h: Number(events24h?.count ?? 0),
+    events_last_7d: Number(events7d?.count ?? 0),
   };
 }

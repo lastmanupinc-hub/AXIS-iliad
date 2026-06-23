@@ -56,21 +56,24 @@ async function getMonthlyRows(account_id: string, month_key: string): Promise<{
   included_credits_used: number;
   overage_credits: number;
 }> {
-  const monthly = await sql.one<{ included_credits_used: number }>(
+  const monthly = await sql.one<{ included_credits_used: string | number }>(
     `SELECT included_credits_used
        FROM usage_credit_monthly
       WHERE account_id = ? AND month_key = ?`,
     [account_id, month_key],
   );
-  const overage = await sql.one<{ overage_credits: number }>(
+  const overage = await sql.one<{ overage_credits: string | number }>(
     `SELECT COALESCE(SUM(overage_credits), 0) as overage_credits
        FROM usage_credit_ledger
       WHERE account_id = ? AND month_key = ?`,
     [account_id, month_key],
   );
+  // pg SUM(...) returns a string/bigint — coerce before the allowance/overage
+  // arithmetic in the callers. included_credits_used also feeds subtraction, so
+  // coerce it too (numeric columns can serialize as strings).
   return {
-    included_credits_used: monthly?.included_credits_used ?? 0,
-    overage_credits: overage?.overage_credits ?? 0,
+    included_credits_used: Number(monthly?.included_credits_used ?? 0),
+    overage_credits: Number(overage?.overage_credits ?? 0),
   };
 }
 

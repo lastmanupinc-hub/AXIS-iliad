@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createSnapshot,
   saveContextMap,
   saveRepoProfile,
@@ -138,81 +137,80 @@ describe("generator pipeline hardening", () => {
 // ─── Store type guard tests ─────────────────────────────────────
 
 describe("store type guards", () => {
-  beforeAll(() => openMemoryDb());
-  afterAll(() => closeDb());
+  beforeAll(async () => { await resetTestDb(); });
 
-  function makeSnap() {
-    return createSnapshot({
+  async function makeSnap() {
+    return await createSnapshot({
       input_method: "repo_snapshot_upload",
       manifest: { project_name: "guard-test", project_type: "web_application", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "index.ts", content: "hello", size: 5 }],
     });
   }
 
-  it("getContextMap returns undefined for corrupted JSON shape", () => {
-    const snap = makeSnap();
-    saveContextMap(snap.snapshot_id, { foo: "bar" });
-    expect(getContextMap(snap.snapshot_id)).toBeUndefined();
+  it("getContextMap returns undefined for corrupted JSON shape", async () => {
+    const snap = await makeSnap();
+    await saveContextMap(snap.snapshot_id, { foo: "bar" });
+    expect(await getContextMap(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("getContextMap returns valid data for proper shape", () => {
-    const snap = makeSnap();
+  it("getContextMap returns valid data for proper shape", async () => {
+    const snap = await makeSnap();
     const validCtx = {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project_identity: { name: "test" },
     };
-    saveContextMap(snap.snapshot_id, validCtx);
-    const result = getContextMap(snap.snapshot_id);
+    await saveContextMap(snap.snapshot_id, validCtx);
+    const result = await getContextMap(snap.snapshot_id);
     expect(result).toBeDefined();
     expect((result as Record<string, unknown>).version).toBe("1.0.0");
   });
 
-  it("getContextMap returns undefined for non-existent snapshot", () => {
-    expect(getContextMap("nonexistent")).toBeUndefined();
+  it("getContextMap returns undefined for non-existent snapshot", async () => {
+    expect(await getContextMap("nonexistent")).toBeUndefined();
   });
 
-  it("getRepoProfile returns undefined for corrupted JSON shape", () => {
-    const snap = makeSnap();
-    saveRepoProfile(snap.snapshot_id, { not_a_profile: true });
-    expect(getRepoProfile(snap.snapshot_id)).toBeUndefined();
+  it("getRepoProfile returns undefined for corrupted JSON shape", async () => {
+    const snap = await makeSnap();
+    await saveRepoProfile(snap.snapshot_id, { not_a_profile: true });
+    expect(await getRepoProfile(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("getRepoProfile returns valid data for proper shape", () => {
-    const snap = makeSnap();
+  it("getRepoProfile returns valid data for proper shape", async () => {
+    const snap = await makeSnap();
     const validProfile = {
       version: "1.0.0",
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       project: { name: "test" },
     };
-    saveRepoProfile(snap.snapshot_id, validProfile);
-    const result = getRepoProfile(snap.snapshot_id);
+    await saveRepoProfile(snap.snapshot_id, validProfile);
+    const result = await getRepoProfile(snap.snapshot_id);
     expect(result).toBeDefined();
     expect((result as Record<string, unknown>).snapshot_id).toBe(snap.snapshot_id);
   });
 
-  it("getGeneratorResult returns undefined for corrupted JSON shape", () => {
-    const snap = makeSnap();
-    saveGeneratorResult(snap.snapshot_id, { random: "data" });
-    expect(getGeneratorResult(snap.snapshot_id)).toBeUndefined();
+  it("getGeneratorResult returns undefined for corrupted JSON shape", async () => {
+    const snap = await makeSnap();
+    await saveGeneratorResult(snap.snapshot_id, { random: "data" });
+    expect(await getGeneratorResult(snap.snapshot_id)).toBeUndefined();
   });
 
-  it("getGeneratorResult returns valid data for proper shape", () => {
-    const snap = makeSnap();
+  it("getGeneratorResult returns valid data for proper shape", async () => {
+    const snap = await makeSnap();
     const validResult = {
       snapshot_id: snap.snapshot_id,
       generated_at: new Date().toISOString(),
       files: [{ path: "test.md", content: "hello", content_type: "text/markdown", program: "test", description: "test" }],
     };
-    saveGeneratorResult(snap.snapshot_id, validResult);
-    const result = getGeneratorResult(snap.snapshot_id);
+    await saveGeneratorResult(snap.snapshot_id, validResult);
+    const result = await getGeneratorResult(snap.snapshot_id);
     expect(result).toBeDefined();
     expect((result as Record<string, unknown>).snapshot_id).toBe(snap.snapshot_id);
   });
 
-  it("getGeneratorResult returns undefined for non-existent snapshot", () => {
-    expect(getGeneratorResult("nonexistent")).toBeUndefined();
+  it("getGeneratorResult returns undefined for non-existent snapshot", async () => {
+    expect(await getGeneratorResult("nonexistent")).toBeUndefined();
   });
 });

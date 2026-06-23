@@ -84,8 +84,9 @@ export async function recordMcpUsage(input: McpUsageInput): Promise<void> {
 
 /** Rolling-window call totals (daily / weekly / monthly + all-time). */
 export async function getMcpUsageWindows(): Promise<McpUsageWindows> {
+  // pg COUNT(*) returns a string/bigint — Number() coerces each window total.
   const count = async (text: string, ...args: unknown[]): Promise<number> =>
-    (await sql.one<{ c: number }>(text, args))?.c ?? 0;
+    Number((await sql.one<{ c: string | number }>(text, args))?.c ?? 0);
   return {
     total: await count("SELECT COUNT(*) c FROM mcp_usage"),
     last_24h: await count("SELECT COUNT(*) c FROM mcp_usage WHERE created_at >= ?", sinceIso(1)),
@@ -99,18 +100,19 @@ export async function getMcpUsageSummary(options?: { windowDays?: number }): Pro
   const windowDays = options?.windowDays ?? 30;
   const since = sinceIso(windowDays);
 
+  // pg COUNT(*) / COUNT(DISTINCT …) return strings/bigints — Number() coerces.
   const scalar = async (text: string): Promise<number> =>
-    (await sql.one<{ c: number }>(text, [since]))?.c ?? 0;
+    Number((await sql.one<{ c: string | number }>(text, [since]))?.c ?? 0);
 
   // col is from a fixed internal set below — never user input — so the
   // template interpolation is injection-safe.
   const groupBy = async (col: "tool" | "source" | "probe_class"): Promise<Record<string, number>> => {
-    const rows = await sql.many<{ k: string | null; c: number }>(
+    const rows = await sql.many<{ k: string | null; c: string | number }>(
       `SELECT ${col} AS k, COUNT(*) AS c FROM mcp_usage WHERE created_at >= ? GROUP BY ${col} ORDER BY c DESC`,
       [since],
     );
     const out: Record<string, number> = {};
-    for (const r of rows) out[r.k ?? "unknown"] = r.c;
+    for (const r of rows) out[r.k ?? "unknown"] = Number(r.c ?? 0);
     return out;
   };
 

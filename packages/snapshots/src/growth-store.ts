@@ -36,38 +36,45 @@ const TIER_MONTHLY_CENTS = { paid: 2900, suite: 29900 } as const;
 /** A growth + revenue snapshot computed entirely from local data (no external calls). */
 export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthSnapshot> {
   const DAY = 86_400_000;
+  // pg COUNT/SUM return strings/bigints — every aggregate read below is coerced
+  // with Number() at the read site so the counts and MRR/overage math stay numeric.
   const since = async (msAgo: number) =>
-    (await sql.one<{ n: number }>(
+    Number((await sql.one<{ n: string | number }>(
       "SELECT COUNT(*) as n FROM accounts WHERE created_at >= ?",
       [new Date(now.getTime() - msAgo).toISOString()],
-    ))!.n;
+    ))?.n ?? 0);
 
-  const tiers = (await sql.one<{ total: number; free: number | null; paid: number | null; suite: number | null }>(
+  const tiers = (await sql.one<{
+    total: string | number;
+    free: string | number | null;
+    paid: string | number | null;
+    suite: string | number | null;
+  }>(
     `SELECT COUNT(*) as total,
             SUM(CASE WHEN tier='free'  THEN 1 ELSE 0 END) as free,
             SUM(CASE WHEN tier='paid'  THEN 1 ELSE 0 END) as paid,
             SUM(CASE WHEN tier='suite' THEN 1 ELSE 0 END) as suite
        FROM accounts`,
   ))!;
-  const paid = tiers.paid ?? 0;
-  const suite = tiers.suite ?? 0;
+  const paid = Number(tiers.paid ?? 0);
+  const suite = Number(tiers.suite ?? 0);
 
   // 1 credit = 0.18 cents (18/100); match consumeUsageCredits' ceil rounding.
   const monthKey = now.toISOString().slice(0, 7);
-  const overage = (await sql.one<{ oc: number }>(
+  const overage = Number((await sql.one<{ oc: string | number }>(
     "SELECT COALESCE(SUM(overage_credits), 0) as oc FROM usage_credit_ledger WHERE month_key = ?",
     [monthKey],
-  ))!.oc;
+  ))?.oc ?? 0);
 
-  const activeSubs = (await sql.one<{ n: number }>(
+  const activeSubs = Number((await sql.one<{ n: string | number }>(
     "SELECT COUNT(*) as n FROM stripe_subscriptions WHERE status IN ('active', 'trialing')",
-  ))!.n;
+  ))?.n ?? 0);
 
   return {
     generated_at: now.toISOString(),
     accounts: {
-      total: tiers.total ?? 0,
-      free: tiers.free ?? 0,
+      total: Number(tiers.total ?? 0),
+      free: Number(tiers.free ?? 0),
       paid,
       suite,
       new_24h: await since(DAY),

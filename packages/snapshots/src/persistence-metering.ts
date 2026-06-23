@@ -11,11 +11,13 @@ import {
 
 /** Get current persistence credit balance for an account. Returns 0 if no credits exist. */
 export async function getPersistenceBalance(account_id: string): Promise<number> {
-  const row = await sql.one<{ balance: number | null }>(
+  const row = await sql.one<{ balance: string | number | null }>(
     "SELECT SUM(credits_delta) as balance FROM persistence_credits WHERE account_id = ?",
     [account_id],
   );
-  return Math.max(0, row?.balance ?? 0);
+  // pg SUM(...) returns a string/bigint — coerce before Math.max so the balance
+  // is compared numerically.
+  return Math.max(0, Number(row?.balance ?? 0));
 }
 
 // ─── Access check ────────────────────────────────────────────────

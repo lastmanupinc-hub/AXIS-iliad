@@ -232,7 +232,22 @@ export async function getUsageSummary(account_id: string, since?: string): Promi
     : "SELECT program, COUNT(*) as total_runs, SUM(generators_run) as total_generators, SUM(input_files) as total_input_files, SUM(input_bytes) as total_input_bytes FROM usage_records WHERE account_id = ? GROUP BY program";
 
   const params = since ? [account_id, since] : [account_id];
-  return await sql.many<UsageSummary>(query, params);
+  // pg COUNT/SUM return strings/bigints — coerce each aggregate column so the
+  // returned UsageSummary fields are JS numbers.
+  const rows = await sql.many<{
+    program: string;
+    total_runs: string | number;
+    total_generators: string | number | null;
+    total_input_files: string | number | null;
+    total_input_bytes: string | number | null;
+  }>(query, params);
+  return rows.map((r) => ({
+    program: r.program,
+    total_runs: Number(r.total_runs ?? 0),
+    total_generators: Number(r.total_generators ?? 0),
+    total_input_files: Number(r.total_input_files ?? 0),
+    total_input_bytes: Number(r.total_input_bytes ?? 0),
+  }));
 }
 
 export async function getMonthlySnapshotCount(account_id: string): Promise<number> {
@@ -385,7 +400,8 @@ export async function getApiCallSummary(
     [account_id, since7d],
   );
 
-  const byEndpoint = await sql.many<ApiEndpointUsage>(
+  // pg COUNT(*) returns a string/bigint — coerce the `calls` column on each row.
+  const byEndpointRows = await sql.many<Omit<ApiEndpointUsage, "calls"> & { calls: string | number }>(
     `SELECT method, path, COUNT(*) as calls, MAX(created_at) as last_called_at
      FROM account_api_calls
      WHERE account_id = ? AND created_at >= ?
@@ -394,8 +410,14 @@ export async function getApiCallSummary(
      LIMIT ?`,
     [account_id, since, Math.max(1, limit)],
   );
+  const byEndpoint: ApiEndpointUsage[] = byEndpointRows.map((r) => ({
+    method: r.method,
+    path: r.path,
+    calls: Number(r.calls ?? 0),
+    last_called_at: r.last_called_at,
+  }));
 
-  const byStatus = await sql.many<ApiStatusUsage>(
+  const byStatusRows = await sql.many<Omit<ApiStatusUsage, "calls"> & { calls: string | number }>(
     `SELECT
        CASE
          WHEN status_code >= 200 AND status_code < 300 THEN '2xx'
@@ -411,6 +433,10 @@ export async function getApiCallSummary(
      ORDER BY calls DESC`,
     [account_id, since],
   );
+  const byStatus: ApiStatusUsage[] = byStatusRows.map((r) => ({
+    status_bucket: r.status_bucket,
+    calls: Number(r.calls ?? 0),
+  }));
 
   return {
     account_id,
@@ -463,7 +489,10 @@ export interface AccountSummary {
 export async function listAllAccounts(limit = 100, offset = 0): Promise<{ accounts: AccountSummary[]; total: number }> {
   const total = Number((await sql.one<{ c: number }>("SELECT COUNT(*) as c FROM accounts"))?.c ?? 0);
 
-  const rows = await sql.many<AccountSummary>(`
+  const rows = await sql.many<Omit<AccountSummary, "snapshot_count" | "project_count"> & {
+    snapshot_count: string | number;
+    project_count: string | number;
+  }>(`
     SELECT a.account_id, a.name, a.email, a.tier, a.created_at,
       (SELECT COUNT(*) FROM snapshots s JOIN (SELECT DISTINCT project_id FROM snapshots) p ON s.project_id = p.project_id WHERE EXISTS (SELECT 1 FROM usage_records u WHERE u.account_id = a.account_id AND u.snapshot_id = s.snapshot_id)) as snapshot_count,
       (SELECT COUNT(DISTINCT u.snapshot_id) FROM usage_records u WHERE u.account_id = a.account_id) as project_count
@@ -472,7 +501,18 @@ export async function listAllAccounts(limit = 100, offset = 0): Promise<{ accoun
     LIMIT ? OFFSET ?
   `, [limit, offset]);
 
-  return { accounts: rows, total };
+  // pg COUNT(...) subqueries return strings/bigints — coerce per row.
+  const accounts: AccountSummary[] = rows.map((r) => ({
+    account_id: r.account_id,
+    name: r.name,
+    email: r.email,
+    tier: r.tier,
+    created_at: r.created_at,
+    snapshot_count: Number(r.snapshot_count ?? 0),
+    project_count: Number(r.project_count ?? 0),
+  }));
+
+  return { accounts, total };
 }
 
 export interface RecentActivity {

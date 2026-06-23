@@ -32,13 +32,13 @@ function makeRes(): ServerResponse {
 }
 
 beforeEach(async () => {
-  unbindRateLimiterDb();
+  await unbindRateLimiterDb();
   await resetTestDb();
   resetRateLimits();
 });
 
-afterEach(() => {
-  unbindRateLimiterDb();
+afterEach(async () => {
+  await unbindRateLimiterDb();
 });
 
 // ─── getClientIp ────────────────────────────────────────────────
@@ -268,7 +268,7 @@ describe("LIMITS constants", () => {
 describe("rate limiter persistence", () => {
   it("flushToDb writes in-memory state to rate_limits table", async () => {
     await resetTestDb();
-    bindRateLimiterDb();
+    await bindRateLimiterDb();
 
     // Make 5 requests from one IP
     for (let i = 0; i < 5; i++) {
@@ -277,14 +277,14 @@ describe("rate limiter persistence", () => {
       checkRateLimit(req, res);
     }
 
-    flushToDb();
+    await flushToDb();
 
     const row = await sql.one("SELECT count, reset_at FROM rate_limits WHERE client_key = ?", ["40.40.40.40"]) as { count: number; reset_at: number } | undefined;
     expect(row).toBeDefined();
     expect(row!.count).toBe(5);
     expect(row!.reset_at).toBeGreaterThan(Date.now() - 1000);
 
-    unbindRateLimiterDb();
+    await unbindRateLimiterDb();
   });
 
   it("bindRateLimiterDb restores persisted entries on startup", async () => {
@@ -294,7 +294,7 @@ describe("rate limiter persistence", () => {
     const futureReset = Date.now() + 60_000;
     await sql.run("INSERT INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)", ["50.50.50.50", 30, futureReset]);
 
-    bindRateLimiterDb();
+    await bindRateLimiterDb();
 
     // The next request from that IP should continue from 30 (becomes 31)
     const req = makeReq({ "x-forwarded-for": "50.50.50.50" });
@@ -302,7 +302,7 @@ describe("rate limiter persistence", () => {
     checkRateLimit(req, res);
     expect(res.getHeader("RateLimit-Remaining")).toBe("29"); // 60 - 31 = 29
 
-    unbindRateLimiterDb();
+    await unbindRateLimiterDb();
   });
 
   it("expired persisted entries are not loaded", async () => {
@@ -312,7 +312,7 @@ describe("rate limiter persistence", () => {
     const pastReset = Date.now() - 1000;
     await sql.run("INSERT INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)", ["60.60.60.60", 58, pastReset]);
 
-    bindRateLimiterDb();
+    await bindRateLimiterDb();
 
     // Should start fresh (not carry over 58 count)
     const req = makeReq({ "x-forwarded-for": "60.60.60.60" });
@@ -320,12 +320,12 @@ describe("rate limiter persistence", () => {
     checkRateLimit(req, res);
     expect(res.getHeader("RateLimit-Remaining")).toBe("59"); // 60 - 1 = 59
 
-    unbindRateLimiterDb();
+    await unbindRateLimiterDb();
   });
 
   it("flushToDb removes expired entries from database", async () => {
     await resetTestDb();
-    bindRateLimiterDb();
+    await bindRateLimiterDb();
 
     // Insert an already-expired entry
     const pastReset = Date.now() - 5000;
@@ -334,17 +334,17 @@ describe("rate limiter persistence", () => {
       ["70.70.70.70", 10, pastReset],
     );
 
-    flushToDb();
+    await flushToDb();
 
     const row = await sql.one("SELECT * FROM rate_limits WHERE client_key = ?", ["70.70.70.70"]);
     expect(row).toBeUndefined();
 
-    unbindRateLimiterDb();
+    await unbindRateLimiterDb();
   });
 
   it("unbindRateLimiterDb flushes before disconnecting", async () => {
     await resetTestDb();
-    bindRateLimiterDb();
+    await bindRateLimiterDb();
 
     for (let i = 0; i < 3; i++) {
       const req = makeReq({ "x-forwarded-for": "80.80.80.80" });
@@ -352,7 +352,7 @@ describe("rate limiter persistence", () => {
       checkRateLimit(req, res);
     }
 
-    unbindRateLimiterDb();
+    await unbindRateLimiterDb();
 
     // Data should have been flushed before unbind
     const row = await sql.one("SELECT count FROM rate_limits WHERE client_key = ?", ["80.80.80.80"]) as { count: number } | undefined;
@@ -362,7 +362,7 @@ describe("rate limiter persistence", () => {
 
   it("works without persistence (no-op flush)", async () => {
     // No db bound — flushToDb should be a no-op
-    flushToDb();
+    await flushToDb();
     const req = makeReq({ "x-forwarded-for": "90.90.90.90" });
     const res = makeRes();
     expect(checkRateLimit(req, res)).toBe(true);

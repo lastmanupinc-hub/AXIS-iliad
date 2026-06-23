@@ -6,6 +6,7 @@ import http from "node:http";
 import { chargeMpp, resetMppxCache } from "./mpp.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
+import { resetTestDb } from "@axis/snapshots";
 
 // ---------------------------------------------------------------------------
 // Minimal HTTP server helpers
@@ -195,37 +196,39 @@ describe("chargeMpp -- with TEMPO_RECIPIENT_ADDRESS", () => {
 // ---------------------------------------------------------------------------
 
 describe("resolveAuth -- X-Axis-Key fallback", () => {
-  it("returns anonymous when neither Authorization nor X-Axis-Key is present", () => {
+  beforeEach(async () => { await resetTestDb(); });
+
+  it("returns anonymous when neither Authorization nor X-Axis-Key is present", async () => {
     const req = { headers: {} } as unknown as http.IncomingMessage;
-    const result = resolveAuth(req);
+    const result = await resolveAuth(req);
     expect(result.anonymous).toBe(true);
   });
 
-  it("returns invalid (not anonymous) when X-Axis-Key contains an invalid key", () => {
+  it("returns invalid (not anonymous) when X-Axis-Key contains an invalid key", async () => {
     const req = {
       headers: { "x-axis-key": "invalid_key_that_does_not_exist" },
     } as unknown as http.IncomingMessage;
-    const result = resolveAuth(req);
+    const result = await resolveAuth(req);
     expect(result.anonymous).toBe(false);
     expect(result.account).toBeNull();
   });
 
-  it("returns anonymous when X-Axis-Key is empty string", () => {
+  it("returns anonymous when X-Axis-Key is empty string", async () => {
     const req = {
       headers: { "x-axis-key": "" },
     } as unknown as http.IncomingMessage;
-    const result = resolveAuth(req);
+    const result = await resolveAuth(req);
     expect(result.anonymous).toBe(true);
   });
 
-  it("prefers Authorization: Bearer over X-Axis-Key when both present", () => {
+  it("prefers Authorization: Bearer over X-Axis-Key when both present", async () => {
     const req = {
       headers: {
         authorization: "Bearer invalid_bearer_token",
         "x-axis-key": "also_invalid",
       },
     } as unknown as http.IncomingMessage;
-    const result = resolveAuth(req);
+    const result = await resolveAuth(req);
     // Authorization header takes precedence; invalid key -> not anonymous
     expect(result.anonymous).toBe(false);
     expect(result.account).toBeNull();

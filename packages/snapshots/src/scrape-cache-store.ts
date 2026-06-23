@@ -162,31 +162,34 @@ export async function cleanupExpiredScrapes(): Promise<number> {
 
 /** Aggregate cache stats for /v1/db/stats and analytics. */
 export async function getScrapeCacheStats(): Promise<ScrapeCacheStats> {
-  const summary = (await sql.one<{
-    total_entries: number;
-    total_hits: number;
+  const summaryRow = (await sql.one<{
+    total_entries: string | number;
+    total_hits: string | number;
     oldest_created: string | null;
   }>(
     `SELECT COUNT(*) AS total_entries, COALESCE(SUM(hit_count), 0) AS total_hits, MIN(created_at) AS oldest_created
        FROM scrape_cache`,
   ))!;
+  // pg COUNT/SUM return strings/bigints — coerce before the ratio math below.
+  const total_entries = Number(summaryRow.total_entries ?? 0);
+  const total_hits = Number(summaryRow.total_hits ?? 0);
 
-  const hottest = await sql.one<{ url: string; hit_count: number }>(
+  const hottest = await sql.one<{ url: string; hit_count: string | number }>(
     `SELECT url, hit_count FROM scrape_cache ORDER BY hit_count DESC, created_at ASC LIMIT 1`,
   );
 
-  const oldestAgeHours = summary.oldest_created
-    ? (Date.now() - new Date(summary.oldest_created).getTime()) / (1000 * 60 * 60)
+  const oldestAgeHours = summaryRow.oldest_created
+    ? (Date.now() - new Date(summaryRow.oldest_created).getTime()) / (1000 * 60 * 60)
     : null;
-  const avg = summary.total_entries > 0 ? summary.total_hits / summary.total_entries : 0;
+  const avg = total_entries > 0 ? total_hits / total_entries : 0;
 
   return {
-    total_entries: summary.total_entries,
-    total_hits_lifetime: summary.total_hits,
+    total_entries,
+    total_hits_lifetime: total_hits,
     avg_hits_per_entry: Number(avg.toFixed(2)),
     oldest_entry_age_hours: oldestAgeHours !== null ? Number(oldestAgeHours.toFixed(2)) : null,
     hottest_url: hottest?.url ?? null,
-    hottest_url_hits: hottest?.hit_count ?? 0,
+    hottest_url_hits: Number(hottest?.hit_count ?? 0),
   };
 }
 
