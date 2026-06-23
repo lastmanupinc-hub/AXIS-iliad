@@ -113,7 +113,7 @@ export async function recordReferralConversion(referrer_account_id: string, refe
   const now = new Date().toISOString();
   await sql.run(`
     UPDATE referral_credits
-    SET earned_credits_millicents = MIN(earned_credits_millicents + ?, ?),
+    SET earned_credits_millicents = LEAST(earned_credits_millicents + ?, ?),
         lifetime_referrals = lifetime_referrals + 1,
         updated_at = ?
     WHERE account_id = ?
