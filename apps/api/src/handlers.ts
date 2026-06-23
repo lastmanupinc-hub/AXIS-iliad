@@ -656,15 +656,9 @@ export async function handleDeleteProject(
   }
   const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
-    // Check if the project itself exists
-    let db;
-    try {
-      db = (await import("@axis/snapshots")).getDb();
-    } catch {
-      sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Failed to load database module");
-      return;
-    }
-    const project = db.prepare("SELECT project_id FROM projects WHERE project_id = ?").get(project_id);
+    // No snapshots to infer existence from — check the project row directly.
+    const { sql } = await import("@axis/snapshots");
+    const project = await sql.one("SELECT project_id FROM projects WHERE project_id = ?", [project_id]);
     if (!project) {
       sendError(res, 404, ErrorCode.NOT_FOUND, "Project not found");
       return;

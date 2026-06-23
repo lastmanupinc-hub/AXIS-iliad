@@ -281,8 +281,8 @@ describe("rate limiter persistence", () => {
 
     const row = await sql.one("SELECT count, reset_at FROM rate_limits WHERE client_key = ?", ["40.40.40.40"]) as { count: number; reset_at: number } | undefined;
     expect(row).toBeDefined();
-    expect(row!.count).toBe(5);
-    expect(row!.reset_at).toBeGreaterThan(Date.now() - 1000);
+    expect(Number(row!.count)).toBe(5);
+    expect(Number(row!.reset_at)).toBeGreaterThan(Date.now() - 1000);
 
     await unbindRateLimiterDb();
   });

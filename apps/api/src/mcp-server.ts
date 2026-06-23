@@ -547,13 +547,13 @@ async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMes
       });
     }
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
-    upsertVectors(scopedNs, cleaned);
+    await upsertVectors(scopedNs, cleaned);
     await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "upsert",
       namespace: scopedNs,
       upserted: cleaned.length,
-      total_in_namespace: countVectors(scopedNs),
+      total_in_namespace: await countVectors(scopedNs),
     }, null, 2);
   }
 
@@ -578,7 +578,7 @@ async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMes
     filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
   };
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
-  const matches = queryVectors(scopedNs, queryOpts);
+  const matches = await queryVectors(scopedNs, queryOpts);
   await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({
     operation: "query",
@@ -630,7 +630,7 @@ async function runAnalytics(args: Record<string, unknown>, req: IncomingMessage)
         return e as AnalyticsEvent;
       });
       const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
-      captureEvents(scopedNs, cleaned);
+      await captureEvents(scopedNs, cleaned);
       await captureMcpToolCredits(auth.account, charge);
       return JSON.stringify({
         operation: "capture",
@@ -643,7 +643,7 @@ async function runAnalytics(args: Record<string, unknown>, req: IncomingMessage)
       throw new Error("iliad_analytics: capture requires `event` (object) or `events` (array).");
     }
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
-    captureEvent(scopedNs, single as AnalyticsEvent);
+    await captureEvent(scopedNs, single as AnalyticsEvent);
     await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "capture",
@@ -669,7 +669,7 @@ async function runAnalytics(args: Record<string, unknown>, req: IncomingMessage)
     );
   }
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_analytics");
-  const result = queryAnalytics(scopedNs, q as unknown as AnalyticsQuery);
+  const result = await queryAnalytics(scopedNs, q as unknown as AnalyticsQuery);
   await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({
     operation: "query",
@@ -833,24 +833,24 @@ async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage)
         }
         return d as SearchDocument;
       });
-      addSearchDocuments(scopedNs, cleaned);
+      await addSearchDocuments(scopedNs, cleaned);
       return JSON.stringify({
         operation: "index",
         namespace: scopedNs,
         indexed: cleaned.length,
-        total_in_namespace: countSearchDocuments(scopedNs),
+        total_in_namespace: await countSearchDocuments(scopedNs),
       }, null, 2);
     }
     const single = args.document;
     if (!single || typeof single !== "object") {
       throw new Error("iliad_web_search: index requires `document` (object) or `documents` (array).");
     }
-    addSearchDocument(scopedNs, single as SearchDocument);
+    await addSearchDocument(scopedNs, single as SearchDocument);
     return JSON.stringify({
       operation: "index",
       namespace: scopedNs,
       indexed: 1,
-      total_in_namespace: countSearchDocuments(scopedNs),
+      total_in_namespace: await countSearchDocuments(scopedNs),
     }, null, 2);
   }
 
@@ -873,13 +873,13 @@ async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage)
     // delete_namespace / count are free since they don't consume the
     // BM25-ranking CPU that the search op pays for.
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
-    const hits = searchDocuments(scopedNs, opts);
+    const hits = await searchDocuments(scopedNs, opts);
     await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "search",
       namespace: scopedNs,
       query: args.query,
-      total_in_namespace: countSearchDocuments(scopedNs),
+      total_in_namespace: await countSearchDocuments(scopedNs),
       hits,
     }, null, 2);
   }
@@ -888,7 +888,7 @@ async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage)
     if (typeof args.doc_id !== "string") {
       throw new Error("iliad_web_search: delete requires `doc_id` (string).");
     }
-    const removed = deleteSearchDocument(scopedNs, args.doc_id);
+    const removed = await deleteSearchDocument(scopedNs, args.doc_id);
     return JSON.stringify({
       operation: "delete",
       namespace: scopedNs,
@@ -898,7 +898,7 @@ async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage)
   }
 
   if (op === "delete_namespace") {
-    const removed = deleteSearchNamespace(scopedNs);
+    const removed = await deleteSearchNamespace(scopedNs);
     return JSON.stringify({
       operation: "delete_namespace",
       namespace: scopedNs,
@@ -910,7 +910,7 @@ async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage)
   return JSON.stringify({
     operation: "count",
     namespace: scopedNs,
-    total: countSearchDocuments(scopedNs),
+    total: await countSearchDocuments(scopedNs),
   }, null, 2);
 }
 

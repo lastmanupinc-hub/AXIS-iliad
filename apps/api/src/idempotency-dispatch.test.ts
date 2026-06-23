@@ -40,7 +40,7 @@ describe("MCP idempotency (dispatch)", () => {
     await resetTestDb();
     // analytics_events is lazily created with a module-level init flag that
     // outlives the in-memory DB reset — reset it so the table exists in this DB.
-    resetAnalyticsForTests();
+    await resetAnalyticsForTests();
     const acct = await createAccount("Idem", "idem@example.com", "paid");
     accountId = acct.account_id;
     rawKey = (await createApiKey(acct.account_id)).rawKey;

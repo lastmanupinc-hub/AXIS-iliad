@@ -14,8 +14,8 @@ beforeAll(async () => {
   await resetTestDb();
 });
 
-beforeEach(() => {
-  resetVectorDbForTests();
+beforeEach(async () => {
+  await resetVectorDbForTests();
 });
 
 // ─── cosineSimilarity ───────────────────────────────────────────
@@ -53,21 +53,21 @@ describe("cosineSimilarity", () => {
 
 describe("upsertVectors + queryVectors lifecycle", () => {
   it("round-trips a single vector and returns it as the top match", async () => {
-    upsertVectors("ns1", [{ id: "v1", vector: [1, 0, 0] }]);
-    const results = queryVectors("ns1", { vector: [1, 0, 0], top_k: 5 });
+    await upsertVectors("ns1", [{ id: "v1", vector: [1, 0, 0] }]);
+    const results = await queryVectors("ns1", { vector: [1, 0, 0], top_k: 5 });
     expect(results).toHaveLength(1);
     expect(results[0].id).toBe("v1");
     expect(results[0].score).toBeCloseTo(1, 5);
   });
 
   it("ranks more-similar vectors higher", async () => {
-    upsertVectors("ns1", [
+    await upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0] },
       { id: "v2", vector: [0.9, 0.1, 0] },
       { id: "v3", vector: [0, 1, 0] },
       { id: "v4", vector: [-1, 0, 0] },
     ]);
-    const results = queryVectors("ns1", { vector: [1, 0, 0], top_k: 4 });
+    const results = await queryVectors("ns1", { vector: [1, 0, 0], top_k: 4 });
     expect(results.map(r => r.id)).toEqual(["v1", "v2", "v3", "v4"]);
     expect(results[0].score).toBeGreaterThan(results[1].score);
     expect(results[1].score).toBeGreaterThan(results[2].score);
@@ -75,48 +75,48 @@ describe("upsertVectors + queryVectors lifecycle", () => {
   });
 
   it("limits results to top_k", async () => {
-    upsertVectors("ns1", Array.from({ length: 50 }, (_, i) => ({
+    await upsertVectors("ns1", Array.from({ length: 50 }, (_, i) => ({
       id: `v${i}`,
       vector: [Math.cos(i * 0.1), Math.sin(i * 0.1), 0],
     })));
-    expect(queryVectors("ns1", { vector: [1, 0, 0], top_k: 3 })).toHaveLength(3);
-    expect(queryVectors("ns1", { vector: [1, 0, 0], top_k: 10 })).toHaveLength(10);
+    expect(await queryVectors("ns1", { vector: [1, 0, 0], top_k: 3 })).toHaveLength(3);
+    expect(await queryVectors("ns1", { vector: [1, 0, 0], top_k: 10 })).toHaveLength(10);
   });
 
   it("preserves metadata through the round-trip", async () => {
-    upsertVectors("ns1", [
+    await upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0], metadata: { source: "doc1.md", page: 3 } },
     ]);
-    const [m] = queryVectors("ns1", { vector: [1, 0, 0], top_k: 1 });
+    const [m] = await queryVectors("ns1", { vector: [1, 0, 0], top_k: 1 });
     expect(m.metadata).toEqual({ source: "doc1.md", page: 3 });
   });
 
   it("upsert replaces existing rows with the same id", async () => {
-    upsertVectors("ns1", [{ id: "v1", vector: [1, 0, 0], metadata: { v: 1 } }]);
-    upsertVectors("ns1", [{ id: "v1", vector: [0, 1, 0], metadata: { v: 2 } }]);
-    expect(countVectors("ns1")).toBe(1);
-    const [m] = queryVectors("ns1", { vector: [0, 1, 0], top_k: 1 });
+    await upsertVectors("ns1", [{ id: "v1", vector: [1, 0, 0], metadata: { v: 1 } }]);
+    await upsertVectors("ns1", [{ id: "v1", vector: [0, 1, 0], metadata: { v: 2 } }]);
+    expect(await countVectors("ns1")).toBe(1);
+    const [m] = await queryVectors("ns1", { vector: [0, 1, 0], top_k: 1 });
     expect(m.metadata).toEqual({ v: 2 });
   });
 
   it("rejects mismatched dimensions in a single batch", async () => {
-    expect(() =>
+    await expect(
       upsertVectors("ns1", [
         { id: "v1", vector: [1, 2, 3] },
         { id: "v2", vector: [1, 2] },
       ]),
-    ).toThrow(/dimension mismatch/i);
+    ).rejects.toThrow(/dimension mismatch/i);
   });
 
   it("rejects non-finite values", async () => {
-    expect(() =>
+    await expect(
       upsertVectors("ns1", [{ id: "v1", vector: [1, NaN, 3] }]),
-    ).toThrow(/non-finite/i);
+    ).rejects.toThrow(/non-finite/i);
   });
 
   it("rejects empty batches and empty vectors", async () => {
-    expect(() => upsertVectors("ns1", [])).toThrow(/non-empty array/i);
-    expect(() => upsertVectors("ns1", [{ id: "v1", vector: [] }])).toThrow(/empty vector/i);
+    await expect(upsertVectors("ns1", [])).rejects.toThrow(/non-empty array/i);
+    await expect(upsertVectors("ns1", [{ id: "v1", vector: [] }])).rejects.toThrow(/empty vector/i);
   });
 });
 
@@ -124,18 +124,18 @@ describe("upsertVectors + queryVectors lifecycle", () => {
 
 describe("namespace isolation", () => {
   it("queries inside one namespace cannot see another's rows", async () => {
-    upsertVectors("ns-a", [{ id: "v1", vector: [1, 0, 0] }]);
-    upsertVectors("ns-b", [{ id: "v2", vector: [1, 0, 0] }]);
-    expect(queryVectors("ns-a", { vector: [1, 0, 0], top_k: 10 }).map(r => r.id)).toEqual(["v1"]);
-    expect(queryVectors("ns-b", { vector: [1, 0, 0], top_k: 10 }).map(r => r.id)).toEqual(["v2"]);
+    await upsertVectors("ns-a", [{ id: "v1", vector: [1, 0, 0] }]);
+    await upsertVectors("ns-b", [{ id: "v2", vector: [1, 0, 0] }]);
+    expect((await queryVectors("ns-a", { vector: [1, 0, 0], top_k: 10 })).map(r => r.id)).toEqual(["v1"]);
+    expect((await queryVectors("ns-b", { vector: [1, 0, 0], top_k: 10 })).map(r => r.id)).toEqual(["v2"]);
   });
 
   it("deleteNamespace only affects the target namespace", async () => {
-    upsertVectors("ns-a", [{ id: "v1", vector: [1, 0, 0] }]);
-    upsertVectors("ns-b", [{ id: "v2", vector: [1, 0, 0] }]);
-    expect(deleteNamespace("ns-a")).toBe(1);
-    expect(countVectors("ns-a")).toBe(0);
-    expect(countVectors("ns-b")).toBe(1);
+    await upsertVectors("ns-a", [{ id: "v1", vector: [1, 0, 0] }]);
+    await upsertVectors("ns-b", [{ id: "v2", vector: [1, 0, 0] }]);
+    expect(await deleteNamespace("ns-a")).toBe(1);
+    expect(await countVectors("ns-a")).toBe(0);
+    expect(await countVectors("ns-b")).toBe(1);
   });
 });
 
@@ -143,20 +143,20 @@ describe("namespace isolation", () => {
 
 describe("metadata filter", () => {
   it("excludes rows whose metadata doesn't match", async () => {
-    upsertVectors("ns1", [
+    await upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0], metadata: { type: "doc" } },
       { id: "v2", vector: [1, 0, 0], metadata: { type: "image" } },
     ]);
-    const docs = queryVectors("ns1", { vector: [1, 0, 0], top_k: 10, filter: { type: "doc" } });
+    const docs = await queryVectors("ns1", { vector: [1, 0, 0], top_k: 10, filter: { type: "doc" } });
     expect(docs.map(r => r.id)).toEqual(["v1"]);
   });
 
   it("excludes rows with no metadata when a filter is provided", async () => {
-    upsertVectors("ns1", [
+    await upsertVectors("ns1", [
       { id: "v1", vector: [1, 0, 0] },
       { id: "v2", vector: [1, 0, 0], metadata: { type: "doc" } },
     ]);
-    const docs = queryVectors("ns1", { vector: [1, 0, 0], top_k: 10, filter: { type: "doc" } });
+    const docs = await queryVectors("ns1", { vector: [1, 0, 0], top_k: 10, filter: { type: "doc" } });
     expect(docs.map(r => r.id)).toEqual(["v2"]);
   });
 });
@@ -165,12 +165,12 @@ describe("metadata filter", () => {
 
 describe("determinism", () => {
   it("ties break on id ascending so output is stable", async () => {
-    upsertVectors("ns1", [
+    await upsertVectors("ns1", [
       { id: "zeta", vector: [1, 0, 0] },
       { id: "alpha", vector: [1, 0, 0] },
       { id: "mu", vector: [1, 0, 0] },
     ]);
-    const ids = queryVectors("ns1", { vector: [1, 0, 0], top_k: 3 }).map(r => r.id);
+    const ids = (await queryVectors("ns1", { vector: [1, 0, 0], top_k: 3 })).map(r => r.id);
     expect(ids).toEqual(["alpha", "mu", "zeta"]);
   });
 });

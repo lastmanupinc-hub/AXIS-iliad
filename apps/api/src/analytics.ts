@@ -1,7 +1,7 @@
-// ─── iliad_analytics — SQLite-backed product analytics ───────────
+// ─── iliad_analytics — Postgres-backed product analytics ─────────
 //
 // AXIS-owned implementation of the analytics capability. Uses the
-// existing @axis/snapshots SQLite database (no new dependency) with a
+// existing @axis/snapshots Postgres database (no new dependency) with a
 // dedicated `analytics_events` table. Each row stores one captured
 // event with namespace, name, properties (JSON), optional user_id, and
 // a unix-ms timestamp. Queries are aggregations expressed as plain SQL
@@ -13,7 +13,7 @@
 // function signatures stay stable across the swap; only internals
 // change.
 
-import { getDb } from "@axis/snapshots";
+import { sql, pgPlaceholders } from "@axis/snapshots";
 
 export interface AnalyticsEvent {
   /** Event name (e.g. "pageview", "purchase"). 1-200 chars. */
@@ -87,17 +87,16 @@ export type AnalyticsQueryResult =
 
 let initialized = false;
 
-function ensureSchema(): void {
+async function ensureSchema(): Promise<void> {
   if (initialized) return;
-  const db = getDb();
-  db.exec(`
+  await sql.exec(`
     CREATE TABLE IF NOT EXISTS analytics_events (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       namespace   TEXT NOT NULL,
       event       TEXT NOT NULL,
       user_id     TEXT,
       properties  TEXT,
-      ts          INTEGER NOT NULL,
+      ts          BIGINT NOT NULL,
       created_at  TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_analytics_ns_ts ON analytics_events(namespace, ts);
@@ -107,15 +106,22 @@ function ensureSchema(): void {
 }
 
 /** Test-only helper. Drops the table and resets the lazy-init flag. */
-export function resetAnalyticsForTests(): void {
-  const db = getDb();
-  db.exec("DROP TABLE IF EXISTS analytics_events;");
+export async function resetAnalyticsForTests(): Promise<void> {
+  await sql.exec("DROP TABLE IF EXISTS analytics_events;");
   initialized = false;
 }
 
 // ─── Capture ────────────────────────────────────────────────────
 
-export function captureEvent(namespace: string, event: AnalyticsEvent): number {
+const INSERT_EVENT_SQL =
+  "INSERT INTO analytics_events (namespace, event, user_id, properties, ts, created_at) VALUES (?, ?, ?, ?, ?, ?)";
+
+/**
+ * Validate one event and produce the positional INSERT params. Throws with the
+ * same messages the public captureEvent contract has always used. Shared by the
+ * single and batch insert paths so the batch can run inside one transaction.
+ */
+function buildEventRow(namespace: string, event: AnalyticsEvent): unknown[] {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("captureEvent: namespace is required");
   }
@@ -152,34 +158,30 @@ export function captureEvent(namespace: string, event: AnalyticsEvent): number {
     }
   }
 
-  ensureSchema();
-  const db = getDb();
-  const r = db
-    .prepare(
-      "INSERT INTO analytics_events (namespace, event, user_id, properties, ts, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-    )
-    .run(
-      namespace,
-      event.event,
-      event.user_id ?? null,
-      propsJson,
-      ts,
-      new Date().toISOString(),
-    );
-  return Number(r.lastInsertRowid);
+  return [namespace, event.event, event.user_id ?? null, propsJson, ts, new Date().toISOString()];
+}
+
+export async function captureEvent(namespace: string, event: AnalyticsEvent): Promise<number> {
+  const params = buildEventRow(namespace, event);
+  await ensureSchema();
+  const r = await sql.run(`${INSERT_EVENT_SQL} RETURNING id`, params);
+  return Number((r.rows[0] as { id: number | string }).id);
 }
 
 /** Batch capture. Transactional — partial inserts never persist. */
-export function captureEvents(namespace: string, events: AnalyticsEvent[]): number {
+export async function captureEvents(namespace: string, events: AnalyticsEvent[]): Promise<number> {
   if (!Array.isArray(events) || events.length === 0) {
     throw new Error("captureEvents: events[] must be a non-empty array");
   }
-  ensureSchema();
-  const db = getDb();
-  const tx = db.transaction((rows: AnalyticsEvent[]) => {
-    for (const e of rows) captureEvent(namespace, e);
+  // Validate every row up front so a malformed event aborts the whole batch
+  // before any insert, matching the original transactional contract.
+  const rows = events.map((e) => buildEventRow(namespace, e));
+  await ensureSchema();
+  await sql.tx(async (client) => {
+    for (const params of rows) {
+      await client.query(pgPlaceholders(INSERT_EVENT_SQL), params);
+    }
   });
-  tx(events);
   return events.length;
 }
 
@@ -244,15 +246,17 @@ function bucketWidthMs(b: "minute" | "hour" | "day"): number {
   return 86_400_000;
 }
 
-export function queryAnalytics(namespace: string, q: AnalyticsQuery): AnalyticsQueryResult {
+export async function queryAnalytics(
+  namespace: string,
+  q: AnalyticsQuery,
+): Promise<AnalyticsQueryResult> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("queryAnalytics: namespace is required");
   }
   if (!q || typeof q !== "object") {
     throw new Error("queryAnalytics: query payload is required");
   }
-  ensureSchema();
-  const db = getDb();
+  await ensureSchema();
   const where = buildWhere(namespace, q);
 
   // Property filter happens in JS because SQLite has no first-class JSON
@@ -266,14 +270,16 @@ export function queryAnalytics(namespace: string, q: AnalyticsQuery): AnalyticsQ
 
   if (q.kind === "count") {
     if (!applyPropFilter) {
-      const row = db
-        .prepare(`SELECT COUNT(*) AS c FROM analytics_events WHERE ${where.sql}`)
-        .get(...where.params) as { c: number } | undefined;
-      return { kind: "count", total: row?.c ?? 0 };
+      const row = await sql.one<{ c: number | string }>(
+        `SELECT COUNT(*) AS c FROM analytics_events WHERE ${where.sql}`,
+        where.params,
+      );
+      return { kind: "count", total: Number(row?.c ?? 0) };
     }
-    const rows = db
-      .prepare(`SELECT properties FROM analytics_events WHERE ${where.sql}`)
-      .all(...where.params) as Array<{ properties: string | null }>;
+    const rows = await sql.many<{ properties: string | null }>(
+      `SELECT properties FROM analytics_events WHERE ${where.sql}`,
+      where.params,
+    );
     let total = 0;
     for (const r of rows) {
       if (matchesPropertyFilter(r.properties, q.property_filter as Record<string, unknown>)) {
@@ -285,18 +291,16 @@ export function queryAnalytics(namespace: string, q: AnalyticsQuery): AnalyticsQ
 
   if (q.kind === "distinct_users") {
     if (!applyPropFilter) {
-      const row = db
-        .prepare(
-          `SELECT COUNT(DISTINCT user_id) AS c FROM analytics_events WHERE ${where.sql} AND user_id IS NOT NULL`,
-        )
-        .get(...where.params) as { c: number } | undefined;
-      return { kind: "distinct_users", distinct_users: row?.c ?? 0 };
+      const row = await sql.one<{ c: number | string }>(
+        `SELECT COUNT(DISTINCT user_id) AS c FROM analytics_events WHERE ${where.sql} AND user_id IS NOT NULL`,
+        where.params,
+      );
+      return { kind: "distinct_users", distinct_users: Number(row?.c ?? 0) };
     }
-    const rows = db
-      .prepare(
-        `SELECT user_id, properties FROM analytics_events WHERE ${where.sql} AND user_id IS NOT NULL`,
-      )
-      .all(...where.params) as Array<{ user_id: string; properties: string | null }>;
+    const rows = await sql.many<{ user_id: string; properties: string | null }>(
+      `SELECT user_id, properties FROM analytics_events WHERE ${where.sql} AND user_id IS NOT NULL`,
+      where.params,
+    );
     const seen = new Set<string>();
     for (const r of rows) {
       if (matchesPropertyFilter(r.properties, q.property_filter as Record<string, unknown>)) {
@@ -309,19 +313,19 @@ export function queryAnalytics(namespace: string, q: AnalyticsQuery): AnalyticsQ
   if (q.kind === "count_by_event") {
     const limit = clampLimit(q.limit);
     if (!applyPropFilter) {
-      const rows = db
-        .prepare(
-          `SELECT event, COUNT(*) AS c FROM analytics_events WHERE ${where.sql} GROUP BY event ORDER BY c DESC, event ASC LIMIT ?`,
-        )
-        .all(...where.params, limit) as Array<{ event: string; c: number }>;
+      const rows = await sql.many<{ event: string; c: number | string }>(
+        `SELECT event, COUNT(*) AS c FROM analytics_events WHERE ${where.sql} GROUP BY event ORDER BY c DESC, event ASC LIMIT ?`,
+        [...where.params, limit],
+      );
       return {
         kind: "count_by_event",
-        rows: rows.map((r) => ({ event: r.event, count: r.c })),
+        rows: rows.map((r) => ({ event: r.event, count: Number(r.c) })),
       };
     }
-    const rows = db
-      .prepare(`SELECT event, properties FROM analytics_events WHERE ${where.sql}`)
-      .all(...where.params) as Array<{ event: string; properties: string | null }>;
+    const rows = await sql.many<{ event: string; properties: string | null }>(
+      `SELECT event, properties FROM analytics_events WHERE ${where.sql}`,
+      where.params,
+    );
     const counts = new Map<string, number>();
     for (const r of rows) {
       if (matchesPropertyFilter(r.properties, q.property_filter as Record<string, unknown>)) {
@@ -345,15 +349,16 @@ export function queryAnalytics(namespace: string, q: AnalyticsQuery): AnalyticsQ
     // Bucketing happens in JS to sidestep SQLite/JS double-binding quirks
     // around INTEGER vs REAL division. The namespace+ts index still
     // narrows the row set, so the JS pass is bounded.
-    const rows = db
-      .prepare(`SELECT ts, properties FROM analytics_events WHERE ${where.sql}`)
-      .all(...where.params) as Array<{ ts: number; properties: string | null }>;
+    const rows = await sql.many<{ ts: number | string; properties: string | null }>(
+      `SELECT ts, properties FROM analytics_events WHERE ${where.sql}`,
+      where.params,
+    );
     const counts = new Map<number, number>();
     for (const r of rows) {
       if (applyPropFilter) {
         if (!matchesPropertyFilter(r.properties, q.property_filter as Record<string, unknown>)) continue;
       }
-      const key = Math.floor(r.ts / width) * width;
+      const key = Math.floor(Number(r.ts) / width) * width;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     const sorted: AnalyticsCountByBucketRow[] = Array.from(counts.entries())
@@ -368,23 +373,22 @@ export function queryAnalytics(namespace: string, q: AnalyticsQuery): AnalyticsQ
 
 // ─── Maintenance ────────────────────────────────────────────────
 
-export function deleteAnalyticsNamespace(namespace: string): number {
+export async function deleteAnalyticsNamespace(namespace: string): Promise<number> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("deleteAnalyticsNamespace: namespace is required");
   }
-  ensureSchema();
-  const db = getDb();
-  const r = db.prepare("DELETE FROM analytics_events WHERE namespace = ?").run(namespace);
-  return r.changes;
+  await ensureSchema();
+  const r = await sql.run("DELETE FROM analytics_events WHERE namespace = ?", [namespace]);
+  return r.rowCount;
 }
 
-export function countAnalyticsEvents(namespace: string): number {
-  ensureSchema();
-  const db = getDb();
-  const row = db
-    .prepare("SELECT COUNT(*) AS c FROM analytics_events WHERE namespace = ?")
-    .get(namespace) as { c: number } | undefined;
-  return row?.c ?? 0;
+export async function countAnalyticsEvents(namespace: string): Promise<number> {
+  await ensureSchema();
+  const row = await sql.one<{ c: number | string }>(
+    "SELECT COUNT(*) AS c FROM analytics_events WHERE namespace = ?",
+    [namespace],
+  );
+  return Number(row?.c ?? 0);
 }
 
 // ─── Namespace scoping ──────────────────────────────────────────
