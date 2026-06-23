@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
-import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
+import { presignR2Url, presignR2List, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
   upsertVectors,
   queryVectors,
@@ -363,15 +363,22 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     }, null, 2);
   }
 
+  const engineer = resolveAgentMode(req) === "engineer";
   const rawKey = args.key;
   const rawOp = args.operation;
   const rawTtl = args.ttl_seconds;
 
+  // delete/list and content-addressed put are the Managed Bucket (engineer) ops.
+  const OP_METHOD: Record<string, R2Operation> = { put: "PUT", get: "GET", delete: "DELETE" };
+  const validOps = engineer ? ["put", "get", "delete", "list"] : ["put", "get"];
+  if (typeof rawOp !== "string" || !validOps.includes(rawOp)) {
+    throw new Error(
+      `iliad_object_storage: \`operation\` must be one of ${validOps.join("/")}.` +
+        (engineer ? "" : " Send X-Agent-Mode: engineer for delete / list / content-addressed dedup (Managed Bucket)."),
+    );
+  }
   if (typeof rawKey !== "string" || rawKey.length === 0) {
     throw new Error("iliad_object_storage: `key` is required and must be a non-empty string.");
-  }
-  if (rawOp !== "put" && rawOp !== "get") {
-    throw new Error("iliad_object_storage: `operation` must be \"put\" or \"get\".");
   }
   let ttl = 3600;
   if (rawTtl !== undefined) {
@@ -384,16 +391,26 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     ttl = Math.floor(rawTtl);
   }
 
+  // Content-addressed put: caller supplies the sha256 of the bytes → dedup key.
+  const isCas = rawOp === "put" && engineer && typeof args.content_sha256 === "string";
   let scopedKey: string;
   try {
-    scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    if (rawOp === "list") {
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey.replace(/\/?$/, "/"));
+    } else if (isCas) {
+      scopedKey = casKey(auth.account.account_id, args.content_sha256 as string, typeof args.ext === "string" ? args.ext : undefined);
+    } else {
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    }
   } catch (err) {
     throw new Error(err instanceof Error ? `iliad_object_storage: ${err.message}` : String(err));
   }
 
-  const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
-  const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
+  const presigned =
+    rawOp === "list"
+      ? presignR2List(config, scopedKey, ttl)
+      : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl });
   captureMcpToolCredits(auth.account, charge);
 
   return JSON.stringify({
@@ -401,7 +418,8 @@ function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): 
     expires_at: presigned.expires_at,
     bucket: presigned.bucket,
     scoped_key: scopedKey,
-    operation: method,
+    operation: rawOp,
+    ...(isCas ? { content_addressed: true } : {}),
     ttl_seconds: ttl,
   }, null, 2);
 }
@@ -1838,13 +1856,15 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list operations and content-addressed dedup keys (content_sha256).",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
       properties: {
-        key: { type: "string", description: "Object key (max 1024 chars). Path traversal and leading-/ are rejected." },
-        operation: { type: "string", description: "Pre-sign upload (put) or download (get).", enum: ["put", "get"] },
+        key: { type: "string", description: "Object key (max 1024 chars), or the prefix for operation=list. Path traversal and leading-/ are rejected." },
+        operation: { type: "string", description: "put / get (standard). delete / list and content-addressed put require X-Agent-Mode: engineer (Managed Bucket).", enum: ["put", "get", "delete", "list"] },
+        content_sha256: { type: "string", description: "Engineer mode: 64-char hex sha256 of the bytes you'll PUT. When set, the object lands under accounts/<id>/cas/<sha256> so identical content dedupes." },
+        ext: { type: "string", description: "Engineer mode: optional extension appended to the content-addressed key (e.g. 'png')." },
         ttl_seconds: { type: "number", description: "Signed-URL lifetime, 1..86400. Defaults to 3600." },
       },
     },

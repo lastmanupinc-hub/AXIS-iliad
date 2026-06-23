@@ -13,7 +13,7 @@
 
 import { createHmac, createHash } from "node:crypto";
 
-export type R2Operation = "GET" | "PUT";
+export type R2Operation = "GET" | "PUT" | "DELETE";
 
 export interface R2Config {
   account_id: string;
@@ -94,7 +94,7 @@ export function presignR2Url({ config, method, key, ttl_seconds, now }: PresignO
   if (!config.account_id || !config.access_key_id || !config.secret_access_key || !config.bucket) {
     throw new Error("presignR2Url: incomplete R2 config");
   }
-  if (method !== "GET" && method !== "PUT") {
+  if (method !== "GET" && method !== "PUT" && method !== "DELETE") {
     throw new Error(`presignR2Url: unsupported method ${method}`);
   }
   if (!Number.isFinite(ttl_seconds) || ttl_seconds <= 0 || ttl_seconds > 604800) {
@@ -197,4 +197,71 @@ export function scopeAccountKey(account_id: string, raw_key: string): string {
   // Strip any leading slash artifacts, collapse double slashes.
   const cleaned = raw_key.replace(/^\/+/, "").replace(/\/{2,}/g, "/");
   return `${KEY_PREFIX}/${account_id}/${cleaned}`;
+}
+
+// ─── Engineer tier (E2): Managed Bucket ─────────────────────────
+//
+// list + delete + content-addressed keys, on the same hand-rolled SigV4 path.
+
+/**
+ * Pre-sign an S3 ListObjectsV2 GET on the bucket, scoped to `prefix`. The agent
+ * GETs the URL; R2 returns the standard ListBucketResult XML. Same SigV4 rules as
+ * presignR2Url but bucket-level, with list-type=2 + prefix in the signed query.
+ */
+export function presignR2List(config: R2Config, prefix: string, ttl_seconds: number, now?: Date): PresignResult {
+  if (!config.account_id || !config.access_key_id || !config.secret_access_key || !config.bucket) {
+    throw new Error("presignR2List: incomplete R2 config");
+  }
+  if (!Number.isFinite(ttl_seconds) || ttl_seconds <= 0 || ttl_seconds > 604800) {
+    throw new Error(`presignR2List: ttl_seconds must be 1..604800 (got ${ttl_seconds})`);
+  }
+  const t = now ?? new Date();
+  const amzDate = t.toISOString().replace(/[:\-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const region = "auto";
+  const service = "s3";
+  const host = `${config.account_id}.r2.cloudflarestorage.com`;
+  const canonicalUri = `/${config.bucket}`;
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const credential = `${config.access_key_id}/${credentialScope}`;
+  const queryEntries: Array<[string, string]> = [
+    ["X-Amz-Algorithm", "AWS4-HMAC-SHA256"],
+    ["X-Amz-Credential", credential],
+    ["X-Amz-Date", amzDate],
+    ["X-Amz-Expires", String(ttl_seconds)],
+    ["X-Amz-SignedHeaders", "host"],
+    ["list-type", "2"],
+    ["prefix", prefix],
+  ];
+  const encodedQuery = queryEntries
+    .map(([k, v]) => [encodeRfc3986(k), encodeRfc3986(v)] as const)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
+  const canonicalRequest = ["GET", canonicalUri, encodedQuery, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const stringToSign = ["AWS4-HMAC-SHA256", amzDate, credentialScope, sha256Hex(canonicalRequest)].join("\n");
+  const signingKey = deriveSigningKey(config.secret_access_key, dateStamp, region, service);
+  const signature = createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
+  return {
+    url: `https://${host}${canonicalUri}?${encodedQuery}&X-Amz-Signature=${signature}`,
+    expires_at: new Date(t.getTime() + ttl_seconds * 1000).toISOString(),
+    host,
+    bucket: config.bucket,
+    key: prefix,
+  };
+}
+
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+/**
+ * Content-addressed key: identical content (same sha256) maps to the same key,
+ * so re-uploading the same bytes dedupes. The caller computes the hash of the
+ * bytes it will PUT and passes it; the object lands under accounts/<id>/cas/.
+ */
+export function casKey(account_id: string, content_sha256: string, ext?: string): string {
+  if (!SHA256_HEX.test(content_sha256)) {
+    throw new Error("casKey: content_sha256 must be a 64-char lowercase hex sha256");
+  }
+  const safeExt = ext && /^[a-z0-9]{1,12}$/i.test(ext) ? `.${ext.toLowerCase()}` : "";
+  return scopeAccountKey(account_id, `cas/${content_sha256}${safeExt}`);
 }

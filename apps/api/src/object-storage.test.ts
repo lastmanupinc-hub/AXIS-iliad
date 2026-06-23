@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Config } from "./object-storage.js";
+import { presignR2Url, presignR2List, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Config } from "./object-storage.js";
 
 // ─── readR2ConfigFromEnv ────────────────────────────────────────
 
@@ -137,9 +137,12 @@ describe("presignR2Url", () => {
     expect(r.url).toContain("/axis-test/folder/file%20with%20spaces.png?");
   });
 
-  it("rejects unsupported HTTP methods", () => {
+  it("supports DELETE (Managed Bucket) and rejects genuinely off-contract methods", () => {
+    const del = presignR2Url({ config, method: "DELETE", key: "k.txt", ttl_seconds: 60, now: fixedNow });
+    expect(del.url).toContain("/axis-test/k.txt?");
+    expect(new URL(del.url).searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
     // @ts-expect-error — exercising runtime guard for an off-contract method
-    expect(() => presignR2Url({ config, method: "DELETE", key: "k", ttl_seconds: 60 })).toThrow(/unsupported method/i);
+    expect(() => presignR2Url({ config, method: "POST", key: "k", ttl_seconds: 60 })).toThrow(/unsupported method/i);
   });
 
   it("rejects ttl out of range", () => {
@@ -158,5 +161,52 @@ describe("presignR2Url", () => {
     const b = presignR2Url({ config, method: "PUT", key: "k.txt", ttl_seconds: 600, now: fixedNow });
     expect(a.url).toBe(b.url);
     expect(a.expires_at).toBe(b.expires_at);
+  });
+});
+
+// ─── Engineer tier (E2): Managed Bucket — list + content-addressed keys ──
+describe("presignR2List", () => {
+  const config: R2Config = {
+    account_id: "test-account",
+    access_key_id: "AKIAEXAMPLE",
+    secret_access_key: "examplesecret",
+    bucket: "axis-test",
+  };
+  const fixedNow = new Date("2026-05-22T10:00:00.000Z");
+
+  it("signs a bucket-level ListObjectsV2 GET with list-type=2 + prefix", () => {
+    const r = presignR2List(config, "accounts/acc-1/", 300, fixedNow);
+    const url = new URL(r.url);
+    expect(url.pathname).toBe("/axis-test"); // bucket-level, no object key
+    expect(url.searchParams.get("list-type")).toBe("2");
+    expect(url.searchParams.get("prefix")).toBe("accounts/acc-1/");
+    expect(url.searchParams.get("X-Amz-Algorithm")).toBe("AWS4-HMAC-SHA256");
+    expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
+    expect(r.key).toBe("accounts/acc-1/");
+  });
+
+  it("is deterministic", () => {
+    const a = presignR2List(config, "accounts/acc-1/", 300, fixedNow);
+    const b = presignR2List(config, "accounts/acc-1/", 300, fixedNow);
+    expect(a.url).toBe(b.url);
+  });
+
+  it("rejects ttl out of range + incomplete config", () => {
+    expect(() => presignR2List(config, "p/", 0, fixedNow)).toThrow(/ttl_seconds/i);
+    expect(() => presignR2List({ ...config, bucket: "" } as R2Config, "p/", 60, fixedNow)).toThrow(/incomplete R2 config/i);
+  });
+});
+
+describe("casKey (content-addressed dedup)", () => {
+  const hash = "a".repeat(64);
+  it("maps a sha256 to accounts/<id>/cas/<sha256> (identical content → same key)", () => {
+    expect(casKey("acc-1", hash)).toBe(`accounts/acc-1/cas/${hash}`);
+  });
+  it("appends a safe lowercased extension when given", () => {
+    expect(casKey("acc-1", hash, "PNG")).toBe(`accounts/acc-1/cas/${hash}.png`);
+  });
+  it("rejects a non-sha256 hash (incl. uppercase hex)", () => {
+    expect(() => casKey("acc-1", "not-a-hash")).toThrow(/64-char.*hex/i);
+    expect(() => casKey("acc-1", "A".repeat(64))).toThrow(/hex/i);
   });
 });
