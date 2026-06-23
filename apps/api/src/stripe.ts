@@ -39,8 +39,9 @@ function normalizeCheckoutPlanId(raw: unknown): CheckoutPlanId | null {
  */
 export function cleanPriceId(value: string | undefined): string | undefined {
   if (!value) return value;
-  const m = value.trim().match(/^(price_[A-Za-z0-9]+)/);
-  return m ? m[1] : value.trim();
+  // The id is the first whitespace-delimited token; a pasted "(monthly $29.00)"
+  // label (always space-separated) is dropped. Underscores in the id are preserved.
+  return value.trim().split(/\s+/)[0] || value.trim();
 }
 
 function resolveCheckoutPriceId(planId: CheckoutPlanId, billingCycle: "monthly" | "annual"): string | undefined {

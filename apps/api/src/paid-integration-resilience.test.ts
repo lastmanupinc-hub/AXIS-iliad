@@ -10,6 +10,10 @@ describe("cleanPriceId — tolerate a pasted Stripe price label", () => {
     expect(cleanPriceId("  price_ABC123  ")).toBe("price_ABC123");
     expect(cleanPriceId("price_xyz")).toBe("price_xyz");
   });
+  it("preserves underscores in the id (test/config ids like price_test_paid)", () => {
+    expect(cleanPriceId("price_test_paid")).toBe("price_test_paid");
+    expect(cleanPriceId("price_test_paid (monthly)")).toBe("price_test_paid");
+  });
   it("leaves undefined/empty alone", () => {
     expect(cleanPriceId(undefined)).toBeUndefined();
     expect(cleanPriceId("")).toBe("");
