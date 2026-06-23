@@ -1,5 +1,27 @@
 # Iliad → Neon Postgres Migration Plan
 
+> **PROGRESS (2026-06-22) — branch `feat/neon-phase3-stores`:** Phases **1, 2, 3, 5
+> DONE** and the whole repo compiles on the async Postgres layer (`pnpm -r build`
+> exit 0).
+> - **Phase 3** ✅ all 21 stores converted to `await sql.*` (289 sites); upserts→
+>   `ON CONFLICT`, `db.transaction()`→`sql.tx`, `.changes`→`.rowCount`, COUNT/SUM→
+>   `Number()`, NOCASE→`lower()`/`ILIKE`.
+> - **Phase 5** ✅ search-store off FTS5 onto the `content_tsv` generated column +
+>   `websearch_to_tsquery`/`ts_rank` (batched inserts in a tx).
+> - **Phase 1 fix** ✅ pg-schema was stamped at v23 but db.ts is v27 — ported the 4
+>   missing tables (idempotency_keys, credit_pack_purchases, scrape_cache,
+>   account_free_scrape_pool); baseline → v27.
+> - **Phase 4** ✅ await-propagated through 14 apps/api files (430 tsc errors → 0);
+>   `resolveAuth`/`requireAuth`/`requireAdmin` now async; boot runs
+>   `runPgMigrations()` before `listen` (skipped under test); shutdown → `closePool()`.
+> - **REMAINING: Phase 6** — every `*.test.ts` still calls `openMemoryDb()` (SQLite)
+>   and invokes the now-async stores without `await`. Needs a Postgres test fixture
+>   (Dockerized per the locked decision) + a CI `services:` Postgres + await sweep.
+>   The branch is a **compile checkpoint, not yet mergeable** (suite is red until 6).
+> - **REMAINING: Phase 0/7/8 (owner)** — provision Neon + `DATABASE_URL`, ETL cutover,
+>   decommission SQLite.
+
+
 Move the Iliad data layer off local SQLite (`better-sqlite3`, `/data/axis.db` on a
 single Render disk) onto **Neon Postgres**, consolidated with PAI'D's existing Neon.
 This is a pervasive refactor; it is **not** a config change. Read the whole plan
