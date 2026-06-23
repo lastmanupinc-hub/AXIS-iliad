@@ -789,11 +789,13 @@ export async function paidSubscribe(
   plan: "monthly" | "annual",
   email: string,
   idempotencyKey?: string,
+  planId?: "starter" | "pro" | "growth",
 ): Promise<PaidSubscribeResponse> {
   return fetchJSON("/portal/api/subscribe", {
     method: "POST",
     body: JSON.stringify({
       plan,
+      ...(planId ? { plan_id: planId } : {}),
       email,
       ...(idempotencyKey ? { idempotency_key: idempotencyKey } : {}),
     }),
