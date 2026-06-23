@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -2326,13 +2326,14 @@ describe("POST /mcp — owned-tool metering", () => {
 
   it("free-tier returns payment_required envelope after monthly allowance is exhausted", async () => {
     const { accountId, rawKey } = await newFreeAccount("vec-exhaust");
-    // Burn through the 10k-credit free allowance via direct ledger
-    // writes — much faster than 10k MCP calls. Each iteration uses
-    // 6 credits (= 1¢ tier). 1667 iterations × 6 = 10,002 used.
-    for (let i = 0; i < 1700; i++) {
-      const r = await consumeUsageCredits(accountId, "free", "iliad_vector_database", 1);
-      if (r.effective_overage_cents > 0) break;
-    }
+    // Exhaust the free monthly allowance in one direct write — 1600+ sequential
+    // consumeUsageCredits round-trips would blow the test timeout on networked
+    // Postgres. One real call first establishes the monthly row + plan/allowance.
+    await consumeUsageCredits(accountId, "free", "iliad_vector_database", 1);
+    await sql.run(
+      "UPDATE usage_credit_monthly SET included_credits_used = monthly_allowance WHERE account_id = ?",
+      [accountId],
+    );
     const summary = await getUsageCreditSummary(accountId, "free");
     expect(summary.included_credits_remaining).toBeLessThan(6);
 
