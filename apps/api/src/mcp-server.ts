@@ -2388,7 +2388,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_text_to_speech",
     description:
-      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): pass `brand_text` (a brand / voice-and-tone artifact) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["text"],
@@ -2397,6 +2397,9 @@ export const MCP_TOOLS = [
         voice: { type: "string", description: "Voice slug (filename without extension, e.g. 'en_US-amy-medium'). Defaults to first available voice or AXIS_PIPER_DEFAULT_VOICE." },
         format: { type: "string", description: "Audio codec.", enum: ["wav", "mp3", "opus"] },
         sentence_silence: { type: "number", description: "Per-sentence silence in seconds (0-5). Defaults 0.2." },
+        brand_text: { type: "string", description: "Engineer mode: brand / voice-and-tone artifact. AXIS derives a voice persona from it and synthesizes in that voice (overrides voice/sentence_silence)." },
+        locale: { type: "string", description: "Engineer mode: persona locale override.", enum: ["us", "gb"] },
+        gender: { type: "string", description: "Engineer mode: persona gender override.", enum: ["female", "male"] },
       },
     },
     outputSchema: {
@@ -2445,7 +2448,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_speech_to_text",
     description:
-      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -2454,6 +2457,8 @@ export const MCP_TOOLS = [
         language: { type: "string", description: "ISO-639-1 language code (en, fr, ja, ...) or 'auto' to autodetect. Defaults 'auto'." },
         initial_prompt: { type: "string", description: "Optional bias prompt (≤512 chars) — useful for spelling of rare names." },
         word_timestamps: { type: "boolean", description: "Emit word-level timestamps within segments. Defaults false." },
+        diarization_gap_seconds: { type: "number", description: "Engineer mode: pause (seconds) between segments that starts a new speaker turn. Defaults 0.75." },
+        max_speakers: { type: "number", description: "Engineer mode: max alternating speaker labels. Defaults 2." },
       },
     },
     outputSchema: {
