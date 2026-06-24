@@ -1,8 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { IncomingMessage } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createAccount,
   createApiKey,
   getUsageCreditSummary,
@@ -37,32 +36,29 @@ describe("MCP idempotency (dispatch)", () => {
   let rawKey: string;
   let accountId: string;
 
-  beforeEach(() => {
-    openMemoryDb();
+  beforeEach(async () => {
+    await resetTestDb();
     // analytics_events is lazily created with a module-level init flag that
     // outlives the in-memory DB reset — reset it so the table exists in this DB.
-    resetAnalyticsForTests();
-    const acct = createAccount("Idem", "idem@example.com", "paid");
+    await resetAnalyticsForTests();
+    const acct = await createAccount("Idem", "idem@example.com", "paid");
     accountId = acct.account_id;
-    rawKey = createApiKey(acct.account_id).rawKey;
-  });
-  afterEach(() => {
-    closeDb();
+    rawKey = (await createApiKey(acct.account_id)).rawKey;
   });
 
-  const used = () => getUsageCreditSummary(accountId, "paid").included_credits_used;
+  const used = async () => (await getUsageCreditSummary(accountId, "paid")).included_credits_used;
 
   it("replays the result and does NOT re-charge on a repeated Idempotency-Key", async () => {
-    const before = used();
+    const before = await used();
 
     const first = resultOf(await call(rawKey, "key-A", 1));
     expect(first.isError).toBeFalsy();
-    const afterFirst = used();
+    const afterFirst = await used();
     expect(afterFirst).toBeGreaterThan(before); // charged once
 
     const second = resultOf(await call(rawKey, "key-A", 2));
     expect(second._idempotent_replay).toBe(true);
-    expect(used()).toBe(afterFirst); // NOT re-charged
+    expect(await used()).toBe(afterFirst); // NOT re-charged
 
     const firstText = (first.content as Array<{ text: string }>)[0].text;
     const secondText = (second.content as Array<{ text: string }>)[0].text;
@@ -79,11 +75,11 @@ describe("MCP idempotency (dispatch)", () => {
   });
 
   it("charges every call when no Idempotency-Key is sent", async () => {
-    const before = used();
+    const before = await used();
     await call(rawKey, undefined, 1);
-    const mid = used();
+    const mid = await used();
     await call(rawKey, undefined, 2);
-    const after = used();
+    const after = await used();
     expect(mid).toBeGreaterThan(before);
     expect(after).toBeGreaterThan(mid); // both charged — no dedup without a key
   });

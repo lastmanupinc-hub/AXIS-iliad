@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { getDb, getDbStats, integrityCheck } from "@axis/snapshots";
+import { getPgDbStats, pgIntegrityCheck } from "@axis/snapshots";
 import { isShuttingDown } from "./router.js";
 
 const startTime = Date.now();
@@ -84,8 +84,7 @@ export async function handleReadiness(
 ): Promise<void> {
   // Readiness: is the service ready to accept traffic?
   const shutting = isShuttingDown();
-  const database = getDb(); // ensure lazy init before integrity check
-  const dbCheck = integrityCheck(database);
+  const dbCheck = await pgIntegrityCheck();
   const ready = !shutting && dbCheck.success;
 
   res.writeHead(ready ? 200 : 503, { "Content-Type": "application/json" });
@@ -108,7 +107,7 @@ export async function handleMetrics(
 ): Promise<void> {
   const uptime = Math.floor((Date.now() - startTime) / 1000);
   const mem = process.memoryUsage();
-  const dbStats = getDbStats();
+  const dbStats = await getPgDbStats();
   const tables = (dbStats.details?.tables ?? {}) as Record<string, number>;
 
   const lines: string[] = [];

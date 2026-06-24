@@ -1,9 +1,9 @@
-// ─── iliad_vector_database — SQLite-backed vector store ─────────
+// ─── iliad_vector_database — Postgres-backed vector store ───────
 //
 // MVP for the AXIS-owned vector capability. Uses the existing
-// @axis/snapshots SQLite database (no new dependency) with a
+// @axis/snapshots Postgres database (no new dependency) with a
 // dedicated `vectors` table. Each row stores a single (namespace, id)
-// vector as a Float32 BLOB plus optional JSON metadata. Cosine
+// vector as a Float32 BYTEA blob plus optional JSON metadata. Cosine
 // similarity is computed in JS at query time over all rows in the
 // namespace — fast enough (~sub-ms) for ≤10k vectors per namespace.
 //
@@ -12,7 +12,7 @@
 // internals change. Until then, accounts get persistent vectors with
 // per-namespace isolation that's enforced at the schema level.
 
-import { getDb } from "@axis/snapshots";
+import { sql, pgPlaceholders } from "@axis/snapshots";
 
 export interface VectorRecord {
   id: string;
@@ -41,14 +41,13 @@ let initialized = false;
  * the pattern @axis/snapshots uses elsewhere, and keeps this feature
  * additive — no schema-version bump in the shared package.
  */
-function ensureSchema(): void {
+async function ensureSchema(): Promise<void> {
   if (initialized) return;
-  const db = getDb();
-  db.exec(`
+  await sql.exec(`
     CREATE TABLE IF NOT EXISTS vectors (
       namespace   TEXT NOT NULL,
       id          TEXT NOT NULL,
-      vector      BLOB NOT NULL,
+      vector      BYTEA NOT NULL,
       dimensions  INTEGER NOT NULL,
       metadata    TEXT,
       created_at  TEXT NOT NULL,
@@ -60,10 +59,9 @@ function ensureSchema(): void {
 }
 
 /** Test-only helper. Clears all rows + resets the lazy-init flag. */
-export function resetVectorDbForTests(): void {
-  const db = getDb();
+export async function resetVectorDbForTests(): Promise<void> {
   // Drop and recreate so dimension mismatches across test files don't bleed.
-  db.exec("DROP TABLE IF EXISTS vectors;");
+  await sql.exec("DROP TABLE IF EXISTS vectors;");
   initialized = false;
 }
 
@@ -111,25 +109,21 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  * (namespace, id) are overwritten. Returns the number of rows actually
  * written.
  */
-export function upsertVectors(namespace: string, records: VectorRecord[]): number {
+export async function upsertVectors(namespace: string, records: VectorRecord[]): Promise<number> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("upsertVectors: namespace is required");
   }
   if (!Array.isArray(records) || records.length === 0) {
     throw new Error("upsertVectors: records[] must be a non-empty array");
   }
-  ensureSchema();
-  const db = getDb();
+  await ensureSchema();
   const now = new Date().toISOString();
-  const stmt = db.prepare(
-    "INSERT OR REPLACE INTO vectors (namespace, id, vector, dimensions, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-  );
 
   // Single transaction so partial inserts don't leave a half-written
   // batch on disk. Throws on the first malformed record.
   let dim = 0;
-  const tx = db.transaction((rows: VectorRecord[]) => {
-    for (const r of rows) {
+  await sql.tx(async (client) => {
+    for (const r of records) {
       if (!r.id || typeof r.id !== "string") {
         throw new Error("upsertVectors: each record requires a string `id`");
       }
@@ -148,18 +142,22 @@ export function upsertVectors(namespace: string, records: VectorRecord[]): numbe
           throw new Error(`upsertVectors: record ${r.id} contains a non-finite value`);
         }
       }
-      stmt.run(
-        namespace,
-        r.id,
-        encodeVector(r.vector),
-        r.vector.length,
-        r.metadata ? JSON.stringify(r.metadata) : null,
-        now,
+      await client.query(
+        pgPlaceholders(
+          "INSERT INTO vectors (namespace, id, vector, dimensions, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (namespace, id) DO UPDATE SET vector = EXCLUDED.vector, dimensions = EXCLUDED.dimensions, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at",
+        ),
+        [
+          namespace,
+          r.id,
+          encodeVector(r.vector),
+          r.vector.length,
+          r.metadata ? JSON.stringify(r.metadata) : null,
+          now,
+        ],
       );
     }
   });
 
-  tx(records);
   return records.length;
 }
 
@@ -168,7 +166,7 @@ export function upsertVectors(namespace: string, records: VectorRecord[]): numbe
  * accept a flat key→value map and require exact match against
  * deserialised metadata. Missing keys are treated as non-matches.
  */
-export function queryVectors(namespace: string, opts: QueryOptions): VectorMatch[] {
+export async function queryVectors(namespace: string, opts: QueryOptions): Promise<VectorMatch[]> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("queryVectors: namespace is required");
   }
@@ -179,13 +177,11 @@ export function queryVectors(namespace: string, opts: QueryOptions): VectorMatch
   if (!Array.isArray(opts.vector) || opts.vector.length === 0) {
     throw new Error("queryVectors: vector is required");
   }
-  ensureSchema();
-  const db = getDb();
-  const rows = db
-    .prepare(
-      "SELECT id, vector, dimensions, metadata FROM vectors WHERE namespace = ?",
-    )
-    .all(namespace) as Array<{ id: string; vector: Buffer; dimensions: number; metadata: string | null }>;
+  await ensureSchema();
+  const rows = await sql.many<{ id: string; vector: Buffer; dimensions: number; metadata: string | null }>(
+    "SELECT id, vector, dimensions, metadata FROM vectors WHERE namespace = ?",
+    [namespace],
+  );
 
   const candidates: VectorMatch[] = [];
   for (const row of rows) {
@@ -211,24 +207,23 @@ export function queryVectors(namespace: string, opts: QueryOptions): VectorMatch
 }
 
 /** Drop every vector in a namespace. Returns the number of rows removed. */
-export function deleteNamespace(namespace: string): number {
+export async function deleteNamespace(namespace: string): Promise<number> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("deleteNamespace: namespace is required");
   }
-  ensureSchema();
-  const db = getDb();
-  const r = db.prepare("DELETE FROM vectors WHERE namespace = ?").run(namespace);
-  return r.changes;
+  await ensureSchema();
+  const r = await sql.run("DELETE FROM vectors WHERE namespace = ?", [namespace]);
+  return r.rowCount;
 }
 
 /** Count vectors in a namespace. Useful for the upsert response. */
-export function countVectors(namespace: string): number {
-  ensureSchema();
-  const db = getDb();
-  const row = db
-    .prepare("SELECT COUNT(*) AS c FROM vectors WHERE namespace = ?")
-    .get(namespace) as { c: number } | undefined;
-  return row?.c ?? 0;
+export async function countVectors(namespace: string): Promise<number> {
+  await ensureSchema();
+  const row = await sql.one<{ c: number }>(
+    "SELECT COUNT(*) AS c FROM vectors WHERE namespace = ?",
+    [namespace],
+  );
+  return Number(row?.c ?? 0);
 }
 
 // ─── Namespace scoping ──────────────────────────────────────────

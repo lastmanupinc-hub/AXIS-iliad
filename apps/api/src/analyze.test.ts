@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import {
   handleAnalyze,
@@ -65,11 +65,11 @@ const minFiles = [
 ];
 
 beforeAll(async () => {
-  openMemoryDb();
-  const suite = createAccount("analyze-suite", "analyze-suite@test.local", "suite");
-  suiteApiKey = createApiKey(suite.account_id).rawKey;
-  const free = createAccount("analyze-free", "analyze-free@test.local", "free");
-  freeApiKey = createApiKey(free.account_id).rawKey;
+  await resetTestDb();
+  const suite = await createAccount("analyze-suite", "analyze-suite@test.local", "suite");
+  suiteApiKey = (await createApiKey(suite.account_id)).rawKey;
+  const free = await createAccount("analyze-free", "analyze-free@test.local", "free");
+  freeApiKey = (await createApiKey(free.account_id)).rawKey;
   const router = new Router();
   router.post("/v1/analyze", handleAnalyze);
   router.get("/.well-known/axis.json", handleWellKnown);
@@ -84,7 +84,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // â”€â”€â”€ adoptionHint (pure function) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

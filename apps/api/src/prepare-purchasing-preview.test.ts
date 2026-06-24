@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { beforeEach, describe, expect, it } from "vitest";
+import { resetTestDb } from "@axis/snapshots";
 import { runPreparePurchasingPreview } from "./mcp-server.js";
 
 function preview(args: Record<string, unknown>): Record<string, unknown> {
@@ -7,14 +7,11 @@ function preview(args: Record<string, unknown>): Record<string, unknown> {
 }
 
 describe("prepare_agentic_purchasing_preview (free, no auth)", () => {
-  beforeEach(() => {
-    openMemoryDb();
-  });
-  afterEach(() => {
-    closeDb();
+  beforeEach(async () => {
+    await resetTestDb();
   });
 
-  it("scores a codebase for free with gaps + a conversion CTA", () => {
+  it("scores a codebase for free with gaps + a conversion CTA", async () => {
     const r = preview({
       project_name: "demo",
       project_type: "api_service",
@@ -33,12 +30,12 @@ describe("prepare_agentic_purchasing_preview (free, no auth)", () => {
     expect(r.frameworks_detected).toContain("stripe"); // detected from package.json dep
   });
 
-  it("requires project_name and a non-empty files array", () => {
+  it("requires project_name and a non-empty files array", async () => {
     expect(() => preview({ files: [{ path: "a", content: "b" }] })).toThrow(/project_name/);
     expect(() => preview({ project_name: "x", files: [] })).toThrow(/non-empty/);
   });
 
-  it("enforces the 25-file preview cap (pushes larger jobs to the paid tool)", () => {
+  it("enforces the 25-file preview cap (pushes larger jobs to the paid tool)", async () => {
     const files = Array.from({ length: 26 }, (_, i) => ({ path: `f${i}.ts`, content: "x" }));
     expect(() => preview({ project_name: "x", files })).toThrow(/max 25 files/);
   });

@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import type {
   Account,
   ApiKey,
@@ -36,7 +36,7 @@ export function normalizeEmail(email: string): string {
 
 // ─── Accounts ───────────────────────────────────────────────────
 
-export function createAccount(name: string, email: string, tier: BillingTier = "free"): Account {
+export async function createAccount(name: string, email: string, tier: BillingTier = "free"): Promise<Account> {
   const account: Account = {
     account_id: randomUUID(),
     name,
@@ -45,45 +45,49 @@ export function createAccount(name: string, email: string, tier: BillingTier = "
     created_at: new Date().toISOString(),
   };
 
-  getDb().prepare(
+  await sql.run(
     "INSERT INTO accounts (account_id, name, email, tier, created_at) VALUES (?, ?, ?, ?, ?)",
-  ).run(account.account_id, account.name, account.email, account.tier, account.created_at);
+    [account.account_id, account.name, account.email, account.tier, account.created_at],
+  );
 
   // For suite tier, enable all programs
   if (tier === "suite") {
     for (const program of ALL_PROGRAMS) {
-      enableProgram(account.account_id, program);
+      await enableProgram(account.account_id, program);
     }
   }
 
   return account;
 }
 
-export function getAccount(account_id: string): Account | undefined {
-  return getDb().prepare("SELECT * FROM accounts WHERE account_id = ?").get(account_id) as Account | undefined;
+export async function getAccount(account_id: string): Promise<Account | undefined> {
+  return await sql.one<Account>("SELECT * FROM accounts WHERE account_id = ?", [account_id]);
 }
 
-export function getAccountByEmail(email: string): Account | undefined {
-  // COLLATE NOCASE also matches legacy rows stored before emails were
-  // normalized to lowercase (migration 22 rewrites them, but skips rows
-  // whose lowercase form collides with another account).
-  return getDb().prepare("SELECT * FROM accounts WHERE email = ? COLLATE NOCASE").get(normalizeEmail(email)) as Account | undefined;
+export async function getAccountByEmail(email: string): Promise<Account | undefined> {
+  // Match case-insensitively via lower(email) (backed by idx_accounts_email_lower).
+  // The input is already normalized to lowercase; comparing lower(email) also
+  // matches any legacy rows stored before emails were normalized to lowercase.
+  return await sql.one<Account>(
+    "SELECT * FROM accounts WHERE lower(email) = ?",
+    [normalizeEmail(email)],
+  );
 }
 
-export function updateAccountTier(account_id: string, tier: BillingTier): boolean {
-  const result = getDb().prepare("UPDATE accounts SET tier = ? WHERE account_id = ?").run(tier, account_id);
-  if (result.changes > 0 && tier === "suite") {
+export async function updateAccountTier(account_id: string, tier: BillingTier): Promise<boolean> {
+  const result = await sql.run("UPDATE accounts SET tier = ? WHERE account_id = ?", [tier, account_id]);
+  if (result.rowCount > 0 && tier === "suite") {
     for (const program of ALL_PROGRAMS) {
-      enableProgram(account_id, program);
+      await enableProgram(account_id, program);
     }
   }
-  return result.changes > 0;
+  return result.rowCount > 0;
 }
 
 // ─── API Keys ───────────────────────────────────────────────────
 
 /** Creates a new API key. Returns the key record AND the raw key (only time it's available). */
-export function createApiKey(account_id: string, label: string = ""): { apiKey: ApiKey; rawKey: string } {
+export async function createApiKey(account_id: string, label: string = ""): Promise<{ apiKey: ApiKey; rawKey: string }> {
   const rawKey = generateRawKey();
   const apiKey: ApiKey = {
     key_id: randomUUID(),
@@ -94,19 +98,21 @@ export function createApiKey(account_id: string, label: string = ""): { apiKey: 
     revoked_at: null,
   };
 
-  getDb().prepare(
+  await sql.run(
     "INSERT INTO api_keys (key_id, key_hash, account_id, label, created_at, revoked_at) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(apiKey.key_id, apiKey.key_hash, apiKey.account_id, apiKey.label, apiKey.created_at, apiKey.revoked_at);
+    [apiKey.key_id, apiKey.key_hash, apiKey.account_id, apiKey.label, apiKey.created_at, apiKey.revoked_at],
+  );
 
   return { apiKey, rawKey };
 }
 
 /** Lookup an account by raw API key. Returns undefined if key is invalid or revoked. */
-export function resolveApiKey(rawKey: string): { apiKey: ApiKey; account: Account } | undefined {
+export async function resolveApiKey(rawKey: string): Promise<{ apiKey: ApiKey; account: Account } | undefined> {
   const hash = hashKey(rawKey);
-  const row = getDb().prepare(
+  const row = await sql.one<ApiKey & { account_name: string; email: string; tier: BillingTier; account_created_at: string }>(
     "SELECT k.*, a.name as account_name, a.email, a.tier, a.created_at as account_created_at FROM api_keys k JOIN accounts a ON k.account_id = a.account_id WHERE k.key_hash = ? AND k.revoked_at IS NULL",
-  ).get(hash) as (ApiKey & { account_name: string; email: string; tier: BillingTier; account_created_at: string }) | undefined;
+    [hash],
+  );
 
   if (!row) return undefined;
 
@@ -130,37 +136,42 @@ export function resolveApiKey(rawKey: string): { apiKey: ApiKey; account: Accoun
   return { apiKey, account };
 }
 
-export function revokeApiKey(key_id: string): boolean {
-  const result = getDb().prepare("UPDATE api_keys SET revoked_at = ? WHERE key_id = ?").run(new Date().toISOString(), key_id);
-  return result.changes > 0;
+export async function revokeApiKey(key_id: string): Promise<boolean> {
+  const result = await sql.run("UPDATE api_keys SET revoked_at = ? WHERE key_id = ?", [new Date().toISOString(), key_id]);
+  return result.rowCount > 0;
 }
 
-export function listApiKeys(account_id: string): ApiKey[] {
-  return getDb().prepare("SELECT * FROM api_keys WHERE account_id = ? ORDER BY created_at DESC").all(account_id) as ApiKey[];
+export async function listApiKeys(account_id: string): Promise<ApiKey[]> {
+  return await sql.many<ApiKey>("SELECT * FROM api_keys WHERE account_id = ? ORDER BY created_at DESC", [account_id]);
 }
 
 // ─── Program Entitlements ───────────────────────────────────────
 
-export function enableProgram(account_id: string, program: string): void {
-  getDb().prepare(
-    "INSERT OR REPLACE INTO program_entitlements (account_id, program, enabled) VALUES (?, ?, 1)",
-  ).run(account_id, program);
+export async function enableProgram(account_id: string, program: string): Promise<void> {
+  await sql.run(
+    `INSERT INTO program_entitlements (account_id, program, enabled) VALUES (?, ?, 1)
+     ON CONFLICT (account_id, program) DO UPDATE SET enabled = EXCLUDED.enabled`,
+    [account_id, program],
+  );
 }
 
-export function disableProgram(account_id: string, program: string): void {
-  getDb().prepare(
-    "INSERT OR REPLACE INTO program_entitlements (account_id, program, enabled) VALUES (?, ?, 0)",
-  ).run(account_id, program);
+export async function disableProgram(account_id: string, program: string): Promise<void> {
+  await sql.run(
+    `INSERT INTO program_entitlements (account_id, program, enabled) VALUES (?, ?, 0)
+     ON CONFLICT (account_id, program) DO UPDATE SET enabled = EXCLUDED.enabled`,
+    [account_id, program],
+  );
 }
 
-export function getEntitlements(account_id: string): ProgramEntitlement[] {
-  return getDb().prepare(
+export async function getEntitlements(account_id: string): Promise<ProgramEntitlement[]> {
+  return await sql.many<ProgramEntitlement>(
     "SELECT * FROM program_entitlements WHERE account_id = ? AND enabled = 1",
-  ).all(account_id) as ProgramEntitlement[];
+    [account_id],
+  );
 }
 
-export function isProgramEnabled(account_id: string, program: string): boolean {
-  const account = getAccount(account_id);
+export async function isProgramEnabled(account_id: string, program: string): Promise<boolean> {
+  const account = await getAccount(account_id);
   if (!account) return false;
 
   const limits = TIER_LIMITS[account.tier];
@@ -174,23 +185,24 @@ export function isProgramEnabled(account_id: string, program: string): boolean {
   }
 
   // Paid tier: check entitlements table
-  const row = getDb().prepare(
+  const row = await sql.one<{ enabled: number }>(
     "SELECT enabled FROM program_entitlements WHERE account_id = ? AND program = ?",
-  ).get(account_id, program) as { enabled: number } | undefined;
+    [account_id, program],
+  );
 
   return row?.enabled === 1;
 }
 
 // ─── Usage Tracking ─────────────────────────────────────────────
 
-export function recordUsage(
+export async function recordUsage(
   account_id: string,
   program: string,
   snapshot_id: string,
   generators_run: number,
   input_files: number,
   input_bytes: number,
-): UsageRecord {
+): Promise<UsageRecord> {
   const record: UsageRecord = {
     usage_id: randomUUID(),
     account_id,
@@ -202,49 +214,67 @@ export function recordUsage(
     created_at: new Date().toISOString(),
   };
 
-  getDb().prepare(
+  await sql.run(
     `INSERT INTO usage_records (usage_id, account_id, program, snapshot_id, generators_run, input_files, input_bytes, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    record.usage_id, record.account_id, record.program, record.snapshot_id,
-    record.generators_run, record.input_files, record.input_bytes, record.created_at,
+    [
+      record.usage_id, record.account_id, record.program, record.snapshot_id,
+      record.generators_run, record.input_files, record.input_bytes, record.created_at,
+    ],
   );
 
   return record;
 }
 
-export function getUsageSummary(account_id: string, since?: string): UsageSummary[] {
+export async function getUsageSummary(account_id: string, since?: string): Promise<UsageSummary[]> {
   const query = since
     ? "SELECT program, COUNT(*) as total_runs, SUM(generators_run) as total_generators, SUM(input_files) as total_input_files, SUM(input_bytes) as total_input_bytes FROM usage_records WHERE account_id = ? AND created_at >= ? GROUP BY program"
     : "SELECT program, COUNT(*) as total_runs, SUM(generators_run) as total_generators, SUM(input_files) as total_input_files, SUM(input_bytes) as total_input_bytes FROM usage_records WHERE account_id = ? GROUP BY program";
 
   const params = since ? [account_id, since] : [account_id];
-  return getDb().prepare(query).all(...params) as UsageSummary[];
+  // pg COUNT/SUM return strings/bigints — coerce each aggregate column so the
+  // returned UsageSummary fields are JS numbers.
+  const rows = await sql.many<{
+    program: string;
+    total_runs: string | number;
+    total_generators: string | number | null;
+    total_input_files: string | number | null;
+    total_input_bytes: string | number | null;
+  }>(query, params);
+  return rows.map((r) => ({
+    program: r.program,
+    total_runs: Number(r.total_runs ?? 0),
+    total_generators: Number(r.total_generators ?? 0),
+    total_input_files: Number(r.total_input_files ?? 0),
+    total_input_bytes: Number(r.total_input_bytes ?? 0),
+  }));
 }
 
-export function getMonthlySnapshotCount(account_id: string): number {
+export async function getMonthlySnapshotCount(account_id: string): Promise<number> {
   const firstOfMonth = new Date();
   firstOfMonth.setDate(1);
   firstOfMonth.setHours(0, 0, 0, 0);
   const since = firstOfMonth.toISOString();
 
-  const row = getDb().prepare(
+  const row = await sql.one<{ count: number }>(
     "SELECT COUNT(DISTINCT snapshot_id) as count FROM usage_records WHERE account_id = ? AND created_at >= ?",
-  ).get(account_id, since) as { count: number };
+    [account_id, since],
+  );
 
-  return row.count;
+  return Number(row?.count ?? 0);
 }
 
-export function getProjectCount(account_id: string): number {
+export async function getProjectCount(account_id: string): Promise<number> {
   // Count projects from snapshots linked to this account's usage
-  const row = getDb().prepare(
+  const row = await sql.one<{ count: number }>(
     `SELECT COUNT(DISTINCT s.project_id) as count
      FROM usage_records u
      JOIN snapshots s ON u.snapshot_id = s.snapshot_id
      WHERE u.account_id = ?`,
-  ).get(account_id) as { count: number };
+    [account_id],
+  );
 
-  return row.count;
+  return Number(row?.count ?? 0);
 }
 
 // ─── Quota Enforcement ──────────────────────────────────────────
@@ -257,8 +287,8 @@ export interface QuotaCheck {
   usage: { snapshots_this_month: number; project_count: number };
 }
 
-export function checkQuota(account_id: string): QuotaCheck {
-  const account = getAccount(account_id);
+export async function checkQuota(account_id: string): Promise<QuotaCheck> {
+  const account = await getAccount(account_id);
   if (!account) {
     return {
       allowed: false,
@@ -270,8 +300,8 @@ export function checkQuota(account_id: string): QuotaCheck {
   }
 
   const limits = TIER_LIMITS[account.tier];
-  const snapshotsThisMonth = getMonthlySnapshotCount(account_id);
-  const projectCount = getProjectCount(account_id);
+  const snapshotsThisMonth = await getMonthlySnapshotCount(account_id);
+  const projectCount = await getProjectCount(account_id);
 
   const usage = { snapshots_this_month: snapshotsThisMonth, project_count: projectCount };
 
@@ -327,56 +357,67 @@ function normalizeApiPath(path: string): string {
     .replace(/\/\d+\b/g, "/:id");
 }
 
-export function recordApiCall(
+export async function recordApiCall(
   account_id: string,
   method: string,
   path: string,
   status_code: number,
-): void {
-  getDb().prepare(
+): Promise<void> {
+  await sql.run(
     `INSERT INTO account_api_calls (call_id, account_id, method, path, status_code, created_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
-  ).run(
-    randomUUID(),
-    account_id,
-    method,
-    normalizeApiPath(path),
-    status_code,
-    new Date().toISOString(),
+    [
+      randomUUID(),
+      account_id,
+      method,
+      normalizeApiPath(path),
+      status_code,
+      new Date().toISOString(),
+    ],
   );
 }
 
-export function getApiCallSummary(
+export async function getApiCallSummary(
   account_id: string,
   since: string,
   limit = 100,
-): AccountApiAnalyticsSummary {
-  const db = getDb();
-  const totalRow = db.prepare(
+): Promise<AccountApiAnalyticsSummary> {
+  const totalRow = await sql.one<{ c: number }>(
     "SELECT COUNT(*) as c FROM account_api_calls WHERE account_id = ? AND created_at >= ?",
-  ).get(account_id, since) as { c: number };
+    [account_id, since],
+  );
 
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const calls24hRow = db.prepare(
+  const calls24hRow = await sql.one<{ c: number }>(
     "SELECT COUNT(*) as c FROM account_api_calls WHERE account_id = ? AND created_at >= ?",
-  ).get(account_id, since24h) as { c: number };
+    [account_id, since24h],
+  );
 
-  const calls7dRow = db.prepare(
+  const calls7dRow = await sql.one<{ c: number }>(
     "SELECT COUNT(*) as c FROM account_api_calls WHERE account_id = ? AND created_at >= ?",
-  ).get(account_id, since7d) as { c: number };
+    [account_id, since7d],
+  );
 
-  const byEndpoint = db.prepare(
+  // pg COUNT(*) returns a string/bigint — coerce the `calls` column on each row.
+  const byEndpointRows = await sql.many<Omit<ApiEndpointUsage, "calls"> & { calls: string | number }>(
     `SELECT method, path, COUNT(*) as calls, MAX(created_at) as last_called_at
      FROM account_api_calls
      WHERE account_id = ? AND created_at >= ?
      GROUP BY method, path
      ORDER BY calls DESC, last_called_at DESC
      LIMIT ?`,
-  ).all(account_id, since, Math.max(1, limit)) as ApiEndpointUsage[];
+    [account_id, since, Math.max(1, limit)],
+  );
+  const byEndpoint: ApiEndpointUsage[] = byEndpointRows.map((r) => ({
+    method: r.method,
+    path: r.path,
+    calls: Number(r.calls ?? 0),
+    last_called_at: r.last_called_at,
+  }));
 
-  const byStatus = db.prepare(
+  const byStatusRows = await sql.many<Omit<ApiStatusUsage, "calls"> & { calls: string | number }>(
     `SELECT
        CASE
          WHEN status_code >= 200 AND status_code < 300 THEN '2xx'
@@ -390,44 +431,48 @@ export function getApiCallSummary(
      WHERE account_id = ? AND created_at >= ?
      GROUP BY status_bucket
      ORDER BY calls DESC`,
-  ).all(account_id, since) as ApiStatusUsage[];
+    [account_id, since],
+  );
+  const byStatus: ApiStatusUsage[] = byStatusRows.map((r) => ({
+    status_bucket: r.status_bucket,
+    calls: Number(r.calls ?? 0),
+  }));
 
   return {
     account_id,
     since,
-    total_calls: totalRow.c,
-    calls_last_24h: calls24hRow.c,
-    calls_last_7d: calls7dRow.c,
+    total_calls: Number(totalRow?.c ?? 0),
+    calls_last_24h: Number(calls24hRow?.c ?? 0),
+    calls_last_7d: Number(calls7dRow?.c ?? 0),
     by_endpoint: byEndpoint,
     by_status: byStatus,
   };
 }
 
-export function getSystemStats(): SystemStats {
-  const db = getDb();
-  const accountRow = db.prepare(
+export async function getSystemStats(): Promise<SystemStats> {
+  const accountRow = await sql.one<{ total: number; free_count: number; paid_count: number; suite_count: number }>(
     "SELECT COUNT(*) as total, SUM(CASE WHEN tier='free' THEN 1 ELSE 0 END) as free_count, SUM(CASE WHEN tier='paid' THEN 1 ELSE 0 END) as paid_count, SUM(CASE WHEN tier='suite' THEN 1 ELSE 0 END) as suite_count FROM accounts",
-  ).get() as { total: number; free_count: number; paid_count: number; suite_count: number };
+  );
 
-  const snapCount = (db.prepare("SELECT COUNT(*) as c FROM snapshots").get() as { c: number }).c;
-  const projCount = (db.prepare("SELECT COUNT(DISTINCT project_id) as c FROM snapshots").get() as { c: number }).c;
-  const usageCount = (db.prepare("SELECT COUNT(*) as c FROM usage_records").get() as { c: number }).c;
-  const keyTotals = db.prepare(
+  const snapCount = Number((await sql.one<{ c: number }>("SELECT COUNT(*) as c FROM snapshots"))?.c ?? 0);
+  const projCount = Number((await sql.one<{ c: number }>("SELECT COUNT(DISTINCT project_id) as c FROM snapshots"))?.c ?? 0);
+  const usageCount = Number((await sql.one<{ c: number }>("SELECT COUNT(*) as c FROM usage_records"))?.c ?? 0);
+  const keyTotals = await sql.one<{ total: number; active: number }>(
     "SELECT COUNT(*) as total, SUM(CASE WHEN revoked_at IS NULL THEN 1 ELSE 0 END) as active FROM api_keys",
-  ).get() as { total: number; active: number };
+  );
 
   return {
-    total_accounts: accountRow.total,
+    total_accounts: Number(accountRow?.total ?? 0),
     accounts_by_tier: {
-      free: accountRow.free_count ?? 0,
-      paid: accountRow.paid_count ?? 0,
-      suite: accountRow.suite_count ?? 0,
+      free: Number(accountRow?.free_count ?? 0),
+      paid: Number(accountRow?.paid_count ?? 0),
+      suite: Number(accountRow?.suite_count ?? 0),
     },
     total_snapshots: snapCount,
     total_projects: projCount,
     total_usage_records: usageCount,
-    total_api_keys: keyTotals.total,
-    active_api_keys: keyTotals.active ?? 0,
+    total_api_keys: Number(keyTotals?.total ?? 0),
+    active_api_keys: Number(keyTotals?.active ?? 0),
   };
 }
 
@@ -441,20 +486,33 @@ export interface AccountSummary {
   project_count: number;
 }
 
-export function listAllAccounts(limit = 100, offset = 0): { accounts: AccountSummary[]; total: number } {
-  const db = getDb();
-  const total = (db.prepare("SELECT COUNT(*) as c FROM accounts").get() as { c: number }).c;
+export async function listAllAccounts(limit = 100, offset = 0): Promise<{ accounts: AccountSummary[]; total: number }> {
+  const total = Number((await sql.one<{ c: number }>("SELECT COUNT(*) as c FROM accounts"))?.c ?? 0);
 
-  const rows = db.prepare(`
+  const rows = await sql.many<Omit<AccountSummary, "snapshot_count" | "project_count"> & {
+    snapshot_count: string | number;
+    project_count: string | number;
+  }>(`
     SELECT a.account_id, a.name, a.email, a.tier, a.created_at,
       (SELECT COUNT(*) FROM snapshots s JOIN (SELECT DISTINCT project_id FROM snapshots) p ON s.project_id = p.project_id WHERE EXISTS (SELECT 1 FROM usage_records u WHERE u.account_id = a.account_id AND u.snapshot_id = s.snapshot_id)) as snapshot_count,
       (SELECT COUNT(DISTINCT u.snapshot_id) FROM usage_records u WHERE u.account_id = a.account_id) as project_count
     FROM accounts a
     ORDER BY a.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(limit, offset) as AccountSummary[];
+  `, [limit, offset]);
 
-  return { accounts: rows, total };
+  // pg COUNT(...) subqueries return strings/bigints — coerce per row.
+  const accounts: AccountSummary[] = rows.map((r) => ({
+    account_id: r.account_id,
+    name: r.name,
+    email: r.email,
+    tier: r.tier,
+    created_at: r.created_at,
+    snapshot_count: Number(r.snapshot_count ?? 0),
+    project_count: Number(r.project_count ?? 0),
+  }));
+
+  return { accounts, total };
 }
 
 export interface RecentActivity {
@@ -465,9 +523,9 @@ export interface RecentActivity {
   created_at: string;
 }
 
-export function getRecentActivity(limit = 50): RecentActivity[] {
-  const db = getDb();
-  return db.prepare(
+export async function getRecentActivity(limit = 50): Promise<RecentActivity[]> {
+  return await sql.many<RecentActivity>(
     "SELECT event_id, account_id, event_type, stage, created_at FROM funnel_events ORDER BY created_at DESC LIMIT ?",
-  ).all(limit) as RecentActivity[];
+    [limit],
+  );
 }

@@ -9,8 +9,9 @@
  * This validates that all referral-store functions compose correctly
  * end-to-end, not just in isolation.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb, getDb } from "./db.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import { createAccount } from "./billing-store.js";
 import {
   createReferralCode,
@@ -24,85 +25,85 @@ import {
   REWARD_MILLICENTS,
 } from "./referral-store.js";
 
-beforeEach(() => { openMemoryDb(); });
-afterEach(() => { closeDb(); });
+beforeEach(async () => { await resetTestDb(); });
 
 describe("E2E Referral Lifecycle", () => {
-  it("full flow: code → conversions → credits → free call → discount → summary", () => {
+  it("full flow: code → conversions → credits → free call → discount → summary", async () => {
     // ── Step 1: Agent A creates account and referral code ────────
-    const agentA = createAccount("Agent-A", "a@agents.io");
-    const code = createReferralCode(agentA.account_id);
+    const agentA = await createAccount("Agent-A", "a@agents.io");
+    const code = await createReferralCode(agentA.account_id);
     expect(code.code).toHaveLength(12);
 
     // Verify code is discoverable
-    const found = lookupReferralCode(code.code);
+    const found = await lookupReferralCode(code.code);
     expect(found).toBeDefined();
     expect(found!.account_id).toBe(agentA.account_id);
 
     // ── Step 2: Multiple agents sign up using A's code ──────────
-    const referees = Array.from({ length: 5 }, (_, i) =>
-      createAccount(`Referee-${i}`, `ref${i}@agents.io`),
-    );
+    const referees = [];
+    for (let i = 0; i < 5; i++) {
+      referees.push(await createAccount(`Referee-${i}`, `ref${i}@agents.io`));
+    }
 
     for (const referee of referees) {
-      const ok = recordReferralConversion(agentA.account_id, referee.account_id);
+      const ok = await recordReferralConversion(agentA.account_id, referee.account_id);
       expect(ok).toBe(true);
     }
 
     // ── Step 3: Verify credits accumulated correctly ────────────
-    const credits = getReferralCredits(agentA.account_id);
+    const credits = await getReferralCredits(agentA.account_id);
     expect(credits.earned_credits_millicents).toBe(REWARD_MILLICENTS * 5);
     expect(credits.lifetime_referrals).toBe(5);
 
     // ── Step 4: 5th-call-free (after 4 paid calls) ────────────
     // Simulate 4 paid calls for Agent A
-    for (let i = 0; i < 4; i++) recordPaidCall(agentA.account_id);
-    const afterGrant = getReferralCredits(agentA.account_id);
+    for (let i = 0; i < 4; i++) await recordPaidCall(agentA.account_id);
+    const afterGrant = await getReferralCredits(agentA.account_id);
     expect(afterGrant.free_calls_remaining).toBe(1);
     expect(afterGrant.paid_call_count).toBe(4);
 
     // Consume it — one time only
-    expect(consumeFreeCall(agentA.account_id)).toBe(true);
-    expect(getReferralCredits(agentA.account_id).free_calls_remaining).toBe(0);
+    expect(await consumeFreeCall(agentA.account_id)).toBe(true);
+    expect((await getReferralCredits(agentA.account_id)).free_calls_remaining).toBe(0);
 
     // More paid calls must NOT re-grant (initial_grant_given = 1)
-    recordPaidCall(agentA.account_id);
-    expect(getReferralCredits(agentA.account_id).free_calls_remaining).toBe(0);
+    await recordPaidCall(agentA.account_id);
+    expect((await getReferralCredits(agentA.account_id)).free_calls_remaining).toBe(0);
 
     // ── Step 5: A brand-new agent earns the 5th-call-free ────────
-    const newAgent = createAccount("Brand-New", "new@agents.io");
-    for (let i = 0; i < 4; i++) recordPaidCall(newAgent.account_id);
-    expect(getReferralCredits(newAgent.account_id).free_calls_remaining).toBe(1);
+    const newAgent = await createAccount("Brand-New", "new@agents.io");
+    for (let i = 0; i < 4; i++) await recordPaidCall(newAgent.account_id);
+    expect((await getReferralCredits(newAgent.account_id)).free_calls_remaining).toBe(1);
 
     // Consume the free call
-    expect(consumeFreeCall(newAgent.account_id)).toBe(true);
-    expect(getReferralCredits(newAgent.account_id).free_calls_remaining).toBe(0);
+    expect(await consumeFreeCall(newAgent.account_id)).toBe(true);
+    expect((await getReferralCredits(newAgent.account_id)).free_calls_remaining).toBe(0);
     // Second attempt fails
-    expect(consumeFreeCall(newAgent.account_id)).toBe(false);
+    expect(await consumeFreeCall(newAgent.account_id)).toBe(false);
 
     // ── Step 6: Agent A applies referral discount ───────────────
     // A has 5 millicents earned. 1000 millicents = 1 cent, so 5 < 1000 → no discount
-    const discount1 = applyReferralDiscount(agentA.account_id, 50);
+    const discount1 = await applyReferralDiscount(agentA.account_id, 50);
     expect(discount1.discount_cents).toBe(0);
     expect(discount1.final_cents).toBe(50);
 
     // ── Step 7: Micro-discount cap remains below one cent ───────
-    const db = getDb();
-    db.prepare(
+    await sql.run(
       "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
-    ).run(agentA.account_id);
+      [agentA.account_id],
+    );
 
-    const discount2 = applyReferralDiscount(agentA.account_id, 50);
+    const discount2 = await applyReferralDiscount(agentA.account_id, 50);
     expect(discount2.discount_cents).toBe(0);
     expect(discount2.final_cents).toBe(50);
     expect(discount2.credits_used_millicents).toBe(0);
 
     // Credits remain since no whole-cent discount can be applied.
-    const afterDiscount = getReferralCredits(agentA.account_id);
+    const afterDiscount = await getReferralCredits(agentA.account_id);
     expect(afterDiscount.earned_credits_millicents).toBe(20);
 
     // ── Step 8: Incentives summary reflects full state ───────────
-    const summary = buildIncentivesSummary(agentA.account_id);
+    const summary = await buildIncentivesSummary(agentA.account_id);
     expect(summary.share_to_earn).toBeDefined();
     expect(summary.fifth_call_free).toBeDefined();
 
@@ -112,123 +113,123 @@ describe("E2E Referral Lifecycle", () => {
     expect(status.lifetime_referrals).toBe(5); // only organic conversions count
   });
 
-  it("expired credits reset on discount application", () => {
-    const agent = createAccount("Expiry-Test", "exp@agents.io");
-    getReferralCredits(agent.account_id);
+  it("expired credits reset on discount application", async () => {
+    const agent = await createAccount("Expiry-Test", "exp@agents.io");
+    await getReferralCredits(agent.account_id);
 
     // Seed credits and backdate last_reset_at beyond 30 days
-    const db = getDb();
     const expired = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
-    db.prepare(
+    await sql.run(
       "UPDATE referral_credits SET earned_credits_millicents = 10000, last_reset_at = ? WHERE account_id = ?",
-    ).run(expired, agent.account_id);
+      [expired, agent.account_id],
+    );
 
     // Discount should reset credits and return 0 discount
-    const result = applyReferralDiscount(agent.account_id, 50);
+    const result = await applyReferralDiscount(agent.account_id, 50);
     expect(result.discount_cents).toBe(0);
     expect(result.final_cents).toBe(50);
 
     // Credits should be wiped
-    const credits = getReferralCredits(agent.account_id);
+    const credits = await getReferralCredits(agent.account_id);
     expect(credits.earned_credits_millicents).toBe(0);
   });
 
-  it("duplicate referee blocked across different referrers", () => {
-    const referrerA = createAccount("Ref-A", "refa@agents.io");
-    const referrerB = createAccount("Ref-B", "refb@agents.io");
-    const referee = createAccount("Shared-Ref", "shared@agents.io");
+  it("duplicate referee blocked across different referrers", async () => {
+    const referrerA = await createAccount("Ref-A", "refa@agents.io");
+    const referrerB = await createAccount("Ref-B", "refb@agents.io");
+    const referee = await createAccount("Shared-Ref", "shared@agents.io");
 
     // First referrer claims the referee
-    expect(recordReferralConversion(referrerA.account_id, referee.account_id)).toBe(true);
+    expect(await recordReferralConversion(referrerA.account_id, referee.account_id)).toBe(true);
     // Second referrer cannot claim same referee
-    expect(recordReferralConversion(referrerB.account_id, referee.account_id)).toBe(false);
+    expect(await recordReferralConversion(referrerB.account_id, referee.account_id)).toBe(false);
 
     // Only referrerA got credits
-    expect(getReferralCredits(referrerA.account_id).earned_credits_millicents).toBe(REWARD_MILLICENTS);
-    expect(getReferralCredits(referrerB.account_id).earned_credits_millicents).toBe(0);
+    expect((await getReferralCredits(referrerA.account_id)).earned_credits_millicents).toBe(REWARD_MILLICENTS);
+    expect((await getReferralCredits(referrerB.account_id)).earned_credits_millicents).toBe(0);
   });
 
-  it("discount remains zero when credits are below one cent", () => {
-    const agent = createAccount("Cheap-Call", "cheap@agents.io");
-    getReferralCredits(agent.account_id);
+  it("discount remains zero when credits are below one cent", async () => {
+    const agent = await createAccount("Cheap-Call", "cheap@agents.io");
+    await getReferralCredits(agent.account_id);
 
     // Seed to max configured micro-discount balance.
-    const db = getDb();
-    db.prepare(
+    await sql.run(
       "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
-    ).run(agent.account_id);
+      [agent.account_id],
+    );
 
     // Base price is 3 cents, but cap is below one cent.
-    const result = applyReferralDiscount(agent.account_id, 3);
+    const result = await applyReferralDiscount(agent.account_id, 3);
     expect(result.discount_cents).toBe(0);
     expect(result.final_cents).toBe(3);
     expect(result.credits_used_millicents).toBe(0);
 
     // Credits remain untouched.
-    const credits = getReferralCredits(agent.account_id);
+    const credits = await getReferralCredits(agent.account_id);
     expect(credits.earned_credits_millicents).toBe(20);
   });
 
-  it("free call takes priority — no discount consumed", () => {
-    const agent = createAccount("Free-First", "free@agents.io");
+  it("free call takes priority — no discount consumed", async () => {
+    const agent = await createAccount("Free-First", "free@agents.io");
 
     // Grant 5th-call-free via 4 paid calls
-    for (let i = 0; i < 4; i++) recordPaidCall(agent.account_id);
-    expect(getReferralCredits(agent.account_id).free_calls_remaining).toBe(1);
+    for (let i = 0; i < 4; i++) await recordPaidCall(agent.account_id);
+    expect((await getReferralCredits(agent.account_id)).free_calls_remaining).toBe(1);
 
     // Also seed discount credits
-    const db = getDb();
-    db.prepare(
+    await sql.run(
       "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
-    ).run(agent.account_id);
+      [agent.account_id],
+    );
 
     // Simulate chargeWithDiscounts logic: free call first
-    const freeConsumed = consumeFreeCall(agent.account_id);
+    const freeConsumed = await consumeFreeCall(agent.account_id);
     expect(freeConsumed).toBe(true);
 
     // If free call worked, discount credits should be untouched
-    const credits = getReferralCredits(agent.account_id);
+    const credits = await getReferralCredits(agent.account_id);
     expect(credits.earned_credits_millicents).toBe(20);
     expect(credits.free_calls_remaining).toBe(0);
   });
 
-  it("chargeWithDiscounts chain: free call → discount → charge", () => {
+  it("chargeWithDiscounts chain: free call → discount → charge", async () => {
     // This test simulates the exact chain in handlers.ts chargeWithDiscounts()
     // without the HTTP layer (chargeMpp).
-    const agent = createAccount("Chain-Test", "chain@agents.io");
+    const agent = await createAccount("Chain-Test", "chain@agents.io");
     const baseCents = 50;
 
     // ── Call 1: No free calls, no credits → full charge ─────────
-    const free1 = consumeFreeCall(agent.account_id);
+    const free1 = await consumeFreeCall(agent.account_id);
     expect(free1).toBe(false);
-    const disc1 = applyReferralDiscount(agent.account_id, baseCents);
+    const disc1 = await applyReferralDiscount(agent.account_id, baseCents);
     expect(disc1.final_cents).toBe(50); // would go to chargeMpp
 
     // ── Grant 5th-call-free (simulating 4 paid calls) ──────
-    for (let i = 0; i < 4; i++) recordPaidCall(agent.account_id);
+    for (let i = 0; i < 4; i++) await recordPaidCall(agent.account_id);
 
     // ── Call 2: Free call consumed → no charge at all ───────────
-    const free2 = consumeFreeCall(agent.account_id);
+    const free2 = await consumeFreeCall(agent.account_id);
     expect(free2).toBe(true);
     // chargeWithDiscounts returns {status: 200} here, skips discount and chargeMpp
 
     // ── Seed referral credits ───────────────────────────────────
-    const db = getDb();
-    db.prepare(
+    await sql.run(
       "UPDATE referral_credits SET earned_credits_millicents = 20 WHERE account_id = ?",
-    ).run(agent.account_id);
+      [agent.account_id],
+    );
 
     // ── Call 3: No free calls left, discount applies ────────────
-    const free3 = consumeFreeCall(agent.account_id);
+    const free3 = await consumeFreeCall(agent.account_id);
     expect(free3).toBe(false);
-    const disc3 = applyReferralDiscount(agent.account_id, baseCents);
+    const disc3 = await applyReferralDiscount(agent.account_id, baseCents);
     expect(disc3.discount_cents).toBe(0);
     expect(disc3.final_cents).toBe(50);
 
     // ── Call 4: Credits consumed, full charge ───────────────────
-    const free4 = consumeFreeCall(agent.account_id);
+    const free4 = await consumeFreeCall(agent.account_id);
     expect(free4).toBe(false);
-    const disc4 = applyReferralDiscount(agent.account_id, baseCents);
+    const disc4 = await applyReferralDiscount(agent.account_id, baseCents);
     expect(disc4.discount_cents).toBe(0);
     expect(disc4.final_cents).toBe(50); // full charge
   });

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck, handleDbStats, handleDbMaintenance } from "./handlers.js";
@@ -35,7 +35,7 @@ function req(method: string, path: string, body?: unknown): Promise<Res> {
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
   router.get("/v1/db/stats", handleDbStats);
@@ -47,7 +47,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   server.close();
-  closeDb();
   await new Promise((r) => setTimeout(r, 100));
 });
 
@@ -55,12 +54,12 @@ describe("GET /v1/db/stats", () => {
   it("returns database stats with table counts", async () => {
     const res = await req("GET", "/v1/db/stats");
     expect(res.status).toBe(200);
-    expect(res.data.action).toBe("db_stats");
+    expect(res.data.action).toBe("stats");
     expect(res.data.success).toBe(true);
     const details = res.data.details as Record<string, unknown>;
     expect(typeof details.size_bytes).toBe("number");
-    expect(typeof details.page_size).toBe("number");
-    expect(typeof details.page_count).toBe("number");
+    expect(typeof details.table_count).toBe("number");
+    expect(typeof details.schema_version).toBe("number");
     const tables = details.tables as Record<string, number>;
     expect(tables).toHaveProperty("projects");
     expect(tables).toHaveProperty("snapshots");
@@ -88,11 +87,8 @@ describe("POST /v1/db/maintenance", () => {
     expect(res.status).toBe(200);
     expect(res.data.success).toBe(true);
     const results = res.data.results as Array<{ action: string; success: boolean }>;
-    expect(results).toHaveLength(4);
-    expect(results[0].action).toBe("wal_checkpoint");
-    expect(results[1].action).toBe("purge_stale");
-    expect(results[2].action).toBe("vacuum");
-    expect(results[3].action).toBe("integrity_check");
+    expect(results).toHaveLength(1);
+    expect(results[0].action).toBe("analyze");
     for (const r of results) {
       expect(r.success).toBe(true);
     }

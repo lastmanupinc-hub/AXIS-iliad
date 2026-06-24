@@ -56,7 +56,7 @@ export async function handleGitHubOAuthStart(
     return;
   }
 
-  const state = createOAuthState();
+  const state = await createOAuthState();
   const url = getGitHubAuthUrl(clientId, callbackUrl, state);
   res.writeHead(302, { Location: url });
   res.end();
@@ -92,7 +92,7 @@ export async function handleGitHubOAuthCallback(
   }
 
   // Validate CSRF state
-  if (!consumeOAuthState(state)) {
+  if (!(await consumeOAuthState(state))) {
     sendError(res, 400, ErrorCode.INVALID_FORMAT, "Invalid or expired OAuth state");
     return;
   }
@@ -105,14 +105,14 @@ export async function handleGitHubOAuthCallback(
     const ghUser = await getGitHubUser(tokenResponse.access_token);
 
     // Find or create account, get API key
-    const { account, rawKey } = upsertAccountByGitHub(
+    const { account, rawKey } = await upsertAccountByGitHub(
       ghUser.id,
       ghUser.name,
       ghUser.email,
     );
 
     // Store the GitHub access token (encrypted) for later API use
-    saveGitHubToken(account.account_id, tokenResponse.access_token, "oauth");
+    await saveGitHubToken(account.account_id, tokenResponse.access_token, "oauth");
 
     // Hand the key to the web app via a one-time code, NOT the URL — so the raw
     // key never appears in the address bar, browser history, Referer, or logs.

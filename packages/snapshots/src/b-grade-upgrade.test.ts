@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { resetTestDb } from "./pg-test.js";
 import {
-  openMemoryDb,
-  closeDb,
   saveGitHubToken,
   getGitHubTokens,
   getGitHubTokenDecrypted,
@@ -16,17 +15,16 @@ import {
   calculateProration,
 } from "@axis/snapshots";
 
-beforeEach(() => {
-  closeDb();
-  openMemoryDb();
+beforeEach(async () => {
+  await resetTestDb();
 });
 
 // ─── GitHub Token Store ─────────────────────────────────────────
 
 describe("GitHub Token Store", () => {
-  it("saves and retrieves a token", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const saved = saveGitHubToken(acct.account_id, "ghp_abc123456789def", "my-token", ["repo", "read:org"]);
+  it("saves and retrieves a token", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const saved = await saveGitHubToken(acct.account_id, "ghp_abc123456789def", "my-token", ["repo", "read:org"]);
 
     expect(saved.token_id).toBeTruthy();
     expect(saved.account_id).toBe(acct.account_id);
@@ -36,90 +34,90 @@ describe("GitHub Token Store", () => {
     expect(saved.valid).toBe(1);
   });
 
-  it("lists tokens for an account (without exposing raw token)", () => {
-    const acct = createAccount("Test", "test@example.com");
-    saveGitHubToken(acct.account_id, "ghp_first111111111", "token-1");
-    saveGitHubToken(acct.account_id, "ghp_second22222222", "token-2");
+  it("lists tokens for an account (without exposing raw token)", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    await saveGitHubToken(acct.account_id, "ghp_first111111111", "token-1");
+    await saveGitHubToken(acct.account_id, "ghp_second22222222", "token-2");
 
-    const tokens = getGitHubTokens(acct.account_id);
+    const tokens = await getGitHubTokens(acct.account_id);
     expect(tokens).toHaveLength(2);
     // Should NOT contain raw or encrypted token
     expect(tokens[0]).not.toHaveProperty("encrypted_token");
     expect(tokens[1]).not.toHaveProperty("encrypted_token");
   });
 
-  it("decrypts stored token", () => {
-    const acct = createAccount("Test", "test@example.com");
+  it("decrypts stored token", async () => {
+    const acct = await createAccount("Test", "test@example.com");
     const rawToken = "ghp_secretvalue12345";
-    saveGitHubToken(acct.account_id, rawToken);
+    await saveGitHubToken(acct.account_id, rawToken);
 
-    const decrypted = getGitHubTokenDecrypted(acct.account_id);
+    const decrypted = await getGitHubTokenDecrypted(acct.account_id);
     expect(decrypted).toBe(rawToken);
   });
 
-  it("decrypts specific token by ID", () => {
-    const acct = createAccount("Test", "test@example.com");
-    saveGitHubToken(acct.account_id, "ghp_first111111111", "token-1");
-    const second = saveGitHubToken(acct.account_id, "ghp_second22222222", "token-2");
+  it("decrypts specific token by ID", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    await saveGitHubToken(acct.account_id, "ghp_first111111111", "token-1");
+    const second = await saveGitHubToken(acct.account_id, "ghp_second22222222", "token-2");
 
-    const decrypted = getGitHubTokenDecrypted(acct.account_id, second.token_id);
+    const decrypted = await getGitHubTokenDecrypted(acct.account_id, second.token_id);
     expect(decrypted).toBe("ghp_second22222222");
   });
 
-  it("returns undefined for non-existent account", () => {
-    const result = getGitHubTokenDecrypted("no-such-account");
+  it("returns undefined for non-existent account", async () => {
+    const result = await getGitHubTokenDecrypted("no-such-account");
     expect(result).toBeUndefined();
   });
 
-  it("deletes a token", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const saved = saveGitHubToken(acct.account_id, "ghp_deleteme12345");
+  it("deletes a token", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const saved = await saveGitHubToken(acct.account_id, "ghp_deleteme12345");
 
-    const deleted = deleteGitHubToken(acct.account_id, saved.token_id);
+    const deleted = await deleteGitHubToken(acct.account_id, saved.token_id);
     expect(deleted).toBe(true);
 
-    const tokens = getGitHubTokens(acct.account_id);
+    const tokens = await getGitHubTokens(acct.account_id);
     expect(tokens).toHaveLength(0);
   });
 
-  it("returns false when deleting non-existent token", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const deleted = deleteGitHubToken(acct.account_id, "no-such-id");
+  it("returns false when deleting non-existent token", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const deleted = await deleteGitHubToken(acct.account_id, "no-such-id");
     expect(deleted).toBe(false);
   });
 
-  it("marks token as used (updates last_used_at)", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const saved = saveGitHubToken(acct.account_id, "ghp_useme123456789");
+  it("marks token as used (updates last_used_at)", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const saved = await saveGitHubToken(acct.account_id, "ghp_useme123456789");
     expect(saved.last_used_at).toBeNull();
 
-    markTokenUsed(saved.token_id);
+    await markTokenUsed(saved.token_id);
 
-    const tokens = getGitHubTokens(acct.account_id);
+    const tokens = await getGitHubTokens(acct.account_id);
     expect(tokens[0].last_used_at).toBeTruthy();
   });
 
-  it("marks token as invalid (skipped on decrypt)", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const saved = saveGitHubToken(acct.account_id, "ghp_invalidate1234");
+  it("marks token as invalid (skipped on decrypt)", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const saved = await saveGitHubToken(acct.account_id, "ghp_invalidate1234");
 
-    markTokenInvalid(saved.token_id);
+    await markTokenInvalid(saved.token_id);
 
-    const tokens = getGitHubTokens(acct.account_id);
+    const tokens = await getGitHubTokens(acct.account_id);
     expect(tokens[0].valid).toBe(0);
 
     // Should not return invalid tokens during decrypt
-    const decrypted = getGitHubTokenDecrypted(acct.account_id);
+    const decrypted = await getGitHubTokenDecrypted(acct.account_id);
     expect(decrypted).toBeUndefined();
   });
 
-  it("marks token as validated with updated scopes", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const saved = saveGitHubToken(acct.account_id, "ghp_revalidate1234", "default", ["repo"]);
+  it("marks token as validated with updated scopes", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const saved = await saveGitHubToken(acct.account_id, "ghp_revalidate1234", "default", ["repo"]);
 
-    markTokenValidated(saved.token_id, ["repo", "read:org", "admin:repo_hook"]);
+    await markTokenValidated(saved.token_id, ["repo", "read:org", "admin:repo_hook"]);
 
-    const tokens = getGitHubTokens(acct.account_id);
+    const tokens = await getGitHubTokens(acct.account_id);
     expect(tokens[0].scopes).toBe("repo,read:org,admin:repo_hook");
     expect(tokens[0].last_validated_at).toBeTruthy();
   });
@@ -128,9 +126,9 @@ describe("GitHub Token Store", () => {
 // ─── Tier Audit ─────────────────────────────────────────────────
 
 describe("Tier Audit", () => {
-  it("logs a tier change", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const change = logTierChange(acct.account_id, "free", "paid", "user_request");
+  it("logs a tier change", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const change = await logTierChange(acct.account_id, "free", "paid", "user_request");
 
     expect(change.change_id).toBeTruthy();
     expect(change.from_tier).toBe("free");
@@ -140,38 +138,38 @@ describe("Tier Audit", () => {
   });
 
   it("retrieves tier history in reverse chronological order", async () => {
-    const acct = createAccount("Test", "test@example.com");
-    logTierChange(acct.account_id, "free", "paid");
+    const acct = await createAccount("Test", "test@example.com");
+    await logTierChange(acct.account_id, "free", "paid");
     // Small delay to ensure distinct timestamps
     await new Promise((r) => setTimeout(r, 10));
-    logTierChange(acct.account_id, "paid", "suite");
+    await logTierChange(acct.account_id, "paid", "suite");
 
-    const history = getTierHistory(acct.account_id);
+    const history = await getTierHistory(acct.account_id);
     expect(history).toHaveLength(2);
     expect(history[0].to_tier).toBe("suite"); // most recent first
     expect(history[1].to_tier).toBe("paid");
   });
 
   it("returns last tier change", async () => {
-    const acct = createAccount("Test", "test@example.com");
-    logTierChange(acct.account_id, "free", "paid");
+    const acct = await createAccount("Test", "test@example.com");
+    await logTierChange(acct.account_id, "free", "paid");
     await new Promise((r) => setTimeout(r, 10));
-    logTierChange(acct.account_id, "paid", "suite");
+    await logTierChange(acct.account_id, "paid", "suite");
 
-    const last = getLastTierChange(acct.account_id);
+    const last = await getLastTierChange(acct.account_id);
     expect(last).toBeTruthy();
     expect(last!.to_tier).toBe("suite");
   });
 
-  it("returns undefined for account with no changes", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const last = getLastTierChange(acct.account_id);
+  it("returns undefined for account with no changes", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const last = await getLastTierChange(acct.account_id);
     expect(last).toBeUndefined();
   });
 
-  it("stores metadata as JSON", () => {
-    const acct = createAccount("Test", "test@example.com");
-    const change = logTierChange(acct.account_id, "free", "paid", "user_request", { source: "api", campaign: "spring2026" });
+  it("stores metadata as JSON", async () => {
+    const acct = await createAccount("Test", "test@example.com");
+    const change = await logTierChange(acct.account_id, "free", "paid", "user_request", { source: "api", campaign: "spring2026" });
 
     const parsed = JSON.parse(change.metadata);
     expect(parsed.source).toBe("api");

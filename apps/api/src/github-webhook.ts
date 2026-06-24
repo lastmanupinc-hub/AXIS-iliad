@@ -285,7 +285,7 @@ async function dispatchWebhookSnapshot(
   }
 
   const [owner, name] = target.repoFullName.split("/");
-  const snapshot = createSnapshot(
+  const snapshot = await createSnapshot(
     {
       input_method: "github_repo_url",
       manifest: {

@@ -3,7 +3,7 @@
 // CRUD for Stripe subscriptions linked to AXIS accounts.
 // Used by the webhook handler and checkout flow.
 
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 
 export type StripePlanId = "starter" | "pro" | "growth";
@@ -76,9 +76,9 @@ export function priceToPlanId(priceId: string): StripePlanId | null {
 
 // ─── CRUD ───────────────────────────────────────────────────────
 
-export function upsertSubscription(sub: StripeSubscription): StripeSubscription {
-  const db = getDb();
-  db.prepare(`
+export async function upsertSubscription(sub: StripeSubscription): Promise<StripeSubscription> {
+  await sql.run(
+    `
     INSERT INTO stripe_subscriptions
       (subscription_id, customer_id, account_id, price_id, status,
        current_period_start, current_period_end, card_brand, card_last_four,
@@ -94,79 +94,81 @@ export function upsertSubscription(sub: StripeSubscription): StripeSubscription 
       card_last_four = excluded.card_last_four,
       cancel_at = excluded.cancel_at,
       updated_at = excluded.updated_at
-  `).run(
-    sub.subscription_id,
-    sub.customer_id,
-    sub.account_id,
-    sub.price_id,
-    sub.status,
-    sub.current_period_start,
-    sub.current_period_end,
-    sub.card_brand,
-    sub.card_last_four,
-    sub.cancel_at,
-    sub.created_at,
-    sub.updated_at,
+  `,
+    [
+      sub.subscription_id,
+      sub.customer_id,
+      sub.account_id,
+      sub.price_id,
+      sub.status,
+      sub.current_period_start,
+      sub.current_period_end,
+      sub.card_brand,
+      sub.card_last_four,
+      sub.cancel_at,
+      sub.created_at,
+      sub.updated_at,
+    ],
   );
   return sub;
 }
 
-export function getSubscription(subscriptionId: string): StripeSubscription | null {
-  const db = getDb();
-  const row = db.prepare(
+export async function getSubscription(subscriptionId: string): Promise<StripeSubscription | null> {
+  const row = await sql.one<StripeSubscription>(
     "SELECT * FROM stripe_subscriptions WHERE subscription_id = ?",
-  ).get(subscriptionId) as StripeSubscription | undefined;
+    [subscriptionId],
+  );
   return row ?? null;
 }
 
-export function getSubscriptionByAccount(accountId: string): StripeSubscription | null {
-  const db = getDb();
-  const row = db.prepare(
+export async function getSubscriptionByAccount(accountId: string): Promise<StripeSubscription | null> {
+  const row = await sql.one<StripeSubscription>(
     "SELECT * FROM stripe_subscriptions WHERE account_id = ? ORDER BY created_at DESC LIMIT 1",
-  ).get(accountId) as StripeSubscription | undefined;
+    [accountId],
+  );
   return row ?? null;
 }
 
-export function getActiveSubscriptionByAccount(accountId: string): StripeSubscription | null {
-  const db = getDb();
-  const row = db.prepare(
+export async function getActiveSubscriptionByAccount(accountId: string): Promise<StripeSubscription | null> {
+  const row = await sql.one<StripeSubscription>(
     "SELECT * FROM stripe_subscriptions WHERE account_id = ? AND status IN ('active', 'trialing') ORDER BY created_at DESC LIMIT 1",
-  ).get(accountId) as StripeSubscription | undefined;
+    [accountId],
+  );
   return row ?? null;
 }
 
-export function updateSubscriptionStatus(
+export async function updateSubscriptionStatus(
   subscriptionId: string,
   status: StripeSubscriptionStatus,
-): boolean {
-  const db = getDb();
-  const result = db.prepare(
+): Promise<boolean> {
+  const result = await sql.run(
     "UPDATE stripe_subscriptions SET status = ?, updated_at = ? WHERE subscription_id = ?",
-  ).run(status, new Date().toISOString(), subscriptionId);
-  return result.changes > 0;
+    [status, new Date().toISOString(), subscriptionId],
+  );
+  return result.rowCount > 0;
 }
 
-export function listSubscriptionsByAccount(accountId: string): StripeSubscription[] {
-  const db = getDb();
-  return db.prepare(
+export async function listSubscriptionsByAccount(accountId: string): Promise<StripeSubscription[]> {
+  return await sql.many<StripeSubscription>(
     "SELECT * FROM stripe_subscriptions WHERE account_id = ? ORDER BY created_at DESC",
-  ).all(accountId) as StripeSubscription[];
+    [accountId],
+  );
 }
 
-export function deleteSubscription(subscriptionId: string): boolean {
-  const db = getDb();
-  const result = db.prepare(
+export async function deleteSubscription(subscriptionId: string): Promise<boolean> {
+  const result = await sql.run(
     "DELETE FROM stripe_subscriptions WHERE subscription_id = ?",
-  ).run(subscriptionId);
-  return result.changes > 0;
+    [subscriptionId],
+  );
+  return result.rowCount > 0;
 }
 
 /**
  * Check if an account has an active paid subscription via Stripe.
  * Returns the resolved tier or null if no active subscription.
  */
-export function getActiveSubscriptionTier(accountId: string): BillingTier | null {
-  const sub = getActiveSubscriptionByAccount(accountId);
+export async function getActiveSubscriptionTier(accountId: string): Promise<BillingTier | null> {
+  const sub = await getActiveSubscriptionByAccount(accountId);
   if (!sub) return null;
   return priceToTier(sub.price_id);
 }

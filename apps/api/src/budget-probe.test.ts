@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { createServer, type Server } from "node:http";
 import type { IncomingMessage } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import {
   getPricingTier,
@@ -102,7 +102,7 @@ async function getReq(
 // ─── Server setup ─────────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/for-agents", handleForAgents);
   router.post("/probe-intent", handleProbeIntent);
@@ -114,7 +114,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close(err => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ═════════════════════════════════════════════════════════════════
@@ -122,32 +121,32 @@ afterAll(async () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("getPricingTier", () => {
-  it("returns correct tier for prepare_agentic_purchasing", () => {
+  it("returns correct tier for prepare_agentic_purchasing", async () => {
     const tier = getPricingTier("prepare_agentic_purchasing");
     expect(tier.tool).toBe("prepare_agentic_purchasing");
     expect(tier.standard_cents).toBe(50);
     expect(tier.lite_cents).toBe(25);
   });
 
-  it("returns correct tier for analyze_repo", () => {
+  it("returns correct tier for analyze_repo", async () => {
     const tier = getPricingTier("analyze_repo");
     expect(tier.standard_cents).toBe(50);
     expect(tier.lite_cents).toBe(15);
   });
 
-  it("returns correct tier for analyze_files", () => {
+  it("returns correct tier for analyze_files", async () => {
     const tier = getPricingTier("analyze_files");
     expect(tier.standard_cents).toBe(50);
     expect(tier.lite_cents).toBe(15);
   });
 
-  it("returns correct tier for improve_my_agent_with_axis", () => {
+  it("returns correct tier for improve_my_agent_with_axis", async () => {
     const tier = getPricingTier("improve_my_agent_with_axis");
     expect(tier.standard_cents).toBe(50);
     expect(tier.lite_cents).toBe(20);
   });
 
-  it("returns default tier for unknown tool", () => {
+  it("returns default tier for unknown tool", async () => {
     const tier = getPricingTier("random_tool_xyz");
     expect(tier.tool).toBe("default");
     expect(tier.standard_cents).toBe(50);
@@ -158,7 +157,7 @@ describe("getPricingTier", () => {
   // (V1_ROI_CANDIDATES Tier-1 #3.) Confirms the pricing surface no longer
   // falls through to default for the AXIS-owned and live-proxy tools.
 
-  it("returns near-free tier for iliad_object_storage (owned, signing is essentially free)", () => {
+  it("returns near-free tier for iliad_object_storage (owned, signing is essentially free)", async () => {
     const tier = getPricingTier("iliad_object_storage");
     expect(tier.tool).toBe("iliad_object_storage");
     expect(tier.standard_cents).toBe(1);
@@ -166,7 +165,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/1h|24h|quota|free/i);
   });
 
-  it("returns near-free tier for iliad_vector_database (owned, sub-ms cosine in SQLite)", () => {
+  it("returns near-free tier for iliad_vector_database (owned, sub-ms cosine in SQLite)", async () => {
     const tier = getPricingTier("iliad_vector_database");
     expect(tier.tool).toBe("iliad_vector_database");
     expect(tier.standard_cents).toBe(1);
@@ -174,7 +173,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/top_k|namespace|free/i);
   });
 
-  it("returns markup-over-OpenAI tier for iliad_embeddings (proxy, real provider cost upstream)", () => {
+  it("returns markup-over-OpenAI tier for iliad_embeddings (proxy, real provider cost upstream)", async () => {
     const tier = getPricingTier("iliad_embeddings");
     expect(tier.tool).toBe("iliad_embeddings");
     expect(tier.standard_cents).toBe(5);
@@ -182,7 +181,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/single-string|batch/i);
   });
 
-  it("returns markup-over-Resend tier for iliad_transactional_email (proxy, real provider cost upstream)", () => {
+  it("returns markup-over-Resend tier for iliad_transactional_email (proxy, real provider cost upstream)", async () => {
     const tier = getPricingTier("iliad_transactional_email");
     expect(tier.tool).toBe("iliad_transactional_email");
     expect(tier.standard_cents).toBe(2);
@@ -190,7 +189,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/recipient|plaintext|HTML/i);
   });
 
-  it("returns near-free tier for iliad_analytics (owned, SQLite events + aggregations)", () => {
+  it("returns near-free tier for iliad_analytics (owned, SQLite events + aggregations)", async () => {
     const tier = getPricingTier("iliad_analytics");
     expect(tier.tool).toBe("iliad_analytics");
     expect(tier.standard_cents).toBe(1);
@@ -198,7 +197,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/batch|limit|free/i);
   });
 
-  it("returns low-markup tier for iliad_llm_inference (in-process inference, CPU-bound)", () => {
+  it("returns low-markup tier for iliad_llm_inference (in-process inference, CPU-bound)", async () => {
     const tier = getPricingTier("iliad_llm_inference");
     expect(tier.tool).toBe("iliad_llm_inference");
     expect(tier.standard_cents).toBe(2);
@@ -206,7 +205,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/max_tokens|temperature|deterministic/i);
   });
 
-  it("returns container-spawn tier for iliad_code_sandbox (ephemeral Docker per call)", () => {
+  it("returns container-spawn tier for iliad_code_sandbox (ephemeral Docker per call)", async () => {
     const tier = getPricingTier("iliad_code_sandbox");
     expect(tier.tool).toBe("iliad_code_sandbox");
     expect(tier.standard_cents).toBe(5);
@@ -214,7 +213,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/timeout|seconds|python|bash/i);
   });
 
-  it("returns mid tier for iliad_speech_to_text (CPU-bound whisper.cpp)", () => {
+  it("returns mid tier for iliad_speech_to_text (CPU-bound whisper.cpp)", async () => {
     const tier = getPricingTier("iliad_speech_to_text");
     expect(tier.tool).toBe("iliad_speech_to_text");
     expect(tier.standard_cents).toBe(3);
@@ -222,7 +221,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/seconds|audio|word_timestamps/i);
   });
 
-  it("returns near-free tier for iliad_text_to_speech (Piper is fast on CPU)", () => {
+  it("returns near-free tier for iliad_text_to_speech (Piper is fast on CPU)", async () => {
     const tier = getPricingTier("iliad_text_to_speech");
     expect(tier.tool).toBe("iliad_text_to_speech");
     expect(tier.standard_cents).toBe(2);
@@ -230,7 +229,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/text|chars|wav|format/i);
   });
 
-  it("returns near-free tier for iliad_web_search (BM25 over SQLite, no external API)", () => {
+  it("returns near-free tier for iliad_web_search (BM25 over SQLite, no external API)", async () => {
     const tier = getPricingTier("iliad_web_search");
     expect(tier.tool).toBe("iliad_web_search");
     expect(tier.standard_cents).toBe(1);
@@ -238,7 +237,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/max_results|indexing|free/i);
   });
 
-  it("returns near-free tier for iliad_document_parsing (pure JS pdfjs + mammoth)", () => {
+  it("returns near-free tier for iliad_document_parsing (pure JS pdfjs + mammoth)", async () => {
     const tier = getPricingTier("iliad_document_parsing");
     expect(tier.tool).toBe("iliad_document_parsing");
     expect(tier.standard_cents).toBe(2);
@@ -246,7 +245,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/MiB|markdown|capped/i);
   });
 
-  it("returns cheap tier for iliad_hygiene (pure in-process analysis; scan is free)", () => {
+  it("returns cheap tier for iliad_hygiene (pure in-process analysis; scan is free)", async () => {
     const tier = getPricingTier("iliad_hygiene");
     expect(tier.tool).toBe("iliad_hygiene");
     expect(tier.standard_cents).toBe(5);
@@ -254,7 +253,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/scan|free|remediation/i);
   });
 
-  it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", () => {
+  it("all tiers have lite_cents <= standard_cents (including the iliad_* entries)", async () => {
     for (const tool of [
       "prepare_agentic_purchasing",
       "analyze_repo",
@@ -281,7 +280,7 @@ describe("getPricingTier", () => {
     }
   });
 
-  it("all tiers have non-empty lite_description (including the iliad_* entries)", () => {
+  it("all tiers have non-empty lite_description (including the iliad_* entries)", async () => {
     for (const tool of [
       "prepare_agentic_purchasing",
       "analyze_repo",
@@ -304,7 +303,7 @@ describe("getPricingTier", () => {
     }
   });
 
-  it("no iliad_* tool falls back to the default tier", () => {
+  it("no iliad_* tool falls back to the default tier", async () => {
     // Honest pricing means every iliad_* tool has its own entry. If a new
     // iliad_* tool ships without a PRICING_TIERS row, this test catches it
     // before the MPP 402 surface starts charging the default $0.50.
@@ -336,42 +335,42 @@ describe("getPricingTier", () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("negotiatePrice", () => {
-  it("returns standard pricing when no budget_per_run_cents set", () => {
+  it("returns standard pricing when no budget_per_run_cents set", async () => {
     const result = negotiatePrice({}, "analyze_repo");
     expect(result.amount_cents).toBe(50);
     expect(result.mode).toBe("standard");
     expect(result.accepted).toBe(true);
   });
 
-  it("returns standard when budget >= standard price", () => {
+  it("returns standard when budget >= standard price", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 100 }, "analyze_repo");
     expect(result.amount_cents).toBe(50);
     expect(result.mode).toBe("standard");
     expect(result.accepted).toBe(true);
   });
 
-  it("returns standard when budget exactly equals standard price", () => {
+  it("returns standard when budget exactly equals standard price", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 50 }, "analyze_repo");
     expect(result.amount_cents).toBe(50);
     expect(result.mode).toBe("standard");
     expect(result.accepted).toBe(true);
   });
 
-  it("returns lite when budget is between lite and standard", () => {
+  it("returns lite when budget is between lite and standard", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 30 }, "analyze_repo");
     expect(result.amount_cents).toBe(15);
     expect(result.mode).toBe("lite");
     expect(result.accepted).toBe(true);
   });
 
-  it("returns lite exactly at lite price", () => {
+  it("returns lite exactly at lite price", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 15 }, "analyze_repo");
     expect(result.amount_cents).toBe(15);
     expect(result.mode).toBe("lite");
     expect(result.accepted).toBe(true);
   });
 
-  it("rejects when budget below lite price", () => {
+  it("rejects when budget below lite price", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 5 }, "analyze_repo");
     expect(result.accepted).toBe(false);
     expect(result.mode).toBe("lite");
@@ -379,19 +378,19 @@ describe("negotiatePrice", () => {
     expect(result.reason).toContain("Minimum price");
   });
 
-  it("rejects zero budget", () => {
+  it("rejects zero budget", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 0 }, "analyze_repo");
     expect(result.accepted).toBe(false);
   });
 
-  it("uses tool-specific lite pricing for prepare_agentic_purchasing", () => {
+  it("uses tool-specific lite pricing for prepare_agentic_purchasing", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 30 }, "prepare_agentic_purchasing");
     expect(result.amount_cents).toBe(25);
     expect(result.mode).toBe("lite");
     expect(result.accepted).toBe(true);
   });
 
-  it("uses default pricing for unknown tool", () => {
+  it("uses default pricing for unknown tool", async () => {
     const result = negotiatePrice({ budget_per_run_cents: 30 }, "some_unknown_tool");
     expect(result.amount_cents).toBe(25);
     expect(result.mode).toBe("lite");
@@ -404,7 +403,7 @@ describe("negotiatePrice", () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("build402NegotiationBody", () => {
-  it("returns pricing tiers for tool without budget", () => {
+  it("returns pricing tiers for tool without budget", async () => {
     const body = build402NegotiationBody("analyze_repo");
     expect(body.pricing).toBeDefined();
     const pricing = body.pricing as Record<string, unknown>;
@@ -414,7 +413,7 @@ describe("build402NegotiationBody", () => {
     expect(lite.amount_cents).toBe(15);
   });
 
-  it("returns default negotiation when no budget provided", () => {
+  it("returns default negotiation when no budget provided", async () => {
     const body = build402NegotiationBody("analyze_repo");
     const negotiation = body.negotiation as Record<string, unknown>;
     expect(negotiation.amount_cents).toBe(50);
@@ -422,7 +421,7 @@ describe("build402NegotiationBody", () => {
     expect(negotiation.accepted).toBe(true);
   });
 
-  it("returns negotiated result when budget provided", () => {
+  it("returns negotiated result when budget provided", async () => {
     const body = build402NegotiationBody("analyze_repo", { budget_per_run_cents: 20 });
     const negotiation = body.negotiation as Record<string, unknown>;
     expect(negotiation.amount_cents).toBe(15);
@@ -430,13 +429,13 @@ describe("build402NegotiationBody", () => {
     expect(negotiation.accepted).toBe(true);
   });
 
-  it("returns rejection when budget too low", () => {
+  it("returns rejection when budget too low", async () => {
     const body = build402NegotiationBody("analyze_repo", { budget_per_run_cents: 5 });
     const negotiation = body.negotiation as Record<string, unknown>;
     expect(negotiation.accepted).toBe(false);
   });
 
-  it("includes actions with accept, counter, switch_lite, get_free", () => {
+  it("includes actions with accept, counter, switch_lite, get_free", async () => {
     const body = build402NegotiationBody("analyze_repo");
     const actions = body.actions as Record<string, string>;
     expect(actions.accept).toBeDefined();
@@ -445,7 +444,7 @@ describe("build402NegotiationBody", () => {
     expect(actions.get_free).toBeDefined();
   });
 
-  it("includes free_alternatives array", () => {
+  it("includes free_alternatives array", async () => {
     const body = build402NegotiationBody("analyze_repo");
     const free = body.free_alternatives as string[];
     expect(Array.isArray(free)).toBe(true);
@@ -455,7 +454,7 @@ describe("build402NegotiationBody", () => {
     expect(free.some(f => f.includes("probe-intent"))).toBe(true);
   });
 
-  it("includes agent_message and actionable next_step guidance", () => {
+  it("includes agent_message and actionable next_step guidance", async () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     expect(String(body.agent_message)).toContain("Retry with an MPP credential");
     const nextStep = body.next_step as Record<string, unknown>;
@@ -463,7 +462,7 @@ describe("build402NegotiationBody", () => {
     expect(String(nextStep.upgrade_path)).toContain("$29/month");
   });
 
-  it("includes x402-compatible top-level payment fields", () => {
+  it("includes x402-compatible top-level payment fields", async () => {
     const body = build402NegotiationBody("analyze_repo", undefined, {
       message: "Paid full-bundle analyze required",
       referral_token: "ref_test_123",
@@ -479,13 +478,13 @@ describe("build402NegotiationBody", () => {
     expect(x402.amount).toBe("500000");
   });
 
-  it("switch_lite action contains dollar amount", () => {
+  it("switch_lite action contains dollar amount", async () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     const actions = body.actions as Record<string, string>;
     expect(actions.switch_lite).toContain("$0.25");
   });
 
-  it("includes compliance_value with CE 3.0 evidence checklist and methodology note", () => {
+  it("includes compliance_value with CE 3.0 evidence checklist and methodology note", async () => {
     const body = build402NegotiationBody("prepare_agentic_purchasing");
     const cv = body.compliance_value as Record<string, unknown>;
     expect(cv).toBeDefined();
@@ -510,85 +509,85 @@ describe("parseAgentBudget", () => {
     return { headers } as unknown as IncomingMessage;
   }
 
-  it("returns undefined when header missing", () => {
+  it("returns undefined when header missing", async () => {
     expect(parseAgentBudget(makeReq({}))).toBeUndefined();
   });
 
-  it("returns undefined for non-string header", () => {
+  it("returns undefined for non-string header", async () => {
     expect(parseAgentBudget(makeReq({ "x-agent-budget": undefined }))).toBeUndefined();
   });
 
-  it("returns undefined for invalid JSON", () => {
+  it("returns undefined for invalid JSON", async () => {
     expect(parseAgentBudget(makeReq({ "x-agent-budget": "not{json" }))).toBeUndefined();
   });
 
-  it("parses budget_per_run_cents", () => {
+  it("parses budget_per_run_cents", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"budget_per_run_cents":25}' }));
     expect(budget).toBeDefined();
     expect(budget!.budget_per_run_cents).toBe(25);
   });
 
-  it("floors budget_per_run_cents to integer", () => {
+  it("floors budget_per_run_cents to integer", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"budget_per_run_cents":25.7}' }));
     expect(budget!.budget_per_run_cents).toBe(25);
   });
 
-  it("rejects negative budget_per_run_cents", () => {
+  it("rejects negative budget_per_run_cents", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"budget_per_run_cents":-5}' }));
     expect(budget).toBeDefined();
     expect(budget!.budget_per_run_cents).toBeUndefined();
   });
 
-  it("parses valid spending_window values", () => {
+  it("parses valid spending_window values", async () => {
     for (const window of ["per_call", "hourly", "daily", "monthly"]) {
       const budget = parseAgentBudget(makeReq({ "x-agent-budget": `{"spending_window":"${window}"}` }));
       expect(budget!.spending_window).toBe(window);
     }
   });
 
-  it("rejects invalid spending_window", () => {
+  it("rejects invalid spending_window", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"spending_window":"weekly"}' }));
     expect(budget!.spending_window).toBeUndefined();
   });
 
-  it("parses max_monthly_cents", () => {
+  it("parses max_monthly_cents", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"max_monthly_cents":5000}' }));
     expect(budget!.max_monthly_cents).toBe(5000);
   });
 
-  it("rejects negative max_monthly_cents", () => {
+  it("rejects negative max_monthly_cents", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"max_monthly_cents":-100}' }));
     expect(budget!.max_monthly_cents).toBeUndefined();
   });
 
-  it("parses wallet_id up to 200 chars", () => {
+  it("parses wallet_id up to 200 chars", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"wallet_id":"org_abc123"}' }));
     expect(budget!.wallet_id).toBe("org_abc123");
   });
 
-  it("rejects wallet_id over 200 chars", () => {
+  it("rejects wallet_id over 200 chars", async () => {
     const longId = "a".repeat(201);
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": `{"wallet_id":"${longId}"}` }));
     expect(budget!.wallet_id).toBeUndefined();
   });
 
-  it("parses agent_type up to 100 chars", () => {
+  it("parses agent_type up to 100 chars", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"agent_type":"claude"}' }));
     expect(budget!.agent_type).toBe("claude");
   });
 
-  it("rejects agent_type over 100 chars", () => {
+  it("rejects agent_type over 100 chars", async () => {
     const longType = "x".repeat(101);
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": `{"agent_type":"${longType}"}` }));
     expect(budget!.agent_type).toBeUndefined();
   });
 
-  it("accepts budget_per_run_cents of 0 (zero budget)", () => {
+  it("accepts budget_per_run_cents of 0 (zero budget)", async () => {
     const budget = parseAgentBudget(makeReq({ "x-agent-budget": '{"budget_per_run_cents":0}' }));
     expect(budget!.budget_per_run_cents).toBe(0);
   });
 
-  it("parses combined fields", () => {
+  it("parses combined fields", async () => {
     const header = JSON.stringify({
       budget_per_run_cents: 25,
       spending_window: "per_call",
@@ -614,23 +613,23 @@ describe("resolveAgentMode", () => {
     return { headers } as unknown as IncomingMessage;
   }
 
-  it("returns standard when no header", () => {
+  it("returns standard when no header", async () => {
     expect(resolveAgentMode(makeReq({}))).toBe("standard");
   });
 
-  it("returns lite when header is lite", () => {
+  it("returns lite when header is lite", async () => {
     expect(resolveAgentMode(makeReq({ "x-agent-mode": "lite" }))).toBe("lite");
   });
 
-  it("returns standard when header is standard", () => {
+  it("returns standard when header is standard", async () => {
     expect(resolveAgentMode(makeReq({ "x-agent-mode": "standard" }))).toBe("standard");
   });
 
-  it("returns standard for invalid mode value", () => {
+  it("returns standard for invalid mode value", async () => {
     expect(resolveAgentMode(makeReq({ "x-agent-mode": "ultra" }))).toBe("standard");
   });
 
-  it("returns standard for empty string", () => {
+  it("returns standard for empty string", async () => {
     expect(resolveAgentMode(makeReq({ "x-agent-mode": "" }))).toBe("standard");
   });
 });
@@ -640,87 +639,87 @@ describe("resolveAgentMode", () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("classifyProbe", () => {
-  it("classifies Chiark as quality-agent", () => {
+  it("classifies Chiark as quality-agent", async () => {
     expect(classifyProbe("Chiark/1.0")).toBe("quality-agent");
   });
 
-  it("classifies quality-index as quality-agent", () => {
+  it("classifies quality-index as quality-agent", async () => {
     expect(classifyProbe("quality-index-bot/2.1")).toBe("quality-agent");
   });
 
-  it("classifies qci-agent as quality-agent", () => {
+  it("classifies qci-agent as quality-agent", async () => {
     expect(classifyProbe("qci-agent")).toBe("quality-agent");
   });
 
-  it("classifies Smithery as registry-crawler", () => {
+  it("classifies Smithery as registry-crawler", async () => {
     expect(classifyProbe("Smithery-Crawler/1.0")).toBe("registry-crawler");
   });
 
-  it("classifies Glama as registry-crawler", () => {
+  it("classifies Glama as registry-crawler", async () => {
     expect(classifyProbe("Glama-Bot/2.0")).toBe("registry-crawler");
   });
 
-  it("classifies mcp-registry as registry-crawler", () => {
+  it("classifies mcp-registry as registry-crawler", async () => {
     expect(classifyProbe("mcp-registry-scanner")).toBe("registry-crawler");
   });
 
-  it("classifies AWS as registry-crawler", () => {
+  it("classifies AWS as registry-crawler", async () => {
     expect(classifyProbe("aws-sdk-nodejs/3.0")).toBe("registry-crawler");
   });
 
-  it("classifies Amazon as registry-crawler", () => {
+  it("classifies Amazon as registry-crawler", async () => {
     expect(classifyProbe("Amazon CloudFront")).toBe("registry-crawler");
   });
 
-  it("classifies purchasing-agent as purchasing-agent", () => {
+  it("classifies purchasing-agent as purchasing-agent", async () => {
     expect(classifyProbe("purchasing-agent/1.0")).toBe("purchasing-agent");
   });
 
-  it("classifies 402.ad as purchasing-agent", () => {
+  it("classifies 402.ad as purchasing-agent", async () => {
     expect(classifyProbe("402.ad-crawler")).toBe("purchasing-agent");
   });
 
-  it("classifies commerce-bot as purchasing-agent", () => {
+  it("classifies commerce-bot as purchasing-agent", async () => {
     expect(classifyProbe("commerce-bot/1.2")).toBe("purchasing-agent");
   });
 
-  it("classifies Cursor as dev-tool", () => {
+  it("classifies Cursor as dev-tool", async () => {
     expect(classifyProbe("Cursor/0.40")).toBe("dev-tool");
   });
 
-  it("classifies Copilot as dev-tool", () => {
+  it("classifies Copilot as dev-tool", async () => {
     expect(classifyProbe("GitHub-Copilot")).toBe("dev-tool");
   });
 
-  it("classifies Claude as dev-tool", () => {
+  it("classifies Claude as dev-tool", async () => {
     expect(classifyProbe("Claude-Desktop/1.0")).toBe("dev-tool");
   });
 
-  it("classifies Windsurf as dev-tool", () => {
+  it("classifies Windsurf as dev-tool", async () => {
     expect(classifyProbe("Windsurf-IDE")).toBe("dev-tool");
   });
 
-  it("classifies Cline as dev-tool", () => {
+  it("classifies Cline as dev-tool", async () => {
     expect(classifyProbe("Cline-Agent/1.0")).toBe("dev-tool");
   });
 
-  it("classifies Continue as dev-tool", () => {
+  it("classifies Continue as dev-tool", async () => {
     expect(classifyProbe("Continue-Extension")).toBe("dev-tool");
   });
 
-  it("classifies Aider as dev-tool", () => {
+  it("classifies Aider as dev-tool", async () => {
     expect(classifyProbe("Aider/0.50.1")).toBe("dev-tool");
   });
 
-  it("returns unknown for unrecognized user-agent", () => {
+  it("returns unknown for unrecognized user-agent", async () => {
     expect(classifyProbe("Mozilla/5.0")).toBe("unknown");
   });
 
-  it("returns unknown for empty string", () => {
+  it("returns unknown for empty string", async () => {
     expect(classifyProbe("")).toBe("unknown");
   });
 
-  it("is case-insensitive", () => {
+  it("is case-insensitive", async () => {
     expect(classifyProbe("CHIARK")).toBe("quality-agent");
     expect(classifyProbe("SMITHERY")).toBe("registry-crawler");
     expect(classifyProbe("CURSOR")).toBe("dev-tool");
@@ -732,14 +731,14 @@ describe("classifyProbe", () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("captureIntent + getIntentLog", () => {
-  it("captures an intent entry", () => {
+  it("captures an intent entry", async () => {
     const before = getIntentLog().length;
     captureIntent("test_tool", "test intent", "Cursor/1.0");
     const after = getIntentLog().length;
     expect(after).toBe(before + 1);
   });
 
-  it("captured entry has correct fields", () => {
+  it("captured entry has correct fields", async () => {
     captureIntent("analyze_repo", "analyze my code", "Claude-Desktop/1.0");
     const log = getIntentLog();
     const last = log[log.length - 1];
@@ -750,14 +749,14 @@ describe("captureIntent + getIntentLog", () => {
     expect(typeof last.timestamp).toBe("string");
   });
 
-  it("classifies probe correctly in captured entry", () => {
+  it("classifies probe correctly in captured entry", async () => {
     captureIntent("probe_intent", "testing", "Smithery-Crawler");
     const log = getIntentLog();
     const last = log[log.length - 1];
     expect(last.probe_class).toBe("registry-crawler");
   });
 
-  it("handles null intent", () => {
+  it("handles null intent", async () => {
     captureIntent("list_programs", null, "Mozilla/5.0");
     const log = getIntentLog();
     const last = log[log.length - 1];
@@ -765,7 +764,7 @@ describe("captureIntent + getIntentLog", () => {
     expect(last.probe_class).toBe("unknown");
   });
 
-  it("returns a copy of the log (immutable)", () => {
+  it("returns a copy of the log (immutable)", async () => {
     const log1 = getIntentLog();
     captureIntent("test_mutation", "x", "Agent/1.0");
     const log2 = getIntentLog();
@@ -781,7 +780,7 @@ describe("captureIntent + getIntentLog", () => {
 // ═════════════════════════════════════════════════════════════════
 
 describe("computePurchasingReadinessEvidence", () => {
-  it("returns empty artifacts_found when no paths match", () => {
+  it("returns empty artifacts_found when no paths match", async () => {
     const result = computePurchasingReadinessEvidence([]);
     expect(result.evidence.length).toBeGreaterThan(0);
     for (const e of result.evidence) {
@@ -793,7 +792,7 @@ describe("computePurchasingReadinessEvidence", () => {
     }
   });
 
-  it("detects AGENTS.md in onboarding_docs", () => {
+  it("detects AGENTS.md in onboarding_docs", async () => {
     const result = computePurchasingReadinessEvidence(["AGENTS.md"]);
     const onboarding = result.category_scores.onboarding_docs;
     expect(onboarding).toBeDefined();
@@ -801,57 +800,57 @@ describe("computePurchasingReadinessEvidence", () => {
     expect(onboarding.artifacts_found).toContain("AGENTS.md");
   });
 
-  it("detects CLAUDE.md in onboarding_docs", () => {
+  it("detects CLAUDE.md in onboarding_docs", async () => {
     const result = computePurchasingReadinessEvidence(["CLAUDE.md"]);
     const onboarding = result.category_scores.onboarding_docs;
     expect(onboarding.artifacts_found).toContain("CLAUDE.md");
   });
 
-  it("detects .cursorrules in onboarding_docs", () => {
+  it("detects .cursorrules in onboarding_docs", async () => {
     const result = computePurchasingReadinessEvidence([".cursorrules"]);
     const onboarding = result.category_scores.onboarding_docs;
     expect(onboarding.artifacts_found).toContain(".cursorrules");
   });
 
-  it("detects agent-purchasing-playbook in commerce_artifacts", () => {
+  it("detects agent-purchasing-playbook in commerce_artifacts", async () => {
     const result = computePurchasingReadinessEvidence(["agent-purchasing-playbook.md"]);
     const commerce = result.category_scores.commerce_artifacts;
     expect(commerce.earned).toBeGreaterThan(0);
     expect(commerce.artifacts_found).toContain("Agent purchasing playbook");
   });
 
-  it("detects mcp-config in mcp_configs", () => {
+  it("detects mcp-config in mcp_configs", async () => {
     const result = computePurchasingReadinessEvidence(["mcp-config.json"]);
     const mcp = result.category_scores.mcp_configs;
     expect(mcp.earned).toBeGreaterThan(0);
     expect(mcp.artifacts_found).toContain("MCP configuration");
   });
 
-  it("detects negotiation-rules in compliance_checklist", () => {
+  it("detects negotiation-rules in compliance_checklist", async () => {
     const result = computePurchasingReadinessEvidence(["negotiation-rules.md"]);
     const compliance = result.category_scores.compliance_checklist;
     expect(compliance.earned).toBeGreaterThan(0);
   });
 
-  it("detects negotiation-rules in negotiation_playbook", () => {
+  it("detects negotiation-rules in negotiation_playbook", async () => {
     const result = computePurchasingReadinessEvidence(["negotiation-rules.md"]);
     const neg = result.category_scores.negotiation_playbook;
     expect(neg.earned).toBeGreaterThan(0);
   });
 
-  it("detects debug-playbook in debug_playbook", () => {
+  it("detects debug-playbook in debug_playbook", async () => {
     const result = computePurchasingReadinessEvidence(["debug-playbook.md"]);
     const dbg = result.category_scores.debug_playbook;
     expect(dbg.earned).toBeGreaterThan(0);
   });
 
-  it("detects optimization-rules in optimization_rules", () => {
+  it("detects optimization-rules in optimization_rules", async () => {
     const result = computePurchasingReadinessEvidence(["optimization-rules.md"]);
     const opt = result.category_scores.optimization_rules;
     expect(opt.earned).toBeGreaterThan(0);
   });
 
-  it("multiple artifacts increase artifacts_found but not earned weight beyond cap", () => {
+  it("multiple artifacts increase artifacts_found but not earned weight beyond cap", async () => {
     const result = computePurchasingReadinessEvidence([
       "AGENTS.md", "CLAUDE.md", ".cursorrules",
     ]);
@@ -861,7 +860,7 @@ describe("computePurchasingReadinessEvidence", () => {
     expect(onboarding.earned).toBe(onboarding.weight);
   });
 
-  it("evidence array contains entries for all sub-checks", () => {
+  it("evidence array contains entries for all sub-checks", async () => {
     const result = computePurchasingReadinessEvidence(["AGENTS.md"]);
     // Should have entries from all categories
     const categories = new Set(result.evidence.map(e => e.category));
@@ -872,7 +871,7 @@ describe("computePurchasingReadinessEvidence", () => {
     expect(categories.has("optimization_rules")).toBe(true);
   });
 
-  it("detects full artifact suite", () => {
+  it("detects full artifact suite", async () => {
     const paths = [
       "agent-purchasing-playbook.md",
       "commerce-registry.json",

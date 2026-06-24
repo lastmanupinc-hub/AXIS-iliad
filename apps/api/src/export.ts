@@ -125,9 +125,9 @@ export async function handleExportZip(
 ): Promise<void> {
   const { project_id } = params;
   // Ownership check
-  const owner = getProjectOwner(project_id);
+  const owner = await getProjectOwner(project_id);
   if (owner) {
-    const auth = resolveAuth(_req);
+    const auth = await resolveAuth(_req);
     if (!auth.account) {
       sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required");
       return;
@@ -137,14 +137,14 @@ export async function handleExportZip(
       return;
     }
   }
-  const snapshots = getProjectSnapshots(project_id);
+  const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
     return;
   }
 
   const latest = snapshots[snapshots.length - 1];
-  const generated = getGeneratorResult(latest.snapshot_id) as
+  const generated = (await getGeneratorResult(latest.snapshot_id)) as
     | { files: Array<{ path: string; content: string; program: string }> }
     | undefined;
 

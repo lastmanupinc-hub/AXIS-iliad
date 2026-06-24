@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateSnapshot, makeProgramHandler, PROGRAM_OUTPUTS } from "./handlers.js";
@@ -46,7 +46,7 @@ async function req(
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const router = new Router();
@@ -60,7 +60,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
-  closeDb();
 });
 
 // ─── Helpers ────────────────────────────────────────────────────
@@ -284,17 +283,17 @@ describe("successful snapshot flow", () => {
 // ─── PROGRAM_OUTPUTS coverage ───────────────────────────────────
 
 describe("PROGRAM_OUTPUTS", () => {
-  it("has exactly 18 programs", () => {
+  it("has exactly 18 programs", async () => {
     expect(Object.keys(PROGRAM_OUTPUTS).length).toBe(18);
   });
 
-  it("every program has at least one output file", () => {
+  it("every program has at least one output file", async () => {
     for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
       expect(outputs.length, `${program} should have outputs`).toBeGreaterThan(0);
     }
   });
 
-  it("no duplicate output files within a program", () => {
+  it("no duplicate output files within a program", async () => {
     for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {
       const unique = new Set(outputs);
       expect(unique.size, `${program} has duplicate outputs`).toBe(outputs.length);

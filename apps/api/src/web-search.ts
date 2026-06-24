@@ -5,7 +5,7 @@
 // pages fetched via iliad_web_research, docs pushed in by agents,
 // snapshot-derived content, etc. BM25 ranking, account-scoped
 // namespacing, persistent across restarts via the existing
-// @axis/snapshots SQLite database.
+// @axis/snapshots Postgres database.
 //
 // Why this scope? AXIS doesn't operate a web crawler with billions
 // of pages indexed; reselling Google/Bing without paying them is
@@ -20,7 +20,7 @@
 // few ms. Until then, the per-doc tf precompute keeps query cost
 // O(N × |Q|) per namespace which is fast enough for ≤100k docs.
 
-import { getDb } from "@axis/snapshots";
+import { sql, pgPlaceholders } from "@axis/snapshots";
 
 export interface SearchDocument {
   /** Stable id within the namespace. */
@@ -54,10 +54,9 @@ export interface SearchOptions {
 
 let initialized = false;
 
-function ensureSchema(): void {
+async function ensureSchema(): Promise<void> {
   if (initialized) return;
-  const db = getDb();
-  db.exec(`
+  await sql.exec(`
     CREATE TABLE IF NOT EXISTS search_documents (
       namespace    TEXT NOT NULL,
       doc_id       TEXT NOT NULL,
@@ -78,9 +77,8 @@ function ensureSchema(): void {
 }
 
 /** Test-only helper. Drops the table + resets lazy-init. */
-export function resetWebSearchForTests(): void {
-  const db = getDb();
-  db.exec("DROP TABLE IF EXISTS search_documents;");
+export async function resetWebSearchForTests(): Promise<void> {
+  await sql.exec("DROP TABLE IF EXISTS search_documents;");
   initialized = false;
 }
 
@@ -192,16 +190,13 @@ function validateDocument(d: SearchDocument): { tfJson: string; metadataJson: st
 
 // ─── Public API: indexing ───────────────────────────────────────
 
-export function addDocument(namespace: string, doc: SearchDocument): void {
-  if (!namespace || typeof namespace !== "string") {
-    throw new Error("addDocument: namespace is required");
-  }
+const INSERT_DOCUMENT_SQL =
+  "INSERT INTO search_documents (namespace, doc_id, url, url_host, title, content, content_len, tf_json, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (namespace, doc_id) DO UPDATE SET url = EXCLUDED.url, url_host = EXCLUDED.url_host, title = EXCLUDED.title, content = EXCLUDED.content, content_len = EXCLUDED.content_len, tf_json = EXCLUDED.tf_json, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at";
+
+/** Build the positional parameter list for one document row. */
+function documentInsertParams(namespace: string, doc: SearchDocument): unknown[] {
   const { tfJson, metadataJson, urlHost } = validateDocument(doc);
-  ensureSchema();
-  const db = getDb();
-  db.prepare(
-    "INSERT OR REPLACE INTO search_documents (namespace, doc_id, url, url_host, title, content, content_len, tf_json, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(
+  return [
     namespace,
     doc.doc_id,
     doc.url ?? null,
@@ -212,53 +207,67 @@ export function addDocument(namespace: string, doc: SearchDocument): void {
     tfJson,
     metadataJson,
     new Date().toISOString(),
-  );
+  ];
+}
+
+export async function addDocument(namespace: string, doc: SearchDocument): Promise<void> {
+  if (!namespace || typeof namespace !== "string") {
+    throw new Error("addDocument: namespace is required");
+  }
+  const params = documentInsertParams(namespace, doc);
+  await ensureSchema();
+  await sql.run(INSERT_DOCUMENT_SQL, params);
 }
 
 /** Batch add. Transactional — a malformed doc aborts the whole batch. */
-export function addDocuments(namespace: string, docs: SearchDocument[]): number {
+export async function addDocuments(namespace: string, docs: SearchDocument[]): Promise<number> {
   if (!Array.isArray(docs) || docs.length === 0) {
     throw new Error("addDocuments: docs[] must be a non-empty array");
   }
-  ensureSchema();
-  const db = getDb();
-  const tx = db.transaction((rows: SearchDocument[]) => {
-    for (const d of rows) addDocument(namespace, d);
+  if (!namespace || typeof namespace !== "string") {
+    throw new Error("addDocument: namespace is required");
+  }
+  await ensureSchema();
+  await sql.tx(async (client) => {
+    for (const d of docs) {
+      // validateDocument (inside documentInsertParams) throws on a malformed
+      // doc, aborting the transaction so the whole batch rolls back.
+      const params = documentInsertParams(namespace, d);
+      await client.query(pgPlaceholders(INSERT_DOCUMENT_SQL), params);
+    }
   });
-  tx(docs);
   return docs.length;
 }
 
-export function deleteSearchNamespace(namespace: string): number {
+export async function deleteSearchNamespace(namespace: string): Promise<number> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("deleteSearchNamespace: namespace is required");
   }
-  ensureSchema();
-  const db = getDb();
-  return db.prepare("DELETE FROM search_documents WHERE namespace = ?").run(namespace).changes;
+  await ensureSchema();
+  return (await sql.run("DELETE FROM search_documents WHERE namespace = ?", [namespace])).rowCount;
 }
 
-export function deleteDocument(namespace: string, doc_id: string): boolean {
+export async function deleteDocument(namespace: string, doc_id: string): Promise<boolean> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("deleteDocument: namespace is required");
   }
   if (!doc_id || typeof doc_id !== "string") {
     throw new Error("deleteDocument: doc_id is required");
   }
-  ensureSchema();
-  const db = getDb();
-  return db
-    .prepare("DELETE FROM search_documents WHERE namespace = ? AND doc_id = ?")
-    .run(namespace, doc_id).changes > 0;
+  await ensureSchema();
+  return (
+    (await sql.run("DELETE FROM search_documents WHERE namespace = ? AND doc_id = ?", [namespace, doc_id]))
+      .rowCount > 0
+  );
 }
 
-export function countSearchDocuments(namespace: string): number {
-  ensureSchema();
-  const db = getDb();
-  const row = db
-    .prepare("SELECT COUNT(*) AS c FROM search_documents WHERE namespace = ?")
-    .get(namespace) as { c: number } | undefined;
-  return row?.c ?? 0;
+export async function countSearchDocuments(namespace: string): Promise<number> {
+  await ensureSchema();
+  const row = await sql.one<{ c: number }>(
+    "SELECT COUNT(*) AS c FROM search_documents WHERE namespace = ?",
+    [namespace],
+  );
+  return Number(row?.c ?? 0);
 }
 
 // ─── BM25 search ────────────────────────────────────────────────
@@ -298,7 +307,7 @@ function makeSnippet(content: string, queryTokens: string[]): string {
   return prefix + content.slice(start, end) + suffix;
 }
 
-export function searchDocuments(namespace: string, opts: SearchOptions): SearchHit[] {
+export async function searchDocuments(namespace: string, opts: SearchOptions): Promise<SearchHit[]> {
   if (!namespace || typeof namespace !== "string") {
     throw new Error("searchDocuments: namespace is required");
   }
@@ -325,20 +334,17 @@ export function searchDocuments(namespace: string, opts: SearchOptions): SearchH
   const queryTokens = Array.from(new Set(tokenize(opts.query)));
   if (queryTokens.length === 0) return [];
 
-  ensureSchema();
-  const db = getDb();
+  await ensureSchema();
 
-  const rows = (opts.site
-    ? db
-        .prepare(
-          "SELECT doc_id, url, title, content, content_len, tf_json, metadata FROM search_documents WHERE namespace = ? AND url_host = ?",
-        )
-        .all(namespace, opts.site.toLowerCase())
-    : db
-        .prepare(
-          "SELECT doc_id, url, title, content, content_len, tf_json, metadata FROM search_documents WHERE namespace = ?",
-        )
-        .all(namespace)) as InternalDocRow[];
+  const rows = opts.site
+    ? await sql.many<InternalDocRow>(
+        "SELECT doc_id, url, title, content, content_len, tf_json, metadata FROM search_documents WHERE namespace = ? AND url_host = ?",
+        [namespace, opts.site.toLowerCase()],
+      )
+    : await sql.many<InternalDocRow>(
+        "SELECT doc_id, url, title, content, content_len, tf_json, metadata FROM search_documents WHERE namespace = ?",
+        [namespace],
+      );
 
   if (rows.length === 0) return [];
 

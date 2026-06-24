@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 import { getActiveSubscriptionByAccount, priceToPlanId } from "./stripe-store.js";
 import { getReferralTokenUsageModifier } from "./referral-store.js";
@@ -35,8 +35,8 @@ function getMonthKey(isoDate = new Date().toISOString()): string {
   return isoDate.slice(0, 7);
 }
 
-function resolvePlanForAccount(account_id: string, tier: BillingTier): UsageCreditPlanId {
-  const activeSub = getActiveSubscriptionByAccount(account_id);
+async function resolvePlanForAccount(account_id: string, tier: BillingTier): Promise<UsageCreditPlanId> {
+  const activeSub = await getActiveSubscriptionByAccount(account_id);
   if (activeSub) {
     const planFromPrice = priceToPlanId(activeSub.price_id);
     if (planFromPrice) return planFromPrice;
@@ -52,32 +52,36 @@ export function creditsFromUsdCents(amountCents: number): number {
   return Math.max(1, Math.ceil((amountCents * 100) / 18));
 }
 
-function getMonthlyRows(account_id: string, month_key: string): {
+async function getMonthlyRows(account_id: string, month_key: string): Promise<{
   included_credits_used: number;
   overage_credits: number;
-} {
-  const db = getDb();
-  const monthly = db.prepare(
+}> {
+  const monthly = await sql.one<{ included_credits_used: string | number }>(
     `SELECT included_credits_used
        FROM usage_credit_monthly
       WHERE account_id = ? AND month_key = ?`,
-  ).get(account_id, month_key) as { included_credits_used: number } | undefined;
-  const overage = db.prepare(
+    [account_id, month_key],
+  );
+  const overage = await sql.one<{ overage_credits: string | number }>(
     `SELECT COALESCE(SUM(overage_credits), 0) as overage_credits
        FROM usage_credit_ledger
       WHERE account_id = ? AND month_key = ?`,
-  ).get(account_id, month_key) as { overage_credits: number } | undefined;
+    [account_id, month_key],
+  );
+  // pg SUM(...) returns a string/bigint — coerce before the allowance/overage
+  // arithmetic in the callers. included_credits_used also feeds subtraction, so
+  // coerce it too (numeric columns can serialize as strings).
   return {
-    included_credits_used: monthly?.included_credits_used ?? 0,
-    overage_credits: overage?.overage_credits ?? 0,
+    included_credits_used: Number(monthly?.included_credits_used ?? 0),
+    overage_credits: Number(overage?.overage_credits ?? 0),
   };
 }
 
-export function getUsageCreditSummary(account_id: string, tier: BillingTier, monthKey?: string): UsageCreditSummary {
+export async function getUsageCreditSummary(account_id: string, tier: BillingTier, monthKey?: string): Promise<UsageCreditSummary> {
   const month_key = monthKey ?? getMonthKey();
-  const plan_id = resolvePlanForAccount(account_id, tier);
+  const plan_id = await resolvePlanForAccount(account_id, tier);
   const monthly_allowance = PLAN_MONTHLY_CREDITS[plan_id] ?? 0;
-  const rows = getMonthlyRows(account_id, month_key);
+  const rows = await getMonthlyRows(account_id, month_key);
   return {
     plan_id,
     month_key,
@@ -100,14 +104,14 @@ interface ChargeComputation {
 }
 
 /** Pure charge math — no DB writes. Shared by previewUsageCredits (the gate) and consumeUsageCredits (the commit). */
-function computeCharge(account_id: string, tier: BillingTier, amountCents: number): ChargeComputation {
+async function computeCharge(account_id: string, tier: BillingTier, amountCents: number): Promise<ChargeComputation> {
   const month_key = getMonthKey();
   const base_credits_required = creditsFromUsdCents(amountCents);
   const referral = tier === "free"
     ? { reduction_rate: 0 }
-    : getReferralTokenUsageModifier(account_id, month_key);
+    : await getReferralTokenUsageModifier(account_id, month_key);
   const credits_required = Math.max(1, Math.ceil(base_credits_required * (1 - referral.reduction_rate)));
-  const summary = getUsageCreditSummary(account_id, tier, month_key);
+  const summary = await getUsageCreditSummary(account_id, tier, month_key);
   const included_credits_applied = Math.min(summary.included_credits_remaining, credits_required);
   const overage_credits = Math.max(0, credits_required - included_credits_applied);
   const nextIncludedUsed = summary.included_credits_used + included_credits_applied;
@@ -147,25 +151,24 @@ function toChargeResult(c: ChargeComputation, tool: string): UsageCreditChargeRe
  * exceeding included credits without committing a debit, and the actual debit
  * can be deferred until the metered work succeeds.
  */
-export function previewUsageCredits(
+export async function previewUsageCredits(
   account_id: string,
   tier: BillingTier,
   tool: string,
   amountCents: number,
-): UsageCreditChargeResult {
-  return toChargeResult(computeCharge(account_id, tier, amountCents), tool);
+): Promise<UsageCreditChargeResult> {
+  return toChargeResult(await computeCharge(account_id, tier, amountCents), tool);
 }
 
-export function consumeUsageCredits(
+export async function consumeUsageCredits(
   account_id: string,
   tier: BillingTier,
   tool: string,
   amountCents: number,
-): UsageCreditChargeResult {
-  const c = computeCharge(account_id, tier, amountCents);
+): Promise<UsageCreditChargeResult> {
+  const c = await computeCharge(account_id, tier, amountCents);
 
-  const db = getDb();
-  db.prepare(
+  await sql.run(
     `INSERT INTO usage_credit_monthly
       (account_id, month_key, plan_id, monthly_allowance, included_credits_used, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)
@@ -174,30 +177,32 @@ export function consumeUsageCredits(
        monthly_allowance = excluded.monthly_allowance,
        included_credits_used = excluded.included_credits_used,
        updated_at = excluded.updated_at`,
-  ).run(
-    account_id,
-    c.month_key,
-    c.summary.plan_id,
-    c.summary.monthly_allowance,
-    c.nextIncludedUsed,
-    new Date().toISOString(),
+    [
+      account_id,
+      c.month_key,
+      c.summary.plan_id,
+      c.summary.monthly_allowance,
+      c.nextIncludedUsed,
+      new Date().toISOString(),
+    ],
   );
 
-  db.prepare(
+  await sql.run(
     `INSERT INTO usage_credit_ledger
       (entry_id, account_id, month_key, plan_id, tool, amount_cents, credits_required, included_credits_applied, overage_credits, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).run(
-    randomUUID(),
-    account_id,
-    c.month_key,
-    c.summary.plan_id,
-    tool,
-    amountCents,
-    c.credits_required,
-    c.included_credits_applied,
-    c.overage_credits,
-    new Date().toISOString(),
+    [
+      randomUUID(),
+      account_id,
+      c.month_key,
+      c.summary.plan_id,
+      tool,
+      amountCents,
+      c.credits_required,
+      c.included_credits_applied,
+      c.overage_credits,
+      new Date().toISOString(),
+    ],
   );
 
   return toChargeResult(c, tool);

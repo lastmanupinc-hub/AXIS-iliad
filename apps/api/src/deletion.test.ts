@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
+  sql,
   createSnapshot,
   getSnapshot,
   getProjectSnapshots,
@@ -11,7 +11,6 @@ import {
   saveGeneratorResult,
   indexSnapshotContent,
   getSearchIndexStats,
-  getDb,
 } from "@axis/snapshots";
 import { Router, sendJSON } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
@@ -45,7 +44,7 @@ function rawReq(method: string, path: string): Promise<Res> {
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
   router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);
@@ -57,7 +56,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   server.close();
-  closeDb();
   await new Promise((r) => setTimeout(r, 100));
 });
 
@@ -71,15 +69,15 @@ function createTestSnapshot(projectName: string) {
 
 describe("DELETE /v1/snapshots/:snapshot_id", () => {
   it("deletes an existing snapshot", async () => {
-    const snap = createTestSnapshot("del-snap-test");
-    saveContextMap(snap.snapshot_id, { version: "1", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project_identity: {} });
-    saveRepoProfile(snap.snapshot_id, { version: "1", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project: {} });
-    saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2024-01-01", files: [] });
-    indexSnapshotContent(snap.snapshot_id, [{ path: "index.ts", content: "line one\nline two\n" }]);
+    const snap = await createTestSnapshot("del-snap-test");
+    await saveContextMap(snap.snapshot_id, { version: "1", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project_identity: {} });
+    await saveRepoProfile(snap.snapshot_id, { version: "1", snapshot_id: snap.snapshot_id, project_id: snap.project_id, project: {} });
+    await saveGeneratorResult(snap.snapshot_id, { snapshot_id: snap.snapshot_id, generated_at: "2024-01-01", files: [] });
+    await indexSnapshotContent(snap.snapshot_id, [{ path: "index.ts", content: "line one\nline two\n" }]);
 
     // Verify data exists
-    expect(getSnapshot(snap.snapshot_id)).toBeDefined();
-    expect(getSearchIndexStats(snap.snapshot_id).line_count).toBe(2);
+    expect(await getSnapshot(snap.snapshot_id)).toBeDefined();
+    expect((await getSearchIndexStats(snap.snapshot_id)).line_count).toBe(2);
 
     const res = await rawReq("DELETE", `/v1/snapshots/${snap.snapshot_id}`);
     expect(res.status).toBe(200);
@@ -88,8 +86,8 @@ describe("DELETE /v1/snapshots/:snapshot_id", () => {
     expect(data.snapshot_id).toBe(snap.snapshot_id);
 
     // Verify data is gone
-    expect(getSnapshot(snap.snapshot_id)).toBeUndefined();
-    expect(getSearchIndexStats(snap.snapshot_id).line_count).toBe(0);
+    expect(await getSnapshot(snap.snapshot_id)).toBeUndefined();
+    expect((await getSearchIndexStats(snap.snapshot_id)).line_count).toBe(0);
   });
 
   it("returns 404 for non-existent snapshot", async () => {
@@ -100,15 +98,15 @@ describe("DELETE /v1/snapshots/:snapshot_id", () => {
 
 describe("DELETE /v1/projects/:project_id", () => {
   it("deletes a project and all its snapshots", async () => {
-    const snap1 = createTestSnapshot("del-proj-test");
-    const snap2 = createSnapshot({
+    const snap1 = await createTestSnapshot("del-proj-test");
+    const snap2 = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "del-proj-test", project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "b.ts", content: "b", size: 1 }],
     });
 
     expect(snap1.project_id).toBe(snap2.project_id);
-    expect(getProjectSnapshots(snap1.project_id).length).toBe(2);
+    expect((await getProjectSnapshots(snap1.project_id)).length).toBe(2);
 
     const res = await rawReq("DELETE", `/v1/projects/${snap1.project_id}`);
     expect(res.status).toBe(200);
@@ -118,13 +116,12 @@ describe("DELETE /v1/projects/:project_id", () => {
     expect(data.deleted_snapshots).toBe(2);
 
     // Verify all gone
-    expect(getProjectSnapshots(snap1.project_id).length).toBe(0);
-    expect(getSnapshot(snap1.snapshot_id)).toBeUndefined();
-    expect(getSnapshot(snap2.snapshot_id)).toBeUndefined();
+    expect((await getProjectSnapshots(snap1.project_id)).length).toBe(0);
+    expect(await getSnapshot(snap1.snapshot_id)).toBeUndefined();
+    expect(await getSnapshot(snap2.snapshot_id)).toBeUndefined();
 
     // Verify project row is deleted
-    const db = getDb();
-    const proj = db.prepare("SELECT * FROM projects WHERE project_id = ?").get(snap1.project_id);
+    const proj = await sql.one("SELECT * FROM projects WHERE project_id = ?", [snap1.project_id]);
     expect(proj).toBeUndefined();
   });
 
@@ -135,15 +132,14 @@ describe("DELETE /v1/projects/:project_id", () => {
 
   it("deletes project with zero snapshots", async () => {
     // Create a project directly
-    const db = getDb();
-    db.prepare("INSERT INTO projects (project_id, project_name) VALUES (?, ?)").run("empty-proj", "Empty Project");
+    await sql.run("INSERT INTO projects (project_id, project_name) VALUES (?, ?)", ["empty-proj", "Empty Project"]);
 
     const res = await rawReq("DELETE", "/v1/projects/empty-proj");
     expect(res.status).toBe(200);
     const data = JSON.parse(res.body);
     expect(data.deleted_snapshots).toBe(0);
 
-    const proj = db.prepare("SELECT * FROM projects WHERE project_id = ?").get("empty-proj");
+    const proj = await sql.one("SELECT * FROM projects WHERE project_id = ?", ["empty-proj"]);
     expect(proj).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server, IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router, createApp, sendJSON, sendError, readBody } from "./router.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -99,7 +99,7 @@ const PORT_A = 44485; // main test server (200ms timeout)
 let serverA: Server;
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const saved = process.env.REQUEST_TIMEOUT_MS;
@@ -160,7 +160,6 @@ beforeAll(async () => {
 afterAll(async () => {
   const fn = (serverA as unknown as Record<string, (t?: number) => Promise<void>>).shutdown;
   if (fn) await fn(2000);
-  closeDb();
 });
 
 beforeEach(() => {

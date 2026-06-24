@@ -4,7 +4,7 @@
 // metered overage billed this month, active subscriptions) plus a transparent,
 // clearly-labelled MRR ESTIMATE derived from paid-tier counts.
 
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 
 export interface GrowthSnapshot {
   generated_at: string;
@@ -34,46 +34,52 @@ export interface GrowthSnapshot {
 const TIER_MONTHLY_CENTS = { paid: 2900, suite: 29900 } as const;
 
 /** A growth + revenue snapshot computed entirely from local data (no external calls). */
-export function getGrowthSnapshot(now: Date = new Date()): GrowthSnapshot {
-  const db = getDb();
+export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthSnapshot> {
   const DAY = 86_400_000;
-  const since = (msAgo: number) =>
-    (db
-      .prepare("SELECT COUNT(*) as n FROM accounts WHERE created_at >= ?")
-      .get(new Date(now.getTime() - msAgo).toISOString()) as { n: number }).n;
+  // pg COUNT/SUM return strings/bigints — every aggregate read below is coerced
+  // with Number() at the read site so the counts and MRR/overage math stay numeric.
+  const since = async (msAgo: number) =>
+    Number((await sql.one<{ n: string | number }>(
+      "SELECT COUNT(*) as n FROM accounts WHERE created_at >= ?",
+      [new Date(now.getTime() - msAgo).toISOString()],
+    ))?.n ?? 0);
 
-  const tiers = db
-    .prepare(
-      `SELECT COUNT(*) as total,
-              SUM(CASE WHEN tier='free'  THEN 1 ELSE 0 END) as free,
-              SUM(CASE WHEN tier='paid'  THEN 1 ELSE 0 END) as paid,
-              SUM(CASE WHEN tier='suite' THEN 1 ELSE 0 END) as suite
-         FROM accounts`,
-    )
-    .get() as { total: number; free: number | null; paid: number | null; suite: number | null };
-  const paid = tiers.paid ?? 0;
-  const suite = tiers.suite ?? 0;
+  const tiers = (await sql.one<{
+    total: string | number;
+    free: string | number | null;
+    paid: string | number | null;
+    suite: string | number | null;
+  }>(
+    `SELECT COUNT(*) as total,
+            SUM(CASE WHEN tier='free'  THEN 1 ELSE 0 END) as free,
+            SUM(CASE WHEN tier='paid'  THEN 1 ELSE 0 END) as paid,
+            SUM(CASE WHEN tier='suite' THEN 1 ELSE 0 END) as suite
+       FROM accounts`,
+  ))!;
+  const paid = Number(tiers.paid ?? 0);
+  const suite = Number(tiers.suite ?? 0);
 
   // 1 credit = 0.18 cents (18/100); match consumeUsageCredits' ceil rounding.
   const monthKey = now.toISOString().slice(0, 7);
-  const overage = (db
-    .prepare("SELECT COALESCE(SUM(overage_credits), 0) as oc FROM usage_credit_ledger WHERE month_key = ?")
-    .get(monthKey) as { oc: number }).oc;
+  const overage = Number((await sql.one<{ oc: string | number }>(
+    "SELECT COALESCE(SUM(overage_credits), 0) as oc FROM usage_credit_ledger WHERE month_key = ?",
+    [monthKey],
+  ))?.oc ?? 0);
 
-  const activeSubs = (db
-    .prepare("SELECT COUNT(*) as n FROM stripe_subscriptions WHERE status IN ('active', 'trialing')")
-    .get() as { n: number }).n;
+  const activeSubs = Number((await sql.one<{ n: string | number }>(
+    "SELECT COUNT(*) as n FROM stripe_subscriptions WHERE status IN ('active', 'trialing')",
+  ))?.n ?? 0);
 
   return {
     generated_at: now.toISOString(),
     accounts: {
-      total: tiers.total ?? 0,
-      free: tiers.free ?? 0,
+      total: Number(tiers.total ?? 0),
+      free: Number(tiers.free ?? 0),
       paid,
       suite,
-      new_24h: since(DAY),
-      new_7d: since(7 * DAY),
-      new_30d: since(30 * DAY),
+      new_24h: await since(DAY),
+      new_7d: await since(7 * DAY),
+      new_30d: await since(30 * DAY),
     },
     revenue: {
       estimated_mrr_cents: paid * TIER_MONTHLY_CENTS.paid + suite * TIER_MONTHLY_CENTS.suite,

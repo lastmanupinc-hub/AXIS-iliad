@@ -180,12 +180,12 @@ function resolveCheckoutBaseUrl(req?: IncomingMessage): string {
 
 // ─── Sync tier from subscription status ────────────────────────
 
-function syncTierFromStripeSubscription(
+async function syncTierFromStripeSubscription(
   accountId: string,
   priceId: string,
   status: StripeSubscriptionStatus,
-): void {
-  const account = getAccount(accountId);
+): Promise<void> {
+  const account = await getAccount(accountId);
   if (!account) return;
 
   const previousTier = account.tier;
@@ -201,9 +201,9 @@ function syncTierFromStripeSubscription(
 
   if (!newTier || newTier === previousTier) return;
 
-  updateAccountTier(accountId, newTier);
-  logTierChange(accountId, previousTier, newTier, "stripe_webhook", { status });
-  trackEvent(
+  await updateAccountTier(accountId, newTier);
+  await logTierChange(accountId, previousTier, newTier, "stripe_webhook", { status });
+  await trackEvent(
     accountId,
     newTier === "free" ? "downgrade_completed" : "upgrade_completed",
     newTier === "free" ? "signup" : "conversion",
@@ -226,7 +226,7 @@ function syncTierFromStripeSubscription(
 
 // ─── Handle checkout.session.completed ─────────────────────────
 
-function handleCheckoutCompleted(session: Record<string, unknown>): void {
+async function handleCheckoutCompleted(session: Record<string, unknown>): Promise<void> {
   const meta = session.metadata as Record<string, unknown> | null;
   const accountId = (session.client_reference_id ?? meta?.account_id) as string | undefined;
   if (!accountId) return;
@@ -240,8 +240,8 @@ function handleCheckoutCompleted(session: Record<string, unknown>): void {
   const priceId = planId ? (resolveCheckoutPriceId(planId, billingCycle) ?? "") : "";
 
   const now = new Date().toISOString();
-  const existing = getSubscription(subscriptionId);
-  upsertSubscription({
+  const existing = await getSubscription(subscriptionId);
+  await upsertSubscription({
     subscription_id: subscriptionId,
     customer_id: customerId,
     account_id: accountId,
@@ -257,16 +257,16 @@ function handleCheckoutCompleted(session: Record<string, unknown>): void {
   });
 
   if (priceId) {
-    syncTierFromStripeSubscription(accountId, priceId, "active");
+    await syncTierFromStripeSubscription(accountId, priceId, "active");
   }
 }
 
 // ─── Handle customer.subscription.* ────────────────────────────
 
-function handleSubscriptionEvent(
+async function handleSubscriptionEvent(
   sub: Record<string, unknown>,
   isDeleted: boolean,
-): boolean {
+): Promise<boolean> {
   const subscriptionId = sub.id as string;
   const customerId = sub.customer as string;
   const status = (isDeleted ? "canceled" : sub.status) as StripeSubscriptionStatus;
@@ -276,7 +276,7 @@ function handleSubscriptionEvent(
 
   // Resolve account_id: 1) from existing DB record, 2) from subscription metadata
   let accountId: string | undefined;
-  const existing = getSubscription(subscriptionId);
+  const existing = await getSubscription(subscriptionId);
   if (existing) {
     accountId = existing.account_id;
   } else {
@@ -285,7 +285,7 @@ function handleSubscriptionEvent(
   if (!accountId) return false;
 
   const now = new Date().toISOString();
-  upsertSubscription({
+  await upsertSubscription({
     subscription_id: subscriptionId,
     customer_id: customerId,
     account_id: accountId,
@@ -300,17 +300,17 @@ function handleSubscriptionEvent(
     updated_at: now,
   });
 
-  syncTierFromStripeSubscription(accountId, priceId, status);
+  await syncTierFromStripeSubscription(accountId, priceId, status);
   return true;
 }
 
 // ─── Handle invoice.payment_failed ─────────────────────────────
 
-function handleInvoicePaymentFailed(invoice: Record<string, unknown>): void {
+async function handleInvoicePaymentFailed(invoice: Record<string, unknown>): Promise<void> {
   const subscriptionId = invoice.subscription as string | undefined;
   if (!subscriptionId) return;
   // Mark as past_due — Stripe will retry, we don't downgrade yet
-  updateSubscriptionStatus(subscriptionId, "past_due");
+  await updateSubscriptionStatus(subscriptionId, "past_due");
 }
 
 // ─── POST /v1/webhooks/stripe ───────────────────────────────────
@@ -352,21 +352,21 @@ export async function handleStripeWebhook(
   let subscriptionId: string | undefined;
 
   if (eventType === "checkout.session.completed") {
-    handleCheckoutCompleted(obj);
+    await handleCheckoutCompleted(obj);
     subscriptionId = obj.subscription as string | undefined;
   } else if (
     eventType === "customer.subscription.created" ||
     eventType === "customer.subscription.updated"
   ) {
-    handled = handleSubscriptionEvent(obj, false);
+    handled = await handleSubscriptionEvent(obj, false);
     subscriptionId = obj.id as string;
   } else if (eventType === "customer.subscription.deleted") {
-    handled = handleSubscriptionEvent(obj, true);
+    handled = await handleSubscriptionEvent(obj, true);
     subscriptionId = obj.id as string;
   /* v8 ignore next */
   } else {
     // invoice.payment_failed (only remaining HANDLED_EVENT after the above checks)
-    handleInvoicePaymentFailed(obj);
+    await handleInvoicePaymentFailed(obj);
     subscriptionId = obj.subscription as string | undefined;
   }
 
@@ -384,7 +384,7 @@ export async function handleCreateCheckout(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -425,7 +425,7 @@ export async function handleCreateCheckout(
   }
 
   // Check if account already has an active subscription
-  const existingSub = getActiveSubscriptionByAccount(ctx.account!.account_id);
+  const existingSub = await getActiveSubscriptionByAccount(ctx.account!.account_id);
   if (existingSub) {
     sendError(res, 409, ErrorCode.CONFLICT, "Account already has an active subscription. Use the customer portal to manage it.");
     return;
@@ -511,7 +511,7 @@ export async function handleCreateCheckout(
 
     const session = await response.json() as { id: string; url: string };
 
-    trackEvent(ctx.account!.account_id, "checkout_started", "conversion", {
+    await trackEvent(ctx.account!.account_id, "checkout_started", "conversion", {
       plan_id: planId,
       tier: planId === "growth" ? "suite" : "paid",
       billing_cycle: billingCycle,
@@ -538,11 +538,11 @@ export async function handleGetSubscription(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  const subscriptions = listSubscriptionsByAccount(ctx.account!.account_id);
-  const active = getActiveSubscriptionByAccount(ctx.account!.account_id);
+  const subscriptions = await listSubscriptionsByAccount(ctx.account!.account_id);
+  const active = await getActiveSubscriptionByAccount(ctx.account!.account_id);
 
   sendJSON(res, 200, {
     account_id: ctx.account!.account_id,
@@ -571,10 +571,10 @@ export async function handleCancelSubscription(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  const active = getActiveSubscriptionByAccount(ctx.account!.account_id);
+  const active = await getActiveSubscriptionByAccount(ctx.account!.account_id);
   if (!active) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No active subscription to cancel");
     return;
@@ -608,7 +608,7 @@ export async function handleCancelSubscription(
     }
 
     // The actual tier change will happen via webhook when Stripe confirms cancellation
-    trackEvent(ctx.account!.account_id, "cancellation_requested", "conversion", {
+    await trackEvent(ctx.account!.account_id, "cancellation_requested", "conversion", {
       subscription_id: active.subscription_id,
       source: "stripe",
     });

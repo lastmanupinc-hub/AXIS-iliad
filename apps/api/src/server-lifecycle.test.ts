@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp, isShuttingDown } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck } from "./handlers.js";
@@ -42,7 +42,7 @@ function req(method: string, path: string, authKey?: string): Promise<Res> {
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
@@ -53,7 +53,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   server?.close();
-  closeDb();
 });
 
 beforeEach(() => {
@@ -70,8 +69,8 @@ describe("Authenticated rate-limit wiring", () => {
   });
 
   it("authenticated requests get 120 req/min limit header", async () => {
-    const acct = createAccount("RateTest", "rate@example.com");
-    const key = createApiKey(acct.account_id, "rate-test-key");
+    const acct = await createAccount("RateTest", "rate@example.com");
+    const key = await createApiKey(acct.account_id, "rate-test-key");
 
     const res = await req("GET", "/v1/health", key.rawKey);
     expect(res.status).toBe(200);
@@ -91,8 +90,8 @@ describe("Authenticated rate-limit wiring", () => {
 
     // Reset and test that authenticated user at the same request count would NOT be blocked
     resetRateLimits();
-    const acct = createAccount("AuthLimit", "auth-limit@example.com");
-    const key = createApiKey(acct.account_id, "auth-limit-key");
+    const acct = await createAccount("AuthLimit", "auth-limit@example.com");
+    const key = await createApiKey(acct.account_id, "auth-limit-key");
 
     for (let i = 0; i < LIMITS.DEFAULT_MAX; i++) {
       await req("GET", "/v1/health", key.rawKey);
@@ -125,7 +124,7 @@ describe("Health endpoint readiness", () => {
     expect(res.data.timestamp).toBeDefined();
   });
 
-  it("isShuttingDown returns false during normal operation", () => {
+  it("isShuttingDown returns false during normal operation", async () => {
     expect(isShuttingDown()).toBe(false);
   });
 });
@@ -133,7 +132,7 @@ describe("Health endpoint readiness", () => {
 // ─── Graceful shutdown ──────────────────────────────────────────
 
 describe("Graceful shutdown", () => {
-  it("server has shutdown method attached", () => {
+  it("server has shutdown method attached", async () => {
     expect((server as unknown as Record<string, unknown>).shutdown).toBeTypeOf("function");
   });
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import type { BillingTier, PersistenceOp, PersistenceCreditRecord } from "./billing-types.js";
 import {
   PERSISTENCE_CREDIT_COSTS,
@@ -10,11 +10,14 @@ import {
 // ─── Balance ─────────────────────────────────────────────────────
 
 /** Get current persistence credit balance for an account. Returns 0 if no credits exist. */
-export function getPersistenceBalance(account_id: string): number {
-  const row = getDb()
-    .prepare("SELECT SUM(credits_delta) as balance FROM persistence_credits WHERE account_id = ?")
-    .get(account_id) as { balance: number | null };
-  return Math.max(0, row.balance ?? 0);
+export async function getPersistenceBalance(account_id: string): Promise<number> {
+  const row = await sql.one<{ balance: string | number | null }>(
+    "SELECT SUM(credits_delta) as balance FROM persistence_credits WHERE account_id = ?",
+    [account_id],
+  );
+  // pg SUM(...) returns a string/bigint — coerce before Math.max so the balance
+  // is compared numerically.
+  return Math.max(0, Number(row?.balance ?? 0));
 }
 
 // ─── Access check ────────────────────────────────────────────────
@@ -23,9 +26,9 @@ export function getPersistenceBalance(account_id: string): number {
  * Whether an account can use persistence features.
  * Free tier is always blocked. Paid/suite require a positive balance.
  */
-export function canUsePersistence(account_id: string, tier: BillingTier): boolean {
+export async function canUsePersistence(account_id: string, tier: BillingTier): Promise<boolean> {
   if (tier === PERSISTENCE_MIN_TIER || tier === "suite") {
-    return getPersistenceBalance(account_id) > 0;
+    return (await getPersistenceBalance(account_id)) > 0;
   }
   return false;
 }
@@ -33,39 +36,38 @@ export function canUsePersistence(account_id: string, tier: BillingTier): boolea
 // ─── Credit grants ───────────────────────────────────────────────
 
 /** Record a credit purchase or grant. Returns the new balance. */
-export function addPersistenceCredits(
+export async function addPersistenceCredits(
   account_id: string,
   credits: number,
   operation: "purchase" | "suite_monthly_grant" = "purchase",
-): number {
-  const db = getDb();
-  const balance_after = getPersistenceBalance(account_id) + credits;
+): Promise<number> {
+  const balance_after = (await getPersistenceBalance(account_id)) + credits;
 
-  db.prepare(
+  await sql.run(
     `INSERT INTO persistence_credits
        (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
      VALUES (?, ?, ?, ?, NULL, ?, ?)`,
-  ).run(randomUUID(), account_id, credits, operation, balance_after, new Date().toISOString());
+    [randomUUID(), account_id, credits, operation, balance_after, new Date().toISOString()],
+  );
 
   return balance_after;
 }
 
 /** Apply the monthly suite credit grant. Idempotent within the same calendar month. */
-export function applySuiteMonthlyGrant(account_id: string, tier: BillingTier): number | null {
+export async function applySuiteMonthlyGrant(account_id: string, tier: BillingTier): Promise<number | null> {
   if (tier !== "suite") return null;
 
   const month = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-  const alreadyGranted = getDb()
-    .prepare(
-      `SELECT 1 FROM persistence_credits
+  const alreadyGranted = await sql.one(
+    `SELECT 1 FROM persistence_credits
        WHERE account_id = ? AND operation = 'suite_monthly_grant'
          AND created_at >= ? AND created_at < ?`,
-    )
-    .get(account_id, `${month}-01`, `${month}-32`) as unknown;
+    [account_id, `${month}-01`, `${month}-32`],
+  );
 
   if (alreadyGranted) return null;
 
-  return addPersistenceCredits(account_id, SUITE_MONTHLY_PERSISTENCE_CREDITS, "suite_monthly_grant");
+  return await addPersistenceCredits(account_id, SUITE_MONTHLY_PERSISTENCE_CREDITS, "suite_monthly_grant");
 }
 
 // ─── Metering ────────────────────────────────────────────────────
@@ -78,12 +80,12 @@ export type MeterResult =
  * Deduct credits for a persistence operation.
  * Returns ok:true on success or ok:false with a human-readable reason on failure.
  */
-export function meterPersistenceOp(
+export async function meterPersistenceOp(
   account_id: string,
   tier: BillingTier,
   op: PersistenceOp,
   snapshot_id?: string,
-): MeterResult {
+): Promise<MeterResult> {
   if (tier === "free") {
     return {
       ok: false,
@@ -92,7 +94,7 @@ export function meterPersistenceOp(
   }
 
   const cost = PERSISTENCE_CREDIT_COSTS[op];
-  const balance = getPersistenceBalance(account_id);
+  const balance = await getPersistenceBalance(account_id);
 
   if (balance < cost) {
     return {
@@ -103,13 +105,11 @@ export function meterPersistenceOp(
 
   const balance_after = balance - cost;
 
-  getDb()
-    .prepare(
-      `INSERT INTO persistence_credits
+  await sql.run(
+    `INSERT INTO persistence_credits
          (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(
+    [
       randomUUID(),
       account_id,
       -cost,
@@ -117,7 +117,8 @@ export function meterPersistenceOp(
       snapshot_id ?? null,
       balance_after,
       new Date().toISOString(),
-    );
+    ],
+  );
 
   return { ok: true, balance_after };
 }
@@ -125,13 +126,12 @@ export function meterPersistenceOp(
 // ─── Ledger ──────────────────────────────────────────────────────
 
 /** Full credit ledger for an account, newest first. */
-export function getPersistenceLedger(
+export async function getPersistenceLedger(
   account_id: string,
   limit = 50,
-): PersistenceCreditRecord[] {
-  return getDb()
-    .prepare(
-      "SELECT * FROM persistence_credits WHERE account_id = ? ORDER BY created_at DESC LIMIT ?",
-    )
-    .all(account_id, limit) as PersistenceCreditRecord[];
+): Promise<PersistenceCreditRecord[]> {
+  return await sql.many<PersistenceCreditRecord>(
+    "SELECT * FROM persistence_credits WHERE account_id = ? ORDER BY created_at DESC LIMIT ?",
+    [account_id, limit],
+  );
 }

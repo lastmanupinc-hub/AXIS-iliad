@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, saveGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, saveGeneratorResult } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import {
@@ -72,7 +72,7 @@ async function req(
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
@@ -102,7 +102,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 beforeEach(() => {
@@ -469,7 +468,7 @@ describe("owner can GET their own authenticated export ZIP", () => {
     exportSnapshotId = r.data.snapshot_id as string;
 
     // Seed some generated files so the export ZIP is non-empty
-    saveGeneratorResult(exportSnapshotId, {
+    await saveGeneratorResult(exportSnapshotId, {
       snapshot_id: exportSnapshotId,
       generated_at: new Date().toISOString(),
       files: [

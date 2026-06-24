@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, recordMcpUsage } from "@axis/snapshots";
+import { resetTestDb, recordMcpUsage } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -50,7 +50,7 @@ let apiKey: string;
 let nonAdminKey: string;
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
@@ -78,7 +78,6 @@ beforeAll(async () => {
 afterAll(async () => {
   delete process.env.ADMIN_API_KEY;
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 beforeEach(() => {
@@ -206,8 +205,8 @@ describe("GET /v1/admin/mcp-usage", () => {
   });
 
   it("returns persistent MCP usage analytics for the admin key", async () => {
-    recordMcpUsage({ account_id: "acc_x", tool: "analyze_repo", source: "claude", probe_class: "dev-tool" });
-    recordMcpUsage({ account_id: null, tool: "list_programs", source: "smithery", probe_class: "registry-crawler" });
+    await recordMcpUsage({ account_id: "acc_x", tool: "analyze_repo", source: "claude", probe_class: "dev-tool" });
+    await recordMcpUsage({ account_id: null, tool: "list_programs", source: "smithery", probe_class: "registry-crawler" });
 
     const r = await req("GET", "/v1/admin/mcp-usage", undefined, apiKey);
     expect(r.status).toBe(200);

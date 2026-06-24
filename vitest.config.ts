@@ -5,6 +5,10 @@ export default defineConfig({
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.{ts,tsx}"],
     environment: "node",
     pool: "threads",
+    // The Postgres-backed suite (Phase 6 of the Neon migration) shares one test
+    // database, so test files must not run concurrently (they truncate tables
+    // between tests). Within a file, tests already run sequentially.
+    fileParallelism: false,
     maxWorkers: process.env.CI ? 4 : undefined,
     hookTimeout: 300_000,
     environmentOptions: {

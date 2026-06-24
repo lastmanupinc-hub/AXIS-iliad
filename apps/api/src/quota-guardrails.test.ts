@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb, closeDb, createAccount, createApiKey, TIER_LIMITS,
+  resetTestDb, createAccount, createApiKey, TIER_LIMITS,
   ALL_PROGRAMS, enableProgram, createSnapshot, recordUsage,
 } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
@@ -63,7 +63,7 @@ function getToolResult(data: unknown): { isError: boolean; text: string } {
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.post("/mcp", handleMcpPost);
@@ -80,18 +80,18 @@ beforeAll(async () => {
   serverPort = addr && typeof addr === "object" ? addr.port : 0;
 
   // Suite account — success baseline
-  const suiteAcct = createAccount("QuotaTest-Suite", "quota-suite@example.com", "suite");
-  suiteApiKey = createApiKey(suiteAcct.account_id, "quota-suite-key").rawKey;
+  const suiteAcct = await createAccount("QuotaTest-Suite", "quota-suite@example.com", "suite");
+  suiteApiKey = (await createApiKey(suiteAcct.account_id, "quota-suite-key")).rawKey;
 
   // Paid account — all programs enabled so payment gate passes, quota still applies
-  const paidAcct = createAccount("QuotaTest-Paid", "quota-paid@example.com", "paid");
-  paidApiKey = createApiKey(paidAcct.account_id, "quota-paid-key").rawKey;
+  const paidAcct = await createAccount("QuotaTest-Paid", "quota-paid@example.com", "paid");
+  paidApiKey = (await createApiKey(paidAcct.account_id, "quota-paid-key")).rawKey;
   for (const p of ALL_PROGRAMS) {
-    enableProgram(paidAcct.account_id, p);
+    await enableProgram(paidAcct.account_id, p);
   }
   // Pre-populate to max_projects limit so the next MCP call overflows
   for (let i = 0; i < TIER_LIMITS.paid.max_projects; i++) {
-    const snap = createSnapshot(
+    const snap = await createSnapshot(
       {
         input_method: "api_submission",
         manifest: { project_name: `prefill-${i}`, project_type: "library", frameworks: [], goals: [], requested_outputs: [] },
@@ -99,13 +99,12 @@ beforeAll(async () => {
       },
       paidAcct.account_id,
     );
-    recordUsage(paidAcct.account_id, "search", snap.snapshot_id, 0, 0, 0);
+    await recordUsage(paidAcct.account_id, "search", snap.snapshot_id, 0, 0, 0);
   }
 });
 
 afterAll(() => {
   server?.close();
-  closeDb();
 });
 
 // ─── Tests ──────────────────────────────────────────────────────
@@ -150,10 +149,10 @@ describe("Quota-exceeded guardrails — analyze_files", () => {
 describe("Quota-exceeded guardrails — file limit", () => {
   it("rejects files exceeding tier max_files_per_snapshot", async () => {
     // Paid account with all programs enabled; file limit = paid.max_files_per_snapshot
-    const acct2 = createAccount("FileLimitTest", "filelimit@example.com", "paid");
-    const key2 = createApiKey(acct2.account_id, "filelimit-key");
+    const acct2 = await createAccount("FileLimitTest", "filelimit@example.com", "paid");
+    const key2 = await createApiKey(acct2.account_id, "filelimit-key");
     for (const p of ALL_PROGRAMS) {
-      enableProgram(acct2.account_id, p);
+      await enableProgram(acct2.account_id, p);
     }
 
     const maxFiles = TIER_LIMITS.paid.max_files_per_snapshot;
@@ -183,8 +182,8 @@ describe("Quota-exceeded guardrails — file limit", () => {
 describe("Quota-exceeded guardrails — prepare_agentic_purchasing", () => {
   it("rejects free-tier account with payment-required error", async () => {
     // Free-tier: purchasing programs not enabled → payment gate fires
-    const freeAcct = createAccount("PurchaseTest", "purchase-test@example.com", "free");
-    const freeKey = createApiKey(freeAcct.account_id, "purchase-free-key");
+    const freeAcct = await createAccount("PurchaseTest", "purchase-test@example.com", "free");
+    const freeKey = await createApiKey(freeAcct.account_id, "purchase-free-key");
     const r = await post(
       "/mcp",
       rpcCall("prepare_agentic_purchasing", {

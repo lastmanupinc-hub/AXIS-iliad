@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createWebhook, listWebhooks, getWebhook, deleteWebhook, updateWebhookActive, getActiveWebhooksForEvent, recordDelivery, getDeliveries, signPayload, dispatchWebhookEvent } from "@axis/snapshots";
+import { resetTestDb, createWebhook, listWebhooks, getWebhook, deleteWebhook, updateWebhookActive, getActiveWebhooksForEvent, recordDelivery, getDeliveries, signPayload, dispatchWebhookEvent } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -50,7 +50,7 @@ let apiKey: string;
 let accountId: string;
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
@@ -71,7 +71,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 beforeEach(() => {
@@ -81,58 +80,58 @@ beforeEach(() => {
 // ─── Store unit tests ───────────────────────────────────────────
 
 describe("webhook store", () => {
-  it("creates and retrieves a webhook", () => {
-    const wh = createWebhook(accountId, "https://example.com/hook", ["snapshot.created"]);
+  it("creates and retrieves a webhook", async () => {
+    const wh = await createWebhook(accountId, "https://example.com/hook", ["snapshot.created"]);
     expect(wh.webhook_id).toBeDefined();
     expect(wh.url).toBe("https://example.com/hook");
     expect(wh.events).toEqual(["snapshot.created"]);
     expect(wh.active).toBe(true);
 
-    const found = getWebhook(wh.webhook_id);
+    const found = await getWebhook(wh.webhook_id);
     expect(found).toBeDefined();
     expect(found!.url).toBe("https://example.com/hook");
   });
 
-  it("lists webhooks for account", () => {
-    const list = listWebhooks(accountId);
+  it("lists webhooks for account", async () => {
+    const list = await listWebhooks(accountId);
     expect(list.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("toggles active state", () => {
-    const wh = createWebhook(accountId, "https://example.com/toggle", ["snapshot.deleted"]);
+  it("toggles active state", async () => {
+    const wh = await createWebhook(accountId, "https://example.com/toggle", ["snapshot.deleted"]);
     expect(wh.active).toBe(true);
-    updateWebhookActive(wh.webhook_id, false);
-    expect(getWebhook(wh.webhook_id)!.active).toBe(false);
-    updateWebhookActive(wh.webhook_id, true);
-    expect(getWebhook(wh.webhook_id)!.active).toBe(true);
+    await updateWebhookActive(wh.webhook_id, false);
+    expect((await getWebhook(wh.webhook_id))!.active).toBe(false);
+    await updateWebhookActive(wh.webhook_id, true);
+    expect((await getWebhook(wh.webhook_id))!.active).toBe(true);
   });
 
-  it("deletes a webhook", () => {
-    const wh = createWebhook(accountId, "https://example.com/delete", ["project.deleted"]);
-    expect(deleteWebhook(wh.webhook_id)).toBe(true);
-    expect(getWebhook(wh.webhook_id)).toBeUndefined();
-    expect(deleteWebhook(wh.webhook_id)).toBe(false);
+  it("deletes a webhook", async () => {
+    const wh = await createWebhook(accountId, "https://example.com/delete", ["project.deleted"]);
+    expect(await deleteWebhook(wh.webhook_id)).toBe(true);
+    expect(await getWebhook(wh.webhook_id)).toBeUndefined();
+    expect(await deleteWebhook(wh.webhook_id)).toBe(false);
   });
 
-  it("finds active webhooks for event type", () => {
-    const wh = createWebhook(accountId, "https://example.com/event-match", ["generation.completed", "snapshot.created"]);
-    const matches = getActiveWebhooksForEvent("generation.completed");
+  it("finds active webhooks for event type", async () => {
+    const wh = await createWebhook(accountId, "https://example.com/event-match", ["generation.completed", "snapshot.created"]);
+    const matches = await getActiveWebhooksForEvent("generation.completed");
     expect(matches.some((m) => m.webhook_id === wh.webhook_id)).toBe(true);
   });
 
-  it("records and retrieves deliveries", () => {
-    const wh = createWebhook(accountId, "https://example.com/delivery", ["snapshot.created"]);
-    const d = recordDelivery(wh.webhook_id, "snapshot.created", '{"test":true}', 200, "OK", true);
+  it("records and retrieves deliveries", async () => {
+    const wh = await createWebhook(accountId, "https://example.com/delivery", ["snapshot.created"]);
+    const d = await recordDelivery(wh.webhook_id, "snapshot.created", '{"test":true}', 200, "OK", true);
     expect(d.delivery_id).toBeDefined();
     expect(d.success).toBe(true);
 
-    const deliveries = getDeliveries(wh.webhook_id);
+    const deliveries = await getDeliveries(wh.webhook_id);
     expect(deliveries.length).toBe(1);
     expect(deliveries[0].status_code).toBe(200);
     expect(deliveries[0].success).toBe(true);
   });
 
-  it("signs payloads with HMAC-SHA256", () => {
+  it("signs payloads with HMAC-SHA256", async () => {
     const sig = signPayload('{"test":true}', "mysecret");
     expect(typeof sig).toBe("string");
     expect(sig.length).toBe(64); // hex-encoded SHA256
@@ -249,7 +248,7 @@ describe("GET /v1/account/webhooks/:webhook_id/deliveries", () => {
     const webhookId = (create.data as any).webhook.webhook_id;
 
     // Record a delivery directly
-    recordDelivery(webhookId, "snapshot.created", '{"test":1}', 200, "OK", true);
+    await recordDelivery(webhookId, "snapshot.created", '{"test":1}', 200, "OK", true);
 
     const r = await req("GET", `/v1/account/webhooks/${webhookId}/deliveries`, undefined, apiKey);
     expect(r.status).toBe(200);

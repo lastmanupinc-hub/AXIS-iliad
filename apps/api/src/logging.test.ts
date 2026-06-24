@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router, sendJSON, sendError } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { ErrorCode, initRequest, getRequestId, getRequestStart } from "./logger.js";
@@ -10,7 +10,7 @@ import type { ServerResponse } from "node:http";
 // ─── Unit tests for logger.ts ──────────────────────────────────
 
 describe("logger", () => {
-  it("initRequest generates UUID and stores timing", () => {
+  it("initRequest generates UUID and stores timing", async () => {
     // Create a fake ServerResponse-like object for WeakMap keying
     const fakeRes = {} as ServerResponse;
     const id = initRequest(fakeRes);
@@ -20,12 +20,12 @@ describe("logger", () => {
     expect(Date.now() - getRequestStart(fakeRes)!).toBeLessThan(100);
   });
 
-  it("getRequestId returns undefined for unknown response", () => {
+  it("getRequestId returns undefined for unknown response", async () => {
     const fakeRes = {} as ServerResponse;
     expect(getRequestId(fakeRes)).toBeUndefined();
   });
 
-  it("each request gets a unique ID", () => {
+  it("each request gets a unique ID", async () => {
     const r1 = {} as ServerResponse;
     const r2 = {} as ServerResponse;
     const id1 = initRequest(r1);
@@ -33,7 +33,7 @@ describe("logger", () => {
     expect(id1).not.toBe(id2);
   });
 
-  it("ErrorCode has all expected error categories", () => {
+  it("ErrorCode has all expected error categories", async () => {
     // 400 family
     expect(ErrorCode.INVALID_JSON).toBe("INVALID_JSON");
     expect(ErrorCode.MISSING_FIELD).toBe("MISSING_FIELD");
@@ -69,7 +69,7 @@ describe("logger", () => {
     expect(ErrorCode.UPSTREAM_ERROR).toBe("UPSTREAM_ERROR");
   });
 
-  it("ErrorCode values are unique", () => {
+  it("ErrorCode values are unique", async () => {
     const values = Object.values(ErrorCode);
     expect(new Set(values).size).toBe(values.length);
   });
@@ -111,7 +111,7 @@ async function req(
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/v1/health", handleHealthCheck);
   router.post("/v1/snapshots", handleCreateSnapshot);
@@ -124,7 +124,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 describe("request logging middleware", () => {

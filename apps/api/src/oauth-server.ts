@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { getDb } from "@axis/snapshots";
+import { sql } from "@axis/snapshots";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
@@ -96,8 +96,10 @@ export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse
   }
 
   // Verify client
-  const db = getDb();
-  const client = db.prepare("SELECT * FROM oauth_clients WHERE id = ? AND secret = ?").get(clientId, clientSecret) as any;
+  const client = await sql.one<any>(
+    "SELECT * FROM oauth_clients WHERE id = ? AND secret = ?",
+    [clientId, clientSecret],
+  );
   if (!client) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Invalid client");
     return;
@@ -238,22 +240,24 @@ export async function requireBearerToken(req: IncomingMessage, res: ServerRespon
 }
 
 // Utility function for creating OAuth clients
-export function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ["mcp:read"]) {
-  const db = getDb();
+export async function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ["mcp:read"]) {
   const id = crypto.randomUUID();
   const secret = crypto.randomUUID(); // In production, use secure random
 
-  db.prepare(`
+  await sql.run(
+    `
     INSERT INTO oauth_clients (id, name, secret, redirect_uris, scopes, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    name,
-    secret,
-    JSON.stringify(redirectUris),
-    JSON.stringify(scopes),
-    new Date().toISOString(),
-    new Date().toISOString()
+  `,
+    [
+      id,
+      name,
+      secret,
+      JSON.stringify(redirectUris),
+      JSON.stringify(scopes),
+      new Date().toISOString(),
+      new Date().toISOString(),
+    ],
   );
 
   return { id, secret };

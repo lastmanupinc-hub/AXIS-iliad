@@ -16,6 +16,12 @@ export {
 } from "./store.js";
 export { getDb, peekDb, openMemoryDb, closeDb, runMigrations, getSchemaVersion, walCheckpoint, vacuum, integrityCheck, getDbStats, purgeStaleData, runMaintenance } from "./db.js";
 export type { DbMaintenanceResult } from "./db.js";
+// Postgres (Neon) async data core — the migration target. Stores now run on `sql`;
+// callers init with runPgMigrations() and shut down with closePool(). See NEON_MIGRATION_PLAN.md.
+export { sql, getPool, peekPool, closePool, pgPlaceholders } from "./pg.js";
+export { runPgMigrations, getPgSchemaVersion, dropAllPgTables, PG_LATEST_VERSION } from "./pg-schema.js";
+export { resetTestDb, closeTestDb } from "./pg-test.js";
+export { getPgDbStats, pgIntegrityCheck, runPgMaintenance } from "./pg-maintenance.js";
 
 // Search
 export type { SearchIndexEntry, SearchResult, CodeSymbol, SymbolSearchResult, SymbolType } from "./search-store.js";

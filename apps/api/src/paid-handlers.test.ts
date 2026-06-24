@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance } from "@axis/snapshots";
+import { resetTestDb, getAccountByEmail, recordPendingPurchase, getPersistenceBalance } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -43,7 +43,7 @@ function signPaid(payload: string, ts: number = Math.floor(Date.now() / 1000)): 
 }
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   process.env.PAID_API_KEY = "sk_live_test";
   process.env.PAID_API_SECRET = "paid_secret_test_value";
@@ -66,7 +66,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
   delete process.env.PAID_API_KEY;
   delete process.env.PAID_API_SECRET;
   delete process.env.PAID_MERCHANT_ID;
@@ -192,7 +191,7 @@ describe("POST /portal/api/subscribe", () => {
     expect(sent.metadata.plan_id).toBe("starter");
   });
 
-  it("never reaches the real network — fetch is mocked", () => {
+  it("never reaches the real network — fetch is mocked", async () => {
     expect(vi.isMockFunction(globalThis.fetch)).toBe(true);
   });
 });
@@ -209,7 +208,7 @@ describe("POST /v1/accounts — email case normalization", () => {
   it("stores mixed-case signup emails lowercased", async () => {
     const account = await createAccount("Mixed-Signup@Test.COM");
     expect(account.email).toBe("mixed-signup@test.com");
-    expect(getAccountByEmail("mixed-signup@test.com")?.account_id).toBe(account.account_id);
+    expect((await getAccountByEmail("mixed-signup@test.com"))?.account_id).toBe(account.account_id);
   });
 });
 
@@ -286,7 +285,7 @@ describe("POST /portal/api/paid/webhook", () => {
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect(r.data.tier_change).toBe(true);
-    const acct = getAccountByEmail("upgrade@test.com");
+    const acct = await getAccountByEmail("upgrade@test.com");
     expect(acct?.tier).toBe("paid");
   });
 
@@ -298,7 +297,7 @@ describe("POST /portal/api/paid/webhook", () => {
       data: { object: { customer_email: "downgrade@test.com", id: "sub_dn" } },
     });
     await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
-    expect(getAccountByEmail("downgrade@test.com")?.tier).toBe("paid");
+    expect((await getAccountByEmail("downgrade@test.com"))?.tier).toBe("paid");
 
     const cancelBody = JSON.stringify({
       type: "subscription.canceled",
@@ -307,7 +306,7 @@ describe("POST /portal/api/paid/webhook", () => {
     const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
     expect(r.status).toBe(200);
     expect(r.data.tier_change).toBe(true);
-    expect(getAccountByEmail("downgrade@test.com")?.tier).toBe("free");
+    expect((await getAccountByEmail("downgrade@test.com"))?.tier).toBe("free");
   });
 
   it("no-op when event known but account already on target tier", async () => {
@@ -331,7 +330,7 @@ describe("POST /portal/api/paid/webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     expect(r.data.tier_change).toBe(true);
-    expect(getAccountByEmail("case-echo@test.com")?.tier).toBe("paid");
+    expect((await getAccountByEmail("case-echo@test.com"))?.tier).toBe("paid");
   });
 
   it("downgrades on subscription.canceled with a case-mismatched email", async () => {
@@ -342,7 +341,7 @@ describe("POST /portal/api/paid/webhook", () => {
       data: { object: { customer_email: "case-cancel@test.com", id: "sub_case_dn" } },
     });
     await req("POST", "/portal/api/paid/webhook", upBody, { "paid-signature": signPaid(upBody) });
-    expect(getAccountByEmail("case-cancel@test.com")?.tier).toBe("paid");
+    expect((await getAccountByEmail("case-cancel@test.com"))?.tier).toBe("paid");
 
     const cancelBody = JSON.stringify({
       type: "subscription.canceled",
@@ -351,7 +350,7 @@ describe("POST /portal/api/paid/webhook", () => {
     const r = await req("POST", "/portal/api/paid/webhook", cancelBody, { "paid-signature": signPaid(cancelBody) });
     expect(r.status).toBe(200);
     expect(r.data.tier_change).toBe(true);
-    expect(getAccountByEmail("case-cancel@test.com")?.tier).toBe("free");
+    expect((await getAccountByEmail("case-cancel@test.com"))?.tier).toBe("free");
   });
 
   it("reports no_account when email unknown", async () => {
@@ -398,7 +397,7 @@ describe("POST /portal/api/paid/webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     expect(r.data.tier_change).toBe(true);
-    expect(getAccountByEmail("checkout-complete@test.com")?.tier).toBe("paid");
+    expect((await getAccountByEmail("checkout-complete@test.com"))?.tier).toBe("paid");
   });
 
   it("maps a growth checkout.session.completed to the suite tier", async () => {
@@ -414,7 +413,7 @@ describe("POST /portal/api/paid/webhook", () => {
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "Webhook-Signature": signPaid(body) });
     expect(r.status).toBe(200);
-    expect(getAccountByEmail("checkout-growth@test.com")?.tier).toBe("suite");
+    expect((await getAccountByEmail("checkout-growth@test.com"))?.tier).toBe("suite");
   });
 });
 
@@ -430,7 +429,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect(r.data.tier_change).toBe(true);
-    expect(getAccountByEmail("pro-plan@test.com")?.tier).toBe("paid");
+    expect((await getAccountByEmail("pro-plan@test.com"))?.tier).toBe("paid");
   });
 
   it("maps a Growth plan id to the suite tier when env is set", async () => {
@@ -443,7 +442,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
     expect(r.data.tier_change).toBe(true);
-    expect(getAccountByEmail("growth-plan@test.com")?.tier).toBe("suite");
+    expect((await getAccountByEmail("growth-plan@test.com"))?.tier).toBe("suite");
   });
 
   it("reads the plan id from price_id when plan_id is absent", async () => {
@@ -455,7 +454,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
-    expect(getAccountByEmail("growth-price@test.com")?.tier).toBe("suite");
+    expect((await getAccountByEmail("growth-price@test.com"))?.tier).toBe("suite");
   });
 
   it("falls back to paid with a warn log on unknown plan id", async () => {
@@ -468,7 +467,7 @@ describe("POST /portal/api/paid/webhook — plan-aware tier mapping", () => {
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.status).toBe(200);
-    expect(getAccountByEmail("unknown-plan@test.com")?.tier).toBe("paid");
+    expect((await getAccountByEmail("unknown-plan@test.com"))?.tier).toBe("paid");
     const lines = stdoutSpy.mock.calls.map((c) => String(c[0])).join("");
     expect(lines).toContain("defaulting tier to paid");
     expect(lines).toContain("plan_does_not_exist");
@@ -479,14 +478,14 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
   it("grants credits once on checkout.session.completed and is idempotent", async () => {
     const acct = await createAccount("topup-webhook@test.com");
     const accountId = acct.account_id as string;
-    recordPendingPurchase({
+    await recordPendingPurchase({
       account_id: accountId,
       pack_id: "pack_100",
       credits: 100,
       price_cents: 500,
       paid_session_id: "cs_topup_1",
     });
-    expect(getPersistenceBalance(accountId)).toBe(0);
+    expect(await getPersistenceBalance(accountId)).toBe(0);
 
     const body = JSON.stringify({
       type: "checkout.session.completed",
@@ -496,18 +495,18 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
     expect(r.status).toBe(200);
     expect(r.data.credit_topup).toBe(true);
     expect(r.data.credits).toBe(100);
-    expect(getPersistenceBalance(accountId)).toBe(100);
+    expect(await getPersistenceBalance(accountId)).toBe(100);
 
     // Webhook retry — no second grant.
     const again = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(again.status).toBe(200);
     expect(again.data.credit_topup).toBe(false);
-    expect(getPersistenceBalance(accountId)).toBe(100);
+    expect(await getPersistenceBalance(accountId)).toBe(100);
   });
 
   it("leaves the account tier unchanged for a topup event", async () => {
     const acct = await createAccount("topup-tier@test.com");
-    recordPendingPurchase({
+    await recordPendingPurchase({
       account_id: acct.account_id as string,
       pack_id: "pack_500",
       credits: 500,
@@ -520,6 +519,6 @@ describe("POST /portal/api/paid/webhook — credit-pack top-ups", () => {
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
     expect(r.data.tier_change).toBeUndefined();
-    expect(getAccountByEmail("topup-tier@test.com")?.tier).toBe("free");
+    expect((await getAccountByEmail("topup-tier@test.com"))?.tier).toBe("free");
   });
 });

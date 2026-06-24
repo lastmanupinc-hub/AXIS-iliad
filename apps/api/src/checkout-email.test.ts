@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createAccount,
   createApiKey,
   getEmailDeliveries,
@@ -63,7 +62,7 @@ function signStripePayload(payload: string, ts: number = Math.floor(Date.now() /
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
   process.env.STRIPE_PRICE_ID_STARTER = "price_starter_169";
@@ -93,7 +92,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   server?.close();
-  closeDb();
   delete process.env.STRIPE_WEBHOOK_SECRET;
   delete process.env.STRIPE_PRICE_ID_STARTER;
   delete process.env.STRIPE_PRICE_ID_STARTER_ANNUAL;
@@ -126,7 +124,7 @@ describe("Email notification wiring", () => {
     // Allow async email send to complete
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const deliveries = getEmailDeliveries("welcome-test@example.com");
+    const deliveries = await getEmailDeliveries("welcome-test@example.com");
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("welcome");
     expect(deliveries[0].status).toBe("sent");
@@ -145,8 +143,8 @@ describe("Email notification wiring", () => {
     });
 
     // Create a paid account
-    const account = createAccount("Team Owner", "team-owner-169@example.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Team Owner", "team-owner-169@example.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const r = await req("POST", "/v1/account/seats",
       { email: "invitee-169@example.com", role: "member" },
@@ -157,7 +155,7 @@ describe("Email notification wiring", () => {
     // Allow async email send to complete
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const deliveries = getEmailDeliveries("invitee-169@example.com");
+    const deliveries = await getEmailDeliveries("invitee-169@example.com");
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("seat_invitation");
     expect(deliveries[0].status).toBe("sent");
@@ -174,7 +172,7 @@ describe("Email notification wiring", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    const deliveries = getEmailDeliveries("noprovider@example.com");
+    const deliveries = await getEmailDeliveries("noprovider@example.com");
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("welcome");
     expect(deliveries[0].status).toBe("pending");
@@ -191,8 +189,8 @@ describe("Checkout flow", () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_169";
     process.env.STRIPE_PRICE_ID_STARTER = "price_test_starter";
 
-    const account = createAccount("Tier Test", "tier-test-169@example.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Tier Test", "tier-test-169@example.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const r = await req("POST", "/v1/checkout",
       { plan_id: "free" },
@@ -206,8 +204,8 @@ describe("Checkout flow", () => {
   });
 
   it("returns 503 when Stripe key not configured", async () => {
-    const account = createAccount("NoStripe Test", "nostripe-169@example.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("NoStripe Test", "nostripe-169@example.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     // Temporarily remove Stripe key
     const saved = process.env.STRIPE_SECRET_KEY;
@@ -226,8 +224,8 @@ describe("Checkout flow", () => {
     // We can't test the actual LS API call, but we can verify the checkout handler
     // requires auth and validates tier — the redirect URL is part of the payload
     // construction which we verified by code review
-    const account = createAccount("Redirect Test", "redirect-169@example.com", "free");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Redirect Test", "redirect-169@example.com", "free");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     // Without STRIPE_SECRET_KEY set, we get 503 — confirms we reach the checkout logic
     delete process.env.STRIPE_SECRET_KEY;
@@ -243,8 +241,8 @@ describe("Checkout flow", () => {
 
 describe("Subscription endpoints", () => {
   it("returns subscription status for authenticated user", async () => {
-    const account = createAccount("Sub Test", "sub-169@example.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("Sub Test", "sub-169@example.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const r = await req("GET", "/v1/account/subscription", undefined, { Authorization: `Bearer ${rawKey}` });
     expect(r.status).toBe(200);
@@ -260,8 +258,8 @@ describe("Subscription endpoints", () => {
   });
 
   it("returns 404 when cancelling without subscription", async () => {
-    const account = createAccount("NoSub Cancel", "nosub-cancel-169@example.com", "paid");
-    const { rawKey } = createApiKey(account.account_id, "test");
+    const account = await createAccount("NoSub Cancel", "nosub-cancel-169@example.com", "paid");
+    const { rawKey } = await createApiKey(account.account_id, "test");
 
     const r = await req("POST", "/v1/account/subscription/cancel", undefined, { Authorization: `Bearer ${rawKey}` });
     expect(r.status).toBe(404);
@@ -278,7 +276,7 @@ describe("Webhook upgrade email notification", () => {
     });
 
     // Create a free account
-    const account = createAccount("Webhook Upgrader", "webhook-upgrade-169@example.com", "free");
+    const account = await createAccount("Webhook Upgrader", "webhook-upgrade-169@example.com", "free");
 
     // Send a checkout.session.completed webhook that activates a paid subscription
     const ts = Math.floor(Date.now() / 1000);
@@ -305,7 +303,7 @@ describe("Webhook upgrade email notification", () => {
     // Allow async email send to complete
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const deliveries = getEmailDeliveries("webhook-upgrade-169@example.com");
+    const deliveries = await getEmailDeliveries("webhook-upgrade-169@example.com");
     const upgradeEmail = deliveries.find((d) => d.template === "upgrade_confirmation");
     expect(upgradeEmail).toBeDefined();
     expect(upgradeEmail!.status).toBe("sent");

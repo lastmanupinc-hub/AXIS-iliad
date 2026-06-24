@@ -17,8 +17,8 @@ import {
  * Require admin access. Validates auth first, then checks the raw API key
  * against the ADMIN_API_KEY env var. Returns null (and sends 403) on failure.
  */
-function requireAdmin(req: IncomingMessage, res: ServerResponse): AuthContext | null {
-  const ctx = requireAuth(req, res);
+async function requireAdmin(req: IncomingMessage, res: ServerResponse): Promise<AuthContext | null> {
+  const ctx = await requireAuth(req, res);
   if (!ctx) return null; // 401 already sent
 
   const adminKey = process.env.ADMIN_API_KEY;
@@ -42,10 +42,10 @@ export async function handleAdminStats(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAdmin(req, res);
+  const ctx = await requireAdmin(req, res);
   if (!ctx) return;
 
-  const stats = getSystemStats();
+  const stats = await getSystemStats();
   sendJSON(res, 200, stats);
 }
 
@@ -54,7 +54,7 @@ export async function handleAdminAccounts(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAdmin(req, res);
+  const ctx = await requireAdmin(req, res);
   if (!ctx) return;
 
   /* v8 ignore next — req.url always present in tests */
@@ -63,7 +63,7 @@ export async function handleAdminAccounts(
   const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 1), 200);
   const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0", 10) || 0, 0);
 
-  const result = listAllAccounts(limit, offset);
+  const result = await listAllAccounts(limit, offset);
   sendJSON(res, 200, { ...result, limit, offset });
 }
 
@@ -72,7 +72,7 @@ export async function handleAdminActivity(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAdmin(req, res);
+  const ctx = await requireAdmin(req, res);
   if (!ctx) return;
 
   /* v8 ignore next — req.url always present in tests */
@@ -80,7 +80,7 @@ export async function handleAdminActivity(
   /* v8 ignore next — compound parseInt||fallback tested in admin.test.ts */
   const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "50", 10) || 50, 1), 200);
 
-  const events = getRecentActivity(limit);
+  const events = await getRecentActivity(limit);
   sendJSON(res, 200, { events, count: events.length });
 }
 
@@ -92,7 +92,7 @@ export async function handleAdminMcpUsage(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAdmin(req, res);
+  const ctx = await requireAdmin(req, res);
   if (!ctx) return;
 
   /* v8 ignore next — req.url always present in tests */
@@ -103,9 +103,9 @@ export async function handleAdminMcpUsage(
   );
 
   sendJSON(res, 200, {
-    windows: getMcpUsageWindows(),
-    summary: getMcpUsageSummary({ windowDays }),
-    new_vs_returning: getMcpUsageNewVsReturning({ windowDays }),
+    windows: await getMcpUsageWindows(),
+    summary: await getMcpUsageSummary({ windowDays }),
+    new_vs_returning: await getMcpUsageNewVsReturning({ windowDays }),
   });
 }
 
@@ -119,12 +119,12 @@ export async function handleAdminRevenue(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAdmin(req, res);
+  const ctx = await requireAdmin(req, res);
   if (!ctx) return;
 
-  const growth = getGrowthSnapshot();
-  const funnel = getFunnelMetrics();
-  const mcp = getMcpUsageSummary({ windowDays: 30 });
+  const growth = await getGrowthSnapshot();
+  const funnel = await getFunnelMetrics();
+  const mcp = await getMcpUsageSummary({ windowDays: 30 });
 
   sendJSON(res, 200, {
     ...growth,

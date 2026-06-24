@@ -1,4 +1,4 @@
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 
 // Idempotency for the paid MCP path. A client sends an Idempotency-Key with a
 // tools/call; the first call runs + charges, subsequent retries with the same
@@ -18,14 +18,16 @@ const TTL_MS = 24 * 60 * 60 * 1000; // 24h
  * exists or it has expired. The caller compares request_hash to detect a key
  * reused with different arguments.
  */
-export function getIdempotentResult(account_id: string, key: string): IdempotentRecord | undefined {
-  const row = getDb()
-    .prepare(
-      `SELECT request_hash, response, created_at
-         FROM idempotency_keys
-        WHERE account_id = ? AND idempotency_key = ?`,
-    )
-    .get(account_id, key) as { request_hash: string; response: string; created_at: string } | undefined;
+export async function getIdempotentResult(
+  account_id: string,
+  key: string,
+): Promise<IdempotentRecord | undefined> {
+  const row = await sql.one<{ request_hash: string; response: string; created_at: string }>(
+    `SELECT request_hash, response, created_at
+       FROM idempotency_keys
+      WHERE account_id = ? AND idempotency_key = ?`,
+    [account_id, key],
+  );
   if (!row) return undefined;
   if (Date.now() - new Date(row.created_at).getTime() > TTL_MS) return undefined;
   return { request_hash: row.request_hash, response: row.response };
@@ -35,26 +37,23 @@ export function getIdempotentResult(account_id: string, key: string): Idempotent
  * Persist a successful result. Uses ON CONFLICT DO NOTHING so a concurrent
  * first-call race keeps the earliest-committed result rather than overwriting.
  */
-export function saveIdempotentResult(
+export async function saveIdempotentResult(
   account_id: string,
   key: string,
   request_hash: string,
   response: string,
-): void {
-  getDb()
-    .prepare(
-      `INSERT INTO idempotency_keys (account_id, idempotency_key, request_hash, response, created_at)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(account_id, idempotency_key) DO NOTHING`,
-    )
-    .run(account_id, key, request_hash, response, new Date().toISOString());
+): Promise<void> {
+  await sql.run(
+    `INSERT INTO idempotency_keys (account_id, idempotency_key, request_hash, response, created_at)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(account_id, idempotency_key) DO NOTHING`,
+    [account_id, key, request_hash, response, new Date().toISOString()],
+  );
 }
 
 /** Delete expired keys. Best-effort housekeeping; safe to call periodically. */
-export function pruneIdempotencyKeys(now = Date.now()): number {
+export async function pruneIdempotencyKeys(now = Date.now()): Promise<number> {
   const cutoff = new Date(now - TTL_MS).toISOString();
-  const info = getDb()
-    .prepare(`DELETE FROM idempotency_keys WHERE created_at < ?`)
-    .run(cutoff);
-  return info.changes;
+  const info = await sql.run(`DELETE FROM idempotency_keys WHERE created_at < ?`, [cutoff]);
+  return info.rowCount;
 }

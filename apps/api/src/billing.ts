@@ -82,7 +82,7 @@ function readSessionCookie(req: IncomingMessage): string | null {
  * the first-party HttpOnly session cookie. Sets auth context on the request; does
  * NOT reject anonymous requests — callers check context.anonymous to enforce auth.
  */
-export function resolveAuth(req: IncomingMessage): AuthContext {
+export async function resolveAuth(req: IncomingMessage): Promise<AuthContext> {
   const cached = AUTH_CONTEXT.get(req);
   if (cached) return cached;
 
@@ -106,7 +106,7 @@ export function resolveAuth(req: IncomingMessage): AuthContext {
     return ctx;
   }
 
-  const resolved = resolveApiKey(rawKey);
+  const resolved = await resolveApiKey(rawKey);
   if (!resolved) {
     // Key was provided but is invalid/revoked — mark as invalid, not anonymous
     const ctx: AuthContext = { account: null, key_id: null, anonymous: false };
@@ -127,8 +127,8 @@ export function resolveAuth(req: IncomingMessage): AuthContext {
  * Require a valid API key. Returns 401 if anonymous.
  * Returns the auth context if authenticated, or null (and sends error) if not.
  */
-export function requireAuth(req: IncomingMessage, res: ServerResponse): AuthContext | null {
-  const ctx = resolveAuth(req);
+export async function requireAuth(req: IncomingMessage, res: ServerResponse): Promise<AuthContext | null> {
+  const ctx = await resolveAuth(req);
   if (ctx.anonymous || !ctx.account) {
     sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Authentication required. Include Authorization: Bearer <api_key>");
     return null;
@@ -228,7 +228,7 @@ export async function handleCreateAccount(
   }
 
   // Check for duplicate email
-  const existing = getAccountByEmail(email);
+  const existing = await getAccountByEmail(email);
   if (existing) {
     sendError(res, 409, ErrorCode.CONFLICT, "An account with this email already exists");
     return;
@@ -253,13 +253,13 @@ export async function handleCreateAccount(
     return;
   }
 
-  const account = createAccount(name, email, tier);
+  const account = await createAccount(name, email, tier);
 
   // Auto-generate an API key for the new account
-  const { apiKey, rawKey } = createApiKey(account.account_id, "default");
+  const { apiKey, rawKey } = await createApiKey(account.account_id, "default");
 
   // Track signup funnel event
-  trackEvent(account.account_id, "account_created", "signup", { tier, source: "api" });
+  await trackEvent(account.account_id, "account_created", "signup", { tier, source: "api" });
 
   // Send welcome email (fire-and-forget — log failures for observability)
   sendWelcomeEmail(email, name, tier).catch((err: unknown) => {
@@ -283,12 +283,12 @@ export async function handleGetAccount(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  const quota = checkQuota(ctx.account!.account_id);
-  const entitlements = getEntitlements(ctx.account!.account_id);
-  const usageCredits = getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
+  const quota = await checkQuota(ctx.account!.account_id);
+  const entitlements = await getEntitlements(ctx.account!.account_id);
+  const usageCredits = await getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
 
   sendJSON(res, 200, {
     account: ctx.account,
@@ -310,7 +310,7 @@ export async function handleCreateApiKey(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
@@ -325,7 +325,7 @@ export async function handleCreateApiKey(
 
   /* v8 ignore next */
   const label = typeof body.label === "string" ? body.label : "";
-  const { apiKey, rawKey } = createApiKey(ctx.account!.account_id, label);
+  const { apiKey, rawKey } = await createApiKey(ctx.account!.account_id, label);
 
   sendJSON(res, 201, {
     key_id: apiKey.key_id,
@@ -341,11 +341,11 @@ export async function handleListApiKeys(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
-  const keys = listApiKeys(ctx.account!.account_id);
+  const keys = await listApiKeys(ctx.account!.account_id);
   sendJSON(res, 200, {
     keys: keys.map((k) => ({
       key_id: k.key_id,
@@ -364,12 +364,12 @@ export async function handleRevokeApiKey(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
   const { key_id } = params;
-  const keys = listApiKeys(ctx.account!.account_id);
+  const keys = await listApiKeys(ctx.account!.account_id);
   const target = keys.find((k) => k.key_id === key_id);
 
   /* v8 ignore next 3 — V8 quirk: both 404 paths tested in billing-flow tests */
@@ -383,7 +383,7 @@ export async function handleRevokeApiKey(
     return;
   }
 
-  revokeApiKey(key_id);
+  await revokeApiKey(key_id);
   sendJSON(res, 200, { key_id, revoked: true });
 }
 
@@ -392,15 +392,15 @@ export async function handleGetUsage(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
   /* v8 ignore next */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   const since = url.searchParams.get("since") ?? undefined;
-  const summary = getUsageSummary(ctx.account!.account_id, since);
-  const usageCredits = getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
+  const summary = await getUsageSummary(ctx.account!.account_id, since);
+  const usageCredits = await getUsageCreditSummary(ctx.account!.account_id, ctx.account!.tier);
 
   sendJSON(res, 200, {
     account_id: ctx.account!.account_id,
@@ -422,7 +422,7 @@ export async function handleGetAnalyticsSummary(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   if (!isAdminCaller(req)) {
@@ -437,8 +437,8 @@ export async function handleGetAnalyticsSummary(
   const limit = Math.min(Math.max(Number.isFinite(limitRaw) ? limitRaw : 100, 1), 500);
   const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000).toISOString();
 
-  const usage = getUsageSummary(ctx.account!.account_id, since);
-  const api = getApiCallSummary(ctx.account!.account_id, since, limit);
+  const usage = await getUsageSummary(ctx.account!.account_id, since);
+  const api = await getApiCallSummary(ctx.account!.account_id, since, limit);
 
   sendJSON(res, 200, {
     account_id: ctx.account!.account_id,
@@ -461,7 +461,7 @@ export async function handleUpdateTier(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const raw = await readBody(req);
@@ -500,15 +500,15 @@ export async function handleUpdateTier(
     return;
   }
 
-  updateAccountTier(ctx.account!.account_id, tier);
-  const updated = getAccount(ctx.account!.account_id);
+  await updateAccountTier(ctx.account!.account_id, tier);
+  const updated = await getAccount(ctx.account!.account_id);
 
   // Log tier change to audit trail
-  logTierChange(ctx.account!.account_id, previousTier, tier, "user_request", { source: "api" });
+  await logTierChange(ctx.account!.account_id, previousTier, tier, "user_request", { source: "api" });
 
   // Track tier change funnel event
   const isUpgrade = (tier === "paid" && ctx.account!.tier === "free") || (tier === "suite");
-  trackEvent(ctx.account!.account_id, isUpgrade ? "upgrade_completed" : "downgrade_completed",
+  await trackEvent(ctx.account!.account_id, isUpgrade ? "upgrade_completed" : "downgrade_completed",
     isUpgrade ? "conversion" : "signup",
     { from_tier: ctx.account!.tier, to_tier: tier },
   );
@@ -521,7 +521,7 @@ export async function handleUpdatePrograms(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   if (ctx.account!.tier === "free") {
@@ -559,18 +559,18 @@ export async function handleUpdatePrograms(
 
   if (enable) {
     for (const prog of enable) {
-      enableProgram(ctx.account!.account_id, prog);
-      trackEvent(ctx.account!.account_id, "program_added", "expansion", { program: prog });
+      await enableProgram(ctx.account!.account_id, prog);
+      await trackEvent(ctx.account!.account_id, "program_added", "expansion", { program: prog });
     }
   }
   if (disable) {
     for (const prog of disable) {
-      disableProgram(ctx.account!.account_id, prog);
-      trackEvent(ctx.account!.account_id, "program_removed", "conversion", { program: prog });
+      await disableProgram(ctx.account!.account_id, prog);
+      await trackEvent(ctx.account!.account_id, "program_removed", "conversion", { program: prog });
     }
   }
 
-  const entitlements = getEntitlements(ctx.account!.account_id);
+  const entitlements = await getEntitlements(ctx.account!.account_id);
   sendJSON(res, 200, { programs: entitlements.map((e) => e.program) });
 }
 
@@ -579,7 +579,7 @@ export async function handleGetQuota(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = resolveAuth(req);
+  const ctx = await resolveAuth(req);
   const authenticated = !ctx.anonymous;
   const ip = getClientIp(req);
   const window = getClientWindow(ip, { authenticated });
@@ -596,7 +596,7 @@ export async function handleGetQuota(
   };
 
   if (ctx.account) {
-    const quota = checkQuota(ctx.account.account_id);
+    const quota = await checkQuota(ctx.account.account_id);
     response.resource_quota = {
       tier: quota.tier,
       snapshots_this_month: quota.usage.snapshots_this_month,
@@ -617,7 +617,7 @@ export async function handleSaveGitHubToken(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const raw = await readBody(req);
@@ -643,7 +643,7 @@ export async function handleSaveGitHubToken(
   const label = typeof body.label === "string" ? body.label : "default";
   const scopes = Array.isArray(body.scopes) ? body.scopes.filter((s: unknown) => typeof s === "string") as string[] : [];
 
-  const saved = saveGitHubToken(ctx.account!.account_id, token, label, scopes);
+  const saved = await saveGitHubToken(ctx.account!.account_id, token, label, scopes);
 
   sendJSON(res, 201, {
     token_id: saved.token_id,
@@ -660,11 +660,11 @@ export async function handleListGitHubTokens(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
-  const tokens = getGitHubTokens(ctx.account!.account_id);
+  const tokens = await getGitHubTokens(ctx.account!.account_id);
 
   sendJSON(res, 200, {
     tokens: tokens.map((t) => ({
@@ -686,12 +686,12 @@ export async function handleDeleteGitHubToken(
   res: ServerResponse,
   params: Record<string, string>,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
   const { token_id } = params;
-  const deleted = deleteGitHubToken(ctx.account!.account_id, token_id);
+  const deleted = await deleteGitHubToken(ctx.account!.account_id, token_id);
   if (!deleted) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "GitHub token not found");
     return;
@@ -707,10 +707,10 @@ export async function handleBillingHistory(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
-  const history = getTierHistory(ctx.account!.account_id);
+  const history = await getTierHistory(ctx.account!.account_id);
 
   sendJSON(res, 200, {
     account_id: ctx.account!.account_id,
@@ -731,7 +731,7 @@ export async function handleProrationPreview(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   /* v8 ignore next */
   if (!ctx) return;
 
@@ -760,7 +760,7 @@ export async function handleGetCredits(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const account_id = ctx.account!.account_id;
@@ -768,11 +768,11 @@ export async function handleGetCredits(
 
   // Auto-apply the suite monthly grant if eligible (idempotent — only credits once per month)
   if (tier === "suite") {
-    applySuiteMonthlyGrant(account_id, tier);
+    await applySuiteMonthlyGrant(account_id, tier);
   }
 
-  const balance = getPersistenceBalance(account_id);
-  const ledger = getPersistenceLedger(account_id, 50);
+  const balance = await getPersistenceBalance(account_id);
+  const ledger = await getPersistenceLedger(account_id, 50);
 
   sendJSON(res, 200, {
     account_id,
@@ -789,7 +789,7 @@ export async function handleAddCredits(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const ctx = requireAuth(req, res);
+  const ctx = await requireAuth(req, res);
   if (!ctx) return;
 
   const tier = ctx.account!.tier;
@@ -844,7 +844,7 @@ export async function handleAddCredits(
   }
 
   const account_id = ctx.account!.account_id;
-  const balance_after = addPersistenceCredits(account_id, credits, operation);
+  const balance_after = await addPersistenceCredits(account_id, credits, operation);
 
   sendJSON(res, 200, {
     account_id,

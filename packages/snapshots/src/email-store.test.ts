@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { openMemoryDb, closeDb, getDb } from "./db.js";
+import { resetTestDb } from "./pg-test.js";
+import { getDb } from "./db.js";
 import {
   renderTemplate,
   recordEmailDelivery,
@@ -18,10 +19,9 @@ import {
   type EmailProvider,
 } from "./email-store.js";
 
-beforeEach(() => { openMemoryDb(); });
+beforeEach(async () => { await resetTestDb(); });
 afterEach(() => {
   setEmailProvider(null as unknown as EmailProvider);
-  closeDb();
 });
 
 // ─── Template rendering ─────────────────────────────────────────
@@ -83,72 +83,72 @@ describe("renderTemplate", () => {
 // ─── Delivery tracking ──────────────────────────────────────────
 
 describe("recordEmailDelivery", () => {
-  it("records a pending delivery", () => {
+  it("records a pending delivery", async () => {
     const msg: EmailMessage = { to: "a@b.com", subject: "", template: "welcome", variables: { name: "A" } };
-    const d = recordEmailDelivery(msg, "pending");
+    const d = await recordEmailDelivery(msg, "pending");
     expect(d.delivery_id).toBeTruthy();
     expect(d.status).toBe("pending");
     expect(d.sent_at).toBeNull();
     expect(d.error).toBeNull();
   });
 
-  it("records a sent delivery with provider_id", () => {
+  it("records a sent delivery with provider_id", async () => {
     const msg: EmailMessage = { to: "a@b.com", subject: "", template: "welcome", variables: { name: "A" } };
-    const d = recordEmailDelivery(msg, "sent", "ext-123");
+    const d = await recordEmailDelivery(msg, "sent", "ext-123");
     expect(d.status).toBe("sent");
     expect(d.provider_id).toBe("ext-123");
     expect(d.sent_at).toBeTruthy();
   });
 
-  it("records a failed delivery with error", () => {
+  it("records a failed delivery with error", async () => {
     const msg: EmailMessage = { to: "a@b.com", subject: "", template: "welcome", variables: { name: "A" } };
-    const d = recordEmailDelivery(msg, "failed", undefined, "SMTP timeout");
+    const d = await recordEmailDelivery(msg, "failed", undefined, "SMTP timeout");
     expect(d.status).toBe("failed");
     expect(d.error).toBe("SMTP timeout");
   });
 });
 
 describe("getEmailDeliveries", () => {
-  it("returns deliveries by email", () => {
+  it("returns deliveries by email", async () => {
     const msg: EmailMessage = { to: "x@y.com", subject: "", template: "welcome", variables: { name: "X" } };
-    recordEmailDelivery(msg, "sent", "p1");
-    recordEmailDelivery({ ...msg, to: "other@y.com" }, "sent", "p2");
+    await recordEmailDelivery(msg, "sent", "p1");
+    await recordEmailDelivery({ ...msg, to: "other@y.com" }, "sent", "p2");
 
-    const results = getEmailDeliveries("x@y.com");
+    const results = await getEmailDeliveries("x@y.com");
     expect(results).toHaveLength(1);
     expect(results[0].to_email).toBe("x@y.com");
   });
 
-  it("returns all deliveries when no email filter", () => {
+  it("returns all deliveries when no email filter", async () => {
     const msg: EmailMessage = { to: "a@b.com", subject: "", template: "welcome", variables: { name: "A" } };
-    recordEmailDelivery(msg, "sent");
-    recordEmailDelivery({ ...msg, to: "c@d.com" }, "sent");
+    await recordEmailDelivery(msg, "sent");
+    await recordEmailDelivery({ ...msg, to: "c@d.com" }, "sent");
 
-    const results = getEmailDeliveries();
+    const results = await getEmailDeliveries();
     expect(results).toHaveLength(2);
   });
 
-  it("respects limit", () => {
+  it("respects limit", async () => {
     const msg: EmailMessage = { to: "a@b.com", subject: "", template: "welcome", variables: { name: "A" } };
-    for (let i = 0; i < 5; i++) recordEmailDelivery(msg, "sent");
+    for (let i = 0; i < 5; i++) await recordEmailDelivery(msg, "sent");
 
-    const results = getEmailDeliveries(undefined, 3);
+    const results = await getEmailDeliveries(undefined, 3);
     expect(results).toHaveLength(3);
   });
 });
 
 describe("getEmailDelivery", () => {
-  it("returns a specific delivery by ID", () => {
+  it("returns a specific delivery by ID", async () => {
     const msg: EmailMessage = { to: "a@b.com", subject: "", template: "welcome", variables: { name: "A" } };
-    const d = recordEmailDelivery(msg, "sent");
+    const d = await recordEmailDelivery(msg, "sent");
 
-    const found = getEmailDelivery(d.delivery_id);
+    const found = await getEmailDelivery(d.delivery_id);
     expect(found).toBeDefined();
     expect(found!.delivery_id).toBe(d.delivery_id);
   });
 
-  it("returns undefined for unknown ID", () => {
-    expect(getEmailDelivery("no-such-id")).toBeUndefined();
+  it("returns undefined for unknown ID", async () => {
+    expect(await getEmailDelivery("no-such-id")).toBeUndefined();
   });
 });
 

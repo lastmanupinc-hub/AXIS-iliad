@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey, recordUsage } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey, recordUsage } from "@axis/snapshots";
 import { Router, sendJSON } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { listAvailableGenerators } from "@axis/generator-core";
@@ -49,16 +49,16 @@ async function req(
 
 // ─── Helper ─────────────────────────────────────────────────────
 
-function makeAuth(name: string, email: string, tier: "free" | "paid" | "suite" = "free") {
-  const account = createAccount(name, email, tier);
-  const { rawKey } = createApiKey(account.account_id, "test");
+async function makeAuth(name: string, email: string, tier: "free" | "paid" | "suite" = "free") {
+  const account = await createAccount(name, email, tier);
+  const { rawKey } = await createApiKey(account.account_id, "test");
   return { account_id: account.account_id, rawKey };
 }
 
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const router = new Router();
@@ -95,7 +95,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 beforeEach(() => {
@@ -163,7 +162,7 @@ describe("GET /v1/programs", () => {
 
 describe("GET /v1/account — quota and entitlements", () => {
   it("returns quota breakdown for free account", async () => {
-    const { rawKey } = makeAuth("quota-free", "quota-free@test.com", "free");
+    const { rawKey } = await makeAuth("quota-free", "quota-free@test.com", "free");
     const res = await req("GET", "/v1/account", undefined, rawKey);
     expect(res.status).toBe(200);
     const quota = res.data.quota as Record<string, unknown>;
@@ -175,15 +174,15 @@ describe("GET /v1/account — quota and entitlements", () => {
   });
 
   it("returns entitlements as array", async () => {
-    const { rawKey } = makeAuth("ent-user", "ent-user@test.com", "free");
+    const { rawKey } = await makeAuth("ent-user", "ent-user@test.com", "free");
     const res = await req("GET", "/v1/account", undefined, rawKey);
     expect(res.status).toBe(200);
     expect(Array.isArray(res.data.entitlements)).toBe(true);
   });
 
   it("paid account has higher quota limits", async () => {
-    const { rawKey: freeKey } = makeAuth("free-lim", "free-lim@test.com", "free");
-    const { rawKey: paidKey } = makeAuth("paid-lim", "paid-lim@test.com", "paid");
+    const { rawKey: freeKey } = await makeAuth("free-lim", "free-lim@test.com", "free");
+    const { rawKey: paidKey } = await makeAuth("paid-lim", "paid-lim@test.com", "paid");
     const freeRes = await req("GET", "/v1/account", undefined, freeKey);
     const paidRes = await req("GET", "/v1/account", undefined, paidKey);
     const freeQuota = freeRes.data.quota as Record<string, number>;
@@ -196,7 +195,7 @@ describe("GET /v1/account — quota and entitlements", () => {
 
 describe("GET /v1/account/usage", () => {
   it("returns empty usage for new account", async () => {
-    const { rawKey } = makeAuth("usage-new", "usage-new@test.com");
+    const { rawKey } = await makeAuth("usage-new", "usage-new@test.com");
     const res = await req("GET", "/v1/account/usage", undefined, rawKey);
     expect(res.status).toBe(200);
     expect(res.data.since).toBe("all_time");
@@ -206,8 +205,8 @@ describe("GET /v1/account/usage", () => {
   });
 
   it("reflects usage after recording", async () => {
-    const { account_id, rawKey } = makeAuth("usage-rec", "usage-rec@test.com");
-    recordUsage(account_id, "search", "proj-1", 5, 3, 1024);
+    const { account_id, rawKey } = await makeAuth("usage-rec", "usage-rec@test.com");
+    await recordUsage(account_id, "search", "proj-1", 5, 3, 1024);
     const res = await req("GET", "/v1/account/usage", undefined, rawKey);
     const totals = res.data.totals as Record<string, number>;
     expect(totals.runs).toBe(1);
@@ -217,8 +216,8 @@ describe("GET /v1/account/usage", () => {
   });
 
   it("supports ?since= parameter", async () => {
-    const { account_id, rawKey } = makeAuth("usage-since", "usage-since@test.com");
-    recordUsage(account_id, "debug", "proj-2", 2, 1, 512);
+    const { account_id, rawKey } = await makeAuth("usage-since", "usage-since@test.com");
+    await recordUsage(account_id, "debug", "proj-2", 2, 1, 512);
     const future = new Date(Date.now() + 86400000).toISOString();
     const res = await req("GET", `/v1/account/usage?since=${future}`, undefined, rawKey);
     expect(res.status).toBe(200);
@@ -275,7 +274,7 @@ describe("POST /v1/accounts — edge cases", () => {
 
 describe("POST /v1/account/programs — edge cases", () => {
   it("enabling a program appears in entitlements", async () => {
-    const { rawKey } = makeAuth("prog-en", "prog-en@test.com", "paid");
+    const { rawKey } = await makeAuth("prog-en", "prog-en@test.com", "paid");
     await req("POST", "/v1/account/programs", { enable: ["search"] }, rawKey);
     const acct = await req("GET", "/v1/account", undefined, rawKey);
     const entitlements = acct.data.entitlements as string[];
@@ -283,7 +282,7 @@ describe("POST /v1/account/programs — edge cases", () => {
   });
 
   it("disabling a program removes it from entitlements", async () => {
-    const { rawKey } = makeAuth("prog-dis", "prog-dis@test.com", "paid");
+    const { rawKey } = await makeAuth("prog-dis", "prog-dis@test.com", "paid");
     await req("POST", "/v1/account/programs", { enable: ["search", "debug"] }, rawKey);
     await req("POST", "/v1/account/programs", { disable: ["search"] }, rawKey);
     const acct = await req("GET", "/v1/account", undefined, rawKey);
@@ -293,13 +292,13 @@ describe("POST /v1/account/programs — edge cases", () => {
   });
 
   it("suite tier can manage programs", async () => {
-    const { rawKey } = makeAuth("prog-suite", "prog-suite@test.com", "suite");
+    const { rawKey } = await makeAuth("prog-suite", "prog-suite@test.com", "suite");
     const res = await req("POST", "/v1/account/programs", { enable: ["frontend"] }, rawKey);
     expect(res.status).toBe(200);
   });
 
   it("rejects non-existent program name", async () => {
-    const { rawKey } = makeAuth("prog-bad", "prog-bad@test.com", "paid");
+    const { rawKey } = await makeAuth("prog-bad", "prog-bad@test.com", "paid");
     const res = await req("POST", "/v1/account/programs", { enable: ["nonexistent_program"] }, rawKey);
     expect(res.status).toBe(400);
   });

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { openMemoryDb, closeDb } from "./db.js";
+import { describe, it, expect, beforeEach } from "vitest";
+import { resetTestDb } from "./pg-test.js";
 import {
   extractSymbols,
   indexSymbols,
@@ -8,8 +8,7 @@ import {
   getSymbolStats,
 } from "./search-store.js";
 
-beforeEach(() => { openMemoryDb(); });
-afterEach(() => { closeDb(); });
+beforeEach(async () => { await resetTestDb(); });
 
 // ─── extractSymbols ─────────────────────────────────────────────
 
@@ -123,45 +122,45 @@ describe("indexSymbols / searchSymbols", () => {
     { path: "app/models.py", content: "class UserModel:\n    pass\n\ndef get_by_id(id: int):\n    pass\n" },
   ];
 
-  beforeEach(() => {
-    const result = indexSymbols(snapshotId, files);
+  beforeEach(async () => {
+    const result = await indexSymbols(snapshotId, files);
     expect(result.indexed_symbols).toBeGreaterThan(0);
   });
 
-  it("returns all symbols with empty query", () => {
-    const results = searchSymbols(snapshotId, {});
+  it("returns all symbols with empty query", async () => {
+    const results = await searchSymbols(snapshotId, {});
     expect(results.length).toBeGreaterThan(0);
   });
 
-  it("filters by name prefix (case-insensitive)", () => {
-    const results = searchSymbols(snapshotId, { name: "handle" });
+  it("filters by name prefix (case-insensitive)", async () => {
+    const results = await searchSymbols(snapshotId, { name: "handle" });
     expect(results.every((r) => r.symbol_name.toLowerCase().startsWith("handle"))).toBe(true);
     expect(results.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("filters by type", () => {
-    const results = searchSymbols(snapshotId, { type: "class" });
+  it("filters by type", async () => {
+    const results = await searchSymbols(snapshotId, { type: "class" });
     expect(results.every((r) => r.symbol_type === "class")).toBe(true);
   });
 
-  it("filters by both name and type", () => {
-    const results = searchSymbols(snapshotId, { name: "User", type: "interface" });
+  it("filters by both name and type", async () => {
+    const results = await searchSymbols(snapshotId, { name: "User", type: "interface" });
     expect(results.every((r) => r.symbol_type === "interface")).toBe(true);
     expect(results.every((r) => r.symbol_name.toLowerCase().startsWith("user"))).toBe(true);
   });
 
-  it("respects limit", () => {
-    const results = searchSymbols(snapshotId, { limit: 2 });
+  it("respects limit", async () => {
+    const results = await searchSymbols(snapshotId, { limit: 2 });
     expect(results.length).toBeLessThanOrEqual(2);
   });
 
-  it("returns empty array for non-matching name", () => {
-    const results = searchSymbols(snapshotId, { name: "zzz_no_match_zzz" });
+  it("returns empty array for non-matching name", async () => {
+    const results = await searchSymbols(snapshotId, { name: "zzz_no_match_zzz" });
     expect(results).toEqual([]);
   });
 
-  it("returns correct fields in each result", () => {
-    const results = searchSymbols(snapshotId, { name: "handle" });
+  it("returns correct fields in each result", async () => {
+    const results = await searchSymbols(snapshotId, { name: "handle" });
     for (const r of results) {
       expect(typeof r.file_path).toBe("string");
       expect(typeof r.symbol_name).toBe("string");
@@ -174,19 +173,19 @@ describe("indexSymbols / searchSymbols", () => {
 // ─── getSymbolStats ──────────────────────────────────────────────
 
 describe("getSymbolStats", () => {
-  it("returns zero counts for unindexed snapshot", () => {
-    const stats = getSymbolStats("nonexistent");
+  it("returns zero counts for unindexed snapshot", async () => {
+    const stats = await getSymbolStats("nonexistent");
     expect(stats.symbol_count).toBe(0);
     expect(stats.file_count).toBe(0);
   });
 
-  it("returns accurate counts after indexing", () => {
+  it("returns accurate counts after indexing", async () => {
     const files = [
       { path: "src/a.ts", content: "function foo() {}\nfunction bar() {}\n" },
       { path: "src/b.ts", content: "class Baz {}\n" },
     ];
-    indexSymbols("stat-snap", files);
-    const stats = getSymbolStats("stat-snap");
+    await indexSymbols("stat-snap", files);
+    const stats = await getSymbolStats("stat-snap");
     expect(stats.symbol_count).toBe(3);
     expect(stats.file_count).toBe(2);
   });
@@ -195,20 +194,20 @@ describe("getSymbolStats", () => {
 // ─── clearSymbols ──────────────────────────────────────────────
 
 describe("clearSymbols", () => {
-  it("removes all symbols for a snapshot", () => {
+  it("removes all symbols for a snapshot", async () => {
     const files = [{ path: "src/a.ts", content: "function foo() {}\n" }];
-    indexSymbols("clear-snap", files);
-    expect(getSymbolStats("clear-snap").symbol_count).toBeGreaterThan(0);
-    clearSymbols("clear-snap");
-    expect(getSymbolStats("clear-snap").symbol_count).toBe(0);
+    await indexSymbols("clear-snap", files);
+    expect((await getSymbolStats("clear-snap")).symbol_count).toBeGreaterThan(0);
+    await clearSymbols("clear-snap");
+    expect((await getSymbolStats("clear-snap")).symbol_count).toBe(0);
   });
 
-  it("does not affect other snapshots", () => {
+  it("does not affect other snapshots", async () => {
     const files = [{ path: "src/a.ts", content: "function foo() {}\n" }];
-    indexSymbols("snap-keep", files);
-    indexSymbols("snap-clear", files);
-    clearSymbols("snap-clear");
-    expect(getSymbolStats("snap-keep").symbol_count).toBeGreaterThan(0);
-    expect(getSymbolStats("snap-clear").symbol_count).toBe(0);
+    await indexSymbols("snap-keep", files);
+    await indexSymbols("snap-clear", files);
+    await clearSymbols("snap-clear");
+    expect((await getSymbolStats("snap-keep")).symbol_count).toBeGreaterThan(0);
+    expect((await getSymbolStats("snap-clear")).symbol_count).toBe(0);
   });
 });

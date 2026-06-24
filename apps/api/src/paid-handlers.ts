@@ -104,7 +104,7 @@ export async function handlePaidSubscribe(
     return;
   }
 
-  const account = getAccountByEmail(email);
+  const account = await getAccountByEmail(email);
   if (!account) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No account found for that email — sign up first");
     return;
@@ -146,7 +146,7 @@ export async function handlePaidSubscribe(
       },
       config,
     );
-    trackEvent(account.account_id, "checkout_started", "conversion", {
+    await trackEvent(account.account_id, "checkout_started", "conversion", {
       processor: "paid",
       plan,
       session_id: session.id,
@@ -318,9 +318,9 @@ export async function handlePaidWebhook(
       sendJSON(res, 200, { received: true, event: eventType, handled: false, reason: "no_session_id" });
       return;
     }
-    const granted = markPurchaseSucceeded(sessionId, paymentIntentId);
+    const granted = await markPurchaseSucceeded(sessionId, paymentIntentId);
     if (granted) {
-      trackEvent(granted.account_id, "upgrade_completed", "conversion", {
+      await trackEvent(granted.account_id, "upgrade_completed", "conversion", {
         kind: "credit_topup",
         pack_id: granted.pack_id,
         credits: String(granted.credits),
@@ -350,7 +350,7 @@ export async function handlePaidWebhook(
     return;
   }
 
-  const account = getAccountByEmail(customerEmail);
+  const account = await getAccountByEmail(customerEmail);
   if (!account) {
     log("warn", "PAID webhook for unknown account", { email: customerEmail, event: eventType });
     sendJSON(res, 200, { received: true, event: eventType, handled: false, reason: "no_account" });
@@ -359,12 +359,12 @@ export async function handlePaidWebhook(
 
   const previousTier = account.tier;
   if (previousTier !== targetTier) {
-    updateAccountTier(account.account_id, targetTier);
-    logTierChange(account.account_id, previousTier, targetTier, "paid_webhook", {
+    await updateAccountTier(account.account_id, targetTier);
+    await logTierChange(account.account_id, previousTier, targetTier, "paid_webhook", {
       event: eventType,
       subscription_id: subscriptionId,
     });
-    trackEvent(
+    await trackEvent(
       account.account_id,
       targetTier === "free" ? "downgrade_completed" : "upgrade_completed",
       targetTier === "free" ? "signup" : "conversion",

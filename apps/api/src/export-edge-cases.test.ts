@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { openMemoryDb, closeDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -83,10 +83,10 @@ let emojiProjectId: string;
 let emojiSnapshotId: string;
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
 
   // Project 1: many files (offset arithmetic)
-  const manySnap = createSnapshot({
+  const manySnap = await createSnapshot({
     input_method: "repo_snapshot_upload",
     manifest: {
       project_name: "many-files-project",
@@ -107,14 +107,14 @@ beforeAll(async () => {
     program: i % 3 === 0 ? "debug" : i % 3 === 1 ? "search" : "skills",
   }));
 
-  saveGeneratorResult(manyFilesSnapshotId, {
+  await saveGeneratorResult(manyFilesSnapshotId, {
     snapshot_id: manyFilesSnapshotId,
     generated_at: new Date().toISOString(),
     files: manyFiles,
   });
 
   // Project 2: emoji + multi-byte UTF-8 paths
-  const emojiSnap = createSnapshot({
+  const emojiSnap = await createSnapshot({
     input_method: "repo_snapshot_upload",
     manifest: {
       project_name: "emoji-project",
@@ -128,7 +128,7 @@ beforeAll(async () => {
   emojiProjectId = emojiSnap.project_id;
   emojiSnapshotId = emojiSnap.snapshot_id;
 
-  saveGeneratorResult(emojiSnapshotId, {
+  await saveGeneratorResult(emojiSnapshotId, {
     snapshot_id: emojiSnapshotId,
     generated_at: new Date().toISOString(),
     files: [
@@ -148,7 +148,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   server?.close();
-  closeDb();
 });
 
 // ─── Many-files offset arithmetic ───────────────────────────────

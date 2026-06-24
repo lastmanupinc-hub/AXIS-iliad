@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -85,7 +85,7 @@ async function get(path: string): Promise<Res> {
 // ─── Server setup ─────────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const router = new Router();
@@ -114,17 +114,16 @@ beforeAll(async () => {
   });
   await new Promise<void>(resolve => server.listen(TEST_PORT, resolve));
 
-  const suite = createAccount("MCP Suite", "mcp-suite@test.com", "suite");
-  apiKey = createApiKey(suite.account_id, "suite-key").rawKey;
-  const free = createAccount("MCP Free", "mcp-free@test.com", "free");
-  freeApiKey = createApiKey(free.account_id, "free-key").rawKey;
+  const suite = await createAccount("MCP Suite", "mcp-suite@test.com", "suite");
+  apiKey = (await createApiKey(suite.account_id, "suite-key")).rawKey;
+  const free = await createAccount("MCP Free", "mcp-free@test.com", "free");
+  freeApiKey = (await createApiKey(free.account_id, "free-key")).rawKey;
 });
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close(err => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ─── Protocol-layer tests ──────────────────────────────────────────
@@ -234,9 +233,9 @@ describe("GET /v1/stats — anonymous call counters", () => {
     expect(typeof d.date).toBe("string");
   });
 
-  it("logMcpCall increments counters", () => {
+  it("logMcpCall increments counters", async () => {
     const before = getMcpCallCounters().total;
-    logMcpCall("list_programs", null, "127.0.0.1");
+    await logMcpCall("list_programs", null, "127.0.0.1");
     expect(getMcpCallCounters().total).toBe(before + 1);
     expect(getMcpCallCounters().byTool["list_programs"]).toBeGreaterThan(0);
   });
@@ -318,7 +317,7 @@ describe("POST /mcp — tools/list", () => {
     expect(keys).not.toContain("axis_capabilities");
   });
 
-  it("every tool schema has examples array", () => {
+  it("every tool schema has examples array", async () => {
     for (const tool of MCP_TOOLS) {
       expect(
         (tool as Record<string, unknown>).examples,
@@ -331,7 +330,7 @@ describe("POST /mcp — tools/list", () => {
     }
   });
 
-  it("every tool outputSchema has top-level object type", () => {
+  it("every tool outputSchema has top-level object type", async () => {
     for (const tool of MCP_TOOLS as Array<Record<string, unknown>>) {
       const outputSchema = tool.outputSchema as Record<string, unknown>;
       expect(outputSchema).toBeDefined();
@@ -339,7 +338,7 @@ describe("POST /mcp — tools/list", () => {
     }
   });
 
-  it("canonical analyze_repo metadata stays optimized for registry scoring", () => {
+  it("canonical analyze_repo metadata stays optimized for registry scoring", async () => {
     const analyzeRepo = MCP_TOOLS.find(tool => tool.name === "analyze_repo");
     expect(analyzeRepo).toBeDefined();
     expect(analyzeRepo!.description).toContain("snapshot_id plus an artifacts listing");
@@ -1174,9 +1173,9 @@ describe("POST /mcp — branch coverage: request id is null/undefined", () => {
 describe("POST /mcp — branch coverage: anonymous snapshots", () => {
   let anonSnapshotId = "";
 
-  beforeAll(() => {
+  beforeAll(async () => {
     // Create a snapshot outside the MCP API path (no account_id, no generated artifacts)
-    const snap = createSnapshot(
+    const snap = await createSnapshot(
       {
         input_method: "api_submission",
         manifest: {
@@ -1230,23 +1229,23 @@ describe("POST /mcp — branch coverage: anonymous snapshots", () => {
 // ─── runSearchTools unit tests ───────────────────────────────────
 
 describe("runSearchTools — no query returns all programs", () => {
-  it("returns all 20 programs when q is omitted", () => {
+  it("returns all 20 programs when q is omitted", async () => {
     const parsed = JSON.parse(runSearchTools({}));
     expect(parsed.total_matches).toBe(20);
     expect(Array.isArray(parsed.results)).toBe(true);
   });
 
-  it("query is null when no q provided", () => {
+  it("query is null when no q provided", async () => {
     const parsed = JSON.parse(runSearchTools({}));
     expect(parsed.query).toBeNull();
   });
 
-  it("program_filter is null when no program provided", () => {
+  it("program_filter is null when no program provided", async () => {
     const parsed = JSON.parse(runSearchTools({}));
     expect(parsed.program_filter).toBeNull();
   });
 
-  it("every result has program, tier, capability_tags, all_artifacts, example_call", () => {
+  it("every result has program, tier, capability_tags, all_artifacts, example_call", async () => {
     const parsed = JSON.parse(runSearchTools({}));
     for (const r of parsed.results as Array<Record<string, unknown>>) {
       expect(typeof r.program).toBe("string");
@@ -1257,7 +1256,7 @@ describe("runSearchTools — no query returns all programs", () => {
     }
   });
 
-  it("free programs (search, skills, debug) have tier free", () => {
+  it("free programs (search, skills, debug) have tier free", async () => {
     const parsed = JSON.parse(runSearchTools({}));
     const results = parsed.results as Array<{ program: string; tier: string }>;
     for (const name of ["search", "skills", "debug"]) {
@@ -1266,7 +1265,7 @@ describe("runSearchTools — no query returns all programs", () => {
     }
   });
 
-  it("agentic-purchasing has pro tier", () => {
+  it("agentic-purchasing has pro tier", async () => {
     const parsed = JSON.parse(runSearchTools({}));
     const results = parsed.results as Array<{ program: string; tier: string }>;
     const r = results.find(p => p.program === "agentic-purchasing");
@@ -1275,21 +1274,21 @@ describe("runSearchTools — no query returns all programs", () => {
 });
 
 describe("runSearchTools — keyword query ranking", () => {
-  it("q=checkout returns agentic-purchasing as top match", () => {
+  it("q=checkout returns agentic-purchasing as top match", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "checkout" }));
     expect(parsed.total_matches).toBeGreaterThan(0);
     const top = (parsed.results as Array<{ program: string }>)[0];
     expect(top.program).toBe("agentic-purchasing");
   });
 
-  it("q=checkout annotates matching_artifacts with checkout-flow.md", () => {
+  it("q=checkout annotates matching_artifacts with checkout-flow.md", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "checkout" }));
     const r = (parsed.results as Array<{ program: string; matching_artifacts: string[] }>)
       .find(p => p.program === "agentic-purchasing");
     expect(r?.matching_artifacts).toContain("checkout-flow.md");
   });
 
-  it("q=debug returns debug program with score > 0", () => {
+  it("q=debug returns debug program with score > 0", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "debug" }));
     const r = (parsed.results as Array<{ program: string; score: number }>)
       .find(p => p.program === "debug");
@@ -1297,7 +1296,7 @@ describe("runSearchTools — keyword query ranking", () => {
     expect(r!.score).toBeGreaterThan(0);
   });
 
-  it("q=mcp returns mcp program with program match score", () => {
+  it("q=mcp returns mcp program with program match score", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "mcp" }));
     const r = (parsed.results as Array<{ program: string; score: number }>)
       .find(p => p.program === "mcp");
@@ -1305,7 +1304,7 @@ describe("runSearchTools — keyword query ranking", () => {
     expect(r!.score).toBeGreaterThanOrEqual(3);
   });
 
-  it("results are sorted by score descending", () => {
+  it("results are sorted by score descending", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "agents" }));
     const scores = (parsed.results as Array<{ score: number }>).map(r => r.score);
     for (let i = 1; i < scores.length; i++) {
@@ -1313,18 +1312,18 @@ describe("runSearchTools — keyword query ranking", () => {
     }
   });
 
-  it("q=xxxxnothing returns 0 matches", () => {
+  it("q=xxxxnothing returns 0 matches", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "xxxxnothing" }));
     expect(parsed.total_matches).toBe(0);
     expect(parsed.results).toEqual([]);
   });
 
-  it("query is echoed back in response", () => {
+  it("query is echoed back in response", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "checkout" }));
     expect(parsed.query).toBe("checkout");
   });
 
-  it("q is trimmed and lowercased", () => {
+  it("q is trimmed and lowercased", async () => {
     const parsed = JSON.parse(runSearchTools({ q: "  CHECKOUT  " }));
     expect(parsed.query).toBe("checkout");
     expect(parsed.total_matches).toBeGreaterThan(0);
@@ -1332,59 +1331,59 @@ describe("runSearchTools — keyword query ranking", () => {
 });
 
 describe("runSearchTools — program filter", () => {
-  it("program=debug returns only debug program", () => {
+  it("program=debug returns only debug program", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "debug" }));
     const programs = (parsed.results as Array<{ program: string }>).map(r => r.program);
     expect(programs.every(p => p.includes("debug"))).toBe(true);
     expect(parsed.total_matches).toBeGreaterThanOrEqual(1);
   });
 
-  it("program=mcp with no q returns mcp program results", () => {
+  it("program=mcp with no q returns mcp program results", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "mcp" }));
     const programs = (parsed.results as Array<{ program: string }>).map(r => r.program);
     expect(programs).toContain("mcp");
   });
 
-  it("program filter is case-insensitive", () => {
+  it("program filter is case-insensitive", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "MCP" }));
     const programs = (parsed.results as Array<{ program: string }>).map(r => r.program);
     expect(programs).toContain("mcp");
   });
 
-  it("program=nonexistent returns 0 matches", () => {
+  it("program=nonexistent returns 0 matches", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "nonexistent-program" }));
     expect(parsed.total_matches).toBe(0);
   });
 
-  it("program_filter is echoed in response", () => {
+  it("program_filter is echoed in response", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "debug" }));
     expect(parsed.program_filter).toBe("debug");
   });
 });
 
 describe("runSearchTools — PROGRAM_ENDPOINTS coverage", () => {
-  it("search program example_call uses /v1/search/index", () => {
+  it("search program example_call uses /v1/search/index", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "search" }));
     const r = (parsed.results as Array<{ program: string; example_call: string }>)
       .find(p => p.program === "search");
     expect(r?.example_call).toBe("POST /v1/search/index");
   });
 
-  it("mcp program example_call uses /v1/mcp/provision", () => {
+  it("mcp program example_call uses /v1/mcp/provision", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "mcp" }));
     const r = (parsed.results as Array<{ program: string; example_call: string }>)
       .find(p => p.program === "mcp");
     expect(r?.example_call).toBe("POST /v1/mcp/provision");
   });
 
-  it("agentic-purchasing example_call uses /v1/agentic-purchasing/generate", () => {
+  it("agentic-purchasing example_call uses /v1/agentic-purchasing/generate", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "agentic-purchasing" }));
     const r = (parsed.results as Array<{ program: string; example_call: string }>)
       .find(p => p.program === "agentic-purchasing");
     expect(r?.example_call).toBe("POST /v1/agentic-purchasing/generate");
   });
 
-  it("debug program example_call uses fallback /v1/debug/generate", () => {
+  it("debug program example_call uses fallback /v1/debug/generate", async () => {
     const parsed = JSON.parse(runSearchTools({ program: "debug" }));
     const r = (parsed.results as Array<{ program: string; example_call: string }>)
       .find(p => p.program === "debug");
@@ -1423,7 +1422,7 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
     expect(parsed.total_matches).toBe(20);
   });
 
-  it("tool name appears in MCP_TOOLS", () => {
+  it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("search_and_discover_tools");
   });
@@ -1432,7 +1431,7 @@ describe("POST /mcp — tools/call search_and_discover_tools", () => {
 // ─── getMcpServerMeta unit tests ─────────────────────────────────
 
 describe("getMcpServerMeta — shape and content", () => {
-  it("returns an object with required registry fields", () => {
+  it("returns an object with required registry fields", async () => {
     const meta = getMcpServerMeta();
     const server = meta.server as Record<string, unknown>;
     expect(typeof server.name).toBe("string");
@@ -1440,23 +1439,23 @@ describe("getMcpServerMeta — shape and content", () => {
     expect(typeof server.endpoint).toBe("string");
   });
 
-  it("server.name is the branded registry name", () => {
+  it("server.name is the branded registry name", async () => {
     const server = getMcpServerMeta().server as Record<string, unknown>;
     expect(server.name).toBe("Axis' Iliad");
     expect(server.slug).toBe("axis-iliad");
   });
 
-  it("server.endpoint points to production MCP HTTP endpoint", () => {
+  it("server.endpoint points to production MCP HTTP endpoint", async () => {
     const server = getMcpServerMeta().server as Record<string, unknown>;
     expect(server.endpoint).toBe("https://axis-api-6c7z.onrender.com/v1/mcp");
   });
 
-  it("_meta.protocol includes MCP_PROTOCOL_VERSION", () => {
+  it("_meta.protocol includes MCP_PROTOCOL_VERSION", async () => {
     const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
     expect(String(_meta.protocol)).toContain(MCP_PROTOCOL_VERSION);
   });
 
-  it("tools array exposes the full 28-tool catalog (build-not-redact)", () => {
+  it("tools array exposes the full 28-tool catalog (build-not-redact)", async () => {
     const tools = getMcpServerMeta().tools as Array<{ name: string; description: string }>;
     expect(tools).toHaveLength(29);
     expect(tools).toHaveLength(MCP_TOOLS.length);
@@ -1466,7 +1465,7 @@ describe("getMcpServerMeta — shape and content", () => {
     }
   });
 
-  it("each tool entry has name and description only", () => {
+  it("each tool entry has name and description only", async () => {
     const tools = getMcpServerMeta().tools as Array<Record<string, unknown>>;
     for (const t of tools) {
       expect(typeof t.name).toBe("string");
@@ -1475,7 +1474,7 @@ describe("getMcpServerMeta — shape and content", () => {
     }
   });
 
-  it("_meta.categories is a non-empty array of strings", () => {
+  it("_meta.categories is a non-empty array of strings", async () => {
     const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
     const cats = _meta.categories as string[];
     expect(Array.isArray(cats)).toBe(true);
@@ -1483,20 +1482,20 @@ describe("getMcpServerMeta — shape and content", () => {
     for (const c of cats) expect(typeof c).toBe("string");
   });
 
-  it("_meta.authentication type is bearer", () => {
+  it("_meta.authentication type is bearer", async () => {
     const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
     const auth = _meta.authentication as { type: string };
     expect(auth.type).toBe("bearer");
   });
 
-  it("_meta.quickstart has step1_discover and step2_analyze keys", () => {
+  it("_meta.quickstart has step1_discover and step2_analyze keys", async () => {
     const _meta = getMcpServerMeta()._meta as Record<string, unknown>;
     const qs = _meta.quickstart as Record<string, string>;
     expect(typeof qs.step1_discover).toBe("string");
     expect(typeof qs.step2_analyze).toBe("string");
   });
 
-  it("returns same structure on repeated calls (deterministic)", () => {
+  it("returns same structure on repeated calls (deterministic)", async () => {
     expect(JSON.stringify(getMcpServerMeta())).toBe(JSON.stringify(getMcpServerMeta()));
   });
 });
@@ -1623,7 +1622,7 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
   });
 
-  it("tool name appears in MCP_TOOLS", () => {
+  it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("discover_commerce_tools");
   });
@@ -1652,7 +1651,7 @@ describe("POST /mcp — tools/call improve_my_agent_with_axis", () => {
     expect(content[0].text).toContain("Authentication required");
   });
 
-  it("tool name appears in MCP_TOOLS", () => {
+  it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("improve_my_agent_with_axis");
   });
@@ -1726,7 +1725,7 @@ describe("POST /mcp — tools/call discover_agentic_purchasing_needs", () => {
     expect(parsed.matched_capabilities.length).toBeLessThanOrEqual(2);
   });
 
-  it("tool name appears in MCP_TOOLS", () => {
+  it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("discover_agentic_purchasing_needs");
   });
@@ -1790,7 +1789,7 @@ describe("POST /mcp — tools/call get_referral_code", () => {
     expect(p1.referral_token).toBe(p2.referral_token);
   });
 
-  it("tool name appears in MCP_TOOLS", () => {
+  it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("get_referral_code");
   });
@@ -1853,7 +1852,7 @@ describe("POST /mcp — tools/call get_referral_credits", () => {
     expect(parsed.next_milestone).toBeDefined();
   });
 
-  it("tool name appears in MCP_TOOLS", () => {
+  it("tool name appears in MCP_TOOLS", async () => {
     const names = MCP_TOOLS.map(t => t.name);
     expect(names).toContain("get_referral_credits");
   });
@@ -2121,15 +2120,15 @@ describe("POST /mcp — batch JSON-RPC (array of requests)", () => {
 describe("POST /mcp — owned-tool metering", () => {
   // Use a fresh isolated account per metering test so the credit
   // counters don't accumulate cross-test noise.
-  function newFreeAccount(seed: string): { accountId: string; rawKey: string } {
-    const acc = createAccount(`Metering-${seed}`, `metering-${seed}@test.com`, "free");
-    const key = createApiKey(acc.account_id, `metering-${seed}-key`).rawKey;
+  async function newFreeAccount(seed: string): Promise<{ accountId: string; rawKey: string }> {
+    const acc = await createAccount(`Metering-${seed}`, `metering-${seed}@test.com`, "free");
+    const key = (await createApiKey(acc.account_id, `metering-${seed}-key`)).rawKey;
     return { accountId: acc.account_id, rawKey: key };
   }
 
   it("free-tier iliad_vector_database upsert increments included_credits_used", async () => {
-    const { accountId, rawKey } = newFreeAccount("vec-upsert");
-    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const { accountId, rawKey } = await newFreeAccount("vec-upsert");
+    const before = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 200,
@@ -2146,7 +2145,7 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     expect(result.isError).toBe(false);
-    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     // 1¢ tier → at least 1 credit consumed.
     expect(after).toBeGreaterThan(before);
   });
@@ -2174,8 +2173,8 @@ describe("POST /mcp — owned-tool metering", () => {
   });
 
   it("iliad_web_search operation=index is FREE (no credit decrement)", async () => {
-    const { accountId, rawKey } = newFreeAccount("ws-index");
-    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const { accountId, rawKey } = await newFreeAccount("ws-index");
+    const before = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 202,
@@ -2192,12 +2191,12 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     expect(result.isError).toBe(false);
-    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     expect(after).toBe(before);
   });
 
   it("iliad_web_search operation=search IS metered (credit decrement)", async () => {
-    const { accountId, rawKey } = newFreeAccount("ws-search");
+    const { accountId, rawKey } = await newFreeAccount("ws-search");
     // Index a doc first (free), then search (metered).
     await post("/mcp", {
       jsonrpc: "2.0",
@@ -2212,7 +2211,7 @@ describe("POST /mcp — owned-tool metering", () => {
         },
       },
     }, rawKey);
-    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const before = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 204,
@@ -2229,13 +2228,13 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(r.status).toBe(200);
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     expect(result.isError).toBe(false);
-    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     expect(after).toBeGreaterThan(before);
   });
 
   it("iliad_hygiene mode=scan is FREE (no credit decrement) and returns a grade", async () => {
-    const { accountId, rawKey } = newFreeAccount("hyg-scan");
-    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const { accountId, rawKey } = await newFreeAccount("hyg-scan");
+    const before = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 220,
@@ -2257,13 +2256,13 @@ describe("POST /mcp — owned-tool metering", () => {
     expect(parsed.mode).toBe("scan");
     expect(["A", "B", "C", "D", "F"]).toContain(parsed.grade);
     expect(parsed.remediation_plan).toBeUndefined();
-    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     expect(after).toBe(before);
   });
 
   it("iliad_hygiene flags a committed secret (grade F) and mode=fix IS metered + returns a plan", async () => {
-    const { accountId, rawKey } = newFreeAccount("hyg-fix");
-    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const { accountId, rawKey } = await newFreeAccount("hyg-fix");
+    const before = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 221,
@@ -2285,7 +2284,7 @@ describe("POST /mcp — owned-tool metering", () => {
     const plan = parsed.remediation_plan as Record<string, unknown>;
     expect(Array.isArray(plan.ordered_steps)).toBe(true);
     expect((plan.ordered_steps as unknown[]).length).toBeGreaterThan(0);
-    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     expect(after).toBeGreaterThan(before);
   });
 
@@ -2304,8 +2303,8 @@ describe("POST /mcp — owned-tool metering", () => {
   });
 
   it("iliad_speech_to_text returns _not_configured envelope WITHOUT charging", async () => {
-    const { accountId, rawKey } = newFreeAccount("stt-not-cfg");
-    const before = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const { accountId, rawKey } = await newFreeAccount("stt-not-cfg");
+    const before = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     const r = await post("/mcp", {
       jsonrpc: "2.0",
       id: 205,
@@ -2321,20 +2320,21 @@ describe("POST /mcp — owned-tool metering", () => {
     const content = result.content as Array<{ type: string; text: string }>;
     const parsed = JSON.parse(content[0].text) as Record<string, unknown>;
     expect(parsed._not_configured).toBe(true);
-    const after = getUsageCreditSummary(accountId, "free").included_credits_used;
+    const after = (await getUsageCreditSummary(accountId, "free")).included_credits_used;
     expect(after).toBe(before);
   });
 
   it("free-tier returns payment_required envelope after monthly allowance is exhausted", async () => {
-    const { accountId, rawKey } = newFreeAccount("vec-exhaust");
-    // Burn through the 10k-credit free allowance via direct ledger
-    // writes — much faster than 10k MCP calls. Each iteration uses
-    // 6 credits (= 1¢ tier). 1667 iterations × 6 = 10,002 used.
-    for (let i = 0; i < 1700; i++) {
-      const r = consumeUsageCredits(accountId, "free", "iliad_vector_database", 1);
-      if (r.effective_overage_cents > 0) break;
-    }
-    const summary = getUsageCreditSummary(accountId, "free");
+    const { accountId, rawKey } = await newFreeAccount("vec-exhaust");
+    // Exhaust the free monthly allowance in one direct write — 1600+ sequential
+    // consumeUsageCredits round-trips would blow the test timeout on networked
+    // Postgres. One real call first establishes the monthly row + plan/allowance.
+    await consumeUsageCredits(accountId, "free", "iliad_vector_database", 1);
+    await sql.run(
+      "UPDATE usage_credit_monthly SET included_credits_used = monthly_allowance WHERE account_id = ?",
+      [accountId],
+    );
+    const summary = await getUsageCreditSummary(accountId, "free");
     expect(summary.included_credits_remaining).toBeLessThan(6);
 
     // Next MCP call should now overage and return the payment_required envelope.

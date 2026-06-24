@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { MCP_TOOL_COUNT } from "./counts.js";
 import {
@@ -86,7 +86,7 @@ const TEST_PORT = 44517;
 let server: Server;
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   const router = new Router();
   router.get("/llms.txt", handleLlmsTxt);
   router.get("/.well-known/skills/index.json", handleSkillsIndex);
@@ -107,7 +107,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // â”€â”€â”€ GET /llms.txt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -124,57 +123,57 @@ describe("GET /llms.txt", () => {
     body = r.body;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns text/plain content-type", () => {
+  it("returns text/plain content-type", async () => {
     expect(String(headers["content-type"])).toContain("text/plain");
   });
 
-  it("contains Axis' Iliad name", () => {
+  it("contains Axis' Iliad name", async () => {
     expect(body).toContain("Axis' Iliad");
   });
 
-  it("contains POST /v1/analyze", () => {
+  it("contains POST /v1/analyze", async () => {
     expect(body).toContain("POST /v1/analyze");
   });
 
-  it("contains POST /mcp MCP endpoint", () => {
+  it("contains POST /mcp MCP endpoint", async () => {
     expect(body).toContain("POST /mcp");
   });
 
-    it("contains the canonical MCP tools count", () => {
+    it("contains the canonical MCP tools count", async () => {
       expect(body).toContain(`${MCP_TOOL_COUNT} tools`);
   });
 
-  it("contains the 20 programs count", () => {
+  it("contains the 20 programs count", async () => {
     expect(body).toContain("20");
   });
 
-  it("contains free tier programs", () => {
+  it("contains free tier programs", async () => {
     expect(body).toContain("search");
     expect(body).toContain("debug");
   });
 
-  it("mentions agentic purchasing", () => {
+  it("mentions agentic purchasing", async () => {
     expect(body).toContain("prepare-for-agentic-purchasing");
   });
 
-  it("mentions agent skills endpoint in docs section", () => {
+  it("mentions agent skills endpoint in docs section", async () => {
     expect(body).toContain("/.well-known/skills/index.json");
   });
 
-  it("mentions plain-text docs", () => {
+  it("mentions plain-text docs", async () => {
     expect(body).toContain("/v1/docs.md");
   });
 
-  it("contains authentication instructions", () => {
+  it("contains authentication instructions", async () => {
     expect(body).toContain("Authorization: Bearer");
     expect(body).toContain("POST /v1/accounts");
   });
 
-  it("does not instruct agents to forward referral tokens", () => {
+  it("does not instruct agents to forward referral tokens", async () => {
     expect(body).not.toContain("forwarded to other agents");
     expect(body).not.toContain("micro-discounts");
     expect(body).not.toContain("Share-to-Earn");
@@ -193,28 +192,28 @@ describe("GET /.well-known/skills/index.json", () => {
     data = JSON.parse(r.body) as Record<string, unknown>;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("has version field", () => {
+  it("has version field", async () => {
     expect(data.version).toBe("1.0");
   });
 
-  it("has publisher field", () => {
+  it("has publisher field", async () => {
     expect(typeof data.publisher).toBe("string");
     expect(String(data.publisher)).toContain("Axis' Iliad");
   });
 
-  it("has skills array", () => {
+  it("has skills array", async () => {
     expect(Array.isArray(data.skills)).toBe(true);
   });
 
-  it("has at least 4 skills", () => {
+  it("has at least 4 skills", async () => {
     expect((data.skills as unknown[]).length).toBeGreaterThanOrEqual(4);
   });
 
-  it("each skill has name, description, and endpoint", () => {
+  it("each skill has name, description, and endpoint", async () => {
     for (const skill of data.skills as Array<Record<string, unknown>>) {
       expect(typeof skill.name).toBe("string");
       expect(typeof skill.description).toBe("string");
@@ -222,34 +221,34 @@ describe("GET /.well-known/skills/index.json", () => {
     }
   });
 
-  it("includes axis-analyze skill", () => {
+  it("includes axis-analyze skill", async () => {
     const skills = data.skills as Array<{ name: string }>;
     expect(skills.some(s => s.name === "axis-analyze")).toBe(true);
   });
 
-  it("includes axis-prepare-for-agentic-purchasing skill", () => {
+  it("includes axis-prepare-for-agentic-purchasing skill", async () => {
     const skills = data.skills as Array<{ name: string }>;
     expect(skills.some(s => s.name === "axis-prepare-for-agentic-purchasing")).toBe(true);
   });
 
-  it("includes axis-search-tools skill", () => {
+  it("includes axis-search-tools skill", async () => {
     const skills = data.skills as Array<{ name: string }>;
     expect(skills.some(s => s.name === "axis-search-tools")).toBe(true);
   });
 
-  it("includes axis-mcp skill", () => {
+  it("includes axis-mcp skill", async () => {
     const skills = data.skills as Array<{ name: string }>;
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists 14 tools", () => {
+  it("axis-mcp skill lists 14 tools", async () => {
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
       expect(mcp!.tools!.length).toBe(14);
   });
 
-  it("axis-analyze has tags array", () => {
+  it("axis-analyze has tags array", async () => {
     const skills = data.skills as Array<{ name: string; tags: string[] }>;
     const analyze = skills.find(s => s.name === "axis-analyze");
     expect(Array.isArray(analyze?.tags)).toBe(true);
@@ -270,47 +269,47 @@ describe("GET /v1/docs.md", () => {
     body = r.body;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns text/plain content-type", () => {
+  it("returns text/plain content-type", async () => {
     expect(String(headers["content-type"])).toContain("text/plain");
   });
 
-  it("contains Axis' Iliad header", () => {
+  it("contains Axis' Iliad header", async () => {
     expect(body).toContain("Axis' Iliad");
   });
 
-  it("contains POST /v1/analyze", () => {
+  it("contains POST /v1/analyze", async () => {
     expect(body).toContain("POST /v1/analyze");
   });
 
-  it("contains POST /v1/prepare-for-agentic-purchasing", () => {
+  it("contains POST /v1/prepare-for-agentic-purchasing", async () => {
     expect(body).toContain("POST /v1/prepare-for-agentic-purchasing");
   });
 
-  it("contains MCP section", () => {
+  it("contains MCP section", async () => {
     expect(body).toContain("POST /mcp");
   });
 
-  it("contains the programs table with 18 programs", () => {
+  it("contains the programs table with 18 programs", async () => {
     expect(body).toContain("| search |");
     expect(body).toContain("| agentic-purchasing |");
   });
 
-  it("contains account management endpoints", () => {
+  it("contains account management endpoints", async () => {
     expect(body).toContain("POST /v1/accounts");
     expect(body).toContain("GET /v1/account");
   });
 
-  it("contains discovery endpoints", () => {
+  it("contains discovery endpoints", async () => {
     expect(body).toContain("/.well-known/axis.json");
     expect(body).toContain("/.well-known/skills/index.json");
     expect(body).toContain("/llms.txt");
   });
 
-  it("mentions search endpoint", () => {
+  it("mentions search endpoint", async () => {
     expect(body).toContain("GET /v1/mcp/tools");
   });
 });
@@ -325,17 +324,17 @@ describe("GET /.well-known/axis.json â€” new fields", () => {
     data = JSON.parse(r.body) as Record<string, unknown>;
   });
 
-  it("includes llms_txt field", () => {
+  it("includes llms_txt field", async () => {
     expect(typeof data.llms_txt).toBe("string");
     expect(String(data.llms_txt)).toContain("/llms.txt");
   });
 
-  it("includes skills field", () => {
+  it("includes skills field", async () => {
     expect(typeof data.skills).toBe("string");
     expect(String(data.skills)).toContain("/.well-known/skills/index.json");
   });
 
-  it("replaces the incentives marketing block with neutral referral facts", () => {
+  it("replaces the incentives marketing block with neutral referral facts", async () => {
     expect(data.incentives).toBeUndefined();
     const referral = data.referral_program as Record<string, unknown>;
     expect(referral).toBeDefined();
@@ -359,23 +358,23 @@ describe("GET /for-agents", () => {
     data = JSON.parse(r.body) as Record<string, unknown>;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns name and version", () => {
+  it("returns name and version", async () => {
     expect(data.name).toBe("Axis' Iliad");
     expect(data.version).toBe("0.5.3");
   });
 
-  it("includes install section with mcp_endpoint", () => {
+  it("includes install section with mcp_endpoint", async () => {
     const install = data.install as Record<string, unknown>;
     expect(install).toBeDefined();
     expect(typeof install.mcp_endpoint).toBe("string");
     expect(String(install.mcp_endpoint)).toContain("/mcp");
   });
 
-  it("includes platform configs for claude-desktop, cursor, vscode", () => {
+  it("includes platform configs for claude-desktop, cursor, vscode", async () => {
     const install = data.install as Record<string, unknown>;
     const platforms = install.platforms as Record<string, unknown>;
     expect(platforms["claude-desktop"]).toBeDefined();
@@ -384,24 +383,24 @@ describe("GET /for-agents", () => {
     expect(platforms["claude-code"]).toBeDefined();
   });
 
-  it("includes tools array with 14 tools", () => {
+  it("includes tools array with 14 tools", async () => {
     const tools = data.tools as Array<unknown>;
     expect(tools).toHaveLength(14);
   });
 
-  it("includes first_action hint", () => {
+  it("includes first_action hint", async () => {
     expect(typeof data.first_action).toBe("string");
     expect(String(data.first_action)).toContain("search_and_discover_tools");
   });
 
-  it("includes discovery URLs", () => {
+  it("includes discovery URLs", async () => {
     const discovery = data.discovery as Record<string, unknown>;
     expect(discovery).toBeDefined();
     expect(typeof discovery.well_known).toBe("string");
     expect(typeof discovery.install).toBe("string");
   });
 
-  it("does not embed propagation or incentive marketing", () => {
+  it("does not embed propagation or incentive marketing", async () => {
     expect(data.propagation).toBeUndefined();
     expect(data.system_prompt_snippet).toBeUndefined();
     expect(data.incentives).toBeUndefined();
@@ -411,7 +410,7 @@ describe("GET /for-agents", () => {
     expect(raw).not.toContain("Pass it to other agents");
   });
 
-  it("keeps a neutral referral_program facts object", () => {
+  it("keeps a neutral referral_program facts object", async () => {
     const referral = data.referral_program as Record<string, unknown>;
     expect(referral).toBeDefined();
     expect(String(referral.description)).toContain("referral_token");
@@ -431,11 +430,11 @@ describe("GET /v1/install", () => {
     data = JSON.parse(r.body) as Record<string, unknown>;
   });
 
-  it("returns 200", () => {
+  it("returns 200", async () => {
     expect(status).toBe(200);
   });
 
-  it("returns all platform configs", () => {
+  it("returns all platform configs", async () => {
     const platforms = data.platforms as Record<string, unknown>;
     expect(platforms).toBeDefined();
     expect(Object.keys(platforms)).toContain("claude-desktop");
@@ -444,12 +443,12 @@ describe("GET /v1/install", () => {
     expect(Object.keys(platforms)).toContain("claude-code");
   });
 
-  it("includes mcp_endpoint", () => {
+  it("includes mcp_endpoint", async () => {
     expect(typeof data.mcp_endpoint).toBe("string");
     expect(String(data.mcp_endpoint)).toContain("/mcp");
   });
 
-  it("includes instructions", () => {
+  it("includes instructions", async () => {
     expect(typeof data.instructions).toBe("string");
   });
 });

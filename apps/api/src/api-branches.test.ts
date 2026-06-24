@@ -6,8 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createAccount,
   createApiKey,
   createSnapshot,
@@ -118,24 +117,24 @@ let snapshotId: string;
 // ─── Setup ──────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   // Create auth contexts
-  const paid = createAccount("Paid User", "paid@test.com", "paid");
-  const paidKey = createApiKey(paid.account_id, "test-paid");
+  const paid = await createAccount("Paid User", "paid@test.com", "paid");
+  const paidKey = await createApiKey(paid.account_id, "test-paid");
   paidAuth = { account_id: paid.account_id, headers: { Authorization: `Bearer ${paidKey.rawKey}` } };
 
-  const free = createAccount("Free User", "free@test.com", "free");
-  const freeKey = createApiKey(free.account_id, "test-free");
+  const free = await createAccount("Free User", "free@test.com", "free");
+  const freeKey = await createApiKey(free.account_id, "test-free");
   freeAuth = { account_id: free.account_id, headers: { Authorization: `Bearer ${freeKey.rawKey}` } };
 
-  const suite = createAccount("Suite User", "suite@test.com", "suite");
-  const suiteKey = createApiKey(suite.account_id, "test-suite");
+  const suite = await createAccount("Suite User", "suite@test.com", "suite");
+  const suiteKey = await createApiKey(suite.account_id, "test-suite");
   suiteAuth = { account_id: suite.account_id, headers: { Authorization: `Bearer ${suiteKey.rawKey}` } };
 
   // Seed snapshot with context + generators
-  const snap = createSnapshot({
+  const snap = await createSnapshot({
     input_method: "api_submission",
     manifest: {
       project_name: "branch-test",
@@ -149,21 +148,21 @@ beforeAll(async () => {
   projectId = snap.project_id;
   snapshotId = snap.snapshot_id;
 
-  saveContextMap(snapshotId, {
+  await saveContextMap(snapshotId, {
     version: "1.0.0",
     snapshot_id: snapshotId,
     project_id: projectId,
     project_identity: { name: "branch-test" },
     structure: { total_files: 1 },
   });
-  saveRepoProfile(snapshotId, {
+  await saveRepoProfile(snapshotId, {
     version: "1.0.0",
     snapshot_id: snapshotId,
     project_id: projectId,
     project: { name: "branch-test" },
     health: { has_tests: false },
   });
-  saveGeneratorResult(snapshotId, {
+  await saveGeneratorResult(snapshotId, {
     snapshot_id: snapshotId,
     generated_at: new Date().toISOString(),
     files: [
@@ -172,7 +171,7 @@ beforeAll(async () => {
     ],
   });
 
-  indexSnapshotContent(snapshotId, [{ path: "index.ts", content: "export const x = 1;", size: 20 }]);
+  await indexSnapshotContent(snapshotId, [{ path: "index.ts", content: "export const x = 1;", size: 20 }]);
 
   // Build router with inline handlers (matching server.ts pattern)
   const router = new Router();
@@ -229,7 +228,6 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ─── server.ts inline handlers ──────────────────────────────────
@@ -412,7 +410,7 @@ describe("makeProgramHandler branches", () => {
 
   it("returns CONTEXT_PENDING for snapshot without context", async () => {
     // Create snapshot without saving context
-    const noCtx = createSnapshot({
+    const noCtx = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "no-ctx", project_type: "x", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "x", size: 1 }],
@@ -430,8 +428,8 @@ describe("makeProgramHandler branches", () => {
 describe("handleGetContext / handleGetGeneratedFiles without context", () => {
   let noCtxProject: string;
 
-  beforeAll(() => {
-    const snap = createSnapshot({
+  beforeAll(async () => {
+    const snap = await createSnapshot({
       input_method: "api_submission",
       manifest: { project_name: "pending", project_type: "x", frameworks: [], goals: [], requested_outputs: [] },
       files: [{ path: "a.ts", content: "x", size: 1 }],
@@ -557,7 +555,7 @@ describe("handleGetUpgradePrompt branches", () => {
   it("returns prompt after tracked events", async () => {
     // Track several events to trigger upgrade prompt
     for (let i = 0; i < 5; i++) {
-      trackEvent(freeAuth.account_id, "snapshot_created", "activation", { i });
+      await trackEvent(freeAuth.account_id, "snapshot_created", "activation", { i });
     }
     const r = await req("GET", "/v1/account/upgrade-prompt", undefined, freeAuth.headers);
     expect(r.status).toBe(200);

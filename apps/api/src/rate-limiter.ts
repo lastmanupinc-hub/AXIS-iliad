@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type Database from "better-sqlite3";
+import { sql } from "@axis/snapshots";
 import { sendError } from "./router.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 
-// ─── Sliding window rate limiter (in-memory + SQLite persistence) ──
+// ─── Sliding window rate limiter (in-memory + Postgres persistence) ──
 
 interface WindowEntry {
   count: number;
@@ -22,64 +22,61 @@ let cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
 // ─── Persistence ────────────────────────────────────────────────
 
-let persistDb: Database.Database | null = null;
+let persistEnabled = false;
 let persistTimer: ReturnType<typeof setInterval> | null = null;
-const PERSIST_INTERVAL_MS = 30_000; // flush in-memory state to SQLite every 30s
+const PERSIST_INTERVAL_MS = 30_000; // flush in-memory state to Postgres every 30s
 
-/** Bind the rate limiter to a database for persistence across restarts. */
-export function bindRateLimiterDb(database: Database.Database): void {
-  persistDb = database;
+/** Bind the rate limiter to Postgres for persistence across restarts. */
+export async function bindRateLimiterDb(): Promise<void> {
+  persistEnabled = true;
 
   // Load any persisted entries whose window hasn't expired
   const now = Date.now();
-  const rows = database.prepare("SELECT client_key, count, reset_at FROM rate_limits WHERE reset_at > ?").all(now) as Array<{
-    client_key: string;
-    count: number;
-    reset_at: number;
-  }>;
+  const rows = await sql.many<{ client_key: string; count: number | string; reset_at: number | string }>(
+    "SELECT client_key, count, reset_at FROM rate_limits WHERE reset_at > ?",
+    [now],
+  );
   for (const row of rows) {
-    windows.set(row.client_key, { count: row.count, resetAt: row.reset_at });
+    windows.set(row.client_key, { count: Number(row.count), resetAt: Number(row.reset_at) });
   }
 
   // Start periodic flush
   /* v8 ignore start — persistence timer only starts in production with DB */
   if (!persistTimer) {
-    persistTimer = setInterval(() => flushToDb(), PERSIST_INTERVAL_MS);
+    persistTimer = setInterval(() => { void flushToDb(); }, PERSIST_INTERVAL_MS);
     if (persistTimer.unref) persistTimer.unref();
   }
   /* v8 ignore stop */
 }
 
-/** Write current in-memory state to SQLite. */
-export function flushToDb(): void {
-  if (!persistDb) return;
+/** Write current in-memory state to Postgres. */
+export async function flushToDb(): Promise<void> {
+  if (!persistEnabled) return;
   const now = Date.now();
-  const upsert = persistDb.prepare(
-    "INSERT OR REPLACE INTO rate_limits (client_key, count, reset_at) VALUES (?, ?, ?)",
-  );
-  const deleteExpired = persistDb.prepare("DELETE FROM rate_limits WHERE reset_at <= ?");
-
-  const tx = persistDb.transaction(() => {
-    deleteExpired.run(now);
+  await sql.tx(async (client) => {
+    await client.query("DELETE FROM rate_limits WHERE reset_at <= $1", [now]);
     for (const [key, entry] of windows) {
       /* v8 ignore next 3 — flushToDb runs on interval, not triggered in tests */
       if (entry.resetAt > now) {
-        upsert.run(key, entry.count, entry.resetAt);
+        await client.query(
+          "INSERT INTO rate_limits (client_key, count, reset_at) VALUES ($1, $2, $3) " +
+            "ON CONFLICT (client_key) DO UPDATE SET count = EXCLUDED.count, reset_at = EXCLUDED.reset_at",
+          [key, entry.count, entry.resetAt],
+        );
       }
     }
   });
-  tx();
 }
 
 /** Unbind persistence (for testing / shutdown). */
-export function unbindRateLimiterDb(): void {
+export async function unbindRateLimiterDb(): Promise<void> {
   if (persistTimer) {
     clearInterval(persistTimer);
     persistTimer = null;
   }
-  if (persistDb) {
-    try { flushToDb(); } catch { /* DB may already be closed */ }
-    persistDb = null;
+  if (persistEnabled) {
+    try { await flushToDb(); } catch { /* DB may be unavailable */ }
+    persistEnabled = false;
   }
 }
 

@@ -3,8 +3,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 // Mock dependencies before importing the module under test
 vi.mock("@axis/snapshots", () => ({
-  integrityCheck: vi.fn(),
-  getDbStats: vi.fn(),
+  pgIntegrityCheck: vi.fn(),
+  getPgDbStats: vi.fn(),
   getDb: vi.fn(() => ({})),
   openMemoryDb: vi.fn(),
   closeDb: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock("./router.js", () => ({
 }));
 
 import { handleReadiness, handleMetrics } from "./metrics.js";
-import { integrityCheck, getDbStats } from "@axis/snapshots";
+import { pgIntegrityCheck, getPgDbStats } from "@axis/snapshots";
 import { isShuttingDown } from "./router.js";
 
 function mockRes(): ServerResponse & { _status: number; _body: string } {
@@ -39,7 +39,7 @@ const mockReq = {} as IncomingMessage;
 describe("handleReadiness – not-ready branches", () => {
   beforeEach(() => {
     vi.mocked(isShuttingDown).mockReturnValue(false);
-    vi.mocked(integrityCheck).mockReturnValue({ success: true });
+    vi.mocked(pgIntegrityCheck).mockResolvedValue({ action: "integrity_check", success: true, details: {} });
   });
 
   it("returns 503 when shutting down", async () => {
@@ -53,7 +53,7 @@ describe("handleReadiness – not-ready branches", () => {
   });
 
   it("returns 503 when integrity check fails", async () => {
-    vi.mocked(integrityCheck).mockReturnValue({ success: false });
+    vi.mocked(pgIntegrityCheck).mockResolvedValue({ action: "integrity_check", success: false, details: {} });
     const res = mockRes();
     await handleReadiness(mockReq, res);
     expect(res._status).toBe(503);
@@ -66,7 +66,7 @@ describe("handleReadiness – not-ready branches", () => {
 describe("handleMetrics – dbStats failure branch", () => {
   it("omits DB metrics when getDbStats fails", async () => {
     vi.mocked(isShuttingDown).mockReturnValue(false);
-    vi.mocked(getDbStats).mockReturnValue({ success: false, details: {} });
+    vi.mocked(getPgDbStats).mockResolvedValue({ action: "stats", success: false, details: {} });
     const res = mockRes();
     await handleMetrics(mockReq, res);
     expect(res._status).toBe(200);

@@ -5,7 +5,7 @@
 // See NEON_MIGRATION_PLAN.md. FTS5 (search_fts) is replaced by a tsvector column.
 import { sql } from "./pg.js";
 
-export const PG_LATEST_VERSION = 23;
+export const PG_LATEST_VERSION = 27;
 
 // Ordering matters for FKs (accounts before dependents; oauth_refresh_tokens
 // before oauth_access_tokens). Timestamps stay TEXT (app writes ISO strings).
@@ -111,7 +111,10 @@ CREATE TABLE IF NOT EXISTS funnel_events (
   event_type TEXT NOT NULL,
   stage TEXT NOT NULL,
   metadata TEXT NOT NULL DEFAULT '{}',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  -- Monotonic insertion order: restores the SQLite rowid tiebreaker so events
+  -- sharing an identical created_at still sort deterministically (newest first).
+  seq BIGINT GENERATED ALWAYS AS IDENTITY
 );
 CREATE INDEX IF NOT EXISTS idx_funnel_account ON funnel_events(account_id);
 CREATE INDEX IF NOT EXISTS idx_funnel_stage ON funnel_events(stage);
@@ -423,6 +426,64 @@ CREATE INDEX IF NOT EXISTS idx_mcp_usage_tool ON mcp_usage(tool);
 CREATE INDEX IF NOT EXISTS idx_mcp_usage_account ON mcp_usage(account_id);
 CREATE INDEX IF NOT EXISTS idx_mcp_usage_source ON mcp_usage(source);
 
+-- v24: idempotency for the paid MCP path (transport retries return the original
+-- result instead of re-charging). No FK — telemetry-grade, must not block deletes.
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  account_id TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL,
+  request_hash TEXT NOT NULL,
+  response TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, idempotency_key)
+);
+CREATE INDEX IF NOT EXISTS idx_idempotency_created ON idempotency_keys(created_at);
+
+-- v25: audit + idempotency ledger for paid credit-pack top-ups via PAI'D. Partial
+-- UNIQUE on paid_session_id enforces one purchase per checkout session.
+CREATE TABLE IF NOT EXISTS credit_pack_purchases (
+  purchase_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  pack_id TEXT NOT NULL,
+  credits INTEGER NOT NULL,
+  price_cents INTEGER NOT NULL,
+  paid_session_id TEXT,
+  paid_payment_intent_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL,
+  succeeded_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_credit_packs_account ON credit_pack_purchases(account_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_packs_session ON credit_pack_purchases(paid_session_id) WHERE paid_session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_credit_packs_status ON credit_pack_purchases(status);
+
+-- v26: 24h shared cache for Firecrawl scrape responses, deduped by normalized-URL
+-- hash. Absolute expires_at so restarts don't extend stale entries.
+CREATE TABLE IF NOT EXISTS scrape_cache (
+  url_hash TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  markdown TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
+  status_code INTEGER NOT NULL DEFAULT 200,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  hit_count INTEGER NOT NULL DEFAULT 0,
+  last_hit_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_expires ON scrape_cache(expires_at);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_created ON scrape_cache(created_at);
+CREATE INDEX IF NOT EXISTS idx_scrape_cache_hits ON scrape_cache(hit_count DESC);
+
+-- v27: per-account free Firecrawl page pool, 100 pages/calendar-month, keyed by
+-- (account_id, month_key) so it resets on the first of each month.
+CREATE TABLE IF NOT EXISTS account_free_scrape_pool (
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  month_key TEXT NOT NULL,
+  free_scrapes_used INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, month_key)
+);
+CREATE INDEX IF NOT EXISTS idx_free_scrape_pool_month ON account_free_scrape_pool(month_key);
+
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
@@ -432,7 +493,16 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 // Future Postgres-only migrations (version > PG_LATEST_VERSION) go here.
 interface PgMigration { version: number; name: string; sql: string }
-const PG_MIGRATIONS: PgMigration[] = [];
+const PG_MIGRATIONS: PgMigration[] = [
+  {
+    // Existing DBs created before the seq column: add it so the created_at-DESC
+    // ordering has a deterministic tiebreaker. Fresh DBs already have it from the
+    // baseline, so ADD COLUMN IF NOT EXISTS is a no-op there.
+    version: 28,
+    name: "funnel_events_seq_tiebreaker",
+    sql: `ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS seq BIGINT GENERATED ALWAYS AS IDENTITY;`,
+  },
+];
 
 /**
  * Stand up / upgrade the Postgres schema. Idempotent: applies the cumulative
@@ -446,7 +516,7 @@ export async function runPgMigrations(): Promise<{ current_version: number; appl
   if (current < PG_LATEST_VERSION) {
     await sql.run(
       "INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?) ON CONFLICT (version) DO NOTHING",
-      [PG_LATEST_VERSION, "pg_baseline_v23", new Date().toISOString()],
+      [PG_LATEST_VERSION, "pg_baseline_v27", new Date().toISOString()],
     );
     current = PG_LATEST_VERSION;
   }

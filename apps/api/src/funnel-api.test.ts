@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb, createAccount, createApiKey, updateAccountTier, recordUsage, SEAT_LIMITS } from "@axis/snapshots";
+import { resetTestDb, createAccount, createApiKey, updateAccountTier, recordUsage, SEAT_LIMITS } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import {
@@ -66,7 +66,7 @@ async function req(
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   const router = new Router();
 
@@ -95,7 +95,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   server?.close();
-  closeDb();
 });
 
 beforeEach(() => {
@@ -103,9 +102,9 @@ beforeEach(() => {
 });
 
 // Helper: create an account + key directly in DB and return the raw key
-function createAuthenticatedAccount(name: string, email: string, tier?: string) {
-  const acct = createAccount(name, email, (tier ?? "free") as "free" | "paid" | "suite");
-  const key = createApiKey(acct.account_id, "test-key");
+async function createAuthenticatedAccount(name: string, email: string, tier?: string) {
+  const acct = await createAccount(name, email, (tier ?? "free") as "free" | "paid" | "suite");
+  const key = await createApiKey(acct.account_id, "test-key");
   return { account_id: acct.account_id, rawKey: key.rawKey };
 }
 
@@ -178,7 +177,7 @@ describe("GET /v1/account/upgrade-prompt", () => {
 
   it("returns activation prompt for free user with usage", async () => {
     const { account_id, rawKey } = await createAuthenticatedAccount("Active", "active-prompt@example.com");
-    recordUsage(account_id, "search", "snap-1", 1, 1, 100);
+    await recordUsage(account_id, "search", "snap-1", 1, 1, 100);
 
     const res = await req("GET", "/v1/account/upgrade-prompt", undefined, rawKey);
     expect(res.status).toBe(200);
@@ -193,7 +192,7 @@ describe("GET /v1/account/upgrade-prompt", () => {
   it("returns high-urgency prompt when quota exhausted", async () => {
     const { account_id, rawKey } = await createAuthenticatedAccount("Exhausted", "exhausted@example.com");
     for (let i = 0; i < 10; i++) {
-      recordUsage(account_id, "search", `snap-${i}`, 1, 1, 100);
+      await recordUsage(account_id, "search", `snap-${i}`, 1, 1, 100);
     }
 
     const res = await req("GET", "/v1/account/upgrade-prompt", undefined, rawKey);
@@ -261,7 +260,7 @@ describe("GET /v1/account/funnel", () => {
 
   it("reflects stage progression with usage", async () => {
     const { account_id, rawKey } = await createAuthenticatedAccount("FunnelActive", "funnel-active@example.com");
-    recordUsage(account_id, "search", "snap-1", 1, 1, 100);
+    await recordUsage(account_id, "search", "snap-1", 1, 1, 100);
 
     const res = await req("GET", "/v1/account/funnel", undefined, rawKey);
     expect((res.data as Record<string, unknown>).stage).toBe("activation");
@@ -355,28 +354,28 @@ describe("POST /v1/account/seats (invite)", () => {
   });
 
   it("rejects free tier accounts", async () => {
-    const { rawKey } = createAuthenticatedAccount("FreeSeat", "free-seat@example.com", "free");
+    const { rawKey } = await createAuthenticatedAccount("FreeSeat", "free-seat@example.com", "free");
     const res = await req("POST", "/v1/account/seats", { email: "invite@example.com" }, rawKey);
     expect(res.status).toBe(403);
     expect((res.data as Record<string, unknown>).error_code).toBe("TIER_REQUIRED");
   });
 
   it("rejects missing email field", async () => {
-    const { rawKey } = createAuthenticatedAccount("NoEmail", "no-email@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("NoEmail", "no-email@example.com", "paid");
     const res = await req("POST", "/v1/account/seats", { role: "member" }, rawKey);
     expect(res.status).toBe(400);
     expect((res.data as Record<string, unknown>).error_code).toBe("MISSING_FIELD");
   });
 
   it("rejects invalid role", async () => {
-    const { rawKey } = createAuthenticatedAccount("BadRole", "bad-role@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("BadRole", "bad-role@example.com", "paid");
     const res = await req("POST", "/v1/account/seats", { email: "r@example.com", role: "superadmin" }, rawKey);
     expect(res.status).toBe(400);
     expect((res.data as Record<string, unknown>).error_code).toBe("INVALID_FORMAT");
   });
 
   it("rejects invalid JSON body", async () => {
-    const { rawKey } = createAuthenticatedAccount("BadJson", "bad-json@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("BadJson", "bad-json@example.com", "paid");
     // Send raw non-JSON via low-level request
     const res: Res = await new Promise((resolve, reject) => {
       const r = require("node:http").request(
@@ -400,7 +399,7 @@ describe("POST /v1/account/seats (invite)", () => {
   });
 
   it("creates seat with default member role", async () => {
-    const { rawKey } = createAuthenticatedAccount("InviterDef", "inviter-def@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("InviterDef", "inviter-def@example.com", "paid");
     const res = await req("POST", "/v1/account/seats", { email: "newmember@example.com" }, rawKey);
     expect(res.status).toBe(201);
     const seat = (res.data as Record<string, unknown>).seat as Record<string, unknown>;
@@ -409,7 +408,7 @@ describe("POST /v1/account/seats (invite)", () => {
   });
 
   it("rejects duplicate email", async () => {
-    const { rawKey } = createAuthenticatedAccount("InviterDup", "inviter-dup@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("InviterDup", "inviter-dup@example.com", "paid");
     await req("POST", "/v1/account/seats", { email: "dup@example.com" }, rawKey);
     const res = await req("POST", "/v1/account/seats", { email: "dup@example.com" }, rawKey);
     expect(res.status).toBe(409);
@@ -417,7 +416,7 @@ describe("POST /v1/account/seats (invite)", () => {
   });
 
   it("returns 429 with upgrade_hint when paid tier hits seat limit", async () => {
-    const { rawKey } = createAuthenticatedAccount("SeatCapPaid", "seat-cap-paid@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("SeatCapPaid", "seat-cap-paid@example.com", "paid");
     for (let i = 0; i < SEAT_LIMITS.paid; i++) {
       await req("POST", "/v1/account/seats", { email: `cap${i}@example.com` }, rawKey);
     }
@@ -440,7 +439,7 @@ describe("GET /v1/account/seats", () => {
   });
 
   it("lists active seats (excludes revoked by default)", async () => {
-    const { rawKey } = createAuthenticatedAccount("Lister", "lister@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("Lister", "lister@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "list1@example.com" }, rawKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
     await req("POST", `/v1/account/seats/${seatId}/revoke`, {}, rawKey);
@@ -453,7 +452,7 @@ describe("GET /v1/account/seats", () => {
   });
 
   it("includes revoked seats with include_revoked=true", async () => {
-    const { rawKey } = createAuthenticatedAccount("ListerAll", "lister-all@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("ListerAll", "lister-all@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "revoked1@example.com" }, rawKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
     await req("POST", `/v1/account/seats/${seatId}/revoke`, {}, rawKey);
@@ -465,7 +464,7 @@ describe("GET /v1/account/seats", () => {
   });
 
   it("suite tier shows unlimited limit", async () => {
-    const { rawKey } = createAuthenticatedAccount("SuiteLister", "suite-lister@example.com", "suite");
+    const { rawKey } = await createAuthenticatedAccount("SuiteLister", "suite-lister@example.com", "suite");
     const res = await req("GET", "/v1/account/seats", undefined, rawKey);
     expect(res.status).toBe(200);
     const data = res.data as Record<string, unknown>;
@@ -474,7 +473,7 @@ describe("GET /v1/account/seats", () => {
   });
 
   it("returns count and remaining for paid tier", async () => {
-    const { rawKey } = createAuthenticatedAccount("PaidLister", "paid-lister@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("PaidLister", "paid-lister@example.com", "paid");
     await req("POST", "/v1/account/seats", { email: "s1@example.com" }, rawKey);
     const res = await req("GET", "/v1/account/seats", undefined, rawKey);
     expect(res.status).toBe(200);
@@ -494,40 +493,40 @@ describe("POST /v1/account/seats/:seat_id/accept", () => {
   });
 
   it("returns 404 for non-existent seat", async () => {
-    const { rawKey } = createAuthenticatedAccount("Acceptor404", "accept-404@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("Acceptor404", "accept-404@example.com", "paid");
     const res = await req("POST", "/v1/account/seats/no-such-seat/accept", {}, rawKey);
     expect(res.status).toBe(404);
   });
 
   it("rejects email mismatch", async () => {
-    const { rawKey: ownerKey } = createAuthenticatedAccount("Owner", "owner@example.com", "paid");
+    const { rawKey: ownerKey } = await createAuthenticatedAccount("Owner", "owner@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "invitee@example.com" }, ownerKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
 
     // Different user tries to accept
-    const { rawKey: otherKey } = createAuthenticatedAccount("OtherUser", "other@example.com");
+    const { rawKey: otherKey } = await createAuthenticatedAccount("OtherUser", "other@example.com");
     const res = await req("POST", `/v1/account/seats/${seatId}/accept`, {}, otherKey);
     expect(res.status).toBe(403);
     expect((res.data as Record<string, unknown>).error_code).toBe("FORBIDDEN");
   });
 
   it("accepts seat when email matches", async () => {
-    const { rawKey: ownerKey } = createAuthenticatedAccount("OwnerAcc", "owner-acc@example.com", "paid");
+    const { rawKey: ownerKey } = await createAuthenticatedAccount("OwnerAcc", "owner-acc@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "matched@example.com" }, ownerKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
 
-    const { rawKey: matchedKey } = createAuthenticatedAccount("Matched", "matched@example.com");
+    const { rawKey: matchedKey } = await createAuthenticatedAccount("Matched", "matched@example.com");
     const res = await req("POST", `/v1/account/seats/${seatId}/accept`, {}, matchedKey);
     expect(res.status).toBe(200);
     expect((res.data as Record<string, unknown>).accepted).toBe(true);
   });
 
   it("returns 404 when re-accepting already accepted seat", async () => {
-    const { rawKey: ownerKey } = createAuthenticatedAccount("OwnerReAcc", "owner-reacc@example.com", "paid");
+    const { rawKey: ownerKey } = await createAuthenticatedAccount("OwnerReAcc", "owner-reacc@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "reacc@example.com" }, ownerKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
 
-    const { rawKey: inviteeKey } = createAuthenticatedAccount("ReAccUser", "reacc@example.com");
+    const { rawKey: inviteeKey } = await createAuthenticatedAccount("ReAccUser", "reacc@example.com");
     await req("POST", `/v1/account/seats/${seatId}/accept`, {}, inviteeKey);
     const res = await req("POST", `/v1/account/seats/${seatId}/accept`, {}, inviteeKey);
     expect(res.status).toBe(404);
@@ -544,25 +543,25 @@ describe("POST /v1/account/seats/:seat_id/revoke", () => {
   });
 
   it("returns 404 for non-existent seat", async () => {
-    const { rawKey } = createAuthenticatedAccount("Revoker404", "revoker-404@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("Revoker404", "revoker-404@example.com", "paid");
     const res = await req("POST", "/v1/account/seats/no-such-seat/revoke", {}, rawKey);
     expect(res.status).toBe(404);
   });
 
   it("rejects cross-account revocation", async () => {
-    const { rawKey: ownerKey } = createAuthenticatedAccount("RevokeOwner", "revoke-owner@example.com", "paid");
+    const { rawKey: ownerKey } = await createAuthenticatedAccount("RevokeOwner", "revoke-owner@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "revokee@example.com" }, ownerKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
 
     // Different account tries to revoke
-    const { rawKey: attackerKey } = createAuthenticatedAccount("Attacker", "attacker@example.com", "paid");
+    const { rawKey: attackerKey } = await createAuthenticatedAccount("Attacker", "attacker@example.com", "paid");
     const res = await req("POST", `/v1/account/seats/${seatId}/revoke`, {}, attackerKey);
     expect(res.status).toBe(404);
     expect((res.data as Record<string, unknown>).error_code).toBe("NOT_FOUND");
   });
 
   it("successfully revokes own seat", async () => {
-    const { rawKey } = createAuthenticatedAccount("RevokerOk", "revoker-ok@example.com", "paid");
+    const { rawKey } = await createAuthenticatedAccount("RevokerOk", "revoker-ok@example.com", "paid");
     const inv = await req("POST", "/v1/account/seats", { email: "torevoke@example.com" }, rawKey);
     const seatId = ((inv.data as Record<string, unknown>).seat as Record<string, unknown>).seat_id;
 
@@ -576,7 +575,7 @@ describe("POST /v1/account/seats/:seat_id/revoke", () => {
 
 describe("POST /v1/account/upgrade-prompt/dismiss (edge cases)", () => {
   it("handles empty body gracefully", async () => {
-    const { rawKey } = createAuthenticatedAccount("EmptyDismiss", "empty-dismiss@example.com");
+    const { rawKey } = await createAuthenticatedAccount("EmptyDismiss", "empty-dismiss@example.com");
     // Send request with empty payload
     const res: Res = await new Promise((resolve, reject) => {
       const r = require("node:http").request(
@@ -599,7 +598,7 @@ describe("POST /v1/account/upgrade-prompt/dismiss (edge cases)", () => {
   });
 
   it("handles malformed JSON body gracefully", async () => {
-    const { rawKey } = createAuthenticatedAccount("BadDismiss", "bad-dismiss@example.com");
+    const { rawKey } = await createAuthenticatedAccount("BadDismiss", "bad-dismiss@example.com");
     const res: Res = await new Promise((resolve, reject) => {
       const r = require("node:http").request(
         { hostname: "127.0.0.1", port: testPort, path: "/v1/account/upgrade-prompt/dismiss", method: "POST",
@@ -626,7 +625,7 @@ describe("POST /v1/account/upgrade-prompt/dismiss (edge cases)", () => {
 
 describe("GET /v1/account/funnel (limit edge cases)", () => {
   it("caps limit to 100 when exceeding", async () => {
-    const { rawKey } = createAuthenticatedAccount("LimitCap", "limit-cap@example.com");
+    const { rawKey } = await createAuthenticatedAccount("LimitCap", "limit-cap@example.com");
     // limit=999 should be capped to 100 internally
     const res = await req("GET", "/v1/account/funnel?limit=999", undefined, rawKey);
     expect(res.status).toBe(200);

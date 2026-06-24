@@ -26,12 +26,17 @@ export function getPool(): Pool {
     /sslmode=require/.test(connectionString) ||
     /neon\.tech/.test(connectionString) ||
     process.env.PGSSL === "require";
+  const inTest = process.env.VITEST === "true" || process.env.NODE_ENV === "test";
   pool = new Pool({
     connectionString,
     max: Number(process.env.PG_POOL_MAX ?? 10),
     // Neon pooled endpoints terminate the TLS chain themselves; rejectUnauthorized
     // false avoids local CA hassle while still using TLS in transit.
     ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+    // Under vitest, let the process exit when all clients are idle so a lingering
+    // pool can't keep the test runner alive. No effect in prod (the HTTP server
+    // keeps the loop alive regardless).
+    allowExitOnIdle: inTest,
   });
   return pool;
 }

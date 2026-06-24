@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -56,7 +56,7 @@ function signStripePayload(payload: string, ts: number = Math.floor(Date.now() /
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
   process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
   process.env.STRIPE_PRICE_ID_PAID = "price_paid_123";
@@ -73,7 +73,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
   delete process.env.STRIPE_WEBHOOK_SECRET;
   delete process.env.STRIPE_PRICE_ID_PAID;
   delete process.env.STRIPE_PRICE_ID_SUITE;

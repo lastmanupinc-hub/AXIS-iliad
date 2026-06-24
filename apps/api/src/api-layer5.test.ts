@@ -6,8 +6,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import * as http from "node:http";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
   createAccount,
   createApiKey,
   createWebhook,
@@ -87,7 +86,7 @@ let acctPaid: { id: string; auth: Record<string, string> };
 let acctFree: { id: string; auth: Record<string, string> };
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   const router = new Router();
@@ -115,20 +114,19 @@ beforeAll(async () => {
   server = ts.server;
   testPort = ts.port;
 
-  const paid = createAccount("Paid User", "paid@test.com", "paid");
-  const pKey = createApiKey(paid.account_id, "paid-key");
+  const paid = await createAccount("Paid User", "paid@test.com", "paid");
+  const pKey = await createApiKey(paid.account_id, "paid-key");
   acctPaid = { id: paid.account_id, auth: { Authorization: `Bearer ${pKey.rawKey}` } };
   process.env.ADMIN_API_KEY = pKey.rawKey;
 
-  const free = createAccount("Free User", "free@test.com");
-  const fKey = createApiKey(free.account_id, "free-key");
+  const free = await createAccount("Free User", "free@test.com");
+  const fKey = await createApiKey(free.account_id, "free-key");
   acctFree = { id: free.account_id, auth: { Authorization: `Bearer ${fKey.rawKey}` } };
 });
 
 afterAll(async () => {
   delete process.env.ADMIN_API_KEY;
   await new Promise<void>((resolve, reject) => server.close((err) => err ? reject(err) : resolve()));
-  closeDb();
 });
 
 beforeEach(() => { resetRateLimits(); });
@@ -159,7 +157,7 @@ describe("webhooks.ts — uncovered branches", () => {
 
   // Line 173: Deliveries limit clamping
   it("clamps deliveries limit to valid range", async () => {
-    const wh = createWebhook(acctPaid.id, "http://example.com/hook", ["snapshot.created"]);
+    const wh = await createWebhook(acctPaid.id, "http://example.com/hook", ["snapshot.created"]);
     const r = await req("GET", `/v1/account/webhooks/${wh.webhook_id}/deliveries?limit=999`, undefined, acctPaid.auth);
     expect(r.status).toBe(200);
     // limit clamped to 100
@@ -168,14 +166,14 @@ describe("webhooks.ts — uncovered branches", () => {
 
   // Toggle with invalid JSON body
   it("returns 400 for toggle with invalid JSON", async () => {
-    const wh = createWebhook(acctPaid.id, "http://example.com/hook2", ["snapshot.created"]);
+    const wh = await createWebhook(acctPaid.id, "http://example.com/hook2", ["snapshot.created"]);
     const r = await req("POST", `/v1/account/webhooks/${wh.webhook_id}/toggle`, "{ bad json", acctPaid.auth);
     expect(r.status).toBe(400);
   });
 
   // Toggle with non-boolean active field
   it("returns 400 for toggle with non-boolean active", async () => {
-    const wh = createWebhook(acctPaid.id, "http://example.com/hook3", ["snapshot.created"]);
+    const wh = await createWebhook(acctPaid.id, "http://example.com/hook3", ["snapshot.created"]);
     const r = await req("POST", `/v1/account/webhooks/${wh.webhook_id}/toggle`, { active: "yes" }, acctPaid.auth);
     expect(r.status).toBe(400);
     expect(r.data.error).toContain("boolean");
@@ -183,7 +181,7 @@ describe("webhooks.ts — uncovered branches", () => {
 
   // Delete webhook owned by different account
   it("returns 404 when deleting another account's webhook", async () => {
-    const wh = createWebhook(acctPaid.id, "http://example.com/hook4", ["snapshot.created"]);
+    const wh = await createWebhook(acctPaid.id, "http://example.com/hook4", ["snapshot.created"]);
     const r = await req("DELETE", `/v1/account/webhooks/${wh.webhook_id}`, undefined, acctFree.auth);
     expect(r.status).toBe(404);
   });

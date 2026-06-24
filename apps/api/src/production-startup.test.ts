@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { openMemoryDb, closeDb } from "@axis/snapshots";
+import { resetTestDb } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { handleHealthCheck } from "./handlers.js";
 
@@ -44,7 +44,7 @@ describe("CORS origin configuration", () => {
   });
 
   it("defaults to * when CORS_ORIGIN not set", async () => {
-    openMemoryDb();
+    await resetTestDb();
     delete process.env.CORS_ORIGIN;
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
@@ -55,11 +55,10 @@ describe("CORS origin configuration", () => {
     expect(res.status).toBe(200);
     expect(res.headers["access-control-allow-origin"]).toBe("*");
     expect(res.headers["vary"]).toBeUndefined();
-    closeDb();
   });
 
   it("uses CORS_ORIGIN env var when set", async () => {
-    openMemoryDb();
+    await resetTestDb();
     process.env.CORS_ORIGIN = "https://app.axisiliad.com";
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
@@ -69,11 +68,10 @@ describe("CORS origin configuration", () => {
     const res = await rawReq("GET", "/v1/health");
     expect(res.status).toBe(200);
     expect(res.headers["access-control-allow-origin"]).toBe("https://app.axisiliad.com");
-    closeDb();
   });
 
   it("sets Vary: Origin header when CORS origin is not wildcard", async () => {
-    openMemoryDb();
+    await resetTestDb();
     process.env.CORS_ORIGIN = "https://app.axisiliad.com";
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
@@ -82,11 +80,10 @@ describe("CORS origin configuration", () => {
 
     const res = await rawReq("GET", "/v1/health");
     expect(res.headers["vary"]).toBe("Origin");
-    closeDb();
   });
 
   it("includes DELETE in CORS allowed methods", async () => {
-    openMemoryDb();
+    await resetTestDb();
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
     server = createApp(router, TEST_PORT);
@@ -95,7 +92,6 @@ describe("CORS origin configuration", () => {
     const res = await rawReq("OPTIONS", "/v1/health");
     // OPTIONS should return 204 with CORS headers
     expect(res.headers["access-control-allow-methods"]).toContain("DELETE");
-    closeDb();
   });
 });
 
@@ -110,11 +106,10 @@ describe("EADDRINUSE error handling", () => {
     if (server1) server1.close();
     if (server2) server2.close();
     await new Promise((r) => setTimeout(r, 100));
-    closeDb();
   });
 
   it("logs error when port is already in use", async () => {
-    openMemoryDb();
+    await resetTestDb();
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
 
@@ -144,7 +139,7 @@ describe("EADDRINUSE error handling", () => {
 
 describe("non-EADDRINUSE server error", () => {
   it("logs generic server error for non-EADDRINUSE codes", async () => {
-    openMemoryDb();
+    await resetTestDb();
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
     const server = createApp(router, 44508);
@@ -161,7 +156,6 @@ describe("non-EADDRINUSE server error", () => {
 
     server.close();
     await new Promise((r) => setTimeout(r, 100));
-    closeDb();
   });
 });
 
@@ -215,7 +209,7 @@ describe("startup env validation", () => {
 
 describe("shutdown database cleanup", () => {
   it("performs WAL checkpoint and closes DB on shutdown", async () => {
-    openMemoryDb();
+    await resetTestDb();
     const router = new Router();
     router.get("/v1/health", handleHealthCheck);
     const server = createApp(router, 44509);

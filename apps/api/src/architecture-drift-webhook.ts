@@ -117,7 +117,7 @@ export function defaultDriftDeps(): DriftDeps {
         goals: ["Architecture drift check"],
         requested_outputs: [],
       };
-      const snapshot = createSnapshot({ input_method: "github_repo_url" as InputMethod, manifest, files }, undefined);
+      const snapshot = await createSnapshot({ input_method: "github_repo_url" as InputMethod, manifest, files }, undefined);
       const ctx = buildContextMap(snapshot);
       const symbols = extractSymbols(files);
       const art = await runSpecificityPass(ctx, symbols, runCompletion, { seed: 42 });

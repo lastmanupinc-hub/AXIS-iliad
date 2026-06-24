@@ -7,8 +7,8 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest
 import * as http from "node:http";
 import type { Server } from "node:http";
 import {
-  openMemoryDb,
-  closeDb,
+  resetTestDb,
+  sql,
   createAccount,
   createApiKey,
   createWebhook,
@@ -95,16 +95,16 @@ let acctB: { account_id: string; headers: Record<string, string> };
 // ─── Setup ──────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  openMemoryDb();
+  await resetTestDb();
   resetRateLimits();
 
   // Auth
-  const a = createAccount("Acct A", "a@test.com", "paid");
-  const aKey = createApiKey(a.account_id, "a-key");
+  const a = await createAccount("Acct A", "a@test.com", "paid");
+  const aKey = await createApiKey(a.account_id, "a-key");
   acctA = { account_id: a.account_id, headers: { Authorization: `Bearer ${aKey.rawKey}` } };
 
-  const b = createAccount("Acct B", "b@test.com", "paid");
-  const bKey = createApiKey(b.account_id, "b-key");
+  const b = await createAccount("Acct B", "b@test.com", "paid");
+  const bKey = await createApiKey(b.account_id, "b-key");
   acctB = { account_id: b.account_id, headers: { Authorization: `Bearer ${bKey.rawKey}` } };
 
   // Webhook receiver server
@@ -148,15 +148,14 @@ afterAll(async () => {
   await new Promise<void>((resolve, reject) =>
     receiverServer.close((err) => (err ? reject(err) : resolve())),
   );
-  closeDb();
 });
 
 // ─── webhook-store: dispatchWebhookEvent production HTTP path ───
 
 describe("dispatchWebhookEvent production HTTP paths", () => {
   it("dispatches via HTTP and receiver gets the request", async () => {
-    createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/hook`, ["snapshot.created"]);
-    dispatchWebhookEvent("snapshot.created", { test: true });
+    await createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/hook`, ["snapshot.created"]);
+    await dispatchWebhookEvent("snapshot.created", { test: true });
     // Fire-and-forget, give it time to arrive
     await new Promise((r) => setTimeout(r, 200));
     expect(receivedRequests.length).toBeGreaterThanOrEqual(1);
@@ -168,19 +167,19 @@ describe("dispatchWebhookEvent production HTTP paths", () => {
   });
 
   it("dispatches with HMAC signature when secret is set", async () => {
-    createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/hook-secret`, ["snapshot.created"], "my-secret");
-    dispatchWebhookEvent("snapshot.created", { signed: true });
+    await createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/hook-secret`, ["snapshot.created"], "my-secret");
+    await dispatchWebhookEvent("snapshot.created", { signed: true });
     await new Promise((r) => setTimeout(r, 200));
     const last = receivedRequests[receivedRequests.length - 1];
     expect(last.headers["x-axis-signature"]).toMatch(/^sha256=[a-f0-9]{64}$/);
   });
 
   it("records failed delivery when receiver returns 500", async () => {
-    const wh = createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/fail`, ["snapshot.deleted"]);
+    const wh = await createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/fail`, ["snapshot.deleted"]);
     nextReceiverStatus = 500;
-    dispatchWebhookEvent("snapshot.deleted", { fail: true });
+    await dispatchWebhookEvent("snapshot.deleted", { fail: true });
     await new Promise((r) => setTimeout(r, 200));
-    const deliveries = getDeliveries(wh.webhook_id, 10);
+    const deliveries = await getDeliveries(wh.webhook_id, 10);
     const last = deliveries[deliveries.length - 1];
     if (last) {
       expect(last.success).toBe(false);
@@ -190,30 +189,29 @@ describe("dispatchWebhookEvent production HTTP paths", () => {
 
   it("records failed delivery on connection refused", async () => {
     // Use a port that nothing is listening on
-    const wh = createWebhook(acctA.account_id, "http://127.0.0.1:44499/nope", ["snapshot.created"]);
-    dispatchWebhookEvent("snapshot.created", { refuse: true });
+    const wh = await createWebhook(acctA.account_id, "http://127.0.0.1:44499/nope", ["snapshot.created"]);
+    await dispatchWebhookEvent("snapshot.created", { refuse: true });
     await new Promise((r) => setTimeout(r, 500));
-    const deliveries = getDeliveries(wh.webhook_id, 10);
+    const deliveries = await getDeliveries(wh.webhook_id, 10);
     if (deliveries.length > 0) {
       const last = deliveries[deliveries.length - 1];
       expect(last.success).toBe(false);
     }
   });
 
-  it("returns early when no webhooks match event type", () => {
+  it("returns early when no webhooks match event type", async () => {
     // No webhooks for "generator.completed" — just confirm no throw
-    dispatchWebhookEvent("generator.completed" as WebhookEventType, { empty: true });
+    await dispatchWebhookEvent("generator.completed" as WebhookEventType, { empty: true });
   });
 
   it("catches malformed URL", async () => {
     // Direct DB insert with bad URL to bypass createWebhook validation
-    const wh = createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/valid`, ["snapshot.created"]);
+    const wh = await createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/valid`, ["snapshot.created"]);
     // Override the URL to something unparseable in the DB
-    const { getDb } = await import("@axis/snapshots");
-    (getDb as any)().prepare("UPDATE webhooks SET url = ? WHERE webhook_id = ?").run("://invalid", wh.webhook_id);
-    dispatchWebhookEvent("snapshot.created", { bad_url: true });
+    await sql.run("UPDATE webhooks SET url = ? WHERE webhook_id = ?", ["://invalid", wh.webhook_id]);
+    await dispatchWebhookEvent("snapshot.created", { bad_url: true });
     await new Promise((r) => setTimeout(r, 200));
-    const deliveries = getDeliveries(wh.webhook_id, 10);
+    const deliveries = await getDeliveries(wh.webhook_id, 10);
     if (deliveries.length > 0) {
       const last = deliveries[deliveries.length - 1];
       expect(last.success).toBe(false);
@@ -225,27 +223,27 @@ describe("dispatchWebhookEvent production HTTP paths", () => {
 
 describe("processRetryQueue production HTTP paths", () => {
   it("retries via real HTTP and records success", async () => {
-    const wh = createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/retry`, ["snapshot.created"]);
+    const wh = await createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/retry`, ["snapshot.created"]);
     // Seed a failed delivery that's eligible for retry
-    recordDelivery(wh.webhook_id, "snapshot.created", '{"retry":true}', 500, "error", false, 1);
+    await recordDelivery(wh.webhook_id, "snapshot.created", '{"retry":true}', 500, "error", false, 1);
     // Process without sendFn — uses production HTTP path
-    const count = processRetryQueue();
+    const count = await processRetryQueue();
     expect(count).toBeGreaterThanOrEqual(0);
     await new Promise((r) => setTimeout(r, 300));
   });
 
   it("retries and records failure on 500 response", async () => {
-    const wh = createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/retry-fail`, ["snapshot.created"]);
-    recordDelivery(wh.webhook_id, "snapshot.created", '{"retry_fail":true}', 500, "error", false, 1);
+    const wh = await createWebhook(acctA.account_id, `http://127.0.0.1:${RECEIVER_PORT}/retry-fail`, ["snapshot.created"]);
+    await recordDelivery(wh.webhook_id, "snapshot.created", '{"retry_fail":true}', 500, "error", false, 1);
     nextReceiverStatus = 503;
-    processRetryQueue();
+    await processRetryQueue();
     await new Promise((r) => setTimeout(r, 300));
   });
 
   it("retries and handles connection error", async () => {
-    const wh = createWebhook(acctA.account_id, "http://127.0.0.1:44499/dead", ["snapshot.created"]);
-    recordDelivery(wh.webhook_id, "snapshot.created", '{"conn_error":true}', null, "refused", false, 1);
-    processRetryQueue();
+    const wh = await createWebhook(acctA.account_id, "http://127.0.0.1:44499/dead", ["snapshot.created"]);
+    await recordDelivery(wh.webhook_id, "snapshot.created", '{"conn_error":true}', null, "refused", false, 1);
+    await processRetryQueue();
     await new Promise((r) => setTimeout(r, 500));
   });
 });
