@@ -860,8 +860,13 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
         reason: "Image OCR is unavailable on this instance (tesseract.js could not load or recognize the image).",
       }, null, 2);
     }
+    if (ocr.text.trim().length === 0) {
+      // OCR ran but found no text — don't bill for an empty result.
+      return JSON.stringify({ _not_configured: true, tool: "iliad_document_parsing", reason: "OCR ran but detected no text in the image." }, null, 2);
+    }
+    const imageBlock = await buildDocEngineerBlock(ocr.text, args.json_schema);
     meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
-    return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: await buildDocEngineerBlock(ocr.text, args.json_schema) }, null, 2);
+    return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: imageBlock }, null, 2);
   }
 
   const opts: ParseOptions = {
@@ -874,11 +879,14 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   // those branches mean the input was unsupported/malformed/unreachable
   // (operator-level issues), not a value the caller asked for.
   if (!isNotConfiguredResult(result)) {
-    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
-    // Engineer mode (Document Intelligence): chunks (+ schema extraction).
+    // Engineer mode (Document Intelligence): chunks (+ schema extraction). Build
+    // the block BEFORE metering so the charge follows the delivered work.
     if (engineer) {
-      return JSON.stringify({ ...result, engineer: await buildDocEngineerBlock(result.markdown, args.json_schema) }, null, 2);
+      const textBlock = await buildDocEngineerBlock(result.markdown, args.json_schema);
+      meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+      return JSON.stringify({ ...result, engineer: textBlock }, null, 2);
     }
+    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
   }
   return JSON.stringify(result, null, 2);
 }
