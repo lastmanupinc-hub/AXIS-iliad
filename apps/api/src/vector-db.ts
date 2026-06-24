@@ -34,6 +34,27 @@ export interface QueryOptions {
 }
 
 let initialized = false;
+// Set true once pgvector (extension + `embedding` column) is confirmed available.
+// When false, the engineer ANN path transparently falls back to the bytea+JS scan.
+let pgvectorReady = false;
+
+/** True if the engineer pgvector ANN backing is available on this instance. */
+export function isPgvectorReady(): boolean {
+  return pgvectorReady;
+}
+
+/** Max stored/queried vector dimension — bounds the SQL literal + cosine work. */
+export const MAX_VECTOR_DIM = 4096;
+/** Fixed dimension the HNSW partial index covers (OpenAI text-embedding-3-small). */
+const HNSW_INDEX_DIM = 1536;
+
+/** Exact-match metadata filter (scalar key→value), mirroring queryVectors' standard semantics. */
+function matchesFilter(meta: Record<string, unknown> | null, filter: Record<string, unknown>): boolean {
+  for (const [k, expected] of Object.entries(filter)) {
+    if (meta === null || meta[k] !== expected) return false;
+  }
+  return true;
+}
 
 /**
  * Lazily create the `vectors` table the first time any function in this
@@ -55,14 +76,42 @@ async function ensureSchema(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS idx_vectors_namespace ON vectors(namespace);
   `);
+  // Engineer ANN backing (best-effort, additive). If pgvector isn't installable
+  // (permissions, or a non-pg test shim), the standard bytea+JS path is unaffected
+  // and the engineer query falls back to it. The `embedding` column is dimensionless
+  // (mixed dims per namespace); ANN queries filter to one dim before `<=>` so no
+  // dimension-mismatch error can occur.
+  try {
+    await sql.exec(`CREATE EXTENSION IF NOT EXISTS vector;`);
+    await sql.exec(`ALTER TABLE vectors ADD COLUMN IF NOT EXISTS embedding vector;`);
+    pgvectorReady = true;
+    // Backfill gap (by design): the engineer ANN path filters on `embedding IS NOT
+    // NULL`, so rows written BEFORE pgvector was enabled on a deployment aren't
+    // ANN-visible until re-upserted. The standard bytea+JS path always sees them,
+    // and the engineer JS fallback (when pgvector is absent) does too. A full
+    // bytea→vector backfill is left as an operator migration.
+    // HNSW needs a fixed dim, so index a cast expression on the common dim
+    // (HNSW_INDEX_DIM). The ANN query casts to the SAME expression so the index is
+    // eligible; other dims fall through to an exact `<=>` scan.
+    try {
+      await sql.exec(
+        `CREATE INDEX IF NOT EXISTS idx_vectors_hnsw_${HNSW_INDEX_DIM} ON vectors USING hnsw ((embedding::vector(${HNSW_INDEX_DIM})) vector_cosine_ops) WHERE dimensions = ${HNSW_INDEX_DIM};`,
+      );
+    } catch {
+      /* seq <=> scan still works without the index */
+    }
+  } catch {
+    pgvectorReady = false;
+  }
   initialized = true;
 }
 
-/** Test-only helper. Clears all rows + resets the lazy-init flag. */
+/** Test-only helper. Clears all rows + resets the lazy-init flags. */
 export async function resetVectorDbForTests(): Promise<void> {
   // Drop and recreate so dimension mismatches across test files don't bleed.
   await sql.exec("DROP TABLE IF EXISTS vectors;");
   initialized = false;
+  pgvectorReady = false;
 }
 
 // ─── Vector encoding ────────────────────────────────────────────
@@ -75,6 +124,11 @@ function encodeVector(v: number[]): Buffer {
 function decodeVector(b: Buffer): number[] {
   const f = new Float32Array(b.buffer, b.byteOffset, b.byteLength / 4);
   return Array.from(f);
+}
+
+/** pgvector text input form: "[1,2,3]". Caller guarantees finite numbers. */
+function vectorLiteral(v: number[]): string {
+  return `[${v.join(",")}]`;
 }
 
 // ─── Cosine similarity ──────────────────────────────────────────
@@ -130,6 +184,9 @@ export async function upsertVectors(namespace: string, records: VectorRecord[]):
       if (!Array.isArray(r.vector) || r.vector.length === 0) {
         throw new Error(`upsertVectors: record ${r.id} has an empty vector`);
       }
+      if (r.vector.length > MAX_VECTOR_DIM) {
+        throw new Error(`upsertVectors: record ${r.id} dimension exceeds ${MAX_VECTOR_DIM}`);
+      }
       if (dim === 0) {
         dim = r.vector.length;
       } else if (r.vector.length !== dim) {
@@ -142,19 +199,21 @@ export async function upsertVectors(namespace: string, records: VectorRecord[]):
           throw new Error(`upsertVectors: record ${r.id} contains a non-finite value`);
         }
       }
-      await client.query(
-        pgPlaceholders(
-          "INSERT INTO vectors (namespace, id, vector, dimensions, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (namespace, id) DO UPDATE SET vector = EXCLUDED.vector, dimensions = EXCLUDED.dimensions, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at",
-        ),
-        [
-          namespace,
-          r.id,
-          encodeVector(r.vector),
-          r.vector.length,
-          r.metadata ? JSON.stringify(r.metadata) : null,
-          now,
-        ],
-      );
+      const baseParams = [
+        namespace,
+        r.id,
+        encodeVector(r.vector),
+        r.vector.length,
+        r.metadata ? JSON.stringify(r.metadata) : null,
+        now,
+      ];
+      // When pgvector is available, also populate the `embedding` column so the
+      // engineer ANN path can use `<=>`. The vector is a parameterized literal cast
+      // to ::vector — values are validated finite above, so no injection surface.
+      const q = pgvectorReady
+        ? "INSERT INTO vectors (namespace, id, vector, dimensions, metadata, created_at, embedding) VALUES (?, ?, ?, ?, ?, ?, ?::vector) ON CONFLICT (namespace, id) DO UPDATE SET vector = EXCLUDED.vector, dimensions = EXCLUDED.dimensions, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at, embedding = EXCLUDED.embedding"
+        : "INSERT INTO vectors (namespace, id, vector, dimensions, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (namespace, id) DO UPDATE SET vector = EXCLUDED.vector, dimensions = EXCLUDED.dimensions, metadata = EXCLUDED.metadata, created_at = EXCLUDED.created_at";
+      await client.query(pgPlaceholders(q), pgvectorReady ? [...baseParams, vectorLiteral(r.vector)] : baseParams);
     }
   });
 
@@ -204,6 +263,98 @@ export async function queryVectors(namespace: string, opts: QueryOptions): Promi
   // Stable sort by score desc, then by id asc as tiebreaker so output is deterministic.
   candidates.sort((a, b) => (b.score - a.score) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return candidates.slice(0, Math.floor(top_k));
+}
+
+export interface AnnCandidate {
+  id: string;
+  score: number; // cosine similarity in [-1, 1] (1 - pgvector <=> distance)
+  created_at_ms: number;
+  metadata: Record<string, unknown> | null;
+}
+
+/**
+ * Engineer ANN: return a candidate POOL of nearest neighbours (larger than the
+ * final top_k, leaving room for recency-decay / fusion reranking in the handler).
+ * Uses pgvector `<=>` (cosine distance) when available — filtered to one dimension
+ * so mixed-dim rows can't error — else an exact JS cosine scan over the bytea
+ * column. The pgvector path only sees rows whose `embedding` was populated (i.e.
+ * upserted after the backing was enabled); the JS fallback sees all.
+ */
+export async function annQueryVectors(
+  namespace: string,
+  vector: number[],
+  pool: number,
+  filter?: Record<string, unknown>,
+): Promise<{ candidates: AnnCandidate[]; backend: "pgvector" | "js" }> {
+  if (!namespace || typeof namespace !== "string") {
+    throw new Error("annQueryVectors: namespace is required");
+  }
+  if (!Array.isArray(vector) || vector.length === 0) {
+    throw new Error("annQueryVectors: vector is required");
+  }
+  // Non-finite components would produce an invalid `[NaN]` ::vector literal (pg
+  // rejects it) and meaningless cosine scores — guard before either path.
+  if (vector.some((v) => !Number.isFinite(v))) {
+    throw new Error("annQueryVectors: vector must contain only finite numbers");
+  }
+  if (vector.length > MAX_VECTOR_DIM) {
+    throw new Error(`annQueryVectors: vector dimension exceeds ${MAX_VECTOR_DIM}`);
+  }
+  const limit = Number.isFinite(pool) && pool > 0 ? Math.floor(pool) : 10;
+  await ensureSchema();
+  const dim = vector.length;
+  const hasFilter = filter !== undefined && Object.keys(filter).length > 0;
+
+  if (pgvectorReady) {
+    // Match the HNSW partial-index expression for the common fixed dim so the index
+    // is eligible; other dims fall through to an exact `<=>` scan. The metadata
+    // filter is pushed into the WHERE (jsonb containment) so it's applied to ALL
+    // matching rows, not just the post-LIMIT pool.
+    const distExpr =
+      dim === HNSW_INDEX_DIM
+        ? `embedding::vector(${HNSW_INDEX_DIM}) <=> ?::vector(${HNSW_INDEX_DIM})`
+        : "embedding <=> ?::vector";
+    const filterClause = hasFilter ? " AND metadata::jsonb @> ?::jsonb" : "";
+    const params: unknown[] = [vectorLiteral(vector), namespace, dim];
+    if (hasFilter) params.push(JSON.stringify(filter));
+    params.push(vectorLiteral(vector), limit);
+    const rows = await sql.many<{ id: string; metadata: string | null; created_at: string; score: number }>(
+      pgPlaceholders(
+        `SELECT id, metadata, created_at, 1 - (${distExpr}) AS score FROM vectors WHERE namespace = ? AND dimensions = ? AND embedding IS NOT NULL${filterClause} ORDER BY ${distExpr} LIMIT ?`,
+      ),
+      params,
+    );
+    return {
+      backend: "pgvector",
+      candidates: rows.map((r) => ({
+        id: r.id,
+        score: Number(r.score),
+        created_at_ms: Date.parse(r.created_at) || 0,
+        metadata: r.metadata ? (JSON.parse(r.metadata) as Record<string, unknown>) : null,
+      })),
+    };
+  }
+
+  // Fallback: exact cosine over the bytea column (same dimension only). Apply the
+  // metadata filter BEFORE the score sort + slice so no filter-match is dropped.
+  const rows = await sql.many<{ id: string; vector: Buffer; dimensions: number; metadata: string | null; created_at: string }>(
+    pgPlaceholders("SELECT id, vector, dimensions, metadata, created_at FROM vectors WHERE namespace = ?"),
+    [namespace],
+  );
+  const cands: AnnCandidate[] = [];
+  for (const r of rows) {
+    if (r.dimensions !== dim) continue;
+    const meta = r.metadata ? (JSON.parse(r.metadata) as Record<string, unknown>) : null;
+    if (hasFilter && !matchesFilter(meta, filter as Record<string, unknown>)) continue;
+    cands.push({
+      id: r.id,
+      score: cosineSimilarity(vector, decodeVector(r.vector)),
+      created_at_ms: Date.parse(r.created_at) || 0,
+      metadata: meta,
+    });
+  }
+  cands.sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  return { backend: "js", candidates: cands.slice(0, limit) };
 }
 
 /** Drop every vector in a namespace. Returns the number of rows removed. */
