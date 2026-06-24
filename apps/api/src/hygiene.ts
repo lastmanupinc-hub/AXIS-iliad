@@ -496,3 +496,93 @@ export function buildRemediationPlan(report: HygieneReport): RemediationPlan {
     (gitignore_additions.length ? `Apply ${gitignore_additions.length} .gitignore line(s).` : "");
   return { ordered_steps, gitignore_additions, summary };
 }
+
+// ─── Engineer tier (E1): applyable patch + SARIF ──────────────────────────────
+//
+// Engineer mode ships the deterministically-SAFE fix as a `git apply`-able
+// unified-diff patch (today: the .gitignore additions — the only class safe to
+// apply without a human decision) plus a SARIF 2.1.0 log of all open findings
+// for CI code-scanning. Unsafe fixes (secret rotation, stub completion, dedup,
+// blob-splitting) are intentionally NOT patched — they stay in the plan.
+
+/** SARIF 2.1.0 log of the open findings — drop-in for GitHub code-scanning / CI gates. */
+export function buildHygieneSarif(report: HygieneReport): Record<string, unknown> {
+  const levelOf = (s: Severity): "error" | "warning" | "note" =>
+    s === "high" ? "error" : s === "medium" ? "warning" : "note";
+  const open = report.findings.filter(f => f.policy === "open");
+  const ruleIds = [...new Set(open.map(f => f.ruleId))].sort();
+  return {
+    version: "2.1.0",
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: "iliad-hygiene",
+            informationUri: "https://iliad.trustfabric.ai",
+            rules: ruleIds.map(id => ({ id, name: id, shortDescription: { text: id.replace(/_/g, " ") } })),
+          },
+        },
+        results: open.map(f => ({
+          ruleId: f.ruleId,
+          level: levelOf(f.severity),
+          message: { text: f.message },
+          locations: [{ physicalLocation: { artifactLocation: { uri: f.path === "(repo)" ? "." : f.path } } }],
+          properties: { recommendedAction: f.recommendedAction, hygieneId: f.id },
+        })),
+      },
+    ],
+  };
+}
+
+/**
+ * Build a `git apply`-able unified-diff patch for the safe auto-fixes (the
+ * .gitignore additions). Creates .gitignore when absent, else appends after its
+ * last content line. Returns "" when nothing is safely auto-fixable.
+ */
+export function buildHygienePatch(report: HygieneReport, files: HygieneFile[]): string {
+  const additions = buildRemediationPlan(report).gitignore_additions;
+  if (additions.length === 0) return "";
+  const existing = files.find(f => f.path === ".gitignore");
+  const raw = existing?.content ?? "";
+
+  // Match the file's dominant EOL on added/context bodies (split() strips it),
+  // so we never mix LF into a CRLF file.
+  const cr = raw.includes("\r\n") ? "\r" : "";
+  const lines = raw.split(/\r?\n/);
+  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+  const add = additions.map(a => `+${a}${cr}`);
+
+  // New file, or present-but-empty: create-style add against /dev/null.
+  if (!existing || lines.length === 0) {
+    const minus = existing ? "--- a/.gitignore" : "--- /dev/null";
+    return [minus, "+++ b/.gitignore", `@@ -0,0 +1,${additions.length} @@`, ...add, ""].join("\n");
+  }
+
+  const n = lines.length;
+  const last = lines[n - 1];
+  // File ends with a newline: a plain context line is enough.
+  if (/\n$/.test(raw)) {
+    return [
+      "--- a/.gitignore",
+      "+++ b/.gitignore",
+      `@@ -${n},1 +${n},${additions.length + 1} @@`,
+      ` ${last}${cr}`,
+      ...add,
+      "",
+    ].join("\n");
+  }
+  // No trailing newline: `git apply` needs the standard "remove the no-newline
+  // last line, re-add it newline-terminated, then append" form, or the hunk is
+  // rejected.
+  return [
+    "--- a/.gitignore",
+    "+++ b/.gitignore",
+    `@@ -${n},1 +${n},${additions.length + 1} @@`,
+    `-${last}${cr}`,
+    "\\ No newline at end of file",
+    `+${last}${cr}`,
+    ...add,
+    "",
+  ].join("\n");
+}

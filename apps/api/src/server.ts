@@ -107,6 +107,7 @@ import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange,
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
+import { handleArchitectureDriftWebhook } from "./architecture-drift-webhook.js";
 import { handlePaidSubscribe, handlePaidConfig, handlePaidWebhook } from "./paid-handlers.js";
 import { handleListCreditPacks, handleCreateCreditTopup, handleListMyPurchases } from "./credit-pack-handlers.js";
 import { validateEnv } from "./env.js";
@@ -209,6 +210,9 @@ router.post("/v1/github/analyze", handleGitHubAnalyze);
 
 // GitHub App webhook (push / pull_request / installation events)
 router.post("/v1/github/webhook", handleGitHubWebhook);
+
+// E5 Living Architecture: push-triggered architecture-drift PR mode
+router.post("/v1/github/architecture-drift", handleArchitectureDriftWebhook);
 
 // Firecrawl proxy â€” web research (Phase 1)
 router.post("/v1/research/scrape", handleFirecrawlScrape);

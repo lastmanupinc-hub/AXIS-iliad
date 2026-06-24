@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
-import { presignR2Url, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
+import { presignR2Url, presignR2List, presignR2Copy, casKey, readR2ConfigFromEnv, scopeAccountKey, type R2Operation } from "./object-storage.js";
 import {
   upsertVectors,
   queryVectors,
@@ -13,7 +13,10 @@ import {
   type QueryOptions,
 } from "./vector-db.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
+import { buildEngineerEmbeddings } from "./embeddings-engineer.js";
+import { derivePersonaFromBrand, diarizeSegments } from "./voice.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
+import { buildDeliverabilityKit } from "./deliverability.js";
 import {
   captureEvent,
   captureEvents,
@@ -45,6 +48,7 @@ import {
   addDocument as addSearchDocument,
   addDocuments as addSearchDocuments,
   searchDocuments,
+  answerFromHits,
   deleteDocument as deleteSearchDocument,
   deleteSearchNamespace,
   countSearchDocuments,
@@ -84,16 +88,23 @@ import {
   saveIdempotentResult,
   getUsageCreditSummary,
   recordMcpUsage,
+  extractSymbols,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
+import { runSpecificityPass } from "./living-architecture.js";
+import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
+import { attestRun } from "./attestation.js";
+import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
+import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
+import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
-import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode } from "./mpp.js";
+import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
-import { runHygieneScan, buildRemediationPlan, type HygieneFile } from "./hygiene.js";
+import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
 import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchNotConfigured } from "./web-research.js";
 
 export const MCP_PROTOCOL_VERSION = "2025-03-26";
@@ -363,15 +374,22 @@ async function runObjectStorage(args: Record<string, unknown>, req: IncomingMess
     }, null, 2);
   }
 
+  const engineer = resolveAgentMode(req) === "engineer";
   const rawKey = args.key;
   const rawOp = args.operation;
   const rawTtl = args.ttl_seconds;
 
+  // delete/list/copy and content-addressed put are the Managed Bucket (engineer) ops.
+  const OP_METHOD: Record<string, R2Operation> = { put: "PUT", get: "GET", delete: "DELETE" };
+  const validOps = engineer ? ["put", "get", "delete", "list", "copy"] : ["put", "get"];
+  if (typeof rawOp !== "string" || !validOps.includes(rawOp)) {
+    throw new Error(
+      `iliad_object_storage: \`operation\` must be one of ${validOps.join("/")}.` +
+        (engineer ? "" : " Send X-Agent-Mode: engineer for delete / list / copy / content-addressed dedup (Managed Bucket)."),
+    );
+  }
   if (typeof rawKey !== "string" || rawKey.length === 0) {
     throw new Error("iliad_object_storage: `key` is required and must be a non-empty string.");
-  }
-  if (rawOp !== "put" && rawOp !== "get") {
-    throw new Error("iliad_object_storage: `operation` must be \"put\" or \"get\".");
   }
   let ttl = 3600;
   if (rawTtl !== undefined) {
@@ -384,24 +402,59 @@ async function runObjectStorage(args: Record<string, unknown>, req: IncomingMess
     ttl = Math.floor(rawTtl);
   }
 
+  // Content-addressed put: caller supplies the sha256 of the bytes → dedup key.
+  const isCas = rawOp === "put" && engineer && typeof args.content_sha256 === "string";
   let scopedKey: string;
+  let scopedSource: string | null = null;
   try {
-    scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    if (rawOp === "list") {
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey.replace(/\/?$/, "/"));
+    } else if (isCas) {
+      scopedKey = casKey(auth.account.account_id, args.content_sha256 as string, typeof args.ext === "string" ? args.ext : undefined);
+    } else if (rawOp === "copy") {
+      const rawSource = args.source_key;
+      if (typeof rawSource !== "string" || rawSource.length === 0) {
+        throw new Error("`source_key` is required for copy and must be a non-empty string");
+      }
+      // Both source and dest are scoped to the caller's account, so a copy can
+      // never read from or write outside accounts/<id>/.
+      scopedSource = scopeAccountKey(auth.account.account_id, rawSource);
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    } else {
+      scopedKey = scopeAccountKey(auth.account.account_id, rawKey);
+    }
   } catch (err) {
     throw new Error(err instanceof Error ? `iliad_object_storage: ${err.message}` : String(err));
   }
 
-  const method: R2Operation = rawOp === "put" ? "PUT" : "GET";
+  // Engineer mint-time policy: pin Content-Type / exact size on a PUT (signed).
+  const putPolicy: { content_type?: string; content_length?: number } = {};
+  if (engineer && rawOp === "put") {
+    if (typeof args.content_type === "string") putPolicy.content_type = args.content_type;
+    if (typeof args.content_length === "number") putPolicy.content_length = args.content_length;
+  }
+
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_object_storage");
-  const presigned = presignR2Url({ config, method, key: scopedKey, ttl_seconds: ttl });
+  const presigned =
+    rawOp === "list"
+      ? presignR2List(config, scopedKey, ttl)
+      : rawOp === "copy"
+        ? presignR2Copy(config, scopedSource as string, scopedKey, ttl)
+        : presignR2Url({ config, method: OP_METHOD[rawOp], key: scopedKey, ttl_seconds: ttl, ...putPolicy });
   await captureMcpToolCredits(auth.account, charge);
 
+  // COPY (x-amz-copy-source) and mint-time PUT policy (content-type/length) each
+  // return signed headers the caller MUST echo verbatim on the request.
+  const requiredHeaders = (presigned as { required_headers?: Record<string, string> }).required_headers;
   return JSON.stringify({
     url: presigned.url,
     expires_at: presigned.expires_at,
     bucket: presigned.bucket,
     scoped_key: scopedKey,
-    operation: method,
+    operation: rawOp,
+    ...(isCas ? { content_addressed: true } : {}),
+    ...(scopedSource ? { source_scoped_key: scopedSource } : {}),
+    ...(requiredHeaders ? { required_headers: requiredHeaders } : {}),
     ttl_seconds: ttl,
   }, null, 2);
 }
@@ -411,6 +464,28 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
   if (!auth.account) {
     throw new Error("Authentication required: iliad_transactional_email needs Authorization: Bearer <api_key>.");
   }
+
+  // Engineer mode (Deliverability): a `domain` arg returns the SPF/DKIM/DMARC +
+  // warmup setup kit. Pure generation — no email sent, no ESP key required. The
+  // domain is required (the engineer feature), checked before any charge.
+  if (resolveAgentMode(req) === "engineer") {
+    if (typeof args.domain !== "string") {
+      throw new Error("iliad_transactional_email: engineer mode (Deliverability) requires a `domain` to generate the SPF/DKIM/DMARC + warmup kit.");
+    }
+    let kit;
+    try {
+      kit = buildDeliverabilityKit(args.domain, {
+        provider: typeof args.provider === "string" ? args.provider : undefined,
+        selector: typeof args.dkim_selector === "string" ? args.dkim_selector : undefined,
+        dmarc_policy: args.dmarc_policy === "quarantine" || args.dmarc_policy === "reject" ? args.dmarc_policy : "none",
+      });
+    } catch (err) {
+      throw new Error(err instanceof Error ? `iliad_transactional_email: ${err.message}` : String(err));
+    }
+    meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
+    return JSON.stringify({ operation: "deliverability_setup", ...kit }, null, 2);
+  }
+
   const config = readEmailConfigFromEnv();
   if (!config) {
     return JSON.stringify({
@@ -487,9 +562,38 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
       }
     }
   }
+  // Engineer mode (Domain Embeddings): requires `dimensions` and/or
+  // `corpus_adapter` (the feature) — checked before the charge + upstream call.
+  const engineer = resolveAgentMode(req) === "engineer";
+  const wantDims = typeof args.dimensions === "number";
+  const wantAdapter = args.corpus_adapter === true;
+  if (engineer && !wantDims && !wantAdapter) {
+    throw new Error("iliad_embeddings: engineer mode requires `dimensions` (Matryoshka truncation) and/or `corpus_adapter: true`.");
+  }
+  if (engineer && wantDims && (!Number.isInteger(args.dimensions) || (args.dimensions as number) <= 0)) {
+    throw new Error("iliad_embeddings: `dimensions` must be a positive integer.");
+  }
+
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);
   await captureMcpToolCredits(auth.account, charge);
+
+  if (engineer) {
+    const engineered = buildEngineerEmbeddings(result.vectors, {
+      dimensions: wantDims ? (args.dimensions as number) : undefined,
+      corpus_adapter: wantAdapter,
+    });
+    return JSON.stringify({
+      ...result,
+      vectors: engineered.embeddings,
+      engineer: {
+        dimensions: engineered.dimensions,
+        truncated: engineered.truncated,
+        adapter_applied: engineered.adapter_applied,
+        ...(engineered.adapter_mean ? { adapter_mean: engineered.adapter_mean } : {}),
+      },
+    }, null, 2);
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -753,9 +857,30 @@ async function runLlmInference(args: Record<string, unknown>, req: IncomingMessa
     throw new Error("iliad_llm_inference: provide either `prompt` (string) or `messages` (array).");
   }
 
+  // Engineer mode (Constrained Inference): a json_schema is required (it IS the
+  // contract). Decoding is grammar-constrained to it AND the output is validated
+  // against it. The schema is required BEFORE the charge, so an engineer call
+  // without one doesn't bill — binding the engineer charge to the engineer feature.
+  const engineer = resolveAgentMode(req) === "engineer";
+  if (engineer) {
+    if (!isUsableSchema(args.json_schema)) {
+      throw new Error("iliad_llm_inference: engineer mode requires a usable `json_schema` (the structured-output contract).");
+    }
+    opts.json_schema = args.json_schema;
+  }
+
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_llm_inference");
   const result = await runLlmCompletion(opts);
   await captureMcpToolCredits(auth.account, charge);
+
+  if (engineer && "text" in result) {
+    const structured = validateStructuredOutput(result.text, args.json_schema);
+    return JSON.stringify(
+      { ...result, structured: { schema_constrained: true, valid: structured.valid, parsed: structured.parsed, schema_errors: structured.errors } },
+      null,
+      2,
+    );
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -773,6 +898,31 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   if (args.mime_type !== undefined && typeof args.mime_type !== "string") {
     throw new Error("iliad_document_parsing: `mime_type` must be a string when provided.");
   }
+  const engineer = resolveAgentMode(req) === "engineer";
+
+  // Engineer + image input → OCR path (images aren't parseable in standard mode).
+  if (engineer && isImageMime(args.mime_type)) {
+    if (typeof args.document_base64 !== "string") {
+      throw new Error("iliad_document_parsing: image OCR requires `document_base64`.");
+    }
+    const ocr = await ocrImage(Buffer.from(args.document_base64, "base64"));
+    if (!ocr.available) {
+      // OCR couldn't run — don't meter (operator-level, like _not_configured).
+      return JSON.stringify({
+        _not_configured: true,
+        tool: "iliad_document_parsing",
+        reason: "Image OCR is unavailable on this instance (tesseract.js could not load or recognize the image).",
+      }, null, 2);
+    }
+    if (ocr.text.trim().length === 0) {
+      // OCR ran but found no text — don't bill for an empty result.
+      return JSON.stringify({ _not_configured: true, tool: "iliad_document_parsing", reason: "OCR ran but detected no text in the image." }, null, 2);
+    }
+    const imageBlock = await buildDocEngineerBlock(ocr.text, args.json_schema);
+    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: imageBlock }, null, 2);
+  }
+
   const opts: ParseOptions = {
     document_url: args.document_url as string | undefined,
     document_base64: args.document_base64 as string | undefined,
@@ -783,13 +933,30 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   // those branches mean the input was unsupported/malformed/unreachable
   // (operator-level issues), not a value the caller asked for.
   if (!isNotConfiguredResult(result)) {
+    // Engineer mode (Document Intelligence): chunks (+ schema extraction). Build
+    // the block BEFORE metering so the charge follows the delivered work.
+    if (engineer) {
+      const textBlock = await buildDocEngineerBlock(result.markdown, args.json_schema);
+      await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+      return JSON.stringify({ ...result, engineer: textBlock }, null, 2);
+    }
     await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
   }
   return JSON.stringify(result, null, 2);
 }
 
+/** Engineer-mode enrichment: retrieval chunks + optional extract-to-schema. */
+async function buildDocEngineerBlock(markdown: string, jsonSchema: unknown): Promise<Record<string, unknown>> {
+  const chunks = chunkMarkdown(markdown);
+  const block: Record<string, unknown> = { chunk_count: chunks.length, chunks };
+  if (isUsableSchema(jsonSchema)) {
+    block.extracted = await extractToSchema(markdown, jsonSchema, runLlmCompletion);
+  }
+  return block;
+}
+
 /** Shape-guard for the _not_configured envelope shared across the owned tools. */
-function isNotConfiguredResult(value: unknown): boolean {
+function isNotConfiguredResult(value: unknown): value is { _not_configured: true } {
   return Boolean(value && typeof value === "object" && (value as { _not_configured?: unknown })._not_configured === true);
 }
 
@@ -875,12 +1042,19 @@ async function runWebSearch(args: Record<string, unknown>, req: IncomingMessage)
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_search");
     const hits = await searchDocuments(scopedNs, opts);
     await captureMcpToolCredits(auth.account, charge);
+    // Engineer mode (Answer Engine): a grounded extractive answer with citation
+    // spans over the hits, or a refusal on weak evidence. Charged at the engineer
+    // price automatically via E0's priceForMode.
+    const answer = resolveAgentMode(req) === "engineer" ? answerFromHits(args.query, hits) : null;
     return JSON.stringify({
       operation: "search",
       namespace: scopedNs,
       query: args.query,
       total_in_namespace: await countSearchDocuments(scopedNs),
       hits,
+      ...(answer
+        ? { answer: answer.answer, citations: answer.citations, refused: answer.refused, reason: answer.reason }
+        : {}),
     }, null, 2);
   }
 
@@ -933,11 +1107,26 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   if (args.sentence_silence !== undefined && typeof args.sentence_silence !== "number") {
     throw new Error("iliad_text_to_speech: `sentence_silence` must be a number when provided.");
   }
+  // Engineer mode (Brand Voice): derive the persona from a brand artifact and
+  // apply its voice + pacing. Requires brand_text (the engineer feature), so the
+  // engineer charge is bound to it.
+  const engineer = resolveAgentMode(req) === "engineer";
+  if (engineer && (typeof args.brand_text !== "string" || args.brand_text.length === 0)) {
+    throw new Error("iliad_text_to_speech: engineer mode (Brand Voice) requires `brand_text` to derive the persona.");
+  }
+  const persona =
+    engineer && typeof args.brand_text === "string"
+      ? derivePersonaFromBrand(args.brand_text, {
+          locale: args.locale === "gb" || args.locale === "us" ? args.locale : undefined,
+          gender: args.gender === "male" || args.gender === "female" ? args.gender : undefined,
+        })
+      : null;
+
   const opts: SynthesisOptions = {
     text: args.text,
-    voice: args.voice as string | undefined,
+    voice: persona ? persona.voice : (args.voice as string | undefined),
     format: args.format as AudioFormat | undefined,
-    sentence_silence: args.sentence_silence as number | undefined,
+    sentence_silence: persona ? persona.sentence_silence : (args.sentence_silence as number | undefined),
   };
   const result = await runSynthesis(opts);
   // Skip metering on _not_configured branches (piper missing, voice
@@ -946,7 +1135,7 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   if (!isNotConfiguredResult(result)) {
     await meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
   }
-  return JSON.stringify(result, null, 2);
+  return JSON.stringify(persona ? { ...result, persona } : result, null, 2);
 }
 
 async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
@@ -979,6 +1168,15 @@ async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessa
   const result = await runTranscription(opts);
   if (!isNotConfiguredResult(result)) {
     await meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
+  }
+  // Engineer mode (Diarization): group the transcript's segments into speaker
+  // turns by inter-segment pause gaps.
+  if (resolveAgentMode(req) === "engineer" && !isNotConfiguredResult(result)) {
+    const diarization = diarizeSegments((result as { segments?: { start: number; end: number; text: string }[] }).segments ?? [], {
+      gap_seconds: typeof args.diarization_gap_seconds === "number" && Number.isFinite(args.diarization_gap_seconds) ? args.diarization_gap_seconds : undefined,
+      max_speakers: typeof args.max_speakers === "number" && Number.isFinite(args.max_speakers) ? args.max_speakers : undefined,
+    });
+    return JSON.stringify({ ...result, diarization }, null, 2);
   }
   return JSON.stringify(result, null, 2);
 }
@@ -1013,6 +1211,18 @@ async function runCodeSandbox(args: Record<string, unknown>, req: IncomingMessag
   // Docker daemon unreachable / dockerode import failed → _not_configured.
   // Don't meter those — the container never spawned.
   if (!isNotConfiguredResult(result)) {
+    // Engineer mode: build the signed attestation BEFORE metering, so a signing-
+    // key misconfiguration fails the call rather than charging for a missing
+    // attestation. attestRun is pure crypto over the already-capped inputs.
+    if (resolveAgentMode(req) === "engineer") {
+      const attestation = attestRun(
+        { language, code: args.code, stdin: opts.stdin },
+        { stdout: result.stdout, stderr: result.stderr, exit_code: result.exit_code },
+        auth.account.account_id,
+      );
+      await meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
+      return JSON.stringify({ ...result, attestation }, null, 2);
+    }
     await meterMcpToolCredits(req, auth.account, "iliad_code_sandbox");
   }
   return JSON.stringify(result, null, 2);
@@ -1117,7 +1327,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_repo",
     description:
-      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode per repo. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
+      `Analyze a GitHub repository and generate ${ARTIFACT_COUNT} structured AXIS artifacts across ${PROGRAM_COUNT} programs. Returns snapshot_id plus an artifacts listing; use get_artifact to read files and get_snapshot to re-enumerate outputs without re-running analysis. Requires Authorization: Bearer <api_key>. Use this when the source of truth is a GitHub repo URL. Pricing: $0.50 standard, $0.15 lite budget mode, $25 engineer per repo. Engineer mode (X-Agent-Mode: engineer — Living Architecture) adds a verified LLM specificity pass: a living-architecture.md whose every architectural claim is grounded in the repo's extracted facts or dropped. This is the paid path for full repo analysis and can return authentication, quota, payment-required, invalid-URL, or GitHub-fetch errors. private repos require a stored GitHub token. Use analyze_files instead for inline file payloads or list_programs/search_and_discover_tools when you are still selecting a workflow.`,
     inputSchema: {
       type: "object",
       required: ["github_url"],
@@ -1329,7 +1539,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration, $250): also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score). Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -1838,13 +2048,18 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces).",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
       properties: {
-        key: { type: "string", description: "Object key (max 1024 chars). Path traversal and leading-/ are rejected." },
-        operation: { type: "string", description: "Pre-sign upload (put) or download (get).", enum: ["put", "get"] },
+        key: { type: "string", description: "Object key (max 1024 chars), or the prefix for operation=list. Path traversal and leading-/ are rejected." },
+        operation: { type: "string", description: "put / get (standard). delete / list / copy and content-addressed put require X-Agent-Mode: engineer (Managed Bucket).", enum: ["put", "get", "delete", "list", "copy"] },
+        content_sha256: { type: "string", description: "Engineer mode: 64-char hex sha256 of the bytes you'll PUT. When set, the object lands under accounts/<id>/cas/<sha256> so identical content dedupes." },
+        ext: { type: "string", description: "Engineer mode: optional extension appended to the content-addressed key (e.g. 'png')." },
+        source_key: { type: "string", description: "Engineer mode (operation=copy): source object key to copy from, scoped to your account; `key` is the destination. Echo the returned required_headers on the PUT." },
+        content_type: { type: "string", description: "Engineer mode (put): pin the Content-Type the upload must send (signed; R2 rejects a mismatch). Printable ASCII type/subtype, ≤255 chars. Echo via required_headers." },
+        content_length: { type: "number", description: "Engineer mode (put): pin the EXACT byte size the upload must be (signed; ≤5 GiB). Pairs with content_sha256 for verified content-addressed writes." },
         ttl_seconds: { type: "number", description: "Signed-URL lifetime, 1..86400. Defaults to 3600." },
       },
     },
@@ -1932,12 +2147,14 @@ export const MCP_TOOLS = [
   {
     name: "iliad_embeddings",
     description:
-      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls.",
+      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
     inputSchema: {
       type: "object" as const,
       required: ["input"],
       properties: {
         input: { type: ["string", "array"] as unknown as string, description: "A single string or an array of strings to embed. Empty strings and entries > 32k chars are rejected (chunk before calling)." },
+        dimensions: { type: "number", description: "Engineer mode: truncate each vector to this many leading dims (Matryoshka) + renormalize. Smaller, cheaper vectors." },
+        corpus_adapter: { type: "boolean", description: "Engineer mode: mean-center the batch (all-but-the-mean) to sharpen retrieval; returns the fitted adapter_mean." },
       },
     },
     outputSchema: {
@@ -1948,6 +2165,7 @@ export const MCP_TOOLS = [
         model_used: { type: "string", description: "Concrete embedding model name returned by the provider." },
         input_count: { type: "number", description: "Number of inputs submitted (matches vectors.length)." },
         usage: { type: "object", description: "{prompt_tokens, total_tokens} when reported by the provider." },
+        engineer: { type: "object", description: "Engineer mode only: { dimensions, truncated, adapter_applied, adapter_mean? } — the post-processing applied + the fitted corpus mean." },
       },
     },
     annotations: toolAnnotations("Vector Embeddings", false, true),
@@ -1972,15 +2190,18 @@ export const MCP_TOOLS = [
   {
     name: "iliad_transactional_email",
     description:
-      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB.",
+      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB. Engineer mode (X-Agent-Mode: engineer — Deliverability, $0.50): instead of sending, pass a `domain` and get a full SPF/DKIM/DMARC setup (fresh DKIM keypair) + sender warmup schedule + verification checklist — no email sent, no ESP key needed.",
     inputSchema: {
       type: "object" as const,
-      required: ["to", "subject"],
       properties: {
         to: {
           type: ["string", "array"] as unknown as string,
-          description: "Recipient address or array of addresses (max 50).",
+          description: "Recipient address or array of addresses (max 50). Required for a send (standard mode).",
         },
+        domain: { type: "string", description: "Engineer mode (Deliverability): domain to generate SPF/DKIM/DMARC setup for. Replaces the send." },
+        provider: { type: "string", description: "Engineer mode: ESP for the SPF include (resend/sendgrid/mailgun/postmark/ses/google). Defaults resend." },
+        dkim_selector: { type: "string", description: "Engineer mode: DKIM selector (alphanumeric/hyphen, 1-32). Defaults 'axis'." },
+        dmarc_policy: { type: "string", description: "Engineer mode: DMARC policy none|quarantine|reject. Defaults none (monitoring)." },
         subject: { type: "string", description: "Email subject (max 998 chars, RFC 5322)." },
         body_html: { type: "string", description: "HTML body. At least one of body_html / body_text required." },
         body_text: { type: "string", description: "Plaintext body. At least one of body_html / body_text required." },
@@ -2023,7 +2244,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_llm_inference",
     description:
-      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Requires Authorization: Bearer <api_key>.",
+      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -2036,12 +2257,14 @@ export const MCP_TOOLS = [
         top_p: { type: "number", description: "Top-p nucleus sampling in (0, 1]. Defaults 0.95." },
         seed: { type: "number", description: "Optional seed for reproducible output." },
         stop: { type: "array", description: "Stop sequences. Generation halts when any string in the array is produced." },
+        json_schema: { type: "object", description: "Engineer mode (required): a JSON Schema. Decoding is grammar-constrained to it and the output is validated against it; returns a `structured` block." },
       },
     },
     outputSchema: {
       type: "object" as const,
       properties: {
         text: { type: "string", description: "Generated completion text." },
+        structured: { type: "object", description: "Engineer mode only: { schema_constrained, valid, parsed, schema_errors } — the guaranteed-valid structured-output verdict." },
         model_used: { type: "string", description: "Basename of the GGUF model file used." },
         prompt_tokens: { type: "number", description: "Token count of the input prompt (best-effort)." },
         completion_tokens: { type: "number", description: "Token count of the generated text (best-effort)." },
@@ -2086,7 +2309,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_code_sandbox",
     description:
-      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Engineer mode (X-Agent-Mode: engineer — Verified Exec, $0.25): the result includes an Ed25519-signed attestation binding code-hash → output-hash + a per-account hash-chain entry, so another agent that pins AXIS's published key can verify the run without re-executing it. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["language", "code"],
@@ -2146,19 +2369,21 @@ export const MCP_TOOLS = [
   {
     name: "iliad_document_parsing",
     description:
-      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64) — typed data, not just markdown. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
         document_url: { type: "string", description: "https URL to a document. Use this OR document_base64, not both." },
         document_base64: { type: "string", description: "Base64-encoded document bytes. Use this OR document_url, not both." },
-        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension." },
+        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension. Engineer mode: an image/* mime triggers OCR." },
+        json_schema: { type: "object", description: "Engineer mode: a JSON Schema. The document is extracted into a validated object matching it (returned in engineer.extracted)." },
       },
     },
     outputSchema: {
       type: "object" as const,
       properties: {
         markdown: { type: "string", description: "Extracted text, formatted as Markdown when the source had structure." },
+        engineer: { type: "object", description: "Engineer mode only: { chunk_count, chunks, extracted? } — retrieval chunks + optional schema-validated extraction." },
         format_detected: { type: "string", description: "pdf | docx | html | markdown | text | unknown." },
         byte_size: { type: "number", description: "Raw byte size of the source document." },
         page_count: { type: ["number", "null"] as unknown as string, description: "Page count for PDFs; null otherwise." },
@@ -2204,7 +2429,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_search",
     description:
-      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via SQLite. Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via SQLite. Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Engineer mode (X-Agent-Mode: engineer — Answer Engine, $0.25): search also returns a grounded extractive answer with [n] citation spans over your corpus, reranked, refusing on weak evidence. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -2268,7 +2493,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_text_to_speech",
     description:
-      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): pass `brand_text` (a brand / voice-and-tone artifact) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["text"],
@@ -2277,6 +2502,9 @@ export const MCP_TOOLS = [
         voice: { type: "string", description: "Voice slug (filename without extension, e.g. 'en_US-amy-medium'). Defaults to first available voice or AXIS_PIPER_DEFAULT_VOICE." },
         format: { type: "string", description: "Audio codec.", enum: ["wav", "mp3", "opus"] },
         sentence_silence: { type: "number", description: "Per-sentence silence in seconds (0-5). Defaults 0.2." },
+        brand_text: { type: "string", description: "Engineer mode: brand / voice-and-tone artifact. AXIS derives a voice persona from it and synthesizes in that voice (overrides voice/sentence_silence)." },
+        locale: { type: "string", description: "Engineer mode: persona locale override.", enum: ["us", "gb"] },
+        gender: { type: "string", description: "Engineer mode: persona gender override.", enum: ["female", "male"] },
       },
     },
     outputSchema: {
@@ -2325,7 +2553,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_speech_to_text",
     description:
-      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -2334,6 +2562,8 @@ export const MCP_TOOLS = [
         language: { type: "string", description: "ISO-639-1 language code (en, fr, ja, ...) or 'auto' to autodetect. Defaults 'auto'." },
         initial_prompt: { type: "string", description: "Optional bias prompt (≤512 chars) — useful for spelling of rare names." },
         word_timestamps: { type: "boolean", description: "Emit word-level timestamps within segments. Defaults false." },
+        diarization_gap_seconds: { type: "number", description: "Engineer mode: pause (seconds) between segments that starts a new speaker turn. Defaults 0.75." },
+        max_speakers: { type: "number", description: "Engineer mode: max alternating speaker labels. Defaults 2." },
       },
     },
     outputSchema: {
@@ -2464,7 +2694,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_hygiene",
     description:
-      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, paid) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, route-registration dup-handler analysis) are reported as repo_only_rules, not run. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, paid) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, route-registration dup-handler analysis) are reported as repo_only_rules, not run. Engineer mode (X-Agent-Mode: engineer — Security Engineer, $5): the fix arrives as a git-applyable unified-diff patch + a SARIF 2.1.0 log for CI code-scanning. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["files"],
@@ -2789,7 +3019,7 @@ async function authorizeMcpToolCredits(
 ): Promise<AuthorizedCharge> {
   const mode = resolveAgentMode(req);
   const pricing = getPricingTier(tool);
-  const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+  const amountCents = priceForMode(pricing, mode);
   const charge = await previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
     throw new Error(await buildMcpPaymentRequiredError(
@@ -2887,7 +3117,8 @@ async function runHygiene(args: Record<string, unknown>, req: IncomingMessage): 
   if (rawCount > limits.max_files_per_snapshot) {
     throw new Error(`File limit: ${rawCount} files exceeds max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier`);
   }
-  const mode = args.mode === "fix" ? "fix" : "scan";
+  const wantEngineer = resolveAgentMode(req) === "engineer";
+  const mode = wantEngineer || args.mode === "fix" ? "fix" : "scan";
   const files = coerceHygieneFiles(args);
   const config =
     args.config && typeof args.config === "object" && !Array.isArray(args.config)
@@ -2898,17 +3129,67 @@ async function runHygiene(args: Record<string, unknown>, req: IncomingMessage): 
   if (mode === "scan") {
     // FREE path - no meterMcpToolCredits call.
     return JSON.stringify(
-      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered)." },
+      { mode: "scan", ...report, paid_fix_hint: "Call again with mode='fix' for a prioritized remediation plan (metered), or send X-Agent-Mode: engineer for a git-applyable patch + SARIF (Security Engineer tier)." },
       null,
       2,
     );
   }
 
-  // PAID path - bill before producing the remediation plan.
+  // PAID path - bill before producing the plan. Engineer mode (X-Agent-Mode:
+  // engineer) charges the engineer price automatically via priceForMode.
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_hygiene");
   const plan = buildRemediationPlan(report);
   await captureMcpToolCredits(auth.account, charge);
+  if (wantEngineer) {
+    return JSON.stringify(
+      {
+        mode: "engineer",
+        ...report,
+        remediation_plan: plan,
+        patch: buildHygienePatch(report, files),
+        sarif: buildHygieneSarif(report),
+      },
+      null,
+      2,
+    );
+  }
   return JSON.stringify({ mode: "fix", ...report, remediation_plan: plan }, null, 2);
+}
+
+/**
+ * Engineer mode only: append the verified Living Architecture artifact (E5) to
+ * the generator result so it persists + lists like any other artifact. Reuses
+ * the local runCompletion; degrades to a labeled doc when no model is
+ * configured. NEVER throws — engineer enrichment must not fail analyze_repo, and
+ * the deterministic core artifacts are emitted regardless. A fixed seed +
+ * temperature 0 keep it reproducible across re-analyses of the same repo (which
+ * is what the Stage 2 drift detector compares).
+ */
+async function maybeAppendLivingArchitecture(
+  generated: GeneratorResult,
+  ctxMap: ContextMap,
+  sourceFiles: Array<{ path: string; content: string }>,
+  req: IncomingMessage,
+): Promise<void> {
+  if (resolveAgentMode(req) !== "engineer") return;
+  try {
+    const symbols = extractSymbols(sourceFiles);
+    const art = await runSpecificityPass(ctxMap, symbols, runLlmCompletion, { seed: 42 });
+    // Guard against a future generator claiming the same path (saveGeneratorResult
+    // keys by path → silent last-wins collision otherwise).
+    if (generated.files.some((f) => f.path === art.path)) return;
+    generated.files.push({
+      path: art.path,
+      content: art.content,
+      content_type: "text/markdown",
+      program: "living-architecture",
+      description: art.report.configured
+        ? `Engineer: ${art.report.kept}/${art.report.proposed} architectural claims verified against the repo`
+        : "Engineer: Living Architecture (no local model configured on this instance)",
+    });
+  } catch {
+    // Best-effort; the deterministic core already succeeded.
+  }
 }
 
 export async function runAnalyzeFiles(
@@ -3016,6 +3297,7 @@ export async function runAnalyzeFiles(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3167,6 +3449,7 @@ export async function runAnalyzeRepo(
     requested_outputs: requestedOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3474,6 +3757,7 @@ export async function runImproveMyAgent(
     requested_outputs: freeOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4230,6 +4514,7 @@ export async function runPreparePurchasing(
     requested_outputs: allOutputs,
     source_files: snapshot.files,
   });
+  await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4350,6 +4635,22 @@ export async function runPreparePurchasing(
   ].join("\n");
   artifactsMap["agent_system_prompt.md"] = agentSystemPrompt;
 
+  // ── Engineer mode: append the deployable commerce-integration bundle (E9) ──
+  // Built BEFORE captureMcpToolCredits and deliberately NOT swallowed: at the
+  // $250 engineer price the bundle IS the deliverable, so a build failure must
+  // fail the call (capture never runs → no charge) rather than silently charge
+  // for standard-only output. Builders are pure + deterministic.
+  const engineerArtifacts: string[] = [];
+  if (agentMode === "engineer") {
+    const signals = detectCommerceSignals(snapshot.files);
+    for (const a of buildCommerceIntegrationBundle(ctxMap, signals, 100)) {
+      if (artifactsMap[a.path] === undefined) {
+        artifactsMap[a.path] = a.content;
+        engineerArtifacts.push(a.path);
+      }
+    }
+  }
+
   const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
 
   // All work succeeded — commit the charge now. Never before checkQuota / the
@@ -4392,6 +4693,7 @@ export async function runPreparePurchasing(
         snapshot_url: `https://axis-api-6c7z.onrender.com/v1/snapshots/${snapshot.snapshot_id}`,
       },
       artifacts: artifactsMap,
+      ...(engineerArtifacts.length > 0 ? { engineer_artifacts: engineerArtifacts } : {}),
       programs_executed: [...programs],
       artifact_count: Object.keys(artifactsMap).length,
       purchasing_artifacts: purchasingFiles.map(f => ({
