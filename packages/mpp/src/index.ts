@@ -262,6 +262,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: input capped at 5 MiB (standard allows up to 50 MiB) + markdown output capped at 256 KiB (standard caps at 1 MiB).",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Document Intelligence): retrieval chunking + extract-to-caller-schema (grammar-constrained + validated) + image OCR — typed data, not just markdown.",
   },
   // AXIS-owned workspace hygiene grader. scan mode is FREE (always); only the
   // fix mode (remediation plan) is metered. Cheap — pure in-process analysis.
