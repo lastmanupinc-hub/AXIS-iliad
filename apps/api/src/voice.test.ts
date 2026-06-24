@@ -1,34 +1,29 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { derivePersonaFromBrand, isVoiceConfigured, synthesizeSpeech, transcribeAudio } from "./voice.js";
-
-beforeEach(() => {
-  delete process.env.AXIS_VOICE_ENABLED;
-  delete process.env.AXIS_VOICE_MODULE;
-});
+import { describe, it, expect } from "vitest";
+import { derivePersonaFromBrand, diarizeSegments } from "./voice.js";
 
 describe("derivePersonaFromBrand", () => {
-  it("defaults to US female af_heart at 1.0 with no tone cues", () => {
+  it("defaults to a US female Piper voice with a 0.2s pause and no tone cues", () => {
     const p = derivePersonaFromBrand("Our brand is a company.");
-    expect(p).toMatchObject({ locale: "us", gender: "female", voice: "af_heart", speed: 1.0, tone_tags: [] });
+    expect(p).toMatchObject({ locale: "us", gender: "female", voice: "en_US-amy-medium", sentence_silence: 0.2, tone_tags: [] });
   });
 
   it("is deterministic", () => {
-    expect(derivePersonaFromBrand("energetic and playful brand")).toEqual(derivePersonaFromBrand("energetic and playful brand"));
+    expect(derivePersonaFromBrand("energetic playful brand")).toEqual(derivePersonaFromBrand("energetic playful brand"));
   });
 
-  it("speeds up for energetic tone, slows for calm", () => {
-    expect(derivePersonaFromBrand("an energetic, lively voice").speed).toBeGreaterThan(1.0);
-    expect(derivePersonaFromBrand("a calm, soothing tone").speed).toBeLessThan(1.0);
+  it("shortens pauses for energetic, lengthens for soothing", () => {
+    expect(derivePersonaFromBrand("an energetic lively voice").sentence_silence).toBeLessThan(0.2);
+    expect(derivePersonaFromBrand("a calm, soothing tone").sentence_silence).toBeGreaterThan(0.2);
   });
 
   it("picks British voices for a British brand", () => {
     const p = derivePersonaFromBrand("A British heritage brand from London.");
     expect(p.locale).toBe("gb");
-    expect(p.voice.startsWith("b")).toBe(true);
+    expect(p.voice.startsWith("en_GB-")).toBe(true);
   });
 
   it("uses a more-neutral voice slot for professional/authoritative tone", () => {
-    expect(derivePersonaFromBrand("a professional, authoritative, formal brand").voice).toBe("af_nova");
+    expect(derivePersonaFromBrand("a professional, authoritative, formal brand").voice).toBe("en_US-lessac-medium");
   });
 
   it("does NOT match 'formal' inside 'informal' (word-boundary)", () => {
@@ -36,27 +31,37 @@ describe("derivePersonaFromBrand", () => {
   });
 
   it("honors explicit locale + gender overrides", () => {
-    const p = derivePersonaFromBrand("energetic", { locale: "gb", gender: "male" });
-    expect(p.locale).toBe("gb");
-    expect(p.voice.startsWith("bm_")).toBe(true);
+    expect(derivePersonaFromBrand("energetic", { locale: "gb", gender: "male" }).voice).toBe("en_GB-alan-medium");
   });
 
-  it("sorts tone_tags and clamps speed to [0.7, 1.3]", () => {
-    const p = derivePersonaFromBrand("energetic lively playful upbeat friendly");
-    expect(p.speed).toBeLessThanOrEqual(1.3);
+  it("clamps sentence_silence to [0, 1] and sorts tone_tags", () => {
+    const p = derivePersonaFromBrand("soothing calm serious authoritative formal professional luxurious");
+    expect(p.sentence_silence).toBeLessThanOrEqual(1.0);
     expect([...p.tone_tags]).toEqual([...p.tone_tags].sort());
   });
 });
 
-describe("owned TTS/STT gating", () => {
-  it("isVoiceConfigured is false by default (operator opt-in)", async () => {
-    expect(await isVoiceConfigured()).toBe(false);
+describe("diarizeSegments", () => {
+  const seg = (start: number, end: number, text: string) => ({ start, end, text });
+
+  it("merges small-gap segments into one speaker turn", () => {
+    const turns = diarizeSegments([seg(0, 1, "hello"), seg(1.1, 2, "there")], { gap_seconds: 0.75 });
+    expect(turns.length).toBe(1);
+    expect(turns[0]).toMatchObject({ speaker: "speaker_1", text: "hello there", end: 2 });
   });
 
-  it("synthesize/transcribe return a structured _not_configured envelope when disabled", async () => {
-    const s = await synthesizeSpeech("hi", { voice: "af_heart", speed: 1 });
-    const t = await transcribeAudio("AAAA");
-    expect((s as { _not_configured?: boolean })._not_configured).toBe(true);
-    expect((t as { _not_configured?: boolean })._not_configured).toBe(true);
+  it("starts a new alternating turn after a long pause", () => {
+    const turns = diarizeSegments([seg(0, 1, "hi"), seg(3, 4, "hey")], { gap_seconds: 0.75 });
+    expect(turns.map((t) => t.speaker)).toEqual(["speaker_1", "speaker_2"]);
+  });
+
+  it("is deterministic and handles empty input", () => {
+    expect(diarizeSegments([])).toEqual([]);
+    expect(diarizeSegments([seg(0, 1, "a"), seg(2, 3, "b")])).toEqual(diarizeSegments([seg(0, 1, "a"), seg(2, 3, "b")]));
+  });
+
+  it("respects max_speakers", () => {
+    const turns = diarizeSegments([seg(0, 1, "a"), seg(3, 4, "b"), seg(6, 7, "c")], { gap_seconds: 0.75, max_speakers: 1 });
+    expect(new Set(turns.map((t) => t.speaker))).toEqual(new Set(["speaker_1"]));
   });
 });
