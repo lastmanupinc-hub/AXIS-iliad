@@ -103,12 +103,14 @@ jobs:
 
       - name: Verify Docker health check
         run: |
+          # Smoke-test that the image BOOTS and serves HTTP. Post-Neon the data
+          # layer is async Postgres with a LAZY pool, so the app starts without a
+          # DB; probe the DB-free LIVENESS endpoint (/v1/health/live -> "alive").
+          # Readiness (/v1/health/ready) requires a DB and is covered by build-and-test.
           docker run -d --name axis-test -p 4000:4000 \
-            -e DATABASE_PATH=/tmp/axis.db \
-            -v /tmp/axis-data:/tmp \
             ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }}
           for i in 1 2 3 4 5 6; do
-            if curl -sf http://localhost:4000/v1/health | grep -q '"status":"ok"'; then
+            if curl -sf http://localhost:4000/v1/health/live | grep -q '"status":"alive"'; then
               echo "Health check passed on attempt $i"
               break
             fi
@@ -118,7 +120,7 @@ jobs:
             fi
             sleep 5
           done
-          curl -sf http://localhost:4000/v1/health | grep -q '"status":"ok"'
+          curl -sf http://localhost:4000/v1/health/live | grep -q '"status":"alive"'
           docker stop axis-test
           docker rm axis-test
 
