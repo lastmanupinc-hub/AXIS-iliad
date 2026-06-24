@@ -14,6 +14,7 @@ import {
 } from "./vector-db.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
+import { buildDeliverabilityKit } from "./deliverability.js";
 import {
   captureEvent,
   captureEvents,
@@ -459,6 +460,28 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
   if (!auth.account) {
     throw new Error("Authentication required: iliad_transactional_email needs Authorization: Bearer <api_key>.");
   }
+
+  // Engineer mode (Deliverability): a `domain` arg returns the SPF/DKIM/DMARC +
+  // warmup setup kit. Pure generation — no email sent, no ESP key required. The
+  // domain is required (the engineer feature), checked before any charge.
+  if (resolveAgentMode(req) === "engineer") {
+    if (typeof args.domain !== "string") {
+      throw new Error("iliad_transactional_email: engineer mode (Deliverability) requires a `domain` to generate the SPF/DKIM/DMARC + warmup kit.");
+    }
+    let kit;
+    try {
+      kit = buildDeliverabilityKit(args.domain, {
+        provider: typeof args.provider === "string" ? args.provider : undefined,
+        selector: typeof args.dkim_selector === "string" ? args.dkim_selector : undefined,
+        dmarc_policy: args.dmarc_policy === "quarantine" || args.dmarc_policy === "reject" ? args.dmarc_policy : "none",
+      });
+    } catch (err) {
+      throw new Error(err instanceof Error ? `iliad_transactional_email: ${err.message}` : String(err));
+    }
+    meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
+    return JSON.stringify({ operation: "deliverability_setup", ...kit }, null, 2);
+  }
+
   const config = readEmailConfigFromEnv();
   if (!config) {
     return JSON.stringify({
@@ -2065,15 +2088,18 @@ export const MCP_TOOLS = [
   {
     name: "iliad_transactional_email",
     description:
-      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB.",
+      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB. Engineer mode (X-Agent-Mode: engineer — Deliverability, $0.50): instead of sending, pass a `domain` and get a full SPF/DKIM/DMARC setup (fresh DKIM keypair) + sender warmup schedule + verification checklist — no email sent, no ESP key needed.",
     inputSchema: {
       type: "object" as const,
-      required: ["to", "subject"],
       properties: {
         to: {
           type: ["string", "array"] as unknown as string,
-          description: "Recipient address or array of addresses (max 50).",
+          description: "Recipient address or array of addresses (max 50). Required for a send (standard mode).",
         },
+        domain: { type: "string", description: "Engineer mode (Deliverability): domain to generate SPF/DKIM/DMARC setup for. Replaces the send." },
+        provider: { type: "string", description: "Engineer mode: ESP for the SPF include (resend/sendgrid/mailgun/postmark/ses/google). Defaults resend." },
+        dkim_selector: { type: "string", description: "Engineer mode: DKIM selector (alphanumeric/hyphen, 1-32). Defaults 'axis'." },
+        dmarc_policy: { type: "string", description: "Engineer mode: DMARC policy none|quarantine|reject. Defaults none (monitoring)." },
         subject: { type: "string", description: "Email subject (max 998 chars, RFC 5322)." },
         body_html: { type: "string", description: "HTML body. At least one of body_html / body_text required." },
         body_text: { type: "string", description: "Plaintext body. At least one of body_html / body_text required." },
