@@ -96,6 +96,8 @@ import { runSpecificityPass } from "./living-architecture.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
+import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
+import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
@@ -842,6 +844,26 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   if (args.mime_type !== undefined && typeof args.mime_type !== "string") {
     throw new Error("iliad_document_parsing: `mime_type` must be a string when provided.");
   }
+  const engineer = resolveAgentMode(req) === "engineer";
+
+  // Engineer + image input → OCR path (images aren't parseable in standard mode).
+  if (engineer && isImageMime(args.mime_type)) {
+    if (typeof args.document_base64 !== "string") {
+      throw new Error("iliad_document_parsing: image OCR requires `document_base64`.");
+    }
+    const ocr = await ocrImage(Buffer.from(args.document_base64, "base64"));
+    if (!ocr.available) {
+      // OCR couldn't run — don't meter (operator-level, like _not_configured).
+      return JSON.stringify({
+        _not_configured: true,
+        tool: "iliad_document_parsing",
+        reason: "Image OCR is unavailable on this instance (tesseract.js could not load or recognize the image).",
+      }, null, 2);
+    }
+    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: await buildDocEngineerBlock(ocr.text, args.json_schema) }, null, 2);
+  }
+
   const opts: ParseOptions = {
     document_url: args.document_url as string | undefined,
     document_base64: args.document_base64 as string | undefined,
@@ -853,8 +875,22 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   // (operator-level issues), not a value the caller asked for.
   if (!isNotConfiguredResult(result)) {
     meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    // Engineer mode (Document Intelligence): chunks (+ schema extraction).
+    if (engineer) {
+      return JSON.stringify({ ...result, engineer: await buildDocEngineerBlock(result.markdown, args.json_schema) }, null, 2);
+    }
   }
   return JSON.stringify(result, null, 2);
+}
+
+/** Engineer-mode enrichment: retrieval chunks + optional extract-to-schema. */
+async function buildDocEngineerBlock(markdown: string, jsonSchema: unknown): Promise<Record<string, unknown>> {
+  const chunks = chunkMarkdown(markdown);
+  const block: Record<string, unknown> = { chunk_count: chunks.length, chunks };
+  if (isUsableSchema(jsonSchema)) {
+    block.extracted = await extractToSchema(markdown, jsonSchema, runLlmCompletion);
+  }
+  return block;
 }
 
 /** Shape-guard for the _not_configured envelope shared across the owned tools. */
@@ -2241,19 +2277,21 @@ export const MCP_TOOLS = [
   {
     name: "iliad_document_parsing",
     description:
-      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64) — typed data, not just markdown. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
         document_url: { type: "string", description: "https URL to a document. Use this OR document_base64, not both." },
         document_base64: { type: "string", description: "Base64-encoded document bytes. Use this OR document_url, not both." },
-        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension." },
+        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension. Engineer mode: an image/* mime triggers OCR." },
+        json_schema: { type: "object", description: "Engineer mode: a JSON Schema. The document is extracted into a validated object matching it (returned in engineer.extracted)." },
       },
     },
     outputSchema: {
       type: "object" as const,
       properties: {
         markdown: { type: "string", description: "Extracted text, formatted as Markdown when the source had structure." },
+        engineer: { type: "object", description: "Engineer mode only: { chunk_count, chunks, extracted? } — retrieval chunks + optional schema-validated extraction." },
         format_detected: { type: "string", description: "pdf | docx | html | markdown | text | unknown." },
         byte_size: { type: "number", description: "Raw byte size of the source document." },
         page_count: { type: ["number", "null"] as unknown as string, description: "Page count for PDFs; null otherwise." },
