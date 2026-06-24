@@ -228,6 +228,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 3,
     lite_cents: 1,
     lite_description: "Lite mode: audio capped at 60 seconds (standard allows up to 30 minutes) + word_timestamps disabled.",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Diarization): groups the transcript into speaker turns by inter-segment pause gaps (pause-based turn segmentation).",
   },
   // AXIS-owned voice synthesis via Piper + ffmpeg-static. Piper is
   // fast on CPU (~10× realtime for medium voices), so per-call cost
@@ -239,6 +241,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: text capped at 500 chars + format locked to wav (standard allows up to 5000 chars + mp3/opus transcode).",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Brand Voice): auto-derives a voice persona (Piper voice + sentence pacing) from a brand / voice-and-tone artifact and synthesizes in it.",
   },
   // AXIS-owned BM25 search over the account's indexed corpus. Pure
   // SQLite + JS — no external API call, no provider fee. Per-query

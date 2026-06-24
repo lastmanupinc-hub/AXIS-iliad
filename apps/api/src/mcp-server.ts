@@ -13,6 +13,7 @@ import {
   type QueryOptions,
 } from "./vector-db.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
+import { derivePersonaFromBrand, diarizeSegments } from "./voice.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
 import {
   captureEvent,
@@ -1009,11 +1010,26 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   if (args.sentence_silence !== undefined && typeof args.sentence_silence !== "number") {
     throw new Error("iliad_text_to_speech: `sentence_silence` must be a number when provided.");
   }
+  // Engineer mode (Brand Voice): derive the persona from a brand artifact and
+  // apply its voice + pacing. Requires brand_text (the engineer feature), so the
+  // engineer charge is bound to it.
+  const engineer = resolveAgentMode(req) === "engineer";
+  if (engineer && (typeof args.brand_text !== "string" || args.brand_text.length === 0)) {
+    throw new Error("iliad_text_to_speech: engineer mode (Brand Voice) requires `brand_text` to derive the persona.");
+  }
+  const persona =
+    engineer && typeof args.brand_text === "string"
+      ? derivePersonaFromBrand(args.brand_text, {
+          locale: args.locale === "gb" || args.locale === "us" ? args.locale : undefined,
+          gender: args.gender === "male" || args.gender === "female" ? args.gender : undefined,
+        })
+      : null;
+
   const opts: SynthesisOptions = {
     text: args.text,
-    voice: args.voice as string | undefined,
+    voice: persona ? persona.voice : (args.voice as string | undefined),
     format: args.format as AudioFormat | undefined,
-    sentence_silence: args.sentence_silence as number | undefined,
+    sentence_silence: persona ? persona.sentence_silence : (args.sentence_silence as number | undefined),
   };
   const result = await runSynthesis(opts);
   // Skip metering on _not_configured branches (piper missing, voice
@@ -1022,7 +1038,7 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   if (!isNotConfiguredResult(result)) {
     meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
   }
-  return JSON.stringify(result, null, 2);
+  return JSON.stringify(persona ? { ...result, persona } : result, null, 2);
 }
 
 async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
@@ -1055,6 +1071,15 @@ async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessa
   const result = await runTranscription(opts);
   if (!isNotConfiguredResult(result)) {
     meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
+  }
+  // Engineer mode (Diarization): group the transcript's segments into speaker
+  // turns by inter-segment pause gaps.
+  if (resolveAgentMode(req) === "engineer" && !isNotConfiguredResult(result)) {
+    const diarization = diarizeSegments((result as { segments?: { start: number; end: number; text: string }[] }).segments ?? [], {
+      gap_seconds: typeof args.diarization_gap_seconds === "number" ? args.diarization_gap_seconds : undefined,
+      max_speakers: typeof args.max_speakers === "number" ? args.max_speakers : undefined,
+    });
+    return JSON.stringify({ ...result, diarization }, null, 2);
   }
   return JSON.stringify(result, null, 2);
 }

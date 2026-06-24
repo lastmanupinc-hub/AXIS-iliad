@@ -309,6 +309,8 @@ describe("X-Agent-Mode: engineer tier", () => {
       "iliad_hygiene",
       "iliad_llm_inference",
       "iliad_object_storage",
+      "iliad_speech_to_text",
+      "iliad_text_to_speech",
       "iliad_web_search",
       "prepare_agentic_purchasing",
     ]);
