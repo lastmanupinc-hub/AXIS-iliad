@@ -306,6 +306,7 @@ describe("X-Agent-Mode: engineer tier", () => {
       "analyze_files",
       "analyze_repo",
       "iliad_code_sandbox",
+      "iliad_embeddings",
       "iliad_hygiene",
       "iliad_llm_inference",
       "iliad_object_storage",
