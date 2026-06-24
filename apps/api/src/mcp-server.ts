@@ -1076,8 +1076,8 @@ async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessa
   // turns by inter-segment pause gaps.
   if (resolveAgentMode(req) === "engineer" && !isNotConfiguredResult(result)) {
     const diarization = diarizeSegments((result as { segments?: { start: number; end: number; text: string }[] }).segments ?? [], {
-      gap_seconds: typeof args.diarization_gap_seconds === "number" ? args.diarization_gap_seconds : undefined,
-      max_speakers: typeof args.max_speakers === "number" ? args.max_speakers : undefined,
+      gap_seconds: typeof args.diarization_gap_seconds === "number" && Number.isFinite(args.diarization_gap_seconds) ? args.diarization_gap_seconds : undefined,
+      max_speakers: typeof args.max_speakers === "number" && Number.isFinite(args.max_speakers) ? args.max_speakers : undefined,
     });
     return JSON.stringify({ ...result, diarization }, null, 2);
   }
