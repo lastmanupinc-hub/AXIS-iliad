@@ -603,14 +603,8 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
 const VECTOR_UPSERT_MAX_BATCH = 256;
 /** Hard cap on top_k so a single query can't read an entire namespace. */
 const VECTOR_QUERY_MAX_TOP_K = 100;
-
-/** Exact-match metadata filter, mirroring queryVectors' standard-path semantics. */
-function matchesVectorFilter(meta: Record<string, unknown> | null, filter: Record<string, unknown>): boolean {
-  for (const [k, expected] of Object.entries(filter)) {
-    if (meta === null || meta[k] !== expected) return false;
-  }
-  return true;
-}
+/** Hard cap on engineer hybrid-fusion sparse_ids to bound RRF allocation. */
+const VECTOR_QUERY_MAX_SPARSE_IDS = 1000;
 
 async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
   const auth = await resolveAuth(req);
@@ -704,15 +698,22 @@ async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMes
     top_k,
     filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
   };
+  // Non-numeric query components → NaN; reject before any charge/work (the pgvector
+  // ::vector literal rejects NaN, and cosine over NaN is meaningless).
+  if (queryOpts.vector.some((n) => !Number.isFinite(n))) {
+    throw new Error("iliad_vector_database: query.vector must contain only finite numbers.");
+  }
+  if (engineer && Array.isArray(q.sparse_ids) && (q.sparse_ids as unknown[]).length > VECTOR_QUERY_MAX_SPARSE_IDS) {
+    throw new Error(`iliad_vector_database: sparse_ids capped at ${VECTOR_QUERY_MAX_SPARSE_IDS}.`);
+  }
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
   if (engineer) {
     // Managed Memory query: ANN candidate pool → optional recency decay → optional
-    // RRF hybrid fusion with a caller-supplied sparse ranking → metadata filter → top_k.
+    // RRF hybrid fusion with a caller-supplied sparse ranking → top_k. The metadata
+    // filter is pushed into annQueryVectors so it sees ALL matching rows (not just
+    // the post-LIMIT pool), matching standard-mode semantics.
     const pool = Math.min(Math.max(top_k * 5, top_k), 500);
-    const { candidates, backend } = await annQueryVectors(scopedNs, queryOpts.vector, pool);
-    const pooled = queryOpts.filter
-      ? candidates.filter((c) => matchesVectorFilter(c.metadata, queryOpts.filter as Record<string, unknown>))
-      : candidates;
+    const { candidates: pooled, backend } = await annQueryVectors(scopedNs, queryOpts.vector, pool, queryOpts.filter);
 
     const halfLife = typeof q.recency_half_life_days === "number" ? (q.recency_half_life_days as number) : null;
     let ranked: Array<{ id: string; score: number; base_score?: number; age_days?: number; metadata: Record<string, unknown> | null }>;
