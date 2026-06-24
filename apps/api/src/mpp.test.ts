@@ -270,7 +270,7 @@ describe("X-Agent-Mode: engineer tier", () => {
   });
 
   it("priceForMode falls back to standard for tools without an engineer price (flag is always safe)", () => {
-    const tier = getPricingTier("iliad_transactional_email");
+    const tier = getPricingTier("iliad_vector_database");
     expect(tier.engineer_cents).toBeUndefined();
     expect(priceForMode(tier, "engineer")).toBe(tier.standard_cents);
   });
@@ -282,7 +282,7 @@ describe("X-Agent-Mode: engineer tier", () => {
     expect(eng!.amount_cents).toBe(25);
     expect(String(eng!.how)).toContain("X-Agent-Mode: engineer");
 
-    const withoutEng = build402NegotiationBody("iliad_transactional_email");
+    const withoutEng = build402NegotiationBody("iliad_vector_database");
     expect((withoutEng.pricing as Record<string, unknown>).engineer).toBeUndefined();
   });
 
@@ -310,6 +310,7 @@ describe("X-Agent-Mode: engineer tier", () => {
       "iliad_hygiene",
       "iliad_llm_inference",
       "iliad_object_storage",
+      "iliad_transactional_email",
       "iliad_web_search",
       "prepare_agentic_purchasing",
     ]);

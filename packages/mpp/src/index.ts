@@ -179,6 +179,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: single recipient + plaintext body only (standard allows up to 50 recipients + HTML).",
+    engineer_cents: 50,
+    engineer_description: "Engineer mode (Deliverability): pass a `domain` to generate a full SPF/DKIM/DMARC setup (with a fresh DKIM keypair) + sender warmup schedule + verification checklist — deliverability engineering, not just a send.",
   },
   // AXIS-owned analytics: pure SQLite on the existing snapshot DB, so
   // marginal cost per call is the index lookup + JSON serialization.
