@@ -2151,7 +2151,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_vector_database",
     description:
-      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via SQLite. Requires Authorization: Bearer <api_key>. Best for RAG retrievers, deduplication, and similarity search up to ~10k vectors per namespace; for larger workloads we'll publish a high-recall tier on Qdrant.",
+      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via Postgres. Requires Authorization: Bearer <api_key>. Best for RAG retrievers, deduplication, and similarity search. Engineer mode (X-Agent-Mode: engineer — Managed Memory, $0.05): query runs a pgvector/HNSW ANN candidate pool with optional recency-decay reranking (recency_half_life_days — managed forgetting), RRF hybrid fusion (sparse_ids), and metadata filter; upsert applies intra-batch semantic-dedup (dedup_threshold).",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -2159,7 +2159,9 @@ export const MCP_TOOLS = [
         operation: { type: "string", description: "upsert (insert/replace) or query (top-k cosine).", enum: ["upsert", "query"] },
         namespace: { type: "string", description: "Logical isolation key. Defaults to 'default'. Account ID is always prepended server-side." },
         vectors: { type: "array", description: "Array of {id, vector, metadata?} — required for upsert." },
-        query: { type: "object", description: "{vector: number[], top_k?: number, filter?: object} — required for query." },
+        query: { type: "object", description: "{vector: number[], top_k?: number, filter?: object}. Engineer mode also reads recency_half_life_days (number — exponential recency decay) and sparse_ids (string[] — RRF hybrid fusion). Required for query." },
+        dedup_threshold: { type: "number", description: "Engineer upsert: cosine threshold for intra-batch semantic-dedup (default 0.97)." },
+        semantic_dedup: { type: "boolean", description: "Engineer upsert: set false to disable dedup (default on)." },
       },
     },
     outputSchema: {
@@ -2176,11 +2178,13 @@ export const MCP_TOOLS = [
             type: "object",
             properties: {
               id: { type: "string", description: "Vector id." },
-              score: { type: "number", description: "Cosine similarity in [-1, 1]." },
+              score: { type: "number", description: "Cosine similarity in [-1, 1] (decayed score in engineer mode with recency decay)." },
               metadata: { type: "object", description: "Stored metadata or null." },
             },
           },
         },
+        backend: { type: "string", description: "Engineer query: 'pgvector' or 'js' — which ANN path served the query." },
+        engineer: { type: "object", description: "Engineer flags { ann, recency_decay, hybrid_fusion } (query), or { dropped: [...] } (upsert semantic-dedup)." },
       },
     },
     annotations: toolAnnotations("Vector Database", false, false),
