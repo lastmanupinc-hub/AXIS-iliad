@@ -544,6 +544,9 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
   if (engineer && !wantDims && !wantAdapter) {
     throw new Error("iliad_embeddings: engineer mode requires `dimensions` (Matryoshka truncation) and/or `corpus_adapter: true`.");
   }
+  if (engineer && wantDims && (!Number.isInteger(args.dimensions) || (args.dimensions as number) <= 0)) {
+    throw new Error("iliad_embeddings: `dimensions` must be a positive integer.");
+  }
 
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);

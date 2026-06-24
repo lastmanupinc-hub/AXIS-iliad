@@ -88,4 +88,14 @@ describe("buildEngineerEmbeddings", () => {
     expect(r.embeddings).toEqual([]);
     expect(r.adapter_applied).toBe(false);
   });
+
+  it("neutralizes non-finite components (one NaN can't poison the batch or the mean)", () => {
+    const r = buildEngineerEmbeddings([[NaN, 1, 2], [3, 4, 5]], { corpus_adapter: true });
+    expect(r.embeddings.flat().every(Number.isFinite)).toBe(true);
+    expect(r.adapter_mean?.every(Number.isFinite)).toBe(true);
+  });
+
+  it("throws on a ragged batch (mismatched dimensions)", () => {
+    expect(() => buildEngineerEmbeddings([[1, 2], [3, 4, 5]], { corpus_adapter: true })).toThrow(/same dimension/);
+  });
 });

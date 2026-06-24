@@ -13,11 +13,14 @@
 // Pure functions over number[][]. No model, no dependency.
 
 function l2normalize(v: number[]): number[] {
+  // Neutralize any non-finite component (NaN/Infinity) to 0 so a single poisoned
+  // value from upstream can't propagate into the output vectors or the corpus mean.
+  const clean = v.map((x) => (Number.isFinite(x) ? x : 0));
   let sumSq = 0;
-  for (const x of v) sumSq += x * x;
+  for (const x of clean) sumSq += x * x;
   const norm = Math.sqrt(sumSq);
-  if (!Number.isFinite(norm) || norm === 0) return v.slice();
-  return v.map((x) => x / norm);
+  if (norm === 0) return clean;
+  return clean.map((x) => x / norm);
 }
 
 /** Slice an embedding to its leading `dims` and L2-renormalize (Matryoshka). */
@@ -68,6 +71,9 @@ export function buildEngineerEmbeddings(
   opts: { dimensions?: number; corpus_adapter?: boolean },
 ): EngineerEmbedResult {
   const fullDims = embeddings[0]?.length ?? 0;
+  if (embeddings.some((e) => e.length !== fullDims)) {
+    throw new Error("embeddings-engineer: all vectors must share the same dimension");
+  }
   let out = embeddings;
   let dims = fullDims;
   let truncated = false;
