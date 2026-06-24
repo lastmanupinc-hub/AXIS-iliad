@@ -8,10 +8,12 @@ import {
   upsertVectors,
   queryVectors,
   countVectors,
+  annQueryVectors,
   scopeNamespace,
   type VectorRecord,
   type QueryOptions,
 } from "./vector-db.js";
+import { applyRecencyDecay, reciprocalRankFusion, semanticDedup } from "./vector-engineer.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
 import { buildEngineerEmbeddings } from "./embeddings-engineer.js";
 import { derivePersonaFromBrand, diarizeSegments } from "./voice.js";
@@ -602,6 +604,14 @@ const VECTOR_UPSERT_MAX_BATCH = 256;
 /** Hard cap on top_k so a single query can't read an entire namespace. */
 const VECTOR_QUERY_MAX_TOP_K = 100;
 
+/** Exact-match metadata filter, mirroring queryVectors' standard-path semantics. */
+function matchesVectorFilter(meta: Record<string, unknown> | null, filter: Record<string, unknown>): boolean {
+  for (const [k, expected] of Object.entries(filter)) {
+    if (meta === null || meta[k] !== expected) return false;
+  }
+  return true;
+}
+
 async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
   const auth = await resolveAuth(req);
   if (!auth.account) {
@@ -620,6 +630,7 @@ async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMes
   } catch (err) {
     throw new Error(err instanceof Error ? `iliad_vector_database: ${err.message}` : String(err));
   }
+  const engineer = resolveAgentMode(req) === "engineer";
 
   if (op === "upsert") {
     const records = args.vectors;
@@ -650,14 +661,26 @@ async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMes
         metadata: (r.metadata as Record<string, unknown> | undefined) ?? undefined,
       });
     }
+    // Engineer mode: semantic-dedup the batch before writing (managed forgetting)
+    // so redundant memories don't accumulate. Intra-batch, by cosine threshold.
+    let toWrite = cleaned;
+    let dedupDropped: Array<{ id: string; duplicate_of: string; similarity: number }> = [];
+    if (engineer && args.semantic_dedup !== false) {
+      const threshold = typeof args.dedup_threshold === "number" ? args.dedup_threshold : 0.97;
+      const dd = semanticDedup(cleaned.map((c) => ({ id: c.id, vector: c.vector })), threshold);
+      const keep = new Set(dd.kept);
+      toWrite = cleaned.filter((c) => keep.has(c.id));
+      dedupDropped = dd.dropped;
+    }
     const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
-    await upsertVectors(scopedNs, cleaned);
+    await upsertVectors(scopedNs, toWrite);
     await captureMcpToolCredits(auth.account, charge);
     return JSON.stringify({
       operation: "upsert",
       namespace: scopedNs,
-      upserted: cleaned.length,
+      upserted: toWrite.length,
       total_in_namespace: await countVectors(scopedNs),
+      ...(engineer ? { semantic_dedup: { dropped: dedupDropped } } : {}),
     }, null, 2);
   }
 
@@ -682,6 +705,42 @@ async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMes
     filter: (q.filter as Record<string, unknown> | undefined) ?? undefined,
   };
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_vector_database");
+  if (engineer) {
+    // Managed Memory query: ANN candidate pool → optional recency decay → optional
+    // RRF hybrid fusion with a caller-supplied sparse ranking → metadata filter → top_k.
+    const pool = Math.min(Math.max(top_k * 5, top_k), 500);
+    const { candidates, backend } = await annQueryVectors(scopedNs, queryOpts.vector, pool);
+    const pooled = queryOpts.filter
+      ? candidates.filter((c) => matchesVectorFilter(c.metadata, queryOpts.filter as Record<string, unknown>))
+      : candidates;
+
+    const halfLife = typeof q.recency_half_life_days === "number" ? (q.recency_half_life_days as number) : null;
+    let ranked: Array<{ id: string; score: number; base_score?: number; age_days?: number; metadata: Record<string, unknown> | null }>;
+    if (halfLife && halfLife > 0) {
+      ranked = applyRecencyDecay(
+        pooled.map((c) => ({ id: c.id, score: c.score, created_at_ms: c.created_at_ms, metadata: c.metadata })),
+        { now_ms: Date.now(), half_life_days: halfLife },
+      ).map((d) => ({ id: d.id, score: d.score, base_score: d.base_score, age_days: d.age_days, metadata: d.metadata }));
+    } else {
+      ranked = pooled.map((c) => ({ id: c.id, score: c.score, metadata: c.metadata }));
+    }
+
+    const hybrid = Array.isArray(q.sparse_ids);
+    if (hybrid) {
+      const fused = reciprocalRankFusion({ dense: ranked.map((r) => r.id), sparse: (q.sparse_ids as unknown[]).map(String) });
+      const order = new Map(fused.map((f, i) => [f.id, i]));
+      ranked.sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9));
+    }
+
+    await captureMcpToolCredits(auth.account, charge);
+    return JSON.stringify({
+      operation: "query",
+      namespace: scopedNs,
+      backend,
+      matches: ranked.slice(0, top_k),
+      engineer: { ann: true, recency_decay: Boolean(halfLife && halfLife > 0), hybrid_fusion: hybrid },
+    }, null, 2);
+  }
   const matches = await queryVectors(scopedNs, queryOpts);
   await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify({

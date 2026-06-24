@@ -159,6 +159,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 1,
     lite_cents: 0,
     lite_description: "Free tier: top_k capped at 10 + 1k vectors per namespace (standard allows top_k 100 / 10k vectors).",
+    engineer_cents: 5,
+    engineer_description: "Engineer mode (Managed Memory): pgvector/HNSW ANN + recency-decay reranking (managed forgetting) + RRF hybrid fusion + semantic-dedup on upsert.",
   },
   // ─── AXIS-branded proxies (real provider cost upstream) ─────
   // OpenAI embeddings: $0.02 per 1M tokens for text-embedding-3-small.
