@@ -170,6 +170,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: single-string input only (standard allows batches up to 2048).",
+    engineer_cents: 8,
+    engineer_description: "Engineer mode (Domain Embeddings): Matryoshka dimension truncation (cheaper/smaller vectors) + a per-corpus mean-centering adapter that sharpens retrieval on the caller's own data — returns the fitted mean for query alignment. Engineer vectors are L2-normalized (standard returns raw provider vectors).",
   },
   // Resend transactional: $0.0004/email beyond free 3k/mo tier.
   // AXIS markup covers DKIM/SPF setup + suppression-list management
@@ -179,6 +181,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: single recipient + plaintext body only (standard allows up to 50 recipients + HTML).",
+    engineer_cents: 50,
+    engineer_description: "Engineer mode (Deliverability): pass a `domain` to generate a full SPF/DKIM/DMARC setup (with a fresh DKIM keypair) + sender warmup schedule + verification checklist — deliverability engineering, not just a send.",
   },
   // AXIS-owned analytics: pure SQLite on the existing snapshot DB, so
   // marginal cost per call is the index lookup + JSON serialization.
@@ -228,6 +232,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 3,
     lite_cents: 1,
     lite_description: "Lite mode: audio capped at 60 seconds (standard allows up to 30 minutes) + word_timestamps disabled.",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Diarization): groups the transcript into speaker turns by inter-segment pause gaps (pause-based turn segmentation).",
   },
   // AXIS-owned voice synthesis via Piper + ffmpeg-static. Piper is
   // fast on CPU (~10× realtime for medium voices), so per-call cost
@@ -239,6 +245,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: text capped at 500 chars + format locked to wav (standard allows up to 5000 chars + mp3/opus transcode).",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Brand Voice): auto-derives a voice persona (Piper voice + sentence pacing) from a brand / voice-and-tone artifact and synthesizes in it.",
   },
   // AXIS-owned BM25 search over the account's indexed corpus. Pure
   // SQLite + JS — no external API call, no provider fee. Per-query
@@ -262,6 +270,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 2,
     lite_cents: 1,
     lite_description: "Lite mode: input capped at 5 MiB (standard allows up to 50 MiB) + markdown output capped at 256 KiB (standard caps at 1 MiB).",
+    engineer_cents: 10,
+    engineer_description: "Engineer mode (Document Intelligence): retrieval chunking + extract-to-caller-schema (grammar-constrained + validated) + image OCR — typed data, not just markdown.",
   },
   // AXIS-owned workspace hygiene grader. scan mode is FREE (always); only the
   // fix mode (remediation plan) is metered. Cheap — pure in-process analysis.

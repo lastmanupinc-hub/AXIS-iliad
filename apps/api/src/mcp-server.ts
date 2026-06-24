@@ -13,7 +13,10 @@ import {
   type QueryOptions,
 } from "./vector-db.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
+import { buildEngineerEmbeddings } from "./embeddings-engineer.js";
+import { derivePersonaFromBrand, diarizeSegments } from "./voice.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
+import { buildDeliverabilityKit } from "./deliverability.js";
 import {
   captureEvent,
   captureEvents,
@@ -96,6 +99,8 @@ import { runSpecificityPass } from "./living-architecture.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
+import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
+import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
@@ -459,6 +464,28 @@ async function runTransactionalEmail(args: Record<string, unknown>, req: Incomin
   if (!auth.account) {
     throw new Error("Authentication required: iliad_transactional_email needs Authorization: Bearer <api_key>.");
   }
+
+  // Engineer mode (Deliverability): a `domain` arg returns the SPF/DKIM/DMARC +
+  // warmup setup kit. Pure generation — no email sent, no ESP key required. The
+  // domain is required (the engineer feature), checked before any charge.
+  if (resolveAgentMode(req) === "engineer") {
+    if (typeof args.domain !== "string") {
+      throw new Error("iliad_transactional_email: engineer mode (Deliverability) requires a `domain` to generate the SPF/DKIM/DMARC + warmup kit.");
+    }
+    let kit;
+    try {
+      kit = buildDeliverabilityKit(args.domain, {
+        provider: typeof args.provider === "string" ? args.provider : undefined,
+        selector: typeof args.dkim_selector === "string" ? args.dkim_selector : undefined,
+        dmarc_policy: args.dmarc_policy === "quarantine" || args.dmarc_policy === "reject" ? args.dmarc_policy : "none",
+      });
+    } catch (err) {
+      throw new Error(err instanceof Error ? `iliad_transactional_email: ${err.message}` : String(err));
+    }
+    meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
+    return JSON.stringify({ operation: "deliverability_setup", ...kit }, null, 2);
+  }
+
   const config = readEmailConfigFromEnv();
   if (!config) {
     return JSON.stringify({
@@ -535,9 +562,38 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
       }
     }
   }
+  // Engineer mode (Domain Embeddings): requires `dimensions` and/or
+  // `corpus_adapter` (the feature) — checked before the charge + upstream call.
+  const engineer = resolveAgentMode(req) === "engineer";
+  const wantDims = typeof args.dimensions === "number";
+  const wantAdapter = args.corpus_adapter === true;
+  if (engineer && !wantDims && !wantAdapter) {
+    throw new Error("iliad_embeddings: engineer mode requires `dimensions` (Matryoshka truncation) and/or `corpus_adapter: true`.");
+  }
+  if (engineer && wantDims && (!Number.isInteger(args.dimensions) || (args.dimensions as number) <= 0)) {
+    throw new Error("iliad_embeddings: `dimensions` must be a positive integer.");
+  }
+
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);
   captureMcpToolCredits(auth.account, charge);
+
+  if (engineer) {
+    const engineered = buildEngineerEmbeddings(result.vectors, {
+      dimensions: wantDims ? (args.dimensions as number) : undefined,
+      corpus_adapter: wantAdapter,
+    });
+    return JSON.stringify({
+      ...result,
+      vectors: engineered.embeddings,
+      engineer: {
+        dimensions: engineered.dimensions,
+        truncated: engineered.truncated,
+        adapter_applied: engineered.adapter_applied,
+        ...(engineered.adapter_mean ? { adapter_mean: engineered.adapter_mean } : {}),
+      },
+    }, null, 2);
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -842,6 +898,31 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   if (args.mime_type !== undefined && typeof args.mime_type !== "string") {
     throw new Error("iliad_document_parsing: `mime_type` must be a string when provided.");
   }
+  const engineer = resolveAgentMode(req) === "engineer";
+
+  // Engineer + image input → OCR path (images aren't parseable in standard mode).
+  if (engineer && isImageMime(args.mime_type)) {
+    if (typeof args.document_base64 !== "string") {
+      throw new Error("iliad_document_parsing: image OCR requires `document_base64`.");
+    }
+    const ocr = await ocrImage(Buffer.from(args.document_base64, "base64"));
+    if (!ocr.available) {
+      // OCR couldn't run — don't meter (operator-level, like _not_configured).
+      return JSON.stringify({
+        _not_configured: true,
+        tool: "iliad_document_parsing",
+        reason: "Image OCR is unavailable on this instance (tesseract.js could not load or recognize the image).",
+      }, null, 2);
+    }
+    if (ocr.text.trim().length === 0) {
+      // OCR ran but found no text — don't bill for an empty result.
+      return JSON.stringify({ _not_configured: true, tool: "iliad_document_parsing", reason: "OCR ran but detected no text in the image." }, null, 2);
+    }
+    const imageBlock = await buildDocEngineerBlock(ocr.text, args.json_schema);
+    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: imageBlock }, null, 2);
+  }
+
   const opts: ParseOptions = {
     document_url: args.document_url as string | undefined,
     document_base64: args.document_base64 as string | undefined,
@@ -852,9 +933,26 @@ async function runDocumentParsingDispatch(args: Record<string, unknown>, req: In
   // those branches mean the input was unsupported/malformed/unreachable
   // (operator-level issues), not a value the caller asked for.
   if (!isNotConfiguredResult(result)) {
+    // Engineer mode (Document Intelligence): chunks (+ schema extraction). Build
+    // the block BEFORE metering so the charge follows the delivered work.
+    if (engineer) {
+      const textBlock = await buildDocEngineerBlock(result.markdown, args.json_schema);
+      meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+      return JSON.stringify({ ...result, engineer: textBlock }, null, 2);
+    }
     meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
   }
   return JSON.stringify(result, null, 2);
+}
+
+/** Engineer-mode enrichment: retrieval chunks + optional extract-to-schema. */
+async function buildDocEngineerBlock(markdown: string, jsonSchema: unknown): Promise<Record<string, unknown>> {
+  const chunks = chunkMarkdown(markdown);
+  const block: Record<string, unknown> = { chunk_count: chunks.length, chunks };
+  if (isUsableSchema(jsonSchema)) {
+    block.extracted = await extractToSchema(markdown, jsonSchema, runLlmCompletion);
+  }
+  return block;
 }
 
 /** Shape-guard for the _not_configured envelope shared across the owned tools. */
@@ -1009,11 +1107,26 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   if (args.sentence_silence !== undefined && typeof args.sentence_silence !== "number") {
     throw new Error("iliad_text_to_speech: `sentence_silence` must be a number when provided.");
   }
+  // Engineer mode (Brand Voice): derive the persona from a brand artifact and
+  // apply its voice + pacing. Requires brand_text (the engineer feature), so the
+  // engineer charge is bound to it.
+  const engineer = resolveAgentMode(req) === "engineer";
+  if (engineer && (typeof args.brand_text !== "string" || args.brand_text.length === 0)) {
+    throw new Error("iliad_text_to_speech: engineer mode (Brand Voice) requires `brand_text` to derive the persona.");
+  }
+  const persona =
+    engineer && typeof args.brand_text === "string"
+      ? derivePersonaFromBrand(args.brand_text, {
+          locale: args.locale === "gb" || args.locale === "us" ? args.locale : undefined,
+          gender: args.gender === "male" || args.gender === "female" ? args.gender : undefined,
+        })
+      : null;
+
   const opts: SynthesisOptions = {
     text: args.text,
-    voice: args.voice as string | undefined,
+    voice: persona ? persona.voice : (args.voice as string | undefined),
     format: args.format as AudioFormat | undefined,
-    sentence_silence: args.sentence_silence as number | undefined,
+    sentence_silence: persona ? persona.sentence_silence : (args.sentence_silence as number | undefined),
   };
   const result = await runSynthesis(opts);
   // Skip metering on _not_configured branches (piper missing, voice
@@ -1022,7 +1135,7 @@ async function runTextToSpeech(args: Record<string, unknown>, req: IncomingMessa
   if (!isNotConfiguredResult(result)) {
     meterMcpToolCredits(req, auth.account, "iliad_text_to_speech");
   }
-  return JSON.stringify(result, null, 2);
+  return JSON.stringify(persona ? { ...result, persona } : result, null, 2);
 }
 
 async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
@@ -1055,6 +1168,15 @@ async function runSpeechToText(args: Record<string, unknown>, req: IncomingMessa
   const result = await runTranscription(opts);
   if (!isNotConfiguredResult(result)) {
     meterMcpToolCredits(req, auth.account, "iliad_speech_to_text");
+  }
+  // Engineer mode (Diarization): group the transcript's segments into speaker
+  // turns by inter-segment pause gaps.
+  if (resolveAgentMode(req) === "engineer" && !isNotConfiguredResult(result)) {
+    const diarization = diarizeSegments((result as { segments?: { start: number; end: number; text: string }[] }).segments ?? [], {
+      gap_seconds: typeof args.diarization_gap_seconds === "number" && Number.isFinite(args.diarization_gap_seconds) ? args.diarization_gap_seconds : undefined,
+      max_speakers: typeof args.max_speakers === "number" && Number.isFinite(args.max_speakers) ? args.max_speakers : undefined,
+    });
+    return JSON.stringify({ ...result, diarization }, null, 2);
   }
   return JSON.stringify(result, null, 2);
 }
@@ -2025,12 +2147,14 @@ export const MCP_TOOLS = [
   {
     name: "iliad_embeddings",
     description:
-      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls.",
+      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
     inputSchema: {
       type: "object" as const,
       required: ["input"],
       properties: {
         input: { type: ["string", "array"] as unknown as string, description: "A single string or an array of strings to embed. Empty strings and entries > 32k chars are rejected (chunk before calling)." },
+        dimensions: { type: "number", description: "Engineer mode: truncate each vector to this many leading dims (Matryoshka) + renormalize. Smaller, cheaper vectors." },
+        corpus_adapter: { type: "boolean", description: "Engineer mode: mean-center the batch (all-but-the-mean) to sharpen retrieval; returns the fitted adapter_mean." },
       },
     },
     outputSchema: {
@@ -2041,6 +2165,7 @@ export const MCP_TOOLS = [
         model_used: { type: "string", description: "Concrete embedding model name returned by the provider." },
         input_count: { type: "number", description: "Number of inputs submitted (matches vectors.length)." },
         usage: { type: "object", description: "{prompt_tokens, total_tokens} when reported by the provider." },
+        engineer: { type: "object", description: "Engineer mode only: { dimensions, truncated, adapter_applied, adapter_mean? } — the post-processing applied + the fitted corpus mean." },
       },
     },
     annotations: toolAnnotations("Vector Embeddings", false, true),
@@ -2065,15 +2190,18 @@ export const MCP_TOOLS = [
   {
     name: "iliad_transactional_email",
     description:
-      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB.",
+      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB. Engineer mode (X-Agent-Mode: engineer — Deliverability, $0.50): instead of sending, pass a `domain` and get a full SPF/DKIM/DMARC setup (fresh DKIM keypair) + sender warmup schedule + verification checklist — no email sent, no ESP key needed.",
     inputSchema: {
       type: "object" as const,
-      required: ["to", "subject"],
       properties: {
         to: {
           type: ["string", "array"] as unknown as string,
-          description: "Recipient address or array of addresses (max 50).",
+          description: "Recipient address or array of addresses (max 50). Required for a send (standard mode).",
         },
+        domain: { type: "string", description: "Engineer mode (Deliverability): domain to generate SPF/DKIM/DMARC setup for. Replaces the send." },
+        provider: { type: "string", description: "Engineer mode: ESP for the SPF include (resend/sendgrid/mailgun/postmark/ses/google). Defaults resend." },
+        dkim_selector: { type: "string", description: "Engineer mode: DKIM selector (alphanumeric/hyphen, 1-32). Defaults 'axis'." },
+        dmarc_policy: { type: "string", description: "Engineer mode: DMARC policy none|quarantine|reject. Defaults none (monitoring)." },
         subject: { type: "string", description: "Email subject (max 998 chars, RFC 5322)." },
         body_html: { type: "string", description: "HTML body. At least one of body_html / body_text required." },
         body_text: { type: "string", description: "Plaintext body. At least one of body_html / body_text required." },
@@ -2241,19 +2369,21 @@ export const MCP_TOOLS = [
   {
     name: "iliad_document_parsing",
     description:
-      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64) — typed data, not just markdown. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
         document_url: { type: "string", description: "https URL to a document. Use this OR document_base64, not both." },
         document_base64: { type: "string", description: "Base64-encoded document bytes. Use this OR document_url, not both." },
-        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension." },
+        mime_type: { type: "string", description: "Optional MIME-type hint. When omitted we sniff from magic bytes + URL extension. Engineer mode: an image/* mime triggers OCR." },
+        json_schema: { type: "object", description: "Engineer mode: a JSON Schema. The document is extracted into a validated object matching it (returned in engineer.extracted)." },
       },
     },
     outputSchema: {
       type: "object" as const,
       properties: {
         markdown: { type: "string", description: "Extracted text, formatted as Markdown when the source had structure." },
+        engineer: { type: "object", description: "Engineer mode only: { chunk_count, chunks, extracted? } — retrieval chunks + optional schema-validated extraction." },
         format_detected: { type: "string", description: "pdf | docx | html | markdown | text | unknown." },
         byte_size: { type: "number", description: "Raw byte size of the source document." },
         page_count: { type: ["number", "null"] as unknown as string, description: "Page count for PDFs; null otherwise." },
@@ -2363,7 +2493,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_text_to_speech",
     description:
-      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): pass `brand_text` (a brand / voice-and-tone artifact) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["text"],
@@ -2372,6 +2502,9 @@ export const MCP_TOOLS = [
         voice: { type: "string", description: "Voice slug (filename without extension, e.g. 'en_US-amy-medium'). Defaults to first available voice or AXIS_PIPER_DEFAULT_VOICE." },
         format: { type: "string", description: "Audio codec.", enum: ["wav", "mp3", "opus"] },
         sentence_silence: { type: "number", description: "Per-sentence silence in seconds (0-5). Defaults 0.2." },
+        brand_text: { type: "string", description: "Engineer mode: brand / voice-and-tone artifact. AXIS derives a voice persona from it and synthesizes in that voice (overrides voice/sentence_silence)." },
+        locale: { type: "string", description: "Engineer mode: persona locale override.", enum: ["us", "gb"] },
+        gender: { type: "string", description: "Engineer mode: persona gender override.", enum: ["female", "male"] },
       },
     },
     outputSchema: {
@@ -2420,7 +2553,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_speech_to_text",
     description:
-      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -2429,6 +2562,8 @@ export const MCP_TOOLS = [
         language: { type: "string", description: "ISO-639-1 language code (en, fr, ja, ...) or 'auto' to autodetect. Defaults 'auto'." },
         initial_prompt: { type: "string", description: "Optional bias prompt (≤512 chars) — useful for spelling of rare names." },
         word_timestamps: { type: "boolean", description: "Emit word-level timestamps within segments. Defaults false." },
+        diarization_gap_seconds: { type: "number", description: "Engineer mode: pause (seconds) between segments that starts a new speaker turn. Defaults 0.75." },
+        max_speakers: { type: "number", description: "Engineer mode: max alternating speaker labels. Defaults 2." },
       },
     },
     outputSchema: {
