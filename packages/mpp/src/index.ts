@@ -170,6 +170,8 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: single-string input only (standard allows batches up to 2048).",
+    engineer_cents: 8,
+    engineer_description: "Engineer mode (Domain Embeddings): Matryoshka dimension truncation (cheaper/smaller vectors) + a per-corpus mean-centering adapter that sharpens retrieval on the caller's own data — returns the fitted mean for query alignment. Engineer vectors are L2-normalized (standard returns raw provider vectors).",
   },
   // Resend transactional: $0.0004/email beyond free 3k/mo tier.
   // AXIS markup covers DKIM/SPF setup + suppression-list management

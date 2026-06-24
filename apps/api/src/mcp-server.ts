@@ -13,6 +13,7 @@ import {
   type QueryOptions,
 } from "./vector-db.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
+import { buildEngineerEmbeddings } from "./embeddings-engineer.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
 import { buildDeliverabilityKit } from "./deliverability.js";
 import {
@@ -560,9 +561,38 @@ async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage
       }
     }
   }
+  // Engineer mode (Domain Embeddings): requires `dimensions` and/or
+  // `corpus_adapter` (the feature) — checked before the charge + upstream call.
+  const engineer = resolveAgentMode(req) === "engineer";
+  const wantDims = typeof args.dimensions === "number";
+  const wantAdapter = args.corpus_adapter === true;
+  if (engineer && !wantDims && !wantAdapter) {
+    throw new Error("iliad_embeddings: engineer mode requires `dimensions` (Matryoshka truncation) and/or `corpus_adapter: true`.");
+  }
+  if (engineer && wantDims && (!Number.isInteger(args.dimensions) || (args.dimensions as number) <= 0)) {
+    throw new Error("iliad_embeddings: `dimensions` must be a positive integer.");
+  }
+
   const charge = authorizeMcpToolCredits(req, auth.account, "iliad_embeddings");
   const result = await computeEmbeddings(rawInput as string | string[], config);
   captureMcpToolCredits(auth.account, charge);
+
+  if (engineer) {
+    const engineered = buildEngineerEmbeddings(result.vectors, {
+      dimensions: wantDims ? (args.dimensions as number) : undefined,
+      corpus_adapter: wantAdapter,
+    });
+    return JSON.stringify({
+      ...result,
+      vectors: engineered.embeddings,
+      engineer: {
+        dimensions: engineered.dimensions,
+        truncated: engineered.truncated,
+        adapter_applied: engineered.adapter_applied,
+        ...(engineered.adapter_mean ? { adapter_mean: engineered.adapter_mean } : {}),
+      },
+    }, null, 2);
+  }
   return JSON.stringify(result, null, 2);
 }
 
@@ -2092,12 +2122,14 @@ export const MCP_TOOLS = [
   {
     name: "iliad_embeddings",
     description:
-      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls.",
+      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
     inputSchema: {
       type: "object" as const,
       required: ["input"],
       properties: {
         input: { type: ["string", "array"] as unknown as string, description: "A single string or an array of strings to embed. Empty strings and entries > 32k chars are rejected (chunk before calling)." },
+        dimensions: { type: "number", description: "Engineer mode: truncate each vector to this many leading dims (Matryoshka) + renormalize. Smaller, cheaper vectors." },
+        corpus_adapter: { type: "boolean", description: "Engineer mode: mean-center the batch (all-but-the-mean) to sharpen retrieval; returns the fitted adapter_mean." },
       },
     },
     outputSchema: {
@@ -2108,6 +2140,7 @@ export const MCP_TOOLS = [
         model_used: { type: "string", description: "Concrete embedding model name returned by the provider." },
         input_count: { type: "number", description: "Number of inputs submitted (matches vectors.length)." },
         usage: { type: "object", description: "{prompt_tokens, total_tokens} when reported by the provider." },
+        engineer: { type: "object", description: "Engineer mode only: { dimensions, truncated, adapter_applied, adapter_mean? } — the post-processing applied + the fitted corpus mean." },
       },
     },
     annotations: toolAnnotations("Vector Embeddings", false, true),
