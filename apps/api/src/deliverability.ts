@@ -42,7 +42,7 @@ const PROVIDER_SPF_INCLUDE: Record<string, string> = {
   google: "include:_spf.google.com",
 };
 
-const DOMAIN_RE = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
+const DOMAIN_RE = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+(xn--[a-z0-9-]{2,59}|[a-z]{2,63})$/i;
 
 /** Validate a domain — rejects anything that could break a DNS record value. */
 export function assertValidDomain(domain: string): void {

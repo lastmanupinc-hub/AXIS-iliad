@@ -6,6 +6,7 @@ describe("assertValidDomain", () => {
   it("accepts valid domains", () => {
     expect(() => assertValidDomain("example.com")).not.toThrow();
     expect(() => assertValidDomain("mail.sub.example.co.uk")).not.toThrow();
+    expect(() => assertValidDomain("shop.xn--p1ai")).not.toThrow(); // internationalized (punycode) TLD
   });
   it("rejects injection / malformed domains", () => {
     expect(() => assertValidDomain("ex ample.com")).toThrow();
