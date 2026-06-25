@@ -26,14 +26,16 @@ function docs(): Array<{ name: string; text: string }> {
 // card that tag-stripping turns into "20 Programs"), a tier table row ("Programs 3 20 20 20"),
 // and reversed ("Programs (20)"). Interposed words are an ALLOWLIST of real adjectives so a
 // distant number can't bind to "programs" (the table pattern needs 3+ cells, not prose).
-// Legit partials (3 free, per-example "Pro 16") are < 17, so a >= 17 floor excludes them.
-const PROG_ADJ = "(?:specialized|axis|public|separately|billable|free|pro|distinct|total)";
+// Legit partial counts are the 3 free-tier programs, the 17-program Pro tier (20 − 3 free),
+// and a per-example "Pro (16 programs)" — all < 18. The stale GLOBAL totals were 18/19, so a
+// >= 18 floor isolates a wrong global total from those legitimate tier/example counts.
+const PROG_ADJ = "(?:specialized|axis|public|separately|billable|free|pro|distinct|total|additional)";
 function programClaims(v: string): number[] {
   const ns: number[] = [];
   for (const m of v.matchAll(new RegExp(`(\\d+)\\s+(?:${PROG_ADJ}\\s+){0,3}programs?\\b`, "gi"))) ns.push(Number(m[1]));
   for (const m of v.matchAll(/\bprograms?\s+(\d+(?:\s+\d+){2,})\b/gi)) for (const x of m[1].split(/\s+/)) ns.push(Number(x));
   for (const m of v.matchAll(/\bprograms?\s*\((\d+)\)/gi)) ns.push(Number(m[1]));
-  return ns.filter((n) => n >= 17);
+  return ns.filter((n) => n >= 18);
 }
 
 // GENERATOR/ARTIFACT/OUTPUT totals (forward incl. tag-stripped stat cards, and reversed).

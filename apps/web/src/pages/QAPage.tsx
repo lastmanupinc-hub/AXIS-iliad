@@ -50,7 +50,7 @@ const QA_ITEMS: QAItem[] = [
   },
   {
     category: "programs",
-    question: "What do the 16 Pro programs include?",
+    question: "What do the 17 Pro programs include?",
     answer: "Pro programs span 6 categories: Engineering Delivery (Frontend Audit, Superpowers, MCP, Artifacts), Growth & Content (SEO, Brand, Marketing), Knowledge & Context (Notebook, Obsidian), Design System (Theme), Creative Generation (Remotion, Canvas, Algorithmic), and Agentic Commerce (Agentic Purchasing, Closer). Plus Optimization from Repo Intelligence. Each produces 4–5 specialized files — design tokens, video scripts, marketing campaigns, commerce registries, and more.",
   },
   {
