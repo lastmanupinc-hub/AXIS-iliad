@@ -61,10 +61,124 @@ export async function closePool(): Promise<void> {
   }
 }
 
-// `?` → `$1,$2,…`  (positional, left-to-right)
+// `?` → `$1,$2,…`  (positional, left-to-right). SQL-aware: only BARE `?` placeholders
+// are rewritten. A `?` inside a string literal ('…'), quoted identifier ("…"), dollar-
+// quoted block ($tag$…$tag$), line/block comment, or a jsonb operator (`?|`/`?&`) is left
+// verbatim — a naive global replace corrupts e.g. `'why?'` → `'why$1'` and shifts every
+// subsequent parameter index. (Assumes standard_conforming_strings, Postgres' default —
+// regular strings escape a quote as `''`, not `\'`.)
 function toPg(text: string): string {
+  let out = "";
+  let param = 0;
+  const n = text.length;
   let i = 0;
-  return text.replace(/\?/g, () => `$${++i}`);
+  while (i < n) {
+    const c = text[i];
+    const c2 = text[i + 1];
+
+    // Single-quoted string literal — '' is an escaped quote.
+    if (c === "'") {
+      out += c;
+      i++;
+      while (i < n) {
+        out += text[i];
+        if (text[i] === "'") {
+          if (text[i + 1] === "'") {
+            out += "'";
+            i += 2;
+            continue;
+          }
+          i++;
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+
+    // Double-quoted identifier — "" is an escaped quote.
+    if (c === '"') {
+      out += c;
+      i++;
+      while (i < n) {
+        out += text[i];
+        if (text[i] === '"') {
+          if (text[i + 1] === '"') {
+            out += '"';
+            i += 2;
+            continue;
+          }
+          i++;
+          break;
+        }
+        i++;
+      }
+      continue;
+    }
+
+    // Dollar-quoted string — $$…$$ or $tag$…$tag$.
+    if (c === "$") {
+      const m = /^\$([A-Za-z_]\w*)?\$/.exec(text.slice(i));
+      if (m) {
+        const tag = m[0];
+        const end = text.indexOf(tag, i + tag.length);
+        const stop = end === -1 ? n : end + tag.length;
+        out += text.slice(i, stop);
+        i = stop;
+        continue;
+      }
+    }
+
+    // Line comment — -- … EOL.
+    if (c === "-" && c2 === "-") {
+      const nl = text.indexOf("\n", i);
+      const stop = nl === -1 ? n : nl;
+      out += text.slice(i, stop);
+      i = stop;
+      continue;
+    }
+
+    // Block comment — /* … */ (Postgres allows nesting).
+    if (c === "/" && c2 === "*") {
+      let depth = 1;
+      out += "/*";
+      i += 2;
+      while (i < n && depth > 0) {
+        if (text[i] === "/" && text[i + 1] === "*") {
+          depth++;
+          out += "/*";
+          i += 2;
+        } else if (text[i] === "*" && text[i + 1] === "/") {
+          depth--;
+          out += "*/";
+          i += 2;
+        } else {
+          out += text[i];
+          i++;
+        }
+      }
+      continue;
+    }
+
+    // jsonb existence operators `?|` / `?&` — the `?` is an operator, not a placeholder.
+    if (c === "?" && (c2 === "|" || c2 === "&")) {
+      out += c;
+      out += c2;
+      i += 2;
+      continue;
+    }
+
+    // Bare positional placeholder.
+    if (c === "?") {
+      out += "$" + ++param;
+      i++;
+      continue;
+    }
+
+    out += c;
+    i++;
+  }
+  return out;
 }
 
 export const sql = {
