@@ -2,16 +2,16 @@ import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
 import { generateClaudeMD, generateAgentsMD } from "@axis/generator-core";
 import {
-  repoFactTerms,
   distinctiveFactTerms,
   scoreAssessmentValidity,
-  scoreUniqueDesign,
+  scoreGrounding,
   scoreNeedsCoverage,
   gradePackage,
   buildNeedsRemediationArtifact,
   applyQualityGate,
   buildQualityReport,
   type QualityFile,
+  type DesignVerdict,
 } from "./package-quality.js";
 
 function mkCtx(o: Partial<ContextMap> = {}): ContextMap {
@@ -26,7 +26,10 @@ function mkCtx(o: Partial<ContextMap> = {}): ContextMap {
     dependency_graph: { external_dependencies: ["react", "express", "stripe"], internal_imports: [], hotspots: [], ...(o.dependency_graph ?? {}) },
     entry_points: o.entry_points ?? [],
     routes: o.routes ?? [{ path: "/checkout", method: "POST", source_file: "api/checkout.ts" }],
-    domain_models: o.domain_models ?? [{ name: "OrderInvoice", kind: "interface", language: "TypeScript", field_count: 5, source_file: "models/order.ts" }],
+    domain_models: o.domain_models ?? [
+      { name: "OrderInvoice", kind: "interface", language: "TypeScript", field_count: 5, source_file: "models/order.ts" },
+      { name: "PaymentRecord", kind: "interface", language: "TypeScript", field_count: 8, source_file: "models/payment.ts" },
+    ],
     sql_schema: o.sql_schema ?? [],
     architecture_signals: { patterns_detected: ["monorepo"], layer_boundaries: [], separation_score: 0.7, ...(o.architecture_signals ?? {}) },
     ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: ["No test files detected", "No CI/CD pipeline detected"], ...(o.ai_context ?? {}) },
@@ -34,130 +37,84 @@ function mkCtx(o: Partial<ContextMap> = {}): ContextMap {
 }
 
 const doc = (path: string, content: string): QualityFile => ({ path, content, content_type: "text/markdown" });
-const PAD = "\n" + "Lorem ipsum guidance prose to clear the substantive length bar. ".repeat(5);
-
-// Genuine design guidance: distinctive facts (OrderInvoice → order/invoice, checkout)
-// referenced inside PROSE sentences across multiple lines.
-const tailoredDoc = (path: string) =>
-  doc(
-    path,
-    `${path}\n\nThis service centers on the OrderInvoice domain model and its lifecycle.\n` +
-      `The checkout route validates each OrderInvoice before charging the customer.\n` +
-      `When you extend the OrderInvoice schema, keep the checkout invariants intact.` +
-      PAD,
-  );
+const PAD = "\n" + "Lorem ipsum prose to clear the substantive length bar. ".repeat(6);
+const defaultDocs = (ctx: ContextMap) => [generateClaudeMD(ctx), generateAgentsMD(ctx)].map((g) => doc(g.path, g.content));
 
 describe("distinctiveFactTerms", () => {
-  it("keeps model/route facts, excludes framework/language/project names", () => {
-    const t = distinctiveFactTerms(mkCtx());
+  it("keeps model/route facts; excludes frameworks, and strips the project-name leak via hotspot paths", () => {
+    const t = distinctiveFactTerms(
+      mkCtx({
+        project_identity: { name: "acme", type: "monorepo", primary_language: "TS", description: null, repo_url: null, go_module: null },
+        dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [{ path: "lib/acme.js", inbound_count: 5, outbound_count: 2, risk_score: 0.6 }] },
+      }),
+    );
     expect(t.has("order")).toBe(true);
     expect(t.has("checkout")).toBe(true);
-    expect(t.has("react")).toBe(false);
-    expect(t.has("acme")).toBe(false);
-  });
-  it("repoFactTerms (broad) still includes frameworks", () => {
-    expect(repoFactTerms(mkCtx()).has("react")).toBe(true);
+    expect(t.has("react")).toBe(false); // framework, not distinctive
+    expect(t.has("acme")).toBe(false); // project name leaked via lib/acme.js → stripped
   });
 });
 
-describe("scoreAssessmentValidity", () => {
+describe("scoreAssessmentValidity (FLOOR)", () => {
   it("rich passes; degenerate fails", () => {
     expect(scoreAssessmentValidity(mkCtx()).passed).toBe(true);
-    const a = scoreAssessmentValidity(mkCtx({ detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null }, domain_models: [], routes: [] }));
-    expect(a.passed).toBe(false);
+    expect(scoreAssessmentValidity(mkCtx({ detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null }, domain_models: [], routes: [] })).passed).toBe(false);
   });
 });
 
-describe("scoreUniqueDesign — credits PROSE design, not fact echo", () => {
-  const dist = distinctiveFactTerms(mkCtx());
-
-  it("passes docs that reference distinctive facts in prose across docs + lines", () => {
-    expect(scoreUniqueDesign([tailoredDoc("CLAUDE.md"), tailoredDoc("AGENTS.md"), tailoredDoc("arch.md")], dist).passed).toBe(true);
-  });
-
-  it("DEFEATS the default machine-generated CLAUDE.md/AGENTS.md (fact tables, no prose design)", () => {
-    const ctx = mkCtx({
-      domain_models: [
-        { name: "OrderInvoice", kind: "interface", language: "TypeScript", field_count: 5, source_file: "models/order.ts" },
-        { name: "PaymentRecord", kind: "interface", language: "TypeScript", field_count: 8, source_file: "models/payment.ts" },
-      ],
-    });
-    const real = [generateClaudeMD(ctx), generateAgentsMD(ctx)].map((g) => doc(g.path, g.content));
-    const r = scoreUniqueDesign(real, distinctiveFactTerms(ctx));
-    expect(r.passed).toBe(false); // a fact-table echo is NOT design tailoring
-  });
-
-  it("DEFEATS a single fact-stuffing banner line", () => {
-    expect(scoreUniqueDesign([doc("CLAUDE.md", "OrderInvoice checkout order invoice acme React Express." + PAD)], dist).passed).toBe(false);
-  });
-
-  it("DEFEATS generic-name gaming (echoing React/project is not distinctive)", () => {
-    expect(scoreUniqueDesign([doc("CLAUDE.md", "This React acme-shop app uses React and TypeScript and React everywhere." + PAD)], dist).passed).toBe(false);
-  });
-
-  it("EXCLUDES gate-injected artifacts (a repair fact-dump can't satisfy the metric)", () => {
-    expect(scoreUniqueDesign([doc("detected-architecture.md", tailoredDoc("x").content)], dist).score).toBe(0);
-  });
-});
-
-describe("scoreNeedsCoverage", () => {
-  it("uncovered when ignored; covered by a real generator artifact", () => {
-    expect(scoreNeedsCoverage(mkCtx(), [doc("CLAUDE.md", "A monorepo.")]).dim.passed).toBe(false);
-    const ok = scoreNeedsCoverage(mkCtx(), [doc("rules.md", "Add a vitest suite with coverage."), doc("ci.yml", "github actions workflow")]);
-    expect(ok.dim.passed).toBe(true);
-  });
-
-  it("does NOT self-satisfy from the gate's own needs-remediation.md", () => {
+describe("scoreGrounding (FLOOR — references repo facts, not a design measure)", () => {
+  it("the DEFAULT generated package PASSES grounding (it genuinely references the repo's facts)", () => {
     const ctx = mkCtx();
-    const base = [doc("CLAUDE.md", "A monorepo." + PAD)];
-    const before = scoreNeedsCoverage(ctx, base);
-    expect(before.uncovered.length).toBeGreaterThan(0);
+    expect(scoreGrounding(defaultDocs(ctx), distinctiveFactTerms(ctx)).passed).toBe(true);
+  });
+  it("pure generic boilerplate (no repo facts) FAILS grounding", () => {
+    expect(scoreGrounding([doc("CLAUDE.md", "Write good code. Be consistent. Follow best practices." + PAD)], distinctiveFactTerms(mkCtx())).passed).toBe(false);
+  });
+  it("excludes gate artifacts + tiny configs", () => {
+    expect(scoreGrounding([doc("needs-remediation.md", "OrderInvoice PaymentRecord checkout" + PAD)], distinctiveFactTerms(mkCtx())).score).toBe(0);
+    expect(scoreGrounding([doc("ci.yml", "name: CI")], distinctiveFactTerms(mkCtx())).evidence.join(" ")).toMatch(/substantive_docs=0/);
+  });
+});
+
+describe("scoreNeedsCoverage (FLOOR)", () => {
+  it("uncovered when ignored; covered by a real artifact; NOT self-satisfied by the gate's own append", () => {
+    const ctx = mkCtx();
+    expect(scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "x")]).dim.passed).toBe(false);
+    expect(scoreNeedsCoverage(ctx, [doc("t.md", "Add a vitest suite."), doc("ci.yml", "github actions workflow")]).dim.passed).toBe(true);
+    const before = scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "x" + PAD)]);
     const fix = buildNeedsRemediationArtifact(ctx, before.uncovered);
-    const after = scoreNeedsCoverage(ctx, [...base, { ...fix }]);
-    expect(after.uncovered).toEqual(before.uncovered); // excluded → no fake coverage
+    expect(scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "x" + PAD), { ...fix }]).uncovered).toEqual(before.uncovered);
   });
 });
 
-describe("gradePackage", () => {
-  it("passes a prose-tailored, needs-covered package; deterministic", () => {
-    const files = [tailoredDoc("CLAUDE.md"), tailoredDoc("AGENTS.md"), tailoredDoc("arch.md"), doc("ci.md", "Add a vitest suite + a github actions workflow." + PAD)];
-    const v = gradePackage(mkCtx(), files);
+describe("gradePackage + applyQualityGate (floors)", () => {
+  it("a grounded + needs-covered package passes the floors; deterministic", () => {
+    const ctx = mkCtx();
+    const files = [...defaultDocs(ctx), doc("ci.md", "Add a vitest suite + a github actions workflow." + PAD)];
+    const v = gradePackage(ctx, files);
     expect(v.passed).toBe(true);
-    expect(gradePackage(mkCtx(), files)).toEqual(v);
+    expect(gradePackage(ctx, files)).toEqual(v);
   });
-  it("fails a boilerplate package on uniqueness", () => {
-    expect(gradePackage(mkCtx(), [doc("CLAUDE.md", "Write good code. Be consistent." + PAD)]).unique_design.passed).toBe(false);
+  it("appends needs-remediation guidance, never blocks, and reports grounding honestly", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code." + PAD)]);
+    expect(o.verdict.grounding.passed).toBe(false); // generic boilerplate is not grounded
+    expect(o.repairArtifacts.map((a) => a.path)).toEqual(["needs-remediation.md"]);
+    expect(applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Generic." + PAD)])).toEqual(applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Generic." + PAD)]));
   });
 });
 
-describe("applyQualityGate — honest grading, no fake repair", () => {
-  it("appends remediation guidance but reports uniqueness AND needs honestly (neither faked)", () => {
-    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code." + PAD)]);
-    expect(o.verdict.unique_design.passed).toBe(false); // not faked by a fact-dump
-    expect(o.verdict.needs_coverage.passed).toBe(false); // not self-satisfied by the append
-    expect(o.verdict.passed).toBe(false);
-    expect(o.repairArtifacts.map((a) => a.path)).toEqual(["needs-remediation.md"]); // useful guidance, not a score lift
+describe("buildQualityReport (floors + AI design verdict)", () => {
+  it("includes the AI design verdict when the judge ran", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Generic." + PAD)]);
+    const design: DesignVerdict = { design_score: 35, tailored: false, rationale: "mostly template-fill", top_improvement: "add repo-specific guidance" };
+    const parsed = JSON.parse(buildQualityReport(o, design).content);
+    expect(parsed.schema).toBe("axis-package-quality/2");
+    expect(parsed.design.score).toBe(35);
+    expect(parsed.design.tailored).toBe(false);
+    expect(parsed.floors.grounding).toHaveProperty("passed");
   });
-
-  it("leaves a genuinely tailored, needs-covered package passing with no repair", () => {
-    const files = [tailoredDoc("CLAUDE.md"), tailoredDoc("AGENTS.md"), tailoredDoc("arch.md"), doc("ci.md", "vitest + github actions workflow." + PAD)];
-    const o = applyQualityGate(mkCtx(), files);
-    expect(o.verdict.passed).toBe(true);
-    expect(o.repairArtifacts).toEqual([]);
-  });
-
-  it("is deterministic", () => {
-    const files = [doc("CLAUDE.md", "Generic." + PAD)];
-    expect(applyQualityGate(mkCtx(), files)).toEqual(applyQualityGate(mkCtx(), files));
-  });
-});
-
-describe("buildQualityReport", () => {
-  it("emits the honest verdict + rationale", () => {
-    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code." + PAD)]);
-    const parsed = JSON.parse(buildQualityReport(o, "uniqueness low — default generator output is fact-echo, not designed guidance.").content);
-    expect(parsed.schema).toBe("axis-package-quality/1");
-    expect(parsed.dimensions.unique_design.passed).toBe(false);
-    expect(parsed.rationale).toMatch(/uniqueness low/);
+  it("notes design was not AI-assessed when no model ran", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Generic." + PAD)]);
+    expect(JSON.parse(buildQualityReport(o, null).content).design.assessed).toBe(false);
   });
 });

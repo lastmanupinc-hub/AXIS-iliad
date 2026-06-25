@@ -1,15 +1,16 @@
-// ─── AXIS Package Quality Judge ─────────────────────────────────
+// ─── AXIS Package Quality Judge — deterministic FLOORS ──────────
 //
-// Enforces that each repo's generated development package is (1) backed by a
-// VALID assessment, (2) UNIQUELY designed for THAT repo (grounded in its own
-// facts, not boilerplate), and (3) covers the repo's DETECTED needs.
-//
-// This module is the deterministic, pure backbone — scores are a function of the
-// ContextMap + the generated files only (no clock, no randomness, no LLM), so
-// they're reproducible and un-gameable by prompt. The handler layers an optional
-// json-schema-constrained LLM "refine" pass on top for qualitative nuance + a
-// written rationale, and runs a repair loop that appends the augmentation
-// artifacts below to lift weak dimensions. begin.yaml-compliant (structured).
+// The "AI quality judge" has two layers:
+//   • THIS module — deterministic, pure FLOORS every package must clear as a
+//     baseline: a VALID assessment, GROUNDING in the repo's own facts (not pure
+//     boilerplate), and coverage of DETECTED needs. Reproducible; no LLM, no clock.
+//   • The LLM DESIGN JUDGE (handler, engineer mode) — a frontier model reads the
+//     package + assessment and judges whether it's GENUINELY DESIGNED for this repo
+//     vs. mechanically template-filled. Deterministic rules can NOT make that call
+//     (AXIS's generators legitimately weave repo facts into prose, so no rule
+//     separates "designed" from "tailored template-fill" — proven empirically), so
+//     design quality is the model's judgment; these floors only catch egregious
+//     failures and feed the judge. begin.yaml-compliant (structured).
 
 import type { ContextMap } from "@axis/context-engine";
 
@@ -31,36 +32,37 @@ export interface DimensionScore {
   evidence: string[];
 }
 
+/** The LLM design judge's structured verdict (engineer mode); null when no model. */
+export interface DesignVerdict {
+  design_score: number; // 0-100, the model's judgment of genuine design quality
+  tailored: boolean; // genuinely designed for THIS repo vs mechanical template-fill
+  rationale: string;
+  top_improvement?: string;
+}
+
 export interface QualityVerdict {
   grade: "A" | "B" | "C" | "D" | "F";
-  overall: number; // 0-100
-  passed: boolean;
+  overall: number; // 0-100 (deterministic floors only)
+  passed: boolean; // all floors clear
   assessment_validity: DimensionScore;
-  unique_design: DimensionScore;
+  grounding: DimensionScore;
   needs_coverage: DimensionScore;
   detected_needs: string[];
   uncovered_needs: string[];
 }
 
-// Dimension + overall floors. A package "passes" only if every dimension clears
-// its floor AND the weighted overall clears OVERALL_FLOOR.
-export const FLOORS = { assessment: 50, unique: 50, needs: 50, overall: 60 } as const;
-// A package is "clearly tailored" once this many distinct DOCS reference the repo's
-// distinctive facts in a distributed way (≥2 tailored docs ⇒ score ≥ 67 ⇒ passes).
-const UNIQUE_DOC_TARGET = 3;
-// Below this length a doc is an inherently-generic config (ci.yml etc.) — exempt
-// from the uniqueness measure rather than dragging it down.
+// Floors. The deterministic verdict "passes" only if every floor clears AND the
+// weighted overall clears OVERALL. (Design quality is judged separately by the LLM.)
+export const FLOORS = { assessment: 50, grounding: 50, needs: 50, overall: 60 } as const;
+// A package is "grounded" once this many distinct DOCS reference the repo's facts.
+const GROUNDING_DOC_TARGET = 3;
+// Below this length a doc is an inherently-generic config (ci.yml etc.) — exempt.
 const MIN_DOC_CHARS = 300;
-// A distinctive fact only counts as DESIGN evidence when it appears in a prose line
-// carrying at least this many non-fact words — so a machine-generated fact-table row
-// or a bare-identifier bullet (which echo names with ~no prose) doesn't qualify.
-const MIN_PROSE_WORDS = 4;
-// The gate's OWN injected artifacts — excluded from uniqueness scoring so a repair
-// fact-dump can never satisfy the metric it's being checked against.
-const GATE_ARTIFACTS = new Set(["detected-architecture.md", "needs-remediation.md", "package-quality-report.json"]);
+// The gate's OWN injected artifacts — excluded from grounding + needs scoring so an
+// appended artifact can never self-satisfy the metric it's being checked against.
+const GATE_ARTIFACTS = new Set(["needs-remediation.md", "package-quality-report.json"]);
 
-// Generic tokens that aren't repo-distinctive — excluded from fact-terms so a doc
-// can't look "grounded" just by saying "src"/"app"/"config".
+// Generic tokens that aren't repo-distinctive.
 const GENERIC = new Set([
   "src", "app", "apps", "lib", "libs", "index", "main", "test", "tests", "spec",
   "config", "util", "utils", "common", "core", "api", "web", "dist", "build",
@@ -76,10 +78,7 @@ function asName(x: unknown): string | null {
   return null;
 }
 
-/** Tokenize any string (identifier, path, or prose) the SAME way on both the fact
- *  side and the doc side: split on non-alphanumerics AND camelCase, lowercase, keep
- *  tokens ≥3 chars that aren't generic. Consistent tokenization is what lets a doc
- *  saying "OrderInvoice" match a detected model named OrderInvoice. */
+/** Split on non-alphanumerics AND camelCase, lowercase, keep ≥3-char non-generic tokens. */
 function toTokens(s: string): string[] {
   return s
     .split(/[^A-Za-z0-9]+|(?<=[a-z0-9])(?=[A-Z])/)
@@ -87,12 +86,7 @@ function toTokens(s: string): string[] {
     .filter((t) => t.length >= 3 && !GENERIC.has(t));
 }
 
-/**
- * The set of repo-distinctive fact-tokens drawn from the assessment: domain-model
- * names, frameworks/build/test tools, dependency names, route segments, file
- * basenames, architecture patterns, key abstractions. Lowercased single tokens
- * so they can be intersected with a doc's tokens.
- */
+/** Broad fact set (incl. frameworks/deps/files) — used where a permissive match helps. */
 export function repoFactTerms(ctx: ContextMap): Set<string> {
   const terms = new Set<string>();
   const add = (s: string | null) => {
@@ -111,16 +105,16 @@ export function repoFactTerms(ctx: ContextMap): Set<string> {
   for (const e of ctx.entry_points ?? []) add(e.path);
   for (const f of ctx.structure?.file_tree_summary ?? []) if (f.type === "file") add(f.path);
   for (const p of ctx.architecture_signals?.patterns_detected ?? []) add(p);
-  for (const a of ctx.ai_context?.key_abstractions ?? []) add(a);
   add(ctx.project_identity?.name ?? null);
   return terms;
 }
 
 /**
- * The repo-DISTINCTIVE facts — domain-model names, route segments, risk-scored
- * hotspot files, entry points, SQL tables, key abstractions. Deliberately EXCLUDES
- * frameworks / language / project name (any boilerplate trivially names "React" or
- * the project), so referencing THESE is real evidence of tailoring, not an echo.
+ * Repo-DISTINCTIVE facts for the GROUNDING floor: domain-model names, route paths,
+ * SQL tables, entry points, risk-scored hotspot files. Excludes frameworks/language
+ * (any boilerplate names them), the project name (which leaks via hotspot paths like
+ * `lib/express.js`), and ai_context.key_abstractions (AXIS taxonomy labels like
+ * "project_directory", not repo facts).
  */
 export function distinctiveFactTerms(ctx: ContextMap): Set<string> {
   const terms = new Set<string>();
@@ -133,7 +127,8 @@ export function distinctiveFactTerms(ctx: ContextMap): Set<string> {
   for (const e of ctx.entry_points ?? []) add(e.path);
   for (const h of ctx.dependency_graph?.hotspots ?? []) add(h.path);
   for (const s of ctx.sql_schema ?? []) add(s.name);
-  for (const a of ctx.ai_context?.key_abstractions ?? []) add(a);
+  // Strip the project-name tokens that leak in via hotspot/entry paths.
+  for (const t of toTokens(ctx.project_identity?.name ?? "")) terms.delete(t);
   return terms;
 }
 
@@ -141,7 +136,7 @@ function clamp(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-/** Is the assessment real + grounded, vs degenerate/shallow? */
+/** FLOOR: is the assessment real + grounded, vs degenerate/shallow? */
 export function scoreAssessmentValidity(ctx: ContextMap): DimensionScore {
   const frameworks = (ctx.detection?.frameworks ?? []).length;
   const models = (ctx.domain_models ?? []).length;
@@ -150,24 +145,14 @@ export function scoreAssessmentValidity(ctx: ContextMap): DimensionScore {
   const deps = (ctx.dependency_graph?.external_dependencies ?? []).length;
   const sep = ctx.architecture_signals?.separation_score ?? 0;
 
-  // Signals: a valid assessment of a non-trivial repo detects real facts.
   let score = 0;
   if (frameworks > 0) score += 25;
-  if (models + routes > 0) score += 30; // detected structure (models or routes)
+  if (models + routes > 0) score += 30;
   if (deps > 0) score += 15;
-  if (files >= 5) score += 15; // not a degenerate 1-file snapshot
-  score += clamp(sep * 100) * 0.15; // architectural separation contributes up to 15
+  if (files >= 5) score += 15;
+  score += clamp(sep * 100) * 0.15;
 
-  const evidence = [
-    `frameworks=${frameworks}`,
-    `domain_models=${models}`,
-    `routes=${routes}`,
-    `external_deps=${deps}`,
-    `files=${files}`,
-    `separation_score=${sep.toFixed(2)}`,
-  ];
-  // Degenerate guard: a multi-file repo with NO detected models/routes/frameworks
-  // is a shallow/failed assessment regardless of the additive score.
+  const evidence = [`frameworks=${frameworks}`, `domain_models=${models}`, `routes=${routes}`, `external_deps=${deps}`, `files=${files}`, `separation_score=${sep.toFixed(2)}`];
   const degenerate = files >= 5 && frameworks === 0 && models + routes === 0;
   const finalScore = degenerate ? Math.min(score, 30) : clamp(score);
   if (degenerate) evidence.push("degenerate: multi-file repo with no detected frameworks/models/routes");
@@ -175,40 +160,14 @@ export function scoreAssessmentValidity(ctx: ContextMap): DimensionScore {
 }
 
 /**
- * Distinctive facts that appear as genuine DESIGN guidance — in a PROSE line (not a
- * table row, code fence, heading, or bare-identifier bullet) carrying ≥MIN_PROSE_WORDS
- * non-fact words. Separates "the OrderInvoice model drives the checkout flow" (design)
- * from a machine-generated "| `OrderInvoice` | interface | … |" row or a "- OrderInvoice"
- * bullet (mere fact echo, which any boilerplate generator emits for free).
+ * FLOOR: is the package GROUNDED in the repo's own facts (not pure generic
+ * boilerplate)? Counts substantive docs (gate artifacts + tiny configs excluded)
+ * that reference ≥2 distinct distinctive facts. This is a permissive floor — a
+ * normal AXIS package (which surfaces the repo's models/routes) passes; a package
+ * that ignores the repo entirely fails. It does NOT claim to measure design quality
+ * (that's the LLM judge's job): grounding is necessary, not sufficient.
  */
-function designReferences(content: string, distinctive: Set<string>): { facts: Set<string>; lines: Set<number> } {
-  const facts = new Set<string>();
-  const lines = new Set<number>();
-  const src = content.split("\n");
-  for (let i = 0; i < src.length; i++) {
-    const trimmed = src[i].trimStart();
-    if (trimmed.startsWith("|") || trimmed.startsWith("```") || trimmed.startsWith("#")) continue;
-    const toks = toTokens(src[i]);
-    const onLine = toks.filter((t) => distinctive.has(t));
-    if (onLine.length === 0 || toks.length - onLine.length < MIN_PROSE_WORDS) continue;
-    for (const f of onLine) facts.add(f);
-    lines.add(i);
-  }
-  return { facts, lines };
-}
-
-/**
- * How uniquely DESIGNED for this repo the package is. Counts the GENERATOR's
- * substantive docs (gate artifacts + tiny configs excluded) that carry real design
- * guidance — ≥2 distinctive facts referenced in PROSE on ≥2 distinct lines — across
- * ≥2 docs. Defeats: generic-name gaming (frameworks/project aren't distinctive); a
- * fact-stuffing banner (one line); machine fact-TABLES / bare-identifier bullets (not
- * prose); and a repair fact-dump (gate artifacts excluded). It credits repo-specific
- * GUIDANCE, not fact echo — so the engineer-mode LLM living-architecture pass lifts
- * this, while the default deterministic generator (mostly fact tables) is honestly
- * graded LOW, which is the truthful signal.
- */
-export function scoreUniqueDesign(files: QualityFile[], distinctive: Set<string>): DimensionScore {
+export function scoreGrounding(files: QualityFile[], distinctive: Set<string>): DimensionScore {
   const docs = files.filter(
     (f) =>
       !GATE_ARTIFACTS.has(f.path) &&
@@ -218,24 +177,21 @@ export function scoreUniqueDesign(files: QualityFile[], distinctive: Set<string>
   if (docs.length === 0 || distinctive.size === 0) {
     return { score: 0, passed: false, evidence: [`substantive_docs=${docs.length}`, `distinctive_facts=${distinctive.size}`] };
   }
-  let designed = 0;
-  const notDesigned: string[] = [];
+  let grounded = 0;
+  const ungrounded: string[] = [];
   for (const f of docs) {
-    const { facts, lines } = designReferences(f.content, distinctive);
-    if (facts.size >= 2 && lines.size >= 2) designed++;
-    else notDesigned.push(f.path);
+    let hits = 0;
+    for (const t of new Set(toTokens(f.content))) if (distinctive.has(t)) hits++;
+    if (hits >= 2) grounded++;
+    else ungrounded.push(f.path);
   }
-  const target = Math.min(docs.length, UNIQUE_DOC_TARGET);
-  const score = clamp((designed / target) * 100);
-  const evidence = [
-    `designed_docs=${designed}/${docs.length} (target ${target})`,
-    ...(notDesigned.length ? [`fact-echo-only: ${notDesigned.slice(0, 8).join(", ")}`] : []),
-  ];
-  return { score, passed: score >= FLOORS.unique, evidence };
+  const target = Math.min(docs.length, GROUNDING_DOC_TARGET);
+  const score = clamp((grounded / target) * 100);
+  const evidence = [`grounded_docs=${grounded}/${docs.length} (target ${target})`, ...(ungrounded.length ? [`ungrounded: ${ungrounded.slice(0, 8).join(", ")}`] : [])];
+  return { score, passed: score >= FLOORS.grounding, evidence };
 }
 
-// Detected-need rules: each maps a warning/signal to a need label + a regex that
-// constitutes "coverage" in the package content.
+// Detected-need rules: warning/signal → need label + a regex that constitutes coverage.
 const NEED_RULES: Array<{ match: RegExp; label: string; covered: RegExp }> = [
   { match: /\btest/i, label: "testing", covered: /\b(test|vitest|jest|mocha|pytest|spec|coverage)\b/i },
   { match: /\bci\b|ci\/cd|pipeline/i, label: "ci_cd", covered: /(\.github\/workflows|github actions|\bci\b|pipeline|workflow)/i },
@@ -243,25 +199,16 @@ const NEED_RULES: Array<{ match: RegExp; label: string; covered: RegExp }> = [
   { match: /dependenc/i, label: "dependency_hygiene", covered: /(dependenc|bundle size|audit|prune|dedupe|cost)/i },
 ];
 
-/** Which detected needs does the package address? */
+/** FLOOR: which DETECTED needs does the package address (via the generator's own files)? */
 export function scoreNeedsCoverage(ctx: ContextMap, files: QualityFile[]): { dim: DimensionScore; detected: string[]; uncovered: string[] } {
   const warnings = ctx.ai_context?.warnings ?? [];
-  const detected = new Map<string, RegExp>(); // label -> coverage regex
-  for (const w of warnings) {
-    for (const rule of NEED_RULES) if (rule.match.test(w)) detected.set(rule.label, rule.covered);
-  }
-  // Structural needs even without an explicit warning.
-  if ((ctx.detection?.test_frameworks ?? []).length === 0) {
-    const r = NEED_RULES.find((x) => x.label === "testing")!;
-    detected.set(r.label, r.covered);
-  }
-  if (!ctx.detection?.ci_platform) {
-    const r = NEED_RULES.find((x) => x.label === "ci_cd")!;
-    detected.set(r.label, r.covered);
-  }
+  const detected = new Map<string, RegExp>();
+  for (const w of warnings) for (const rule of NEED_RULES) if (rule.match.test(w)) detected.set(rule.label, rule.covered);
+  if ((ctx.detection?.test_frameworks ?? []).length === 0) detected.set("testing", NEED_RULES.find((x) => x.label === "testing")!.covered);
+  if (!ctx.detection?.ci_platform) detected.set("ci_cd", NEED_RULES.find((x) => x.label === "ci_cd")!.covered);
 
-  // Score the GENERATOR's files only — exclude the gate's OWN injected artifacts so
-  // an appended needs-remediation.md (which names "vitest"/"github actions") can't
+  // Score the GENERATOR's files only — exclude the gate's own injected artifacts so an
+  // appended needs-remediation.md (which names "vitest"/"github actions") can't
   // self-satisfy the coverage it's being checked for.
   const haystack = files
     .filter((f) => !GATE_ARTIFACTS.has(f.path))
@@ -269,152 +216,85 @@ export function scoreNeedsCoverage(ctx: ContextMap, files: QualityFile[]): { dim
     .join("\n")
     .toLowerCase();
   const uncovered: string[] = [];
-  for (const [label, cov] of detected) {
-    if (!cov.test(haystack)) uncovered.push(label);
-  }
+  for (const [label, cov] of detected) if (!cov.test(haystack)) uncovered.push(label);
   const detectedLabels = [...detected.keys()];
   const score = detectedLabels.length === 0 ? 100 : clamp(((detectedLabels.length - uncovered.length) / detectedLabels.length) * 100);
-  const evidence = [
-    detectedLabels.length === 0 ? "no detected needs" : `covered ${detectedLabels.length - uncovered.length}/${detectedLabels.length}`,
-    ...(uncovered.length ? [`uncovered: ${uncovered.join(", ")}`] : []),
-  ];
+  const evidence = [detectedLabels.length === 0 ? "no detected needs" : `covered ${detectedLabels.length - uncovered.length}/${detectedLabels.length}`, ...(uncovered.length ? [`uncovered: ${uncovered.join(", ")}`] : [])];
   return { dim: { score, passed: score >= FLOORS.needs, evidence }, detected: detectedLabels, uncovered };
 }
 
-/** Grade the whole package against the three dimensions. Pure + deterministic. */
+/** Grade the package against the deterministic FLOORS. Pure + deterministic. */
 export function gradePackage(ctx: ContextMap, files: QualityFile[]): QualityVerdict {
   const distinctive = distinctiveFactTerms(ctx);
   const av = scoreAssessmentValidity(ctx);
-  const ud = scoreUniqueDesign(files, distinctive);
+  const g = scoreGrounding(files, distinctive);
   const nc = scoreNeedsCoverage(ctx, files);
-  const overall = clamp(av.score * 0.3 + ud.score * 0.4 + nc.dim.score * 0.3);
+  const overall = clamp(av.score * 0.34 + g.score * 0.33 + nc.dim.score * 0.33);
   const grade = overall >= 90 ? "A" : overall >= 75 ? "B" : overall >= 60 ? "C" : overall >= 40 ? "D" : "F";
-  const passed = av.passed && ud.passed && nc.dim.passed && overall >= FLOORS.overall;
-  return {
-    grade,
-    overall,
-    passed,
-    assessment_validity: av,
-    unique_design: ud,
-    needs_coverage: nc.dim,
-    detected_needs: nc.detected,
-    uncovered_needs: nc.uncovered,
-  };
+  const passed = av.passed && g.passed && nc.dim.passed && overall >= FLOORS.overall;
+  return { grade, overall, passed, assessment_validity: av, grounding: g, needs_coverage: nc.dim, detected_needs: nc.detected, uncovered_needs: nc.uncovered };
 }
 
-// ─── Repair augmentation builders (deterministic, inherently grounded) ───
-
-/** A repo-specific architecture brief built purely from detected facts → lifts uniqueness. */
-export function buildDetectedArchitectureArtifact(ctx: ContextMap): QualityArtifact {
-  const frameworks = (ctx.detection?.frameworks ?? []).map(asName).filter(Boolean) as string[];
-  const models = (ctx.domain_models ?? []).slice(0, 25);
-  const routes = (ctx.routes ?? []).slice(0, 25);
-  const patterns = ctx.architecture_signals?.patterns_detected ?? [];
-  const lines: string[] = [
-    `# Detected Architecture — ${ctx.project_identity?.name ?? "this repo"}`,
-    "",
-    "Generated from this repository's own analysis — every item below is a fact",
-    "extracted from your code, not a template.",
-    "",
-    `- **Primary language:** ${ctx.project_identity?.primary_language ?? "unknown"}`,
-    `- **Frameworks:** ${frameworks.length ? frameworks.join(", ") : "none detected"}`,
-    `- **Architecture patterns:** ${patterns.length ? patterns.join(", ") : "none detected"}`,
-    `- **Separation score:** ${(ctx.architecture_signals?.separation_score ?? 0).toFixed(2)}`,
-    "",
-    `## Domain models (${(ctx.domain_models ?? []).length})`,
-    ...(models.length ? models.map((m) => `- \`${m.name}\` (${m.kind}, ${m.field_count} fields) — ${m.source_file}`) : ["- none detected"]),
-    "",
-    `## Routes (${(ctx.routes ?? []).length})`,
-    ...(routes.length ? routes.map((r) => `- \`${r.method} ${r.path}\` — ${r.source_file}`) : ["- none detected"]),
-  ];
-  return { path: "detected-architecture.md", content: lines.join("\n") + "\n", content_type: "text/markdown" };
-}
-
-/** Repo-tailored remediations for each uncovered detected need → lifts needs coverage. */
+/** Repo-tailored remediations for each uncovered detected need (appended as guidance). */
 export function buildNeedsRemediationArtifact(ctx: ContextMap, uncovered: string[]): QualityArtifact {
   const fw = (ctx.detection?.frameworks ?? []).map(asName).filter(Boolean).join(", ") || "your stack";
   const REMEDIATIONS: Record<string, string[]> = {
-    testing: [
-      "## Testing — no test framework detected",
-      `Add a test suite for ${fw}. Start with the highest-risk modules from the dependency hotspots in the analysis.`,
-      "- Pick a runner that matches the stack (vitest/jest for JS/TS, pytest for Python).",
-      "- Gate CI on the suite; target the entry points and domain-model invariants first.",
-    ],
-    ci_cd: [
-      "## CI/CD — no pipeline detected",
-      "Add a CI workflow (e.g. `.github/workflows/ci.yml`) that installs deps, builds, type-checks, and runs tests on every push/PR.",
-    ],
-    lockfile: [
-      "## Lockfile — none found",
-      "Commit a lockfile (pnpm-lock.yaml / package-lock.json) and install with `--frozen-lockfile` / `npm ci` in CI for reproducible builds.",
-    ],
-    dependency_hygiene: [
-      "## Dependency hygiene — high dependency count",
-      "Audit and prune dependencies; run `pnpm audit`/`npm audit`, dedupe, and track bundle size to keep the surface bounded.",
-    ],
+    testing: ["## Testing — no test framework detected", `Add a test suite for ${fw}. Start with the highest-risk modules from the dependency hotspots in the analysis.`, "- Pick a runner that matches the stack (vitest/jest for JS/TS, pytest for Python).", "- Gate CI on the suite; target the entry points and domain-model invariants first."],
+    ci_cd: ["## CI/CD — no pipeline detected", "Add a CI workflow (e.g. `.github/workflows/ci.yml`) that installs deps, builds, type-checks, and runs tests on every push/PR."],
+    lockfile: ["## Lockfile — none found", "Commit a lockfile (pnpm-lock.yaml / package-lock.json) and install with `--frozen-lockfile` / `npm ci` in CI for reproducible builds."],
+    dependency_hygiene: ["## Dependency hygiene — high dependency count", "Audit and prune dependencies; run `pnpm audit`/`npm audit`, dedupe, and track bundle size to keep the surface bounded."],
   };
-  const body: string[] = [
-    `# Needs Remediation — ${ctx.project_identity?.name ?? "this repo"}`,
-    "",
-    "Concrete, repo-specific actions for the gaps this analysis detected:",
-    "",
-  ];
+  const body: string[] = [`# Needs Remediation — ${ctx.project_identity?.name ?? "this repo"}`, "", "Concrete, repo-specific actions for the gaps this analysis detected:", ""];
   for (const need of uncovered) body.push(...(REMEDIATIONS[need] ?? [`## ${need}`, "Detected as a gap; address per your stack."]), "");
   return { path: "needs-remediation.md", content: body.join("\n") + "\n", content_type: "text/markdown" };
 }
 
-// ─── Gate orchestration (deterministic; LLM rationale injected by the handler) ───
+// ─── Gate orchestration ───
 
 export interface QualityGateOutcome {
-  verdict: QualityVerdict; // final, post-repair
-  initial: QualityVerdict; // before repair
+  verdict: QualityVerdict;
+  initial: QualityVerdict;
   repairArtifacts: QualityArtifact[];
 }
 
 /**
- * Grade the package, then REPAIR only what appending content can legitimately fix:
- * NEEDS coverage (a concrete remediation for each detected gap). unique_design and
- * assessment_validity reflect the GENERATOR's output and the repo itself — appending
- * an AXIS-authored fact-dump can't make a boilerplate package "tailored" (and gate
- * artifacts are excluded from the uniqueness score regardless), so they are reported
- * HONESTLY, not fake-repaired. Never blocks (repair-then-return): the returned
- * verdict is the truthful post-repair grade. Genuine uniqueness lift comes from the
- * engineer-mode LLM pass (a frontier model authoring real repo-tailored guidance),
- * not from this deterministic layer.
+ * Grade against the floors; append a concrete needs-remediation.md as GUIDANCE when
+ * needs are uncovered (it does NOT lift the score — gate artifacts are excluded from
+ * scoring). assessment + grounding are reported honestly; genuine DESIGN lift is the
+ * LLM judge's job, not this deterministic layer. Never blocks (repair-then-return).
  */
 export function applyQualityGate(ctx: ContextMap, files: QualityFile[]): QualityGateOutcome {
   const initial = gradePackage(ctx, files);
   const working: QualityFile[] = [...files];
   const repairArtifacts: QualityArtifact[] = [];
-
   if (!initial.needs_coverage.passed && initial.uncovered_needs.length > 0) {
     const art = buildNeedsRemediationArtifact(ctx, initial.uncovered_needs);
     repairArtifacts.push(art);
     working.push(art);
   }
-
   return { verdict: gradePackage(ctx, working), initial, repairArtifacts };
 }
 
-/** Build the package-quality-report.json artifact (+ optional injected LLM rationale). */
-export function buildQualityReport(outcome: QualityGateOutcome, rationale: string | null): QualityArtifact {
-  const { verdict, initial, repairArtifacts } = outcome;
+/** Build package-quality-report.json: the deterministic floors + the LLM design verdict. */
+export function buildQualityReport(outcome: QualityGateOutcome, design: DesignVerdict | null): QualityArtifact {
+  const { verdict, repairArtifacts } = outcome;
   const report = {
-    schema: "axis-package-quality/1",
+    schema: "axis-package-quality/2",
+    floors_passed: verdict.passed,
     grade: verdict.grade,
     overall: verdict.overall,
-    passed: verdict.passed,
-    initial_grade: initial.grade,
-    initial_overall: initial.overall,
-    repaired: repairArtifacts.map((a) => a.path),
-    dimensions: {
+    floors: {
       assessment_validity: verdict.assessment_validity,
-      unique_design: verdict.unique_design,
+      grounding: verdict.grounding,
       needs_coverage: verdict.needs_coverage,
     },
     detected_needs: verdict.detected_needs,
     uncovered_needs: verdict.uncovered_needs,
-    rationale: rationale ?? null,
+    appended: repairArtifacts.map((a) => a.path),
+    // The headline judgment: an AI design verdict from the engineer-mode LLM judge.
+    design: design
+      ? { score: design.design_score, tailored: design.tailored, rationale: design.rationale, top_improvement: design.top_improvement ?? null }
+      : { assessed: false, note: "Design quality is judged by the engineer-mode AI judge; not assessed on this call." },
   };
   return { path: "package-quality-report.json", content: JSON.stringify(report, null, 2), content_type: "application/json" };
 }
