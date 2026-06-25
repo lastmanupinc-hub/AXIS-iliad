@@ -273,26 +273,29 @@ function CodePreview({ lines }: { lines: string[] }) {
 
 // ─── ROI: the 15 real OSS repos AXIS analyzed ────────────────────
 
-interface OssRepo { repo: string; lang: string; loc: number; surface: number }
+interface OssRepo { repo: string; gh: string; zip: string; lang: string; loc: number; surface: number }
+
+// GitHub Release hosting the free packages (a thank-you to OSS maintainers).
+const RELEASE_BASE = "https://github.com/lastmanupinc-hub/AXIS-iliad/releases/download/oss-thank-you-v1";
 
 // Real figures from the 15 packages AXIS generated. `surface` = detected domain
 // models + routes — the repo-specific contracts AXIS maps into the docs.
 const OSS_REPOS: OssRepo[] = [
-  { repo: "vue/core", lang: "TypeScript", loc: 124492, surface: 327 },
-  { repo: "react (compiler)", lang: "Rust/TS", loc: 121430, surface: 316 },
-  { repo: "drizzle-orm", lang: "TypeScript", loc: 86038, surface: 150 },
-  { repo: "fastify", lang: "JavaScript", loc: 78273, surface: 133 },
-  { repo: "zod", lang: "TypeScript", loc: 73911, surface: 320 },
-  { repo: "hono", lang: "TypeScript", loc: 69108, surface: 1101 },
-  { repo: "vite", lang: "TypeScript", loc: 56265, surface: 144 },
-  { repo: "svelte", lang: "JavaScript", loc: 50750, surface: 209 },
-  { repo: "axios", lang: "JavaScript", loc: 49401, surface: 48 },
-  { repo: "prisma", lang: "TypeScript", loc: 33147, surface: 67 },
-  { repo: "nest", lang: "TypeScript", loc: 24206, surface: 8 },
-  { repo: "tanstack/query", lang: "Markdown", loc: 22649, surface: 0 },
-  { repo: "trpc", lang: "TypeScript", loc: 22391, surface: 97 },
-  { repo: "date-fns", lang: "TypeScript", loc: 19007, surface: 74 },
-  { repo: "express", lang: "JavaScript", loc: 18238, surface: 242 },
+  { repo: "vue/core", gh: "vuejs/core", zip: "core", lang: "TypeScript", loc: 124492, surface: 327 },
+  { repo: "react (compiler)", gh: "facebook/react", zip: "react", lang: "Rust/TS", loc: 121430, surface: 316 },
+  { repo: "drizzle-orm", gh: "drizzle-team/drizzle-orm", zip: "drizzle-orm", lang: "TypeScript", loc: 86038, surface: 150 },
+  { repo: "fastify", gh: "fastify/fastify", zip: "fastify", lang: "JavaScript", loc: 78273, surface: 133 },
+  { repo: "zod", gh: "colinhacks/zod", zip: "zod", lang: "TypeScript", loc: 73911, surface: 320 },
+  { repo: "hono", gh: "honojs/hono", zip: "hono", lang: "TypeScript", loc: 69108, surface: 1101 },
+  { repo: "vite", gh: "vitejs/vite", zip: "vite", lang: "TypeScript", loc: 56265, surface: 144 },
+  { repo: "svelte", gh: "sveltejs/svelte", zip: "svelte", lang: "JavaScript", loc: 50750, surface: 209 },
+  { repo: "axios", gh: "axios/axios", zip: "axios", lang: "JavaScript", loc: 49401, surface: 48 },
+  { repo: "prisma", gh: "prisma/prisma", zip: "prisma", lang: "TypeScript", loc: 33147, surface: 67 },
+  { repo: "nest", gh: "nestjs/nest", zip: "nest", lang: "TypeScript", loc: 24206, surface: 8 },
+  { repo: "tanstack/query", gh: "tanstack/query", zip: "query", lang: "Markdown", loc: 22649, surface: 0 },
+  { repo: "trpc", gh: "trpc/trpc", zip: "trpc", lang: "TypeScript", loc: 22391, surface: 97 },
+  { repo: "date-fns", gh: "date-fns/date-fns", zip: "date-fns", lang: "TypeScript", loc: 19007, surface: 74 },
+  { repo: "express", gh: "expressjs/express", zip: "express", lang: "JavaScript", loc: 18238, surface: 242 },
 ];
 
 const ARTIFACTS_PER_PKG = 138; // 137 deterministic + the engineer Living Architecture
@@ -394,6 +397,46 @@ function RoiSection() {
           documentation/scaffolding effort — not a claim to replace product engineering.
         </div>
       </details>
+    </div>
+  );
+}
+
+function ThankYouSection() {
+  return (
+    <div className="card" style={{ marginBottom: 24 }}>
+      <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 4 }}>Free for the maintainers — with thanks 🙏</h2>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
+        We generated a full {ARTIFACTS_PER_PKG}-artifact package for each of these projects and we're giving them away —
+        free, no strings — as a thank-you to their maintainers and the open-source community. Maintainers (and anyone):
+        grab yours. Each download includes a THANK-YOU note and is grounded entirely in your repo's own facts.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(184px, 1fr))", gap: 10 }}>
+        {OSS_REPOS.map((r) => (
+          <div
+            key={r.zip}
+            style={{ border: "1px solid var(--border, rgba(127,127,127,0.18))", borderRadius: "var(--radius)", padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}
+          >
+            <div style={{ fontSize: "0.82rem", fontWeight: 700 }}>{r.repo}</div>
+            <a
+              href={`https://github.com/${r.gh}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: "0.68rem", color: "var(--text-muted)", textDecoration: "none" }}
+            >
+              github.com/{r.gh} ↗
+            </a>
+            <a
+              href={`${RELEASE_BASE}/${r.zip}.zip`}
+              style={{ marginTop: 2, padding: "5px 10px", background: "var(--accent)", color: "#fff", borderRadius: "var(--radius)", fontSize: "0.72rem", fontWeight: 700, textDecoration: "none", textAlign: "center" }}
+            >
+              Download package
+            </a>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 12, lineHeight: 1.5 }}>
+        Offered as a gift; AXIS is not affiliated with or endorsed by these projects. Hosted free on GitHub Releases.
+      </p>
     </div>
   );
 }
@@ -592,6 +635,8 @@ export function ExamplesPage() {
       </div>
 
       <RoiSection />
+
+      <ThankYouSection />
 
       {/* Example cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
