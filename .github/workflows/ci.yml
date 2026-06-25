@@ -84,6 +84,23 @@ jobs:
       contents: read
       packages: write
 
+    # The Neon-migrated app runs DB migrations at startup, so the boot smoke-test
+    # needs a real Postgres (mirrors build-and-test). The container reaches it via
+    # --network host → localhost:5432.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: axis_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v5
 
@@ -103,11 +120,12 @@ jobs:
 
       - name: Verify Docker health check
         run: |
-          # Smoke-test that the image BOOTS and serves HTTP. Post-Neon the data
-          # layer is async Postgres with a LAZY pool, so the app starts without a
-          # DB; probe the DB-free LIVENESS endpoint (/v1/health/live -> "alive").
-          # Readiness (/v1/health/ready) requires a DB and is covered by build-and-test.
-          docker run -d --name axis-test -p 4000:4000 \
+          # Smoke-test that the image BOOTS, runs its startup DB migrations, and
+          # serves HTTP — against a real Postgres (the Neon data layer requires a DB
+          # at startup). --network host lets the container reach the postgres service
+          # on localhost:5432; probe the DB-free liveness endpoint once booted.
+          docker run -d --name axis-test --network host \
+            -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/axis_test \
             ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }}
           for i in 1 2 3 4 5 6; do
             if curl -sf http://localhost:4000/v1/health/live | grep -q '"status":"alive"'; then
