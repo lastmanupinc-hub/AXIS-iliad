@@ -271,6 +271,133 @@ function CodePreview({ lines }: { lines: string[] }) {
   );
 }
 
+// ─── ROI: the 15 real OSS repos AXIS analyzed ────────────────────
+
+interface OssRepo { repo: string; lang: string; loc: number; surface: number }
+
+// Real figures from the 15 packages AXIS generated. `surface` = detected domain
+// models + routes — the repo-specific contracts AXIS maps into the docs.
+const OSS_REPOS: OssRepo[] = [
+  { repo: "vue/core", lang: "TypeScript", loc: 124492, surface: 327 },
+  { repo: "react (compiler)", lang: "Rust/TS", loc: 121430, surface: 316 },
+  { repo: "drizzle-orm", lang: "TypeScript", loc: 86038, surface: 150 },
+  { repo: "fastify", lang: "JavaScript", loc: 78273, surface: 133 },
+  { repo: "zod", lang: "TypeScript", loc: 73911, surface: 320 },
+  { repo: "hono", lang: "TypeScript", loc: 69108, surface: 1101 },
+  { repo: "vite", lang: "TypeScript", loc: 56265, surface: 144 },
+  { repo: "svelte", lang: "JavaScript", loc: 50750, surface: 209 },
+  { repo: "axios", lang: "JavaScript", loc: 49401, surface: 48 },
+  { repo: "prisma", lang: "TypeScript", loc: 33147, surface: 67 },
+  { repo: "nest", lang: "TypeScript", loc: 24206, surface: 8 },
+  { repo: "tanstack/query", lang: "Markdown", loc: 22649, surface: 0 },
+  { repo: "trpc", lang: "TypeScript", loc: 22391, surface: 97 },
+  { repo: "date-fns", lang: "TypeScript", loc: 19007, surface: 74 },
+  { repo: "express", lang: "JavaScript", loc: 18238, surface: 242 },
+];
+
+const ARTIFACTS_PER_PKG = 138; // 137 deterministic + the engineer Living Architecture
+const RATE = 90; // blended senior dev / tech-writer, $/hr (conservative)
+const BASE_HOURS = 50; // hand-produce the 138-artifact breadth (onboarding → deploy)
+const AXIS_PKG_COST = 25; // one engineer-tier package via the AXIS API
+
+const estHours = (r: OssRepo) => BASE_HOURS + Math.min(25, Math.round(r.surface / 50));
+const num = (n: number) => Math.round(n).toLocaleString();
+const usd = (n: number) => "$" + num(n);
+
+function RoiSection() {
+  const rows = OSS_REPOS.map((r) => {
+    const hours = estHours(r);
+    const manual = hours * RATE;
+    return { ...r, hours, manual, saved: manual - AXIS_PKG_COST };
+  });
+  const totalHours = rows.reduce((a, r) => a + r.hours, 0);
+  const totalManual = rows.reduce((a, r) => a + r.manual, 0);
+  const totalAxis = OSS_REPOS.length * AXIS_PKG_COST;
+  const totalSaved = totalManual - totalAxis;
+  const roi = Math.round(totalManual / totalAxis);
+  const totalLoc = OSS_REPOS.reduce((a, r) => a + r.loc, 0);
+  const weeks = Math.round(totalHours / 40);
+
+  const stats = [
+    { v: "~" + num(totalHours) + " hrs", l: "developer-hours saved (~" + weeks + " dev-weeks)", c: "var(--accent)" },
+    { v: usd(totalSaved), l: "saved vs. building it by hand", c: "var(--green)" },
+    { v: num(roi) + "×", l: "ROI vs. " + usd(totalAxis) + " in AXIS engineer-tier calls", c: "var(--green)" },
+  ];
+
+  return (
+    <div className="card" style={{ marginBottom: 24 }}>
+      <h2 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: 4 }}>The time &amp; money it saves</h2>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
+        We ran AXIS over 15 of the most-used open-source repos — {num(totalLoc)} lines of code analyzed,{" "}
+        {num(ARTIFACTS_PER_PKG * OSS_REPOS.length)} artifacts generated. Here's what hand-assembling the same breadth of
+        onboarding, ops, design-system and deploy documentation would have cost.
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 18 }}>
+        {stats.map((s, i) => (
+          <div key={i} style={{ textAlign: "center", padding: "14px 8px", background: "var(--bg-subtle, rgba(127,127,127,0.06))", borderRadius: "var(--radius)" }}>
+            <div style={{ fontSize: "1.5rem", fontWeight: 800, color: s.c }}>{s.v}</div>
+            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: 4, lineHeight: 1.4 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.72rem" }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: "var(--text-muted)", borderBottom: "1px solid var(--border, rgba(127,127,127,0.25))" }}>
+              <th style={{ padding: "6px 8px" }}>Repo</th>
+              <th style={{ padding: "6px 8px" }}>Lang</th>
+              <th style={{ padding: "6px 8px", textAlign: "right" }}>LOC</th>
+              <th style={{ padding: "6px 8px", textAlign: "right" }}>Models+routes</th>
+              <th style={{ padding: "6px 8px", textAlign: "right" }}>Manual effort</th>
+              <th style={{ padding: "6px 8px", textAlign: "right" }}>By hand</th>
+              <th style={{ padding: "6px 8px", textAlign: "right" }}>AXIS</th>
+              <th style={{ padding: "6px 8px", textAlign: "right" }}>Saved</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.repo} style={{ borderBottom: "1px solid var(--border, rgba(127,127,127,0.12))" }}>
+                <td style={{ padding: "6px 8px", fontWeight: 600 }}>{r.repo}</td>
+                <td style={{ padding: "6px 8px", color: "var(--text-muted)" }}>{r.lang}</td>
+                <td style={{ padding: "6px 8px", textAlign: "right" }}>{num(r.loc)}</td>
+                <td style={{ padding: "6px 8px", textAlign: "right" }}>{num(r.surface)}</td>
+                <td style={{ padding: "6px 8px", textAlign: "right" }}>{r.hours} hrs</td>
+                <td style={{ padding: "6px 8px", textAlign: "right" }}>{usd(r.manual)}</td>
+                <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--text-muted)" }}>{usd(AXIS_PKG_COST)}</td>
+                <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700, color: "var(--green)" }}>{usd(r.saved)}</td>
+              </tr>
+            ))}
+            <tr style={{ borderTop: "2px solid var(--border, rgba(127,127,127,0.35))", fontWeight: 700 }}>
+              <td style={{ padding: "8px" }} colSpan={4}>15 repos · {num(totalLoc)} LOC</td>
+              <td style={{ padding: "8px", textAlign: "right" }}>{num(totalHours)} hrs</td>
+              <td style={{ padding: "8px", textAlign: "right" }}>{usd(totalManual)}</td>
+              <td style={{ padding: "8px", textAlign: "right", color: "var(--text-muted)" }}>{usd(totalAxis)}</td>
+              <td style={{ padding: "8px", textAlign: "right", color: "var(--green)" }}>{usd(totalSaved)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <details style={{ marginTop: 14 }}>
+        <summary style={{ fontSize: "0.72rem", fontWeight: 600, cursor: "pointer", color: "var(--text-muted)" }}>How we estimate (transparent + conservative)</summary>
+        <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", lineHeight: 1.7, marginTop: 8 }}>
+          Each package is {ARTIFACTS_PER_PKG} artifacts spanning agent onboarding (AGENTS.md, CLAUDE.md, .cursorrules),
+          architecture &amp; context maps, debug/ops runbooks, frontend/SEO/perf standards, a design system, brand &amp;
+          marketing, test/refactor automation, MCP integration, agentic-commerce, and deploy/packaging (Dockerfile, CI
+          workflows, render.yaml, deploy scripts). We price the equivalent <strong>manual</strong> effort at a baseline of{" "}
+          <strong>{BASE_HOURS} hours</strong> to hand-author that breadth, plus up to 25 hours of analysis to map each repo's
+          detected models + routes into the docs, at a blended <strong>{usd(RATE)}/hr</strong> senior rate. AXIS produces it
+          in one scan: <strong>{usd(AXIS_PKG_COST)}</strong> on the engineer tier (the full package incl. the verified Living
+          Architecture pass), or <strong>$0.50</strong> on the standard tier. These are conservative estimates of equivalent
+          documentation/scaffolding effort — not a claim to replace product engineering.
+        </div>
+      </details>
+    </div>
+  );
+}
+
 function ExampleCard({ ex, expanded, onToggle }: { ex: Example; expanded: boolean; onToggle: () => void }) {
   return (
     <div style={{
@@ -463,6 +590,8 @@ export function ExamplesPage() {
           </div>
         </div>
       </div>
+
+      <RoiSection />
 
       {/* Example cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
