@@ -30,6 +30,13 @@ export function getPool(): Pool {
   pool = new Pool({
     connectionString,
     max: Number(process.env.PG_POOL_MAX ?? 10),
+    // Fail an exhausted-pool acquire instead of queueing forever, so a future code path
+    // that holds a tx connection while awaiting a second one surfaces a logged error
+    // rather than hanging the pool. Opt-in via env (off by default) to avoid tripping
+    // under legitimately bursty load or a slow test Postgres.
+    connectionTimeoutMillis: process.env.PG_CONNECT_TIMEOUT_MS
+      ? Number(process.env.PG_CONNECT_TIMEOUT_MS)
+      : undefined,
     // Neon pooled endpoints terminate the TLS chain themselves; rejectUnauthorized
     // false avoids local CA hassle while still using TLS in transit.
     ssl: needsSsl ? { rejectUnauthorized: false } : undefined,

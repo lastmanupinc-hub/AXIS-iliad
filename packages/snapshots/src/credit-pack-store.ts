@@ -9,7 +9,6 @@
 import { randomUUID } from "node:crypto";
 import { sql, pgPlaceholders } from "./pg.js";
 import { PERSISTENCE_CREDIT_PACKS } from "./billing-types.js";
-import { addPersistenceCredits } from "./persistence-metering.js";
 
 export type CreditPackStatus = "pending" | "succeeded";
 
@@ -90,14 +89,16 @@ export async function markPurchaseSucceeded(
 ): Promise<CreditPackPurchase | null> {
   const pi = payment_intent_id ?? null;
   return await sql.tx<CreditPackPurchase | null>(async (client) => {
+    // FOR UPDATE locks the purchase row: a concurrent webhook delivery blocks here
+    // until we commit, then re-reads status='succeeded' and bails — no double-grant.
     const sel = await client.query<CreditPackPurchase>(
-      pgPlaceholders(`SELECT * FROM credit_pack_purchases WHERE paid_session_id = ?`),
+      pgPlaceholders(`SELECT * FROM credit_pack_purchases WHERE paid_session_id = ? FOR UPDATE`),
       [paid_session_id],
     );
     const row = sel.rows[0];
     if (!row || row.status === "succeeded") return null; // unknown or already granted
     const now = new Date().toISOString();
-    await client.query(
+    const upd = await client.query(
       pgPlaceholders(
         `UPDATE credit_pack_purchases
             SET status = 'succeeded', succeeded_at = ?, paid_payment_intent_id = ?
@@ -105,7 +106,26 @@ export async function markPurchaseSucceeded(
       ),
       [now, pi, row.purchase_id],
     );
-    await addPersistenceCredits(row.account_id, row.credits, "purchase");
+    // Belt-and-suspenders alongside FOR UPDATE: if we lost the race to flip
+    // pending→succeeded, do NOT grant credits.
+    if ((upd.rowCount ?? 0) === 0) return null;
+    // Grant the credits ON THE SAME TRANSACTION. The previous code called
+    // addPersistenceCredits via the pool, so the grant escaped this tx — a rollback
+    // could flip status without granting (or grant without flipping). Inline the
+    // ledger insert on the tx client so status-flip + grant are atomic.
+    const balRow = await client.query<{ bal: string | number | null }>(
+      "SELECT COALESCE(SUM(credits_delta), 0) AS bal FROM persistence_credits WHERE account_id = $1",
+      [row.account_id],
+    );
+    const balance_after = Math.max(0, Number(balRow.rows[0]?.bal ?? 0)) + row.credits;
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO persistence_credits
+             (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
+           VALUES (?, ?, ?, 'purchase', NULL, ?, ?)`,
+      ),
+      [randomUUID(), row.account_id, row.credits, balance_after, now],
+    );
     return { ...row, status: "succeeded", succeeded_at: now, paid_payment_intent_id: pi };
   });
 }

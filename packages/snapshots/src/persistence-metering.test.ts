@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { resetTestDb } from "./pg-test.js";
+import { sql } from "./pg.js";
 import { createAccount } from "./billing-store.js";
 import {
   getPersistenceBalance,
@@ -220,5 +221,48 @@ describe("getPersistenceLedger", () => {
     const b = await createAccount("Bob", "bob@example.com", "paid");
     await addPersistenceCredits(a.account_id, 100);
     expect(await getPersistenceLedger(b.account_id)).toHaveLength(0);
+  });
+});
+
+// ─── Concurrency (A1: no double-spend) ──────────────────────────
+
+// A cold pool opens the 2nd connection slower than op #1 commits, which masks the
+// race; pre-warming N idle connections makes the burst truly overlap (all reads land
+// before any write) — the exact double-spend window. Verified: these fail on the
+// pre-fix read-check-insert and pass once the debit is advisory-locked.
+async function warmPool(n: number): Promise<void> {
+  await Promise.all(Array.from({ length: n }, () => sql.one("SELECT 1")));
+}
+
+describe("meterPersistenceOp — concurrency", () => {
+  it("does not double-spend: a warm-pool burst on a one-op balance debits exactly once", async () => {
+    const acct = await createAccount("Race", "race@example.com", "paid");
+    const cost = PERSISTENCE_CREDIT_COSTS.save_version;
+    await addPersistenceCredits(acct.account_id, cost); // exactly ONE op of headroom
+
+    const N = 10;
+    await warmPool(N);
+    const results = await Promise.all(
+      Array.from({ length: N }, () => meterPersistenceOp(acct.account_id, "paid", "save_version")),
+    );
+
+    expect(results.filter((r) => r.ok)).toHaveLength(1); // exactly one debit, not N
+    expect(await getPersistenceBalance(acct.account_id)).toBe(0); // never negative
+  });
+
+  it("never overspends a bounded balance under a burst larger than its capacity", async () => {
+    const acct = await createAccount("Burst", "burst@example.com", "paid");
+    const cost = PERSISTENCE_CREDIT_COSTS.diff_versions;
+    const cap = 6;
+    await addPersistenceCredits(acct.account_id, cost * cap);
+
+    const N = 12; // more concurrent ops than the balance can cover
+    await warmPool(10);
+    const results = await Promise.all(
+      Array.from({ length: N }, () => meterPersistenceOp(acct.account_id, "paid", "diff_versions")),
+    );
+
+    expect(results.filter((r) => r.ok)).toHaveLength(cap); // exactly capacity, never more
+    expect(await getPersistenceBalance(acct.account_id)).toBe(0); // never negative
   });
 });

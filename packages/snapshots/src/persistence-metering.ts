@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sql } from "./pg.js";
+import { sql, pgPlaceholders } from "./pg.js";
 import type { BillingTier, PersistenceOp, PersistenceCreditRecord } from "./billing-types.js";
 import {
   PERSISTENCE_CREDIT_COSTS,
@@ -94,33 +94,40 @@ export async function meterPersistenceOp(
   }
 
   const cost = PERSISTENCE_CREDIT_COSTS[op];
-  const balance = await getPersistenceBalance(account_id);
 
-  if (balance < cost) {
-    return {
-      ok: false,
-      reason: `Insufficient persistence credits. Need ${cost}, have ${balance}. Purchase more at iliad.trustfabric.ai/billing.`,
-    };
-  }
+  // The balance is SUM(credits_delta) over an append-only ledger — there is no single
+  // row to lock, so a naive read-check-insert lets two concurrent ops both pass the
+  // `balance < cost` gate and both debit (double-spend, balance goes negative).
+  // Serialize per-account with a transaction-scoped advisory lock (namespace 1 =
+  // persistence credits) so check-then-debit is atomic; the lock releases at COMMIT.
+  return await sql.tx<MeterResult>(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(1, hashtext($1))", [account_id]);
 
-  const balance_after = balance - cost;
+    const balRow = await client.query<{ bal: string | number | null }>(
+      "SELECT COALESCE(SUM(credits_delta), 0) AS bal FROM persistence_credits WHERE account_id = $1",
+      [account_id],
+    );
+    const balance = Math.max(0, Number(balRow.rows[0]?.bal ?? 0));
 
-  await sql.run(
-    `INSERT INTO persistence_credits
-         (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [
-      randomUUID(),
-      account_id,
-      -cost,
-      op,
-      snapshot_id ?? null,
-      balance_after,
-      new Date().toISOString(),
-    ],
-  );
+    if (balance < cost) {
+      return {
+        ok: false,
+        reason: `Insufficient persistence credits. Need ${cost}, have ${balance}. Purchase more at iliad.trustfabric.ai/billing.`,
+      };
+    }
 
-  return { ok: true, balance_after };
+    const balance_after = balance - cost;
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO persistence_credits
+             (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ),
+      [randomUUID(), account_id, -cost, op, snapshot_id ?? null, balance_after, new Date().toISOString()],
+    );
+
+    return { ok: true, balance_after };
+  });
 }
 
 // ─── Ledger ──────────────────────────────────────────────────────
