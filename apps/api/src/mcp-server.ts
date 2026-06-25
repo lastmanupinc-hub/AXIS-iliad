@@ -98,6 +98,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { runSpecificityPass } from "./living-architecture.js";
+import { applyQualityGate, buildQualityReport, type QualityVerdict } from "./package-quality.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
@@ -3256,6 +3257,83 @@ async function maybeAppendLivingArchitecture(
   }
 }
 
+const QUALITY_RATIONALE_SCHEMA = {
+  type: "object",
+  required: ["rationale"],
+  properties: {
+    rationale: { type: "string", maxLength: 600 },
+    weakest_dimension: { type: "string", enum: ["assessment_validity", "unique_design", "needs_coverage", "none"] },
+  },
+} as const;
+
+/**
+ * Optional LLM "refine" layer: a written rationale GROUNDED in the deterministic
+ * verdict (the LLM explains; it can NOT change the enforceable scores).
+ * json-schema-constrained (E8), temp 0 + fixed seed → reproducible. Returns null
+ * when the local model isn't configured.
+ */
+async function llmQualityRationale(ctx: ContextMap, verdict: QualityVerdict): Promise<string | null> {
+  if (!(await isLlmConfigured())) return null;
+  const summary = JSON.stringify({
+    grade: verdict.grade,
+    overall: verdict.overall,
+    passed: verdict.passed,
+    assessment_validity: verdict.assessment_validity.score,
+    unique_design: verdict.unique_design.score,
+    needs_coverage: verdict.needs_coverage.score,
+    uncovered_needs: verdict.uncovered_needs,
+    project: ctx.project_identity?.name ?? "",
+    frameworks: (ctx.detection?.frameworks ?? []).map((f) => (typeof f === "string" ? f : (f as { name?: string }).name)).filter(Boolean).slice(0, 5),
+  });
+  const res = await runLlmCompletion({
+    system:
+      "You review a generated development package's quality verdict. Write ONE concise paragraph (<=600 chars) explaining the grade and the single most important improvement. Use ONLY the provided facts; never invent. Return JSON {rationale, weakest_dimension}.",
+    prompt: `Verdict: ${summary}`,
+    temperature: 0,
+    seed: 7,
+    max_tokens: 300,
+    json_schema: QUALITY_RATIONALE_SCHEMA,
+  });
+  if ("_not_configured" in res) return null;
+  const parsed = validateStructuredOutput(res.text, QUALITY_RATIONALE_SCHEMA);
+  const rationale = (parsed.parsed as { rationale?: unknown } | null)?.rationale;
+  return parsed.valid && typeof rationale === "string" ? rationale : null;
+}
+
+/**
+ * Core quality gate — runs on EVERY generated package. Grades it, REPAIRS weak
+ * dimensions by appending targeted grounded augmentation (repair-then-return), and
+ * appends a package-quality-report.json. The deterministic backbone enforces
+ * quality on every call (fast); the LLM rationale is added in engineer mode only
+ * (the local model has real latency). Best-effort + never fails the call. Runs in
+ * the handler, so the generator-core determinism guarantee is untouched.
+ */
+async function maybeRunQualityGate(generated: GeneratorResult, ctxMap: ContextMap, req: IncomingMessage): Promise<void> {
+  try {
+    const files = generated.files.map((f) => ({ path: f.path, content: f.content, content_type: f.content_type }));
+    const outcome = applyQualityGate(ctxMap, files);
+    const rationale =
+      resolveAgentMode(req) === "engineer" ? await llmQualityRationale(ctxMap, outcome.verdict).catch(() => null) : null;
+    const report = buildQualityReport(outcome, rationale);
+    for (const a of [...outcome.repairArtifacts, report]) {
+      if (generated.files.some((f) => f.path === a.path)) continue; // path-collision guard
+      generated.files.push({
+        path: a.path,
+        content: a.content,
+        content_type: a.content_type,
+        program: "quality",
+        description:
+          a.path === "package-quality-report.json"
+            ? `Quality ${outcome.verdict.grade} (${outcome.verdict.overall}/100)` +
+              (outcome.repairArtifacts.length ? `, repaired from ${outcome.initial.grade}` : "")
+            : "Quality gate: grounded repair augmentation",
+      });
+    }
+  } catch {
+    // Best-effort; the deterministic package already succeeded.
+  }
+}
+
 export async function runAnalyzeFiles(
   args: Record<string, unknown>,
   req: IncomingMessage,
@@ -3362,6 +3440,7 @@ export async function runAnalyzeFiles(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3514,6 +3593,7 @@ export async function runAnalyzeRepo(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3822,6 +3902,7 @@ export async function runImproveMyAgent(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4579,6 +4660,7 @@ export async function runPreparePurchasing(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
