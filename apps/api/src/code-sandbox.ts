@@ -54,7 +54,7 @@ export interface SandboxResult {
 
 export interface NotConfiguredResult {
   _not_configured: true;
-  reason: "docker_daemon_unreachable" | "dockerode_import_failed";
+  reason: "docker_daemon_unreachable" | "dockerode_import_failed" | "disabled";
   detail: string;
   remediation: string;
 }
@@ -145,6 +145,10 @@ function withPingTimeout<T>(p: Promise<T>): Promise<T> {
 }
 
 export async function isCodeSandboxConfigured(): Promise<boolean> {
+  // Explicit kill-switch: report unconfigured without probing the daemon. Lets an operator
+  // disable the sandbox on a Docker-equipped host, and lets tests force the deterministic
+  // _not_configured path instead of doing real (slow, flaky) image-pull + container work.
+  if (process.env.AXIS_CODE_SANDBOX_DISABLED === "1") return false;
   try {
     await ensureDockerLoaded();
     if (!_docker) return false;
@@ -271,6 +275,19 @@ export async function runCodeSandbox(
   opts: SandboxOptions,
 ): Promise<SandboxResult | NotConfiguredResult> {
   validateSandboxOptions(opts);
+
+  // Explicit kill-switch — checked AFTER validation (so option errors still take
+  // precedence) but BEFORE any Docker work. Lets an operator disable the sandbox on a
+  // Docker-equipped host, and lets tests get the deterministic _not_configured envelope
+  // instead of a real (slow, flaky) image-pull + container run.
+  if (process.env.AXIS_CODE_SANDBOX_DISABLED === "1") {
+    return {
+      _not_configured: true,
+      reason: "disabled",
+      detail: "Code sandbox disabled via AXIS_CODE_SANDBOX_DISABLED=1.",
+      remediation: "Unset AXIS_CODE_SANDBOX_DISABLED to re-enable Docker-backed execution.",
+    };
+  }
 
   try {
     await ensureDockerLoaded();

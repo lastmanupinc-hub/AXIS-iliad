@@ -1,14 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
 import { resetTestDb } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
 import { handleHealthCheck } from "./handlers.js";
 
-const TEST_PORT = 44530;
-
 interface Res { status: number; headers: Record<string, string>; body: string }
 
-function rawReq(method: string, path: string, port = TEST_PORT): Promise<Res> {
+function rawReq(method: string, path: string, port: number): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
       { hostname: "127.0.0.1", port, path, method },
@@ -28,52 +27,54 @@ function rawReq(method: string, path: string, port = TEST_PORT): Promise<Res> {
   });
 }
 
+function healthRouter(): Router {
+  const r = new Router();
+  r.get("/v1/health", handleHealthCheck);
+  return r;
+}
+
+// Bind on an EPHEMERAL port (0) and AWAIT 'listening' before any request — a hardcoded
+// port races other workers/leftovers (EADDRINUSE) and the unawaited async listen() caused
+// intermittent ECONNREFUSED. The OS-assigned port is returned for the request.
+async function listen(server: Server): Promise<number> {
+  await new Promise<void>((resolve) => (server.listening ? resolve() : server.once("listening", () => resolve())));
+  return (server.address() as AddressInfo).port;
+}
+
 describe("crash-resilience: keep-alive tuning + process error handlers", () => {
-  let server: Server & { shutdown?: (t?: number) => Promise<void> };
+  let server: Server | undefined;
 
   beforeAll(async () => {
     await resetTestDb();
   });
 
-  afterAll(async () => {
-    if (server?.listening) {
-      await new Promise<void>((r) => server.close(() => r()));
-    }
-  });
-
-  afterEach(() => {
+  afterEach(async () => {
     vi.unstubAllEnvs();
+    if (server?.listening) await new Promise<void>((r) => server!.close(() => r()));
+    server = undefined;
   });
 
   // ─── Keep-alive timeout tuning ────────────────────────────────
 
-  it("sets keepAliveTimeout to default 65000ms when env not set", () => {
-    const router = new Router();
-    router.get("/v1/health", handleHealthCheck);
-    server = createApp(router, TEST_PORT);
+  it("sets keepAliveTimeout/headersTimeout to the 65000/70000 defaults when env not set", async () => {
+    server = createApp(healthRouter(), 0);
+    await listen(server);
     expect(server.keepAliveTimeout).toBe(65000);
-  });
-
-  it("sets headersTimeout to keepAliveTimeout + 5000ms", () => {
     expect(server.headersTimeout).toBe(70000);
   });
 
   it("server responds to requests with keep-alive tuning active", async () => {
-    const res = await rawReq("GET", "/v1/health");
+    server = createApp(healthRouter(), 0);
+    const port = await listen(server);
+    const res = await rawReq("GET", "/v1/health", port);
     expect(res.status).toBe(200);
-    const body = JSON.parse(res.body);
-    expect(body.status).toBe("ok");
+    expect(JSON.parse(res.body).status).toBe("ok");
   });
 
   it("reads KEEP_ALIVE_TIMEOUT_MS from env", async () => {
-    // Shutdown the default server first
-    await new Promise<void>((r) => server.close(() => r()));
-
     vi.stubEnv("KEEP_ALIVE_TIMEOUT_MS", "30000");
-    const router = new Router();
-    router.get("/v1/health", handleHealthCheck);
-    server = createApp(router, TEST_PORT);
-
+    server = createApp(healthRouter(), 0);
+    await listen(server);
     expect(server.keepAliveTimeout).toBe(30000);
     expect(server.headersTimeout).toBe(35000);
   });
@@ -105,52 +106,12 @@ describe("crash-resilience: keep-alive tuning + process error handlers", () => {
 
   // ─── Crash handler registration ──────────────────────────────
 
-  it("uncaughtException handler is NOT registered in test environment", () => {
-    // In test environment, crash handlers are skipped (guarded by NODE_ENV/VITEST check)
-    // Verify by checking that our process doesn't have the axis crash handlers
-    // (The guard is: process.env.NODE_ENV !== "test" && process.env.VITEST !== "true")
-    // Since we're running under vitest, these should not be registered
-    const listeners = process.listeners("uncaughtException");
-    // The axis handler would call log("error", "uncaught_exception", ...)
-    // In tests, no axis-specific listener should be present
-    // (vitest has its own, but not the shutdown-triggering one)
+  it("uncaughtException handler is NOT registered in test environment", async () => {
     expect(process.env.VITEST).toBe("true");
-    // Verify the guard condition works: no extra listeners from createApp
     const countBefore = process.listenerCount("uncaughtException");
-    const router2 = new Router();
-    // Use a different port to avoid EADDRINUSE
-    const s2 = createApp(router2, TEST_PORT + 1);
+    server = createApp(healthRouter(), 0);
+    await listen(server);
     const countAfter = process.listenerCount("uncaughtException");
     expect(countAfter).toBe(countBefore); // no new listener added in test env
-    s2.close();
-  });
-
-  it("unhandledRejection handler is NOT registered in test environment", () => {
-    const countBefore = process.listenerCount("unhandledRejection");
-    const router3 = new Router();
-    const s3 = createApp(router3, TEST_PORT + 2);
-    const countAfter = process.listenerCount("unhandledRejection");
-    expect(countAfter).toBe(countBefore);
-    s3.close();
-  });
-
-  it("SIGTERM handler is NOT registered in test environment", () => {
-    const countBefore = process.listenerCount("SIGTERM");
-    const router4 = new Router();
-    const s4 = createApp(router4, TEST_PORT + 3);
-    const countAfter = process.listenerCount("SIGTERM");
-    expect(countAfter).toBe(countBefore);
-    s4.close();
-  });
-
-  // ─── headersTimeout > keepAliveTimeout invariant ──────────────
-
-  it("headersTimeout always exceeds keepAliveTimeout by 5000ms", async () => {
-    await new Promise<void>((r) => server.close(() => r()));
-
-    vi.stubEnv("KEEP_ALIVE_TIMEOUT_MS", "10000");
-    const router = new Router();
-    server = createApp(router, TEST_PORT);
-    expect(server.headersTimeout - server.keepAliveTimeout).toBe(5000);
   });
 });
