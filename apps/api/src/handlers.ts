@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { chargeMpp, parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
 import type { AgentBudget } from "./mpp.js";
-import { classifyProbe, captureIntent } from "./mcp-server.js";
+import { classifyProbe, captureIntent } from "./intent.js";
 import {
   createSnapshot,
   getSnapshot,
