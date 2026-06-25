@@ -97,27 +97,23 @@ describe("code-sandbox — runCodeSandbox not-configured envelope", () => {
     ).rejects.toThrow(/600/);
   });
 
-  it("returns a _not_configured envelope when Docker is unreachable", async () => {
-    // We can't reliably guarantee Docker is absent on every dev machine,
-    // so we accept either branch here: either we get the envelope, or we
-    // get a real sandbox result (when Docker IS running locally). Both
-    // are valid outcomes; what matters is that the call returns cleanly.
-    const r = await runCodeSandbox({ language: "python", code: "print('axis')" });
-    if (isNotConfigured(r)) {
-      expect(r.reason === "docker_daemon_unreachable" || r.reason === "dockerode_import_failed").toBe(true);
-      expect(typeof r.detail).toBe("string");
-      expect(typeof r.remediation).toBe("string");
-      expect(r.remediation.length).toBeGreaterThan(20);
-    } else {
-      // Docker IS available locally — verify it actually ran our code.
-      const sr = r as SandboxResult;
-      expect(typeof sr.stdout).toBe("string");
-      expect(typeof sr.stderr).toBe("string");
-      expect(typeof sr.exit_code).toBe("number");
-      expect(typeof sr.duration_ms).toBe("number");
-      expect(sr.image).toBe("nikolaik/python-nodejs:python3.12-nodejs22-slim");
+  it("returns a _not_configured envelope (deterministic via the kill-switch)", async () => {
+    // Force the disabled path so this is deterministic + fast regardless of whether the dev
+    // machine has Docker. (Real execution is covered by the AXIS_RUN_DOCKER_TESTS live suite
+    // below; the genuinely-unreachable-daemon path is environment-specific.)
+    process.env.AXIS_CODE_SANDBOX_DISABLED = "1";
+    try {
+      const r = await runCodeSandbox({ language: "python", code: "print('axis')" });
+      expect(isNotConfigured(r)).toBe(true);
+      if (isNotConfigured(r)) {
+        expect(r.reason).toBe("disabled");
+        expect(typeof r.detail).toBe("string");
+        expect(r.remediation.length).toBeGreaterThan(20);
+      }
+    } finally {
+      delete process.env.AXIS_CODE_SANDBOX_DISABLED;
     }
-  }, 120_000);
+  });
 });
 
 describe("code-sandbox — isCodeSandboxConfigured", () => {
@@ -126,6 +122,15 @@ describe("code-sandbox — isCodeSandboxConfigured", () => {
   it("returns a boolean without throwing regardless of Docker state", async () => {
     const r = await isCodeSandboxConfigured();
     expect(typeof r).toBe("boolean");
+  });
+
+  it("returns false when AXIS_CODE_SANDBOX_DISABLED=1, without probing the daemon", async () => {
+    process.env.AXIS_CODE_SANDBOX_DISABLED = "1";
+    try {
+      expect(await isCodeSandboxConfigured()).toBe(false);
+    } finally {
+      delete process.env.AXIS_CODE_SANDBOX_DISABLED;
+    }
   });
 });
 

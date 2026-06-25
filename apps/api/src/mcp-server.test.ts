@@ -2477,21 +2477,24 @@ describe("POST /mcp — owned-tool dispatcher coverage", () => {
     expect(usage.tool).toBe("iliad_llm_inference");
   });
 
-  it("iliad_code_sandbox dispatches correctly (returns _not_configured without Docker)", async () => {
-    const r = await post("/mcp", {
-      jsonrpc: "2.0", id: 306, method: "tools/call",
-      params: { name: "iliad_code_sandbox", arguments: { language: "python", code: "print(1)" } },
-    }, apiKey);
-    const { isError, parsed, usage } = parseToolResult(r);
-    // Either we got the _not_configured envelope (CI) or we ran (local dev has Docker).
-    // Both are valid dispatcher outcomes.
-    expect(isError).toBe(false);
-    expect(usage.tool).toBe("iliad_code_sandbox");
-    if (parsed._not_configured !== true) {
-      expect(typeof parsed.stdout).toBe("string");
-      expect(typeof parsed.exit_code).toBe("number");
+  it("iliad_code_sandbox dispatches correctly (returns the _not_configured envelope)", async () => {
+    // Force the unconfigured path so this is deterministic + fast regardless of whether the
+    // host has Docker. The old test ran the sandbox for real when Docker was present (image
+    // pull + container start), which intermittently exceeded 60s and red-flagged CI.
+    process.env.AXIS_CODE_SANDBOX_DISABLED = "1";
+    try {
+      const r = await post("/mcp", {
+        jsonrpc: "2.0", id: 306, method: "tools/call",
+        params: { name: "iliad_code_sandbox", arguments: { language: "python", code: "print(1)" } },
+      }, apiKey);
+      const { isError, parsed, usage } = parseToolResult(r);
+      expect(isError).toBe(false);
+      expect(usage.tool).toBe("iliad_code_sandbox");
+      expect(parsed._not_configured).toBe(true);
+    } finally {
+      delete process.env.AXIS_CODE_SANDBOX_DISABLED;
     }
-  }, 60_000);
+  });
 
   it("iliad_speech_to_text dispatches correctly (returns _not_configured in CI)", async () => {
     const r = await post("/mcp", {
