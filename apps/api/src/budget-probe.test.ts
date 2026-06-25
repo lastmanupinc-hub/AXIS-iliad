@@ -22,7 +22,7 @@ import {
   classifyProbe,
   captureIntent,
   getIntentLog,
-} from "./mcp-server.js";
+} from "./intent.js";
 import {
   computePurchasingReadinessEvidence,
   handleForAgents,
