@@ -301,3 +301,69 @@ export function buildNeedsRemediationArtifact(ctx: ContextMap, uncovered: string
   for (const need of uncovered) body.push(...(REMEDIATIONS[need] ?? [`## ${need}`, "Detected as a gap; address per your stack."]), "");
   return { path: "needs-remediation.md", content: body.join("\n") + "\n", content_type: "text/markdown" };
 }
+
+// ─── Gate orchestration (deterministic; LLM rationale injected by the handler) ───
+
+export interface QualityGateOutcome {
+  verdict: QualityVerdict; // final, post-repair
+  initial: QualityVerdict; // before repair
+  repairArtifacts: QualityArtifact[];
+}
+
+/**
+ * Grade the package, then REPAIR weak dimensions by appending targeted, inherently
+ * grounded augmentation (up to 2 rounds), and re-grade. Deterministic. Returns the
+ * final verdict + the artifacts the caller should append. assessment_validity
+ * reflects the repo itself and can't be repaired by augmentation — a thin repo
+ * stays honestly flagged.
+ */
+export function applyQualityGate(ctx: ContextMap, files: QualityFile[]): QualityGateOutcome {
+  const initial = gradePackage(ctx, files);
+  const working: QualityFile[] = [...files];
+  const repairArtifacts: QualityArtifact[] = [];
+  const have = (p: string) => repairArtifacts.some((a) => a.path === p);
+
+  for (let round = 0; round < 2; round++) {
+    const v = gradePackage(ctx, working);
+    if (v.passed) break;
+    let added = false;
+    if (!v.unique_design.passed && !have("detected-architecture.md")) {
+      const art = buildDetectedArchitectureArtifact(ctx);
+      repairArtifacts.push(art);
+      working.push(art);
+      added = true;
+    }
+    if (!v.needs_coverage.passed && v.uncovered_needs.length > 0 && !have("needs-remediation.md")) {
+      const art = buildNeedsRemediationArtifact(ctx, v.uncovered_needs);
+      repairArtifacts.push(art);
+      working.push(art);
+      added = true;
+    }
+    if (!added) break; // nothing left to repair (e.g. only assessment_validity is weak)
+  }
+
+  return { verdict: gradePackage(ctx, working), initial, repairArtifacts };
+}
+
+/** Build the package-quality-report.json artifact (+ optional injected LLM rationale). */
+export function buildQualityReport(outcome: QualityGateOutcome, rationale: string | null): QualityArtifact {
+  const { verdict, initial, repairArtifacts } = outcome;
+  const report = {
+    schema: "axis-package-quality/1",
+    grade: verdict.grade,
+    overall: verdict.overall,
+    passed: verdict.passed,
+    initial_grade: initial.grade,
+    initial_overall: initial.overall,
+    repaired: repairArtifacts.map((a) => a.path),
+    dimensions: {
+      assessment_validity: verdict.assessment_validity,
+      unique_design: verdict.unique_design,
+      needs_coverage: verdict.needs_coverage,
+    },
+    detected_needs: verdict.detected_needs,
+    uncovered_needs: verdict.uncovered_needs,
+    rationale: rationale ?? null,
+  };
+  return { path: "package-quality-report.json", content: JSON.stringify(report, null, 2), content_type: "application/json" };
+}

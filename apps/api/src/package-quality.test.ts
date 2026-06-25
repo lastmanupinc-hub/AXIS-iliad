@@ -8,6 +8,8 @@ import {
   gradePackage,
   buildDetectedArchitectureArtifact,
   buildNeedsRemediationArtifact,
+  applyQualityGate,
+  buildQualityReport,
   type QualityFile,
 } from "./package-quality.js";
 
@@ -119,5 +121,50 @@ describe("repair augmentation lifts the weak dimensions", () => {
     const fix = buildNeedsRemediationArtifact(ctx, before.uncovered);
     const after = scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "monorepo"), { ...fix }]);
     expect(after.uncovered).toEqual([]);
+  });
+});
+
+describe("applyQualityGate (repair-then-return)", () => {
+  it("repairs a failing-but-repairable package up to a pass", () => {
+    const ctx = mkCtx();
+    const o = applyQualityGate(ctx, [doc("CLAUDE.md", "Write good code. Be consistent.")]);
+    expect(o.initial.passed).toBe(false);
+    expect(o.verdict.passed).toBe(true);
+    expect(o.repairArtifacts.map((a) => a.path).sort()).toEqual(["detected-architecture.md", "needs-remediation.md"]);
+  });
+
+  it("cannot repair a thin/degenerate repo (assessment stays flagged) and terminates", () => {
+    const thin = mkCtx({
+      detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null },
+      domain_models: [],
+      routes: [],
+      dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
+      ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
+      project_identity: { name: "", type: "", primary_language: "", description: null, repo_url: null, go_module: null },
+    });
+    const o = applyQualityGate(thin, [doc("CLAUDE.md", "x")]);
+    expect(o.verdict.passed).toBe(false);
+    expect(o.verdict.assessment_validity.passed).toBe(false);
+  });
+
+  it("is deterministic", () => {
+    const ctx = mkCtx();
+    const files = [doc("CLAUDE.md", "Generic.")];
+    expect(applyQualityGate(ctx, files)).toEqual(applyQualityGate(ctx, files));
+  });
+});
+
+describe("buildQualityReport", () => {
+  it("emits a package-quality-report.json with grade, dimensions, repaired, rationale", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code.")]);
+    const report = buildQualityReport(o, "LLM says: well-grounded after repair.");
+    expect(report.path).toBe("package-quality-report.json");
+    const parsed = JSON.parse(report.content);
+    expect(parsed.schema).toBe("axis-package-quality/1");
+    expect(parsed.grade).toBe(o.verdict.grade);
+    expect(parsed.repaired).toContain("detected-architecture.md");
+    expect(parsed.dimensions.unique_design).toHaveProperty("score");
+    expect(parsed.rationale).toMatch(/well-grounded/);
+    expect(buildQualityReport(o, null).content).toMatch(/"rationale": null/);
   });
 });
