@@ -210,6 +210,49 @@ const CACHE_CONTROL: Record<string, string> = {
 let _shuttingDown = false;
 export function isShuttingDown(): boolean { return _shuttingDown; }
 
+/**
+ * Boot the async Postgres data layer WITHOUT making port-binding hostage to it.
+ *
+ * The old boot ran migrations before `server.listen()` and, on failure, only set
+ * `process.exitCode = 1` — so a DB outage left the process unbound and EVERY endpoint
+ * (including the DB-free health/discovery/static surface) unreachable, and the process
+ * crash-looped. Instead: on the happy path we still listen only after migrations apply
+ * (no pre-schema traffic window), but on failure we bind anyway so liveness/static/
+ * discovery stay up, `/v1/health/ready` reports not_ready until the DB recovers, and we
+ * retry migrations in the background so a transient outage self-heals without a restart.
+ *
+ * `runMigrations` / `scheduleRetry` are injectable for tests (no DB, no real timers).
+ */
+export function scheduleBootMigrations(
+  server: Server,
+  startListening: () => void,
+  runMigrations: () => Promise<{ current_version: number }> = runPgMigrations,
+  scheduleRetry: (fn: () => void, ms: number) => void = (fn, ms) => {
+    const t = setTimeout(fn, ms);
+    t.unref?.();
+  },
+): void {
+  const attempt = (n: number): void => {
+    void runMigrations()
+      .then(({ current_version }) => {
+        log("info", "pg_migrations_applied", { current_version, attempt: n });
+        if (!server.listening) startListening();
+      })
+      .catch((err: unknown) => {
+        const retry_in_ms = Math.min(60_000, 5_000 * n);
+        log("error", "pg_migrations_failed", {
+          error: err instanceof Error ? err.message : String(err),
+          attempt: n,
+          retry_in_ms,
+        });
+        // Stay up and serve the DB-free surface; readiness (pgIntegrityCheck) gates DB traffic.
+        if (!server.listening) startListening();
+        scheduleRetry(() => attempt(n + 1), retry_in_ms);
+      });
+  };
+  attempt(1);
+}
+
 export function createApp(router: Router, port: number): Server {
   const connections = new Set<Socket>();
   _shuttingDown = false;
@@ -369,15 +412,9 @@ export function createApp(router: Router, port: number): Server {
   if (process.env.NODE_ENV === "test" || process.env.VITEST === "true") {
     startListening();
   } else {
-    void runPgMigrations()
-      .then(({ current_version }) => {
-        log("info", "pg_migrations_applied", { current_version });
-        startListening();
-      })
-      .catch((err: unknown) => {
-        log("error", "pg_migrations_failed", { error: err instanceof Error ? err.message : String(err) });
-        process.exitCode = 1;
-      });
+    // Bind the port even if the DB is down (see scheduleBootMigrations): the DB-free
+    // health/discovery/static surface stays reachable, and a transient outage self-heals.
+    scheduleBootMigrations(server, startListening);
   }
 
   const shutdown = async (timeout = 10_000): Promise<void> => {
