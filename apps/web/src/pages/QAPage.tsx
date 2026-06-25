@@ -14,7 +14,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "general",
     question: "What is Axis' Iliad?",
-    answer: "Axis' Iliad is a codebase analysis platform with 18 specialized programs organized into 7 categories: Repo Intelligence, Governance, Engineering Delivery, Growth & Content, Knowledge & Context, Creative Generation, and Agentic Commerce. Upload your source code and it generates tailored documentation, rules, configurations, and other artifacts specific to your project's architecture, frameworks, and patterns. Each program has 4–5 generators that produce distinct output files.",
+    answer: "Axis' Iliad is a codebase analysis platform with 20 specialized programs organized into 7 categories: Repo Intelligence, Governance, Engineering Delivery, Growth & Content, Knowledge & Context, Creative Generation, and Agentic Commerce. Upload your source code and it generates tailored documentation, rules, configurations, and other artifacts specific to your project's architecture, frameworks, and patterns. Each program has 6–7 generators that produce distinct output files.",
   },
   {
     category: "general",
@@ -29,7 +29,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "general",
     question: "How is this different from other analysis tools?",
-    answer: "Unlike linters or static analyzers, Axis' Iliad generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 99 generators across 19 programs produce files you can drop directly into your project.",
+    answer: "Unlike linters or static analyzers, Axis' Iliad generates actionable output files — AGENTS.md, .cursorrules, debug playbooks, brand guidelines, design tokens, and more. It's not just finding issues; it's creating ready-to-use artifacts for your workflow. The 137 generators across 20 programs produce files you can drop directly into your project.",
   },
   {
     category: "general",
@@ -50,7 +50,7 @@ const QA_ITEMS: QAItem[] = [
   },
   {
     category: "programs",
-    question: "What do the 16 Pro programs include?",
+    question: "What do the 17 Pro programs include?",
     answer: "Pro programs span 6 categories: Engineering Delivery (Frontend Audit, Superpowers, MCP, Artifacts), Growth & Content (SEO, Brand, Marketing), Knowledge & Context (Notebook, Obsidian), Design System (Theme), Creative Generation (Remotion, Canvas, Algorithmic), and Agentic Commerce (Agentic Purchasing, Closer). Plus Optimization from Repo Intelligence. Each produces 4–5 specialized files — design tokens, video scripts, marketing campaigns, commerce registries, and more.",
   },
   {
@@ -135,7 +135,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "What's included in Growth?",
-    answer: "Growth is $299/month with 1,200,000 monthly credits and is designed for teams and production workloads. It includes all 19 programs plus higher operational limits and support options.",
+    answer: "Growth is $299/month with 1,200,000 monthly credits and is designed for teams and production workloads. It includes all 20 programs plus higher operational limits and support options.",
   },
   {
     category: "billing",
@@ -150,7 +150,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "Do programs have individual pricing?",
-    answer: "Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all 19 programs, with overage billed at $0.0018 per credit. Referral rewards reduce your effective dollars per call as referrals increase (up to 0.02% benefit), and reset each billing cycle.",
+    answer: "Pricing uses a blended credit model rather than per-program purchases. Credits can be used across all 20 programs, with overage billed at $0.0018 per credit. Referral rewards reduce your effective dollars per call as referrals increase (up to 0.02% benefit), and reset each billing cycle.",
   },
   {
     category: "billing",

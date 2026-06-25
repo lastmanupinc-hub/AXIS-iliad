@@ -34,6 +34,9 @@ const PROGRAMS: ProgramDef[] = [
   { name: "remotion", label: "Remotion Video", description: "Remotion script, scene plan, render config, storyboard", endpoint: "remotion/generate", tier: "pro" },
   { name: "canvas", label: "Canvas Design", description: "Canvas spec, social pack, poster layouts, brand board", endpoint: "canvas/generate", tier: "pro" },
   { name: "algorithmic", label: "Algorithmic Art", description: "Generative sketch, parameter pack, variation matrix", endpoint: "algorithmic/generate", tier: "pro" },
+  { name: "agentic-purchasing", label: "Agentic Purchasing", description: "Agent purchasing playbook, product schema, checkout flow, negotiation rules", endpoint: "agentic-purchasing/generate", tier: "pro" },
+  { name: "closer", label: "Closer / Packaging", description: "Packaging README, Dockerfile, CI/release workflows, distributable manifests", endpoint: "closer/generate", tier: "pro" },
+  { name: "deploy", label: "Deploy", description: "Dockerfile, render.yaml, deploy scripts, Cloudflare worker config", endpoint: "deploy/generate", tier: "pro" },
 ];
 
 export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
@@ -57,7 +60,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
       await onRun(program.endpoint);
     } catch (err) {
       if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
-        setError("This program requires a Pro plan. Upgrade to unlock all 19 programs.");
+        setError("This program requires a Pro plan. Upgrade to unlock all 20 programs.");
       } else {
         setError(err instanceof Error ? err.message : "Failed");
       }
@@ -98,7 +101,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
       <div className="card">
         <div className="flex-between" style={{ marginBottom: 12 }}>
           <h3>Pro Programs</h3>
-          <span className="badge badge-accent">14 programs</span>
+          <span className="badge badge-accent">{proTier.length} programs</span>
         </div>
         <div className="grid grid-3">
           {proTier.map(p => (

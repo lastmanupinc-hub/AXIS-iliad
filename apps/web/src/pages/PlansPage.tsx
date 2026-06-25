@@ -77,9 +77,9 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
         // Fallback if API not running — show static data
         setPlans([
           { id: "free", name: "Free", tagline: "Core files and evaluation tier", price_monthly_cents: 0, price_annual_cents: 0, highlights: ["10,000 monthly credits", "Core outputs stay free", "Best for evaluation"] },
-          { id: "starter", name: "Starter", tagline: "Best for solo builders and small agents", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: ["75,000 monthly credits", "All 19 programs", "Overage at $0.0018/credit"] },
-          { id: "pro", name: "Pro", tagline: "More credits for active teams", price_monthly_cents: 9900, price_annual_cents: 95040, highlights: ["300,000 monthly credits", "All 19 programs", "Overage at $0.0018/credit"] },
-          { id: "growth", name: "Growth", tagline: "Production scale and heavier usage", price_monthly_cents: 29900, price_annual_cents: 287040, highlights: ["1,200,000 monthly credits", "All 19 programs", "Priority support"] },
+          { id: "starter", name: "Starter", tagline: "Best for solo builders and small agents", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: ["75,000 monthly credits", "All 20 programs", "Overage at $0.0018/credit"] },
+          { id: "pro", name: "Pro", tagline: "More credits for active teams", price_monthly_cents: 9900, price_annual_cents: 95040, highlights: ["300,000 monthly credits", "All 20 programs", "Overage at $0.0018/credit"] },
+          { id: "growth", name: "Growth", tagline: "Production scale and heavier usage", price_monthly_cents: 29900, price_annual_cents: 287040, highlights: ["1,200,000 monthly credits", "All 20 programs", "Priority support"] },
           { id: "enterprise", name: "Enterprise", tagline: "Custom contracts and volume pricing", price_monthly_cents: -1, price_annual_cents: -1, highlights: ["Custom credits and limits", "Dedicated support", "Security review"] },
         ]);
       })

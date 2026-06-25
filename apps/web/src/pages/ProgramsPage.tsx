@@ -1,4 +1,4 @@
-// ProgramsPage — keyword-rich landing for all 19 AXIS programs
+// ProgramsPage — keyword-rich landing for all 20 AXIS programs
 
 interface ProgramDef {
   id: string;
@@ -203,6 +203,16 @@ const PROGRAMS: ProgramDef[] = [
     outputs: ["DISTRIBUTABLE.md", "packaging-report.md", "launch-checklist.md", "launch-content.md", "AXIS_Board_Pitch.md"],
     cta: "Generate ship-ready package",
   },
+  {
+    id: "deploy",
+    name: "Deploy",
+    tier: "pro",
+
+    tagline: "Production deploy scaffolding for Docker, Render, and Cloudflare — one command to ship",
+    keywords: ["deployment config generator", "Dockerfile generator", "render.yaml", "Cloudflare Workers deploy", "CI deploy pipeline"],
+    outputs: ["deploy/Dockerfile", "deploy/render.yaml", "deploy/deploy.sh", "deploy/worker.ts", "deploy-qualification-report.md"],
+    cta: "Generate deploy config",
+  },
 ];
 
 interface Props {
@@ -218,22 +228,22 @@ export function ProgramsPage({ onAnalyze }: Props) {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="programs-hero">
         <div className="programs-hero-inner">
-          <span className="badge badge-accent" style={{ marginBottom: 12, display: "inline-block" }}>19 Programs · 99 Artifacts</span>
+          <span className="badge badge-accent" style={{ marginBottom: 12, display: "inline-block" }}>20 Programs · 137 Artifacts</span>
           <h1 className="programs-hero-title">
             Every AI artifact your codebase needs. Generated in seconds.
           </h1>
           <p className="programs-hero-sub">
             Axis' Iliad analyzes your repo across 60+ languages and generates structured governance files
             for every AI coding tool — GitHub Copilot, Claude Code, Cursor, Windsurf, Aider, and more.
-            One scan. 99 outputs. Zero manual work.
+            One scan. 137 outputs. Zero manual work.
           </p>
           <div className="programs-hero-stats">
             <div className="programs-stat">
-              <span className="programs-stat-value">99</span>
+              <span className="programs-stat-value">137</span>
               <span className="programs-stat-label">Generated Artifacts</span>
             </div>
             <div className="programs-stat">
-              <span className="programs-stat-value">19</span>
+              <span className="programs-stat-value">20</span>
               <span className="programs-stat-label">Specialized Programs</span>
             </div>
             <div className="programs-stat">
@@ -268,7 +278,7 @@ export function ProgramsPage({ onAnalyze }: Props) {
       <section className="programs-section">
         <div className="programs-section-header">
           <h2>Pro Programs</h2>
-          <p>16 additional programs unlocked with a Pro subscription.</p>
+          <p>17 additional programs unlocked with a Pro subscription.</p>
         </div>
         <div className="programs-grid">
           {pro.map((p) => (

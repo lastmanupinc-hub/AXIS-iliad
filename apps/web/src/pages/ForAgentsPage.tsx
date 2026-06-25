@@ -51,7 +51,7 @@ export function ForAgentsPage() {
         <span className="badge badge-accent">For Agents</span>
         <h1>Iliad is an agent-first MCP platform.</h1>
         <p>
-          One endpoint. 14 MCP tools. Intelligence across 19 programs. Native x402 payments.
+          One endpoint. 14 MCP tools. Intelligence across 20 programs. Native x402 payments.
         </p>
       </div>
 
