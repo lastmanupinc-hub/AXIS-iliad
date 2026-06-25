@@ -85,6 +85,20 @@ describe("scoreNeedsCoverage (FLOOR)", () => {
     const fix = buildNeedsRemediationArtifact(ctx, before.uncovered);
     expect(scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "x" + PAD), { ...fix }]).uncovered).toEqual(before.uncovered);
   });
+
+  it("a package that only ECHOES the assessment's warnings does NOT cover the needs (no self-satisfaction)", () => {
+    const ctx = mkCtx();
+    // A doc that merely restates the warnings (as context-map.json / architecture-summary.md
+    // do in real output) used to vacuously satisfy the floor — verified against the real
+    // generators. Restating the gap is not addressing it.
+    const echo = scoreNeedsCoverage(ctx, [doc("architecture-summary.md", "Warnings:\n" + ctx.ai_context!.warnings.join("\n") + PAD)]);
+    expect(echo.uncovered).toEqual(expect.arrayContaining(["testing", "ci_cd"]));
+    expect(echo.dim.passed).toBe(false);
+    // Genuine remedy guidance (beyond restating the gap) still covers them.
+    const real = scoreNeedsCoverage(ctx, [doc("guide.md", "Add a vitest suite and a github actions workflow." + PAD)]);
+    expect(real.uncovered).toEqual([]);
+    expect(real.dim.passed).toBe(true);
+  });
 });
 
 describe("gradePackage + applyQualityGate (floors)", () => {

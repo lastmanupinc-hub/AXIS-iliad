@@ -210,11 +210,21 @@ export function scoreNeedsCoverage(ctx: ContextMap, files: QualityFile[]): { dim
   // Score the GENERATOR's files only — exclude the gate's own injected artifacts so an
   // appended needs-remediation.md (which names "vitest"/"github actions") can't
   // self-satisfy the coverage it's being checked for.
-  const haystack = files
+  let haystack = files
     .filter((f) => !GATE_ARTIFACTS.has(f.path))
     .map((f) => f.content)
     .join("\n")
     .toLowerCase();
+  // Strip the assessment's OWN warning text before matching. The warnings ("No test
+  // files detected", …) are echoed verbatim into context-map.json / architecture-
+  // summary.md, so without this the coverage regex matches the RESTATED need, not a
+  // remedy — making the floor vacuous (verified: a warnings-only package scored 100,
+  // a full real package is unaffected). After stripping, coverage requires guidance the
+  // package added BEYOND echoing the gap.
+  for (const w of warnings) {
+    const lw = w.toLowerCase();
+    if (lw) haystack = haystack.split(lw).join(" ");
+  }
   const uncovered: string[] = [];
   for (const [label, cov] of detected) if (!cov.test(haystack)) uncovered.push(label);
   const detectedLabels = [...detected.keys()];
