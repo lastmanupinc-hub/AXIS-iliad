@@ -51,6 +51,10 @@ const UNIQUE_DOC_TARGET = 3;
 // Below this length a doc is an inherently-generic config (ci.yml etc.) — exempt
 // from the uniqueness measure rather than dragging it down.
 const MIN_DOC_CHARS = 300;
+// A distinctive fact only counts as DESIGN evidence when it appears in a prose line
+// carrying at least this many non-fact words — so a machine-generated fact-table row
+// or a bare-identifier bullet (which echo names with ~no prose) doesn't qualify.
+const MIN_PROSE_WORDS = 4;
 // The gate's OWN injected artifacts — excluded from uniqueness scoring so a repair
 // fact-dump can never satisfy the metric it's being checked against.
 const GATE_ARTIFACTS = new Set(["detected-architecture.md", "needs-remediation.md", "package-quality-report.json"]);
@@ -171,13 +175,38 @@ export function scoreAssessmentValidity(ctx: ContextMap): DimensionScore {
 }
 
 /**
- * How uniquely DESIGNED for this repo the package is, vs generic boilerplate.
- * Scores the GENERATOR's substantive docs (gate-injected artifacts + tiny configs
- * excluded) for references to the repo's DISTINCTIVE facts, requiring them
- * DISTRIBUTED — ≥2 distinct facts on ≥2 distinct lines per doc, across ≥2 docs.
- * This defeats (a) generic-name gaming (frameworks/project aren't distinctive),
- * (b) a single fact-stuffing banner line (one line ≠ distributed), and (c) a repair
- * fact-dump satisfying its own check (gate artifacts excluded from the doc set).
+ * Distinctive facts that appear as genuine DESIGN guidance — in a PROSE line (not a
+ * table row, code fence, heading, or bare-identifier bullet) carrying ≥MIN_PROSE_WORDS
+ * non-fact words. Separates "the OrderInvoice model drives the checkout flow" (design)
+ * from a machine-generated "| `OrderInvoice` | interface | … |" row or a "- OrderInvoice"
+ * bullet (mere fact echo, which any boilerplate generator emits for free).
+ */
+function designReferences(content: string, distinctive: Set<string>): { facts: Set<string>; lines: Set<number> } {
+  const facts = new Set<string>();
+  const lines = new Set<number>();
+  const src = content.split("\n");
+  for (let i = 0; i < src.length; i++) {
+    const trimmed = src[i].trimStart();
+    if (trimmed.startsWith("|") || trimmed.startsWith("```") || trimmed.startsWith("#")) continue;
+    const toks = toTokens(src[i]);
+    const onLine = toks.filter((t) => distinctive.has(t));
+    if (onLine.length === 0 || toks.length - onLine.length < MIN_PROSE_WORDS) continue;
+    for (const f of onLine) facts.add(f);
+    lines.add(i);
+  }
+  return { facts, lines };
+}
+
+/**
+ * How uniquely DESIGNED for this repo the package is. Counts the GENERATOR's
+ * substantive docs (gate artifacts + tiny configs excluded) that carry real design
+ * guidance — ≥2 distinctive facts referenced in PROSE on ≥2 distinct lines — across
+ * ≥2 docs. Defeats: generic-name gaming (frameworks/project aren't distinctive); a
+ * fact-stuffing banner (one line); machine fact-TABLES / bare-identifier bullets (not
+ * prose); and a repair fact-dump (gate artifacts excluded). It credits repo-specific
+ * GUIDANCE, not fact echo — so the engineer-mode LLM living-architecture pass lifts
+ * this, while the default deterministic generator (mostly fact tables) is honestly
+ * graded LOW, which is the truthful signal.
  */
 export function scoreUniqueDesign(files: QualityFile[], distinctive: Set<string>): DimensionScore {
   const docs = files.filter(
@@ -189,33 +218,18 @@ export function scoreUniqueDesign(files: QualityFile[], distinctive: Set<string>
   if (docs.length === 0 || distinctive.size === 0) {
     return { score: 0, passed: false, evidence: [`substantive_docs=${docs.length}`, `distinctive_facts=${distinctive.size}`] };
   }
-  let tailored = 0;
-  const notTailored: string[] = [];
+  let designed = 0;
+  const notDesigned: string[] = [];
   for (const f of docs) {
-    const lines = f.content.split("\n");
-    const factLines = new Map<string, Set<number>>(); // distinct fact → line indices
-    for (let i = 0; i < lines.length; i++) {
-      for (const t of toTokens(lines[i])) {
-        if (!distinctive.has(t)) continue;
-        let s = factLines.get(t);
-        if (!s) {
-          s = new Set();
-          factLines.set(t, s);
-        }
-        s.add(i);
-      }
-    }
-    const distinctLines = new Set<number>();
-    for (const ls of factLines.values()) for (const ln of ls) distinctLines.add(ln);
-    // Tailored = ≥2 distinct distinctive facts spread over ≥2 lines (not a banner).
-    if (factLines.size >= 2 && distinctLines.size >= 2) tailored++;
-    else notTailored.push(f.path);
+    const { facts, lines } = designReferences(f.content, distinctive);
+    if (facts.size >= 2 && lines.size >= 2) designed++;
+    else notDesigned.push(f.path);
   }
   const target = Math.min(docs.length, UNIQUE_DOC_TARGET);
-  const score = clamp((tailored / target) * 100);
+  const score = clamp((designed / target) * 100);
   const evidence = [
-    `tailored_docs=${tailored}/${docs.length} (target ${target})`,
-    ...(notTailored.length ? [`not-tailored: ${notTailored.slice(0, 8).join(", ")}`] : []),
+    `designed_docs=${designed}/${docs.length} (target ${target})`,
+    ...(notDesigned.length ? [`fact-echo-only: ${notDesigned.slice(0, 8).join(", ")}`] : []),
   ];
   return { score, passed: score >= FLOORS.unique, evidence };
 }
@@ -246,7 +260,14 @@ export function scoreNeedsCoverage(ctx: ContextMap, files: QualityFile[]): { dim
     detected.set(r.label, r.covered);
   }
 
-  const haystack = files.map((f) => f.content).join("\n").toLowerCase();
+  // Score the GENERATOR's files only — exclude the gate's OWN injected artifacts so
+  // an appended needs-remediation.md (which names "vitest"/"github actions") can't
+  // self-satisfy the coverage it's being checked for.
+  const haystack = files
+    .filter((f) => !GATE_ARTIFACTS.has(f.path))
+    .map((f) => f.content)
+    .join("\n")
+    .toLowerCase();
   const uncovered: string[] = [];
   for (const [label, cov] of detected) {
     if (!cov.test(haystack)) uncovered.push(label);
