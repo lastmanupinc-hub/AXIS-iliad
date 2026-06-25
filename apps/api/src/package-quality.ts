@@ -45,8 +45,15 @@ export interface QualityVerdict {
 // Dimension + overall floors. A package "passes" only if every dimension clears
 // its floor AND the weighted overall clears OVERALL_FLOOR.
 export const FLOORS = { assessment: 50, unique: 50, needs: 50, overall: 60 } as const;
-// Referencing this many DISTINCT repo facts across the package ⇒ clearly tailored.
-const UNIQUE_FACT_TARGET = 10;
+// A package is "clearly tailored" once this many distinct DOCS reference the repo's
+// distinctive facts in a distributed way (≥2 tailored docs ⇒ score ≥ 67 ⇒ passes).
+const UNIQUE_DOC_TARGET = 3;
+// Below this length a doc is an inherently-generic config (ci.yml etc.) — exempt
+// from the uniqueness measure rather than dragging it down.
+const MIN_DOC_CHARS = 300;
+// The gate's OWN injected artifacts — excluded from uniqueness scoring so a repair
+// fact-dump can never satisfy the metric it's being checked against.
+const GATE_ARTIFACTS = new Set(["detected-architecture.md", "needs-remediation.md", "package-quality-report.json"]);
 
 // Generic tokens that aren't repo-distinctive — excluded from fact-terms so a doc
 // can't look "grounded" just by saying "src"/"app"/"config".
@@ -105,8 +112,25 @@ export function repoFactTerms(ctx: ContextMap): Set<string> {
   return terms;
 }
 
-function docTokens(content: string): Set<string> {
-  return new Set(toTokens(content));
+/**
+ * The repo-DISTINCTIVE facts — domain-model names, route segments, risk-scored
+ * hotspot files, entry points, SQL tables, key abstractions. Deliberately EXCLUDES
+ * frameworks / language / project name (any boilerplate trivially names "React" or
+ * the project), so referencing THESE is real evidence of tailoring, not an echo.
+ */
+export function distinctiveFactTerms(ctx: ContextMap): Set<string> {
+  const terms = new Set<string>();
+  const add = (s: string | null | undefined) => {
+    if (!s) return;
+    for (const t of toTokens(s)) terms.add(t);
+  };
+  for (const m of ctx.domain_models ?? []) add(m.name);
+  for (const r of ctx.routes ?? []) add(r.path);
+  for (const e of ctx.entry_points ?? []) add(e.path);
+  for (const h of ctx.dependency_graph?.hotspots ?? []) add(h.path);
+  for (const s of ctx.sql_schema ?? []) add(s.name);
+  for (const a of ctx.ai_context?.key_abstractions ?? []) add(a);
+  return terms;
 }
 
 function clamp(n: number): number {
@@ -146,36 +170,52 @@ export function scoreAssessmentValidity(ctx: ContextMap): DimensionScore {
   return { score: finalScore, passed: finalScore >= FLOORS.assessment, evidence };
 }
 
-/** How repo-specific (grounded) the package is, vs generic boilerplate. */
-export function scoreUniqueDesign(files: QualityFile[], factTerms: Set<string>): DimensionScore {
+/**
+ * How uniquely DESIGNED for this repo the package is, vs generic boilerplate.
+ * Scores the GENERATOR's substantive docs (gate-injected artifacts + tiny configs
+ * excluded) for references to the repo's DISTINCTIVE facts, requiring them
+ * DISTRIBUTED — ≥2 distinct facts on ≥2 distinct lines per doc, across ≥2 docs.
+ * This defeats (a) generic-name gaming (frameworks/project aren't distinctive),
+ * (b) a single fact-stuffing banner line (one line ≠ distributed), and (c) a repair
+ * fact-dump satisfying its own check (gate artifacts excluded from the doc set).
+ */
+export function scoreUniqueDesign(files: QualityFile[], distinctive: Set<string>): DimensionScore {
   const docs = files.filter(
-    (f) => /\.(md|mdx|txt|ya?ml)$/i.test(f.path) || (f.content_type ?? "").includes("markdown"),
+    (f) =>
+      !GATE_ARTIFACTS.has(f.path) &&
+      (/\.(md|mdx|txt)$/i.test(f.path) || (f.content_type ?? "").includes("markdown")) &&
+      f.content.length >= MIN_DOC_CHARS,
   );
-  if (docs.length === 0 || factTerms.size === 0) {
-    return { score: 0, passed: false, evidence: [`docs=${docs.length}`, `fact_terms=${factTerms.size}`] };
+  if (docs.length === 0 || distinctive.size === 0) {
+    return { score: 0, passed: false, evidence: [`substantive_docs=${docs.length}`, `distinctive_facts=${distinctive.size}`] };
   }
-  // How many DISTINCT repo facts does the WHOLE package reference? A boilerplate
-  // package references ~none; a tailored one references many. Aggregating across
-  // the package (not per-doc) keeps it robust to a few inherently-generic config
-  // artifacts (a ci.yml won't name your domain models).
-  const referenced = new Set<string>();
-  const boilerplate: string[] = [];
+  let tailored = 0;
+  const notTailored: string[] = [];
   for (const f of docs) {
-    let hits = 0;
-    for (const t of docTokens(f.content)) {
-      if (factTerms.has(t)) {
-        referenced.add(t);
-        hits++;
+    const lines = f.content.split("\n");
+    const factLines = new Map<string, Set<number>>(); // distinct fact → line indices
+    for (let i = 0; i < lines.length; i++) {
+      for (const t of toTokens(lines[i])) {
+        if (!distinctive.has(t)) continue;
+        let s = factLines.get(t);
+        if (!s) {
+          s = new Set();
+          factLines.set(t, s);
+        }
+        s.add(i);
       }
     }
-    if (hits === 0) boilerplate.push(f.path);
+    const distinctLines = new Set<number>();
+    for (const ls of factLines.values()) for (const ln of ls) distinctLines.add(ln);
+    // Tailored = ≥2 distinct distinctive facts spread over ≥2 lines (not a banner).
+    if (factLines.size >= 2 && distinctLines.size >= 2) tailored++;
+    else notTailored.push(f.path);
   }
-  const target = Math.min(factTerms.size, UNIQUE_FACT_TARGET);
-  const score = clamp((referenced.size / target) * 100);
+  const target = Math.min(docs.length, UNIQUE_DOC_TARGET);
+  const score = clamp((tailored / target) * 100);
   const evidence = [
-    `distinct_facts_referenced=${referenced.size}/${target}`,
-    `docs=${docs.length}`,
-    ...(boilerplate.length ? [`boilerplate (0 repo facts): ${boilerplate.slice(0, 8).join(", ")}`] : []),
+    `tailored_docs=${tailored}/${docs.length} (target ${target})`,
+    ...(notTailored.length ? [`not-tailored: ${notTailored.slice(0, 8).join(", ")}`] : []),
   ];
   return { score, passed: score >= FLOORS.unique, evidence };
 }
@@ -222,9 +262,9 @@ export function scoreNeedsCoverage(ctx: ContextMap, files: QualityFile[]): { dim
 
 /** Grade the whole package against the three dimensions. Pure + deterministic. */
 export function gradePackage(ctx: ContextMap, files: QualityFile[]): QualityVerdict {
-  const factTerms = repoFactTerms(ctx);
+  const distinctive = distinctiveFactTerms(ctx);
   const av = scoreAssessmentValidity(ctx);
-  const ud = scoreUniqueDesign(files, factTerms);
+  const ud = scoreUniqueDesign(files, distinctive);
   const nc = scoreNeedsCoverage(ctx, files);
   const overall = clamp(av.score * 0.3 + ud.score * 0.4 + nc.dim.score * 0.3);
   const grade = overall >= 90 ? "A" : overall >= 75 ? "B" : overall >= 60 ? "C" : overall >= 40 ? "D" : "F";
@@ -311,35 +351,25 @@ export interface QualityGateOutcome {
 }
 
 /**
- * Grade the package, then REPAIR weak dimensions by appending targeted, inherently
- * grounded augmentation (up to 2 rounds), and re-grade. Deterministic. Returns the
- * final verdict + the artifacts the caller should append. assessment_validity
- * reflects the repo itself and can't be repaired by augmentation — a thin repo
- * stays honestly flagged.
+ * Grade the package, then REPAIR only what appending content can legitimately fix:
+ * NEEDS coverage (a concrete remediation for each detected gap). unique_design and
+ * assessment_validity reflect the GENERATOR's output and the repo itself — appending
+ * an AXIS-authored fact-dump can't make a boilerplate package "tailored" (and gate
+ * artifacts are excluded from the uniqueness score regardless), so they are reported
+ * HONESTLY, not fake-repaired. Never blocks (repair-then-return): the returned
+ * verdict is the truthful post-repair grade. Genuine uniqueness lift comes from the
+ * engineer-mode LLM pass (a frontier model authoring real repo-tailored guidance),
+ * not from this deterministic layer.
  */
 export function applyQualityGate(ctx: ContextMap, files: QualityFile[]): QualityGateOutcome {
   const initial = gradePackage(ctx, files);
   const working: QualityFile[] = [...files];
   const repairArtifacts: QualityArtifact[] = [];
-  const have = (p: string) => repairArtifacts.some((a) => a.path === p);
 
-  for (let round = 0; round < 2; round++) {
-    const v = gradePackage(ctx, working);
-    if (v.passed) break;
-    let added = false;
-    if (!v.unique_design.passed && !have("detected-architecture.md")) {
-      const art = buildDetectedArchitectureArtifact(ctx);
-      repairArtifacts.push(art);
-      working.push(art);
-      added = true;
-    }
-    if (!v.needs_coverage.passed && v.uncovered_needs.length > 0 && !have("needs-remediation.md")) {
-      const art = buildNeedsRemediationArtifact(ctx, v.uncovered_needs);
-      repairArtifacts.push(art);
-      working.push(art);
-      added = true;
-    }
-    if (!added) break; // nothing left to repair (e.g. only assessment_validity is weak)
+  if (!initial.needs_coverage.passed && initial.uncovered_needs.length > 0) {
+    const art = buildNeedsRemediationArtifact(ctx, initial.uncovered_needs);
+    repairArtifacts.push(art);
+    working.push(art);
   }
 
   return { verdict: gradePackage(ctx, working), initial, repairArtifacts };

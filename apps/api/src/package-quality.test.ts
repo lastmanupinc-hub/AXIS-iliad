@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
 import {
   repoFactTerms,
+  distinctiveFactTerms,
   scoreAssessmentValidity,
   scoreUniqueDesign,
   scoreNeedsCoverage,
   gradePackage,
-  buildDetectedArchitectureArtifact,
   buildNeedsRemediationArtifact,
   applyQualityGate,
   buildQualityReport,
@@ -33,16 +33,37 @@ function mkCtx(o: Partial<ContextMap> = {}): ContextMap {
 }
 
 const doc = (path: string, content: string): QualityFile => ({ path, content, content_type: "text/markdown" });
+const PAD = "\n" + "Lorem ipsum guidance prose to clear the substantive-doc length bar. ".repeat(5);
 
-describe("repoFactTerms", () => {
-  it("extracts repo-specific tokens (camelCase split) and excludes generics", () => {
+// A genuinely repo-tailored doc: distinctive facts (OrderInvoice → order/invoice,
+// checkout) referenced across MULTIPLE lines.
+const tailoredDoc = (path: string) =>
+  doc(
+    path,
+    `# ${path}\n\nThis service centers on the OrderInvoice domain model.\n` +
+      `The checkout route (POST /checkout) validates the OrderInvoice first.\n` +
+      `When extending OrderInvoice, keep the checkout invariants intact.` +
+      PAD,
+  );
+
+describe("repoFactTerms (broad set)", () => {
+  it("includes framework + model tokens; excludes generics", () => {
     const t = repoFactTerms(mkCtx());
     expect(t.has("order")).toBe(true);
-    expect(t.has("invoice")).toBe(true);
     expect(t.has("react")).toBe(true);
-    expect(t.has("stripe")).toBe(true);
+    expect(t.has("src")).toBe(false);
+  });
+});
+
+describe("distinctiveFactTerms (anti-gaming set)", () => {
+  it("keeps model/route facts but EXCLUDES framework/language/project names", () => {
+    const t = distinctiveFactTerms(mkCtx());
+    expect(t.has("order")).toBe(true);
+    expect(t.has("invoice")).toBe(true);
     expect(t.has("checkout")).toBe(true);
-    expect(t.has("src")).toBe(false); // generic
+    expect(t.has("react")).toBe(false); // framework — any boilerplate names it
+    expect(t.has("stripe")).toBe(false); // dependency
+    expect(t.has("acme")).toBe(false); // project name
   });
 });
 
@@ -54,117 +75,106 @@ describe("scoreAssessmentValidity", () => {
     const a = scoreAssessmentValidity(mkCtx({ detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null }, domain_models: [], routes: [] }));
     expect(a.passed).toBe(false);
     expect(a.score).toBeLessThanOrEqual(30);
-    expect(a.evidence.join(" ")).toMatch(/degenerate/);
   });
 });
 
-describe("scoreUniqueDesign", () => {
-  const terms = repoFactTerms(mkCtx());
-  it("scores a repo-grounded package high", () => {
-    const files = [doc("CLAUDE.md", "This React + Express app exposes a checkout route. The OrderInvoice model is served via Stripe.")];
-    expect(scoreUniqueDesign(files, terms).passed).toBe(true);
+describe("scoreUniqueDesign (distinctive + distributed)", () => {
+  const dist = distinctiveFactTerms(mkCtx());
+
+  it("passes a package whose docs reference distinctive facts across docs + lines", () => {
+    const r = scoreUniqueDesign([tailoredDoc("CLAUDE.md"), tailoredDoc("AGENTS.md"), tailoredDoc("architecture-summary.md")], dist);
+    expect(r.passed).toBe(true);
   });
-  it("flags generic boilerplate as low + names it", () => {
-    const r = scoreUniqueDesign([doc("CLAUDE.md", "Welcome to your project. Write clean code. Follow best practices and conventions.")], terms);
+
+  it("DEFEATS a fact-stuffing banner (all distinctive facts on ONE line)", () => {
+    const banner = doc("CLAUDE.md", "OrderInvoice checkout order invoice acme-shop React Express." + PAD);
+    const r = scoreUniqueDesign([banner], dist);
+    expect(r.passed).toBe(false); // facts concentrated on one line ≠ tailored
+  });
+
+  it("DEFEATS generic-name gaming (echoing React/project name is not distinctive)", () => {
+    const generic = doc("CLAUDE.md", "# React project\nThis React acme-shop app uses React, TypeScript, React, React." + PAD);
+    const r = scoreUniqueDesign([generic], dist);
     expect(r.passed).toBe(false);
-    expect(r.evidence.join(" ")).toMatch(/boilerplate.*CLAUDE\.md/);
+  });
+
+  it("EXCLUDES gate-injected artifacts so a repair fact-dump can't satisfy the metric", () => {
+    // A fact-dump that WOULD be 'tailored' if counted, but lives at a gate path.
+    const factDump = doc("detected-architecture.md", tailoredDoc("x").content);
+    const r = scoreUniqueDesign([factDump], dist);
+    expect(r.score).toBe(0); // excluded → no substantive docs counted
+  });
+
+  it("ignores tiny generic configs (below the substantive-doc length bar)", () => {
+    const r = scoreUniqueDesign([doc("ci.yml", "name: CI")], dist);
+    expect(r.evidence.join(" ")).toMatch(/substantive_docs=0/);
   });
 });
 
 describe("scoreNeedsCoverage", () => {
   it("marks detected needs uncovered when the package ignores them", () => {
-    const r = scoreNeedsCoverage(mkCtx(), [doc("CLAUDE.md", "A monorepo using React.")]);
-    expect(r.detected).toEqual(expect.arrayContaining(["testing", "ci_cd"]));
+    const r = scoreNeedsCoverage(mkCtx(), [doc("CLAUDE.md", "A monorepo.")]);
     expect(r.uncovered).toEqual(expect.arrayContaining(["testing", "ci_cd"]));
     expect(r.dim.passed).toBe(false);
   });
   it("counts a need covered when an artifact addresses it", () => {
-    const files = [doc("test-rules.md", "Add a vitest suite with coverage."), doc("ci.yml", "name: CI\non: push\njobs: { build: {} } # github actions workflow")];
-    const r = scoreNeedsCoverage(mkCtx(), files);
-    expect(r.uncovered).toEqual([]);
-    expect(r.dim.passed).toBe(true);
+    const files = [doc("t.md", "Add a vitest suite with coverage."), doc("ci.yml", "github actions workflow")];
+    expect(scoreNeedsCoverage(mkCtx(), files).dim.passed).toBe(true);
   });
 });
 
 describe("gradePackage", () => {
-  it("passes a grounded, needs-covering package and is deterministic", () => {
-    const ctx = mkCtx();
+  it("passes a tailored, needs-covering package and is deterministic", () => {
     const files = [
-      doc("CLAUDE.md", "React + Express monorepo. OrderInvoice model, checkout route via Stripe."),
-      doc("test-generation-rules.md", "Add vitest coverage for the hotspots."),
-      doc("ci.yml", "github actions workflow: build + test on push"),
+      tailoredDoc("CLAUDE.md"),
+      tailoredDoc("AGENTS.md"),
+      tailoredDoc("architecture-summary.md"),
+      doc("test-and-ci.md", "Add a vitest suite + a github actions workflow." + PAD),
     ];
-    const v = gradePackage(ctx, files);
+    const v = gradePackage(mkCtx(), files);
     expect(v.passed).toBe(true);
-    expect(["A", "B", "C"]).toContain(v.grade);
-    expect(gradePackage(ctx, files)).toEqual(v); // deterministic
+    expect(gradePackage(mkCtx(), files)).toEqual(v);
   });
-  it("fails a boilerplate, needs-ignoring package", () => {
-    const v = gradePackage(mkCtx(), [doc("CLAUDE.md", "Write good code. Be consistent.")]);
-    expect(v.passed).toBe(false);
+  it("fails a boilerplate package on uniqueness", () => {
+    expect(gradePackage(mkCtx(), [doc("CLAUDE.md", "Write good code. Be consistent." + PAD)]).unique_design.passed).toBe(false);
   });
 });
 
-describe("repair augmentation lifts the weak dimensions", () => {
-  it("detected-architecture artifact is grounded (raises uniqueness)", () => {
-    const ctx = mkCtx();
-    const art = buildDetectedArchitectureArtifact(ctx);
-    const r = scoreUniqueDesign([{ ...art }], repoFactTerms(ctx));
-    expect(r.passed).toBe(true);
-    expect(art.content).toMatch(/OrderInvoice/);
-    expect(art.content).toMatch(/checkout/);
-  });
-  it("needs-remediation artifact covers the uncovered needs", () => {
-    const ctx = mkCtx();
-    const before = scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "monorepo")]);
-    expect(before.uncovered.length).toBeGreaterThan(0);
-    const fix = buildNeedsRemediationArtifact(ctx, before.uncovered);
-    const after = scoreNeedsCoverage(ctx, [doc("CLAUDE.md", "monorepo"), { ...fix }]);
-    expect(after.uncovered).toEqual([]);
-  });
-});
-
-describe("applyQualityGate (repair-then-return)", () => {
-  it("repairs a failing-but-repairable package up to a pass", () => {
-    const ctx = mkCtx();
-    const o = applyQualityGate(ctx, [doc("CLAUDE.md", "Write good code. Be consistent.")]);
+describe("applyQualityGate (honest repair-then-return)", () => {
+  it("repairs NEEDS but honestly flags uniqueness — no fake fact-dump repair", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code." + PAD)]);
     expect(o.initial.passed).toBe(false);
-    expect(o.verdict.passed).toBe(true);
-    expect(o.repairArtifacts.map((a) => a.path).sort()).toEqual(["detected-architecture.md", "needs-remediation.md"]);
+    expect(o.verdict.needs_coverage.passed).toBe(true); // genuinely repaired
+    expect(o.verdict.unique_design.passed).toBe(false); // honestly flagged, not faked
+    expect(o.verdict.passed).toBe(false);
+    expect(o.repairArtifacts.map((a) => a.path)).toEqual(["needs-remediation.md"]);
   });
 
-  it("cannot repair a thin/degenerate repo (assessment stays flagged) and terminates", () => {
-    const thin = mkCtx({
-      detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null },
-      domain_models: [],
-      routes: [],
-      dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
-      ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
-      project_identity: { name: "", type: "", primary_language: "", description: null, repo_url: null, go_module: null },
-    });
-    const o = applyQualityGate(thin, [doc("CLAUDE.md", "x")]);
-    expect(o.verdict.passed).toBe(false);
-    expect(o.verdict.assessment_validity.passed).toBe(false);
+  it("leaves a fully-tailored, needs-covered package passing with no repair", () => {
+    const files = [tailoredDoc("CLAUDE.md"), tailoredDoc("AGENTS.md"), tailoredDoc("a.md"), doc("ci.md", "vitest + github actions workflow." + PAD)];
+    const o = applyQualityGate(mkCtx(), files);
+    expect(o.verdict.passed).toBe(true);
+    expect(o.repairArtifacts).toEqual([]);
   });
 
   it("is deterministic", () => {
-    const ctx = mkCtx();
-    const files = [doc("CLAUDE.md", "Generic.")];
-    expect(applyQualityGate(ctx, files)).toEqual(applyQualityGate(ctx, files));
+    const files = [doc("CLAUDE.md", "Generic." + PAD)];
+    expect(applyQualityGate(mkCtx(), files)).toEqual(applyQualityGate(mkCtx(), files));
   });
 });
 
 describe("buildQualityReport", () => {
-  it("emits a package-quality-report.json with grade, dimensions, repaired, rationale", () => {
-    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code.")]);
-    const report = buildQualityReport(o, "LLM says: well-grounded after repair.");
-    expect(report.path).toBe("package-quality-report.json");
+  it("emits package-quality-report.json with the honest verdict + rationale", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Write good code." + PAD)]);
+    const report = buildQualityReport(o, "needs repaired; uniqueness low — generator output is generic.");
     const parsed = JSON.parse(report.content);
     expect(parsed.schema).toBe("axis-package-quality/1");
     expect(parsed.grade).toBe(o.verdict.grade);
-    expect(parsed.repaired).toContain("detected-architecture.md");
-    expect(parsed.dimensions.unique_design).toHaveProperty("score");
-    expect(parsed.rationale).toMatch(/well-grounded/);
-    expect(buildQualityReport(o, null).content).toMatch(/"rationale": null/);
+    expect(parsed.dimensions.unique_design.passed).toBe(false);
+    expect(parsed.rationale).toMatch(/uniqueness low/);
+  });
+  it("uses needs-remediation as the only injected repair artifact", () => {
+    const o = applyQualityGate(mkCtx(), [doc("CLAUDE.md", "Generic." + PAD)]);
+    expect(buildQualityReport(o, null).content).toMatch(/needs-remediation\.md/);
   });
 });
