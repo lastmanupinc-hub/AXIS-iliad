@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sql } from "./pg.js";
+import { sql, pgPlaceholders } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 import { getActiveSubscriptionByAccount, priceToPlanId } from "./stripe-store.js";
 import { getReferralTokenUsageModifier } from "./referral-store.js";
@@ -103,8 +103,19 @@ interface ChargeComputation {
   effective_overage_cents: number;
 }
 
-/** Pure charge math — no DB writes. Shared by previewUsageCredits (the gate) and consumeUsageCredits (the commit). */
-async function computeCharge(account_id: string, tier: BillingTier, amountCents: number): Promise<ChargeComputation> {
+interface ChargeInputs {
+  month_key: string;
+  credits_required: number;
+  summary: UsageCreditSummary;
+}
+
+/**
+ * Gather the static charge inputs (referral modifier, plan, allowance, prior counter)
+ * via POOL reads. consumeUsageCredits calls this BEFORE opening its tx so the tx never
+ * does a pool read while holding its own connection (which deadlocks the pool under
+ * multi-account concurrency — each tx pinning one connection and awaiting a second).
+ */
+async function gatherChargeInputs(account_id: string, tier: BillingTier, amountCents: number): Promise<ChargeInputs> {
   const month_key = getMonthKey();
   const base_credits_required = creditsFromUsdCents(amountCents);
   const referral = tier === "free"
@@ -112,9 +123,20 @@ async function computeCharge(account_id: string, tier: BillingTier, amountCents:
     : await getReferralTokenUsageModifier(account_id, month_key);
   const credits_required = Math.max(1, Math.ceil(base_credits_required * (1 - referral.reduction_rate)));
   const summary = await getUsageCreditSummary(account_id, tier, month_key);
-  const included_credits_applied = Math.min(summary.included_credits_remaining, credits_required);
+  return { month_key, credits_required, summary };
+}
+
+/** Pure split math — no DB. Computes the included/overage split for a GIVEN current counter. */
+function splitFromUsed(
+  month_key: string,
+  summary: UsageCreditSummary,
+  credits_required: number,
+  included_credits_used: number,
+): ChargeComputation {
+  const remaining = Math.max(0, summary.monthly_allowance - included_credits_used);
+  const included_credits_applied = Math.min(remaining, credits_required);
   const overage_credits = Math.max(0, credits_required - included_credits_applied);
-  const nextIncludedUsed = summary.included_credits_used + included_credits_applied;
+  const nextIncludedUsed = included_credits_used + included_credits_applied;
   const nextIncludedRemaining = Math.max(0, summary.monthly_allowance - nextIncludedUsed);
   const effective_overage_cents = overage_credits > 0 ? Math.ceil((overage_credits * 18) / 100) : 0;
   return {
@@ -127,6 +149,12 @@ async function computeCharge(account_id: string, tier: BillingTier, amountCents:
     nextIncludedRemaining,
     effective_overage_cents,
   };
+}
+
+/** Read-only charge math (no writes). Used by previewUsageCredits (the gate). */
+async function computeCharge(account_id: string, tier: BillingTier, amountCents: number): Promise<ChargeComputation> {
+  const inputs = await gatherChargeInputs(account_id, tier, amountCents);
+  return splitFromUsed(inputs.month_key, inputs.summary, inputs.credits_required, inputs.summary.included_credits_used);
 }
 
 function toChargeResult(c: ChargeComputation, tool: string): UsageCreditChargeResult {
@@ -166,44 +194,67 @@ export async function consumeUsageCredits(
   tool: string,
   amountCents: number,
 ): Promise<UsageCreditChargeResult> {
-  const c = await computeCharge(account_id, tier, amountCents);
+  // Gather inputs on the POOL, BEFORE opening the tx — they are not the racy value, and
+  // reading them outside the tx is what prevents a pool-exhaustion deadlock (a tx that
+  // pins one connection and then awaits a second starves the pool once concurrent
+  // distinct-account calls reach pool max — distinct accounts don't serialize on the lock).
+  const inputs = await gatherChargeInputs(account_id, tier, amountCents);
 
-  await sql.run(
-    `INSERT INTO usage_credit_monthly
-      (account_id, month_key, plan_id, monthly_allowance, included_credits_used, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
-     ON CONFLICT(account_id, month_key) DO UPDATE SET
-       plan_id = excluded.plan_id,
-       monthly_allowance = excluded.monthly_allowance,
-       included_credits_used = excluded.included_credits_used,
-       updated_at = excluded.updated_at`,
-    [
-      account_id,
-      c.month_key,
-      c.summary.plan_id,
-      c.summary.monthly_allowance,
-      c.nextIncludedUsed,
-      new Date().toISOString(),
-    ],
-  );
+  // Serialize per-account consumes (namespace 2 = usage credits) and do EVERY in-tx
+  // statement on the single tx `client` connection. The advisory lock guarantees any
+  // prior consume for this account has committed, so the counter re-read below is fresh
+  // and the included/overage split can't lose updates under concurrency.
+  return await sql.tx<UsageCreditChargeResult>(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(2, hashtext($1))", [account_id]);
 
-  await sql.run(
-    `INSERT INTO usage_credit_ledger
-      (entry_id, account_id, month_key, plan_id, tool, amount_cents, credits_required, included_credits_applied, overage_credits, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      randomUUID(),
-      account_id,
-      c.month_key,
-      c.summary.plan_id,
-      tool,
-      amountCents,
-      c.credits_required,
-      c.included_credits_applied,
-      c.overage_credits,
-      new Date().toISOString(),
-    ],
-  );
+    const cur = await client.query<{ included_credits_used: string | number | null }>(
+      "SELECT included_credits_used FROM usage_credit_monthly WHERE account_id = $1 AND month_key = $2",
+      [account_id, inputs.month_key],
+    );
+    const includedUsed = Number(cur.rows[0]?.included_credits_used ?? 0);
+    const c = splitFromUsed(inputs.month_key, inputs.summary, inputs.credits_required, includedUsed);
 
-  return toChargeResult(c, tool);
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO usage_credit_monthly
+          (account_id, month_key, plan_id, monthly_allowance, included_credits_used, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(account_id, month_key) DO UPDATE SET
+           plan_id = excluded.plan_id,
+           monthly_allowance = excluded.monthly_allowance,
+           included_credits_used = excluded.included_credits_used,
+           updated_at = excluded.updated_at`,
+      ),
+      [
+        account_id,
+        c.month_key,
+        c.summary.plan_id,
+        c.summary.monthly_allowance,
+        c.nextIncludedUsed,
+        new Date().toISOString(),
+      ],
+    );
+
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO usage_credit_ledger
+          (entry_id, account_id, month_key, plan_id, tool, amount_cents, credits_required, included_credits_applied, overage_credits, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ),
+      [
+        randomUUID(),
+        account_id,
+        c.month_key,
+        c.summary.plan_id,
+        tool,
+        amountCents,
+        c.credits_required,
+        c.included_credits_applied,
+        c.overage_credits,
+        new Date().toISOString(),
+      ],
+    );
+
+    return toChargeResult(c, tool);
+  });
 }

@@ -20,7 +20,7 @@
 
 | # | ID | Title | Sev | ROI | Status · proof |
 |---|----|-------|-----|-----|----------------|
-| **A1** | **billing-concurrency-safety** | Fix 3 confirmed double-spend races from the Neon sync→async migration: atomic conditional debit (`UPDATE … WHERE balance >= cost`), `SELECT … FOR UPDATE` + rowCount-checked webhook credit grant, idempotency key + unique constraint so a replayed webhook can't double-credit. Affects `persistence-metering.ts`, `credit-pack-store.ts`, `authorize/captureMcpToolCredits`. | HIGH | **95** | 0% · proof: a concurrency test (2 parallel ops on a 1-op balance) debits once; a replayed webhook credits once. |
+| **A1** | **billing-concurrency-safety** | Fix 3 confirmed double-spend races from the Neon sync→async migration. Done: `meterPersistenceOp` + `consumeUsageCredits` serialize per-account via `pg_advisory_xact_lock` (ns 1/2) inside a tx (append-only ledger has no row to lock); `markPurchaseSucceeded` uses `SELECT … FOR UPDATE` + rowCount guard + grant moved into the same tx. Review caught + fixed a pool-exhaustion self-deadlock (usage-credit now does all pool reads BEFORE the tx; opt-in `PG_CONNECT_TIMEOUT_MS` as defense). | HIGH | **95** | ✅ **100%** · branch `feat/audit-a1-billing-concurrency`. 5 concurrency tests, each adversarially proven to FAIL on old code (double-spend 10≠1, overspend 12≠6, triple-grant 3≠1, lost-update 18≠48, deadlock=connect-timeout) and pass on the fix. 41/41 metering + full snapshots suite green on real pg16. |
 | A2 | boot-resilience-db-down | Serve discovery/health/static + deterministic generators even when migrations fail; gate only DB-backed tools instead of refusing to bind the port. | HIGH | 68 | 0% · proof: prod-mode start, no DATABASE_URL → /health 200, DB tools → _not_configured. |
 | A3 | quality-judge-llm-tests | Test coverage for `llmDesignVerdict` (the headline AI judge — currently 0 tests): mock the LLM, assert grounding/parse/degrade-to-null + report shape. Fix `scoreNeedsCoverage` measuring "package mentions testing" vs "repo addressed it". | HIGH | 52 | 0% · proof: design-judge unit tests; needs-coverage reflects the repo, not generated boilerplate. |
 | A4 | count-honesty-reconcile | Reconcile contradictory artifact-count claims (code truth = 137 generators / 20 programs) across README, CLAUDE.md, ExamplesPage (138 vs 99 vs 89), PlansPage. | HIGH | 48 | 0% · proof: one count, sourced from `counts.ts`, everywhere; a test pins doc↔code. |
@@ -31,7 +31,7 @@
 | A9 | web-search-span-fix | `answerFromHits`: rerank + refusal coverage computed over `title+snippet` but the citation span over `snippet` only → a title-match hit can yield an empty/mismatched span. | LOW | 20 | 0% · proof: a title-only-match hit yields a correct span or is excluded. |
 | A10 | repo-root-cleanup | ~50 generated artifacts + coverage logs polluting the repo root → gitignore + clean. | LOW | 12 | 0% · proof: clean working tree; .gitignore covers them. |
 
-**Build order (risk-ranked):** A1 → A2 → A5 → A3 → A4 → A6 → A7 → A8 → A9 → A10.
+**Build order (risk-ranked):** ✅ A1 → **A2 (next)** → A5 → A3 → A4 → A6 → A7 → A8 → A9 → A10.
 
 ---
 

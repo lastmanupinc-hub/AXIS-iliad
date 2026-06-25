@@ -58,6 +58,27 @@ describe("credit-pack purchases", () => {
     expect(await getPersistenceBalance(acct.account_id)).toBe(500);
   });
 
+  it("grants exactly once under CONCURRENT webhook deliveries (no double-grant)", async () => {
+    const acct = await createAccount("RacePay", "racepay@example.com", "paid");
+    await recordPendingPurchase({
+      account_id: acct.account_id,
+      pack_id: "pack_500",
+      credits: 500,
+      price_cents: 2000,
+      paid_session_id: "sess_race",
+    });
+
+    // Three deliveries land at once (PAI'D retries / at-least-once webhook delivery).
+    const results = await Promise.all([
+      markPurchaseSucceeded("sess_race", "pi_race"),
+      markPurchaseSucceeded("sess_race", "pi_race"),
+      markPurchaseSucceeded("sess_race", "pi_race"),
+    ]);
+
+    expect(results.filter((r) => r !== null)).toHaveLength(1); // exactly one delivery granted
+    expect(await getPersistenceBalance(acct.account_id)).toBe(500); // not 1000 / 1500
+  });
+
   it("returns null for an unknown session (no grant)", async () => {
     expect(await markPurchaseSucceeded("never_seen")).toBeNull();
   });

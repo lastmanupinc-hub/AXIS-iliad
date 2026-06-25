@@ -118,4 +118,34 @@ describe("previewUsageCredits — read-only authorization gate", () => {
     expect(preview.included_credits_applied).toBe(charged.included_credits_applied);
     expect(preview.effective_overage_cents).toBe(charged.effective_overage_cents);
   });
+
+  it("counts concurrent consumes exactly — no lost update on the monthly counter", async () => {
+    const account = await createAccount("RaceUse", "raceuse@example.com", "paid");
+    const N = 8;
+    const results = await Promise.all(
+      Array.from({ length: N }, () => consumeUsageCredits(account.account_id, "paid", "analyze_repo", 1)),
+    );
+
+    // The persisted monthly counter must equal the sum of what every call applied;
+    // a lost update (read-modify-write race) would leave it strictly lower.
+    const sumApplied = results.reduce((s, r) => s + r.included_credits_applied, 0);
+    const summary = await getUsageCreditSummary(account.account_id, "paid");
+    expect(summary.included_credits_used).toBe(sumApplied);
+  });
+
+  it("does not deadlock the pool: many concurrent DISTINCT-account consumes all complete", async () => {
+    // Distinct accounts do NOT serialize on the advisory lock, so this drives more
+    // concurrent in-flight transactions than the pool has connections (default max 10).
+    // If any consume did a POOL read while holding its tx connection, the pool would
+    // starve and this would hang (caught here by the connection/test timeout).
+    const N = 24;
+    const accounts = await Promise.all(
+      Array.from({ length: N }, (_, i) => createAccount("Multi" + i, "multi" + i + "@example.com", "paid")),
+    );
+    const results = await Promise.all(
+      accounts.map((a) => consumeUsageCredits(a.account_id, "paid", "analyze_repo", 5)),
+    );
+    expect(results).toHaveLength(N);
+    expect(results.every((r) => r.credits_required > 0)).toBe(true);
+  }, 45_000);
 });
