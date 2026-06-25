@@ -291,9 +291,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
         <div className="card" style={{ borderColor: "var(--accent)", marginTop: 0 }}>
           <div className="flex-between">
             <div>
-              <h3 style={{ color: "var(--accent)" }}>Unlock All 19 Programs</h3>
+              <h3 style={{ color: "var(--accent)" }}>Unlock All 20 Programs</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Upgrade to Starter for $29/month and 75,000 monthly credits across all 19 programs.
+                Upgrade to Starter for $29/month and 75,000 monthly credits across all 20 programs.
               </p>
             </div>
             <button className="btn btn-primary" onClick={() => handleUpgrade("starter")}>

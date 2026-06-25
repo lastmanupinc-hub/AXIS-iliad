@@ -35,13 +35,13 @@ curl https://axis-api-6c7z.onrender.com/v1/projects/PROJECT_ID/export \
   -H 'Authorization: Bearer YOUR_API_KEY' -o artifacts.zip
 ```
 
-**Free tier includes:** Search (context maps), Skills (AGENTS.md, CLAUDE.md, .cursorrules), Debug (playbooks, incident templates). Pro unlocks all 18 programs.
+**Free tier includes:** Search (context maps), Skills (AGENTS.md, CLAUDE.md, .cursorrules), Debug (playbooks, incident templates). Pro unlocks all 20 programs.
 
 ---
 
 ## What you get
 
-One scan → 102 artifacts across 18 programs, ready in seconds:
+One scan → 137 artifacts across 20 programs, ready in seconds:
 
 | What you need | Program | Key outputs |
 |---------------|---------|-------------|
@@ -104,7 +104,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 | Tier | Price | Programs |
 |------|-------|----------|
 | **Free** | $0 | Search, Skills, Debug |
-| **Pro** | $0.50 / run | All 18 programs, 102 artifacts |
+| **Pro** | $0.50 / run | All 20 programs, 137 artifacts |
 | **Lite mode** | $0.15–$0.25 / run | Top-gap summary, reduced output |
 
 Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` + `X-Agent-Mode: lite` on any paid call.
@@ -164,11 +164,11 @@ axis-iliad/
 │   ├── snapshots/    → Snapshot intake, SQLite persistence, billing, funnel
 │   ├── repo-parser/  → Language detection (60+), framework detection (10), import graph
 │   ├── context-engine/ → Context map builder, repo profile, route/architecture analysis
-│   └── generator-core/ → 102 generators across 18 programs
+│   └── generator-core/ → 137 generators across 20 programs
 └── vitest.config.ts  → Shared test config
 ```
 
-## Programs (18)
+## Programs (20)
 
 | Program | Outputs | Tier |
 |---------|---------|------|
@@ -190,6 +190,8 @@ axis-iliad/
 | **Canvas** | canvas-spec.json, social-pack.md, poster-layouts.md, asset-guidelines.md, brand-board.md | Pro |
 | **Algorithmic** | generative-sketch.ts, parameter-pack.json, collection-map.md, export-manifest.yaml, variation-matrix.json | Pro |
 | **Agentic Purchasing** | agent-purchasing-playbook.md, product-schema.json, checkout-flow.md, negotiation-rules.md, commerce-registry.json | Pro |
+| **Closer** | packaging/README.md, Dockerfile, .github/workflows/ci.yml, packaging-report.md, DISTRIBUTABLE.md, Makefile | Pro |
+| **Deploy** | deploy/Dockerfile, deploy/render.yaml, deploy/deploy.sh, deploy/worker.ts, deploy-qualification-report.md | Pro |
 
 ## API Endpoints
 

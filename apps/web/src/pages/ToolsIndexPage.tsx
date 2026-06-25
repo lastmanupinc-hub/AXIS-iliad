@@ -123,7 +123,7 @@ export const TOOL_CATALOG: readonly ToolCatalogEntry[] = [
   {
     id: "tools/list-programs",
     name: "Browse All Programs",
-    description: "See every one of the 19 AXIS programs, what each generates, and the free vs. paid split.",
+    description: "See every one of the 20 AXIS programs, what each generates, and the free vs. paid split.",
     priceChip: "Free · no signup",
     free: true,
     status: "live",

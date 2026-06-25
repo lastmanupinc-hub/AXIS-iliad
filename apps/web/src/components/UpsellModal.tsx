@@ -61,7 +61,7 @@ export function UpsellModal({ blocked, allowed, onGoFree, onClose }: Props) {
             style={{ width: "100%", justifyContent: "center", padding: "12px 16px", fontSize: "1rem" }}
             onClick={() => { window.location.hash = "plans"; onClose(); }}
           >
-            Go Pro — Unlock All 19 Programs
+            Go Pro — Unlock All 20 Programs
           </button>
 
           <button
@@ -112,7 +112,7 @@ export function UpsellModal({ blocked, allowed, onGoFree, onClose }: Props) {
 
           {!isAnonymous && (
             <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.8125rem", margin: 0 }}>
-              You're on the free tier. Upgrade to Pro for all 19 programs and 99 artifacts.
+              You're on the free tier. Upgrade to Pro for all 20 programs and 137 artifacts.
             </p>
           )}
         </div>
