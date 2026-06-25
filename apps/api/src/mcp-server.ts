@@ -98,6 +98,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { runSpecificityPass } from "./living-architecture.js";
+import { applyQualityGate, buildQualityReport, type DesignVerdict } from "./package-quality.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
@@ -3256,6 +3257,96 @@ async function maybeAppendLivingArchitecture(
   }
 }
 
+const DESIGN_JUDGE_SCHEMA = {
+  type: "object",
+  required: ["design_score", "tailored", "rationale"],
+  properties: {
+    design_score: { type: "number", minimum: 0, maximum: 100 },
+    tailored: { type: "boolean" },
+    rationale: { type: "string", maxLength: 700 },
+    top_improvement: { type: "string", maxLength: 300 },
+  },
+} as const;
+
+/**
+ * The AI DESIGN JUDGE (engineer mode) — a frontier model reads the package + the
+ * repo's facts and judges whether it's GENUINELY DESIGNED for THIS repo vs.
+ * mechanically template-filled. This is the judgment deterministic rules can't make.
+ * json-schema-constrained (E8), temp 0 + fixed seed → reproducible. Null when the
+ * model isn't configured (the report then notes design wasn't AI-assessed).
+ */
+async function llmDesignVerdict(
+  ctx: ContextMap,
+  files: Array<{ path: string; content: string; content_type?: string }>,
+): Promise<DesignVerdict | null> {
+  if (!(await isLlmConfigured())) return null;
+  const facts = {
+    project: ctx.project_identity?.name ?? "",
+    type: ctx.project_identity?.type ?? "",
+    frameworks: (ctx.detection?.frameworks ?? []).map((f) => (typeof f === "string" ? f : (f as { name?: string }).name)).filter(Boolean).slice(0, 6),
+    models: (ctx.domain_models ?? []).slice(0, 10).map((m) => m.name),
+    routes: (ctx.routes ?? []).slice(0, 8).map((r) => `${r.method} ${r.path}`),
+    patterns: ctx.architecture_signals?.patterns_detected ?? [],
+  };
+  const sample = files
+    .filter((f) => /\.(md|mdx|txt)$/i.test(f.path) && f.content.length >= 200)
+    .slice(0, 6)
+    .map((f) => `### ${f.path}\n${f.content.slice(0, 500)}`)
+    .join("\n\n")
+    .slice(0, 4000);
+  const res = await runLlmCompletion({
+    system:
+      "You are AXIS's AI quality judge. Decide whether this generated development package is GENUINELY DESIGNED for THIS specific repo's needs, or merely mechanically template-filled with its facts. Listing the repo's models/routes in tables + generic advice is NOT well-designed (low score, tailored=false). Repo-specific architectural insight, guidance that depends on the repo's actual structure, and need-targeted recommendations ARE well-designed (high score). Judge ONLY from the provided facts + sample; never invent. Return JSON {design_score, tailored, rationale, top_improvement}.",
+    prompt: `Repo facts:\n${JSON.stringify(facts)}\n\nPackage sample:\n${sample}`,
+    temperature: 0,
+    seed: 11,
+    max_tokens: 450,
+    json_schema: DESIGN_JUDGE_SCHEMA,
+  });
+  if ("_not_configured" in res) return null;
+  const parsed = validateStructuredOutput(res.text, DESIGN_JUDGE_SCHEMA);
+  const p = parsed.parsed as Partial<DesignVerdict> | null;
+  if (!parsed.valid || !p || typeof p.design_score !== "number" || typeof p.tailored !== "boolean" || typeof p.rationale !== "string") return null;
+  return {
+    design_score: Math.max(0, Math.min(100, Math.round(p.design_score))),
+    tailored: p.tailored,
+    rationale: p.rationale,
+    top_improvement: typeof p.top_improvement === "string" ? p.top_improvement : undefined,
+  };
+}
+
+/**
+ * Quality gate — runs on EVERY generated package. Deterministic FLOORS (assessment,
+ * grounding, needs) are graded + a needs-remediation guidance artifact appended when
+ * gaps exist; in engineer mode the AI DESIGN JUDGE (a frontier model) adds the real
+ * "uniquely designed?" verdict. Appends package-quality-report.json. Best-effort +
+ * never fails the call; runs in the handler so generator-core determinism is intact.
+ */
+async function maybeRunQualityGate(generated: GeneratorResult, ctxMap: ContextMap, req: IncomingMessage): Promise<void> {
+  try {
+    const files = generated.files.map((f) => ({ path: f.path, content: f.content, content_type: f.content_type }));
+    const outcome = applyQualityGate(ctxMap, files);
+    const design = resolveAgentMode(req) === "engineer" ? await llmDesignVerdict(ctxMap, files).catch(() => null) : null;
+    const report = buildQualityReport(outcome, design);
+    for (const a of [...outcome.repairArtifacts, report]) {
+      if (generated.files.some((f) => f.path === a.path)) continue; // path-collision guard
+      generated.files.push({
+        path: a.path,
+        content: a.content,
+        content_type: a.content_type,
+        program: "quality",
+        description:
+          a.path === "package-quality-report.json"
+            ? `Quality floors ${outcome.verdict.passed ? "pass" : "fail"} (${outcome.verdict.grade})` +
+              (design ? `; AI design ${design.design_score}/100 (${design.tailored ? "tailored" : "template-fill"})` : "")
+            : "Quality gate: needs-remediation guidance",
+      });
+    }
+  } catch {
+    // Best-effort; the deterministic package already succeeded.
+  }
+}
+
 export async function runAnalyzeFiles(
   args: Record<string, unknown>,
   req: IncomingMessage,
@@ -3362,6 +3453,7 @@ export async function runAnalyzeFiles(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3514,6 +3606,7 @@ export async function runAnalyzeRepo(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -3822,6 +3915,7 @@ export async function runImproveMyAgent(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
@@ -4579,6 +4673,7 @@ export async function runPreparePurchasing(
     source_files: snapshot.files,
   });
   await maybeAppendLivingArchitecture(generated, ctxMap, snapshot.files, req);
+  await maybeRunQualityGate(generated, ctxMap, req);
   await saveGeneratorResult(snapshot.snapshot_id, generated);
   await updateSnapshotStatus(snapshot.snapshot_id, "ready");
 
