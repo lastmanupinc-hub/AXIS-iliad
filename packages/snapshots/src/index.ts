@@ -14,8 +14,6 @@ export {
   saveGeneratorResult,
   getGeneratorResult,
 } from "./store.js";
-export { getDb, peekDb, openMemoryDb, closeDb, runMigrations, getSchemaVersion, walCheckpoint, vacuum, integrityCheck, getDbStats, purgeStaleData, runMaintenance } from "./db.js";
-export type { DbMaintenanceResult } from "./db.js";
 // Postgres (Neon) async data core — the migration target. Stores now run on `sql`;
 // callers init with runPgMigrations() and shut down with closePool(). See NEON_MIGRATION_PLAN.md.
 export { sql, getPool, peekPool, closePool, pgPlaceholders } from "./pg.js";

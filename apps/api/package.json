@@ -27,7 +27,6 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/dockerode": "^3.3.47",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",

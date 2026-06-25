@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { resetTestDb } from "./pg-test.js";
-import { getDb } from "./db.js";
+import { sql } from "./pg.js";
 import {
   renderTemplate,
   recordEmailDelivery,
@@ -261,9 +261,11 @@ describe("convenience senders", () => {
 // ─── Migration v10 check ────────────────────────────────────────
 
 describe("Email migration", () => {
-  it("email_deliveries table exists with correct columns", () => {
-    const cols = getDb().pragma("table_info(email_deliveries)") as Array<{ name: string }>;
-    const names = cols.map((c) => c.name).sort();
+  it("email_deliveries table exists with correct columns", async () => {
+    const cols = await sql.many<{ column_name: string }>(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = 'email_deliveries'",
+    );
+    const names = cols.map((c) => c.column_name).sort();
     expect(names).toEqual([
       "created_at", "delivery_id", "error", "provider_id",
       "sent_at", "status", "subject", "template", "to_email", "variables",
