@@ -14,6 +14,27 @@
 
 ---
 
+## Tier A — Audit Remediation (adversarial assessment 2026-06-25)
+
+**Source**: a 29-agent adversarial assessment that *ran* the system (build, CLI, server boot, reproduced billing races). Overall grade **B−** — strong, secure (Security **A**), deterministic core; the items below are the *verified* gaps. Ranked by production risk — **A1 (billing concurrency) is the #1 liability** for a billing product.
+
+| # | ID | Title | Sev | ROI | Status · proof |
+|---|----|-------|-----|-----|----------------|
+| **A1** | **billing-concurrency-safety** | Fix 3 confirmed double-spend races from the Neon sync→async migration: atomic conditional debit (`UPDATE … WHERE balance >= cost`), `SELECT … FOR UPDATE` + rowCount-checked webhook credit grant, idempotency key + unique constraint so a replayed webhook can't double-credit. Affects `persistence-metering.ts`, `credit-pack-store.ts`, `authorize/captureMcpToolCredits`. | HIGH | **95** | 0% · proof: a concurrency test (2 parallel ops on a 1-op balance) debits once; a replayed webhook credits once. |
+| A2 | boot-resilience-db-down | Serve discovery/health/static + deterministic generators even when migrations fail; gate only DB-backed tools instead of refusing to bind the port. | HIGH | 68 | 0% · proof: prod-mode start, no DATABASE_URL → /health 200, DB tools → _not_configured. |
+| A3 | quality-judge-llm-tests | Test coverage for `llmDesignVerdict` (the headline AI judge — currently 0 tests): mock the LLM, assert grounding/parse/degrade-to-null + report shape. Fix `scoreNeedsCoverage` measuring "package mentions testing" vs "repo addressed it". | HIGH | 52 | 0% · proof: design-judge unit tests; needs-coverage reflects the repo, not generated boilerplate. |
+| A4 | count-honesty-reconcile | Reconcile contradictory artifact-count claims (code truth = 137 generators / 20 programs) across README, CLAUDE.md, ExamplesPage (138 vs 99 vs 89), PlansPage. | HIGH | 48 | 0% · proof: one count, sourced from `counts.ts`, everywhere; a test pins doc↔code. |
+| A5 | pg-placeholder-safety | `toPg` rewrites *every* literal `?` to `$N` — corrupts `?` inside SQL string literals + jsonb `?`/`?\|`/`?&` operators (verified: `'why?'` → `'why$1'`). Make it quote/operator-aware. | MED | 46 | 0% · proof: a query with a literal `?` + a jsonb `?` operator round-trips. |
+| A6 | mcp-server-decompose | Carve the 5,318-line `mcp-server.ts` god-file: extract the 20 `run*` tool impls, the 1,418-line `MCP_TOOLS` literal, and the credit/billing block into modules; break the `handlers.ts ↔ mcp-server.ts` circular import. | MED | 40 | 0% · proof: mcp-server.ts < ~1.5k LOC; no circular import; build+tests green. |
+| A7 | sqlite-layer-removal | Delete the 877-line dead SQLite `db.ts` (still exported from the package index) + drop the `better-sqlite3` native dep, now that the data layer is async Postgres. | MED | 38 | 0% · proof: `db.ts` gone; better-sqlite3 absent; build green. |
+| A8 | quality-judge-in-cli | Wire `maybeRunQualityGate` into the CLI generation path so the fully-offline package also ships `package-quality-report.json`. | LOW | 26 | 0% · proof: CLI output includes the report. |
+| A9 | web-search-span-fix | `answerFromHits`: rerank + refusal coverage computed over `title+snippet` but the citation span over `snippet` only → a title-match hit can yield an empty/mismatched span. | LOW | 20 | 0% · proof: a title-only-match hit yields a correct span or is excluded. |
+| A10 | repo-root-cleanup | ~50 generated artifacts + coverage logs polluting the repo root → gitignore + clean. | LOW | 12 | 0% · proof: clean working tree; .gitignore covers them. |
+
+**Build order (risk-ranked):** A1 → A2 → A5 → A3 → A4 → A6 → A7 → A8 → A9 → A10.
+
+---
+
 ## Tier E — Engineer Tier (premium "over-the-top" upsell · `X-Agent-Mode: engineer`)
 
 **Directive (2026-06-23):** add a third mode (`engineer`) on top of the existing lite/standard pricing. Base stays free/cheap; engineer is depth + novelty at a designer price. Per `begin.yaml` `no_go_rules` ("don't expand breadth before core paths are strong"; "no automation/AI without structured contracts") the canonical **contract (E0) is the unblocking foundation** — every per-tool upgrade is forbidden breadth until E0 lands. Execute in ranked order; commit after each.
@@ -36,7 +57,7 @@
 
 **Bundle:** Engineer Pass (subscription / credit-pack) unlocks `engineer` across all tools at a discount; Agency/white-label tier on top (resale + higher referral caps). Per-tool designer prices in the design note.
 
-**Build order (begin.yaml ranked):** ✅ **E0** (`priceForMode` contract; 21/21) → ✅ **E1** (hygiene patch + SARIF; 44/44) → ✅ **E2** (Managed Bucket: list/delete/CAS/copy + **mint-time content-type/size policy**; 38/38 — acceptance criteria fully met) → ✅ **E3** (Answer Engine: grounded answer + citations + refusal; 57/57) → ✅ **harden→polish→develop→harden→polish pass** (fixed patch-apply + billing-ladder HIGHs; single-sourced SigV4; capped title DoS; added server-side COPY; COPY audited multi-tenant-safe) → ⛔ **E4 BLOCKED** (vector Managed Memory needs Neon/pgvector → PR #33) → **E5 (next unblocked — XL flagship)** → E9 → E6 → rest. E0–E3 (+COPY, +hardening) = a clean, PR-able batch on `feat/engineer-tier`, each commit build+test green.
+**Build order (begin.yaml ranked):** ✅ **E0** (`priceForMode` contract; 21/21) → ✅ **E1** (hygiene patch + SARIF; 44/44) → ✅ **E2** (Managed Bucket: list/delete/CAS/copy + **mint-time content-type/size policy**; 38/38 — acceptance criteria fully met) → ✅ **E3** (Answer Engine: grounded answer + citations + refusal; 57/57) → ✅ **harden→polish→develop→harden→polish pass** (fixed patch-apply + billing-ladder HIGHs; single-sourced SigV4; capped title DoS; added server-side COPY; COPY audited multi-tenant-safe) → ✅ **E4** (pgvector Managed Memory — unblocked once the Neon migration merged) → ✅ **E5–E12 all shipped**. **ALL of E0–E12 are merged to main (2026-06-23/24); the engineer tier is complete.** E0–E3 (+COPY, +hardening) = a clean, PR-able batch on `feat/engineer-tier`, each commit build+test green.
 
 ---
 
