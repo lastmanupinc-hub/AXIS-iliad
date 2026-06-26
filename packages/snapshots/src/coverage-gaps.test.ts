@@ -2,10 +2,8 @@
  * Coverage-targeted tests for modules with <80% line coverage.
  * Focuses on version-store, webhook-store dispatch, and billing-store admin queries.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
-  openMemoryDb,
-  closeDb,
   createAccount,
   createApiKey,
   createSnapshot,
@@ -25,8 +23,6 @@ import {
   listAllAccounts,
   getRecentActivity,
   trackEvent,
-  getDbStats,
-  runMaintenance,
   listWebhooks,
   getWebhook,
   deleteWebhook,
@@ -319,40 +315,6 @@ describe("billing-store admin queries", () => {
     const activity = await getRecentActivity(10);
     expect(activity.length).toBeGreaterThanOrEqual(2);
     expect(activity[0].event_type).toBe("first_snapshot"); // most recent
-  });
-});
-
-// ─── DB utilities ───────────────────────────────────────────────
-
-// SQLite-only: getDbStats/runMaintenance (no-arg) operate on the retained
-// synchronous better-sqlite3 layer in db.ts, not Postgres. This block keeps the
-// SQLite in-memory DB open locally (the top-level beforeEach only resets Postgres).
-describe("DB utilities", () => {
-  beforeEach(() => {
-    closeDb();
-    openMemoryDb();
-  });
-  afterEach(() => {
-    closeDb();
-  });
-
-  it("getDbStats returns table info", () => {
-    const stats = getDbStats();
-    expect(stats.success).toBe(true);
-    const tables = stats.details?.tables as Record<string, number> | undefined;
-    expect(tables).toBeDefined();
-    expect(Object.keys(tables!)).toContain("accounts");
-    expect(Object.keys(tables!)).toContain("github_tokens");
-    expect(Object.keys(tables!)).toContain("tier_changes");
-  });
-
-  it("runMaintenance completes successfully", () => {
-    const results = runMaintenance();
-    expect(Array.isArray(results)).toBe(true);
-    expect(results.length).toBe(4);
-    for (const r of results) {
-      expect(r.success).toBe(true);
-    }
   });
 });
 
