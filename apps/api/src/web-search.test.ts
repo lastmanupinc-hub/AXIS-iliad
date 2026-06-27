@@ -292,6 +292,17 @@ describe("web-search — Answer Engine (engineer tier)", () => {
     expect(r.citations[0].span.length).toBeGreaterThan(0);
   });
 
+  it("draws the citation span from the title on a title-only match (consistent with coverage)", () => {
+    // The title carries every query term; the snippet has none. The hit still ranks and
+    // passes the coverage gate (coverage reads title+snippet), so its span must reflect the
+    // title — a snippet-only span would be off-topic/empty.
+    const r = answerFromHits("deterministic codebase analyzer", [
+      hit("t", "It runs over any repository you point it at.", 2.0, "Deterministic codebase analyzer overview"),
+    ]);
+    expect(r.refused).toBe(false);
+    expect(r.citations[0].span.toLowerCase()).toContain("deterministic codebase analyzer");
+  });
+
   it("lexical rerank pulls a broadly-covering hit above a single-term BM25 spike", () => {
     const hits = [
       hit("spike", "deterministic deterministic deterministic deterministic.", 9.0),

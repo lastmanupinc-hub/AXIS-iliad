@@ -470,6 +470,17 @@ function bestSpan(text: string, queryTokens: Set<string>): { span: string; cover
 }
 
 /**
+ * The text a hit's coverage AND its citation span are both drawn from — title + snippet.
+ * Keeping them identical means a hit selected for a title-term match yields a span that
+ * actually contains that match. (Previously coverage used title+snippet but the span used
+ * the snippet alone, so a title-only match could rank/pass the gate yet emit an off-topic
+ * or empty span.)
+ */
+function hitText(h: SearchHit): string {
+  return `${h.title ?? ""} ${h.snippet}`.trim();
+}
+
+/**
  * Build a grounded extractive answer from ranked BM25 hits. Reranks by
  * BM25-score × (1 + best-span coverage) so broadly on-topic hits beat
  * single-term spikes; refuses when even the top hit's best span covers fewer
@@ -485,7 +496,7 @@ export function answerFromHits(
   const queryTokens = new Set(tokenize(query));
 
   const scored = hits.map(h => {
-    const { coverage } = bestSpan(`${h.title ?? ""} ${h.snippet}`, queryTokens);
+    const { coverage } = bestSpan(hitText(h), queryTokens);
     // Coverage-primary rerank: how many distinct query terms the hit addresses,
     // scaled by a log of the BM25 magnitude — so a high-frequency single-term
     // spike can't outrank a hit that actually covers the question. Non-finite
@@ -511,7 +522,7 @@ export function answerFromHits(
   }
 
   const citations: AnswerCitation[] = scored.slice(0, maxCit).map((s, i) => {
-    const { span } = bestSpan(s.h.snippet, queryTokens);
+    const { span } = bestSpan(hitText(s.h), queryTokens);
     return { n: i + 1, doc_id: s.h.doc_id, title: s.h.title, url: s.h.url, span, score: Math.round(s.rerank * 1000) / 1000 };
   });
   const answer = citations.map(c => `${c.span} [${c.n}]`).join(" ");
