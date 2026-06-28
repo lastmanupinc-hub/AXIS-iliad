@@ -51,7 +51,7 @@ export function ForAgentsPage() {
         <span className="badge badge-accent">For Agents</span>
         <h1>Iliad is an agent-first MCP platform.</h1>
         <p>
-          One endpoint. 14 MCP tools. Intelligence across 20 programs. Native x402 payments.
+          One endpoint. 29 MCP tools. Intelligence across 20 programs. Native x402 payments.
         </p>
       </div>
 
@@ -116,17 +116,20 @@ export function ForAgentsPage() {
       </div>
 
       <div className="card">
-        <h2>Your 14 MCP Tools (all available at /mcp)</h2>
+        <h2>Your 29 MCP Tools (all available at /mcp)</h2>
         <ul>
-          <li>analyze_repo</li>
-          <li>analyze_files</li>
-          <li>prepare_agentic_purchasing (recommended first tool)</li>
+          <li>analyze_repo, analyze_files</li>
+          <li>list_programs, get_snapshot, get_artifact</li>
+          <li>prepare_agentic_purchasing (recommended first tool), prepare_agentic_purchasing_preview</li>
+          <li>discover_agentic_purchasing_needs, discover_commerce_tools, search_and_discover_tools</li>
+          <li>closer, deploy</li>
           <li>improve_my_agent_with_axis</li>
-          <li>iliad_web_research + iliad_web_research_crawl</li>
-          <li>list_programs, search_and_discover_tools, discover_commerce_tools</li>
-          <li>get_snapshot, get_artifact</li>
           <li>get_referral_code, get_referral_credits</li>
-          <li>2 more discovery/helper tools</li>
+          <li>iliad_web_research, iliad_web_research_crawl, iliad_web_search</li>
+          <li>iliad_object_storage, iliad_vector_database, iliad_embeddings</li>
+          <li>iliad_llm_inference, iliad_code_sandbox, iliad_document_parsing</li>
+          <li>iliad_text_to_speech, iliad_speech_to_text</li>
+          <li>iliad_transactional_email, iliad_analytics, iliad_hygiene</li>
         </ul>
       </div>
 

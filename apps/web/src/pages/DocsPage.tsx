@@ -374,7 +374,7 @@ function OverviewSection() {
           <div className="card" style={{ padding: 14, marginBottom: 0 }}>
             <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>API Server</strong>
             <div className="flex-wrap" style={{ gap: 6 }}>
-              {["Node.js 22", "tsx (ESM)", "SQLite + FTS5", "better-sqlite3", "REST / JSON"].map((t) => (
+              {["Node.js 22", "tsx (ESM)", "Neon Postgres", "pg (node-postgres)", "REST / JSON"].map((t) => (
                 <span key={t} className="badge" style={{ fontSize: "0.6875rem", background: "var(--bg)" }}>{t}</span>
               ))}
             </div>
@@ -390,7 +390,7 @@ function OverviewSection() {
           <div className="card" style={{ padding: 14, marginBottom: 0 }}>
             <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>Key Infrastructure</strong>
             <div className="flex-wrap" style={{ gap: 6 }}>
-              {["pnpm workspaces", "vitest", "JSZip", "FTS5 search", "Bearer auth"].map((t) => (
+              {["pnpm workspaces", "vitest", "JSZip", "full-text search", "Bearer auth"].map((t) => (
                 <span key={t} className="badge" style={{ fontSize: "0.6875rem", background: "var(--bg)" }}>{t}</span>
               ))}
             </div>

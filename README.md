@@ -4,7 +4,7 @@
 
 > **Canonical name:** Axis' Iliad. Use this name consistently across docs, registries, and integrations.
 
-[![Tests](https://img.shields.io/badge/tests-4076%20passing-brightgreen)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
+[![Tests](https://img.shields.io/badge/tests-4900%2B%20passing-brightgreen)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Coverage](https://img.shields.io/badge/coverage-91.5%25-green)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Website](https://img.shields.io/badge/website-iliad.trustfabric.ai-0ea5e9)](https://iliad.trustfabric.ai)
 [![API](https://img.shields.io/badge/API-live-blue)](https://axis-api-6c7z.onrender.com/v1/health)
@@ -161,7 +161,7 @@ axis-iliad/
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/
-│   ├── snapshots/    → Snapshot intake, SQLite persistence, billing, funnel
+│   ├── snapshots/    → Snapshot intake, Postgres (Neon) persistence, billing, funnel
 │   ├── repo-parser/  → Language detection (60+), framework detection (10), import graph
 │   ├── context-engine/ → Context map builder, repo profile, route/architecture analysis
 │   └── generator-core/ → 137 generators across 20 programs
@@ -256,7 +256,7 @@ axis-iliad/
 ### Search & Versions
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/v1/search/index` | Index snapshot content for FTS5 search |
+| POST | `/v1/search/index` | Index snapshot content for full-text search |
 | POST | `/v1/search/query` | Full-text search across indexed content |
 | GET | `/v1/search/:id/stats` | Search index statistics |
 | GET | `/v1/snapshots/:id/versions` | List generation versions |
@@ -296,10 +296,10 @@ axis-iliad/
 ## Tech Stack
 
 - **Runtime**: Node.js 20+, TypeScript 5.7 strict
-- **Backend**: Zero-dependency custom HTTP router, SQLite (better-sqlite3, WAL mode)
+- **Backend**: Zero-dependency custom HTTP router, Neon Postgres (`pg`, async pooled)
 - **Frontend**: Vite 6 + React 19, CSS design system (dark theme)
-- **Testing**: Vitest 4, 1485 tests across 68 files, 91.5% statement coverage
-- **Benchmarks**: Vitest bench — parseRepo 200 files in 21ms, FTS5 search <0.2ms
+- **Testing**: Vitest 4 — ~4,900 tests across ~190 files, run against Postgres 16
+- **Benchmarks**: Vitest bench — parseRepo 200 files in ~21ms; deterministic 137-artifact generation in ~300ms
 - **Build**: pnpm workspaces, tsc per package
 - **CI**: GitHub Actions (Node 20/22 matrix, coverage, dep audit, Docker build)
 
@@ -325,16 +325,6 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to add a generator, endpoint, o
 | CLI (local) | `axis analyze <directory>` |
 | CLI (remote) | `axis github <url>` |
 | MCP | `tools/call` → `analyze_repo` or `analyze_files` |
-
-## Tech stack
-
-- **Runtime**: Node.js 20+, TypeScript 5.7 strict
-- **Backend**: Zero-dependency custom HTTP router, SQLite (better-sqlite3, WAL mode)
-- **Frontend**: Vite 6 + React 19, CSS design system (dark theme)
-- **Testing**: Vitest 4, 4076 tests across 140 files, 91.5% statement coverage
-- **Benchmarks**: `parseRepo` 200 files in 21ms · FTS5 search <0.2ms
-- **Build**: pnpm workspaces, tsc per package
-- **CI**: GitHub Actions (Node 20/22 matrix, coverage, dep audit, Docker build)
 
 ---
 
