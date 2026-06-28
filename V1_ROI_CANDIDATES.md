@@ -33,7 +33,21 @@
 | A11 | flaky-test-stabilization | Two intermittently-CI-reddening tests made deterministic. **crash-resilience**: a hardcoded port (44530, EADDRINUSE-prone) + an unawaited async `listen` (ECONNREFUSED race) + a server shared across tests → rewrote to ephemeral ports (0), an awaited `listen`, and self-contained per-test servers. **code-sandbox**: the test did REAL Docker work (image-pull + run, >60s) when a host had Docker → added an `AXIS_CODE_SANDBOX_DISABLED` kill-switch (honored in BOTH `isCodeSandboxConfigured` and `runCodeSandbox` — the handler calls the latter directly) so the dispatch + unit tests force a deterministic `_not_configured`; live execution stays in the `AXIS_RUN_DOCKER_TESTS` opt-in suite. | MED | 35 | ✅ **100%** · branch `feat/audit-a11-flaky-tests`. crash-resilience 7/7 × 3 consecutive runs; code-sandbox unit 15/15 (no Docker); kill-switch + `disabled` reason tested. Verified the fix was needed: the pre-`runCodeSandbox`-fix run FAILED (Docker reachable). tsc clean. |
 | A12 | stale-stack-docs | README had a DUPLICATED "Tech Stack" section with contradictory test counts (1485/68 vs 4076/140), a stale `SQLite (better-sqlite3, WAL)` backend line + FTS5 benchmark, and the badge said 4076. The "14 MCP tools" claim was stale (real = **29**, pinned `MCP_TOOL_COUNT`) AND the UI named only 14 — missing the entire engineer-tier `iliad_*` toolset. SQLite/better-sqlite3/FTS5 falsehoods were ALSO scattered across DocsPage/HelpPage/QAPage/SearchTab. Removed the dup section; switched all data-layer copy to Neon Postgres; updated both UI tool lists to the real 29. | LOW | 22 | ✅ **100%** · branch `feat/audit-a10-root-cleanup` (batched w/ A10). Extended the A4 count-honesty guard with (a) MCP/public tool count == `MCP_TOOL_COUNT` and (b) a no-SQLite/better-sqlite3/FTS5 guard over README+web — caught split-markup "14 MCP **Tools**" my literal `sed` missed. 4/4 guard checks green; web build clean. |
 
-**Build order (risk-ranked):** ✅ A1 → ✅ A2 → ✅ A5 → ✅ A3 → ✅ A4 → ✅ A11 → 🟡 A6 (~55%; run\*-impl carve = follow-up A6b) → ✅ A7 → ✅ A9 → ✅ A10 → ✅ A12 → ✅ A8 → **A6b (last)**.
+**Build order (risk-ranked):** ✅ A1 → ✅ A2 → ✅ A5 → ✅ A3 → ✅ A4 → ✅ A11 → 🟡 A6 (~55%; run\*-impl carve = follow-up A6b) → ✅ A7 → ✅ A9 → ✅ A10 → ✅ A12 → ✅ A8 → 🔵 **A6b (deferred — carve plan below)**.
+
+**Status (2026-06-28):** 12 of 13 Tier-A candidates merged to `main`, each adversarially/CI-verified on pg16. Only **A6b** remains (deferred — see plan).
+
+### A6b — carve plan (handoff for a fresh session)
+
+**Goal:** finish A6 by reducing `apps/api/src/mcp-server.ts` (currently **3,688 LOC**) to <1.5k. Verified earlier: the file has **no module-level mutable state** (the `run*` impls are `(args, req) → string`), so the carve is mechanical — but its only behavioral check is the full mcp-server dispatch suite on Postgres (~6 min on CI; **stalls on this machine's local Docker**), and a meaningful carve necessarily moves the **billing/credit helpers** (A1-grade sensitivity). Do it fresh, with reliable local pg.
+
+Three-module split, ordered as a no-cycle chain (`mcp-runtime` ← `mcp-tool-impls` ← `mcp-server`):
+
+1. **`mcp-runtime.ts`** (leaf) — shared infra the impls need: `rpcOk/rpcErr/toolOk/toolErr`, `categorizeError` (+ `ErrorCategory`), the RPC error-code constants, `readIdempotencyKey`, `hashToolRequest`, and the credit/billing helpers (`authorizeMcpToolCredits`, `captureMcpToolCredits`, `meterMcpToolCredits`, `buildMcpPaymentRequiredError`). **Treat the credit helpers with A1-level care.**
+2. **`mcp-tool-impls.ts`** — the ~29 `run*` functions + their tool-specific constants (`OBJECT_STORAGE_MAX_TTL_SECONDS`, `VECTOR_*`, `ANALYTICS_*`, `WEB_SEARCH_*`, `PREVIEW_*`, `PURCHASING_INTENT_MAP`, …), importing only from `mcp-runtime.ts`. Re-export so existing importers keep working.
+3. **`mcp-server.ts`** retains `dispatch()` (the `tools/call` switch), the `handleMcp*` HTTP layer, `tools/list`, and `getMcpServerMeta`.
+
+Verify: tsc (api) clean → push → full mcp-server dispatch suite green on CI pg16 (the `226+` tests).
 
 ---
 
