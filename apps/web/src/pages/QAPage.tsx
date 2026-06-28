@@ -167,7 +167,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "technical",
     question: "How does the full-text search work?",
-    answer: "Search uses SQLite FTS5 — a high-performance full-text search engine. Click 'Index Snapshot' to build the index (1–5 seconds), then type any query. Results show file path, line number, matching content snippet, and relevance score. Supports boolean operators (AND, OR, NOT) and phrase matching with quotes.",
+    answer: "Search uses Postgres full-text search — a high-performance full-text search engine. Click 'Index Snapshot' to build the index (1–5 seconds), then type any query. Results show file path, line number, matching content snippet, and relevance score. Supports boolean operators (AND, OR, NOT) and phrase matching with quotes.",
   },
   {
     category: "technical",
@@ -187,7 +187,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "technical",
     question: "What database does Axis use?",
-    answer: "Axis uses SQLite via the better-sqlite3 driver — a high-performance, zero-configuration embedded database. Project snapshots, generated files, accounts, API keys, and search indexes are all stored in a single SQLite file. FTS5 (Full-Text Search 5) is used for the search feature.",
+    answer: "Axis uses Neon Postgres via the pg (node-postgres) driver — a managed, serverless Postgres database. Project snapshots, generated files, accounts, API keys, and search indexes are all stored in Postgres. Postgres full-text search powers the search feature.",
   },
   {
     category: "technical",
@@ -246,7 +246,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "security",
     question: "What happens when I delete a snapshot?",
-    answer: "Deleting a snapshot permanently removes all associated data: the file tree, analysis results, generated files, and search index. This is irreversible. The SQLite database is compacted after deletion to reclaim disk space.",
+    answer: "Deleting a snapshot permanently removes all associated data: the file tree, analysis results, generated files, and search index. This is irreversible. Postgres autovacuum reclaims the freed space afterward.",
   },
   {
     category: "security",

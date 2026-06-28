@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
+import { MCP_TOOL_COUNT } from "./counts.js";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -50,7 +51,36 @@ function generatorClaims(v: string): number[] {
   return ns.filter((n) => n >= 95);
 }
 
+// Advertised MCP tool count, e.g. "29 MCP tools" / "29 public tools". The qualifier
+// (MCP|public) is required so this never binds to prose like "your AI tools" or the
+// named "Free MCP tools:" list (no leading number). The live count is MCP_TOOL_COUNT,
+// itself pinned == MCP_TOOLS.length by counts-consistency.test.ts. Stale value was 14.
+function toolClaims(v: string): number[] {
+  const ns: number[] = [];
+  for (const m of v.matchAll(/(\d+)\s+(?:MCP|public)\s+tools\b/gi)) ns.push(Number(m[1]));
+  return ns;
+}
+
 describe("count honesty — docs/UI match the code (A4)", () => {
+  it("every advertised MCP/public tool count equals MCP_TOOL_COUNT", () => {
+    const bad: string[] = [];
+    for (const { name, text } of docs()) {
+      for (const n of toolClaims(visible(text))) if (n !== MCP_TOOL_COUNT) bad.push(`${name}: ${n} (expected ${MCP_TOOL_COUNT})`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  // The data layer migrated SQLite → Neon Postgres (see NEON_MIGRATION_PLAN.md); the
+  // better-sqlite3 dep was removed in A7. Any SQLite/better-sqlite3/FTS5 in user-facing
+  // docs is now a falsehood about the architecture. Guard README + the web UI against it.
+  it("no stale SQLite/better-sqlite3/FTS5 data-layer claims (the store is Neon Postgres)", () => {
+    const bad: string[] = [];
+    for (const { name, text } of docs()) {
+      for (const m of text.matchAll(/\b(?:SQLite|better-sqlite3|FTS5)\b/gi)) bad.push(`${name}: "${m[0]}"`);
+    }
+    expect(bad).toEqual([]);
+  });
+
   it("every GLOBAL generator/artifact/output total equals TOTAL_GENERATORS (split-markup, reversed, table)", () => {
     const bad: string[] = [];
     for (const { name, text } of docs()) {

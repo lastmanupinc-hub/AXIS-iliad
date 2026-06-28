@@ -490,7 +490,7 @@ function DashboardGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Using Full-Text Search</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          The Search tab (Alt+6) uses SQLite FTS5 for fast full-text search across your entire snapshot.
+          The Search tab (Alt+6) uses Postgres full-text search across your entire snapshot.
         </p>
         <div className="grid grid-3" style={{ gap: 10, marginBottom: 12 }}>
           <div className="card" style={{ padding: 12, marginBottom: 0, textAlign: "center" }}>

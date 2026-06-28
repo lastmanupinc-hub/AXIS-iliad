@@ -11,7 +11,10 @@ dist/
 .ai-output-*
 .dogfood-closer-output/
 coverage/
-cov4.txt
+cov*.txt
+coverage-*.log
+*-fail.log
+axis-analyze-results.json
 
 .mcpregistry_*
 *.env

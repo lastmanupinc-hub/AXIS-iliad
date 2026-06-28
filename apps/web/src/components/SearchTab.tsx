@@ -155,7 +155,7 @@ export function SearchTab({ snapshotId }: Props) {
           onKeyDown={handleKeyDown}
           placeholder={
             mode === "text"
-              ? "Search files by content (FTS5 full-text search)..."
+              ? "Search files by content (full-text search)..."
               : "Symbol name prefix (e.g. handle, Userâ€¦)"
           }
           style={{
