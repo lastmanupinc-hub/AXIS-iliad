@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
-import { generateClaudeMD, generateAgentsMD } from "@axis/generator-core";
+import { generateClaudeMD, generateAgentsMD } from "./generators-skills.js";
 import {
   distinctiveFactTerms,
   scoreAssessmentValidity,
