@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { detectProjectType, detectFrameworks } from "./runner.js";
+import { detectProjectType, detectFrameworks, run } from "./runner.js";
 import type { FileEntry } from "@axis/snapshots";
+import type { ScanResult } from "./scanner.js";
 
 function f(path: string, content = ""): FileEntry {
   return { path, content, size: content.length };
@@ -165,5 +166,37 @@ describe("detectFrameworks (runner-level)", () => {
     const files = [f("main.go", 'import "net/http"\nhttp.ListenAndServe(":8080", nil)')];
     const result = detectFrameworks({}, files);
     expect(result).toContain("Go stdlib HTTP");
+  });
+});
+
+// ─── Quality gate in the offline CLI (A8) ───────────────────────
+
+describe("run — quality gate", () => {
+  function makeScan(): ScanResult {
+    const files: FileEntry[] = [
+      f("package.json", JSON.stringify({ name: "demo-app", dependencies: { react: "^19.0.0" } })),
+      f("src/index.ts", "export const x = 1;\n"),
+      f("src/App.tsx", "export function App() { return null; }\n"),
+      f("src/routes.ts", "export const routes = ['/', '/about'];\n"),
+    ];
+    return { files, skipped_count: 0, total_bytes: files.reduce((s, fe) => s + fe.size, 0) };
+  }
+
+  it("appends package-quality-report.json to the fully-offline CLI output", () => {
+    const result = run(makeScan(), "demo-app");
+    const report = result.generator_result.files.find((g) => g.path === "package-quality-report.json");
+    expect(report).toBeDefined();
+    expect(report!.program).toBe("quality");
+    const parsed = JSON.parse(report!.content);
+    expect(parsed.schema).toBe("axis-package-quality/2");
+    expect(["A", "B", "C", "D", "F"]).toContain(parsed.grade);
+    // The CLI runs without a model, so the LLM design verdict is recorded as not-assessed.
+    expect(parsed.design.assessed).toBe(false);
+  });
+
+  it("is deterministic — the report is byte-identical across two runs", () => {
+    const a = run(makeScan(), "demo-app").generator_result.files.find((g) => g.path === "package-quality-report.json")!;
+    const b = run(makeScan(), "demo-app").generator_result.files.find((g) => g.path === "package-quality-report.json")!;
+    expect(a.content).toBe(b.content);
   });
 });

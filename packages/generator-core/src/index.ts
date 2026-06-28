@@ -1,5 +1,28 @@
 export type { GeneratedFile, GeneratorInput, GeneratorResult, SourceFile } from "./types.js";
 export { generateFiles, listAvailableGenerators, TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
+// Package Quality Judge (deterministic floors). Lives here so BOTH the API and the
+// fully-offline CLI can grade + append the quality report from the shared core.
+export {
+  gradePackage,
+  applyQualityGate,
+  buildQualityReport,
+  appendQualityArtifacts,
+  buildNeedsRemediationArtifact,
+  scoreAssessmentValidity,
+  scoreGrounding,
+  scoreNeedsCoverage,
+  distinctiveFactTerms,
+  repoFactTerms,
+  FLOORS,
+} from "./package-quality.js";
+export type {
+  QualityFile,
+  QualityArtifact,
+  DimensionScore,
+  DesignVerdict,
+  QualityVerdict,
+  QualityGateOutcome,
+} from "./package-quality.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";

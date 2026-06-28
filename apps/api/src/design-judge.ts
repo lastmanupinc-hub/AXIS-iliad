@@ -1,7 +1,7 @@
 import type { ContextMap } from "@axis/context-engine";
 import { runCompletion, isLlmConfigured } from "./llm-inference.js";
 import { validateStructuredOutput } from "./json-schema-validate.js";
-import type { DesignVerdict } from "./package-quality.js";
+import type { DesignVerdict } from "@axis/generator-core";
 
 // json-schema-constrained shape for the AI design verdict (E8 constrained decoding).
 export const DESIGN_JUDGE_SCHEMA = {

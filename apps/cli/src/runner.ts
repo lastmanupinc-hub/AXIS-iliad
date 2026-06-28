@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { SnapshotRecord, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, appendQualityArtifacts } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import type { ScanResult } from "./scanner.js";
 
@@ -47,6 +47,12 @@ export function run(scan: ScanResult, projectDir: string, programs?: string[]): 
     requested_outputs: requested,
     source_files: snapshot.files,
   });
+
+  // Grade the generated package against the deterministic quality floors and append
+  // package-quality-report.json (+ needs-remediation.md when needs are uncovered) so the
+  // fully-offline CLI ships the same quality report as the API. No LLM design verdict —
+  // the CLI runs without a model; the report records that design was not assessed.
+  appendQualityArtifacts(result, contextMap, null);
 
   /* v8 ignore next 6 — V8 quirk on return object literal */
   return {

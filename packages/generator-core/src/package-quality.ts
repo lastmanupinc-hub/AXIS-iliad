@@ -13,6 +13,7 @@
 //     failures and feed the judge. begin.yaml-compliant (structured).
 
 import type { ContextMap } from "@axis/context-engine";
+import type { GeneratorResult } from "./types.js";
 
 export interface QualityFile {
   path: string;
@@ -307,4 +308,37 @@ export function buildQualityReport(outcome: QualityGateOutcome, design: DesignVe
       : { assessed: false, note: "Design quality is judged by the engineer-mode AI judge; not assessed on this call." },
   };
   return { path: "package-quality-report.json", content: JSON.stringify(report, null, 2), content_type: "application/json" };
+}
+
+/**
+ * Run the quality gate over a GeneratorResult and APPEND its artifacts in place:
+ * needs-remediation.md (only when needs are uncovered) + package-quality-report.json.
+ * `design` is the engineer-mode LLM design verdict; pass null for the deterministic-only
+ * path (e.g. the fully-offline CLI), where the report records that design was not
+ * assessed. Best-effort: any throw is swallowed — the deterministic package already
+ * succeeded, so the gate must never fail a generation. Shared by the API
+ * (maybeRunQualityGate) and the CLI so both surfaces ship the same report.
+ */
+export function appendQualityArtifacts(generated: GeneratorResult, ctx: ContextMap, design: DesignVerdict | null): void {
+  try {
+    const files = generated.files.map((f) => ({ path: f.path, content: f.content, content_type: f.content_type }));
+    const outcome = applyQualityGate(ctx, files);
+    const report = buildQualityReport(outcome, design);
+    for (const a of [...outcome.repairArtifacts, report]) {
+      if (generated.files.some((f) => f.path === a.path)) continue; // path-collision guard
+      generated.files.push({
+        path: a.path,
+        content: a.content,
+        content_type: a.content_type,
+        program: "quality",
+        description:
+          a.path === "package-quality-report.json"
+            ? `Quality floors ${outcome.verdict.passed ? "pass" : "fail"} (${outcome.verdict.grade})` +
+              (design ? `; AI design ${design.design_score}/100 (${design.tailored ? "tailored" : "template-fill"})` : "")
+            : "Quality gate: needs-remediation guidance",
+      });
+    }
+  } catch {
+    // Best-effort; the deterministic package already succeeded.
+  }
 }

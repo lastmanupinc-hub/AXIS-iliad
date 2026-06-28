@@ -98,7 +98,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { runSpecificityPass } from "./living-architecture.js";
-import { applyQualityGate, buildQualityReport, type DesignVerdict } from "./package-quality.js";
+import { appendQualityArtifacts } from "@axis/generator-core";
 import { llmDesignVerdict } from "./design-judge.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
@@ -1705,28 +1705,16 @@ async function maybeAppendLivingArchitecture(
  * never fails the call; runs in the handler so generator-core determinism is intact.
  */
 async function maybeRunQualityGate(generated: GeneratorResult, ctxMap: ContextMap, req: IncomingMessage): Promise<void> {
-  try {
-    const files = generated.files.map((f) => ({ path: f.path, content: f.content, content_type: f.content_type }));
-    const outcome = applyQualityGate(ctxMap, files);
-    const design = resolveAgentMode(req) === "engineer" ? await llmDesignVerdict(ctxMap, files).catch(() => null) : null;
-    const report = buildQualityReport(outcome, design);
-    for (const a of [...outcome.repairArtifacts, report]) {
-      if (generated.files.some((f) => f.path === a.path)) continue; // path-collision guard
-      generated.files.push({
-        path: a.path,
-        content: a.content,
-        content_type: a.content_type,
-        program: "quality",
-        description:
-          a.path === "package-quality-report.json"
-            ? `Quality floors ${outcome.verdict.passed ? "pass" : "fail"} (${outcome.verdict.grade})` +
-              (design ? `; AI design ${design.design_score}/100 (${design.tailored ? "tailored" : "template-fill"})` : "")
-            : "Quality gate: needs-remediation guidance",
-      });
-    }
-  } catch {
-    // Best-effort; the deterministic package already succeeded.
-  }
+  // Engineer mode adds the LLM design verdict; the deterministic floors + append logic
+  // live in @axis/generator-core (appendQualityArtifacts), shared with the offline CLI.
+  const design =
+    resolveAgentMode(req) === "engineer"
+      ? await llmDesignVerdict(
+          ctxMap,
+          generated.files.map((f) => ({ path: f.path, content: f.content, content_type: f.content_type })),
+        ).catch(() => null)
+      : null;
+  appendQualityArtifacts(generated, ctxMap, design);
 }
 
 export async function runAnalyzeFiles(
