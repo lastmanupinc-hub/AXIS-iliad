@@ -276,6 +276,7 @@ describe("export weaves in the begin-loop (full pack only)", () => {
     loopProjectId = snap.project_id;
     // A stored context map is what lets the export build begin.yaml/continuation.yaml.
     await saveContextMap(snap.snapshot_id, {
+      version: "v1", // getContextMap rejects maps without version/snapshot_id/project_id/project_identity
       snapshot_id: snap.snapshot_id,
       project_id: snap.project_id,
       generated_at: "1970-01-01T00:00:00.000Z",
