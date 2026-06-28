@@ -23,6 +23,9 @@ export type {
   QualityVerdict,
   QualityGateOutcome,
 } from "./package-quality.js";
+// Begin Loop — the self-referential autonomy control loop (begin.yaml + continuation.yaml
+// + ⟳Continue footers). Appended at the surface like the quality gate; not a counted generator.
+export { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml } from "./autonomy-loop.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";

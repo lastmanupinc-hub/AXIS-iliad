@@ -200,3 +200,50 @@ describe("run — quality gate", () => {
     expect(a.content).toBe(b.content);
   });
 });
+
+// ─── Begin loop in the offline CLI output (begin-loop) ──────────
+
+describe("run — begin loop", () => {
+  function makeScan(): ScanResult {
+    const files: FileEntry[] = [
+      f("package.json", JSON.stringify({ name: "loop-demo", dependencies: { react: "^19.0.0" } })),
+      f("src/index.ts", "export const x = 1;\n"),
+      f("src/App.tsx", "export function App() { return null; }\n"),
+    ];
+    return { files, skipped_count: 0, total_bytes: files.reduce((s, fe) => s + fe.size, 0) };
+  }
+
+  it("emits begin.yaml + continuation.yaml as the loop head + state", () => {
+    const files = run(makeScan(), "loop-demo").generator_result.files;
+    const begin = files.find((g) => g.path === "begin.yaml");
+    const cont = files.find((g) => g.path === "continuation.yaml");
+    expect(begin).toBeDefined();
+    expect(cont).toBeDefined();
+    expect(begin!.program).toBe("begin");
+    // Loop head: identity + goal, the move-selection algorithm, and a CONVERGENT stop condition.
+    expect(begin!.content).toContain("project_begin:");
+    expect(begin!.content).toContain("goal:");
+    expect(begin!.content).toContain("next_move_selection_algorithm:");
+    expect(begin!.content).toContain("no_open_candidates_remain");
+    // State: the candidate queue + the ordered step-list.
+    expect(cont!.content).toContain("candidates:");
+    expect(cont!.content).toContain("steps:");
+  });
+
+  it("footers every markdown artifact and the last one self-prompts 'begin'", () => {
+    const files = run(makeScan(), "loop-demo").generator_result.files;
+    const md = files.filter((g) => /\.md$/.test(g.path) || (g.content_type ?? "").includes("markdown"));
+    expect(md.length).toBeGreaterThan(0);
+    for (const m of md) expect(m.content).toContain("Continue the loop");
+    // Exactly one terminal self-prompt, on the last markdown artifact, closing the loop back to begin.yaml.
+    const selfPrompts = md.filter((m) => m.content.includes("begin** (re-read"));
+    expect(selfPrompts).toHaveLength(1);
+    expect(selfPrompts[0].path).toBe(md[md.length - 1].path);
+  });
+
+  it("is deterministic — begin.yaml + continuation.yaml are byte-identical across runs", () => {
+    const pick = (p: string) => run(makeScan(), "loop-demo").generator_result.files.find((g) => g.path === p)!.content;
+    expect(pick("begin.yaml")).toBe(pick("begin.yaml"));
+    expect(pick("continuation.yaml")).toBe(pick("continuation.yaml"));
+  });
+});

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { SnapshotRecord, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, appendQualityArtifacts } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, appendQualityArtifacts, appendAutonomyLoop } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import type { ScanResult } from "./scanner.js";
 
@@ -53,6 +53,11 @@ export function run(scan: ScanResult, projectDir: string, programs?: string[]): 
   // fully-offline CLI ships the same quality report as the API. No LLM design verdict —
   // the CLI runs without a model; the report records that design was not assessed.
   appendQualityArtifacts(result, contextMap, null);
+
+  // Weave the begin-loop into the package: ⟳Continue footers on every markdown artifact +
+  // begin.yaml + continuation.yaml, so the owner can hand the repo to an agent and say "begin".
+  // Runs after the quality gate so the quality docs are sequenced/footered too.
+  appendAutonomyLoop(result, contextMap);
 
   /* v8 ignore next 6 — V8 quirk on return object literal */
   return {
