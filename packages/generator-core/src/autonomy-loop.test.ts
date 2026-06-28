@@ -65,14 +65,18 @@ describe("appendAutonomyLoop", () => {
     expect(r.files).toHaveLength(0);
   });
 
-  it("is idempotent on the loop files (path-collision guard)", () => {
+  it("is fully idempotent — a second pass is a no-op (begin.yaml guard)", () => {
     const r = result();
     appendAutonomyLoop(r, ctx());
     const n = r.files.length;
-    appendAutonomyLoop(r, ctx()); // second pass must not duplicate begin.yaml/continuation.yaml
+    const agentsBefore = r.files.find((f) => f.path === "AGENTS.md")!.content;
+    appendAutonomyLoop(r, ctx()); // begin.yaml already present → whole pass is a no-op
+    expect(r.files.length).toBe(n); // no new files
     expect(r.files.filter((f) => f.path === "begin.yaml")).toHaveLength(1);
     expect(r.files.filter((f) => f.path === "continuation.yaml")).toHaveLength(1);
-    expect(r.files.length).toBeGreaterThanOrEqual(n); // footers may re-append but loop files don't dup
+    // Footer not doubled — exactly one continuation footer remains on the markdown artifact.
+    expect(r.files.find((f) => f.path === "AGENTS.md")!.content).toBe(agentsBefore);
+    expect((agentsBefore.match(/Continue the loop/g) ?? []).length).toBe(1);
   });
 });
 

@@ -64,6 +64,16 @@ One scan → 137 artifacts across 20 programs, ready in seconds:
 | Generative art / NFT | **Algorithmic** | `generative-sketch.ts`, `variation-matrix.json`, `parameter-pack.json` |
 | Agentic commerce (Visa AP2) | **Agentic Purchasing** | `agent-purchasing-playbook.md`, `checkout-flow.md`, `negotiation-rules.md` |
 
+### Plus the begin loop — hand it to an agent and say `begin`
+
+Every analysis also weaves in a **self-driving control loop** so an AI coding agent can *finish* the work, not just understand it:
+
+- **`begin.yaml`** — the loop head: the inferred goal, a human-in-the-loop protocol (the owner only answers plain-English product questions), the move-selection algorithm, and **convergent stop conditions**.
+- **`continuation.yaml`** — the loop state: an ordered step-list of every artifact + a priority **candidate queue** seeded from the analysis (the goal, detected gaps, a verify-harness when no tests exist).
+- A **`⟳ Continue` footer** on every Markdown artifact; the final step **self-prompts `begin`**, closing the loop back to `begin.yaml`.
+
+Download the pack (CLI, MCP, or the full-pack export), hand it to an agent, say **`begin`** — it works the queue, verifies each step, and **stops when the queue is empty** (convergent, never a runaway). No coding required on the owner's end.
+
 ---
 
 ## For AI agents — MCP integration

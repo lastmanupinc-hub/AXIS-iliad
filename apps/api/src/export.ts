@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
-import { getProjectSnapshots, getProjectOwner, getGeneratorResult } from "@axis/snapshots";
+import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap } from "@axis/snapshots";
+import type { ContextMap } from "@axis/context-engine";
+import { appendAutonomyLoop, type GeneratorResult } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
@@ -144,9 +146,7 @@ export async function handleExportZip(
   }
 
   const latest = snapshots[snapshots.length - 1];
-  const generated = (await getGeneratorResult(latest.snapshot_id)) as
-    | { files: Array<{ path: string; content: string; program: string }> }
-    | undefined;
+  const generated = (await getGeneratorResult(latest.snapshot_id)) as GeneratorResult | undefined;
 
   if (!generated || generated.files.length === 0) {
     sendError(res, 404, ErrorCode.NOT_FOUND, "No generated files available yet");
@@ -157,6 +157,14 @@ export async function handleExportZip(
   /* v8 ignore next — req.url always present in tests */
   const url = new URL(_req.url ?? "/", `http://${_req.headers.host}`);
   const programFilter = url.searchParams.get("program");
+
+  // Full-pack download → weave in the begin-loop so the agent can be handed the ZIP and
+  // told "begin". Idempotent: a no-op if the stored package already carries it (e.g. from
+  // the MCP path). Skipped for single-program downloads (?program=…), matching CLI/MCP.
+  if (!programFilter) {
+    const ctx = (await getContextMap(latest.snapshot_id)) as ContextMap | undefined;
+    if (ctx) appendAutonomyLoop(generated, ctx);
+  }
 
   const files = programFilter
     /* v8 ignore next — V8 quirk: both filter paths tested */
