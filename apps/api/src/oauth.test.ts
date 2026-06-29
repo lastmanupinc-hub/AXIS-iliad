@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, createOAuthState, getAccountByGitHubId } from "@axis/snapshots";
+import { resetTestDb, createOAuthState, getAccountByGitHubId, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { resolveAuth } from "./billing.js";
 import { sendJSON } from "./router.js";
 import { resetRateLimits } from "./rate-limiter.js";
@@ -50,6 +50,7 @@ describe("OAuth API routes", () => {
     router.get("/v1/auth/github", handleGitHubOAuthStart);
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
     router.post("/v1/auth/exchange", handleOAuthExchange);
+    router.post("/v1/auth/session", handleCreateSession);
     router.post("/v1/auth/logout", handleOAuthLogout);
     // Minimal authed probe to exercise the cookie path through resolveAuth.
     router.get("/whoami", async (r, s) => {
@@ -261,5 +262,38 @@ describe("OAuth API routes", () => {
     expect(res.headers["set-cookie"]).toContain("axis_session=;");
     expect(res.headers["set-cookie"]).toContain("Max-Age=0");
     expect(res.headers["set-cookie"]).toContain("HttpOnly");
+  });
+
+  // ─── /v1/auth/session (api_key → HttpOnly cookie, H1 C2) ──────────
+
+  it("exchanges a valid api_key for the HttpOnly session cookie (no bearer needed thereafter)", async () => {
+    const account = await createAccount("Session User", "session@example.com");
+    const { rawKey } = await createApiKey(account.account_id);
+
+    const res = await req("POST", "/v1/auth/session", { api_key: rawKey });
+    expect(res.status).toBe(200);
+    const setCookie = res.headers["set-cookie"];
+    expect(setCookie).toContain("axis_session=");
+    expect(setCookie).toContain("HttpOnly");
+    expect(setCookie).toContain("SameSite=Lax");
+    expect(setCookie).toContain("Path=/");
+
+    // The cookie alone authenticates a request — no Authorization header.
+    const cookie = setCookie.split(";")[0];
+    const who = await req("GET", "/whoami", undefined, { Cookie: cookie });
+    expect(JSON.parse(who.data).anonymous).toBe(false);
+    expect(JSON.parse(who.data).account_id).toBe(account.account_id);
+  });
+
+  it("rejects an invalid api_key with 401 and sets no cookie", async () => {
+    const res = await req("POST", "/v1/auth/session", { api_key: "axis_not_a_real_key" });
+    expect(res.status).toBe(401);
+    expect(res.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("requires the api_key field (400)", async () => {
+    const res = await req("POST", "/v1/auth/session", {});
+    expect(res.status).toBe(400);
+    expect(res.headers["set-cookie"]).toBeUndefined();
   });
 });

@@ -20,7 +20,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import { getAdminStats, type SnapshotResponse } from "./api.ts";
+import { getAdminStats, migrateLegacyKey, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
@@ -252,6 +252,13 @@ export function App() {
 
   const handleAuthChange = useCallback(() => {
     setLoggedIn(!!localStorage.getItem("axis_api_key"));
+  }, []);
+
+  // One-time migration (H1 C2): a pre-cutover raw key in localStorage is exchanged for the
+  // HttpOnly axis_session cookie and replaced by a non-sensitive marker, so the key stops
+  // being XSS-readable. No-op once migrated or for cookie-only sessions.
+  useEffect(() => {
+    void migrateLegacyKey();
   }, []);
 
   useEffect(() => {

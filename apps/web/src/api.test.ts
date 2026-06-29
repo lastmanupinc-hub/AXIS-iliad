@@ -34,6 +34,9 @@ import {
   cancelSubscription,
   getPaidConfig,
   paidSubscribe,
+  establishSession,
+  markAuthed,
+  migrateLegacyKey,
   ApiError,
   type SnapshotPayload,
 } from "./api.ts";
@@ -120,6 +123,75 @@ describe("fetchJSON auth headers", () => {
 
     const [, init] = fetchFn.mock.calls[0];
     expect(init.headers["Authorization"]).toBe("Bearer axis_test123");
+  });
+});
+
+describe("session cookie cutover (H1 C2)", () => {
+  const MARKER = "__cookie_session__";
+
+  it("authHeaders sends NO Authorization for the cookie-session marker", async () => {
+    mockStorage["axis_api_key"] = MARKER;
+    const fetchFn = mockFetch({ status: "ok" });
+    vi.stubGlobal("fetch", fetchFn);
+    await healthCheck();
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.headers["Authorization"]).toBeUndefined();
+  });
+
+  it("markAuthed stores the non-sensitive marker, never a raw key", () => {
+    markAuthed();
+    expect(mockStorage["axis_api_key"]).toBe(MARKER);
+  });
+
+  it("establishSession POSTs the key to /v1/auth/session (credentials:include) and stores only the marker", async () => {
+    const fetchFn = mockFetch({ ok: true });
+    vi.stubGlobal("fetch", fetchFn);
+    await establishSession("axis_realkey");
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(String(url)).toContain("/v1/auth/session");
+    expect(init.credentials).toBe("include");
+    expect(JSON.parse(init.body)).toEqual({ api_key: "axis_realkey" });
+    expect(mockStorage["axis_api_key"]).toBe(MARKER); // raw key never persisted
+  });
+
+  it("establishSession throws and stores nothing on a rejected key", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "Invalid api_key" }, 401));
+    await expect(establishSession("bad")).rejects.toThrow();
+    expect(mockStorage["axis_api_key"]).toBeUndefined();
+  });
+
+  it("migrateLegacyKey converts a pre-cutover raw key into a cookie + marker", async () => {
+    mockStorage["axis_api_key"] = "axis_legacy";
+    const fetchFn = mockFetch({ ok: true });
+    vi.stubGlobal("fetch", fetchFn);
+    await migrateLegacyKey();
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(String(url)).toContain("/v1/auth/session");
+    expect(JSON.parse(init.body)).toEqual({ api_key: "axis_legacy" });
+    expect(mockStorage["axis_api_key"]).toBe(MARKER);
+  });
+
+  it("migrateLegacyKey is a no-op when already on the marker", async () => {
+    mockStorage["axis_api_key"] = MARKER;
+    const fetchFn = mockFetch({ ok: true });
+    vi.stubGlobal("fetch", fetchFn);
+    await migrateLegacyKey();
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("migrateLegacyKey is a no-op when logged out", async () => {
+    const fetchFn = mockFetch({ ok: true });
+    vi.stubGlobal("fetch", fetchFn);
+    await migrateLegacyKey();
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("migrateLegacyKey keeps the legacy key as a bearer fallback if the cookie can't be set", async () => {
+    mockStorage["axis_api_key"] = "axis_legacy";
+    vi.stubGlobal("fetch", mockFetch({ error: "nope" }, 500));
+    await migrateLegacyKey(); // must not throw
+    expect(mockStorage["axis_api_key"]).toBe("axis_legacy");
   });
 });
 
