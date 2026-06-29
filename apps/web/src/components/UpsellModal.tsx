@@ -112,7 +112,7 @@ export function UpsellModal({ blocked, allowed, onGoFree, onClose }: Props) {
 
           {!isAnonymous && (
             <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.8125rem", margin: 0 }}>
-              You're on the free tier. Upgrade to Pro for all 20 programs and 137 artifacts.
+              You're on the free tier. Upgrade to Pro for all 20 programs and 140 artifacts.
             </p>
           )}
         </div>

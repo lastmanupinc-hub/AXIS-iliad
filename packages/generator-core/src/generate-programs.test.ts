@@ -105,12 +105,13 @@ const PROGRAM_OUTPUTS: Record<string, string[]> = {
 };
 
 describe("generateFiles — all 20 programs produce valid output", () => {
-  const input = makeInput(Object.values(PROGRAM_OUTPUTS).flat());
+  const requestedOutputs = Object.values(PROGRAM_OUTPUTS).flat();
+  const input = makeInput(requestedOutputs);
 
-  it("generates 137 files with 0 skipped", () => {
+  it("generates one file per requested output with 0 skipped", () => {
     const result = generateFiles(input);
     expect(result.skipped).toEqual([]);
-    expect(result.files.length).toBe(137);
+    expect(result.files.length).toBe(requestedOutputs.length);
   });
 
   for (const [program, outputs] of Object.entries(PROGRAM_OUTPUTS)) {

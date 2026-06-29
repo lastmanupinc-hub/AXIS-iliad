@@ -7,6 +7,7 @@ import { scanDirectory } from "./scanner.js";
 import { run } from "./runner.js";
 import { writeGeneratedFiles } from "./writer.js";
 import { parseGitHubUrl } from "@axis/snapshots";
+import { TOTAL_GENERATORS } from "@axis/generator-core";
 
 // ─── Test fixtures ──────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ describe("runner", () => {
     expect(result.project_name).toBe("test-project");
     expect(result.elapsed_ms).toBeGreaterThanOrEqual(0);
     expect(result.generator_result.files.length).toBeGreaterThan(0);
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("detects project name from package.json", () => {
@@ -232,7 +233,7 @@ describe("runner", () => {
 
     const result = run(scan, "/tmp/mono");
     // The pipeline runs — we can check it detected something
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("detects Python frameworks from requirements.txt", () => {
@@ -247,7 +248,7 @@ describe("runner", () => {
 
     const result = run(scan, "/tmp/django-app");
     expect(result.project_name).toBe("django-app");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 });
 
@@ -344,7 +345,7 @@ describe("CLI integration", () => {
     // Run pipeline
     const result = run(scan, inputDir);
     expect(result.project_name).toBe("integration-test");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
 
     // Write output
     const written = writeGeneratedFiles(result.generator_result.files, outputDir);
@@ -386,7 +387,7 @@ describe("github via shared package", () => {
 
     const result = run(githubScan, "owner/repo");
     expect(result.project_name).toBe("remote-test");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
     expect(result.elapsed_ms).toBeGreaterThanOrEqual(0);
   });
 });
