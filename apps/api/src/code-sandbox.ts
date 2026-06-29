@@ -196,16 +196,23 @@ export function validateSandboxOptions(opts: SandboxOptions): void {
   }
 }
 
-// ─── Per-language Cmd construction ──────────────────────────────
+// ─── Per-language program delivery ──────────────────────────────
 //
-// We pass the source via stdin and exec the interpreter with "-"
-// (read from stdin) so we never have to touch the read-only
-// rootfs. Bash's `bash -s` does the same trick.
+// The program is passed base64-encoded in the AXIS_B64 env var, decoded to
+// /tmp/prog (the only writable mount) at runtime, then executed — so the
+// container's real stdin is FREE to carry the caller's runtime stdin.
+//
+// The old model ran `python3 -` (program read FROM stdin), so any supplied
+// stdin was concatenated onto the source and executed as code. base64 keeps the
+// program out of the shell command entirely (no injection); python3 is always
+// present in the image, so it's the decoder for all three languages.
 
-function cmdForLanguage(lang: SandboxLanguage): string[] {
-  if (lang === "python") return ["python3", "-"];
-  if (lang === "node") return ["node", "-"];
-  return ["bash", "-s"];
+const DECODE_TO_FILE =
+  `python3 -c 'import base64,os;open("/tmp/prog","wb").write(base64.b64decode(os.environ["AXIS_B64"]))'`;
+
+export function cmdForLanguage(lang: SandboxLanguage): string[] {
+  const interp = lang === "python" ? "python3" : lang === "node" ? "node" : "bash";
+  return ["sh", "-c", `${DECODE_TO_FILE} && exec ${interp} /tmp/prog`];
 }
 
 // ─── Output assembly with size cap ──────────────────────────────
@@ -326,7 +333,10 @@ export async function runCodeSandbox(
 
   const image = resolveImage();
   const timeoutSeconds = opts.timeout_seconds ?? DEFAULT_TIMEOUT_SECONDS;
-  const stdin = opts.code + (opts.stdin ?? "");
+  // Only the caller's runtime stdin goes to the process; the program rides in
+  // AXIS_B64 and is decoded to /tmp/prog (see cmdForLanguage). Previously this
+  // was `opts.code + (opts.stdin ?? "")`, which executed the stdin as source.
+  const stdin = opts.stdin ?? "";
 
   // Make sure the image is locally available. Pulls only on first call.
   await ensureImagePulled(_docker, image);
@@ -346,6 +356,7 @@ export async function runCodeSandbox(
   const container = await _docker.createContainer({
     Image: image,
     Cmd: cmdForLanguage(opts.language),
+    Env: [`AXIS_B64=${Buffer.from(opts.code, "utf8").toString("base64")}`],
     AttachStdin: true,
     AttachStdout: true,
     AttachStderr: true,

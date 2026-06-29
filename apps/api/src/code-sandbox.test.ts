@@ -6,6 +6,7 @@ import {
   isCodeSandboxConfigured,
   resetCodeSandboxForTests,
   resetCodeSandboxPullCacheForTests,
+  cmdForLanguage,
   type NotConfiguredResult,
   type SandboxResult,
 } from "./code-sandbox.js";
@@ -29,6 +30,28 @@ describe("code-sandbox — getCodeSandboxImage", () => {
   it("defaults to the multi-runtime nikolaik image when unset", () => {
     delete process.env.AXIS_CODE_SANDBOX_IMAGE;
     expect(getCodeSandboxImage()).toBe("nikolaik/python-nodejs:python3.12-nodejs22-slim");
+  });
+});
+
+describe("code-sandbox — cmdForLanguage (program delivery)", () => {
+  it("decodes the program from AXIS_B64 to a file and execs the interpreter on it (stdin stays free)", () => {
+    const cases: ReadonlyArray<readonly ["python" | "node" | "bash", string]> = [
+      ["python", "python3"],
+      ["node", "node"],
+      ["bash", "bash"],
+    ];
+    for (const [lang, interp] of cases) {
+      const cmd = cmdForLanguage(lang);
+      expect(cmd[0]).toBe("sh");
+      expect(cmd[1]).toBe("-c");
+      // The program rides in AXIS_B64 → /tmp/prog, not stdin.
+      expect(cmd[2]).toContain("AXIS_B64");
+      expect(cmd[2]).toContain("/tmp/prog");
+      // Exec the interpreter ON THE FILE — not `<interp> -`, which read the program FROM
+      // stdin (the bug that made supplied stdin execute as source).
+      expect(cmd[2]).toContain(`exec ${interp} /tmp/prog`);
+      expect(cmd[2]).not.toContain(`${interp} -`);
+    }
   });
 });
 
@@ -198,5 +221,18 @@ describe("code-sandbox — live Docker (only when AXIS_RUN_DOCKER_TESTS=1)", () 
     // Should fail with a name-resolution or connection error.
     expect(r.exit_code).not.toBe(0);
     expect(r.stderr).toMatch(/network|resolve|connection|gaierror|temporary failure/i);
+  }, 60_000);
+
+  it.skipIf(!shouldRun)("feeds runtime stdin to the program (not executed as source)", async () => {
+    // Pre-fix, opts.stdin was concatenated onto the source and run as code; the program
+    // here reads stdin at runtime and echoes it, proving the two channels are separate.
+    const r = await runCodeSandbox({
+      language: "python",
+      code: "import sys; print('got:' + sys.stdin.read().strip())",
+      stdin: "hello-stdin",
+    });
+    if (isNotConfigured(r)) throw new Error("docker not reachable under AXIS_RUN_DOCKER_TESTS=1");
+    expect(r.exit_code).toBe(0);
+    expect(r.stdout).toContain("got:hello-stdin");
   }, 60_000);
 });
