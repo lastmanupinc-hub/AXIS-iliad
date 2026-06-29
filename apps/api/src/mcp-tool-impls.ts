@@ -267,7 +267,7 @@ export async function runTransactionalEmail(args: Record<string, unknown>, req: 
     } catch (err) {
       throw new Error(err instanceof Error ? `iliad_transactional_email: ${err.message}` : String(err));
     }
-    meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
+    await meterMcpToolCredits(req, auth.account, "iliad_transactional_email");
     return JSON.stringify({ operation: "deliverability_setup", ...kit }, null, 2);
   }
 
@@ -762,7 +762,7 @@ export async function runDocumentParsingDispatch(args: Record<string, unknown>, 
       return JSON.stringify({ _not_configured: true, tool: "iliad_document_parsing", reason: "OCR ran but detected no text in the image." }, null, 2);
     }
     const imageBlock = await buildDocEngineerBlock(ocr.text, args.json_schema);
-    meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
+    await meterMcpToolCredits(req, auth.account, "iliad_document_parsing");
     return JSON.stringify({ format_detected: "image", markdown: ocr.text, ocr_applied: true, engineer: imageBlock }, null, 2);
   }
 

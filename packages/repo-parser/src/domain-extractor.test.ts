@@ -80,6 +80,16 @@ type UserRepository interface {
       expect(models[0].fields).toHaveLength(3);
     });
 
+    it("does not catastrophically backtrack on a huge delimiter-less line (ReDoS guard)", () => {
+      // The whole-body greedy match was O(n^2) on a long no-':' run. This must complete fast
+      // and still extract the real field below the pathological line.
+      const evil = "export interface Evil {\n  " + "a".repeat(200000) + "\n  id: string;\n}\n";
+      const t0 = Date.now();
+      const models = extractDomainModels([makeFile("src/evil.ts", evil)]);
+      expect(Date.now() - t0).toBeLessThan(1000);
+      expect(models.find((m) => m.name === "Evil")?.fields.some((f) => f.name === "id")).toBe(true);
+    });
+
     it("extracts TS type alias with object shape", () => {
       const models = extractDomainModels([
         makeFile("src/types.ts", `export type Config = {
