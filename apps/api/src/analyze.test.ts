@@ -6,6 +6,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
 import { resetTestDb, createAccount, createApiKey } from "@axis/snapshots";
 import { Router, createApp } from "./router.js";
+import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import {
   handleAnalyze,
   handleWellKnown,
@@ -458,8 +459,8 @@ describe("GET /.well-known/axis.json", () => {
   });
 
   it("reports correct programs and generators count", () => {
-    expect(manifest.programs).toBe(20);
-    expect(manifest.generators).toBe(137);
+    expect(manifest.programs).toBe(PROGRAM_COUNT);
+    expect(manifest.generators).toBe(ARTIFACT_COUNT);
   });
 
   it("includes key_outputs array with adoption guidance", () => {

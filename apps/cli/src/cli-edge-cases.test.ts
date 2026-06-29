@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { scanDirectory } from "./scanner.js";
 import { run } from "./runner.js";
 import { writeGeneratedFiles } from "./writer.js";
+import { TOTAL_GENERATORS } from "@axis/generator-core";
 
 function makeTempDir(): string {
   const dir = join(tmpdir(), `axis-edge-${randomUUID().slice(0, 8)}`);
@@ -138,7 +139,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/fallback-project");
     expect(result.project_name).toBe("fallback-project");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("falls back to directory name when package.json has no name field", () => {
@@ -153,7 +154,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/dir-name-fallback");
     expect(result.project_name).toBe("dir-name-fallback");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles fullstack web project (Next.js)", () => {
@@ -169,7 +170,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/my-next-app");
     expect(result.project_name).toBe("my-next-app");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles frontend-only project (React without meta-framework)", () => {
@@ -185,7 +186,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/react-spa");
     expect(result.project_name).toBe("react-spa");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles backend API project (Express)", () => {
@@ -201,7 +202,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/api-server");
     expect(result.project_name).toBe("api-server");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles backend API project (Django via requirements.txt)", () => {
@@ -218,7 +219,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/django-backend");
     expect(result.project_name).toBe("django-backend");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles native app project (React Native)", () => {
@@ -233,7 +234,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/my-mobile-app");
     expect(result.project_name).toBe("my-mobile-app");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles static site project (HTML without frameworks)", () => {
@@ -250,7 +251,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/static-site");
     expect(result.project_name).toBe("static-site");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles library project (default type, no frameworks)", () => {
@@ -266,7 +267,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/utils");
     expect(result.project_name).toBe("@scope/utils");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles Python-only project", () => {
@@ -282,7 +283,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/py-project");
     expect(result.project_name).toBe("py-project");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles Go project", () => {
@@ -297,7 +298,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/go-app");
     expect(result.project_name).toBe("go-app");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles Rust project", () => {
@@ -312,7 +313,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/rust-app");
     expect(result.project_name).toBe("rust-app");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("detects multiple frameworks from package.json", () => {
@@ -335,7 +336,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/full-stack");
     expect(result.project_name).toBe("full-stack");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 
   it("handles scan with zero files", () => {
@@ -343,7 +344,7 @@ describe("runner edge cases", () => {
 
     const result = run(scan, "/tmp/empty-project");
     expect(result.project_name).toBe("empty-project");
-    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(137);
+    expect(result.generator_result.files.filter((f) => f.program !== "quality" && f.program !== "begin").length).toBe(TOTAL_GENERATORS);
   });
 });
 

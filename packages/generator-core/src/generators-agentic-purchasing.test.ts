@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "./generate.js";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { SnapshotRecord, FileEntry } from "@axis/snapshots";
 import {
@@ -109,9 +110,9 @@ describe("generateProductSchema", () => {
   it("schema includes all 20 programs", () => {
     const file = generateProductSchema(ctx, profile);
     const schema = JSON.parse(file.content);
-    expect(schema.programs).toHaveLength(20);
-    expect(schema.total_programs).toBe(20);
-    expect(schema.total_outputs).toBe(137);
+    expect(schema.programs).toHaveLength(TOTAL_PROGRAMS);
+    expect(schema.total_programs).toBe(TOTAL_PROGRAMS);
+    expect(schema.total_outputs).toBe(TOTAL_GENERATORS);
   });
 
   it("schema includes required structural fields", () => {
