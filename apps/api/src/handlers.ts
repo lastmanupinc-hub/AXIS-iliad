@@ -494,6 +494,20 @@ export async function handleCreateSnapshot(
       // mppResult.status === 200 â€” payment accepted, continue to generation
     }
   } else if (auth.anonymous) {
+    // Anonymous uploads must still obey free-tier file count/size limits — the authenticated
+    // branch enforced them but the anon branch did not, allowing unbounded uploads (DoS).
+    const anonLimits = TIER_LIMITS.free;
+    if (files.length > anonLimits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`);
+      return;
+    }
+    for (const file of files) {
+      if (file.size > anonLimits.max_file_size_bytes) {
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`);
+        return;
+      }
+    }
+
     // Anonymous users get free-tier program limits
     const freeLimits = TIER_LIMITS.free;
     const anonAllowed = new Set(freeLimits.programs);

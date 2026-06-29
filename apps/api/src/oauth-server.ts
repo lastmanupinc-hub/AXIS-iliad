@@ -71,6 +71,24 @@ export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResp
     return;
   }
 
+  // Validate redirect_uri against the client's REGISTERED set. Without this, any
+  // attacker-supplied redirect_uri turns this endpoint into an open redirect (a phishing
+  // hop off a legitimate-looking AXIS URL).
+  const client = await sql.one<{ redirect_uris: string }>(
+    "SELECT redirect_uris FROM oauth_clients WHERE id = ?",
+    [clientId],
+  );
+  if (!client) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Unknown client_id");
+    return;
+  }
+  let registered: string[] = [];
+  try { registered = JSON.parse(client.redirect_uris); } catch { registered = []; }
+  if (!registered.includes(redirectUri)) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "redirect_uri is not registered for this client");
+    return;
+  }
+
   // In a real implementation, show authorization UI
   // For now, auto-approve for demo
   const code = generateAuthCode();
