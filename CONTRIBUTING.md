@@ -32,10 +32,10 @@ cd apps/web && npx vite
 
 | Path | Purpose |
 |------|---------|
-| `packages/snapshots/` | Snapshot intake, SQLite store, billing, funnel types |
+| `packages/snapshots/` | Snapshot intake, Postgres (Neon) store, billing, funnel types |
 | `packages/repo-parser/` | Language/framework detection, import graph |
 | `packages/context-engine/` | Context map and repo profile builders |
-| `packages/generator-core/` | 102 generators across 18 programs |
+| `packages/generator-core/` | 137 generators across 20 programs |
 | `apps/api/` | HTTP server (port 4000) |
 | `apps/cli/` | CLI tool (`axis analyze`, `axis github`) |
 | `apps/web/` | React SPA (Vite, port 5173) |
@@ -43,7 +43,7 @@ cd apps/web && npx vite
 ## Coding Standards
 
 - **TypeScript strict mode** — no `any`, no implicit returns, no unused variables
-- **Zero runtime dependencies** in the HTTP server — only `better-sqlite3` for persistence
+- **Lean dependencies** in the HTTP server — persistence on Neon Postgres via `pg`
 - **No external test frameworks** beyond vitest
 - **File naming**: `kebab-case.ts` for source, `kebab-case.test.ts` for tests
 - **Imports**: use `.js` extensions in import paths (Node ESM resolution)
@@ -69,7 +69,7 @@ cd apps/web && npx vite
 - For ARM64 (M1/M2 Mac): native support, no additional setup needed
 
 ### Important Notes
-- **No external databases required** — SQLite is bundled and file-based
+- **Postgres required** — set `DATABASE_URL` to a Neon (or local) Postgres instance
 - **No external services required for local development** — API runs standalone
 - **AI rate limits**: Running tests locally (via `npx vitest run`) consumes **zero** AI rate limits. Tests run purely on your CPU using Python/Node.js. No API calls, no LLM usage, zero impact on Claude/Cursor token limits.
 

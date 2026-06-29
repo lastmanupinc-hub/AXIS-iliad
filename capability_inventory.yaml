@@ -68,7 +68,7 @@ code_analysis_and_generation:
     access: [rest_api]
     tested: true
 
-# ─── 2. PROGRAM OUTPUTS (18 PROGRAMS, 86 GENERATORS) ────────────
+# ─── 2. PROGRAM OUTPUTS (20 PROGRAMS, 137 GENERATORS) ────────────
 
 programs:
 
@@ -357,13 +357,13 @@ file_operations:
     notes: "Handles multi-byte UTF-8 paths, emoji, CJK characters. 50+ files tested."
 
   full_text_search:
-    description: "Index snapshot file contents and search with FTS5 full-text search (BM25 ranked)"
+    description: "Index snapshot file contents and search with full-text search (BM25 ranked)"
     grade: A
     status: complete
     human_priority: 2_important
     access: [rest_api]
     tested: true
-    notes: "POST /v1/search/index → POST /v1/search/query. FTS5 with bm25() relevance ranking."
+    notes: "POST /v1/search/index → POST /v1/search/query. Full-text search with BM25 relevance ranking."
 
   search_stats:
     description: "GET /v1/search/:snapshot_id/stats to see indexed file and line counts"
@@ -374,7 +374,7 @@ file_operations:
     tested: true
 
   list_all_programs:
-    description: "GET /v1/programs to list all 18 programs with generator counts and tier requirements"
+    description: "GET /v1/programs to list all 20 programs with generator counts and tier requirements"
     grade: A
     status: complete
     human_priority: 2_important
@@ -794,7 +794,7 @@ known_gaps:
     access: [rest_api]
 
   web_hosting_deployment:
-    description: "Production deployment pipeline — Render (API + SQLite persistent disk) + Cloudflare Pages (SPA CDN) + GitHub Actions CI/CD"
+    description: "Production deployment pipeline — Render (API on Neon Postgres) + Cloudflare Pages (SPA CDN) + GitHub Actions CI/CD"
     grade: A
     status: complete
     human_priority: 1_critical
@@ -854,7 +854,7 @@ known_gaps:
     human_priority: 2_important
     access: [web_ui]
     tested: true
-    notes: "Search tab in DashboardPage — index button, FTS5 search input, results with file:line:content. eq_098."
+    notes: "Search tab in DashboardPage — index button, full-text search input, results with file:line:content. eq_098."
 
 # ─── SUMMARY ─────────────────────────────────────────────────────
 
@@ -881,6 +881,6 @@ summary:
       - "CLI: axis analyze, axis github, axis auth — fully functional for humans"
       - "Web UI: upload folder, paste GitHub URL, browse outputs, export ZIP"
       - "API: full REST API with OpenAPI docs at /v1/docs"
-      - "All 18 programs produce real, downloadable outputs"
+      - "All 20 programs produce real, downloadable outputs"
     blocked_for_production:
       - "No payment processing — waiting on No Fate Platform payment processor (not Stripe-direct)"

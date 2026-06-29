@@ -1,7 +1,7 @@
 # Axis' Iliad — Board & Investor Pitch
 
 > **The AI-Powered Developer Intelligence Platform**
-> 18 programs. 86 generators. One snapshot. Every output a developer needs — before they write a single line of code.
+> 20 programs. 137 generators. One snapshot. Every output a developer needs — before they write a single line of code.
 
 ---
 
@@ -42,7 +42,7 @@ Every AI code editor becomes measurably more effective when given structured `.a
 
 ---
 
-## The 18 Programs
+## The 20 Programs
 
 ### Tier 1: Free — Developer Acquisition Engine
 
@@ -336,8 +336,8 @@ These programs are permanently free. They solve universal developer problems and
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌─────────┐    ┌──────────────┐    ┌───────────────┐  │
-│  │  Upload  │───▶│  Snapshot     │───▶│  18 Programs  │  │
-│  │  Repo    │    │  Engine       │    │  86 Generators│  │
+│  │  Upload  │───▶│  Snapshot     │───▶│  20 Programs  │  │
+│  │  Repo    │    │  Engine       │    │ 137 Generators│  │
 │  └─────────┘    └──────────────┘    └───────┬───────┘  │
 │                                             │           │
 │  ┌─────────┐    ┌──────────────┐    ┌───────▼───────┐  │
@@ -351,8 +351,8 @@ These programs are permanently free. They solve universal developer problems and
 │                  └──────────────┘    └───────────────┘  │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤
-│  REST API (75 endpoints) · Web UI · CLI · OAuth         │
-│  SQLite · Webhooks · Email · Rate Limits · Metering     │
+│  REST API (143 endpoints) · Web UI · CLI · OAuth        │
+│  Neon PG · Webhooks · Email · Rate Limits · Metering    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -398,7 +398,7 @@ These programs are permanently free. They solve universal developer problems and
 | Tier | Price | Programs | Target |
 |------|-------|----------|--------|
 | **Free** | $0 | Search, Skills, Debug | Individual developers |
-| **Pro** | $29/seat/month | All 18 programs | Teams, startups |
+| **Pro** | $29/seat/month | All 20 programs | Teams, startups |
 | **Enterprise** | Custom | All + SSO + audit + SLA | Companies with AI governance requirements |
 
 ### Revenue Projections (Conservative)

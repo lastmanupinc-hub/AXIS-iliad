@@ -1,3 +1,10 @@
+# ============================================================================
+# ⚠️  SNAPSHOT — this ledger reflects state AS OF session 121 (2026-06-11) and has
+#     NOT been maintained since. Numbers below (tool/route/test counts, version) are
+#     DATED and may be stale. For current truth, read the code, not this file:
+#     apps/api/src/counts.ts → 137 artifacts · 20 programs · 29 tools · 143 endpoints;
+#     data layer is Neon Postgres (not SQLite). Treat entries below as a session-121 log.
+# ============================================================================
 project_continuation:
   version: v1
   role: live_state_ledger_and_post_session_truth
