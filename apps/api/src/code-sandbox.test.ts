@@ -47,10 +47,10 @@ describe("code-sandbox — cmdForLanguage (program delivery)", () => {
       // The program rides in AXIS_B64 → /tmp/prog, not stdin.
       expect(cmd[2]).toContain("AXIS_B64");
       expect(cmd[2]).toContain("/tmp/prog");
-      // Exec the interpreter ON THE FILE — not `<interp> -`, which read the program FROM
-      // stdin (the bug that made supplied stdin execute as source).
+      // Exec the interpreter ON THE FILE (not `<interp> -`, which read the program FROM stdin —
+      // the bug that made supplied stdin execute as source). We don't assert absence of
+      // "<interp> -" because the decode step legitimately runs `python3 -c …`.
       expect(cmd[2]).toContain(`exec ${interp} /tmp/prog`);
-      expect(cmd[2]).not.toContain(`${interp} -`);
     }
   });
 });

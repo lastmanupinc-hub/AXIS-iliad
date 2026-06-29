@@ -298,7 +298,7 @@ const OSS_REPOS: OssRepo[] = [
   { repo: "express", gh: "expressjs/express", zip: "express", lang: "JavaScript", loc: 18238, surface: 242 },
 ];
 
-const ARTIFACTS_PER_PKG = 138; // 137 deterministic + the engineer Living Architecture
+const ARTIFACTS_PER_PKG = 138; // 140 deterministic + the engineer Living Architecture
 const RATE = 90; // blended senior dev / tech-writer, $/hr (conservative)
 const BASE_HOURS = 50; // hand-produce the 138-artifact breadth (onboarding → deploy)
 const AXIS_PKG_COST = 25; // one engineer-tier package via the AXIS API
@@ -628,7 +628,7 @@ export function ExamplesPage() {
           <div>
             <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6 }}>How it works</p>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Upload your repo (zip, folder, or GitHub URL). AXIS detects 60+ languages and 10+ frameworks, builds a context graph, then fires 137 generators across 20 programs.
+              Upload your repo (zip, folder, or GitHub URL). AXIS detects 60+ languages and 10+ frameworks, builds a context graph, then fires 140 generators across 20 programs.
             </div>
           </div>
         </div>
@@ -657,7 +657,7 @@ export function ExamplesPage() {
         </h2>
         <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.7 }}>
           Upload a ZIP, select a folder, or paste a GitHub URL.
-          One scan generates 137 artifacts across 20 programs. Takes under 60 seconds.
+          One scan generates 140 artifacts across 20 programs. Takes under 60 seconds.
         </p>
         <a
           href="#upload"
