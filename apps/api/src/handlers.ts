@@ -273,6 +273,10 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
 
     const requestedOutputs = (rawOutputs as string[] | undefined) ?? defaultOutputs;
     const snapshot = await getSnapshot(snapshotId);
+    // Tenancy: an owned snapshot is only readable by its owner. Without this, any caller
+    // could pass another account's snapshot_id and receive generated artifacts that embed
+    // the victim's source (cross-tenant IDOR).
+    if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
     const result = generateFiles({
       context_map: contextMap,
       repo_profile: repoProfile,
@@ -825,6 +829,10 @@ export async function handleSearchExport(
     return;
   }
 
+  // Tenancy: an owned snapshot's artifacts are only readable by its owner (cross-tenant IDOR otherwise).
+  const snapshot = await getSnapshot(snapshotId);
+  if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
+
   const searchFiles = generated.files.filter(f => f.program === "search");
   sendJSON(res, 200, {
     snapshot_id: snapshotId,
@@ -868,6 +876,8 @@ export async function handleSkillsGenerate(
 
   const requestedOutputs = (rawOutputs as string[] | undefined) ?? ["AGENTS.md", "CLAUDE.md", ".cursorrules", "workflow-pack.md", "policy-pack.md"];
   const snapshot = await getSnapshot(snapshotId);
+  // Tenancy: an owned snapshot is only readable by its owner (cross-tenant IDOR otherwise).
+  if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
   const result = generateFiles({
     context_map: contextMap,
     repo_profile: repoProfile,
