@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { createAccount } from "../api.ts";
+import { createAccount, establishSession } from "../api.ts";
 
 interface Props {
   blocked: string[];
@@ -23,8 +23,8 @@ export function UpsellModal({ blocked, allowed, onGoFree, onClose }: Props) {
     setError(null);
     try {
       const result = await createAccount(name.trim(), email.trim());
-      localStorage.setItem("axis_api_key", result.api_key.raw_key);
-      onClose(); // close and let user retry with their new key
+      await establishSession(result.api_key.raw_key);
+      onClose(); // close and let user retry with their new session
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
     } finally {

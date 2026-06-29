@@ -16,6 +16,8 @@ import {
   revokeSeat,
   exchangeOAuthCode,
   logoutSession,
+  markAuthed,
+  establishSession,
   type Account,
   type ApiKeyInfo,
   type UsageSummary,
@@ -66,8 +68,8 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     } else if (oauthCode && oauthLogin === "github") {
       window.history.replaceState({}, "", window.location.pathname);
       exchangeOAuthCode(oauthCode)
-        .then((apiKey) => {
-          localStorage.setItem("axis_api_key", apiKey);
+        .then(() => {
+          markAuthed(); // the exchange already set the HttpOnly cookie; just record the session
           onAuthChange?.();
           window.location.reload();
         })
@@ -111,8 +113,8 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     setError(null);
     try {
       const result = await createAccount(name.trim(), email.trim());
-      localStorage.setItem("axis_api_key", result.api_key.raw_key);
-      setRevealedKey(result.api_key.raw_key);
+      await establishSession(result.api_key.raw_key);
+      setRevealedKey(result.api_key.raw_key); // shown once for the user to copy (no longer persisted)
       setAccount(result.account);
       onAuthChange?.();
       setLoading(true);
@@ -241,8 +243,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
                 if (e.key === "Enter") {
                   const val = pasteKey.trim();
                   if (val.startsWith("axis_")) {
-                    localStorage.setItem("axis_api_key", val);
-                    window.location.reload();
+                    establishSession(val)
+                      .then(() => window.location.reload())
+                      .catch(() => setError("That API key wasn't accepted. Check it and try again."));
                   }
                 }
               }}
@@ -252,8 +255,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
               onClick={() => {
                 const val = pasteKey.trim();
                 if (val.startsWith("axis_")) {
-                  localStorage.setItem("axis_api_key", val);
-                  window.location.reload();
+                  establishSession(val)
+                    .then(() => window.location.reload())
+                    .catch(() => setError("That API key wasn't accepted. Check it and try again."));
                 }
               }}
             >

@@ -310,11 +310,49 @@ export class ApiError extends Error {
   }
 }
 
+// Once a session is established, the raw key in localStorage is replaced by this non-sensitive
+// marker: the HttpOnly axis_session cookie (credentials:"include") carries auth, so the key is
+// no longer XSS-readable. A legacy raw key (pre-cutover) is still sent as a bearer fallback
+// until migrateLegacyKey() converts it to a cookie and swaps in the marker.
+const SESSION_MARKER = "__cookie_session__";
+
 function authHeaders(): Record<string, string> {
-  const key = localStorage.getItem("axis_api_key");
+  const v = localStorage.getItem("axis_api_key");
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (key) headers["Authorization"] = `Bearer ${key}`;
+  if (v && v !== SESSION_MARKER) headers["Authorization"] = `Bearer ${v}`;
   return headers;
+}
+
+/** Record that a session is active without persisting the raw key. Use when the HttpOnly
+ *  cookie is already set (e.g. right after the OAuth exchange, which sets it server-side). */
+export function markAuthed(): void {
+  localStorage.setItem("axis_api_key", SESSION_MARKER);
+}
+
+/** Exchange a raw api_key for the HttpOnly session cookie, then keep only the marker in
+ *  localStorage (never the raw key). Used by the create-account / paste-key login flows. */
+export async function establishSession(apiKey: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/v1/auth/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ api_key: apiKey }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`Session setup failed: ${res.status}`);
+  markAuthed();
+}
+
+/** One-time migration: a pre-cutover raw key in localStorage is exchanged for a cookie and
+ *  replaced by the marker, so the key stops being persisted. No-op if already migrated. */
+export async function migrateLegacyKey(): Promise<void> {
+  const v = localStorage.getItem("axis_api_key");
+  if (v && v !== SESSION_MARKER) {
+    try {
+      await establishSession(v);
+    } catch {
+      // Leave the legacy key as a bearer fallback if the cookie can't be set.
+    }
+  }
 }
 
 /** Trade a one-time OAuth code (from the callback redirect) for the API key. */

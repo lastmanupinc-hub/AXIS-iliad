@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { createAccount } from "../api.ts";
+import { createAccount, establishSession } from "../api.ts";
 
 interface Props {
   onSuccess: () => void;
@@ -24,7 +24,7 @@ export function SignUpModal({ onSuccess, onClose, allowClose = false }: Props) {
     setSubmitting(true);
     try {
       const result = await createAccount(name.trim(), email.trim());
-      localStorage.setItem("axis_api_key", result.api_key.raw_key);
+      await establishSession(result.api_key.raw_key);
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
@@ -33,11 +33,16 @@ export function SignUpModal({ onSuccess, onClose, allowClose = false }: Props) {
     }
   }
 
-  function handlePasteKey(e: FormEvent) {
+  async function handlePasteKey(e: FormEvent) {
     e.preventDefault();
     if (!pasteKey.trim()) return;
-    localStorage.setItem("axis_api_key", pasteKey.trim());
-    onSuccess();
+    setError(null);
+    try {
+      await establishSession(pasteKey.trim());
+      onSuccess();
+    } catch {
+      setError("That API key wasn't accepted. Check it and try again.");
+    }
   }
 
   return (

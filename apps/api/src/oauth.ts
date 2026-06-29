@@ -12,6 +12,7 @@ import {
   getGitHubUser,
   upsertAccountByGitHub,
   saveGitHubToken,
+  resolveApiKey,
 } from "@axis/snapshots";
 
 function getOAuthConfig() {
@@ -161,6 +162,35 @@ export async function handleOAuthExchange(
   // body key is used (kept for backward compatibility during the cutover).
   res.setHeader("Set-Cookie", sessionCookie(encodeURIComponent(rawKey), SESSION_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
   sendJSON(res, 200, { api_key: rawKey });
+}
+
+/** POST /v1/auth/session — exchange a raw api_key for the first-party HttpOnly session cookie,
+ *  so the web (create-account / paste-key flows) never has to persist the bearer in localStorage.
+ *  The key is validated first; the cookie value is the key (read back by resolveAuth). */
+export async function handleCreateSession(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  let body: { api_key?: unknown };
+  try {
+    body = JSON.parse(await readBody(req));
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+  const apiKey = body.api_key;
+  if (typeof apiKey !== "string" || !apiKey) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "api_key is required");
+    return;
+  }
+  const resolved = await resolveApiKey(apiKey);
+  if (!resolved) {
+    sendError(res, 401, ErrorCode.AUTH_REQUIRED, "Invalid api_key");
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Set-Cookie", sessionCookie(encodeURIComponent(apiKey), SESSION_COOKIE_MAX_AGE_S, getOAuthConfig().webAppUrl));
+  sendJSON(res, 200, { ok: true });
 }
 
 /** POST /v1/auth/logout — clear the first-party session cookie (HttpOnly, so it must be cleared server-side). */
