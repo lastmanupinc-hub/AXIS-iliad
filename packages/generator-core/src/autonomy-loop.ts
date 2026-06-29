@@ -251,6 +251,10 @@ function continueFooter(path: string, idx: number, mdTotal: number, next: string
 export function appendAutonomyLoop(generated: GeneratorResult, ctx: ContextMap): void {
   try {
     if (!generated.files.length) return;
+    // Idempotent: begin.yaml present ⇒ the loop (footers + continuation.yaml) was already
+    // woven in by an earlier call. Safe to call at generation AND again at export over a
+    // stored package (e.g. one produced by the MCP path) without double-footering.
+    if (generated.files.some((f) => f.path === "begin.yaml")) return;
     // 1. Footer every markdown artifact; the last markdown one carries the self-prompt.
     const md = generated.files.filter(isMarkdown);
     md.forEach((f, i) => {

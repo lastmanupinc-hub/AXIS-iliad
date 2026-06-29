@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { resetTestDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap } from "@axis/snapshots";
+import type { ContextMap } from "@axis/context-engine";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -258,5 +259,61 @@ describe("ZIP with multi-byte UTF-8 paths", () => {
     expect(entries.length).toBe(2);
     expect(entries.some(e => e.path.includes("🚀"))).toBe(true);
     expect(entries.some(e => e.path.includes("数据"))).toBe(true);
+  });
+});
+
+// ─── Begin-loop in the full-pack export ─────────────────────────
+
+describe("export weaves in the begin-loop (full pack only)", () => {
+  let loopProjectId = "";
+
+  beforeAll(async () => {
+    const snap = await createSnapshot({
+      input_method: "repo_snapshot_upload",
+      manifest: { project_name: "loop-export", project_type: "web", frameworks: [], goals: [], requested_outputs: [] },
+      files: [{ path: "seed.ts", content: "x", size: 1 }],
+    });
+    loopProjectId = snap.project_id;
+    // A stored context map is what lets the export build begin.yaml/continuation.yaml.
+    await saveContextMap(snap.snapshot_id, {
+      version: "v1", // getContextMap rejects maps without version/snapshot_id/project_id/project_identity
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      generated_at: "1970-01-01T00:00:00.000Z",
+      project_identity: { name: "loop-export" },
+      detection: { frameworks: [{ name: "React" }], languages: ["TypeScript"], test_frameworks: [] },
+      ai_context: { warnings: ["No test files detected"] },
+      dependency_graph: { hotspots: [{ path: "src/auth.ts" }] },
+    } as unknown as ContextMap);
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: "1970-01-01T00:00:00.000Z",
+      files: [
+        { path: "AGENTS.md", content: "# Agents\nbody", content_type: "text/markdown", program: "skills", description: "x" },
+        { path: "context-map.json", content: "{}", content_type: "application/json", program: "search", description: "y" },
+        { path: "debug-playbook.md", content: "# Debug\nbody", content_type: "text/markdown", program: "debug", description: "z" },
+      ],
+    } as never);
+  });
+
+  it("full-pack ZIP includes begin.yaml + continuation.yaml + a Continue footer", async () => {
+    const res = await rawReq("GET", `/v1/projects/${loopProjectId}/export`);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    const paths = entries.map(e => e.path);
+    expect(paths).toContain("begin.yaml");
+    expect(paths).toContain("continuation.yaml");
+    // The markdown artifacts got the continuation footer — the loop is woven in.
+    expect(entries.find(e => e.path === "AGENTS.md")!.content).toContain("Continue the loop");
+    // begin.yaml carries the convergent loop head.
+    expect(entries.find(e => e.path === "begin.yaml")!.content).toContain("no_open_candidates_remain");
+  });
+
+  it("a single-program (?program=) download does NOT include the loop", async () => {
+    const res = await rawReq("GET", `/v1/projects/${loopProjectId}/export?program=debug`);
+    expect(res.status).toBe(200);
+    const paths = parseZip(res.body).map(e => e.path);
+    expect(paths).not.toContain("begin.yaml");
+    expect(paths).not.toContain("continuation.yaml");
   });
 });
