@@ -63,7 +63,7 @@ odyssey-v3-*, slate, the gauntlet, RUUUUN!!!, frontend, mcp.
 | Novel | Toolbox | `AXIS_TOOLBOX_CLI` (filesystem path) | local CLI call, no network |
 | Iliad + Odyssey | Tempo chain | `TEMPO_TESTNET`, `TEMPO_RECIPIENT_ADDRESS` | crypto payout rail |
 
-**Databases (fragmented):** PAI'D → Neon · Iliad → SQLite **migrating to Neon** (`DATABASE_URL`/`PG*`)
+**Databases (fragmented):** PAI'D → Neon · Iliad → **Neon** (`DATABASE_URL`/`PG*`)
 · Odyssey → SQLite (`DATABASE_PATH`) · Chlover → Supabase · Novel → SQLite.
 
 **Auth (duplicated):** GitHub OAuth in Iliad, Odyssey, Avatar (each its own
