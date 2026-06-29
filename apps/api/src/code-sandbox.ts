@@ -54,7 +54,7 @@ export interface SandboxResult {
 
 export interface NotConfiguredResult {
   _not_configured: true;
-  reason: "docker_daemon_unreachable" | "dockerode_import_failed" | "disabled";
+  reason: "docker_daemon_unreachable" | "dockerode_import_failed" | "disabled" | "sandbox_busy";
   detail: string;
   remediation: string;
 }
@@ -69,6 +69,10 @@ const DEFAULT_NANO_CPUS = 500_000_000;      // 0.5 CPU
 const DEFAULT_PIDS_LIMIT = 64;
 const TMPFS_BYTES = 16_777_216;          // 16 MiB
 const OUTPUT_CAP_BYTES = 1_048_576;      // truncate stdout/stderr at 1 MiB
+// Aggregate concurrency cap — each run reserves memory/CPU, so unbounded concurrent runs
+// exhaust the host. Released in the finally regardless of how a run exits.
+const SANDBOX_MAX_CONCURRENT = Math.max(1, parseInt(process.env.AXIS_SANDBOX_MAX_CONCURRENT ?? "4", 10));
+let activeSandboxes = 0;
 
 function resolveImage(): string {
   const env = process.env.AXIS_CODE_SANDBOX_IMAGE;
@@ -327,6 +331,18 @@ export async function runCodeSandbox(
   // Make sure the image is locally available. Pulls only on first call.
   await ensureImagePulled(_docker, image);
 
+  // Reject when at the aggregate concurrency cap (host CPU/RAM protection). The counter is
+  // released in the finally below no matter how this run exits.
+  if (activeSandboxes >= SANDBOX_MAX_CONCURRENT) {
+    return {
+      _not_configured: true,
+      reason: "sandbox_busy",
+      detail: `Too many concurrent sandbox runs (limit ${SANDBOX_MAX_CONCURRENT}).`,
+      remediation: "Retry shortly, or raise AXIS_SANDBOX_MAX_CONCURRENT.",
+    };
+  }
+  activeSandboxes++;
+  try {
   const container = await _docker.createContainer({
     Image: image,
     Cmd: cmdForLanguage(opts.language),
@@ -419,6 +435,9 @@ export async function runCodeSandbox(
     } catch {
       // Container may already be gone; that's fine.
     }
+  }
+  } finally {
+    activeSandboxes--;
   }
 }
 

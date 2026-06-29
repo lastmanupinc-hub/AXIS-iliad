@@ -58,16 +58,38 @@ export async function applySuiteMonthlyGrant(account_id: string, tier: BillingTi
   if (tier !== "suite") return null;
 
   const month = new Date().toISOString().slice(0, 7); // "YYYY-MM"
-  const alreadyGranted = await sql.one(
-    `SELECT 1 FROM persistence_credits
-       WHERE account_id = ? AND operation = 'suite_monthly_grant'
-         AND created_at >= ? AND created_at < ?`,
-    [account_id, `${month}-01`, `${month}-32`],
-  );
+  // Check-then-insert over the append-only ledger: two concurrent calls (e.g. parallel
+  // GET /v1/account/credits) both pass the "already granted?" check and double-grant.
+  // Serialize per-account with a tx-scoped advisory lock (namespace 3 = suite grant),
+  // mirroring meterPersistenceOp (namespace 1); the lock releases at COMMIT.
+  return await sql.tx<number | null>(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(3, hashtext($1))", [account_id]);
 
-  if (alreadyGranted) return null;
+    const granted = await client.query(
+      `SELECT 1 FROM persistence_credits
+         WHERE account_id = $1 AND operation = 'suite_monthly_grant'
+           AND created_at >= $2 AND created_at < $3 LIMIT 1`,
+      [account_id, `${month}-01`, `${month}-32`],
+    );
+    if (granted.rows.length > 0) return null;
 
-  return await addPersistenceCredits(account_id, SUITE_MONTHLY_PERSISTENCE_CREDITS, "suite_monthly_grant");
+    const balRow = await client.query<{ bal: string | number | null }>(
+      "SELECT COALESCE(SUM(credits_delta), 0) AS bal FROM persistence_credits WHERE account_id = $1",
+      [account_id],
+    );
+    const balance_after = Math.max(0, Number(balRow.rows[0]?.bal ?? 0)) + SUITE_MONTHLY_PERSISTENCE_CREDITS;
+
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO persistence_credits
+             (credit_id, account_id, credits_delta, operation, snapshot_id, balance_after, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ),
+      [randomUUID(), account_id, SUITE_MONTHLY_PERSISTENCE_CREDITS, "suite_monthly_grant", null, balance_after, new Date().toISOString()],
+    );
+
+    return balance_after;
+  });
 }
 
 // ─── Metering ────────────────────────────────────────────────────
