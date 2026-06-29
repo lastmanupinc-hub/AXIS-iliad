@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import { resetTestDb, sql, recordUsage } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleCreateSnapshot, handleGetSnapshot } from "./handlers.js";
+import { handleCreateSnapshot, handleGetSnapshot, makeProgramHandler, handleSkillsGenerate, handleSearchExport } from "./handlers.js";
 import { handleCreateAccount, handleUpdateTier } from "./billing.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
@@ -57,6 +57,11 @@ beforeAll(async () => {
   router.get("/v1/snapshots/:snapshot_id", handleGetSnapshot);
   router.post("/v1/accounts", handleCreateAccount);
   router.post("/v1/account/tier", handleUpdateTier);
+  // Endpoints from the security audit's IDOR cluster (debug is a FREE program, so
+  // makeProgramHandler reaches the ownership check without a billing gate masking it).
+  router.post("/v1/debug/analyze", makeProgramHandler("debug", ["debug-playbook.md"]));
+  router.post("/v1/skills/generate", handleSkillsGenerate);
+  router.post("/v1/search/export", handleSearchExport);
 
   const ts = await startTestServer(router);
   server = ts.server;
@@ -354,4 +359,44 @@ describe("snapshot retrieval", () => {
     expect(r.data.file_count).toBe(1);
     expect(r.data.manifest).toBeTruthy();
   });
+});
+
+// ─── Cross-tenant IDOR (security audit remediation) ─────────────
+// Generation/export endpoints take a user-supplied snapshot_id; an OWNED snapshot must
+// only be readable by its owner, or a caller could harvest artifacts that embed the
+// victim's source. Anonymous (unowned) snapshots stay shareable by ID, by design.
+
+describe("tenancy — owned snapshots resist cross-tenant reads", () => {
+  let ownerKey = "";
+  let attackerKey = "";
+  let ownedId = "";
+  let anonId = "";
+
+  beforeAll(async () => {
+    ownerKey = (await createTestAccount("idor-owner", "idor-owner@test.com")).key;
+    attackerKey = (await createTestAccount("idor-attacker", "idor-attacker@test.com")).key;
+    ownedId = (await req("POST", "/v1/snapshots", validSnapshot("idor-owned"), ownerKey)).data.snapshot_id as string;
+    anonId = (await req("POST", "/v1/snapshots", validSnapshot("idor-anon"))).data.snapshot_id as string;
+  });
+
+  const ENDPOINTS = ["/v1/debug/analyze", "/v1/skills/generate", "/v1/search/export"];
+
+  for (const path of ENDPOINTS) {
+    it(`${path} — 401 for an anonymous caller against an owned snapshot`, async () => {
+      const r = await req("POST", path, { snapshot_id: ownedId });
+      expect(r.status).toBe(401);
+    });
+    it(`${path} — 404 for a different account against an owned snapshot`, async () => {
+      const r = await req("POST", path, { snapshot_id: ownedId }, attackerKey);
+      expect(r.status).toBe(404);
+    });
+    it(`${path} — 200 for the owner`, async () => {
+      const r = await req("POST", path, { snapshot_id: ownedId }, ownerKey);
+      expect(r.status).toBe(200);
+    });
+    it(`${path} — 200 serving an anonymous (unowned) snapshot to anyone (unchanged)`, async () => {
+      const r = await req("POST", path, { snapshot_id: anonId }, attackerKey);
+      expect(r.status).toBe(200);
+    });
+  }
 });
