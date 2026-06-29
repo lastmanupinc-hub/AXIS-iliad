@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { resetTestDb } from "@axis/snapshots";
-import { Router, createApp, sendJSON } from "./router.js";
+import { Router, sendJSON } from "./router.js";
+import { startTestServer } from "./test-helpers.js";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-const TEST_PORT = 44426;
+let testPort = 0;
 let server: Server;
 
 interface Res { status: number; headers: Record<string, string>; body: string }
@@ -12,7 +13,7 @@ interface Res { status: number; headers: Record<string, string>; body: string }
 function rawReq(method: string, path: string, body?: string): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -36,7 +37,7 @@ function rawReq(method: string, path: string, body?: string): Promise<Res> {
 function slowReq(method: string, path: string): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: TEST_PORT, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -70,8 +71,11 @@ beforeAll(async () => {
     }
   });
 
-  server = createApp(router, TEST_PORT);
-  await new Promise((r) => setTimeout(r, 200));
+  // Ephemeral port + deterministic readiness (awaits 'listening') — replaces the racy
+  // fixed-port + 200ms-sleep that intermittently ECONNREFUSED'd under CI --coverage load.
+  const ts = await startTestServer(router);
+  server = ts.server;
+  testPort = ts.port;
 });
 
 afterAll(async () => {
