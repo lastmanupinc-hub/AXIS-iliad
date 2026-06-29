@@ -193,9 +193,12 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
   const isPro = !FREE_PROGRAMS.has(program);
 
   return async function (req: IncomingMessage, res: ServerResponse): Promise<void> {
-    // Billing gate for pro programs ï¿½ $0.50 per call
+    // Authn gate for pro programs, resolved up front so unauthenticated callers are rejected
+    // before any request body is read (avoids leaking snapshot existence to anonymous callers).
+    let auth: Awaited<ReturnType<typeof resolveAuth>> | null = null;
+    let enabled = false;
     if (isPro) {
-      const auth = await resolveAuth(req);
+      auth = await resolveAuth(req);
 
       // Require authentication for pro programs
       if (auth.anonymous || !auth.account) {
@@ -204,43 +207,13 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
       }
 
       // Check if program is enabled for this account
-      const enabled = await isProgramEnabled(auth.account.account_id, program);
+      enabled = await isProgramEnabled(auth.account.account_id, program);
       if (!enabled) {
         await trackEvent(auth.account.account_id, "limit_reached", "limit_hit", {
           reason: `program_not_enabled:${program}`,
           source: "program_handler",
         });
       }
-
-      const budget = parseAgentBudget(req);
-      const mode = resolveAgentMode(req);
-      const pricing = getPricingTier(program);
-      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
-
-      // Meter monthly credits first. If overage remains, offer MPP payment.
-      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
-        currency: "usd",
-        decimals: 2,
-        description: `AXIS ${program} - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
-        meta: { account_id: auth.account.account_id, tier: auth.account.tier, program, tool: program, mode },
-      });
-
-      if (mppResult === null) {
-        // MPP not configured ï¿½ return 402 with negotiation data
-        const paymentMessage = enabled
-          ? `${program} exceeded included monthly credits and requires overage payment. Upgrade at iliad.trustfabric.ai/billing.`
-          : `${program} requires a paid plan or per-call payment. Upgrade at iliad.trustfabric.ai/billing.`;
-        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
-          program,
-          tier: auth.account.tier,
-          price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-          ...(await buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id)),
-        });
-      }
-      // 402 challenge issued or payment failed ï¿½ stop processing
-      if (mppResult === null || mppResult.status === 402) return;
-
-      // mppResult.status === 200 ï¿½ covered by included credits or overage payment accepted.
     }
 
     const raw = await readBody(req);
@@ -277,6 +250,37 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
     // could pass another account's snapshot_id and receive generated artifacts that embed
     // the victim's source (cross-tenant IDOR).
     if (snapshot && !(await assertSnapshotAccess(req, res, snapshot))) return;
+
+    // Charge only now that the request is validated — a 400/404/cross-tenant rejection above
+    // returns before any billing, so callers are never charged for output they never receive
+    // (audit #11 over-charge). A generation failure after this point is the rare residual case.
+    if (isPro && auth?.account) {
+      const budget = parseAgentBudget(req);
+      const mode = resolveAgentMode(req);
+      const pricing = getPricingTier(program);
+      const amountCents = mode === "lite" ? pricing.lite_cents : pricing.standard_cents;
+
+      // Meter monthly credits first. If overage remains, offer MPP payment.
+      const mppResult = await chargeWithDiscounts(req, res, auth.account.account_id, amountCents, {
+        currency: "usd",
+        decimals: 2,
+        description: `AXIS ${program} - $${(amountCents / 100).toFixed(2)} per run (${mode})`,
+        meta: { account_id: auth.account.account_id, tier: auth.account.tier, program, tool: program, mode },
+      });
+
+      if (mppResult === null) {
+        const paymentMessage = enabled
+          ? `${program} exceeded included monthly credits and requires overage payment. Upgrade at iliad.trustfabric.ai/billing.`
+          : `${program} requires a paid plan or per-call payment. Upgrade at iliad.trustfabric.ai/billing.`;
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+          program,
+          tier: auth.account.tier,
+          price_per_call: `$${(amountCents / 100).toFixed(2)}`,
+          ...(await buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id)),
+        });
+      }
+      if (mppResult === null || mppResult.status === 402) return;
+    }
     const result = generateFiles({
       context_map: contextMap,
       repo_profile: repoProfile,
