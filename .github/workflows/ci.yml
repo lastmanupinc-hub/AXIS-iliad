@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# Only the newest run per ref survives. For main this means the latest merge's
+# build+deploy wins the :latest tag (no race between concurrent merges); for PRs
+# it cancels runs superseded by a newer push.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   packages: write
@@ -146,6 +153,30 @@ jobs:
         run: |
           docker push ghcr.io/lastmanupinc-hub/axis-api:latest
           docker push ghcr.io/lastmanupinc-hub/axis-api:${{ github.sha }}
+
+  # ── Deploy API to Render ──────────────────────────────────────────
+  # Render serves the image built+pushed above. This job triggers the pull via a
+  # Render Deploy Hook so every merge to main auto-deploys (replacing the manual
+  # API trigger). Add the RENDER_DEPLOY_HOOK_URL repo secret (Render → axis-api →
+  # Settings → Deploy Hook). Until it's set, this job warns and passes — it never
+  # blocks CI. Combined with the concurrency group above, only the newest merge's
+  # image is deployed, so there is no :latest race.
+  deploy-api:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Render deploy of the freshly-pushed image
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_URL not set — skipping auto-deploy. Add it under Settings → Secrets → Actions (create the hook in Render → axis-api → Settings → Deploy Hook)."
+            exit 0
+          fi
+          code=$(curl -sS -X POST -o /dev/null -w "%{http_code}" "$RENDER_DEPLOY_HOOK_URL")
+          echo "Render deploy hook → HTTP $code"
+          test "$code" = "200"
 
   # G��G�� Deploy API to Render G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��G��
   # Render pulls the pre-built image from ghcr.io/lastmanupinc-hub/axis-api:latest
