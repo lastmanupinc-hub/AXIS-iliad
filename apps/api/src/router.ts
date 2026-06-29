@@ -299,6 +299,9 @@ export function createApp(router: Router, port: number): Server {
     res.setHeader("Access-Control-Max-Age", "86400"); // cache preflight for 24h
     if (corsOrigin !== "*") {
       res.setHeader("Vary", "Origin");
+      // Let the browser send the HttpOnly axis_session cookie on cross-origin requests
+      // (web origin → the api.iliad.* sibling). Valid only with a specific origin, never "*".
+      res.setHeader("Access-Control-Allow-Credentials", "true");
     }
 
     if (req.method === "OPTIONS") {
