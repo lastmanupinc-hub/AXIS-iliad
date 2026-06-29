@@ -14,6 +14,66 @@
 
 ---
 
+## Reconciliation vs runtime — 2026-06-29 (authoritative)
+
+A 56-candidate runtime-verification sweep (one read-only agent per candidate, evidence-cited)
+bumped this list + `HARDENING_AUDIT.md` + `ILIAD_PRODUCT_READINESS_SCORECARD.yaml` against the
+actual code. **Tier A (13) and Tier E (E0–E12) confirmed intact — no regression.** 23 of 56
+candidate labels were stale. This section is the current source of truth; the dated tier tables
+below are preserved as history (do not trust their Status columns over this section).
+
+**Closed — verified DONE in code (were listed open/partial):**
+
+- **T1-3 pricing-tiers** — all 6 `iliad_*` tools priced (`packages/mpp/src/index.ts:128-188`).
+- **T1-4 mpp-402-wiring** — owned tools wired into the authorize→capture 402 path.
+- **T1-6 subprocessor-list** — `PRIVACY_POLICY.md` §4 enumerates all subprocessors.
+- **T2-22 pricing-page-audit · T2-23 tools-index-honesty · T2-24 plans-auto-fetch · T2-26 nested-file-route** — all met (`:file_path*` wildcard route).
+- **T2-25 api-key button** — controlled state (commit `19dca02`), supersedes the useRef ask.
+- **T2-28 changelog · T3-40 dark-mode** — present/complete.
+- **HARDENING: rate-limit XFF** (trusted-proxy-aware `TRUSTED_PROXY_HOPS`), **PDF/DOCX DoS** (500-page cap + 20s timeout), **SSRF guard** (`url-guard.ts` wired into doc-parsing + STT) — DONE. The scorecard's PI-03 was right; HARDENING's line refs were stale.
+- **Scorecard CP-01 artifact-quality gate** — exists in generator-core + runs in CI.
+
+**Obsolete / superseded (drop from backlog):**
+
+- **T1-1 catalog-honesty-1** — the "hide stubs behind `?include_planned`" design was rejected for build-not-redact; `PLANNED_CAPABILITIES` is empty (`apps/api/src/mcp-tools.ts:32`).
+- **T1-12 db-backup-automation** — framed as `axis.db`→R2; the app is on **Neon** (managed PITR). Re-scope only if a logical export is wanted.
+
+**Still genuinely open (Tier 1/2/3 code):** privacy-policy *page* (T1-5 — content exists in
+`PRIVACY_POLICY.md`, no `PrivacyPage.tsx` route), provider-chips (T1-2), web-research-owned
+(T2-17, still Firecrawl), email-owned (T2-18, still Resend), landing page (T2-21, partial),
+`INCIDENT.md` (T1-15), license-aggregation (T2-29), embeddings-owned **core** (T3-34 — E12
+shipped only the dep-free post-processing layer; inference still proxies OpenAI), SLO doc
+(T3-45), npm-publish activation (T1-9/10 — sdk needs README+LICENSE and to drop `private:true`),
+prod-env-audit checklist (T1-11), graceful-shutdown load-test report (T3-39).
+
+**Manual / external (not provable from the repo; in-repo prep done):** github-app *registration*
+(T1-7), mcp-registry publish (T1-8), npm publish (T1-9/10), uptime monitor (T1-13), resend domain
+verify (T1-14), demo video (T1-16), status page (T2-19), log aggregation (T2-27),
+marketplace/glama/smithery (T2-30/31), sample repo + press kit (T2-32/33), on-call/DPA/trademark
+(T3-35/37/38), social posts (T3-41/42/43). _(T1-16, T1-14, T2-20 prom-scraper, T3-36 secret-rotation-runbook were the 5 agents that didn't emit a verdict; classified here by inspection — all manual/doc except T3-36 which is a not-started `RUNBOOK.md` section.)_
+
+**Scorecard north-star unchanged:** the real bottleneck is **monetization execution
+(ME-01/02 = 4.3/10)** — zero tracked paying users. No code candidate below moves it; it is a
+distribution/activation problem.
+
+## Tier H — Security & Engineering backlog (captured 2026-06-29 from HARDENING_AUDIT + scorecard)
+
+These were open in `HARDENING_AUDIT.md` / the scorecard's `action_items` but were **not** previously
+numbered candidates — capturing them here so the candidate list holds *all* remaining code work.
+
+| # | ID | Title | Sev | Status · evidence |
+|---|----|-------|-----|-------------------|
+| H1 | cookie-cutover-bc | Finish the session-cookie cutover Stages B/C: serve API same-site, frontend stops persisting the bearer in `localStorage` and uses `credentials:"include"`. Stage A landed (`oauth.ts:162` HttpOnly cookie). | HIGH | partial — XSS-exposed localStorage bearer remains |
+| H2 | sandbox-stdin | `code-sandbox.ts:329` concatenates `code + (stdin ?? "")` into one stream → runtime stdin is executed as source. Deliver stdin separately from the program. | MED | not-started |
+| H3 | paid-client-parse | `paid-client.ts` `JSON.parse` on a 200 response isn't wrapped → a malformed PAI'D body throws raw instead of `PaidError`. (+ `import-resolver.ts` root-relative `resolveImportPath`; `applyReferralDiscount` dead-returns-0.) | LOW | partial |
+| H4 | metrics-alerting | No automated threshold ALERTING on the metrics already emitted (error-rate / p99 / health to a channel). Scorecard PI-01 — "cheapest real gain." | MED | not-started |
+| H5 | abuse-detection | No per-IP / per-account spike/anomaly DETECTION layer on top of the rate limiter (limits are enforced; spikes aren't flagged). Scorecard PI-03. | LOW | partial |
+
+**Tier H build order (risk-ranked):** H1 (auth/XSS exposure) → H4 (ops blind spot) → H2 (sandbox correctness) → H5 → H3.
+
+
+---
+
 ## Tier A — Audit Remediation (adversarial assessment 2026-06-25)
 
 **Source**: a 29-agent adversarial assessment that *ran* the system (build, CLI, server boot, reproduced billing races). Overall grade **B−** — strong, secure (Security **A**), deterministic core; the items below are the *verified* gaps. Ranked by production risk — **A1 (billing concurrency) is the #1 liability** for a billing product.
