@@ -154,13 +154,16 @@ export async function readBody(req: IncomingMessage): Promise<string> {
       const encoding = req.headers?.["content-encoding"];
       if (encoding === "gzip") {
         try {
-          const decompressed = gunzipSync(raw);
-          if (decompressed.length > maxSize) {
+          // Cap decompressed output so a gzip bomb (tiny payload → GBs) can't allocate
+          // unbounded memory BEFORE a post-hoc size check. gunzipSync throws
+          // ERR_BUFFER_TOO_LARGE once output exceeds the cap.
+          const decompressed = gunzipSync(raw, { maxOutputLength: maxSize });
+          resolve(decompressed.toString("utf-8"));
+        } catch (err) {
+          if ((err as { code?: string })?.code === "ERR_BUFFER_TOO_LARGE") {
             reject(new Error("Request body too large"));
             return;
           }
-          resolve(decompressed.toString("utf-8"));
-        } catch {
           // Proxy may have already decompressed — try raw
           resolve(raw.toString("utf-8"));
         }

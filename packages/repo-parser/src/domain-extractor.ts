@@ -145,10 +145,19 @@ function extractTSModels(file: FileEntry): DomainModel[] {
 
 function parseTSFields(body: string): Array<{ name: string; type: string }> {
   const fields: Array<{ name: string; type: string }> = [];
+  // Match per LINE, not over the whole interface body: running the greedy pattern across a
+  // large body backtracks quadratically on a missing terminator (ReDoS on attacker .ts
+  // content). Per-line bounds each match to one line, like parseGoFields/parsePyFields.
   const fieldPattern = /(\w+)\??\s*:\s*([^;]+)/g;
-  let match: RegExpExecArray | null;
-  while ((match = fieldPattern.exec(body)) !== null) {
-    fields.push({ name: match[1], type: match[2].trim() });
+  for (const line of body.split("\n")) {
+    // Real field lines are short; a long delimiter-less run is the ReDoS trigger (the greedy
+    // \w+ backtracks quadratically before failing to find ':'). Skip pathological lines.
+    if (line.length > 2000) continue;
+    fieldPattern.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = fieldPattern.exec(line)) !== null) {
+      fields.push({ name: match[1], type: match[2].trim() });
+    }
   }
   return fields;
 }
