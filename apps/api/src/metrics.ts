@@ -17,6 +17,11 @@ export function recordRequest(statusCode: number): void {
   statusCounts[bucket] = (statusCounts[bucket] ?? 0) + 1;
 }
 
+/** Point-in-time copy of the cumulative request counters (for the alerting evaluator). */
+export function getMetricsSnapshot(): { requestCount: number; errorCount: number; statusCounts: Record<string, number> } {
+  return { requestCount, errorCount, statusCounts: { ...statusCounts } };
+}
+
 // ─── Latency Histogram ─────────────────────────────────────────
 
 const HISTOGRAM_BUCKETS = [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];

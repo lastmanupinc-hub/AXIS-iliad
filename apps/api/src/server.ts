@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
+import { startAlerting } from "./alerting.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -479,3 +480,7 @@ router.post("/portal/api/paid/webhook", handlePaidWebhook);
 const port = parseInt(process.env.PORT ?? "4000", 10);
 /* v8 ignore next */
 export const app = createApp(router, port);
+
+// Opt-in threshold alerting on the metrics already emitted (no-op without ALERT_WEBHOOK_URL).
+/* v8 ignore next */
+startAlerting();
