@@ -15,6 +15,7 @@ import {
   inviteSeat,
   revokeSeat,
   exchangeOAuthCode,
+  logoutSession,
   type Account,
   type ApiKeyInfo,
   type UsageSummary,
@@ -146,6 +147,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   }
 
   function handleLogout() {
+    void logoutSession(); // clear the HttpOnly axis_session cookie server-side (best-effort)
     localStorage.removeItem("axis_api_key");
     setAccount(null);
     setKeys([]);
