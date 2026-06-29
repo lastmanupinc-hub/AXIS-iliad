@@ -55,12 +55,8 @@ COPY --from=builder /app/packages/generator-core/dist packages/generator-core/di
 
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Persistent SQLite data volume
-RUN mkdir -p /data && chown -R axis:axis /data
-
 ENV NODE_ENV=production
 ENV PORT=4000
-ENV DATABASE_PATH=/data/axis.db
 
 EXPOSE 4000
 

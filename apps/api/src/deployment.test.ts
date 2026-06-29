@@ -38,9 +38,8 @@ describe("render.yaml", () => {
     expect(content).toContain("sizeGB:");
   });
 
-  it("sets DATABASE_PATH to /data/axis.db", () => {
-    expect(content).toContain("DATABASE_PATH");
-    expect(content).toContain("/data/axis.db");
+  it("declares DATABASE_URL for the Neon data layer", () => {
+    expect(content).toContain("DATABASE_URL");
   });
 
   it("configures production NODE_ENV", () => {
@@ -69,7 +68,7 @@ describe(".env.example", () => {
 
   it("documents all ENV_SPEC keys", () => {
     const specKeys = [
-      "PORT", "NODE_ENV", "DATABASE_PATH", "LOG_LEVEL", "CORS_ORIGIN",
+      "PORT", "NODE_ENV", "DATABASE_URL", "LOG_LEVEL", "CORS_ORIGIN",
       "RATE_LIMIT_WINDOW_MS", "RATE_LIMIT_MAX_REQUESTS", "RATE_LIMIT_MAX_AUTHENTICATED",
       "SHUTDOWN_TIMEOUT_MS", "REQUEST_TIMEOUT_MS", "MAX_BODY_BYTES",
     ];
@@ -81,10 +80,6 @@ describe(".env.example", () => {
   it("includes OAuth configuration section", () => {
     expect(content).toContain("GITHUB_CLIENT_ID");
     expect(content).toContain("GITHUB_CLIENT_SECRET");
-  });
-
-  it("documents Render persistent disk path", () => {
-    expect(content).toContain("/data/axis.db");
   });
 
   it("warns about CORS_ORIGIN for production", () => {
@@ -193,8 +188,8 @@ describe("docker-compose.yml", () => {
     expect(content).toContain("axis-data:/data");
   });
 
-  it("sets DATABASE_PATH to /data/axis.db", () => {
-    expect(content).toContain("DATABASE_PATH=/data/axis.db");
+  it("declares DATABASE_URL for the Neon data layer", () => {
+    expect(content).toContain("DATABASE_URL");
   });
 
   it("has health check configuration", () => {

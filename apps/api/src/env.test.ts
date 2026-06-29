@@ -16,7 +16,7 @@ describe("validateEnv", () => {
     expect(result.errors).toHaveLength(0);
     expect(result.resolved.PORT).toBe("4000");
     expect(result.resolved.NODE_ENV).toBe("development");
-    expect(result.resolved.DATABASE_PATH).toBe("./axis.db");
+    expect(result.resolved.LOG_LEVEL).toBe("info");
   });
 
   it("resolves explicitly set values", () => {
@@ -138,7 +138,6 @@ describe("generateEnvExample", () => {
     const example = generateEnvExample();
     expect(example).toContain("PORT=4000");
     expect(example).toContain("NODE_ENV=development");
-    expect(example).toContain("DATABASE_PATH=./axis.db");
   });
 
   it("starts with header comment", () => {
