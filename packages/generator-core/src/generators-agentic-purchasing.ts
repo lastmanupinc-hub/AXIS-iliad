@@ -7,7 +7,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
  * drift fails CI.
  */
-const ARTIFACT_COUNT = 137;
+const ARTIFACT_COUNT = 140; // +3: verify.sh, verify-full.sh, .githooks/pre-push (verify-gate)
 const PROGRAM_COUNT = 20;
 
 /**

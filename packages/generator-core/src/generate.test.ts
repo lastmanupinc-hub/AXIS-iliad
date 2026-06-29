@@ -1322,7 +1322,7 @@ describe("depth generators content", () => {
 describe("listAvailableGenerators", () => {
   it("returns all registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(137);
+    expect(generators.length).toBe(140); // +3: verify-gate (verify.sh, verify-full.sh, .githooks/pre-push)
     const paths = generators.map(g => g.path);
     expect(paths).toContain("symbol-index.json");
     expect(paths).toContain("context-map.json");

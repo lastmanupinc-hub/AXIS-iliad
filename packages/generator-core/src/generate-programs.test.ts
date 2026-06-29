@@ -224,10 +224,29 @@ describe("generateFiles — edge cases", () => {
   });
 });
 
+describe("verify-gate generators", () => {
+  it("generates a stack-aware verify.sh + verify-full.sh + pre-push hook", () => {
+    const v = generateFiles(makeInput(["verify.sh"])).files.find(f => f.path === "verify.sh");
+    expect(v).toBeTruthy();
+    expect(v!.program).toBe("superpowers");
+    expect(v!.content_type).toBe("text/x-shellscript");
+    expect(v!.content).toContain("#!/usr/bin/env bash");
+    expect(v!.content).toContain("✅ verify passed");
+    expect(v!.content).toMatch(/run (lint|test)|tsc --noEmit|pytest|go (vet|test)/);
+
+    const full = generateFiles(makeInput(["verify-full.sh"])).files.find(f => f.path === "verify-full.sh");
+    expect(full!.content).toMatch(/run build|next build|go build|pytest -q/);
+
+    const hook = generateFiles(makeInput([".githooks/pre-push"])).files.find(f => f.path === ".githooks/pre-push");
+    expect(hook!.content).toContain("core.hooksPath");
+    expect(hook!.content).toContain("verify.sh");
+  });
+});
+
 describe("listAvailableGenerators", () => {
-  it("returns all 137 registered generators", () => {
+  it("returns all 140 registered generators", () => {
     const generators = listAvailableGenerators();
-    expect(generators.length).toBe(137);
+    expect(generators.length).toBe(140); // +3: verify.sh, verify-full.sh, .githooks/pre-push
   });
 
   it("returns objects with path and program fields", () => {

@@ -9,6 +9,7 @@ import { generateOptimizationRules, generatePromptDiffReport, generateCostEstima
 import { generateDesignTokens, generateThemeCss, generateThemeGuidelines, generateComponentThemeMap, generateDarkModeTokens } from "./generators-theme.js";
 import { generateBrandGuidelines, generateVoiceAndTone, generateContentConstraints, generateMessagingSystem, generateChannelRulebook } from "./generators-brand.js";
 import { generateSuperpowerPack, generateWorkflowRegistry, generateTestGenerationRules, generateRefactorChecklist, generateAutomationPipeline } from "./generators-superpowers.js";
+import { generateVerifyGate, generateVerifyFull, generatePrePushHook } from "./generators-verify-gate.js";
 import { generateCampaignBrief, generateFunnelMap, generateSequencePack, generateCroPlaybook, generateAbTestPlan } from "./generators-marketing.js";
 import { generateNotebookSummary, generateSourceMap, generateStudyBrief, generateResearchThreads, generateCitationIndex } from "./generators-notebook.js";
 import { generateObsidianSkillPack, generateVaultRules, generateGraphPromptMap, generateLinkingPolicy, generateTemplatePack } from "./generators-obsidian.js";
@@ -155,6 +156,9 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "server-manifest.yaml": (ctx, profile, files) => generateServerManifest(ctx, profile, files),
   "template-pack.md": (ctx, _p, files) => generateTemplatePack(ctx, files),
   "automation-pipeline.yaml": (ctx, profile, files) => generateAutomationPipeline(ctx, profile, files),
+  "verify.sh": (ctx, profile, files) => generateVerifyGate(ctx, profile, files),
+  "verify-full.sh": (ctx, profile, files) => generateVerifyFull(ctx, profile, files),
+  ".githooks/pre-push": (ctx, profile, files) => generatePrePushHook(ctx, profile, files),
   "component-library.json": (ctx, _p, files) => generateComponentLibrary(ctx, files),
   "storyboard.md": (ctx, _p, files) => generateStoryboard(ctx, files),
   "brand-board.md": (ctx, _p, files) => generateBrandBoard(ctx, files),
@@ -324,6 +328,9 @@ const GENERATOR_PROGRAMS: Record<string, string> = {
   "test-generation-rules.md": "superpowers",
   "refactor-checklist.md": "superpowers",
   "automation-pipeline.yaml": "superpowers",
+  "verify.sh": "superpowers",
+  "verify-full.sh": "superpowers",
+  ".githooks/pre-push": "superpowers",
   "campaign-brief.md": "marketing",
   "funnel-map.md": "marketing",
   "sequence-pack.md": "marketing",
