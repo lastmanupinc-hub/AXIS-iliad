@@ -1,4 +1,7 @@
-const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
+// Same-site with the web origin (iliad.trustfabric.ai) so the HttpOnly axis_session
+// cookie rides on API calls (SameSite=Lax). Points at the same Render service as
+// axis-api-6c7z.onrender.com via a Render custom domain.
+const PROD_API_BASE = "https://api.iliad.trustfabric.ai";
 const isLocalHost =
   typeof window === "undefined" ||
   window.location.hostname === "localhost" ||
@@ -320,11 +323,21 @@ export async function exchangeOAuthCode(code: string): Promise<string> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code }),
+    credentials: "include", // accept the Set-Cookie (axis_session) from the exchange
   });
   if (!res.ok) throw new Error(`OAuth exchange failed: ${res.status}`);
   const data = (await res.json()) as { api_key?: string };
   if (!data.api_key) throw new Error("OAuth exchange returned no api_key");
   return data.api_key;
+}
+
+/** Clear the HttpOnly axis_session cookie server-side (JS can't clear it itself). Best-effort. */
+export async function logoutSession(): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/v1/auth/logout`, { method: "POST", credentials: "include" });
+  } catch {
+    // ignore — the caller clears localStorage regardless
+  }
 }
 
 async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
@@ -337,6 +350,7 @@ async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: numb
     const res = await fetch(`${API_BASE}${url}`, {
       ...fetchInit,
       headers: { ...authHeaders(), ...init?.headers },
+      credentials: "include", // send the HttpOnly axis_session cookie (bearer header kept as fallback)
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -417,6 +431,7 @@ export async function getGeneratedFiles(projectId: string): Promise<GeneratedFil
 export async function getGeneratedFile(projectId: string, filePath: string): Promise<string> {
   const res = await fetch(`${API_BASE}/v1/projects/${projectId}/generated-files/${encodeURIComponent(filePath)}`, {
     headers: authHeaders(),
+    credentials: "include",
   });
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
   return res.text();
@@ -510,7 +525,7 @@ export function getExportUrl(projectId: string, program?: string): string {
 
 export async function downloadExport(projectId: string, program?: string): Promise<void> {
   const url = getExportUrl(projectId, program);
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(url, { headers: authHeaders(), credentials: "include" });
   if (!res.ok) throw new Error(`Export failed: ${res.status}`);
   const blob = await res.blob();
   const a = document.createElement("a");
