@@ -14,7 +14,7 @@ export interface EnvSpec {
 export const ENV_SPEC: EnvSpec[] = [
   { key: "PORT", required: false, type: "number", default: "4000", description: "HTTP listen port" },
   { key: "NODE_ENV", required: false, type: "string", default: "development", description: "Runtime environment (development | production | test)" },
-  { key: "DATABASE_PATH", required: false, type: "string", default: "./axis.db", description: "SQLite database file path" },
+  { key: "DATABASE_URL", required: false, type: "string", description: "PostgreSQL connection string (Neon). Required at runtime — the data layer fails fast in production if unset." },
   { key: "LOG_LEVEL", required: false, type: "string", default: "info", description: "Log verbosity (debug | info | warn | error)" },
   { key: "CORS_ORIGIN", required: false, type: "string", default: "*", description: "Allowed CORS origin (* for dev, auto-restricts to production domain when NODE_ENV=production)" },
   { key: "RATE_LIMIT_WINDOW_MS", required: false, type: "number", default: "60000", description: "Rate limit sliding window in ms" },
