@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
-import { MCP_TOOL_COUNT } from "./counts.js";
+import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -61,11 +61,29 @@ function toolClaims(v: string): number[] {
   return ns;
 }
 
+// Advertised HTTP endpoint count, e.g. "143 endpoints" / "143 REST endpoints". The live
+// value is ENDPOINT_COUNT (pinned in counts.ts, guarded by counts-consistency.test.ts).
+// A >= 50 floor isolates a GLOBAL API-surface claim from any small per-example count.
+// Stale values were 102 (README) and 110 (QAPage).
+function endpointClaims(v: string): number[] {
+  const ns: number[] = [];
+  for (const m of v.matchAll(/(\d+)\+?\s*(?:REST |API |HTTP )?endpoints?\b/gi)) ns.push(Number(m[1]));
+  return ns.filter((n) => n >= 50);
+}
+
 describe("count honesty — docs/UI match the code (A4)", () => {
   it("every advertised MCP/public tool count equals MCP_TOOL_COUNT", () => {
     const bad: string[] = [];
     for (const { name, text } of docs()) {
       for (const n of toolClaims(visible(text))) if (n !== MCP_TOOL_COUNT) bad.push(`${name}: ${n} (expected ${MCP_TOOL_COUNT})`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("every advertised endpoint count equals ENDPOINT_COUNT", () => {
+    const bad: string[] = [];
+    for (const { name, text } of docs()) {
+      for (const n of endpointClaims(visible(text))) if (n !== ENDPOINT_COUNT) bad.push(`${name}: ${n} (expected ${ENDPOINT_COUNT})`);
     }
     expect(bad).toEqual([]);
   });
