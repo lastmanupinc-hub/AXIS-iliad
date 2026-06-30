@@ -25,20 +25,23 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
     hasSass ? "sass" : "plain-css";
 
   // Base color palette (adaptive to detected stack)
+  // Averionics palette — HUD cyan primary, cool cockpit-slate neutrals, instrument amber.
   const colors: Record<string, Record<string, string>> = {
     primary: {
-      "50": "#eff6ff", "100": "#dbeafe", "200": "#bfdbfe", "300": "#93c5fd",
-      "400": "#60a5fa", "500": "#3b82f6", "600": "#2563eb", "700": "#1d4ed8",
-      "800": "#1e40af", "900": "#1e3a8a", "950": "#172554",
+      "50": "#ecfeff", "100": "#cffafe", "200": "#a5f3fc", "300": "#67e8f9",
+      "400": "#22d3ee", "500": "#06b6d4", "600": "#0891b2", "700": "#0e7490",
+      "800": "#155e75", "900": "#164e63", "950": "#083344",
     },
     neutral: {
-      "50": "#fafafa", "100": "#f5f5f5", "200": "#e5e5e5", "300": "#d4d4d4",
-      "400": "#a3a3a3", "500": "#737373", "600": "#525252", "700": "#404040",
-      "800": "#262626", "900": "#171717", "950": "#0a0a0a",
+      "50": "#f4f7fa", "100": "#e8edf3", "200": "#cfd9e4", "300": "#aebccd",
+      "400": "#7e8ea3", "500": "#5b6b81", "600": "#44566b", "700": "#324153",
+      "800": "#1b2733", "900": "#0d141d", "950": "#070b11",
     },
-    success: { "500": "#22c55e", "600": "#16a34a" },
-    warning: { "500": "#eab308", "600": "#ca8a04" },
-    error: { "500": "#ef4444", "600": "#dc2626" },
+    accent: { "500": "#0a8aa6", "600": "#0e7490" },
+    amber: { "500": "#b06a00", "600": "#8a5300" },
+    success: { "500": "#0f9d58", "600": "#0c7a45" },
+    warning: { "500": "#b06a00", "600": "#8a5300" },
+    error: { "500": "#d23b3b", "600": "#b02e2e" },
   };
 
   const spacing = {
@@ -195,34 +198,37 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
 
   // CSS Custom Properties (light theme)
   lines.push(":root {");
-  lines.push("  /* Colors — Primary */");
-  lines.push("  --color-primary-50: #eff6ff;");
-  lines.push("  --color-primary-100: #dbeafe;");
-  lines.push("  --color-primary-200: #bfdbfe;");
-  lines.push("  --color-primary-300: #93c5fd;");
-  lines.push("  --color-primary-400: #60a5fa;");
-  lines.push("  --color-primary-500: #3b82f6;");
-  lines.push("  --color-primary-600: #2563eb;");
-  lines.push("  --color-primary-700: #1d4ed8;");
-  lines.push("  --color-primary-800: #1e40af;");
-  lines.push("  --color-primary-900: #1e3a8a;");
+  lines.push("  /* Colors — Primary (averionics HUD cyan) */");
+  lines.push("  --color-primary-50: #ecfeff;");
+  lines.push("  --color-primary-100: #cffafe;");
+  lines.push("  --color-primary-200: #a5f3fc;");
+  lines.push("  --color-primary-300: #67e8f9;");
+  lines.push("  --color-primary-400: #22d3ee;");
+  lines.push("  --color-primary-500: #06b6d4;");
+  lines.push("  --color-primary-600: #0891b2;");
+  lines.push("  --color-primary-700: #0e7490;");
+  lines.push("  --color-primary-800: #155e75;");
+  lines.push("  --color-primary-900: #164e63;");
   lines.push("");
-  lines.push("  /* Colors — Neutral */");
-  lines.push("  --color-neutral-50: #fafafa;");
-  lines.push("  --color-neutral-100: #f5f5f5;");
-  lines.push("  --color-neutral-200: #e5e5e5;");
-  lines.push("  --color-neutral-300: #d4d4d4;");
-  lines.push("  --color-neutral-400: #a3a3a3;");
-  lines.push("  --color-neutral-500: #737373;");
-  lines.push("  --color-neutral-600: #525252;");
-  lines.push("  --color-neutral-700: #404040;");
-  lines.push("  --color-neutral-800: #262626;");
-  lines.push("  --color-neutral-900: #171717;");
+  lines.push("  /* Colors — Neutral (cool cockpit slate) */");
+  lines.push("  --color-neutral-50: #f4f7fa;");
+  lines.push("  --color-neutral-100: #e8edf3;");
+  lines.push("  --color-neutral-200: #cfd9e4;");
+  lines.push("  --color-neutral-300: #aebccd;");
+  lines.push("  --color-neutral-400: #7e8ea3;");
+  lines.push("  --color-neutral-500: #5b6b81;");
+  lines.push("  --color-neutral-600: #44566b;");
+  lines.push("  --color-neutral-700: #324153;");
+  lines.push("  --color-neutral-800: #1b2733;");
+  lines.push("  --color-neutral-900: #0d141d;");
   lines.push("");
-  lines.push("  /* Colors — Semantic */");
-  lines.push("  --color-success: #22c55e;");
-  lines.push("  --color-warning: #eab308;");
-  lines.push("  --color-error: #ef4444;");
+  lines.push("  /* Colors — Semantic + accent (averionics: HUD cyan + instrument amber) */");
+  lines.push("  --color-accent: #0a8aa6;");
+  lines.push("  --color-accent-ink: #ffffff;");
+  lines.push("  --color-amber: #b06a00;");
+  lines.push("  --color-success: #0f9d58;");
+  lines.push("  --color-warning: #b06a00;");
+  lines.push("  --color-error: #d23b3b;");
   lines.push("");
   lines.push("  /* Typography */");
   lines.push("  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;");
@@ -279,38 +285,73 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("  --ease-out: cubic-bezier(0, 0, 0.2, 1);");
   lines.push("  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);");
   lines.push("");
-  lines.push("  /* Surfaces */");
-  lines.push("  --surface-page: var(--color-neutral-50);");
+  lines.push("  /* Surfaces (averionics daylight instrument) */");
+  lines.push("  --surface-page: #eceff3;");
   lines.push("  --surface-card: #ffffff;");
   lines.push("  --surface-elevated: #ffffff;");
-  lines.push("  --surface-inset: var(--color-neutral-100);");
-  lines.push("  --surface-overlay-backdrop: rgba(0, 0, 0, 0.4);");
+  lines.push("  --surface-inset: #f4f6f9;");
+  lines.push("  --surface-overlay-backdrop: rgba(7, 11, 17, 0.45);");
   lines.push("");
-  lines.push("  /* Focus Ring */");
-  lines.push("  --ring-color: var(--color-primary-500);");
+  lines.push("  /* Focus Ring + HUD glow */");
+  lines.push("  --ring-color: var(--color-accent);");
   lines.push("  --ring-offset: 2px;");
   lines.push("  --ring-width: 2px;");
+  lines.push("  --glow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);");
   lines.push("}");
   lines.push("");
 
-  // Dark theme
+  // Dark theme (averionics night-cockpit) — FULL token parity (every primary +
+  // neutral stop, surfaces, semantics, shadows, glow), applied via BOTH the OS
+  // preference AND an explicit [data-theme="dark"] toggle so apps with a switch work.
+  // The neutral scale inverts (50 = darkest, 900 = lightest) so text tokens stay legible.
+  const darkTokens = [
+    "--color-primary-50: #083344;",
+    "--color-primary-100: #164e63;",
+    "--color-primary-200: #155e75;",
+    "--color-primary-300: #0e7490;",
+    "--color-primary-400: #0891b2;",
+    "--color-primary-500: #22d3ee;",
+    "--color-primary-600: #67e8f9;",
+    "--color-primary-700: #a5f3fc;",
+    "--color-primary-800: #cffafe;",
+    "--color-primary-900: #ecfeff;",
+    "--color-neutral-50: #070b11;",
+    "--color-neutral-100: #0d141d;",
+    "--color-neutral-200: #141e29;",
+    "--color-neutral-300: #1b2733;",
+    "--color-neutral-400: #29384a;",
+    "--color-neutral-500: #6e8093;",
+    "--color-neutral-600: #8b9bb0;",
+    "--color-neutral-700: #aebccd;",
+    "--color-neutral-800: #cdd9e6;",
+    "--color-neutral-900: #d6e2ee;",
+    "--color-accent: #22d3ee;",
+    "--color-accent-ink: #04131a;",
+    "--color-amber: #ffb020;",
+    "--color-success: #2ee6a6;",
+    "--color-warning: #ffc53d;",
+    "--color-error: #ff5d6c;",
+    "--surface-page: #070b11;",
+    "--surface-card: #0d141d;",
+    "--surface-elevated: #141e29;",
+    "--surface-inset: #0a0f16;",
+    "--surface-overlay-backdrop: rgba(0, 0, 0, 0.7);",
+    "--ring-color: var(--color-accent);",
+    "--glow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent), 0 0 18px color-mix(in srgb, var(--color-accent) 28%, transparent);",
+    "--shadow-sm: 0 1px 2px rgba(0,0,0,0.4);",
+    "--shadow-base: 0 1px 2px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35);",
+    "--shadow-md: 0 4px 6px rgba(0,0,0,0.45);",
+    "--shadow-lg: 0 10px 18px rgba(0,0,0,0.55);",
+  ];
   lines.push("@media (prefers-color-scheme: dark) {");
-  lines.push("  :root {");
-  lines.push("    --color-primary-50: #172554;");
-  lines.push("    --color-primary-100: #1e3a8a;");
-  lines.push("    --color-primary-500: #60a5fa;");
-  lines.push("    --color-primary-600: #93c5fd;");
-  lines.push("    --color-neutral-50: #0a0a0a;");
-  lines.push("    --color-neutral-100: #171717;");
-  lines.push("    --color-neutral-200: #262626;");
-  lines.push("    --color-neutral-800: #f5f5f5;");
-  lines.push("    --color-neutral-900: #fafafa;");
-  lines.push("    --surface-page: #0a0a0a;");
-  lines.push("    --surface-card: #171717;");
-  lines.push("    --surface-elevated: #262626;");
-  lines.push("    --surface-inset: #0f0f0f;");
-  lines.push("    --surface-overlay-backdrop: rgba(0, 0, 0, 0.7);");
+  lines.push("  :root:not([data-theme='light']) {");
+  for (const t of darkTokens) lines.push("    " + t);
   lines.push("  }");
+  lines.push("}");
+  lines.push("");
+  lines.push("/* Explicit toggle — wins regardless of OS preference. */");
+  lines.push("[data-theme=\"dark\"] {");
+  for (const t of darkTokens) lines.push("  " + t);
   lines.push("}");
   lines.push("");
 
@@ -577,6 +618,12 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   lines.push(`# Theme Guidelines — ${id.name}`);
   lines.push("");
   lines.push(`> Design system rules for a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}`);
+  lines.push("");
+  lines.push("This pack ships the **averionics** starting aesthetic — a cockpit/instrument system with a");
+  lines.push("HUD-cyan accent, instrument amber for caution, cool blue-black panels, monospace data labels");
+  lines.push("and a glow focus ring — as a complete **light + dark** theme (`theme.css`). It's a starting");
+  lines.push("point: keep the token contract and restyle freely. Reference the cyan primary scale for");
+  lines.push("interactive surfaces and `--color-amber` for caution states.");
   lines.push("");
 
   // Project Overview
@@ -1012,58 +1059,58 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
     },
     colors: {
       background: {
-        base: "#0f172a",
-        surface: "#1e293b",
-        elevated: "#334155",
-        overlay: "rgba(0, 0, 0, 0.6)",
+        base: "#070b11",
+        surface: "#0d141d",
+        elevated: "#141e29",
+        overlay: "rgba(0, 0, 0, 0.7)",
       },
       foreground: {
-        primary: "#f8fafc",
-        secondary: "#94a3b8",
-        muted: "#64748b",
-        inverse: "#0f172a",
+        primary: "#d6e2ee",
+        secondary: "#8b9bb0",
+        muted: "#6e8093",
+        inverse: "#070b11",
       },
       brand: {
-        primary: "#38bdf8",
-        "primary-hover": "#7dd3fc",
-        secondary: "#fb923c",
-        "secondary-hover": "#fdba74",
-        accent: "#a78bfa",
+        primary: "#22d3ee",
+        "primary-hover": "#67e8f9",
+        secondary: "#ffb020",
+        "secondary-hover": "#ffc53d",
+        accent: "#22d3ee",
       },
       semantic: {
-        success: "#4ade80",
-        "success-bg": "rgba(74, 222, 128, 0.1)",
-        warning: "#fbbf24",
-        "warning-bg": "rgba(251, 191, 36, 0.1)",
-        error: "#f87171",
-        "error-bg": "rgba(248, 113, 113, 0.1)",
-        info: "#60a5fa",
-        "info-bg": "rgba(96, 165, 250, 0.1)",
+        success: "#2ee6a6",
+        "success-bg": "rgba(46, 230, 166, 0.1)",
+        warning: "#ffc53d",
+        "warning-bg": "rgba(255, 197, 61, 0.1)",
+        error: "#ff5d6c",
+        "error-bg": "rgba(255, 93, 108, 0.1)",
+        info: "#22d3ee",
+        "info-bg": "rgba(34, 211, 238, 0.1)",
       },
       border: {
-        default: "#334155",
-        focus: "#38bdf8",
-        subtle: "#1e293b",
+        default: "#1b2733",
+        focus: "#22d3ee",
+        subtle: "#141e29",
       },
     },
     surfaces: {
-      page: { bg: "#0a0a0a", text: "#fafafa", border: "#262626" },
-      card: { bg: "#171717", text: "#f5f5f5", border: "#262626", shadow: "0 1px 3px rgba(0,0,0,0.4)" },
-      elevated: { bg: "#262626", text: "#f5f5f5", border: "#404040", shadow: "0 10px 15px rgba(0,0,0,0.5)" },
-      inset: { bg: "#0f0f0f", text: "#d4d4d4", border: "#262626" },
-      overlay: { bg: "#171717", text: "#fafafa", shadow: "0 10px 15px rgba(0,0,0,0.6)", backdrop: "rgba(0,0,0,0.7)" },
+      page: { bg: "#070b11", text: "#d6e2ee", border: "#1b2733" },
+      card: { bg: "#0d141d", text: "#d6e2ee", border: "#1b2733", shadow: "0 1px 2px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35)" },
+      elevated: { bg: "#141e29", text: "#d6e2ee", border: "#29384a", shadow: "0 10px 18px rgba(0,0,0,0.55)" },
+      inset: { bg: "#0a0f16", text: "#aebccd", border: "#1b2733" },
+      overlay: { bg: "#0d141d", text: "#d6e2ee", shadow: "0 10px 18px rgba(0,0,0,0.6)", backdrop: "rgba(0,0,0,0.7)" },
     },
     shadows: {
       sm: "0 1px 2px rgba(0, 0, 0, 0.3)",
       md: "0 4px 6px rgba(0, 0, 0, 0.4)",
       lg: "0 10px 15px rgba(0, 0, 0, 0.5)",
-      glow: "0 0 20px rgba(56, 189, 248, 0.15)",
+      glow: "0 0 20px rgba(34, 211, 238, 0.15)",
     },
     motion: {
       note: "Dark mode may warrant subtler motion. Reduce glow/shadow transitions in dark contexts.",
       transition_overrides: {
         shadow_transition: "box-shadow 200ms ease",
-        glow_on_focus: "0 0 0 3px rgba(56, 189, 248, 0.25)",
+        glow_on_focus: "0 0 0 3px rgba(34, 211, 238, 0.25)",
       },
     },
     implementation: {
@@ -1076,7 +1123,7 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
       } : null,
       css_variables: {
         prefix: "--color",
-        example: "--color-bg-base: #0f172a",
+        example: "--color-bg-base: #070b11",
         selector: ":root[data-theme='dark']",
       },
     },
