@@ -20,7 +20,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import { getAdminStats, migrateLegacyKey, type SnapshotResponse } from "./api.ts";
+import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
@@ -254,6 +254,14 @@ export function App() {
     setLoggedIn(!!localStorage.getItem("axis_api_key"));
   }, []);
 
+  const handleLogout = useCallback(() => {
+    void logoutSession();                    // clear the HttpOnly axis_session cookie server-side
+    localStorage.removeItem("axis_api_key"); // clear the session marker (and any legacy raw key)
+    setLoggedIn(false);
+    setPrivateAccess(false);
+    nav("upload");
+  }, [nav]);
+
   // One-time migration (H1 C2): a pre-cutover raw key in localStorage is exchanged for the
   // HttpOnly axis_session cookie and replaced by a non-sensitive marker, so the key stops
   // being XSS-readable. No-op once migrated or for cookie-only sessions.
@@ -334,8 +342,11 @@ export function App() {
         { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
       );
     }
+    if (loggedIn) {
+      actions.push({ id: "logout", label: "Log out", icon: "", section: "Account", onSelect: handleLogout });
+    }
     return actions;
-  }, [result, nav, privateAccess]);
+  }, [result, nav, privateAccess, loggedIn, handleLogout]);
 
   // Keyboard shortcuts for nav
   useEffect(() => {
@@ -379,6 +390,7 @@ export function App() {
           <button className={`btn ${page === "programs" ? "btn-primary" : ""}`} onClick={() => nav("programs")}>Programs</button>
           <button className={`btn ${page === "plans" ? "btn-primary" : ""}`} onClick={() => nav("plans")}>Plans</button>
           <button className={`btn ${page === "account" ? "btn-primary" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
+          {loggedIn && <button className="btn" onClick={handleLogout} title="Log out of this browser session">Log Out</button>}
           <button className={`btn ${page === "docs" ? "btn-primary" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`btn ${page === "help" ? "btn-primary" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`btn ${page === "qa" ? "btn-primary" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
@@ -416,6 +428,7 @@ export function App() {
           <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
           <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
           <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
+          {loggedIn && <button className="nav-drawer-item" onClick={handleLogout}>Log Out</button>}
           <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
           <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
           <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
