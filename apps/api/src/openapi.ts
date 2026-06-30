@@ -685,6 +685,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           requestBody: jsonBody(ref("CreateAccountRequest")),
           responses: { 201: { description: "Account created" }, 400: { description: "Validation error" } },
         },
+        get: { summary: "Account discovery / signup guidance", operationId: "getAccountsInfo", tags: ["Account"], responses: { 200: { description: "Account info" } } },
       },
       "/accounts": {
         post: {
@@ -980,6 +981,47 @@ export function buildOpenApiSpec(): OpenApiSpec {
             503: { description: "Stripe not configured" },
           },
         },
+      },
+
+      // ── Convergence sweep: previously-undocumented public routes ──
+      "/v1/account/analytics/summary": {
+        get: { summary: "Per-account analytics summary", operationId: "getAccountAnalyticsSummary", tags: ["Account"], security: [{ apiKey: [] }], responses: { 200: { description: "Analytics summary" }, 401: { description: "Authentication required" } } },
+      },
+      "/v1/account/analytics/events": {
+        post: { summary: "Record an analytics event for the account", operationId: "recordAccountAnalyticsEvent", tags: ["Account"], security: [{ apiKey: [] }], responses: { 200: { description: "Event recorded" }, 401: { description: "Authentication required" } } },
+      },
+      "/v1/credits/packs": {
+        get: { summary: "List purchasable credit packs", operationId: "listCreditPacks", tags: ["Billing"], responses: { 200: { description: "Credit pack catalog" } } },
+      },
+      "/v1/credits/purchases": {
+        get: { summary: "List the account's credit purchases", operationId: "listCreditPurchases", tags: ["Billing"], security: [{ apiKey: [] }], responses: { 200: { description: "Purchase history" }, 401: { description: "Authentication required" } } },
+      },
+      "/v1/credits/topup": {
+        post: { summary: "Purchase a one-time credit top-up", operationId: "topupCredits", tags: ["Billing"], security: [{ apiKey: [] }], responses: { 200: { description: "Top-up initiated" }, 401: { description: "Authentication required" }, 402: { description: "Payment required" } } },
+      },
+      "/v1/admin/mcp-usage": {
+        get: { summary: "Admin: MCP tool usage metrics", operationId: "getAdminMcpUsage", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "MCP usage metrics" }, 403: { description: "Admin access required" } } },
+      },
+      "/v1/admin/revenue": {
+        get: { summary: "Admin: revenue metrics", operationId: "getAdminRevenue", tags: ["Admin"], security: [{ apiKey: [] }], responses: { 200: { description: "Revenue metrics" }, 403: { description: "Admin access required" } } },
+      },
+      "/v1/auth/session": {
+        post: { summary: "Establish an HttpOnly session cookie from an API key", operationId: "authSession", tags: ["Auth"], responses: { 200: { description: "Session established" }, 401: { description: "Invalid credentials" } } },
+      },
+      "/v1/auth/exchange": {
+        post: { summary: "Exchange an OAuth code for a session", operationId: "authExchange", tags: ["Auth"], responses: { 200: { description: "Session established" }, 400: { description: "Invalid exchange" } } },
+      },
+      "/v1/auth/logout": {
+        post: { summary: "Clear the session cookie", operationId: "authLogout", tags: ["Auth"], responses: { 200: { description: "Logged out" } } },
+      },
+      "/v1/github/webhook": {
+        post: { summary: "GitHub push webhook (re-analysis trigger)", operationId: "githubWebhook", tags: ["GitHub"], responses: { 202: { description: "Accepted for processing" }, 401: { description: "Invalid signature" } } },
+      },
+      "/v1/github/architecture-drift": {
+        post: { summary: "GitHub push webhook that opens a living-architecture drift PR", operationId: "githubArchitectureDrift", tags: ["GitHub"], responses: { 202: { description: "Accepted for processing" }, 401: { description: "Invalid signature" } } },
+      },
+      "/v1/deploy/generate": {
+        post: { summary: "Generate deployment configuration artifacts", operationId: "generateDeploy", tags: ["Programs"], responses: { 200: { description: "Deployment artifacts" } } },
       },
 
       // â”€â”€ PAI'D Payment Processor â”€â”€

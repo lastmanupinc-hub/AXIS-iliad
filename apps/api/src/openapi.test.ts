@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { buildOpenApiSpec } from "./openapi.js";
 
 describe("buildOpenApiSpec", () => {
@@ -281,86 +282,44 @@ describe("buildOpenApiSpec", () => {
   // â”€â”€ Route-spec parity: every server.ts route has a spec path â”€â”€
 
   it("every registered route has a corresponding OpenAPI path", () => {
-    // All routes from server.ts (normalized to OpenAPI path params)
-    const serverRoutes = [
-      "GET /v1/health",
-      "GET /v1/health/live",
-      "GET /v1/health/ready",
-      "GET /v1/metrics",
-      "GET /v1/db/stats",
-      "POST /v1/db/maintenance",
-      "GET /v1/docs",
-      "POST /v1/snapshots",
-      "GET /v1/snapshots/{snapshot_id}",
-      "DELETE /v1/snapshots/{snapshot_id}",
-      "GET /v1/snapshots/{snapshot_id}/versions",
-      "GET /v1/snapshots/{snapshot_id}/versions/{version_number}",
-      "GET /v1/snapshots/{snapshot_id}/diff",
-      "GET /v1/projects/{project_id}/context",
-      "GET /v1/projects/{project_id}/generated-files",
-      "GET /v1/projects/{project_id}/generated-files/{file_path}",
-      "GET /v1/projects/{project_id}/export",
-      "DELETE /v1/projects/{project_id}",
-      "POST /v1/search/export",
-      "POST /v1/skills/generate",
-      "POST /v1/debug/analyze",
-      "POST /v1/frontend/audit",
-      "POST /v1/seo/analyze",
-      "POST /v1/optimization/analyze",
-      "POST /v1/theme/generate",
-      "POST /v1/brand/generate",
-      "POST /v1/superpowers/generate",
-      "POST /v1/marketing/generate",
-      "POST /v1/notebook/generate",
-      "POST /v1/obsidian/analyze",
-      "POST /v1/mcp/provision",
-      "POST /v1/artifacts/generate",
-      "POST /v1/remotion/generate",
-      "POST /v1/canvas/generate",
-      "POST /v1/algorithmic/generate",
-      "POST /v1/github/analyze",
-      "POST /v1/search/index",
-      "POST /v1/search/query",
-      "GET /v1/search/{snapshot_id}/stats",
-      "GET /v1/programs",
-      "POST /v1/accounts",
-      "GET /v1/account",
-      "POST /v1/account/keys",
-      "GET /v1/account/keys",
-      "POST /v1/account/keys/{key_id}/revoke",
-      "GET /v1/account/usage",
-      "GET /v1/account/quota",
-      "POST /v1/account/tier",
-      "POST /v1/account/programs",
-      "POST /v1/account/github-token",
-      "GET /v1/account/github-token",
-      "DELETE /v1/account/github-token/{token_id}",
-      "GET /v1/billing/history",
-      "GET /v1/billing/proration",
-      "GET /v1/plans",
-      "POST /v1/account/seats",
-      "GET /v1/account/seats",
-      "POST /v1/account/seats/{seat_id}/accept",
-      "POST /v1/account/seats/{seat_id}/revoke",
-      "GET /v1/account/upgrade-prompt",
-      "POST /v1/account/upgrade-prompt/dismiss",
-      "GET /v1/account/funnel",
-      "GET /v1/funnel/metrics",
-      "GET /v1/admin/stats",
-      "GET /v1/admin/accounts",
-      "GET /v1/admin/activity",
-      "GET /v1/auth/github",
-      "GET /v1/auth/github/callback",
-      "POST /v1/account/webhooks",
-      "GET /v1/account/webhooks",
-      "DELETE /v1/account/webhooks/{webhook_id}",
-      "POST /v1/account/webhooks/{webhook_id}/toggle",
-      "GET /v1/account/webhooks/{webhook_id}/deliveries",
-      "POST /v1/webhooks/stripe",
-      "POST /v1/checkout",
-      "GET /v1/account/subscription",
-      "POST /v1/account/subscription/cancel",
-    ];
+    // Derived from server.ts at test time — NO hardcoded allowlist — so any newly
+    // registered route fails this test until it is either documented in openapi.ts
+    // or explicitly classified as non-API below. This is the self-maintaining guard.
+    const serverSrc = readFileSync(new URL("./server.ts", import.meta.url), "utf-8");
+
+    // Routes intentionally NOT in the public REST OpenAPI spec, by category.
+    const EXCLUDED = new Set<string>([
+      // Static / crawler / discovery surfaces
+      "get /", "get /favicon.ico", "get /robots.txt", "get /sitemap.xml", "get /llms.txt",
+      "get /agents.json", "get /openapi.json", "get /docs", "get /health", "get /pricing",
+      "get /for-agents", "get /performance", "get /performance/reputation",
+      "get /accounts", "post /accounts", "post /probe-intent",
+      // .well-known discovery manifests (not API operations)
+      "get /.well-known/agent.json", "get /.well-known/ai-plugin.json", "get /.well-known/axis.json",
+      "get /.well-known/capabilities.json", "get /.well-known/glama.json", "get /.well-known/mcp.json",
+      "get /.well-known/oauth-authorization-server", "get /.well-known/oauth-protected-resource",
+      "get /.well-known/security.txt", "get /.well-known/skills/index.json",
+      // MCP protocol transport + discovery (documented via the MCP manifest, not REST)
+      "get /mcp", "post /mcp", "get /mcp/sse", "post /mcp/sse", "get /mcp/docs",
+      "get /mcp/.well-known/agent.json", "get /mcp/.well-known/mcp.json",
+      "get /mcp/mcp", "post /mcp/mcp", "delete /mcp/mcp",
+      "get /v1/mcp", "post /v1/mcp", "get /v1/mcp/server.json", "get /v1/mcp/tools",
+      // OAuth 2.0 authorization-server endpoints (RFC 8414 / RFC 7662), not the product API
+      "get /oauth/authorize", "post /oauth/token", "get /oauth/jwks", "post /oauth/introspect",
+      // Portal bridge (server-rendered / internal PAI'D plumbing)
+      "get /portal/api/paid/config", "post /portal/api/paid/webhook", "post /portal/api/subscribe",
+    ]);
+
+    const serverRoutes: string[] = [];
+    for (const m of serverSrc.matchAll(/router\.(get|post|put|delete|patch)\("([^"]+)"/g)) {
+      const method = m[1].toUpperCase();
+      const path = m[2]
+        .replace(/:([a-zA-Z_]+)/g, "{$1}") // :param → {param}
+        .replace(/\*$/, "")                // strip trailing wildcard
+        .replace(/(.)\/$/, "$1");          // strip trailing slash; keep root "/"
+      if (!EXCLUDED.has(`${method.toLowerCase()} ${path}`)) serverRoutes.push(`${method} ${path}`);
+    }
+    expect(serverRoutes.length, "route parser found nothing in server.ts").toBeGreaterThan(50);
 
     const specPaths = spec.paths as Record<string, Record<string, unknown>>;
     const missing: string[] = [];
