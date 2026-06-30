@@ -20,6 +20,7 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
+import { Icon } from "./components/Icon.tsx";
 import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 
@@ -396,17 +397,17 @@ export function App() {
 
         {/* COLUMN 1 — activity rail */}
         <nav className="ide-rail" aria-label="Primary">
-          <button className="ide-rail-btn" aria-label="Toggle Explorer sidebar" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}>☰</button>
-          <button className={`ide-rail-btn ${page === "upload" ? "active" : ""}`} aria-label="Analyze" aria-current={page === "upload" ? "page" : undefined} title="Analyze" onClick={() => nav("upload")}>▲</button>
-          {result && <button className={`ide-rail-btn ${page === "dashboard" ? "active" : ""}`} aria-label="Dashboard" aria-current={page === "dashboard" ? "page" : undefined} title="Dashboard" onClick={() => nav("dashboard")}>◷</button>}
-          <button className={`ide-rail-btn ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} aria-label="Tools" aria-current={page === "tools" || page.startsWith("tool-") ? "page" : undefined} title="Tools" onClick={() => nav("tools")}>⌗</button>
-          <button className={`ide-rail-btn ${page === "programs" ? "active" : ""}`} aria-label="Programs" aria-current={page === "programs" ? "page" : undefined} title="Programs" onClick={() => nav("programs")}>◇</button>
-          <button className={`ide-rail-btn ${page === "account" ? "active" : ""}`} aria-label={loggedIn ? "Account" : "Sign Up"} aria-current={page === "account" ? "page" : undefined} title={loggedIn ? "Account" : "Sign Up"} onClick={() => nav("account")}>◴</button>
-          <button className="ide-rail-btn" aria-label="Open command palette" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}>⌘</button>
+          <button className="ide-rail-btn" aria-label="Toggle Explorer sidebar" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}><Icon name="panel-left" /></button>
+          <button className={`ide-rail-btn ${page === "upload" ? "active" : ""}`} aria-label="Analyze" aria-current={page === "upload" ? "page" : undefined} title="Analyze" onClick={() => nav("upload")}><Icon name="scan" /></button>
+          {result && <button className={`ide-rail-btn ${page === "dashboard" ? "active" : ""}`} aria-label="Dashboard" aria-current={page === "dashboard" ? "page" : undefined} title="Dashboard" onClick={() => nav("dashboard")}><Icon name="dashboard" /></button>}
+          <button className={`ide-rail-btn ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} aria-label="Tools" aria-current={page === "tools" || page.startsWith("tool-") ? "page" : undefined} title="Tools" onClick={() => nav("tools")}><Icon name="wrench" /></button>
+          <button className={`ide-rail-btn ${page === "programs" ? "active" : ""}`} aria-label="Programs" aria-current={page === "programs" ? "page" : undefined} title="Programs" onClick={() => nav("programs")}><Icon name="layers" /></button>
+          <button className={`ide-rail-btn ${page === "account" ? "active" : ""}`} aria-label={loggedIn ? "Account" : "Sign Up"} aria-current={page === "account" ? "page" : undefined} title={loggedIn ? "Account" : "Sign Up"} onClick={() => nav("account")}><Icon name="user" /></button>
+          <button className="ide-rail-btn" aria-label="Open command palette" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}><Icon name="command" /></button>
           <div className="ide-rail-spacer" />
-          <button className="ide-rail-btn" aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} onClick={toggleTheme}>{theme === "light" ? "☾" : "☀"}</button>
-          {loggedIn && <button className="ide-rail-btn" aria-label="Log out" title="Log out of this browser session" onClick={handleLogout}>⏏</button>}
-          <button className="ide-rail-btn ide-rail-hamburger" aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} onClick={() => setNavOpen((o) => !o)}>{navOpen ? "✕" : "≡"}</button>
+          <button className="ide-rail-btn" aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} onClick={toggleTheme}><Icon name={theme === "light" ? "moon" : "sun"} /></button>
+          {loggedIn && <button className="ide-rail-btn" aria-label="Log out" title="Log out of this browser session" onClick={handleLogout}><Icon name="log-out" /></button>}
+          <button className="ide-rail-btn ide-rail-hamburger" aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} onClick={() => setNavOpen((o) => !o)}><Icon name={navOpen ? "x" : "menu"} /></button>
         </nav>
 
         {/* COLUMN 2 — file-tree sidebar */}
@@ -417,24 +418,24 @@ export function App() {
           </div>
           <div className="ide-tree">
             <div className="ide-tree-group">WORKSPACE</div>
-            <button className={`ide-tree-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}><span className="ide-tree-ico">▲</span>Analyze</button>
-            {result && <button className={`ide-tree-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}><span className="ide-tree-ico">◷</span>Dashboard</button>}
-            <button className={`ide-tree-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}><span className="ide-tree-ico">⌗</span>Tools</button>
+            <button className={`ide-tree-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}><span className="ide-tree-ico"><Icon name="scan" /></span>Analyze</button>
+            {result && <button className={`ide-tree-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}><span className="ide-tree-ico"><Icon name="dashboard" /></span>Dashboard</button>}
+            <button className={`ide-tree-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}><span className="ide-tree-ico"><Icon name="wrench" /></span>Tools</button>
             <div className="ide-tree-group">LIBRARY</div>
-            <button className={`ide-tree-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}><span className="ide-tree-ico">◇</span>Programs</button>
-            <button className={`ide-tree-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}><span className="ide-tree-ico">◆</span>Examples</button>
-            <button className={`ide-tree-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}><span className="ide-tree-ico">$</span>Plans</button>
+            <button className={`ide-tree-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}><span className="ide-tree-ico"><Icon name="layers" /></span>Programs</button>
+            <button className={`ide-tree-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}><span className="ide-tree-ico"><Icon name="grid" /></span>Examples</button>
+            <button className={`ide-tree-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}><span className="ide-tree-ico"><Icon name="credit-card" /></span>Plans</button>
             <div className="ide-tree-group">ACCOUNT</div>
-            <button className={`ide-tree-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}><span className="ide-tree-ico">◴</span>{loggedIn ? "Account" : "Sign Up"}</button>
-            {privateAccess && <button className={`ide-tree-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}><span className="ide-tree-ico">▣</span>MyAnalytics</button>}
-            {privateAccess && <button className={`ide-tree-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}><span className="ide-tree-ico">⚙</span>Admin</button>}
-            {loggedIn && <button className="ide-tree-item" onClick={handleLogout}><span className="ide-tree-ico">⏏</span>Log Out</button>}
+            <button className={`ide-tree-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}><span className="ide-tree-ico"><Icon name="user" /></span>{loggedIn ? "Account" : "Sign Up"}</button>
+            {privateAccess && <button className={`ide-tree-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}><span className="ide-tree-ico"><Icon name="bar-chart" /></span>MyAnalytics</button>}
+            {privateAccess && <button className={`ide-tree-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}><span className="ide-tree-ico"><Icon name="settings" /></span>Admin</button>}
+            {loggedIn && <button className="ide-tree-item" onClick={handleLogout}><span className="ide-tree-ico"><Icon name="log-out" /></span>Log Out</button>}
             <div className="ide-tree-group">HELP</div>
-            <button className={`ide-tree-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}><span className="ide-tree-ico">≣</span>Docs</button>
-            <button className={`ide-tree-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}><span className="ide-tree-ico">?</span>Help</button>
-            <button className={`ide-tree-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}><span className="ide-tree-ico">¶</span>Q&amp;A</button>
-            <button className={`ide-tree-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}><span className="ide-tree-ico">⚇</span>For Agents</button>
-            <button className={`ide-tree-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}><span className="ide-tree-ico">⤓</span>Install</button>
+            <button className={`ide-tree-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}><span className="ide-tree-ico"><Icon name="book" /></span>Docs</button>
+            <button className={`ide-tree-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}><span className="ide-tree-ico"><Icon name="help" /></span>Help</button>
+            <button className={`ide-tree-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}><span className="ide-tree-ico"><Icon name="message" /></span>Q&amp;A</button>
+            <button className={`ide-tree-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}><span className="ide-tree-ico"><Icon name="bot" /></span>For Agents</button>
+            <button className={`ide-tree-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}><span className="ide-tree-ico"><Icon name="download" /></span>Install</button>
           </div>
         </aside>
 
