@@ -11,6 +11,7 @@
   --bg-card: #ffffff;
   --bg-hover: #e2e7ee;
   --bg-inset: #f4f6f9;
+  --bg-tertiary: #e8edf3;
   /* Edges */
   --border: #ccd5e0;
   --border-strong: #b3bfce;
@@ -42,6 +43,7 @@
   --bg-card: #0d141d;
   --bg-hover: #141e29;
   --bg-inset: #0a0f16;
+  --bg-tertiary: #121a24;
   /* Edges */
   --border: #1b2733;
   --border-strong: #29384a;
@@ -935,6 +937,7 @@ kbd {
   border-bottom: 1px solid var(--border);
   cursor: pointer; white-space: nowrap;
 }
+.ide-sidebar-brand:focus-visible { outline: none; box-shadow: var(--glow); }
 .ide-sidebar-brand-name { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
 .ide-tree { padding: 6px 8px 16px; display: flex; flex-direction: column; gap: 1px; }
 .ide-tree-group {
