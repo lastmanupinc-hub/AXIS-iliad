@@ -396,22 +396,22 @@ export function App() {
 
         {/* COLUMN 1 — activity rail */}
         <nav className="ide-rail" aria-label="Primary">
-          <button className="ide-rail-btn" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}>☰</button>
-          <button className={`ide-rail-btn ${page === "upload" ? "active" : ""}`} title="Analyze" onClick={() => nav("upload")}>▲</button>
-          {result && <button className={`ide-rail-btn ${page === "dashboard" ? "active" : ""}`} title="Dashboard" onClick={() => nav("dashboard")}>◷</button>}
-          <button className={`ide-rail-btn ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} title="Tools" onClick={() => nav("tools")}>⌗</button>
-          <button className={`ide-rail-btn ${page === "programs" ? "active" : ""}`} title="Programs" onClick={() => nav("programs")}>◇</button>
-          <button className={`ide-rail-btn ${page === "account" ? "active" : ""}`} title={loggedIn ? "Account" : "Sign Up"} onClick={() => nav("account")}>◴</button>
-          <button className="ide-rail-btn" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}>⌘</button>
+          <button className="ide-rail-btn" aria-label="Toggle Explorer sidebar" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}>☰</button>
+          <button className={`ide-rail-btn ${page === "upload" ? "active" : ""}`} aria-label="Analyze" aria-current={page === "upload" ? "page" : undefined} title="Analyze" onClick={() => nav("upload")}>▲</button>
+          {result && <button className={`ide-rail-btn ${page === "dashboard" ? "active" : ""}`} aria-label="Dashboard" aria-current={page === "dashboard" ? "page" : undefined} title="Dashboard" onClick={() => nav("dashboard")}>◷</button>}
+          <button className={`ide-rail-btn ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} aria-label="Tools" aria-current={page === "tools" || page.startsWith("tool-") ? "page" : undefined} title="Tools" onClick={() => nav("tools")}>⌗</button>
+          <button className={`ide-rail-btn ${page === "programs" ? "active" : ""}`} aria-label="Programs" aria-current={page === "programs" ? "page" : undefined} title="Programs" onClick={() => nav("programs")}>◇</button>
+          <button className={`ide-rail-btn ${page === "account" ? "active" : ""}`} aria-label={loggedIn ? "Account" : "Sign Up"} aria-current={page === "account" ? "page" : undefined} title={loggedIn ? "Account" : "Sign Up"} onClick={() => nav("account")}>◴</button>
+          <button className="ide-rail-btn" aria-label="Open command palette" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}>⌘</button>
           <div className="ide-rail-spacer" />
-          <button className="ide-rail-btn" title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} onClick={toggleTheme}>{theme === "light" ? "☾" : "☀"}</button>
-          {loggedIn && <button className="ide-rail-btn" title="Log out of this browser session" onClick={handleLogout}>⏏</button>}
+          <button className="ide-rail-btn" aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} onClick={toggleTheme}>{theme === "light" ? "☾" : "☀"}</button>
+          {loggedIn && <button className="ide-rail-btn" aria-label="Log out" title="Log out of this browser session" onClick={handleLogout}>⏏</button>}
           <button className="ide-rail-btn ide-rail-hamburger" aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} onClick={() => setNavOpen((o) => !o)}>{navOpen ? "✕" : "≡"}</button>
         </nav>
 
         {/* COLUMN 2 — file-tree sidebar */}
         <aside className="ide-sidebar" aria-label="Navigation">
-          <div className="ide-sidebar-brand" onClick={handleReset} role="button" tabIndex={0} title="Reset to Analyze">
+          <div className="ide-sidebar-brand" onClick={handleReset} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleReset(); } }} role="button" tabIndex={0} title="Reset to Analyze">
             <span className="ide-sidebar-brand-name">Axis&apos; Iliad</span>
             <span className="badge badge-accent">v{APP_VERSION}</span>
           </div>
