@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AVIONICS theme pack — Axis' Iliad
+   AVERIONICS theme pack — Axis' Iliad
    A cockpit/instrument design system: HUD cyan accent, amber caution, precise
    panel borders, glow focus, monospace instrument labels. Full light + dark.
    :root = "daylight instrument" · [data-theme="dark"] = "night cockpit".
@@ -802,7 +802,7 @@ kbd {
   margin: 0 !important;
 }
 
-/* ─── Avionics polish ─────────────────────────────────────────────
+/* ─── Averionics polish ───────────────────────────────────────────
    Instrument character layered over the existing components — no class
    renames, so every page inherits the cockpit look automatically. */
 
@@ -845,4 +845,207 @@ kbd {
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ============================================================
+   COCKPIT-IDE SHELL (averionics) — the workspace layout.
+   Token-driven; restructures ONLY the outer shell. Every
+   per-page class is untouched and renders inside .ide-main.
+   ============================================================ */
+
+/* Full-bleed: neutralize the old centered #root gutters + the old fixed-statusbar
+   bottom padding. Later rule wins over the earlier #root declarations. */
+#root { max-width: none; margin: 0; padding: 0; padding-bottom: 0; }
+@media (max-width: 600px) { #root { padding: 0; } }
+
+/* Dead top-nav rules — hide defensively (fully removable later). */
+.header, .nav-desktop, .nav-mobile-controls { display: none; }
+
+/* The shell grid — fills the viewport minus the fixed 32px StatusBar. */
+.ide-shell {
+  --rail-w: 52px;
+  --sidebar-w: 240px;
+  --tabstrip-h: 36px;
+  --statusbar-h: 32px;
+  display: grid;
+  grid-template-columns: var(--rail-w) var(--sidebar-w) minmax(0, 1fr);
+  grid-template-rows: var(--tabstrip-h) minmax(0, 1fr);
+  grid-template-areas:
+    "rail tabs tabs"
+    "rail side main";
+  height: 100vh;
+  height: 100dvh;
+  max-height: calc(100vh - var(--statusbar-h));
+  max-height: calc(100dvh - var(--statusbar-h));
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  transition: grid-template-columns 0.16s ease;
+}
+.ide-shell.sidebar-collapsed { --sidebar-w: 0px; }
+
+/* COLUMN 1 — activity rail (instrument bezel) */
+.ide-rail {
+  grid-area: rail;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  background: var(--bg-inset);
+  border-right: 1px solid var(--border);
+  box-shadow: inset -1px 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent);
+  z-index: 30;
+}
+.ide-rail-spacer { flex: 1 1 auto; }
+.ide-rail-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.1rem; line-height: 1; cursor: pointer;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.ide-rail-btn:hover { color: var(--text); background: var(--bg-hover); }
+.ide-rail-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.ide-rail-btn:focus-visible { outline: none; box-shadow: var(--glow); }
+.ide-rail-hamburger { display: none; }
+
+/* COLUMN 2 — file-tree sidebar */
+.ide-sidebar {
+  grid-area: side;
+  display: flex; flex-direction: column;
+  min-width: 0;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  overflow: hidden auto;
+}
+.sidebar-collapsed .ide-sidebar { border-right: none; }
+.ide-sidebar-brand {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px;
+  height: var(--tabstrip-h);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; white-space: nowrap;
+}
+.ide-sidebar-brand-name { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+.ide-tree { padding: 6px 8px 16px; display: flex; flex-direction: column; gap: 1px; }
+.ide-tree-group {
+  font-family: var(--mono);
+  font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 12px 8px 4px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.ide-tree-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none; border-left: 2px solid transparent;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font); font-size: 0.82rem; text-align: left;
+  cursor: pointer; white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.ide-tree-item:hover { background: var(--bg-hover); }
+.ide-tree-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.ide-tree-item:focus-visible { outline: none; box-shadow: var(--glow); }
+.ide-tree-ico { width: 16px; text-align: center; flex-shrink: 0; color: var(--text-muted); font-size: 0.8rem; }
+.ide-tree-item.active .ide-tree-ico { color: var(--accent); }
+
+/* COLUMN 3 / ROW 1 — editor tab strip + telemetry locator */
+.ide-tabstrip {
+  grid-area: tabs;
+  display: flex; align-items: stretch; gap: 0;
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 -1px 0 0 color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.ide-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 0 16px;
+  font-family: var(--mono); font-size: 0.78rem;
+  color: var(--text); background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  border-top: 2px solid transparent;
+}
+.ide-tab.active { border-top-color: var(--accent); }
+.ide-tab-ico { color: var(--accent); font-size: 0.55rem; }
+.ide-tab-label { white-space: nowrap; }
+.ide-locator {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px;
+  font-size: 0.68rem; letter-spacing: 0.06em;
+  align-self: center;
+}
+.loc-sys { color: var(--text-muted); }
+.loc-sep { color: var(--accent); }
+.loc-page { color: var(--text); font-weight: 600; }
+.ide-tel-dot {
+  margin-left: auto; align-self: center;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  animation: telpulse 2.4s ease-out infinite;
+}
+@keyframes telpulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.ide-tabstrip-theme { align-self: center; margin-right: 8px; margin-left: 12px; font-size: 0.75rem; padding: 4px 10px; }
+
+/* COLUMN 3 / ROW 2 — main editor panel (only scroll region) */
+.ide-main {
+  grid-area: main;
+  min-width: 0; min-height: 0;
+  overflow: auto;
+  padding: 20px 24px;
+  background: var(--bg);
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--border) 60%, transparent);
+}
+.ide-main > .page-enter { max-width: 1200px; }
+.ide-footer { text-align: center; padding: 24px 16px; border-top: 1px solid var(--border); margin-top: 40px; }
+.ide-footer p, .ide-footer { color: var(--text-muted); font-size: 0.8rem; }
+.ide-footer a { color: var(--text-muted); }
+
+/* HYBRID — the public Analyze landing breathes (marketing). */
+.is-landing .ide-main { padding: 0; }
+.is-landing .ide-main > .trust-banner { max-width: 1100px; margin: 16px auto 0; }
+.is-landing .ide-main > .page-enter { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.is-landing .ide-main > .ide-footer { max-width: 1100px; margin: 40px auto 0; }
+
+/* RESPONSIVE — rail-only + off-canvas drawer below 900px */
+@media (max-width: 900px) {
+  .ide-shell {
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    grid-template-areas:
+      "rail tabs"
+      "rail main";
+  }
+  .ide-sidebar { display: none; }
+  .ide-rail-hamburger { display: flex; }
+  .ide-locator { display: none; }
+  .ide-tabstrip-theme { display: none; }
+}
+@media (max-width: 600px) {
+  .ide-main { padding: 12px; }
+  .is-landing .ide-main > .page-enter { padding: 12px; }
+}
+
+/* Mobile drawer — clear the fixed rail+tabstrip (legacy offset was 56px). */
+.nav-mobile-drawer .nav-drawer-item:first-child { margin-top: 0; }
 
