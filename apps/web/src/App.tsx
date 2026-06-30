@@ -450,7 +450,6 @@ export function App() {
             <span className="loc-page">{(LABEL_OF[page] ?? page).toUpperCase()}</span>
           </div>
           <span className="ide-tel-dot" aria-hidden />
-          <button className="theme-toggle ide-tabstrip-theme" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "Dark" : "Light"}</button>
         </div>
 
         {/* COLUMN 3 / ROW 2 — main editor panel (only scroll region) */}

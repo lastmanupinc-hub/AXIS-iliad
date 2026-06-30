@@ -1052,3 +1052,299 @@ kbd {
 /* Mobile drawer — clear the fixed rail+tabstrip (legacy offset was 56px). */
 .nav-mobile-drawer .nav-drawer-item:first-child { margin-top: 0; }
 
+
+
+/* === POLISH: RAIL (.ide-rail / .ide-rail-btn) + TAB STRIP (.ide-tabstrip / .ide-tab / .ide-lo === */
+/* ============================================================
+   COCKPIT POLISH — rail + tab strip (appendable; wins by order)
+   Token-only. No class renames, no structural change.
+   ============================================================ */
+
+/* ── RAIL: deeper instrument bezel on both vertical edges ───── */
+.ide-rail {
+  padding: 10px 0;
+  gap: 3px;
+  box-shadow:
+    inset -1px 0 0 0 color-mix(in srgb, var(--accent) 26%, transparent),
+    inset 1px 0 0 0 color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+/* Rail keys read as physical keycaps: crisper hover, real press feedback */
+.ide-rail-btn {
+  width: 38px; height: 38px;
+  font-size: 1.05rem;
+  transition: color 0.12s ease, background 0.12s ease,
+              border-color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
+}
+.ide-rail-btn:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+  border-color: color-mix(in srgb, var(--border-strong) 80%, transparent);
+}
+.ide-rail-btn:active {
+  transform: translateY(0.5px);
+  background: var(--bg-tertiary);
+  border-color: var(--border-strong);
+}
+
+/* Active key: lit cockpit switch — cyan fill, right-edge bar to echo the
+   rail's right bezel, faint glow. Overrides the prior left-bar rule. */
+.ide-rail-btn.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow:
+    inset -2px 0 0 0 var(--accent),
+    0 0 10px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.ide-rail-btn.active:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--bg-hover));
+}
+
+/* ── TAB STRIP: crisper seam + tighter alignment ───────────── */
+.ide-tabstrip {
+  align-items: stretch;
+  padding-right: 2px;
+  box-shadow: inset 0 -1px 0 0 color-mix(in srgb, var(--accent) 26%, transparent);
+}
+
+/* The active tab is a "lit" editor card that sits flush with the panel:
+   cyan top bar, subtle background lift, and a 1px overshoot that hides the
+   strip's bottom seam so the tab reads as attached to the main panel. */
+.ide-tab {
+  position: relative;
+  gap: 8px;
+  padding: 0 18px;
+  color: var(--text-muted);
+  background: transparent;
+  border-top: 2px solid transparent;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.ide-tab.active {
+  color: var(--text);
+  background: var(--bg-card);
+  border-top-color: var(--accent);
+  margin-bottom: -1px;
+  padding-bottom: 1px;
+}
+.ide-tab-ico {
+  color: var(--accent);
+  font-size: 0.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+.ide-tab-label { letter-spacing: 0.01em; }
+
+/* Locator breadcrumb: leading divider for crisp segmentation, baseline-true
+   vertical centering, slightly roomier mono tracking. */
+.ide-locator {
+  gap: 9px;
+  padding: 0 16px;
+  margin-left: 2px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  line-height: 1;
+}
+.loc-sys { letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.9; }
+.loc-sep { font-size: 0.6rem; opacity: 0.8; }
+.loc-page { letter-spacing: 0.05em; }
+
+/* Telemetry dot becomes the far-right element after theme-toggle dedup:
+   give it breathing room from the edge and a steadier seated core. */
+.ide-tel-dot {
+  margin-left: auto;
+  margin-right: 16px;
+  width: 8px; height: 8px;
+  background: var(--green);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--green) 35%, transparent);
+}
+
+/* === POLISH: SIDEBAR (.ide-sidebar / .ide-sidebar-brand) + FILE TREE (.ide-tree / .ide-tree-g === */
+/* ============================================================
+   SIDEBAR + FILE-TREE POLISH (averionics) — append-only.
+   Overrides win by source order; no class renames, grid intact.
+   ============================================================ */
+
+/* Brand row reads as one continuous instrument header with the tab strip:
+   same faint cyan hairline along the bottom edge, name optically centered. */
+.ide-sidebar-brand {
+  gap: 9px;
+  padding: 0 12px 0 14px;
+  box-shadow: inset 0 -1px 0 0 color-mix(in srgb, var(--accent) 22%, transparent);
+  justify-content: space-between;
+  transition: background 0.12s;
+}
+.ide-sidebar-brand:hover { background: var(--bg-hover); }
+.ide-sidebar-brand-name {
+  font-size: 0.9rem;
+  line-height: 1;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tree: tighter top, stable bottom; rows sit on a consistent rhythm. */
+.ide-tree { padding: 4px 8px 18px; gap: 0; }
+
+/* Group labels: deliberate rhythm. The first label hugs the brand (no big
+   top gap); every subsequent group gets a clear breath + a hairline divider
+   so sections read as distinct instrument clusters. */
+.ide-tree-group {
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  color: color-mix(in srgb, var(--text-muted) 82%, transparent);
+  padding: 8px 8px 5px;
+}
+.ide-tree-group:first-child { padding-top: 6px; }
+.ide-tree-item + .ide-tree-group {
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+/* Rows: IDE density with a stable height; hover previews the active bar. */
+.ide-tree-item {
+  gap: 9px;
+  padding: 0 9px;
+  min-height: 28px;
+  font-size: 0.815rem;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  transition: background 0.1s, color 0.1s, border-color 0.1s, box-shadow 0.1s;
+}
+.ide-tree-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-left-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.ide-tree-item:hover .ide-tree-ico { color: var(--text); }
+
+/* Active: crisp 2px cyan rail + faint inset glow line; text/icon go HUD cyan. */
+.ide-tree-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  box-shadow: inset 1px 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  font-weight: 600;
+}
+.ide-tree-item.active .ide-tree-ico { color: var(--accent); }
+
+/* Icon column: fixed optical box so mixed-width Unicode glyphs all center
+   on the same axis and never shove the label. */
+.ide-tree-ico {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  line-height: 1;
+  opacity: 0.92;
+  flex-shrink: 0;
+}
+
+/* Collapse: fade + slide the contents so the sidebar doesn't snap shut.
+   Width still animates via .ide-shell's grid-template-columns transition. */
+.ide-sidebar > * {
+  transition: opacity 0.14s ease, transform 0.16s ease;
+}
+.sidebar-collapsed .ide-sidebar > * {
+  opacity: 0;
+  transform: translateX(-6px);
+  pointer-events: none;
+}
+
+/* === POLISH: MAIN panel (.ide-main / .page-enter) + .is-landing hero framing + .ide-footer +  === */
+/* ============================================================
+   POLISH — MAIN panel rhythm, landing framing, footer, scroll
+   Appended last: every rule below wins on source order, no
+   hand-merge needed. Tokens only; no new classes, no layout
+   restructure. Pairs with the JSX theme-toggle dedup.
+   ============================================================ */
+
+/* ── Scroll niceties ──────────────────────────────────────────
+   .ide-main is the only scroll region. Give it scroll-padding so
+   focus-scroll / anchor jumps clear the 36px tabstrip + its cyan
+   underline instead of landing flush beneath it, plus a smooth
+   programmatic scroll and momentum on touch. overflow stays auto. */
+.ide-main {
+  scroll-padding-top: 12px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ide-main { scroll-behavior: auto; }
+}
+
+/* ── Dense app rhythm ─────────────────────────────────────────
+   Roomier gutters and a touch more bottom runway so the last card
+   never kisses the footer. Center the content column on wide
+   monitors (it was pinned hard-left before) and cap it slightly
+   tighter than full 1200 for a calmer measure. The bottom padding
+   keeps the StatusBar from crowding the final row. */
+.ide-main { padding: 24px 32px 8px; }
+.ide-main > .page-enter {
+  max-width: 1160px;
+  margin-inline: auto;
+}
+
+/* ── Page transition feel ─────────────────────────────────────
+   Dense in-app nav: a quicker, lighter slide so switching tabs
+   feels instant rather than animated. Snappier easing curve. */
+.ide-main > .page-enter {
+  animation: slideUp 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Footer treatment ─────────────────────────────────────────
+   Align the footer to the same centered measure as the content,
+   soften the divider to a hairline that fades at the ends, and add
+   a quiet inset readout feel. mono caps on the year line reads as
+   an instrument label rather than fine print. */
+.ide-main > .ide-footer {
+  max-width: 1160px;
+  margin: 56px auto 0;
+  padding: 20px 16px 28px;
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(
+    to right,
+    transparent,
+    var(--border) 18%,
+    var(--border) 82%,
+    transparent
+  ) 1;
+}
+.ide-main > .ide-footer p {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.ide-main > .ide-footer a:hover { color: var(--accent); }
+
+/* ── Landing hero framing within the shell ────────────────────
+   The public Analyze page is the marketing surface: let it breathe
+   wider and taller than the dense views. Slightly larger transition
+   travel gives the hero more arrival presence; the content column
+   sits on a 1100 measure already centered. Extra top air separates
+   the hero from the tabstrip without a hard rule. */
+.is-landing .ide-main > .page-enter {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 8px;
+  animation: slideUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.is-landing .ide-main > .trust-banner {
+  max-width: 1100px;
+  margin: 20px auto 0;
+}
+.is-landing .ide-main > .ide-footer {
+  max-width: 1100px;
+  margin: 64px auto 0;
+}
+
+/* ── Narrow viewports: restore tighter gutters, keep the rhythm ── */
+@media (max-width: 600px) {
+  .ide-main { padding: 14px 14px 8px; }
+  .ide-main > .page-enter { max-width: none; }
+  .is-landing .ide-main > .page-enter { padding: 16px 14px 8px; }
+  .ide-main > .ide-footer { margin-top: 40px; padding: 18px 14px 24px; }
+}
