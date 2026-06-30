@@ -8,7 +8,7 @@ import {
   getUsage,
   getCredits,
   createCreditTopup,
-  createCheckout,
+  getPaidConfig,
   getSubscription,
   cancelSubscription,
   listSeats,
@@ -162,11 +162,17 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
 
   async function handleUpgrade(planId: "starter" | "pro" | "growth") {
     setError(null);
+    // PAI'D is the only checkout path — route to the PAI'D checkout page; never charge Stripe directly.
     try {
-      const result = await createCheckout(planId);
-      window.location.href = result.checkout_url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Checkout failed");
+      const cfg = await getPaidConfig();
+      if (cfg.configured) {
+        sessionStorage.setItem("axis_paid_plan", planId);
+        window.location.hash = "paid-checkout";
+        return;
+      }
+      setError("Checkout is temporarily unavailable — please try again shortly.");
+    } catch {
+      setError("Checkout is temporarily unavailable — please try again shortly.");
     }
   }
 

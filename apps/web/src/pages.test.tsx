@@ -276,12 +276,12 @@ describe("PlansPage PAI'D routing", () => {
     await waitFor(() => expect(window.location.hash).toBe("#paid-checkout"));
   });
 
-  it("falls back to the standard Stripe checkout when PAI'D is not configured", async () => {
+  it("never falls back to direct Stripe when PAI'D is not configured (PAI'D is the only money path)", async () => {
     localStorage.setItem("axis_api_key", "axis_test_key");
     const fetchFn = paidFetchStub({
       "/v1/plans": { body: { plans: [starterPlan], features: [] } },
       "/portal/api/paid/config": { body: PAID_CONFIG_OFF },
-      "/v1/checkout": { body: { checkout_url: "https://checkout.example/cs_1", plan_id: "starter", session_id: "cs_1" } },
+      // /v1/checkout intentionally NOT stubbed — it must never be called.
     });
     vi.stubGlobal("fetch", fetchFn);
 
@@ -289,10 +289,10 @@ describe("PlansPage PAI'D routing", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Choose Starter" }));
 
-    await waitFor(() => {
-      const urls = fetchFn.mock.calls.map((c) => String(c[0]));
-      expect(urls.some((u) => u.endsWith("/v1/checkout"))).toBe(true);
-    });
+    // Surfaces an "unavailable" message and does NOT charge Stripe directly (no /v1/checkout).
+    await screen.findByText(/temporarily unavailable/i);
+    const urls = fetchFn.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.endsWith("/v1/checkout"))).toBe(false);
     expect(window.location.hash).not.toBe("#paid-checkout");
   });
 });

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getPlans, createCheckout, getPaidConfig, type PlanDefinition, type PlanFeature } from "../api.ts";
+import { getPlans, getPaidConfig, type PlanDefinition, type PlanFeature } from "../api.ts";
 
 interface Props {
   onSelectPlan: () => void;
@@ -40,13 +40,11 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
       }
       return;
     }
-    // Trigger checkout
+    // Trigger checkout — PAI'D is the ONLY checkout path. PAI'D → Stripe is the sole
+    // money path; the app never charges Stripe directly. The chosen tier is handed to
+    // the PAI'D checkout page via sessionStorage.
     setCheckoutLoading(planId);
     setCheckoutError(null);
-    // All paid tiers route through PAI'D when the server has it configured.
-    // Probe lazily on click; any failure falls through to the standard Stripe
-    // checkout below. The chosen tier is handed to the checkout page via
-    // sessionStorage so it can request the right plan.
     try {
       const cfg = await getPaidConfig();
       if (cfg.configured) {
@@ -55,16 +53,11 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
         window.location.hash = "paid-checkout";
         return;
       }
+      setCheckoutError("Checkout is temporarily unavailable — please try again shortly.");
     } catch {
-      // Config probe failed — use the standard Stripe checkout.
+      setCheckoutError("Checkout is temporarily unavailable — please try again shortly.");
     }
-    try {
-      const result = await createCheckout(planId as "starter" | "pro" | "growth", annual ? "annual" : "monthly");
-      window.location.href = result.checkout_url;
-    } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : "Checkout failed");
-      setCheckoutLoading(null);
-    }
+    setCheckoutLoading(null);
   }
 
   useEffect(() => {
