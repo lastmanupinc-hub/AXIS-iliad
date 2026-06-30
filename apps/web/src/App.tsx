@@ -76,6 +76,23 @@ type Page =
 
 const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics"]);
 
+// IDE-shell tab-strip metadata: which "system" a page belongs to (the mission
+// breadcrumb) and its editor-tab label. Partial — missing keys fall back via ??.
+const SECTION_OF: Partial<Record<Page, string>> = {
+  upload: "MISSION", dashboard: "MISSION", tools: "MISSION", "tool-web-research": "MISSION", programs: "MISSION",
+  plans: "ACCOUNT", account: "ACCOUNT", "paid-checkout": "ACCOUNT",
+  docs: "REFERENCE", help: "REFERENCE", qa: "REFERENCE", terms: "REFERENCE",
+  myanalytics: "OPS", admin: "OPS",
+  "for-agents": "AGENTS", examples: "AGENTS", install: "AGENTS",
+};
+const LABEL_OF: Partial<Record<Page, string>> = {
+  upload: "Analyze", dashboard: "dashboard.json", tools: "Tools", "tool-web-research": "web-research.tool", programs: "Programs",
+  plans: "Plans", account: "Account", "paid-checkout": "Checkout",
+  docs: "Docs", help: "Help", qa: "Q&A", terms: "Terms",
+  myanalytics: "MyAnalytics", admin: "Admin",
+  "for-agents": "For Agents", examples: "Examples", install: "Install",
+};
+
 function hasApiKey(): boolean {
   return !!localStorage.getItem("axis_api_key");
 }
@@ -135,6 +152,7 @@ export function App() {
   const [showSignUp, setShowSignUp] = useState(false);
   const pendingResultRef = useRef<SnapshotResponse | null>(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Theme: default light, persist to localStorage
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -370,127 +388,149 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [nav, result, privateAccess]);
 
+  const isLanding = page === "upload";
+
   return (
     <ToastProvider>
-      <header className="header">
-        <div className="header-brand">
-          <h1 style={{ margin: 0, cursor: "pointer" }} onClick={handleReset}>
-            Axis' Iliad
-          </h1>
-          <span className="badge badge-accent">v{APP_VERSION}</span>
-        </div>
+      <div className={`ide-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isLanding ? "is-landing" : ""}`} data-shell-page={page}>
 
-        {/* Desktop nav — hidden on mobile */}
-        <nav className="nav-desktop">
-          <button className={`btn ${page === "upload" ? "btn-primary" : ""}`} onClick={() => nav("upload")}>Analyze</button>
-          {result && (
-            <button className={`btn ${page === "dashboard" ? "btn-primary" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
-          )}
-          <button className={`btn ${page === "tools" || page.startsWith("tool-") ? "btn-primary" : ""}`} onClick={() => nav("tools")}>Tools</button>
-          <button className={`btn ${page === "programs" ? "btn-primary" : ""}`} onClick={() => nav("programs")}>Programs</button>
-          <button className={`btn ${page === "plans" ? "btn-primary" : ""}`} onClick={() => nav("plans")}>Plans</button>
-          <button className={`btn ${page === "account" ? "btn-primary" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
-          {loggedIn && <button className="btn" onClick={handleLogout} title="Log out of this browser session">Log Out</button>}
-          <button className={`btn ${page === "docs" ? "btn-primary" : ""}`} onClick={() => nav("docs")}>Docs</button>
-          <button className={`btn ${page === "help" ? "btn-primary" : ""}`} onClick={() => nav("help")}>Help</button>
-          <button className={`btn ${page === "qa" ? "btn-primary" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          {privateAccess && <button className={`btn ${page === "myanalytics" ? "btn-primary" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
-          {privateAccess && <button className={`btn ${page === "admin" ? "btn-primary" : ""}`} onClick={() => nav("admin")}>Admin</button>}
-          <button className={`btn ${page === "for-agents" ? "btn-primary" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
-          <button className={`btn ${page === "examples" ? "btn-primary" : ""}`} onClick={() => nav("examples")}>Examples</button>
-          <button className={`btn ${page === "install" ? "btn-primary" : ""}`} onClick={() => nav("install")}>Install</button>
-          <button className="btn" onClick={() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true })); }} title="Command Palette (Ctrl+K)" style={{ padding: "8px 10px" }}>Cmd</button>
-          <button className="theme-toggle" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "Dark" : "Light"}</button>
+        {/* COLUMN 1 — activity rail */}
+        <nav className="ide-rail" aria-label="Primary">
+          <button className="ide-rail-btn" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}>☰</button>
+          <button className={`ide-rail-btn ${page === "upload" ? "active" : ""}`} title="Analyze" onClick={() => nav("upload")}>▲</button>
+          {result && <button className={`ide-rail-btn ${page === "dashboard" ? "active" : ""}`} title="Dashboard" onClick={() => nav("dashboard")}>◷</button>}
+          <button className={`ide-rail-btn ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} title="Tools" onClick={() => nav("tools")}>⌗</button>
+          <button className={`ide-rail-btn ${page === "programs" ? "active" : ""}`} title="Programs" onClick={() => nav("programs")}>◇</button>
+          <button className={`ide-rail-btn ${page === "account" ? "active" : ""}`} title={loggedIn ? "Account" : "Sign Up"} onClick={() => nav("account")}>◴</button>
+          <button className="ide-rail-btn" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}>⌘</button>
+          <div className="ide-rail-spacer" />
+          <button className="ide-rail-btn" title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} onClick={toggleTheme}>{theme === "light" ? "☾" : "☀"}</button>
+          {loggedIn && <button className="ide-rail-btn" title="Log out of this browser session" onClick={handleLogout}>⏏</button>}
+          <button className="ide-rail-btn ide-rail-hamburger" aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} onClick={() => setNavOpen((o) => !o)}>{navOpen ? "✕" : "≡"}</button>
         </nav>
 
-        {/* Mobile controls — right side */}
-        <div className="nav-mobile-controls">
-          <button className="theme-toggle" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "Dark" : "Light"}</button>
-          <button
-            className="hamburger"
-            onClick={() => setNavOpen((o) => !o)}
-            aria-label={navOpen ? "Close menu" : "Open menu"}
-            aria-expanded={navOpen}
-          >
-            {navOpen ? "Close" : "Menu"}
-          </button>
+        {/* COLUMN 2 — file-tree sidebar */}
+        <aside className="ide-sidebar" aria-label="Navigation">
+          <div className="ide-sidebar-brand" onClick={handleReset} role="button" tabIndex={0} title="Reset to Analyze">
+            <span className="ide-sidebar-brand-name">Axis&apos; Iliad</span>
+            <span className="badge badge-accent">v{APP_VERSION}</span>
+          </div>
+          <div className="ide-tree">
+            <div className="ide-tree-group">WORKSPACE</div>
+            <button className={`ide-tree-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}><span className="ide-tree-ico">▲</span>Analyze</button>
+            {result && <button className={`ide-tree-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}><span className="ide-tree-ico">◷</span>Dashboard</button>}
+            <button className={`ide-tree-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}><span className="ide-tree-ico">⌗</span>Tools</button>
+            <div className="ide-tree-group">LIBRARY</div>
+            <button className={`ide-tree-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}><span className="ide-tree-ico">◇</span>Programs</button>
+            <button className={`ide-tree-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}><span className="ide-tree-ico">◆</span>Examples</button>
+            <button className={`ide-tree-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}><span className="ide-tree-ico">$</span>Plans</button>
+            <div className="ide-tree-group">ACCOUNT</div>
+            <button className={`ide-tree-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}><span className="ide-tree-ico">◴</span>{loggedIn ? "Account" : "Sign Up"}</button>
+            {privateAccess && <button className={`ide-tree-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}><span className="ide-tree-ico">▣</span>MyAnalytics</button>}
+            {privateAccess && <button className={`ide-tree-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}><span className="ide-tree-ico">⚙</span>Admin</button>}
+            {loggedIn && <button className="ide-tree-item" onClick={handleLogout}><span className="ide-tree-ico">⏏</span>Log Out</button>}
+            <div className="ide-tree-group">HELP</div>
+            <button className={`ide-tree-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}><span className="ide-tree-ico">≣</span>Docs</button>
+            <button className={`ide-tree-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}><span className="ide-tree-ico">?</span>Help</button>
+            <button className={`ide-tree-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}><span className="ide-tree-ico">¶</span>Q&amp;A</button>
+            <button className={`ide-tree-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}><span className="ide-tree-ico">⚇</span>For Agents</button>
+            <button className={`ide-tree-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}><span className="ide-tree-ico">⤓</span>Install</button>
+          </div>
+        </aside>
+
+        {/* COLUMN 3 / ROW 1 — editor tab strip + mission breadcrumb */}
+        <div className="ide-tabstrip">
+          <div className="ide-tab active">
+            <span className="ide-tab-ico">●</span>
+            <span className="ide-tab-label">{page === "account" ? (loggedIn ? "Account" : "Sign Up") : (LABEL_OF[page] ?? page)}</span>
+          </div>
+          <div className="ide-locator mono" aria-hidden>
+            <span className="loc-sys">{SECTION_OF[page] ?? "SYSTEM"}</span>
+            <span className="loc-sep">▸</span>
+            <span className="loc-page">{(LABEL_OF[page] ?? page).toUpperCase()}</span>
+          </div>
+          <span className="ide-tel-dot" aria-hidden />
+          <button className="theme-toggle ide-tabstrip-theme" onClick={toggleTheme} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}>{theme === "light" ? "Dark" : "Light"}</button>
         </div>
-      </header>
 
-      {/* Mobile nav drawer */}
-      {navOpen && (
-        <nav className="nav-mobile-drawer" onClick={() => setNavOpen(false)}>
-          <button className={`nav-drawer-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}>Analyze</button>
-          {result && (
-            <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
+        {/* COLUMN 3 / ROW 2 — main editor panel (only scroll region) */}
+        <main className="ide-main">
+          {isLanding && (
+            <div className="trust-banner" role="note" aria-label="Privacy and IP protection statement">
+              <span className="trust-item"><strong>Snapshots are stored</strong> — they power re-runs and exports; delete anytime via the API (DELETE /v1/snapshots/:id)</span>
+              <span className="trust-sep">·</span>
+              <span className="trust-item"><strong>Never used for AI training</strong></span>
+              <span className="trust-sep">·</span>
+              <span className="trust-item"><strong>Your IP is fully protected</strong></span>
+            </div>
           )}
-          <button className={`nav-drawer-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}>Tools</button>
-          <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
-          <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
-          <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
-          {loggedIn && <button className="nav-drawer-item" onClick={handleLogout}>Log Out</button>}
-          <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
-          <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
-          <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-          {privateAccess && <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
-          {privateAccess && <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>}
-          <button className={`nav-drawer-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
-          <button className={`nav-drawer-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}>Examples</button>
-          <button className={`nav-drawer-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}>Install</button>
-        </nav>
-      )}
 
-      {/* Trust / privacy banner — always visible */}
-      <div className="trust-banner" role="note" aria-label="Privacy and IP protection statement">
-        <span className="trust-item"><strong>Snapshots are stored</strong> — they power re-runs and exports; delete anytime via the API (DELETE /v1/snapshots/:id)</span>
-        <span className="trust-sep">·</span>
-        <span className="trust-item"><strong>Never used for AI training</strong></span>
-        <span className="trust-sep">·</span>
-        <span className="trust-item"><strong>Your IP is fully protected</strong></span>
+          <ErrorBoundary>
+            <div key={pageKey} className="page-enter">
+              {page === "upload" && <UploadPage onComplete={handleUploadComplete} />}
+              {page === "dashboard" && result && (
+                <DashboardPage result={result} onGeneratedCountChange={handleGeneratedCountChange} />
+              )}
+              {page === "plans" && <PlansPage onSelectPlan={() => nav("account")} onRequireLogin={() => setShowSignUp(true)} />}
+              {page === "account" && <AccountPage onAuthChange={handleAuthChange} />}
+              {page === "docs" && <DocsPage />}
+              {page === "help" && <HelpPage />}
+              {page === "qa" && <QAPage />}
+              {page === "myanalytics" && privateAccess && <MyAnalyticsPage />}
+              {page === "admin" && privateAccess && <AdminPage />}
+              {page === "programs" && <ProgramsPage onAnalyze={() => nav("upload")} />}
+              {page === "terms" && <TermsPage />}
+              {page === "for-agents" && <ForAgentsPage />}
+              {page === "examples" && <ExamplesPage />}
+              {page === "install" && <InstallPage />}
+              {page === "paid-checkout" && <PaidCheckoutPage />}
+              {page === "tools" && (
+                <ToolsIndexPage
+                  onSelectTool={(toolId) => {
+                    if (toolId === "tools/web-research") nav("tool-web-research");
+                    else if (toolId === "tools/analyze") nav("upload");
+                    else if (toolId === "tools/list-programs") nav("programs");
+                    // Future tools: add cases here as their ToolPage instances ship.
+                  }}
+                />
+              )}
+              {page === "tool-web-research" && <WebResearchPage onBack={() => nav("tools")} />}
+            </div>
+          </ErrorBoundary>
+
+          <footer className="ide-footer">
+            <p>
+              © {new Date().getFullYear()} Last Man Up Inc. ·{" "}
+              <button className="btn" style={{ padding: "0 4px", fontSize: "0.8rem", display: "inline" }} onClick={() => nav("terms")}>Terms of Service</button>
+              {" "} · {" "}
+              <a href="mailto:support@jonathanarvay.com">support@jonathanarvay.com</a>
+            </p>
+          </footer>
+        </main>
+
+        {/* Mobile off-canvas drawer — reuses existing classes + state */}
+        {navOpen && (
+          <nav className="nav-mobile-drawer" onClick={() => setNavOpen(false)}>
+            <button className={`nav-drawer-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}>Analyze</button>
+            {result && (
+              <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
+            )}
+            <button className={`nav-drawer-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}>Tools</button>
+            <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
+            <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
+            <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
+            {loggedIn && <button className="nav-drawer-item" onClick={handleLogout}>Log Out</button>}
+            <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
+            <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
+            <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
+            {privateAccess && <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
+            {privateAccess && <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>}
+            <button className={`nav-drawer-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
+            <button className={`nav-drawer-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}>Examples</button>
+            <button className={`nav-drawer-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}>Install</button>
+          </nav>
+        )}
       </div>
-
-      <ErrorBoundary>
-        <div key={pageKey} className="page-enter">
-          {page === "upload" && <UploadPage onComplete={handleUploadComplete} />}
-          {page === "dashboard" && result && (
-            <DashboardPage result={result} onGeneratedCountChange={handleGeneratedCountChange} />
-          )}
-          {page === "plans" && <PlansPage onSelectPlan={() => nav("account")} onRequireLogin={() => setShowSignUp(true)} />}
-          {page === "account" && <AccountPage onAuthChange={handleAuthChange} />}
-          {page === "docs" && <DocsPage />}
-          {page === "help" && <HelpPage />}
-          {page === "qa" && <QAPage />}
-          {page === "myanalytics" && privateAccess && <MyAnalyticsPage />}
-          {page === "admin" && privateAccess && <AdminPage />}
-          {page === "programs" && <ProgramsPage onAnalyze={() => nav("upload")} />}
-          {page === "terms" && <TermsPage />}
-          {page === "for-agents" && <ForAgentsPage />}
-          {page === "examples" && <ExamplesPage />}
-          {page === "install" && <InstallPage />}
-          {page === "paid-checkout" && <PaidCheckoutPage />}
-          {page === "tools" && (
-            <ToolsIndexPage
-              onSelectTool={(toolId) => {
-                if (toolId === "tools/web-research") nav("tool-web-research");
-                else if (toolId === "tools/analyze") nav("upload");
-                else if (toolId === "tools/list-programs") nav("programs");
-                // Future tools: add cases here as their ToolPage instances ship.
-              }}
-            />
-          )}
-          {page === "tool-web-research" && <WebResearchPage onBack={() => nav("tools")} />}
-        </div>
-      </ErrorBoundary>
-
-      {/* Footer */}
-      <footer style={{ textAlign: "center", padding: "24px 16px", borderTop: "1px solid var(--border)", marginTop: 40 }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.8rem", margin: 0 }}>
-          © {new Date().getFullYear()} Last Man Up Inc. ·{" "}
-          <button className="btn" style={{ padding: "0 4px", fontSize: "0.8rem", display: "inline" }} onClick={() => nav("terms")}>Terms of Service</button>
-          {" "} · {" "}
-          <a href="mailto:support@jonathanarvay.com" style={{ color: "var(--text-muted)" }}>support@jonathanarvay.com</a>
-        </p>
-      </footer>
 
       <CommandPalette actions={paletteActions} />
       <StatusBar snapshot={result} fileCount={generatedFileCount} />
