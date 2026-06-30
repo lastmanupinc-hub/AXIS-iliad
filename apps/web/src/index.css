@@ -1,36 +1,68 @@
+/* ==========================================================================
+   AVIONICS theme pack — Axis' Iliad
+   A cockpit/instrument design system: HUD cyan accent, amber caution, precise
+   panel borders, glow focus, monospace instrument labels. Full light + dark.
+   :root = "daylight instrument" · [data-theme="dark"] = "night cockpit".
+   ========================================================================== */
+
 :root {
-  --bg: #f8f9fa;
+  /* Surfaces — daylight instrument */
+  --bg: #eceff3;
   --bg-card: #ffffff;
-  --bg-hover: #f0f1f3;
-  --border: #d1d5db;
-  --text: #1a1a2e;
-  --text-muted: #6b7280;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --green: #16a34a;
-  --yellow: #ca8a04;
-  --red: #dc2626;
+  --bg-hover: #e2e7ee;
+  --bg-inset: #f4f6f9;
+  /* Edges */
+  --border: #ccd5e0;
+  --border-strong: #b3bfce;
+  /* Ink */
+  --text: #0c1118;
+  --text-muted: #5b6878;
+  /* Instrument cyan (AA contrast on light surfaces) */
+  --accent: #0a8aa6;
+  --accent-hover: #0b7184;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-ink: #ffffff;
+  /* Status / caution */
+  --amber: #b06a00;
+  --green: #0f9d58;
+  --yellow: #b06a00;
+  --red: #d23b3b;
   --blue: #2563eb;
-  --radius: 8px;
+  /* System */
+  --radius: 7px;
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow: 0 1px 2px rgba(13,22,32,0.06), 0 1px 3px rgba(13,22,32,0.05);
+  --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 [data-theme="dark"] {
-  --bg: #0a0a0f;
-  --bg-card: #12121a;
-  --bg-hover: #1a1a28;
-  --border: #2a2a3a;
-  --text: #e4e4ef;
-  --text-muted: #8888aa;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
-  --green: #22c55e;
-  --yellow: #eab308;
-  --red: #ef4444;
-  --blue: #3b82f6;
-  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  /* Surfaces — night cockpit (deep blue-black instrument panels) */
+  --bg: #070b11;
+  --bg-card: #0d141d;
+  --bg-hover: #141e29;
+  --bg-inset: #0a0f16;
+  /* Edges */
+  --border: #1b2733;
+  --border-strong: #29384a;
+  /* Ink */
+  --text: #d6e2ee;
+  --text-muted: #6e8093;
+  /* HUD cyan */
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-ink: #04131a;
+  /* Status / caution (instrument greens/ambers/reds) */
+  --amber: #ffb020;
+  --green: #2ee6a6;
+  --yellow: #ffc53d;
+  --red: #ff5d6c;
+  --blue: #4d8dff;
+  /* System — dark shadows + cyan HUD glow */
+  --shadow: 0 1px 2px rgba(0,0,0,0.5), 0 2px 10px rgba(0,0,0,0.35);
+  --glow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+          0 0 18px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,9 +143,11 @@ h3 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--accent-ink);
+  font-weight: 600;
 }
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn:focus-visible, .btn-primary:focus-visible { outline: none; box-shadow: var(--glow); border-color: var(--accent); }
 
 input, textarea, select {
   background: var(--bg);
@@ -128,6 +162,7 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: var(--glow);
 }
 textarea { font-family: var(--mono); resize: vertical; min-height: 120px; }
 
@@ -766,4 +801,48 @@ kbd {
   color: var(--text-muted);
   margin: 0 !important;
 }
+
+/* ─── Avionics polish ─────────────────────────────────────────────
+   Instrument character layered over the existing components — no class
+   renames, so every page inherits the cockpit look automatically. */
+
+/* Subtle HUD ambiance: faint cyan glow bleeding from the top in dark mode */
+[data-theme="dark"] body {
+  background:
+    radial-gradient(1100px 520px at 50% -8%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 62%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Instrument panels: soft depth + a firmer edge on hover */
+.card {
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card:hover { border-color: var(--border-strong); }
+
+/* Status / data badges + instrument labels read as monospace readouts */
+.badge { font-family: var(--mono); letter-spacing: 0.02em; }
+.stat-label { font-family: var(--mono); }
+
+/* Hero readouts glow in HUD cyan */
+.upload-hero-pill {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Cyan selection */
+::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* Cockpit scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
