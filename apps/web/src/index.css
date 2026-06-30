@@ -18,17 +18,18 @@
   /* Ink */
   --text: #0c1118;
   --text-muted: #5b6878;
-  /* Instrument cyan (AA contrast on light surfaces) */
-  --accent: #0a8aa6;
-  --accent-hover: #0b7184;
+  /* Instrument cyan — deepened so text-on-tint (badges, active nav rows) and button
+     labels all clear WCAG AA (>=4.5:1) on light surfaces. Dark keeps the bright HUD cyan. */
+  --accent: #0a5a6b;
+  --accent-hover: #084754;
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-ink: #ffffff;
-  /* Status / caution */
-  --amber: #b06a00;
-  --green: #0f9d58;
-  --yellow: #b06a00;
-  --red: #d23b3b;
-  --blue: #2563eb;
+  /* Status / caution (AA on light) */
+  --amber: #7a4900;
+  --green: #0a6638;
+  --yellow: #7a4900;
+  --red: #b01f1f;
+  --blue: #1b46c2;
   /* System */
   --radius: 7px;
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -1009,7 +1010,6 @@ kbd {
   70%  { box-shadow: 0 0 0 6px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
-.ide-tabstrip-theme { align-self: center; margin-right: 8px; margin-left: 12px; font-size: 0.75rem; padding: 4px 10px; }
 
 /* COLUMN 3 / ROW 2 — main editor panel (only scroll region) */
 .ide-main {
@@ -1042,7 +1042,6 @@ kbd {
   .ide-sidebar { display: none; }
   .ide-rail-hamburger { display: flex; }
   .ide-locator { display: none; }
-  .ide-tabstrip-theme { display: none; }
 }
 @media (max-width: 600px) {
   .ide-main { padding: 12px; }
