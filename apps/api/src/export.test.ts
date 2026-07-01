@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -19,10 +19,10 @@ interface RawRes {
   body: Buffer;
 }
 
-function rawReq(method: string, path: string): Promise<RawRes> {
+function rawReq(method: string, path: string, headers?: Record<string, string>): Promise<RawRes> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: testPort, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -440,5 +440,33 @@ describe("Export ZIP handler", () => {
     expect(res.status).toBe(200);
     const entries = parseZip(res.body);
     expect(entries.some(e => e.path === "delta-report.md")).toBe(false);
+  });
+
+  // ─── Usage-aware program funnel (SPEC-03) ──────────────────────
+
+  it("includes the personalization line when the export account has recorded usage", async () => {
+    const acct = await createAccount("Personalization User", "personalization@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-funnel-personalization", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot(
+      { input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] },
+      acct.account_id,
+    );
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "debug-playbook.md", content: "# Debug", program: "debug" }],
+    });
+    await recordUsage(acct.account_id, "optimization", snap.snapshot_id, 1, 1, 100);
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    const funnel = entries.find(e => e.path === "recommended-next-programs.md");
+    expect(funnel).toBeDefined();
+    expect(funnel!.content).toContain("Ranked for this account");
   });
 });

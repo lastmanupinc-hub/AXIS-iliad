@@ -137,7 +137,7 @@ work_orders:
   - id: WO-03
     title: "Learning funnel: usage-aware buildNextPrograms (pure, optional input)"
     phase: now
-    status: open
+    status: done
     depends_on: []
     spec: docs/agentic-asset/specs/SPEC-03-usage-funnel.md
     branch: feat/aa-usage-funnel
@@ -150,7 +150,50 @@ work_orders:
       - "vitest run packages/generator-core/src/program-funnel.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Diff: 113 changed lines vs the spec's "~90 LOC" estimate (~1.25x) — close, no
+      ballooning.
+      - `pnpm --filter @axis/generator-core build` — clean.
+      - `program-funnel.test.ts` — 12/12 pass (existing 6 unchanged + 6 new:
+        no-accountUsage output byte-identical to the pre-change baseline
+        `["optimization","mcp","agentic-purchasing"]` for `debug`; stable-partition
+        puts untried `mcp` ahead of tried `optimization`; determinism with usage;
+        personalization line renders only when accountUsage is passed).
+      - `determinism.test.ts` (unchanged) still green as part of the same run.
+      - `export.test.ts` — 20/20 pass (19 pre-existing incl. the 2 from WO-01's
+        delta wiring + 1 new: an authenticated paid account with a recorded
+        `optimization` usage row gets a personalized export whose
+        recommended-next-programs.md contains "Ranked for this account"). This is
+        NOT a "skip, disproportionate" case — `recordUsage`/`getUsageSummary` were
+        already straightforward to wire through the existing test infra.
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass
+        (repo-wide gates per constitution §4, not in this WO's own list).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      Notes for the owner:
+      - **`files_expected` omission (bookkeeping, not architecture drift).**
+        `apps/api/src/export.test.ts` isn't listed in this WO's `files_expected`,
+        but the spec body explicitly designs the export-level personalization test
+        case and gives an explicit skip-if-disproportionate escape hatch — and the
+        acceptance list runs `export.test.ts` directly. Read together, this is a
+        files_expected listing gap, not an intentional exclusion, so I extended
+        that file (already touched by WO-01 for the same reason). No other file
+        outside `files_expected` was touched.
+      - **trackEvent("funnel_personalized", "product", ...) SKIPPED**, third
+        occurrence of the same gap (see WO-01, WO-02 evidence): `"funnel_personalized"`
+        and `"product"` aren't valid `FunnelEventType`/`FunnelStage` values in
+        `packages/snapshots/src/funnel-types.ts`. Unlike WO-01 (where account
+        context itself was out of scope), the account IS available at this call
+        site now — only the event/stage literals are the blocker. Same fix
+        (add both new union members) would resolve all three skipped calls at
+        once; still outside any current WO's `files_expected`.
+      - Personalization-line gating uses literal "`accountUsage !== undefined`"
+        per the contract's exact wording ("if accountUsage is provided"), not
+        "non-empty usage". A brand-new authenticated account with zero recorded
+        runs will see the personalization line even though the ranking is
+        identical to the unpersonalized baseline (stable-partitioning an all-zero
+        usage map is a no-op). This is accurate, not misleading — every program
+        genuinely hasn't been tried yet — but flagging in case the owner wants a
+        stricter "only when usage is non-empty" gate instead.
 
   - id: WO-04
     title: "Watchtower v1: webhook re-analysis stores a delta artifact (fail-open)"

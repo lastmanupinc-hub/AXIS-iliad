@@ -67,12 +67,27 @@ const BACKEND_BOOST = ["debug", "optimization", "mcp"];
 // The high-value "moat" programs — the sensible default when adjacency is exhausted.
 const DEFAULT_NEXT = ["mcp", "agentic-purchasing", "debug", "optimization"];
 
+/** Stable-partition: programs the account has never run (usage === 0) rank ahead of ones it has, each half keeping its relative order. */
+function partitionByUsage(ranked: string[], accountUsage: Record<string, number>): string[] {
+  const untried = ranked.filter((p) => (accountUsage[p] ?? 0) === 0);
+  const tried = ranked.filter((p) => (accountUsage[p] ?? 0) > 0);
+  return [...untried, ...tried];
+}
+
 /**
  * Recommend up to `limit` programs to run NEXT, given the programs already run and
  * the analyzed repo. Ranks adjacency of what ran, then repo-grounded boosts, then
  * the moat defaults; never recommends a program that already ran. Deterministic.
+ * `accountUsage` (program → lifetime run count) is optional: when provided, the
+ * candidate list is stable-partitioned so never-run programs surface first. Omitting
+ * it reproduces the exact pre-personalization ranking (the determinism guarantee).
  */
-export function buildNextPrograms(programsRun: Set<string>, ctx: ContextMap, limit = 3): string[] {
+export function buildNextPrograms(
+  programsRun: Set<string>,
+  ctx: ContextMap,
+  limit = 3,
+  accountUsage?: Record<string, number>,
+): string[] {
   const hasFrontend = (ctx.detection?.frameworks ?? []).length > 0 || (ctx.routes ?? []).length > 0;
   const ranked: string[] = [];
   const push = (p: string) => {
@@ -84,17 +99,22 @@ export function buildNextPrograms(programsRun: Set<string>, ctx: ContextMap, lim
   for (const p of hasFrontend ? FRONTEND_BOOST : BACKEND_BOOST) push(p);
   // 3. Moat defaults.
   for (const p of DEFAULT_NEXT) push(p);
-  return ranked.slice(0, limit);
+  const final = accountUsage ? partitionByUsage(ranked, accountUsage) : ranked;
+  return final.slice(0, limit);
 }
 
 /** Render the funnel artifact. */
-function renderFunnel(programsRun: Set<string>, next: string[], name: string): string {
+function renderFunnel(programsRun: Set<string>, next: string[], name: string, personalized: boolean): string {
   const ran = [...programsRun].filter((p) => PROGRAM_VALUE[p]).sort();
   const lines: string[] = [];
   lines.push(`# Recommended Next Programs — ${name}`);
   lines.push("");
   lines.push(`> Your analysis is one move in a workflow. These are the programs that compound what you just ran on **${name}** — each is a separate SKU that produces more agent-consumable output from the same snapshot.`);
   lines.push("");
+  if (personalized) {
+    lines.push("_Ranked for this account: programs you haven't tried yet come first._");
+    lines.push("");
+  }
   if (ran.length) {
     lines.push(`**Already run:** ${ran.map((p) => `\`${p}\``).join(", ")}`);
     lines.push("");
@@ -120,18 +140,18 @@ function renderFunnel(programsRun: Set<string>, next: string[], name: string): s
  * nothing to recommend). Call at the generation surface, before appendAutonomyLoop
  * so the funnel gets sequenced into the loop like any other markdown artifact.
  */
-export function appendProgramFunnel(generated: GeneratorResult, ctx: ContextMap): void {
+export function appendProgramFunnel(generated: GeneratorResult, ctx: ContextMap, accountUsage?: Record<string, number>): void {
   try {
     if (!generated.files.length) return;
     const path = "recommended-next-programs.md";
     if (generated.files.some((f) => f.path === path)) return;
     const programsRun = new Set(generated.files.map((f) => f.program).filter(Boolean) as string[]);
-    const next = buildNextPrograms(programsRun, ctx);
+    const next = buildNextPrograms(programsRun, ctx, 3, accountUsage);
     if (next.length === 0) return;
     const name = ctx.project_identity?.name ?? "this project";
     const file: GeneratedFile = {
       path,
-      content: renderFunnel(programsRun, next, name),
+      content: renderFunnel(programsRun, next, name, accountUsage !== undefined),
       content_type: "text/markdown",
       program: FUNNEL_PROGRAM,
       description: "The next Iliad programs to run — a natural workflow through the catalog, grounded in this repo",
