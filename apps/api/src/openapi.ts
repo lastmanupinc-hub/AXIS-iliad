@@ -923,6 +923,35 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/auth/google": {
+        get: {
+          summary: "Start Google OAuth flow (redirects to Google)",
+          operationId: "googleOAuthStart",
+          tags: ["OAuth"],
+          responses: {
+            302: { description: "Redirect to Google authorization page" },
+            503: { description: "Google OAuth not configured" },
+          },
+        },
+      },
+      "/v1/auth/google/callback": {
+        get: {
+          summary: "Google OAuth callback (exchanges code for token)",
+          operationId: "googleOAuthCallback",
+          tags: ["OAuth"],
+          parameters: [
+            queryParam("code", "Authorization code from Google"),
+            queryParam("state", "CSRF state parameter"),
+            queryParam("error", "Error code from Google if authorization was denied"),
+          ],
+          responses: {
+            302: { description: "Redirect to web app with token" },
+            400: { description: "Missing code or state parameter" },
+            502: { description: "Google API error during token exchange" },
+            503: { description: "Google OAuth not configured" },
+          },
+        },
+      },
 
       // â”€â”€ Stripe Payments â”€â”€
       "/v1/webhooks/stripe": {
