@@ -74,7 +74,7 @@ work_orders:
   - id: WO-02
     title: "Economic activation: wire meterPersistenceOp at the version REST surface"
     phase: now
-    status: open
+    status: done
     depends_on: []
     spec: docs/agentic-asset/specs/SPEC-02-persistence-metering.md
     branch: feat/aa-persistence-metering
@@ -86,7 +86,53 @@ work_orders:
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/versions.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly (versions.ts, versions.test.ts,
+      openapi.ts — the last one only to add a 402 response entry, no new schema/route).
+      Diff: 70 changed lines vs the spec's "~120 LOC" estimate — under, no ballooning.
+      - `versions.test.ts` — 22/22 pass (existing 14 unchanged + 8 new: anonymous diff
+        stays 200/unmetered — pre-existing test, verified still green; free-tier
+        authenticated → 402 persistence_credits_required with "paid plan" reason;
+        paid+credits → 200 AND ledger shows a diff_versions debit of
+        PERSISTENCE_CREDIT_COSTS.diff_versions tied to the snapshot_id; paid+zero
+        credits → 402; list/get stay 200 and untouched-ledger for the same free
+        account).
+      - `count-honesty.test.ts` + `openapi.test.ts` — 38/38 pass (incl. the route-spec
+        parity tripwire — no new routes were added, only a 402 response entry on the
+        existing diff route, so nothing to newly register).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      Findings for the owner (both pre-authorized forks per the spec's own guidance,
+      §6 STOP does not apply):
+      - **Version-write path has no production caller at all.** Grepped
+        `saveGenerationVersion(` across apps/api/src: the only call sites are test
+        setup code (versions.test.ts, e2e-flows.test.ts) — there is no REST handler
+        or generation-flow code path that calls it in production today. The spec's
+        fork ("if the write happens implicitly inside generation, DO NOT meter it")
+        applies a fortiori since there's no write path to meter at all yet. Metered
+        only `diff_versions`, as the spec's fallback directs.
+      - **Anonymous-caller branch confirmed.** `assertSnapshotAccess` (handlers.ts)
+        returns `true` immediately for snapshots with `account_id: null` *without*
+        ever calling `resolveAuth` — i.e. the handler currently allows fully
+        anonymous reads/diffs on ownerless snapshots. Per the spec's explicit fork,
+        metering applies only when the caller resolves to a real account (any
+        tier, including free — free-tier authenticated callers ARE metered and
+        correctly blocked, matching test case 1); a caller with no auth at all
+        is left on the pre-existing unmetered path. No public behavior changed
+        beyond the new 402 contract.
+      - **trackEvent("persistence_metered", "revenue", ...) SKIPPED**, same class of
+        gap as WO-01: neither `"persistence_metered"` (FunnelEventType) nor
+        `"revenue"` (FunnelStage) exist in `packages/snapshots/src/funnel-types.ts`
+        today, and that file is outside this WO's `files_expected`. Calling
+        `trackEvent` with those literals would fail `tsc --noEmit` (and casting
+        through `as unknown as FunnelEventType` would be exactly the kind of
+        strict-mode bypass the constitution forbids). Skipped per the same
+        precedent set in WO-01; flagging here rather than re-asking, since it's a
+        smaller, more mechanical gap (two missing union members, not an
+        architectural scoping issue) and the user has already endorsed
+        disclose-and-proceed for this class of judgment call. If the owner wants
+        this analytics event, it needs a follow-up micro-task that adds
+        `"persistence_metered"`/`"revenue"` to funnel-types.ts (outside any current
+        WO's files_expected).
 
   - id: WO-03
     title: "Learning funnel: usage-aware buildNextPrograms (pure, optional input)"
