@@ -5,6 +5,7 @@
 // subscription-metadata wrapper, and re-exports the shared surface so existing
 // importers (paid-handlers, credit-pack-handlers) don't change.
 
+import { createHmac } from "node:crypto";
 import {
   createPaidCheckoutSession,
   PaidError,
@@ -36,6 +37,18 @@ export type {
   CreatePaidCheckoutInput as CreateTopupCheckoutInput,
   VerifyWebhookOptions,
 };
+
+/**
+ * A stable idempotency key so a client RETRY (network timeout, reload,
+ * double-submit) reuses the SAME PAI'D checkout session instead of creating a
+ * second charge. Derived from a per-account seed + scope + a short time bucket:
+ * rapid retries collapse to one key, while a deliberate re-purchase after the
+ * window gets a fresh key. The account id is HMAC'd, never sent to PAI'D raw.
+ */
+export function checkoutIdempotencyKey(accountSeed: string, scope: string, windowMs = 120_000): string {
+  const bucket = Math.floor(Date.now() / windowMs);
+  return createHmac("sha256", accountSeed).update(`${scope}:${bucket}`).digest("hex").slice(0, 32);
+}
 
 /** AXIS plan tiers that route through PAI'D (free/enterprise do not). */
 export type CheckoutPlanId = "starter" | "pro" | "growth";

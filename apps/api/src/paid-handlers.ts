@@ -24,12 +24,14 @@ import {
   isPaidConfigured,
   resolvePaidWebhookSecret,
   PaidError,
+  checkoutIdempotencyKey,
   type PaidPlan,
   type CheckoutPlanId,
 } from "./paid-client.js";
 import {
   getAccountByEmail,
   updateAccountTier,
+  updateAccountTierIfCurrent,
   logTierChange,
   trackEvent,
   markPurchaseSucceeded,
@@ -141,8 +143,13 @@ export async function handlePaidSubscribe(
         customerEmail: account.email,
         successUrl,
         cancelUrl,
+        // Prefer a client-supplied key; otherwise default one server-side so a
+        // retried subscribe (double-submit) can't create a second subscription
+        // charge (the shared client would otherwise fall back to a fresh UUID).
         idempotencyKey:
-          typeof body.idempotency_key === "string" ? body.idempotency_key : undefined,
+          typeof body.idempotency_key === "string"
+            ? body.idempotency_key
+            : checkoutIdempotencyKey(account.account_id, `subscribe:${planId}:${plan}`),
       },
       config,
     );
@@ -352,31 +359,42 @@ export async function handlePaidWebhook(
 
   const account = await getAccountByEmail(customerEmail);
   if (!account) {
-    log("warn", "PAID webhook for unknown account", { email: customerEmail, event: eventType });
-    sendJSON(res, 200, { received: true, event: eventType, handled: false, reason: "no_account" });
+    // A payment can land before/around signup. Returning 2xx here makes PAI'D
+    // STOP retrying, permanently leaving a paid buyer on the free tier. Return a
+    // retryable 503 so PAI'D redelivers until the account exists and can be tiered.
+    log("warn", "PAID webhook for unknown account — requesting retry", { email: customerEmail, event: eventType });
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "account not provisioned yet — retry");
     return;
   }
 
   const previousTier = account.tier;
+  let changed = false;
   if (previousTier !== targetTier) {
-    await updateAccountTier(account.account_id, targetTier);
+    // Compare-and-set: only applies if the account is STILL at previousTier, so a
+    // concurrent or redelivered tier webhook can't blind-overwrite (lost update)
+    // or double-apply. `changed` is true only when this call made the move, so the
+    // audit row + analytics fire exactly once.
+    changed = await updateAccountTierIfCurrent(account.account_id, previousTier, targetTier);
+  }
+  if (changed) {
     await logTierChange(account.account_id, previousTier, targetTier, "paid_webhook", {
       event: eventType,
       subscription_id: subscriptionId,
     });
-    await trackEvent(
+    // Analytics is best-effort — never block or double-count the webhook on it.
+    void trackEvent(
       account.account_id,
       targetTier === "free" ? "downgrade_completed" : "upgrade_completed",
       targetTier === "free" ? "signup" : "conversion",
       { from_tier: previousTier, to_tier: targetTier, source: "paid", event: eventType },
-    );
+    ).catch(() => {});
   }
 
   sendJSON(res, 200, {
     received: true,
     event: eventType,
     handled: true,
-    tier_change: previousTier !== targetTier,
+    tier_change: changed,
     subscription_id: subscriptionId,
   });
 }

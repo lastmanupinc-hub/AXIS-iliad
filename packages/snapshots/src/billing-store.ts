@@ -84,6 +84,32 @@ export async function updateAccountTier(account_id: string, tier: BillingTier): 
   return result.rowCount > 0;
 }
 
+/**
+ * Atomically move an account from `fromTier` to `toTier` ONLY if it's currently
+ * at `fromTier` — a compare-and-set. This makes concurrent tier-change webhooks
+ * safe (no lost update from a blind SET) and idempotent for a redelivered event
+ * (if a duplicate/racing handler already applied the move, the row no longer
+ * matches `fromTier` and this no-ops). Returns true only when THIS call made the
+ * change, so the caller writes the audit row + fires analytics exactly once.
+ * Callers should only invoke this when fromTier !== toTier.
+ */
+export async function updateAccountTierIfCurrent(
+  account_id: string,
+  fromTier: BillingTier,
+  toTier: BillingTier,
+): Promise<boolean> {
+  const result = await sql.run(
+    "UPDATE accounts SET tier = ? WHERE account_id = ? AND tier = ?",
+    [toTier, account_id, fromTier],
+  );
+  if (result.rowCount > 0 && toTier === "suite") {
+    for (const program of ALL_PROGRAMS) {
+      await enableProgram(account_id, program);
+    }
+  }
+  return result.rowCount > 0;
+}
+
 // ─── API Keys ───────────────────────────────────────────────────
 
 /** Creates a new API key. Returns the key record AND the raw key (only time it's available). */

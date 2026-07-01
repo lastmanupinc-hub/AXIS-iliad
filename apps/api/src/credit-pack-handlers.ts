@@ -15,7 +15,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, sendError, readBody } from "./router.js";
 import { ErrorCode, log } from "./logger.js";
 import { resolveAuth } from "./billing.js";
-import { createTopupCheckoutSession, loadPaidConfig, PaidError } from "./paid-client.js";
+import { createTopupCheckoutSession, loadPaidConfig, PaidError, checkoutIdempotencyKey } from "./paid-client.js";
 import {
   listCreditPackCatalog,
   getCreditPack,
@@ -93,12 +93,19 @@ export async function handleCreateCreditTopup(
           pack_id: pack.pack_id,
           credits: String(pack.credits),
         },
+        // Deterministic key so a retried POST /v1/credits/topup (timeout/reload)
+        // reuses the same PAI'D session instead of creating a second charge.
+        idempotencyKey: checkoutIdempotencyKey(account.account_id, `topup:${pack.pack_id}`),
       },
       config,
     );
 
     // Record PENDING keyed by session id so the webhook can grant exactly once.
-    recordPendingPurchase({
+    // MUST await before responding: the webhook (markPurchaseSucceeded) keys its
+    // idempotent grant on this row's existence + FOR UPDATE lock. If we respond
+    // (and the buyer pays) before this INSERT lands, a fast webhook finds no row
+    // and grants zero credits — permanently, across retries (silent lost payment).
+    await recordPendingPurchase({
       account_id: account.account_id,
       pack_id: pack.pack_id,
       credits: pack.credits,

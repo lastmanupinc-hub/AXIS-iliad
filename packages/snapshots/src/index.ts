@@ -36,6 +36,7 @@ export {
   getAccount,
   getAccountByEmail,
   updateAccountTier,
+  updateAccountTierIfCurrent,
   createApiKey,
   resolveApiKey,
   revokeApiKey,
