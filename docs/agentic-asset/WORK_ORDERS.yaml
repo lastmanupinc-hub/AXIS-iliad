@@ -268,24 +268,69 @@ work_orders:
         pre-existing test's behavior (all 20 still pass unchanged) since none of
         them depended on the real module's behavior.
 
-  - id: WO-05
-    title: "Project brain: project_memory migration + REST + weave into context files"
+  - id: WO-06
+    title: "KPI activation: FunnelEventType members + wire the 3 wire-able skipped trackEvent calls"
     phase: next
-    status: blocked            # ELABORATE gate: planning model expands the spec
-    depends_on: [WO-01]        # weave reuses the surface patterns proven in WO-01
+    status: open
+    depends_on: []             # standalone; unblocks WO-05's memory_written event
+    spec: docs/agentic-asset/specs/SPEC-06-kpi-events.md
+    branch: feat/aa-kpi-events
+    files_expected:
+      - packages/snapshots/src/funnel-types.ts   # +6 FunnelEventType members, NO new stages
+      - apps/api/src/export.ts                   # delta_generated + funnel_personalized
+      - apps/api/src/versions.ts                 # persistence_metered on ok:true
+      - apps/api/src/github-webhook.ts           # comment-only update
+      - apps/api/src/export.test.ts              # extended
+      - apps/api/src/versions.test.ts            # extended
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts apps/api/src/versions.test.ts apps/api/src/github-webhook.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-05
+    title: "Project brain: project_memory migration v30 + memory store + REST (weave split to WO-07)"
+    phase: next
+    status: open               # ELABORATE gate cleared 2026-07-01 (planning model); spec is executable
+    depends_on: [WO-01, WO-06] # WO-06 provides the memory_written FunnelEventType member
     spec: docs/agentic-asset/specs/SPEC-05-project-memory.md
     branch: feat/aa-project-memory
     files_expected:
-      - packages/snapshots/src/pg-schema.ts      # migration v30 ONLY, per spec block
+      - packages/snapshots/src/pg-schema.ts      # migration v30 per spec block + baseline table (no index in baseline)
+      - packages/snapshots/src/pg-schema.test.ts # fix stale v23 assertion → v30 (spec §Migration)
       - packages/snapshots/src/memory-store.ts   # new
+      - packages/snapshots/src/memory-store.test.ts  # new
       - packages/snapshots/src/index.ts
       - apps/api/src/memory-handlers.ts          # new
-      - apps/api/src/server.ts                   # 2 routes
-      - apps/api/src/openapi.ts                  # 2 paths
-      - apps/api/src/counts.ts                   # ENDPOINT_COUNT +2 (explicitly allowed here)
       - apps/api/src/memory-handlers.test.ts     # new
+      - apps/api/src/server.ts                   # 2 routes
+      - apps/api/src/openapi.ts                  # 1 path (get+post), 4 schemas
+      - apps/api/src/counts.ts                   # ENDPOINT_COUNT 143 → 145 (explicitly allowed here)
+      - README.md                                # line ~170 "143 endpoints" → 145 (count-honesty knock-on)
+      - apps/web/src/pages/QAPage.tsx            # line ~91 "143 endpoints" → 145 (count-honesty knock-on)
     acceptance:
-      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/memory-handlers.test.ts packages/snapshots/src/pg-schema.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/memory-handlers.test.ts packages/snapshots/src/memory-store.test.ts packages/snapshots/src/pg-schema.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-07
+    title: "Memory weave: pure appendMemoryWeave + export/MCP wiring + project-memory.md artifact"
+    phase: next
+    status: open
+    depends_on: [WO-05]        # store must exist; WO-06 arrives transitively
+    spec: docs/agentic-asset/specs/SPEC-07-memory-weave.md
+    branch: feat/aa-memory-weave
+    files_expected:
+      - packages/generator-core/src/memory-weave.ts       # new
+      - packages/generator-core/src/memory-weave.test.ts  # new
+      - packages/generator-core/src/index.ts              # export lines only
+      - apps/api/src/export.ts                            # weave call FIRST in the !programFilter block + memory_woven event
+      - apps/api/src/mcp-tool-impls.ts                    # maybeRunQualityGate: weave before appendProgramFunnel
+      - apps/api/src/export.test.ts                       # extended
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/memory-weave.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
     evidence: null

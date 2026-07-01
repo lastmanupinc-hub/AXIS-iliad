@@ -83,11 +83,21 @@ entries and passes them into context-file generation so AGENTS.md/CLAUDE.md
 carry a "Decisions already made — do not re-litigate" section. **MCP tool
 exposure is deferred** (bumps MCP_TOOL_COUNT — owner decision, not the
 executor's).
+*Elaborated 2026-07-01:* scope split — storage + REST = WO-05 (SPEC-05),
+weave = WO-07 (SPEC-07). Memory is FREE in v1 (writes and weave unmetered —
+adoption before monetization on the accrual surface; metering hooks remain).
+Caps: content 4000 chars, source 500, 500 entries/project, GET limit ≤ 200.
 
 **AD-7 — KPIs ride the existing analytics.** Each shipped surface calls
 `trackEvent` with a stable event name (`delta_generated`, `persistence_metered`,
-`funnel_personalized`, `watchtower_delta`, `memory_written`) so the strategy's
-compounding KPIs are queryable from day one.
+`funnel_personalized`, `watchtower_delta`, `memory_written`, `memory_woven`) so
+the strategy's compounding KPIs are queryable from day one.
+*Amended 2026-07-01:* the event names above are added to `FunnelEventType` by
+WO-06 (SPEC-06). **No new `FunnelStage` members** — the earlier specs'
+`"product"`/`"revenue"` stage literals are superseded; call sites use the house
+`await resolveStage(account_id)` idiom so the stage column keeps meaning
+"where the account is in the lifecycle funnel". `watchtower_delta` stays
+unwired until webhook snapshots gain an installation→account mapping.
 
 ## Epics → work orders
 
@@ -97,10 +107,11 @@ compounding KPIs are queryable from day one.
 | E2 Economic activation | WO-02 (persistence metering) | Now |
 | E3 Learning funnel | WO-03 (usage-aware ranking) | Now |
 | E4 Watchtower | WO-04 (webhook delta; email digest deferred) | Now/Next |
-| E5 Project brain | WO-05 (migration + REST + weave; ELABORATE gate) | Next |
+| E5 Project brain | WO-06 (KPI events) → WO-05 (migration + REST) → WO-07 (weave) | Next |
 | E6 Fleet | not yet ordered — specs written at phase start | Later |
 
-Dependencies: WO-04 depends on WO-01. Everything else is independent. The
+Dependencies: WO-04 depends on WO-01 (done). WO-05 depends on WO-06
+(FunnelEventType members); WO-07 depends on WO-05 (store). The
 enforce rollout of the PAI'D wallet and anything money-adjacent stays OUT of
 this program (owner + planning-model lane).
 
