@@ -198,7 +198,7 @@ work_orders:
   - id: WO-04
     title: "Watchtower v1: webhook re-analysis stores a delta artifact (fail-open)"
     phase: now
-    status: open
+    status: done
     depends_on: [WO-01]
     spec: docs/agentic-asset/specs/SPEC-04-watchtower-digest.md
     branch: feat/aa-watchtower
@@ -208,7 +208,65 @@ work_orders:
     acceptance:
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/github-webhook.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Diff: 245 changed lines vs the spec's "~120 LOC" estimate (~2.04x) — flagged
+      per §5 (not a §6.5 STOP): the overrun is almost entirely new test
+      infrastructure (a stateful @axis/snapshots + ./github.js mock this file
+      didn't have before), not feature scope creep. Both files match
+      files_expected exactly.
+      - `github-webhook.test.ts` — 23/23 pass (20 pre-existing unchanged + 3 new:
+        second webhook snapshot for a repo stores delta-report.md on the new
+        snapshot with the actual diff content; first-ever snapshot logs
+        `delta_skipped {reason:"first_snapshot"}` with the webhook's 202/handled
+        response contract unchanged; a forced throw inside buildDeltaReport
+        (via a context map with a throwing `routes` getter) still returns 202 and
+        logs `delta_failed` — the fail-open proof the spec asks for).
+      - Broader regression: re-ran export.test.ts + versions.test.ts +
+        github-webhook.test.ts + program-funnel.test.ts + delta-report.test.ts +
+        determinism.test.ts + generate.test.ts together (209/209 pass) to confirm
+        the new file-scoped `vi.mock` doesn't leak across test files.
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      Findings for the owner:
+      - **Real bug caught by the fail-open test, fixed before merge.** My first
+        attempt reused `appendDeltaReport` (from WO-01) at this call site, but
+        that function's own guard — `if (!generated.files.length) return;` —
+        assumes a package with existing files (true at the export surface, where
+        WO-01 designed it). Webhook-created snapshots have **zero** generated
+        files today (this webhook only ever calls `createSnapshot`, never
+        generation), so `appendDeltaReport` silently no-op'd every time here.
+        Test case 1 caught this (asserted content, got `undefined`). Fixed by
+        constructing the `GeneratedFile` directly with the same path-collision
+        idempotency check, still reusing `buildDeltaReport` for the diff and
+        `saveGeneratorResult` for persistence, per the spec's "reuse the storage
+        call" instruction (that instruction was about persistence, not about
+        `appendDeltaReport` specifically).
+      - **Confirmed architectural fact, not a bug**: `dispatchWebhookSnapshot`
+        never populates a context map for the snapshots it creates (only source
+        files, via `createSnapshot`) — grepped for `saveContextMap`/`generateFiles`
+        in github-webhook.ts, found neither. This means in production TODAY,
+        every real watchtower run will hit `delta_skipped {reason:"no_ctx"}`
+        until some other process (a future WO, or an already-scheduled async
+        analysis this session didn't find) populates context maps for
+        webhook-created snapshots. The spec explicitly designed for this exact
+        case (item 2's skip path), so this is expected, not a STOP — flagging so
+        the owner knows watchtower's delta won't fire in prod until that
+        prerequisite lands.
+      - **trackEvent("watchtower_delta", "product", ...) SKIPPED** — fourth and
+        (with WO-01/02/03) final occurrence of the same gap: neither value is a
+        valid `FunnelEventType`/`FunnelStage`. Also moot here regardless, since
+        webhook snapshots have no account (`createSnapshot(..., undefined)`)
+        until an installation→account mapping lands. One follow-up micro-task
+        adding the 4 missing union members (`delta_generated`/`persistence_metered`/
+        `funnel_personalized`/`watchtower_delta` event types, `product`/`revenue`
+        stages) to `packages/snapshots/src/funnel-types.ts` would unblock all
+        four skipped calls across WO-01 through WO-04 at once.
+      - Test file didn't previously mock `@axis/snapshots` or `./github.js` at
+        all (existing 20 tests only assert the synchronous HTTP response, never
+        the fire-and-forget dispatch's side effects) — added both as file-scoped
+        `vi.mock`s for the 3 new tests. Verified this doesn't change any
+        pre-existing test's behavior (all 20 still pass unchanged) since none of
+        them depended on the real module's behavior.
 
   - id: WO-05
     title: "Project brain: project_memory migration + REST + weave into context files"
