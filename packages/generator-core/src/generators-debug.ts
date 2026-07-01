@@ -349,6 +349,11 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
   }
   lines.push("");
 
+  // ─── Failure Surface (deterministic static scan) ──────
+  if (files && files.length > 0) {
+    lines.push(...renderFailureSurface(analyzeFailureSurface(files)));
+  }
+
   // ─── External Dependencies ────────────────────────────
   const prodDeps = ctx.dependency_graph.external_dependencies.filter(d => d.type === "production");
   if (prodDeps.length > 0) {
@@ -787,6 +792,11 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("");
   }
 
+  // Deterministic failure-surface fix checklist (from the fault-injection gauntlet spec)
+  if (files && files.length > 0) {
+    lines.push(...renderFailureSurfaceChecklist(analyzeFailureSurface(files)));
+  }
+
   lines.push("## Triage Workflow");
   lines.push("");
   lines.push("```");
@@ -995,4 +1005,149 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     program: "debug",
     description: "Systematic root cause analysis checklist with project-specific trace steps and entity integrity checks",
   };
+}
+
+// ═══ Deterministic failure-surface analysis ═══════════════════════════════════
+// Implements the STATIC recipes from docs/FAULT_INJECTION_GAUNTLET.md — a grep +
+// fixed-rule-table scan of source content. No LLM, no injection: fully reproducible.
+// Surfaces the failure modes the type/test net can't see (swallowed side-effects,
+// empty catches, unstructured logs, type-net holes) and classifies each by rule.
+
+export type FailureClass = "SILENT" | "TYPE_HOLE" | "OBSERVABILITY" | "REVIEW" | "ACCEPTABLE";
+
+export interface FailureFinding {
+  file: string;
+  line: number;
+  category:
+    | "swallowed-async-error"
+    | "empty-catch"
+    | "unstructured-log"
+    | "type-hole"
+    | "panic"
+    | "empty-error-check"
+    | "discarded-return";
+  klass: FailureClass;
+  note: string;
+}
+
+// Substring (not \b word-boundary) matching so camelCase identifiers like
+// `sendEmail`/`downloadExport` classify correctly. Cleanup stays conservative
+// (distinctive verbs only) so a miss falls to REVIEW, never a wrong ACCEPTABLE.
+const FS_CLEANUP = /(kill|destroy|dispose|disconnect|unlink|cleanup|teardown|rollback|abort|\bclose\b)/i;
+const FS_SIDE_EFFECT = /(send|email|invit|charg|webhook|notif|payment|grant|dispatch|publish|download|upload|persist|save)/i;
+
+/** Static failure-mode scan of source files (skips tests + generated dirs). Deterministic. */
+export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
+  const out: FailureFinding[] = [];
+  const src = files
+    .filter(f => /\.([jt]sx?|go)$/.test(f.path))
+    .filter(f => !/\.(test|spec)\.[jt]sx?$/.test(f.path) && !/_test\.go$/.test(f.path))
+    .filter(f => !/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(f.path))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  for (const f of src) {
+    const lines = f.content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i];
+      // ── Go source: idiomatic silent-failure patterns ──
+      if (/\.go$/.test(f.path)) {
+        if (/\b(?:fmt\.Print(?:f|ln)?|println)\s*\(/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "unstructured-log", klass: "OBSERVABILITY",
+            note: "fmt.Print*/println — prefer structured logging (slog/zerolog)" });
+        } else if (/\bpanic\s*\(/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "panic", klass: "REVIEW",
+            note: "panic() — ensure a recover() guards this path" });
+        } else if (/if\s+err\s*!=\s*nil\s*\{\s*\}/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "empty-error-check", klass: "SILENT",
+            note: "error checked then ignored" });
+        } else if (/,\s*_\s*(?::=|=)\s/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "discarded-return", klass: "REVIEW",
+            note: "discarded return via _ — if it is an error, the failure is silent" });
+        }
+        continue;
+      }
+      // swallowed async error: .catch(() => {}) / .catch(e => {}) / .catch(() => undefined)
+      if (/\.catch\(\s*(\([a-zA-Z_,\s]*\)|[a-zA-Z_]+)?\s*=>\s*(\{\s*\}|undefined|void 0)\s*\)/.test(ln)) {
+        const cleanup = FS_CLEANUP.test(ln), side = FS_SIDE_EFFECT.test(ln);
+        out.push({ file: f.path, line: i + 1, category: "swallowed-async-error",
+          klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
+          note: cleanup ? "best-effort cleanup" : side ? "side-effect failure is invisible" : "swallowed — confirm intent" });
+        continue;
+      }
+      // empty catch: } catch {} / catch (e) {} — classify from the try body (this + prev line)
+      if (/\bcatch\s*(\([a-zA-Z_$]*\))?\s*\{\s*\}/.test(ln)) {
+        const ctx2 = ln + " " + (lines[i - 1] ?? "");
+        const cleanup = FS_CLEANUP.test(ctx2), side = FS_SIDE_EFFECT.test(ctx2);
+        out.push({ file: f.path, line: i + 1, category: "empty-catch",
+          klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
+          note: cleanup ? "cleanup swallow" : side ? "side-effect failure is invisible" : "empty catch — confirm intent" });
+        continue;
+      }
+      // unstructured logging (console.*) outside cli/scripts/bin
+      if (/\bconsole\.(log|error|warn|info)\s*\(/.test(ln) && !/(^|\/)(cli|scripts?|bin)\//.test(f.path)) {
+        out.push({ file: f.path, line: i + 1, category: "unstructured-log", klass: "OBSERVABILITY",
+          note: "console.* — prefer a structured logger for correlation" });
+        continue;
+      }
+      // type-net holes
+      if (/\bas any\b/.test(ln) || /@ts-(ignore|expect-error)/.test(ln)) {
+        out.push({ file: f.path, line: i + 1, category: "type-hole", klass: "TYPE_HOLE",
+          note: "suppresses the type net" });
+      }
+    }
+  }
+  return out;
+}
+
+const FS_ORDER: FailureClass[] = ["SILENT", "TYPE_HOLE", "OBSERVABILITY", "REVIEW", "ACCEPTABLE"];
+
+/** Render the Failure Surface section (markdown lines) for the debug playbook. */
+export function renderFailureSurface(findings: FailureFinding[]): string[] {
+  const lines: string[] = [];
+  lines.push("## Failure Surface (deterministic)");
+  lines.push("");
+  lines.push("> Static failure-mode scan — grep + a fixed rule table, **no AI**. `SILENT` / `TYPE_HOLE` = a failure the type/test net won't catch; `OBSERVABILITY` = only reaches `console`; `REVIEW` = confirm intent; `ACCEPTABLE` = deliberate cleanup swallow.");
+  lines.push("");
+  if (findings.length === 0) {
+    lines.push("_No swallowed errors, unstructured logs, or type holes detected._");
+    lines.push("");
+    return lines;
+  }
+  const tally = new Map<FailureClass, number>();
+  for (const f of findings) tally.set(f.klass, (tally.get(f.klass) ?? 0) + 1);
+  lines.push("| Class | Count |");
+  lines.push("|-------|-------|");
+  for (const k of FS_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
+  lines.push("");
+  const sorted = [...findings].sort((a, b) =>
+    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) || a.file.localeCompare(b.file) || a.line - b.line);
+  lines.push("| File | Line | Category | Class | Note |");
+  lines.push("|------|------|----------|-------|------|");
+  for (const f of sorted.slice(0, 40)) {
+    lines.push(`| \`${f.file}\` | ${f.line} | ${f.category} | ${f.klass} | ${f.note} |`);
+  }
+  if (sorted.length > 40) lines.push(`| … | | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
+}
+
+/** Render the failure surface as a fix-checklist (checkbox items, worst class first). */
+export function renderFailureSurfaceChecklist(findings: FailureFinding[]): string[] {
+  const lines: string[] = [];
+  lines.push("## Failure Surface — Fix Checklist");
+  lines.push("");
+  lines.push("> Deterministic static scan (no AI). Fix `SILENT` / `TYPE_HOLE` first — the type/test net won't catch them; `OBSERVABILITY` = make it queryable; `REVIEW` = confirm intent; `ACCEPTABLE` = deliberate.");
+  lines.push("");
+  if (findings.length === 0) {
+    lines.push("- [x] No swallowed errors, discarded returns, unstructured logs, or type holes detected.");
+    lines.push("");
+    return lines;
+  }
+  const sorted = [...findings].sort((a, b) =>
+    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) || a.file.localeCompare(b.file) || a.line - b.line);
+  for (const f of sorted.slice(0, 60)) {
+    lines.push(`- [ ] \`${f.klass}\` \`${f.file}:${f.line}\` — ${f.category}: ${f.note}`);
+  }
+  if (sorted.length > 60) lines.push(`- [ ] … +${sorted.length - 60} more (see debug-playbook.md)`);
+  lines.push("");
+  return lines;
 }
