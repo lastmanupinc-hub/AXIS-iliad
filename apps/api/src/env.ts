@@ -53,6 +53,7 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "GOOGLE_CLIENT_ID", required: false, type: "string", description: "Google OAuth 2.0 client ID for web login (GET /v1/auth/google)." },
   { key: "GOOGLE_CLIENT_SECRET", required: false, type: "string", description: "Google OAuth 2.0 client secret. Required alongside GOOGLE_CLIENT_ID for the callback token exchange." },
   { key: "GOOGLE_CALLBACK_URL", required: false, type: "string", default: "http://localhost:4000/v1/auth/google/callback", description: "Google OAuth redirect URI. Must byte-match the Authorized redirect URI in Google Cloud Console, or the token exchange fails with redirect_uri_mismatch." },
+  { key: "PAID_WALLET_MODE", required: false, type: "string", default: "off", description: "Rollout gate for the PAI'D Fabric-Credit wallet (MCP tokens-out): off (default, no wallet calls) | read (surface balance) | shadow (log would-be debits) | enforce (debit + 402 top-up). Advance only after dogfooding live PAI'D." },
   // GitHub App webhook (push / pull_request → background snapshot)
   { key: "GITHUB_WEBHOOK_SECRET", required: false, type: "string", description: "Shared secret from the GitHub App settings. Verifies X-Hub-Signature-256 on POST /v1/github/webhook. If unset, the endpoint returns 503 so the App retries until ops finishes the deploy." },
   { key: "GITHUB_TOKEN", required: false, type: "string", description: "Personal-access token fallback used when fetching tarballs for webhook-triggered snapshots and the /v1/github/analyze handler when no per-account token is stored." },
