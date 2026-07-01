@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
 import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap } from "@axis/snapshots";
 import type { ContextMap } from "@axis/context-engine";
-import { appendAutonomyLoop, appendProgramFunnel, type GeneratorResult } from "@axis/generator-core";
+import { appendAutonomyLoop, appendProgramFunnel, appendDeltaReport, type GeneratorResult } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
@@ -164,6 +164,15 @@ export async function handleExportZip(
   if (!programFilter) {
     const ctx = (await getContextMap(latest.snapshot_id)) as ContextMap | undefined;
     if (ctx) {
+      try {
+        const prevSnapshot = snapshots[snapshots.length - 2];
+        if (prevSnapshot) {
+          const prevCtx = (await getContextMap(prevSnapshot.snapshot_id)) as ContextMap | undefined;
+          if (prevCtx) appendDeltaReport(generated, prevCtx, ctx); // narrative of change — before the funnel so it's sequenced first
+        }
+      } catch {
+        // Best-effort; the export must never fail because of the delta.
+      }
       appendProgramFunnel(generated, ctx); // "run these next" — before the loop so it's sequenced
       appendAutonomyLoop(generated, ctx);
     }

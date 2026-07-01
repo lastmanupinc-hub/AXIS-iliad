@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { resetTestDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -81,6 +81,28 @@ function parseZip(buf: Buffer): ZipFileEntry[] {
   }
 
   return entries;
+}
+
+// ─── Minimal ContextMap fixture (delta report wiring) ───────────
+
+function makeCtx(snap: { snapshot_id: string; project_id: string }, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    version: "1.0.0",
+    snapshot_id: snap.snapshot_id,
+    project_id: snap.project_id,
+    generated_at: new Date().toISOString(),
+    project_identity: { name: "delta-wiring-test", type: "web", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
+    structure: { total_files: 0, total_directories: 0, total_loc: 0, file_tree_summary: [], top_level_layout: [] },
+    detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null },
+    dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
+    entry_points: [],
+    routes: [],
+    domain_models: [],
+    sql_schema: [],
+    architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0 },
+    ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
+    ...overrides,
+  };
 }
 
 // ─── Server + seed data ─────────────────────────────────────────
@@ -375,5 +397,48 @@ describe("Export ZIP handler", () => {
   it("returns 404 when program filter matches nothing", async () => {
     const res = await rawReq("GET", `/v1/projects/${projectId}/export?program=nonexistent`);
     expect(res.status).toBe(404);
+  });
+
+  // ─── Delta report wiring (SPEC-01) ─────────────────────────────
+
+  it("includes delta-report.md when the project has a prior snapshot with a differing context map", async () => {
+    const projectName = "export-delta-two-snap";
+    const manifest = { project_name: projectName, project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+
+    const snap1 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] });
+    await saveContextMap(snap1.snapshot_id, makeCtx(snap1, { routes: [] }));
+
+    const snap2 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] });
+    expect(snap2.project_id).toBe(snap1.project_id); // same project_name ⇒ reused project
+
+    await saveContextMap(snap2.snapshot_id, makeCtx(snap2, { routes: [{ path: "/new", method: "GET", source_file: "a.ts" }] }));
+    await saveGeneratorResult(snap2.snapshot_id, {
+      snapshot_id: snap2.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap2.project_id}/export`);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    const delta = entries.find(e => e.path === "delta-report.md");
+    expect(delta).toBeDefined();
+    expect(delta!.content).toContain("/new");
+  });
+
+  it("omits delta-report.md for a project with only a single snapshot", async () => {
+    const manifest = { project_name: "export-delta-single-snap", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] });
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    expect(entries.some(e => e.path === "delta-report.md")).toBe(false);
   });
 });

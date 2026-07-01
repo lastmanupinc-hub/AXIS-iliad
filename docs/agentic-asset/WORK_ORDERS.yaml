@@ -16,7 +16,7 @@ work_orders:
   - id: WO-01
     title: "Delta intelligence: pure buildDeltaReport + export-surface wiring"
     phase: now
-    status: open
+    status: done
     depends_on: []
     spec: docs/agentic-asset/specs/SPEC-01-delta.md
     branch: feat/aa-delta-report
@@ -31,7 +31,45 @@ work_orders:
       - "vitest run packages/generator-core/src/determinism.test.ts packages/generator-core/src/generate.test.ts --no-coverage   # unchanged, all pass"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage   # all pass"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly (no other files edited).
+      - `pnpm --filter @axis/generator-core build` — clean, no errors.
+      - `delta-report.test.ts` — 11/11 pass (identical ctx → null; added framework +
+        removed route + resolved warning render in correct sections with correct
+        counts; field_count "12 → 15 fields"; hotspots entered/left; entry points
+        added/removed; size total + per-language deltas; >15 routes truncate with
+        "… +3 more"; determinism — same inputs twice byte-identical; appendDeltaReport
+        idempotent + no-op on null + no-op on empty package).
+      - `determinism.test.ts` + `generate.test.ts` — unchanged, 123/123 pass.
+      - `export.test.ts` — 19/19 pass (17 pre-existing + 2 new: two-snapshot project's
+        export contains delta-report.md with the diffed content; single-snapshot
+        project's export omits it).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      - Also ran repo-wide gates (constitution §4, not in this WO's list):
+        count-honesty.test.ts + strategic-docs-honesty.test.ts — 7/7 pass.
+      Notes for the owner:
+      - Branched from `docs/agentic-asset-strategy` (main's tip c9fb61f + the 2
+        docs-only governance commits), NOT bare `main` — WORK_ORDERS.yaml/
+        CONSTITUTION.md/specs don't exist on main yet, so branching from main per
+        §1.3 would have made it impossible to update this file in the same PR per
+        this queue's own header instruction. No divergent code between the two,
+        only the governance docs I was asked to read. PR is opened against
+        `docs/agentic-asset-strategy`, not `main`.
+      - trackEvent("delta_generated", "product", ...) from the spec's "Surface
+        wiring" section was SKIPPED per the spec's own fallback clause ("if auth
+        context is not available there, skip tracking rather than restructuring"):
+        in handleExportZip, `auth`/`account` is only resolved inside the
+        `if (owner)` branch and is out of scope at the delta call site; wiring it
+        in would require restructuring the handler. No FunnelEventType/FunnelStage
+        values were added (those live outside files_expected, in
+        packages/snapshots/src/funnel-types.ts).
+      - Diff is 526 changed lines vs the spec's "~250 LOC total" estimate (~2.1x),
+        driven entirely by faithfully implementing the spec's own 7 keyed
+        comparison sections (stack/routes/domain models/hotspots/warnings/entry
+        points/size) plus the tests-first mandate — not scope creep or anything
+        outside files_expected. Flagged per §5 ("if the spec forces more, say so
+        in the PR body") rather than treated as a §6.5 STOP, since no forbidden
+        zone, new dependency, secret, or architectural drift was involved.
 
   - id: WO-02
     title: "Economic activation: wire meterPersistenceOp at the version REST surface"
