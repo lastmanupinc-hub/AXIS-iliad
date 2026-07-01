@@ -271,7 +271,7 @@ work_orders:
   - id: WO-06
     title: "KPI activation: FunnelEventType members + wire the 3 wire-able skipped trackEvent calls"
     phase: next
-    status: open
+    status: done
     depends_on: []             # standalone; unblocks WO-05's memory_written event
     spec: docs/agentic-asset/specs/SPEC-06-kpi-events.md
     branch: feat/aa-kpi-events
@@ -286,7 +286,38 @@ work_orders:
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts apps/api/src/versions.test.ts apps/api/src/github-webhook.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly. Diff: 75 changed lines vs the
+      spec's "~80 LOC" estimate — right on target, no ballooning.
+      - `export.test.ts` + `versions.test.ts` + `github-webhook.test.ts` — 66/66
+        pass (all pre-existing unchanged + 4 new: personalization export now also
+        asserts a `funnel_personalized` funnel_events row; a new owned
+        two-snapshot project's export asserts a `delta_generated` row; the
+        pre-existing anonymous delta-report test passes untouched, exercising the
+        accountId-null guard; paid-with-credits diff now also asserts a
+        `persistence_metered` row; the zero-credits 402 case asserts NO
+        `persistence_metered` row).
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, but only AFTER
+        `pnpm --filter @axis/snapshots build` (see finding below) — not clean
+        against the stale dist.
+      - No new `FunnelStage` members added (per the spec's explicit planning
+        decision); both wired calls use `await resolveStage(account_id)`.
+      - `github-webhook.ts`: comment-only change confirmed — no code touched in
+        that file, `watchtower_delta` stays unwired (webhook snapshots still have
+        no account).
+      Finding for the owner (process note, not a design gap):
+      - **`@axis/snapshots` resolves via its compiled `dist/`**, not TS source
+        (its `package.json` `exports` points `types`/`import` at `dist/index.*`).
+        Vitest resolves the workspace package straight from source, so the new
+        tests passed immediately — but `tsc --noEmit` in `apps/api` failed
+        against the stale `dist/` until I ran
+        `pnpm --filter @axis/snapshots build` (not explicitly listed in this
+        WO's acceptance commands, though the constitution's §4 already states
+        the general rule: "Build a package after changing its src"). Anyone
+        touching `funnel-types.ts` (or any `packages/snapshots/src` file) needs
+        that build step before `apps/api`'s typecheck will see the change —
+        worth adding explicitly to future specs that touch this package.
 
   - id: WO-05
     title: "Project brain: project_memory migration v30 + memory store + REST (weave split to WO-07)"

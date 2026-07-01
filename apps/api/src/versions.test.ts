@@ -11,6 +11,7 @@ import {
   createApiKey,
   addPersistenceCredits,
   getPersistenceLedger,
+  getEventsByType,
   PERSISTENCE_CREDIT_COSTS,
 } from "@axis/snapshots";
 import { Router } from "./router.js";
@@ -243,13 +244,22 @@ describe("GET /v1/snapshots/:snapshot_id/diff — persistence metering", () => {
     expect(spend).toBeDefined();
     expect(spend!.credits_delta).toBe(-PERSISTENCE_CREDIT_COSTS.diff_versions);
     expect(spend!.snapshot_id).toBe(snapshotId);
+
+    // SPEC-06: a successful metered op fires persistence_metered.
+    const events = await getEventsByType(paid.account_id, "persistence_metered");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.op).toBe("diff_versions");
+    expect(events[0].metadata.snapshot_id).toBe(snapshotId);
   });
 
-  it("paid account with zero credits gets 402", async () => {
+  it("paid account with zero credits gets 402 and does NOT fire persistence_metered", async () => {
     const paid = await authHeaders("paid", "diff-broke");
     const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=2`, paid.headers);
     expect(r.status).toBe(402);
     expect(r.data.error).toBe("persistence_credits_required");
+
+    const events = await getEventsByType(paid.account_id, "persistence_metered");
+    expect(events).toHaveLength(0);
   });
 
   it("list/get remain un-metered for the same free account (200 semantics unchanged)", async () => {
