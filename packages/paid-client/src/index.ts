@@ -120,6 +120,124 @@ async function paidPost<T>(
   return JSON.parse(text) as T;
 }
 
+async function paidGet<T>(path: string, config: PaidConfig): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${config.apiBaseUrl}${path}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${config.apiKey}`, Accept: "application/json" },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new PaidError(`PAI'D ${path} timed out after ${config.timeoutMs ?? DEFAULT_TIMEOUT_MS}ms`, 504, "");
+    }
+    throw new PaidError(`PAI'D ${path} request failed: ${(err as Error).message}`, 0, "");
+  } finally {
+    clearTimeout(timer);
+  }
+  const text = await res.text();
+  if (!res.ok) throw new PaidError(`PAI'D ${path} failed (${res.status})`, res.status, text);
+  return JSON.parse(text) as T;
+}
+
+// ─── Fabric Credit (FC) wallet — PAI'D's money seam ─────────────────
+//
+// PAI'D owns the wallet and the rails. A merchant app (Iliad) only READS the
+// balance and DEBITS FC on a successful paid action; money-in (top-up) rides the
+// existing hosted checkout. All amounts are integer Fabric Credits ($1 = 1 FC).
+// Paths are relative to `apiBaseUrl` (the /v1 root), matching how
+// `/checkout/sessions` hangs off the same base.
+//
+// ⚠ The exact base path (`/trust-fabric/billing/...`) and whether PAI'D's HTTP
+// layer honors a caller Idempotency-Key MUST be verified against live PAI'D
+// before enabling debits — see the MCP paid-access design + dogfood template.
+
+export interface CreditWallet {
+  wallet_id: string;
+  developer_id: string;
+  balance_fc: number;
+  lifetime_fc: number;
+  tier: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+export interface CreditTransaction {
+  transaction_id: string;
+  wallet_id: string;
+  amount_fc: number;
+  direction: "credit" | "debit";
+  reason: string;
+  reference_type: string;
+  reference_id: string;
+  balance_after: number;
+  created_at: string;
+}
+
+export interface DebitResult {
+  wallet_id: string;
+  balance_fc: number;
+  transaction: CreditTransaction;
+}
+
+/** Body PAI'D returns with HTTP 402 when the wallet balance is short. */
+export interface InsufficientCreditsBody {
+  error: "insufficient_credits";
+  balance_fc: number;
+  required_fc: number;
+  shortfall_fc: number;
+  upgrade_options?: unknown[];
+}
+
+/** GET the caller's FC wallet (read-only; PAI'D auto-provisions a free-tier wallet). */
+export async function getPaidWallet(
+  developerId: string,
+  config: PaidConfig = loadPaidConfig(),
+): Promise<CreditWallet> {
+  return paidGet<CreditWallet>(`/trust-fabric/billing/wallet/${encodeURIComponent(developerId)}`, config);
+}
+
+export interface DebitWalletInput {
+  amountFc: number;
+  productCode: string;
+  reason: string;
+  referenceType: string;
+  referenceId: string;
+  /** Sent as Idempotency-Key; PAI'D's HTTP layer may not yet honor it — dedupe client-side too. */
+  idempotencyKey: string;
+}
+
+/**
+ * Debit FC from the caller's wallet on a SUCCESSFUL paid action. Throws
+ * `PaidError` with `status === 402` (body is an `InsufficientCreditsBody`) when
+ * the balance is short — callers must NOT record a local charge on a 402 and
+ * should surface a top-up path. NEVER call this for a failed action.
+ */
+export async function debitPaidWallet(
+  developerId: string,
+  input: DebitWalletInput,
+  config: PaidConfig = loadPaidConfig(),
+): Promise<DebitResult> {
+  if (!Number.isInteger(input.amountFc) || input.amountFc <= 0) {
+    throw new Error("amountFc must be a positive integer (Fabric Credits)");
+  }
+  return paidPost<DebitResult>(
+    `/trust-fabric/billing/wallet/${encodeURIComponent(developerId)}/debit`,
+    {
+      amount_fc: input.amountFc,
+      product_code: input.productCode,
+      reason: input.reason,
+      reference_type: input.referenceType,
+      reference_id: input.referenceId,
+    },
+    config,
+    input.idempotencyKey,
+  );
+}
+
 export interface CreatePaidCheckoutInput {
   /** Authoritative price in minor units (cents), resolved server-side. */
   amountCents: number;

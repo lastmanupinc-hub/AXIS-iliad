@@ -14,8 +14,13 @@ import {
   resolvePaidWebhookSecret,
   isPaidConfigured,
   verifyPaidWebhookSignature,
+  getPaidWallet,
+  debitPaidWallet,
 } from "@axis/paid-client";
-import type { PaidConfig, PaidPlan, CheckoutSession, CreatePaidCheckoutInput, VerifyWebhookOptions } from "@axis/paid-client";
+import type {
+  PaidConfig, PaidPlan, CheckoutSession, CreatePaidCheckoutInput, VerifyWebhookOptions,
+  CreditWallet, DebitResult, DebitWalletInput, CreditTransaction, InsufficientCreditsBody,
+} from "@axis/paid-client";
 
 // Re-export the shared surface (credit-pack top-ups use the generic one-shot
 // checkout directly under its old name).
@@ -28,6 +33,8 @@ export {
   resolvePaidWebhookSecret,
   isPaidConfigured,
   verifyPaidWebhookSignature,
+  getPaidWallet,
+  debitPaidWallet,
 };
 export type {
   PaidConfig,
@@ -36,7 +43,26 @@ export type {
   CreatePaidCheckoutInput,
   CreatePaidCheckoutInput as CreateTopupCheckoutInput,
   VerifyWebhookOptions,
+  CreditWallet,
+  DebitResult,
+  DebitWalletInput,
+  CreditTransaction,
+  InsufficientCreditsBody,
 };
+
+/**
+ * Rollout gate for the PAI'D Fabric-Credit wallet integration (MCP tokens-out).
+ * - off     (default): no wallet calls; behaviour unchanged.
+ * - read   : read wallet balance in the authorize phase, surface it; no debits.
+ * - shadow : compute + LOG what would be debited; still no real debit.
+ * - enforce: debit the wallet on paid tool calls; 402 → top-up challenge.
+ * Ship dark (off), then advance per the phased plan after dogfooding live PAI'D.
+ */
+export type PaidWalletMode = "off" | "read" | "shadow" | "enforce";
+export function paidWalletMode(env: NodeJS.ProcessEnv = process.env): PaidWalletMode {
+  const m = (env.PAID_WALLET_MODE ?? "off").toLowerCase();
+  return m === "read" || m === "shadow" || m === "enforce" ? m : "off";
+}
 
 /**
  * A stable idempotency key so a client RETRY (network timeout, reload,

@@ -6,7 +6,13 @@ import {
   verifyPaidWebhookSignature,
   tierForPlan,
   PaidError,
+  getPaidWallet,
+  debitPaidWallet,
+  paidWalletMode,
+  type InsufficientCreditsBody,
 } from "./paid-client.js";
+
+const WALLET_CFG = { apiBaseUrl: "https://paid.test/v1", apiKey: "sk_test", merchantId: "m" };
 
 // ─── loadPaidConfig ─────────────────────────────────────────────
 
@@ -196,5 +202,76 @@ describe("verifyPaidWebhookSignature", () => {
   it("rejects header missing t or v1", () => {
     expect(verifyPaidWebhookSignature({ rawBody: body, signatureHeader: "v1=abc", signingKey: key })).toBe(false);
     expect(verifyPaidWebhookSignature({ rawBody: body, signatureHeader: "t=123", signingKey: key })).toBe(false);
+  });
+});
+
+// ─── PAI'D Fabric-Credit wallet (Phase 0 plumbing) ──────────────
+
+describe("paidWalletMode", () => {
+  it("defaults to off and parses the rollout stages", () => {
+    expect(paidWalletMode({} as NodeJS.ProcessEnv)).toBe("off");
+    expect(paidWalletMode({ PAID_WALLET_MODE: "read" } as NodeJS.ProcessEnv)).toBe("read");
+    expect(paidWalletMode({ PAID_WALLET_MODE: "SHADOW" } as NodeJS.ProcessEnv)).toBe("shadow");
+    expect(paidWalletMode({ PAID_WALLET_MODE: "enforce" } as NodeJS.ProcessEnv)).toBe("enforce");
+    expect(paidWalletMode({ PAID_WALLET_MODE: "bogus" } as NodeJS.ProcessEnv)).toBe("off");
+  });
+});
+
+describe("getPaidWallet", () => {
+  afterEach(() => vi.restoreAllMocks());
+  it("GETs the wallet with Bearer auth and returns the FC balance", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true, status: 200,
+      text: async () => JSON.stringify({ wallet_id: "w1", developer_id: "acct-1", balance_fc: 42, lifetime_fc: 100, tier: "free", status: "active" }),
+    } as Response);
+    const w = await getPaidWallet("acct-1", WALLET_CFG);
+    expect(w.balance_fc).toBe(42);
+    const [url, init] = spy.mock.calls[0];
+    expect(String(url)).toBe("https://paid.test/v1/trust-fabric/billing/wallet/acct-1");
+    expect((init as RequestInit).method).toBe("GET");
+    expect((init as RequestInit).headers).toMatchObject({ Authorization: "Bearer sk_test" });
+  });
+});
+
+describe("debitPaidWallet", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("POSTs an FC debit with an Idempotency-Key and returns the new balance", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true, status: 200,
+      text: async () => JSON.stringify({ wallet_id: "w1", balance_fc: 17, transaction: { transaction_id: "t1", amount_fc: 25, direction: "debit" } }),
+    } as Response);
+    const r = await debitPaidWallet("acct-1", {
+      amountFc: 25, productCode: "tf_marketplace_take", reason: "mcp", referenceType: "iliad_mcp", referenceId: "analyze_repo:snap-1", idempotencyKey: "idem-1",
+    }, WALLET_CFG);
+    expect(r.balance_fc).toBe(17);
+    const [url, init] = spy.mock.calls[0];
+    expect(String(url)).toBe("https://paid.test/v1/trust-fabric/billing/wallet/acct-1/debit");
+    expect((init as RequestInit).method).toBe("POST");
+    expect((init as RequestInit).headers).toMatchObject({ "Idempotency-Key": "idem-1" });
+    expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({ amount_fc: 25, product_code: "tf_marketplace_take" });
+  });
+
+  it("throws PaidError(402) with an insufficient-credits body when short", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: false, status: 402,
+      text: async () => JSON.stringify({ error: "insufficient_credits", balance_fc: 3, required_fc: 25, shortfall_fc: 22 }),
+    } as Response);
+    try {
+      await debitPaidWallet("acct-1", { amountFc: 25, productCode: "x", reason: "r", referenceType: "t", referenceId: "id", idempotencyKey: "k" }, WALLET_CFG);
+      throw new Error("expected 402");
+    } catch (err) {
+      expect(err).toBeInstanceOf(PaidError);
+      expect((err as PaidError).status).toBe(402);
+      const body = JSON.parse((err as PaidError).body) as InsufficientCreditsBody;
+      expect(body.error).toBe("insufficient_credits");
+      expect(body.shortfall_fc).toBe(22);
+    }
+  });
+
+  it("rejects a non-positive FC amount before calling PAI'D", async () => {
+    const spy = vi.spyOn(globalThis, "fetch");
+    await expect(debitPaidWallet("a", { amountFc: 0, productCode: "x", reason: "r", referenceType: "t", referenceId: "i", idempotencyKey: "k" }, WALLET_CFG)).rejects.toThrow(/positive integer/);
+    expect(spy).not.toHaveBeenCalled();
   });
 });
