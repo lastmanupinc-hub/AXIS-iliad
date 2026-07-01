@@ -1,0 +1,106 @@
+# Agentic-Asset program — work-order queue (the program's memory).
+# Executor: take the FIRST status:open whose depends_on are all done.
+# After finishing: set status, fill evidence, commit this file in the same PR.
+# Schema: id, title, phase, status(open|blocked|done), depends_on, spec, branch,
+#         files_expected (the ONLY files you may create/edit), acceptance
+#         (commands that must all pass), evidence (executor fills).
+
+program:
+  name: agentic-asset
+  strategy: docs/AGENTIC_ASSET_STRATEGY.md
+  constitution: docs/agentic-asset/CONSTITUTION.md
+  executor: claude-sonnet-5
+  merge_authority: owner   # executor opens PRs, never merges
+
+work_orders:
+  - id: WO-01
+    title: "Delta intelligence: pure buildDeltaReport + export-surface wiring"
+    phase: now
+    status: open
+    depends_on: []
+    spec: docs/agentic-asset/specs/SPEC-01-delta.md
+    branch: feat/aa-delta-report
+    files_expected:
+      - packages/generator-core/src/delta-report.ts          # new
+      - packages/generator-core/src/delta-report.test.ts     # new
+      - packages/generator-core/src/index.ts                 # export line only
+      - apps/api/src/export.ts                               # fetch prev ctx + append
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/delta-report.test.ts --no-coverage   # all pass"
+      - "vitest run packages/generator-core/src/determinism.test.ts packages/generator-core/src/generate.test.ts --no-coverage   # unchanged, all pass"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage   # all pass"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-02
+    title: "Economic activation: wire meterPersistenceOp at the version REST surface"
+    phase: now
+    status: open
+    depends_on: []
+    spec: docs/agentic-asset/specs/SPEC-02-persistence-metering.md
+    branch: feat/aa-persistence-metering
+    files_expected:
+      - apps/api/src/versions.ts
+      - apps/api/src/versions.test.ts            # new or extended
+      - apps/api/src/openapi.ts                  # only if response schema documented there
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/versions.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-03
+    title: "Learning funnel: usage-aware buildNextPrograms (pure, optional input)"
+    phase: now
+    status: open
+    depends_on: []
+    spec: docs/agentic-asset/specs/SPEC-03-usage-funnel.md
+    branch: feat/aa-usage-funnel
+    files_expected:
+      - packages/generator-core/src/program-funnel.ts
+      - packages/generator-core/src/program-funnel.test.ts
+      - apps/api/src/export.ts                   # pass account usage when available
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/program-funnel.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-04
+    title: "Watchtower v1: webhook re-analysis stores a delta artifact (fail-open)"
+    phase: now
+    status: open
+    depends_on: [WO-01]
+    spec: docs/agentic-asset/specs/SPEC-04-watchtower-digest.md
+    branch: feat/aa-watchtower
+    files_expected:
+      - apps/api/src/github-webhook.ts
+      - apps/api/src/github-webhook.test.ts      # new or extended
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/github-webhook.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-05
+    title: "Project brain: project_memory migration + REST + weave into context files"
+    phase: next
+    status: blocked            # ELABORATE gate: planning model expands the spec
+    depends_on: [WO-01]        # weave reuses the surface patterns proven in WO-01
+    spec: docs/agentic-asset/specs/SPEC-05-project-memory.md
+    branch: feat/aa-project-memory
+    files_expected:
+      - packages/snapshots/src/pg-schema.ts      # migration v30 ONLY, per spec block
+      - packages/snapshots/src/memory-store.ts   # new
+      - packages/snapshots/src/index.ts
+      - apps/api/src/memory-handlers.ts          # new
+      - apps/api/src/server.ts                   # 2 routes
+      - apps/api/src/openapi.ts                  # 2 paths
+      - apps/api/src/counts.ts                   # ENDPOINT_COUNT +2 (explicitly allowed here)
+      - apps/api/src/memory-handlers.test.ts     # new
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/memory-handlers.test.ts packages/snapshots/src/pg-schema.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
