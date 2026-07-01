@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
 import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap } from "@axis/snapshots";
 import type { ContextMap } from "@axis/context-engine";
-import { appendAutonomyLoop, type GeneratorResult } from "@axis/generator-core";
+import { appendAutonomyLoop, appendProgramFunnel, type GeneratorResult } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
@@ -163,7 +163,10 @@ export async function handleExportZip(
   // the MCP path). Skipped for single-program downloads (?program=…), matching CLI/MCP.
   if (!programFilter) {
     const ctx = (await getContextMap(latest.snapshot_id)) as ContextMap | undefined;
-    if (ctx) appendAutonomyLoop(generated, ctx);
+    if (ctx) {
+      appendProgramFunnel(generated, ctx); // "run these next" — before the loop so it's sequenced
+      appendAutonomyLoop(generated, ctx);
+    }
   }
 
   const files = programFilter
