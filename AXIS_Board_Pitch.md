@@ -1,13 +1,13 @@
 # Axis' Iliad — Board & Investor Pitch
 
 > **The AI-Powered Developer Intelligence Platform**
-> 20 programs. 137 generators. One snapshot. Every output a developer needs — before they write a single line of code.
+> 20 programs. 140 generators. One snapshot. Every output a developer needs — before they write a single line of code.
 
 ---
 
 ## Executive Summary
 
-Axis' Iliad transforms any codebase into a comprehensive intelligence layer. Upload a repository (or paste a GitHub URL), and AXIS produces structured, AI-ready outputs across 18 specialized programs — from architecture maps and debugging playbooks to brand guidelines and marketing funnels.
+Axis' Iliad transforms any codebase into a comprehensive intelligence layer. Upload a repository (or paste a GitHub URL), and AXIS produces structured, AI-ready outputs across 20 specialized programs — from architecture maps and debugging playbooks to brand guidelines and marketing funnels.
 
 Unlike tools that write code *for* developers, AXIS produces the **context, governance, strategy, and creative assets** that surround code. Every AI coding tool (Cursor, Claude, Copilot, Windsurf) performs better when given structured project context. AXIS is the factory that produces that context at scale.
 
@@ -337,7 +337,7 @@ These programs are permanently free. They solve universal developer problems and
 │                                                         │
 │  ┌─────────┐    ┌──────────────┐    ┌───────────────┐  │
 │  │  Upload  │───▶│  Snapshot     │───▶│  20 Programs  │  │
-│  │  Repo    │    │  Engine       │    │ 137 Generators│  │
+│  │  Repo    │    │  Engine       │    │ 140 generators│  │
 │  └─────────┘    └──────────────┘    └───────┬───────┘  │
 │                                             │           │
 │  ┌─────────┐    ┌──────────────┐    ┌───────▼───────┐  │
@@ -362,7 +362,7 @@ These programs are permanently free. They solve universal developer problems and
 |--------|-------|
 | Total Programs | 18 |
 | Total Generators | 87 |
-| API Endpoints | 102 |
+| API Endpoints | 143 |
 | Test Count | 3,906 |
 | Test Files | 131 |
 | Code Coverage | 99.99% statements |

@@ -8,7 +8,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-91.5%25-green)](https://github.com/lastmanupinc-hub/axis-iliad/actions)
 [![Website](https://img.shields.io/badge/website-iliad.trustfabric.ai-0ea5e9)](https://iliad.trustfabric.ai)
 [![API](https://img.shields.io/badge/API-live-blue)](https://axis-api-6c7z.onrender.com/v1/health)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue)](https://github.com/lastmanupinc-hub/axis-iliad/releases)
+[![Version](https://img.shields.io/badge/version-0.5.3-blue)](https://github.com/lastmanupinc-hub/axis-iliad/releases)
 [![License](https://img.shields.io/badge/license-private-lightgrey)](#license)
 [![AXIS-iliad MCP server](https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad/badges/card.svg)](https://glama.ai/mcp/servers/lastmanupinc-hub/AXIS-iliad)
 
