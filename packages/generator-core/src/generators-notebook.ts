@@ -3,6 +3,40 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 
+// Curated docs URLs for common frameworks; any package not listed falls back to
+// its npm registry page (URL-encoded so scoped names like @scope/pkg resolve).
+// This keeps citations pointing at real documentation for the ACTUAL detected
+// stack instead of a generic web search for anything outside a hardcoded few.
+const DOCS_URLS: Record<string, string> = {
+  react: "https://react.dev",
+  next: "https://nextjs.org/docs",
+  "next.js": "https://nextjs.org/docs",
+  vue: "https://vuejs.org/guide",
+  "vue.js": "https://vuejs.org/guide",
+  svelte: "https://svelte.dev/docs",
+  sveltekit: "https://svelte.dev/docs/kit",
+  astro: "https://docs.astro.build",
+  solid: "https://www.solidjs.com/docs",
+  solidjs: "https://www.solidjs.com/docs",
+  remix: "https://remix.run/docs",
+  angular: "https://angular.dev",
+  nest: "https://docs.nestjs.com",
+  nestjs: "https://docs.nestjs.com",
+  express: "https://expressjs.com/en/guide",
+  fastify: "https://fastify.dev/docs/latest",
+  tailwind: "https://tailwindcss.com/docs",
+  "tailwind css": "https://tailwindcss.com/docs",
+  prisma: "https://www.prisma.io/docs",
+  vite: "https://vite.dev",
+  django: "https://docs.djangoproject.com",
+  flask: "https://flask.palletsprojects.com",
+};
+
+/** Docs URL for a detected framework/package: curated docs if known, else its npm page. */
+function getDocsUrl(name: string): string {
+  return DOCS_URLS[name.toLowerCase()] ?? `https://www.npmjs.com/package/${encodeURIComponent(name)}`;
+}
+
 // ─── notebook-summary.md ────────────────────────────────────────
 
 export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -565,20 +599,16 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
     tags: string[];
   }> = [];
 
-  // Framework documentation citations
+  // Framework documentation citations — every detected framework gets a real docs
+  // URL (or its npm page), with the actual detected version in the title.
   for (const fw of frameworks) {
-    const n = fw.name.toLowerCase();
     citations.push({
       id: `fw-${fw.name}`,
       type: "documentation",
-      title: `${fw.name} Official Documentation`,
-      source: n === "next" || n === "next.js" ? "https://nextjs.org/docs" :
-        n === "react" ? "https://react.dev" :
-        n === "vue" || n === "vue.js" ? "https://vuejs.org/guide" :
-        n === "express" ? "https://expressjs.com/en/guide" :
-        n === "tailwind" || n === "tailwind css" ? "https://tailwindcss.com/docs" :
-        n === "prisma" ? "https://www.prisma.io/docs" :
-        `https://www.google.com/search?q=${fw.name}+documentation`,
+      title: fw.version
+        ? `${fw.name} @ ${fw.version} — Official Documentation`
+        : `${fw.name} Official Documentation`,
+      source: getDocsUrl(fw.name),
       relevance: "primary",
       tags: ["framework", fw.name, "documentation"],
     });
@@ -617,7 +647,7 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
       id: `dep-${d.name}`,
       type: "library",
       title: `${d.name} @ ${d.version}`,
-      source: `https://www.npmjs.com/package/${d.name}`,
+      source: `https://www.npmjs.com/package/${encodeURIComponent(d.name)}`,
       relevance: "reference",
       tags: ["dependency", d.name],
     });
