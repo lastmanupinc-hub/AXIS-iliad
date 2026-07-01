@@ -4,30 +4,41 @@
 # Configure in the Cloudflare dashboard:
 #
 #   1. Connect GitHub repo: lastmanupinc-hub/axis-iliad
-#   2. Build settings:
+#        (Workers & Pages → project "axis-web" → Settings → Build & deployments
+#         → Connect to Git. Reconfigure the EXISTING axis-web project — do NOT
+#         create a new one; the iliad.trustfabric.ai custom domain is attached
+#         at the PROJECT level and survives the build-source switch.)
+#   2. Build settings (type these EXACT values):
 #        Framework preset: None
 #        Build command: pnpm install --frozen-lockfile && pnpm -r build
 #        Build output directory: apps/web/dist
-#        Root directory: /  (monorepo root)
-#   3. Environment variables:
-#        NODE_VERSION: 20
-#        PNPM_VERSION: 10
+#        Root directory: /  (monorepo root — NOT apps/web, or pnpm -r cannot
+#                            resolve the workspace)
+#   3. Environment variables (set on BOTH Production and Preview):
+#        VITE_API_URL: https://api.iliad.trustfabric.ai   (baked in at build time)
+#        NODE_VERSION:  22                                 (matches CI)
+#        PNPM_VERSION:  10.33.0                            (EXACT — see note below)
 #   4. Production branch: main
+#
+# Note on PNPM_VERSION: the repo pins pnpm via the root package.json
+# "packageManager": "pnpm@10.33.0" field (corepack-enforced). The lockfile
+# header is lockfileVersion 9.0, which pnpm 10 reads natively. Pin the exact
+# 10.33.0 so the Pages build's --frozen-lockfile install cannot drift.
 #
 # ─── SPA Routing ─────────────────────────────────────────────────
 #
 # Cloudflare Pages auto-serves _redirects for SPA client-side routing.
-# The _redirects file below is copied into the build output by the
-# deploy workflow.
+# apps/web/public/_redirects ("/* /index.html 200") and _headers are copied
+# into apps/web/dist by Vite at build time (public/ → dist/), so a connected-
+# Git build emits them exactly as the old wrangler build did.
 #
-# ─── API Proxy ───────────────────────────────────────────────────
+# ─── API Origin ──────────────────────────────────────────────────
 #
-# In production, the web app calls the API at a separate origin.
-# Set VITE_API_URL in the Cloudflare Pages environment variables
-# to point to your Render API URL:
+# In production the web app calls the API at a separate origin. VITE_API_URL
+# (above) is baked into the bundle at build time. Canonical API host:
 #
-#   VITE_API_URL=https://axis-api.onrender.com
+#   VITE_API_URL=https://api.iliad.trustfabric.ai
 #
-# The Vite dev proxy (/v1 → localhost:4000) only applies in
-# development. In production, the web app uses VITE_API_URL
-# (baked in at build time) to construct API requests.
+# (apps/web/src/api.ts also falls back to this exact host if the var is unset,
+# but set it explicitly to match CI and survive a future domain change.)
+# The Vite dev proxy (/v1 → localhost:4000) only applies in development.
