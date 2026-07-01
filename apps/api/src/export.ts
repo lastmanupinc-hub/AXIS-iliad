@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
-import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap, getUsageSummary } from "@axis/snapshots";
+import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap, getUsageSummary, trackEvent, resolveStage } from "@axis/snapshots";
 import type { ContextMap } from "@axis/context-engine";
 import { appendAutonomyLoop, appendProgramFunnel, appendDeltaReport, type GeneratorResult } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
@@ -170,7 +170,13 @@ export async function handleExportZip(
         const prevSnapshot = snapshots[snapshots.length - 2];
         if (prevSnapshot) {
           const prevCtx = (await getContextMap(prevSnapshot.snapshot_id)) as ContextMap | undefined;
-          if (prevCtx) appendDeltaReport(generated, prevCtx, ctx); // narrative of change — before the funnel so it's sequenced first
+          if (prevCtx) {
+            const hadDelta = generated.files.some(f => f.path === "delta-report.md");
+            appendDeltaReport(generated, prevCtx, ctx); // narrative of change — before the funnel so it's sequenced first
+            if (!hadDelta && accountId && generated.files.some(f => f.path === "delta-report.md")) {
+              await trackEvent(accountId, "delta_generated", await resolveStage(accountId), { project_id }).catch(() => {});
+            }
+          }
         }
       } catch {
         // Best-effort; the export must never fail because of the delta.
@@ -184,7 +190,15 @@ export async function handleExportZip(
           accountUsage = undefined; // never fail the export because usage lookup failed
         }
       }
+      const hadFunnel = generated.files.some(f => f.path === "recommended-next-programs.md");
       appendProgramFunnel(generated, ctx, accountUsage); // "run these next" — before the loop so it's sequenced
+      if (!hadFunnel && accountId && accountUsage && Object.keys(accountUsage).length > 0 && generated.files.some(f => f.path === "recommended-next-programs.md")) {
+        try {
+          await trackEvent(accountId, "funnel_personalized", await resolveStage(accountId), { project_id });
+        } catch {
+          // Best-effort; the export must never fail on analytics.
+        }
+      }
       appendAutonomyLoop(generated, ctx);
     }
   }

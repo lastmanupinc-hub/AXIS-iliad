@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage, getEventsByType } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -468,5 +468,38 @@ describe("Export ZIP handler", () => {
     const funnel = entries.find(e => e.path === "recommended-next-programs.md");
     expect(funnel).toBeDefined();
     expect(funnel!.content).toContain("Ranked for this account");
+
+    const events = await getEventsByType(acct.account_id, "funnel_personalized");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.project_id).toBe(snap.project_id);
+  });
+
+  // ─── KPI events (SPEC-06) ───────────────────────────────────────
+
+  it("tracks delta_generated for an owned two-snapshot project's export", async () => {
+    const acct = await createAccount("Delta KPI User", "delta-kpi@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-delta-kpi", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap1 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap1.snapshot_id, makeCtx(snap1, { routes: [] }));
+
+    const snap2 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap2.snapshot_id, makeCtx(snap2, { routes: [{ path: "/new", method: "GET", source_file: "a.ts" }] }));
+    await saveGeneratorResult(snap2.snapshot_id, {
+      snapshot_id: snap2.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap2.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    expect(entries.some(e => e.path === "delta-report.md")).toBe(true);
+
+    const events = await getEventsByType(acct.account_id, "delta_generated");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.project_id).toBe(snap2.project_id);
   });
 });

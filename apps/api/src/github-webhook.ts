@@ -370,9 +370,9 @@ async function dispatchWebhookSnapshot(
       snapshot_id: snapshot.snapshot_id,
       bytes: Buffer.byteLength(report, "utf-8"),
     });
-    // trackEvent("watchtower_delta", "product", ...) intentionally omitted: neither value
-    // is a valid FunnelEventType/FunnelStage in funnel-types.ts yet (same gap noted in
-    // WO-01/02/03 evidence). Also: webhook snapshots have no account today regardless.
+    // trackEvent("watchtower_delta", ...) intentionally left unwired (SPEC-06): the
+    // FunnelEventType member now exists, but webhook snapshots have no account until
+    // an installation→account mapping lands, so there's nothing to attribute this to.
   } catch (err) {
     log("error", "github-webhook.delta_failed", {
       repo: target.repoFullName,

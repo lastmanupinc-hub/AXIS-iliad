@@ -7,6 +7,8 @@ import {
   getGenerationVersion,
   diffGenerationVersions,
   meterPersistenceOp,
+  trackEvent,
+  resolveStage,
 } from "@axis/snapshots";
 import { assertSnapshotAccess } from "./handlers.js";
 import { resolveAuth } from "./billing.js";
@@ -96,6 +98,7 @@ export async function handleDiffVersions(
       sendJSON(res, 402, { error: "persistence_credits_required", reason: meterResult.reason });
       return;
     }
+    await trackEvent(auth.account.account_id, "persistence_metered", await resolveStage(auth.account.account_id), { op: "diff_versions", snapshot_id }).catch(() => {});
   }
 
   const diff = await diffGenerationVersions(snapshot_id, oldV, newV);
