@@ -399,7 +399,7 @@ describe("generateAgentPurchasingPlaybook — commerce signal detection", () => 
     expect(file.content).toContain("AP2 Mandate Requirements");
   });
 
-  it("paypal provider — mandate type shows single/recurring", () => {
+  it("paypal provider row reports repo evidence, never a fabricated capability", () => {
     const paypalFiles: FileEntry[] = [
       { path: "src/pay.ts", content: "import { PayPalScriptProvider } from '@paypal/react-paypal-js'; const checkout = () => paypal.order.create({})", size: 100 },
     ];
@@ -407,11 +407,13 @@ describe("generateAgentPurchasingPlaybook — commerce signal detection", () => 
     const ctx = buildContextMap(snap);
     const profile = buildRepoProfile(snap);
     const file = generateAgentPurchasingPlaybook(ctx, profile, paypalFiles);
-    expect(file.content).toContain("single/recurring");
-    expect(file.content).toContain("⚠️ Verify");
+    expect(file.content).toContain("paypal");
+    // No tokenization code in this repo → honest "not found", never a fabricated "✅ Supported".
+    expect(file.content).toContain("not found — verify with PSP");
+    expect(file.content).not.toContain("✅ Supported");
   });
 
-  it("unknown provider — mandate type shows single and Verify", () => {
+  it("unknown provider row reports repo evidence, not a hardcoded fact", () => {
     const klarnaFiles: FileEntry[] = [
       { path: "src/pay.ts", content: "import Klarna from 'klarna'; const buy = () => klarna.payments.init({})", size: 85 },
     ];
@@ -419,9 +421,8 @@ describe("generateAgentPurchasingPlaybook — commerce signal detection", () => 
     const ctx = buildContextMap(snap);
     const profile = buildRepoProfile(snap);
     const file = generateAgentPurchasingPlaybook(ctx, profile, klarnaFiles);
-    // "single" appears as the mandate type for unknown providers
     expect(file.content).toContain("klarna");
-    expect(file.content).toContain("⚠️ Verify");
+    expect(file.content).toContain("not found — verify with PSP");
   });
 
   it("without files — shows not detected for all signals", () => {
@@ -586,11 +587,12 @@ describe("generateNegotiationRules — AP2/UCP mandate constraints", () => {
     expect(file.content).toContain("AP2/UCP Mandate Compliance Constraints");
   });
 
-  it("includes provider rows in mandate constraints table", () => {
+  it("mandate constraints table defers caps to operator policy (no fabricated dollar cap)", () => {
     const file = generateNegotiationRules(stripeCtx, stripeProfile, stripeFiles);
     expect(file.content).toContain("stripe");
     expect(file.content).toContain("Per-transaction");
-    expect(file.content).toContain("$50,000");
+    expect(file.content).toContain("set per policy");
+    expect(file.content).not.toContain("$50,000");
   });
 
   it("includes hard spending limits deferring to operator policy", () => {
@@ -618,7 +620,7 @@ describe("generateNegotiationRules — AP2/UCP mandate constraints", () => {
     expect(file.content).toContain("(none detected)");
   });
 
-  it("paypal provider results in $10,000 cap", () => {
+  it("paypal negotiation caps defer to policy (no fabricated $10,000)", () => {
     const paypalFiles: FileEntry[] = [
       { path: "src/pay.ts", content: "import { PayPalScriptProvider } from '@paypal/react-paypal-js'; const checkout = () => paypal.order.create({})", size: 100 },
     ];
@@ -626,10 +628,11 @@ describe("generateNegotiationRules — AP2/UCP mandate constraints", () => {
     const ctx = buildContextMap(snap);
     const profile = buildRepoProfile(snap);
     const file = generateNegotiationRules(ctx, profile, paypalFiles);
-    expect(file.content).toContain("$10,000");
+    expect(file.content).toContain("set per policy");
+    expect(file.content).not.toContain("$10,000");
   });
 
-  it("non-stripe non-paypal provider results in $5,000 cap and High risk", () => {
+  it("other-provider negotiation caps defer to policy (no fabricated $5,000/brand risk)", () => {
     const klarnaFiles: FileEntry[] = [
       { path: "src/pay.ts", content: "import Klarna from 'klarna'; const buy = () => klarna.payments.init({})", size: 85 },
     ];
@@ -637,8 +640,8 @@ describe("generateNegotiationRules — AP2/UCP mandate constraints", () => {
     const ctx = buildContextMap(snap);
     const profile = buildRepoProfile(snap);
     const file = generateNegotiationRules(ctx, profile, klarnaFiles);
-    expect(file.content).toContain("$5,000");
-    expect(file.content).toContain("High");
+    expect(file.content).toContain("set per policy");
+    expect(file.content).not.toContain("$5,000");
   });
 });
 

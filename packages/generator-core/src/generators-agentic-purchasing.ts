@@ -90,6 +90,27 @@ export function detectCommerceSignals(files: SourceFile[] | undefined): Commerce
   };
 }
 
+// Per-provider EVIDENCE from the analyzed repo — what actually co-occurs in the
+// files that mention a given provider. This replaces hardcoded provider "facts"
+// (e.g. "stripe supports tokenization") with what THIS codebase demonstrably
+// contains, so the playbook never asserts a capability the repo can't back up.
+interface ProviderEvidence { files: number; tokenization: boolean; mandateTypes: string; sca: boolean }
+function detectProviderEvidence(provider: string, files: SourceFile[] | undefined): ProviderEvidence {
+  const pat = PROVIDER_PATTERNS[provider as keyof typeof PROVIDER_PATTERNS];
+  const matched = (files ?? []).filter((f) => pat && pat.test(`${f.path} ${f.content}`));
+  const blob = matched.map((f) => f.content).join("\n");
+  const parts: string[] = [];
+  if (/mandate/i.test(blob)) parts.push("mandate");
+  if (/subscription|recurring|renew|installment/i.test(blob)) parts.push("recurring");
+  if (/one.?time|one.?off|single.?payment|setup.?intent/i.test(blob)) parts.push("single");
+  return {
+    files: matched.length,
+    tokenization: /network.?token|pan.?token|dpan|fpan|token.?requestor|token.?service|mdes|vts/i.test(blob),
+    mandateTypes: parts.join(", "),
+    sca: /3ds|threeds|\bsca\b|strong.?auth|psd2|challenge|frictionless/i.test(blob),
+  };
+}
+
 // ─── Verification Proof Generator ─────────────────────────────────
 
 function buildVerificationProof(signals: CommerceSignals, generatorName: string): string {
@@ -145,7 +166,7 @@ function buildAP2ComplianceScoring(signals: CommerceSignals): string {
   const art2 = (signals.detected_providers.length > 0 ? 5 : 0) + (signals.has_mandate_management ? 5 : 0) + (signals.has_checkout ? 5 : 0);
   const art6 = (signals.has_sca ? 5 : 0) + (signals.has_recurring ? 5 : 0) + (signals.has_mandate_management ? 5 : 0);
   const art7 = (signals.has_dispute_handling ? 5 : 0) + (signals.has_webhooks ? 5 : 0) + (signals.has_dispute_handling && signals.has_webhooks ? 5 : 0);
-  const art11 = (signals.has_tap_protocol ? 5 : 0) + (signals.has_network_tokenization ? 5 : 0) + (signals.detected_providers.some(p => p === "stripe" || p === "adyen") ? 5 : 0);
+  const art11 = (signals.has_tap_protocol ? 5 : 0) + (signals.has_network_tokenization ? 5 : 0) + (signals.has_mandate_management ? 5 : 0);
   const total = art2 + art6 + art7 + art11;
   const grade = total >= 50 ? "A" : total >= 35 ? "B" : total >= 20 ? "C" : "D";
 
@@ -507,9 +528,11 @@ export function generateAgentPurchasingPlaybook(
 
   const ap2ProviderRows = signals.detected_providers.length > 0
     ? signals.detected_providers.map(p => {
-      const tokenized = p === "stripe" || p === "adyen" ? "✅ Supported" : "⚠️ Verify";
-      const mandateType = p === "stripe" ? "single/recurring/setup" : p === "paypal" ? "single/recurring" : "single";
-      return `| ${p} | ${mandateType} | ${tokenized} | Required |`;
+      const ev = detectProviderEvidence(p, files);
+      const mandate = ev.files > 0 && ev.mandateTypes ? ev.mandateTypes : "none found in repo";
+      const token = ev.tokenization ? `detected in repo (${ev.files} file${ev.files === 1 ? "" : "s"})` : "not found — verify with PSP";
+      const sca = ev.sca ? "detected in repo" : "not detected — verify (regulatory)";
+      return `| ${p} | ${mandate} | ${token} | ${sca} |`;
     }).join("\n")
     : "| (no providers detected) | — | — | — |";
 
@@ -546,6 +569,8 @@ ${providerList}
 | Provider | Mandate Types | Network Tokenization | SCA Required |
 |----------|---------------|---------------------|--------------|
 ${ap2ProviderRows}
+
+> These cells report what was **detected in this repository** for each provider (patterns co-occurring in the files that reference it) — not the provider's own capabilities. "Not found in repo" means this codebase shows no such code yet; confirm actual support with your PSP.
 
 ## What Is AXIS?
 
@@ -982,9 +1007,12 @@ export function generateNegotiationRules(
 
   const mandateRows = signals.detected_providers.length > 0
     ? signals.detected_providers.map(p => {
-      const riskLevel = (p === "stripe" || p === "adyen") ? "Low" : (p === "paypal") ? "Medium" : "High";
-      const cap = p === "stripe" ? "$50,000" : p === "paypal" ? "$10,000" : "$5,000";
-      return `| ${p} | Per-transaction | Require SCA pre-auth | ${riskLevel} | ${cap} |`;
+      // Risk level + per-session cap are MERCHANT POLICY, not provider facts.
+      // Emit configurable placeholders (grounded in whether SCA code was found for
+      // the provider) instead of inventing per-brand risk tiers and dollar caps.
+      const ev = detectProviderEvidence(p, files);
+      const risk = ev.sca ? "set per policy (SCA code present)" : "set per policy (no SCA code found)";
+      return `| ${p} | Per-transaction | Require SCA pre-auth | ${risk} | set per policy |`;
     }).join("\n")
     : "| (none detected) | — | — | — | — |";
 
