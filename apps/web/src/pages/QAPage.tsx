@@ -88,7 +88,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "api",
     question: "What is the API base URL?",
-    answer: "The production API runs at https://axis-api-6c7z.onrender.com with all endpoints prefixed under /v1. For example: POST /v1/snapshots to create a snapshot, GET /v1/health for status checks. There are 110 endpoints covering snapshots, programs, generated files, search, accounts, API keys, team seats, billing, webhooks, and agentic commerce.",
+    answer: "The production API runs at https://axis-api-6c7z.onrender.com with all endpoints prefixed under /v1. For example: POST /v1/snapshots to create a snapshot, GET /v1/health for status checks. There are 143 endpoints covering snapshots, programs, generated files, search, accounts, API keys, team seats, billing, webhooks, and agentic commerce.",
   },
   {
     category: "api",

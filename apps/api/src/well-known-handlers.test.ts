@@ -28,6 +28,7 @@ import {
   handlePerformanceReputation,
   handleAiPlugin,
   handleOAuthProtectedResource,
+  handlePricingLanding,
 } from "./handlers.js";
 
 // â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -80,6 +81,7 @@ beforeAll(async () => {
   router.get("/.well-known/ai-plugin.json", handleAiPlugin);
   router.get("/.well-known/oauth-protected-resource", handleOAuthProtectedResource);
   router.get("/agents.json", handleAgentJson);
+  router.get("/pricing", handlePricingLanding);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -94,6 +96,19 @@ afterAll(async () => {
 });
 
 // â”€â”€â”€ GET /.well-known/agent.json â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+describe("GET /pricing", () => {
+  it("returns 200 with pricing landing metadata for crawlers", async () => {
+    const r = await req("/pricing");
+    expect(r.status).toBe(200);
+    const json = JSON.parse(r.body) as Record<string, unknown>;
+    expect(json.title).toBe("Axis Iliad Pricing");
+    expect(json.api_plans_endpoint).toBe("/v1/plans");
+    expect(json.for_agents).toBe("/for-agents");
+    expect(typeof json.description).toBe("string");
+    expect(String(r.headers["content-type"])).toContain("application/json");
+  });
+});
 
 describe("GET /.well-known/agent.json", () => {
   let status: number;

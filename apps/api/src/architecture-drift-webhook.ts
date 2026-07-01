@@ -11,6 +11,7 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody, sendJSON } from "./router.js";
+import { log } from "./logger.js";
 import { verifyGitHubWebhookSignature, parsePushEvent, diffArchitecture, type PushInfo, type DriftResult } from "./architecture-drift.js";
 import { openDriftPullRequest, driftBranchName, type OpenDriftPrParams, type OpenDriftPrResult } from "./github-pr.js";
 import { runSpecificityPass } from "./living-architecture.js";
@@ -194,7 +195,10 @@ export async function handleArchitectureDriftWebhook(req: IncomingMessage, res: 
   inFlightRepos.add(push.repo_full_name);
   void processArchitectureDrift(push, defaultDriftDeps())
     .catch((err) => {
-      console.error("architecture-drift processing failed:", err instanceof Error ? err.message : err);
+      log("error", "architecture-drift.processing_failed", {
+        repo: push.repo_full_name,
+        error: err instanceof Error ? err.message : String(err),
+      });
     })
     .finally(() => {
       inFlightRepos.delete(push.repo_full_name);
