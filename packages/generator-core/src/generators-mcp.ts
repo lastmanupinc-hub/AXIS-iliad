@@ -1010,7 +1010,7 @@ export function generateMcpReadme(ctx: ContextMap, profile: RepoProfile): Genera
   lines.push("");
   lines.push(`- Primary language: ${primaryLanguage}`);
   lines.push(`- Package manager(s): ${packageManagers.length > 0 ? packageManagers.join(", ") : "unknown"}`);
-  const detectedFrameworks = profile.detection?.frameworks?.map(f => f.name) ?? [];
+  const detectedFrameworks = ctx.detection.frameworks.map(f => (f.version ? `${f.name}@${f.version}` : f.name));
   lines.push(`- Detected frameworks: ${detectedFrameworks.length > 0 ? detectedFrameworks.join(", ") : "none"}`);
 
   return {

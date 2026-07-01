@@ -249,6 +249,26 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("| `#prompt` | AI prompt templates |");
   lines.push("");
 
+  // Stack-specific tags grounded in what THIS repo actually contains, so the tag
+  // vocabulary matches the codebase instead of a generic template.
+  const stackTags: string[] = [];
+  for (const fw of ctx.detection.frameworks) {
+    stackTags.push(`| \`#${fw.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}\` | Notes about ${fw.name}${fw.version ? ` (v${fw.version})` : ""} code |`);
+  }
+  if (ctx.routes.length > 0) stackTags.push(`| \`#api-endpoint\` | Route/endpoint notes (${ctx.routes.length} detected) |`);
+  if (ctx.sql_schema.length > 0) stackTags.push(`| \`#database-schema\` | Schema notes (${ctx.sql_schema.length} table${ctx.sql_schema.length === 1 ? "" : "s"} detected) |`);
+  if (ctx.domain_models.length > 0) stackTags.push(`| \`#domain-model\` | Domain model notes (${ctx.domain_models.length} detected) |`);
+  if (stackTags.length > 0) {
+    lines.push("### Stack-Specific Tags");
+    lines.push("");
+    lines.push("Tags matched to this codebase's detected stack:");
+    lines.push("");
+    lines.push("| Tag | When to Use |");
+    lines.push("|-----|-----------|");
+    lines.push(...stackTags);
+    lines.push("");
+  }
+
   // Linking Rules
   lines.push("## Linking Rules");
   lines.push("");
@@ -257,6 +277,10 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("3. **Link bugs to code areas** — Bug notes should reference the affected module or file");
   lines.push("4. **Cross-link related notes** — If two notes discuss the same topic, link them");
   lines.push("5. **Use aliases for common references** — Add YAML frontmatter aliases for frequently linked notes");
+  if (ctx.entry_points.length > 0) {
+    const eps = ctx.entry_points.slice(0, 3).map((e) => `\`${e.path}\``).join(", ");
+    lines.push(`6. **Anchor to real entry points** — Link code and bug notes to this repo's entry points (${eps}) so navigation starts from actual code`);
+  }
   lines.push("");
 
   // Frontmatter Standard
