@@ -187,6 +187,20 @@ CREATE TABLE IF NOT EXISTS generation_versions (
 CREATE INDEX IF NOT EXISTS idx_gv_snapshot ON generation_versions(snapshot_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_gv_snapshot_version ON generation_versions(snapshot_id, version_number);
 
+-- NOTE: idx_project_memory_project is created in PG_MIGRATIONS v30, NOT here —
+-- same trap as idx_accounts_google_id above (CREATE TABLE IF NOT EXISTS is a
+-- no-op on an existing DB, so the index must come from the migration, after
+-- the table is guaranteed to exist).
+CREATE TABLE IF NOT EXISTS project_memory (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(project_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  kind TEXT NOT NULL CHECK (kind IN ('decision','convention','evidence','goal')),
+  content TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS github_tokens (
   token_id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(account_id),
@@ -515,6 +529,25 @@ const PG_MIGRATIONS: PgMigration[] = [
     name: "accounts_google_id",
     sql: `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS google_id TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_google_id ON accounts(google_id) WHERE google_id IS NOT NULL;`,
+  },
+  {
+    // Project brain (agentic-asset WO-05): per-project memory entries written by
+    // agents/humans and read back into generation. Fresh DBs get the table from
+    // the baseline; this migration creates it for existing DBs. The index lives
+    // ONLY here (v29 pattern) so it always runs after the table exists.
+    version: 30,
+    name: "project_memory",
+    sql: `CREATE TABLE IF NOT EXISTS project_memory (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(project_id),
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  kind TEXT NOT NULL CHECK (kind IN ('decision','convention','evidence','goal')),
+  content TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_project_memory_project
+  ON project_memory(project_id, created_at);`,
   },
 ];
 
