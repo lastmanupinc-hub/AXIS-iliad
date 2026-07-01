@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import type { Server } from "node:http";
-import { resetTestDb, createOAuthState, getAccountByGitHubId, createAccount, createApiKey } from "@axis/snapshots";
+import { resetTestDb, createOAuthState, getAccountByGitHubId, getAccountByGoogleId, createAccount, createApiKey } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { resolveAuth } from "./billing.js";
 import { sendJSON } from "./router.js";
 import { resetRateLimits } from "./rate-limiter.js";
@@ -49,6 +49,8 @@ describe("OAuth API routes", () => {
     const router = new Router();
     router.get("/v1/auth/github", handleGitHubOAuthStart);
     router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
+    router.get("/v1/auth/google", handleGoogleOAuthStart);
+    router.get("/v1/auth/google/callback", handleGoogleOAuthCallback);
     router.post("/v1/auth/exchange", handleOAuthExchange);
     router.post("/v1/auth/session", handleCreateSession);
     router.post("/v1/auth/logout", handleOAuthLogout);
@@ -251,6 +253,107 @@ describe("OAuth API routes", () => {
       fetchSpy.mockRestore();
       delete process.env.GITHUB_CLIENT_ID;
       delete process.env.GITHUB_CLIENT_SECRET;
+    }
+  });
+
+  // ─── /v1/auth/google ──────────────────────────────────────────
+
+  it("returns 503 when GOOGLE_CLIENT_ID is not set", async () => {
+    delete process.env.GOOGLE_CLIENT_ID;
+    const res = await req("GET", "/v1/auth/google");
+    expect(res.status).toBe(503);
+    expect(res.data).toContain("not configured");
+  });
+
+  it("redirects to Google when GOOGLE_CLIENT_ID is set", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-google-id";
+    try {
+      const res = await req("GET", "/v1/auth/google");
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("https://accounts.google.com/o/oauth2/v2/auth");
+      expect(res.headers.location).toContain("client_id=test-google-id");
+      expect(res.headers.location).toContain("response_type=code");
+      expect(res.headers.location).toContain("scope=openid");
+      expect(res.headers.location).toContain("state=");
+    } finally {
+      delete process.env.GOOGLE_CLIENT_ID;
+    }
+  });
+
+  it("returns 400 for invalid/expired Google state", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+    try {
+      const res = await req("GET", "/v1/auth/google/callback?code=abc&state=bad-state");
+      expect(res.status).toBe(400);
+      expect(res.data).toContain("Invalid or expired OAuth state");
+    } finally {
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+    }
+  });
+
+  it("completes Google OAuth flow successfully with mocked Google API", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+    process.env.AXIS_WEB_URL = "http://localhost:3000";
+    const state = await createOAuthState();
+
+    // Mock fetch: first call = token exchange, second call = OIDC userinfo
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ access_token: "ya29.test_token", token_type: "Bearer", scope: "openid email profile" }),
+    } as Response);
+    fetchSpy.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ sub: "google-sub-987", email: "gtest@example.com", email_verified: true, name: "G Test" }),
+    } as Response);
+
+    try {
+      const res = await req("GET", `/v1/auth/google/callback?code=valid_code&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("http://localhost:3000/account?");
+      expect(res.headers.location).toContain("code=");
+      expect(res.headers.location).toContain("login=google");
+      expect(res.headers.location).not.toContain("axis_"); // raw key never in the URL
+      expect(res.headers["referrer-policy"]).toBe("no-referrer");
+
+      const acct = await getAccountByGoogleId("google-sub-987");
+      expect(acct).toBeDefined();
+      expect(acct!.name).toBe("G Test");
+
+      // One-time code exchanges for the real key + sets the HttpOnly cookie.
+      const handoff = new URL(res.headers.location).searchParams.get("code")!;
+      const exch = await req("POST", "/v1/auth/exchange", { code: handoff });
+      expect(exch.status).toBe(200);
+      expect(JSON.parse(exch.data).api_key).toMatch(/^axis_/);
+      expect(exch.headers["set-cookie"]).toContain("axis_session=");
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+      delete process.env.AXIS_WEB_URL;
+    }
+  });
+
+  it("Google callback redirects with error when token exchange fails", async () => {
+    process.env.GOOGLE_CLIENT_ID = "test-id";
+    process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+    const state = await createOAuthState();
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockResolvedValueOnce({ ok: false, status: 400 } as Response);
+
+    try {
+      const res = await req("GET", `/v1/auth/google/callback?code=bad_code&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toContain("error=");
+      expect(res.headers.location).toContain("token%20exchange%20failed");
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
     }
   });
 

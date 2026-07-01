@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type FormEvent } from "react";
+import { AuthButtons } from "../components/AuthButtons.tsx";
 import {
-  createAccount,
   getAccount,
   createApiKey,
   listApiKeys,
@@ -17,7 +17,6 @@ import {
   exchangeOAuthCode,
   logoutSession,
   markAuthed,
-  establishSession,
   type Account,
   type ApiKeyInfo,
   type UsageSummary,
@@ -26,13 +25,6 @@ import {
   type SubscriptionInfo,
   type CreditsInfo,
 } from "../api.ts";
-
-const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
-const isLocalHost =
-  typeof window === "undefined" ||
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "http://localhost:4000" : PROD_API_BASE);
 
 export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [account, setAccount] = useState<Account | null>(null);
@@ -46,12 +38,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Registration form
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  // API-key management (create/reveal a key once for CLI/MCP use — NOT web login)
   const [newKeyLabel, setNewKeyLabel] = useState("");
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
-  const [pasteKey, setPasteKey] = useState("");
 
   const isLoggedIn = !!localStorage.getItem("axis_api_key");
 
@@ -62,10 +51,11 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     const oauthCode = params.get("code");
     const oauthLogin = params.get("login");
     const oauthError = params.get("error");
+    const provider = oauthLogin === "google" ? "Google" : "GitHub";
     if (oauthError) {
-      setError(`GitHub login failed: ${oauthError}`);
+      setError(`${provider} login failed: ${oauthError}`);
       window.history.replaceState({}, "", window.location.pathname);
-    } else if (oauthCode && oauthLogin === "github") {
+    } else if (oauthCode && (oauthLogin === "github" || oauthLogin === "google")) {
       window.history.replaceState({}, "", window.location.pathname);
       exchangeOAuthCode(oauthCode)
         .then(() => {
@@ -73,7 +63,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
           onAuthChange?.();
           window.location.reload();
         })
-        .catch((e) => setError(`GitHub login failed: ${e instanceof Error ? e.message : "exchange error"}`));
+        .catch((e) => setError(`${provider} login failed: ${e instanceof Error ? e.message : "exchange error"}`));
     }
   }, [onAuthChange]);
 
@@ -107,22 +97,6 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   useEffect(() => {
     loadAccount();
   }, [loadAccount]);
-
-  async function handleSignUp(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    try {
-      const result = await createAccount(name.trim(), email.trim());
-      await establishSession(result.api_key.raw_key);
-      setRevealedKey(result.api_key.raw_key); // shown once for the user to copy (no longer persisted)
-      setAccount(result.account);
-      onAuthChange?.();
-      setLoading(true);
-      await loadAccount();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign up failed");
-    }
-  }
 
   async function handleCreateKey(e: FormEvent) {
     e.preventDefault();
@@ -194,82 +168,26 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     );
   }
 
-  // Not logged in — show registration form
+  // Not logged in — show the OAuth sign-in card. (Account settings are login-gated:
+  // App.tsx normally opens the sign-in popup before this renders; this branch also
+  // covers the brief OAuth-callback window while ?code= is being exchanged.)
   if (!isLoggedIn && !account) {
+    const signingIn = new URLSearchParams(window.location.search).has("code");
     return (
-      <div style={{ maxWidth: 480, margin: "0 auto" }}>
+      <div style={{ maxWidth: 420, margin: "0 auto" }}>
         <div className="card">
-          <h2 style={{ marginBottom: 4 }}>Create Your Account</h2>
+          <h2 style={{ marginBottom: 4 }}>Sign in to Iliad</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: 16 }}>
-            Start with the Free plan — no credit card required. Get 10 snapshots/month, 3 programs, and full API access.
+            {signingIn ? "Signing you in…" : "Continue with GitHub or Google to view your account and results."}
           </p>
-
-          <form onSubmit={handleSignUp}>
-            <div style={{ marginBottom: 12 }}>
-              <label>Name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label>Email</label>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" type="email" required />
-            </div>
-            {error && (
-              <div style={{ color: "var(--red)", fontSize: "0.875rem", marginBottom: 12 }}>{error}</div>
-            )}
-            <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-              Create Free Account
-            </button>
-          </form>
-
-          <div style={{ textAlign: "center", margin: "16px 0 8px", color: "var(--text-muted)", fontSize: "0.8125rem" }}>
-            — or —
-          </div>
-          <a
-            href={`${API_BASE}/v1/auth/github`}
-            className="btn"
-            style={{ width: "100%", justifyContent: "center", display: "flex", gap: 8, textDecoration: "none" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-            Sign in with GitHub
-          </a>
-        </div>
-
-        <div className="card" style={{ marginTop: 16 }}>
-          <h3 style={{ marginBottom: 8 }}>Already have an API key?</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: 12 }}>
-            Paste your API key to connect this browser session.
-          </p>
-          <div className="flex" style={{ gap: 8 }}>
-            <input
-              placeholder="axis_..."
-              style={{ flex: 1 }}
-              value={pasteKey}
-              onChange={(e) => setPasteKey(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const val = pasteKey.trim();
-                  if (val.startsWith("axis_")) {
-                    establishSession(val)
-                      .then(() => window.location.reload())
-                      .catch(() => setError("That API key wasn't accepted. Check it and try again."));
-                  }
-                }
-              }}
-            />
-            <button
-              className="btn"
-              onClick={() => {
-                const val = pasteKey.trim();
-                if (val.startsWith("axis_")) {
-                  establishSession(val)
-                    .then(() => window.location.reload())
-                    .catch(() => setError("That API key wasn't accepted. Check it and try again."));
-                }
-              }}
-            >
-              Connect
-            </button>
-          </div>
+          {error && (
+            <div style={{ color: "var(--red)", fontSize: "0.875rem", marginBottom: 12 }}>{error}</div>
+          )}
+          {signingIn ? (
+            <div className="empty-state"><span className="spinner" /> Completing sign-in…</div>
+          ) : (
+            <AuthButtons onEmailSuccess={() => { onAuthChange?.(); window.location.reload(); }} />
+          )}
         </div>
       </div>
     );

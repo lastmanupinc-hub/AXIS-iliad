@@ -75,7 +75,17 @@ type Page =
   // Hash format: "#tools/web-research" → "tool-web-research".
   | "tool-web-research";
 
-const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics"]);
+// Pages reachable only after login. admin/myanalytics additionally require
+// admin (privateAccess). A logged-out hit opens the sign-in popup instead of
+// showing a signed-out form.
+const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics", "account", "plans", "paid-checkout"]);
+
+/** True while an OAuth provider is redirecting back with a one-time ?code= to
+ *  exchange for the session cookie. The gate must let /account render so the
+ *  handoff completes — never bounce this to the login popup. */
+function isOAuthCallback(): boolean {
+  return typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code");
+}
 
 // IDE-shell tab-strip metadata: which "system" a page belongs to (the mission
 // breadcrumb) and its editor-tab label. Partial — missing keys fall back via ??.
@@ -108,6 +118,9 @@ function pageFromPathname(pathname: string): Page | null {
   if (normalized === "/programs") return "programs";
   if (normalized === "/tools") return "tools";
   if (normalized === "/tools/web-research") return "tool-web-research";
+  if (normalized === "/account") return "account";
+  if (normalized === "/plans") return "plans";
+  if (normalized === "/paid-checkout") return "paid-checkout";
   return null;
 }
 
@@ -122,6 +135,10 @@ function pageFromHash(hash: string): Page | null {
 }
 
 function getInitialPage(): Page {
+  // An OAuth provider redirects back to /account?code=...; route there so the
+  // AccountPage handoff runs even though the landing has no hash.
+  if (isOAuthCallback()) return "account";
+
   const pathPage = pageFromPathname(location.pathname);
   if (pathPage) return pathPage;
 
@@ -231,11 +248,10 @@ export function App() {
   }, []);
 
   const nav = useCallback((p: Page) => {
+    // Login-gated page while signed out → open the sign-in popup, stay put.
     if (AUTH_ONLY_PAGES.has(p) && !hasApiKey()) {
-      setPage("account");
-      setPageKey((k) => k + 1);
+      setShowSignUp(true);
       setNavOpen(false);
-      location.hash = "account";
       return;
     }
     setPage(p);
@@ -312,12 +328,28 @@ export function App() {
     };
   }, [loggedIn]);
 
+  // Login gate: a signed-out user on any login-gated page (account / plans /
+  // paid-checkout / admin / myanalytics) gets the sign-in popup and is bounced
+  // to a public page — EXCEPT during the OAuth callback, which must reach
+  // /account to complete the handoff.
   useEffect(() => {
-    if ((page === "admin" || page === "myanalytics") && !privateAccess) {
+    if (AUTH_ONLY_PAGES.has(page) && !loggedIn && !isOAuthCallback()) {
+      setShowSignUp(true);
+      setPage("upload");
+      setPageKey((k) => k + 1);
+      if (location.hash) location.hash = "";
+    }
+  }, [page, loggedIn]);
+
+  // Admin gate: a signed-in but non-admin user on admin/myanalytics falls back
+  // to their account page (accessible once logged in). Signed-out users are
+  // handled by the login gate above.
+  useEffect(() => {
+    if ((page === "admin" || page === "myanalytics") && loggedIn && !privateAccess) {
       setPage("account");
       location.hash = "account";
     }
-  }, [page, privateAccess]);
+  }, [page, privateAccess, loggedIn]);
 
   const handleSignUpSuccess = useCallback(() => {
     setShowSignUp(false);

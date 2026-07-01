@@ -104,7 +104,7 @@ import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
-import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
+import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
 import { handleGitHubWebhook } from "./github-webhook.js";
@@ -449,6 +449,8 @@ router.get("/v1/admin/revenue", handleAdminRevenue);
 // OAuth
 router.get("/v1/auth/github", handleGitHubOAuthStart);
 router.get("/v1/auth/github/callback", handleGitHubOAuthCallback);
+router.get("/v1/auth/google", handleGoogleOAuthStart);
+router.get("/v1/auth/google/callback", handleGoogleOAuthCallback);
 router.post("/v1/auth/exchange", handleOAuthExchange);
 router.post("/v1/auth/session", handleCreateSession);
 router.post("/v1/auth/logout", handleOAuthLogout);

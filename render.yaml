@@ -40,6 +40,16 @@ services:
         sync: false
       - key: GITHUB_CALLBACK_URL
         sync: false
+      # Google OAuth web login (mirrors GitHub). Client id/secret are secrets set
+      # in the dashboard; the callback URL is fixed and MUST byte-match the
+      # Authorized redirect URI registered in Google Cloud Console, or the token
+      # exchange fails with redirect_uri_mismatch.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        value: https://api.iliad.trustfabric.ai/v1/auth/google/callback
       - key: AXIS_WEB_URL
         value: https://iliad.trustfabric.ai
       - key: STRIPE_SECRET_KEY

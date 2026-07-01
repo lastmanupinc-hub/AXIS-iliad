@@ -16,7 +16,7 @@ interface TroubleshootItem {
 }
 
 const GETTING_STARTED_STEPS: Step[] = [
-  { number: 1, title: "Create an Account", description: "Go to the Account page and sign up with your name and email. You'll receive an API key with the axis_ prefix — save it somewhere safe.", icon: "user" },
+  { number: 1, title: "Sign In", description: "Open the Account page and continue with GitHub or Google — one click, no password. Your session is a secure HttpOnly cookie; you never handle a key to log in.", icon: "user" },
   { number: 2, title: "Upload Your Project", description: "Head to the Analyze page. Drag and drop a folder, upload a ZIP file, or paste a GitHub repository URL. Axis will scan all source files.", icon: "upload" },
   { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the Dashboard. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
   { number: 4, title: "Run Programs", description: "Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get 3 programs; upgrade for all 20.", icon: "programs" },
@@ -537,10 +537,11 @@ function AccountGuideSection() {
             </p>
           </div>
           <div className="card" style={{ padding: 16, marginBottom: 0 }}>
-            <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Using Your API Key</h4>
+            <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Web login vs. API keys</h4>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
-              Paste your API key in the Account page to sign in. It's stored in localStorage
-              and sent as a Bearer token with every API request.
+              You sign in to the web app with GitHub or Google — no key required; the session
+              rides a secure HttpOnly cookie. API keys are for programmatic use: create one in
+              Account settings and pass it as a Bearer token from your CLI, MCP client, or CI.
             </p>
           </div>
         </div>
@@ -636,8 +637,8 @@ function AccountGuideSection() {
         </p>
         <div className="grid grid-2" style={{ gap: 10 }}>
           {[
-            { action: "Create", desc: "Sign up on Account page. Key is shown once — copy and store it safely. Keys always start with axis_." },
-            { action: "Use", desc: "Paste into the Account page to sign in. For API/CLI, pass as Bearer token or set AXIS_API_KEY env var." },
+            { action: "Create", desc: "Sign in (GitHub/Google), then create a key in Account settings. It's shown once — copy and store it safely. Keys always start with axis_." },
+            { action: "Use", desc: "For API/CLI/MCP, pass as a Bearer token or set the AXIS_API_KEY env var. (Web login uses GitHub/Google — no key needed.)" },
             { action: "Rotate", desc: "Create a new key from Account page. Update all scripts and CI configs. Old key continues working until revoked." },
             { action: "Revoke", desc: "Delete a key from Account page. It becomes invalid immediately. Create a new one before revoking the last active key." },
           ].map((k) => (

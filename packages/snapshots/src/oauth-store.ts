@@ -181,3 +181,152 @@ export async function upsertAccountByGitHub(
   const { rawKey } = await createApiKey(account.account_id, "oauth-login");
   return { account, rawKey };
 }
+
+// ─── Google OAuth helpers ───────────────────────────────────────
+// Google differs from GitHub in three ways: the token endpoint is
+// form-encoded (not JSON), it REQUIRES the redirect_uri on exchange (must
+// byte-match the one used to authorize), and userinfo returns OIDC claims
+// (`sub`, `email_verified`) rather than GitHub's numeric id/login.
+
+export function getGoogleAuthUrl(clientId: string, redirectUri: string, state: string): string {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    state,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "online",
+    prompt: "select_account",
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+export interface GoogleTokenResponse {
+  access_token: string;
+  token_type: string;
+  scope: string;
+  id_token?: string;
+}
+
+export async function exchangeGoogleCode(
+  clientId: string,
+  clientSecret: string,
+  code: string,
+  redirectUri: string,
+): Promise<GoogleTokenResponse> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    }).toString(),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google token exchange failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as Record<string, string>;
+  if (data.error) {
+    throw new Error(`Google OAuth error: ${data.error_description ?? data.error}`);
+  }
+  if (typeof data.access_token !== "string" || data.access_token === "") {
+    throw new Error("Google token exchange returned no access_token");
+  }
+
+  return {
+    access_token: data.access_token,
+    token_type: data.token_type ?? "Bearer",
+    scope: data.scope ?? "",
+    id_token: data.id_token,
+  };
+}
+
+export interface GoogleUser {
+  sub: string;
+  email: string | null;
+  email_verified?: boolean;
+  name: string | null;
+}
+
+export async function getGoogleUser(accessToken: string): Promise<GoogleUser> {
+  const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google user fetch failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+  if (typeof data.sub !== "string" || data.sub === "") {
+    throw new Error("Google userinfo returned no sub");
+  }
+  return {
+    sub: data.sub,
+    email: typeof data.email === "string" ? data.email : null,
+    email_verified: data.email_verified === true,
+    name: typeof data.name === "string" ? data.name : null,
+  };
+}
+
+// ─── Account upsert by Google identity ──────────────────────────
+
+export async function getAccountByGoogleId(googleId: string): Promise<Account | undefined> {
+  return await sql.one<Account>("SELECT * FROM accounts WHERE google_id = ?", [googleId]);
+}
+
+export async function linkGoogleId(accountId: string, googleId: string): Promise<boolean> {
+  const result = await sql.run(
+    "UPDATE accounts SET google_id = ? WHERE account_id = ?",
+    [googleId, accountId],
+  );
+  return result.rowCount > 0;
+}
+
+/**
+ * Find or create an account from Google OAuth data.
+ * Priority: match by google_id → match by email → create new. Mirrors the
+ * GitHub email-merge so one human isn't split across two provider accounts.
+ * Returns the account and a fresh API key.
+ */
+export async function upsertAccountByGoogle(
+  googleSub: string,
+  name: string | null,
+  email: string | null,
+): Promise<{ account: Account; rawKey: string }> {
+  // 1. Match by google_id
+  const byGid = await getAccountByGoogleId(googleSub);
+  if (byGid) {
+    const { rawKey } = await createApiKey(byGid.account_id, "oauth-login");
+    return { account: byGid, rawKey };
+  }
+
+  // 2. Match by email — link google_id
+  if (email) {
+    const byEmail = await getAccountByEmail(email);
+    if (byEmail) {
+      await linkGoogleId(byEmail.account_id, googleSub);
+      const { rawKey } = await createApiKey(byEmail.account_id, "oauth-login");
+      return { account: byEmail, rawKey };
+    }
+  }
+
+  // 3. Create new account
+  const displayName = name ?? `google-${googleSub}`;
+  const acctEmail = email ?? `${googleSub}@google.oauth`;
+  const account = await createAccount(displayName, acctEmail);
+  await linkGoogleId(account.account_id, googleSub);
+  const { rawKey } = await createApiKey(account.account_id, "oauth-login");
+  return { account, rawKey };
+}

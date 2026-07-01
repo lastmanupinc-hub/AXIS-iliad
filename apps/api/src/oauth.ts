@@ -12,6 +12,10 @@ import {
   getGitHubUser,
   upsertAccountByGitHub,
   saveGitHubToken,
+  getGoogleAuthUrl,
+  exchangeGoogleCode,
+  getGoogleUser,
+  upsertAccountByGoogle,
   resolveApiKey,
 } from "@axis/snapshots";
 
@@ -19,6 +23,14 @@ function getOAuthConfig() {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
   const callbackUrl = process.env.GITHUB_CALLBACK_URL ?? "http://localhost:4000/v1/auth/github/callback";
+  const webAppUrl = process.env.AXIS_WEB_URL ?? "http://localhost:3000";
+  return { clientId, clientSecret, callbackUrl, webAppUrl };
+}
+
+function getGoogleOAuthConfig() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const callbackUrl = process.env.GOOGLE_CALLBACK_URL ?? "http://localhost:4000/v1/auth/google/callback";
   const webAppUrl = process.env.AXIS_WEB_URL ?? "http://localhost:3000";
   return { clientId, clientSecret, callbackUrl, webAppUrl };
 }
@@ -121,6 +133,87 @@ export async function handleGitHubOAuthCallback(
     const redirectUrl = new URL("/account", webAppUrl);
     redirectUrl.searchParams.set("code", handoffCode);
     redirectUrl.searchParams.set("login", "github");
+    res.writeHead(302, {
+      Location: redirectUrl.toString(),
+      "Referrer-Policy": "no-referrer",
+      "Cache-Control": "no-store",
+    });
+    res.end();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "OAuth exchange failed";
+    res.writeHead(302, { Location: `${webAppUrl}/account?error=${encodeURIComponent(msg)}` });
+    res.end();
+  }
+}
+
+/** GET /v1/auth/google — initiate Google OAuth flow */
+export async function handleGoogleOAuthStart(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { clientId, callbackUrl } = getGoogleOAuthConfig();
+  if (!clientId) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Google OAuth is not configured");
+    return;
+  }
+
+  const state = await createOAuthState();
+  const url = getGoogleAuthUrl(clientId, callbackUrl, state);
+  res.writeHead(302, { Location: url });
+  res.end();
+}
+
+/** GET /v1/auth/google/callback — handle Google OAuth callback */
+export async function handleGoogleOAuthCallback(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { clientId, clientSecret, callbackUrl, webAppUrl } = getGoogleOAuthConfig();
+  if (!clientId || !clientSecret) {
+    sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Google OAuth is not configured");
+    return;
+  }
+
+  /* v8 ignore next */
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const error = url.searchParams.get("error");
+
+  if (error) {
+    const desc = url.searchParams.get("error_description") ?? error;
+    res.writeHead(302, { Location: `${webAppUrl}/account?error=${encodeURIComponent(desc)}` });
+    res.end();
+    return;
+  }
+
+  if (!code || !state) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "Missing code or state parameter");
+    return;
+  }
+
+  // Validate CSRF state
+  if (!(await consumeOAuthState(state))) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Invalid or expired OAuth state");
+    return;
+  }
+
+  try {
+    // Exchange code for access token (Google requires the redirect_uri to match).
+    const tokenResponse = await exchangeGoogleCode(clientId, clientSecret, code, callbackUrl);
+
+    // Get Google user profile (OIDC userinfo: sub, email, name).
+    const gUser = await getGoogleUser(tokenResponse.access_token);
+
+    // Find or create account, get API key (email-merge mirrors GitHub).
+    const { rawKey } = await upsertAccountByGoogle(gUser.sub, gUser.name, gUser.email);
+
+    // Hand the key to the web app via a one-time code, NOT the URL — so the raw
+    // key never appears in the address bar, browser history, Referer, or logs.
+    const handoffCode = createAuthCode(rawKey);
+    const redirectUrl = new URL("/account", webAppUrl);
+    redirectUrl.searchParams.set("code", handoffCode);
+    redirectUrl.searchParams.set("login", "google");
     res.writeHead(302, {
       Location: redirectUrl.toString(),
       "Referrer-Policy": "no-referrer",
