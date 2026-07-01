@@ -14,6 +14,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { readBody, sendJSON, sendError } from "./router.js";
 import { log, ErrorCode } from "./logger.js";
+import { buildDeltaReport, type GeneratorResult, type GeneratedFile } from "@axis/generator-core";
+import type { ContextMap } from "@axis/context-engine";
 
 // ─── Signature verification ────────────────────────────────────
 
@@ -264,7 +266,7 @@ async function dispatchWebhookSnapshot(
   }
 
   const { fetchGitHubRepo } = githubMod;
-  const { createSnapshot } = snapshotsMod;
+  const { createSnapshot, getProjectSnapshots, getContextMap, getGeneratorResult, saveGeneratorResult } = snapshotsMod;
 
   const token = process.env.GITHUB_TOKEN ?? undefined;
   const repoUrl = target.cloneUrl.replace(/\.git$/, "");
@@ -315,4 +317,67 @@ async function dispatchWebhookSnapshot(
     snapshot_id: snapshot.snapshot_id,
     file_count: fetchResult.files.length,
   });
+
+  // Watchtower v1: an unprompted delta narrative for every re-analysis. Own try/catch —
+  // a throw here must never surface past the webhook's success path (fail-open).
+  try {
+    const snapshotsForProject = await getProjectSnapshots(snapshot.project_id);
+    const prevSnapshot = snapshotsForProject[snapshotsForProject.length - 2];
+    if (!prevSnapshot) {
+      log("info", "github-webhook.delta_skipped", { reason: "first_snapshot", repo: target.repoFullName, snapshot_id: snapshot.snapshot_id });
+      return;
+    }
+
+    const [prevCtx, currCtx] = await Promise.all([
+      getContextMap(prevSnapshot.snapshot_id),
+      getContextMap(snapshot.snapshot_id),
+    ]);
+    if (!prevCtx || !currCtx) {
+      log("info", "github-webhook.delta_skipped", { reason: "no_ctx", repo: target.repoFullName, snapshot_id: snapshot.snapshot_id });
+      return;
+    }
+
+    const report = buildDeltaReport(prevCtx as ContextMap, currCtx as ContextMap);
+    if (!report) {
+      log("info", "github-webhook.delta_skipped", { reason: "no_change", repo: target.repoFullName, snapshot_id: snapshot.snapshot_id });
+      return;
+    }
+
+    // Not appendDeltaReport(): it no-ops on an empty `files` array (fits the export
+    // surface, which always has a package already) — webhook snapshots start with none.
+    const existing = (await getGeneratorResult(snapshot.snapshot_id)) as GeneratorResult | undefined;
+    const generated: GeneratorResult = existing ?? {
+      snapshot_id: snapshot.snapshot_id,
+      project_id: snapshot.project_id,
+      generated_at: new Date().toISOString(),
+      files: [],
+      skipped: [],
+    };
+    if (!generated.files.some((f) => f.path === "delta-report.md")) {
+      const file: GeneratedFile = {
+        path: "delta-report.md",
+        content: report,
+        content_type: "text/markdown",
+        program: "skills",
+        description: "What changed since the previous snapshot — computed diffs across stack, routes, models, hotspots, warnings, and size.",
+      };
+      generated.files.push(file);
+    }
+    await saveGeneratorResult(snapshot.snapshot_id, generated);
+
+    log("info", "github-webhook.delta_stored", {
+      project_id: snapshot.project_id,
+      snapshot_id: snapshot.snapshot_id,
+      bytes: Buffer.byteLength(report, "utf-8"),
+    });
+    // trackEvent("watchtower_delta", "product", ...) intentionally omitted: neither value
+    // is a valid FunnelEventType/FunnelStage in funnel-types.ts yet (same gap noted in
+    // WO-01/02/03 evidence). Also: webhook snapshots have no account today regardless.
+  } catch (err) {
+    log("error", "github-webhook.delta_failed", {
+      repo: target.repoFullName,
+      snapshot_id: snapshot.snapshot_id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
