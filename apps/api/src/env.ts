@@ -44,6 +44,15 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "FASTIO_API_KEY", required: false, type: "string", description: "API key for Fastio persistent storage and RAG (https://fast.io)" },
   { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com). Used by the internal welcome/upgrade/usage-alert pipeline in @axis/snapshots and by the agent-facing iliad_transactional_email MCP tool (proxy mode)." },
   { key: "RESEND_FROM_ADDRESS", required: false, type: "string", description: "Verified Resend sender address used as the From: header for iliad_transactional_email. Must be a domain you've verified in the Resend dashboard. When unset, iliad_transactional_email returns a structured _not_configured envelope." },
+  // OAuth login (web sign-in via GitHub / Google → HttpOnly axis_session cookie).
+  // Optional so local dev and API-key-only deploys still boot; when a client_id is
+  // set the matching secret must be too, or that provider's /v1/auth/* returns 503.
+  { key: "GITHUB_CLIENT_ID", required: false, type: "string", description: "GitHub OAuth App client ID for web login (GET /v1/auth/github)." },
+  { key: "GITHUB_CLIENT_SECRET", required: false, type: "string", description: "GitHub OAuth App client secret. Required alongside GITHUB_CLIENT_ID for the callback token exchange." },
+  { key: "GITHUB_CALLBACK_URL", required: false, type: "string", default: "http://localhost:4000/v1/auth/github/callback", description: "GitHub OAuth redirect URI. Must byte-match the URI registered in the GitHub OAuth App." },
+  { key: "GOOGLE_CLIENT_ID", required: false, type: "string", description: "Google OAuth 2.0 client ID for web login (GET /v1/auth/google)." },
+  { key: "GOOGLE_CLIENT_SECRET", required: false, type: "string", description: "Google OAuth 2.0 client secret. Required alongside GOOGLE_CLIENT_ID for the callback token exchange." },
+  { key: "GOOGLE_CALLBACK_URL", required: false, type: "string", default: "http://localhost:4000/v1/auth/google/callback", description: "Google OAuth redirect URI. Must byte-match the Authorized redirect URI in Google Cloud Console, or the token exchange fails with redirect_uri_mismatch." },
   // GitHub App webhook (push / pull_request → background snapshot)
   { key: "GITHUB_WEBHOOK_SECRET", required: false, type: "string", description: "Shared secret from the GitHub App settings. Verifies X-Hub-Signature-256 on POST /v1/github/webhook. If unset, the endpoint returns 503 so the App retries until ops finishes the deploy." },
   { key: "GITHUB_TOKEN", required: false, type: "string", description: "Personal-access token fallback used when fetching tarballs for webhook-triggered snapshots and the /v1/github/analyze handler when no per-account token is stored." },

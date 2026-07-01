@@ -324,8 +324,16 @@ describe("Component smoke tests", () => {
     expect(container.querySelector("[data-testid='child']")).toBeTruthy();
   });
 
-  it("SignUpModal renders with noop callbacks", () => {
-    const { container } = render(<SignUpModal onSuccess={() => {}} onClose={() => {}} />);
-    expect(container.innerHTML.length).toBeGreaterThan(0);
+  it("SignUpModal offers GitHub + Google OAuth and no API-key paste login", () => {
+    render(<SignUpModal onSuccess={() => {}} onClose={() => {}} />);
+    // OAuth is the login: both provider buttons link to the /v1/auth/* endpoints.
+    const github = screen.getByRole("link", { name: /GitHub/i });
+    const google = screen.getByRole("link", { name: /Google/i });
+    expect(github.getAttribute("href")).toContain("/v1/auth/github");
+    expect(google.getAttribute("href")).toContain("/v1/auth/google");
+    // The bad-practice "paste your API key to sign in" flow is gone.
+    expect(screen.queryByPlaceholderText(/paste.*key/i)).toBeNull();
+    expect(screen.queryByPlaceholderText(/axis_/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Sign In$/i })).toBeNull();
   });
 });

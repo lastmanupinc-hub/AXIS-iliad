@@ -145,7 +145,7 @@ export {
 } from "./persistence-metering.js";
 
 // OAuth
-export type { GitHubTokenResponse, GitHubUser } from "./oauth-store.js";
+export type { GitHubTokenResponse, GitHubUser, GoogleTokenResponse, GoogleUser } from "./oauth-store.js";
 export {
   createOAuthState,
   consumeOAuthState,
@@ -157,6 +157,12 @@ export {
   getAccountByGitHubId,
   linkGitHubId,
   upsertAccountByGitHub,
+  getGoogleAuthUrl,
+  exchangeGoogleCode,
+  getGoogleUser,
+  getAccountByGoogleId,
+  linkGoogleId,
+  upsertAccountByGoogle,
 } from "./oauth-store.js";
 
 // Email Notifications

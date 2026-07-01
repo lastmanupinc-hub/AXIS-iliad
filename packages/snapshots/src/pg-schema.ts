@@ -17,9 +17,14 @@ CREATE TABLE IF NOT EXISTS accounts (
   email TEXT UNIQUE NOT NULL,
   tier TEXT NOT NULL DEFAULT 'free',
   created_at TEXT NOT NULL,
-  github_id TEXT
+  github_id TEXT,
+  google_id TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_github_id ON accounts(github_id) WHERE github_id IS NOT NULL;
+-- NOTE: idx_accounts_google_id is created in PG_MIGRATIONS v29, NOT here. On an
+-- existing DB, CREATE TABLE IF NOT EXISTS is a no-op so google_id isn't added by
+-- this baseline; creating the index here would fail ("column does not exist")
+-- before the v29 ALTER adds the column. The migration does ALTER + index in order.
 CREATE INDEX IF NOT EXISTS idx_accounts_email_lower ON accounts(lower(email));
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -501,6 +506,15 @@ const PG_MIGRATIONS: PgMigration[] = [
     version: 28,
     name: "funnel_events_seq_tiebreaker",
     sql: `ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS seq BIGINT GENERATED ALWAYS AS IDENTITY;`,
+  },
+  {
+    // Google OAuth login: existing DBs predate the google_id column. Fresh DBs
+    // already have it from the baseline, so ADD COLUMN IF NOT EXISTS is a no-op.
+    // Mirrors the github_id column + partial unique index.
+    version: 29,
+    name: "accounts_google_id",
+    sql: `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS google_id TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_google_id ON accounts(google_id) WHERE google_id IS NOT NULL;`,
   },
 ];
 

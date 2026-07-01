@@ -230,8 +230,8 @@ const QA_ITEMS: QAItem[] = [
   // Security
   {
     category: "security",
-    question: "How is my API key stored?",
-    answer: "In the web UI, your API key is stored in the browser's localStorage. It's sent as a Bearer token over HTTPS to the API server. Keys are hashed (SHA-256) before storage in the database — the original key is never stored in plaintext on the server. Treat your key like a password.",
+    question: "How does web login work, and how are API keys stored?",
+    answer: "You sign in to the web app with GitHub or Google. Your browser session is a secure HttpOnly cookie (not readable by JavaScript, so it's safe from XSS) — no API key is stored in the browser for login. API keys are a separate, programmatic credential for CLI/MCP/agent use: you pass them as a Bearer token over HTTPS. Keys are hashed (SHA-256) before storage in the database — the original is never stored in plaintext. Treat a key like a password.",
   },
   {
     category: "security",
