@@ -95,12 +95,16 @@ DATABASE_URL="postgres://postgres:postgres@localhost:5433/axis_test" \
 grep -rnE "\.catch\(\(\) *=> *\{? *\}?\)|\} catch \{\s*\}" apps/api/src --include=*.ts | grep -v .test.ts
 ```
 
-## Building it into the AI-free debugger
+## Building it into the AI-free debugger — status: **partially implemented**
 
-A deterministic generator (`debug` program) can produce this catalog with **no model**:
+The `debug` generator produces this catalog with **no model**:
 
-- **Input:** repo snapshot + symbol/dependency graph (already built by `@axis/repo-parser` / `@axis/context-engine`).
+- **Input:** repo snapshot + symbol/dependency graph (already built by `@axis/repo-parser` / `@axis/context-engine`) + `source_files[].content`.
 - **Steps:** (a) rank hotspots from inbound-import counts; (b) run the static sweeps (categories 4, 7 patterns are pure regex); (c) optionally drive categories 1–3, 5, 6, 8 via `tsc`/test harness in a sandbox; (d) apply the fixed classification rule table above.
-- **Output:** `FAILURE_MODES.md` (ranked catalog) + fix-candidate list — deterministic, reproducible, diffable. No LLM, no GPU.
+- **Output:** deterministic, reproducible, diffable — no LLM, no GPU.
+
+**Implemented (`packages/generator-core/src/generators-debug.ts`):** `analyzeFailureSurface(files)` runs the static recipes — **category 4** (swallowed-async-error, empty-catch), the observability variant (unstructured `console.*`), and **type-holes** (`as any` / `@ts-ignore`) — classifies each by the rule table (`SILENT`/`OBSERVABILITY`/`REVIEW`/`ACCEPTABLE`/`TYPE_HOLE`), and `renderFailureSurface()` emits the **"Failure Surface (deterministic)"** section into `debug-playbook.md`. Category 1 (cascade hotspots) was already surfaced via the dependency graph.
+
+**Not yet implemented (injection-driven):** categories 1–3, 5, 6, 8 need a sandbox harness (branch + `tsc`/test runner + revert) — a future `debug --deep` mode. The static half already flags most real gaps (this repo: the swallowed side-effects + unstructured payment logs) with zero injection.
 
 The gold this surfaces is always in the same seam: the **async / observability boundary** (swallowed side-effects, unstructured logs, un-derived pins) — where the type net can't reach.
