@@ -23,7 +23,9 @@
 | G9 | malformed-input guard removal | invert crawl `limit` guard `\|\|`→`&&` (`handlers.ts`) | crawl test | ✅ LOUD_SAFE | #1's "rejects limit outside 1–100" test went red (`expected 503 to be 400`) — guard + test hold | none |
 | G10 | billing fail-direction | disable crawl final-charge `402`-on-null (`handlers.ts`) | drained-pool test | 🟠 REVIEW | test **passed** with the guard disabled: it asserts `paid_pages>0` but not that the charge *succeeded*, so a removed/failing 402 guard = silent billing bypass. Current code is fail-closed; the gap is in the **test** | harden #1's drained-pool test to assert 402-on-charge-failure, not just `paid_pages>0` |
 
-`as any` in `apps/api/src`: **1** (type net is tight; eq_204 held).
+| G11 | swallowed async error (web UI) | `GeneratedTab.tsx:58` download `catch {}`; `ProgramLauncher.tsx:48` tier & `DashboardPage.tsx:53` fetch `.catch(()=>{})` | extended static sweep | 🔴 SILENT (download) / 🟠 REVIEW (tier, dashboard) | a failed export **download shows the user nothing** (no toast); tier/dashboard fetch failures degrade silently | GeneratedTab → toast on download failure; tier/dashboard → at least debug-log |
+
+**Type-net evidence (positive):** `as any` = **1** in `apps/api/src`, **0** across packages + web; **no** `@ts-ignore` / `@ts-expect-error` anywhere — the type net is tight estate-wide (G1/G9 confirm it catches loudly).
 
 ## Tally (running)
 
@@ -31,7 +33,7 @@
 |-------|-------|
 | ⛔ FAIL_OPEN | 0 |
 | 🔴 CRASH | 0 |
-| 🔴 SILENT | 3 (G2, G3, G4) |
+| 🔴 SILENT | 4 (G2, G3, G4, G11) |
 | 🟠 OBSERVABILITY | 1 (G5) |
 | 🟠 REVIEW | 3 (G6, G8, G10) |
 | ✅ LOUD_SAFE | 2 (G1, G9) |
@@ -46,4 +48,4 @@ The real gaps cluster in two seams the type checker can't see:
 1. **Async / observability** — swallowed side-effects (G3 upgrade email, G4 seat invite) and unstructured payment logs (G5). *Code fixes.*
 2. **Test-net gaps** — a guard exists in the code but the *test* doesn't assert the fail-closed behavior, so a future regression would slip through silently: G2 (pinned `ENDPOINT_COUNT` not checked against reality) and G10 (drained-pool test asserts `paid_pages>0`, not charge-success). *Test hardening.*
 
-Net: nothing is on fire, but there are **7 "refusals that don't fire"** worth closing — 3 code (G3, G4, G5), 2 test (G2, G10), 1 config (G8), 1 review (G6). Fix order by blast radius: billing/observability (G3–G5, G10) → drift guard (G2) → config (G8) → review (G6).
+Net: nothing is on fire, but there are **8 "refusals that don't fire"** worth closing — 4 code (G3, G4, G5, G11), 2 test (G2, G10), 1 config (G8), 1 review (G6). Fix order by blast radius: billing + observability (G3–G5, G10) → web UX download (G11) → drift guard (G2) → config (G8) → review (G6).
