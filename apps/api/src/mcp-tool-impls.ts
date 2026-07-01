@@ -90,7 +90,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { runSpecificityPass } from "./living-architecture.js";
-import { appendQualityArtifacts, appendAutonomyLoop } from "@axis/generator-core";
+import { appendQualityArtifacts, appendAutonomyLoop, appendProgramFunnel } from "@axis/generator-core";
 import { llmDesignVerdict } from "./design-judge.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
@@ -1419,6 +1419,9 @@ async function maybeRunQualityGate(generated: GeneratorResult, ctxMap: ContextMa
         ).catch(() => null)
       : null;
   appendQualityArtifacts(generated, ctxMap, design);
+  // "Run these next" funnel — before the loop so the recommendation artifact is
+  // sequenced into the ⟳Continue footers like any other markdown.
+  appendProgramFunnel(generated, ctxMap);
   // Weave the begin-loop into the package (begin.yaml + continuation.yaml + ⟳Continue
   // footers) so an agent can be handed the output and told "begin". After the quality
   // gate so its docs are sequenced too. Same shared core as the offline CLI.

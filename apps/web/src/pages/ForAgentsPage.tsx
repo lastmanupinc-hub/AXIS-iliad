@@ -56,6 +56,38 @@ export function ForAgentsPage() {
       </div>
 
       <div className="card">
+        <h2>Precede &amp; feed</h2>
+        <p>
+          Iliad doesn't compete with your agent's tools — it runs <strong>before</strong> them and <strong>feeds</strong> them.
+          Point it at a repo and it returns deterministic, codebase-grounded context — the real files, routes, domain models,
+          dependency hotspots, and conventions — so your agent acts on ground truth instead of hallucinating it.
+        </p>
+        <div className="grid grid-3">
+          <div>
+            <strong>Precede</strong>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              One analysis, before the first edit — every downstream tool call starts oriented, not guessing.
+            </p>
+          </div>
+          <div>
+            <strong>Feed</strong>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              Grounded artifacts (AGENTS.md, CLAUDE.md, MCP configs) an agent consumes directly — no re-reading the repo every turn.
+            </p>
+          </div>
+          <div>
+            <strong>Deterministic</strong>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              Same repo ⇒ byte-identical output. Auditable, cacheable, zero lock-in — export and walk away anytime.
+            </p>
+          </div>
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: 12 }}>
+          And it compounds: every analysis ships a <code>recommended-next-programs.md</code> that tells your agent which program to run next — the workflow builds itself through the catalog.
+        </p>
+      </div>
+
+      <div className="card">
         <h2>How to Use Iliad</h2>
         <h3>Best first call (recommended):</h3>
         <pre className="mono">{bestFirstCall}</pre>
