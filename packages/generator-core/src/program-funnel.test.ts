@@ -35,6 +35,26 @@ describe("buildNextPrograms", () => {
     const next = buildNextPrograms(run, ctx());
     for (const p of next) expect(run.has(p)).toBe(false);
   });
+
+  // ─── Usage-aware ranking (SPEC-03) ─────────────────────────────
+
+  it("no accountUsage arg ⇒ output identical to the pre-personalization baseline", () => {
+    expect(buildNextPrograms(new Set(["debug"]), ctx())).toEqual(["optimization", "mcp", "agentic-purchasing"]);
+  });
+
+  it("stable-partitions untried programs ahead of already-tried ones", () => {
+    // Baseline (no usage): optimization, mcp, agentic-purchasing.
+    const next = buildNextPrograms(new Set(["debug"]), ctx(), 3, { optimization: 5, mcp: 0 });
+    expect(next.indexOf("mcp")).toBeLessThan(next.indexOf("optimization"));
+    expect(next[0]).toBe("mcp"); // untried programs keep their relative order, first up
+  });
+
+  it("is deterministic with accountUsage (same inputs twice → identical)", () => {
+    const usage = { optimization: 5, mcp: 0 };
+    expect(buildNextPrograms(new Set(["debug"]), ctx(), 3, usage)).toEqual(
+      buildNextPrograms(new Set(["debug"]), ctx(), 3, usage),
+    );
+  });
 });
 
 describe("appendProgramFunnel", () => {
@@ -57,5 +77,17 @@ describe("appendProgramFunnel", () => {
     const g = result([]);
     appendProgramFunnel(g, ctx());
     expect(g.files.length).toBe(0);
+  });
+
+  it("adds the personalization line only when accountUsage is provided", () => {
+    const withUsage = result([mdFile("debug", "debug-playbook.md")]);
+    appendProgramFunnel(withUsage, ctx(), { optimization: 5, mcp: 0 });
+    const personalized = withUsage.files.find((f) => f.path === "recommended-next-programs.md")!;
+    expect(personalized.content).toContain("Ranked for this account");
+
+    const withoutUsage = result([mdFile("debug", "debug-playbook.md")]);
+    appendProgramFunnel(withoutUsage, ctx());
+    const plain = withoutUsage.files.find((f) => f.path === "recommended-next-programs.md")!;
+    expect(plain.content).not.toContain("Ranked for this account");
   });
 });

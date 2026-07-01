@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
-import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap } from "@axis/snapshots";
+import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap, getUsageSummary } from "@axis/snapshots";
 import type { ContextMap } from "@axis/context-engine";
 import { appendAutonomyLoop, appendProgramFunnel, appendDeltaReport, type GeneratorResult } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
@@ -128,6 +128,7 @@ export async function handleExportZip(
   const { project_id } = params;
   // Ownership check
   const owner = await getProjectOwner(project_id);
+  let accountId: string | null = null;
   if (owner) {
     const auth = await resolveAuth(_req);
     if (!auth.account) {
@@ -138,6 +139,7 @@ export async function handleExportZip(
       sendError(res, 404, ErrorCode.NOT_FOUND, "No snapshots found for project");
       return;
     }
+    accountId = auth.account.account_id;
   }
   const snapshots = await getProjectSnapshots(project_id);
   if (snapshots.length === 0) {
@@ -173,7 +175,16 @@ export async function handleExportZip(
       } catch {
         // Best-effort; the export must never fail because of the delta.
       }
-      appendProgramFunnel(generated, ctx); // "run these next" — before the loop so it's sequenced
+      let accountUsage: Record<string, number> | undefined;
+      if (accountId) {
+        try {
+          const usage = await getUsageSummary(accountId);
+          accountUsage = Object.fromEntries(usage.map(u => [u.program, u.total_runs]));
+        } catch {
+          accountUsage = undefined; // never fail the export because usage lookup failed
+        }
+      }
+      appendProgramFunnel(generated, ctx, accountUsage); // "run these next" — before the loop so it's sequenced
       appendAutonomyLoop(generated, ctx);
     }
   }
