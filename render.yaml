@@ -6,12 +6,13 @@
 services:
   - type: web
     name: axis-api
-    runtime: image
-    image:
-      url: ghcr.io/lastmanupinc-hub/axis-api:latest
-      creds:
-        fromRegistryCreds:
-          name: ghcr-lastmanupinc
+    # Build the API from this repo's Dockerfile (the "toolbox" Blueprint is
+    # connected to AXIS-iliad). This replaces the GHCR image-pull so shipping the
+    # API no longer depends on GitHub Actions building + pushing an image — Render
+    # builds on push. Blueprint autoSync applies this flip to the axis-api service.
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     plan: starter
     region: oregon
     healthCheckPath: /v1/health

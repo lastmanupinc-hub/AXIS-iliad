@@ -24,9 +24,9 @@ describe("render.yaml", () => {
     expect(content).toContain("name: axis-api");
   });
 
-  it("uses image runtime pulling from GHCR", () => {
-    expect(content).toContain("runtime: image");
-    expect(content).toContain("ghcr.io/lastmanupinc-hub/axis-api");
+  it("builds from the repo Dockerfile (Blueprint docker runtime, not GHCR image-pull)", () => {
+    expect(content).toContain("runtime: docker");
+    expect(content).toContain("dockerfilePath: ./Dockerfile");
   });
 
   it("configures health check at /v1/health", () => {
