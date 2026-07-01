@@ -158,6 +158,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           responses: {
             200: { description: "Version diff", content: jsonContent(ref("VersionDiffResponse")) },
             400: { description: "Missing or invalid version parameters" },
+            402: { description: "Persistence credits required (upgrade plan or purchase credits)" },
             404: { description: "Version not found" },
           },
         },

@@ -7,6 +7,11 @@ import {
   listGenerationVersions,
   getGenerationVersion,
   diffGenerationVersions,
+  createAccount,
+  createApiKey,
+  addPersistenceCredits,
+  getPersistenceLedger,
+  PERSISTENCE_CREDIT_COSTS,
 } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
@@ -20,10 +25,10 @@ let snapshotId: string;
 
 interface Res { status: number; headers: Record<string, string>; data: Record<string, unknown> }
 
-async function req(method: string, path: string): Promise<Res> {
+async function req(method: string, path: string, headers?: Record<string, string>): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: testPort, path, method, headers: { "Content-Type": "application/json" } },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers: { "Content-Type": "application/json", ...headers } },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -42,6 +47,12 @@ async function req(method: string, path: string): Promise<Res> {
     r.on("error", reject);
     r.end();
   });
+}
+
+async function authHeaders(tier: "free" | "paid" | "suite", label: string): Promise<{ account_id: string; headers: Record<string, string> }> {
+  const acct = await createAccount(`${label} User`, `${label}@persistence-test.com`, tier);
+  const key = await createApiKey(acct.account_id, label);
+  return { account_id: acct.account_id, headers: { Authorization: `Bearer ${key.rawKey}` } };
 }
 
 beforeAll(async () => {
@@ -206,5 +217,48 @@ describe("GET /v1/snapshots/:snapshot_id/diff", () => {
   it("returns 404 for nonexistent versions", async () => {
     const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=99`);
     expect(r.status).toBe(404);
+  });
+});
+
+// ─── Persistence metering (SPEC-02) ────────────────────────────
+
+describe("GET /v1/snapshots/:snapshot_id/diff — persistence metering", () => {
+  it("free-tier account gets 402 persistence_credits_required with the upgrade reason", async () => {
+    const free = await authHeaders("free", "diff-free");
+    const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=2`, free.headers);
+    expect(r.status).toBe(402);
+    expect(r.data.error).toBe("persistence_credits_required");
+    expect(r.data.reason).toContain("paid plan");
+  });
+
+  it("paid account with credits succeeds and debits the persistence ledger", async () => {
+    const paid = await authHeaders("paid", "diff-paid");
+    await addPersistenceCredits(paid.account_id, 5);
+
+    const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=2`, paid.headers);
+    expect(r.status).toBe(200);
+
+    const ledger = await getPersistenceLedger(paid.account_id);
+    const spend = ledger.find((e) => e.operation === "diff_versions");
+    expect(spend).toBeDefined();
+    expect(spend!.credits_delta).toBe(-PERSISTENCE_CREDIT_COSTS.diff_versions);
+    expect(spend!.snapshot_id).toBe(snapshotId);
+  });
+
+  it("paid account with zero credits gets 402", async () => {
+    const paid = await authHeaders("paid", "diff-broke");
+    const r = await req("GET", `/v1/snapshots/${snapshotId}/diff?old=1&new=2`, paid.headers);
+    expect(r.status).toBe(402);
+    expect(r.data.error).toBe("persistence_credits_required");
+  });
+
+  it("list/get remain un-metered for the same free account (200 semantics unchanged)", async () => {
+    const free = await authHeaders("free", "reads-free");
+    const list = await req("GET", `/v1/snapshots/${snapshotId}/versions`, free.headers);
+    expect(list.status).toBe(200);
+    const get = await req("GET", `/v1/snapshots/${snapshotId}/versions/1`, free.headers);
+    expect(get.status).toBe(200);
+    const ledger = await getPersistenceLedger(free.account_id);
+    expect(ledger).toHaveLength(0); // reads never touch the persistence ledger
   });
 });
