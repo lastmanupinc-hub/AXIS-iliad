@@ -353,15 +353,31 @@ describe("POST /portal/api/paid/webhook", () => {
     expect((await getAccountByEmail("case-cancel@test.com"))?.tier).toBe("free");
   });
 
-  it("reports no_account when email unknown", async () => {
+  it("asks PAI'D to retry (503) when the account doesn't exist yet", async () => {
+    // A payment can arrive before/around signup. Returning 2xx would make PAI'D
+    // stop retrying and strand a paid buyer on free — so we return a retryable 503.
     const body = JSON.stringify({
       type: "subscription.created",
       data: { object: { customer_email: "ghost@test.com", id: "sub_g" } },
     });
     const r = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
-    expect(r.status).toBe(200);
-    expect(r.data.handled).toBe(false);
-    expect(r.data.reason).toBe("no_account");
+    expect(r.status).toBe(503);
+  });
+
+  it("is idempotent — a redelivered tier webhook does not double-apply", async () => {
+    await createAccount("idem-sub@test.com");
+    const body = JSON.stringify({
+      type: "subscription.created",
+      data: { object: { customer_email: "idem-sub@test.com", id: "sub_idem" } },
+    });
+    const first = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(first.status).toBe(200);
+    expect(first.data.tier_change).toBe(true);
+    // Redelivery of the same event: the compare-and-set finds the account already
+    // at the target tier and no-ops — no second tier change is applied or logged.
+    const second = await req("POST", "/portal/api/paid/webhook", body, { "paid-signature": signPaid(body) });
+    expect(second.status).toBe(200);
+    expect(second.data.tier_change).toBe(false);
   });
 
   it("rejects a stale signature timestamp with 401", async () => {
