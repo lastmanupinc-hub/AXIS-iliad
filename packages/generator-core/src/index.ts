@@ -29,6 +29,9 @@ export { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml } from "./aut
 // Program Funnel — a deterministic "run these next" artifact that turns one analysis
 // into a natural workflow through the program catalog. Appended at the surface too.
 export { appendProgramFunnel, buildNextPrograms } from "./program-funnel.js";
+// Delta Report — a deterministic narrative of change vs the previous snapshot.
+// The first compounding surface; appended at the surface before the funnel/loop.
+export { appendDeltaReport, buildDeltaReport } from "./delta-report.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
