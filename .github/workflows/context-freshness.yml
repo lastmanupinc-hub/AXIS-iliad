@@ -13,9 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v5
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v5 # version comes from package.json "packageManager"
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
