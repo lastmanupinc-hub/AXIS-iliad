@@ -54,4 +54,20 @@ describe("analyzeFailureSurface — deterministic static failure-mode scan", () 
   it("renders an explicit empty-state when nothing is found", () => {
     expect(renderFailureSurface([]).join("\n")).toContain("No swallowed errors");
   });
+
+  it("detects Go idiomatic silent-failure patterns and skips _test.go", () => {
+    const f = analyzeFailureSurface([
+      sf("cmd/api/main.go", 'fmt.Println("starting")'),
+      sf("internal/x.go", 'panic("boom")'),
+      sf("internal/y.go", "if err != nil {}"),
+      sf("internal/z.go", "val, _ := doThing()"),
+      sf("internal/z_test.go", 'panic("x")'),
+    ]);
+    const byFile = Object.fromEntries(f.map((x) => [x.file, x]));
+    expect(byFile["cmd/api/main.go"].klass).toBe("OBSERVABILITY");
+    expect(byFile["internal/x.go"].category).toBe("panic");
+    expect(byFile["internal/y.go"].klass).toBe("SILENT");
+    expect(byFile["internal/z.go"].category).toBe("discarded-return");
+    expect(f.some((x) => x.file.endsWith("_test.go"))).toBe(false);
+  });
 });

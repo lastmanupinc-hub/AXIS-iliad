@@ -792,6 +792,11 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("");
   }
 
+  // Deterministic failure-surface fix checklist (from the fault-injection gauntlet spec)
+  if (files && files.length > 0) {
+    lines.push(...renderFailureSurfaceChecklist(analyzeFailureSurface(files)));
+  }
+
   lines.push("## Triage Workflow");
   lines.push("");
   lines.push("```");
@@ -1013,7 +1018,14 @@ export type FailureClass = "SILENT" | "TYPE_HOLE" | "OBSERVABILITY" | "REVIEW" |
 export interface FailureFinding {
   file: string;
   line: number;
-  category: "swallowed-async-error" | "empty-catch" | "unstructured-log" | "type-hole";
+  category:
+    | "swallowed-async-error"
+    | "empty-catch"
+    | "unstructured-log"
+    | "type-hole"
+    | "panic"
+    | "empty-error-check"
+    | "discarded-return";
   klass: FailureClass;
   note: string;
 }
@@ -1028,14 +1040,31 @@ const FS_SIDE_EFFECT = /(send|email|invit|charg|webhook|notif|payment|grant|disp
 export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
   const out: FailureFinding[] = [];
   const src = files
-    .filter(f => /\.[jt]sx?$/.test(f.path))
-    .filter(f => !/\.(test|spec)\.[jt]sx?$/.test(f.path))
-    .filter(f => !/(^|\/)(dist|build|node_modules|\.next)\//.test(f.path))
+    .filter(f => /\.([jt]sx?|go)$/.test(f.path))
+    .filter(f => !/\.(test|spec)\.[jt]sx?$/.test(f.path) && !/_test\.go$/.test(f.path))
+    .filter(f => !/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(f.path))
     .sort((a, b) => a.path.localeCompare(b.path));
   for (const f of src) {
     const lines = f.content.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
+      // ── Go source: idiomatic silent-failure patterns ──
+      if (/\.go$/.test(f.path)) {
+        if (/\b(?:fmt\.Print(?:f|ln)?|println)\s*\(/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "unstructured-log", klass: "OBSERVABILITY",
+            note: "fmt.Print*/println — prefer structured logging (slog/zerolog)" });
+        } else if (/\bpanic\s*\(/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "panic", klass: "REVIEW",
+            note: "panic() — ensure a recover() guards this path" });
+        } else if (/if\s+err\s*!=\s*nil\s*\{\s*\}/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "empty-error-check", klass: "SILENT",
+            note: "error checked then ignored" });
+        } else if (/,\s*_\s*(?::=|=)\s/.test(ln)) {
+          out.push({ file: f.path, line: i + 1, category: "discarded-return", klass: "REVIEW",
+            note: "discarded return via _ — if it is an error, the failure is silent" });
+        }
+        continue;
+      }
       // swallowed async error: .catch(() => {}) / .catch(e => {}) / .catch(() => undefined)
       if (/\.catch\(\s*(\([a-zA-Z_,\s]*\)|[a-zA-Z_]+)?\s*=>\s*(\{\s*\}|undefined|void 0)\s*\)/.test(ln)) {
         const cleanup = FS_CLEANUP.test(ln), side = FS_SIDE_EFFECT.test(ln);
@@ -1097,6 +1126,28 @@ export function renderFailureSurface(findings: FailureFinding[]): string[] {
     lines.push(`| \`${f.file}\` | ${f.line} | ${f.category} | ${f.klass} | ${f.note} |`);
   }
   if (sorted.length > 40) lines.push(`| … | | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
+}
+
+/** Render the failure surface as a fix-checklist (checkbox items, worst class first). */
+export function renderFailureSurfaceChecklist(findings: FailureFinding[]): string[] {
+  const lines: string[] = [];
+  lines.push("## Failure Surface — Fix Checklist");
+  lines.push("");
+  lines.push("> Deterministic static scan (no AI). Fix `SILENT` / `TYPE_HOLE` first — the type/test net won't catch them; `OBSERVABILITY` = make it queryable; `REVIEW` = confirm intent; `ACCEPTABLE` = deliberate.");
+  lines.push("");
+  if (findings.length === 0) {
+    lines.push("- [x] No swallowed errors, discarded returns, unstructured logs, or type holes detected.");
+    lines.push("");
+    return lines;
+  }
+  const sorted = [...findings].sort((a, b) =>
+    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) || a.file.localeCompare(b.file) || a.line - b.line);
+  for (const f of sorted.slice(0, 60)) {
+    lines.push(`- [ ] \`${f.klass}\` \`${f.file}:${f.line}\` — ${f.category}: ${f.note}`);
+  }
+  if (sorted.length > 60) lines.push(`- [ ] … +${sorted.length - 60} more (see debug-playbook.md)`);
   lines.push("");
   return lines;
 }
