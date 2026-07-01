@@ -88,10 +88,31 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   }
   lines.push("");
 
-  // Framework-Specific Prompt Strategies
+  // Framework-Specific Prompt Strategies — grounded in the ACTUAL detected stack
+  // and the real config files present in this repo, not generic placeholders.
   lines.push("## Prompt Strategy");
   lines.push("");
   const frameworks = ctx.detection.frameworks.map(f => f.name);
+  if (frameworks.length > 0) {
+    lines.push(`Detected stack: ${frameworks.map(f => `\`${f}\``).join(", ")}. Anchor every prompt in the real files below so generated code matches this project's actual setup and dependency versions.`);
+    lines.push("");
+  }
+
+  // Name the actual config files in THIS repo so "include your config" advice
+  // points at concrete paths, never a `next.config.*`-style placeholder.
+  const configFilePaths = ctx.structure.file_tree_summary
+    .filter(f => f.role === "config")
+    .map(f => f.path)
+    .slice(0, 10);
+  if (configFilePaths.length > 0) {
+    lines.push("### Always-include configuration (constrains generated code)");
+    lines.push("");
+    for (const p of configFilePaths) {
+      lines.push(`- \`${p}\``);
+    }
+    lines.push("");
+  }
+
   if (hasFw(ctx, "Next.js")) {
     lines.push("### Next.js Projects");
     lines.push("");
@@ -115,6 +136,17 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("1. Always include `schema.prisma` for any database-related prompts");
     lines.push("2. Include migration files when debugging schema changes");
     lines.push("3. Reference generated client types for type-safe queries");
+    lines.push("");
+  }
+
+  // Any other detected framework gets grounded guidance too — the section is no
+  // longer limited to the three hardcoded stacks above.
+  const specialCased = new Set(["next.js", "react", "prisma"]);
+  const otherFrameworks = frameworks.filter(f => !specialCased.has(f.toLowerCase()));
+  if (otherFrameworks.length > 0) {
+    lines.push(`### ${otherFrameworks.join(", ")}`);
+    lines.push("");
+    lines.push(`Include this project's ${otherFrameworks.map(f => `\`${f}\``).join(" / ")} config + entry files (listed above) in prompts so generated code follows the framework's real conventions and the versions pinned in this repo — not a generic template.`);
     lines.push("");
   }
 
