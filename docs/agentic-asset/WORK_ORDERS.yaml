@@ -638,7 +638,7 @@ work_orders:
   - id: WO-12
     title: "Launch-claims fact-pass: LAUNCH_CLAIMS.yaml registry + gate + corpus rewrite"
     phase: later
-    status: open
+    status: done
     depends_on: []             # independent (docs + one new test file); WO-10/WO-11 sit first in the queue
     spec: docs/agentic-asset/specs/SPEC-12-launch-claims-fact-pass.md
     branch: docs/aa-launch-claims
@@ -654,4 +654,81 @@ work_orders:
       - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage   # existing honesty gates unchanged"
       - pnpm --filter @axis/api exec tsc --noEmit
     evidence: |
-      (executor fills)
+      Files touched match files_expected exactly (no other files edited).
+      - `launch-claims.test.ts` — 9/9 pass: registry hygiene (every claim has
+        id/text/value/source/status, unique ids, recognized status enum);
+        registry-vs-live (artifact/program/endpoint/mcp_tool/api_version
+        counts-backed entries equal counts.ts; pricing entry equals
+        PLAN_CATALOG's live monthly cents for starter/pro/growth; open_source
+        entry stays forbidden while its value is false); corpus-vs-registry
+        across all 3 launch-corpus files (every GLOBAL artifact/program/
+        endpoint total, no stale SQLite/better-sqlite3/FTS5 mention, no
+        self-referential "open source" claim).
+      - `count-honesty.test.ts` + `counts-consistency.test.ts` +
+        `strategic-docs-honesty.test.ts` — 11/11 pass, unchanged (this WO adds
+        no routes/counts and doesn't touch README/web).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      Verified against live sources before writing the registry (all matched
+      the spec's given entries exactly, no drift since spec authoring): 140/20
+      (TOTAL_GENERATORS/TOTAL_PROGRAMS), 148 (ENDPOINT_COUNT), 29
+      (MCP_TOOL_COUNT), 2900/9900/29900 (PLAN_CATALOG starter/pro/growth
+      monthly cents), 3 free programs (openapi.ts free_programs list), no
+      SQLite (Neon-only), README badges 4,900+/91.5%.
+      Design decisions made where the spec left latitude (no deviation from
+      any FIXED registry entry):
+      - The `yaml` package is not a workspace dependency (confirmed: no
+        node_modules/yaml) — hand-rolled a minimal reader in
+        launch-claims.test.ts scoped to LAUNCH_CLAIMS.yaml's own fixed shape
+        (flat claims list + one nested flow-map for `pricing`), per the
+        spec's explicit instruction not to add a dependency for this.
+      - Extended the registry with 4 additional cheaply-verifiable facts
+        beyond the spec's given list (free_tier_generators=15, not the
+        stale 14; determinism_test_count=3, not 6; test_file_count=205, not
+        131; api_version=0.5.3, not 0.5.0/2.0.0) — all directly derivable
+        from source (listAvailableGenerators(), a grep count, a find count,
+        counts.ts) and used throughout the corpus rewrite.
+      - Reworded delta-framed claims ("67/73 more generators", "87 Pro
+        generators") to cumulative-total framing ("all 140 generators
+        across 20 programs") instead of asserting a derived delta number —
+        matches the ACTUAL product model (any paid tier unlocks everything,
+        confirmed via PLAN_CATALOG's own highlights) and avoids inventing a
+        headline number the registry doesn't carry.
+      - REMOVED (not corrected) every "X/Y capabilities Grade A" claim
+        (marketing-pack.md, AXIS_Board_Pitch.md). capability_inventory.yaml
+        — the only source for that claim — is dated 2026-04-15 / v0.5.0 and
+        predates the entire agentic-asset program; re-auditing 81+ capability
+        entries against current behavior is a substantial project of its
+        own, well beyond this WO's registry (which has no entry for it).
+        Replaced with adjacent verified facts (test-file count, MCP tool
+        count) to preserve each list/table's rhythm without perpetuating a
+        stale precise number or inventing a new one.
+      - Refined the gate's open-source check from a blanket ban on any
+        "open source" occurrence to the SPECIFIC self-referential phrasings
+        SPEC-12's own origin section names ("now open source", "I
+        open-sourced") plus "just open-sourced" and an `#OpenSource`
+        hashtag. AXIS_Board_Pitch.md legitimately discusses third-party
+        open-source projects (Style Dictionary, Remotion) and an
+        "open-source maintainers" audience segment — a blanket ban would
+        have forced a prose rewrite of that file, which the spec explicitly
+        scopes to numbers-only.
+      - marketing-pack.md's Pricing Section table was expanded from a
+        Free/Pro binary to the real Free/Starter/Pro/Growth four-tier
+        structure, differentiated by monthly CREDITS (10k/75k/300k/1.2M
+        from PLAN_CATALOG) rather than by generator/program access — since
+        every paid tier unlocks the identical full catalog, showing three
+        identical "Programs: All 20" columns would have been redundant; the
+        credits are the real differentiator and are registry-adjacent
+        (verified against the same PLAN_CATALOG source as the pricing claim).
+      Findings for the owner (source-code drift, explicitly OUT of scope —
+      this WO makes no source-code changes):
+      - `packages/snapshots/src/funnel-types.ts` — PLAN_CATALOG's own
+        `highlights` arrays say "All 19 programs" for Starter/Pro/Growth
+        (stale; live is 20). This is real product copy rendered wherever
+        PLAN_CATALOG is displayed, not just a marketing doc.
+      - `packages/snapshots/src/funnel-store.ts:335` — a hardcoded
+        upgrade-prompt string reads "unlock all 17 programs" (stale; live
+        is 20). This fires in a real user-facing upgrade-prompt flow.
+      Both are one-line string fixes but are SOURCE CODE, not launch copy,
+      and this WO's estimate/guards explicitly rule out source changes —
+      recommend a follow-up micro-fix (or folding into a future WO) rather
+      than scope-creeping this one.
