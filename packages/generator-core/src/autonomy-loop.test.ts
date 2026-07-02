@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratorResult, GeneratedFile } from "./types.js";
-import { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml } from "./autonomy-loop.js";
+import { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml, CONTINUE_FOOTER_MARKER } from "./autonomy-loop.js";
 
 // A minimal ContextMap carrying just the fields the begin-loop reads.
 function ctx(overrides: Partial<ContextMap> = {}): ContextMap {
@@ -50,6 +50,16 @@ describe("appendAutonomyLoop", () => {
     expect(agents.content).toContain("Next:"); // non-terminal → points forward
     expect(agents.content).not.toContain("begin** (re-read");
     expect(lastMd.content).toContain("begin** (re-read"); // terminal → self-prompt back to begin.yaml
+  });
+
+  // SPEC-10 Fix 2: locks the exported marker to continueFooter's actual output so
+  // consumers (e.g. memory-weave's footer-preservation carry-over) can't silently drift.
+  it("every footered artifact's footer starts with the exported CONTINUE_FOOTER_MARKER", () => {
+    const r = result();
+    appendAutonomyLoop(r, ctx());
+    for (const f of r.files.filter((f) => /\.md$/.test(f.path) && f.path !== "begin.yaml")) {
+      expect(f.content.indexOf(CONTINUE_FOOTER_MARKER)).toBeGreaterThan(-1);
+    }
   });
 
   it("never footers non-markdown artifacts (keeps JSON/data valid)", () => {

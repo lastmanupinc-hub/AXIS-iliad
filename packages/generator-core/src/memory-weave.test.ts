@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { buildMemorySection, appendMemoryWeave, MEMORY_WEAVE_LIMIT, type WovenMemoryEntry } from "./memory-weave.js";
+import { appendAutonomyLoop } from "./autonomy-loop.js";
 import type { GeneratorResult, GeneratedFile } from "./types.js";
+import type { ContextMap } from "@axis/context-engine";
 
 function entry(overrides: Partial<WovenMemoryEntry> = {}): WovenMemoryEntry {
   return { kind: "decision", content: "Use Postgres, not SQLite", source: "onboarding", created_at: "2026-01-01T00:00:00.000Z", ...overrides };
@@ -16,6 +18,17 @@ function jsonFile(path: string): GeneratedFile {
 
 function result(files: GeneratedFile[]): GeneratorResult {
   return { snapshot_id: "s", project_id: "p", generated_at: "t", files, skipped: [] };
+}
+
+// A minimal ContextMap carrying just the fields appendAutonomyLoop reads.
+function loopCtx(): ContextMap {
+  return {
+    generated_at: "1970-01-01T00:00:00.000Z",
+    project_identity: { name: "memory-weave-demo" },
+    detection: { frameworks: [], languages: [], test_frameworks: [] },
+    ai_context: { warnings: [] },
+    dependency_graph: { hotspots: [] },
+  } as unknown as ContextMap;
 }
 
 describe("buildMemorySection", () => {
@@ -145,5 +158,164 @@ describe("appendMemoryWeave", () => {
     const g = result([]);
     appendMemoryWeave(g, [entry()]);
     expect(g.files).toHaveLength(0);
+  });
+});
+
+// ─── SPEC-10 Fix 1: legacy undelimited weave migration ───────────
+describe("appendMemoryWeave — legacy undelimited weave migration (SPEC-10 Fix 1)", () => {
+  it("migrates a WO-07-era undelimited section to the delimited form, replacing stale content", () => {
+    const oldSection = buildMemorySection([entry({ content: "old decision" })])!;
+    const legacyAgents = `# AGENTS.md\n\nSome base content.\n\n${oldSection}\n`;
+    const g = result([mdFile("AGENTS.md", "skills", legacyAgents)]);
+
+    appendMemoryWeave(g, [entry({ content: "new decision" })]);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1);
+    expect(agents.content).not.toContain("old decision");
+    expect(agents.content).toContain("new decision");
+    expect(agents.content).toContain("<!-- axis:project-memory:start -->");
+    expect(agents.content).toContain("<!-- axis:project-memory:end -->");
+    expect(agents.content).toContain("Some base content.");
+  });
+
+  it("stops the legacy section at the next H1/H2, preserving trailing content verbatim", () => {
+    const oldSection = buildMemorySection([entry({ content: "old decision" })])!;
+    const legacyAgents = `# AGENTS.md\n\n${oldSection}\n\n## Later Section\n\nImportant trailing content.\n`;
+    const g = result([mdFile("AGENTS.md", "skills", legacyAgents)]);
+
+    appendMemoryWeave(g, [entry({ content: "new decision" })]);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect(agents.content).toContain("## Later Section");
+    expect(agents.content).toContain("Important trailing content.");
+    expect(agents.content).toContain("new decision");
+    expect(agents.content).not.toContain("old decision");
+    expect(agents.content.indexOf("<!-- axis:project-memory:end -->")).toBeLessThan(agents.content.indexOf("## Later Section"));
+  });
+
+  it("does not stop the legacy scan at H3 subheadings within the section", () => {
+    const oldSection = buildMemorySection([
+      entry({ kind: "decision", content: "old decision" }),
+      entry({ kind: "convention", content: "old convention" }),
+    ])!;
+    expect(oldSection).toContain("### Decisions");
+    expect(oldSection).toContain("### Conventions");
+    const legacyAgents = `# AGENTS.md\n\n${oldSection}\n`;
+    const g = result([mdFile("AGENTS.md", "skills", legacyAgents)]);
+
+    // Use a "goal" entry for the migration so the fresh block does NOT reintroduce
+    // "### Decisions"/"### Conventions" — isolating whether the OLD H3s survived.
+    appendMemoryWeave(g, [entry({ kind: "goal", content: "new goal" })]);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect(agents.content).not.toContain("old decision");
+    expect(agents.content).not.toContain("old convention");
+    expect(agents.content).not.toContain("### Decisions");
+    expect(agents.content).not.toContain("### Conventions");
+    expect(agents.content).toContain("### Goals");
+    expect((agents.content.match(/Decisions already made — do not re-litigate/g) ?? []).length).toBe(1);
+  });
+
+  it("migration is idempotent — a second weave with different entries goes through the marker branch", () => {
+    const oldSection = buildMemorySection([entry({ content: "old decision" })])!;
+    const legacyAgents = `# AGENTS.md\n\n${oldSection}\n`;
+    const g = result([mdFile("AGENTS.md", "skills", legacyAgents)]);
+
+    appendMemoryWeave(g, [entry({ content: "migrated decision" })]);
+    appendMemoryWeave(g, [entry({ content: "refreshed decision" })]);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/<!-- axis:project-memory:start -->/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/<!-- axis:project-memory:end -->/g) ?? []).length).toBe(1);
+    expect(agents.content).toContain("refreshed decision");
+    expect(agents.content).not.toContain("migrated decision");
+    expect(agents.content).not.toContain("old decision");
+  });
+});
+
+// ─── SPEC-10 Fix 2: preserve the ⟳ Continue footer across refresh ─
+describe("appendMemoryWeave — ⟳ Continue footer preservation across refresh (SPEC-10 Fix 2)", () => {
+  it("preserves a previously-appended footer when project-memory.md is refreshed", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "first decision" })]);
+    appendAutonomyLoop(g, loopCtx());
+
+    const memoryBeforeRefresh = g.files.find((f) => f.path === "project-memory.md")!;
+    expect(memoryBeforeRefresh.content).toContain("⟳ Continue the loop");
+
+    appendMemoryWeave(g, [entry({ content: "second decision" })]);
+
+    const memory = g.files.find((f) => f.path === "project-memory.md")!;
+    expect(memory.content).toContain("second decision");
+    expect(memory.content).not.toContain("first decision");
+    expect((memory.content.match(/⟳ Continue the loop/g) ?? []).length).toBe(1);
+    const footerIdx = memory.content.indexOf("⟳ Continue the loop");
+    const contentIdx = memory.content.indexOf("second decision");
+    expect(contentIdx).toBeLessThan(footerIdx);
+  });
+
+  it("full MCP→export round-trip: weave, loop, re-weave, loop-noop — exactly one footer, no double-footering", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "entry one" })]);
+    appendAutonomyLoop(g, loopCtx()); // MCP-time: footers everything + begin.yaml
+
+    appendMemoryWeave(g, [entry({ content: "entry two" })]); // export-time refresh
+    appendAutonomyLoop(g, loopCtx()); // export-time: no-op, begin.yaml already present
+
+    const memory = g.files.find((f) => f.path === "project-memory.md")!;
+    expect(memory.content).toContain("entry two");
+    expect(memory.content).not.toContain("entry one");
+    expect((memory.content.match(/⟳ Continue the loop/g) ?? []).length).toBe(1);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect((agents.content.match(/⟳ Continue the loop/g) ?? []).length).toBe(1);
+  });
+
+  it("refresh without a prior footer is a pure wholesale replace (no footer text introduced)", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "first decision" })]); // no appendAutonomyLoop — no footer exists
+
+    appendMemoryWeave(g, [entry({ content: "second decision" })]);
+
+    const memory = g.files.find((f) => f.path === "project-memory.md")!;
+    expect(memory.content).toContain("second decision");
+    expect(memory.content).not.toContain("⟳ Continue the loop");
+  });
+});
+
+// ─── SPEC-10 Fix 3: sanitize memory content/source at render ────
+describe("appendMemoryWeave — sanitizes memory content/source at render (SPEC-10 Fix 3)", () => {
+  it("neutralizes memory content embedding the literal end-marker so a second weave stays correct (the 3a corruption case)", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "before <!-- axis:project-memory:end --> after" })]);
+    const afterFirst = g.files.find((f) => f.path === "AGENTS.md")!.content;
+    expect((afterFirst.match(/<!-- axis:project-memory:start -->/g) ?? []).length).toBe(1);
+    expect((afterFirst.match(/<!-- axis:project-memory:end -->/g) ?? []).length).toBe(1);
+
+    appendMemoryWeave(g, [entry({ content: "second weave content" })]);
+    const afterSecond = g.files.find((f) => f.path === "AGENTS.md")!.content;
+    expect((afterSecond.match(/<!-- axis:project-memory:start -->/g) ?? []).length).toBe(1);
+    expect((afterSecond.match(/<!-- axis:project-memory:end -->/g) ?? []).length).toBe(1);
+    expect(afterSecond).toContain("second weave content");
+    expect(afterSecond).not.toContain("before <!-- axis:project-memory:end --> after");
+  });
+
+  it("collapses multiline/markdown-bearing content into a single list item, injecting no new headings", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "real content\n## Injected heading\n- fake bullet" })]);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect(agents.content).not.toContain("\n## Injected heading");
+    expect(agents.content).toContain("real content ## Injected heading - fake bullet");
+  });
+
+  it("collapses a multi-line source so it can't break the list item structure", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "clean content", source: "src\nwith\nnewlines" })]);
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect(agents.content).toContain("_(src with newlines,");
   });
 });

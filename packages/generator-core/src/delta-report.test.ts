@@ -147,6 +147,28 @@ describe("buildDeltaReport", () => {
     const curr = ctx({ detection: { frameworks: [{ name: "Vue", version: "3.0.0" }] } } as Partial<ContextMap>);
     expect(buildDeltaReport(prev, curr)).toBe(buildDeltaReport(prev, curr));
   });
+
+  // SPEC-10 Fix 4b: project_identity.name is user-suppliable (MCP project_name arg,
+  // length-only validated) — a newline must not break the H1.
+  it("sanitizes a newline-bearing project name in the H1 (SPEC-10 Fix 4b)", () => {
+    const prev = ctx({ project_identity: { name: "line1\nline2" }, routes: [] } as Partial<ContextMap>);
+    const curr = ctx({
+      project_identity: { name: "line1\nline2" },
+      routes: [{ method: "GET", path: "/new", source_file: "a.ts" }],
+    } as Partial<ContextMap>);
+    const report = buildDeltaReport(prev, curr)!;
+    expect(report.split("\n")[0]).toBe("# Delta Report — line1 line2");
+    expect(report.split("\n").some((l) => l.trim() === "line2")).toBe(false);
+  });
+
+  it("clean project names still render byte-identically (determinism regression for Fix 4b)", () => {
+    const prev = ctx({ project_identity: { name: "clean-name" }, routes: [] } as Partial<ContextMap>);
+    const curr = ctx({
+      project_identity: { name: "clean-name" },
+      routes: [{ method: "GET", path: "/new", source_file: "a.ts" }],
+    } as Partial<ContextMap>);
+    expect(buildDeltaReport(prev, curr)!.split("\n")[0]).toBe("# Delta Report — clean-name");
+  });
 });
 
 describe("appendDeltaReport", () => {

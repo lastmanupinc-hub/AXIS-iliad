@@ -10,6 +10,7 @@
 
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratorResult, GeneratedFile } from "./types.js";
+import { mdInline } from "./md-sanitize.js";
 
 const DELTA_PROGRAM = "skills";
 const ROUTE_TRUNCATE_AT = 15;
@@ -253,7 +254,7 @@ export function buildDeltaReport(prev: ContextMap, curr: ContextMap): string | n
   const summary = summarizeDelta(sections);
   if (!summary.changed) return null;
 
-  const name = curr.project_identity?.name ?? "this project";
+  const name = mdInline(curr.project_identity?.name ?? "this project");
   const fragments = sections.flatMap((s) => s.fragments);
 
   const lines: string[] = [];

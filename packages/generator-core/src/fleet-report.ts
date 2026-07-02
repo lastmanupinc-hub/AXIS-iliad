@@ -10,6 +10,7 @@
 
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile } from "./types.js";
+import { mdInline } from "./md-sanitize.js";
 
 const FLEET_PROGRAM = "fleet";
 export const FLEET_MIN_PROJECTS = 2;
@@ -144,7 +145,7 @@ function buildFleetClaudeMd(shown: FleetProjectInput[]): string {
     lines.push("## Decisions already made across this fleet", "");
     for (const p of withDecisions) {
       lines.push(`### ${p.project_name}`, "");
-      for (const d of p.memory_decisions) lines.push(`- ${d}`);
+      for (const d of p.memory_decisions) lines.push(`- ${mdInline(d)}`);
       lines.push("");
     }
   }
@@ -163,7 +164,12 @@ function buildFleetClaudeMd(shown: FleetProjectInput[]): string {
 export function buildFleetReport(projects: FleetProjectInput[]): GeneratedFile[] | null {
   if (projects.length < FLEET_MIN_PROJECTS) return null;
 
-  const sorted = [...projects].sort((a, b) => a.project_name.localeCompare(b.project_name));
+  // Sanitize project_name once at the entry point (never at the store — it's a
+  // uniqueness key there) so every downstream table row, heading, and
+  // computeShared join is covered without touching each render site.
+  const sorted = projects
+    .map((p) => ({ ...p, project_name: mdInline(p.project_name) }))
+    .sort((a, b) => a.project_name.localeCompare(b.project_name));
   const shown = sorted.slice(0, FLEET_MAX_PROJECTS);
   const overflow = sorted.length - shown.length;
 
