@@ -99,19 +99,46 @@ WO-06 (SPEC-06). **No new `FunnelStage` members** — the earlier specs'
 "where the account is in the lifecycle funnel". `watchtower_delta` stays
 unwired until webhook snapshots gain an installation→account mapping.
 
+**AD-8 — Fleet v1 is a pure cross-project builder + one tier-gated read
+endpoint (added 2026-07-01, phase-start spec per the E6 gate).** Pure core
+`buildFleetReport(projects: FleetProjectInput[])` in generator-core produces
+exactly two account-level artifacts — `fleet-report.md` (portfolio health,
+shared stack, org-wide warnings) and `fleet-CLAUDE.md` (org conventions +
+per-project memory decisions) — from the latest ContextMap + ≤5 memory
+decisions per project. Computed on demand at `GET /v1/account/fleet`
+(paid/suite only, 403 TIER_REQUIRED for free — the strategy prices the
+relationship); nothing persisted, no migration; determinism holds as
+f(latest context maps, memory). Gate: ≥2 projects with context maps
+(`ready:false` shape below that, not an error). NOT part of the 137-generator
+registry. Deferred: MCP tool exposure, weaving fleet-CLAUDE.md into
+per-project exports, trends, metering. Full contract: SPEC-09.
+
+**Review of record (2026-07-01):** a 39-agent adversarial review of the
+merged PRs #110–#117 confirmed 7 distinct defects (and refuted 7 more
+findings as spec-intended). All 7 fixes are ordered as WO-08 (SPEC-08):
+delete-path FK violations (`project_memory`, `persistence_credits`,
+`generation_versions`), the pre-existing un-awaited `assertSnapshotAccess`
+in versions.ts (ownership guard never blocked), memory-weave staleness
+(MCP-persisted weave froze exports — weave becomes replace-with-delimiters),
+the unguarded `await resolveStage()` inside `.catch()`-guarded KPI calls
+(supersedes SPEC-06's one-line idiom), a malformed delta summary for
+language-mix-only changes, and the memory GET limit integer check.
+
 ## Epics → work orders
 
 | Epic | Work orders | Phase |
 |------|------------|-------|
-| E1 Delta intelligence | WO-01 (pure builder + export wiring) | Now |
-| E2 Economic activation | WO-02 (persistence metering) | Now |
-| E3 Learning funnel | WO-03 (usage-aware ranking) | Now |
-| E4 Watchtower | WO-04 (webhook delta; email digest deferred) | Now/Next |
-| E5 Project brain | WO-06 (KPI events) → WO-05 (migration + REST) → WO-07 (weave) | Next |
-| E6 Fleet | not yet ordered — specs written at phase start | Later |
+| E1 Delta intelligence | WO-01 (pure builder + export wiring) | Now — done |
+| E2 Economic activation | WO-02 (persistence metering) | Now — done |
+| E3 Learning funnel | WO-03 (usage-aware ranking) | Now — done |
+| E4 Watchtower | WO-04 (webhook delta; email digest deferred) | Now/Next — done |
+| E5 Project brain | WO-06 (KPI events) → WO-05 (migration + REST) → WO-07 (weave) | Next — done |
+| Hardening | WO-08 (review remediation, SPEC-08) | Later — open |
+| E6 Fleet | WO-09 (fleet report + endpoint, SPEC-09) | Later — open |
 
 Dependencies: WO-04 depends on WO-01 (done). WO-05 depends on WO-06
-(FunnelEventType members); WO-07 depends on WO-05 (store). The
+(FunnelEventType members); WO-07 depends on WO-05 (store). WO-09 depends on
+WO-08 (serializes the store.ts edits; fleet lands on a defect-free base). The
 enforce rollout of the PAI'D wallet and anything money-adjacent stays OUT of
 this program (owner + planning-model lane).
 
