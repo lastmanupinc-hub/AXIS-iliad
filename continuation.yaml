@@ -5009,5 +5009,44 @@ project_continuation:
       - "All manual launch steps in LAUNCH_RUNBOOK.md — owner-gated, unchanged."
       - "5 tail-review medium/low defects (never persisted) → future SPEC-10, Fable/owner-gated."
     local_only: false
-    commit_results: ["(pending) fix stale generator-core citation-index coverage test"]
-    push_results: ["(pending) origin/docs/agentic-asset-strategy — will re-trigger PR #109 CI"]
+    commit_results: ["fffd923: fix stale generator-core citation-index coverage test"]
+    push_results: ["pushed to origin/docs/agentic-asset-strategy (8ce9c45..fffd923); PR #109 CI green + mergeable"]
+
+  session_result_124:
+    date: "2026-07-02"
+    session_id: "session_124"
+    selected_move: >
+      Verify the begin.yaml loop had truly converged (rather than assume it), then
+      execute what the verification surfaced. Ran an 8-lens discover + adversarial-
+      verify + rank workflow over the Iliad repo: 21 raw candidates -> 12
+      disqualified as deliberate conventions / non-defects -> 9 confirmed
+      agent-actionable fixes, all live on main. Also discovered main's CI had been
+      RED since 2026-07-01 (the flask coverage test) — deployed but unnoticed.
+      Owner chose "All 9 now" on "a new PR off main (+ flask fix)".
+    selected_move_roi_reason: >
+      blocker_removal 5 (un-reds main + closes a live authz gap), production_quality
+      5, validation_strength 5 (the loop's "converged" claim was FALSE — a sweep
+      found real work; never assume convergence). The adversarial verify pass (Opus,
+      read real source per candidate) is what made the 9 trustworthy and killed the
+      12 false positives.
+    completed_candidates:
+      - "SWEEP branch fix/production-quality-sweep (PR #121, off main, CI GREEN + mergeable) — 7 commits: (baseline 7a191c9) un-red main's flask coverage test; (1623828) requireAdmin on /v1/db/stats + /v1/db/maintenance (were public — schema leak + privileged ANALYZE for any anonymous caller; verified no ops caller depends on them) + 401/403 tests; (4641d53) ENDPOINT_COUNT drift tripwire counts.ts promised but never had — derive from server.ts, reconcile stale 143->145 + the count-honesty-guarded doc claims; (595633e) guard best-effort analytics awaits so a served/charged request can't 500 on a transient DB error (firecrawl cached+scrape+crawl, funnel shown+dismiss) — a missed WO-08/313bd4e instance; (9785345) stop reflecting the request Origin header into PAI'D checkout return URLs (open-redirect via the processor) — env-driven+validated like resolveCheckoutBaseUrl + spoofed-Origin regression test; (afa3a48) log the two swallowed fire-and-forget email failures (seat-invite G4, upgrade-confirm); (8a40340) openapi.test name '19'->'21' + README version badge 0.5.0->0.5.3."
+    refused_candidates:
+      - "12 sweep candidates disqualified by adversarial verify: best-effort .catch(()=>{}) patterns that are DELIBERATE documented conventions (export.ts, paid-handlers webhook, code-sandbox kill, speech/text temp-cleanup), a speculative llm-inference race that is unreachable, a false '136 vs 140 generators' claim, a tested defensive cast, and an already-safe fleet-handlers non-null assertion. Kept only what survived source-level refutation."
+    evidence_added:
+      - "Validation: tsc --noEmit clean (@axis/api, @axis/web); all touched test files PASS against a real Postgres — db-endpoints (incl. new 401/403), paid-handlers (incl. spoofed-Origin regression), e2e-flows Flow 5, funnel-api, stripe(-branches), counts-consistency + count-honesty (9/9 for the 143->145 reconciliation), openapi, generator flask. PR #121 CI GREEN on both node 20 + 22 (clean ephemeral PG) — confirming the 6 local full-suite failures were slow-local-PG 5s timeouts in UNTOUCHED files, not regressions."
+      - "main-is-red root cause: run 28538891864 failed at 'Run tests with coverage' on the flask assertion; deployed anyway (Render git-deploy ignores GH Actions). Live API root reports endpoints:143 while the true route count is 145 — the exact drift Fix #2 corrects."
+    verticals_advanced:
+      - "v0_core_platform: 9 production defects fixed on a clean PR off main; main's CI un-red; the loop's convergence claim empirically tested and corrected."
+    blockers_removed:
+      - "main CI red (flask coverage test) — fixed on both PR #121 and PR #109."
+      - "Live authz gap on /v1/db/* — gated admin-only."
+      - "PAI'D checkout open-redirect via Origin header — closed."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "PR #121 + PR #109 are OWNER-merge-gated (never auto-merged). Merging #121 un-reds main immediately; it is the smaller, code-only PR."
+      - "launch-content.md still says 'SQLite persistence' (now Neon) — out of this sweep's scope; belongs to the marketing fact-pass."
+      - "5 tail-review medium/low defects (never persisted) -> future SPEC-10, Fable/owner-gated."
+    local_only: false
+    commit_results: ["PR #121 head 8a40340 (7 commits off main c9fb61f)"]
+    push_results: ["pushed origin/fix/production-quality-sweep; opened PR #121 -> main (CI green, mergeable)"]
