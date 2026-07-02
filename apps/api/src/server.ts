@@ -104,6 +104,8 @@ import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
 import { handleAdminStats, handleAdminAccounts, handleAdminActivity, handleAdminMcpUsage, handleAdminRevenue } from "./admin.js";
 import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleToggleWebhook, handleWebhookDeliveries } from "./webhooks.js";
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
+import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
+import { handleGetFleet } from "./fleet-handlers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
@@ -178,6 +180,8 @@ router.get("/v1/snapshots/:snapshot_id/diff", handleDiffVersions);
 router.get("/v1/projects/:project_id/context", handleGetContext);
 router.get("/v1/projects/:project_id/generated-files", handleGetGeneratedFiles);
 router.get("/v1/projects/:project_id/generated-files/:file_path*", handleGetGeneratedFile);
+router.get("/v1/projects/:project_id/memory", handleListMemory);
+router.post("/v1/projects/:project_id/memory", handleAddMemory);
 router.delete("/v1/projects/:project_id", handleDeleteProject);
 
 // Program endpoints (per axis_master_blueprint.yaml api_architecture)
@@ -421,6 +425,9 @@ router.get("/v1/billing/proration", handleProrationPreview);
 // Persistence Credits
 router.get("/v1/account/credits", handleGetCredits);
 router.post("/v1/account/credits", handleAddCredits);
+
+// Fleet (E6 — cross-project intelligence, paid/suite only)
+router.get("/v1/account/fleet", handleGetFleet);
 
 // Credit-pack top-ups (paid persistence-credit purchases via PAI'D)
 router.get("/v1/credits/packs", handleListCreditPacks);

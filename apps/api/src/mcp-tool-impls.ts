@@ -83,6 +83,7 @@ import {
   getReferralCredits,
   getPersistenceBalance,
   extractSymbols,
+  listMemoryEntries,
 } from "@axis/snapshots";
 import type { SnapshotManifest, FileEntry, InputMethod } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
@@ -90,7 +91,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { runSpecificityPass } from "./living-architecture.js";
-import { appendQualityArtifacts, appendAutonomyLoop, appendProgramFunnel } from "@axis/generator-core";
+import { appendQualityArtifacts, appendAutonomyLoop, appendProgramFunnel, appendMemoryWeave, MEMORY_WEAVE_LIMIT, type WovenMemoryEntry } from "@axis/generator-core";
 import { llmDesignVerdict } from "./design-judge.js";
 import { buildCommerceIntegrationBundle } from "./commerce-integration.js";
 import { attestRun } from "./attestation.js";
@@ -1419,6 +1420,15 @@ async function maybeRunQualityGate(generated: GeneratorResult, ctxMap: ContextMa
         ).catch(() => null)
       : null;
   appendQualityArtifacts(generated, ctxMap, design);
+  // Read the project brain back in — before the funnel so project-memory.md is
+  // sequenced first. Best-effort: memory unavailable must never break generation.
+  try {
+    const rawEntries = await listMemoryEntries(generated.project_id, { limit: MEMORY_WEAVE_LIMIT + 1 });
+    const entries: WovenMemoryEntry[] = rawEntries.map((e) => ({ kind: e.kind, content: e.content, source: e.source, created_at: e.created_at }));
+    appendMemoryWeave(generated, entries);
+  } catch {
+    // Best-effort; the generated package already succeeded.
+  }
   // "Run these next" funnel — before the loop so the recommendation artifact is
   // sequenced into the ⟳Continue footers like any other markdown.
   appendProgramFunnel(generated, ctxMap);

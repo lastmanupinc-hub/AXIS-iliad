@@ -158,6 +158,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
           responses: {
             200: { description: "Version diff", content: jsonContent(ref("VersionDiffResponse")) },
             400: { description: "Missing or invalid version parameters" },
+            402: { description: "Persistence credits required (upgrade plan or purchase credits)" },
             404: { description: "Version not found" },
           },
         },
@@ -201,6 +202,42 @@ export function buildOpenApiSpec(): OpenApiSpec {
             200: { description: "Raw file content" },
             400: { description: "Invalid file path" },
             404: { description: "File not found" },
+          },
+        },
+      },
+      "/v1/projects/{project_id}/memory": {
+        get: {
+          summary: "List project memory entries (decisions, conventions, evidence, goals)",
+          operationId: "listProjectMemory",
+          tags: ["Memory"],
+          security: [{ apiKey: [] }],
+          parameters: [
+            pathParam("project_id", "Project identifier"),
+            queryParam("kind", "Filter by kind: decision, convention, evidence, or goal"),
+            queryParam("limit", "Max entries to return (default 50, capped at 200)"),
+          ],
+          responses: {
+            200: { description: "Memory entries, newest first", content: jsonContent(ref("MemoryListResponse")) },
+            400: { description: "Invalid kind or limit" },
+            401: { description: "Authentication required" },
+            403: { description: "Project has no owning account" },
+            404: { description: "Project not found" },
+          },
+        },
+        post: {
+          summary: "Append a project memory entry (append-only — no update/delete in v1)",
+          operationId: "addProjectMemory",
+          tags: ["Memory"],
+          security: [{ apiKey: [] }],
+          parameters: [pathParam("project_id", "Project identifier")],
+          requestBody: jsonBody(ref("AddMemoryRequest")),
+          responses: {
+            201: { description: "Entry recorded", content: jsonContent(ref("MemoryEntryResponse")) },
+            400: { description: "Invalid kind, content, or source" },
+            401: { description: "Authentication required" },
+            403: { description: "Project has no owning account" },
+            404: { description: "Project not found" },
+            409: { description: "Project memory is at its entry cap" },
           },
         },
       },
@@ -1239,6 +1276,19 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/account/fleet": {
+        get: {
+          summary: "Cross-project fleet report (portfolio health + org CLAUDE.md) for accounts with >=2 analyzed projects",
+          operationId: "getAccountFleet",
+          tags: ["Fleet"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Fleet status and, when ready, the fleet-report.md/fleet-CLAUDE.md artifacts", content: jsonContent(ref("FleetResponse")) },
+            401: { description: "Authentication required" },
+            403: { description: "Paid/suite plan required" },
+          },
+        },
+      },
 
       // â”€â”€ OpenAPI Docs â”€â”€
       "/v1/docs": {
@@ -1795,6 +1845,64 @@ export function buildOpenApiSpec(): OpenApiSpec {
             credits_added: { type: "integer" },
             operation: { type: "string" },
             balance_after: { type: "integer" },
+          },
+        },
+        FleetFile: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+            content: { type: "string" },
+            content_type: { type: "string" },
+            program: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+        FleetResponse: {
+          type: "object",
+          properties: {
+            ready: { type: "boolean" },
+            project_count: { type: "integer" },
+            eligible_projects: { type: "integer" },
+            reason: { type: "string", description: "Present only when ready is false" },
+            projects: { type: "array", items: { type: "string" }, description: "Present only when ready is true" },
+            files: { type: "array", items: ref("FleetFile"), description: "Present only when ready is true" },
+          },
+        },
+        MemoryEntry: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            project_id: { type: "string" },
+            account_id: { type: "string" },
+            kind: { type: "string", enum: ["decision", "convention", "evidence", "goal"] },
+            content: { type: "string" },
+            source: { type: "string" },
+            created_at: { type: "string", format: "date-time" },
+          },
+        },
+        AddMemoryRequest: {
+          type: "object",
+          required: ["kind", "content"],
+          properties: {
+            kind: { type: "string", enum: ["decision", "convention", "evidence", "goal"] },
+            content: { type: "string", maxLength: 4000 },
+            source: { type: "string", maxLength: 500 },
+          },
+        },
+        MemoryListResponse: {
+          type: "object",
+          properties: {
+            project_id: { type: "string" },
+            entries: { type: "array", items: ref("MemoryEntry") },
+            count: { type: "integer" },
+            total: { type: "integer" },
+          },
+        },
+        MemoryEntryResponse: {
+          type: "object",
+          properties: {
+            entry: ref("MemoryEntry"),
+            total: { type: "integer" },
           },
         },
       },

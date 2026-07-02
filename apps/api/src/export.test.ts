@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { resetTestDb, createSnapshot, saveGeneratorResult } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage, getEventsByType, addMemoryEntry } from "@axis/snapshots";
+import { appendMemoryWeave, type GeneratorResult } from "@axis/generator-core";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -19,10 +20,10 @@ interface RawRes {
   body: Buffer;
 }
 
-function rawReq(method: string, path: string): Promise<RawRes> {
+function rawReq(method: string, path: string, headers?: Record<string, string>): Promise<RawRes> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: testPort, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -81,6 +82,28 @@ function parseZip(buf: Buffer): ZipFileEntry[] {
   }
 
   return entries;
+}
+
+// ─── Minimal ContextMap fixture (delta report wiring) ───────────
+
+function makeCtx(snap: { snapshot_id: string; project_id: string }, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    version: "1.0.0",
+    snapshot_id: snap.snapshot_id,
+    project_id: snap.project_id,
+    generated_at: new Date().toISOString(),
+    project_identity: { name: "delta-wiring-test", type: "web", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
+    structure: { total_files: 0, total_directories: 0, total_loc: 0, file_tree_summary: [], top_level_layout: [] },
+    detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null },
+    dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
+    entry_points: [],
+    routes: [],
+    domain_models: [],
+    sql_schema: [],
+    architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0 },
+    ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
+    ...overrides,
+  };
 }
 
 // ─── Server + seed data ─────────────────────────────────────────
@@ -375,5 +398,214 @@ describe("Export ZIP handler", () => {
   it("returns 404 when program filter matches nothing", async () => {
     const res = await rawReq("GET", `/v1/projects/${projectId}/export?program=nonexistent`);
     expect(res.status).toBe(404);
+  });
+
+  // ─── Delta report wiring (SPEC-01) ─────────────────────────────
+
+  it("includes delta-report.md when the project has a prior snapshot with a differing context map", async () => {
+    const projectName = "export-delta-two-snap";
+    const manifest = { project_name: projectName, project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+
+    const snap1 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] });
+    await saveContextMap(snap1.snapshot_id, makeCtx(snap1, { routes: [] }));
+
+    const snap2 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] });
+    expect(snap2.project_id).toBe(snap1.project_id); // same project_name ⇒ reused project
+
+    await saveContextMap(snap2.snapshot_id, makeCtx(snap2, { routes: [{ path: "/new", method: "GET", source_file: "a.ts" }] }));
+    await saveGeneratorResult(snap2.snapshot_id, {
+      snapshot_id: snap2.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap2.project_id}/export`);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    const delta = entries.find(e => e.path === "delta-report.md");
+    expect(delta).toBeDefined();
+    expect(delta!.content).toContain("/new");
+  });
+
+  it("omits delta-report.md for a project with only a single snapshot", async () => {
+    const manifest = { project_name: "export-delta-single-snap", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] });
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    expect(entries.some(e => e.path === "delta-report.md")).toBe(false);
+  });
+
+  // ─── Usage-aware program funnel (SPEC-03) ──────────────────────
+
+  it("includes the personalization line when the export account has recorded usage", async () => {
+    const acct = await createAccount("Personalization User", "personalization@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-funnel-personalization", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot(
+      { input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] },
+      acct.account_id,
+    );
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "debug-playbook.md", content: "# Debug", program: "debug" }],
+    });
+    await recordUsage(acct.account_id, "optimization", snap.snapshot_id, 1, 1, 100);
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    const funnel = entries.find(e => e.path === "recommended-next-programs.md");
+    expect(funnel).toBeDefined();
+    expect(funnel!.content).toContain("Ranked for this account");
+
+    const events = await getEventsByType(acct.account_id, "funnel_personalized");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.project_id).toBe(snap.project_id);
+  });
+
+  // ─── KPI events (SPEC-06) ───────────────────────────────────────
+
+  it("tracks delta_generated for an owned two-snapshot project's export", async () => {
+    const acct = await createAccount("Delta KPI User", "delta-kpi@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-delta-kpi", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap1 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap1.snapshot_id, makeCtx(snap1, { routes: [] }));
+
+    const snap2 = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap2.snapshot_id, makeCtx(snap2, { routes: [{ path: "/new", method: "GET", source_file: "a.ts" }] }));
+    await saveGeneratorResult(snap2.snapshot_id, {
+      snapshot_id: snap2.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap2.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+    expect(entries.some(e => e.path === "delta-report.md")).toBe(true);
+
+    const events = await getEventsByType(acct.account_id, "delta_generated");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.project_id).toBe(snap2.project_id);
+  });
+
+  // ─── Memory weave (SPEC-07) ─────────────────────────────────────
+
+  it("weaves project memory into the export: project-memory.md + AGENTS.md section + memory_woven event", async () => {
+    const acct = await createAccount("Memory Weave User", "memory-weave@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-memory-weave", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "Use Postgres, not SQLite");
+    await addMemoryEntry(snap.project_id, acct.account_id, "convention", "snake_case for SQL columns");
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    const memoryFile = entries.find(e => e.path === "project-memory.md");
+    expect(memoryFile).toBeDefined();
+    expect(memoryFile!.content).toContain("Use Postgres, not SQLite");
+
+    const agents = entries.find(e => e.path === "AGENTS.md");
+    expect(agents).toBeDefined();
+    expect(agents!.content).toContain("Decisions already made");
+
+    const events = await getEventsByType(acct.account_id, "memory_woven");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.project_id).toBe(snap.project_id);
+  });
+
+  it("omits project-memory.md and the section when the project has no memory entries", async () => {
+    const acct = await createAccount("No Memory User", "no-memory@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-no-memory", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    expect(entries.some(e => e.path === "project-memory.md")).toBe(false);
+    const agents = entries.find(e => e.path === "AGENTS.md");
+    expect(agents!.content).not.toContain("Decisions already made");
+
+    const events = await getEventsByType(acct.account_id, "memory_woven");
+    expect(events).toHaveLength(0);
+  });
+
+  // WO-08 fix 3: the MCP path persists a woven package, so the export path must
+  // REFRESH stale memory rather than skip it (the old skip-if-present guard froze
+  // memory at first-analysis state forever).
+  it("refreshes a stale project-memory.md and AGENTS.md section instead of freezing at first-weave state", async () => {
+    const acct = await createAccount("Stale Memory User", "stale-memory@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-memory-stale", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+
+    // Simulate what the MCP path already persisted: a woven package for a memory
+    // that, at the time, had only the first decision.
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "old decision recorded first");
+    const staleGenerated: GeneratorResult = {
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", content_type: "text/markdown", program: "skills", description: "d" }],
+      skipped: [],
+    };
+    appendMemoryWeave(staleGenerated, [{ kind: "decision", content: "old decision recorded first", source: "", created_at: new Date().toISOString() }]);
+    await saveGeneratorResult(snap.snapshot_id, staleGenerated);
+
+    // A new decision is recorded after that stale package was persisted.
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "new decision recorded second");
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    const memoryFiles = entries.filter(e => e.path === "project-memory.md");
+    expect(memoryFiles).toHaveLength(1); // refreshed, not duplicated
+    expect(memoryFiles[0].content).toContain("old decision recorded first");
+    expect(memoryFiles[0].content).toContain("new decision recorded second");
+
+    const agents = entries.find(e => e.path === "AGENTS.md")!;
+    expect((agents.content.match(/old decision recorded first/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/new decision recorded second/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1); // exactly one section
   });
 });

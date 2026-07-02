@@ -5,6 +5,7 @@ export {
   updateSnapshotStatus,
   getProjectSnapshots,
   getProjectOwner,
+  listProjectsByAccount,
   deleteSnapshot,
   deleteProject,
   saveContextMap,
@@ -144,6 +145,19 @@ export {
   meterPersistenceOp,
   getPersistenceLedger,
 } from "./persistence-metering.js";
+
+// Project memory
+export type { MemoryKind, MemoryEntry } from "./memory-store.js";
+export {
+  MEMORY_KINDS,
+  MEMORY_CONTENT_MAX,
+  MEMORY_SOURCE_MAX,
+  MEMORY_PROJECT_CAP,
+  addMemoryEntry,
+  listMemoryEntries,
+  countMemoryEntries,
+  getMemoryProject,
+} from "./memory-store.js";
 
 // OAuth
 export type { GitHubTokenResponse, GitHubUser, GoogleTokenResponse, GoogleUser } from "./oauth-store.js";

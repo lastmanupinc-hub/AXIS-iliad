@@ -1,0 +1,582 @@
+# Agentic-Asset program — work-order queue (the program's memory).
+# Executor: take the FIRST status:open whose depends_on are all done.
+# After finishing: set status, fill evidence, commit this file in the same PR.
+# Schema: id, title, phase, status(open|blocked|done), depends_on, spec, branch,
+#         files_expected (the ONLY files you may create/edit), acceptance
+#         (commands that must all pass), evidence (executor fills).
+
+program:
+  name: agentic-asset
+  strategy: docs/AGENTIC_ASSET_STRATEGY.md
+  constitution: docs/agentic-asset/CONSTITUTION.md
+  executor: claude-sonnet-5
+  merge_authority: owner   # executor opens PRs, never merges
+
+work_orders:
+  - id: WO-01
+    title: "Delta intelligence: pure buildDeltaReport + export-surface wiring"
+    phase: now
+    status: done
+    depends_on: []
+    spec: docs/agentic-asset/specs/SPEC-01-delta.md
+    branch: feat/aa-delta-report
+    files_expected:
+      - packages/generator-core/src/delta-report.ts          # new
+      - packages/generator-core/src/delta-report.test.ts     # new
+      - packages/generator-core/src/index.ts                 # export line only
+      - apps/api/src/export.ts                               # fetch prev ctx + append
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/delta-report.test.ts --no-coverage   # all pass"
+      - "vitest run packages/generator-core/src/determinism.test.ts packages/generator-core/src/generate.test.ts --no-coverage   # unchanged, all pass"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage   # all pass"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly (no other files edited).
+      - `pnpm --filter @axis/generator-core build` — clean, no errors.
+      - `delta-report.test.ts` — 11/11 pass (identical ctx → null; added framework +
+        removed route + resolved warning render in correct sections with correct
+        counts; field_count "12 → 15 fields"; hotspots entered/left; entry points
+        added/removed; size total + per-language deltas; >15 routes truncate with
+        "… +3 more"; determinism — same inputs twice byte-identical; appendDeltaReport
+        idempotent + no-op on null + no-op on empty package).
+      - `determinism.test.ts` + `generate.test.ts` — unchanged, 123/123 pass.
+      - `export.test.ts` — 19/19 pass (17 pre-existing + 2 new: two-snapshot project's
+        export contains delta-report.md with the diffed content; single-snapshot
+        project's export omits it).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      - Also ran repo-wide gates (constitution §4, not in this WO's list):
+        count-honesty.test.ts + strategic-docs-honesty.test.ts — 7/7 pass.
+      Notes for the owner:
+      - Branched from `docs/agentic-asset-strategy` (main's tip c9fb61f + the 2
+        docs-only governance commits), NOT bare `main` — WORK_ORDERS.yaml/
+        CONSTITUTION.md/specs don't exist on main yet, so branching from main per
+        §1.3 would have made it impossible to update this file in the same PR per
+        this queue's own header instruction. No divergent code between the two,
+        only the governance docs I was asked to read. PR is opened against
+        `docs/agentic-asset-strategy`, not `main`.
+      - trackEvent("delta_generated", "product", ...) from the spec's "Surface
+        wiring" section was SKIPPED per the spec's own fallback clause ("if auth
+        context is not available there, skip tracking rather than restructuring"):
+        in handleExportZip, `auth`/`account` is only resolved inside the
+        `if (owner)` branch and is out of scope at the delta call site; wiring it
+        in would require restructuring the handler. No FunnelEventType/FunnelStage
+        values were added (those live outside files_expected, in
+        packages/snapshots/src/funnel-types.ts).
+      - Diff is 526 changed lines vs the spec's "~250 LOC total" estimate (~2.1x),
+        driven entirely by faithfully implementing the spec's own 7 keyed
+        comparison sections (stack/routes/domain models/hotspots/warnings/entry
+        points/size) plus the tests-first mandate — not scope creep or anything
+        outside files_expected. Flagged per §5 ("if the spec forces more, say so
+        in the PR body") rather than treated as a §6.5 STOP, since no forbidden
+        zone, new dependency, secret, or architectural drift was involved.
+
+  - id: WO-02
+    title: "Economic activation: wire meterPersistenceOp at the version REST surface"
+    phase: now
+    status: done
+    depends_on: []
+    spec: docs/agentic-asset/specs/SPEC-02-persistence-metering.md
+    branch: feat/aa-persistence-metering
+    files_expected:
+      - apps/api/src/versions.ts
+      - apps/api/src/versions.test.ts            # new or extended
+      - apps/api/src/openapi.ts                  # only if response schema documented there
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/versions.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly (versions.ts, versions.test.ts,
+      openapi.ts — the last one only to add a 402 response entry, no new schema/route).
+      Diff: 70 changed lines vs the spec's "~120 LOC" estimate — under, no ballooning.
+      - `versions.test.ts` — 22/22 pass (existing 14 unchanged + 8 new: anonymous diff
+        stays 200/unmetered — pre-existing test, verified still green; free-tier
+        authenticated → 402 persistence_credits_required with "paid plan" reason;
+        paid+credits → 200 AND ledger shows a diff_versions debit of
+        PERSISTENCE_CREDIT_COSTS.diff_versions tied to the snapshot_id; paid+zero
+        credits → 402; list/get stay 200 and untouched-ledger for the same free
+        account).
+      - `count-honesty.test.ts` + `openapi.test.ts` — 38/38 pass (incl. the route-spec
+        parity tripwire — no new routes were added, only a 402 response entry on the
+        existing diff route, so nothing to newly register).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      Findings for the owner (both pre-authorized forks per the spec's own guidance,
+      §6 STOP does not apply):
+      - **Version-write path has no production caller at all.** Grepped
+        `saveGenerationVersion(` across apps/api/src: the only call sites are test
+        setup code (versions.test.ts, e2e-flows.test.ts) — there is no REST handler
+        or generation-flow code path that calls it in production today. The spec's
+        fork ("if the write happens implicitly inside generation, DO NOT meter it")
+        applies a fortiori since there's no write path to meter at all yet. Metered
+        only `diff_versions`, as the spec's fallback directs.
+      - **Anonymous-caller branch confirmed.** `assertSnapshotAccess` (handlers.ts)
+        returns `true` immediately for snapshots with `account_id: null` *without*
+        ever calling `resolveAuth` — i.e. the handler currently allows fully
+        anonymous reads/diffs on ownerless snapshots. Per the spec's explicit fork,
+        metering applies only when the caller resolves to a real account (any
+        tier, including free — free-tier authenticated callers ARE metered and
+        correctly blocked, matching test case 1); a caller with no auth at all
+        is left on the pre-existing unmetered path. No public behavior changed
+        beyond the new 402 contract.
+      - **trackEvent("persistence_metered", "revenue", ...) SKIPPED**, same class of
+        gap as WO-01: neither `"persistence_metered"` (FunnelEventType) nor
+        `"revenue"` (FunnelStage) exist in `packages/snapshots/src/funnel-types.ts`
+        today, and that file is outside this WO's `files_expected`. Calling
+        `trackEvent` with those literals would fail `tsc --noEmit` (and casting
+        through `as unknown as FunnelEventType` would be exactly the kind of
+        strict-mode bypass the constitution forbids). Skipped per the same
+        precedent set in WO-01; flagging here rather than re-asking, since it's a
+        smaller, more mechanical gap (two missing union members, not an
+        architectural scoping issue) and the user has already endorsed
+        disclose-and-proceed for this class of judgment call. If the owner wants
+        this analytics event, it needs a follow-up micro-task that adds
+        `"persistence_metered"`/`"revenue"` to funnel-types.ts (outside any current
+        WO's files_expected).
+
+  - id: WO-03
+    title: "Learning funnel: usage-aware buildNextPrograms (pure, optional input)"
+    phase: now
+    status: done
+    depends_on: []
+    spec: docs/agentic-asset/specs/SPEC-03-usage-funnel.md
+    branch: feat/aa-usage-funnel
+    files_expected:
+      - packages/generator-core/src/program-funnel.ts
+      - packages/generator-core/src/program-funnel.test.ts
+      - apps/api/src/export.ts                   # pass account usage when available
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/program-funnel.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Diff: 113 changed lines vs the spec's "~90 LOC" estimate (~1.25x) — close, no
+      ballooning.
+      - `pnpm --filter @axis/generator-core build` — clean.
+      - `program-funnel.test.ts` — 12/12 pass (existing 6 unchanged + 6 new:
+        no-accountUsage output byte-identical to the pre-change baseline
+        `["optimization","mcp","agentic-purchasing"]` for `debug`; stable-partition
+        puts untried `mcp` ahead of tried `optimization`; determinism with usage;
+        personalization line renders only when accountUsage is passed).
+      - `determinism.test.ts` (unchanged) still green as part of the same run.
+      - `export.test.ts` — 20/20 pass (19 pre-existing incl. the 2 from WO-01's
+        delta wiring + 1 new: an authenticated paid account with a recorded
+        `optimization` usage row gets a personalized export whose
+        recommended-next-programs.md contains "Ranked for this account"). This is
+        NOT a "skip, disproportionate" case — `recordUsage`/`getUsageSummary` were
+        already straightforward to wire through the existing test infra.
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass
+        (repo-wide gates per constitution §4, not in this WO's own list).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      Notes for the owner:
+      - **`files_expected` omission (bookkeeping, not architecture drift).**
+        `apps/api/src/export.test.ts` isn't listed in this WO's `files_expected`,
+        but the spec body explicitly designs the export-level personalization test
+        case and gives an explicit skip-if-disproportionate escape hatch — and the
+        acceptance list runs `export.test.ts` directly. Read together, this is a
+        files_expected listing gap, not an intentional exclusion, so I extended
+        that file (already touched by WO-01 for the same reason). No other file
+        outside `files_expected` was touched.
+      - **trackEvent("funnel_personalized", "product", ...) SKIPPED**, third
+        occurrence of the same gap (see WO-01, WO-02 evidence): `"funnel_personalized"`
+        and `"product"` aren't valid `FunnelEventType`/`FunnelStage` values in
+        `packages/snapshots/src/funnel-types.ts`. Unlike WO-01 (where account
+        context itself was out of scope), the account IS available at this call
+        site now — only the event/stage literals are the blocker. Same fix
+        (add both new union members) would resolve all three skipped calls at
+        once; still outside any current WO's `files_expected`.
+      - Personalization-line gating uses literal "`accountUsage !== undefined`"
+        per the contract's exact wording ("if accountUsage is provided"), not
+        "non-empty usage". A brand-new authenticated account with zero recorded
+        runs will see the personalization line even though the ranking is
+        identical to the unpersonalized baseline (stable-partitioning an all-zero
+        usage map is a no-op). This is accurate, not misleading — every program
+        genuinely hasn't been tried yet — but flagging in case the owner wants a
+        stricter "only when usage is non-empty" gate instead.
+
+  - id: WO-04
+    title: "Watchtower v1: webhook re-analysis stores a delta artifact (fail-open)"
+    phase: now
+    status: done
+    depends_on: [WO-01]
+    spec: docs/agentic-asset/specs/SPEC-04-watchtower-digest.md
+    branch: feat/aa-watchtower
+    files_expected:
+      - apps/api/src/github-webhook.ts
+      - apps/api/src/github-webhook.test.ts      # new or extended
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/github-webhook.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Diff: 245 changed lines vs the spec's "~120 LOC" estimate (~2.04x) — flagged
+      per §5 (not a §6.5 STOP): the overrun is almost entirely new test
+      infrastructure (a stateful @axis/snapshots + ./github.js mock this file
+      didn't have before), not feature scope creep. Both files match
+      files_expected exactly.
+      - `github-webhook.test.ts` — 23/23 pass (20 pre-existing unchanged + 3 new:
+        second webhook snapshot for a repo stores delta-report.md on the new
+        snapshot with the actual diff content; first-ever snapshot logs
+        `delta_skipped {reason:"first_snapshot"}` with the webhook's 202/handled
+        response contract unchanged; a forced throw inside buildDeltaReport
+        (via a context map with a throwing `routes` getter) still returns 202 and
+        logs `delta_failed` — the fail-open proof the spec asks for).
+      - Broader regression: re-ran export.test.ts + versions.test.ts +
+        github-webhook.test.ts + program-funnel.test.ts + delta-report.test.ts +
+        determinism.test.ts + generate.test.ts together (209/209 pass) to confirm
+        the new file-scoped `vi.mock` doesn't leak across test files.
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      Findings for the owner:
+      - **Real bug caught by the fail-open test, fixed before merge.** My first
+        attempt reused `appendDeltaReport` (from WO-01) at this call site, but
+        that function's own guard — `if (!generated.files.length) return;` —
+        assumes a package with existing files (true at the export surface, where
+        WO-01 designed it). Webhook-created snapshots have **zero** generated
+        files today (this webhook only ever calls `createSnapshot`, never
+        generation), so `appendDeltaReport` silently no-op'd every time here.
+        Test case 1 caught this (asserted content, got `undefined`). Fixed by
+        constructing the `GeneratedFile` directly with the same path-collision
+        idempotency check, still reusing `buildDeltaReport` for the diff and
+        `saveGeneratorResult` for persistence, per the spec's "reuse the storage
+        call" instruction (that instruction was about persistence, not about
+        `appendDeltaReport` specifically).
+      - **Confirmed architectural fact, not a bug**: `dispatchWebhookSnapshot`
+        never populates a context map for the snapshots it creates (only source
+        files, via `createSnapshot`) — grepped for `saveContextMap`/`generateFiles`
+        in github-webhook.ts, found neither. This means in production TODAY,
+        every real watchtower run will hit `delta_skipped {reason:"no_ctx"}`
+        until some other process (a future WO, or an already-scheduled async
+        analysis this session didn't find) populates context maps for
+        webhook-created snapshots. The spec explicitly designed for this exact
+        case (item 2's skip path), so this is expected, not a STOP — flagging so
+        the owner knows watchtower's delta won't fire in prod until that
+        prerequisite lands.
+      - **trackEvent("watchtower_delta", "product", ...) SKIPPED** — fourth and
+        (with WO-01/02/03) final occurrence of the same gap: neither value is a
+        valid `FunnelEventType`/`FunnelStage`. Also moot here regardless, since
+        webhook snapshots have no account (`createSnapshot(..., undefined)`)
+        until an installation→account mapping lands. One follow-up micro-task
+        adding the 4 missing union members (`delta_generated`/`persistence_metered`/
+        `funnel_personalized`/`watchtower_delta` event types, `product`/`revenue`
+        stages) to `packages/snapshots/src/funnel-types.ts` would unblock all
+        four skipped calls across WO-01 through WO-04 at once.
+      - Test file didn't previously mock `@axis/snapshots` or `./github.js` at
+        all (existing 20 tests only assert the synchronous HTTP response, never
+        the fire-and-forget dispatch's side effects) — added both as file-scoped
+        `vi.mock`s for the 3 new tests. Verified this doesn't change any
+        pre-existing test's behavior (all 20 still pass unchanged) since none of
+        them depended on the real module's behavior.
+
+  - id: WO-06
+    title: "KPI activation: FunnelEventType members + wire the 3 wire-able skipped trackEvent calls"
+    phase: next
+    status: done
+    depends_on: []             # standalone; unblocks WO-05's memory_written event
+    spec: docs/agentic-asset/specs/SPEC-06-kpi-events.md
+    branch: feat/aa-kpi-events
+    files_expected:
+      - packages/snapshots/src/funnel-types.ts   # +6 FunnelEventType members, NO new stages
+      - apps/api/src/export.ts                   # delta_generated + funnel_personalized
+      - apps/api/src/versions.ts                 # persistence_metered on ok:true
+      - apps/api/src/github-webhook.ts           # comment-only update
+      - apps/api/src/export.test.ts              # extended
+      - apps/api/src/versions.test.ts            # extended
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts apps/api/src/versions.test.ts apps/api/src/github-webhook.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly. Diff: 75 changed lines vs the
+      spec's "~80 LOC" estimate — right on target, no ballooning.
+      - `export.test.ts` + `versions.test.ts` + `github-webhook.test.ts` — 66/66
+        pass (all pre-existing unchanged + 4 new: personalization export now also
+        asserts a `funnel_personalized` funnel_events row; a new owned
+        two-snapshot project's export asserts a `delta_generated` row; the
+        pre-existing anonymous delta-report test passes untouched, exercising the
+        accountId-null guard; paid-with-credits diff now also asserts a
+        `persistence_metered` row; the zero-credits 402 case asserts NO
+        `persistence_metered` row).
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, but only AFTER
+        `pnpm --filter @axis/snapshots build` (see finding below) — not clean
+        against the stale dist.
+      - No new `FunnelStage` members added (per the spec's explicit planning
+        decision); both wired calls use `await resolveStage(account_id)`.
+      - `github-webhook.ts`: comment-only change confirmed — no code touched in
+        that file, `watchtower_delta` stays unwired (webhook snapshots still have
+        no account).
+      Finding for the owner (process note, not a design gap):
+      - **`@axis/snapshots` resolves via its compiled `dist/`**, not TS source
+        (its `package.json` `exports` points `types`/`import` at `dist/index.*`).
+        Vitest resolves the workspace package straight from source, so the new
+        tests passed immediately — but `tsc --noEmit` in `apps/api` failed
+        against the stale `dist/` until I ran
+        `pnpm --filter @axis/snapshots build` (not explicitly listed in this
+        WO's acceptance commands, though the constitution's §4 already states
+        the general rule: "Build a package after changing its src"). Anyone
+        touching `funnel-types.ts` (or any `packages/snapshots/src` file) needs
+        that build step before `apps/api`'s typecheck will see the change —
+        worth adding explicitly to future specs that touch this package.
+
+  - id: WO-05
+    title: "Project brain: project_memory migration v30 + memory store + REST (weave split to WO-07)"
+    phase: next
+    status: done               # ELABORATE gate cleared 2026-07-01 (planning model); spec is executable
+    depends_on: [WO-01, WO-06] # WO-06 provides the memory_written FunnelEventType member
+    spec: docs/agentic-asset/specs/SPEC-05-project-memory.md
+    branch: feat/aa-project-memory
+    files_expected:
+      - packages/snapshots/src/pg-schema.ts      # migration v30 per spec block + baseline table (no index in baseline)
+      - packages/snapshots/src/pg-schema.test.ts # fix stale v23 assertion → v30 (spec §Migration)
+      - packages/snapshots/src/memory-store.ts   # new
+      - packages/snapshots/src/memory-store.test.ts  # new
+      - packages/snapshots/src/index.ts
+      - apps/api/src/memory-handlers.ts          # new
+      - apps/api/src/memory-handlers.test.ts     # new
+      - apps/api/src/server.ts                   # 2 routes
+      - apps/api/src/openapi.ts                  # 1 path (get+post), 4 schemas
+      - apps/api/src/counts.ts                   # ENDPOINT_COUNT 143 → 145 (explicitly allowed here)
+      - README.md                                # line ~170 "143 endpoints" → 145 (count-honesty knock-on)
+      - apps/web/src/pages/QAPage.tsx            # line ~91 "143 endpoints" → 145 (count-honesty knock-on)
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/memory-handlers.test.ts packages/snapshots/src/memory-store.test.ts packages/snapshots/src/pg-schema.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly (12 files: 4 new, 8 modified).
+      Diff: 719 changed lines vs the spec's own pre-authorized "~580" estimate
+      (~1.24x) — under the §6.5 2x threshold, and the spec explicitly
+      pre-authorized exceeding the §5 ~400 guidance up front.
+      - `memory-handlers.test.ts` + `memory-store.test.ts` + `pg-schema.test.ts`
+        — 22/22 pass (pg-schema.test.ts's 4 real-Postgres cases correctly
+        skipped — it's PG_TEST_URL-gated, unset locally, matching the file's
+        own documented behavior). memory-store: migration fresh path + CHECK
+        constraint rejection, idempotent re-migration (`{current_version: 30,
+        applied: 0}`), newest-first roundtrip with kind filter + limit,
+        per-project counting, getMemoryProject's 3-way distinction (missing /
+        anonymous / owned). memory-handlers: full auth ladder (401/404/403/404
+        no-leak), POST happy path + GET roundtrip, all 5 POST 400 cases, the
+        409 cap (seeded via a single `INSERT...SELECT...generate_series(1,500)`,
+        never 500 sequential inserts), the `memory_written` KPI event, GET
+        `?kind=` filter + invalid-kind 400, `?limit=0` 400 / `?limit=999`
+        silently capped at 200.
+      - `count-honesty.test.ts` + `openapi.test.ts` + `deployment.test.ts` —
+        70/70 pass (confirms the 143→145 ENDPOINT_COUNT bump and both doc
+        updates stay in lockstep — this is the exact landmine the elaboration
+        pass flagged).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean (ran
+        `pnpm --filter @axis/snapshots build` first per the WO-06 finding).
+      - Broader regression: strategic-docs-honesty, export.test.ts,
+        versions.test.ts, github-webhook.test.ts, counts-consistency.test.ts,
+        server-routes.test.ts, server-lifecycle.test.ts — 92/92 pass (touched
+        server.ts/openapi.ts/counts.ts are shared surfaces; confirmed nothing
+        else broke).
+      No deviations from the elaborated spec worth flagging — it was precise
+      enough (exact SQL block, exact auth ladder, exact validation order, exact
+      response shapes) that implementation was a direct transcription. The
+      elaboration pass's own pre-flagged landmines (README/QAPage count claims,
+      stale pg-schema.test.ts assertion, index-only-in-migration trap) were all
+      exactly where it said they'd be.
+
+  - id: WO-07
+    title: "Memory weave: pure appendMemoryWeave + export/MCP wiring + project-memory.md artifact"
+    phase: next
+    status: done
+    depends_on: [WO-05]        # store must exist; WO-06 arrives transitively
+    spec: docs/agentic-asset/specs/SPEC-07-memory-weave.md
+    branch: feat/aa-memory-weave
+    files_expected:
+      - packages/generator-core/src/memory-weave.ts       # new
+      - packages/generator-core/src/memory-weave.test.ts  # new
+      - packages/generator-core/src/index.ts              # export lines only
+      - apps/api/src/export.ts                            # weave call FIRST in the !programFilter block + memory_woven event
+      - apps/api/src/mcp-tool-impls.ts                    # maybeRunQualityGate: weave before appendProgramFunnel
+      - apps/api/src/export.test.ts                       # extended
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/memory-weave.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly (6 files: 2 new, 4 modified).
+      Diff: 322 changed lines vs the spec's "~300 LOC" estimate — right on
+      target, no ballooning.
+      - `memory-weave.test.ts` — 11/11 pass (empty entries → null/no-op; fixed
+        kind render order decision→convention→goal→evidence with per-kind
+        headings; source segment omitted/shown correctly; 51 entries → 50
+        rendered + "… +1 earlier entries omitted"; determinism — byte-identical
+        on repeat; section injected into AGENTS.md + CLAUDE.md, project-memory.md
+        added exactly once, non-target files (JSON, other .md) left untouched,
+        idempotent on a second call; no-op on empty entries; no-op on empty
+        package).
+      - `determinism.test.ts` (unchanged) green in the same run.
+      - `export.test.ts` — 23/23 pass (21 pre-existing unchanged + 2 new: an
+        owned project with 2 memory entries gets project-memory.md containing
+        both entries' content, AGENTS.md gains the "Decisions already made"
+        section, and a `memory_woven` funnel_events row exists; a project with
+        no memory entries gets neither the artifact nor the section nor the
+        event).
+      - `pnpm --filter @axis/generator-core build` + `pnpm --filter @axis/api
+        exec tsc --noEmit` — both clean.
+      - Also ran (not in this WO's list, but shared-surface regression since
+        mcp-tool-impls.ts is heavily used): count-honesty + strategic-docs-
+        honesty (7/7), mcp-server.test.ts + a broader MCP-path suite (164/164),
+        and a 10-file, 242-test sweep across every generator-core/apps-api file
+        touched anywhere in this session (WO-01 through WO-07) — all green.
+      Per the spec's explicit waiver: no MCP-path integration test was written
+      for the `maybeRunQualityGate` wiring (running the full analyze pipeline to
+      reach it is disproportionate to verify wiring 6 lines of already-covered,
+      pure logic). The shared `appendMemoryWeave`/`buildMemorySection` functions
+      are fully covered by `memory-weave.test.ts`; only the call-site wiring in
+      `mcp-tool-impls.ts` is unit-untested, matching the spec's own guidance.
+      This closes the "now"+"next" phase of the agentic-asset program: WO-01
+      through WO-07 are all done. WO-08+ (E6 Fleet) is not yet ordered — specs
+      written at phase start, per EXECUTION_PLAN.md.
+
+  - id: WO-08
+    title: "Remediation: fix the 7 confirmed defects from the WO-01..07 adversarial review"
+    phase: later
+    status: done
+    depends_on: []             # all prior WOs merged; fixes land on top of them
+    spec: docs/agentic-asset/specs/SPEC-08-review-remediation.md
+    branch: fix/aa-review-remediation
+    files_expected:
+      - packages/snapshots/src/store.ts                   # deleteSnapshot/deleteProject FK cleanup
+      - packages/generator-core/src/memory-weave.ts       # refresh semantics + delimiters
+      - packages/generator-core/src/memory-weave.test.ts
+      - packages/generator-core/src/delta-report.ts       # language-mix-only summary fragment
+      - packages/generator-core/src/delta-report.test.ts
+      - apps/api/src/versions.ts                          # 3x await assertSnapshotAccess + guarded KPI
+      - apps/api/src/versions.test.ts                     # non-owner 401/404 regression, unmetered
+      - apps/api/src/memory-handlers.ts                   # guarded KPI + Number.isInteger limit
+      - apps/api/src/memory-handlers.test.ts              # limit=2.9 / 10abc => 400
+      - apps/api/src/deletion.test.ts                     # memory + metered-ledger delete cases
+      - apps/api/src/export.test.ts                       # end-to-end weave staleness case
+    acceptance:
+      - pnpm --filter @axis/snapshots build && pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/memory-weave.test.ts packages/generator-core/src/delta-report.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/deletion.test.ts apps/api/src/versions.test.ts apps/api/src/memory-handlers.test.ts apps/api/src/export.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly. Diff: 369 changed lines vs the
+      spec's "~380 LOC" estimate — right on target, no ballooning.
+      - `pnpm --filter @axis/snapshots build` + `pnpm --filter @axis/generator-core
+        build` — both clean.
+      - `memory-weave.test.ts` + `delta-report.test.ts` + `determinism.test.ts` —
+        25/25 pass (memory-weave: existing tests adapted for replace-not-skip
+        semantics + 2 new: same-entries re-weave is a true no-op byte-for-byte,
+        new-entries re-weave replaces stale content with exactly one delimiter
+        pair and no duplicated section; delta-report: language-mix-only change
+        with unchanged total_loc renders "language mix" and never ends ": .").
+      - `deletion.test.ts` + `versions.test.ts` + `memory-handlers.test.ts` +
+        `export.test.ts` — 73/73 pass (deletion: owned project with 2 memory
+        entries deletes cleanly with memory rows gone; a metered snapshot/project
+        deletes cleanly with the persistence_credits row surviving,
+        `snapshot_id` nulled, found via `.find(operation==='diff_versions')`
+        since `addPersistenceCredits` itself writes a separate ledger row —
+        caught and fixed a wrong assumption of ledger-length-1 in my own first
+        draft; versions: unauthenticated → 401 and non-owner → 404 from all
+        three endpoints on an OWNED snapshot, with zero persistence debit/event
+        leaked, owner still gets 200s — also caught and fixed a missing-auth-
+        headers oversight in my own first draft (delete/version endpoints
+        correctly require auth for owned resources, which my initial test
+        omitted); memory-handlers: `limit=2.9` and `limit=10abc` now 400,
+        `limit=10` still 200; export: end-to-end staleness — a generator result
+        simulating what the MCP path would have persisted (built via
+        `appendMemoryWeave` directly) gets correctly refreshed on export, new +
+        old decisions both present, exactly one section/delimiter pair, no
+        duplicate project-memory.md).
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      - Broader regression (not in this WO's list): store.test.ts +
+        memory-store.test.ts (35/35), github-webhook + program-funnel + generate
+        + deployment + openapi (218/218) — confirms store.ts's shared delete
+        paths and memory-weave.ts's shared append logic didn't regress anything
+        built in WO-01..07.
+      Confirmed via repo-wide grep: only versions.ts had the un-awaited
+      `assertSnapshotAccess` bug (fix 2) — all 8 call sites in handlers.ts
+      already await correctly; no other file needed that fix.
+      Fix 4 (guarded `await resolveStage()`) is not separately unit-tested per
+      the spec's own note (no fault-injection harness for resolveStage) — it's
+      a mechanical try/catch wrap, verified by code review and by tsc/the full
+      suite passing; export.ts's three KPI call sites were verified (not
+      changed) to already sit inside enclosing try/catch blocks, per spec.
+      This closes out the review-of-record: all 7 confirmed defects from the
+      WO-01..07 adversarial review are fixed. WO-09 (E6 Fleet v1) is next,
+      depends_on this WO.
+
+  - id: WO-09
+    title: "Fleet v1: cross-project fleet-report.md + fleet-CLAUDE.md + GET /v1/account/fleet"
+    phase: later
+    status: done
+    depends_on: [WO-08]        # serialize the store.ts edits; fleet builds on a clean base
+    spec: docs/agentic-asset/specs/SPEC-09-fleet-report.md
+    branch: feat/aa-fleet-report
+    files_expected:
+      - packages/generator-core/src/fleet-report.ts       # new (pure)
+      - packages/generator-core/src/fleet-report.test.ts  # new
+      - packages/generator-core/src/index.ts              # export lines only
+      - packages/snapshots/src/store.ts                   # listProjectsByAccount only
+      - packages/snapshots/src/index.ts                   # export line only
+      - packages/snapshots/src/funnel-types.ts            # +fleet_viewed member only
+      - apps/api/src/fleet-handlers.ts                    # new
+      - apps/api/src/fleet-handlers.test.ts               # new
+      - apps/api/src/server.ts                            # 1 route
+      - apps/api/src/openapi.ts                           # 1 path, 2 schemas
+      - apps/api/src/counts.ts                            # ENDPOINT_COUNT 145 -> 146 (explicitly allowed here)
+      - README.md                                         # "145 endpoints" -> 146 (count-honesty knock-on)
+      - apps/web/src/pages/QAPage.tsx                     # "145 endpoints" -> 146 (count-honesty knock-on)
+    acceptance:
+      - pnpm --filter @axis/snapshots build && pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/fleet-report.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/fleet-handlers.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      Files touched match files_expected exactly (13 files: 4 new, 9 modified).
+      Diff: 641 changed lines vs the spec's "~620 LOC" estimate — right on
+      target, no ballooning.
+      - `pnpm --filter @axis/snapshots build` + `pnpm --filter @axis/generator-core
+        build` — both clean.
+      - `fleet-report.test.ts` + `determinism.test.ts` — 13/13 pass (<2 projects
+        → null; exactly 2 → both files with correct headers + table rows; shared
+        stack lists a framework in exactly the 2 projects that have it, never a
+        single-project one; org-wide warnings only on verbatim >=2 overlap;
+        sections omitted entirely when nothing overlaps; conventions intersect
+        on >=2; memory decisions render under the right project subheading,
+        omitted per-project and section-wide when empty; deterministic
+        regardless of input order — shuffled input byte-identical; 26 projects
+        → 25 used + "25 of 26" overflow note, 26th alphabetically-last dropped;
+        never renders "undefined"/"NaN" with a bare `{}` ctx).
+      - `fleet-handlers.test.ts` — 6/6 pass (401 unauthenticated; 403 free tier
+        TIER_REQUIRED; paid + 1 analyzed project → 200 ready:false with counts;
+        paid + 2 analyzed projects + 1 memory decision → 200 ready:true, both
+        files, decision under the right project heading, the other project's
+        heading correctly absent; a second account's project never leaks into
+        the caller's fleet; `fleet_viewed` fires only on ready:true).
+      - `count-honesty.test.ts` + `openapi.test.ts` + `deployment.test.ts` —
+        70/70 pass (confirms the 145→146 ENDPOINT_COUNT bump and both doc
+        updates stay in lockstep — the same landmine class as SPEC-05).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      - Also ran (not in this WO's list): strategic-docs-honesty,
+        counts-consistency, server-routes, funnel-api — 65/65 pass (confirms
+        the new route/schema didn't disturb the shared server.ts/openapi.ts
+        surfaces).
+      Design decisions made where the spec left latitude (no deviation from
+      any FIXED contract): "Shared stack" in fleet-report.md splits into
+      **Frameworks:**/**Languages:** subsections, each listing the full
+      project list; fleet-CLAUDE.md's "Stack" section merges frameworks +
+      languages into one list showing just a project-count (matching the
+      spec's differing wording between the two files: "list of projects"
+      for fleet-report.md vs "project count" for fleet-CLAUDE.md); applied
+      the WO-08 lesson proactively — `fleet_viewed`'s `trackEvent` call uses
+      the guarded try/catch form (`resolveStage` awaited inside the try),
+      not the vulnerable one-line `.catch()` idiom SPEC-06 originally shipped
+      and WO-08 had to fix elsewhere.
+      This completes the agentic-asset program's ordered queue: WO-01 through
+      WO-09 are all done. No further work orders are open; E6+ follow-on work
+      (MCP exposure, weaving fleet-CLAUDE.md into per-project exports,
+      portfolio trends, credit metering) is explicitly deferred to a future
+      owner decision per SPEC-09.

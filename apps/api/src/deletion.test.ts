@@ -11,6 +11,12 @@ import {
   saveGeneratorResult,
   indexSnapshotContent,
   getSearchIndexStats,
+  createAccount,
+  createApiKey,
+  addMemoryEntry,
+  addPersistenceCredits,
+  meterPersistenceOp,
+  getPersistenceLedger,
 } from "@axis/snapshots";
 import { Router, sendJSON } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
@@ -21,10 +27,10 @@ let testPort = 0;
 
 interface Res { status: number; headers: Record<string, string>; body: string }
 
-function rawReq(method: string, path: string): Promise<Res> {
+function rawReq(method: string, path: string, headers?: Record<string, string>): Promise<Res> {
   return new Promise((resolve, reject) => {
     const r = require("node:http").request(
-      { hostname: "127.0.0.1", port: testPort, path, method },
+      { hostname: "127.0.0.1", port: testPort, path, method, headers },
       (res: import("node:http").IncomingMessage) => {
         const chunks: Buffer[] = [];
         res.on("data", (c: Buffer) => chunks.push(c));
@@ -141,5 +147,77 @@ describe("DELETE /v1/projects/:project_id", () => {
 
     const proj = await sql.one("SELECT * FROM projects WHERE project_id = ?", ["empty-proj"]);
     expect(proj).toBeUndefined();
+  });
+});
+
+// ─── WO-08 fix 1: delete paths vs the project_memory / persistence_credits FKs ─
+
+describe("DELETE /v1/projects/:project_id with project_memory rows", () => {
+  it("deletes cleanly and removes the project's memory entries too", async () => {
+    const acct = await createAccount("Delete Memory User", "delete-memory@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+    const snap = await createSnapshot(
+      { input_method: "api_submission", manifest: { project_name: "del-memory-proj", project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] }, files: [{ path: "a.ts", content: "x", size: 1 }] },
+      acct.account_id,
+    );
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "Use Postgres, not SQLite");
+    await addMemoryEntry(snap.project_id, acct.account_id, "convention", "snake_case for SQL columns");
+
+    const before = await sql.many("SELECT * FROM project_memory WHERE project_id = ?", [snap.project_id]);
+    expect(before).toHaveLength(2);
+
+    const res = await rawReq("DELETE", `/v1/projects/${snap.project_id}`, headers);
+    expect(res.status).toBe(200);
+
+    const after = await sql.many("SELECT * FROM project_memory WHERE project_id = ?", [snap.project_id]);
+    expect(after).toHaveLength(0);
+    const proj = await sql.one("SELECT * FROM projects WHERE project_id = ?", [snap.project_id]);
+    expect(proj).toBeUndefined();
+  });
+});
+
+describe("Delete paths with a metered (persistence_credits-referenced) snapshot", () => {
+  it("DELETE /v1/snapshots/:id deletes cleanly; the ledger row survives with snapshot_id nulled", async () => {
+    const acct = await createAccount("Delete Ledger User", "delete-ledger@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+    await addPersistenceCredits(acct.account_id, 5);
+    const snap = await createSnapshot(
+      { input_method: "api_submission", manifest: { project_name: "del-ledger-snap-proj", project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] }, files: [{ path: "a.ts", content: "x", size: 1 }] },
+      acct.account_id,
+    );
+    await meterPersistenceOp(acct.account_id, "paid", "diff_versions", snap.snapshot_id);
+
+    const res = await rawReq("DELETE", `/v1/snapshots/${snap.snapshot_id}`, headers);
+    expect(res.status).toBe(200);
+    expect(await getSnapshot(snap.snapshot_id)).toBeUndefined();
+
+    // addPersistenceCredits already wrote a "purchase" row (snapshot_id: null); the
+    // debit is the "diff_versions" row — it must survive the delete, snapshot_id nulled.
+    const ledger = await getPersistenceLedger(acct.account_id);
+    const spend = ledger.find((e) => e.operation === "diff_versions");
+    expect(spend).toBeDefined();
+    expect(spend!.snapshot_id).toBeNull();
+  });
+
+  it("DELETE /v1/projects/:id deletes cleanly; the ledger row survives with snapshot_id nulled", async () => {
+    const acct = await createAccount("Delete Ledger Proj User", "delete-ledger-proj@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+    await addPersistenceCredits(acct.account_id, 5);
+    const snap = await createSnapshot(
+      { input_method: "api_submission", manifest: { project_name: "del-ledger-proj-proj", project_type: "web_app", frameworks: [], goals: [], requested_outputs: [] }, files: [{ path: "a.ts", content: "x", size: 1 }] },
+      acct.account_id,
+    );
+    await meterPersistenceOp(acct.account_id, "paid", "diff_versions", snap.snapshot_id);
+
+    const res = await rawReq("DELETE", `/v1/projects/${snap.project_id}`, headers);
+    expect(res.status).toBe(200);
+
+    const ledger = await getPersistenceLedger(acct.account_id);
+    const spend = ledger.find((e) => e.operation === "diff_versions");
+    expect(spend).toBeDefined();
+    expect(spend!.snapshot_id).toBeNull();
   });
 });

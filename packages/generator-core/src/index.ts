@@ -29,6 +29,17 @@ export { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml } from "./aut
 // Program Funnel — a deterministic "run these next" artifact that turns one analysis
 // into a natural workflow through the program catalog. Appended at the surface too.
 export { appendProgramFunnel, buildNextPrograms } from "./program-funnel.js";
+// Delta Report — a deterministic narrative of change vs the previous snapshot.
+// The first compounding surface; appended at the surface before the funnel/loop.
+export { appendDeltaReport, buildDeltaReport } from "./delta-report.js";
+// Memory Weave — reads the project brain (WO-05) back into generation output.
+// Appended at the surface too, before appendDeltaReport/appendProgramFunnel.
+export { appendMemoryWeave, buildMemorySection, MEMORY_WEAVE_LIMIT } from "./memory-weave.js";
+export type { WovenMemoryEntry } from "./memory-weave.js";
+// Fleet Report — cross-project intelligence for accounts with >=2 projects (E6).
+// Account-level surface, computed on demand — NOT a counted generator.
+export { buildFleetReport, FLEET_MIN_PROJECTS, FLEET_MAX_PROJECTS } from "./fleet-report.js";
+export type { FleetProjectInput } from "./fleet-report.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";
