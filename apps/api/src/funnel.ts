@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { requireAuth } from "./billing.js";
-import { ErrorCode } from "./logger.js";
+import { ErrorCode, log } from "./logger.js";
 import {
   inviteSeat,
   acceptSeat,
@@ -119,9 +119,11 @@ export async function handleInviteSeat(
   try {
     const seat = await inviteSeat(ctx.account!.account_id, email, role as SeatRole, ctx.account!.account_id);
 
-    // Send invitation email (fire-and-forget)
-    // v8 ignore next
-    sendSeatInvitation(email, ctx.account!.name, ctx.account!.name, role, seat.seat_id).catch(() => {});
+    // Send invitation email (fire-and-forget — log failures for observability, failure mode G4).
+    /* v8 ignore next 3 */
+    sendSeatInvitation(email, ctx.account!.name, ctx.account!.name, role, seat.seat_id).catch((e: unknown) => {
+      log("warn", "seat-invitation-email-failed", { seat_id: seat.seat_id, error: e instanceof Error ? e.message : String(e) });
+    });
 
     sendJSON(res, 201, { seat });
   /* v8 ignore start — V8 quirk: seat error handling tested but V8 won't credit ternary/includes */

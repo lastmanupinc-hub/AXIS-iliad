@@ -6,7 +6,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
-import { ErrorCode } from "./logger.js";
+import { ErrorCode, log } from "./logger.js";
 import { requireAuth } from "./billing.js";
 import {
   upsertSubscription,
@@ -219,8 +219,10 @@ async function syncTierFromStripeSubscription(
     };
     /* v8 ignore next */
     const l = limits[planName] ?? limits.Starter;
-    /* v8 ignore next */
-    sendUpgradeConfirmation(account.email, account.name, planName, l.snaps, l.projects, l.programs).catch(() => {});
+    /* v8 ignore next 3 */
+    sendUpgradeConfirmation(account.email, account.name, planName, l.snaps, l.projects, l.programs).catch((err: unknown) => {
+      log("warn", "upgrade-confirmation-email-failed", { account_id: accountId, error: err instanceof Error ? err.message : String(err) });
+    });
   }
 }
 
