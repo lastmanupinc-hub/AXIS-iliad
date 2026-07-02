@@ -32,6 +32,10 @@ export { appendProgramFunnel, buildNextPrograms } from "./program-funnel.js";
 // Delta Report — a deterministic narrative of change vs the previous snapshot.
 // The first compounding surface; appended at the surface before the funnel/loop.
 export { appendDeltaReport, buildDeltaReport } from "./delta-report.js";
+// Memory Weave — reads the project brain (WO-05) back into generation output.
+// Appended at the surface too, before appendDeltaReport/appendProgramFunnel.
+export { appendMemoryWeave, buildMemorySection, MEMORY_WEAVE_LIMIT } from "./memory-weave.js";
+export type { WovenMemoryEntry } from "./memory-weave.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";

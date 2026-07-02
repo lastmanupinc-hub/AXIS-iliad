@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
-import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage, getEventsByType } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage, getEventsByType, addMemoryEntry } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -501,5 +501,67 @@ describe("Export ZIP handler", () => {
     const events = await getEventsByType(acct.account_id, "delta_generated");
     expect(events).toHaveLength(1);
     expect(events[0].metadata.project_id).toBe(snap2.project_id);
+  });
+
+  // ─── Memory weave (SPEC-07) ─────────────────────────────────────
+
+  it("weaves project memory into the export: project-memory.md + AGENTS.md section + memory_woven event", async () => {
+    const acct = await createAccount("Memory Weave User", "memory-weave@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-memory-weave", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "Use Postgres, not SQLite");
+    await addMemoryEntry(snap.project_id, acct.account_id, "convention", "snake_case for SQL columns");
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    const memoryFile = entries.find(e => e.path === "project-memory.md");
+    expect(memoryFile).toBeDefined();
+    expect(memoryFile!.content).toContain("Use Postgres, not SQLite");
+
+    const agents = entries.find(e => e.path === "AGENTS.md");
+    expect(agents).toBeDefined();
+    expect(agents!.content).toContain("Decisions already made");
+
+    const events = await getEventsByType(acct.account_id, "memory_woven");
+    expect(events).toHaveLength(1);
+    expect(events[0].metadata.project_id).toBe(snap.project_id);
+  });
+
+  it("omits project-memory.md and the section when the project has no memory entries", async () => {
+    const acct = await createAccount("No Memory User", "no-memory@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-no-memory", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+    await saveGeneratorResult(snap.snapshot_id, {
+      snapshot_id: snap.snapshot_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", program: "skills" }],
+    });
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    expect(entries.some(e => e.path === "project-memory.md")).toBe(false);
+    const agents = entries.find(e => e.path === "AGENTS.md");
+    expect(agents!.content).not.toContain("Decisions already made");
+
+    const events = await getEventsByType(acct.account_id, "memory_woven");
+    expect(events).toHaveLength(0);
   });
 });
