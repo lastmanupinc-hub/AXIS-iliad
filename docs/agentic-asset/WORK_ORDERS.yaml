@@ -634,3 +634,24 @@ work_orders:
       - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged (no route changes)"
     evidence: |
       (executor fills)
+
+  - id: WO-12
+    title: "Launch-claims fact-pass: LAUNCH_CLAIMS.yaml registry + gate + corpus rewrite"
+    phase: later
+    status: open
+    depends_on: []             # independent (docs + one new test file); WO-10/WO-11 sit first in the queue
+    spec: docs/agentic-asset/specs/SPEC-12-launch-claims-fact-pass.md
+    branch: docs/aa-launch-claims
+    files_expected:
+      - LAUNCH_CLAIMS.yaml                                     # new — the claim registry
+      - apps/api/src/launch-claims.test.ts                     # new — registry-vs-live + corpus gate
+      - launch-content.md                                      # fact-passed rewrite (voice preserved)
+      - marketing-pack.md                                      # fact-passed rewrite (voice preserved)
+      - AXIS_Board_Pitch.md                                    # numbers-only pass
+      - docs/agentic-asset/WORK_ORDERS.yaml                    # this entry's status + evidence
+    acceptance:
+      - "vitest run apps/api/src/launch-claims.test.ts --no-coverage   # new gate passes"
+      - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage   # existing honesty gates unchanged"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      (executor fills)
