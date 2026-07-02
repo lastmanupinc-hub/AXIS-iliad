@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
 import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage, getEventsByType, addMemoryEntry } from "@axis/snapshots";
+import { appendMemoryWeave, type GeneratorResult } from "@axis/generator-core";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -563,5 +564,48 @@ describe("Export ZIP handler", () => {
 
     const events = await getEventsByType(acct.account_id, "memory_woven");
     expect(events).toHaveLength(0);
+  });
+
+  // WO-08 fix 3: the MCP path persists a woven package, so the export path must
+  // REFRESH stale memory rather than skip it (the old skip-if-present guard froze
+  // memory at first-analysis state forever).
+  it("refreshes a stale project-memory.md and AGENTS.md section instead of freezing at first-weave state", async () => {
+    const acct = await createAccount("Stale Memory User", "stale-memory@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-memory-stale", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+
+    // Simulate what the MCP path already persisted: a woven package for a memory
+    // that, at the time, had only the first decision.
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "old decision recorded first");
+    const staleGenerated: GeneratorResult = {
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: "# Agents", content_type: "text/markdown", program: "skills", description: "d" }],
+      skipped: [],
+    };
+    appendMemoryWeave(staleGenerated, [{ kind: "decision", content: "old decision recorded first", source: "", created_at: new Date().toISOString() }]);
+    await saveGeneratorResult(snap.snapshot_id, staleGenerated);
+
+    // A new decision is recorded after that stale package was persisted.
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "new decision recorded second");
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    const memoryFiles = entries.filter(e => e.path === "project-memory.md");
+    expect(memoryFiles).toHaveLength(1); // refreshed, not duplicated
+    expect(memoryFiles[0].content).toContain("old decision recorded first");
+    expect(memoryFiles[0].content).toContain("new decision recorded second");
+
+    const agents = entries.find(e => e.path === "AGENTS.md")!;
+    expect((agents.content.match(/old decision recorded first/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/new decision recorded second/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1); // exactly one section
   });
 });

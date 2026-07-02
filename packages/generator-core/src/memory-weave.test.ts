@@ -72,7 +72,7 @@ describe("buildMemorySection", () => {
 });
 
 describe("appendMemoryWeave", () => {
-  it("injects the section into AGENTS.md and CLAUDE.md, adds project-memory.md once, leaves other files untouched, and is idempotent", () => {
+  it("injects the section into AGENTS.md and CLAUDE.md, adds project-memory.md once, leaves other files untouched", () => {
     const g = result([mdFile("AGENTS.md"), mdFile("CLAUDE.md"), mdFile("debug-playbook.md"), jsonFile("context-map.json")]);
     const beforeDebug = g.files.find((f) => f.path === "debug-playbook.md")!.content;
     const beforeJson = g.files.find((f) => f.path === "context-map.json")!.content;
@@ -91,20 +91,54 @@ describe("appendMemoryWeave", () => {
     expect(memoryFiles[0].program).toBe("skills");
     expect(memoryFiles[0].content).toContain("# Project Memory — 1 entries");
     expect(memoryFiles[0].content).toContain("POST /v1/projects/{project_id}/memory");
-
-    const n = g.files.length;
-    const agentsBefore = agents.content;
-    appendMemoryWeave(g, [entry()]); // project-memory.md already present → whole pass is a no-op
-    expect(g.files.length).toBe(n);
-    expect(g.files.find((f) => f.path === "AGENTS.md")!.content).toBe(agentsBefore);
   });
 
-  it("is a no-op on empty entries", () => {
+  it("re-weaving with the SAME entries is a true no-op (byte-identical output, no duplication)", () => {
     const g = result([mdFile("AGENTS.md")]);
-    const before = g.files[0].content;
+    appendMemoryWeave(g, [entry()]);
+    const n = g.files.length;
+    const agentsBefore = g.files.find((f) => f.path === "AGENTS.md")!.content;
+    const memoryBefore = g.files.find((f) => f.path === "project-memory.md")!.content;
+
+    appendMemoryWeave(g, [entry()]);
+
+    expect(g.files.length).toBe(n);
+    expect(g.files.find((f) => f.path === "AGENTS.md")!.content).toBe(agentsBefore);
+    expect(g.files.find((f) => f.path === "project-memory.md")!.content).toBe(memoryBefore);
+  });
+
+  // WO-08 fix 3: the MCP path persists the woven package, so a later export must
+  // REFRESH memory, not skip it — otherwise memory freezes at first-analysis state.
+  it("re-weaving with NEW entries replaces stale content instead of skipping or duplicating", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry({ content: "first decision" })]);
+
+    appendMemoryWeave(g, [entry({ content: "second decision" }), entry({ content: "first decision" })]);
+
+    const memory = g.files.find((f) => f.path === "project-memory.md")!;
+    expect(memory.content).toContain("# Project Memory — 2 entries");
+    expect(memory.content).toContain("second decision");
+    expect(memory.content).toContain("first decision");
+    expect(g.files.filter((f) => f.path === "project-memory.md")).toHaveLength(1); // no duplicate pushed
+
+    const agents = g.files.find((f) => f.path === "AGENTS.md")!;
+    expect((agents.content.match(/second decision/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/first decision/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1); // exactly one section, not two
+    expect((agents.content.match(/<!-- axis:project-memory:start -->/g) ?? []).length).toBe(1); // exactly one delimiter pair
+    expect((agents.content.match(/<!-- axis:project-memory:end -->/g) ?? []).length).toBe(1);
+  });
+
+  it("is a no-op on empty entries (does not clear an existing stale artifact)", () => {
+    const g = result([mdFile("AGENTS.md")]);
+    appendMemoryWeave(g, [entry()]);
+    const agentsBefore = g.files.find((f) => f.path === "AGENTS.md")!.content;
+    const memoryBefore = g.files.find((f) => f.path === "project-memory.md")!.content;
+
     appendMemoryWeave(g, []);
-    expect(g.files).toHaveLength(1);
-    expect(g.files[0].content).toBe(before);
+
+    expect(g.files.find((f) => f.path === "AGENTS.md")!.content).toBe(agentsBefore);
+    expect(g.files.find((f) => f.path === "project-memory.md")!.content).toBe(memoryBefore);
   });
 
   it("is a no-op on an empty package", () => {
