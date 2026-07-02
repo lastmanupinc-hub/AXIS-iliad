@@ -386,6 +386,19 @@ describe("Flow 4: admin endpoints", () => {
 // Flow 5: Health probes & infrastructure
 // ═══════════════════════════════════════════════════════════════
 describe("Flow 5: health probes & database endpoints", () => {
+  // /v1/db/* are admin-only; mint an account and pin its key as ADMIN_API_KEY.
+  let adminKey: string;
+
+  beforeAll(async () => {
+    const r = await req(PORT, "POST", "/v1/accounts", { name: "DB Admin", email: "db-admin-e2e@example.com" });
+    adminKey = ((r.data as Record<string, unknown>).api_key as Record<string, unknown>).raw_key as string;
+    process.env.ADMIN_API_KEY = adminKey;
+  });
+
+  afterAll(() => {
+    delete process.env.ADMIN_API_KEY;
+  });
+
   it("liveness probe returns alive", async () => {
     const r = await req(PORT, "GET", "/v1/health/live");
     expect(r.status).toBe(200);
@@ -407,16 +420,26 @@ describe("Flow 5: health probes & database endpoints", () => {
     expect(text).toContain("axis_uptime_seconds");
   });
 
-  it("db stats returns table info", async () => {
+  it("db stats rejects unauthenticated callers", async () => {
     const r = await req(PORT, "GET", "/v1/db/stats");
+    expect(r.status).toBe(401);
+  });
+
+  it("db stats returns table info for an admin", async () => {
+    const r = await req(PORT, "GET", "/v1/db/stats", undefined, { Authorization: `Bearer ${adminKey}` });
     expect(r.status).toBe(200);
     const d = r.data as Record<string, unknown>;
     expect(d.success).toBe(true);
     expect((d.details as Record<string, unknown>).tables).toBeTruthy();
   });
 
-  it("db maintenance completes successfully", async () => {
+  it("db maintenance rejects unauthenticated callers", async () => {
     const r = await req(PORT, "POST", "/v1/db/maintenance");
+    expect(r.status).toBe(401);
+  });
+
+  it("db maintenance completes successfully for an admin", async () => {
+    const r = await req(PORT, "POST", "/v1/db/maintenance", undefined, { Authorization: `Bearer ${adminKey}` });
     expect(r.status).toBe(200);
     const d = r.data as Record<string, unknown>;
     expect(d.success).toBe(true);

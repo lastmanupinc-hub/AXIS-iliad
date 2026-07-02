@@ -29,7 +29,7 @@ describe("buildOpenApiSpec", () => {
     expect(paths).toContain("/v1/search/{snapshot_id}/stats");
   });
 
-  it("includes all 19 program endpoints", () => {
+  it("includes all 21 program endpoints", () => {
     const paths = Object.keys(spec.paths);
     const programPaths = paths.filter(
       (p) =>

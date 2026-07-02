@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { requireAuth } from "./billing.js";
-import { ErrorCode } from "./logger.js";
+import { ErrorCode, log } from "./logger.js";
 import {
   inviteSeat,
   acceptSeat,
@@ -119,9 +119,11 @@ export async function handleInviteSeat(
   try {
     const seat = await inviteSeat(ctx.account!.account_id, email, role as SeatRole, ctx.account!.account_id);
 
-    // Send invitation email (fire-and-forget)
-    // v8 ignore next
-    sendSeatInvitation(email, ctx.account!.name, ctx.account!.name, role, seat.seat_id).catch(() => {});
+    // Send invitation email (fire-and-forget — log failures for observability, failure mode G4).
+    /* v8 ignore next 3 */
+    sendSeatInvitation(email, ctx.account!.name, ctx.account!.name, role, seat.seat_id).catch((e: unknown) => {
+      log("warn", "seat-invitation-email-failed", { seat_id: seat.seat_id, error: e instanceof Error ? e.message : String(e) });
+    });
 
     sendJSON(res, 201, { seat });
   /* v8 ignore start — V8 quirk: seat error handling tested but V8 won't credit ternary/includes */
@@ -247,11 +249,15 @@ export async function handleGetUpgradePrompt(
     return;
   }
 
-  // Track that we showed the prompt
-  await trackEvent(ctx.account!.account_id, "upgrade_prompt_shown", "upgrade_shown", {
-    trigger: prompt.trigger,
-    recommended_tier: prompt.recommended_tier,
-  });
+  // Track that we showed the prompt (best-effort — never 500 the prompt on an analytics write).
+  try {
+    await trackEvent(ctx.account!.account_id, "upgrade_prompt_shown", "upgrade_shown", {
+      trigger: prompt.trigger,
+      recommended_tier: prompt.recommended_tier,
+    });
+  } catch {
+    /* Best-effort KPI. */
+  }
 
   sendJSON(res, 200, { prompt, stage });
 }
@@ -268,9 +274,13 @@ export async function handleDismissUpgradePrompt(
   let body: Record<string, unknown> = {};
   try { body = raw ? JSON.parse(raw) : {}; } catch { /* empty is fine */ }
 
-  await trackEvent(ctx.account!.account_id, "upgrade_prompt_dismissed", await resolveStage(ctx.account!.account_id), {
-    reason: body.reason ?? "not_specified",
-  });
+  try {
+    await trackEvent(ctx.account!.account_id, "upgrade_prompt_dismissed", await resolveStage(ctx.account!.account_id), {
+      reason: body.reason ?? "not_specified",
+    });
+  } catch {
+    /* Best-effort KPI — never fail the dismiss on analytics, even if resolveStage itself rejects. */
+  }
 
   sendJSON(res, 200, { dismissed: true });
 }
