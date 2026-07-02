@@ -15,6 +15,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { readBody, sendJSON, sendError } from "./router.js";
 import { log, ErrorCode } from "./logger.js";
 import { buildDeltaReport, type GeneratorResult, type GeneratedFile } from "@axis/generator-core";
+import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap } from "@axis/context-engine";
 
 // ─── Signature verification ────────────────────────────────────
@@ -266,7 +267,7 @@ async function dispatchWebhookSnapshot(
   }
 
   const { fetchGitHubRepo } = githubMod;
-  const { createSnapshot, getProjectSnapshots, getContextMap, getGeneratorResult, saveGeneratorResult } = snapshotsMod;
+  const { createSnapshot, getProjectSnapshots, getContextMap, getGeneratorResult, saveGeneratorResult, saveContextMap, saveRepoProfile } = snapshotsMod;
 
   const token = process.env.GITHUB_TOKEN ?? undefined;
   const repoUrl = target.cloneUrl.replace(/\.git$/, "");
@@ -317,6 +318,27 @@ async function dispatchWebhookSnapshot(
     snapshot_id: snapshot.snapshot_id,
     file_count: fetchResult.files.length,
   });
+
+  // Analysis-on-push: build + persist the context map so the delta below (and any
+  // later consumer) has something to diff. Fail-open — analysis failure must never
+  // surface past the webhook's success path; the snapshot itself already persisted.
+  try {
+    const contextMap = buildContextMap(snapshot);
+    const repoProfile = buildRepoProfile(snapshot);
+    await saveContextMap(snapshot.snapshot_id, contextMap);
+    await saveRepoProfile(snapshot.snapshot_id, repoProfile);
+    log("info", "github-webhook.analysis_completed", {
+      repo: target.repoFullName,
+      snapshot_id: snapshot.snapshot_id,
+    });
+  } catch (err) {
+    log("error", "github-webhook.analysis_failed", {
+      repo: target.repoFullName,
+      snapshot_id: snapshot.snapshot_id,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    // No ctx ⇒ the delta block below will skip with reason:no_ctx, as today.
+  }
 
   // Watchtower v1: an unprompted delta narrative for every re-analysis. Own try/catch —
   // a throw here must never surface past the webhook's success path (fail-open).

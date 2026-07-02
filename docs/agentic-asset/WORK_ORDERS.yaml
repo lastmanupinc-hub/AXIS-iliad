@@ -620,7 +620,7 @@ work_orders:
   - id: WO-11
     title: "Watchtower analysis-on-push: build + persist the context map for webhook snapshots"
     phase: later
-    status: open
+    status: done
     depends_on: []             # independent of WO-10 (disjoint files); WO-10 sits first in the queue
     spec: docs/agentic-asset/specs/SPEC-11-watchtower-analysis-on-push.md
     branch: feat/aa-watchtower-live
@@ -633,7 +633,48 @@ work_orders:
       - pnpm --filter @axis/api exec tsc --noEmit
       - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged (no route changes)"
     evidence: |
-      (executor fills)
+      Files touched match files_expected exactly (no other files edited).
+      - `github-webhook.test.ts` — 25/25 pass (17 pre-existing unit/HTTP tests +
+        5 rewritten/new watchtower tests): (1) analysis-on-push populates a real
+        context map + repo profile for the dispatched snapshot (project_identity.name
+        matches the repo); (2) two dispatches of the same repo with a genuinely
+        larger second file set produce two REAL (non-pre-seeded) context maps
+        and a real delta-report.md whose summary is non-empty (size-section
+        diff, not a framework-specific route parse — more robust than the
+        original manually-pre-seeded routes-diff test it replaces); (3) the
+        first-snapshot skip (unchanged, still delta_skipped/first_snapshot,
+        no generator result stored); (4) an identical re-push analyzes both
+        snapshots for real but finds no diff (delta_skipped/no_change) —
+        proves the pipeline correctly says nothing changed rather than merely
+        never running; (5) fail-open — a corrupted fetched file (a `path`
+        getter that throws) crashes buildContextMap deep inside
+        buildProjectIdentity, caught by the NEW analysis-on-push try/catch
+        (logs analysis_failed to stderr, contextMaps never written for that
+        snapshot), and the webhook still returns 202; the delta block then
+        degrades gracefully to delta_skipped/no_ctx, exactly as it did before
+        this WO for any missing context map.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      - `count-honesty.test.ts` + `counts-consistency.test.ts` — 9/9 pass
+        (no route/count changes in this WO).
+      Design decisions made where the spec left latitude (no deviation from
+      any FIXED contract): the mocked `createSnapshot` in github-webhook.test.ts
+      had to be enriched with `manifest`/`files`/`file_count`/etc. (previously
+      only `snapshot_id`/`project_id`/`created_at`) so the REAL
+      `buildContextMap`/`buildRepoProfile` — unmocked, pulled in from
+      `@axis/context-engine` — could run against it without throwing on an
+      incomplete SnapshotRecord; this is a test-only change, no production
+      code needed it. The pre-existing "fails open" test asserted
+      `buildDeltaReport` itself throwing (via a context map with a throwing
+      `routes` getter) — since analysis-on-push now runs for real and would
+      overwrite any manually pre-seeded context map before the delta block
+      ever reads it, that scenario is no longer reachable as originally
+      written. Repurposed it to exercise the NEW analysis-on-push try/catch
+      instead (a poisoned fetched file), which is the more relevant fail-open
+      path this WO actually introduces; the original test's PURPOSE (prove a
+      deep internal throw can't break the webhook's 202 response) is fully
+      preserved, just retargeted at the code this WO added. The now-unused
+      `watchtowerCtx()` manual-fixture helper was deleted rather than left as
+      dead code once no test needed manual pre-seeding anymore.
 
   - id: WO-12
     title: "Launch-claims fact-pass: LAUNCH_CLAIMS.yaml registry + gate + corpus rewrite"
