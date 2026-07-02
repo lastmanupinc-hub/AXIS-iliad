@@ -616,3 +616,21 @@ work_orders:
       - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged"
     evidence: |
       (executor fills)
+
+  - id: WO-11
+    title: "Watchtower analysis-on-push: build + persist the context map for webhook snapshots"
+    phase: later
+    status: open
+    depends_on: []             # independent of WO-10 (disjoint files); WO-10 sits first in the queue
+    spec: docs/agentic-asset/specs/SPEC-11-watchtower-analysis-on-push.md
+    branch: feat/aa-watchtower-live
+    files_expected:
+      - apps/api/src/github-webhook.ts                         # analysis block after snapshot_created (fail-open)
+      - apps/api/src/github-webhook.test.ts
+      - docs/agentic-asset/WORK_ORDERS.yaml                    # this entry's status + evidence
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/github-webhook.test.ts --no-coverage   # all pass, incl. the end-to-end two-push delta case"
+      - pnpm --filter @axis/api exec tsc --noEmit
+      - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged (no route changes)"
+    evidence: |
+      (executor fills)
