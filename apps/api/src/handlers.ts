@@ -3531,7 +3531,11 @@ export async function handleFirecrawlScrape(
   // 24h, serve it for $0 (no Firecrawl call, no charge, no quota consumed).
   const cachedScrape = await getCachedScrape(url);
   if (cachedScrape) {
-    await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, cached: true });
+    try {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, cached: true });
+    } catch {
+      /* Best-effort KPI — never fail a $0 cache hit on analytics (incl. a resolveStage reject). */
+    }
     sendJSON(res, 200, {
       success: true,
       cached: true,
@@ -3616,7 +3620,11 @@ export async function handleFirecrawlScrape(
         return;
       }
 
-      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, mode });
+      try {
+        await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, mode });
+      } catch {
+        /* Best-effort KPI — the scrape already succeeded and was charged; never 500 on analytics. */
+      }
 
       const scrapedMarkdown = firecrawlData.data?.markdown ?? "";
       const scrapedMetadata = (firecrawlData.data?.metadata ?? {}) as Record<string, unknown>;
@@ -3767,7 +3775,11 @@ export async function handleFirecrawlCrawl(
       }
     }
 
-    await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+    try {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+    } catch {
+      /* Best-effort KPI — the crawl already succeeded and was charged; never 500 on analytics. */
+    }
 
     sendJSON(res, 200, {
       success: true,

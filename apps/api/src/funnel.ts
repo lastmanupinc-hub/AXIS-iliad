@@ -247,11 +247,15 @@ export async function handleGetUpgradePrompt(
     return;
   }
 
-  // Track that we showed the prompt
-  await trackEvent(ctx.account!.account_id, "upgrade_prompt_shown", "upgrade_shown", {
-    trigger: prompt.trigger,
-    recommended_tier: prompt.recommended_tier,
-  });
+  // Track that we showed the prompt (best-effort — never 500 the prompt on an analytics write).
+  try {
+    await trackEvent(ctx.account!.account_id, "upgrade_prompt_shown", "upgrade_shown", {
+      trigger: prompt.trigger,
+      recommended_tier: prompt.recommended_tier,
+    });
+  } catch {
+    /* Best-effort KPI. */
+  }
 
   sendJSON(res, 200, { prompt, stage });
 }
@@ -268,9 +272,13 @@ export async function handleDismissUpgradePrompt(
   let body: Record<string, unknown> = {};
   try { body = raw ? JSON.parse(raw) : {}; } catch { /* empty is fine */ }
 
-  await trackEvent(ctx.account!.account_id, "upgrade_prompt_dismissed", await resolveStage(ctx.account!.account_id), {
-    reason: body.reason ?? "not_specified",
-  });
+  try {
+    await trackEvent(ctx.account!.account_id, "upgrade_prompt_dismissed", await resolveStage(ctx.account!.account_id), {
+      reason: body.reason ?? "not_specified",
+    });
+  } catch {
+    /* Best-effort KPI — never fail the dismiss on analytics, even if resolveStage itself rejects. */
+  }
 
   sendJSON(res, 200, { dismissed: true });
 }
