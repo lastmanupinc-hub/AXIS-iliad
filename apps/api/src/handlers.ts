@@ -51,6 +51,7 @@ import { generateFiles, listAvailableGenerators, computeComplianceGrade } from "
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
+import { requireAdmin } from "./admin.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
@@ -766,18 +767,24 @@ export async function handleHealthCheck(
 }
 
 export async function handleDbStats(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  // Admin-only: this leaks schema + table/index sizes. Gated like /v1/admin/*.
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
   const stats = await getPgDbStats();
   /* v8 ignore next  -  V8 quirk: stats always succeed in test DB */
   sendJSON(res, stats.success ? 200 : 500, stats);
 }
 
 export async function handleDbMaintenance(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  // Admin-only: runs privileged DB maintenance (ANALYZE). Gated like /v1/admin/*.
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
   const results = await runPgMaintenance();
   const allOk = results.every((r) => r.success);
   /* v8 ignore next  -  V8 quirk: maintenance always succeeds in test DB */
