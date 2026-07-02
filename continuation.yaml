@@ -4971,8 +4971,43 @@ project_continuation:
       - "Freshness gate false-red at HEAD (the session_121 pre-existing gap) — resolved."
     blockers_added: []
     remaining_pre_existing_gaps:
-      - "2 Docker-on-Windows code-sandbox test hangs (assert Docker-unreachable but Docker runs on this host) — still need an environment guard. Next agent-actionable ledger candidate."
+      - "2 Docker-on-Windows code-sandbox test hangs — RE-VERIFIED session_123 as ALREADY RESOLVED (the withPingTimeout 3s guard + AXIS_CODE_SANDBOX_DISABLED kill-switch). code-sandbox.test.ts: 16 passed / 7 skipped / 1.8s, no hang. Ledger note was stale."
       - "All manual launch steps in LAUNCH_RUNBOOK.md — owner-gated, unchanged."
-    local_only: true
-    commit_results: ["(pending) reconcile artifact-freshness gate to canonical extractor + soft count-drift"]
-    push_results: []
+    local_only: false
+    commit_results: ["8ce9c45: reconcile artifact-freshness gate to canonical extractor + soft count-drift"]
+    push_results: ["pushed to origin/docs/agentic-asset-strategy — 3a114f4..8ce9c45 (PR #109)"]
+
+  session_result_123:
+    date: "2026-07-02"
+    session_id: "session_123"
+    selected_move: >
+      Fix the ONE real red on PR #109's CI. Monitoring the CI run after the
+      session_122 push revealed the pre-fix failure was NOT the freshness gate
+      (that step never ran) — it was "Run tests with coverage": a single failing
+      deterministic test in generator-core. Root-caused it and fixed it.
+    selected_move_roi_reason: >
+      blocker_removal 5 (a genuinely red CI run blocking PR #109's merge to main),
+      validation_strength 5 (a stale coverage test that contradicts intended,
+      already-merged behavior is worse than no test — it blocks good code),
+      production_quality 5. This is the highest-ROI unblocked candidate: an actual
+      red, not a fuzzy proxy.
+    completed_candidates:
+      - "FIX stale test: packages/generator-core/src/generator-sourcefile-branches11.test.ts 'citation-index non-standard framework'. It used 'Flask' (added to the curated DOCS_URLS map by PR #103 'ground notebook citations in real detected stack', 2026-07-01) and asserted a 'google.com/search' fallback that framework citations never used (that is the LANGUAGE fallback; the framework fallback is npmjs.com/package/). Repointed the test at an uncurated framework name ('CustomFramework') and asserted the real npmjs fallback — preserving the branch-coverage intent (getDocsUrl's `?? npmjs` branch) and future-proofing it against further curation. Added a comment warning not to swap in a real framework."
+    refused_candidates:
+      - "Author SPEC-10 from the 5 tail-review medium/low defects — those findings were never persisted to the repo (they lived only in prior conversation context), and spec authoring is a Fable planning-model / ELABORATE-gate job per CONSTITUTION.md, not Sonnet execution. Out of lane; deferred to owner/Fable."
+    blocked_candidates: []
+    evidence_added:
+      - "Root cause traced via git -S: flask added to DOCS_URLS in 3bbc8ca (PR #103, 2026-07-01); the coverage test written 2026-04-08 (5f9f99e) was never updated to the grounded-citations contract."
+      - "Local repro + fix: npx vitest run generator-sourcefile-branches11.test.ts → 33/33 pass. Full generator-core suite → 1620 passed, 8 skipped (the lone 'failed file' is pipeline.test.ts requiring DATABASE_URL — a local-Postgres gap, GREEN in CI which provisions Postgres)."
+      - "CI confirmation: run 28560089421 (pre-fix) failed at 'Run tests with coverage' on this exact assertion; run 28605640668 (session_122 push, before this fix) failed identically — as expected, since the flask fix was not yet committed."
+    verticals_advanced:
+      - "v0_core_platform: PR #109 CI red → the sole real failing test is fixed; freshness gate now runs (it was blocked behind the earlier failing test step)."
+    blockers_removed:
+      - "generator-core citation-index test false-red at HEAD — the last real red on PR #109's build-and-test job."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "All manual launch steps in LAUNCH_RUNBOOK.md — owner-gated, unchanged."
+      - "5 tail-review medium/low defects (never persisted) → future SPEC-10, Fable/owner-gated."
+    local_only: false
+    commit_results: ["(pending) fix stale generator-core citation-index coverage test"]
+    push_results: ["(pending) origin/docs/agentic-asset-strategy — will re-trigger PR #109 CI"]
