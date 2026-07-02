@@ -36,6 +36,10 @@ export { appendDeltaReport, buildDeltaReport } from "./delta-report.js";
 // Appended at the surface too, before appendDeltaReport/appendProgramFunnel.
 export { appendMemoryWeave, buildMemorySection, MEMORY_WEAVE_LIMIT } from "./memory-weave.js";
 export type { WovenMemoryEntry } from "./memory-weave.js";
+// Fleet Report — cross-project intelligence for accounts with >=2 projects (E6).
+// Account-level surface, computed on demand — NOT a counted generator.
+export { buildFleetReport, FLEET_MIN_PROJECTS, FLEET_MAX_PROJECTS } from "./fleet-report.js";
+export type { FleetProjectInput } from "./fleet-report.js";
 export { generateContextMapJSON, generateRepoProfileYAML, generateArchitectureSummary, generateDependencyHotspots, generateRepoRunStats } from "./generators-search.js";
 export { generateAgentsMD, generateClaudeMD, generateCursorRules, generateWorkflowPack, generatePolicyPack } from "./generators-skills.js";
 export { generateDebugPlaybook, generateIncidentTemplate, generateTracingRules, generateRootCauseChecklist } from "./generators-debug.js";

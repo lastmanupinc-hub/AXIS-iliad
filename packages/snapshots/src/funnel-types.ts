@@ -34,13 +34,14 @@ export type FunnelEventType =
   | "trial_expired"
   | "checkout_started"
   | "cancellation_requested"
-  // Agentic-asset program (WO-01..07): compounding-value KPI events.
+  // Agentic-asset program (WO-01..09): compounding-value KPI events.
   | "delta_generated"
   | "persistence_metered"
   | "funnel_personalized"
   | "watchtower_delta"
   | "memory_written"
-  | "memory_woven";
+  | "memory_woven"
+  | "fleet_viewed";
 
 export interface FunnelEvent {
   event_id: string;
