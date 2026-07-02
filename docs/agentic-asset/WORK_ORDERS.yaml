@@ -382,7 +382,7 @@ work_orders:
   - id: WO-07
     title: "Memory weave: pure appendMemoryWeave + export/MCP wiring + project-memory.md artifact"
     phase: next
-    status: open
+    status: done
     depends_on: [WO-05]        # store must exist; WO-06 arrives transitively
     spec: docs/agentic-asset/specs/SPEC-07-memory-weave.md
     branch: feat/aa-memory-weave
@@ -398,4 +398,38 @@ work_orders:
       - "vitest run packages/generator-core/src/memory-weave.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/export.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly (6 files: 2 new, 4 modified).
+      Diff: 322 changed lines vs the spec's "~300 LOC" estimate — right on
+      target, no ballooning.
+      - `memory-weave.test.ts` — 11/11 pass (empty entries → null/no-op; fixed
+        kind render order decision→convention→goal→evidence with per-kind
+        headings; source segment omitted/shown correctly; 51 entries → 50
+        rendered + "… +1 earlier entries omitted"; determinism — byte-identical
+        on repeat; section injected into AGENTS.md + CLAUDE.md, project-memory.md
+        added exactly once, non-target files (JSON, other .md) left untouched,
+        idempotent on a second call; no-op on empty entries; no-op on empty
+        package).
+      - `determinism.test.ts` (unchanged) green in the same run.
+      - `export.test.ts` — 23/23 pass (21 pre-existing unchanged + 2 new: an
+        owned project with 2 memory entries gets project-memory.md containing
+        both entries' content, AGENTS.md gains the "Decisions already made"
+        section, and a `memory_woven` funnel_events row exists; a project with
+        no memory entries gets neither the artifact nor the section nor the
+        event).
+      - `pnpm --filter @axis/generator-core build` + `pnpm --filter @axis/api
+        exec tsc --noEmit` — both clean.
+      - Also ran (not in this WO's list, but shared-surface regression since
+        mcp-tool-impls.ts is heavily used): count-honesty + strategic-docs-
+        honesty (7/7), mcp-server.test.ts + a broader MCP-path suite (164/164),
+        and a 10-file, 242-test sweep across every generator-core/apps-api file
+        touched anywhere in this session (WO-01 through WO-07) — all green.
+      Per the spec's explicit waiver: no MCP-path integration test was written
+      for the `maybeRunQualityGate` wiring (running the full analyze pipeline to
+      reach it is disproportionate to verify wiring 6 lines of already-covered,
+      pure logic). The shared `appendMemoryWeave`/`buildMemorySection` functions
+      are fully covered by `memory-weave.test.ts`; only the call-site wiring in
+      `mcp-tool-impls.ts` is unit-untested, matching the spec's own guidance.
+      This closes the "now"+"next" phase of the agentic-asset program: WO-01
+      through WO-07 are all done. WO-08+ (E6 Fleet) is not yet ordered — specs
+      written at phase start, per EXECUTION_PLAN.md.

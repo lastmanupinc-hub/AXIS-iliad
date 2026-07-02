@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { deflateRawSync } from "node:zlib";
-import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap, getUsageSummary, trackEvent, resolveStage } from "@axis/snapshots";
+import { getProjectSnapshots, getProjectOwner, getGeneratorResult, getContextMap, getUsageSummary, listMemoryEntries, trackEvent, resolveStage } from "@axis/snapshots";
 import type { ContextMap } from "@axis/context-engine";
-import { appendAutonomyLoop, appendProgramFunnel, appendDeltaReport, type GeneratorResult } from "@axis/generator-core";
+import { appendAutonomyLoop, appendProgramFunnel, appendDeltaReport, appendMemoryWeave, MEMORY_WEAVE_LIMIT, type GeneratorResult, type WovenMemoryEntry } from "@axis/generator-core";
 import { sendJSON, sendError } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { ErrorCode } from "./logger.js";
@@ -166,6 +166,17 @@ export async function handleExportZip(
   if (!programFilter) {
     const ctx = (await getContextMap(latest.snapshot_id)) as ContextMap | undefined;
     if (ctx) {
+      try {
+        const rawEntries = await listMemoryEntries(project_id, { limit: MEMORY_WEAVE_LIMIT + 1 });
+        const entries: WovenMemoryEntry[] = rawEntries.map(e => ({ kind: e.kind, content: e.content, source: e.source, created_at: e.created_at }));
+        const hadMemory = generated.files.some(f => f.path === "project-memory.md");
+        appendMemoryWeave(generated, entries); // read the project brain back in — before the delta/funnel so it's sequenced first
+        if (!hadMemory && accountId && generated.files.some(f => f.path === "project-memory.md")) {
+          await trackEvent(accountId, "memory_woven", await resolveStage(accountId), { project_id }).catch(() => {});
+        }
+      } catch {
+        // Best-effort; the export must never fail because memory couldn't be loaded/woven.
+      }
       try {
         const prevSnapshot = snapshots[snapshots.length - 2];
         if (prevSnapshot) {
