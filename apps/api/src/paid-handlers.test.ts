@@ -130,6 +130,28 @@ describe("POST /portal/api/subscribe", () => {
     expect(String(url)).toContain("/checkout/sessions");
   });
 
+  it("ignores a spoofed Origin header when building return URLs (no open redirect)", async () => {
+    vi.stubEnv("PAID_PUBLIC_APP_URL", "https://iliad.trustfabric.ai");
+    await createAccount("origin-spoof@test.com");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({ id: "cs_o", url: "https://pay/cs_o", status: "open" }), { status: 200 }),
+    );
+    const r = await req(
+      "POST",
+      "/portal/api/subscribe",
+      { plan: "monthly", email: "origin-spoof@test.com" },
+      { Origin: "https://attacker.example" },
+    );
+    expect(r.status).toBe(200);
+    // The return URLs must come from the validated app base URL, never the caller's Origin.
+    const init = fetchSpy.mock.calls[0]![1] as RequestInit;
+    const sent = JSON.parse(String(init.body)) as { success_url: string; cancel_url: string };
+    expect(sent.success_url).toBe("https://iliad.trustfabric.ai/?paid_checkout=success");
+    expect(sent.cancel_url).toBe("https://iliad.trustfabric.ai/?paid_checkout=cancel");
+    expect(sent.success_url).not.toContain("attacker");
+    expect(sent.cancel_url).not.toContain("attacker");
+  });
+
   it("no longer requires a Stripe publishable key (PAI'D hosts the page)", async () => {
     await createAccount("subscribe-nopk@test.com");
     vi.stubEnv("PAID_STRIPE_PUBLISHABLE_KEY", undefined);

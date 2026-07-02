@@ -58,13 +58,32 @@ function planPriceCents(planId: string, cycle: PaidPlan): number | null {
   return cents > 0 ? cents : null;
 }
 
-/** Build the hosted-checkout return URLs from the caller's origin. */
-function checkoutReturnUrls(req: IncomingMessage): { successUrl: string; cancelUrl: string } {
-  const origin =
-    (typeof req.headers.origin === "string" && req.headers.origin) ||
-    process.env.PAID_PUBLIC_APP_URL ||
-    "https://axis-iliad.onrender.com";
-  const base = origin.replace(/\/+$/, "");
+/**
+ * Resolve the app base URL for hosted-checkout return links. Env-driven and
+ * validated (mirrors stripe.ts resolveCheckoutBaseUrl) — deliberately does NOT
+ * trust the request `Origin` header, which is caller-controlled: a crafted
+ * (non-browser) request could otherwise point PAI'D's post-checkout redirect at
+ * an attacker-controlled origin (open-redirect via the payment processor).
+ */
+function paidAppBaseUrl(): string {
+  const candidates = [process.env.PAID_PUBLIC_APP_URL, process.env.AXIS_WEB_URL];
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === "*") continue;
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.origin;
+    } catch {
+      // ignore an invalid candidate and try the next
+    }
+  }
+  return "https://iliad.trustfabric.ai";
+}
+
+/** Build the hosted-checkout return URLs from the validated app base URL. */
+function checkoutReturnUrls(): { successUrl: string; cancelUrl: string } {
+  const base = paidAppBaseUrl();
   return {
     successUrl: `${base}/?paid_checkout=success`,
     cancelUrl: `${base}/?paid_checkout=cancel`,
@@ -128,7 +147,7 @@ export async function handlePaidSubscribe(
     sendError(res, 503, ErrorCode.INTERNAL_ERROR, "Plan price unavailable");
     return;
   }
-  const { successUrl, cancelUrl } = checkoutReturnUrls(req);
+  const { successUrl, cancelUrl } = checkoutReturnUrls();
 
   try {
     const session = await createCheckoutSession(

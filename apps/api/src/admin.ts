@@ -17,7 +17,7 @@ import {
  * Require admin access. Validates auth first, then checks the raw API key
  * against the ADMIN_API_KEY env var. Returns null (and sends 403) on failure.
  */
-async function requireAdmin(req: IncomingMessage, res: ServerResponse): Promise<AuthContext | null> {
+export async function requireAdmin(req: IncomingMessage, res: ServerResponse): Promise<AuthContext | null> {
   const ctx = await requireAuth(req, res);
   if (!ctx) return null; // 401 already sent
 

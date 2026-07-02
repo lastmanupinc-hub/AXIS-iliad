@@ -79,7 +79,7 @@ After 6 months of development and 97 coding sessions, this AI-native development
 • 4,000+ automated tests
 • Zero runtime HTTP dependencies
 • MCP server integration
-• Production-grade API with 143 endpoints
+• Production-grade API with 148 endpoints
 
 **Freemium model:**
 • Free: 3 core programs
@@ -139,7 +139,7 @@ Takes any repository (GitHub URL or uploaded) and generates 102 different output
 - Zero HTTP dependencies in runtime
 - MCP server integration
 - SQLite persistence with full-text search
-- 143 API endpoints
+- 148 API endpoints
 
 **Try it:** https://axis-api-6c7z.onrender.com
 **Source:** https://github.com/lastmanupinc-hub/axis-iliad

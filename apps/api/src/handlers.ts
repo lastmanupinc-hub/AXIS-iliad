@@ -51,6 +51,7 @@ import { generateFiles, listAvailableGenerators, computeComplianceGrade } from "
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
+import { requireAdmin } from "./admin.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 
@@ -766,18 +767,24 @@ export async function handleHealthCheck(
 }
 
 export async function handleDbStats(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  // Admin-only: this leaks schema + table/index sizes. Gated like /v1/admin/*.
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
   const stats = await getPgDbStats();
   /* v8 ignore next  -  V8 quirk: stats always succeed in test DB */
   sendJSON(res, stats.success ? 200 : 500, stats);
 }
 
 export async function handleDbMaintenance(
-  _req: IncomingMessage,
+  req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
+  // Admin-only: runs privileged DB maintenance (ANALYZE). Gated like /v1/admin/*.
+  const ctx = await requireAdmin(req, res);
+  if (!ctx) return;
   const results = await runPgMaintenance();
   const allOk = results.every((r) => r.success);
   /* v8 ignore next  -  V8 quirk: maintenance always succeeds in test DB */
@@ -3524,7 +3531,11 @@ export async function handleFirecrawlScrape(
   // 24h, serve it for $0 (no Firecrawl call, no charge, no quota consumed).
   const cachedScrape = await getCachedScrape(url);
   if (cachedScrape) {
-    await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, cached: true });
+    try {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, cached: true });
+    } catch {
+      /* Best-effort KPI — never fail a $0 cache hit on analytics (incl. a resolveStage reject). */
+    }
     sendJSON(res, 200, {
       success: true,
       cached: true,
@@ -3609,7 +3620,11 @@ export async function handleFirecrawlScrape(
         return;
       }
 
-      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, mode });
+      try {
+        await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, mode });
+      } catch {
+        /* Best-effort KPI — the scrape already succeeded and was charged; never 500 on analytics. */
+      }
 
       const scrapedMarkdown = firecrawlData.data?.markdown ?? "";
       const scrapedMetadata = (firecrawlData.data?.metadata ?? {}) as Record<string, unknown>;
@@ -3760,7 +3775,11 @@ export async function handleFirecrawlCrawl(
       }
     }
 
-    await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+    try {
+      await trackEvent(auth.account.account_id, "snapshot_created", await resolveStage(auth.account.account_id), { url, limit: String(limit), mode });
+    } catch {
+      /* Best-effort KPI — the crawl already succeeded and was charged; never 500 on analytics. */
+    }
 
     sendJSON(res, 200, {
       success: true,
