@@ -1276,6 +1276,19 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/account/fleet": {
+        get: {
+          summary: "Cross-project fleet report (portfolio health + org CLAUDE.md) for accounts with >=2 analyzed projects",
+          operationId: "getAccountFleet",
+          tags: ["Fleet"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Fleet status and, when ready, the fleet-report.md/fleet-CLAUDE.md artifacts", content: jsonContent(ref("FleetResponse")) },
+            401: { description: "Authentication required" },
+            403: { description: "Paid/suite plan required" },
+          },
+        },
+      },
 
       // â”€â”€ OpenAPI Docs â”€â”€
       "/v1/docs": {
@@ -1832,6 +1845,27 @@ export function buildOpenApiSpec(): OpenApiSpec {
             credits_added: { type: "integer" },
             operation: { type: "string" },
             balance_after: { type: "integer" },
+          },
+        },
+        FleetFile: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+            content: { type: "string" },
+            content_type: { type: "string" },
+            program: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+        FleetResponse: {
+          type: "object",
+          properties: {
+            ready: { type: "boolean" },
+            project_count: { type: "integer" },
+            eligible_projects: { type: "integer" },
+            reason: { type: "string", description: "Present only when ready is false" },
+            projects: { type: "array", items: { type: "string" }, description: "Present only when ready is true" },
+            files: { type: "array", items: ref("FleetFile"), description: "Present only when ready is true" },
           },
         },
         MemoryEntry: {

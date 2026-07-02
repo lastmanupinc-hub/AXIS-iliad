@@ -96,6 +96,14 @@ export async function getProjectOwner(project_id: string): Promise<string | null
   return row?.account_id ?? null;
 }
 
+/** All projects owned by an account, alphabetical by name (deterministic — fleet report input). */
+export async function listProjectsByAccount(account_id: string): Promise<Array<{ project_id: string; project_name: string }>> {
+  return await sql.many<{ project_id: string; project_name: string }>(
+    "SELECT project_id, project_name FROM projects WHERE account_id = ? ORDER BY project_name",
+    [account_id],
+  );
+}
+
 /** Delete a snapshot and all associated data (context map, repo profile, generator results, search index). */
 export async function deleteSnapshot(snapshot_id: string): Promise<boolean> {
   return await sql.tx(async (client) => {

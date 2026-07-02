@@ -510,7 +510,7 @@ work_orders:
   - id: WO-09
     title: "Fleet v1: cross-project fleet-report.md + fleet-CLAUDE.md + GET /v1/account/fleet"
     phase: later
-    status: open
+    status: done
     depends_on: [WO-08]        # serialize the store.ts edits; fleet builds on a clean base
     spec: docs/agentic-asset/specs/SPEC-09-fleet-report.md
     branch: feat/aa-fleet-report
@@ -534,4 +534,49 @@ work_orders:
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/fleet-handlers.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly (13 files: 4 new, 9 modified).
+      Diff: 641 changed lines vs the spec's "~620 LOC" estimate — right on
+      target, no ballooning.
+      - `pnpm --filter @axis/snapshots build` + `pnpm --filter @axis/generator-core
+        build` — both clean.
+      - `fleet-report.test.ts` + `determinism.test.ts` — 13/13 pass (<2 projects
+        → null; exactly 2 → both files with correct headers + table rows; shared
+        stack lists a framework in exactly the 2 projects that have it, never a
+        single-project one; org-wide warnings only on verbatim >=2 overlap;
+        sections omitted entirely when nothing overlaps; conventions intersect
+        on >=2; memory decisions render under the right project subheading,
+        omitted per-project and section-wide when empty; deterministic
+        regardless of input order — shuffled input byte-identical; 26 projects
+        → 25 used + "25 of 26" overflow note, 26th alphabetically-last dropped;
+        never renders "undefined"/"NaN" with a bare `{}` ctx).
+      - `fleet-handlers.test.ts` — 6/6 pass (401 unauthenticated; 403 free tier
+        TIER_REQUIRED; paid + 1 analyzed project → 200 ready:false with counts;
+        paid + 2 analyzed projects + 1 memory decision → 200 ready:true, both
+        files, decision under the right project heading, the other project's
+        heading correctly absent; a second account's project never leaks into
+        the caller's fleet; `fleet_viewed` fires only on ready:true).
+      - `count-honesty.test.ts` + `openapi.test.ts` + `deployment.test.ts` —
+        70/70 pass (confirms the 145→146 ENDPOINT_COUNT bump and both doc
+        updates stay in lockstep — the same landmine class as SPEC-05).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      - Also ran (not in this WO's list): strategic-docs-honesty,
+        counts-consistency, server-routes, funnel-api — 65/65 pass (confirms
+        the new route/schema didn't disturb the shared server.ts/openapi.ts
+        surfaces).
+      Design decisions made where the spec left latitude (no deviation from
+      any FIXED contract): "Shared stack" in fleet-report.md splits into
+      **Frameworks:**/**Languages:** subsections, each listing the full
+      project list; fleet-CLAUDE.md's "Stack" section merges frameworks +
+      languages into one list showing just a project-count (matching the
+      spec's differing wording between the two files: "list of projects"
+      for fleet-report.md vs "project count" for fleet-CLAUDE.md); applied
+      the WO-08 lesson proactively — `fleet_viewed`'s `trackEvent` call uses
+      the guarded try/catch form (`resolveStage` awaited inside the try),
+      not the vulnerable one-line `.catch()` idiom SPEC-06 originally shipped
+      and WO-08 had to fix elsewhere.
+      This completes the agentic-asset program's ordered queue: WO-01 through
+      WO-09 are all done. No further work orders are open; E6+ follow-on work
+      (MCP exposure, weaving fleet-CLAUDE.md into per-project exports,
+      portfolio trends, credit metering) is explicitly deferred to a future
+      owner decision per SPEC-09.

@@ -5,6 +5,7 @@ export {
   updateSnapshotStatus,
   getProjectSnapshots,
   getProjectOwner,
+  listProjectsByAccount,
   deleteSnapshot,
   deleteProject,
   saveContextMap,
