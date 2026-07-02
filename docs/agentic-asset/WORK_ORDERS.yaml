@@ -322,7 +322,7 @@ work_orders:
   - id: WO-05
     title: "Project brain: project_memory migration v30 + memory store + REST (weave split to WO-07)"
     phase: next
-    status: open               # ELABORATE gate cleared 2026-07-01 (planning model); spec is executable
+    status: done               # ELABORATE gate cleared 2026-07-01 (planning model); spec is executable
     depends_on: [WO-01, WO-06] # WO-06 provides the memory_written FunnelEventType member
     spec: docs/agentic-asset/specs/SPEC-05-project-memory.md
     branch: feat/aa-project-memory
@@ -343,7 +343,41 @@ work_orders:
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/memory-handlers.test.ts packages/snapshots/src/memory-store.test.ts packages/snapshots/src/pg-schema.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly (12 files: 4 new, 8 modified).
+      Diff: 719 changed lines vs the spec's own pre-authorized "~580" estimate
+      (~1.24x) — under the §6.5 2x threshold, and the spec explicitly
+      pre-authorized exceeding the §5 ~400 guidance up front.
+      - `memory-handlers.test.ts` + `memory-store.test.ts` + `pg-schema.test.ts`
+        — 22/22 pass (pg-schema.test.ts's 4 real-Postgres cases correctly
+        skipped — it's PG_TEST_URL-gated, unset locally, matching the file's
+        own documented behavior). memory-store: migration fresh path + CHECK
+        constraint rejection, idempotent re-migration (`{current_version: 30,
+        applied: 0}`), newest-first roundtrip with kind filter + limit,
+        per-project counting, getMemoryProject's 3-way distinction (missing /
+        anonymous / owned). memory-handlers: full auth ladder (401/404/403/404
+        no-leak), POST happy path + GET roundtrip, all 5 POST 400 cases, the
+        409 cap (seeded via a single `INSERT...SELECT...generate_series(1,500)`,
+        never 500 sequential inserts), the `memory_written` KPI event, GET
+        `?kind=` filter + invalid-kind 400, `?limit=0` 400 / `?limit=999`
+        silently capped at 200.
+      - `count-honesty.test.ts` + `openapi.test.ts` + `deployment.test.ts` —
+        70/70 pass (confirms the 143→145 ENDPOINT_COUNT bump and both doc
+        updates stay in lockstep — this is the exact landmine the elaboration
+        pass flagged).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean (ran
+        `pnpm --filter @axis/snapshots build` first per the WO-06 finding).
+      - Broader regression: strategic-docs-honesty, export.test.ts,
+        versions.test.ts, github-webhook.test.ts, counts-consistency.test.ts,
+        server-routes.test.ts, server-lifecycle.test.ts — 92/92 pass (touched
+        server.ts/openapi.ts/counts.ts are shared surfaces; confirmed nothing
+        else broke).
+      No deviations from the elaborated spec worth flagging — it was precise
+      enough (exact SQL block, exact auth ladder, exact validation order, exact
+      response shapes) that implementation was a direct transcription. The
+      elaboration pass's own pre-flagged landmines (README/QAPage count claims,
+      stale pg-schema.test.ts assertion, index-only-in-migration trap) were all
+      exactly where it said they'd be.
 
   - id: WO-07
     title: "Memory weave: pure appendMemoryWeave + export/MCP wiring + project-memory.md artifact"
