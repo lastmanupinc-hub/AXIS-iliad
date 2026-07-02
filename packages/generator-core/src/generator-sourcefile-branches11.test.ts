@@ -341,19 +341,23 @@ describe("skills: > 50 source files for file tree truncation", () => {
 });
 
 /* ================================================================= */
-/* PART 9: Notebook citation-index with non-standard framework       */
+/* PART 9: Notebook citation-index with an uncurated framework       */
 /* ================================================================= */
 
-describe("notebook: citation-index with non-standard framework", () => {
-  it("falls through to generic search URL", () => {
+describe("notebook: citation-index with an uncurated framework", () => {
+  it("falls through to the npm package page for a framework not in the curated docs map", () => {
     const inp = input(snap(), ["citation-index.json"]);
-    addFw(inp, "Flask");
+    // "CustomFramework" is deliberately absent from generators-notebook's DOCS_URLS,
+    // so getDocsUrl() must take the `?? https://www.npmjs.com/package/...` fallback
+    // branch — the branch this test exists to cover. Do NOT swap in a real framework:
+    // several (react, django, flask, …) are now curated and resolve to real docs URLs.
+    addFw(inp, "CustomFramework");
     const res = generateFiles(inp);
     const f = getFile(res, "citation-index.json");
     const data = JSON.parse(f!.content);
-    const flaskCitation = data.citations.find((c: { title: string }) => c.title.includes("Flask"));
-    expect(flaskCitation).toBeDefined();
-    expect(flaskCitation.source).toContain("google.com/search");
+    const fwCitation = data.citations.find((c: { title: string }) => c.title.includes("CustomFramework"));
+    expect(fwCitation).toBeDefined();
+    expect(fwCitation.source).toContain("npmjs.com/package/");
   });
 });
 
