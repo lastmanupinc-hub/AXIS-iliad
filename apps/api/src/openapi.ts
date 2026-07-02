@@ -909,22 +909,28 @@ export function buildOpenApiSpec(): OpenApiSpec {
       // â”€â”€ Database â”€â”€
       "/v1/db/stats": {
         get: {
-          summary: "Get database size and table statistics",
+          summary: "Admin: get database size and table statistics",
           operationId: "dbStats",
           tags: ["Database"],
+          security: [{ apiKey: [] }],
           responses: {
             200: { description: "Database stats", content: jsonContent(ref("DbStatsResponse")) },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
             500: { description: "Database error" },
           },
         },
       },
       "/v1/db/maintenance": {
         post: {
-          summary: "Run database maintenance (checkpoint, vacuum, purge)",
+          summary: "Admin: run database maintenance (ANALYZE)",
           operationId: "dbMaintenance",
           tags: ["Database"],
+          security: [{ apiKey: [] }],
           responses: {
             200: { description: "Maintenance results", content: jsonContent(ref("DbMaintenanceResponse")) },
+            401: { description: "Authentication required" },
+            403: { description: "Admin access required" },
             500: { description: "Maintenance failed" },
           },
         },
