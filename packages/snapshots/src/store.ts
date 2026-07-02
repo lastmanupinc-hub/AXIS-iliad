@@ -103,6 +103,10 @@ export async function deleteSnapshot(snapshot_id: string): Promise<boolean> {
     await client.query(pgPlaceholders("DELETE FROM generator_results WHERE snapshot_id = ?"), [snapshot_id]);
     await client.query(pgPlaceholders("DELETE FROM repo_profiles WHERE snapshot_id = ?"), [snapshot_id]);
     await client.query(pgPlaceholders("DELETE FROM context_maps WHERE snapshot_id = ?"), [snapshot_id]);
+    await client.query(pgPlaceholders("DELETE FROM generation_versions WHERE snapshot_id = ?"), [snapshot_id]);
+    // persistence_credits is a monetary audit trail — never delete the ledger row,
+    // only null out the snapshot it references (the column is already nullable).
+    await client.query(pgPlaceholders("UPDATE persistence_credits SET snapshot_id = NULL WHERE snapshot_id = ?"), [snapshot_id]);
     const result = await client.query(pgPlaceholders("DELETE FROM snapshots WHERE snapshot_id = ?"), [snapshot_id]);
     return (result.rowCount ?? 0) > 0;
   });
@@ -117,8 +121,13 @@ export async function deleteProject(project_id: string): Promise<{ deleted_snaps
       await client.query(pgPlaceholders("DELETE FROM generator_results WHERE snapshot_id = ?"), [snapshot_id]);
       await client.query(pgPlaceholders("DELETE FROM repo_profiles WHERE snapshot_id = ?"), [snapshot_id]);
       await client.query(pgPlaceholders("DELETE FROM context_maps WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM generation_versions WHERE snapshot_id = ?"), [snapshot_id]);
+      // persistence_credits is a monetary audit trail — never delete the ledger row,
+      // only null out the snapshot it references (the column is already nullable).
+      await client.query(pgPlaceholders("UPDATE persistence_credits SET snapshot_id = NULL WHERE snapshot_id = ?"), [snapshot_id]);
       await client.query(pgPlaceholders("DELETE FROM snapshots WHERE snapshot_id = ?"), [snapshot_id]);
     }
+    await client.query(pgPlaceholders("DELETE FROM project_memory WHERE project_id = ?"), [project_id]);
     await client.query(pgPlaceholders("DELETE FROM projects WHERE project_id = ?"), [project_id]);
   });
   return { deleted_snapshots: snapshots.length };

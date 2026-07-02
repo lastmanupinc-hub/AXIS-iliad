@@ -221,4 +221,20 @@ describe("GET /v1/projects/:project_id/memory", () => {
     const huge = await req("GET", `/v1/projects/${projectId}/memory?limit=999`, undefined, auth.headers);
     expect(huge.status).toBe(200); // silently capped, not rejected
   });
+
+  // WO-08 fix 6: parseInt truncation let non-integer limits through.
+  it("400 on non-integer ?limit= values (2.9 truncates, 10abc parses as 10)", async () => {
+    const auth = await authHeaders("get-limit-int");
+    const projectId = await ownedProject(auth, "get-limit-int-proj");
+    await req("POST", `/v1/projects/${projectId}/memory`, { kind: "decision", content: "d1" }, auth.headers);
+
+    const fractional = await req("GET", `/v1/projects/${projectId}/memory?limit=2.9`, undefined, auth.headers);
+    expect(fractional.status).toBe(400);
+
+    const trailingGarbage = await req("GET", `/v1/projects/${projectId}/memory?limit=10abc`, undefined, auth.headers);
+    expect(trailingGarbage.status).toBe(400);
+
+    const validInt = await req("GET", `/v1/projects/${projectId}/memory?limit=10`, undefined, auth.headers);
+    expect(validInt.status).toBe(200);
+  });
 });

@@ -221,6 +221,10 @@ function sizeSection(prev: ContextMap, curr: ContextMap): Section | null {
     lines.push(`Total LOC: ${prevTotal} → ${currTotal} (${signed(totalDelta)})`, "");
   }
   if (langDeltas.length) {
+    // totalDelta === 0 here means the mix shifted without moving the total — still a
+    // real, summary-worthy change, so it needs its own fragment (unlike the
+    // total-LOC fragment above, which only fires when totalDelta !== 0).
+    if (totalDelta === 0) fragments.push(frag(langDeltas.length, "language mix shifted", "language mixes shifted"));
     lines.push(
       "**Per-language:**",
       ...langDeltas.map((d) => `- ${d.lang}: ${d.prev} → ${d.curr} (${signed(d.curr - d.prev)})`),

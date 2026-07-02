@@ -106,6 +106,30 @@ describe("buildDeltaReport", () => {
     expect(report).toContain("TypeScript: 1000 → 1300 (+300)");
   });
 
+  // WO-08 fix 5: sizeSection only pushed a summary fragment for totalDelta !== 0,
+  // so a language-mix-only change (same total_loc, shifted composition) rendered
+  // a malformed "Since the last snapshot: ." sentence.
+  it("summary sentence covers language-mix-only changes (total LOC unchanged)", () => {
+    const prev = ctx({
+      structure: {
+        total_loc: 500,
+        file_tree_summary: [{ path: "a.js", type: "file", language: "JavaScript", loc: 500, role: "source" }],
+      },
+    } as Partial<ContextMap>);
+    const curr = ctx({
+      structure: {
+        total_loc: 500,
+        file_tree_summary: [{ path: "a.ts", type: "file", language: "TypeScript", loc: 500, role: "source" }],
+      },
+    } as Partial<ContextMap>);
+
+    const report = buildDeltaReport(prev, curr)!;
+    expect(report).not.toBeNull();
+    const summaryLine = report.split("\n").find((l) => l.startsWith("Since the last snapshot"))!;
+    expect(summaryLine).toContain("language mix");
+    expect(summaryLine.endsWith(": .")).toBe(false);
+  });
+
   it("truncates routes beyond 15 per direction with '… +N more'", () => {
     const curr = ctx({
       routes: Array.from({ length: 18 }, (_, i) => ({ method: "GET", path: `/r${i}`, source_file: "a.ts" })),

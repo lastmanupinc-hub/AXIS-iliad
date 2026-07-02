@@ -80,8 +80,8 @@ export async function handleListMemory(
   const limitParam = url.searchParams.get("limit");
   let limit = 50;
   if (limitParam !== null) {
-    const n = parseInt(limitParam, 10);
-    if (isNaN(n) || n < 1) {
+    const n = Number(limitParam);
+    if (!Number.isInteger(n) || n < 1) {
       sendError(res, 400, ErrorCode.INVALID_FORMAT, "limit must be a positive integer");
       return;
     }
@@ -150,7 +150,12 @@ export async function handleAddMemory(
   }
 
   const entry = await addMemoryEntry(project_id, account.account_id, kind, content, source);
-  await trackEvent(account.account_id, "memory_written", await resolveStage(account.account_id), { project_id, kind }).catch(() => {});
+  try {
+    const stage = await resolveStage(account.account_id);
+    await trackEvent(account.account_id, "memory_written", stage, { project_id, kind });
+  } catch {
+    // Best-effort KPI — never fail the request on analytics, even if resolveStage itself rejects.
+  }
 
   sendJSON(res, 201, { entry, total: existing + 1 });
 }

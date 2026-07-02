@@ -437,7 +437,7 @@ work_orders:
   - id: WO-08
     title: "Remediation: fix the 7 confirmed defects from the WO-01..07 adversarial review"
     phase: later
-    status: open
+    status: done
     depends_on: []             # all prior WOs merged; fixes land on top of them
     spec: docs/agentic-asset/specs/SPEC-08-review-remediation.md
     branch: fix/aa-review-remediation
@@ -459,7 +459,53 @@ work_orders:
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/deletion.test.ts apps/api/src/versions.test.ts apps/api/src/memory-handlers.test.ts apps/api/src/export.test.ts --no-coverage"
       - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage"
       - pnpm --filter @axis/api exec tsc --noEmit
-    evidence: null
+    evidence: |
+      Files touched match files_expected exactly. Diff: 369 changed lines vs the
+      spec's "~380 LOC" estimate — right on target, no ballooning.
+      - `pnpm --filter @axis/snapshots build` + `pnpm --filter @axis/generator-core
+        build` — both clean.
+      - `memory-weave.test.ts` + `delta-report.test.ts` + `determinism.test.ts` —
+        25/25 pass (memory-weave: existing tests adapted for replace-not-skip
+        semantics + 2 new: same-entries re-weave is a true no-op byte-for-byte,
+        new-entries re-weave replaces stale content with exactly one delimiter
+        pair and no duplicated section; delta-report: language-mix-only change
+        with unchanged total_loc renders "language mix" and never ends ": .").
+      - `deletion.test.ts` + `versions.test.ts` + `memory-handlers.test.ts` +
+        `export.test.ts` — 73/73 pass (deletion: owned project with 2 memory
+        entries deletes cleanly with memory rows gone; a metered snapshot/project
+        deletes cleanly with the persistence_credits row surviving,
+        `snapshot_id` nulled, found via `.find(operation==='diff_versions')`
+        since `addPersistenceCredits` itself writes a separate ledger row —
+        caught and fixed a wrong assumption of ledger-length-1 in my own first
+        draft; versions: unauthenticated → 401 and non-owner → 404 from all
+        three endpoints on an OWNED snapshot, with zero persistence debit/event
+        leaked, owner still gets 200s — also caught and fixed a missing-auth-
+        headers oversight in my own first draft (delete/version endpoints
+        correctly require auth for owned resources, which my initial test
+        omitted); memory-handlers: `limit=2.9` and `limit=10abc` now 400,
+        `limit=10` still 200; export: end-to-end staleness — a generator result
+        simulating what the MCP path would have persisted (built via
+        `appendMemoryWeave` directly) gets correctly refreshed on export, new +
+        old decisions both present, exactly one section/delimiter pair, no
+        duplicate project-memory.md).
+      - `count-honesty.test.ts` + `strategic-docs-honesty.test.ts` — 7/7 pass.
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean.
+      - Broader regression (not in this WO's list): store.test.ts +
+        memory-store.test.ts (35/35), github-webhook + program-funnel + generate
+        + deployment + openapi (218/218) — confirms store.ts's shared delete
+        paths and memory-weave.ts's shared append logic didn't regress anything
+        built in WO-01..07.
+      Confirmed via repo-wide grep: only versions.ts had the un-awaited
+      `assertSnapshotAccess` bug (fix 2) — all 8 call sites in handlers.ts
+      already await correctly; no other file needed that fix.
+      Fix 4 (guarded `await resolveStage()`) is not separately unit-tested per
+      the spec's own note (no fault-injection harness for resolveStage) — it's
+      a mechanical try/catch wrap, verified by code review and by tsc/the full
+      suite passing; export.ts's three KPI call sites were verified (not
+      changed) to already sit inside enclosing try/catch blocks, per spec.
+      This closes out the review-of-record: all 7 confirmed defects from the
+      WO-01..07 adversarial review are fixed. WO-09 (E6 Fleet v1) is next,
+      depends_on this WO.
 
   - id: WO-09
     title: "Fleet v1: cross-project fleet-report.md + fleet-CLAUDE.md + GET /v1/account/fleet"

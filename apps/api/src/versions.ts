@@ -25,7 +25,7 @@ export async function handleListVersions(
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
-  if (!assertSnapshotAccess(req, res, snapshot)) return;
+  if (!(await assertSnapshotAccess(req, res, snapshot))) return;
   const versions = await listGenerationVersions(snapshot_id);
 
   sendJSON(res, 200, { snapshot_id, versions, count: versions.length });
@@ -43,7 +43,7 @@ export async function handleGetVersion(
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
-  if (!assertSnapshotAccess(req, res, snapshot)) return;
+  if (!(await assertSnapshotAccess(req, res, snapshot))) return;
   const vNum = parseInt(version_number, 10);
 
   if (isNaN(vNum) || vNum < 1) {
@@ -72,7 +72,7 @@ export async function handleDiffVersions(
     sendError(res, 404, ErrorCode.NOT_FOUND, "Snapshot not found");
     return;
   }
-  if (!assertSnapshotAccess(req, res, snapshot)) return;
+  if (!(await assertSnapshotAccess(req, res, snapshot))) return;
   /* v8 ignore next — req.url always present in tests */
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
 
@@ -98,7 +98,12 @@ export async function handleDiffVersions(
       sendJSON(res, 402, { error: "persistence_credits_required", reason: meterResult.reason });
       return;
     }
-    await trackEvent(auth.account.account_id, "persistence_metered", await resolveStage(auth.account.account_id), { op: "diff_versions", snapshot_id }).catch(() => {});
+    try {
+      const stage = await resolveStage(auth.account.account_id);
+      await trackEvent(auth.account.account_id, "persistence_metered", stage, { op: "diff_versions", snapshot_id });
+    } catch {
+      // Best-effort KPI — never fail the request on analytics, even if resolveStage itself rejects.
+    }
   }
 
   const diff = await diffGenerationVersions(snapshot_id, oldV, newV);

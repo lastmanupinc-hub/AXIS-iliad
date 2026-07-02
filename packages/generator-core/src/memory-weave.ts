@@ -15,6 +15,8 @@ import type { GeneratorResult, GeneratedFile } from "./types.js";
 
 const MEMORY_PROGRAM = "skills";
 export const MEMORY_WEAVE_LIMIT = 50;
+const MEMORY_MARKER_START = "<!-- axis:project-memory:start -->";
+const MEMORY_MARKER_END = "<!-- axis:project-memory:end -->";
 
 export interface WovenMemoryEntry {
   kind: "decision" | "convention" | "evidence" | "goal";
@@ -67,6 +69,27 @@ export function buildMemorySection(entries: WovenMemoryEntry[]): string | null {
   return renderSectionLines(entries).join("\n").trimEnd();
 }
 
+/** Wrap a section in the delimiter pair so a later weave can find and replace it. */
+function delimitedSection(section: string): string {
+  return `${MEMORY_MARKER_START}\n${section}\n${MEMORY_MARKER_END}`;
+}
+
+/**
+ * Inject the delimited section into `content`, or — if the delimiter pair is
+ * already present (a prior weave) — replace everything between the markers
+ * (inclusive) with the fresh block. Refresh, not skip: the surrounding content
+ * (before/after the markers) is left untouched either way.
+ */
+function injectOrReplaceSection(content: string, section: string): string {
+  const block = delimitedSection(section);
+  const startIdx = content.indexOf(MEMORY_MARKER_START);
+  const endIdx = content.indexOf(MEMORY_MARKER_END);
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    return content.slice(0, startIdx) + block + content.slice(endIdx + MEMORY_MARKER_END.length);
+  }
+  return `${content}\n\n${block}\n`;
+}
+
 function buildProjectMemoryArtifact(entries: WovenMemoryEntry[]): string {
   const shown = entries.slice(0, MEMORY_WEAVE_LIMIT);
   const lines: string[] = [`# Project Memory — ${shown.length} entries`, "", ...renderSectionLines(entries)];
@@ -80,36 +103,46 @@ function buildProjectMemoryArtifact(entries: WovenMemoryEntry[]): string {
 }
 
 /**
- * Weave the project's memory into a generation result IN PLACE: append the
- * "Decisions already made" section to AGENTS.md and CLAUDE.md when present,
- * and add a standalone project-memory.md artifact (program "skills"). Best-
- * effort (a throw is swallowed) and idempotent (skips entirely if
- * project-memory.md is already present, or if there's nothing to weave).
+ * Weave the project's memory into a generation result IN PLACE: inject the
+ * delimited "Decisions already made" section into AGENTS.md and CLAUDE.md when
+ * present, and add/refresh a standalone project-memory.md artifact (program
+ * "skills"). REFRESH, not skip: a package that already carries a woven package
+ * (e.g. one persisted by the MCP path) gets its memory replaced with the
+ * current entries rather than frozen at first-weave state — the delimiters are
+ * exactly what let a later call find and replace its own prior output without
+ * touching anything else in the file or duplicating the section. Best-effort
+ * (a throw is swallowed) and a no-op on empty entries or an empty package
+ * (an existing artifact is left as-is, not cleared).
  */
 export function appendMemoryWeave(generated: GeneratorResult, entries: WovenMemoryEntry[]): void {
   try {
     if (!generated.files.length) return;
     if (!entries.length) return;
-    const path = "project-memory.md";
-    if (generated.files.some((f) => f.path === path)) return;
 
     const section = buildMemorySection(entries);
     if (!section) return;
 
     for (const f of generated.files) {
       if (f.path === "AGENTS.md" || f.path === "CLAUDE.md") {
-        f.content = `${f.content}\n\n${section}\n`;
+        f.content = injectOrReplaceSection(f.content, section);
       }
     }
 
-    const file: GeneratedFile = {
-      path,
-      content: buildProjectMemoryArtifact(entries),
-      content_type: "text/markdown",
-      program: MEMORY_PROGRAM,
-      description: "Decisions, conventions, evidence, and goals recorded for this project — read by every new agent session.",
-    };
-    generated.files.push(file);
+    const path = "project-memory.md";
+    const content = buildProjectMemoryArtifact(entries);
+    const existing = generated.files.find((f) => f.path === path);
+    if (existing) {
+      existing.content = content;
+    } else {
+      const file: GeneratedFile = {
+        path,
+        content,
+        content_type: "text/markdown",
+        program: MEMORY_PROGRAM,
+        description: "Decisions, conventions, evidence, and goals recorded for this project — read by every new agent session.",
+      };
+      generated.files.push(file);
+    }
   } catch {
     // Best-effort; the generated package already succeeded.
   }
