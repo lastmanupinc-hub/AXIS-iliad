@@ -425,9 +425,16 @@ export async function handleMcpPost(
     return;
   }
 
-  // Notifications have no id â€” respond 202, no body
+  // Notifications have no id — respond 202, no body. The JSON-RPC spec forbids a
+  // response, so a dispatch failure can't surface to the client — but it must not
+  // vanish: log it (structured) so the paying agent channel is observable.
   if (msg.id == null && msg.method.startsWith("notifications/")) {
-    await dispatch(msg.method, msg.params, null, req).catch(() => undefined);
+    await dispatch(msg.method, msg.params, null, req).catch((err) => {
+      log("warn", "mcp.notification_dispatch_failed", {
+        method: msg.method,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
     res.writeHead(202);
     res.end();
     return;

@@ -327,11 +327,12 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Hero value prop ────────────────────────────────────── */}
       <section className="upload-hero">
         <h1 className="upload-hero-title">
-          Turn any codebase into 140 structured AI artifacts.
+          Turn any codebase into 140 agent-ready artifacts — in seconds.
         </h1>
         <p className="upload-hero-sub">
-          Upload a repo and instantly generate AGENTS.md, CLAUDE.md, .cursorrules, MCP configs,
-          SEO rules, brand guidelines, debug playbooks, and 130 more files — one scan across 20 programs.
+          One scan generates AGENTS.md, CLAUDE.md, .cursorrules, MCP configs, SEO rules,
+          brand guidelines, debug playbooks and 130 more across 20 programs — deterministic and
+          reproducible, the same structured output every run. The first call to make on any repo.
         </p>
         <div className="upload-hero-pills">
           {["AGENTS.md", "CLAUDE.md", ".cursorrules", "MCP Config", "SEO Rules", "Brand Guidelines", "Debug Playbook", "Design Tokens", "Obsidian Vault", "Remotion Script"].map((label) => (
