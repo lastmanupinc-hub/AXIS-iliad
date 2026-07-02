@@ -433,3 +433,59 @@ work_orders:
       This closes the "now"+"next" phase of the agentic-asset program: WO-01
       through WO-07 are all done. WO-08+ (E6 Fleet) is not yet ordered — specs
       written at phase start, per EXECUTION_PLAN.md.
+
+  - id: WO-08
+    title: "Remediation: fix the 7 confirmed defects from the WO-01..07 adversarial review"
+    phase: later
+    status: open
+    depends_on: []             # all prior WOs merged; fixes land on top of them
+    spec: docs/agentic-asset/specs/SPEC-08-review-remediation.md
+    branch: fix/aa-review-remediation
+    files_expected:
+      - packages/snapshots/src/store.ts                   # deleteSnapshot/deleteProject FK cleanup
+      - packages/generator-core/src/memory-weave.ts       # refresh semantics + delimiters
+      - packages/generator-core/src/memory-weave.test.ts
+      - packages/generator-core/src/delta-report.ts       # language-mix-only summary fragment
+      - packages/generator-core/src/delta-report.test.ts
+      - apps/api/src/versions.ts                          # 3x await assertSnapshotAccess + guarded KPI
+      - apps/api/src/versions.test.ts                     # non-owner 401/404 regression, unmetered
+      - apps/api/src/memory-handlers.ts                   # guarded KPI + Number.isInteger limit
+      - apps/api/src/memory-handlers.test.ts              # limit=2.9 / 10abc => 400
+      - apps/api/src/deletion.test.ts                     # memory + metered-ledger delete cases
+      - apps/api/src/export.test.ts                       # end-to-end weave staleness case
+    acceptance:
+      - pnpm --filter @axis/snapshots build && pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/memory-weave.test.ts packages/generator-core/src/delta-report.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/deletion.test.ts apps/api/src/versions.test.ts apps/api/src/memory-handlers.test.ts apps/api/src/export.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
+
+  - id: WO-09
+    title: "Fleet v1: cross-project fleet-report.md + fleet-CLAUDE.md + GET /v1/account/fleet"
+    phase: later
+    status: open
+    depends_on: [WO-08]        # serialize the store.ts edits; fleet builds on a clean base
+    spec: docs/agentic-asset/specs/SPEC-09-fleet-report.md
+    branch: feat/aa-fleet-report
+    files_expected:
+      - packages/generator-core/src/fleet-report.ts       # new (pure)
+      - packages/generator-core/src/fleet-report.test.ts  # new
+      - packages/generator-core/src/index.ts              # export lines only
+      - packages/snapshots/src/store.ts                   # listProjectsByAccount only
+      - packages/snapshots/src/index.ts                   # export line only
+      - packages/snapshots/src/funnel-types.ts            # +fleet_viewed member only
+      - apps/api/src/fleet-handlers.ts                    # new
+      - apps/api/src/fleet-handlers.test.ts               # new
+      - apps/api/src/server.ts                            # 1 route
+      - apps/api/src/openapi.ts                           # 1 path, 2 schemas
+      - apps/api/src/counts.ts                            # ENDPOINT_COUNT 145 -> 146 (explicitly allowed here)
+      - README.md                                         # "145 endpoints" -> 146 (count-honesty knock-on)
+      - apps/web/src/pages/QAPage.tsx                     # "145 endpoints" -> 146 (count-honesty knock-on)
+    acceptance:
+      - pnpm --filter @axis/snapshots build && pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/fleet-report.test.ts packages/generator-core/src/determinism.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/fleet-handlers.test.ts --no-coverage"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/count-honesty.test.ts apps/api/src/openapi.test.ts apps/api/src/deployment.test.ts --no-coverage"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: null
