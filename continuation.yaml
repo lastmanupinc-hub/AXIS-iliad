@@ -5050,3 +5050,41 @@ project_continuation:
     local_only: false
     commit_results: ["PR #121 head 8a40340 (7 commits off main c9fb61f)"]
     push_results: ["pushed origin/fix/production-quality-sweep; opened PR #121 -> main (CI green, mergeable)"]
+
+  session_result_125:
+    date: "2026-07-02"
+    session_id: "session_125"
+    selected_move: >
+      MERGE DAY + SPEC-10 authored (Fable planning lane). Owner said "merge":
+      merged PR #121 (sweep) -> main first (un-red at ENDPOINT_COUNT=145), then
+      resolved PR #109's 3 conflicts by reconciling ENDPOINT_COUNT -> 148 (the
+      union's true derived count) + aligning all endpoint claims, CI-validated
+      the combined tree, merged #109. main aa3eeb4 deployed and verified live
+      (endpoints:148, anonymous /v1/db/* -> 401). Follow-up PR #122 (OpenAPI
+      spec accuracy for the newly admin-gated /v1/db/*) merged after CI green.
+      Then, per NO_FATE_ROLLOUT §10's Fable queue: wrote SPEC-10.
+    selected_move_roi_reason: >
+      Owner-directed merges = launch-critical unblocking. SPEC-10 = the recorded
+      first order of business on resume (tail-review findings were never
+      persisted; now they are, as an executable spec + open work order).
+    completed_candidates:
+      - "MERGED: PR #121 (9-defect sweep), PR #109 (WO-01..09 program + governance + ledger), PR #122 (OpenAPI db-endpoint auth docs). Production verified end-to-end."
+      - "SPEC-10 (PR #123, docs/aa-spec10-tail-remediation): re-grounded all 5 tail findings at merged HEAD via a 7-agent workflow (5 grounders + class sweep + merge-interaction check) — all 5 re-confirmed; merge interactions clean. NEW CRITICAL found by the class sweep: memory content embedding the literal project-memory end-marker corrupts the delimiter-replace on every later weave (compounding) — folded into Fix 3. Spec decisions: shared mdInline() in new md-sanitize.ts (whitespace collapse + pipe escape + HTML-comment breaking); F1 legacy-heading migration branch; F2 CONTINUE_FOOTER_MARKER constant + footer carry (idempotence guard untouched); F4 entry-point sanitization (never at the store — names are identity keys); F4b delta/funnel H1s; F5 FLEET_SCAN_LIMIT=100 + writableEnded abort + 10-snapshot walk bound. WO-10 appended to WORK_ORDERS.yaml, status open, branch fix/aa-tail-remediation off main."
+    refused_candidates:
+      - "Legacy generators id.name-into-table family (8 pre-program files) — recorded in SPEC-10's NOT-fixed list for incremental mdInline adoption, not ordered in WO-10 (outside the program's blast radius)."
+      - "F2 sibling gap (export-added md artifacts get no footers over stored packages) — separate future finding; WO-10 deliberately leaves appendAutonomyLoop's idempotence guard untouched."
+    evidence_added:
+      - "Re-grounding workflow: 7 agents, all 5 findings still_valid at 12fef79; memory-weave.ts + fleet-report.ts byte-identical to WO-08/09 versions (merge clean); class sweep produced 9 additional instances (1 critical in-scope, 8 recorded)."
+      - "WORK_ORDERS.yaml parses; WO-10 is the only open order (18 files_expected, 6 acceptance commands)."
+    verticals_advanced:
+      - "v0_core_platform: everything WO-01..09 + sweep is now ON main and LIVE; the program's queue has a fresh executable order (WO-10)."
+    blockers_removed:
+      - "Tail findings persisted (were conversation-context-only since 2026-07-01)."
+    blockers_added: []
+    remaining_pre_existing_gaps:
+      - "Fable-lane queue per NO_FATE_ROLLOUT §10 after SPEC-10: watchtower-analysis-on-push spec, fact-pass spec (LAUNCH_CLAIMS.yaml)."
+      - "WO-10 execution — Sonnet executor session."
+      - "Owner KYC gate (Persona+Plaid) for the canonical Iliad merchant — unchanged."
+    local_only: false
+    commit_results: ["(this branch) SPEC-10 + WO-10 + this ledger entry — PR #123"]
+    push_results: ["origin/docs/aa-spec10-tail-remediation; PR #123 -> main"]

@@ -580,3 +580,78 @@ work_orders:
       (MCP exposure, weaving fleet-CLAUDE.md into per-project exports,
       portfolio trends, credit metering) is explicitly deferred to a future
       owner decision per SPEC-09.
+
+  - id: WO-10
+    title: "Tail remediation: the 5 confirmed WO-08/09 review findings + marker-injection hardening"
+    phase: later
+    status: open
+    depends_on: []             # WO-01..09 all done and merged to main (aa3eeb4)
+    spec: docs/agentic-asset/specs/SPEC-10-tail-remediation.md
+    branch: fix/aa-tail-remediation
+    files_expected:
+      - packages/generator-core/src/md-sanitize.ts            # new — shared mdInline()
+      - packages/generator-core/src/md-sanitize.test.ts       # new
+      - packages/generator-core/src/memory-weave.ts            # Fix 1 legacy migration, Fix 2 footer carry, Fix 3 renderEntryLine
+      - packages/generator-core/src/memory-weave.test.ts
+      - packages/generator-core/src/autonomy-loop.ts           # Fix 2 — export CONTINUE_FOOTER_MARKER (byte-identical refactor)
+      - packages/generator-core/src/autonomy-loop.test.ts
+      - packages/generator-core/src/fleet-report.ts            # Fix 3 decisions, Fix 4 project_name entry-point map
+      - packages/generator-core/src/fleet-report.test.ts
+      - packages/generator-core/src/delta-report.ts            # Fix 4b — mdInline(name) in the H1
+      - packages/generator-core/src/delta-report.test.ts
+      - packages/generator-core/src/program-funnel.ts          # Fix 4b — mdInline(name) in H1 + blockquote
+      - packages/generator-core/src/program-funnel.test.ts
+      - packages/generator-core/src/index.ts                   # export mdInline (+ CONTINUE_FOOTER_MARKER if a cross-package test needs it)
+      - apps/api/src/fleet-handlers.ts                         # Fix 5 — FLEET_SCAN_LIMIT, writableEnded abort, snapshot-walk bound
+      - apps/api/src/fleet-handlers.test.ts
+      - apps/api/src/export.test.ts                            # Fix 1 end-to-end legacy-migration case
+      - docs/agentic-asset/specs/SPEC-09-fleet-report.md       # Fix 5 — cap-wording clarification only
+      - docs/agentic-asset/WORK_ORDERS.yaml                    # this entry's status + evidence
+    acceptance:
+      - pnpm --filter @axis/generator-core build
+      - "vitest run packages/generator-core/src/md-sanitize.test.ts packages/generator-core/src/memory-weave.test.ts packages/generator-core/src/autonomy-loop.test.ts packages/generator-core/src/fleet-report.test.ts packages/generator-core/src/delta-report.test.ts packages/generator-core/src/program-funnel.test.ts --no-coverage   # all pass"
+      - "vitest run packages/generator-core/src/determinism.test.ts --no-coverage   # unchanged, all pass — clean-input output must stay byte-identical"
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/fleet-handlers.test.ts apps/api/src/export.test.ts --no-coverage   # all pass"
+      - pnpm --filter @axis/api exec tsc --noEmit
+      - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged"
+    evidence: |
+      (executor fills)
+
+  - id: WO-11
+    title: "Watchtower analysis-on-push: build + persist the context map for webhook snapshots"
+    phase: later
+    status: open
+    depends_on: []             # independent of WO-10 (disjoint files); WO-10 sits first in the queue
+    spec: docs/agentic-asset/specs/SPEC-11-watchtower-analysis-on-push.md
+    branch: feat/aa-watchtower-live
+    files_expected:
+      - apps/api/src/github-webhook.ts                         # analysis block after snapshot_created (fail-open)
+      - apps/api/src/github-webhook.test.ts
+      - docs/agentic-asset/WORK_ORDERS.yaml                    # this entry's status + evidence
+    acceptance:
+      - "DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test vitest run apps/api/src/github-webhook.test.ts --no-coverage   # all pass, incl. the end-to-end two-push delta case"
+      - pnpm --filter @axis/api exec tsc --noEmit
+      - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged (no route changes)"
+    evidence: |
+      (executor fills)
+
+  - id: WO-12
+    title: "Launch-claims fact-pass: LAUNCH_CLAIMS.yaml registry + gate + corpus rewrite"
+    phase: later
+    status: open
+    depends_on: []             # independent (docs + one new test file); WO-10/WO-11 sit first in the queue
+    spec: docs/agentic-asset/specs/SPEC-12-launch-claims-fact-pass.md
+    branch: docs/aa-launch-claims
+    files_expected:
+      - LAUNCH_CLAIMS.yaml                                     # new — the claim registry
+      - apps/api/src/launch-claims.test.ts                     # new — registry-vs-live + corpus gate
+      - launch-content.md                                      # fact-passed rewrite (voice preserved)
+      - marketing-pack.md                                      # fact-passed rewrite (voice preserved)
+      - AXIS_Board_Pitch.md                                    # numbers-only pass
+      - docs/agentic-asset/WORK_ORDERS.yaml                    # this entry's status + evidence
+    acceptance:
+      - "vitest run apps/api/src/launch-claims.test.ts --no-coverage   # new gate passes"
+      - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts apps/api/src/strategic-docs-honesty.test.ts --no-coverage   # existing honesty gates unchanged"
+      - pnpm --filter @axis/api exec tsc --noEmit
+    evidence: |
+      (executor fills)
