@@ -360,6 +360,13 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   const id = ctx.project_identity;
   const hotspots = ctx.dependency_graph.hotspots;
   const deps = ctx.dependency_graph.external_dependencies;
+  // Whether the import graph resolved AT ALL. hotspots is a FILTERED subset
+  // (inbound ≥ 3 or outbound ≥ 5), so "no hotspots" has two very different
+  // meanings: (a) the graph resolved but coupling is genuinely below threshold
+  // — a clean bill — vs (b) zero edges resolved, i.e. the graph could not be
+  // built. Only (b) warrants the "partial upload / re-analyze" diagnostic;
+  // conflating them told well-decoupled repos to re-upload their source.
+  const graphResolved = ctx.dependency_graph.internal_imports.length > 0;
 
   const lines: string[] = [];
   lines.push(`# Dependency Hotspots — ${mdText(id.name)}`);
@@ -413,11 +420,17 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
       const severity = h.risk_score > 0.7 ? "🔴" : h.risk_score > 0.4 ? "🟡" : "🟢";
       lines.push(`| \`${mdCellCode(h.path)}\` | ${severity} ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} | ${h.inbound_count + h.outbound_count} |`);
     }
+  } else if (graphResolved) {
+    // The import graph resolved (edges exist) but no file crossed the coupling
+    // thresholds — a genuine clean bill, not a resolution failure. Don't imply
+    // the analysis was incomplete.
+    lines.push("No hotspots detected — the import graph resolved, and no file crossed the");
+    lines.push("coupling thresholds (inbound ≥ 3 or outbound ≥ 5). Coupling looks healthy.");
   } else {
-    // Honest, diagnostic empty state: "no hotspots" on a repo that clearly has
-    // internal structure usually means the import graph could not be RESOLVED,
-    // not that coupling is healthy. Say so instead of implying a clean bill.
-    lines.push("No hotspots detected — no internal import edges met the coupling thresholds.");
+    // Zero import edges resolved: on a repo with interconnected source this
+    // usually means the graph could not be built, not that coupling is healthy.
+    // Say so instead of implying a clean bill.
+    lines.push("No hotspots detected — no internal import edges were resolved at all.");
     lines.push("");
     lines.push("If this repository does have interconnected source files, the import graph");
     lines.push("may not have been resolvable from the analyzed file set. Common causes: a");
@@ -480,9 +493,13 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   }
   if (hotspots.length > 0) {
     lines.push(`${recNum++}. **Review circular dependencies** in the import graph`);
+  } else if (graphResolved) {
+    // Graph resolved, coupling below thresholds — nothing to re-upload; the
+    // honest recommendation is to keep it that way.
+    lines.push(`${recNum++}. **Maintain the current low coupling** — add import lint rules to prevent regressions as the codebase grows`);
   } else {
-    // No import graph was resolved — advising a circular-dependency review of a
-    // graph that doesn't exist is boilerplate; give the actionable step instead.
+    // Zero edges resolved — advising a circular-dependency review of a graph
+    // that doesn't exist is boilerplate; give the actionable step instead.
     lines.push(`${recNum++}. **Re-analyze with the full source tree** so the import graph can be resolved before drawing coupling conclusions`);
   }
   lines.push("");

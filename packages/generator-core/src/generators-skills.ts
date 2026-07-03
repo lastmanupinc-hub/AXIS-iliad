@@ -670,10 +670,12 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("scope: all-ai-generated-code");
   lines.push("rules:");
   lines.push(`  - language: ${yamlFlowScalar(id.primary_language)}`);
-  // strict_types / no_any_types are TypeScript/JavaScript type-system rules —
-  // emitting them for a Python/Rust/Go repo is meaningless governance. The
-  // stub/placeholder rules below are language-agnostic and always apply.
-  if (id.primary_language === "TypeScript" || id.primary_language === "JavaScript") {
+  // strict_types / no_any_types are TypeScript type-system rules. Plain
+  // JavaScript has no type annotations, so asserting them for a JS repo is as
+  // dishonest as it is for Python/Rust/Go — and it would contradict AGENTS.md,
+  // which emits "Use strict TypeScript" for TypeScript only. Gate identically.
+  // The stub/placeholder rules below are language-agnostic and always apply.
+  if (id.primary_language === "TypeScript") {
     lines.push("  - strict_types: true");
     lines.push("  - no_any_types: true");
   }

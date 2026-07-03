@@ -188,8 +188,11 @@ describe("generatePolicyPack — type-system rules gated by language (POLISH-2)"
     expect(out).toContain("no_any_types: true");
   });
 
-  it("omits strict_types / no_any_types for a non-TS/JS project but keeps the language-agnostic rules", () => {
-    for (const lang of ["Python", "Rust", "Go"]) {
+  it("omits strict_types / no_any_types for non-TypeScript projects (incl. plain JS) but keeps the language-agnostic rules", () => {
+    // JavaScript is included: plain JS has no type annotations, so no_any_types
+    // is meaningless — and emitting it would contradict AGENTS.md, which gates
+    // strict-TS on TypeScript only.
+    for (const lang of ["JavaScript", "Python", "Rust", "Go"]) {
       const out = policyFor(lang);
       expect(out, `lang=${lang}`).not.toContain("strict_types: true");
       expect(out, `lang=${lang}`).not.toContain("no_any_types: true");
@@ -197,6 +200,15 @@ describe("generatePolicyPack — type-system rules gated by language (POLISH-2)"
       expect(out, `lang=${lang}`).toContain("no_stub_implementations: true");
       expect(out, `lang=${lang}`).toContain("no_placeholder_data: true");
     }
+  });
+
+  it("policy-pack and AGENTS.md agree on strict-type guidance for the same JS project (no cross-generator contradiction)", () => {
+    const jsCtx = mkCtx({ project_identity: { name: "a", type: "app", primary_language: "JavaScript", description: null, repo_url: null, go_module: null } });
+    const policy = generatePolicyPack(jsCtx).content;
+    const agents = generateAgentsMD(jsCtx).content;
+    // Neither file asserts a TypeScript-strict rule for a JavaScript repo.
+    expect(policy).not.toContain("strict_types: true");
+    expect(agents).not.toContain("Use strict TypeScript");
   });
 });
 

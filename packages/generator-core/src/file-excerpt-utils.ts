@@ -1,4 +1,5 @@
 import type { SourceFile } from "./types.js";
+import { mdCode } from "./md-sanitize.js";
 
 /** Max lines to show per file excerpt. */
 const EXCERPT_LINES = 40;
@@ -124,7 +125,12 @@ export function renderExcerpts(
       lines.push(`*... ${filesToShow.length - filesToShow.indexOf(f)} more files omitted for brevity*`);
       break;
     }
-    lines.push(`### \`${f.path}\``);
+    // Sanitize the path: a backtick in a repo file path would otherwise close
+    // this code span and let the tail render as loose markdown in an
+    // agent-instruction file. (Paths can't contain newlines, so this is a
+    // code-span-integrity fix, not a heading-injection one — but it keeps the
+    // sink consistent with every other path sink in the generators.)
+    lines.push(`### \`${mdCode(f.path)}\``);
     lines.push("");
     lines.push(block);
     lines.push("");

@@ -114,9 +114,34 @@ describe("generateDependencyHotspots", () => {
     const result = generateDependencyHotspots(ctx);
     expect(result.content).toContain("No hotspots detected");
     expect(result.content).toContain("No external dependencies detected.");
-    // POLISH-1: with no import graph, the report recommends re-analysis rather
-    // than advising a circular-dependency review of a graph that doesn't exist.
+    // POLISH-1: with NO import graph resolved, the report recommends re-analysis
+    // rather than advising a circular-dependency review of a graph that doesn't exist.
     expect(result.content).toContain("Re-analyze with the full source tree");
+  });
+
+  it("distinguishes a RESOLVED low-coupling graph from an unresolved one (honest empty state)", () => {
+    // internal_imports is non-empty (graph resolved) but no file crossed the
+    // coupling thresholds → hotspots is empty. This must read as a clean bill,
+    // NOT as a partial-upload / re-analyze diagnostic (which would tell a
+    // well-decoupled repo to re-upload its own source).
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [
+          { source: "src/a.ts", target: "src/b.ts" },
+          { source: "src/b.ts", target: "src/c.ts" },
+        ],
+        hotspots: [],
+      },
+    });
+
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).toContain("No hotspots detected");
+    expect(result.content).toContain("Coupling looks healthy");
+    // The alarmist diagnostic and the re-upload recommendation must NOT appear.
+    expect(result.content).not.toContain("may not have been resolvable");
+    expect(result.content).not.toContain("Re-analyze with the full source tree");
+    expect(result.content).toContain("Maintain the current low coupling");
   });
 
   it("handles only medium-risk hotspots (no high)", () => {
@@ -504,10 +529,12 @@ describe("polish: dependency-hotspots empty-state rendering", () => {
     dependency_graph: { external_dependencies: [] as never, internal_imports: [], hotspots: [] },
   });
 
-  it("renders a diagnostic empty state instead of implying a clean bill of health", () => {
+  it("renders the UNRESOLVED-graph diagnostic when zero import edges resolved (not a clean bill)", () => {
     const result = generateDependencyHotspots(emptyCtx());
-    expect(result.content).toContain("no internal import edges met the coupling thresholds");
+    expect(result.content).toContain("no internal import edges were resolved at all");
     expect(result.content).toContain("may not have been resolvable");
+    // must NOT misread an unresolved graph as healthy low coupling
+    expect(result.content).not.toContain("Coupling looks healthy");
   });
 
   it("omits the Coupling Analysis section entirely when there are no hotspots (no dangling heading)", () => {
