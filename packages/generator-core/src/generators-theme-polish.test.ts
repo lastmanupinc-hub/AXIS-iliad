@@ -26,6 +26,7 @@ describe("theme-guidelines — Detected Style Files is stylesheets only (POLISH)
   const files: SourceFile[] = [
     sf("apps/web/src/index.css"),
     sf("tailwind.config.ts"),
+    sf("src/theme.css.ts"),                                     // vanilla-extract stylesheet (HARDEN-2 R1)
     sf("packages/generator-core/src/generators-theme.ts"),      // source, has "theme" in name
     sf("packages/generator-core/src/generators-theme.test.ts"), // test, has "theme"
     sf("src/hooks/useTheme.ts"),                                 // source, has "theme"
@@ -36,6 +37,9 @@ describe("theme-guidelines — Detected Style Files is stylesheets only (POLISH)
   it("lists real stylesheets and CSS-framework configs", () => {
     expect(md).toContain("apps/web/src/index.css");
     expect(md).toContain("tailwind.config.ts");
+  });
+  it("keeps vanilla-extract *.css.ts stylesheets (HARDEN-2 R1 regression guard)", () => {
+    expect(md).toContain("src/theme.css.ts");
   });
   it("does NOT list TS source or test files that merely have 'theme'/'token' in the path", () => {
     const section = md.split("## Detected Style Files")[1]?.split("## Component Style Usage")[0] ?? "";

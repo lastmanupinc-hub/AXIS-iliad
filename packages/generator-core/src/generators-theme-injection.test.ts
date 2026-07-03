@@ -83,6 +83,17 @@ describe("theme.css — CSS block-comment injection containment", () => {
     // Equal number of open/close comment delimiters (no dangling open from a breakout).
     expect((css.match(/\/\*/g) ?? []).length).toBe((css.match(/\*\//g) ?? []).length);
   });
+  it("HARDEN-2: a hostile style-FILE path cannot break the 'Detected Style Files' comment", () => {
+    // The path passes detectStyleFiles (ends .css) and lands inside a /* … */ block.
+    const hostileFiles: SourceFile[] = [
+      { path: "a*/ body{background:url(//INJECT_MARKER)} /*x.css", content: "x", size: 5 } as SourceFile,
+    ];
+    const css = generateThemeCss(hostileCtx(), hostileFiles).content;
+    const live = stripCssComments(css);
+    expect(live).not.toMatch(MARKERS);
+    expect(live).not.toContain("body{background:url");
+    expect((css.match(/\/\*/g) ?? []).length).toBe((css.match(/\*\//g) ?? []).length);
+  });
 });
 
 // ─── theme-guidelines.md: markdown injection ────────────────────

@@ -583,7 +583,7 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
       lines.push("/* ─── Detected Style Files ─────────────────────────────── */");
       lines.push("/*");
       for (const cf of cssFiles.slice(0, 10)) {
-        lines.push(`   ${cf.path} (${cf.content.split("\n").length} lines)`);
+        lines.push(`   ${cssComment(cf.path)} (${cf.content.split("\n").length} lines)`);
       }
       lines.push("*/");
       lines.push("");

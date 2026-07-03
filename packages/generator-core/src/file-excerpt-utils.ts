@@ -32,6 +32,7 @@ export function detectStyleFiles(files: SourceFile[]): SourceFile[] {
     const p = f.path.toLowerCase();
     if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(p)) return false;
     return /\.(css|scss|sass|less|styl)$/.test(p) // stylesheets
+      || /\.css\.[cm]?[jt]sx?$/.test(p) // vanilla-extract / CSS-in-TS (*.css.ts)
       || /(^|\/)(tailwind|postcss|unocss|windi)\.config\.[cm]?[jt]s$/.test(p) // framework configs
       || /(^|\/)(design-tokens|tokens|theme)\.[cm]?[jt]sx?$/.test(p) // token/theme source modules
       || /\.tokens\.(json|[cm]?[jt]sx?)$/.test(p); // *.tokens.* files
