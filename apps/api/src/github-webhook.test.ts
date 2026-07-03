@@ -4,6 +4,7 @@ import type { Server } from "node:http";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleGitHubWebhook, verifyGitHubSignature, resetGitHubWebhookState } from "./github-webhook.js";
+import { fetchGitHubRepo } from "./github.js";
 
 // ─── Watchtower delta mocks (SPEC-04) ───────────────────────────
 //
@@ -15,6 +16,7 @@ import { handleGitHubWebhook, verifyGitHubSignature, resetGitHubWebhookState } f
 const watchtowerState = vi.hoisted(() => ({
   snapshotsByProject: new Map<string, string[]>(),
   contextMaps: new Map<string, unknown>(),
+  repoProfiles: new Map<string, unknown>(),
   generatorResults: new Map<string, unknown>(),
   nextId: 0,
 }));
@@ -31,38 +33,44 @@ vi.mock("./github.js", () => ({
 }));
 
 vi.mock("@axis/snapshots", () => ({
-  createSnapshot: vi.fn(async (input: { manifest: { project_name: string } }) => {
+  createSnapshot: vi.fn(async (input: { manifest: { project_name: string; project_type?: string }; files: Array<{ path: string; content: string; size: number }> }) => {
     const project_id = input.manifest.project_name;
     const list = watchtowerState.snapshotsByProject.get(project_id) ?? [];
     const snapshot_id = `wt-snap-${watchtowerState.nextId++}`;
     list.push(snapshot_id);
     watchtowerState.snapshotsByProject.set(project_id, list);
-    return { snapshot_id, project_id, created_at: new Date(list.length - 1).toISOString() };
+    // Fields beyond snapshot_id/project_id/created_at are needed for the REAL
+    // buildContextMap/buildRepoProfile (analysis-on-push, SPEC-11) to run without
+    // throwing on an incomplete SnapshotRecord.
+    return {
+      snapshot_id,
+      project_id,
+      created_at: new Date(list.length - 1).toISOString(),
+      input_method: "github_repo_url",
+      manifest: { project_type: "unknown", ...input.manifest },
+      files: input.files,
+      file_count: input.files.length,
+      total_size_bytes: input.files.reduce((s, f) => s + f.size, 0),
+      status: "processing",
+      account_id: null,
+    };
   }),
   getProjectSnapshots: vi.fn(async (project_id: string) => {
     const list = watchtowerState.snapshotsByProject.get(project_id) ?? [];
     return list.map((snapshot_id, i) => ({ snapshot_id, project_id, created_at: new Date(i).toISOString() }));
   }),
   getContextMap: vi.fn(async (snapshot_id: string) => watchtowerState.contextMaps.get(snapshot_id)),
+  saveContextMap: vi.fn(async (snapshot_id: string, data: unknown) => {
+    watchtowerState.contextMaps.set(snapshot_id, data);
+  }),
+  saveRepoProfile: vi.fn(async (snapshot_id: string, data: unknown) => {
+    watchtowerState.repoProfiles.set(snapshot_id, data);
+  }),
   getGeneratorResult: vi.fn(async (snapshot_id: string) => watchtowerState.generatorResults.get(snapshot_id)),
   saveGeneratorResult: vi.fn(async (snapshot_id: string, data: unknown) => {
     watchtowerState.generatorResults.set(snapshot_id, data);
   }),
 }));
-
-function watchtowerCtx(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    project_identity: { name: "watchtower-repo" },
-    detection: { frameworks: [] },
-    routes: [],
-    domain_models: [],
-    dependency_graph: { hotspots: [] },
-    ai_context: { warnings: [] },
-    entry_points: [],
-    structure: { total_loc: 0, file_tree_summary: [] },
-    ...overrides,
-  };
-}
 
 const WEBHOOK_SECRET = "test_github_webhook_secret_xyz";
 let server: Server;
@@ -352,10 +360,28 @@ function pushBody(repoFullName: string): string {
   });
 }
 
-describe("Watchtower delta on webhook re-analysis", () => {
+// A second, larger fetchGitHubRepo response — used to force a real total_loc
+// change between two dispatches of the same repo (drives buildDeltaReport's
+// size section without depending on framework-specific route parsing).
+function biggerFetchResult() {
+  return {
+    files: [
+      { path: "a.ts", content: "x", size: 1 },
+      { path: "b.ts", content: Array.from({ length: 40 }, (_, i) => `const line${i} = ${i};`).join("\n"), size: 800 },
+    ],
+    owner: "owner",
+    repo: "repo",
+    ref: "HEAD",
+    skipped_count: 0,
+    total_bytes: 801,
+  };
+}
+
+describe("Watchtower delta on webhook re-analysis (SPEC-04 + SPEC-11 analysis-on-push)", () => {
   beforeEach(() => {
     watchtowerState.snapshotsByProject.clear();
     watchtowerState.contextMaps.clear();
+    watchtowerState.repoProfiles.clear();
     watchtowerState.generatorResults.clear();
     watchtowerState.nextId = 0;
   });
@@ -364,13 +390,24 @@ describe("Watchtower delta on webhook re-analysis", () => {
     vi.unstubAllEnvs();
   });
 
-  it("stores delta-report.md on the new snapshot when both context maps exist and differ", async () => {
+  it("analysis-on-push populates a real context map and repo profile for the dispatched snapshot", async () => {
+    const repo = "delta-org/watchtower-analysis-lands";
+    const body = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body),
+      "X-GitHub-Delivery": "wt-delivery-analysis-lands",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const ctx = watchtowerState.contextMaps.get("wt-snap-0") as { project_identity?: { name?: string } } | undefined;
+    expect(ctx).toBeDefined();
+    expect(ctx!.project_identity?.name).toBe(repo);
+    expect(watchtowerState.repoProfiles.get("wt-snap-0")).toBeDefined();
+  });
+
+  it("stores a real delta-report.md on the second snapshot when the analyzed content actually changed", async () => {
     const repo = "delta-org/watchtower-repo-1";
-    // Pre-seed both context maps before either snapshot exists — getContextMap is a pure
-    // map lookup in this mock, so this sidesteps the fire-and-forget timing problem of not
-    // knowing the new snapshot's id until the dispatch has already run past it.
-    watchtowerState.contextMaps.set("wt-snap-0", watchtowerCtx({ routes: [] }));
-    watchtowerState.contextMaps.set("wt-snap-1", watchtowerCtx({ routes: [{ path: "/new", method: "GET", source_file: "a.ts" }] }));
 
     const body1 = pushBody(repo);
     await req("POST", "/v1/github/webhook", body1, {
@@ -380,6 +417,10 @@ describe("Watchtower delta on webhook re-analysis", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 250));
 
+    // Second dispatch of the SAME repo returns a larger file set — the real
+    // analysis-on-push pipeline (not a manual pre-seed) produces a genuinely
+    // different context map, so buildDeltaReport has something real to diff.
+    vi.mocked(fetchGitHubRepo).mockResolvedValueOnce(biggerFetchResult());
     const body2 = pushBody(repo);
     await req("POST", "/v1/github/webhook", body2, {
       "X-GitHub-Event": "push",
@@ -388,11 +429,22 @@ describe("Watchtower delta on webhook re-analysis", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 250));
 
+    // Both snapshots got REAL analysis — proves this isn't relying on manual pre-seeding.
+    expect(watchtowerState.contextMaps.get("wt-snap-0")).toBeDefined();
+    expect(watchtowerState.contextMaps.get("wt-snap-1")).toBeDefined();
+
     const result = watchtowerState.generatorResults.get("wt-snap-1") as { files: Array<{ path: string; content: string }> } | undefined;
     expect(result).toBeDefined();
     const delta = result!.files.find((f) => f.path === "delta-report.md");
     expect(delta).toBeDefined();
-    expect(delta!.content).toContain("/new");
+    expect(delta!.content).toContain("Since the last snapshot:");
+    // Assert a REAL, quantified change is named — not just that the content is
+    // non-empty. Every fragment carries a number (e.g. "2 files added", "total
+    // LOC +40"), so the summary must contain a digit after the colon. (The old
+    // `endsWith(": .")` check was tautological: buildDeltaReport returns null
+    // when nothing changed, and the trailing footer means it never ends in ": .")
+    const summaryLine = delta!.content.split("\n").find((l) => l.startsWith("Since the last snapshot:"))!;
+    expect(summaryLine).toMatch(/Since the last snapshot: \S.*\d/);
   });
 
   it("skips the delta on the first-ever snapshot for a project — webhook response unchanged", async () => {
@@ -419,17 +471,43 @@ describe("Watchtower delta on webhook re-analysis", () => {
     stdoutSpy.mockRestore();
   });
 
-  it("fails open: buildDeltaReport throwing logs delta_failed but the webhook still succeeds", async () => {
-    const repo = "delta-org/watchtower-repo-throw";
-    watchtowerState.contextMaps.set("wt-snap-0", watchtowerCtx());
-    // A context map whose routes getter throws — forces buildDeltaReport to throw mid-diff.
-    watchtowerState.contextMaps.set("wt-snap-1", {
-      ...watchtowerCtx(),
-      get routes(): never { throw new Error("boom"); },
-    });
+  it("an identical re-push analyzes both snapshots for real but finds no difference (reason:no_change)", async () => {
+    const repo = "delta-org/watchtower-repo-nochange";
+    vi.stubEnv("AXIS_ENABLE_TEST_LOGS", "1");
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 
+    const body1 = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body1, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body1),
+      "X-GitHub-Delivery": "wt-delivery-nochange-1",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    // Same (default) fetchGitHubRepo content both times — real analysis runs
+    // twice but produces byte-identical context maps.
+    const body2 = pushBody(repo);
+    await req("POST", "/v1/github/webhook", body2, {
+      "X-GitHub-Event": "push",
+      "X-Hub-Signature-256": sign(body2),
+      "X-GitHub-Delivery": "wt-delivery-nochange-2",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    expect(watchtowerState.contextMaps.get("wt-snap-0")).toBeDefined();
+    expect(watchtowerState.contextMaps.get("wt-snap-1")).toBeDefined();
+    expect(watchtowerState.generatorResults.get("wt-snap-1")).toBeUndefined(); // no delta stored
+    const lines = stdoutSpy.mock.calls.map((c) => String(c[0])).join("");
+    expect(lines).toContain("github-webhook.delta_skipped");
+    expect(lines).toContain("no_change");
+    stdoutSpy.mockRestore();
+  });
+
+  it("fails open: an analysis failure (a corrupt fetched file) is caught and logged, the webhook still succeeds, and the delta degrades to no_ctx", async () => {
+    const repo = "delta-org/watchtower-repo-analysis-throw";
     vi.stubEnv("AXIS_ENABLE_TEST_LOGS", "1");
     const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 
     const body1 = pushBody(repo);
     await req("POST", "/v1/github/webhook", body1, {
@@ -439,6 +517,17 @@ describe("Watchtower delta on webhook re-analysis", () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 250));
 
+    // A fetched "file" whose path getter throws — crashes buildContextMap deep inside
+    // (buildProjectIdentity reads snapshot.files[].path first), exercising the
+    // analysis-on-push try/catch rather than the delta-specific one.
+    vi.mocked(fetchGitHubRepo).mockResolvedValueOnce({
+      files: [{ get path(): never { throw new Error("boom"); }, content: "x", size: 1 }] as unknown as Array<{ path: string; content: string; size: number }>,
+      owner: "owner",
+      repo: "repo",
+      ref: "HEAD",
+      skipped_count: 0,
+      total_bytes: 1,
+    });
     const body2 = pushBody(repo);
     const r = await req("POST", "/v1/github/webhook", body2, {
       "X-GitHub-Event": "push",
@@ -448,8 +537,14 @@ describe("Watchtower delta on webhook re-analysis", () => {
     expect(r.status).toBe(202); // webhook still succeeds despite the internal throw
 
     await new Promise((resolve) => setTimeout(resolve, 250));
-    const lines = stderrSpy.mock.calls.map((c) => String(c[0])).join("");
-    expect(lines).toContain("github-webhook.delta_failed");
+    const errLines = stderrSpy.mock.calls.map((c) => String(c[0])).join("");
+    expect(errLines).toContain("github-webhook.analysis_failed");
+    expect(watchtowerState.contextMaps.get("wt-snap-1")).toBeUndefined(); // save never reached
+
+    const outLines = stdoutSpy.mock.calls.map((c) => String(c[0])).join("");
+    expect(outLines).toContain("github-webhook.delta_skipped");
+    expect(outLines).toContain("no_ctx"); // no context map to diff against — degrades gracefully
     stderrSpy.mockRestore();
+    stdoutSpy.mockRestore();
   });
 });
