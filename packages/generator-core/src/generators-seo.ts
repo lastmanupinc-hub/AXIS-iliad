@@ -761,16 +761,20 @@ export interface SeoGap {
   note: string;
 }
 
-/** True if `content` shows any of the framework signals for a given meta concern. */
-// A metadata MECHANISM (Next generateMetadata, SvelteKit svelte:head, react-
-// helmet, next/head <Head>) manages title+description together — its presence
-// clears both, so a page using it isn't flagged for a missing title/description.
-const META_MECHANISM = /generateMetadata|useHead|svelte:head|next\/head|react-helmet|<Head[\s>]/i;
+/** True if `content` shows a real signal for a given meta concern. */
+// A metadata MECHANISM manages title+description together — its presence clears
+// both. Anchored to real meta contexts, NOT bare `title`/`description`/`og`
+// identifiers: a `description` PROP or a `{ title: … }` column config is not a
+// meta tag, and matching them would silently suppress a real gap (false
+// negative). `\bmetadata\b` covers Next's `export const metadata = {…}` static
+// export as well as generateMetadata().
+const META_MECHANISM = /generateMetadata|\bmetadata\b|useHead|svelte:head|next\/head|react-helmet|<Head[\s>]/i;
 const SEO_SIGNALS = {
-  title: new RegExp(META_MECHANISM.source + "|<title[\\s>]|[\"']title[\"']\\s*:|document\\.title", "i"),
-  description: new RegExp(META_MECHANISM.source + "|name=[\"']description[\"']|<meta[^>]+description|\\bdescription\\s*[:=]", "i"),
-  canonical: /rel=["']canonical["']|["']canonical["']\s*:|alternates\s*:/i,
-  og: /og:|opengraph|open_graph|["']openGraph["']|twitter:card/i,
+  title: new RegExp(META_MECHANISM.source + "|<title[\\s>]", "i"),
+  description: new RegExp(META_MECHANISM.source + "|name=[\"']description[\"']|<meta[^>]+description", "i"),
+  canonical: /rel=["']canonical["']|["']canonical["']\s*:|alternates\s*:\s*\{/i,
+  // Specific og:* tags, not a bare "og:" (which matched blog:/dialog:/catalog:).
+  og: /\bog:(?:title|image|description|type|url|site_name)|opengraph|open_graph|["']openGraph["']|twitter:card/i,
 };
 
 /**
@@ -783,12 +787,20 @@ const SEO_SIGNALS = {
 export function isPageFile(path: string): boolean {
   if (/\.(test|spec)\.[jt]sx?$/.test(path)) return false;
   if (/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(path)) return false;
+  if (/(^|\/)api\//.test(path)) return false; // API routes aren't SEO pages
+  // Co-located non-page files (components/lib/ui/hooks/utils) live under the same
+  // pages/app/routes dirs but don't render a page — exclude them so the greedy
+  // `.*` below can't scan a whole component subtree as "pages".
+  if (/(^|\/)(_?components|lib|ui|hooks|utils|helpers|styles|assets)\//.test(path)) return false;
   return (
-    /(^|\/)page\.(tsx|jsx|ts|js)$/.test(path) ||
-    /(^|\/)\+page\.(svelte|ts|js)$/.test(path) ||
-    /(^|\/)_(document|app)\.(tsx|jsx|ts|js)$/.test(path) ||
+    // Next App Router: only page/layout are routable — NOT every file under app/
+    // (an `app/components/Button.tsx` is a component, not a page).
+    /(^|\/)(page|layout)\.(tsx|jsx|ts|js)$/.test(path) ||
+    /(^|\/)\+page\.(svelte|ts|js)$/.test(path) ||    // SvelteKit
+    /(^|\/)_(document|app)\.(tsx|jsx|ts|js)$/.test(path) || // Next Pages Router specials
     /\.html?$/i.test(path) ||
-    /(^|\/)(pages|app|routes|views)\/.*\.(tsx|jsx|vue|svelte)$/.test(path)
+    // Pages Router / other frameworks route every file in these dirs.
+    /(^|\/)(pages|routes|views)\/.*\.(tsx|jsx|vue|svelte)$/.test(path)
   );
 }
 
@@ -835,7 +847,8 @@ export function renderSeoGaps(gaps: SeoGap[], pageCount: number): string[] {
   lines.push("");
   const sorted = [...gaps].sort((a, b) =>
     SEO_GAP_ORDER.indexOf(a.klass) - SEO_GAP_ORDER.indexOf(b.klass) ||
-    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.category.localeCompare(b.category));
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) ||
+    (a.category < b.category ? -1 : a.category > b.category ? 1 : 0)); // code-unit, locale-independent
   lines.push("| Page | Category | Class | Note |");
   lines.push("|------|----------|-------|------|");
   for (const g of sorted.slice(0, 40)) {
