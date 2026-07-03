@@ -16,6 +16,20 @@ describe("analyzeFailureSurface — deterministic static failure-mode scan", () 
     expect(byFile["src/sandbox.ts"].klass).toBe("ACCEPTABLE");
   });
 
+  it("word segments, not substrings: 'kill' inside 'skill' must not mask a side-effect swallow as ACCEPTABLE", () => {
+    const f = analyzeFailureSurface([
+      // 'kill' ⊂ "Skill" — the old substring match classified this ACCEPTABLE
+      // ("best-effort cleanup"), hiding a swallowed reward GRANT.
+      sf("src/reward.ts", "grantSkillReward(user).catch(() => {});"),
+      // camelCase cleanup verb must STILL be recognized.
+      sf("src/task.ts", "await taskKill(pid).catch(() => {});"),
+    ]);
+    const byFile = Object.fromEntries(f.map((x) => [x.file, x]));
+    expect(byFile["src/reward.ts"].klass).toBe("SILENT");
+    expect(byFile["src/reward.ts"].klass).not.toBe("ACCEPTABLE");
+    expect(byFile["src/task.ts"].klass).toBe("ACCEPTABLE");
+  });
+
   it("flags empty catch as REVIEW and unstructured console.* as OBSERVABILITY", () => {
     const f = analyzeFailureSurface([
       sf("src/parse.ts", "try { doThing(); } catch {}"),
