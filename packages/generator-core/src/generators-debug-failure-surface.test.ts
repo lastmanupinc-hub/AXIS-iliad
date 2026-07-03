@@ -51,6 +51,54 @@ describe("analyzeFailureSurface — deterministic static failure-mode scan", () 
     expect(f.some((x) => x.file.includes("/cli/"))).toBe(false);
   });
 
+  it("DEVELOP recall: catches sentinel-return swallows and async/function catch handlers (was false-negative)", () => {
+    const f = analyzeFailureSurface([
+      sf("src/a.ts", "const d = await fetch(u).catch(() => null);"),
+      sf("src/b.ts", "load().catch(() => []);"),
+      sf("src/c.ts", "sendEmail().catch(async () => {});"),      // async handler + side-effect → SILENT
+      sf("src/d.ts", "doThing().catch(function () {});"),
+      sf("src/e.ts", "get().catch(() => false);"),
+    ]);
+    const cat = Object.fromEntries(f.map((x) => [x.file, x]));
+    for (const p of ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts", "src/e.ts"]) {
+      expect(cat[p], p).toBeDefined();
+      expect(cat[p].category).toBe("swallowed-async-error");
+    }
+    expect(cat["src/c.ts"].klass).toBe("SILENT"); // sendEmail = side-effect
+    // a handler that actually handles the error is NOT flagged
+    expect(analyzeFailureSurface([sf("src/ok.ts", "x().catch((e) => log(e));")])).toHaveLength(0);
+  });
+
+  it("DEVELOP recall: catches a TYPED empty catch and a two-line empty catch (was false-negative)", () => {
+    const f = analyzeFailureSurface([
+      sf("src/typed.ts", "try { doThing(); } catch (e: unknown) {}"),
+      sf("src/split.ts", "try {\n  parse();\n} catch (e) {\n}"),
+    ]);
+    const cat = Object.fromEntries(f.map((x) => [x.file, x.category]));
+    expect(cat["src/typed.ts"]).toBe("empty-catch");
+    expect(cat["src/split.ts"]).toBe("empty-catch");
+  });
+
+  it("DEVELOP recall: catches a Go SOLE '_ = f()' discard and a two-line empty error block (was false-negative)", () => {
+    const f = analyzeFailureSurface([
+      sf("internal/a.go", "_ = os.Remove(tmp)"),
+      sf("internal/b.go", "if err != nil {\n}"),
+    ]);
+    const cat = Object.fromEntries(f.map((x) => [x.file, x.category]));
+    expect(cat["internal/a.go"]).toBe("discarded-return");
+    expect(cat["internal/b.go"]).toBe("empty-error-check");
+    // a comparison `_ == x` is not a discard
+    expect(analyzeFailureSurface([sf("internal/c.go", "if _ == x {}")]).some((x) => x.category === "discarded-return")).toBe(false);
+  });
+
+  it("DEVELOP precision: commented-out code is not flagged (was false-positive)", () => {
+    const f = analyzeFailureSurface([
+      sf("src/x.ts", "// legacy: sendEmail().catch(() => {})\nconst y = 1;"),
+      sf("src/y.ts", " * @example doThing().catch(() => {})"),
+    ]);
+    expect(f).toHaveLength(0);
+  });
+
   it("is deterministic (same input → identical output)", () => {
     const files = [sf("src/b.ts", "sendEmail().catch(() => {});"), sf("src/a.ts", "x.catch(() => {});")];
     expect(analyzeFailureSurface(files)).toEqual(analyzeFailureSurface(files));

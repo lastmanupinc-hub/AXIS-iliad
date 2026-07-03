@@ -1087,6 +1087,41 @@ function fsHasStem(s: string, stems: string[]): boolean {
   return words.some(w => stems.some(stem => w.startsWith(stem)));
 }
 
+// A swallow BODY discards the error: the empty block plus the common
+// sentinel-fallback forms `() => null | [] | false | "" | '' | ({})` that the
+// first pass missed (its highest-frequency false negatives).
+const FS_SWALLOW_BODY = String.raw`(?:\{\s*\}|undefined|void 0|null|false|\[\s*\]|""|''|\(\s*\{\s*\}\s*\))`;
+// .catch(handler) that swallows — arrow (incl. `async` and typed params) OR a
+// function expression. Param class allows `:<>|.` so typed bindings match.
+const FS_CATCH_SWALLOW = new RegExp(
+  String.raw`\.catch\(\s*(?:async\s*)?(?:` +
+    String.raw`(?:\([a-zA-Z_$,\s:<>|.]*\)|[a-zA-Z_$]+)\s*=>\s*` + FS_SWALLOW_BODY +
+    String.raw`|function\s*\*?\s*[a-zA-Z_$]*\s*\([a-zA-Z_$,\s:<>|.]*\)\s*\{\s*\}` +
+  String.raw`)\s*\)`,
+);
+// Empty catch — single-line, plus the split `} catch (e) {` / `}` form via a
+// 2-line lookahead. Typed catch bindings (`catch (e: unknown)`) now match.
+const FS_EMPTY_CATCH = /\bcatch\s*(?:\([a-zA-Z_$,\s:<>|.]*\))?\s*\{\s*\}/;
+const FS_CATCH_OPEN = /\bcatch\s*(?:\([a-zA-Z_$,\s:<>|.]*\))?\s*\{\s*$/;
+const FS_CLOSE_ONLY = /^\s*\}\s*$/;
+// Go: empty error block (single-line and the idiomatic gofmt two-line form) and
+// a discarded return via `_` — now including the SOLE form `_ = f()` (the first
+// pass required a leading comma, missing the more dangerous sole-return discard).
+const FS_GO_EMPTY_ERR = /if\s+err\s*!=\s*nil\s*\{\s*\}/;
+const FS_GO_ERR_OPEN = /if\s+err\s*!=\s*nil\s*\{\s*$/;
+const FS_GO_DISCARD = /(?:^|[\s(;,{])_\s*(?::=|=)\s*[^=]/;
+
+/** Next non-blank line's content (for bounded 2-line lookahead). */
+function fsNextCode(lines: string[], i: number): string {
+  let j = i + 1;
+  while (j < lines.length && lines[j].trim() === "") j++;
+  return lines[j] ?? "";
+}
+/** A comment-only line — commented-out code must never be flagged as a live failure. */
+function fsIsComment(trimmed: string): boolean {
+  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*");
+}
+
 /** Static failure-mode scan of source files (skips tests + generated dirs). Deterministic. */
 export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
   const out: FailureFinding[] = [];
@@ -1099,6 +1134,8 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
     const lines = f.content.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
+      // Commented-out code must never be flagged as a live failure mode.
+      if (fsIsComment(ln.trim())) continue;
       // ── Go source: idiomatic silent-failure patterns ──
       if (/\.go$/.test(f.path)) {
         if (/\b(?:fmt\.Print(?:f|ln)?|println)\s*\(/.test(ln)) {
@@ -1107,25 +1144,27 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
         } else if (/\bpanic\s*\(/.test(ln)) {
           out.push({ file: f.path, line: i + 1, category: "panic", klass: "REVIEW",
             note: "panic() — ensure a recover() guards this path" });
-        } else if (/if\s+err\s*!=\s*nil\s*\{\s*\}/.test(ln)) {
+        } else if (FS_GO_EMPTY_ERR.test(ln) || (FS_GO_ERR_OPEN.test(ln) && FS_CLOSE_ONLY.test(fsNextCode(lines, i)))) {
           out.push({ file: f.path, line: i + 1, category: "empty-error-check", klass: "SILENT",
             note: "error checked then ignored" });
-        } else if (/,\s*_\s*(?::=|=)\s/.test(ln)) {
+        } else if (FS_GO_DISCARD.test(ln)) {
           out.push({ file: f.path, line: i + 1, category: "discarded-return", klass: "REVIEW",
             note: "discarded return via _ — if it is an error, the failure is silent" });
         }
         continue;
       }
-      // swallowed async error: .catch(() => {}) / .catch(e => {}) / .catch(() => undefined)
-      if (/\.catch\(\s*(\([a-zA-Z_,\s]*\)|[a-zA-Z_]+)?\s*=>\s*(\{\s*\}|undefined|void 0)\s*\)/.test(ln)) {
+      // swallowed async error: .catch(() => {} | undefined | null | [] | false | "" | ({})),
+      // arrow (incl. async + typed params) or function expression.
+      if (FS_CATCH_SWALLOW.test(ln)) {
         const cleanup = fsHasStem(ln, FS_CLEANUP_STEMS), side = fsHasStem(ln, FS_SIDE_EFFECT_STEMS);
         out.push({ file: f.path, line: i + 1, category: "swallowed-async-error",
           klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
           note: cleanup ? "best-effort cleanup" : side ? "side-effect failure is invisible" : "swallowed — confirm intent" });
         continue;
       }
-      // empty catch: } catch {} / catch (e) {} — classify from the try body (this + prev line)
-      if (/\bcatch\s*(\([a-zA-Z_$]*\))?\s*\{\s*\}/.test(ln)) {
+      // empty catch: `} catch {}` / `catch (e: T) {}`, single-line or split across
+      // two lines. Classify from the try body (this + prev line).
+      if (FS_EMPTY_CATCH.test(ln) || (FS_CATCH_OPEN.test(ln) && FS_CLOSE_ONLY.test(fsNextCode(lines, i)))) {
         const ctx2 = ln + " " + (lines[i - 1] ?? "");
         const cleanup = fsHasStem(ctx2, FS_CLEANUP_STEMS), side = fsHasStem(ctx2, FS_SIDE_EFFECT_STEMS);
         out.push({ file: f.path, line: i + 1, category: "empty-catch",
