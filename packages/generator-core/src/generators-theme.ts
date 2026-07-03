@@ -1,11 +1,12 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
-import { findFiles, renderExcerpts, fileTree, extractExports } from "./file-excerpt-utils.js";
+import { findFiles, detectStyleFiles, renderExcerpts, fileTree, extractExports } from "./file-excerpt-utils.js";
 // Injection defense. theme.css interpolates into CSS block comments (cssComment
 // breaks `*/`); theme-guidelines.md uses md-sanitize; the 3 JSON files are
 // JSON.stringify(obj) (contained by construction).
 import { mdText, mdInline, mdCode, cssComment } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── .ai/design-tokens.json ────────────────────────────────────
 
@@ -151,7 +152,7 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const themeFiles = findFiles(files, ["*theme*", "*token*", "*tailwind*", "*variables*", "*.css"]);
+    const themeFiles = detectStyleFiles(files);
     if (themeFiles.length > 0) {
       tokens.source_theme_files = themeFiles.slice(0, 15).map(f => f.path);
     }
@@ -181,9 +182,12 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   const fwStack = ctx.detection.frameworks.slice(0, 4).map(f => cssComment(f.name)).join(", ") || "—";
   /* v8 ignore next */
   const totalLoc = ctx.detection.languages.reduce((sum, l) => sum + (l.loc ?? 0), 0);
-  const getCount = ctx.routes.filter(r => r.method === "GET").length;
-  const postCount = ctx.routes.filter(r => r.method === "POST").length;
-  const otherCount = ctx.routes.length - getCount - postCount;
+  // Dedupe by (method, path) and drop test/README noise so the headline count
+  // reflects the real API surface, not the parser's per-mention rows.
+  const routes = displayRoutes(ctx.routes);
+  const getCount = routes.filter(r => r.method === "GET").length;
+  const postCount = routes.filter(r => r.method === "POST").length;
+  const otherCount = routes.length - getCount - postCount;
   lines.push("/* ─── Project Snapshot ──────────────────────────────────────");
   lines.push(`   Name:        ${cssComment(ctx.project_identity.name)}`);
   lines.push(`   Type:        ${cssComment(ctx.project_identity.type.replace(/_/g, " "))}`);
@@ -192,8 +196,8 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
   if (totalLoc > 0) {
     lines.push(`   Total LOC:   ${totalLoc.toLocaleString("en-US")}`);
   }
-  if (ctx.routes.length > 0) {
-    lines.push(`   Routes:      ${ctx.routes.length} (${getCount} GET · ${postCount} POST${otherCount > 0 ? ` · ${otherCount} other` : ""})`);
+  if (routes.length > 0) {
+    lines.push(`   Routes:      ${routes.length} (${getCount} GET · ${postCount} POST${otherCount > 0 ? ` · ${otherCount} other` : ""})`);
   }
   if (ctx.domain_models.length > 0) {
     lines.push(`   Models:      ${ctx.domain_models.length} domain models`);
@@ -584,7 +588,7 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const cssFiles = findFiles(files, ["*.css", "*.scss", "*.less", "*tailwind*"]);
+    const cssFiles = detectStyleFiles(files);
     if (cssFiles.length > 0) {
       lines.push("/* ─── Detected Style Files ─────────────────────────────── */");
       lines.push("/*");
@@ -877,16 +881,18 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("- Test with screen readers, keyboard-only navigation, and Windows High Contrast Mode.");
   lines.push("");
 
-  // Route-Aware Theme Zones
-  if (ctx.routes.length > 0) {
+  // Route-Aware Theme Zones — deduped + noise-dropped so theming hints reflect
+  // real endpoints, not per-mention test/README rows.
+  const routeZones = displayRoutes(ctx.routes);
+  if (routeZones.length > 0) {
     lines.push("## Route Theme Zones");
     lines.push("");
     lines.push("Routes detected — consider zone-based theming:");
     lines.push("");
-    for (const r of ctx.routes.slice(0, 12)) {
-      lines.push(`- ${mdCode(r.path)} (${mdInline(r.method)}) → ${mdText(r.source_file)}`);
+    for (const r of routeZones.slice(0, 12)) {
+      lines.push(`- \`${mdCode(r.path)}\` (${mdInline(r.method)}) → ${mdText(r.source_file)}`);
     }
-    if (ctx.routes.length > 12) lines.push(`- … and ${ctx.routes.length - 12} more routes`);
+    if (routeZones.length > 12) lines.push(`- … and ${routeZones.length - 12} more routes`);
     lines.push("");
   }
 
@@ -914,12 +920,16 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const styleFiles = findFiles(files, ["*.css", "*.scss", "*.less", "*tailwind*", "*theme*", "*token*"]);
+    // Real stylesheets + design-token sources only (shared detector). The old
+    // *theme*/*token* filename glob matched unrelated TS source and tests
+    // (generators-theme.ts, github-token-store.ts, *.test.ts) purely by name and
+    // excerpted their code into this design doc — noise.
+    const styleFiles = detectStyleFiles(files);
     if (styleFiles.length > 0) {
       lines.push("## Detected Style Files");
       lines.push("");
       for (const sf of styleFiles.slice(0, 10)) {
-        lines.push(`- ${mdCode(sf.path)} (${sf.content.split("\n").length} lines)`);
+        lines.push(`- \`${mdCode(sf.path)}\` (${sf.content.split("\n").length} lines)`);
       }
       lines.push("");
       lines.push(...renderExcerpts("Style File Contents", styleFiles.slice(0, 3), 20));
@@ -934,7 +944,7 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
       lines.push("|-----------|---------|-------|");
       for (const cf of compFiles.slice(0, 12)) {
         const exports = extractExports(cf.content);
-        lines.push(`| ${mdCode(cf.path)} | ${exports.map(mdInline).join(", ") || "default"} | ${cf.content.split("\n").length} |`);
+        lines.push(`| \`${mdCode(cf.path)}\` | ${exports.map(mdInline).join(", ") || "default"} | ${cf.content.split("\n").length} |`);
       }
       lines.push("");
     }
@@ -1148,7 +1158,7 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const darkFiles = findFiles(files, ["*dark*", "*theme*", "*color*", "*.css", "*.scss"]);
+    const darkFiles = detectStyleFiles(files);
     if (darkFiles.length > 0) {
       tokens.source_theme_files = darkFiles.slice(0, 15).map(f => f.path);
     }

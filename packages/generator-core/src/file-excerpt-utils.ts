@@ -20,6 +20,25 @@ export function findFiles(files: SourceFile[], patterns: string[]): SourceFile[]
 }
 
 /**
+ * Detect real style / design-token SOURCE files to reference in theme artifacts:
+ * stylesheets, CSS-framework configs, and design-token definition modules — minus
+ * tests. Replaces a loose `*theme*`/`*token*` filename glob that matched unrelated
+ * TS source (e.g. an auth `github-token-store.ts`, the generators themselves) and
+ * either listed them as "style files" or excerpted their code into a design doc.
+ * Case-insensitive; deterministic (preserves input order).
+ */
+export function detectStyleFiles(files: SourceFile[]): SourceFile[] {
+  return files.filter(f => {
+    const p = f.path.toLowerCase();
+    if (/\.(test|spec)\.[cm]?[jt]sx?$/.test(p)) return false;
+    return /\.(css|scss|sass|less|styl)$/.test(p) // stylesheets
+      || /(^|\/)(tailwind|postcss|unocss|windi)\.config\.[cm]?[jt]s$/.test(p) // framework configs
+      || /(^|\/)(design-tokens|tokens|theme)\.[cm]?[jt]sx?$/.test(p) // token/theme source modules
+      || /\.tokens\.(json|[cm]?[jt]sx?)$/.test(p); // *.tokens.* files
+  });
+}
+
+/**
  * Find a single file by exact name (basename match), or fallback to substring.
  */
 export function findFile(files: SourceFile[], name: string): SourceFile | undefined {
