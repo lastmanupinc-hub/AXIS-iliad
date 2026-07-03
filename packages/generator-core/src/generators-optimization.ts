@@ -2,6 +2,10 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findConfigs, findEntryPoints, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
+// Prompt-injection defense for the 3 markdown generators; the cost-estimate.json
+// generator emits JSON.stringify(obj), which escapes every value (contained by
+// construction). mdText/mdInline/mdCode/mdCellCode per sink context.
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 // ─── .ai/optimization-rules.md ──────────────────────────────────
 
@@ -9,9 +13,9 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Optimization Rules — ${id.name}`);
+  lines.push(`# Optimization Rules — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Prompt and context efficiency guidelines for a ${id.type.replace(/_/g, " ")} (${id.primary_language})`);
+  lines.push(`> Prompt and context efficiency guidelines for a ${mdText(id.type.replace(/_/g, " "))} (${mdText(id.primary_language)})`);
   lines.push("");
 
   // Context Window Budget
@@ -23,9 +27,9 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   lines.push(`| Metric | Value |`);
   lines.push(`|--------|-------|`);
   lines.push(`| Total files | ${totalFiles} |`);
-  lines.push(`| Total LOC | ${totalLoc.toLocaleString()} |`);
+  lines.push(`| Total LOC | ${totalLoc.toLocaleString("en-US")} |`);
   lines.push(`| Average LOC / file | ${avgLoc} |`);
-  lines.push(`| Estimated token count | ~${Math.round(totalLoc * 4.5).toLocaleString()} |`);
+  lines.push(`| Estimated token count | ~${Math.round(totalLoc * 4.5).toLocaleString("en-US")} |`);
   lines.push("");
   if (totalLoc > 50000) {
     lines.push("**Warning:** This project exceeds most context windows. Use selective context loading.");
@@ -44,7 +48,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   lines.push("Include these files first when constructing prompts — they carry the most architectural signal:");
   lines.push("");
 
-  const hotspots = ctx.dependency_graph.hotspots
+  const hotspots = [...ctx.dependency_graph.hotspots]
     .sort((a, b) => b.risk_score - a.risk_score)
     .slice(0, 10);
   if (hotspots.length > 0) {
@@ -53,7 +57,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("| File | Inbound | Outbound | Risk |");
     lines.push("|------|---------|----------|------|");
     for (const h of hotspots) {
-      lines.push(`| \`${h.path}\` | ${h.inbound_count} | ${h.outbound_count} | ${h.risk_score.toFixed(1)} |`);
+      lines.push(`| \`${mdCellCode(h.path)}\` | ${h.inbound_count} | ${h.outbound_count} | ${h.risk_score.toFixed(1)} |`);
     }
     lines.push("");
   }
@@ -63,7 +67,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("### Entry Points");
     lines.push("");
     for (const ep of entryPoints) {
-      lines.push(`- \`${ep.path}\` — ${ep.description} (${ep.type})`);
+      lines.push(`- \`${mdCode(ep.path)}\` — ${mdText(ep.description)} (${mdText(ep.type)})`);
     }
     lines.push("");
   }
@@ -94,7 +98,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   lines.push("");
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   if (frameworks.length > 0) {
-    lines.push(`Detected stack: ${frameworks.map(f => `\`${f}\``).join(", ")}. Anchor every prompt in the real files below so generated code matches this project's actual setup and dependency versions.`);
+    lines.push(`Detected stack: ${frameworks.map(f => `\`${mdCode(f)}\``).join(", ")}. Anchor every prompt in the real files below so generated code matches this project's actual setup and dependency versions.`);
     lines.push("");
   }
 
@@ -108,7 +112,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("### Always-include configuration (constrains generated code)");
     lines.push("");
     for (const p of configFilePaths) {
-      lines.push(`- \`${p}\``);
+      lines.push(`- \`${mdCode(p)}\``);
     }
     lines.push("");
   }
@@ -144,9 +148,9 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   const specialCased = new Set(["next.js", "react", "prisma"]);
   const otherFrameworks = frameworks.filter(f => !specialCased.has(f.toLowerCase()));
   if (otherFrameworks.length > 0) {
-    lines.push(`### ${otherFrameworks.join(", ")}`);
+    lines.push(`### ${otherFrameworks.map(mdText).join(", ")}`);
     lines.push("");
-    lines.push(`Include this project's ${otherFrameworks.map(f => `\`${f}\``).join(" / ")} config + entry files (listed above) in prompts so generated code follows the framework's real conventions and the versions pinned in this repo — not a generic template.`);
+    lines.push(`Include this project's ${otherFrameworks.map(f => `\`${mdCode(f)}\``).join(" / ")} config + entry files (listed above) in prompts so generated code follows the framework's real conventions and the versions pinned in this repo — not a generic template.`);
     lines.push("");
   }
 
@@ -158,7 +162,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("Include these as system-level constraints when generating code:");
     lines.push("");
     for (const c of conventions) {
-      lines.push(`- ${c}`);
+      lines.push(`- ${mdText(c)}`);
     }
     lines.push("");
   }
@@ -171,7 +175,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("Reference these patterns in prompts for architectural consistency:");
     lines.push("");
     for (const p of patterns) {
-      lines.push(`- ${p}`);
+      lines.push(`- ${mdText(p)}`);
     }
     lines.push("");
   }
@@ -183,7 +187,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("## Optimization Warnings");
     lines.push("");
     for (const w of warnings) {
-      lines.push(`- ⚠️ ${w}`);
+      lines.push(`- ⚠️ ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -203,7 +207,7 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     lines.push("");
 
     // Show hotspot file excerpts based on dependency graph
-    const hotspotPaths = ctx.dependency_graph.hotspots
+    const hotspotPaths = [...ctx.dependency_graph.hotspots]
       .sort((a, b) => b.risk_score - a.risk_score)
       .slice(0, 3)
       .map(h => h.path);
@@ -228,7 +232,7 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Prompt Diff Report — ${id.name}`);
+  lines.push(`# Prompt Diff Report — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`> Before/after recommendations for prompt quality improvement`);
   lines.push("");
@@ -337,7 +341,7 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
   lines.push("");
   const estimatedTokens = Math.round(ctx.structure.total_loc * 4.5);
   if (estimatedTokens > 100000) {
-    lines.push(`Estimated full-project tokens: ~${estimatedTokens.toLocaleString()}`);
+    lines.push(`Estimated full-project tokens: ~${estimatedTokens.toLocaleString("en-US")}`);
     lines.push("");
     lines.push("**Selective context required.** Use this priority order:");
     lines.push("1. Active file being modified");
@@ -346,14 +350,14 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
     lines.push("4. Type definitions and interfaces");
     lines.push("5. Test files (for TDD context)");
   } else if (estimatedTokens > 30000) {
-    lines.push(`Estimated full-project tokens: ~${estimatedTokens.toLocaleString()}`);
+    lines.push(`Estimated full-project tokens: ~${estimatedTokens.toLocaleString("en-US")}`);
     lines.push("");
     lines.push("**Partial context viable.** Include:");
     lines.push("- All source files (skip node_modules, lockfiles, build output)");
     lines.push("- Configuration files for constraint context");
     lines.push("- Test files relevant to current work");
   } else {
-    lines.push(`Estimated full-project tokens: ~${estimatedTokens.toLocaleString()}`);
+    lines.push(`Estimated full-project tokens: ~${estimatedTokens.toLocaleString("en-US")}`);
     lines.push("");
     lines.push("**Full context viable.** This project fits comfortably in a single prompt.");
   }
@@ -370,7 +374,7 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
       for (const ep of entries.slice(0, 6)) {
         const exports = extractExports(ep.content);
         const lineCount = ep.content.split("\n").length;
-        lines.push(`| \`${ep.path}\` | ${lineCount} | ${exports.join(", ") || "default"} |`);
+        lines.push(`| \`${mdCellCode(ep.path)}\` | ${lineCount} | ${exports.map(mdInline).join(", ") || "default"} |`);
       }
       lines.push("");
     }
@@ -395,7 +399,11 @@ export function generateCostEstimate(ctx: ContextMap, profile: RepoProfile, file
   const tokensPerLoc = 4.5;
   const fullProjectTokens = Math.round(totalLoc * tokensPerLoc);
 
-  // Per-language breakdown
+  // Per-language breakdown. `percentage` is share of CLASSIFIED LOC (the sum of
+  // the language rows), so the breakdown percentages sum to 100 — not share of
+  // structure.total_loc (which includes unclassified lockfiles/assets and would
+  // make the rows under-sum to <100 against their own table).
+  const classifiedLoc = ctx.detection.languages.reduce((sum, l) => sum + l.loc, 0);
   const languageBreakdown = ctx.detection.languages.map(lang => {
     const langFiles = ctx.structure.file_tree_summary.filter(f => f.language === lang.name);
     const langLoc = langFiles.reduce((sum, f) => sum + f.loc, 0);
@@ -404,8 +412,8 @@ export function generateCostEstimate(ctx: ContextMap, profile: RepoProfile, file
       files: langFiles.length,
       loc: langLoc,
       estimated_tokens: Math.round(langLoc * tokensPerLoc),
-      /* v8 ignore start — V8 quirk: totalLoc always > 0 in practice */
-      percentage: totalLoc > 0 ? Math.round((langLoc / totalLoc) * 100) : 0,
+      /* v8 ignore start — V8 quirk: classifiedLoc always > 0 in practice */
+      percentage: classifiedLoc > 0 ? Math.round((langLoc / classifiedLoc) * 100) : 0,
       /* v8 ignore stop */
     };
   }).filter(l => l.loc > 0);
@@ -516,13 +524,18 @@ export function generateCostEstimate(ctx: ContextMap, profile: RepoProfile, file
 export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const languages = ctx.detection.languages;
-  const totalLoc = languages.reduce((sum, l) => sum + l.loc, 0);
-  const totalFiles = languages.reduce((sum, l) => sum + l.file_count, 0);
+  // Use the SAME all-files base as the other 3 optimization artifacts
+  // (structure.total_*), so the headline LOC / token / "Repo Fits" / cost numbers
+  // AGREE across the 4 deliverables. Summing only language-detected files (the old
+  // behavior) excluded lockfiles/assets/LICENSE and produced an optimistic total
+  // that contradicted cost-estimate.json + optimization-rules.md for one repo.
+  const totalLoc = ctx.structure.total_loc;
+  const totalFiles = ctx.structure.total_files;
   const tokensPerLine = 4.5;
   const totalTokens = Math.round(totalLoc * tokensPerLine);
 
   const lines: string[] = [];
-  lines.push(`# Token Budget Plan — ${id.name}`);
+  lines.push(`# Token Budget Plan — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -531,10 +544,10 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
   lines.push("");
   lines.push("| Metric | Value |");
   lines.push("|--------|-------|");
-  lines.push(`| Total LOC | ${totalLoc.toLocaleString()} |`);
+  lines.push(`| Total LOC | ${totalLoc.toLocaleString("en-US")} |`);
   lines.push(`| Total Files | ${totalFiles} |`);
-  lines.push(`| Est. Total Tokens | ${totalTokens.toLocaleString()} |`);
-  lines.push(`| Avg Tokens/File | ${totalFiles > 0 ? Math.round(totalTokens / totalFiles).toLocaleString() : "N/A"} |`);
+  lines.push(`| Est. Total Tokens | ${totalTokens.toLocaleString("en-US")} |`);
+  lines.push(`| Avg Tokens/File | ${totalFiles > 0 ? Math.round(totalTokens / totalFiles).toLocaleString("en-US") : "N/A"} |`);
   lines.push("");
 
   lines.push("## Token Budget by Language");
@@ -543,17 +556,18 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
   lines.push("|----------|-----|--------|-------------|");
   for (const l of languages) {
     const tokens = Math.round(l.loc * tokensPerLine);
-    lines.push(`| ${l.name} | ${l.loc.toLocaleString()} | ${tokens.toLocaleString()} | ${l.loc_percent.toFixed(1)}% |`);
+    lines.push(`| ${mdInline(l.name)} | ${l.loc.toLocaleString("en-US")} | ${tokens.toLocaleString("en-US")} | ${l.loc_percent.toFixed(1)}% |`);
   }
   lines.push("");
 
   lines.push("## Context Window Allocation");
   lines.push("");
+  // Model line-up kept consistent with cost-estimate.json's roster.
   const models = [
     { name: "GPT-4o", window: 128000 },
-    { name: "Claude 3.5 Sonnet", window: 200000 },
+    { name: "Claude Sonnet 4", window: 200000 },
     { name: "Claude Opus 4", window: 200000 },
-    { name: "Gemini 1.5 Pro", window: 1000000 },
+    { name: "Gemini 2.5 Pro", window: 1000000 },
   ];
   lines.push("| Model | Context Window | Repo Fits | Recommended Strategy |");
   lines.push("|-------|---------------|-----------|----------------------|");
@@ -561,7 +575,8 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
     const fits = totalTokens <= m.window;
     const strategy = fits ? "Full repo context" :
       totalTokens <= m.window * 3 ? "Selective file context" : "Chunked / RAG approach";
-    lines.push(`| ${m.name} | ${(m.window / 1000).toFixed(0)}K | ${fits ? "✅ Yes" : "❌ No"} | ${strategy} |`);
+    const windowLabel = m.window >= 1_000_000 ? `${m.window / 1_000_000}M` : `${(m.window / 1000).toFixed(0)}K`;
+    lines.push(`| ${m.name} | ${windowLabel} | ${fits ? "✅ Yes" : "❌ No"} | ${strategy} |`);
   }
   lines.push("");
 
@@ -640,7 +655,7 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
   lines.push("|-----------|-------|--------|-------|----------------------|");
   for (const op of derivedOps) {
     const monthlyCost = (op.inputTokens * 2.50 / 1_000_000 + op.outputTokens * 10.00 / 1_000_000) * op.daily * 22;
-    lines.push(`| ${op.op} | ${op.inputTokens.toLocaleString()} | ${op.outputTokens.toLocaleString()} | ${op.daily} | $${monthlyCost.toFixed(2)} |`);
+    lines.push(`| ${op.op} | ${op.inputTokens.toLocaleString("en-US")} | ${op.outputTokens.toLocaleString("en-US")} | ${op.daily} | $${monthlyCost.toFixed(2)} |`);
   }
   lines.push("");
   lines.push("> Token estimates derived from detected project signals: routes, hotspots, domain models, and average file size.");
@@ -653,8 +668,8 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
     lines.push("## Source-Verified Token Estimate");
     lines.push("");
     lines.push(`- Source files scanned: ${files.length}`);
-    lines.push(`- Total source lines: ${totalSourceLines.toLocaleString()}`);
-    lines.push(`- Estimated tokens: ~${estimatedTokens.toLocaleString()}`);
+    lines.push(`- Total source lines: ${totalSourceLines.toLocaleString("en-US")}`);
+    lines.push(`- Estimated tokens: ~${estimatedTokens.toLocaleString("en-US")}`);
     lines.push("");
   }
 
