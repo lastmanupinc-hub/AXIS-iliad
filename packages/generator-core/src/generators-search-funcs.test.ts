@@ -489,9 +489,10 @@ describe("harden: external dependency version-risk classification", () => {
     expect(table).not.toContain("Pre-1.0");
   });
 
-  it("non-numeric versions (workspace ranges) fall back to Stable without NaN leaking into output", () => {
+  it("non-numeric versions are labeled honestly, never Stable and never NaN (HARDEN-2)", () => {
     const result = generateDependencyHotspots(depsCtx([{ name: "ws-dep", version: "workspace:x" }]));
-    expect(result.content).toContain("| Stable |");
+    expect(result.content).toContain("| Internal workspace package |");
+    expect(result.content).not.toContain("| Stable |");
     expect(result.content).not.toContain("NaN");
   });
 });
@@ -554,6 +555,105 @@ describe("polish: architecture-summary routes table cap", () => {
     const rows = result.content.split("\n").filter((l) => l.startsWith("| GET |"));
     expect(rows).toHaveLength(40);
     expect(result.content).not.toContain("more*");
+  });
+});
+
+// ─── HARDEN-2: context-aware sanitization + YAML edge closure ────
+
+describe("harden-2: context-aware markdown sanitization", () => {
+  it("pipes in non-table contexts are NOT backslash-escaped (the \\| corruption)", () => {
+    // Real-world case: a TS union type in the Hotspot Export Surface list.
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/auth.ts", inbound_count: 15, outbound_count: 3, risk_score: 0.9 }],
+      },
+    });
+    const files = [{ path: "src/auth.ts", content: "export async function requireAuth(): Promise<AuthContext | null> { return null; }", size: 90 }];
+    const result = generateDependencyHotspots(ctx, files);
+    expect(result.content).toContain("Promise<AuthContext | null>");
+    expect(result.content).not.toContain("\\|");
+  });
+
+  it("a hostile project name flowing through project_summary cannot inject structure", () => {
+    const ctx = makeContextMap({
+      ai_context: {
+        project_summary: "x\n\n# Injected\n<!-- memory-weave --> is a monorepo",
+        key_abstractions: [],
+        conventions: [],
+        warnings: [],
+      },
+    } as Partial<ContextMap>);
+    for (const result of [generateArchitectureSummary(ctx), generateDependencyHotspots(ctx)]) {
+      const lines = result.content.split("\n");
+      expect(lines.some((l) => l === "# Injected")).toBe(false);
+      expect(result.content).not.toContain("<!--");
+    }
+  });
+
+  it("backticks in paths cannot terminate code spans (neutralized to apostrophes)", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/evil`**x**`.ts", inbound_count: 10, outbound_count: 5, risk_score: 0.9 }],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).not.toContain("evil`");
+    expect(result.content).toContain("evil'**x**'.ts");
+  });
+});
+
+describe("harden-2: version-risk honesty for unparseable specifiers", () => {
+  it("workspace/floating specifiers are never called Stable", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [
+          { name: "internal-pkg", version: "workspace:*", type: "production" },
+          { name: "floating-a", version: "latest", type: "production" },
+          { name: "floating-b", version: "*", type: "production" },
+        ] as never,
+        internal_imports: [],
+        hotspots: [],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).toContain("| internal-pkg | workspace:* | Internal workspace package |");
+    expect(result.content).toContain("| floating-a | latest | Unpinned — floating version |");
+    expect(result.content).toContain("| floating-b | * | Unpinned — floating version |");
+    const table = result.content.split("## External Dependency Risk")[1];
+    expect(table).not.toContain("| Stable |");
+  });
+});
+
+describe("harden-2: YAML numeric-lookalike quoting + control-char escaping", () => {
+  it("hex/exponent/dot-leading/underscore/inf numeric-lookalike strings are quoted", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["0x1F", "1e5", ".5", "1_000", ".inf", "1."],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    for (const v of ["0x1F", "1e5", ".5", "1_000", ".inf", "1."]) {
+      expect(result.content).toContain(`- "${v}"`);
+    }
+  });
+
+  it("C0 control characters are \\xNN-escaped inside quoted scalars (strict parsers reject raw C0)", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["ship\x07it", "ansi \x1b[31m red"],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    expect(result.content).toContain("ship\\x07it");
+    expect(result.content).toContain("ansi \\x1b[31m red");
+    expect(result.content).not.toContain("\x07");
+    expect(result.content).not.toContain("\x1b");
   });
 });
 

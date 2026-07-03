@@ -278,5 +278,26 @@ describe("extractImports", () => {
       ]);
       expect(extractImports(files)).toEqual([{ source: "src/api/handler.ts", target: "src/logger.ts" }]);
     });
+
+    // HARDEN-2: tsc's NodeNext order includes .d.ts — declaration-only modules
+    // are often a repo's most-imported files.
+    it("resolves import './types.js' to a declaration-only types.d.ts", () => {
+      const files = makeFiles([
+        { path: "src/x.ts", content: 'import type { Y } from "./types.js";' },
+        { path: "src/types.d.ts", content: "export interface Y {}" },
+      ]);
+      expect(extractImports(files)).toEqual([{ source: "src/x.ts", target: "src/types.d.ts" }]);
+    });
+
+    // HARDEN-2: a specifier that walks ABOVE the analyzed root references a file
+    // outside the upload — resolving it to an in-repo file that merely shares a
+    // basename fabricated a phantom edge (inflating that file's hotspot risk).
+    it("produces NO edge when the specifier escapes the analyzed root", () => {
+      const files = makeFiles([
+        { path: "src/deep/x.ts", content: 'import y from "../../../shared.js";' },
+        { path: "shared.ts", content: "export default 1;" },
+      ]);
+      expect(extractImports(files)).toEqual([]);
+    });
   });
 });

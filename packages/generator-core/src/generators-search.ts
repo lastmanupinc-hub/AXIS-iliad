@@ -5,6 +5,33 @@ import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt, extrac
 import { hasFw, getFw } from "./fw-helpers.js";
 import { mdInline } from "./md-sanitize.js";
 
+// ─── Context-aware sanitizer variants (module-private; HARDEN-2) ─
+//
+// mdInline's pipe escape is only meaningful INSIDE GFM table cells — outside
+// them backslash escapes are inert and render as a literal "\|" (this visibly
+// corrupted real output: `Promise<AuthContext \| null>` in a hotspot export
+// list). Likewise, backticks inside an inline code span terminate the span, so
+// code-span sinks must neutralize them. Three purpose-built variants:
+//   mdText     — headings, list items, blockquotes, prose (NO pipe escape)
+//   mdCode     — inside `…` code spans outside tables (backticks neutralized)
+//   mdCellCode — inside `…` code spans INSIDE table cells (both treatments)
+
+function mdText(s: string): string {
+  return s
+    .replace(/\s+/g, " ")
+    .replace(/<!--/g, "<! --")
+    .replace(/-->/g, "-- >")
+    .trim();
+}
+
+function mdCode(s: string): string {
+  return mdText(s).replace(/`/g, "'");
+}
+
+function mdCellCode(s: string): string {
+  return mdInline(s).replace(/`/g, "'");
+}
+
 export function generateContextMapJSON(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const enriched: Record<string, unknown> = { ...ctx };
 
@@ -44,19 +71,22 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
   const lines: string[] = [];
   const id = ctx.project_identity;
 
-  // Repo-derived strings (names, paths, descriptions) are sanitized via mdInline
-  // at every markdown STRUCTURAL position (headings, table cells, list items) —
-  // a hostile project name or file path must never inject markdown structure
-  // (SPEC-10 class; backticks do NOT protect against '|' inside GFM table cells).
-  lines.push(`# Architecture Summary: ${mdInline(id.name)}`);
+  // Repo-derived strings (names, paths, descriptions) are sanitized at every
+  // markdown STRUCTURAL position with the variant matching the sink context
+  // (SPEC-10 class): mdText for headings/lists/prose, mdInline for table
+  // cells, mdCode/mdCellCode inside code spans.
+  lines.push(`# Architecture Summary: ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> ${mdInline(id.description ?? id.type.replace(/_/g, " "))}`);
+  lines.push(`> ${mdText(id.description ?? id.type.replace(/_/g, " "))}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    // The summary embeds the raw manifest project_name (engine.ts builds it as
+    // `${name} is a ${type}…`) — sanitize at this sink or a hostile name walks
+    // straight back in six lines below the sanitized H1.
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -86,7 +116,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("");
     for (const fw of ctx.detection.frameworks) {
       const pct = Math.round(fw.confidence * 100);
-      lines.push(`- **${mdInline(fw.name)}** ${fw.version ? mdInline(fw.version) : ""} (${pct}% confidence)`);
+      lines.push(`- **${mdText(fw.name)}** ${fw.version ? mdText(fw.version) : ""} (${pct}% confidence)`);
     }
     lines.push("");
   }
@@ -123,7 +153,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Method | Path | Source |");
     lines.push("|--------|------|--------|");
     for (const r of ctx.routes.slice(0, 40)) {
-      lines.push(`| ${mdInline(r.method)} | \`${mdInline(r.path)}\` | ${mdInline(r.source_file)} |`);
+      lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} |`);
     }
     if (ctx.routes.length > 40) {
       lines.push(`| *… ${ctx.routes.length - 40} more* | | |`);
@@ -136,7 +166,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("## Entry Points");
     lines.push("");
     for (const ep of ctx.entry_points) {
-      lines.push(`- **${mdInline(ep.type)}:** \`${mdInline(ep.path)}\` — ${mdInline(ep.description)}`);
+      lines.push(`- **${mdText(ep.type)}:** \`${mdCode(ep.path)}\` — ${mdText(ep.description)}`);
     }
     lines.push("");
   }
@@ -145,7 +175,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
   lines.push("## Directory Layout");
   lines.push("");
   for (const dir of ctx.structure.top_level_layout) {
-    lines.push(`- \`${mdInline(dir.name)}/\` — ${mdInline(dir.purpose)} (${dir.file_count} files)`);
+    lines.push(`- \`${mdCode(dir.name)}/\` — ${mdText(dir.purpose)} (${dir.file_count} files)`);
   }
   lines.push("");
 
@@ -171,7 +201,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Model | Kind | Fields | Source |");
     lines.push("|-------|------|--------|--------|");
     for (const m of ctx.domain_models.slice(0, 25)) {
-      lines.push(`| \`${mdInline(m.name)}\` | ${m.kind} | ${m.field_count} | ${mdInline(m.source_file)} |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${m.kind} | ${m.field_count} | ${mdInline(m.source_file)} |`);
     }
     if (ctx.domain_models.length > 25) {
       lines.push(`| *… ${ctx.domain_models.length - 25} more* | | | |`);
@@ -179,7 +209,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("");
     const complex = ctx.domain_models.filter(m => m.field_count >= 8);
     if (complex.length > 0) {
-      lines.push(`> **High-complexity models** (8+ fields): ${complex.map(m => `\`${mdInline(m.name)}\``).join(", ")} — consider splitting if they grow further.`);
+      lines.push(`> **High-complexity models** (8+ fields): ${complex.map(m => `\`${mdCode(m.name)}\``).join(", ")} — consider splitting if they grow further.`);
       lines.push("");
     }
   }
@@ -191,7 +221,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Table | Columns | Foreign Keys |");
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 20)) {
-      lines.push(`| \`${mdInline(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+      lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
     }
     lines.push("");
   }
@@ -215,7 +245,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("## Conventions");
     lines.push("");
     for (const c of ai.conventions) {
-      lines.push(`- ${mdInline(c)}`);
+      lines.push(`- ${mdText(c)}`);
     }
     lines.push("");
   }
@@ -224,7 +254,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("## Warnings");
     lines.push("");
     for (const w of ai.warnings) {
-      lines.push(`- ⚠️ ${mdInline(w)}`);
+      lines.push(`- ⚠️ ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -262,22 +292,32 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
 
 // A string that a YAML parser would read back as a NON-string (null/bool/number)
 // must be quoted even when it looks "bare-safe", or the value type-corrupts on
-// round-trip (e.g. version "1.0" parsing as the float 1).
+// round-trip. Beyond the plain-decimal case ("1.0" → float 1), YAML core/1.1
+// schemas also resolve hex/octal ("0x1F" → 31), exponent ("1e5"), leading/
+// trailing-dot ("." forms like ".5"/"1."), underscore-grouped ("1_000", YAML
+// 1.1), and ".inf"/".nan" — so quote ANY string that starts like a number.
 function isAmbiguousScalar(s: string): boolean {
-  return /^(null|~|true|false|yes|no|on|off)$/i.test(s) || /^-?\d+(\.\d+)?$/.test(s);
+  return (
+    /^(null|~|true|false|yes|no|on|off)$/i.test(s) ||
+    /^[+-]?[\d.]/.test(s) ||
+    /^[+-]?\.(inf|nan)$/i.test(s)
+  );
 }
 
 // YAML double-quoted scalar with ALL unsafe characters escaped. A bare backslash
 // inside "..." starts a YAML escape sequence (\U, \x, …) — an unescaped Windows
 // path like "C:\Users\x" is INVALID YAML, and a raw newline inside quotes folds
-// or breaks the document. Escaping keeps output single-line and round-trip-exact.
+// or breaks the document. Remaining C0 controls (and DEL) are \xNN-escaped:
+// YAML's c-printable excludes them, so a raw BEL/ESC byte (e.g. an ANSI escape
+// scraped from a README) makes strict parsers reject the whole document.
 function quoteYAML(s: string): string {
   return `"${s
     .replace(/\\/g, "\\\\")
     .replace(/"/g, '\\"')
     .replace(/\n/g, "\\n")
     .replace(/\r/g, "\\r")
-    .replace(/\t/g, "\\t")}"`;
+    .replace(/\t/g, "\\t")
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, (c) => `\\x${c.charCodeAt(0).toString(16).padStart(2, "0")}`)}"`;
 }
 
 function toYAML(obj: unknown, indent: number = 0): string {
@@ -347,7 +387,7 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   const deps = ctx.dependency_graph.external_dependencies;
 
   const lines: string[] = [];
-  lines.push(`# Dependency Hotspots — ${mdInline(id.name)}`);
+  lines.push(`# Dependency Hotspots — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -355,7 +395,8 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    // Sanitized: the summary embeds the raw manifest project_name (engine.ts).
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -395,7 +436,7 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
     const sorted = [...hotspots].sort((a, b) => b.risk_score - a.risk_score);
     for (const h of sorted) {
       const severity = h.risk_score > 0.7 ? "🔴" : h.risk_score > 0.4 ? "🟡" : "🟢";
-      lines.push(`| \`${mdInline(h.path)}\` | ${severity} ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} | ${h.inbound_count + h.outbound_count} |`);
+      lines.push(`| \`${mdCellCode(h.path)}\` | ${severity} ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} | ${h.inbound_count + h.outbound_count} |`);
     }
   } else {
     // Honest, diagnostic empty state: "no hotspots" on a repo that clearly has
@@ -416,7 +457,7 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
     lines.push("## Coupling Analysis");
     lines.push("");
     for (const h of hotspots.slice(0, 5)) {
-      lines.push(`### \`${mdInline(h.path)}\``);
+      lines.push(`### \`${mdCode(h.path)}\``);
       lines.push("");
       lines.push(`- **Risk Score**: ${(h.risk_score * 100).toFixed(0)}%`);
       lines.push(`- **Inbound**: ${h.inbound_count} files depend on this`);
@@ -436,7 +477,12 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
       // first dot. The old /[^0-9]/ (no /g) removed the FIRST non-digit anywhere,
       // turning "0.21.5" into "021.5" → major 21 → a pre-1.0 dep called Stable.
       const majorVersion = parseInt(d.version.replace(/^[^0-9]*/, ""), 10);
-      const risk = majorVersion < 1 ? "Pre-1.0 — unstable API" : "Stable";
+      // NaN means the specifier has no version number at all ("workspace:*",
+      // "latest", "*", "file:…") — calling those "Stable" asserted API
+      // stability for exactly the dependencies we could not assess.
+      const risk = Number.isNaN(majorVersion)
+        ? (d.version.startsWith("workspace:") ? "Internal workspace package" : "Unpinned — floating version")
+        : majorVersion < 1 ? "Pre-1.0 — unstable API" : "Stable";
       lines.push(`| ${mdInline(d.name)} | ${mdInline(d.version)} | ${risk} |`);
     }
   } else {
@@ -477,10 +523,10 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
       for (const tf of topFiles) {
         const exports = extractExports(tf.content);
         if (exports.length > 0) {
-          lines.push(`### \`${mdInline(tf.path)}\``);
+          lines.push(`### \`${mdCode(tf.path)}\``);
           lines.push("");
           for (const e of exports.slice(0, 12)) {
-            lines.push(`- \`${mdInline(e)}\``);
+            lines.push(`- \`${mdCode(e)}\``);
           }
           lines.push("");
         }
