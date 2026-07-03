@@ -10,6 +10,11 @@ import { findFiles, findConfigs, renderExcerpts, extractExports } from "./file-e
 // repo-derived values are contained by construction and need no extra handling.
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 import { pathHasSegment, isNoindexRoute } from "./seo-routes.js";
+import { displayRoutes } from "./route-utils.js";
+
+// Route tables are capped: the parser emits per-mention rows, so a real repo has
+// hundreds of (mostly duplicate) routes; rendering them all is 40KB+ of noise.
+const SEO_ROUTE_CAP = 60;
 
 // ─── .ai/seo-rules.md ──────────────────────────────────────────
 
@@ -109,13 +114,14 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("- Validate with [Google Rich Results Test](https://search.google.com/test/rich-results)");
   lines.push("");
 
-  // Routes analysis
-  if (ctx.routes.length > 0) {
+  // Routes analysis — deduped (drops per-mention/test/README duplicate rows) + capped.
+  const auditRoutes = displayRoutes(ctx.routes);
+  if (auditRoutes.length > 0) {
     lines.push("## Route SEO Audit");
     lines.push("");
     lines.push("| Route | Method | SEO Action |");
     lines.push("|-------|--------|------------|");
-    for (const r of ctx.routes) {
+    for (const r of auditRoutes.slice(0, SEO_ROUTE_CAP)) {
       let action: string;
       // Segment-aware (not substring): "auth" matches /auth, never /authors.
       if (r.method !== "GET") {
@@ -147,6 +153,9 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
         action = "Add WebPage schema · unique title + description required";
       }
       lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${action} |`);
+    }
+    if (auditRoutes.length > SEO_ROUTE_CAP) {
+      lines.push(`| *… ${auditRoutes.length - SEO_ROUTE_CAP} more* | | |`);
     }
     lines.push("");
   }
@@ -280,8 +289,8 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
     });
   }
 
-  // Routes-based recommendations
-  const getRoutes = ctx.routes.filter(r => r.method === "GET");
+  // Routes-based recommendations (deduped — no duplicate recs for the same path).
+  const getRoutes = displayRoutes(ctx.routes).filter(r => r.method === "GET");
   for (const route of getRoutes) {
     if (pathHasSegment(route.path, ["blog", "post", "posts", "article", "articles"])) {
       recommendations.push({
@@ -411,8 +420,11 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
     lines.push("");
   }
 
-  const getRoutes = ctx.routes.filter(r => r.method === "GET");
-  const apiRoutes = ctx.routes.filter(r => r.method !== "GET" || pathHasSegment(r.path, ["api"]));
+  // Deduped (per-mention/test/README duplicates collapsed) so the sitemap table
+  // and robots Disallow list distinct routes, not hundreds of repeats.
+  const deduped = displayRoutes(ctx.routes);
+  const getRoutes = deduped.filter(r => r.method === "GET");
+  const apiRoutes = deduped.filter(r => r.method !== "GET" || pathHasSegment(r.path, ["api"]));
 
   if (getRoutes.length === 0 && apiRoutes.length === 0) {
     lines.push("No routes detected. Ensure the project has a routing layer.");
@@ -463,8 +475,11 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   lines.push("");
   lines.push("| Route | Priority | Changefreq | Index | Reason |");
   lines.push("|-------|----------|------------|-------|--------|");
-  for (const r of categorized) {
+  for (const r of categorized.slice(0, SEO_ROUTE_CAP)) {
     lines.push(`| \`${mdCellCode(r.path)}\` | ${r.priority.toFixed(1)} | ${r.changefreq} | ${r.indexable ? "Yes" : "No"} | ${r.reason} |`);
+  }
+  if (categorized.length > SEO_ROUTE_CAP) {
+    lines.push(`| *… ${categorized.length - SEO_ROUTE_CAP} more* | | | | |`);
   }
   lines.push("");
 
@@ -587,7 +602,8 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   const hasRoutes = ctx.routes.length > 0;
   const hasHealthy = {
     has_ci: ctx.detection.ci_platform !== null,
-    has_readme: ctx.structure.file_tree_summary.some(f => f.path.toLowerCase().startsWith("readme")),
+    // basename match — a README anywhere in the tree counts, not just at root.
+    has_readme: ctx.structure.file_tree_summary.some(f => /(^|\/)readme(\.[a-z]+)?$/i.test(f.path)),
     has_tests: ctx.detection.test_frameworks.length > 0,
   };
 
@@ -605,9 +621,11 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   const achieved = checks.filter(c => c.pass).reduce((s, c) => s + c.weight, 0);
   const score = Math.round((achieved / maxWeight) * 100);
 
-  lines.push("## SEO Readiness Score");
+  lines.push("## SEO & Engineering Readiness Score");
   lines.push("");
   lines.push(`**${score}/100**`);
+  lines.push("");
+  lines.push("> Blends deployed-site SEO signals (SSR, route detection) with project-health signals (TypeScript, CI, README, tests, layering). A high score needs the SSR/route checks below to pass — engineering hygiene alone won't index a client-only SPA.");
   lines.push("");
   lines.push("| Check | Status | Weight |");
   lines.push("|-------|--------|--------|");
@@ -727,7 +745,9 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
 
 export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  // Deduped so the (capped) per-route audit spends its budget on DISTINCT routes,
+  // not three copies of /health.
+  const routes = displayRoutes(ctx.routes);
   const frameworks = ctx.detection.frameworks;
 
   const hasNext = hasFw(ctx, "Next.js", "next");
