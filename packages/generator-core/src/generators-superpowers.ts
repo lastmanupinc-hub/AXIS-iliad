@@ -8,7 +8,6 @@ import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanit
 
 export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
   lines.push(`# Superpower Pack — ${mdText(id.name)}`);
@@ -201,7 +200,6 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
 // ─── workflow-registry.json ─────────────────────────────────────
 
 export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const testFws = ctx.detection.test_frameworks;
   const pkgManagers = ctx.detection.package_managers;
   const pkgMgr = pkgManagers.includes("pnpm") ? "pnpm" : pkgManagers.includes("yarn") ? "yarn" : "npm";
@@ -362,7 +360,6 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
 export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const testFws = ctx.detection.test_frameworks;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
   lines.push(`# Test Generation Rules — ${mdText(id.name)}`);
@@ -594,13 +591,19 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
     const sourceFiles = findFiles(files, ["*.ts", "*.tsx", "*.js", "*.jsx", "*.py"])
       .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec.") && !f.path.includes("test_"));
     const untestedExports: string[] = [];
-    for (const sf of sourceFiles.slice(0, 20)) {
+    for (const sf of sourceFiles.slice(0, 150)) {
       const exports = extractExports(sf.content);
-      if (exports.length > 0) {
-        const hasTest = testFiles.some(tf => tf.path.includes(sf.path.replace(/\.[^.]+$/, "")));
-        if (!hasTest) {
-          untestedExports.push(`\`${mdCode(sf.path)}\` — ${mdText(exports.join(", "))}`);
-        }
+      if (exports.length === 0) continue;
+      // Match a test file by the source's STEM with a boundary, so `api.ts` is not
+      // marked tested by an unrelated `api-client.test.ts` (substring false match).
+      const stem = sf.path.replace(/\.[^.]+$/, "").split("/").pop() ?? "";
+      const hasTest = stem.length > 0 && testFiles.some(tf => {
+        const tb = tf.path.split("/").pop() ?? "";
+        return tb.startsWith(`${stem}.test.`) || tb.startsWith(`${stem}.spec.`) ||
+          tb.startsWith(`test_${stem}.`) || tb.startsWith(`${stem}_test.`);
+      });
+      if (!hasTest) {
+        untestedExports.push(`\`${mdCode(sf.path)}\` — ${mdText(exports.join(", "))}`);
       }
     }
     if (untestedExports.length > 0) {
@@ -611,6 +614,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       for (const ue of untestedExports.slice(0, 10)) {
         lines.push(`- ${ue}`);
       }
+      if (untestedExports.length > 10) lines.push(`- *… and ${untestedExports.length - 10} more untested*`);
       lines.push("");
     }
   }
@@ -681,7 +685,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
       lines.push("");
     }
   } else {
-    lines.push("No dependency hotspots detected. Codebase has even dependency distribution.");
+    lines.push("No dependency hotspots detected — the import graph is either well-decoupled or was not fully resolved (verify against context-map.json).");
     lines.push("");
   }
 
