@@ -7,6 +7,7 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // mdText (prose/headings/lists), mdInline (GFM table cells), mdCode (inline code
 // spans outside tables), mdCellCode (code spans inside table cells).
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -97,13 +98,15 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
 
   // Data fetching. Gate on a real "/api" path PREFIX, not a bare "api" substring
   // (which matched "/capital", "/rapid", …) — and match the siblings, which use
-  // startsWith("/api"), so the four generators agree on what an API route is.
-  if (ctx.routes.some(r => r.path.startsWith("/api"))) {
+  // startsWith("/api"). displayRoutes dedups the per-mention rows and drops
+  // test/README noise so this lists distinct real endpoints.
+  const apiRoutes = displayRoutes(ctx.routes).filter(r => r.path.startsWith("/api"));
+  if (apiRoutes.length > 0) {
     lines.push("## Data Fetching");
     lines.push("");
     lines.push("Available API routes:");
     lines.push("");
-    for (const r of ctx.routes.filter(r => r.path.startsWith("/api"))) {
+    for (const r of apiRoutes) {
       lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\` → ${mdText(r.source_file)}`);
     }
     lines.push("");
@@ -349,7 +352,9 @@ export function generateComponentGuidelines(ctx: ContextMap, files?: SourceFile[
 export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const routes = ctx.routes;
+  // Deduped, test/README-noise-free routes — the raw list is hundreds of
+  // per-mention rows, so a route→layout table off it would repeat and mislead.
+  const routes = displayRoutes(ctx.routes);
   const layers = ctx.architecture_signals.layer_boundaries;
 
   const lines: string[] = [];
@@ -525,7 +530,9 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
-  const routes = ctx.routes;
+  // Deduped, noise-free routes — "Total Routes" off the raw list reported the
+  // per-mention count (e.g. 537 for a ~150-endpoint app), a dishonest number.
+  const routes = displayRoutes(ctx.routes);
   const entryPoints = ctx.entry_points;
   const deps = ctx.dependency_graph.external_dependencies;
 
@@ -559,7 +566,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   // score on every UI project (a HARDEN correctness fix).
   const UI_FRAMEWORK_NAMES = ["react", "next", "next.js", "vue", "svelte", "tailwind", "tailwind css"];
   const uiFrameworks = frameworks.filter(f => UI_FRAMEWORK_NAMES.includes(f.name.toLowerCase()));
-  const hasCSS = languages.some(l => l.name === "CSS" || l.name === "SCSS");
+  const hasCSS = languages.some(l => ["CSS", "SCSS", "SASS", "LESS"].includes(l.name));
   const hasTSX = languages.some(l => l.name === "TypeScript" || l.name === "TSX");
   // Match KNOWN UI-library package names, not bare substrings: the old
   // `.includes("ui")` flagged "esbuild"/"uuid" and `.includes("ant")` flagged
@@ -642,6 +649,8 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   lines.push("");
   lines.push("| Factor | Score |");
   lines.push("|--------|-------|");
+  // Show the base so the factor rows sum to the headline (they didn't before).
+  lines.push("| Base | +50 |");
   lines.push(`| Framework detection | ${uiFrameworks.length > 0 ? "+15" : "0"} |`);
   /* v8 ignore next — V8 quirk: tailwind score display ternary tested */
   lines.push(`| Styling system | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "+10" : "0"} |`);
