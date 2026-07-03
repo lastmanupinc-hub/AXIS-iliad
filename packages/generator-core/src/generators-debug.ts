@@ -2,22 +2,27 @@ import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findEntryPoints, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+// Prompt-injection defense: these debug artifacts are agent-consumed analysis
+// reports, so every repo/manifest-derived string is sanitized for its sink —
+// mdText (prose/headings/list items), mdInline (GFM table cells), mdCode (inline
+// code spans outside tables), mdCellCode (code spans inside table cells).
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const ai = ctx.ai_context;
   const lines: string[] = [];
 
-  lines.push(`# Debug Playbook — ${id.name}`);
+  lines.push(`# Debug Playbook — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Structured debugging guide for a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}`);
-  if (id.description) { lines.push(""); lines.push(`> ${id.description}`); }
+  lines.push(`> Structured debugging guide for a ${mdText(id.type.replace(/_/g, " "))} built with ${mdText(id.primary_language)}`);
+  if (id.description) { lines.push(""); lines.push(`> ${mdText(id.description)}`); }
   lines.push("");
 
   // ─── Project Overview ──────────────────────────────────
   lines.push("## Project Overview");
   lines.push("");
-  lines.push(ai.project_summary);
+  lines.push(mdText(ai.project_summary));
   lines.push("");
 
   // Quick Reference — enriched with versions, deploy target, Go module
@@ -25,17 +30,17 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push("| Item | Value |");
   lines.push("|------|-------|");
-  lines.push(`| Language | ${id.primary_language} |`);
-  const fwList = ctx.detection.frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""} (${(f.confidence * 100).toFixed(0)}%)`).join(", ");
+  lines.push(`| Language | ${mdInline(id.primary_language)} |`);
+  const fwList = ctx.detection.frameworks.map(f => `${mdInline(f.name)}${f.version ? ` ${mdInline(f.version)}` : ""} (${(f.confidence * 100).toFixed(0)}%)`).join(", ");
   lines.push(`| Frameworks | ${fwList || "none"} |`);
-  lines.push(`| Test Runner | ${ctx.detection.test_frameworks.join(", ") || "none"} |`);
-  lines.push(`| Build Tools | ${ctx.detection.build_tools.join(", ") || "none"} |`);
-  lines.push(`| CI | ${ctx.detection.ci_platform ?? "none"} |`);
-  lines.push(`| Deploy Target | ${ctx.detection.deployment_target ?? "none"} |`);
+  lines.push(`| Test Runner | ${ctx.detection.test_frameworks.map(mdInline).join(", ") || "none"} |`);
+  lines.push(`| Build Tools | ${ctx.detection.build_tools.map(mdInline).join(", ") || "none"} |`);
+  lines.push(`| CI | ${ctx.detection.ci_platform ? mdInline(ctx.detection.ci_platform) : "none"} |`);
+  lines.push(`| Deploy Target | ${ctx.detection.deployment_target ? mdInline(ctx.detection.deployment_target) : "none"} |`);
   const pm = ctx.detection.package_managers[0] ?? "npm";
-  lines.push(`| Package Manager | ${pm} |`);
-  lines.push(`| Files | ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString()} LOC |`);
-  if (id.go_module) lines.push(`| Go Module | ${id.go_module} |`);
+  lines.push(`| Package Manager | ${mdInline(pm)} |`);
+  lines.push(`| Files | ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString("en-US")} LOC |`);
+  if (id.go_module) lines.push(`| Go Module | ${mdInline(id.go_module)} |`);
   lines.push(`| Separation Score | ${ctx.architecture_signals.separation_score}/1.0 |`);
   lines.push("");
 
@@ -46,7 +51,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Language | Files | LOC | % |");
     lines.push("|----------|-------|-----|---|");
     for (const lang of ctx.detection.languages.slice(0, 10)) {
-      lines.push(`| ${lang.name} | ${lang.file_count} | ${lang.loc.toLocaleString()} | ${lang.loc_percent}% |`);
+      lines.push(`| ${mdInline(lang.name)} | ${lang.file_count} | ${lang.loc.toLocaleString("en-US")} | ${lang.loc_percent}% |`);
     }
     lines.push("");
   }
@@ -56,10 +61,10 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("## Detected Stack (with evidence)");
     lines.push("");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`### ${fw.name}${fw.version ? ` v${fw.version}` : ""} — ${(fw.confidence * 100).toFixed(0)}% confidence`);
+      lines.push(`### ${mdText(fw.name)}${fw.version ? ` v${mdText(fw.version)}` : ""} — ${(fw.confidence * 100).toFixed(0)}% confidence`);
       lines.push("");
       for (const e of fw.evidence ?? []) {
-        lines.push(`- ${e}`);
+        lines.push(`- ${mdText(e)}`);
       }
       lines.push("");
     }
@@ -70,7 +75,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("## Project Structure");
     lines.push("");
     for (const a of ai.key_abstractions) {
-      lines.push(`- ${a}`);
+      lines.push(`- ${mdText(a)}`);
     }
     lines.push("");
   }
@@ -104,7 +109,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
 
   for (const ep of ctx.entry_points.slice(0, 8)) {
-    lines.push(`- \`${ep.path}\` — ${ep.description}`);
+    lines.push(`- \`${mdCode(ep.path)}\` — ${mdText(ep.description)}`);
   }
   lines.push("");
 
@@ -117,7 +122,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| File | Inbound | Outbound | Risk |");
     lines.push("|------|---------|----------|------|");
     for (const h of ctx.dependency_graph.hotspots.slice(0, 10)) {
-      lines.push(`| \`${h.path}\` | ${h.inbound_count} | ${h.outbound_count} | ${(h.risk_score * 100).toFixed(0)}% |`);
+      lines.push(`| \`${mdCellCode(h.path)}\` | ${h.inbound_count} | ${h.outbound_count} | ${(h.risk_score * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -180,7 +185,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("- **Connection errors:** Check `DATABASE_URL` in `.env`");
     lines.push("- **Schema drift:** `prisma db pull` to check production schema matches");
     if (ctx.sql_schema.length > 0) {
-      lines.push(`- **Tables in schema:** ${ctx.sql_schema.map(t => `\`${t.name}\` (${t.column_count} cols, ${t.foreign_key_count} FKs)`).join(", ")}`);
+      lines.push(`- **Tables in schema:** ${ctx.sql_schema.map(t => `\`${mdCode(t.name)}\` (${t.column_count} cols, ${t.foreign_key_count} FKs)`).join(", ")}`);
     }
     lines.push("");
   }
@@ -248,7 +253,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Model | Kind | Language | Fields | Source |");
     lines.push("|-------|------|----------|--------|--------|");
     for (const m of ctx.domain_models) {
-      lines.push(`| ${m.name} | ${m.kind} | ${m.language} | ${m.field_count} | \`${m.source_file}\` |`);
+      lines.push(`| ${mdInline(m.name)} | ${mdInline(m.kind)} | ${mdInline(m.language)} | ${m.field_count} | \`${mdCellCode(m.source_file)}\` |`);
     }
     lines.push("");
   }
@@ -260,7 +265,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Table | Columns | Foreign Keys | Source |");
     lines.push("|-------|---------|--------------|--------|");
     for (const t of ctx.sql_schema) {
-      lines.push(`| ${t.name} | ${t.column_count} | ${t.foreign_key_count} | \`${t.source_file}\` |`);
+      lines.push(`| ${mdInline(t.name)} | ${t.column_count} | ${t.foreign_key_count} | \`${mdCellCode(t.source_file)}\` |`);
     }
     lines.push("");
     const totalFKs = ctx.sql_schema.reduce((s, t) => s + t.foreign_key_count, 0);
@@ -277,7 +282,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Method | Path | Source |");
     lines.push("|--------|------|--------|");
     for (const r of ctx.routes) {
-      lines.push(`| ${r.method} | \`${r.path}\` | ${r.source_file} |`);
+      lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} |`);
     }
     lines.push("");
   }
@@ -298,11 +303,11 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("Bugs often occur at layer boundaries. Verify data flow between:");
     lines.push("");
     for (const l of ctx.architecture_signals.layer_boundaries) {
-      lines.push(`- **${l.layer}**: ${l.directories.join(", ")}`);
+      lines.push(`- **${mdText(l.layer)}**: ${l.directories.map(mdText).join(", ")}`);
     }
     lines.push("");
     if (ctx.architecture_signals.patterns_detected.length > 0) {
-      lines.push(`**Architecture patterns:** ${ctx.architecture_signals.patterns_detected.join(", ")}`);
+      lines.push(`**Architecture patterns:** ${ctx.architecture_signals.patterns_detected.map(mdText).join(", ")}`);
       lines.push("");
     }
   }
@@ -335,10 +340,10 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("## Common Traps");
   lines.push("");
   for (const w of ai.warnings) {
-    lines.push(`- ⚠️ ${w}`);
+    lines.push(`- ⚠️ ${mdText(w)}`);
   }
   for (const c of ai.conventions) {
-    lines.push(`- ✅ ${c}`);
+    lines.push(`- ✅ ${mdText(c)}`);
   }
   const hasLinter = ai.conventions.some(c => /linter/i.test(c));
   const hasFormatter = ai.conventions.some(c => /formatter/i.test(c));
@@ -362,7 +367,7 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push(`${prodDeps.length} production dependencies. Key packages:`);
     lines.push("");
     for (const d of prodDeps.slice(0, 20)) {
-      lines.push(`- \`${d.name}\`${d.version ? ` @ ${d.version}` : ""}`);
+      lines.push(`- \`${mdCode(d.name)}\`${d.version ? ` @ ${mdText(d.version)}` : ""}`);
     }
     if (prodDeps.length > 20) lines.push(`- ... and ${prodDeps.length - 20} more`);
     lines.push("");
@@ -391,7 +396,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Incident Report — ${id.name}`);
+  lines.push(`# Incident Report — ${mdText(id.name)}`);
   lines.push("");
 
   // Environment table
@@ -399,13 +404,13 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
   lines.push("");
   lines.push("| Item | Value |");
   lines.push("|------|-------|");
-  lines.push(`| Project | ${id.name} (${id.type.replace(/_/g, " ")}) |`);
-  lines.push(`| Language | ${id.primary_language} |`);
-  const fwStr = ctx.detection.frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ");
+  lines.push(`| Project | ${mdInline(id.name)} (${mdInline(id.type.replace(/_/g, " "))}) |`);
+  lines.push(`| Language | ${mdInline(id.primary_language)} |`);
+  const fwStr = ctx.detection.frameworks.map(f => `${mdInline(f.name)}${f.version ? ` ${mdInline(f.version)}` : ""}`).join(", ");
   lines.push(`| Stack | ${fwStr || "none"} |`);
-  if (ctx.detection.ci_platform) lines.push(`| CI | ${ctx.detection.ci_platform} |`);
-  if (ctx.detection.deployment_target) lines.push(`| Deployment | ${ctx.detection.deployment_target} |`);
-  if (id.go_module) lines.push(`| Go Module | ${id.go_module} |`);
+  if (ctx.detection.ci_platform) lines.push(`| CI | ${mdInline(ctx.detection.ci_platform)} |`);
+  if (ctx.detection.deployment_target) lines.push(`| Deployment | ${mdInline(ctx.detection.deployment_target)} |`);
+  if (id.go_module) lines.push(`| Go Module | ${mdInline(id.go_module)} |`);
   lines.push("");
 
   lines.push("## Summary");
@@ -437,7 +442,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
     lines.push("### Affected Layers");
     lines.push("");
     for (const l of ctx.architecture_signals.layer_boundaries) {
-      lines.push(`- [ ] **${l.layer}** — ${l.directories.join(", ")}`);
+      lines.push(`- [ ] **${mdText(l.layer)}** — ${l.directories.map(mdText).join(", ")}`);
     }
   }
   lines.push("");
@@ -451,7 +456,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
     lines.push("### Likely Suspect Files (by coupling risk)");
     lines.push("");
     for (const h of ctx.dependency_graph.hotspots.slice(0, 8)) {
-      lines.push(`- [ ] \`${h.path}\` — ${h.inbound_count} inbound, ${h.outbound_count} outbound (risk ${(h.risk_score * 100).toFixed(0)}%)`);
+      lines.push(`- [ ] \`${mdCode(h.path)}\` — ${h.inbound_count} inbound, ${h.outbound_count} outbound (risk ${(h.risk_score * 100).toFixed(0)}%)`);
     }
     lines.push("");
   }
@@ -461,7 +466,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
     lines.push("### Entry Points to Trace");
     lines.push("");
     for (const ep of ctx.entry_points.slice(0, 6)) {
-      lines.push(`- [ ] \`${ep.path}\` — ${ep.description}`);
+      lines.push(`- [ ] \`${mdCode(ep.path)}\` — ${mdText(ep.description)}`);
     }
     lines.push("");
   }
@@ -471,7 +476,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
     lines.push("### Domain Entities to Check");
     lines.push("");
     for (const m of ctx.domain_models) {
-      lines.push(`- [ ] \`${m.name}\` (${m.kind}, ${m.field_count} fields) — ${m.source_file}`);
+      lines.push(`- [ ] \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — ${mdText(m.source_file)}`);
     }
     lines.push("");
   }
@@ -481,7 +486,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
     lines.push("### Database Tables to Verify");
     lines.push("");
     for (const t of ctx.sql_schema) {
-      lines.push(`- [ ] \`${t.name}\` — ${t.column_count} columns, ${t.foreign_key_count} FKs (${t.source_file})`);
+      lines.push(`- [ ] \`${mdCode(t.name)}\` — ${t.column_count} columns, ${t.foreign_key_count} FKs (${mdText(t.source_file)})`);
     }
     lines.push("");
   }
@@ -508,7 +513,7 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
   lines.push("- [ ] Monitoring added");
   lines.push("- [ ] Documentation updated");
   if (ctx.detection.test_frameworks.length > 0) {
-    lines.push(`- [ ] Regression test added (${ctx.detection.test_frameworks.join(", ")})`);
+    lines.push(`- [ ] Regression test added (${ctx.detection.test_frameworks.map(mdText).join(", ")})`);
   }
   lines.push("");
   lines.push("---");
@@ -517,7 +522,9 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const hotspotPaths = ctx.dependency_graph.hotspots
+    // Copy before sort: `.sort()` mutates in place, and this array is the shared
+    // ctx.dependency_graph.hotspots that other generators in the same run read.
+    const hotspotPaths = [...ctx.dependency_graph.hotspots]
       .sort((a, b) => b.risk_score - a.risk_score)
       .slice(0, 3)
       .map(h => h.path);
@@ -545,11 +552,11 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Tracing Rules — ${id.name}`);
+  lines.push(`# Tracing Rules — ${mdText(id.name)}`);
   lines.push("");
   lines.push("## Purpose");
   lines.push("");
-  lines.push(`Define which code paths should be traced, logged, or monitored in this ${id.type.replace(/_/g, " ")} (${id.primary_language}).`);
+  lines.push(`Define which code paths should be traced, logged, or monitored in this ${mdText(id.type.replace(/_/g, " "))} (${mdText(id.primary_language)}).`);
   lines.push("");
 
   // Stack context
@@ -557,7 +564,7 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("## Stack");
     lines.push("");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`- ${fw.name}${fw.version ? ` ${fw.version}` : ""} (${(fw.confidence * 100).toFixed(0)}%)`);
+      lines.push(`- ${mdText(fw.name)}${fw.version ? ` ${mdText(fw.version)}` : ""} (${(fw.confidence * 100).toFixed(0)}%)`);
     }
     lines.push("");
   }
@@ -575,7 +582,7 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("|--------|------|--------|----------------|");
     for (const r of ctx.routes) {
       const priority = r.path.includes("auth") || r.path.includes("login") || r.path.includes("payment") ? "HIGH" : "NORMAL";
-      lines.push(`| ${r.method} | \`${r.path}\` | ${r.source_file} | ${priority} |`);
+      lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} | ${priority} |`);
     }
     lines.push("");
   }
@@ -584,7 +591,7 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("### Entry Points");
     lines.push("");
     for (const ep of ctx.entry_points) {
-      lines.push(`- \`${ep.path}\` (${ep.type}) — ${ep.description}`);
+      lines.push(`- \`${mdCode(ep.path)}\` (${mdText(ep.type)}) — ${mdText(ep.description)}`);
     }
     lines.push("");
   }
@@ -662,7 +669,7 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("");
     for (const t of ctx.sql_schema) {
       const fkNote = t.foreign_key_count > 0 ? ` — ${t.foreign_key_count} FK constraints, check cascades` : "";
-      lines.push(`- \`${t.name}\` (${t.column_count} columns${fkNote})`);
+      lines.push(`- \`${mdCode(t.name)}\` (${t.column_count} columns${fkNote})`);
     }
     lines.push("");
   }
@@ -674,7 +681,7 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("State transitions on these entities should be logged:");
     lines.push("");
     for (const m of ctx.domain_models) {
-      lines.push(`- \`${m.name}\` (${m.kind}, ${m.field_count} fields) — \`${m.source_file}\``);
+      lines.push(`- \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — \`${mdCode(m.source_file)}\``);
     }
     lines.push("");
   }
@@ -686,7 +693,7 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("These high-connectivity files should be monitored for regressions:");
     lines.push("");
     for (const h of ctx.dependency_graph.hotspots.slice(0, 8)) {
-      lines.push(`- \`${h.path}\` — ${h.inbound_count} inbound, ${h.outbound_count} outbound — watch for: import changes, export signature changes`);
+      lines.push(`- \`${mdCode(h.path)}\` — ${h.inbound_count} inbound, ${h.outbound_count} outbound — watch for: import changes, export signature changes`);
     }
     lines.push("");
   }
@@ -700,12 +707,14 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("Monitor for layer violations:");
     lines.push("");
     for (const l of ctx.architecture_signals.layer_boundaries) {
+      const layer = mdText(l.layer);
+      const dirs = l.directories.map(mdText).join(", ");
       if (l.layer === "data") {
-        lines.push(`- **${l.layer}** (${l.directories.join(", ")}): Only business_logic layer should import directly`);
+        lines.push(`- **${layer}** (${dirs}): Only business_logic layer should import directly`);
       } else if (l.layer === "presentation") {
-        lines.push(`- **${l.layer}** (${l.directories.join(", ")}): Should not import from data layer directly`);
+        lines.push(`- **${layer}** (${dirs}): Should not import from data layer directly`);
       } else {
-        lines.push(`- **${l.layer}** (${l.directories.join(", ")}): Standard import rules apply`);
+        lines.push(`- **${layer}** (${dirs}): Standard import rules apply`);
       }
     }
     lines.push("");
@@ -746,14 +755,15 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
       lines.push("|-------------|---------|");
       for (const ep of entries.slice(0, 6)) {
         const exports = extractExports(ep.content);
-        lines.push(`| \`${ep.path}\` | ${exports.join(", ") || "default"} |`);
+        lines.push(`| \`${mdCellCode(ep.path)}\` | ${exports.map(mdInline).join(", ") || "default"} |`);
       }
       lines.push("");
 
       lines.push(...renderExcerpts("Entry Point Source", entries.slice(0, 2), 25));
     }
 
-    const hotspotPaths = ctx.dependency_graph.hotspots
+    // Copy before sort — see the note in generateIncidentTemplate.
+    const hotspotPaths = [...ctx.dependency_graph.hotspots]
       .sort((a, b) => b.risk_score - a.risk_score)
       .slice(0, 3)
       .map(h => h.path);
@@ -781,14 +791,14 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
   const patterns = ctx.architecture_signals.patterns_detected;
 
   const lines: string[] = [];
-  lines.push(`# Root Cause Checklist — ${id.name}`);
+  lines.push(`# Root Cause Checklist — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> ${id.type.replace(/_/g, " ")} | ${id.primary_language} | ${ctx.structure.total_files} files | ${ctx.structure.total_loc.toLocaleString()} LOC`);
+  lines.push(`> ${mdText(id.type.replace(/_/g, " "))} | ${mdText(id.primary_language)} | ${ctx.structure.total_files} files | ${ctx.structure.total_loc.toLocaleString("en-US")} LOC`);
   lines.push("");
 
   // Stack summary
   if (frameworks.length > 0) {
-    lines.push(`**Stack:** ${frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ")}`);
+    lines.push(`**Stack:** ${frameworks.map(f => `${mdText(f.name)}${f.version ? ` ${mdText(f.version)}` : ""}`).join(", ")}`);
     lines.push("");
   }
 
@@ -826,14 +836,14 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("Which layer does the error surface in?");
     lines.push("");
     for (const l of ctx.architecture_signals.layer_boundaries) {
-      lines.push(`- [ ] **${l.layer}** — ${l.directories.join(", ")}`);
+      lines.push(`- [ ] **${mdText(l.layer)}** — ${l.directories.map(mdText).join(", ")}`);
     }
     lines.push("");
   } else {
     lines.push("- [ ] Which layer does the error surface in? (UI / API / DB / External)");
   }
   if (patterns.length > 0) {
-    lines.push(`- [ ] Which architectural pattern is involved? (Detected: ${patterns.join(", ")})`);
+    lines.push(`- [ ] Which architectural pattern is involved? (Detected: ${patterns.map(mdText).join(", ")})`);
   }
   lines.push("- [ ] Can you remove middleware/plugins to narrow the source?");
   lines.push("- [ ] Does the issue persist with mocked dependencies?");
@@ -842,7 +852,7 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("### Entry points to trace through:");
     lines.push("");
     for (const ep of ctx.entry_points.slice(0, 6)) {
-      lines.push(`- [ ] \`${ep.path}\` — ${ep.description}`);
+      lines.push(`- [ ] \`${mdCode(ep.path)}\` — ${mdText(ep.description)}`);
     }
   }
   lines.push("");
@@ -851,22 +861,24 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
   lines.push("");
   for (const fw of frameworks) {
     const n = fw.name.toLowerCase();
+    const fwName = mdText(fw.name);
+    const fwVer = fw.version ? mdText(fw.version) : "";
     if (n === "next.js" || n === "next" || n === "react") {
-      lines.push(`- [ ] Check React DevTools for component re-render loops (${fw.name} ${fw.version ?? ""} detected)`);
+      lines.push(`- [ ] Check React DevTools for component re-render loops (${fwName} ${fwVer} detected)`);
       lines.push("- [ ] Check Network tab for failed API calls");
       lines.push("- [ ] Check for hydration mismatches (SSR vs client)");
     }
     if (n === "sveltekit" || n === "svelte") {
-      lines.push(`- [ ] Check browser DevTools Network tab (${fw.name} ${fw.version ?? ""} detected)`);
+      lines.push(`- [ ] Check browser DevTools Network tab (${fwName} ${fwVer} detected)`);
       lines.push("- [ ] Verify load() function data in $page.data");
       lines.push("- [ ] Check for SSR vs CSR discrepancies");
     }
     if (n === "express" || n === "fastify") {
-      lines.push(`- [ ] Add request-level logging to ${fw.name} middleware`);
+      lines.push(`- [ ] Add request-level logging to ${fwName} middleware`);
       lines.push("- [ ] Check error-handling middleware order");
     }
     if (n === "echo" || n === "chi" || n === "gin") {
-      lines.push(`- [ ] Add request logging middleware (${fw.name} detected)`);
+      lines.push(`- [ ] Add request logging middleware (${fwName} detected)`);
       lines.push("- [ ] Check goroutine stack traces: `runtime.Stack()` or `pprof`");
       lines.push("- [ ] Verify context propagation across goroutine boundaries");
     }
@@ -909,7 +921,7 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("Check these entities for state corruption or relationship violations:");
     lines.push("");
     for (const m of ctx.domain_models) {
-      lines.push(`- [ ] \`${m.name}\` (${m.kind}, ${m.field_count} fields) — \`${m.source_file}\``);
+      lines.push(`- [ ] \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — \`${mdCode(m.source_file)}\``);
     }
     lines.push("");
   }
@@ -920,7 +932,7 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("");
     for (const t of ctx.sql_schema) {
       const fkNote = t.foreign_key_count > 0 ? ` — **${t.foreign_key_count} FK constraints** (check cascade/restrict rules)` : "";
-      lines.push(`- [ ] \`${t.name}\` (${t.column_count} columns${fkNote})`);
+      lines.push(`- [ ] \`${mdCode(t.name)}\` (${t.column_count} columns${fkNote})`);
     }
     lines.push("");
   }
@@ -933,7 +945,7 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("| File | Risk | Inbound | Outbound |");
     lines.push("|------|------|---------|----------|");
     for (const h of hotspots.slice(0, 10)) {
-      lines.push(`| \`${h.path}\` | ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} |`);
+      lines.push(`| \`${mdCellCode(h.path)}\` | ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} |`);
     }
   } else {
     lines.push("No high-coupling files detected.");
@@ -975,7 +987,8 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
       lines.push(...renderExcerpts("Entry Point Source (for Step 2 Isolation)", entries.slice(0, 3), 25));
     }
 
-    const hotspotPaths = ctx.dependency_graph.hotspots
+    // Copy before sort — see the note in generateIncidentTemplate.
+    const hotspotPaths = [...ctx.dependency_graph.hotspots]
       .sort((a, b) => b.risk_score - a.risk_score)
       .slice(0, 3)
       .map(h => h.path);
@@ -986,10 +999,10 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
       for (const hf of hotspotFiles) {
         const exports = extractExports(hf.content);
         if (exports.length > 0) {
-          lines.push(`### \`${hf.path}\` exports`);
+          lines.push(`### \`${mdCode(hf.path)}\` exports`);
           lines.push("");
           for (const e of exports.slice(0, 10)) {
-            lines.push(`- \`${e}\``);
+            lines.push(`- \`${mdCode(e)}\``);
           }
           lines.push("");
         }
@@ -1030,11 +1043,28 @@ export interface FailureFinding {
   note: string;
 }
 
-// Substring (not \b word-boundary) matching so camelCase identifiers like
-// `sendEmail`/`downloadExport` classify correctly. Cleanup stays conservative
-// (distinctive verbs only) so a miss falls to REVIEW, never a wrong ACCEPTABLE.
-const FS_CLEANUP = /(kill|destroy|dispose|disconnect|unlink|cleanup|teardown|rollback|abort|\bclose\b)/i;
-const FS_SIDE_EFFECT = /(send|email|invit|charg|webhook|notif|payment|grant|dispatch|publish|download|upload|persist|save)/i;
+// Classify a swallowed error by the CLEANUP vs SIDE-EFFECT verbs near it. Match
+// verb STEMS against camelCase/underscore WORD SEGMENTS, not raw substrings: the
+// old substring form let "kill" match inside "skill", so a swallowed
+// `grantSkillReward().catch(() => {})` read as "best-effort cleanup" — a false
+// ACCEPTABLE that actively hides a real side-effect swallow. Segment matching
+// keeps the camelCase intent (`taskKill` → cleanup) without the incidental hits.
+const FS_CLEANUP_STEMS = ["kill", "destroy", "dispose", "disconnect", "unlink", "cleanup", "teardown", "rollback", "abort", "close"];
+const FS_SIDE_EFFECT_STEMS = ["send", "email", "invit", "charg", "webhook", "notif", "payment", "grant", "dispatch", "publish", "download", "upload", "persist", "save"];
+
+/** Lowercased word segments of a line — split on camelCase boundaries and non-alphanumerics. */
+function fsWords(s: string): string[] {
+  return s
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map(w => w.toLowerCase());
+}
+/** True if any word segment of `s` begins with one of the stems (prefix, so charg→charge/charging). */
+function fsHasStem(s: string, stems: string[]): boolean {
+  const words = fsWords(s);
+  return words.some(w => stems.some(stem => w.startsWith(stem)));
+}
 
 /** Static failure-mode scan of source files (skips tests + generated dirs). Deterministic. */
 export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
@@ -1067,7 +1097,7 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
       }
       // swallowed async error: .catch(() => {}) / .catch(e => {}) / .catch(() => undefined)
       if (/\.catch\(\s*(\([a-zA-Z_,\s]*\)|[a-zA-Z_]+)?\s*=>\s*(\{\s*\}|undefined|void 0)\s*\)/.test(ln)) {
-        const cleanup = FS_CLEANUP.test(ln), side = FS_SIDE_EFFECT.test(ln);
+        const cleanup = fsHasStem(ln, FS_CLEANUP_STEMS), side = fsHasStem(ln, FS_SIDE_EFFECT_STEMS);
         out.push({ file: f.path, line: i + 1, category: "swallowed-async-error",
           klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
           note: cleanup ? "best-effort cleanup" : side ? "side-effect failure is invisible" : "swallowed — confirm intent" });
@@ -1076,7 +1106,7 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
       // empty catch: } catch {} / catch (e) {} — classify from the try body (this + prev line)
       if (/\bcatch\s*(\([a-zA-Z_$]*\))?\s*\{\s*\}/.test(ln)) {
         const ctx2 = ln + " " + (lines[i - 1] ?? "");
-        const cleanup = FS_CLEANUP.test(ctx2), side = FS_SIDE_EFFECT.test(ctx2);
+        const cleanup = fsHasStem(ctx2, FS_CLEANUP_STEMS), side = fsHasStem(ctx2, FS_SIDE_EFFECT_STEMS);
         out.push({ file: f.path, line: i + 1, category: "empty-catch",
           klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
           note: cleanup ? "cleanup swallow" : side ? "side-effect failure is invisible" : "empty catch — confirm intent" });
@@ -1123,7 +1153,7 @@ export function renderFailureSurface(findings: FailureFinding[]): string[] {
   lines.push("| File | Line | Category | Class | Note |");
   lines.push("|------|------|----------|-------|------|");
   for (const f of sorted.slice(0, 40)) {
-    lines.push(`| \`${f.file}\` | ${f.line} | ${f.category} | ${f.klass} | ${f.note} |`);
+    lines.push(`| \`${mdCellCode(f.file)}\` | ${f.line} | ${f.category} | ${f.klass} | ${f.note} |`);
   }
   if (sorted.length > 40) lines.push(`| … | | | | +${sorted.length - 40} more |`);
   lines.push("");
@@ -1145,7 +1175,7 @@ export function renderFailureSurfaceChecklist(findings: FailureFinding[]): strin
   const sorted = [...findings].sort((a, b) =>
     FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) || a.file.localeCompare(b.file) || a.line - b.line);
   for (const f of sorted.slice(0, 60)) {
-    lines.push(`- [ ] \`${f.klass}\` \`${f.file}:${f.line}\` — ${f.category}: ${f.note}`);
+    lines.push(`- [ ] \`${f.klass}\` \`${mdCode(f.file)}:${f.line}\` — ${f.category}: ${f.note}`);
   }
   if (sorted.length > 60) lines.push(`- [ ] … +${sorted.length - 60} more (see debug-playbook.md)`);
   lines.push("");
