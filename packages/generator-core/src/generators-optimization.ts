@@ -258,7 +258,18 @@ function fileTokens(f: SourceFile): number {
   return Math.round(f.content.split("\n").length * TOKENS_PER_LINE);
 }
 
-/** Static context-bloat scan of the uploaded files. Deterministic (code-unit sort). */
+/** Whether a finding is SAFE to exclude wholesale (vs. an oversized real source file that may be needed). */
+function isExcludable(reason: BloatFinding["reason"]): boolean {
+  return reason !== "oversized file (>6K tokens)";
+}
+
+/**
+ * Static context-bloat scan of the uploaded files. Deterministic (code-unit sort).
+ * `bloatTokens` counts only SAFE-to-exclude files (build output, lockfiles,
+ * minified, snapshots, vendored) — NOT oversized source files, which are flagged
+ * for review (you may genuinely need `handlers.ts` in context; blindly excluding
+ * real logic to save tokens is bad advice, so it's not in the "savings" figure).
+ */
 export function analyzeContextBloat(files: SourceFile[]): { findings: BloatFinding[]; totalTokens: number; bloatTokens: number } {
   const findings: BloatFinding[] = [];
   let totalTokens = 0;
@@ -275,7 +286,7 @@ export function analyzeContextBloat(files: SourceFile[]): { findings: BloatFindi
     if (reason) findings.push({ path: f.path, tokens, reason });
   }
   findings.sort((a, b) => b.tokens - a.tokens || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
-  const bloatTokens = findings.reduce((s, f) => s + f.tokens, 0);
+  const bloatTokens = findings.filter(f => isExcludable(f.reason)).reduce((s, f) => s + f.tokens, 0);
   return { findings, totalTokens, bloatTokens };
 }
 
@@ -291,16 +302,33 @@ export function renderContextBloat(scan: { findings: BloatFinding[]; totalTokens
     lines.push("");
     return lines;
   }
-  const pct = scan.totalTokens > 0 ? Math.round((scan.bloatTokens / scan.totalTokens) * 100) : 0;
-  lines.push(`**Excluding these ${scan.findings.length} file(s) removes ~${scan.bloatTokens.toLocaleString("en-US")} tokens (${pct}% of the ~${scan.totalTokens.toLocaleString("en-US")} total).**`);
-  lines.push("");
-  lines.push("| File | ~Tokens | Reason |");
-  lines.push("|------|---------|--------|");
-  for (const f of scan.findings.slice(0, 30)) {
-    lines.push(`| \`${mdCellCode(f.path)}\` | ${f.tokens.toLocaleString("en-US")} | ${f.reason} |`);
+  const excludable = scan.findings.filter(f => isExcludable(f.reason));
+  const oversized = scan.findings.filter(f => !isExcludable(f.reason));
+  if (excludable.length > 0) {
+    const pct = scan.totalTokens > 0 ? Math.round((scan.bloatTokens / scan.totalTokens) * 100) : 0;
+    lines.push(`**Excluding these ${excludable.length} low-signal file(s) removes ~${scan.bloatTokens.toLocaleString("en-US")} tokens (${pct}% of the ~${scan.totalTokens.toLocaleString("en-US")} total) — safe to drop from prompts.**`);
+    lines.push("");
+    lines.push("| File | ~Tokens | Reason |");
+    lines.push("|------|---------|--------|");
+    for (const f of excludable.slice(0, 30)) {
+      lines.push(`| \`${mdCellCode(f.path)}\` | ${f.tokens.toLocaleString("en-US")} | ${f.reason} |`);
+    }
+    if (excludable.length > 30) lines.push(`| *… ${excludable.length - 30} more* | | |`);
+    lines.push("");
   }
-  if (scan.findings.length > 30) lines.push(`| *… ${scan.findings.length - 30} more* | | |`);
-  lines.push("");
+  if (oversized.length > 0) {
+    lines.push("### Oversized source files (review — don't blindly exclude)");
+    lines.push("");
+    lines.push("These are large but likely real source. Include them SELECTIVELY (only when relevant) or split them — don't drop needed logic just to save tokens.");
+    lines.push("");
+    lines.push("| File | ~Tokens |");
+    lines.push("|------|---------|");
+    for (const f of oversized.slice(0, 15)) {
+      lines.push(`| \`${mdCellCode(f.path)}\` | ${f.tokens.toLocaleString("en-US")} |`);
+    }
+    if (oversized.length > 15) lines.push(`| *… ${oversized.length - 15} more* | |`);
+    lines.push("");
+  }
   return lines;
 }
 

@@ -32,6 +32,16 @@ describe("analyzeContextBloat — quantified context-bloat scan", () => {
     expect(scan.findings[0].path).toBe("dist/b.js"); // larger first
   });
 
+  it("HARDEN-2: bloatTokens (the 'savings') counts only SAFE-to-exclude files, NOT oversized real source", () => {
+    const scan = analyzeContextBloat([
+      sf("dist/vendor.js", 100),                 // excludable
+      sf("apps/api/src/handlers.ts", 2000),      // oversized real source — NOT counted as savings
+    ]);
+    expect(scan.bloatTokens).toBe(Math.round(100 * 4.5)); // only the dist file
+    // both are still findings, but only one counts toward "savings"
+    expect(scan.findings).toHaveLength(2);
+  });
+
   it("is deterministic", () => {
     const files = [sf("dist/b.js", 100), sf("dist/a.js", 100)];
     expect(analyzeContextBloat(files)).toEqual(analyzeContextBloat(files));
@@ -43,8 +53,16 @@ describe("renderContextBloat", () => {
     const files = Array.from({ length: 40 }, (_, i) => sf(`dist/f${i}.js`, 100));
     const md = renderContextBloat(analyzeContextBloat(files)).join("\n");
     expect(md).toContain("## Context Bloat (deterministic)");
-    expect(md).toMatch(/Excluding these 40 file\(s\) removes ~[\d,]+ tokens \(\d+% of/);
+    expect(md).toMatch(/Excluding these 40 low-signal file\(s\) removes ~[\d,]+ tokens \(\d+% of/);
     expect(md).toContain("*… 10 more*");
+  });
+
+  it("HARDEN-2: oversized source is rendered in a SEPARATE 'review' section, not the savings headline", () => {
+    const md = renderContextBloat(analyzeContextBloat([sf("apps/api/src/handlers.ts", 2000), sf("dist/x.js", 50)])).join("\n");
+    expect(md).toContain("### Oversized source files (review — don't blindly exclude)");
+    expect(md).toContain("handlers.ts");
+    // handlers.ts must NOT appear in the "safe to drop" savings figure
+    expect(md).not.toMatch(/Excluding these 2 /);
   });
   it("renders a clean empty-state when nothing is bloated", () => {
     expect(renderContextBloat(analyzeContextBloat([sf("src/a.ts", 10)])).join("\n")).toContain("context is already lean");
