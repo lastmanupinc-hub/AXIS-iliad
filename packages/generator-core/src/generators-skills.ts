@@ -11,15 +11,23 @@ import { mdText, mdInline, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "
 type Route = ContextMap["routes"][number];
 
 /**
- * Collapse routes by method+path. A route registered/mentioned across several
- * files (plus its test) arrives multiple times; keep first-seen order but upgrade
- * the attribution to a non-test source file when one exists for the same route.
+ * The route set to display in an instruction file. Two steps:
+ *  1. De-duplicate by method+path — a route registered/mentioned across several
+ *     files (plus its test) arrives multiple times; keep first-seen order but
+ *     upgrade the attribution to a non-test source file when one exists.
+ *  2. Restrict to non-test routes when any exist — a route that appears ONLY in a
+ *     .test file is real API surface only when there is nothing else, so it must
+ *     never be presented to an agent alongside production routes (a mock endpoint
+ *     defined in an integration test is not the app's API).
  * Shared by the AGENTS.md and CLAUDE.md route sections.
  */
-export function dedupeRoutes(routes: readonly Route[]): Route[] {
+export function displayRoutes(routes: readonly Route[]): Route[] {
   const seen = new Map<string, Route>();
   for (const r of routes) {
-    const key = `${r.method} ${r.path}`;
+    // JSON-encode the [method, path] pair so two distinct routes can never
+    // collide into one key — a plain `${method} ${path}` join would map both
+    // {method:"GET /a", path:"b"} and {method:"GET", path:"/a b"} to "GET /a b".
+    const key = JSON.stringify([r.method, r.path]);
     const existing = seen.get(key);
     if (!existing) {
       seen.set(key, r);
@@ -27,7 +35,9 @@ export function dedupeRoutes(routes: readonly Route[]): Route[] {
       seen.set(key, r);
     }
   }
-  return [...seen.values()];
+  const deduped = [...seen.values()];
+  const nonTest = deduped.filter((r) => !r.source_file.includes(".test."));
+  return nonTest.length > 0 ? nonTest : deduped;
 }
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -85,7 +95,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
 
   // Routes (deduplicated by method+path — prefer a non-test source file, capped at 50)
   if (ctx.routes.length > 0) {
-    const display = dedupeRoutes(ctx.routes);
+    const display = displayRoutes(ctx.routes);
     const capped = display.slice(0, 50);
     lines.push("### Routes");
     lines.push("");
@@ -131,9 +141,13 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("When working in this codebase:");
   lines.push("");
 
-  // Language-specific rules
+  // Language-specific rules. Framework rules below apply to both TS and JS, but
+  // "use strict TypeScript / avoid `any`" is only honest for a TypeScript repo —
+  // asserting it for a pure-JavaScript project is false guidance and would
+  // contradict the (TS-gated) CLAUDE.md Do-NOT for the same repo.
   if (id.primary_language === "TypeScript" || id.primary_language === "JavaScript") {
-    lines.push("- Use strict TypeScript. Avoid `any` types.");
+    if (id.primary_language === "TypeScript")
+      lines.push("- Use strict TypeScript. Avoid `any` types.");
     if (hasFw(ctx, "Next.js")) {
       lines.push("- Follow Next.js App Router conventions. Use `app/` directory structure.");
       lines.push("- Server Components by default. Add `'use client'` only when needed.");
@@ -328,7 +342,7 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   // reads) lacked it. Same de-duplication as AGENTS.md, capped shorter to stay
   // scannable in the primary instruction file.
   if (ctx.routes.length > 0) {
-    const routes = dedupeRoutes(ctx.routes);
+    const routes = displayRoutes(ctx.routes);
     const ROUTE_CAP = 40;
     lines.push("## API Surface");
     lines.push("");
@@ -656,8 +670,13 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("scope: all-ai-generated-code");
   lines.push("rules:");
   lines.push(`  - language: ${yamlFlowScalar(id.primary_language)}`);
-  lines.push("  - strict_types: true");
-  lines.push("  - no_any_types: true");
+  // strict_types / no_any_types are TypeScript/JavaScript type-system rules —
+  // emitting them for a Python/Rust/Go repo is meaningless governance. The
+  // stub/placeholder rules below are language-agnostic and always apply.
+  if (id.primary_language === "TypeScript" || id.primary_language === "JavaScript") {
+    lines.push("  - strict_types: true");
+    lines.push("  - no_any_types: true");
+  }
   lines.push("  - no_stub_implementations: true");
   lines.push("  - no_placeholder_data: true");
   for (const c of conventions.slice(0, 5)) {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { ContextMap } from "@axis/context-engine";
-import { generateAgentsMD, generateClaudeMD, dedupeRoutes } from "./generators-skills.js";
+import { generateAgentsMD, generateClaudeMD, generatePolicyPack, displayRoutes } from "./generators-skills.js";
 
 // Functional/quality coverage for the skills generators (POLISH, Program 2).
 // Grounded in dogfooding the generators against the Iliad repo itself.
@@ -60,6 +60,20 @@ describe("generateAgentsMD — route deduplication (POLISH)", () => {
     expect(out).toContain("`GET /only`");
   });
 
+  it("suppresses a test-ONLY route when real (non-test) routes coexist (HARDEN-2 regression)", () => {
+    // A mock endpoint defined only in an integration test must not be presented
+    // to agents as production API surface alongside the real routes.
+    const ctx = mkCtx({
+      routes: [
+        { method: "GET", path: "/users", source_file: "apps/api/src/server.ts" },
+        { method: "GET", path: "/mock-fixture", source_file: "apps/api/src/server.test.ts" },
+      ] as ContextMap["routes"],
+    });
+    const out = generateAgentsMD(ctx).content;
+    expect(out).toContain("`GET /users`");
+    expect(out).not.toContain("/mock-fixture");
+  });
+
   it("caps the displayed routes at 50 DISTINCT routes and notes the remainder", () => {
     const routes = Array.from({ length: 60 }, (_, i) => ({ method: "GET", path: `/r${i}`, source_file: "s.ts" }));
     const ctx = mkCtx({ routes: routes as ContextMap["routes"] });
@@ -70,9 +84,9 @@ describe("generateAgentsMD — route deduplication (POLISH)", () => {
   });
 });
 
-describe("dedupeRoutes (shared helper, DEVELOP)", () => {
+describe("displayRoutes (shared helper, DEVELOP)", () => {
   it("collapses duplicates by method+path and preserves first-seen order", () => {
-    const r = dedupeRoutes([
+    const r = displayRoutes([
       { method: "GET", path: "/a", source_file: "s.ts" },
       { method: "POST", path: "/a", source_file: "s.ts" },
       { method: "GET", path: "/a", source_file: "s.ts" },
@@ -81,7 +95,7 @@ describe("dedupeRoutes (shared helper, DEVELOP)", () => {
   });
 
   it("upgrades a test-file attribution to a non-test source for the same route", () => {
-    const r = dedupeRoutes([
+    const r = displayRoutes([
       { method: "GET", path: "/a", source_file: "a.test.ts" },
       { method: "GET", path: "/a", source_file: "a.ts" },
     ] as ContextMap["routes"]);
@@ -89,12 +103,35 @@ describe("dedupeRoutes (shared helper, DEVELOP)", () => {
     expect(r[0]!.source_file).toBe("a.ts");
   });
 
-  it("is a pure identity-preserving no-op on already-unique input", () => {
+  it("does NOT collide two distinct routes whose method+path concatenate ambiguously", () => {
+    // Under a `${method} ${path}` space-join both of these key to "GET /a b";
+    // the JSON-encoded key keeps them distinct so neither is silently dropped.
+    const r = displayRoutes([
+      { method: "GET /a", path: "b", source_file: "s.ts" },
+      { method: "GET", path: "/a b", source_file: "s.ts" },
+    ] as ContextMap["routes"]);
+    expect(r).toHaveLength(2);
+  });
+
+  it("is a pure identity-preserving no-op on already-unique non-test input", () => {
     const input = [
       { method: "GET", path: "/a", source_file: "s.ts" },
       { method: "GET", path: "/b", source_file: "s.ts" },
     ] as ContextMap["routes"];
-    expect(dedupeRoutes(input)).toEqual(input);
+    expect(displayRoutes(input)).toEqual(input);
+  });
+
+  it("drops test-only routes when non-test routes exist, but keeps them as a fallback", () => {
+    const withReal = displayRoutes([
+      { method: "GET", path: "/real", source_file: "server.ts" },
+      { method: "GET", path: "/mock", source_file: "server.test.ts" },
+    ] as ContextMap["routes"]);
+    expect(withReal.map((r) => r.path)).toEqual(["/real"]);
+
+    const allTest = displayRoutes([
+      { method: "GET", path: "/mock", source_file: "server.test.ts" },
+    ] as ContextMap["routes"]);
+    expect(allTest.map((r) => r.path)).toEqual(["/mock"]);
   });
 });
 
@@ -138,5 +175,46 @@ describe("generateClaudeMD — honest language rules (POLISH)", () => {
       const out = generateClaudeMD(mkCtx({ project_identity: { name: "a", type: "app", primary_language: lang, description: null, repo_url: null, go_module: null } })).content;
       expect(out, `lang=${lang}`).not.toContain("Do not bypass TypeScript strict mode");
     }
+  });
+});
+
+describe("generatePolicyPack — type-system rules gated by language (POLISH-2)", () => {
+  const policyFor = (lang: string) =>
+    generatePolicyPack(mkCtx({ project_identity: { name: "a", type: "app", primary_language: lang, description: null, repo_url: null, go_module: null } })).content;
+
+  it("emits strict_types / no_any_types for a TypeScript project", () => {
+    const out = policyFor("TypeScript");
+    expect(out).toContain("strict_types: true");
+    expect(out).toContain("no_any_types: true");
+  });
+
+  it("omits strict_types / no_any_types for a non-TS/JS project but keeps the language-agnostic rules", () => {
+    for (const lang of ["Python", "Rust", "Go"]) {
+      const out = policyFor(lang);
+      expect(out, `lang=${lang}`).not.toContain("strict_types: true");
+      expect(out, `lang=${lang}`).not.toContain("no_any_types: true");
+      // language-agnostic governance still present
+      expect(out, `lang=${lang}`).toContain("no_stub_implementations: true");
+      expect(out, `lang=${lang}`).toContain("no_placeholder_data: true");
+    }
+  });
+});
+
+describe("generateAgentsMD — language honesty consistent with CLAUDE.md (HARDEN-2)", () => {
+  const jsCtx = () => mkCtx({ project_identity: { name: "a", type: "app", primary_language: "JavaScript", description: null, repo_url: null, go_module: null } });
+
+  it("does NOT tell a pure-JavaScript repo to 'use strict TypeScript'", () => {
+    const out = generateAgentsMD(jsCtx()).content;
+    expect(out).not.toContain("Use strict TypeScript");
+  });
+
+  it("still emits 'use strict TypeScript' for a TypeScript repo", () => {
+    const out = generateAgentsMD(mkCtx()).content; // default is TypeScript
+    expect(out).toContain("Use strict TypeScript");
+  });
+
+  it("still applies React framework rules to a JavaScript repo (framework rules are language-agnostic)", () => {
+    const out = generateAgentsMD(jsCtx()).content; // default frameworks include React
+    expect(out).toContain("functional components");
   });
 });
