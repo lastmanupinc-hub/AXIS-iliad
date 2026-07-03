@@ -43,7 +43,7 @@ describe("ui-audit — Total Routes is the DEDUPED count, not raw per-mention ro
 
   it("hasCSS recognizes SASS/LESS (not just CSS/SCSS) — no false 'Unknown' styling", () => {
     const out = generateUiAudit(mkCtx({ detection: { languages: [{ name: "SASS", file_count: 3, loc: 100, loc_percent: 100 }] } as ContextMap["detection"] })).content;
-    expect(out).toContain("| Styling | CSS/SCSS |");
+    expect(out).toContain("| Styling | CSS/SCSS/SASS/LESS |");
     expect(out).not.toContain("| Styling | Unknown |");
   });
 });

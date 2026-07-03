@@ -583,7 +583,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   lines.push("|--------|----------|");
   lines.push(`| UI Frameworks | ${uiFrameworks.map(f => mdInline(f.name)).join(", ") || "None detected"} |`);
   /* v8 ignore next — V8 quirk: tailwind/CSS ternary tested with fixture variants */
-  lines.push(`| Styling | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS" : "Unknown"} |`);
+  lines.push(`| Styling | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS/SASS/LESS" : "Unknown"} |`);
   /* v8 ignore next — V8 quirk: hasTSX ternary tested */
   lines.push(`| TypeScript | ${hasTSX ? "Yes" : "No"} |`);
   /* v8 ignore next — V8 quirk: uiDeps empty check tested */
@@ -706,8 +706,8 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
 // A grep + fixed-rule-table scan of component source (no LLM, no injection —
 // fully reproducible). Turns ui-audit's static "⚠️ Verify" checklist into REAL
 // findings on the uploaded components: missing alt text, dangerouslySetInnerHTML,
-// inline style objects, `any`-typed props, and click handlers on non-interactive
-// elements — the a11y/quality issues the type/test net won't surface.
+// `any`-typed props, and click handlers on non-interactive elements — the
+// a11y/quality issues the type/test net won't surface.
 
 export type UiIssueClass = "XSS" | "A11Y" | "TYPE";
 
@@ -744,11 +744,15 @@ export function analyzeUiSurface(files: SourceFile[]): UiFinding[] {
       if (/dangerouslySetInnerHTML/.test(ln)) {
         at("dangerous-html", "XSS", "dangerouslySetInnerHTML — sanitize the HTML or render text instead");
       }
-      if (/\bas any\b/.test(ln) || /:\s*any\b/.test(ln)) {
+      // `any` in a component, EXCEPT the idiomatic `catch (e: any)` (TS defaults
+      // catch to `unknown`; re-typing it `any` is common interop, low-signal).
+      if ((/\bas any\b/.test(ln) || /:\s*any\b/.test(ln)) && !/\bcatch\s*\(/.test(ln)) {
         at("any-type", "TYPE", "`any` in a component — prefer a precise prop/state type");
       }
-      // onClick on a non-interactive element (needs role + keyboard handling)
-      if (/<(?:div|span|li)\b[^>]*\bonClick\b/i.test(ln)) {
+      // onClick on a non-interactive element — but NOT when it's made keyboard-
+      // operable with an onKey* handler (that's the concrete a11y fix; a `role`
+      // alone doesn't make it keyboard-operable, so role-only is still flagged).
+      if (/<(?:div|span|li)\b[^>]*\bonClick\b/i.test(ln) && !/\bonKey(?:Down|Up|Press)\s*=/i.test(ln)) {
         at("click-nonbutton", "A11Y", "onClick on a <div>/<span>/<li> — use <button> or add role + keyboard handlers");
       }
     }

@@ -47,6 +47,23 @@ describe("analyzeUiSurface — deterministic UI-issue scan", () => {
     expect(byFile["src/H.tsx"]).toBeUndefined();
   });
 
+  it("HARDEN-2: suppresses only when keyboard-operable (onKey*), not for role alone or data-role", () => {
+    const f = analyzeUiSurface([
+      sf("src/acc.tsx", '<div role="button" tabIndex={0} onClick={go} onKeyDown={go}>x</div>'), // keyboard → OK
+      sf("src/roleonly.tsx", '<div role="button" onClick={go}>x</div>'),                        // role, NO keyboard → still a gap
+      sf("src/datarole.tsx", '<div data-role="tab" onClick={go}>x</div>'),                       // data-role is not ARIA → still a gap
+    ]);
+    expect(f.map((x) => x.file).sort()).toEqual(["src/datarole.tsx", "src/roleonly.tsx"]);
+  });
+
+  it("HARDEN-2: does not flag the idiomatic `catch (e: any)` (low-signal, common interop)", () => {
+    const f = analyzeUiSurface([
+      sf("src/catch.tsx", "try { go(); } catch (e: any) { report(e); }"),
+      sf("src/prop.tsx", "function C(props: any) { return null; }"),
+    ]);
+    expect(f.map((x) => x.file)).toEqual(["src/prop.tsx"]); // catch exempt, prop still flagged
+  });
+
   it("skips test/spec files, generated dirs, and comment-only lines", () => {
     const f = analyzeUiSurface([
       sf("src/x.test.tsx", '<img src="a" />'),          // test → skipped
