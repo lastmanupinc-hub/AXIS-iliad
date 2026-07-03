@@ -7,6 +7,13 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // mdText (prose/headings/list items), mdInline (GFM table cells), mdCode (inline
 // code spans outside tables), mdCellCode (code spans inside table cells).
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
+
+// Display caps — the parser emits per-mention rows, so a real repo has hundreds
+// of (mostly test/duplicate) routes and models. Rendering them all produces an
+// 80KB+ debug file that's ~70% noise. Cap and note the remainder.
+const ROUTE_CAP = 50;
+const MODEL_CAP = 30;
 
 export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -252,8 +259,11 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("");
     lines.push("| Model | Kind | Language | Fields | Source |");
     lines.push("|-------|------|----------|--------|--------|");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`| ${mdInline(m.name)} | ${mdInline(m.kind)} | ${mdInline(m.language)} | ${m.field_count} | \`${mdCellCode(m.source_file)}\` |`);
+    }
+    if (ctx.domain_models.length > MODEL_CAP) {
+      lines.push(`| *… ${ctx.domain_models.length - MODEL_CAP} more* | | | | |`);
     }
     lines.push("");
   }
@@ -277,12 +287,16 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
 
   // ─── Route Map ────────────────────────────────────────
   if (ctx.routes.length > 0) {
+    const routes = displayRoutes(ctx.routes);
     lines.push("## Route Map");
     lines.push("");
     lines.push("| Method | Path | Source |");
     lines.push("|--------|------|--------|");
-    for (const r of ctx.routes) {
+    for (const r of routes.slice(0, ROUTE_CAP)) {
       lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} |`);
+    }
+    if (routes.length > ROUTE_CAP) {
+      lines.push(`| *… ${routes.length - ROUTE_CAP} more* | | |`);
     }
     lines.push("");
   }
@@ -475,9 +489,10 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
   if (ctx.domain_models.length > 0) {
     lines.push("### Domain Entities to Check");
     lines.push("");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`- [ ] \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — ${mdText(m.source_file)}`);
     }
+    if (ctx.domain_models.length > MODEL_CAP) lines.push(`- [ ] *… ${ctx.domain_models.length - MODEL_CAP} more entities*`);
     lines.push("");
   }
 
@@ -574,15 +589,19 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("");
 
   if (ctx.routes.length > 0) {
+    const routes = displayRoutes(ctx.routes);
     lines.push("### API Routes");
     lines.push("");
     lines.push("All API routes should log: request method, path, status code, duration (ms).");
     lines.push("");
     lines.push("| Method | Path | Source | Trace Priority |");
     lines.push("|--------|------|--------|----------------|");
-    for (const r of ctx.routes) {
+    for (const r of routes.slice(0, ROUTE_CAP)) {
       const priority = r.path.includes("auth") || r.path.includes("login") || r.path.includes("payment") ? "HIGH" : "NORMAL";
       lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} | ${priority} |`);
+    }
+    if (routes.length > ROUTE_CAP) {
+      lines.push(`| *… ${routes.length - ROUTE_CAP} more* | | | |`);
     }
     lines.push("");
   }
@@ -680,9 +699,10 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("");
     lines.push("State transitions on these entities should be logged:");
     lines.push("");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`- \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — \`${mdCode(m.source_file)}\``);
     }
+    if (ctx.domain_models.length > MODEL_CAP) lines.push(`- *… ${ctx.domain_models.length - MODEL_CAP} more entities*`);
     lines.push("");
   }
 
@@ -920,9 +940,10 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("");
     lines.push("Check these entities for state corruption or relationship violations:");
     lines.push("");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`- [ ] \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — \`${mdCode(m.source_file)}\``);
     }
+    if (ctx.domain_models.length > MODEL_CAP) lines.push(`- [ ] *… ${ctx.domain_models.length - MODEL_CAP} more entities*`);
     lines.push("");
   }
 
@@ -1066,6 +1087,48 @@ function fsHasStem(s: string, stems: string[]): boolean {
   return words.some(w => stems.some(stem => w.startsWith(stem)));
 }
 
+// A swallow BODY discards the error: the empty block plus the common
+// sentinel-fallback forms `() => null | [] | false | "" | '' | ({})` that the
+// first pass missed (its highest-frequency false negatives).
+const FS_SWALLOW_BODY = String.raw`(?:\{\s*\}|undefined|void 0|null|false|\[\s*\]|""|''|\(\s*\{\s*\}\s*\))`;
+// .catch(handler) that swallows — arrow (incl. `async` and typed params) OR a
+// function expression. Param class allows `:<>|.` so typed bindings match.
+const FS_CATCH_SWALLOW = new RegExp(
+  String.raw`\.catch\(\s*(?:async\s*)?(?:` +
+    String.raw`(?:\([a-zA-Z_$,\s:<>|.]*\)|[a-zA-Z_$]+)\s*=>\s*` + FS_SWALLOW_BODY +
+    String.raw`|function\s*\*?\s*[a-zA-Z_$]*\s*\([a-zA-Z_$,\s:<>|.]*\)\s*\{\s*\}` +
+  String.raw`)\s*\)`,
+);
+// Empty catch — single-line, plus the split `} catch (e) {` / `}` form via a
+// 2-line lookahead. Typed catch bindings (`catch (e: unknown)`) now match.
+const FS_EMPTY_CATCH = /\bcatch\s*(?:\([a-zA-Z_$,\s:<>|.]*\))?\s*\{\s*\}/;
+const FS_CATCH_OPEN = /\bcatch\s*(?:\([a-zA-Z_$,\s:<>|.]*\))?\s*\{\s*$/;
+const FS_CLOSE_ONLY = /^\s*\}\s*$/;
+// Go: empty error block (single-line and the idiomatic gofmt two-line form) and
+// a discarded return via `_` — now including the SOLE form `_ = f()` (the first
+// pass required a leading comma, missing the more dangerous sole-return discard).
+const FS_GO_EMPTY_ERR = /if\s+err\s*!=\s*nil\s*\{\s*\}/;
+const FS_GO_ERR_OPEN = /if\s+err\s*!=\s*nil\s*\{\s*$/;
+// `_ = f()` / `_ := f()` (sole discard) or `x, _ := f()`. The `(?!range\b)`
+// excludes the idiomatic `for _ = range xs` (a deliberate index discard, not a
+// swallowed error); `[^=]` after `=` excludes the `_ == x` comparison.
+const FS_GO_DISCARD = /(?:^|[\s(;,{])_\s*(?::=|=)(?!\s*range\b)\s*[^=]/;
+
+/** Next non-blank line's content (for bounded 2-line lookahead). */
+function fsNextCode(lines: string[], i: number): string {
+  let j = i + 1;
+  while (j < lines.length && lines[j].trim() === "") j++;
+  return lines[j] ?? "";
+}
+// A comment-only line — commented-out code must never be flagged as a live
+// failure. The `*` branch matches a block-comment CONTINUATION (a `*` followed
+// by whitespace, a slash for the closing delimiter, or end-of-line) but NOT a
+// generator-method shorthand like `*stream() { … catch {} }` — keeping that live
+// code in scope. HARDEN-2 fix: the bare `startsWith("*")` skipped the generator.
+function fsIsComment(trimmed: string): boolean {
+  return trimmed.startsWith("//") || trimmed.startsWith("/*") || /^\*(\s|\/|$)/.test(trimmed);
+}
+
 /** Static failure-mode scan of source files (skips tests + generated dirs). Deterministic. */
 export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
   const out: FailureFinding[] = [];
@@ -1078,6 +1141,8 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
     const lines = f.content.split("\n");
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
+      // Commented-out code must never be flagged as a live failure mode.
+      if (fsIsComment(ln.trim())) continue;
       // ── Go source: idiomatic silent-failure patterns ──
       if (/\.go$/.test(f.path)) {
         if (/\b(?:fmt\.Print(?:f|ln)?|println)\s*\(/.test(ln)) {
@@ -1086,25 +1151,27 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
         } else if (/\bpanic\s*\(/.test(ln)) {
           out.push({ file: f.path, line: i + 1, category: "panic", klass: "REVIEW",
             note: "panic() — ensure a recover() guards this path" });
-        } else if (/if\s+err\s*!=\s*nil\s*\{\s*\}/.test(ln)) {
+        } else if (FS_GO_EMPTY_ERR.test(ln) || (FS_GO_ERR_OPEN.test(ln) && FS_CLOSE_ONLY.test(fsNextCode(lines, i)))) {
           out.push({ file: f.path, line: i + 1, category: "empty-error-check", klass: "SILENT",
             note: "error checked then ignored" });
-        } else if (/,\s*_\s*(?::=|=)\s/.test(ln)) {
+        } else if (FS_GO_DISCARD.test(ln)) {
           out.push({ file: f.path, line: i + 1, category: "discarded-return", klass: "REVIEW",
             note: "discarded return via _ — if it is an error, the failure is silent" });
         }
         continue;
       }
-      // swallowed async error: .catch(() => {}) / .catch(e => {}) / .catch(() => undefined)
-      if (/\.catch\(\s*(\([a-zA-Z_,\s]*\)|[a-zA-Z_]+)?\s*=>\s*(\{\s*\}|undefined|void 0)\s*\)/.test(ln)) {
+      // swallowed async error: .catch(() => {} | undefined | null | [] | false | "" | ({})),
+      // arrow (incl. async + typed params) or function expression.
+      if (FS_CATCH_SWALLOW.test(ln)) {
         const cleanup = fsHasStem(ln, FS_CLEANUP_STEMS), side = fsHasStem(ln, FS_SIDE_EFFECT_STEMS);
         out.push({ file: f.path, line: i + 1, category: "swallowed-async-error",
           klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
           note: cleanup ? "best-effort cleanup" : side ? "side-effect failure is invisible" : "swallowed — confirm intent" });
         continue;
       }
-      // empty catch: } catch {} / catch (e) {} — classify from the try body (this + prev line)
-      if (/\bcatch\s*(\([a-zA-Z_$]*\))?\s*\{\s*\}/.test(ln)) {
+      // empty catch: `} catch {}` / `catch (e: T) {}`, single-line or split across
+      // two lines. Classify from the try body (this + prev line).
+      if (FS_EMPTY_CATCH.test(ln) || (FS_CATCH_OPEN.test(ln) && FS_CLOSE_ONLY.test(fsNextCode(lines, i)))) {
         const ctx2 = ln + " " + (lines[i - 1] ?? "");
         const cleanup = fsHasStem(ctx2, FS_CLEANUP_STEMS), side = fsHasStem(ctx2, FS_SIDE_EFFECT_STEMS);
         out.push({ file: f.path, line: i + 1, category: "empty-catch",
