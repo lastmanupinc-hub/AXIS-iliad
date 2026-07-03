@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── campaign-brief.md ──────────────────────────────────────────
 
@@ -92,12 +93,12 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   } else {
     lines.push(`${vpIdx++}. **Built on ${mdText(id.primary_language)}** — Production-grade technology choice with strong ecosystem`);
   }
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   if (routes.length > 0) {
     const methodCounts = new Map<string, number>();
     for (const r of routes) methodCounts.set(r.method, (methodCounts.get(r.method) ?? 0) + 1);
     const methodStr = [...methodCounts.entries()].sort((a, b) => b[1] - a[1]).map(([m, c]) => `${c} ${m}`).join(", ");
-    lines.push(`${vpIdx++}. **${routes.length} API Endpoints** — ${mdText(methodStr)} across ${[...new Set(routes.map(r => r.source_file))].length} source files`);
+    lines.push(`${vpIdx++}. **${routes.length} Routes** — ${mdText(methodStr)} across ${[...new Set(routes.map(r => r.source_file))].length} source files`);
   }
   const models = ctx.domain_models;
   if (models.length > 0) {
@@ -111,7 +112,7 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   }
   const archPatterns = ctx.architecture_signals.patterns_detected;
   if (archPatterns.length > 0) {
-    lines.push(`${vpIdx++}. **Clean Architecture** — ${mdText(archPatterns.join(", "))} (${ctx.architecture_signals.separation_score.toFixed(2)} separation score)`);
+    lines.push(`${vpIdx++}. **${ctx.architecture_signals.separation_score > 0.6 ? "Clean Architecture" : "Defined Architecture"}** — ${mdText(archPatterns.join(", "))} (${ctx.architecture_signals.separation_score.toFixed(2)} separation score)`);
   } else if (ctx.ai_context.conventions.length > 0) {
     lines.push(`${vpIdx++}. **Developer Experience** — ${ctx.ai_context.conventions.length} enforced conventions: ${mdText(ctx.ai_context.conventions.slice(0, 2).join("; "))}`);
   }
@@ -297,7 +298,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push("");
   }
 
-  const postRoutes = ctx.routes.filter(r => r.method === "POST").slice(0, 5);
+  const postRoutes = displayRoutes(ctx.routes).filter(r => r.method === "POST").slice(0, 5);
   if (postRoutes.length > 0) {
     lines.push("### Action Triggers (POST routes)");
     for (const r of postRoutes) {
@@ -406,10 +407,10 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
   const topAbstraction = ctx.ai_context.key_abstractions[0];
   lines.push("**Body**:");
   if (topModels.length > 0) {
-    lines.push(`- Highlight the core entities: ${topModels.map(m => `**${mdText(m.name)}**`).join(", ")}`);
+    lines.push(`- Highlight these domain entities: ${topModels.map(m => `**${mdText(m.name)}**`).join(", ")}`);
     lines.push(`- Show how to create and interact with a \`${mdCode(topModels[0].name)}\` end-to-end`);
   } else if (topAbstraction) {
-    lines.push(`- Highlight the core feature: **${mdText(topAbstraction)}**`);
+    lines.push(`- Highlight a detected key abstraction: **${mdText(topAbstraction)}**`);
   } else {
     lines.push("- Highlight the primary use case and core value proposition");
   }
@@ -498,7 +499,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
 export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const lines: string[] = [];
 
   lines.push(`# CRO Playbook — ${mdText(id.name)}`);
@@ -649,7 +650,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   lines.push("");
   lines.push("- **Hypothesis**: A guided first-run wizard will increase first-value moment by 35%");
   lines.push("- **Metric**: Features used in first session, time to first successful output");
-  lines.push(`- **Context**: ${routes.length} API endpoints — users need a path through the complexity`);
+  lines.push(`- **Context**: ${routes.length} routes — users need a path through the complexity`);
   lines.push("- **Variants**: A: Self-discovery | B: Step-by-step first-run guide with progress indicator");
   lines.push("- **Duration**: 3 weeks");
   lines.push("");
@@ -694,7 +695,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
 
 export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const frameworks = ctx.detection.frameworks;
 
   const pageRoutes = routes.filter(r => !r.path.startsWith("/api") && r.method === "GET");
