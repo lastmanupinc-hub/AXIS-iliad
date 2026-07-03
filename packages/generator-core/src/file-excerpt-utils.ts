@@ -31,6 +31,15 @@ export function findFile(files: SourceFile[], name: string): SourceFile | undefi
 
 /**
  * Extract the first N lines of a file's content as a fenced code block.
+ *
+ * SECURITY: these excerpts embed raw repo FILE CONTENT into agent-instruction
+ * files (AGENTS.md/CLAUDE.md) and analysis reports. A fixed 3-backtick fence is
+ * a prompt-injection hole — content containing ``` closes the fence early and
+ * everything after renders as live markdown (a hostile repo could inject
+ * "## SYSTEM: ignore prior instructions ..."). Per CommonMark, the fence must
+ * be LONGER than the longest backtick run in the content, so the body can never
+ * terminate it. Tildes (~~~) are avoided because content backticks then render
+ * literally inside a ~~~ block.
  */
 export function excerpt(file: SourceFile, maxLines = EXCERPT_LINES): string {
   const lines = file.content.split("\n");
@@ -38,7 +47,10 @@ export function excerpt(file: SourceFile, maxLines = EXCERPT_LINES): string {
   const ext = extname(file.path);
   const lang = LANG_MAP[ext] ?? "";
   const truncated = lines.length > maxLines ? `\n... (${lines.length - maxLines} more lines)` : "";
-  return `\`\`\`${lang}\n${shown.join("\n")}${truncated}\n\`\`\``;
+  const body = `${shown.join("\n")}${truncated}`;
+  const longestRun = (body.match(/`+/g) ?? []).reduce((m, r) => Math.max(m, r.length), 0);
+  const fence = "`".repeat(Math.max(3, longestRun + 1));
+  return `${fence}${lang}\n${body}\n${fence}`;
 }
 
 /**

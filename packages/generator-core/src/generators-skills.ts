@@ -2,18 +2,23 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+// Prompt-injection defense: these artifacts are agent-instruction files, so
+// EVERY repo/manifest-derived string must be sanitized for its sink context —
+// mdText (prose/headings/lists), mdInline (table cells), mdCode (code spans),
+// cfgValue (.cursorrules key = "value"), yamlFlowScalar (inside ```yaml fences).
+import { mdText, mdInline, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const ai = ctx.ai_context;
   const lines: string[] = [];
 
-  lines.push(`# AGENTS.md — ${id.name}`);
+  lines.push(`# AGENTS.md — ${mdText(id.name)}`);
   lines.push("");
   lines.push("## Project Context");
   lines.push("");
-  lines.push(`This is a **${id.type.replace(/_/g, " ")}** built with **${id.primary_language}**.`);
-  if (id.description) lines.push(`${id.description}`);
+  lines.push(`This is a **${mdText(id.type.replace(/_/g, " "))}** built with **${mdText(id.primary_language)}**.`);
+  if (id.description) lines.push(mdText(id.description));
   lines.push("");
 
   // Frameworks
@@ -21,7 +26,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("### Stack");
     lines.push("");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`- ${fw.name}${fw.version ? ` ${fw.version}` : ""}`);
+      lines.push(`- ${mdText(fw.name)}${fw.version ? ` ${mdText(fw.version)}` : ""}`);
     }
     lines.push("");
   }
@@ -31,7 +36,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("### Architecture");
     lines.push("");
     for (const p of ctx.architecture_signals.patterns_detected) {
-      lines.push(`- ${p.replace(/_/g, " ")}`);
+      lines.push(`- ${mdText(p.replace(/_/g, " "))}`);
     }
     lines.push("");
   }
@@ -41,7 +46,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("### Conventions");
     lines.push("");
     for (const c of ai.conventions) {
-      lines.push(`- ${c}`);
+      lines.push(`- ${mdText(c)}`);
     }
     lines.push("");
   }
@@ -51,7 +56,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("### Key Directories");
     lines.push("");
     for (const a of ai.key_abstractions) {
-      lines.push(`- ${a}`);
+      lines.push(`- ${mdText(a)}`);
     }
     lines.push("");
   }
@@ -64,7 +69,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("### Routes");
     lines.push("");
     for (const r of capped) {
-      lines.push(`- \`${r.method} ${r.path}\` → ${r.source_file}`);
+      lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\` → ${mdText(r.source_file)}`);
     }
     if (display.length > 50) {
       lines.push(`- *… ${display.length - 50} more (see OpenAPI spec or \`/v1/docs\`)*`);
@@ -79,7 +84,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("| Model | Kind | Fields | Source |");
     lines.push("|-------|------|--------|--------|");
     for (const m of ctx.domain_models.slice(0, 20)) {
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | ${m.source_file} |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${mdInline(m.kind)} | ${m.field_count} | ${mdInline(m.source_file)} |`);
     }
     if (ctx.domain_models.length > 20) {
       lines.push(`| *… ${ctx.domain_models.length - 20} more* | | | |`);
@@ -96,7 +101,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("| Table | Columns | Foreign Keys |");
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 15)) {
-      lines.push(`| \`${t.name}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+      lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
     }
     lines.push("");
   }
@@ -129,13 +134,13 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
 
   // Testing
   if (ctx.detection.test_frameworks.length > 0) {
-    lines.push(`- Run tests with ${ctx.detection.test_frameworks[0]} before committing.`);
+    lines.push(`- Run tests with ${mdText(ctx.detection.test_frameworks[0])} before committing.`);
   }
 
   // Package manager
   if (ctx.detection.package_managers.length > 0) {
     const pm = ctx.detection.package_managers[0];
-    lines.push(`- Use \`${pm}\` for dependency management. Do not mix package managers.`);
+    lines.push(`- Use \`${mdCode(pm)}\` for dependency management. Do not mix package managers.`);
   }
 
   lines.push("");
@@ -145,7 +150,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("## Known Issues");
     lines.push("");
     for (const w of ai.warnings) {
-      lines.push(`- ${w}`);
+      lines.push(`- ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -157,7 +162,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("Respect these layer separations:");
     lines.push("");
     for (const l of ctx.architecture_signals.layer_boundaries) {
-      lines.push(`- **${l.layer}**: ${l.directories.join(", ")}`);
+      lines.push(`- **${mdText(l.layer)}**: ${l.directories.map(mdText).join(", ")}`);
     }
     lines.push("");
   }
@@ -171,9 +176,9 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
       for (const e of entries.slice(0, 6)) {
         const exports = extractExports(e.content);
         if (exports.length > 0) {
-          lines.push(`- **\`${e.path}\`**: ${exports.slice(0, 4).map(ex => `\`${ex.slice(0, 80)}\``).join(", ")}`);
+          lines.push(`- **\`${mdCode(e.path)}\`**: ${exports.slice(0, 4).map(ex => `\`${mdCode(ex.slice(0, 80))}\``).join(", ")}`);
         } else {
-          lines.push(`- \`${e.path}\``);
+          lines.push(`- \`${mdCode(e.path)}\``);
         }
       }
       if (entries.length > 6) lines.push(`- *... and ${entries.length - 6} more*`);
@@ -201,43 +206,44 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   const ai = ctx.ai_context;
   const lines: string[] = [];
 
-  lines.push(`# CLAUDE.md — ${id.name}`);
+  lines.push(`# CLAUDE.md — ${mdText(id.name)}`);
   lines.push("");
   lines.push("## Project Overview");
   lines.push("");
-  lines.push(ai.project_summary);
+  lines.push(mdText(ai.project_summary));
   lines.push("");
 
   // Build & test commands
   lines.push("## Commands");
   lines.push("");
   const pm = ctx.detection.package_managers[0] ?? "npm";
-  lines.push(`- **Install:** \`${pm} install\``);
+  const pmC = mdCode(pm);
+  lines.push(`- **Install:** \`${pmC} install\``);
   if (ctx.detection.build_tools.length > 0)
-    lines.push(`- **Build:** \`${pm} run build\``);
+    lines.push(`- **Build:** \`${pmC} run build\``);
   if (ctx.detection.test_frameworks.length > 0)
-    lines.push(`- **Test:** \`${pm} test\``);
-  lines.push(`- **Dev:** \`${pm} run dev\``);
+    lines.push(`- **Test:** \`${pmC} test\``);
+  lines.push(`- **Dev:** \`${pmC} run dev\``);
   if (hasFw(ctx, "Prisma"))
     /* v8 ignore next — package_managers never contains "npx" (it's a runner, not a PM) */
-    lines.push(`- **DB Migrate:** \`${pm === "npx" ? "npx" : `${pm} exec`} prisma migrate dev\``);
+    lines.push(`- **DB Migrate:** \`${pm === "npx" ? "npx" : `${pmC} exec`} prisma migrate dev\``);
   lines.push("");
 
   // Stack
   lines.push("## Stack");
   lines.push("");
   for (const fw of ctx.detection.frameworks) {
-    lines.push(`- ${fw.name}${fw.version ? ` ${fw.version}` : ""}`);
+    lines.push(`- ${mdText(fw.name)}${fw.version ? ` ${mdText(fw.version)}` : ""}`);
   }
-  if (ctx.detection.ci_platform) lines.push(`- CI: ${ctx.detection.ci_platform}`);
-  if (ctx.detection.deployment_target) lines.push(`- Deploy: ${ctx.detection.deployment_target}`);
+  if (ctx.detection.ci_platform) lines.push(`- CI: ${mdText(ctx.detection.ci_platform)}`);
+  if (ctx.detection.deployment_target) lines.push(`- Deploy: ${mdText(ctx.detection.deployment_target)}`);
   lines.push("");
 
   // Structure
   lines.push("## Structure");
   lines.push("");
   for (const a of ai.key_abstractions) {
-    lines.push(`- ${a}`);
+    lines.push(`- ${mdText(a)}`);
   }
   lines.push("");
 
@@ -246,7 +252,7 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("## Conventions");
     lines.push("");
     for (const c of ai.conventions) {
-      lines.push(`- ${c}`);
+      lines.push(`- ${mdText(c)}`);
     }
     lines.push("");
   }
@@ -272,7 +278,7 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("| Model | Kind | Fields | Source |");
     lines.push("|-------|------|--------|--------|");
     for (const m of ctx.domain_models.slice(0, 20)) {
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | ${m.source_file} |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${mdInline(m.kind)} | ${m.field_count} | ${mdInline(m.source_file)} |`);
     }
     if (ctx.domain_models.length > 20) {
       lines.push(`| *… ${ctx.domain_models.length - 20} more* | | | |`);
@@ -287,7 +293,7 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("| Table | Columns | Foreign Keys |");
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 15)) {
-      lines.push(`| \`${t.name}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+      lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
     }
     lines.push("");
   }
@@ -296,7 +302,7 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("## Warnings");
     lines.push("");
     for (const w of ai.warnings) {
-      lines.push(`- ${w}`);
+      lines.push(`- ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -326,20 +332,20 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   const id = ctx.project_identity;
   const rules: string[] = [];
 
-  rules.push(`# .cursorrules — ${id.name}`);
+  rules.push(`# .cursorrules — ${mdText(id.name)}`);
   rules.push("#");
-  rules.push(`# ${id.type.replace(/_/g, " ")} | ${id.primary_language}`);
+  rules.push(`# ${mdText(id.type.replace(/_/g, " "))} | ${mdText(id.primary_language)}`);
   rules.push("#");
 
   // Stack summary
-  const frameworks = ctx.detection.frameworks.map(f => f.name).join(", ");
+  const frameworks = ctx.detection.frameworks.map(f => mdText(f.name)).join(", ");
   if (frameworks) rules.push(`# Stack: ${frameworks}`);
   rules.push("");
 
   // Rules
   rules.push("# === General ===");
-  rules.push(`primary_language = "${id.primary_language}"`);
-  rules.push(`project_type = "${id.type}"`);
+  rules.push(`primary_language = ${cfgValue(id.primary_language)}`);
+  rules.push(`project_type = ${cfgValue(id.type)}`);
   rules.push("");
 
   // Framework-specific rules
@@ -378,7 +384,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   // Testing
   if (ctx.detection.test_frameworks.length > 0) {
     rules.push("# === Testing ===");
-    rules.push(`test_framework = "${ctx.detection.test_frameworks[0]}"`);
+    rules.push(`test_framework = ${cfgValue(ctx.detection.test_frameworks[0])}`);
     rules.push("test_before_commit = true");
     rules.push("");
   }
@@ -386,15 +392,15 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   // Package manager
   if (ctx.detection.package_managers.length > 0) {
     rules.push("# === Tooling ===");
-    rules.push(`package_manager = "${ctx.detection.package_managers[0]}"`);
-    if (ctx.detection.ci_platform) rules.push(`ci = "${ctx.detection.ci_platform}"`);
+    rules.push(`package_manager = ${cfgValue(ctx.detection.package_managers[0])}`);
+    if (ctx.detection.ci_platform) rules.push(`ci = ${cfgValue(ctx.detection.ci_platform)}`);
     rules.push("");
   }
 
   // Architecture
   rules.push("# === Architecture Boundaries ===");
   for (const layer of ctx.architecture_signals.layer_boundaries) {
-    rules.push(`# ${layer.layer}: ${layer.directories.join(", ")}`);
+    rules.push(`# ${mdText(layer.layer)}: ${layer.directories.map(mdText).join(", ")}`);
   }
   rules.push("");
 
@@ -402,7 +408,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   if (ctx.domain_models && ctx.domain_models.length > 0) {
     rules.push("# === Domain Models ===");
     for (const m of ctx.domain_models.slice(0, 20)) {
-      rules.push(`# ${m.name} (${m.kind}, ${m.field_count} fields) @ ${m.source_file}`);
+      rules.push(`# ${mdText(m.name)} (${mdText(m.kind)}, ${m.field_count} fields) @ ${mdText(m.source_file)}`);
     }
     if (ctx.domain_models.length > 20) rules.push(`# ... and ${ctx.domain_models.length - 20} more`);
     rules.push("");
@@ -412,7 +418,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   if (ctx.sql_schema && ctx.sql_schema.length > 0) {
     rules.push("# === Database Tables ===");
     for (const t of ctx.sql_schema.slice(0, 15)) {
-      rules.push(`# ${t.name} (${t.column_count} cols, ${t.foreign_key_count} fks)`);
+      rules.push(`# ${mdText(t.name)} (${t.column_count} cols, ${t.foreign_key_count} fks)`);
     }
     rules.push("");
   }
@@ -422,7 +428,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   if (ai.conventions.length > 0) {
     rules.push("# === Detected Conventions ===");
     for (const c of ai.conventions) {
-      rules.push(`# - ${c}`);
+      rules.push(`# - ${mdText(c)}`);
     }
     rules.push("");
   }
@@ -431,7 +437,7 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
   if (files && files.length > 0) {
     rules.push("# === Project File Tree ===");
     for (const f of files.slice(0, 50)) {
-      rules.push(`# ${f.path}`);
+      rules.push(`# ${mdText(f.path)}`);
     }
     if (files.length > 50) rules.push(`# ... and ${files.length - 50} more files`);
     rules.push("");
@@ -441,8 +447,8 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
       rules.push("# === Key Entry Points ===");
       for (const e of entries.slice(0, 5)) {
         const exports = extractExports(e.content);
-        rules.push(`# ${e.path}`);
-        for (const ex of exports.slice(0, 5)) rules.push(`#   ${ex}`);
+        rules.push(`# ${mdText(e.path)}`);
+        for (const ex of exports.slice(0, 5)) rules.push(`#   ${mdText(ex)}`);
       }
       rules.push("");
     }
@@ -470,7 +476,7 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   const ci = ctx.detection.ci_platform;
 
   const lines: string[] = [];
-  lines.push(`# Workflow Pack — ${id.name}`);
+  lines.push(`# Workflow Pack — ${mdText(id.name)}`);
   lines.push("");
   lines.push("Reusable AI-assisted workflows for common development tasks.");
   lines.push("");
@@ -486,11 +492,11 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("  - name: plan_implementation");
   lines.push("    action: Identify files to modify using dependency-hotspots.md");
   lines.push("  - name: write_code");
-  lines.push(`    action: Follow conventions from ${frameworks.length > 0 ? frameworks.map(f => f.name).join(", ") : id.primary_language}`);
+  lines.push(`    action: Follow conventions from ${frameworks.length > 0 ? frameworks.map(f => mdText(f.name)).join(", ") : mdText(id.primary_language)}`);
   lines.push("  - name: write_tests");
-  lines.push(`    action: Add tests using ${testFrameworks.length > 0 ? testFrameworks.join(", ") : "project test framework"}`);
+  lines.push(`    action: Add tests using ${testFrameworks.length > 0 ? testFrameworks.map(mdText).join(", ") : "project test framework"}`);
   lines.push("  - name: validate");
-  lines.push(`    action: ${buildTools.length > 0 ? `Run ${buildTools.join(" && ")}` : "Run build and test"}`);
+  lines.push(`    action: ${buildTools.length > 0 ? `Run ${buildTools.map(mdText).join(" && ")}` : "Run build and test"}`);
   lines.push("  - name: review");
   lines.push("    action: Check against component-guidelines.md and frontend-rules.md");
   lines.push("```");
@@ -526,14 +532,14 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("  - name: architecture_check");
   lines.push("    action: Verify changes respect layer boundaries from architecture-summary.md");
   lines.push("  - name: convention_check");
-  lines.push(`    action: Validate against ${id.primary_language} conventions`);
+  lines.push(`    action: Validate against ${mdText(id.primary_language)} conventions`);
   lines.push("  - name: test_coverage");
   lines.push("    action: Ensure new code has tests");
   lines.push("  - name: dependency_check");
   lines.push("    action: Check dependency-hotspots.md for coupling increase");
   if (ci) {
     lines.push("  - name: ci_check");
-    lines.push(`    action: Verify ${ci} pipeline passes`);
+    lines.push(`    action: Verify ${mdText(ci)} pipeline passes`);
   }
   lines.push("```");
   lines.push("");
@@ -564,7 +570,7 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
       lines.push("## Detected Config Files");
       lines.push("");
       for (const cf of configs.slice(0, 10)) {
-        lines.push(`- \`${cf.path}\` (${cf.content.split("\n").length} lines)`);
+        lines.push(`- \`${mdCode(cf.path)}\` (${cf.content.split("\n").length} lines)`);
       }
       lines.push("");
     }
@@ -593,7 +599,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   const layers = ctx.architecture_signals.layer_boundaries;
 
   const lines: string[] = [];
-  lines.push(`# Policy Pack — ${id.name}`);
+  lines.push(`# Policy Pack — ${mdText(id.name)}`);
   lines.push("");
   lines.push("AI governance policies for code generation, review, and compliance.");
   lines.push("");
@@ -604,7 +610,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("id: code-generation");
   lines.push("scope: all-ai-generated-code");
   lines.push("rules:");
-  lines.push(`  - language: ${id.primary_language}`);
+  lines.push(`  - language: ${yamlFlowScalar(id.primary_language)}`);
   lines.push("  - strict_types: true");
   lines.push("  - no_any_types: true");
   lines.push("  - no_stub_implementations: true");
@@ -623,8 +629,8 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("rules:");
   if (layers.length > 0) {
     for (const l of layers) {
-      lines.push(`  - layer: ${l.layer}`);
-      lines.push(`    directories: [${l.directories.join(", ")}]`);
+      lines.push(`  - layer: ${yamlFlowScalar(l.layer)}`);
+      lines.push(`    directories: [${l.directories.map(yamlFlowScalar).join(", ")}]`);
       lines.push("    allowed_imports: same-layer-or-below");
     }
   } else {
@@ -660,7 +666,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("  - bug_fixes_require_regression_tests: true");
   lines.push("  - minimum_test_coverage: 80%");
   lines.push("  - no_skipped_tests_in_ci: true");
-  lines.push(`  - test_frameworks: [${ctx.detection.test_frameworks.join(", ")}]`);
+  lines.push(`  - test_frameworks: [${ctx.detection.test_frameworks.map(yamlFlowScalar).join(", ")}]`);
   lines.push("```");
   lines.push("");
 
@@ -670,7 +676,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("These project-specific warnings must be addressed in all AI-generated code:");
     lines.push("");
     for (const w of warnings) {
-      lines.push(`- ⚠️ ${w}`);
+      lines.push(`- ⚠️ ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -678,7 +684,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("## Policy: Framework-Specific Rules");
   lines.push("");
   for (const fw of frameworks) {
-    lines.push(`### ${fw.name}`);
+    lines.push(`### ${mdText(fw.name)}`);
     lines.push("");
     const n = fw.name.toLowerCase();
     if (n === "next" || n === "next.js" || n === "react") {
@@ -693,7 +699,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
       lines.push("- Use utility classes from the design system");
       lines.push("- No arbitrary values unless design tokens don't cover the case");
     } else {
-      lines.push(`- Follow ${fw.name} community best practices`);
+      lines.push(`- Follow ${mdText(fw.name)} community best practices`);
     }
     lines.push("");
   }
@@ -705,7 +711,7 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
       lines.push("## Detected Project Configs");
       lines.push("");
       for (const cf of configs.slice(0, 8)) {
-        lines.push(`- \`${cf.path}\``);
+        lines.push(`- \`${mdCode(cf.path)}\``);
       }
       lines.push("");
       lines.push(...renderExcerpts("Config Contents", configs.slice(0, 3), 15));

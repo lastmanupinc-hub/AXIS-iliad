@@ -3,34 +3,9 @@ import { extractSymbols } from "@axis/snapshots";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt, extractExports } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
-import { mdInline } from "./md-sanitize.js";
-
-// ─── Context-aware sanitizer variants (module-private; HARDEN-2) ─
-//
-// mdInline's pipe escape is only meaningful INSIDE GFM table cells — outside
-// them backslash escapes are inert and render as a literal "\|" (this visibly
-// corrupted real output: `Promise<AuthContext \| null>` in a hotspot export
-// list). Likewise, backticks inside an inline code span terminate the span, so
-// code-span sinks must neutralize them. Three purpose-built variants:
-//   mdText     — headings, list items, blockquotes, prose (NO pipe escape)
-//   mdCode     — inside `…` code spans outside tables (backticks neutralized)
-//   mdCellCode — inside `…` code spans INSIDE table cells (both treatments)
-
-function mdText(s: string): string {
-  return s
-    .replace(/\s+/g, " ")
-    .replace(/<!--/g, "<! --")
-    .replace(/-->/g, "-- >")
-    .trim();
-}
-
-function mdCode(s: string): string {
-  return mdText(s).replace(/`/g, "'");
-}
-
-function mdCellCode(s: string): string {
-  return mdInline(s).replace(/`/g, "'");
-}
+// Context-aware markdown sanitizers now live in md-sanitize.ts (shared with the
+// skills program, which needs the same variants for its instruction files).
+import { mdInline, mdText, mdCode, mdCellCode } from "./md-sanitize.js";
 
 export function generateContextMapJSON(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const enriched: Record<string, unknown> = { ...ctx };
