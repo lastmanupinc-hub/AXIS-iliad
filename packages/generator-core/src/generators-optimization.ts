@@ -199,11 +199,20 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
       lines.push(...renderExcerpts("Configuration Files (Include in Prompts)", configs.slice(0, 4), 20));
     }
 
+    // Cap the tree: an "optimization" doc that preaches "exclude low-value files"
+    // shouldn't itself dump all N files. Show the first 40 + a count. Fence is
+    // sized longer than any backtick run in the content so a path containing
+    // backticks can't close it early (CommonMark) — the same guard as excerpt().
+    const treeLines = fileTree(files).split("\n");
+    const TREE_CAP = 40;
+    const shownTree = treeLines.slice(0, TREE_CAP).join("\n");
+    const overflow = treeLines.length > TREE_CAP ? `\n... and ${treeLines.length - TREE_CAP} more files (see context-map.json for the full tree)` : "";
+    const treeBody = shownTree + overflow;
+    const longestRun = (treeBody.match(/`+/g) ?? []).reduce((m, r) => Math.max(m, r.length), 0);
+    const fence = "`".repeat(Math.max(3, longestRun + 1));
     lines.push("## File Tree");
     lines.push("");
-    lines.push("```");
-    lines.push(fileTree(files));
-    lines.push("```");
+    lines.push(`${fence}\n${treeBody}\n${fence}`);
     lines.push("");
 
     // Show hotspot file excerpts based on dependency graph
