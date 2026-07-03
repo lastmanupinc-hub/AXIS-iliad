@@ -657,20 +657,23 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
   lines.push("## Risk Assessment");
   lines.push("");
   if (hotspots.length > 0) {
-    const highRisk = hotspots.filter(h => h.risk_score > 5);
-    const medRisk = hotspots.filter(h => h.risk_score > 2 && h.risk_score <= 5);
+    // risk_score is a 0–1 fraction (engine.ts: min(total/20, 1)) — the old
+    // >5 / >2 thresholds assumed a 0–10 scale and could never fire, so every
+    // repo's Risk Assessment read all-Low regardless of coupling.
+    const highRisk = hotspots.filter(h => h.risk_score > 0.7);
+    const medRisk = hotspots.filter(h => h.risk_score > 0.4 && h.risk_score <= 0.7);
     lines.push(`| Risk Level | Files | Action |`);
     lines.push(`|-----------|-------|--------|`);
-    lines.push(`| High (>5.0) | ${highRisk.length} | Refactor with full test coverage first |`);
-    lines.push(`| Medium (2-5) | ${medRisk.length} | Refactor when touching for features |`);
-    lines.push(`| Low (<2) | ${hotspots.length - highRisk.length - medRisk.length} | Refactor opportunistically |`);
+    lines.push(`| High (>70%) | ${highRisk.length} | Refactor with full test coverage first |`);
+    lines.push(`| Medium (40–70%) | ${medRisk.length} | Refactor when touching for features |`);
+    lines.push(`| Low (≤40%) | ${hotspots.length - highRisk.length - medRisk.length} | Refactor opportunistically |`);
     lines.push("");
 
     if (highRisk.length > 0) {
       lines.push("### High-Risk Files");
       lines.push("");
       for (const h of highRisk.slice(0, 5)) {
-        lines.push(`- **\`${h.path}\`** — risk ${h.risk_score.toFixed(1)} (${h.inbound_count} inbound, ${h.outbound_count} outbound)`);
+        lines.push(`- **\`${h.path}\`** — risk ${(h.risk_score * 100).toFixed(0)}% (${h.inbound_count} inbound, ${h.outbound_count} outbound)`);
         lines.push(`  - Break into smaller modules if possible`);
         lines.push(`  - Add comprehensive tests before modifying`);
       }
