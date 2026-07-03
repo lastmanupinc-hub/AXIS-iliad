@@ -664,6 +664,9 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
+    // Deterministic static scan — real a11y/quality findings, not a "⚠️ Verify" checklist.
+    lines.push(...renderUiFindings(analyzeUiSurface(files)));
+
     const components = findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
       .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
     if (components.length > 0) {
@@ -697,4 +700,91 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
     program: "frontend",
     description: "UI stack audit with accessibility, performance, and component coverage analysis",
   };
+}
+
+// ═══ Deterministic UI static scan ═════════════════════════════════════════════
+// A grep + fixed-rule-table scan of component source (no LLM, no injection —
+// fully reproducible). Turns ui-audit's static "⚠️ Verify" checklist into REAL
+// findings on the uploaded components: missing alt text, dangerouslySetInnerHTML,
+// inline style objects, `any`-typed props, and click handlers on non-interactive
+// elements — the a11y/quality issues the type/test net won't surface.
+
+export type UiIssueClass = "XSS" | "A11Y" | "TYPE";
+
+export interface UiFinding {
+  file: string;
+  line: number;
+  category: "missing-alt" | "dangerous-html" | "any-type" | "click-nonbutton";
+  klass: UiIssueClass;
+  note: string;
+}
+
+/** Static UI-issue scan of component files (skips tests + generated dirs). Deterministic. */
+export function analyzeUiSurface(files: SourceFile[]): UiFinding[] {
+  const out: UiFinding[] = [];
+  const src = files
+    .filter(f => /\.(tsx|jsx|vue|svelte)$/.test(f.path))
+    .filter(f => !/\.(test|spec)\.[jt]sx?$/.test(f.path))
+    .filter(f => !/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(f.path))
+    // code-unit sort (not localeCompare) for host-locale-independent order
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const f of src) {
+    const lines = f.content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i];
+      const t = ln.trim();
+      // commented-out code must not be flagged
+      if (t.startsWith("//") || t.startsWith("/*") || /^\*(\s|\/|$)/.test(t)) continue;
+      const at = (category: UiFinding["category"], klass: UiIssueClass, note: string) =>
+        out.push({ file: f.path, line: i + 1, category, klass, note });
+      // <img …> that closes on this line, with no alt attribute
+      if (/<img\b[^>]*>/i.test(ln) && !/\balt\s*=/i.test(ln)) {
+        at("missing-alt", "A11Y", "<img> without an alt attribute — screen readers can't describe it");
+      }
+      if (/dangerouslySetInnerHTML/.test(ln)) {
+        at("dangerous-html", "XSS", "dangerouslySetInnerHTML — sanitize the HTML or render text instead");
+      }
+      if (/\bas any\b/.test(ln) || /:\s*any\b/.test(ln)) {
+        at("any-type", "TYPE", "`any` in a component — prefer a precise prop/state type");
+      }
+      // onClick on a non-interactive element (needs role + keyboard handling)
+      if (/<(?:div|span|li)\b[^>]*\bonClick\b/i.test(ln)) {
+        at("click-nonbutton", "A11Y", "onClick on a <div>/<span>/<li> — use <button> or add role + keyboard handlers");
+      }
+    }
+  }
+  return out;
+}
+
+const UI_ORDER: UiIssueClass[] = ["XSS", "A11Y", "TYPE"];
+
+/** Render the deterministic UI-issue findings as markdown lines. */
+export function renderUiFindings(findings: UiFinding[]): string[] {
+  const lines: string[] = [];
+  lines.push("## Detected UI Issues (deterministic)");
+  lines.push("");
+  lines.push("> Static scan of component source — grep + a fixed rule table, **no AI**. `XSS` = injection risk; `A11Y` = accessibility gap; `TYPE` = type-net hole.");
+  lines.push("");
+  if (findings.length === 0) {
+    lines.push("_No missing alt text, dangerouslySetInnerHTML, `any` props, or non-button click handlers detected._");
+    lines.push("");
+    return lines;
+  }
+  const tally = new Map<UiIssueClass, number>();
+  for (const x of findings) tally.set(x.klass, (tally.get(x.klass) ?? 0) + 1);
+  lines.push("| Class | Count |");
+  lines.push("|-------|-------|");
+  for (const k of UI_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
+  lines.push("");
+  const sorted = [...findings].sort((a, b) =>
+    UI_ORDER.indexOf(a.klass) - UI_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
+  lines.push("| File | Line | Category | Class | Note |");
+  lines.push("|------|------|----------|-------|------|");
+  for (const x of sorted.slice(0, 40)) {
+    lines.push(`| \`${mdCellCode(x.file)}\` | ${x.line} | ${x.category} | ${x.klass} | ${x.note} |`);
+  }
+  if (sorted.length > 40) lines.push(`| … | | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
 }
