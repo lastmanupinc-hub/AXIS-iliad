@@ -10,6 +10,11 @@ import { findFiles, findConfigs, renderExcerpts, extractExports } from "./file-e
 // repo-derived values are contained by construction and need no extra handling.
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 import { pathHasSegment, isNoindexRoute } from "./seo-routes.js";
+import { displayRoutes } from "./route-utils.js";
+
+// Route tables are capped: the parser emits per-mention rows, so a real repo has
+// hundreds of (mostly duplicate) routes; rendering them all is 40KB+ of noise.
+const SEO_ROUTE_CAP = 60;
 
 // ─── .ai/seo-rules.md ──────────────────────────────────────────
 
@@ -109,13 +114,14 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("- Validate with [Google Rich Results Test](https://search.google.com/test/rich-results)");
   lines.push("");
 
-  // Routes analysis
-  if (ctx.routes.length > 0) {
+  // Routes analysis — deduped (drops per-mention/test/README duplicate rows) + capped.
+  const auditRoutes = displayRoutes(ctx.routes);
+  if (auditRoutes.length > 0) {
     lines.push("## Route SEO Audit");
     lines.push("");
     lines.push("| Route | Method | SEO Action |");
     lines.push("|-------|--------|------------|");
-    for (const r of ctx.routes) {
+    for (const r of auditRoutes.slice(0, SEO_ROUTE_CAP)) {
       let action: string;
       // Segment-aware (not substring): "auth" matches /auth, never /authors.
       if (r.method !== "GET") {
@@ -147,6 +153,9 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
         action = "Add WebPage schema · unique title + description required";
       }
       lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${action} |`);
+    }
+    if (auditRoutes.length > SEO_ROUTE_CAP) {
+      lines.push(`| *… ${auditRoutes.length - SEO_ROUTE_CAP} more* | | |`);
     }
     lines.push("");
   }
@@ -280,8 +289,8 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
     });
   }
 
-  // Routes-based recommendations
-  const getRoutes = ctx.routes.filter(r => r.method === "GET");
+  // Routes-based recommendations (deduped — no duplicate recs for the same path).
+  const getRoutes = displayRoutes(ctx.routes).filter(r => r.method === "GET");
   for (const route of getRoutes) {
     if (pathHasSegment(route.path, ["blog", "post", "posts", "article", "articles"])) {
       recommendations.push({
@@ -411,8 +420,11 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
     lines.push("");
   }
 
-  const getRoutes = ctx.routes.filter(r => r.method === "GET");
-  const apiRoutes = ctx.routes.filter(r => r.method !== "GET" || pathHasSegment(r.path, ["api"]));
+  // Deduped (per-mention/test/README duplicates collapsed) so the sitemap table
+  // and robots Disallow list distinct routes, not hundreds of repeats.
+  const deduped = displayRoutes(ctx.routes);
+  const getRoutes = deduped.filter(r => r.method === "GET");
+  const apiRoutes = deduped.filter(r => r.method !== "GET" || pathHasSegment(r.path, ["api"]));
 
   if (getRoutes.length === 0 && apiRoutes.length === 0) {
     lines.push("No routes detected. Ensure the project has a routing layer.");
@@ -463,8 +475,11 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   lines.push("");
   lines.push("| Route | Priority | Changefreq | Index | Reason |");
   lines.push("|-------|----------|------------|-------|--------|");
-  for (const r of categorized) {
+  for (const r of categorized.slice(0, SEO_ROUTE_CAP)) {
     lines.push(`| \`${mdCellCode(r.path)}\` | ${r.priority.toFixed(1)} | ${r.changefreq} | ${r.indexable ? "Yes" : "No"} | ${r.reason} |`);
+  }
+  if (categorized.length > SEO_ROUTE_CAP) {
+    lines.push(`| *… ${categorized.length - SEO_ROUTE_CAP} more* | | | | |`);
   }
   lines.push("");
 
@@ -587,7 +602,8 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   const hasRoutes = ctx.routes.length > 0;
   const hasHealthy = {
     has_ci: ctx.detection.ci_platform !== null,
-    has_readme: ctx.structure.file_tree_summary.some(f => f.path.toLowerCase().startsWith("readme")),
+    // basename match — a README anywhere in the tree counts, not just at root.
+    has_readme: ctx.structure.file_tree_summary.some(f => /(^|\/)readme(\.[a-z]+)?$/i.test(f.path)),
     has_tests: ctx.detection.test_frameworks.length > 0,
   };
 
@@ -605,9 +621,11 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   const achieved = checks.filter(c => c.pass).reduce((s, c) => s + c.weight, 0);
   const score = Math.round((achieved / maxWeight) * 100);
 
-  lines.push("## SEO Readiness Score");
+  lines.push("## SEO & Engineering Readiness Score");
   lines.push("");
   lines.push(`**${score}/100**`);
+  lines.push("");
+  lines.push("> Blends deployed-site SEO signals (SSR, route detection) with project-health signals (TypeScript, CI, README, tests, layering). A high score needs the SSR/route checks below to pass — engineering hygiene alone won't index a client-only SPA.");
   lines.push("");
   lines.push("| Check | Status | Weight |");
   lines.push("|-------|--------|--------|");
@@ -687,6 +705,11 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
+    // Deterministic per-page meta scan — real gap findings, not "status: verify".
+    const gaps = analyzeSeoSurface(files);
+    const scannedPages = files.filter(f => isPageFile(f.path)).length;
+    lines.push(...renderSeoGaps(gaps, scannedPages));
+
     const contentFiles = findFiles(files, ["*.md", "*.mdx", "*.html", "*.htm"]);
     if (contentFiles.length > 0) {
       lines.push("## Detected Content Files");
@@ -723,11 +746,126 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   };
 }
 
+// ═══ Deterministic per-page meta-tag scan ═════════════════════════════════════
+// A grep + fixed-rule-table scan of page/layout files (no LLM, no injection —
+// fully reproducible). Turns the audit's "status: verify" placeholders into REAL
+// per-page findings: which pages are missing a title, meta description, canonical,
+// or Open Graph tags — the crawl/SERP gaps the type/test net won't surface.
+
+export type SeoGapClass = "ERROR" | "WARNING";
+
+export interface SeoGap {
+  file: string;
+  category: "no-title" | "no-description" | "no-canonical" | "no-og";
+  klass: SeoGapClass;
+  note: string;
+}
+
+/** True if `content` shows a real signal for a given meta concern. */
+// A metadata MECHANISM manages title+description together — its presence clears
+// both. Anchored to real meta contexts, NOT bare `title`/`description`/`og`
+// identifiers: a `description` PROP or a `{ title: … }` column config is not a
+// meta tag, and matching them would silently suppress a real gap (false
+// negative). `\bmetadata\b` covers Next's `export const metadata = {…}` static
+// export as well as generateMetadata().
+const META_MECHANISM = /generateMetadata|\bmetadata\b|useHead|svelte:head|next\/head|react-helmet|<Head[\s>]/i;
+const SEO_SIGNALS = {
+  title: new RegExp(META_MECHANISM.source + "|<title[\\s>]", "i"),
+  description: new RegExp(META_MECHANISM.source + "|name=[\"']description[\"']|<meta[^>]+description", "i"),
+  canonical: /rel=["']canonical["']|["']canonical["']\s*:|alternates\s*:\s*\{/i,
+  // Specific og:* tags, not a bare "og:" (which matched blog:/dialog:/catalog:).
+  og: /\bog:(?:title|image|description|type|url|site_name)|opengraph|open_graph|["']openGraph["']|twitter:card/i,
+};
+
+/**
+ * A real page/route file whose rendered HTML an agent/crawler sees — NOT a bare
+ * module barrel. `index.ts` is a barrel; `pages/index.tsx` is a page. So an
+ * `index`/component file counts only under a routing dir (pages/app/routes/views),
+ * alongside the unambiguous Next app-router `page.*`, SvelteKit `+page.*`, Next
+ * pages `_app`/`_document`, and static `.html`.
+ */
+export function isPageFile(path: string): boolean {
+  if (/\.(test|spec)\.[jt]sx?$/.test(path)) return false;
+  if (/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(path)) return false;
+  if (/(^|\/)api\//.test(path)) return false; // API routes aren't SEO pages
+  // Co-located non-page files (components/lib/ui/hooks/utils) live under the same
+  // pages/app/routes dirs but don't render a page — exclude them so the greedy
+  // `.*` below can't scan a whole component subtree as "pages".
+  if (/(^|\/)(_?components|lib|ui|hooks|utils|helpers|styles|assets)\//.test(path)) return false;
+  return (
+    // Next App Router: only page/layout are routable — NOT every file under app/
+    // (an `app/components/Button.tsx` is a component, not a page).
+    /(^|\/)(page|layout)\.(tsx|jsx|ts|js)$/.test(path) ||
+    /(^|\/)\+page\.(svelte|ts|js)$/.test(path) ||    // SvelteKit
+    /(^|\/)_(document|app)\.(tsx|jsx|ts|js)$/.test(path) || // Next Pages Router specials
+    /\.html?$/i.test(path) ||
+    // Pages Router / other frameworks route every file in these dirs.
+    /(^|\/)(pages|routes|views)\/.*\.(tsx|jsx|vue|svelte)$/.test(path)
+  );
+}
+
+/** Static per-page meta scan of page/layout files (skips tests + generated dirs). Deterministic. */
+export function analyzeSeoSurface(files: SourceFile[]): SeoGap[] {
+  const out: SeoGap[] = [];
+  const pages = files
+    .filter(f => isPageFile(f.path))
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const f of pages) {
+    const c = f.content;
+    if (!SEO_SIGNALS.title.test(c)) out.push({ file: f.path, category: "no-title", klass: "ERROR", note: "no <title>/metadata signal — page needs a unique title" });
+    if (!SEO_SIGNALS.description.test(c)) out.push({ file: f.path, category: "no-description", klass: "ERROR", note: "no meta description signal — add one (≤160 chars)" });
+    if (!SEO_SIGNALS.canonical.test(c)) out.push({ file: f.path, category: "no-canonical", klass: "WARNING", note: "no canonical URL signal — set one to avoid duplicate-content dilution" });
+    if (!SEO_SIGNALS.og.test(c)) out.push({ file: f.path, category: "no-og", klass: "WARNING", note: "no Open Graph / Twitter card signal — poor social sharing preview" });
+  }
+  return out;
+}
+
+const SEO_GAP_ORDER: SeoGapClass[] = ["ERROR", "WARNING"];
+
+/** Render the deterministic meta-tag gap findings as markdown lines. */
+export function renderSeoGaps(gaps: SeoGap[], pageCount: number): string[] {
+  const lines: string[] = [];
+  lines.push("## Detected Meta-Tag Gaps (deterministic)");
+  lines.push("");
+  lines.push("> Static per-page scan — grep + a fixed rule table, **no AI**. `ERROR` = missing a crawl/SERP essential (title, description); `WARNING` = missing a social/duplicate-content signal (canonical, Open Graph).");
+  lines.push("");
+  if (pageCount === 0) {
+    lines.push("_No page/layout files detected to scan._");
+    lines.push("");
+    return lines;
+  }
+  if (gaps.length === 0) {
+    lines.push("_Every scanned page shows a title, description, canonical, and Open Graph signal._");
+    lines.push("");
+    return lines;
+  }
+  const tally = new Map<SeoGapClass, number>();
+  for (const g of gaps) tally.set(g.klass, (tally.get(g.klass) ?? 0) + 1);
+  lines.push("| Class | Count |");
+  lines.push("|-------|-------|");
+  for (const k of SEO_GAP_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
+  lines.push("");
+  const sorted = [...gaps].sort((a, b) =>
+    SEO_GAP_ORDER.indexOf(a.klass) - SEO_GAP_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) ||
+    (a.category < b.category ? -1 : a.category > b.category ? 1 : 0)); // code-unit, locale-independent
+  lines.push("| Page | Category | Class | Note |");
+  lines.push("|------|----------|-------|------|");
+  for (const g of sorted.slice(0, 40)) {
+    lines.push(`| \`${mdCellCode(g.file)}\` | ${g.category} | ${g.klass} | ${g.note} |`);
+  }
+  if (sorted.length > 40) lines.push(`| … | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
+}
+
 // ─── meta-tag-audit.json ────────────────────────────────────────
 
 export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  // Deduped so the (capped) per-route audit spends its budget on DISTINCT routes,
+  // not three copies of /health.
+  const routes = displayRoutes(ctx.routes);
   const frameworks = ctx.detection.frameworks;
 
   const hasNext = hasFw(ctx, "Next.js", "next");

@@ -4878,7 +4878,7 @@ describe("Layer 6 branch coverage", () => {
       const f = getFile(result, "content-audit.md");
       expect(f).toBeDefined();
       expect(f!.content).toContain("Content Audit");
-      expect(f!.content).toContain("SEO Readiness Score");
+      expect(f!.content).toContain("SEO & Engineering Readiness Score");
     });
 
     // seo: content-audit.md with page files (lines 434-435 TRUE)

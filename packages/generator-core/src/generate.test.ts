@@ -229,7 +229,7 @@ describe("seo generators content", () => {
 
   it("content-audit.md has readiness score", () => {
     const file = result.files.find(f => f.path === "content-audit.md")!;
-    expect(file.content).toContain("SEO Readiness Score");
+    expect(file.content).toContain("SEO & Engineering Readiness Score");
     expect(file.content).toContain("Core Web Vitals");
     expect(file.content.length).toBeGreaterThan(200);
   });
