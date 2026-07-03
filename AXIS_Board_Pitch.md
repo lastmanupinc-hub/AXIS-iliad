@@ -1,17 +1,17 @@
 # Axis' Iliad — Board & Investor Pitch
 
 > **The AI-Powered Developer Intelligence Platform**
-> 20 programs. 137 generators. One snapshot. Every output a developer needs — before they write a single line of code.
+> 20 programs. 140 generators. One snapshot. Every output a developer needs — before they write a single line of code.
 
 ---
 
 ## Executive Summary
 
-Axis' Iliad transforms any codebase into a comprehensive intelligence layer. Upload a repository (or paste a GitHub URL), and AXIS produces structured, AI-ready outputs across 18 specialized programs — from architecture maps and debugging playbooks to brand guidelines and marketing funnels.
+Axis' Iliad transforms any codebase into a comprehensive intelligence layer. Upload a repository (or paste a GitHub URL), and AXIS produces structured, AI-ready outputs across 20 specialized programs — from architecture maps and debugging playbooks to brand guidelines and marketing funnels.
 
 Unlike tools that write code *for* developers, AXIS produces the **context, governance, strategy, and creative assets** that surround code. Every AI coding tool (Cursor, Claude, Copilot, Windsurf) performs better when given structured project context. AXIS is the factory that produces that context at scale.
 
-**Current State:** 83 of 83 capabilities at Grade A. 3,906 tests. 131 test files. Production-ready deployment pipeline. Payment processing is a known gap blocked on an external platform dependency (No Fate Platform).
+**Current State:** 4,900+ tests. 205 test files. Production-ready deployment pipeline. Payment processing is a known gap blocked on an external platform dependency (No Fate Platform).
 
 ---
 
@@ -337,7 +337,7 @@ These programs are permanently free. They solve universal developer problems and
 │                                                         │
 │  ┌─────────┐    ┌──────────────┐    ┌───────────────┐  │
 │  │  Upload  │───▶│  Snapshot     │───▶│  20 Programs  │  │
-│  │  Repo    │    │  Engine       │    │ 137 Generators│  │
+│  │  Repo    │    │  Engine       │    │ 140 Generators│  │
 │  └─────────┘    └──────────────┘    └───────┬───────┘  │
 │                                             │           │
 │  ┌─────────┐    ┌──────────────┐    ┌───────▼───────┐  │
@@ -360,13 +360,13 @@ These programs are permanently free. They solve universal developer problems and
 
 | Metric | Value |
 |--------|-------|
-| Total Programs | 18 |
-| Total Generators | 87 |
-| API Endpoints | 102 |
-| Test Count | 3,906 |
-| Test Files | 131 |
-| Code Coverage | 99.99% statements |
-| Capability Grade A | 83 / 83 |
+| Total Programs | 20 |
+| Total Generators | 140 |
+| API Endpoints | 148 |
+| Test Count | 4,900+ |
+| Test Files | 205 |
+| Code Coverage | 91.5% statements |
+| MCP Tools | 29 |
 | Database Migrations | 10 |
 | Deployment | Render (API) + Cloudflare Pages (Web) |
 
@@ -491,7 +491,7 @@ These programs are permanently free. They solve universal developer problems and
 
 ## The Ask
 
-Axis' Iliad is the intelligence layer between code and every AI tool developers use. The platform is built, tested (3,906 tests), and deployed. What remains is market execution.
+Axis' Iliad is the intelligence layer between code and every AI tool developers use. The platform is built, tested (4,900+ tests), and deployed. What remains is market execution.
 
 **We are the context factory that makes AI work better.**
 
@@ -499,5 +499,5 @@ Every AI coding tool writes code. None of them understand the project first. AXI
 
 ---
 
-*Prepared April 2026 · Axis' Iliad v2.0.0 · 83/83 capabilities at Grade A*
+*Prepared April 2026 · Axis' Iliad v0.5.3 · 140 generators across 20 programs*
 *Contact: No Fate Platform · [github.com/lastmanupinc-hub/axis-iliad](https://github.com/lastmanupinc-hub/axis-iliad)*
