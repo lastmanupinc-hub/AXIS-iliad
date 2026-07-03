@@ -787,7 +787,7 @@ function isDocFile(p: string): boolean {
   const lower = p.toLowerCase();
   if (/(^|\/)(dist|build|node_modules|vendor|\.next|coverage)\//.test(lower)) return false;
   return /\.(md|mdx|markdown)$/.test(lower) ||
-    /(^|\/)(readme|contributing|changelog|code_of_conduct)[^/]*$/i.test(p);
+    /(^|\/)(readme|contributing|changelog|code_of_conduct)(\.(txt|rst|adoc))?$/i.test(p);
 }
 
 /** Static content-rule scan of the repo's docs. Deterministic (code-unit order). */
@@ -798,11 +798,19 @@ export function analyzeContentViolations(files: SourceFile[]): ContentFinding[] 
     .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   for (const f of docs) {
     const lines = f.content.split("\n");
-    let inFence = false;
+    // Track the OPEN fence's marker (char + length) so a nested/mismatched fence
+    // (e.g. ``` inside a ```` block, or ~~~ inside ```) can't mistoggle and leak
+    // a code example into the scan. Reset per file — unbalanced fences don't leak.
+    let fence = "";
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
-      if (/^\s*(`{3,}|~{3,})/.test(ln)) { inFence = !inFence; continue; } // toggle; skip the fence line
-      if (inFence) continue; // code examples aren't "content"
+      const run = ln.match(/^\s*(`{3,}|~{3,})/)?.[1];
+      if (run) {
+        if (!fence) fence = run;
+        else if (run[0] === fence[0] && run.length >= fence.length) fence = "";
+        continue; // skip the fence line itself
+      }
+      if (fence) continue; // code examples aren't "content"
       for (const rule of CONTENT_RULES) {
         const m = ln.match(rule.re);
         if (m) out.push({ file: f.path, line: i + 1, term: m[0], klass: rule.klass });

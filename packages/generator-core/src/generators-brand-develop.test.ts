@@ -45,6 +45,32 @@ describe("analyzeContentViolations — deterministic doc scan", () => {
   it("is deterministic", () => {
     expect(analyzeContentViolations([doc])).toEqual(analyzeContentViolations([doc]));
   });
+
+  it("HARDEN-2: does not scan source/data files merely NAMED like a doc", () => {
+    // readme.ts / changelog.ts / README.json are not docs — the old name branch
+    // matched any extension and would have flagged a `// TODO` in source.
+    expect(analyzeContentViolations([sf("src/changelog.ts", "// TODO: refactor")])).toHaveLength(0);
+    expect(analyzeContentViolations([sf("examples/README.json", '{"note":"TODO"}')])).toHaveLength(0);
+    expect(analyzeContentViolations([sf("readme.tsx", "const simple = 1;")])).toHaveLength(0);
+    // real docs still scan (extensionless README + doc extensions)
+    expect(analyzeContentViolations([sf("README", "TODO: real")])).toHaveLength(1);
+    expect(analyzeContentViolations([sf("CHANGELOG.md", "TODO: real")])).toHaveLength(1);
+    expect(analyzeContentViolations([sf("docs/CONTRIBUTING.rst", "TODO: real")])).toHaveLength(1);
+  });
+
+  it("HARDEN-2: nested/mismatched fences don't leak a code example into the scan", () => {
+    const nested = sf("docs/x.md", [
+      "````",           // 1 outer 4-backtick fence opens
+      "```js",          // 2 inner 3-backtick (shorter) must NOT close the outer
+      "just run this",  // 3 still inside the outer fence → NOT flagged
+      "```",            // 4 inner close (len 3 < 4) must NOT close the outer
+      "````",           // 5 outer close (len 4) → closes
+      "simply better",  // 6 now outside → FLAGGED
+    ].join("\n"));
+    const found = analyzeContentViolations([nested]);
+    expect(found.some((f) => /just/i.test(f.term))).toBe(false);
+    expect(found.some((f) => f.line === 6 && f.term === "simply")).toBe(true);
+  });
 });
 
 describe("renderContentViolations", () => {
