@@ -99,6 +99,21 @@ describe("analyzeFailureSurface — deterministic static failure-mode scan", () 
     expect(f).toHaveLength(0);
   });
 
+  it("HARDEN-2: a `*`-prefixed generator method is scanned, not skipped as a comment", () => {
+    // The comment-skip must fire on block-comment continuations (`* @example …`)
+    // but NOT on a generator-method shorthand that happens to start with `*`.
+    const gen = analyzeFailureSurface([sf("src/g.ts", "  *stream() { try { risky(); } catch {} }")]);
+    expect(gen.some((x) => x.category === "empty-catch")).toBe(true);
+    // real block-comment continuation is still skipped
+    expect(analyzeFailureSurface([sf("src/doc.ts", " * @example x().catch(() => {})")])).toHaveLength(0);
+  });
+
+  it("HARDEN-2: Go `for _ = range xs` is not flagged as a discarded return (deliberate index discard)", () => {
+    expect(analyzeFailureSurface([sf("internal/loop.go", "for _ = range xs {")]).some((x) => x.category === "discarded-return")).toBe(false);
+    // a genuine sole discard still is
+    expect(analyzeFailureSurface([sf("internal/rm.go", "_ = os.Remove(tmp)")]).some((x) => x.category === "discarded-return")).toBe(true);
+  });
+
   it("is deterministic (same input → identical output)", () => {
     const files = [sf("src/b.ts", "sendEmail().catch(() => {});"), sf("src/a.ts", "x.catch(() => {});")];
     expect(analyzeFailureSurface(files)).toEqual(analyzeFailureSurface(files));

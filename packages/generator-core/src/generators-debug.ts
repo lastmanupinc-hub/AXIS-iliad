@@ -1109,7 +1109,10 @@ const FS_CLOSE_ONLY = /^\s*\}\s*$/;
 // pass required a leading comma, missing the more dangerous sole-return discard).
 const FS_GO_EMPTY_ERR = /if\s+err\s*!=\s*nil\s*\{\s*\}/;
 const FS_GO_ERR_OPEN = /if\s+err\s*!=\s*nil\s*\{\s*$/;
-const FS_GO_DISCARD = /(?:^|[\s(;,{])_\s*(?::=|=)\s*[^=]/;
+// `_ = f()` / `_ := f()` (sole discard) or `x, _ := f()`. The `(?!range\b)`
+// excludes the idiomatic `for _ = range xs` (a deliberate index discard, not a
+// swallowed error); `[^=]` after `=` excludes the `_ == x` comparison.
+const FS_GO_DISCARD = /(?:^|[\s(;,{])_\s*(?::=|=)(?!\s*range\b)\s*[^=]/;
 
 /** Next non-blank line's content (for bounded 2-line lookahead). */
 function fsNextCode(lines: string[], i: number): string {
@@ -1117,9 +1120,13 @@ function fsNextCode(lines: string[], i: number): string {
   while (j < lines.length && lines[j].trim() === "") j++;
   return lines[j] ?? "";
 }
-/** A comment-only line — commented-out code must never be flagged as a live failure. */
+// A comment-only line — commented-out code must never be flagged as a live
+// failure. The `*` branch matches a block-comment CONTINUATION (a `*` followed
+// by whitespace, a slash for the closing delimiter, or end-of-line) but NOT a
+// generator-method shorthand like `*stream() { … catch {} }` — keeping that live
+// code in scope. HARDEN-2 fix: the bare `startsWith("*")` skipped the generator.
 function fsIsComment(trimmed: string): boolean {
-  return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*");
+  return trimmed.startsWith("//") || trimmed.startsWith("/*") || /^\*(\s|\/|$)/.test(trimmed);
 }
 
 /** Static failure-mode scan of source files (skips tests + generated dirs). Deterministic. */
