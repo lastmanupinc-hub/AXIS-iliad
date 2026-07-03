@@ -5,6 +5,36 @@ import { findFiles, findFile, findEntryPoints, extractExports } from "./file-exc
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 
+// ─── Route classification (shared by the CRO table + experiments) ───────────
+// ONE classifier used by both the route table and the experiments, so a route's
+// category, its CRO action, and whether an experiment fires can never disagree
+// (an adversarial review found a `/signin`-only repo firing an Auth experiment
+// whose route filter was empty → a dangling blank `- Route:` field). Matches by
+// whole path SEGMENTS (so `/authors` isn't classified "auth").
+export type RouteCategory = "signup" | "auth" | "dashboard" | "pricing" | "api" | "docs" | "other";
+
+export function classifyRoute(path: string): RouteCategory {
+  const segs = new Set(path.toLowerCase().split(/[/\-_.]/).filter(Boolean));
+  const has = (...w: string[]) => w.some(x => segs.has(x));
+  if (has("signup", "register")) return "signup";
+  if (has("login", "signin", "auth")) return "auth";
+  if (has("dashboard", "home")) return "dashboard";
+  if (has("pricing", "plan", "plans")) return "pricing";
+  if (has("api", "v1")) return "api";
+  if (has("docs", "doc", "help", "guide", "guides")) return "docs";
+  return "other";
+}
+
+const CRO_ACTIONS: Record<RouteCategory, string> = {
+  signup: "A/B test form length and CTA copy",
+  auth: "Reduce friction — minimize required fields",
+  dashboard: "Optimize time-to-value — show key metrics immediately",
+  pricing: "Highlight the recommended plan; A/B test tier framing",
+  api: "Track API adoption rate per endpoint",
+  docs: "Track documentation coverage and bounce rate",
+  other: "Monitor usage metrics",
+};
+
 // ─── campaign-brief.md ──────────────────────────────────────────
 
 export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -547,19 +577,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("| Route | Method | CRO Action |");
     lines.push("|-------|--------|-----------|");
     for (const r of routes) {
-      let action = "Monitor usage metrics";
-      if (r.path.includes("login") || r.path.includes("auth")) {
-        action = "Reduce friction — minimize required fields";
-      } else if (r.path.includes("signup") || r.path.includes("register")) {
-        action = "A/B test form length and CTA copy";
-      } else if (r.path.includes("dashboard") || r.path.includes("home")) {
-        action = "Optimize time-to-value — show key metrics immediately";
-      } else if (r.path.includes("api") || r.path.includes("v1")) {
-        action = "Track API adoption rate per endpoint";
-      } else if (r.path.includes("docs") || r.path.includes("help")) {
-        action = "Track documentation coverage and bounce rate";
-      }
-      lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${action} |`);
+      lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${CRO_ACTIONS[classifyRoute(r.path)]} |`);
     }
     lines.push("");
   }
@@ -568,21 +586,23 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   lines.push("## Optimization Experiments");
   lines.push("");
 
-  const experimentRoutes = {
-    hasAuth: routes.some(r => r.path.includes("login") || r.path.includes("auth") || r.path.includes("signin")),
-    hasSignup: routes.some(r => r.path.includes("signup") || r.path.includes("register")),
-    hasDashboard: routes.some(r => r.path.includes("dashboard") || r.path.includes("home")),
-    hasApi: routes.some(r => r.path.includes("/api/") || r.path.includes("/v1/")),
-    hasDocs: routes.some(r => r.path.includes("doc") || r.path.includes("help") || r.path.includes("guide")),
-    hasPricing: routes.some(r => r.path.includes("pricing") || r.path.includes("plan")),
-  };
+  // Group routes by category ONCE — every experiment gates on and renders the
+  // SAME list, so a fired experiment always has a non-empty route line.
+  const byCat = new Map<RouteCategory, typeof routes>();
+  for (const r of routes) {
+    const c = classifyRoute(r.path);
+    const arr = byCat.get(c);
+    if (arr) arr.push(r); else byCat.set(c, [r]);
+  }
+  const catRoutes = (c: RouteCategory): typeof routes => byCat.get(c) ?? [];
+  const routeList = (rs: typeof routes): string => rs.map(r => `\`${mdCode(r.method)} ${mdCode(r.path)}\``).join(", ");
 
   let expIdx = 1;
 
-  if (experimentRoutes.hasSignup) {
+  if (catRoutes("signup").length > 0) {
     lines.push(`### Experiment ${expIdx++}: Sign Up Flow`);
     lines.push("");
-    lines.push("- **Route**: " + routes.filter(r => r.path.includes("signup") || r.path.includes("register")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push(`- **Route**: ${routeList(catRoutes("signup"))}`);
     lines.push("- **Hypothesis**: Reducing signup form fields will increase completion rate by 25%");
     lines.push("- **Metric**: Signup conversion rate, time to complete");
     lines.push("- **Variants**: A: Current form | B: Progressive disclosure (email first, rest later)");
@@ -590,10 +610,10 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("");
   }
 
-  if (experimentRoutes.hasAuth && !experimentRoutes.hasSignup) {
+  if (catRoutes("auth").length > 0 && catRoutes("signup").length === 0) {
     lines.push(`### Experiment ${expIdx++}: Authentication Flow`);
     lines.push("");
-    lines.push("- **Route**: " + routes.filter(r => r.path.includes("login") || r.path.includes("auth")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push(`- **Route**: ${routeList(catRoutes("auth"))}`);
     lines.push("- **Hypothesis**: Social OAuth login will increase conversion by 30%");
     lines.push("- **Metric**: Login success rate, abandonment rate");
     lines.push("- **Variants**: A: Email/password only | B: OAuth (GitHub, Google) as primary");
@@ -601,10 +621,10 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("");
   }
 
-  if (experimentRoutes.hasDashboard) {
+  if (catRoutes("dashboard").length > 0) {
     lines.push(`### Experiment ${expIdx++}: Dashboard First-Value`);
     lines.push("");
-    lines.push("- **Route**: " + routes.filter(r => r.path.includes("dashboard") || r.path.includes("home")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push(`- **Route**: ${routeList(catRoutes("dashboard"))}`);
     lines.push("- **Hypothesis**: Showing key metrics immediately will increase 7-day retention by 20%");
     lines.push("- **Metric**: Time to first meaningful action, 7-day return rate");
     lines.push("- **Variants**: A: Current dashboard | B: Pre-populated demo data on first login");
@@ -612,10 +632,10 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("");
   }
 
-  if (experimentRoutes.hasPricing) {
+  if (catRoutes("pricing").length > 0) {
     lines.push(`### Experiment ${expIdx++}: Pricing Page`);
     lines.push("");
-    lines.push("- **Route**: " + routes.filter(r => r.path.includes("pricing") || r.path.includes("plan")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push(`- **Route**: ${routeList(catRoutes("pricing"))}`);
     lines.push("- **Hypothesis**: Highlighting the most popular plan will increase paid conversion by 15%");
     lines.push("- **Metric**: Plan selection rate, paid conversion");
     lines.push("- **Variants**: A: Equal weight pricing table | B: \"Most Popular\" badge on mid-tier");
@@ -623,10 +643,10 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("");
   }
 
-  if (experimentRoutes.hasApi) {
+  if (catRoutes("api").length > 0) {
     lines.push(`### Experiment ${expIdx++}: API First-Call Success`);
     lines.push("");
-    lines.push(`- **Routes**: ${routes.filter(r => r.path.includes("/api/") || r.path.includes("/v1/")).slice(0, 3).map(r => `\`${mdCode(r.method)} ${mdCode(r.path)}\``).join(", ")}`);
+    lines.push(`- **Routes**: ${routeList(catRoutes("api").slice(0, 3))}`);
     lines.push("- **Hypothesis**: An interactive API playground will increase developer activation by 40%");
     lines.push("- **Metric**: Time to first successful API call, developer satisfaction");
     lines.push("- **Variants**: A: Static API docs | B: Live try-it-now console in docs");
@@ -634,10 +654,10 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("");
   }
 
-  if (experimentRoutes.hasDocs) {
+  if (catRoutes("docs").length > 0) {
     lines.push(`### Experiment ${expIdx++}: Documentation Navigation`);
     lines.push("");
-    lines.push("- **Route**: " + routes.filter(r => r.path.includes("doc") || r.path.includes("help")).map(r => `\`${r.method} ${r.path}\``).join(", "));
+    lines.push(`- **Route**: ${routeList(catRoutes("docs"))}`);
     lines.push("- **Hypothesis**: Task-oriented docs will reduce support issues by 30%");
     lines.push("- **Metric**: Issue creation rate for how-to questions, docs bounce rate");
     lines.push("- **Variants**: A: Current structure | B: Task-oriented guides (\"How to X\" pattern)");
