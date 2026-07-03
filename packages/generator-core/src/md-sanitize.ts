@@ -51,6 +51,19 @@ export function cfgValue(s: string): string {
   return `"${String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ")}"`;
 }
 
+// Sanitize a value for interpolation inside a CSS block comment. Collapses
+// newlines and breaks BOTH comment delimiters (the star-slash close and the
+// slash-star open, each split with a space) so a hostile project name can
+// neither close the header comment to inject live CSS nor leave a dangling
+// open delimiter. Null-safe.
+export function cssComment(s: string): string {
+  return String(s ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/\*\//g, "* /")
+    .replace(/\/\*/g, "/ *")
+    .trim();
+}
+
 /**
  * Collapse a value to a single-line YAML flow scalar safe to interpolate inside
  * a hand-written ```yaml fence: newlines → space (a newline would break the
