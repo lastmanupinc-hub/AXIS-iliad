@@ -115,14 +115,18 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("");
   }
 
-  // Routes
+  // Routes — capped like the domain-models table below (no-silent-caps: the
+  // overflow row states exactly how many were omitted).
   if (ctx.routes.length > 0) {
     lines.push("## Routes");
     lines.push("");
     lines.push("| Method | Path | Source |");
     lines.push("|--------|------|--------|");
-    for (const r of ctx.routes) {
+    for (const r of ctx.routes.slice(0, 40)) {
       lines.push(`| ${mdInline(r.method)} | \`${mdInline(r.path)}\` | ${mdInline(r.source_file)} |`);
+    }
+    if (ctx.routes.length > 40) {
+      lines.push(`| *… ${ctx.routes.length - 40} more* | | |`);
     }
     lines.push("");
   }
@@ -394,20 +398,32 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
       lines.push(`| \`${mdInline(h.path)}\` | ${severity} ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} | ${h.inbound_count + h.outbound_count} |`);
     }
   } else {
-    lines.push("No hotspots detected — dependency graph has no high-coupling files.");
+    // Honest, diagnostic empty state: "no hotspots" on a repo that clearly has
+    // internal structure usually means the import graph could not be RESOLVED,
+    // not that coupling is healthy. Say so instead of implying a clean bill.
+    lines.push("No hotspots detected — no internal import edges met the coupling thresholds.");
+    lines.push("");
+    lines.push("If this repository does have interconnected source files, the import graph");
+    lines.push("may not have been resolvable from the analyzed file set. Common causes: a");
+    lines.push("partial upload (missing the imported files), path-aliased imports (tsconfig");
+    lines.push("`paths`), or import specifiers the resolver cannot map to uploaded files.");
   }
   lines.push("");
 
-  lines.push("## Coupling Analysis");
-  lines.push("");
-  for (const h of hotspots.slice(0, 5)) {
-    lines.push(`### \`${mdInline(h.path)}\``);
+  // Skip the whole section when there is nothing to analyze — a dangling
+  // "## Coupling Analysis" heading with no content reads as a rendering bug.
+  if (hotspots.length > 0) {
+    lines.push("## Coupling Analysis");
     lines.push("");
-    lines.push(`- **Risk Score**: ${(h.risk_score * 100).toFixed(0)}%`);
-    lines.push(`- **Inbound**: ${h.inbound_count} files depend on this`);
-    lines.push(`- **Outbound**: ${h.outbound_count} dependencies`);
-    lines.push(`- **Refactor Priority**: ${h.risk_score > 0.7 ? "HIGH — extract interface or split module" : h.risk_score > 0.4 ? "MEDIUM — monitor for growth" : "LOW — acceptable coupling"}`);
-    lines.push("");
+    for (const h of hotspots.slice(0, 5)) {
+      lines.push(`### \`${mdInline(h.path)}\``);
+      lines.push("");
+      lines.push(`- **Risk Score**: ${(h.risk_score * 100).toFixed(0)}%`);
+      lines.push(`- **Inbound**: ${h.inbound_count} files depend on this`);
+      lines.push(`- **Outbound**: ${h.outbound_count} dependencies`);
+      lines.push(`- **Refactor Priority**: ${h.risk_score > 0.7 ? "HIGH — extract interface or split module" : h.risk_score > 0.4 ? "MEDIUM — monitor for growth" : "LOW — acceptable coupling"}`);
+      lines.push("");
+    }
   }
 
   lines.push("## External Dependency Risk");
@@ -441,7 +457,13 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   if (medRisk.length > 0) {
     lines.push(`${recNum++}. **Monitor medium-risk files** — add import lint rules to prevent further coupling`);
   }
-  lines.push(`${recNum++}. **Review circular dependencies** in the import graph`);
+  if (hotspots.length > 0) {
+    lines.push(`${recNum++}. **Review circular dependencies** in the import graph`);
+  } else {
+    // No import graph was resolved — advising a circular-dependency review of a
+    // graph that doesn't exist is boilerplate; give the actionable step instead.
+    lines.push(`${recNum++}. **Re-analyze with the full source tree** so the import graph can be resolved before drawing coupling conclusions`);
+  }
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────

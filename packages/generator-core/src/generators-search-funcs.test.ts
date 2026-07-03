@@ -114,7 +114,9 @@ describe("generateDependencyHotspots", () => {
     const result = generateDependencyHotspots(ctx);
     expect(result.content).toContain("No hotspots detected");
     expect(result.content).toContain("No external dependencies detected.");
-    expect(result.content).toContain("Review circular dependencies");
+    // POLISH-1: with no import graph, the report recommends re-analysis rather
+    // than advising a circular-dependency review of a graph that doesn't exist.
+    expect(result.content).toContain("Re-analyze with the full source tree");
   });
 
   it("handles only medium-risk hotspots (no high)", () => {
@@ -491,6 +493,67 @@ describe("harden: external dependency version-risk classification", () => {
     const result = generateDependencyHotspots(depsCtx([{ name: "ws-dep", version: "workspace:x" }]));
     expect(result.content).toContain("| Stable |");
     expect(result.content).not.toContain("NaN");
+  });
+});
+
+// ─── POLISH pass 1: empty-state honesty + output caps ───────────
+
+describe("polish: dependency-hotspots empty-state rendering", () => {
+  const emptyCtx = () => makeContextMap({
+    dependency_graph: { external_dependencies: [] as never, internal_imports: [], hotspots: [] },
+  });
+
+  it("renders a diagnostic empty state instead of implying a clean bill of health", () => {
+    const result = generateDependencyHotspots(emptyCtx());
+    expect(result.content).toContain("no internal import edges met the coupling thresholds");
+    expect(result.content).toContain("may not have been resolvable");
+  });
+
+  it("omits the Coupling Analysis section entirely when there are no hotspots (no dangling heading)", () => {
+    const result = generateDependencyHotspots(emptyCtx());
+    expect(result.content).not.toContain("## Coupling Analysis");
+  });
+
+  it("recommends re-analysis instead of reviewing a nonexistent import graph", () => {
+    const result = generateDependencyHotspots(emptyCtx());
+    expect(result.content).not.toContain("Review circular dependencies");
+    expect(result.content).toContain("1. **Re-analyze with the full source tree**");
+  });
+
+  it("still renders Coupling Analysis and the circular-deps recommendation when hotspots exist (regression)", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/a.ts", inbound_count: 5, outbound_count: 5, risk_score: 0.5 }],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).toContain("## Coupling Analysis");
+    expect(result.content).toContain("**Review circular dependencies**");
+    expect(result.content).not.toContain("Re-analyze with the full source tree");
+  });
+});
+
+describe("polish: architecture-summary routes table cap", () => {
+  it("caps the routes table at 40 rows with an explicit overflow note", () => {
+    const ctx = makeContextMap({
+      routes: Array.from({ length: 45 }, (_, i) => ({ path: `/r${i}`, method: "GET", source_file: "src/app.ts" })),
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const rows = result.content.split("\n").filter((l) => l.startsWith("| GET |"));
+    expect(rows).toHaveLength(40);
+    expect(result.content).toContain("*… 5 more*");
+  });
+
+  it("renders all routes with no overflow note at or under the cap", () => {
+    const ctx = makeContextMap({
+      routes: Array.from({ length: 40 }, (_, i) => ({ path: `/r${i}`, method: "GET", source_file: "src/app.ts" })),
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const rows = result.content.split("\n").filter((l) => l.startsWith("| GET |"));
+    expect(rows).toHaveLength(40);
+    expect(result.content).not.toContain("more*");
   });
 });
 
