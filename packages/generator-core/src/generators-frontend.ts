@@ -2,21 +2,26 @@ import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+// Prompt-injection defense: these frontend artifacts are agent-consumed rule/
+// audit files, so every repo/manifest-derived string is sanitized for its sink —
+// mdText (prose/headings/lists), mdInline (GFM table cells), mdCode (inline code
+// spans outside tables), mdCellCode (code spans inside table cells).
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Frontend Rules — ${id.name}`);
+  lines.push(`# Frontend Rules — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> UI engineering standards for this ${id.type.replace(/_/g, " ")}`);
+  lines.push(`> UI engineering standards for this ${mdText(id.type.replace(/_/g, " "))}`);
   lines.push("");
 
   // Project Overview
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -27,7 +32,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -90,14 +95,16 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   }
   lines.push("");
 
-  // Data fetching
-  if (ctx.routes.some(r => r.path.includes("api"))) {
+  // Data fetching. Gate on a real "/api" path PREFIX, not a bare "api" substring
+  // (which matched "/capital", "/rapid", …) — and match the siblings, which use
+  // startsWith("/api"), so the four generators agree on what an API route is.
+  if (ctx.routes.some(r => r.path.startsWith("/api"))) {
     lines.push("## Data Fetching");
     lines.push("");
     lines.push("Available API routes:");
     lines.push("");
-    for (const r of ctx.routes.filter(r => r.path.includes("api"))) {
-      lines.push(`- \`${r.method} ${r.path}\` → ${r.source_file}`);
+    for (const r of ctx.routes.filter(r => r.path.startsWith("/api"))) {
+      lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\` → ${mdText(r.source_file)}`);
     }
     lines.push("");
     /* v8 ignore next 4 — V8 quirk: Next.js-specific branch tested with Next.js fixtures */
@@ -118,7 +125,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Type | Kind | Fields | Source |");
     lines.push("|------|------|--------|--------|");
     for (const m of domainModels.slice(0, 12)) {
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | \`${m.source_file}\` |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${mdInline(m.kind)} | ${m.field_count} | \`${mdCellCode(m.source_file)}\` |`);
     }
     if (domainModels.length > 12) lines.push(`| *... and ${domainModels.length - 12} more* | | | |`);
     lines.push("");
@@ -135,7 +142,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Table | Columns | FK Count |");
     lines.push("|-------|---------|----------|");
     for (const t of ctx.sql_schema.slice(0, 10)) {
-      lines.push(`| \`${t.name}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+      lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
     }
     lines.push("");
   }
@@ -166,7 +173,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   if (ctx.detection.test_frameworks.length > 0) {
     lines.push("## Testing");
     lines.push("");
-    lines.push(`- Unit test components with ${ctx.detection.test_frameworks[0]}`);
+    lines.push(`- Unit test components with ${mdText(ctx.detection.test_frameworks[0])}`);
     if (ctx.detection.test_frameworks.includes("playwright"))
       lines.push("- E2E tests with Playwright for critical user flows");
     if (ctx.detection.test_frameworks.includes("cypress"))
@@ -185,9 +192,9 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
       for (const f of uiFiles.slice(0, 10)) {
         const exports = extractExports(f.content);
         if (exports.length > 0) {
-          lines.push(`- **\`${f.path}\`**: ${exports.slice(0, 3).map(e => `\`${e.slice(0, 80)}\``).join(", ")}`);
+          lines.push(`- **\`${mdCode(f.path)}\`**: ${exports.slice(0, 3).map(e => `\`${mdCode(e.slice(0, 80))}\``).join(", ")}`);
         } else {
-          lines.push(`- \`${f.path}\``);
+          lines.push(`- \`${mdCode(f.path)}\``);
         }
       }
       if (uiFiles.length > 10) lines.push(`- *... and ${uiFiles.length - 10} more*`);
@@ -215,13 +222,13 @@ export function generateComponentGuidelines(ctx: ContextMap, files?: SourceFile[
   const lines: string[] = [];
   const id = ctx.project_identity;
 
-  lines.push(`# Component Guidelines — ${id.name}`);
+  lines.push(`# Component Guidelines — ${mdText(id.name)}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -231,7 +238,7 @@ export function generateComponentGuidelines(ctx: ContextMap, files?: SourceFile[
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -305,9 +312,9 @@ export function generateComponentGuidelines(ctx: ContextMap, files?: SourceFile[
       for (const f of components.slice(0, 12)) {
         const exports = extractExports(f.content);
         if (exports.length > 0) {
-          lines.push(`- **\`${f.path}\`**: ${exports.slice(0, 3).map(e => `\`${e.slice(0, 80)}\``).join(", ")}`);
+          lines.push(`- **\`${mdCode(f.path)}\`**: ${exports.slice(0, 3).map(e => `\`${mdCode(e.slice(0, 80))}\``).join(", ")}`);
         } else {
-          lines.push(`- \`${f.path}\``);
+          lines.push(`- \`${mdCode(f.path)}\``);
         }
       }
       if (components.length > 12) lines.push(`- *... and ${components.length - 12} more*`);
@@ -346,7 +353,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
   const layers = ctx.architecture_signals.layer_boundaries;
 
   const lines: string[] = [];
-  lines.push(`# Layout Patterns — ${id.name}`);
+  lines.push(`# Layout Patterns — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -354,7 +361,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -364,7 +371,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -407,7 +414,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
     lines.push("    └── ...                 ← Shared UI primitives");
     lines.push("```");
   } else {
-    lines.push(`Standard layout structure for ${id.primary_language} projects:`);
+    lines.push(`Standard layout structure for ${mdText(id.primary_language)} projects:`);
     lines.push("");
     lines.push("- **Shell Layout**: Navigation + main content area + footer");
     lines.push("- **Split Layout**: Sidebar + content pane");
@@ -457,7 +464,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
         r.path.includes("login") || r.path.includes("auth") || r.path.includes("signup") ? "AuthLayout" :
         r.path.includes("dashboard") || r.path.includes("settings") ? "DashboardLayout" :
         r.path === "/" ? "MarketingLayout" : "DashboardLayout";
-      lines.push(`| ${r.method} ${r.path} | ${layout} |`);
+      lines.push(`| ${mdInline(r.method)} ${mdInline(r.path)} | ${layout} |`);
     }
   } else {
     lines.push("No routes detected — define layout mapping as routes are added.");
@@ -489,7 +496,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
       lines.push("|------|---------|");
       for (const lf of layoutFiles.slice(0, 10)) {
         const exports = extractExports(lf.content);
-        lines.push(`| \`${lf.path}\` | ${exports.join(", ") || "default"} |`);
+        lines.push(`| \`${mdCellCode(lf.path)}\` | ${exports.map(mdInline).join(", ") || "default"} |`);
       }
       lines.push("");
 
@@ -523,7 +530,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   const deps = ctx.dependency_graph.external_dependencies;
 
   const lines: string[] = [];
-  lines.push(`# UI Audit — ${id.name}`);
+  lines.push(`# UI Audit — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -531,7 +538,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -541,31 +548,39 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
 
-  // Detect UI-related frameworks
-  const uiFrameworks = frameworks.filter(f =>
-    ["react", "next", "vue", "svelte", "tailwind"].includes(f.name));
+  // Detect UI-related frameworks. Compare LOWERCASED names: the parser stores
+  // display names ("React", "Next.js", "Tailwind CSS"), so the old exact-match
+  // against lowercase literals never matched → "None detected" + a missing +15
+  // score on every UI project (a HARDEN correctness fix).
+  const UI_FRAMEWORK_NAMES = ["react", "next", "next.js", "vue", "svelte", "tailwind", "tailwind css"];
+  const uiFrameworks = frameworks.filter(f => UI_FRAMEWORK_NAMES.includes(f.name.toLowerCase()));
   const hasCSS = languages.some(l => l.name === "CSS" || l.name === "SCSS");
   const hasTSX = languages.some(l => l.name === "TypeScript" || l.name === "TSX");
-  const uiDeps = deps.filter(d =>
-    d.name.includes("ui") || d.name.includes("radix") || d.name.includes("headless") ||
-    d.name.includes("chakra") || d.name.includes("material") || d.name.includes("ant"));
+  // Match KNOWN UI-library package names, not bare substrings: the old
+  // `.includes("ui")` flagged "esbuild"/"uuid" and `.includes("ant")` flagged
+  // "instant"/"constant" — inventing UI libraries and inflating the audit score.
+  const UI_LIB_PATTERNS = ["radix-ui", "headlessui", "chakra", "@mui/", "material-ui", "antd", "ant-design", "mantine", "nextui", "react-bootstrap", "react-aria", "heroicons", "shadcn", "primereact"];
+  const uiDeps = deps.filter(d => {
+    const n = d.name.toLowerCase();
+    return UI_LIB_PATTERNS.some(p => n.includes(p));
+  });
 
   lines.push("## UI Stack Summary");
   lines.push("");
   lines.push("| Aspect | Detected |");
   lines.push("|--------|----------|");
-  lines.push(`| UI Frameworks | ${uiFrameworks.map(f => f.name).join(", ") || "None detected"} |`);
+  lines.push(`| UI Frameworks | ${uiFrameworks.map(f => mdInline(f.name)).join(", ") || "None detected"} |`);
   /* v8 ignore next — V8 quirk: tailwind/CSS ternary tested with fixture variants */
   lines.push(`| Styling | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS" : "Unknown"} |`);
   /* v8 ignore next — V8 quirk: hasTSX ternary tested */
   lines.push(`| TypeScript | ${hasTSX ? "Yes" : "No"} |`);
   /* v8 ignore next — V8 quirk: uiDeps empty check tested */
-  lines.push(`| UI Libraries | ${uiDeps.map(d => d.name).join(", ") || "None detected"} |`);
+  lines.push(`| UI Libraries | ${uiDeps.map(d => mdInline(d.name)).join(", ") || "None detected"} |`);
   lines.push(`| Total Routes | ${routes.length} |`);
   lines.push(`| Entry Points | ${entryPoints.length} |`);
   lines.push("");
@@ -602,7 +617,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
     lines.push("| Route | Has Component | Interactive | Needs Testing |");
     lines.push("|-------|--------------|-------------|---------------|");
     for (const r of pageRoutes.slice(0, 10)) {
-      lines.push(`| ${r.path} | ⚠️ Verify | ⚠️ Verify | Yes |`);
+      lines.push(`| ${mdInline(r.path)} | ⚠️ Verify | ⚠️ Verify | Yes |`);
     }
   } else {
     lines.push("No page routes detected — add routes to populate component coverage.");
@@ -650,7 +665,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
       for (const c of components.slice(0, 15)) {
         const exports = extractExports(c.content);
         const loc = c.content.split("\n").length;
-        lines.push(`| \`${c.path}\` | ${exports.join(", ") || "default"} | ${loc} |`);
+        lines.push(`| \`${mdCellCode(c.path)}\` | ${exports.map(mdInline).join(", ") || "default"} | ${loc} |`);
       }
       lines.push("");
     }
@@ -660,7 +675,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
       lines.push("## Detected Style Files");
       lines.push("");
       for (const sf of styleFiles.slice(0, 8)) {
-        lines.push(`- \`${sf.path}\` (${sf.content.split("\n").length} lines)`);
+        lines.push(`- \`${mdCode(sf.path)}\` (${sf.content.split("\n").length} lines)`);
       }
       lines.push("");
     }
