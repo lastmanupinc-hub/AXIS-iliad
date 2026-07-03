@@ -2,6 +2,14 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+// Prompt-injection defense for the MARKDOWN generators (seo-rules / route-
+// priority-map / content-audit): every repo/manifest-derived string is sanitized
+// for its sink — mdText (prose/headings/lists), mdInline (GFM table cells),
+// mdCode (inline code spans), mdCellCode (code spans inside table cells). The two
+// JSON generators emit JSON.stringify(obj), which escapes every value, so their
+// repo-derived values are contained by construction and need no extra handling.
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { pathHasSegment, isNoindexRoute } from "./seo-routes.js";
 
 // ─── .ai/seo-rules.md ──────────────────────────────────────────
 
@@ -9,16 +17,16 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# SEO Rules — ${id.name}`);
+  lines.push(`# SEO Rules — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> SEO guidelines for a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}`);
+  lines.push(`> SEO guidelines for a ${mdText(id.type.replace(/_/g, " "))} built with ${mdText(id.primary_language)}`);
   lines.push("");
 
   // Project Overview
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -29,7 +37,7 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -109,27 +117,28 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("|-------|--------|------------|");
     for (const r of ctx.routes) {
       let action: string;
+      // Segment-aware (not substring): "auth" matches /auth, never /authors.
       if (r.method !== "GET") {
         action = "API route — exclude from sitemap";
-      } else if (r.path.includes("/api/") || r.path.includes("/v1/") || r.path.includes("/graphql")) {
+      } else if (pathHasSegment(r.path, ["api", "v1", "graphql"])) {
         action = "Exclude from sitemap · add `X-Robots-Tag: noindex`";
-      } else if (r.path.includes("login") || r.path.includes("signin") || r.path.includes("logout") || r.path.includes("oauth")) {
+      } else if (pathHasSegment(r.path, ["login", "signin", "logout", "oauth"])) {
         action = "Mark `noindex` — auth gate, no crawl value";
-      } else if (r.path.includes("signup") || r.path.includes("register")) {
+      } else if (pathHasSegment(r.path, ["signup", "register"])) {
         action = "Mark `noindex` + add SoftwareApplication schema";
-      } else if (r.path.includes("dashboard") || r.path.includes("account") || r.path.includes("settings") || r.path.includes("profile")) {
+      } else if (pathHasSegment(r.path, ["dashboard", "account", "settings", "profile"])) {
         action = "Mark `noindex` — user-specific content";
-      } else if (r.path.includes("pricing") || r.path.includes("plan")) {
+      } else if (pathHasSegment(r.path, ["pricing", "plan", "plans"])) {
         action = "Add Product schema · high crawl priority";
-      } else if (r.path.includes("blog") || r.path.includes("post") || r.path.includes("article")) {
+      } else if (pathHasSegment(r.path, ["blog", "post", "posts", "article", "articles"])) {
         action = "Add Article/BlogPosting schema · include in sitemap";
-      } else if (r.path.includes("doc") || r.path.includes("guide") || r.path.includes("help")) {
+      } else if (pathHasSegment(r.path, ["doc", "docs", "guide", "guides", "help"])) {
         action = "Add TechArticle schema · high crawl priority";
-      } else if (r.path.includes("about") || r.path.includes("team")) {
+      } else if (pathHasSegment(r.path, ["about", "team"])) {
         action = "Add Organization schema · include in sitemap";
-      } else if (r.path.includes("faq")) {
+      } else if (pathHasSegment(r.path, ["faq", "faqs"])) {
         action = "Add FAQPage schema · high crawl priority";
-      } else if (r.path.includes("contact") || r.path.includes("support") || r.path.includes("feedback") || r.path.includes("help")) {
+      } else if (pathHasSegment(r.path, ["contact", "support", "feedback"])) {
         action = "Add ContactPage schema · include in sitemap";
       } else if (r.path === "/" || r.path === "") {
         action = "Add WebSite + SearchAction schema · highest priority";
@@ -137,7 +146,7 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
         /* v8 ignore next -- remaining GET route fallback */
         action = "Add WebPage schema · unique title + description required";
       }
-      lines.push(`| \`${r.path}\` | ${r.method} | ${action} |`);
+      lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${action} |`);
     }
     lines.push("");
   }
@@ -162,21 +171,18 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
       else if (name.includes("article") || name.includes("post") || name.includes("blog")) schema = "Article";
       else if (name.includes("doc") || name.includes("guide") || name.includes("tutorial")) schema = "TechArticle";
       else if (model.kind === "interface" || model.kind === "class") schema = "WebPage";
-      lines.push(`| \`${model.name}\` | ${model.kind} | ${model.field_count} | ${schema} |`);
+      lines.push(`| \`${mdCellCode(model.name)}\` | ${mdInline(model.kind)} | ${model.field_count} | ${schema} |`);
     }
     lines.push("");
   }
 
   // Contact & Support SEO
   /* v8 ignore next */
-  const contactRoutes = (ctx.routes ?? []).filter(r =>
-    r.path.includes("contact") || r.path.includes("support") ||
-    r.path.includes("feedback") || r.path.includes("help")
-  );
+  const contactRoutes = (ctx.routes ?? []).filter(r => pathHasSegment(r.path, ["contact", "support", "feedback", "help"]));
   lines.push("## Contact & Support Page SEO");
   lines.push("");
   if (contactRoutes.length > 0) {
-    lines.push(`Detected ${contactRoutes.length} contact/support route(s): ${contactRoutes.slice(0, 3).map(r => `\`${r.path}\``).join(", ")}`);
+    lines.push(`Detected ${contactRoutes.length} contact/support route(s): ${contactRoutes.slice(0, 3).map(r => `\`${mdCode(r.path)}\``).join(", ")}`);
     lines.push("");
   }
   lines.push("- Use `ContactPage` schema with `areaServed`, `availableLanguage`, and `contactType` properties");
@@ -215,7 +221,7 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
       lines.push("## Detected SEO Files");
       lines.push("");
       for (const mf of metaFiles.slice(0, 8)) {
-        lines.push(`- \`${mf.path}\` (${mf.content.split("\n").length} lines)`);
+        lines.push(`- \`${mdCode(mf.path)}\` (${mf.content.split("\n").length} lines)`);
       }
       lines.push("");
       lines.push(...renderExcerpts("SEO File Contents", metaFiles.slice(0, 3), 20));
@@ -229,7 +235,7 @@ export function generateSeoRules(ctx: ContextMap, files?: SourceFile[]): Generat
       lines.push("|------|---------|-------|");
       for (const pf of pageFiles.slice(0, 12)) {
         const exports = extractExports(pf.content);
-        lines.push(`| \`${pf.path}\` | ${exports.join(", ") || "default"} | ${pf.content.split("\n").length} |`);
+        lines.push(`| \`${mdCellCode(pf.path)}\` | ${exports.map(mdInline).join(", ") || "default"} | ${pf.content.split("\n").length} |`);
       }
       lines.push("");
     }
@@ -277,7 +283,7 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
   // Routes-based recommendations
   const getRoutes = ctx.routes.filter(r => r.method === "GET");
   for (const route of getRoutes) {
-    if (route.path.includes("blog") || route.path.includes("post")) {
+    if (pathHasSegment(route.path, ["blog", "post", "posts", "article", "articles"])) {
       recommendations.push({
         page: route.path,
         schema_type: "Article",
@@ -285,7 +291,7 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
         fields: ["headline", "author", "datePublished", "dateModified", "image"],
       });
     }
-    if (route.path.includes("pricing") || route.path.includes("plan")) {
+    if (pathHasSegment(route.path, ["pricing", "plan", "plans"])) {
       recommendations.push({
         page: route.path,
         schema_type: "Product",
@@ -293,7 +299,7 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
         fields: ["name", "description", "offers.price", "offers.priceCurrency"],
       });
     }
-    if (route.path.includes("about") || route.path.includes("team")) {
+    if (pathHasSegment(route.path, ["about", "team"])) {
       recommendations.push({
         page: route.path,
         schema_type: "Organization",
@@ -301,7 +307,7 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
         fields: ["name", "url", "logo", "contactPoint", "sameAs"],
       });
     }
-    if (route.path.includes("faq")) {
+    if (pathHasSegment(route.path, ["faq", "faqs"])) {
       recommendations.push({
         page: route.path,
         schema_type: "FAQPage",
@@ -309,7 +315,7 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
         fields: ["mainEntity[].name", "mainEntity[].acceptedAnswer.text"],
       });
     }
-    if (route.path.includes("doc") || route.path.includes("guide")) {
+    if (pathHasSegment(route.path, ["doc", "docs", "guide", "guides"])) {
       recommendations.push({
         page: route.path,
         schema_type: "TechArticle",
@@ -321,10 +327,8 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
 
   // WebPage fallback for GET routes not matched by any specific pattern
   const matchedPages = new Set(recommendations.map(r => r.page));
-  const noIndexPatterns = ["login", "signin", "logout", "signup", "register", "dashboard", "account", "settings", "profile", "/api/", "/v1/", "graphql"];
   const unmatchedPublicRoutes = getRoutes.filter(r =>
-    !matchedPages.has(r.path) &&
-    !noIndexPatterns.some(p => r.path.includes(p)),
+    !matchedPages.has(r.path) && !isNoindexRoute(r.path, r.method),
   );
   for (const route of unmatchedPublicRoutes.slice(0, 15)) {
     recommendations.push({
@@ -384,7 +388,7 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Route Priority Map — ${id.name}`);
+  lines.push(`# Route Priority Map — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Route-level SEO prioritization for crawl budget and sitemap configuration");
   lines.push("");
@@ -392,7 +396,7 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -402,13 +406,13 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
 
   const getRoutes = ctx.routes.filter(r => r.method === "GET");
-  const apiRoutes = ctx.routes.filter(r => r.method !== "GET" || r.path.includes("/api/"));
+  const apiRoutes = ctx.routes.filter(r => r.method !== "GET" || pathHasSegment(r.path, ["api"]));
 
   if (getRoutes.length === 0 && apiRoutes.length === 0) {
     lines.push("No routes detected. Ensure the project has a routing layer.");
@@ -432,20 +436,19 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   }> = [];
 
   for (const route of getRoutes) {
-    const p = route.path.toLowerCase();
-    if (p === "/" || p === "/home") {
+    if (route.path === "/" || route.path.toLowerCase() === "/home") {
       categorized.push({ path: route.path, priority: 1.0, changefreq: "weekly", indexable: true, reason: "Homepage — highest priority" });
-    } else if (p.includes("/api/") || p.includes("_next")) {
+    } else if (pathHasSegment(route.path, ["api", "v1", "graphql", "_next"])) {
       categorized.push({ path: route.path, priority: 0.0, changefreq: "never", indexable: false, reason: "API/internal route — noindex" });
-    } else if (p.includes("blog") || p.includes("post") || p.includes("article")) {
+    } else if (pathHasSegment(route.path, ["blog", "post", "posts", "article", "articles"])) {
       categorized.push({ path: route.path, priority: 0.8, changefreq: "weekly", indexable: true, reason: "Content page — high traffic potential" });
-    } else if (p.includes("pricing") || p.includes("plan")) {
+    } else if (pathHasSegment(route.path, ["pricing", "plan", "plans"])) {
       categorized.push({ path: route.path, priority: 0.9, changefreq: "monthly", indexable: true, reason: "Conversion page — high commercial intent" });
-    } else if (p.includes("doc") || p.includes("guide") || p.includes("help")) {
+    } else if (pathHasSegment(route.path, ["doc", "docs", "guide", "guides", "help"])) {
       categorized.push({ path: route.path, priority: 0.7, changefreq: "monthly", indexable: true, reason: "Documentation — long-tail SEO value" });
-    } else if (p.includes("auth") || p.includes("login") || p.includes("signup")) {
+    } else if (pathHasSegment(route.path, ["auth", "login", "signin", "logout", "oauth", "signup", "register"])) {
       categorized.push({ path: route.path, priority: 0.3, changefreq: "yearly", indexable: false, reason: "Auth page — minimal SEO value" });
-    } else if (p.includes("setting") || p.includes("account") || p.includes("profile")) {
+    } else if (pathHasSegment(route.path, ["setting", "settings", "account", "profile", "dashboard"])) {
       categorized.push({ path: route.path, priority: 0.1, changefreq: "never", indexable: false, reason: "User-specific page — noindex" });
     } else {
       categorized.push({ path: route.path, priority: 0.5, changefreq: "monthly", indexable: true, reason: "Standard page" });
@@ -461,7 +464,7 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   lines.push("| Route | Priority | Changefreq | Index | Reason |");
   lines.push("|-------|----------|------------|-------|--------|");
   for (const r of categorized) {
-    lines.push(`| \`${r.path}\` | ${r.priority.toFixed(1)} | ${r.changefreq} | ${r.indexable ? "Yes" : "No"} | ${r.reason} |`);
+    lines.push(`| \`${mdCellCode(r.path)}\` | ${r.priority.toFixed(1)} | ${r.changefreq} | ${r.indexable ? "Yes" : "No"} | ${r.reason} |`);
   }
   lines.push("");
 
@@ -482,7 +485,7 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
     lines.push("These routes should NOT appear in sitemap or be indexed:");
     lines.push("");
     for (const r of apiRoutes) {
-      lines.push(`- \`${r.method} ${r.path}\``);
+      lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\``);
     }
     lines.push("");
   }
@@ -494,7 +497,7 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   lines.push("User-agent: *");
   lines.push("Allow: /");
   for (const r of noindex) {
-    lines.push(`Disallow: ${r.path}`);
+    lines.push(`Disallow: ${mdCode(r.path)}`);
   }
   if (apiRoutes.length > 0) {
     lines.push("Disallow: /api/");
@@ -515,7 +518,7 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
       lines.push("|------|---------|-------|");
       for (const rf of routeFiles.slice(0, 10)) {
         const exports = extractExports(rf.content);
-        lines.push(`| \`${rf.path}\` | ${exports.join(", ") || "default"} | ${rf.content.split("\n").length} |`);
+        lines.push(`| \`${mdCellCode(rf.path)}\` | ${exports.map(mdInline).join(", ") || "default"} | ${rf.content.split("\n").length} |`);
       }
       lines.push("");
 
@@ -544,7 +547,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Content Audit — ${id.name}`);
+  lines.push(`# Content Audit — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Automated analysis of content structure, metadata coverage, and SEO readiness");
   lines.push("");
@@ -552,7 +555,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -562,7 +565,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -572,9 +575,9 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("");
   lines.push(`| Attribute | Value |`);
   lines.push(`|-----------|-------|`);
-  lines.push(`| Project Type | ${id.type.replace(/_/g, " ")} |`);
-  lines.push(`| Primary Language | ${id.primary_language} |`);
-  lines.push(`| Frameworks | ${ctx.detection.frameworks.map(f => f.name).join(", ") || "none"} |`);
+  lines.push(`| Project Type | ${mdInline(id.type.replace(/_/g, " "))} |`);
+  lines.push(`| Primary Language | ${mdInline(id.primary_language)} |`);
+  lines.push(`| Frameworks | ${ctx.detection.frameworks.map(f => mdInline(f.name)).join(", ") || "none"} |`);
   lines.push(`| Total Files | ${ctx.structure.total_files} |`);
   lines.push(`| Total LOC | ${ctx.structure.total_loc} |`);
   lines.push("");
@@ -645,7 +648,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
     for (const f of pageFiles.slice(0, 30)) {
       /* v8 ignore next — V8 quirk: language fallback and API check both paths tested */
       const action = f.path.includes("api/") ? "API — noindex" : "Needs meta tags";
-      lines.push(`| \`${f.path}\` | ${f.language ?? "unknown"} | ${f.loc} | ${action} |`);
+      lines.push(`| \`${mdCellCode(f.path)}\` | ${f.language ? mdInline(f.language) : "unknown"} | ${f.loc} | ${action} |`);
     }
     lines.push("");
   }
@@ -689,7 +692,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
       lines.push("## Detected Content Files");
       lines.push("");
       for (const cf of contentFiles.slice(0, 12)) {
-        lines.push(`- \`${cf.path}\` (${cf.content.split("\n").length} lines)`);
+        lines.push(`- \`${mdCode(cf.path)}\` (${cf.content.split("\n").length} lines)`);
       }
       lines.push("");
     }
@@ -705,7 +708,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
         const hasMeta = pc.content.includes("metadata") || pc.content.includes("<title") ||
           pc.content.includes("useHead") || pc.content.includes("svelte:head") ||
           pc.content.includes("generateMetadata") || pc.content.includes("Head");
-        lines.push(`| \`${pc.path}\` | ${hasMeta ? "Yes" : "**Missing**"} | ${pc.content.split("\n").length} |`);
+        lines.push(`| \`${mdCellCode(pc.path)}\` | ${hasMeta ? "Yes" : "**Missing**"} | ${pc.content.split("\n").length} |`);
       }
       lines.push("");
     }
@@ -728,7 +731,7 @@ export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   const frameworks = ctx.detection.frameworks;
 
   const hasNext = hasFw(ctx, "Next.js", "next");
-  const pageRoutes = routes.filter(r => !r.path.startsWith("/api") && r.method === "GET");
+  const pageRoutes = routes.filter(r => !isNoindexRoute(r.path, r.method));
 
   const audit = {
     project: id.name,
@@ -787,9 +790,9 @@ export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): Gen
     structured_data_recommendations: pageRoutes.slice(0, 8).map(r => ({
       route: r.path,
       schema_type: r.path === "/" ? "WebSite" :
-        r.path.includes("blog") ? "Article" :
-        r.path.includes("pricing") ? "Product" :
-        r.path.includes("faq") ? "FAQPage" : "WebPage",
+        pathHasSegment(r.path, ["blog", "post", "posts", "article", "articles"]) ? "Article" :
+        pathHasSegment(r.path, ["pricing", "plan", "plans"]) ? "Product" :
+        pathHasSegment(r.path, ["faq", "faqs"]) ? "FAQPage" : "WebPage",
       priority: r.path === "/" ? "high" : "medium",
     })),
     issues: [
