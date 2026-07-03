@@ -7,6 +7,13 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // mdText (prose/headings/list items), mdInline (GFM table cells), mdCode (inline
 // code spans outside tables), mdCellCode (code spans inside table cells).
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
+
+// Display caps — the parser emits per-mention rows, so a real repo has hundreds
+// of (mostly test/duplicate) routes and models. Rendering them all produces an
+// 80KB+ debug file that's ~70% noise. Cap and note the remainder.
+const ROUTE_CAP = 50;
+const MODEL_CAP = 30;
 
 export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -252,8 +259,11 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("");
     lines.push("| Model | Kind | Language | Fields | Source |");
     lines.push("|-------|------|----------|--------|--------|");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`| ${mdInline(m.name)} | ${mdInline(m.kind)} | ${mdInline(m.language)} | ${m.field_count} | \`${mdCellCode(m.source_file)}\` |`);
+    }
+    if (ctx.domain_models.length > MODEL_CAP) {
+      lines.push(`| *… ${ctx.domain_models.length - MODEL_CAP} more* | | | | |`);
     }
     lines.push("");
   }
@@ -277,12 +287,16 @@ export function generateDebugPlaybook(ctx: ContextMap, files?: SourceFile[]): Ge
 
   // ─── Route Map ────────────────────────────────────────
   if (ctx.routes.length > 0) {
+    const routes = displayRoutes(ctx.routes);
     lines.push("## Route Map");
     lines.push("");
     lines.push("| Method | Path | Source |");
     lines.push("|--------|------|--------|");
-    for (const r of ctx.routes) {
+    for (const r of routes.slice(0, ROUTE_CAP)) {
       lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} |`);
+    }
+    if (routes.length > ROUTE_CAP) {
+      lines.push(`| *… ${routes.length - ROUTE_CAP} more* | | |`);
     }
     lines.push("");
   }
@@ -475,9 +489,10 @@ export function generateIncidentTemplate(ctx: ContextMap, files?: SourceFile[]):
   if (ctx.domain_models.length > 0) {
     lines.push("### Domain Entities to Check");
     lines.push("");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`- [ ] \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — ${mdText(m.source_file)}`);
     }
+    if (ctx.domain_models.length > MODEL_CAP) lines.push(`- [ ] *… ${ctx.domain_models.length - MODEL_CAP} more entities*`);
     lines.push("");
   }
 
@@ -574,15 +589,19 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("");
 
   if (ctx.routes.length > 0) {
+    const routes = displayRoutes(ctx.routes);
     lines.push("### API Routes");
     lines.push("");
     lines.push("All API routes should log: request method, path, status code, duration (ms).");
     lines.push("");
     lines.push("| Method | Path | Source | Trace Priority |");
     lines.push("|--------|------|--------|----------------|");
-    for (const r of ctx.routes) {
+    for (const r of routes.slice(0, ROUTE_CAP)) {
       const priority = r.path.includes("auth") || r.path.includes("login") || r.path.includes("payment") ? "HIGH" : "NORMAL";
       lines.push(`| ${mdInline(r.method)} | \`${mdCellCode(r.path)}\` | ${mdInline(r.source_file)} | ${priority} |`);
+    }
+    if (routes.length > ROUTE_CAP) {
+      lines.push(`| *… ${routes.length - ROUTE_CAP} more* | | | |`);
     }
     lines.push("");
   }
@@ -680,9 +699,10 @@ export function generateTracingRules(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("");
     lines.push("State transitions on these entities should be logged:");
     lines.push("");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`- \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — \`${mdCode(m.source_file)}\``);
     }
+    if (ctx.domain_models.length > MODEL_CAP) lines.push(`- *… ${ctx.domain_models.length - MODEL_CAP} more entities*`);
     lines.push("");
   }
 
@@ -920,9 +940,10 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
     lines.push("");
     lines.push("Check these entities for state corruption or relationship violations:");
     lines.push("");
-    for (const m of ctx.domain_models) {
+    for (const m of ctx.domain_models.slice(0, MODEL_CAP)) {
       lines.push(`- [ ] \`${mdCode(m.name)}\` (${mdText(m.kind)}, ${m.field_count} fields) — \`${mdCode(m.source_file)}\``);
     }
+    if (ctx.domain_models.length > MODEL_CAP) lines.push(`- [ ] *… ${ctx.domain_models.length - MODEL_CAP} more entities*`);
     lines.push("");
   }
 

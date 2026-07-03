@@ -7,38 +7,10 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // mdText (prose/headings/lists), mdInline (table cells), mdCode (code spans),
 // cfgValue (.cursorrules key = "value"), yamlFlowScalar (inside ```yaml fences).
 import { mdText, mdInline, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
-
-type Route = ContextMap["routes"][number];
-
-/**
- * The route set to display in an instruction file. Two steps:
- *  1. De-duplicate by method+path — a route registered/mentioned across several
- *     files (plus its test) arrives multiple times; keep first-seen order but
- *     upgrade the attribution to a non-test source file when one exists.
- *  2. Restrict to non-test routes when any exist — a route that appears ONLY in a
- *     .test file is real API surface only when there is nothing else, so it must
- *     never be presented to an agent alongside production routes (a mock endpoint
- *     defined in an integration test is not the app's API).
- * Shared by the AGENTS.md and CLAUDE.md route sections.
- */
-export function displayRoutes(routes: readonly Route[]): Route[] {
-  const seen = new Map<string, Route>();
-  for (const r of routes) {
-    // JSON-encode the [method, path] pair so two distinct routes can never
-    // collide into one key — a plain `${method} ${path}` join would map both
-    // {method:"GET /a", path:"b"} and {method:"GET", path:"/a b"} to "GET /a b".
-    const key = JSON.stringify([r.method, r.path]);
-    const existing = seen.get(key);
-    if (!existing) {
-      seen.set(key, r);
-    } else if (existing.source_file.includes(".test.") && !r.source_file.includes(".test.")) {
-      seen.set(key, r);
-    }
-  }
-  const deduped = [...seen.values()];
-  const nonTest = deduped.filter((r) => !r.source_file.includes(".test."));
-  return nonTest.length > 0 ? nonTest : deduped;
-}
+// displayRoutes moved to the shared route-utils module (also used by the debug
+// program). Re-exported here so existing importers keep resolving it from skills.
+import { displayRoutes } from "./route-utils.js";
+export { displayRoutes } from "./route-utils.js";
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
