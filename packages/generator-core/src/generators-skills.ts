@@ -8,6 +8,28 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // cfgValue (.cursorrules key = "value"), yamlFlowScalar (inside ```yaml fences).
 import { mdText, mdInline, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
 
+type Route = ContextMap["routes"][number];
+
+/**
+ * Collapse routes by method+path. A route registered/mentioned across several
+ * files (plus its test) arrives multiple times; keep first-seen order but upgrade
+ * the attribution to a non-test source file when one exists for the same route.
+ * Shared by the AGENTS.md and CLAUDE.md route sections.
+ */
+export function dedupeRoutes(routes: readonly Route[]): Route[] {
+  const seen = new Map<string, Route>();
+  for (const r of routes) {
+    const key = `${r.method} ${r.path}`;
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, r);
+    } else if (existing.source_file.includes(".test.") && !r.source_file.includes(".test.")) {
+      seen.set(key, r);
+    }
+  }
+  return [...seen.values()];
+}
+
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const ai = ctx.ai_context;
@@ -63,21 +85,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
 
   // Routes (deduplicated by method+path — prefer a non-test source file, capped at 50)
   if (ctx.routes.length > 0) {
-    // A route registered/mentioned in several files (and its test) arrives here
-    // multiple times; dogfooding surfaced literal duplicate lines (`POST /purchase`
-    // twice). Collapse by method+path, keeping first-seen order but upgrading the
-    // attribution to a non-test source file when one exists for the same route.
-    const seen = new Map<string, (typeof ctx.routes)[number]>();
-    for (const r of ctx.routes) {
-      const key = `${r.method} ${r.path}`;
-      const existing = seen.get(key);
-      if (!existing) {
-        seen.set(key, r);
-      } else if (existing.source_file.includes(".test.") && !r.source_file.includes(".test.")) {
-        seen.set(key, r);
-      }
-    }
-    const display = [...seen.values()];
+    const display = dedupeRoutes(ctx.routes);
     const capped = display.slice(0, 50);
     lines.push("### Routes");
     lines.push("");
@@ -311,6 +319,26 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 15)) {
       lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+    }
+    lines.push("");
+  }
+
+  // API Surface — the HTTP route inventory an agent needs to place a change
+  // correctly. AGENTS.md has long carried this; CLAUDE.md (the file Claude Code
+  // reads) lacked it. Same de-duplication as AGENTS.md, capped shorter to stay
+  // scannable in the primary instruction file.
+  if (ctx.routes.length > 0) {
+    const routes = dedupeRoutes(ctx.routes);
+    const ROUTE_CAP = 40;
+    lines.push("## API Surface");
+    lines.push("");
+    lines.push("HTTP routes detected in this codebase:");
+    lines.push("");
+    for (const r of routes.slice(0, ROUTE_CAP)) {
+      lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\` → ${mdText(r.source_file)}`);
+    }
+    if (routes.length > ROUTE_CAP) {
+      lines.push(`- *… ${routes.length - ROUTE_CAP} more (see the OpenAPI spec or \`/v1/docs\`)*`);
     }
     lines.push("");
   }
