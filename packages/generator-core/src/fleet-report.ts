@@ -66,7 +66,10 @@ function joinFrameworks(p: FleetProjectInput): string {
   if (!names.length) return "—";
   const shown = names.slice(0, 3);
   const overflow = names.length - shown.length;
-  return shown.join(", ") + (overflow > 0 ? ` +${overflow}` : "");
+  // Sanitize: framework names are repo-derived (package.json etc.) and land in a
+  // GFM table cell — an unescaped `|` would forge a column, and the memory
+  // delimiters could smuggle structure into an agent-read file.
+  return shown.map(mdInline).join(", ") + (overflow > 0 ? ` +${overflow}` : "");
 }
 
 function buildFleetReportMd(shown: FleetProjectInput[], overflowCount: number): string {
@@ -80,7 +83,7 @@ function buildFleetReportMd(shown: FleetProjectInput[], overflowCount: number): 
 
   lines.push("## Projects", "", "| Project | Language | LOC | Frameworks | Warnings |", "| --- | --- | --- | --- | --- |");
   for (const p of shown) {
-    const lang = p.ctx.project_identity?.primary_language ?? "—";
+    const lang = mdInline(p.ctx.project_identity?.primary_language ?? "—");
     const loc = p.ctx.structure?.total_loc ?? 0;
     const warnCount = warningStrings(p).length;
     lines.push(`| ${p.project_name} | ${lang} | ${loc} | ${joinFrameworks(p)} | ${warnCount} |`);
@@ -93,12 +96,12 @@ function buildFleetReportMd(shown: FleetProjectInput[], overflowCount: number): 
     lines.push("## Shared stack", "");
     if (sharedFrameworks.length) {
       lines.push("**Frameworks:**");
-      for (const e of sharedFrameworks) lines.push(`- ${e.name} — ${e.projects.length} projects: ${e.projects.join(", ")}`);
+      for (const e of sharedFrameworks) lines.push(`- ${mdInline(e.name)} — ${e.projects.length} projects: ${e.projects.join(", ")}`);
       lines.push("");
     }
     if (sharedLanguages.length) {
       lines.push("**Languages:**");
-      for (const e of sharedLanguages) lines.push(`- ${e.name} — ${e.projects.length} projects: ${e.projects.join(", ")}`);
+      for (const e of sharedLanguages) lines.push(`- ${mdInline(e.name)} — ${e.projects.length} projects: ${e.projects.join(", ")}`);
       lines.push("");
     }
   }
@@ -106,7 +109,7 @@ function buildFleetReportMd(shown: FleetProjectInput[], overflowCount: number): 
   const sharedWarnings = computeShared(shown, warningStrings);
   if (sharedWarnings.length) {
     lines.push("## Org-wide warnings", "");
-    for (const e of sharedWarnings) lines.push(`- "${e.name}" — ${e.projects.length} projects: ${e.projects.join(", ")}`);
+    for (const e of sharedWarnings) lines.push(`- "${mdInline(e.name)}" — ${e.projects.length} projects: ${e.projects.join(", ")}`);
     lines.push("");
   }
 
@@ -129,14 +132,14 @@ function buildFleetClaudeMd(shown: FleetProjectInput[]): string {
   const stackEntries = [...stack.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   if (stackEntries.length) {
     lines.push("## Stack", "");
-    for (const [name, count] of stackEntries) lines.push(`- ${name} — ${count}/${n} projects`);
+    for (const [name, count] of stackEntries) lines.push(`- ${mdInline(name)} — ${count}/${n} projects`);
     lines.push("");
   }
 
   const conventions = computeShared(shown, conventionStrings);
   if (conventions.length) {
     lines.push("## Conventions", "");
-    for (const e of conventions) lines.push(`- "${e.name}" — ${e.projects.length} projects`);
+    for (const e of conventions) lines.push(`- "${mdInline(e.name)}" — ${e.projects.length} projects`);
     lines.push("");
   }
 

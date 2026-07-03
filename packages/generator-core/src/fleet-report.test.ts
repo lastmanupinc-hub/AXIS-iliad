@@ -209,4 +209,22 @@ describe("buildFleetReport", () => {
     const shuffled = buildFleetReport([b, a])!;
     expect(forward.map((f) => f.content)).toEqual(shuffled.map((f) => f.content));
   });
+
+  it("sanitizes repo-derived primary_language and framework names (sibling table cells / shared lists)", () => {
+    // A poisoned package.json could name a framework "Ev|il" or a language with
+    // a pipe; both land in GFM cells / bullet lists in an agent-read file.
+    const projects = [
+      project({ project_name: "a", ctx: ctx({ project_identity: { primary_language: "TS|x" }, detection: { frameworks: [{ name: "Ev|il" }], languages: [] } }) }),
+      project({ project_name: "b", ctx: ctx({ project_identity: { primary_language: "TS|x" }, detection: { frameworks: [{ name: "Ev|il" }], languages: [] } }) }),
+    ];
+    const report = buildFleetReport(projects)!.find((f) => f.path === "fleet-report.md")!;
+    // language cell escaped
+    expect(report.content).toContain("| a | TS\\|x |");
+    // framework name escaped in both the table cell and the shared-stack bullet
+    expect(report.content).toContain("Ev\\|il");
+    // no unescaped pipe forged an extra column: the shared-framework bullet is intact
+    expect(report.content).toContain("Ev\\|il — 2 projects: a, b");
+    // and the raw, unescaped form never appears
+    expect(report.content).not.toContain("Ev|il");
+  });
 });
