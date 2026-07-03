@@ -438,7 +438,13 @@ describe("Watchtower delta on webhook re-analysis (SPEC-04 + SPEC-11 analysis-on
     const delta = result!.files.find((f) => f.path === "delta-report.md");
     expect(delta).toBeDefined();
     expect(delta!.content).toContain("Since the last snapshot:");
-    expect(delta!.content.trim().endsWith(": .")).toBe(false); // a real fragment was found, not an empty summary
+    // Assert a REAL, quantified change is named — not just that the content is
+    // non-empty. Every fragment carries a number (e.g. "2 files added", "total
+    // LOC +40"), so the summary must contain a digit after the colon. (The old
+    // `endsWith(": .")` check was tautological: buildDeltaReport returns null
+    // when nothing changed, and the trailing footer means it never ends in ": .")
+    const summaryLine = delta!.content.split("\n").find((l) => l.startsWith("Since the last snapshot:"))!;
+    expect(summaryLine).toMatch(/Since the last snapshot: \S.*\d/);
   });
 
   it("skips the delta on the first-ever snapshot for a project — webhook response unchanged", async () => {

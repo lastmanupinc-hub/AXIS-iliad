@@ -3,8 +3,12 @@ import type { ParseResult } from "@axis/repo-parser";
 import { parseRepo } from "@axis/repo-parser";
 import type { ContextMap, RepoProfile } from "./types.js";
 
-export function buildContextMap(snapshot: SnapshotRecord): ContextMap {
-  const parsed = parseRepo(snapshot.files);
+export function buildContextMap(snapshot: SnapshotRecord, preParsed?: ParseResult): ContextMap {
+  // Optional pre-parsed result lets a caller that also builds a RepoProfile
+  // (e.g. the analysis-on-push webhook) parse the repo once and reuse it for
+  // both, instead of parsing the whole file set twice. parseRepo is pure, so
+  // passing it or re-deriving it yields identical output.
+  const parsed = preParsed ?? parseRepo(snapshot.files);
   // Derived from the snapshot, not the wall clock: analysis output is a pure
   // function of its input, so re-analyzing an unchanged snapshot is
   // byte-identical (generated_at leaks into nearly every generated artifact).

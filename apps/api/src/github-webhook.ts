@@ -16,6 +16,7 @@ import { readBody, sendJSON, sendError } from "./router.js";
 import { log, ErrorCode } from "./logger.js";
 import { buildDeltaReport, type GeneratorResult, type GeneratedFile } from "@axis/generator-core";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
+import { parseRepo } from "@axis/repo-parser";
 import type { ContextMap } from "@axis/context-engine";
 
 // ─── Signature verification ────────────────────────────────────
@@ -323,8 +324,11 @@ async function dispatchWebhookSnapshot(
   // later consumer) has something to diff. Fail-open — analysis failure must never
   // surface past the webhook's success path; the snapshot itself already persisted.
   try {
-    const contextMap = buildContextMap(snapshot);
-    const repoProfile = buildRepoProfile(snapshot);
+    // Parse the repo once and reuse for both builders — each would otherwise
+    // parse the whole uploaded file set independently on every push.
+    const parsed = parseRepo(snapshot.files);
+    const contextMap = buildContextMap(snapshot, parsed);
+    const repoProfile = buildRepoProfile(snapshot, parsed);
     await saveContextMap(snapshot.snapshot_id, contextMap);
     await saveRepoProfile(snapshot.snapshot_id, repoProfile);
     log("info", "github-webhook.analysis_completed", {
