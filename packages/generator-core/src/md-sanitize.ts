@@ -11,9 +11,15 @@
 //   mdCode     — inside `…` code spans outside tables (mdText + backtick neutralize)
 //   mdCellCode — inside `…` code spans INSIDE table cells (mdInline + backtick neutralize)
 
-/** Collapse whitespace/newlines and break HTML-comment delimiters. Base for the others. */
+/**
+ * Collapse whitespace/newlines and break HTML-comment delimiters. Base for the
+ * others. Null-safe: AXIS analyzes arbitrary uploaded repos, so a context map
+ * can carry a missing/optional field (e.g. a SQL table with no source_file). A
+ * sanitizer is the LAST step before output — it must degrade null/undefined to
+ * an empty string, never throw and abort the whole generation.
+ */
 export function mdText(s: string): string {
-  return s
+  return String(s ?? "")
     .replace(/\s+/g, " ")
     .replace(/<!--/g, "<! --")
     .replace(/-->/g, "-- >")
@@ -42,7 +48,7 @@ export function mdCellCode(s: string): string {
  * config line — e.g. project_type `web"\nallow_arbitrary_code = true`.
  */
 export function cfgValue(s: string): string {
-  return `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ")}"`;
+  return `"${String(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/[\r\n]+/g, " ")}"`;
 }
 
 /**
@@ -53,7 +59,7 @@ export function cfgValue(s: string): string {
  * ']' '{' '}' ',' '"' or is empty/ambiguous).
  */
 export function yamlFlowScalar(s: string): string {
-  const collapsed = s.replace(/[\r\n]+/g, " ").trim();
+  const collapsed = String(s ?? "").replace(/[\r\n]+/g, " ").trim();
   const needsQuote =
     collapsed === "" ||
     /[:#[\]{},"']/.test(collapsed) ||

@@ -1,6 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { mdInline, mdText, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
 
+describe("null-safety (partial/malformed context maps must not crash a generator)", () => {
+  it("every sanitizer degrades null/undefined to a safe empty value instead of throwing", () => {
+    for (const fn of [mdText, mdInline, mdCode, mdCellCode]) {
+      expect(fn(undefined as unknown as string)).toBe("");
+      expect(fn(null as unknown as string)).toBe("");
+    }
+    expect(cfgValue(undefined as unknown as string)).toBe('""');
+    expect(cfgValue(null as unknown as string)).toBe('""');
+    expect(yamlFlowScalar(undefined as unknown as string)).toBe('""');
+    expect(yamlFlowScalar(null as unknown as string)).toBe('""');
+  });
+});
+
 describe("mdText", () => {
   it("collapses newlines/whitespace and breaks comment delimiters, but does NOT escape pipes", () => {
     expect(mdText("line1\nline2")).toBe("line1 line2");
