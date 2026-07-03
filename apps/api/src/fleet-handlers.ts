@@ -19,10 +19,19 @@ import { sendJSON, sendError } from "./router.js";
 import { ErrorCode } from "./logger.js";
 import { requireAuth } from "./billing.js";
 
+// Bound total projects EXAMINED per request — the FLEET_MAX_PROJECTS cap alone
+// only bounds ELIGIBLE projects collected, so an account with many context-less
+// projects would otherwise force a full-account walk (O(projects x snapshots)
+// DB round-trips) before finding enough eligible ones.
+export const FLEET_SCAN_LIMIT = 100;
+// Bound the per-project snapshot walk in resolveLatestContext — only the
+// newest N snapshots are examined for a resolvable context map.
+const FLEET_MAX_SNAPSHOTS_PER_PROJECT = 10;
+
 /** Walk a project's snapshots newest-first and return the first resolvable ContextMap. */
 async function resolveLatestContext(project_id: string): Promise<ContextMap | undefined> {
   const snapshots = await getProjectSnapshots(project_id);
-  for (let i = snapshots.length - 1; i >= 0; i--) {
+  for (let i = snapshots.length - 1; i >= Math.max(0, snapshots.length - FLEET_MAX_SNAPSHOTS_PER_PROJECT); i--) {
     const ctx = await getContextMap(snapshots[i].snapshot_id);
     if (ctx) return ctx as ContextMap;
   }
@@ -43,8 +52,9 @@ export async function handleGetFleet(req: IncomingMessage, res: ServerResponse):
   const projectRows = await listProjectsByAccount(account_id);
 
   const eligible: FleetProjectInput[] = [];
-  for (const proj of projectRows) {
+  for (const proj of projectRows.slice(0, FLEET_SCAN_LIMIT)) {
     if (eligible.length >= FLEET_MAX_PROJECTS) break;
+    if (res.writableEnded) return; // 408 already sent — stop burning DB round-trips
     try {
       const projectCtx = await resolveLatestContext(proj.project_id);
       if (!projectCtx) continue;

@@ -224,9 +224,14 @@ ${candidates}
 `;
 }
 
+// The footer's stable prefix, exported so other layers (e.g. memory-weave's
+// project-memory.md refresh) can locate a previously-appended footer without
+// duplicating the literal string.
+export const CONTINUE_FOOTER_MARKER = "\n\n---\n\n## ⟳ Continue the loop\n";
+
 /** Build the ⟳ Continue footer for a markdown artifact at position (idx of mdTotal). */
 function continueFooter(path: string, idx: number, mdTotal: number, next: string | null): string {
-  const head = `\n\n---\n\n## ⟳ Continue the loop\n\n- **You are here:** \`${path}\` — agent step ${idx + 1} of ${mdTotal}.\n`;
+  const head = CONTINUE_FOOTER_MARKER + `\n- **You are here:** \`${path}\` — agent step ${idx + 1} of ${mdTotal}.\n`;
   if (next) {
     return (
       head +

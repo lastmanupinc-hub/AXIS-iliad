@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import type { Server } from "node:http";
 import { inflateRawSync } from "node:zlib";
 import { resetTestDb, createSnapshot, saveGeneratorResult, saveContextMap, createAccount, createApiKey, recordUsage, getEventsByType, addMemoryEntry } from "@axis/snapshots";
-import { appendMemoryWeave, type GeneratorResult } from "@axis/generator-core";
+import { appendMemoryWeave, buildMemorySection, type GeneratorResult } from "@axis/generator-core";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleExportZip } from "./export.js";
@@ -607,5 +607,50 @@ describe("Export ZIP handler", () => {
     expect((agents.content.match(/old decision recorded first/g) ?? []).length).toBe(1);
     expect((agents.content.match(/new decision recorded second/g) ?? []).length).toBe(1);
     expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1); // exactly one section
+  });
+
+  // SPEC-10 Fix 1: a package persisted between WO-07 (undelimited weave) and WO-08
+  // (delimited refresh) carries a legacy section with no marker pair. Export must
+  // migrate it to the delimited form, not duplicate it.
+  it("migrates a legacy undelimited memory section instead of duplicating it on export", async () => {
+    const acct = await createAccount("Legacy Memory User", "legacy-memory@test.com", "paid");
+    const key = await createApiKey(acct.account_id, "test");
+    const headers = { Authorization: `Bearer ${key.rawKey}` };
+
+    const manifest = { project_name: "export-memory-legacy", project_type: "web", frameworks: [], goals: [], requested_outputs: [] };
+    const snap = await createSnapshot({ input_method: "repo_snapshot_upload", manifest, files: [{ path: "a.ts", content: "x", size: 1 }] }, acct.account_id);
+    await saveContextMap(snap.snapshot_id, makeCtx(snap));
+
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "legacy decision from before delimiters");
+
+    // Hand-build a legacy (WO-07-era) AGENTS.md: the section appended with NO
+    // marker pair — exactly what pre-delimiter code produced.
+    const legacySection = buildMemorySection([{ kind: "decision", content: "legacy decision from before delimiters", source: "", created_at: new Date().toISOString() }])!;
+    const legacyGenerated: GeneratorResult = {
+      snapshot_id: snap.snapshot_id,
+      project_id: snap.project_id,
+      generated_at: new Date().toISOString(),
+      files: [{ path: "AGENTS.md", content: `# Agents\n\n${legacySection}\n`, content_type: "text/markdown", program: "skills", description: "d" }],
+      skipped: [],
+    };
+    await saveGeneratorResult(snap.snapshot_id, legacyGenerated);
+
+    // A fresh decision is recorded after that legacy package was persisted.
+    await addMemoryEntry(snap.project_id, acct.account_id, "decision", "fresh decision after migration");
+
+    const res = await rawReq("GET", `/v1/projects/${snap.project_id}/export`, headers);
+    expect(res.status).toBe(200);
+    const entries = parseZip(res.body);
+
+    // Memory is append-only, so both entries are current and the refreshed section
+    // renders both — the bug this guards against is the OLD undelimited copy
+    // surviving alongside a NEW delimited copy (each text appearing twice, plus a
+    // duplicated heading), not either text going missing.
+    const agents = entries.find(e => e.path === "AGENTS.md")!;
+    expect((agents.content.match(/Decisions already made/g) ?? []).length).toBe(1); // migrated, not duplicated
+    expect((agents.content.match(/legacy decision from before delimiters/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/fresh decision after migration/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/<!-- axis:project-memory:start -->/g) ?? []).length).toBe(1);
+    expect((agents.content.match(/<!-- axis:project-memory:end -->/g) ?? []).length).toBe(1);
   });
 });

@@ -584,7 +584,7 @@ work_orders:
   - id: WO-10
     title: "Tail remediation: the 5 confirmed WO-08/09 review findings + marker-injection hardening"
     phase: later
-    status: open
+    status: done
     depends_on: []             # WO-01..09 all done and merged to main (aa3eeb4)
     spec: docs/agentic-asset/specs/SPEC-10-tail-remediation.md
     branch: fix/aa-tail-remediation
@@ -615,7 +615,58 @@ work_orders:
       - pnpm --filter @axis/api exec tsc --noEmit
       - "vitest run apps/api/src/count-honesty.test.ts apps/api/src/counts-consistency.test.ts --no-coverage   # repo gates, unchanged"
     evidence: |
-      (executor fills)
+      Files touched match files_expected exactly (no other files edited).
+      - `pnpm --filter @axis/generator-core build` — clean, no errors.
+      - Targeted test files (md-sanitize, memory-weave, autonomy-loop,
+        fleet-report, delta-report, program-funnel) — 78/78 pass, incl. all
+        SPEC-10 additions: mdInline's 4 transforms + determinism (7 tests);
+        Fix 1's legacy-migration (basic migration, stops at next H1/H2 not H3
+        subheadings, idempotent second-weave via the marker branch — 4 tests);
+        Fix 2's footer preservation (single refresh, full MCP->export->re-weave
+        round-trip with no double-footering, no-footer regression — 3 tests) +
+        the CONTINUE_FOOTER_MARKER producer-lock test in autonomy-loop.test.ts;
+        Fix 3's marker-injection resilience (content embedding the literal
+        end-marker stays correct across two weaves) + multiline content/source
+        collapse (3 tests); Fix 4's project_name sanitization (pipe-escape with
+        5-cell table row proof, newline collapse in heading+table,
+        computeShared join, sanitized-name determinism — 4 tests); Fix 4b's H1
+        sanitization in delta-report.ts + program-funnel.ts (2 tests each,
+        newline case + clean-name byte-identical regression).
+      - `determinism.test.ts` — 3/3 pass unchanged (clean-input output stays
+        byte-identical across all touched generators).
+      - `fleet-handlers.test.ts` + `export.test.ts` (real Postgres) — 35/35
+        pass, incl. Fix 5's 5 new tests (scan-limit bound with
+        project_count = FLEET_SCAN_LIMIT + 2, dead-response abort via a
+        writableEnded-true fake response — caught and fixed a header-casing bug
+        in the test itself, not the source: Node lowercases header names on
+        real requests but a hand-built fake req bypasses that, so the fake
+        needed `authorization` not `Authorization`; the 10-snapshot walk bound;
+        and the FLEET_SCAN_LIMIT >= FLEET_MAX_PROJECTS constant-sanity check)
+        and Fix 1's end-to-end legacy-migration case in export.test.ts (proves
+        both entries render exactly once each post-migration, not duplicated —
+        memory is append-only so the fix must be tested via occurrence COUNTS,
+        not presence/absence, since the pre-existing entry stays live in the
+        store and both texts legitimately co-occur in the refreshed section).
+      - `pnpm --filter @axis/api exec tsc --noEmit` — clean, no errors.
+      - `count-honesty.test.ts` + `counts-consistency.test.ts` — 9/9 pass
+        (no route/count changes in this WO).
+      - Also ran (not in this WO's list, broad regression check): the full
+        generator-core suite (packages/generator-core) — 1647 passed, 8
+        skipped, the only "failure" being pipeline.test.ts's pre-existing
+        DATABASE_URL requirement (confirmed green separately with the DB set,
+        12/12) — not a regression, a local-env artifact; openapi.test.ts +
+        strategic-docs-honesty.test.ts — 33/33 pass.
+      Design decisions made where the spec left latitude (no deviation from
+      any FIXED contract): Fix 4b's H1 sanitization is applied inside each
+      renderer (`const name = mdInline(rawName)` in program-funnel.ts;
+      `mdInline(curr.project_identity?.name ?? "this project")` in
+      delta-report.ts) rather than at each call site, since both interpolation
+      points (H1 + blockquote in program-funnel.ts) share the one source
+      string. Fix 1's legacy-scan regex `/^##? /m` was verified analytically
+      and by test to NOT match H3 lines (`### `) — confirmed via a dedicated
+      test using decision+convention entries (two H3 groups) migrated by a
+      goal-kind entry, so the fresh block can't accidentally reintroduce the
+      old H3 headings and mask a scan-boundary bug.
 
   - id: WO-11
     title: "Watchtower analysis-on-push: build + persist the context map for webhook snapshots"

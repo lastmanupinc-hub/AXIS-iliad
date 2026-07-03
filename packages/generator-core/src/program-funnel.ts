@@ -10,6 +10,7 @@
 
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratorResult, GeneratedFile } from "./types.js";
+import { mdInline } from "./md-sanitize.js";
 
 const FUNNEL_PROGRAM = "skills"; // attributed to the always-present context program
 
@@ -104,7 +105,8 @@ export function buildNextPrograms(
 }
 
 /** Render the funnel artifact. */
-function renderFunnel(programsRun: Set<string>, next: string[], name: string, personalized: boolean): string {
+function renderFunnel(programsRun: Set<string>, next: string[], rawName: string, personalized: boolean): string {
+  const name = mdInline(rawName);
   const ran = [...programsRun].filter((p) => PROGRAM_VALUE[p]).sort();
   const lines: string[] = [];
   lines.push(`# Recommended Next Programs — ${name}`);

@@ -90,11 +90,16 @@ ORDER BY project_name` — export from `packages/snapshots/src/index.ts`.
 2. Tier gate: `tier === "free"` ⇒ **403** `TIER_REQUIRED`,
    `"Fleet intelligence requires a paid plan — it computes cross-project reports over your whole portfolio."`
 3. `listProjectsByAccount`; for each project (stop after `FLEET_MAX_PROJECTS`
-   with a resolvable context map), find the NEWEST snapshot whose
-   `getContextMap` returns a value (walk `getProjectSnapshots` from the end).
-   Load `listMemoryEntries(project_id, { kind: "decision", limit: 5 })` and
-   map to content strings. Any per-project load error: skip that project
-   (fail-open per project, never fail the request).
+   ELIGIBLE projects COLLECTED — this caps the report's input, not the work
+   done; `FLEET_SCAN_LIMIT` (added SPEC-10) separately caps the total projects
+   EXAMINED, since an account with many context-less projects would otherwise
+   force a full-account walk before finding enough eligible ones), find the
+   NEWEST snapshot whose `getContextMap` returns a value (walk
+   `getProjectSnapshots` from the end, bounded to the newest
+   `FLEET_MAX_SNAPSHOTS_PER_PROJECT` per SPEC-10). Load
+   `listMemoryEntries(project_id, { kind: "decision", limit: 5 })` and map to
+   content strings. Any per-project load error: skip that project (fail-open
+   per project, never fail the request).
 4. Fewer than `FLEET_MIN_PROJECTS` with context ⇒ **200**
    `{ ready: false, project_count, eligible_projects, reason }` where
    `reason` says what's missing in plain language ("Fleet reports need at

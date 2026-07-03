@@ -12,11 +12,18 @@
 // never reads the store. Same entries ⇒ byte-identical output.
 
 import type { GeneratorResult, GeneratedFile } from "./types.js";
+import { mdInline } from "./md-sanitize.js";
+import { CONTINUE_FOOTER_MARKER } from "./autonomy-loop.js";
 
 const MEMORY_PROGRAM = "skills";
 export const MEMORY_WEAVE_LIMIT = 50;
 const MEMORY_MARKER_START = "<!-- axis:project-memory:start -->";
 const MEMORY_MARKER_END = "<!-- axis:project-memory:end -->";
+// This exact string doubles as the LEGACY migration marker for pre-delimiter
+// (WO-07-era) weaves — injectOrReplaceSection scans for it when no marker pair
+// is present. If the live heading is ever reworded, the old string must stay
+// recognized here so legacy packages keep migrating cleanly.
+const SECTION_HEADING = "## Decisions already made — do not re-litigate";
 
 export interface WovenMemoryEntry {
   kind: "decision" | "convention" | "evidence" | "goal";
@@ -37,14 +44,14 @@ const KIND_LABEL: Record<WovenMemoryEntry["kind"], string> = {
 
 function renderEntryLine(e: WovenMemoryEntry): string {
   const meta = e.source ? `${e.source}, ${e.created_at}` : e.created_at;
-  return `- ${e.content} _(${meta})_`;
+  return `- ${mdInline(e.content)} _(${mdInline(meta)})_`;
 }
 
 /** The section body shared by both the woven-in-place section and the standalone artifact. */
 function renderSectionLines(entries: WovenMemoryEntry[]): string[] {
   const shown = entries.slice(0, MEMORY_WEAVE_LIMIT);
   const lines: string[] = [];
-  lines.push("## Decisions already made — do not re-litigate");
+  lines.push(SECTION_HEADING);
   lines.push("");
   lines.push("_Recorded by prior sessions via this project's memory API. Treat these as settled unless the human reopens them._");
   lines.push("");
@@ -86,6 +93,21 @@ function injectOrReplaceSection(content: string, section: string): string {
   const endIdx = content.indexOf(MEMORY_MARKER_END);
   if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
     return content.slice(0, startIdx) + block + content.slice(endIdx + MEMORY_MARKER_END.length);
+  }
+  // Legacy migration: a pre-delimiter (WO-07-era) weave has no marker pair but
+  // carries the section heading verbatim. Find its end (the next H1/H2 after
+  // it, or EOF) and replace the whole legacy section with the fresh delimited
+  // block in one pass — H3 subheadings inside the section (e.g. "### Decisions")
+  // deliberately do NOT terminate the scan (the /^##? / pattern requires the
+  // line to start with exactly one or two "#" then a space).
+  const headingIdx = content.indexOf(SECTION_HEADING);
+  if (headingIdx !== -1) {
+    const afterHeading = content.slice(headingIdx + SECTION_HEADING.length);
+    const nextHeadingMatch = afterHeading.match(/^##? /m);
+    const legacyEnd = nextHeadingMatch
+      ? headingIdx + SECTION_HEADING.length + nextHeadingMatch.index!
+      : content.length;
+    return content.slice(0, headingIdx) + block + content.slice(legacyEnd);
   }
   return `${content}\n\n${block}\n`;
 }
@@ -132,7 +154,13 @@ export function appendMemoryWeave(generated: GeneratorResult, entries: WovenMemo
     const content = buildProjectMemoryArtifact(entries);
     const existing = generated.files.find((f) => f.path === path);
     if (existing) {
-      existing.content = content;
+      // Preserve a previously-appended ⟳ Continue footer across the refresh: a
+      // wholesale replace would otherwise strip it, and appendAutonomyLoop is a
+      // package-level no-op once begin.yaml is present, so it would never be
+      // restored. lastIndexOf guards against a memory entry that happens to
+      // quote the marker text.
+      const footerIdx = existing.content.lastIndexOf(CONTINUE_FOOTER_MARKER);
+      existing.content = footerIdx === -1 ? content : content + existing.content.slice(footerIdx);
     } else {
       const file: GeneratedFile = {
         path,

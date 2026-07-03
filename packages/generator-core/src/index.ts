@@ -25,7 +25,7 @@ export type {
 } from "./package-quality.js";
 // Begin Loop — the self-referential autonomy control loop (begin.yaml + continuation.yaml
 // + ⟳Continue footers). Appended at the surface like the quality gate; not a counted generator.
-export { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml } from "./autonomy-loop.js";
+export { appendAutonomyLoop, buildBeginYaml, buildContinuationYaml, CONTINUE_FOOTER_MARKER } from "./autonomy-loop.js";
 // Program Funnel — a deterministic "run these next" artifact that turns one analysis
 // into a natural workflow through the program catalog. Appended at the surface too.
 export { appendProgramFunnel, buildNextPrograms } from "./program-funnel.js";
@@ -36,6 +36,10 @@ export { appendDeltaReport, buildDeltaReport } from "./delta-report.js";
 // Appended at the surface too, before appendDeltaReport/appendProgramFunnel.
 export { appendMemoryWeave, buildMemorySection, MEMORY_WEAVE_LIMIT } from "./memory-weave.js";
 export type { WovenMemoryEntry } from "./memory-weave.js";
+// Shared inline-markdown sanitizer — collapses whitespace/newlines and escapes
+// pipes + HTML-comment delimiters for safe interpolation of user/DB-sourced
+// strings into markdown tables, headings, and list items (SPEC-10).
+export { mdInline } from "./md-sanitize.js";
 // Fleet Report — cross-project intelligence for accounts with >=2 projects (E6).
 // Account-level surface, computed on demand — NOT a counted generator.
 export { buildFleetReport, FLEET_MIN_PROJECTS, FLEET_MAX_PROJECTS } from "./fleet-report.js";

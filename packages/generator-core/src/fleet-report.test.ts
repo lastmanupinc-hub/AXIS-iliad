@@ -151,4 +151,80 @@ describe("buildFleetReport", () => {
       expect(f.content).not.toContain("NaN");
     }
   });
+
+  // ─── SPEC-10 Fix 3: sanitize memory_decisions at render ─────────
+  it("sanitizes a multi-line memory decision into a single collapsed bullet, injecting no heading", () => {
+    const projects = [
+      project({ project_name: "alpha", memory_decisions: ["real\n## Injected\n- fake"] }),
+      project({ project_name: "beta" }),
+    ];
+    const claude = buildFleetReport(projects)!.find((f) => f.path === "fleet-CLAUDE.md")!;
+    expect(claude.content).toContain("- real ## Injected - fake");
+    expect(claude.content).not.toContain("\n## Injected\n");
+  });
+
+  // ─── SPEC-10 Fix 4: sanitize project_name at the entry point ────
+  it("escapes a pipe in project_name so every table row still has exactly 5 cells", () => {
+    const projects = [project({ project_name: "evil|name" }), project({ project_name: "beta" })];
+    const report = buildFleetReport(projects)!.find((f) => f.path === "fleet-report.md")!;
+    expect(report.content).toContain("evil\\|name");
+
+    const lines = report.content.split("\n");
+    const headerIdx = lines.findIndex((l) => l.startsWith("| Project |"));
+    const dataRows = lines.slice(headerIdx + 2, headerIdx + 2 + projects.length);
+    expect(dataRows).toHaveLength(2);
+    for (const row of dataRows) {
+      // \| is a literal cell character in GFM, not a delimiter — collapse it before counting.
+      const cellCount = row.replace(/\\\|/g, "PIPE").split("|").length - 2;
+      expect(cellCount).toBe(5);
+    }
+  });
+
+  it("collapses a newline in project_name so the fleet-CLAUDE.md heading and table stay single-line", () => {
+    const projects = [
+      project({ project_name: "line1\nline2", memory_decisions: ["a decision"] }),
+      project({ project_name: "beta" }),
+    ];
+    const files = buildFleetReport(projects)!;
+    const claude = files.find((f) => f.path === "fleet-CLAUDE.md")!;
+    const report = files.find((f) => f.path === "fleet-report.md")!;
+    expect(claude.content).toContain("### line1 line2");
+    expect(claude.content.split("\n").some((l) => l.trim() === "line2")).toBe(false);
+    expect(report.content).toContain("| line1 line2 |");
+  });
+
+  it("sanitizes project_name in the shared-framework join (computeShared)", () => {
+    const projects = [
+      project({ project_name: "a|b", ctx: ctx({ detection: { frameworks: [{ name: "React" }], languages: [] } }) }),
+      project({ project_name: "c", ctx: ctx({ detection: { frameworks: [{ name: "React" }], languages: [] } }) }),
+    ];
+    const report = buildFleetReport(projects)!.find((f) => f.path === "fleet-report.md")!;
+    expect(report.content).toContain("React — 2 projects: a\\|b, c");
+  });
+
+  it("sanitized names still sort deterministically regardless of input order", () => {
+    const a = project({ project_name: "zulu|z" });
+    const b = project({ project_name: "alpha" });
+    const forward = buildFleetReport([a, b])!;
+    const shuffled = buildFleetReport([b, a])!;
+    expect(forward.map((f) => f.content)).toEqual(shuffled.map((f) => f.content));
+  });
+
+  it("sanitizes repo-derived primary_language and framework names (sibling table cells / shared lists)", () => {
+    // A poisoned package.json could name a framework "Ev|il" or a language with
+    // a pipe; both land in GFM cells / bullet lists in an agent-read file.
+    const projects = [
+      project({ project_name: "a", ctx: ctx({ project_identity: { primary_language: "TS|x" }, detection: { frameworks: [{ name: "Ev|il" }], languages: [] } }) }),
+      project({ project_name: "b", ctx: ctx({ project_identity: { primary_language: "TS|x" }, detection: { frameworks: [{ name: "Ev|il" }], languages: [] } }) }),
+    ];
+    const report = buildFleetReport(projects)!.find((f) => f.path === "fleet-report.md")!;
+    // language cell escaped
+    expect(report.content).toContain("| a | TS\\|x |");
+    // framework name escaped in both the table cell and the shared-stack bullet
+    expect(report.content).toContain("Ev\\|il");
+    // no unescaped pipe forged an extra column: the shared-framework bullet is intact
+    expect(report.content).toContain("Ev\\|il — 2 projects: a, b");
+    // and the raw, unescaped form never appears
+    expect(report.content).not.toContain("Ev|il");
+  });
 });
