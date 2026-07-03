@@ -61,10 +61,23 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("");
   }
 
-  // Routes (deduplicated — prefer source files over test files, capped at 50)
+  // Routes (deduplicated by method+path — prefer a non-test source file, capped at 50)
   if (ctx.routes.length > 0) {
-    const sourceRoutes = ctx.routes.filter((r) => !r.source_file.includes(".test."));
-    const display = sourceRoutes.length > 0 ? sourceRoutes : ctx.routes;
+    // A route registered/mentioned in several files (and its test) arrives here
+    // multiple times; dogfooding surfaced literal duplicate lines (`POST /purchase`
+    // twice). Collapse by method+path, keeping first-seen order but upgrading the
+    // attribution to a non-test source file when one exists for the same route.
+    const seen = new Map<string, (typeof ctx.routes)[number]>();
+    for (const r of ctx.routes) {
+      const key = `${r.method} ${r.path}`;
+      const existing = seen.get(key);
+      if (!existing) {
+        seen.set(key, r);
+      } else if (existing.source_file.includes(".test.") && !r.source_file.includes(".test.")) {
+        seen.set(key, r);
+      }
+    }
+    const display = [...seen.values()];
     const capped = display.slice(0, 50);
     lines.push("### Routes");
     lines.push("");
@@ -262,7 +275,11 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("");
   lines.push("- Do not add dependencies without discussion");
   lines.push("- Do not change the framework or architecture pattern");
-  lines.push("- Do not bypass TypeScript strict mode");
+  // Only assert a TypeScript-strict rule for TypeScript projects — emitting it for
+  // a Python/Rust/Go repo is false guidance (dogfooding a JSON-detected tree showed
+  // "Do not bypass TypeScript strict mode" landing in a non-TS project's CLAUDE.md).
+  if (id.primary_language === "TypeScript")
+    lines.push("- Do not bypass TypeScript strict mode");
   if (hasFw(ctx, "Prisma"))
     lines.push("- Do not write raw SQL — use Prisma Client");
   if (hasFw(ctx, "React"))
