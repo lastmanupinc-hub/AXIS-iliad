@@ -4,6 +4,24 @@ import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
 
+// ─── Shared command helpers ─────────────────────────────────────
+// The canonical "run tests" command for the detected stack, so superpower-pack,
+// workflow-registry, and automation-pipeline can never DISAGREE. An adversarial
+// review found the registry telling a pytest repo to run `npm test` and the
+// pipeline emitting the broken `npx pytest run` (pytest isn't an npx bin; `jest
+// run` treats `run` as a path filter) — all three now share this.
+export function testRunCommand(testFrameworks: string[], pkgMgr: string): string {
+  if (testFrameworks.includes("vitest")) return "npx vitest run";
+  if (testFrameworks.includes("jest")) return "npx jest";
+  if (testFrameworks.includes("pytest")) return "python -m pytest";
+  return `${pkgMgr} test`;
+}
+
+/** Whether a `tsc --noEmit` typecheck stage applies (don't emit it for non-TS repos). */
+export function hasTypecheck(ctx: ContextMap): boolean {
+  return ctx.detection.build_tools.includes("tsc") || /typescript/i.test(ctx.project_identity.primary_language);
+}
+
 // ─── superpower-pack.md ─────────────────────────────────────────
 
 export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -222,8 +240,8 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
     steps: [
       `${pkgMgr} install`,
       `${pkgMgr} run build`,
-      testFws.includes("vitest") ? "npx vitest run" : testFws.includes("jest") ? "npx jest" : `${pkgMgr} test`,
-      "npx tsc --noEmit",
+      testRunCommand(testFws, pkgMgr),
+      ...(hasTypecheck(ctx) ? ["npx tsc --noEmit"] : []),
     ],
     applicable: true,
   });
@@ -237,7 +255,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
       ? ["npx vitest --changed"]
       : testFws.includes("jest")
         ? ["npx jest --onlyChanged"]
-        : [`${pkgMgr} test`],
+        : [testRunCommand(testFws, pkgMgr)],
     applicable: testFws.length > 0,
   });
 
@@ -888,7 +906,9 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   if (buildTools.includes("eslint")) {
     lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} eslint .`);
   }
-  lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} tsc --noEmit`);
+  if (hasTypecheck(ctx)) {
+    lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} tsc --noEmit`);
+  }
   lines.push("      fail_fast: true");
   lines.push("");
 
@@ -898,11 +918,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      depends_on: [install]");
   lines.push("      parallel_with: [lint]");
   lines.push("      commands:");
-  if (testFrameworks.length > 0) {
-    lines.push(`        - ${yamlFlowScalar(`${pm === "pnpm" ? "pnpm" : "npx"} ${testFrameworks[0]} run`)}`);
-  } else {
-    lines.push(`        - ${yamlFlowScalar(`${pm} test`)}`);
-  }
+  lines.push(`        - ${yamlFlowScalar(testRunCommand(testFrameworks, pm))}`);
   lines.push("      coverage:");
   lines.push("        minimum: 80");
   lines.push("        report_format: lcov");
