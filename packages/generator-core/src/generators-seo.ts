@@ -705,6 +705,11 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
+    // Deterministic per-page meta scan — real gap findings, not "status: verify".
+    const gaps = analyzeSeoSurface(files);
+    const scannedPages = files.filter(f => isPageFile(f.path)).length;
+    lines.push(...renderSeoGaps(gaps, scannedPages));
+
     const contentFiles = findFiles(files, ["*.md", "*.mdx", "*.html", "*.htm"]);
     if (contentFiles.length > 0) {
       lines.push("## Detected Content Files");
@@ -739,6 +744,106 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
     program: "seo",
     description: "Content structure and SEO readiness audit",
   };
+}
+
+// ═══ Deterministic per-page meta-tag scan ═════════════════════════════════════
+// A grep + fixed-rule-table scan of page/layout files (no LLM, no injection —
+// fully reproducible). Turns the audit's "status: verify" placeholders into REAL
+// per-page findings: which pages are missing a title, meta description, canonical,
+// or Open Graph tags — the crawl/SERP gaps the type/test net won't surface.
+
+export type SeoGapClass = "ERROR" | "WARNING";
+
+export interface SeoGap {
+  file: string;
+  category: "no-title" | "no-description" | "no-canonical" | "no-og";
+  klass: SeoGapClass;
+  note: string;
+}
+
+/** True if `content` shows any of the framework signals for a given meta concern. */
+// A metadata MECHANISM (Next generateMetadata, SvelteKit svelte:head, react-
+// helmet, next/head <Head>) manages title+description together — its presence
+// clears both, so a page using it isn't flagged for a missing title/description.
+const META_MECHANISM = /generateMetadata|useHead|svelte:head|next\/head|react-helmet|<Head[\s>]/i;
+const SEO_SIGNALS = {
+  title: new RegExp(META_MECHANISM.source + "|<title[\\s>]|[\"']title[\"']\\s*:|document\\.title", "i"),
+  description: new RegExp(META_MECHANISM.source + "|name=[\"']description[\"']|<meta[^>]+description|\\bdescription\\s*[:=]", "i"),
+  canonical: /rel=["']canonical["']|["']canonical["']\s*:|alternates\s*:/i,
+  og: /og:|opengraph|open_graph|["']openGraph["']|twitter:card/i,
+};
+
+/**
+ * A real page/route file whose rendered HTML an agent/crawler sees — NOT a bare
+ * module barrel. `index.ts` is a barrel; `pages/index.tsx` is a page. So an
+ * `index`/component file counts only under a routing dir (pages/app/routes/views),
+ * alongside the unambiguous Next app-router `page.*`, SvelteKit `+page.*`, Next
+ * pages `_app`/`_document`, and static `.html`.
+ */
+export function isPageFile(path: string): boolean {
+  if (/\.(test|spec)\.[jt]sx?$/.test(path)) return false;
+  if (/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(path)) return false;
+  return (
+    /(^|\/)page\.(tsx|jsx|ts|js)$/.test(path) ||
+    /(^|\/)\+page\.(svelte|ts|js)$/.test(path) ||
+    /(^|\/)_(document|app)\.(tsx|jsx|ts|js)$/.test(path) ||
+    /\.html?$/i.test(path) ||
+    /(^|\/)(pages|app|routes|views)\/.*\.(tsx|jsx|vue|svelte)$/.test(path)
+  );
+}
+
+/** Static per-page meta scan of page/layout files (skips tests + generated dirs). Deterministic. */
+export function analyzeSeoSurface(files: SourceFile[]): SeoGap[] {
+  const out: SeoGap[] = [];
+  const pages = files
+    .filter(f => isPageFile(f.path))
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const f of pages) {
+    const c = f.content;
+    if (!SEO_SIGNALS.title.test(c)) out.push({ file: f.path, category: "no-title", klass: "ERROR", note: "no <title>/metadata signal — page needs a unique title" });
+    if (!SEO_SIGNALS.description.test(c)) out.push({ file: f.path, category: "no-description", klass: "ERROR", note: "no meta description signal — add one (≤160 chars)" });
+    if (!SEO_SIGNALS.canonical.test(c)) out.push({ file: f.path, category: "no-canonical", klass: "WARNING", note: "no canonical URL signal — set one to avoid duplicate-content dilution" });
+    if (!SEO_SIGNALS.og.test(c)) out.push({ file: f.path, category: "no-og", klass: "WARNING", note: "no Open Graph / Twitter card signal — poor social sharing preview" });
+  }
+  return out;
+}
+
+const SEO_GAP_ORDER: SeoGapClass[] = ["ERROR", "WARNING"];
+
+/** Render the deterministic meta-tag gap findings as markdown lines. */
+export function renderSeoGaps(gaps: SeoGap[], pageCount: number): string[] {
+  const lines: string[] = [];
+  lines.push("## Detected Meta-Tag Gaps (deterministic)");
+  lines.push("");
+  lines.push("> Static per-page scan — grep + a fixed rule table, **no AI**. `ERROR` = missing a crawl/SERP essential (title, description); `WARNING` = missing a social/duplicate-content signal (canonical, Open Graph).");
+  lines.push("");
+  if (pageCount === 0) {
+    lines.push("_No page/layout files detected to scan._");
+    lines.push("");
+    return lines;
+  }
+  if (gaps.length === 0) {
+    lines.push("_Every scanned page shows a title, description, canonical, and Open Graph signal._");
+    lines.push("");
+    return lines;
+  }
+  const tally = new Map<SeoGapClass, number>();
+  for (const g of gaps) tally.set(g.klass, (tally.get(g.klass) ?? 0) + 1);
+  lines.push("| Class | Count |");
+  lines.push("|-------|-------|");
+  for (const k of SEO_GAP_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
+  lines.push("");
+  const sorted = [...gaps].sort((a, b) =>
+    SEO_GAP_ORDER.indexOf(a.klass) - SEO_GAP_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.category.localeCompare(b.category));
+  lines.push("| Page | Category | Class | Note |");
+  lines.push("|------|----------|-------|------|");
+  for (const g of sorted.slice(0, 40)) {
+    lines.push(`| \`${mdCellCode(g.file)}\` | ${g.category} | ${g.klass} | ${g.note} |`);
+  }
+  if (sorted.length > 40) lines.push(`| … | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
 }
 
 // ─── meta-tag-audit.json ────────────────────────────────────────
