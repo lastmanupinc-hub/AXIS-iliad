@@ -34,10 +34,10 @@ describe("testRunCommand — one source of truth", () => {
 });
 
 describe("hasTypecheck", () => {
-  it("true for TS or a detected tsc, false otherwise", () => {
+  it("true when TypeScript is primary or among the detected languages, false otherwise", () => {
     expect(hasTypecheck(ctxWith({ primary_language: "TypeScript" }))).toBe(true);
-    expect(hasTypecheck(ctxWith({ primary_language: "Go", build_tools: ["tsc"] }))).toBe(true);
     expect(hasTypecheck(ctxWith({ primary_language: "Python", build_tools: [] }))).toBe(false);
+    expect(hasTypecheck(ctxWith({ primary_language: "Go", languages: [] }))).toBe(false);
   });
 });
 
@@ -72,5 +72,23 @@ describe("pipeline typecheck gate (#2 — no tsc for non-TS repos)", () => {
   });
   it("includes `tsc --noEmit` for a TypeScript repo", () => {
     expect(generateAutomationPipeline(ctxWith({ primary_language: "TypeScript" }), profile, []).content).toContain("tsc --noEmit");
+  });
+});
+
+describe("HARDEN-2 — pipeline robustness + mixed-language typecheck", () => {
+  it("the lint stage is never an empty `commands:` (a Python/no-eslint repo gets a fallback)", () => {
+    const pipe = generateAutomationPipeline(ctxWith({ primary_language: "Python", build_tools: [], test_frameworks: [] }), profile, []).content;
+    const y = parse(pipe) as { pipeline: { stages: Array<{ name: string; commands: unknown }> } };
+    const lint = y.pipeline.stages.find((s) => s.name === "lint");
+    expect(Array.isArray(lint?.commands)).toBe(true);
+    expect((lint?.commands as string[]).length).toBeGreaterThan(0);
+  });
+  it("hasTypecheck is true when TypeScript is present but not primary (mixed JS+TS repo)", () => {
+    const ctx = ctxWith({ primary_language: "JavaScript", languages: [
+      { name: "JavaScript", file_count: 5, loc: 500, loc_percent: 70 },
+      { name: "TypeScript", file_count: 2, loc: 200, loc_percent: 30 },
+    ] as ContextMap["detection"]["languages"] });
+    expect(hasTypecheck(ctx)).toBe(true);
+    expect(generateAutomationPipeline(ctx, profile, []).content).toContain("tsc --noEmit");
   });
 });

@@ -2258,7 +2258,7 @@ describe("Superpowers workflow and refactor branches", () => {
     expect(f).toBeDefined();
     expect(f!.content).toContain("~/.pnpm-store");
     expect(f!.content).toContain("pnpm eslint");
-    expect(f!.content).toContain("pnpm vitest run");
+    expect(f!.content).toContain("npx vitest run"); // unified via testRunCommand (Program 9 DEVELOP)
   });
 
   it("automation-pipeline: uses npm fallback when no test framework", () => {
@@ -4077,7 +4077,7 @@ describe("Layer 6 branch coverage", () => {
       expect(f).toBeDefined();
       expect(f!.content).toContain("pnpm install");
       expect(f!.content).toContain("pnpm eslint");
-      expect(f!.content).toContain("pnpm vitest run");
+      expect(f!.content).toContain("npx vitest run"); // unified via testRunCommand (Program 9 DEVELOP)
       expect(f!.content).toContain("~/.pnpm-store");
     });
 

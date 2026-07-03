@@ -17,9 +17,14 @@ export function testRunCommand(testFrameworks: string[], pkgMgr: string): string
   return `${pkgMgr} test`;
 }
 
-/** Whether a `tsc --noEmit` typecheck stage applies (don't emit it for non-TS repos). */
+/**
+ * Whether a `tsc --noEmit` typecheck stage applies — don't emit it for non-TS
+ * repos. TypeScript can be the PRIMARY language or just present among the detected
+ * languages (a primary-JS repo with .ts files + a tsconfig legitimately runs tsc).
+ */
 export function hasTypecheck(ctx: ContextMap): boolean {
-  return ctx.detection.build_tools.includes("tsc") || /typescript/i.test(ctx.project_identity.primary_language);
+  return /typescript/i.test(ctx.project_identity.primary_language) ||
+    ctx.detection.languages.some(l => /typescript/i.test(l.name));
 }
 
 // ─── superpower-pack.md ─────────────────────────────────────────
@@ -614,11 +619,15 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       if (exports.length === 0) continue;
       // Match a test file by the source's STEM with a boundary, so `api.ts` is not
       // marked tested by an unrelated `api-client.test.ts` (substring false match).
+      // Also require directory affinity (same dir or a subdir like __tests__), so
+      // `a/index.ts` and `b/index.ts` don't both get claimed by one `a/index.test.ts`.
       const stem = sf.path.replace(/\.[^.]+$/, "").split("/").pop() ?? "";
+      const dir = sf.path.includes("/") ? sf.path.slice(0, sf.path.lastIndexOf("/")) : "";
       const hasTest = stem.length > 0 && testFiles.some(tf => {
         const tb = tf.path.split("/").pop() ?? "";
-        return tb.startsWith(`${stem}.test.`) || tb.startsWith(`${stem}.spec.`) ||
+        const nameMatch = tb.startsWith(`${stem}.test.`) || tb.startsWith(`${stem}.spec.`) ||
           tb.startsWith(`test_${stem}.`) || tb.startsWith(`${stem}_test.`);
+        return nameMatch && (dir === "" || tf.path.startsWith(`${dir}/`));
       });
       if (!hasTest) {
         untestedExports.push(`\`${mdCode(sf.path)}\` — ${mdText(exports.join(", "))}`);
@@ -898,17 +907,17 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push(`        paths: [${pm === "pnpm" ? "~/.pnpm-store" : "node_modules"}]`);
   lines.push("");
 
-  // Stage 2: Lint
+  // Stage 2: Lint — collect commands so the block is never empty (an empty
+  // `commands:` for a repo with no eslint and no typecheck would emit `null`).
+  const lintCmds: string[] = [];
+  if (buildTools.includes("eslint")) lintCmds.push(`${pm === "pnpm" ? "pnpm" : "npx"} eslint .`);
+  if (hasTypecheck(ctx)) lintCmds.push(`${pm === "pnpm" ? "pnpm" : "npx"} tsc --noEmit`);
+  if (lintCmds.length === 0) lintCmds.push('echo "No linter/typechecker detected — add one before enabling this stage"');
   lines.push("    - name: lint");
   lines.push("      description: Static analysis and linting");
   lines.push("      depends_on: [install]");
   lines.push("      commands:");
-  if (buildTools.includes("eslint")) {
-    lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} eslint .`);
-  }
-  if (hasTypecheck(ctx)) {
-    lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} tsc --noEmit`);
-  }
+  for (const c of lintCmds) lines.push(`        - ${yamlFlowScalar(c)}`);
   lines.push("      fail_fast: true");
   lines.push("");
 

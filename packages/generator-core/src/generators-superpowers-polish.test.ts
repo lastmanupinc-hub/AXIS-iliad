@@ -35,6 +35,19 @@ describe("Untested Exports — boundary-aware test matching (POLISH)", () => {
   it("does NOT flag user.ts — user.test.ts is its real test", () => {
     expect(section).not.toContain("src/user.ts");
   });
+  it("HARDEN-2: same-basename files in different dirs don't share one test", () => {
+    // packages/a and packages/b both have index.ts; only a/ has a test.
+    // b/index.ts must still be flagged untested (directory affinity).
+    const twoPkgs: SourceFile[] = [
+      sf("packages/a/src/index.ts", "export function a() {}"),
+      sf("packages/a/src/index.test.ts", "test('a', () => {})"),
+      sf("packages/b/src/index.ts", "export function b() {}"),
+    ];
+    const out = generateTestGenerationRules(baseCtx(), twoPkgs).content;
+    const sec = out.split("## Untested Exports")[1] ?? "";
+    expect(sec).toContain("packages/b/src/index.ts"); // b has no test of its own
+    expect(sec).not.toContain("packages/a/src/index.ts"); // a is tested
+  });
 });
 
 describe("refactor-checklist — honest empty hotspot state (POLISH)", () => {
