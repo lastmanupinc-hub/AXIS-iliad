@@ -194,16 +194,29 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
+    // Real, quantified bloat findings — the concrete version of the static
+    // "Low-Value Files" list above.
+    lines.push(...renderContextBloat(analyzeContextBloat(files)));
+
     const configs = findConfigs(files);
     if (configs.length > 0) {
       lines.push(...renderExcerpts("Configuration Files (Include in Prompts)", configs.slice(0, 4), 20));
     }
 
+    // Cap the tree: an "optimization" doc that preaches "exclude low-value files"
+    // shouldn't itself dump all N files. Show the first 40 + a count. Fence is
+    // sized longer than any backtick run in the content so a path containing
+    // backticks can't close it early (CommonMark) — the same guard as excerpt().
+    const treeLines = fileTree(files).split("\n");
+    const TREE_CAP = 40;
+    const shownTree = treeLines.slice(0, TREE_CAP).join("\n");
+    const overflow = treeLines.length > TREE_CAP ? `\n... and ${treeLines.length - TREE_CAP} more files (see context-map.json for the full tree)` : "";
+    const treeBody = shownTree + overflow;
+    const longestRun = (treeBody.match(/`+/g) ?? []).reduce((m, r) => Math.max(m, r.length), 0);
+    const fence = "`".repeat(Math.max(3, longestRun + 1));
     lines.push("## File Tree");
     lines.push("");
-    lines.push("```");
-    lines.push(fileTree(files));
-    lines.push("```");
+    lines.push(`${fence}\n${treeBody}\n${fence}`);
     lines.push("");
 
     // Show hotspot file excerpts based on dependency graph
@@ -224,6 +237,99 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
     program: "optimization",
     description: "Prompt and context efficiency rules based on project analysis",
   };
+}
+
+// ═══ Deterministic context-bloat scan ════════════════════════════════════════
+// A grep + rule-table scan of the ACTUAL uploaded files that quantifies which
+// low-signal files inflate token cost (build output, lockfiles, minified
+// bundles, snapshots, oversized files) and how much excluding them saves — the
+// concrete version of the static "exclude these" list. No LLM, deterministic.
+
+const TOKENS_PER_LINE = 4.5;
+
+export interface BloatFinding {
+  path: string;
+  tokens: number;
+  reason: "generated/build output" | "dependency lockfile" | "minified bundle" | "test snapshot/fixture" | "vendored dependency" | "oversized file (>6K tokens)";
+}
+
+/** Estimate a file's tokens from its line count (the same 4.5 tok/line heuristic used elsewhere). */
+function fileTokens(f: SourceFile): number {
+  return Math.round(f.content.split("\n").length * TOKENS_PER_LINE);
+}
+
+/** Whether a finding is SAFE to exclude wholesale (vs. an oversized real source file that may be needed). */
+function isExcludable(reason: BloatFinding["reason"]): boolean {
+  return reason !== "oversized file (>6K tokens)";
+}
+
+/**
+ * Static context-bloat scan of the uploaded files. Deterministic (code-unit sort).
+ * `bloatTokens` counts only SAFE-to-exclude files (build output, lockfiles,
+ * minified, snapshots, vendored) — NOT oversized source files, which are flagged
+ * for review (you may genuinely need `handlers.ts` in context; blindly excluding
+ * real logic to save tokens is bad advice, so it's not in the "savings" figure).
+ */
+export function analyzeContextBloat(files: SourceFile[]): { findings: BloatFinding[]; totalTokens: number; bloatTokens: number } {
+  const findings: BloatFinding[] = [];
+  let totalTokens = 0;
+  for (const f of files) {
+    const tokens = fileTokens(f);
+    totalTokens += tokens;
+    let reason: BloatFinding["reason"] | null = null;
+    if (/(^|\/)(dist|build|out|\.next|\.turbo|coverage)\//.test(f.path)) reason = "generated/build output";
+    else if (/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$|\.lock$/.test(f.path)) reason = "dependency lockfile";
+    else if (/\.min\.(js|css)$/.test(f.path)) reason = "minified bundle";
+    else if (/(^|\/)(__snapshots__)\/|\.snap$/.test(f.path) || /(^|\/)(fixtures?|__fixtures__)\//.test(f.path)) reason = "test snapshot/fixture";
+    else if (/(^|\/)(vendor|vendored|third[_-]?party)\//.test(f.path)) reason = "vendored dependency";
+    else if (tokens > 6000) reason = "oversized file (>6K tokens)";
+    if (reason) findings.push({ path: f.path, tokens, reason });
+  }
+  findings.sort((a, b) => b.tokens - a.tokens || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  const bloatTokens = findings.filter(f => isExcludable(f.reason)).reduce((s, f) => s + f.tokens, 0);
+  return { findings, totalTokens, bloatTokens };
+}
+
+/** Render the context-bloat findings as markdown lines. */
+export function renderContextBloat(scan: { findings: BloatFinding[]; totalTokens: number; bloatTokens: number }): string[] {
+  const lines: string[] = [];
+  lines.push("## Context Bloat (deterministic)");
+  lines.push("");
+  lines.push("> Static scan of the uploaded files — grep + a rule table, **no AI**. These low-signal files inflate prompt token cost; exclude them from context.");
+  lines.push("");
+  if (scan.findings.length === 0) {
+    lines.push("_No build output, lockfiles, minified bundles, snapshots, or oversized files detected — the context is already lean._");
+    lines.push("");
+    return lines;
+  }
+  const excludable = scan.findings.filter(f => isExcludable(f.reason));
+  const oversized = scan.findings.filter(f => !isExcludable(f.reason));
+  if (excludable.length > 0) {
+    const pct = scan.totalTokens > 0 ? Math.round((scan.bloatTokens / scan.totalTokens) * 100) : 0;
+    lines.push(`**Excluding these ${excludable.length} low-signal file(s) removes ~${scan.bloatTokens.toLocaleString("en-US")} tokens (${pct}% of the ~${scan.totalTokens.toLocaleString("en-US")} total) — safe to drop from prompts.**`);
+    lines.push("");
+    lines.push("| File | ~Tokens | Reason |");
+    lines.push("|------|---------|--------|");
+    for (const f of excludable.slice(0, 30)) {
+      lines.push(`| \`${mdCellCode(f.path)}\` | ${f.tokens.toLocaleString("en-US")} | ${f.reason} |`);
+    }
+    if (excludable.length > 30) lines.push(`| *… ${excludable.length - 30} more* | | |`);
+    lines.push("");
+  }
+  if (oversized.length > 0) {
+    lines.push("### Oversized source files (review — don't blindly exclude)");
+    lines.push("");
+    lines.push("These are large but likely real source. Include them SELECTIVELY (only when relevant) or split them — don't drop needed logic just to save tokens.");
+    lines.push("");
+    lines.push("| File | ~Tokens |");
+    lines.push("|------|---------|");
+    for (const f of oversized.slice(0, 15)) {
+      lines.push(`| \`${mdCellCode(f.path)}\` | ${f.tokens.toLocaleString("en-US")} |`);
+    }
+    if (oversized.length > 15) lines.push(`| *… ${oversized.length - 15} more* | |`);
+    lines.push("");
+  }
+  return lines;
 }
 
 // ─── prompt-diff-report.md ──────────────────────────────────────

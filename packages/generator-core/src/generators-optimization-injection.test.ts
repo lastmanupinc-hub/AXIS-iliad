@@ -80,6 +80,26 @@ describe("cost-estimate.json — contained by JSON.stringify", () => {
   });
 });
 
+describe("optimization-rules File Tree — capped + fence-safe (POLISH)", () => {
+  it("caps the file tree and notes the remainder (an optimization doc shouldn't dump every file)", () => {
+    const files: SourceFile[] = Array.from({ length: 55 }, (_, i) => ({ path: `src/f${i}.ts`, content: "x", size: 10 }) as SourceFile);
+    const out = generateOptimizationRules(hostileCtx(), files).content;
+    expect(out).toContain("## File Tree");
+    expect(out).toContain("more files (see context-map.json");
+    // fewer than 55 path lines rendered in the tree block
+    const treeBlock = out.split("## File Tree")[1] ?? "";
+    expect(treeBlock.split("\n").filter((l) => /\.ts \(/.test(l)).length).toBeLessThanOrEqual(40);
+  });
+  it("a file path containing a backtick run cannot close the tree fence early", () => {
+    const files: SourceFile[] = [{ path: "src/ev```il.ts", content: "x", size: 10 } as SourceFile];
+    const out = generateOptimizationRules(hostileCtx(), files).content;
+    const idx = out.indexOf("## File Tree");
+    const after = out.slice(idx);
+    // the opening fence is >3 backticks so the interior ``` renders literally
+    expect(after).toMatch(/````+\n/); // 4+ backtick fence
+  });
+});
+
 describe("optimization — determinism + no shared-ctx mutation", () => {
   it("does not reorder the shared ctx.dependency_graph.hotspots across generators", () => {
     const ctx = hostileCtx();
