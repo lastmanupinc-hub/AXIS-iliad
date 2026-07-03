@@ -626,12 +626,14 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
     }
   }
 
-  // Hotspot-derived feature highlights
+  // Hotspot-derived feature highlights. risk_score is a 0–1 fraction
+  // (engine.ts: min(total/20, 1)) — it IS the visual weight; the old /10
+  // squashed everything to ≤0.1 and the 0–10 thresholds never fired.
   const featureHighlights = hotspots.slice(0, 5).map(h => ({
     source_file: h.path,
     risk_score: h.risk_score,
-    visual_weight: Math.min(h.risk_score / 10, 1.0),
-    suggested_emphasis: h.risk_score > 7 ? "glow" : h.risk_score > 4 ? "border" : "subtle",
+    visual_weight: h.risk_score,
+    suggested_emphasis: h.risk_score > 0.7 ? "glow" : h.risk_score > 0.4 ? "border" : "subtle",
   }));
 
   // Abstraction-derived labels

@@ -881,12 +881,14 @@ describe("No-Tailwind styling branches", () => {
  */
 function withRichContext(inp: GeneratorInput): GeneratorInput {
   const ctx = inp.context_map;
+  // Engine-realistic 0–1 risk scores (engine.ts: min(total_connections/20, 1)),
+  // spread across the high (>0.7) / medium (>0.4) / low tiers.
   ctx.dependency_graph.hotspots = [
-    { path: "src/database/connection.ts", inbound_count: 12, outbound_count: 3, risk_score: 8.5 },
-    { path: "src/auth/middleware.ts", inbound_count: 8, outbound_count: 6, risk_score: 5.2 },
-    { path: "src/utils/helpers.ts", inbound_count: 15, outbound_count: 1, risk_score: 3.0 },
-    { path: "src/api/router.ts", inbound_count: 4, outbound_count: 9, risk_score: 6.8 },
-    { path: "src/models/user.ts", inbound_count: 7, outbound_count: 2, risk_score: 4.1 },
+    { path: "src/database/connection.ts", inbound_count: 12, outbound_count: 3, risk_score: 0.85 },
+    { path: "src/auth/middleware.ts", inbound_count: 8, outbound_count: 6, risk_score: 0.52 },
+    { path: "src/utils/helpers.ts", inbound_count: 15, outbound_count: 1, risk_score: 0.3 },
+    { path: "src/api/router.ts", inbound_count: 4, outbound_count: 9, risk_score: 0.68 },
+    { path: "src/models/user.ts", inbound_count: 7, outbound_count: 2, risk_score: 0.41 },
   ];
   ctx.entry_points = [
     { path: "src/index.ts", type: "app_entry", description: "Application entry point" },
@@ -925,11 +927,11 @@ describe("Hotspot branches (remotion, algorithmic, obsidian, artifacts)", () => 
     const f = getFile(result, "storyboard.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("Hotspots:");
-    // risk_score > 7 → 🔴
+    // risk_score > 0.7 → 🔴
     expect(f!.content).toContain("🔴");
-    // risk_score 4-7 → 🟡
+    // risk_score 0.4–0.7 → 🟡
     expect(f!.content).toContain("🟡");
-    // risk_score < 4 → 🟢
+    // risk_score ≤ 0.4 → 🟢
     expect(f!.content).toContain("🟢");
   });
 
@@ -938,7 +940,7 @@ describe("Hotspot branches (remotion, algorithmic, obsidian, artifacts)", () => 
     expect(f).toBeDefined();
     expect(f!.content).toContain("Brightest stars");
     expect(f!.content).toContain("src/database/connection.ts");
-    expect(f!.content).toContain("risk: 8.5");
+    expect(f!.content).toContain("risk: 0.8"); // raw 0–1 score echoed via toFixed(1)
   });
 
   it("obsidian: renders code-to-vault mapping table", () => {
@@ -963,7 +965,7 @@ describe("Hotspot branches (remotion, algorithmic, obsidian, artifacts)", () => 
     expect(f).toBeDefined();
     expect(f!.content).toContain("| Path | Inbound | Outbound | Risk |");
     expect(f!.content).toContain("src/database/connection.ts");
-    expect(f!.content).toContain("8.5");
+    expect(f!.content).toContain("| 12 | 3 | 0.8 |"); // raw 0–1 score echoed via toFixed(1)
   });
 
   it("artifacts: renders dependencies list", () => {
@@ -1125,11 +1127,11 @@ describe("Algorithmic variation-matrix branches", () => {
 
   it("variation-matrix: hotspot emphasis tiers (glow/border/subtle)", () => {
     const inp = input(sNoLangs, ["variation-matrix.json"]);
-    // Inject hotspots with different risk tiers
+    // Inject hotspots with different risk tiers (engine-realistic 0–1 scores)
     inp.context_map.dependency_graph.hotspots = [
-      { path: "high.ts", inbound_count: 10, outbound_count: 5, risk_score: 8.5 },
-      { path: "med.ts", inbound_count: 5, outbound_count: 3, risk_score: 5.0 },
-      { path: "low.ts", inbound_count: 2, outbound_count: 1, risk_score: 2.0 },
+      { path: "high.ts", inbound_count: 10, outbound_count: 5, risk_score: 0.85 },
+      { path: "med.ts", inbound_count: 5, outbound_count: 3, risk_score: 0.5 },
+      { path: "low.ts", inbound_count: 2, outbound_count: 1, risk_score: 0.2 },
     ];
     const result = generateFiles(inp);
     const f = getFile(result, "variation-matrix.json");
@@ -2180,15 +2182,15 @@ describe("Superpowers workflow and refactor branches", () => {
     ]});
     const inp = input(s, ["refactor-checklist.md"]);
     inp.context_map.dependency_graph.hotspots = [
-      { path: "god.ts", inbound_count: 20, outbound_count: 15, risk_score: 8.5 },
-      { path: "mid.ts", inbound_count: 5, outbound_count: 3, risk_score: 3.0 },
+      { path: "god.ts", inbound_count: 20, outbound_count: 15, risk_score: 0.85 },
+      { path: "mid.ts", inbound_count: 5, outbound_count: 3, risk_score: 0.3 },
     ];
     const result = generateFiles(inp);
     const f = getFile(result, "refactor-checklist.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("High-Risk Files");
     expect(f!.content).toContain("god.ts");
-    expect(f!.content).toContain("8.5");
+    expect(f!.content).toContain("85%");
   });
 
   it("refactor-checklist: shows architecture patterns when present", () => {
@@ -4266,7 +4268,7 @@ describe("Layer 6 branch coverage", () => {
       const s = snap({ files: REACT_SPA_FILES });
       const inp = input(s, ["refactor-checklist.md"]);
       inp.context_map.dependency_graph.hotspots.push(
-        { path: "src/util.ts", risk_score: 2.0, inbound_count: 3, outbound_count: 5 }
+        { path: "src/util.ts", risk_score: 0.2, inbound_count: 3, outbound_count: 5 }
       );
       const result = generateFiles(inp);
       const f = getFile(result, "refactor-checklist.md");

@@ -3,6 +3,7 @@ import { extractSymbols } from "@axis/snapshots";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt, extractExports } from "./file-excerpt-utils.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+import { mdInline } from "./md-sanitize.js";
 
 export function generateContextMapJSON(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const enriched: Record<string, unknown> = { ...ctx };
@@ -43,9 +44,13 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
   const lines: string[] = [];
   const id = ctx.project_identity;
 
-  lines.push(`# Architecture Summary: ${id.name}`);
+  // Repo-derived strings (names, paths, descriptions) are sanitized via mdInline
+  // at every markdown STRUCTURAL position (headings, table cells, list items) —
+  // a hostile project name or file path must never inject markdown structure
+  // (SPEC-10 class; backticks do NOT protect against '|' inside GFM table cells).
+  lines.push(`# Architecture Summary: ${mdInline(id.name)}`);
   lines.push("");
-  lines.push(`> ${id.description ?? id.type.replace(/_/g, " ")}`);
+  lines.push(`> ${mdInline(id.description ?? id.type.replace(/_/g, " "))}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
@@ -61,7 +66,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -81,7 +86,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("");
     for (const fw of ctx.detection.frameworks) {
       const pct = Math.round(fw.confidence * 100);
-      lines.push(`- **${fw.name}** ${fw.version ?? ""} (${pct}% confidence)`);
+      lines.push(`- **${mdInline(fw.name)}** ${fw.version ? mdInline(fw.version) : ""} (${pct}% confidence)`);
     }
     lines.push("");
   }
@@ -105,7 +110,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Layer | Directories |");
     lines.push("|-------|------------|");
     for (const l of arch.layer_boundaries) {
-      lines.push(`| ${l.layer} | ${l.directories.join(", ")} |`);
+      lines.push(`| ${mdInline(l.layer)} | ${mdInline(l.directories.join(", "))} |`);
     }
     lines.push("");
   }
@@ -117,7 +122,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Method | Path | Source |");
     lines.push("|--------|------|--------|");
     for (const r of ctx.routes) {
-      lines.push(`| ${r.method} | \`${r.path}\` | ${r.source_file} |`);
+      lines.push(`| ${mdInline(r.method)} | \`${mdInline(r.path)}\` | ${mdInline(r.source_file)} |`);
     }
     lines.push("");
   }
@@ -127,7 +132,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("## Entry Points");
     lines.push("");
     for (const ep of ctx.entry_points) {
-      lines.push(`- **${ep.type}:** \`${ep.path}\` — ${ep.description}`);
+      lines.push(`- **${mdInline(ep.type)}:** \`${mdInline(ep.path)}\` — ${mdInline(ep.description)}`);
     }
     lines.push("");
   }
@@ -136,7 +141,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
   lines.push("## Directory Layout");
   lines.push("");
   for (const dir of ctx.structure.top_level_layout) {
-    lines.push(`- \`${dir.name}/\` — ${dir.purpose} (${dir.file_count} files)`);
+    lines.push(`- \`${mdInline(dir.name)}/\` — ${mdInline(dir.purpose)} (${dir.file_count} files)`);
   }
   lines.push("");
 
@@ -148,7 +153,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| File | Inbound | Outbound | Risk |");
     lines.push("|------|---------|----------|------|");
     for (const h of hotspots) {
-      lines.push(`| ${h.path} | ${h.inbound_count} | ${h.outbound_count} | ${(h.risk_score * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(h.path)} | ${h.inbound_count} | ${h.outbound_count} | ${(h.risk_score * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -162,7 +167,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Model | Kind | Fields | Source |");
     lines.push("|-------|------|--------|--------|");
     for (const m of ctx.domain_models.slice(0, 25)) {
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | ${m.source_file} |`);
+      lines.push(`| \`${mdInline(m.name)}\` | ${m.kind} | ${m.field_count} | ${mdInline(m.source_file)} |`);
     }
     if (ctx.domain_models.length > 25) {
       lines.push(`| *… ${ctx.domain_models.length - 25} more* | | | |`);
@@ -170,7 +175,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("");
     const complex = ctx.domain_models.filter(m => m.field_count >= 8);
     if (complex.length > 0) {
-      lines.push(`> **High-complexity models** (8+ fields): ${complex.map(m => `\`${m.name}\``).join(", ")} — consider splitting if they grow further.`);
+      lines.push(`> **High-complexity models** (8+ fields): ${complex.map(m => `\`${mdInline(m.name)}\``).join(", ")} — consider splitting if they grow further.`);
       lines.push("");
     }
   }
@@ -182,7 +187,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("| Table | Columns | Foreign Keys |");
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 20)) {
-      lines.push(`| \`${t.name}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+      lines.push(`| \`${mdInline(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
     }
     lines.push("");
   }
@@ -206,7 +211,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("## Conventions");
     lines.push("");
     for (const c of ai.conventions) {
-      lines.push(`- ${c}`);
+      lines.push(`- ${mdInline(c)}`);
     }
     lines.push("");
   }
@@ -215,7 +220,7 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
     lines.push("## Warnings");
     lines.push("");
     for (const w of ai.warnings) {
-      lines.push(`- ⚠️ ${w}`);
+      lines.push(`- ⚠️ ${mdInline(w)}`);
     }
     lines.push("");
   }
@@ -250,6 +255,27 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
 }
 
 // Minimal YAML serializer (no external deps) — handles the flat/nested structures in RepoProfile
+
+// A string that a YAML parser would read back as a NON-string (null/bool/number)
+// must be quoted even when it looks "bare-safe", or the value type-corrupts on
+// round-trip (e.g. version "1.0" parsing as the float 1).
+function isAmbiguousScalar(s: string): boolean {
+  return /^(null|~|true|false|yes|no|on|off)$/i.test(s) || /^-?\d+(\.\d+)?$/.test(s);
+}
+
+// YAML double-quoted scalar with ALL unsafe characters escaped. A bare backslash
+// inside "..." starts a YAML escape sequence (\U, \x, …) — an unescaped Windows
+// path like "C:\Users\x" is INVALID YAML, and a raw newline inside quotes folds
+// or breaks the document. Escaping keeps output single-line and round-trip-exact.
+function quoteYAML(s: string): string {
+  return `"${s
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t")}"`;
+}
+
 function toYAML(obj: unknown, indent: number = 0): string {
   const prefix = "  ".repeat(indent);
   /* v8 ignore next — toYAML only called recursively with objects/arrays; null unreachable */
@@ -260,7 +286,7 @@ function toYAML(obj: unknown, indent: number = 0): string {
     if (obj.includes("\n") || obj.includes(": ") || obj.startsWith("#")) {
       return `${prefix}|\n${obj.split("\n").map(l => `${prefix}  ${l}`).join("\n")}\n`;
     }
-    return /^[\w./-]+$/.test(obj) ? `${prefix}${obj}\n` : `${prefix}"${obj.replace(/"/g, '\\"')}"\n`;
+    return /^[\w./-]+$/.test(obj) && !isAmbiguousScalar(obj) ? `${prefix}${obj}\n` : `${prefix}${quoteYAML(obj)}\n`;
     /* v8 ignore stop */
   }
   /* v8 ignore next — toYAML only called recursively with objects/arrays; primitives unreachable */
@@ -270,6 +296,8 @@ function toYAML(obj: unknown, indent: number = 0): string {
     return obj.map(item => {
       if (typeof item === "object" && item !== null && !Array.isArray(item)) {
         const entries = Object.entries(item);
+        // An empty object in an array position must not crash the serializer.
+        if (entries.length === 0) return `${prefix}- {}`;
         const firstLine = `${prefix}- ${entries[0][0]}: ${serializeValue(entries[0][1])}`;
         const rest = entries.slice(1).map(([k, v]) => {
           if (typeof v === "object" && v !== null) {
@@ -301,8 +329,8 @@ function toYAML(obj: unknown, indent: number = 0): string {
 function serializeValue(v: unknown): string {
   if (v === null || v === undefined) return "null";
   if (typeof v === "string") {
-    if (/^[\w./-]+$/.test(v)) return v;
-    return `"${v.replace(/"/g, '\\"')}"`;
+    if (/^[\w./-]+$/.test(v) && !isAmbiguousScalar(v)) return v;
+    return quoteYAML(v);
   }
   return String(v);
 }
@@ -315,7 +343,7 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   const deps = ctx.dependency_graph.external_dependencies;
 
   const lines: string[] = [];
-  lines.push(`# Dependency Hotspots — ${id.name}`);
+  lines.push(`# Dependency Hotspots — ${mdInline(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -333,21 +361,25 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
 
   lines.push("## Risk Summary");
   lines.push("");
-  const highRisk = hotspots.filter(h => h.risk_score > 7);
-  const medRisk = hotspots.filter(h => h.risk_score > 4 && h.risk_score <= 7);
-  const lowRisk = hotspots.filter(h => h.risk_score <= 4);
+  // risk_score is a 0–1 fraction (engine.ts: min(total_connections/20, 1)) —
+  // rendered as a percentage, matching architecture-summary.md. The previous
+  // >7 / >4 thresholds assumed a 0–10 scale and could NEVER fire, so every
+  // report showed all-green regardless of coupling.
+  const highRisk = hotspots.filter(h => h.risk_score > 0.7);
+  const medRisk = hotspots.filter(h => h.risk_score > 0.4 && h.risk_score <= 0.7);
+  const lowRisk = hotspots.filter(h => h.risk_score <= 0.4);
   lines.push(`| Severity | Count |`);
   lines.push(`|----------|-------|`);
-  lines.push(`| High (>7) | ${highRisk.length} |`);
-  lines.push(`| Medium (4–7) | ${medRisk.length} |`);
-  lines.push(`| Low (≤4) | ${lowRisk.length} |`);
+  lines.push(`| High (>70%) | ${highRisk.length} |`);
+  lines.push(`| Medium (40–70%) | ${medRisk.length} |`);
+  lines.push(`| Low (≤40%) | ${lowRisk.length} |`);
   lines.push(`| **Total** | **${hotspots.length}** |`);
   lines.push("");
 
@@ -358,8 +390,8 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
     lines.push("|------|------|---------|----------|-------------------|");
     const sorted = [...hotspots].sort((a, b) => b.risk_score - a.risk_score);
     for (const h of sorted) {
-      const severity = h.risk_score > 7 ? "🔴" : h.risk_score > 4 ? "🟡" : "🟢";
-      lines.push(`| \`${h.path}\` | ${severity} ${h.risk_score.toFixed(1)} | ${h.inbound_count} | ${h.outbound_count} | ${h.inbound_count + h.outbound_count} |`);
+      const severity = h.risk_score > 0.7 ? "🔴" : h.risk_score > 0.4 ? "🟡" : "🟢";
+      lines.push(`| \`${mdInline(h.path)}\` | ${severity} ${(h.risk_score * 100).toFixed(0)}% | ${h.inbound_count} | ${h.outbound_count} | ${h.inbound_count + h.outbound_count} |`);
     }
   } else {
     lines.push("No hotspots detected — dependency graph has no high-coupling files.");
@@ -369,12 +401,12 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
   lines.push("## Coupling Analysis");
   lines.push("");
   for (const h of hotspots.slice(0, 5)) {
-    lines.push(`### \`${h.path}\``);
+    lines.push(`### \`${mdInline(h.path)}\``);
     lines.push("");
-    lines.push(`- **Risk Score**: ${h.risk_score.toFixed(1)}/10`);
+    lines.push(`- **Risk Score**: ${(h.risk_score * 100).toFixed(0)}%`);
     lines.push(`- **Inbound**: ${h.inbound_count} files depend on this`);
     lines.push(`- **Outbound**: ${h.outbound_count} dependencies`);
-    lines.push(`- **Refactor Priority**: ${h.risk_score > 7 ? "HIGH — extract interface or split module" : h.risk_score > 4 ? "MEDIUM — monitor for growth" : "LOW — acceptable coupling"}`);
+    lines.push(`- **Refactor Priority**: ${h.risk_score > 0.7 ? "HIGH — extract interface or split module" : h.risk_score > 0.4 ? "MEDIUM — monitor for growth" : "LOW — acceptable coupling"}`);
     lines.push("");
   }
 
@@ -384,9 +416,12 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
     lines.push("| Package | Version | Risk Factor |");
     lines.push("|---------|---------|-------------|");
     for (const d of deps.slice(0, 15)) {
-      const majorVersion = parseInt(d.version.replace(/[^0-9]/, ""), 10);
+      // Strip only LEADING non-digits ("^1.2.3" → 1) so parseInt stops at the
+      // first dot. The old /[^0-9]/ (no /g) removed the FIRST non-digit anywhere,
+      // turning "0.21.5" into "021.5" → major 21 → a pre-1.0 dep called Stable.
+      const majorVersion = parseInt(d.version.replace(/^[^0-9]*/, ""), 10);
       const risk = majorVersion < 1 ? "Pre-1.0 — unstable API" : "Stable";
-      lines.push(`| ${d.name} | ${d.version} | ${risk} |`);
+      lines.push(`| ${mdInline(d.name)} | ${mdInline(d.version)} | ${risk} |`);
     }
   } else {
     lines.push("No external dependencies detected.");
@@ -395,14 +430,18 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
 
   lines.push("## Recommendations");
   lines.push("");
+  // Counter-based numbering: the old arithmetic used FILE counts as item
+  // numbers, producing gaps (e.g. "1. 2. 3. 6.") once the severity buckets
+  // became reachable again.
+  let recNum = 1;
   if (highRisk.length > 0) {
-    lines.push("1. **Extract interfaces** for files with >7 risk score to reduce direct coupling");
-    lines.push("2. **Introduce facade pattern** where inbound count exceeds 5");
+    lines.push(`${recNum++}. **Extract interfaces** for files with >70% risk score to reduce direct coupling`);
+    lines.push(`${recNum++}. **Introduce facade pattern** where inbound count exceeds 5`);
   }
   if (medRisk.length > 0) {
-    lines.push(`${highRisk.length > 0 ? "3" : "1"}. **Monitor medium-risk files** — add import lint rules to prevent further coupling`);
+    lines.push(`${recNum++}. **Monitor medium-risk files** — add import lint rules to prevent further coupling`);
   }
-  lines.push(`${highRisk.length + medRisk.length > 0 ? highRisk.length + medRisk.length + 1 : 1}. **Review circular dependencies** in the import graph`);
+  lines.push(`${recNum++}. **Review circular dependencies** in the import graph`);
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -416,10 +455,10 @@ export function generateDependencyHotspots(ctx: ContextMap, files?: SourceFile[]
       for (const tf of topFiles) {
         const exports = extractExports(tf.content);
         if (exports.length > 0) {
-          lines.push(`### \`${tf.path}\``);
+          lines.push(`### \`${mdInline(tf.path)}\``);
           lines.push("");
           for (const e of exports.slice(0, 12)) {
-            lines.push(`- \`${e}\``);
+            lines.push(`- \`${mdInline(e)}\``);
           }
           lines.push("");
         }

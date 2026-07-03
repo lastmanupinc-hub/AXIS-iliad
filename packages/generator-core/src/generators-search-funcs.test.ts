@@ -1,9 +1,13 @@
 import { describe, it, expect } from "vitest";
+// Test-only YAML parser for round-trip fidelity assertions (hoisted transitive
+// dep of the toolchain — NOT a runtime dependency of generator-core).
+import { parse as parseYAML } from "yaml";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import {
   generateDependencyHotspots,
   generateArchitectureSummary,
   generateRepoProfileYAML,
+  generateRepoRunStats,
 } from "./generators-search.js";
 
 // ─── Shared fixtures ──────────────────────────────────────────
@@ -56,9 +60,10 @@ describe("generateDependencyHotspots", () => {
         ] as never,
         internal_imports: [],
         hotspots: [
-          { path: "src/index.ts", inbound_count: 12, outbound_count: 8, risk_score: 9.5 },
-          { path: "src/utils.ts", inbound_count: 6, outbound_count: 4, risk_score: 5.0 },
-          { path: "src/types.ts", inbound_count: 2, outbound_count: 1, risk_score: 2.0 },
+          // Engine-realistic 0–1 scores (engine.ts: min(total_connections/20, 1)).
+          { path: "src/index.ts", inbound_count: 12, outbound_count: 8, risk_score: 0.95 },
+          { path: "src/utils.ts", inbound_count: 6, outbound_count: 4, risk_score: 0.5 },
+          { path: "src/types.ts", inbound_count: 2, outbound_count: 1, risk_score: 0.2 },
         ],
       },
     });
@@ -68,15 +73,15 @@ describe("generateDependencyHotspots", () => {
     expect(result.content_type).toBe("text/markdown");
 
     // Risk summary table
-    expect(result.content).toContain("High (>7) | 1");
-    expect(result.content).toContain("Medium (4–7) | 1");
-    expect(result.content).toContain("Low (≤4) | 1");
+    expect(result.content).toContain("High (>70%) | 1");
+    expect(result.content).toContain("Medium (40–70%) | 1");
+    expect(result.content).toContain("Low (≤40%) | 1");
     expect(result.content).toContain("**Total** | **3**");
 
-    // Hotspot files sorted by risk (descending)
-    expect(result.content).toContain("🔴 9.5");
-    expect(result.content).toContain("🟡 5.0");
-    expect(result.content).toContain("🟢 2.0");
+    // Hotspot files sorted by risk (descending), rendered as percentages
+    expect(result.content).toContain("🔴 95%");
+    expect(result.content).toContain("🟡 50%");
+    expect(result.content).toContain("🟢 20%");
 
     // Coupling analysis (top 5)
     expect(result.content).toContain("### `src/index.ts`");
@@ -93,11 +98,11 @@ describe("generateDependencyHotspots", () => {
     expect(result.content).toContain("| express | 4.18.2 | Stable |");
     expect(result.content).toContain("| beta-lib | ^0.3.1 | Pre-1.0 — unstable API |");
 
-    // Recommendations
-    expect(result.content).toContain("Extract interfaces");
-    expect(result.content).toContain("facade pattern");
-    expect(result.content).toContain("Monitor medium-risk files");
-    expect(result.content).toContain("Review circular dependencies");
+    // Recommendations — counter-based numbering, no gaps (1..4 with all tiers present)
+    expect(result.content).toContain("1. **Extract interfaces**");
+    expect(result.content).toContain("2. **Introduce facade pattern**");
+    expect(result.content).toContain("3. **Monitor medium-risk files**");
+    expect(result.content).toContain("4. **Review circular dependencies**");
   });
 
   it("handles empty hotspots gracefully", () => {
@@ -121,16 +126,18 @@ describe("generateDependencyHotspots", () => {
         external_dependencies: [] as never,
         internal_imports: [],
         hotspots: [
-          { path: "src/foo.ts", inbound_count: 3, outbound_count: 3, risk_score: 5.5 },
+          { path: "src/foo.ts", inbound_count: 3, outbound_count: 3, risk_score: 0.55 },
         ],
       },
     });
 
     const result = generateDependencyHotspots(ctx);
-    expect(result.content).toContain("High (>7) | 0");
-    expect(result.content).toContain("Medium (4–7) | 1");
-    // Recommendations: no high-risk items, so medium starts at "1."
+    expect(result.content).toContain("High (>70%) | 0");
+    expect(result.content).toContain("Medium (40–70%) | 1");
+    // Recommendations: no high-risk items, so medium starts at "1." and the
+    // always-present circular-deps item follows with no numbering gap.
     expect(result.content).toContain("1. **Monitor medium-risk files**");
+    expect(result.content).toContain("2. **Review circular dependencies**");
   });
 });
 
@@ -143,7 +150,7 @@ describe("generateArchitectureSummary — hotspots section", () => {
         external_dependencies: [],
         internal_imports: [],
         hotspots: [
-          { path: "src/core.ts", inbound_count: 5, outbound_count: 3, risk_score: 6.2 },
+          { path: "src/core.ts", inbound_count: 5, outbound_count: 3, risk_score: 0.62 },
         ],
       } as ContextMap["dependency_graph"],
     });
@@ -151,7 +158,7 @@ describe("generateArchitectureSummary — hotspots section", () => {
     const result = generateArchitectureSummary(ctx);
     expect(result.content).toContain("## Dependency Hotspots");
     expect(result.content).toContain("src/core.ts");
-    expect(result.content).toContain("620%"); // risk_score * 100 → .toFixed(0)
+    expect(result.content).toContain("62%"); // 0–1 risk_score * 100 → .toFixed(0)
   });
 });
 
@@ -282,5 +289,186 @@ describe("generateRepoProfileYAML — toYAML edge cases", () => {
     // Multiline strings should be present in the output
     expect(result.content).toContain("first line");
     expect(result.content).toContain("second line");
+  });
+});
+
+// ─── HARDEN pass 1 (Program 1): hostile inputs, YAML fidelity, determinism ──
+
+describe("harden: markdown injection resistance (SPEC-10 class)", () => {
+  it("a newline-bearing project name cannot inject a heading into architecture-summary.md", () => {
+    const ctx = makeContextMap({
+      project_identity: { name: "MyApp\n\n# Injected Heading", type: "library", primary_language: "TypeScript", description: null, repo_url: null, go_module: null },
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const lines = result.content.split("\n");
+    expect(lines[0]).toBe("# Architecture Summary: MyApp # Injected Heading");
+    expect(lines.some((l) => l === "# Injected Heading")).toBe(false);
+  });
+
+  it("pipes in route fields cannot split architecture-summary.md table rows", () => {
+    const ctx = makeContextMap({
+      routes: [{ path: "/x|y", method: "GET", source_file: "src/evil|file.ts" }],
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const row = result.content.split("\n").find((l) => l.includes("evil"))!;
+    expect(row).toBeDefined();
+    // \| is a literal cell character in GFM, not a delimiter — collapse before counting.
+    const cellCount = row.replace(/\\\|/g, "PIPE").split("|").length - 2;
+    expect(cellCount).toBe(3); // Method | Path | Source
+    expect(row).toContain("\\|");
+  });
+
+  it("pipes and newlines in hotspot paths cannot break dependency-hotspots.md structure", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [{ name: "evil|pkg", version: "1.0.0\n# fake", type: "production" }] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/a|b`.ts\nfake-line", inbound_count: 10, outbound_count: 8, risk_score: 0.9 }],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    const lines = result.content.split("\n");
+    expect(lines.some((l) => l === "fake-line")).toBe(false);
+    expect(lines.some((l) => l === "# fake")).toBe(false);
+    const hotspotRow = lines.find((l) => l.includes("a\\|b"))!;
+    expect(hotspotRow).toBeDefined();
+    const cellCount = hotspotRow.replace(/\\\|/g, "PIPE").split("|").length - 2;
+    expect(cellCount).toBe(5); // File | Risk | Inbound | Outbound | Total Connections
+  });
+
+  it("markdown-bearing warnings and conventions render as single collapsed list items", () => {
+    const ctx = makeContextMap({
+      ai_context: {
+        project_summary: "test",
+        key_abstractions: [],
+        conventions: ["conv\n## Fake Section"],
+        warnings: ["warn\n- fake bullet"],
+      },
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const lines = result.content.split("\n");
+    expect(lines.some((l) => l === "## Fake Section")).toBe(false);
+    expect(lines.some((l) => l === "- fake bullet")).toBe(false);
+    expect(result.content).toContain("- conv ## Fake Section");
+    expect(result.content).toContain("- ⚠️ warn - fake bullet");
+  });
+});
+
+describe("harden: repo-profile.yaml fidelity (parse round-trip)", () => {
+  it("backslash-bearing strings (Windows paths) produce VALID YAML that round-trips exactly", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["C:\\Users\\x paths", "trailing backslash\\"],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    const parsed = parseYAML(result.content) as { goals: { objectives: string[] } };
+    expect(parsed.goals.objectives[0]).toBe("C:\\Users\\x paths");
+    expect(parsed.goals.objectives[1]).toBe("trailing backslash\\");
+  });
+
+  it("a key-injection attempt stays a single string value after parsing", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ['innocent" \ninjected_key: "true'],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    const parsed = parseYAML(result.content) as Record<string, unknown> & { goals: { objectives: string[] } };
+    expect(parsed.injected_key).toBeUndefined();
+    expect(parsed.goals.objectives[0]).toBe('innocent" \ninjected_key: "true');
+  });
+
+  it("the multiline source_file_tree round-trips (was malformed YAML on every run with files)", () => {
+    const profile = makeProfile();
+    const files = [
+      { path: "src/index.ts", content: "export {};", size: 10 },
+      { path: "src/util.ts", content: "export {};", size: 10 },
+    ];
+    const result = generateRepoProfileYAML(profile, files);
+    const parsed = parseYAML(result.content) as { source_file_tree: string; source_file_count: number };
+    expect(parsed.source_file_count).toBe(2);
+    expect(typeof parsed.source_file_tree).toBe("string");
+    expect(parsed.source_file_tree).toContain("index.ts");
+    expect(parsed.source_file_tree).toContain("\n"); // genuinely multiline — escaped, not broken
+  });
+
+  it("ambiguous scalars (null/true/numeric-looking strings) stay STRINGS on round-trip", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["null", "true", "1.0", "42"],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    const parsed = parseYAML(result.content) as { goals: { objectives: unknown[] } };
+    expect(parsed.goals.objectives).toEqual(["null", "true", "1.0", "42"]);
+  });
+
+  it("an empty object inside an array serializes as {} instead of crashing", () => {
+    const profile = makeProfile({
+      structure_summary: {
+        total_files: 1,
+        total_directories: 1,
+        total_loc: 1,
+        top_level_dirs: [{} as never],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    expect(result.content).toContain("- {}");
+    expect(() => parseYAML(result.content)).not.toThrow();
+  });
+});
+
+describe("harden: external dependency version-risk classification", () => {
+  function depsCtx(deps: Array<{ name: string; version: string }>): ContextMap {
+    return makeContextMap({
+      dependency_graph: {
+        external_dependencies: deps.map((d) => ({ ...d, type: "production" })) as never,
+        internal_imports: [],
+        hotspots: [],
+      },
+    });
+  }
+
+  it("classifies pre-1.0 versions correctly even with multi-digit minors (the '0.21.5' bug)", () => {
+    const result = generateDependencyHotspots(depsCtx([
+      { name: "multi-minor", version: "0.21.5" },
+      { name: "range-pre", version: ">=0.5.0" },
+      { name: "caret-pre", version: "^0.3.1" },
+    ]));
+    const rows = result.content.split("\n").filter((l) => l.includes("Pre-1.0"));
+    expect(rows).toHaveLength(3);
+  });
+
+  it("classifies stable versions correctly", () => {
+    const result = generateDependencyHotspots(depsCtx([
+      { name: "plain", version: "1.2.3" },
+      { name: "caret", version: "^4.18.2" },
+      { name: "range", version: ">=2.0.0" },
+    ]));
+    const table = result.content.split("## External Dependency Risk")[1];
+    expect((table.match(/\| Stable \|/g) ?? []).length).toBe(3);
+    expect(table).not.toContain("Pre-1.0");
+  });
+
+  it("non-numeric versions (workspace ranges) fall back to Stable without NaN leaking into output", () => {
+    const result = generateDependencyHotspots(depsCtx([{ name: "ws-dep", version: "workspace:x" }]));
+    expect(result.content).toContain("| Stable |");
+    expect(result.content).not.toContain("NaN");
+  });
+});
+
+describe("harden: determinism regression (clean inputs byte-identical)", () => {
+  it("all four search artifacts are byte-identical across repeated calls", () => {
+    const ctx = makeContextMap({ generated_at: "2026-01-02T03:04:05.000Z" } as Partial<ContextMap>);
+    const profile = makeProfile({ generated_at: "2026-01-02T03:04:05.000Z" } as Partial<RepoProfile>);
+    const files = [{ path: "src/index.ts", content: "export {};", size: 10 }];
+    expect(generateArchitectureSummary(ctx, files).content).toBe(generateArchitectureSummary(ctx, files).content);
+    expect(generateDependencyHotspots(ctx, files).content).toBe(generateDependencyHotspots(ctx, files).content);
+    expect(generateRepoProfileYAML(profile, files).content).toBe(generateRepoProfileYAML(profile, files).content);
+    expect(generateRepoRunStats(ctx, profile, files).content).toBe(generateRepoRunStats(ctx, profile, files).content);
   });
 });

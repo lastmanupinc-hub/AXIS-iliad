@@ -633,8 +633,10 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   if (hotspots.length > 0) {
     lines.push("│  Hotspots:                         │");
     for (const h of hotspots.slice(0, 3)) {
-      const bar = h.risk_score > 7 ? "🔴" : h.risk_score > 4 ? "🟡" : "🟢";
-      lines.push(`│  ${bar} ${h.path.slice(-25).padEnd(25)} ${h.risk_score.toFixed(0)}/10  │`);
+      // risk_score is a 0–1 fraction (engine.ts) — the old 0–10 thresholds never
+      // fired and "toFixed(0)/10" rendered every hotspot as "0/10" or "1/10".
+      const bar = h.risk_score > 0.7 ? "🔴" : h.risk_score > 0.4 ? "🟡" : "🟢";
+      lines.push(`│  ${bar} ${h.path.slice(-25).padEnd(25)} ${String((h.risk_score * 100).toFixed(0)).padStart(3)}%  │`);
     }
   }
   lines.push("└────────────────────────────────────┘");
