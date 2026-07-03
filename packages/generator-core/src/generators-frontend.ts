@@ -7,6 +7,7 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // mdText (prose/headings/lists), mdInline (GFM table cells), mdCode (inline code
 // spans outside tables), mdCellCode (code spans inside table cells).
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -97,13 +98,15 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
 
   // Data fetching. Gate on a real "/api" path PREFIX, not a bare "api" substring
   // (which matched "/capital", "/rapid", …) — and match the siblings, which use
-  // startsWith("/api"), so the four generators agree on what an API route is.
-  if (ctx.routes.some(r => r.path.startsWith("/api"))) {
+  // startsWith("/api"). displayRoutes dedups the per-mention rows and drops
+  // test/README noise so this lists distinct real endpoints.
+  const apiRoutes = displayRoutes(ctx.routes).filter(r => r.path.startsWith("/api"));
+  if (apiRoutes.length > 0) {
     lines.push("## Data Fetching");
     lines.push("");
     lines.push("Available API routes:");
     lines.push("");
-    for (const r of ctx.routes.filter(r => r.path.startsWith("/api"))) {
+    for (const r of apiRoutes) {
       lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\` → ${mdText(r.source_file)}`);
     }
     lines.push("");
@@ -349,7 +352,9 @@ export function generateComponentGuidelines(ctx: ContextMap, files?: SourceFile[
 export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const routes = ctx.routes;
+  // Deduped, test/README-noise-free routes — the raw list is hundreds of
+  // per-mention rows, so a route→layout table off it would repeat and mislead.
+  const routes = displayRoutes(ctx.routes);
   const layers = ctx.architecture_signals.layer_boundaries;
 
   const lines: string[] = [];
@@ -525,7 +530,9 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
-  const routes = ctx.routes;
+  // Deduped, noise-free routes — "Total Routes" off the raw list reported the
+  // per-mention count (e.g. 537 for a ~150-endpoint app), a dishonest number.
+  const routes = displayRoutes(ctx.routes);
   const entryPoints = ctx.entry_points;
   const deps = ctx.dependency_graph.external_dependencies;
 
@@ -559,7 +566,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   // score on every UI project (a HARDEN correctness fix).
   const UI_FRAMEWORK_NAMES = ["react", "next", "next.js", "vue", "svelte", "tailwind", "tailwind css"];
   const uiFrameworks = frameworks.filter(f => UI_FRAMEWORK_NAMES.includes(f.name.toLowerCase()));
-  const hasCSS = languages.some(l => l.name === "CSS" || l.name === "SCSS");
+  const hasCSS = languages.some(l => ["CSS", "SCSS", "SASS", "LESS"].includes(l.name));
   const hasTSX = languages.some(l => l.name === "TypeScript" || l.name === "TSX");
   // Match KNOWN UI-library package names, not bare substrings: the old
   // `.includes("ui")` flagged "esbuild"/"uuid" and `.includes("ant")` flagged
@@ -576,7 +583,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   lines.push("|--------|----------|");
   lines.push(`| UI Frameworks | ${uiFrameworks.map(f => mdInline(f.name)).join(", ") || "None detected"} |`);
   /* v8 ignore next — V8 quirk: tailwind/CSS ternary tested with fixture variants */
-  lines.push(`| Styling | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS" : "Unknown"} |`);
+  lines.push(`| Styling | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "Tailwind CSS" : hasCSS ? "CSS/SCSS/SASS/LESS" : "Unknown"} |`);
   /* v8 ignore next — V8 quirk: hasTSX ternary tested */
   lines.push(`| TypeScript | ${hasTSX ? "Yes" : "No"} |`);
   /* v8 ignore next — V8 quirk: uiDeps empty check tested */
@@ -642,6 +649,8 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   lines.push("");
   lines.push("| Factor | Score |");
   lines.push("|--------|-------|");
+  // Show the base so the factor rows sum to the headline (they didn't before).
+  lines.push("| Base | +50 |");
   lines.push(`| Framework detection | ${uiFrameworks.length > 0 ? "+15" : "0"} |`);
   /* v8 ignore next — V8 quirk: tailwind score display ternary tested */
   lines.push(`| Styling system | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "+10" : "0"} |`);
@@ -655,6 +664,9 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
+    // Deterministic static scan — real a11y/quality findings, not a "⚠️ Verify" checklist.
+    lines.push(...renderUiFindings(analyzeUiSurface(files)));
+
     const components = findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
       .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
     if (components.length > 0) {
@@ -688,4 +700,95 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
     program: "frontend",
     description: "UI stack audit with accessibility, performance, and component coverage analysis",
   };
+}
+
+// ═══ Deterministic UI static scan ═════════════════════════════════════════════
+// A grep + fixed-rule-table scan of component source (no LLM, no injection —
+// fully reproducible). Turns ui-audit's static "⚠️ Verify" checklist into REAL
+// findings on the uploaded components: missing alt text, dangerouslySetInnerHTML,
+// `any`-typed props, and click handlers on non-interactive elements — the
+// a11y/quality issues the type/test net won't surface.
+
+export type UiIssueClass = "XSS" | "A11Y" | "TYPE";
+
+export interface UiFinding {
+  file: string;
+  line: number;
+  category: "missing-alt" | "dangerous-html" | "any-type" | "click-nonbutton";
+  klass: UiIssueClass;
+  note: string;
+}
+
+/** Static UI-issue scan of component files (skips tests + generated dirs). Deterministic. */
+export function analyzeUiSurface(files: SourceFile[]): UiFinding[] {
+  const out: UiFinding[] = [];
+  const src = files
+    .filter(f => /\.(tsx|jsx|vue|svelte)$/.test(f.path))
+    .filter(f => !/\.(test|spec)\.[jt]sx?$/.test(f.path))
+    .filter(f => !/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(f.path))
+    // code-unit sort (not localeCompare) for host-locale-independent order
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const f of src) {
+    const lines = f.content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i];
+      const t = ln.trim();
+      // commented-out code must not be flagged
+      if (t.startsWith("//") || t.startsWith("/*") || /^\*(\s|\/|$)/.test(t)) continue;
+      const at = (category: UiFinding["category"], klass: UiIssueClass, note: string) =>
+        out.push({ file: f.path, line: i + 1, category, klass, note });
+      // <img …> that closes on this line, with no alt attribute
+      if (/<img\b[^>]*>/i.test(ln) && !/\balt\s*=/i.test(ln)) {
+        at("missing-alt", "A11Y", "<img> without an alt attribute — screen readers can't describe it");
+      }
+      if (/dangerouslySetInnerHTML/.test(ln)) {
+        at("dangerous-html", "XSS", "dangerouslySetInnerHTML — sanitize the HTML or render text instead");
+      }
+      // `any` in a component, EXCEPT the idiomatic `catch (e: any)` (TS defaults
+      // catch to `unknown`; re-typing it `any` is common interop, low-signal).
+      if ((/\bas any\b/.test(ln) || /:\s*any\b/.test(ln)) && !/\bcatch\s*\(/.test(ln)) {
+        at("any-type", "TYPE", "`any` in a component — prefer a precise prop/state type");
+      }
+      // onClick on a non-interactive element — but NOT when it's made keyboard-
+      // operable with an onKey* handler (that's the concrete a11y fix; a `role`
+      // alone doesn't make it keyboard-operable, so role-only is still flagged).
+      if (/<(?:div|span|li)\b[^>]*\bonClick\b/i.test(ln) && !/\bonKey(?:Down|Up|Press)\s*=/i.test(ln)) {
+        at("click-nonbutton", "A11Y", "onClick on a <div>/<span>/<li> — use <button> or add role + keyboard handlers");
+      }
+    }
+  }
+  return out;
+}
+
+const UI_ORDER: UiIssueClass[] = ["XSS", "A11Y", "TYPE"];
+
+/** Render the deterministic UI-issue findings as markdown lines. */
+export function renderUiFindings(findings: UiFinding[]): string[] {
+  const lines: string[] = [];
+  lines.push("## Detected UI Issues (deterministic)");
+  lines.push("");
+  lines.push("> Static scan of component source — grep + a fixed rule table, **no AI**. `XSS` = injection risk; `A11Y` = accessibility gap; `TYPE` = type-net hole.");
+  lines.push("");
+  if (findings.length === 0) {
+    lines.push("_No missing alt text, dangerouslySetInnerHTML, `any` props, or non-button click handlers detected._");
+    lines.push("");
+    return lines;
+  }
+  const tally = new Map<UiIssueClass, number>();
+  for (const x of findings) tally.set(x.klass, (tally.get(x.klass) ?? 0) + 1);
+  lines.push("| Class | Count |");
+  lines.push("|-------|-------|");
+  for (const k of UI_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
+  lines.push("");
+  const sorted = [...findings].sort((a, b) =>
+    UI_ORDER.indexOf(a.klass) - UI_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
+  lines.push("| File | Line | Category | Class | Note |");
+  lines.push("|------|------|----------|-------|------|");
+  for (const x of sorted.slice(0, 40)) {
+    lines.push(`| \`${mdCellCode(x.file)}\` | ${x.line} | ${x.category} | ${x.klass} | ${x.note} |`);
+  }
+  if (sorted.length > 40) lines.push(`| … | | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
 }
