@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
 
 // ─── superpower-pack.md ─────────────────────────────────────────
 
@@ -10,16 +11,16 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
-  lines.push(`# Superpower Pack — ${id.name}`);
+  lines.push(`# Superpower Pack — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> High-leverage development workflows for a ${id.type.replace(/_/g, " ")} (${id.primary_language})`);
+  lines.push(`> High-leverage development workflows for a ${mdText(id.type.replace(/_/g, " "))} (${mdText(id.primary_language)})`);
   lines.push("");
 
   // Project Overview
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -30,7 +31,7 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -126,7 +127,7 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
   const hotspots = ctx.dependency_graph.hotspots.slice(0, 5);
   if (hotspots.length > 0) {
     for (const h of hotspots) {
-      lines.push(`   - \`${h.path}\` (risk: ${h.risk_score.toFixed(1)}, ${h.inbound_count} inbound, ${h.outbound_count} outbound)`);
+      lines.push(`   - \`${mdCode(h.path)}\` (risk: ${h.risk_score.toFixed(1)}, ${h.inbound_count} inbound, ${h.outbound_count} outbound)`);
     }
     lines.push("");
   }
@@ -147,7 +148,7 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
 
   const conventions = ctx.ai_context.conventions;
   for (const c of conventions) {
-    lines.push(`  - ${c}`);
+    lines.push(`  - ${mdText(c)}`);
   }
   lines.push("");
 
@@ -178,7 +179,7 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const hotspotPaths = ctx.dependency_graph.hotspots
+    const hotspotPaths = [...ctx.dependency_graph.hotspots]
       .sort((a, b) => b.risk_score - a.risk_score)
       .slice(0, 3)
       .map(h => h.path);
@@ -364,15 +365,15 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
-  lines.push(`# Test Generation Rules — ${id.name}`);
+  lines.push(`# Test Generation Rules — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Testing conventions and generation rules for a ${id.type.replace(/_/g, " ")}`);
+  lines.push(`> Testing conventions and generation rules for a ${mdText(id.type.replace(/_/g, " "))}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -382,7 +383,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -464,7 +465,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
     lines.push("| Model | Kind | Fields | Source |");
     lines.push("|-------|------|--------|--------|");
     for (const m of models.slice(0, 15)) {
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | \`${m.source_file}\` |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${mdInline(m.kind)} | ${m.field_count} | \`${mdCellCode(m.source_file)}\` |`);
     }
     if (models.length > 15) lines.push(`| *... and ${models.length - 15} more* | | | |`);
     lines.push("");
@@ -477,7 +478,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       lines.push("```typescript");
       for (const m of models.slice(0, 3)) {
         const v = m.name.charAt(0).toLowerCase() + m.name.slice(1);
-        lines.push(`export function make${m.name}(overrides: Partial<${m.name}> = {}): ${m.name} {`);
+        lines.push(`export function make${mdCode(m.name)}(overrides: Partial<${mdCode(m.name)}> = {}): ${mdCode(m.name)} {`);
         lines.push("  return {");
         lines.push("    // fill in required fields with sensible test defaults");
         lines.push(`    ...overrides,`);
@@ -507,7 +508,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       lines.push("### High-Complexity Models (prioritize edge-case coverage)");
       lines.push("");
       for (const m of complexModels.slice(0, 5)) {
-        lines.push(`- **\`${m.name}\`** (${m.field_count} fields) — test with partial input, null fields, and boundary values`);
+        lines.push(`- **\`${mdCode(m.name)}\`** (${m.field_count} fields) — test with partial input, null fields, and boundary values`);
       }
       lines.push("");
     }
@@ -577,7 +578,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       lines.push("| File | Lines |");
       lines.push("|------|-------|");
       for (const tf of testFiles.slice(0, 12)) {
-        lines.push(`| \`${tf.path}\` | ${tf.content.split("\n").length} |`);
+        lines.push(`| \`${mdCellCode(tf.path)}\` | ${tf.content.split("\n").length} |`);
       }
       lines.push("");
 
@@ -598,7 +599,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       if (exports.length > 0) {
         const hasTest = testFiles.some(tf => tf.path.includes(sf.path.replace(/\.[^.]+$/, "")));
         if (!hasTest) {
-          untestedExports.push(`\`${sf.path}\` — ${exports.join(", ")}`);
+          untestedExports.push(`\`${mdCode(sf.path)}\` — ${mdText(exports.join(", "))}`);
         }
       }
     }
@@ -630,7 +631,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
   const hotspots = ctx.dependency_graph.hotspots;
   const lines: string[] = [];
 
-  lines.push(`# Refactor Checklist — ${id.name}`);
+  lines.push(`# Refactor Checklist — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Systematic refactoring guide based on codebase analysis");
   lines.push("");
@@ -638,7 +639,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -648,7 +649,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -673,7 +674,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
       lines.push("### High-Risk Files");
       lines.push("");
       for (const h of highRisk.slice(0, 5)) {
-        lines.push(`- **\`${h.path}\`** — risk ${(h.risk_score * 100).toFixed(0)}% (${h.inbound_count} inbound, ${h.outbound_count} outbound)`);
+        lines.push(`- **\`${mdCode(h.path)}\`** — risk ${(h.risk_score * 100).toFixed(0)}% (${h.inbound_count} inbound, ${h.outbound_count} outbound)`);
         lines.push(`  - Break into smaller modules if possible`);
         lines.push(`  - Add comprehensive tests before modifying`);
       }
@@ -736,7 +737,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
     const sortedModels = [...domainModels].sort((a, b) => b.field_count - a.field_count);
     for (const m of sortedModels.slice(0, 10)) {
       const flag = m.field_count >= 10 ? " ⚠️ large" : m.field_count >= 6 ? " consider splitting" : "";
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count}${flag} | \`${m.source_file}\` |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${mdInline(m.kind)} | ${m.field_count}${flag} | \`${mdCellCode(m.source_file)}\` |`);
     }
     if (domainModels.length > 10) lines.push(`| *... and ${domainModels.length - 10} more* | | | |`);
     lines.push("");
@@ -746,7 +747,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
       lines.push("### Decomposition Candidates");
       lines.push("");
       for (const m of largeModels.slice(0, 5)) {
-        lines.push(`- **\`${m.name}\`** (${m.field_count} fields) — consider extracting related field groups into value objects`);
+        lines.push(`- **\`${mdCode(m.name)}\`** (${m.field_count} fields) — consider extracting related field groups into value objects`);
       }
       lines.push("");
     }
@@ -771,7 +772,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
     lines.push("Detected patterns to preserve during refactoring:");
     lines.push("");
     for (const p of patterns) {
-      lines.push(`- ${p}`);
+      lines.push(`- ${mdText(p)}`);
     }
     lines.push("");
     const layers = ctx.architecture_signals.layer_boundaries;
@@ -779,7 +780,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
       lines.push("Layer boundaries (do not violate during refactoring):");
       lines.push("");
       for (const l of layers) {
-        lines.push(`- **${l.layer}**: ${l.directories.join(", ")}`);
+        lines.push(`- **${mdText(l.layer)}**: ${l.directories.map(mdInline).join(", ")}`);
       }
       lines.push("");
     }
@@ -815,7 +816,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
       for (const hf of hotspotFiles) {
         const exports = extractExports(hf.content);
         if (exports.length > 0) {
-          lines.push(`### \`${hf.path}\``);
+          lines.push(`### \`${mdCode(hf.path)}\``);
           lines.push("");
           for (const e of exports.slice(0, 12)) {
             lines.push(`- \`${e}\``);
@@ -848,17 +849,17 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
 
   const lines: string[] = [];
   lines.push("# Automation Pipeline");
-  lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${ctx.generated_at}`);
+  lines.push(`# Project: ${yamlFlowScalar(id.name)}`);
+  lines.push(`# Generated: ${yamlFlowScalar(ctx.generated_at)}`);
   if (ctx.ai_context.project_summary) {
-    lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
+    lines.push(`# Summary: ${yamlFlowScalar(ctx.ai_context.project_summary.split("\n")[0])}`);
   }
   lines.push("");
 
   lines.push("pipeline:");
   lines.push(`  name: ${JSON.stringify(id.name + "-automation")}`);
-  lines.push(`  ci_platform: ${ci || "github-actions"}`);
-  lines.push(`  package_manager: ${pkgManagers[0] ?? "npm"}`);
+  lines.push(`  ci_platform: ${yamlFlowScalar(ci || "github-actions")}`);
+  lines.push(`  package_manager: ${yamlFlowScalar(pkgManagers[0] ?? "npm")}`);
   lines.push("");
 
   lines.push("  stages:");
@@ -869,7 +870,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      description: Install dependencies");
   lines.push("      commands:");
   const pm = pkgManagers[0] ?? "npm";
-  lines.push(`        - ${pm} install`);
+  lines.push(`        - ${yamlFlowScalar(`${pm} install`)}`);
   lines.push("      cache:");
   lines.push("        key: dependencies");
   lines.push(`        paths: [${pm === "pnpm" ? "~/.pnpm-store" : "node_modules"}]`);
@@ -894,9 +895,9 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      parallel_with: [lint]");
   lines.push("      commands:");
   if (testFrameworks.length > 0) {
-    lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} ${testFrameworks[0]} run`);
+    lines.push(`        - ${yamlFlowScalar(`${pm === "pnpm" ? "pnpm" : "npx"} ${testFrameworks[0]} run`)}`);
   } else {
-    lines.push(`        - ${pm} test`);
+    lines.push(`        - ${yamlFlowScalar(`${pm} test`)}`);
   }
   lines.push("      coverage:");
   lines.push("        minimum: 80");
@@ -908,7 +909,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      description: Build production artifacts");
   lines.push("      depends_on: [lint, test]");
   lines.push("      commands:");
-  lines.push(`        - ${pm === "pnpm" ? "pnpm -r" : pm} build`);
+  lines.push(`        - ${yamlFlowScalar(`${pm === "pnpm" ? "pnpm -r" : pm} build`)}`);
   lines.push("      artifacts:");
   lines.push("        paths: [dist/, build/]");
   lines.push("        retention: 30d");
@@ -920,7 +921,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      depends_on: [install]");
   lines.push("      parallel_with: [lint, test]");
   lines.push("      commands:");
-  lines.push(`        - ${pm} audit --audit-level=high`);
+  lines.push(`        - ${yamlFlowScalar(`${pm} audit --audit-level=high`)}`);
   lines.push("      allow_failure: true");
   lines.push("");
 
