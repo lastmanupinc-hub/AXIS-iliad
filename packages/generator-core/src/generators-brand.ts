@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── brand-guidelines.md ────────────────────────────────────────
 
@@ -406,6 +407,9 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
       }
       lines.push("");
     }
+    // Turn the rules above into a REAL audit: scan the repo's docs for actual
+    // violations (deterministic grep, no AI).
+    lines.push(...renderContentViolations(analyzeContentViolations(files)));
   }
 
   return {
@@ -421,7 +425,9 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
 
 export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  // Dedupe by (method, path) + drop test/README noise so counts reflect the real
+  // API surface, not the parser's per-mention rows (dogfood: 537 raw → ~163).
+  const routes = displayRoutes(ctx.routes);
   const entryPoints = ctx.entry_points;
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
@@ -594,7 +600,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   const lines: string[] = [];
   lines.push(`# Channel Rulebook — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`Generated: ${ctx.generated_at}`);
+  lines.push(`Generated: ${mdText(ctx.generated_at)}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
@@ -695,10 +701,10 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| Bug reports | Always acknowledge, provide issue tracker link |");
   lines.push("| Feature requests | Thank + route to roadmap or GitHub Discussions |");
   lines.push("| Billing issues | High priority SLA — respond within 2 business hours |");
-  if (ctx.routes.some(r => r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"))) {
-    const supportRoutes = ctx.routes.filter(r =>
-      r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"),
-    );
+  const supportRoutes = displayRoutes(ctx.routes).filter(r =>
+    r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"),
+  );
+  if (supportRoutes.length > 0) {
     lines.push(`| Detected support routes | ${supportRoutes.slice(0, 3).map(r => `\`${mdCellCode(r.path)}\``).join(", ")} |`);
   }
   lines.push("");
@@ -746,4 +752,103 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
     program: "brand",
     description: "Channel-specific brand rules for docs, GitHub, social, email, and in-app copy",
   };
+}
+
+// ═══ Deterministic content-violation scan ═════════════════════════════════════
+// A grep + fixed-rule-table scan of the repo's DOCS (no LLM, no injection — fully
+// reproducible) that turns content-constraints.md's forbidden-pattern LIST into
+// REAL findings: shipped placeholders/markers, marketing fluff to strip, and the
+// "simple/easy/just" dismissive language the pack's Forbidden Patterns ban. Only
+// human-facing docs are scanned (a `// TODO` in source code isn't a content
+// defect), and fenced code blocks are skipped (a marker inside a code EXAMPLE is
+// legitimate).
+
+export type ContentIssueClass = "PLACEHOLDER" | "MARKETING" | "DISMISSIVE";
+
+export interface ContentFinding {
+  file: string;
+  line: number;
+  term: string;
+  klass: ContentIssueClass;
+}
+
+const CONTENT_RULES: Array<{ klass: ContentIssueClass; re: RegExp }> = [
+  // Placeholders/markers — case-sensitive so prose "todo list" doesn't match.
+  { klass: "PLACEHOLDER", re: /\b(TODO|TBD|FIXME|XXX|PLACEHOLDER)\b/ },
+  { klass: "PLACEHOLDER", re: /lorem ipsum/i },
+  // Marketing fluff the constraints tell writers to strip.
+  { klass: "MARKETING", re: /\b(revolutionary|cutting[ -]edge|game[ -]chang(?:ing|er)|world[ -]class|best[ -]in[ -]class|blazing(?:ly)?[ -]fast|seamless(?:ly)?|next[ -]generation|state[ -]of[ -]the[ -]art|bleeding[ -]edge|turnkey)\b/i },
+  // Dismissive words the Forbidden Patterns ban outright.
+  { klass: "DISMISSIVE", re: /\b(simply|simple|effortless(?:ly)?)\b/i },
+  { klass: "DISMISSIVE", re: /\bjust\s+(?:run|use|call|add|do|set|click|type|install|import|drop|paste|open)\b/i },
+];
+
+function isDocFile(p: string): boolean {
+  const lower = p.toLowerCase();
+  if (/(^|\/)(dist|build|node_modules|vendor|\.next|coverage)\//.test(lower)) return false;
+  return /\.(md|mdx|markdown)$/.test(lower) ||
+    /(^|\/)(readme|contributing|changelog|code_of_conduct)(\.(txt|rst|adoc))?$/i.test(p);
+}
+
+/** Static content-rule scan of the repo's docs. Deterministic (code-unit order). */
+export function analyzeContentViolations(files: SourceFile[]): ContentFinding[] {
+  const out: ContentFinding[] = [];
+  const docs = files
+    .filter(f => isDocFile(f.path))
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  for (const f of docs) {
+    const lines = f.content.split("\n");
+    // Track the OPEN fence's marker (char + length) so a nested/mismatched fence
+    // (e.g. ``` inside a ```` block, or ~~~ inside ```) can't mistoggle and leak
+    // a code example into the scan. Reset per file — unbalanced fences don't leak.
+    let fence = "";
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i];
+      const run = ln.match(/^\s*(`{3,}|~{3,})/)?.[1];
+      if (run) {
+        if (!fence) fence = run;
+        else if (run[0] === fence[0] && run.length >= fence.length) fence = "";
+        continue; // skip the fence line itself
+      }
+      if (fence) continue; // code examples aren't "content"
+      for (const rule of CONTENT_RULES) {
+        const m = ln.match(rule.re);
+        if (m) out.push({ file: f.path, line: i + 1, term: m[0], klass: rule.klass });
+      }
+    }
+  }
+  return out;
+}
+
+const CONTENT_ORDER: ContentIssueClass[] = ["PLACEHOLDER", "MARKETING", "DISMISSIVE"];
+
+/** Render the deterministic content-violation findings as markdown lines. */
+export function renderContentViolations(findings: ContentFinding[]): string[] {
+  const lines: string[] = [];
+  lines.push("## Detected Content Violations (deterministic)");
+  lines.push("");
+  lines.push("> Static scan of the repo's docs (`*.md`, README/CONTRIBUTING/CHANGELOG) against the rules above — grep + a fixed table, **no AI**. Fenced code blocks are skipped. `PLACEHOLDER` = a shipped placeholder/marker (a hard-constraint defect); `MARKETING` = fluff to strip; `DISMISSIVE` = \"simple/effortless/just …\" (a Forbidden Pattern).");
+  lines.push("");
+  if (findings.length === 0) {
+    lines.push("_No placeholders, marketing fluff, or dismissive language detected in the scanned docs._");
+    lines.push("");
+    return lines;
+  }
+  const tally = new Map<ContentIssueClass, number>();
+  for (const x of findings) tally.set(x.klass, (tally.get(x.klass) ?? 0) + 1);
+  lines.push("| Class | Count |");
+  lines.push("|-------|-------|");
+  for (const k of CONTENT_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
+  lines.push("");
+  const sorted = [...findings].sort((a, b) =>
+    CONTENT_ORDER.indexOf(a.klass) - CONTENT_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
+  lines.push("| File | Line | Term | Class |");
+  lines.push("|------|------|------|-------|");
+  for (const x of sorted.slice(0, 40)) {
+    lines.push(`| \`${mdCellCode(x.file)}\` | ${x.line} | ${mdInline(x.term)} | ${x.klass} |`);
+  }
+  if (sorted.length > 40) lines.push(`| … | | | +${sorted.length - 40} more |`);
+  lines.push("");
+  return lines;
 }
