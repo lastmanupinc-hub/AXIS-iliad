@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, extractExports } from "./file-excerpt-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 // ─── campaign-brief.md ──────────────────────────────────────────
 
@@ -10,16 +11,16 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
-  lines.push(`# Campaign Brief — ${id.name}`);
+  lines.push(`# Campaign Brief — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Marketing campaign foundation for a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}`);
+  lines.push(`> Marketing campaign foundation for a ${mdText(id.type.replace(/_/g, " "))} built with ${mdText(id.primary_language)}`);
   lines.push("");
 
   // Project Overview
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -30,7 +31,7 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -38,14 +39,14 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   // Product Overview
   lines.push("## Product Overview");
   lines.push("");
-  lines.push(`**Product**: ${id.name}`);
-  lines.push(`**Type**: ${id.type.replace(/_/g, " ")}`);
-  lines.push(`**Primary Language**: ${id.primary_language}`);
+  lines.push(`**Product**: ${mdText(id.name)}`);
+  lines.push(`**Type**: ${mdText(id.type.replace(/_/g, " "))}`);
+  lines.push(`**Primary Language**: ${mdText(id.primary_language)}`);
   if (frameworks.length > 0) {
-    lines.push(`**Framework Stack**: ${frameworks.join(", ")}`);
+    lines.push(`**Framework Stack**: ${mdText(frameworks.join(", "))}`);
   }
   lines.push("");
-  lines.push(`**Description**: ${id.description || `A ${id.type.replace(/_/g, " ")} that leverages ${id.primary_language} and modern tooling.`}`);
+  lines.push(`**Description**: ${mdText(id.description || `A ${id.type.replace(/_/g, " ")} that leverages ${id.primary_language} and modern tooling.`)}`);
   lines.push("");
 
   // Target Audience
@@ -60,7 +61,7 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   if (isDevTool) {
     lines.push("| Segment | Description | Pain Point |");
     lines.push("|---------|------------|------------|");
-    lines.push(`| Senior Developers | Experienced ${id.primary_language} engineers | Need to reduce boilerplate and repetitive work |`);
+    lines.push(`| Senior Developers | Experienced ${mdInline(id.primary_language)} engineers | Need to reduce boilerplate and repetitive work |`);
     lines.push("| Tech Leads | Team leads evaluating tools | Need to standardize team workflows |");
     lines.push("| DevOps Engineers | CI/CD and infrastructure | Need automation and consistency |");
   } else if (isWebApp) {
@@ -72,7 +73,7 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   } else {
     lines.push("| Segment | Description | Pain Point |");
     lines.push("|---------|------------|------------|");
-    lines.push(`| Technical Users | ${id.primary_language} developers | Need reliable, well-documented tools |`);
+    lines.push(`| Technical Users | ${mdInline(id.primary_language)} developers | Need reliable, well-documented tools |`);
     lines.push("| Team Leads | Engineering managers | Need maintainable, scalable solutions |");
   }
   lines.push("");
@@ -87,32 +88,32 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   const fwNames = ctx.detection.frameworks.map(f => f.name);
   if (fwNames.length > 0) {
     const fwStr = ctx.detection.frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ");
-    lines.push(`${vpIdx++}. **${fwNames.join(" + ")} Stack** — Built on ${fwStr} with stack-native patterns throughout`);
+    lines.push(`${vpIdx++}. **${mdText(fwNames.join(" + "))} Stack** — Built on ${mdText(fwStr)} with stack-native patterns throughout`);
   } else {
-    lines.push(`${vpIdx++}. **Built on ${id.primary_language}** — Production-grade technology choice with strong ecosystem`);
+    lines.push(`${vpIdx++}. **Built on ${mdText(id.primary_language)}** — Production-grade technology choice with strong ecosystem`);
   }
   const routes = ctx.routes;
   if (routes.length > 0) {
     const methodCounts = new Map<string, number>();
     for (const r of routes) methodCounts.set(r.method, (methodCounts.get(r.method) ?? 0) + 1);
     const methodStr = [...methodCounts.entries()].sort((a, b) => b[1] - a[1]).map(([m, c]) => `${c} ${m}`).join(", ");
-    lines.push(`${vpIdx++}. **${routes.length} API Endpoints** — ${methodStr} across ${[...new Set(routes.map(r => r.source_file))].length} source files`);
+    lines.push(`${vpIdx++}. **${routes.length} API Endpoints** — ${mdText(methodStr)} across ${[...new Set(routes.map(r => r.source_file))].length} source files`);
   }
   const models = ctx.domain_models;
   if (models.length > 0) {
     const topModels = models.slice(0, 5).map(m => m.name).join(", ");
-    lines.push(`${vpIdx++}. **${models.length} Domain Entities** — ${topModels}${models.length > 5 ? ` and ${models.length - 5} more` : ""}`);
+    lines.push(`${vpIdx++}. **${models.length} Domain Entities** — ${mdText(topModels)}${models.length > 5 ? ` and ${models.length - 5} more` : ""}`);
   }
   const testFws = ctx.detection.test_frameworks;
   if (testFws.length > 0) {
     const testFileCount = ctx.structure.file_tree_summary.filter(f => f.role === "test").length;
-    lines.push(`${vpIdx++}. **Test-Driven Quality** — Verified with ${testFws.join(", ")}${testFileCount > 0 ? ` across ${testFileCount} test files` : ""}`);
+    lines.push(`${vpIdx++}. **Test-Driven Quality** — Verified with ${mdText(testFws.join(", "))}${testFileCount > 0 ? ` across ${testFileCount} test files` : ""}`);
   }
   const archPatterns = ctx.architecture_signals.patterns_detected;
   if (archPatterns.length > 0) {
-    lines.push(`${vpIdx++}. **Clean Architecture** — ${archPatterns.join(", ")} (${ctx.architecture_signals.separation_score.toFixed(2)} separation score)`);
+    lines.push(`${vpIdx++}. **Clean Architecture** — ${mdText(archPatterns.join(", "))} (${ctx.architecture_signals.separation_score.toFixed(2)} separation score)`);
   } else if (ctx.ai_context.conventions.length > 0) {
-    lines.push(`${vpIdx++}. **Developer Experience** — ${ctx.ai_context.conventions.length} enforced conventions: ${ctx.ai_context.conventions.slice(0, 2).join("; ")}`);
+    lines.push(`${vpIdx++}. **Developer Experience** — ${ctx.ai_context.conventions.length} enforced conventions: ${mdText(ctx.ai_context.conventions.slice(0, 2).join("; "))}`);
   }
   lines.push("");
 
@@ -156,13 +157,13 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
       lines.push("");
       if (pkgJson) {
         const desc = pkgJson.content.match(/"description"\s*:\s*"([^"]+)"/);
-        if (desc) lines.push(`- **Package description**: ${desc[1]}`);
+        if (desc) lines.push(`- **Package description**: ${mdText(desc[1])}`);
         const keywords = pkgJson.content.match(/"keywords"\s*:\s*\[([^\]]+)\]/);
-        if (keywords) lines.push(`- **Keywords**: ${keywords[1].replace(/"/g, "").trim()}`);
+        if (keywords) lines.push(`- **Keywords**: ${mdText(keywords[1].replace(/"/g, "").trim())}`);
       }
       for (const r of readmes.slice(0, 2)) {
         const firstLine = r.content.split("\n").find(l => l.trim().length > 10 && !l.startsWith("#"));
-        if (firstLine) lines.push(`- **README tagline**: ${firstLine.trim().slice(0, 120)}`);
+        if (firstLine) lines.push(`- **README tagline**: ${mdText(firstLine.trim().slice(0, 120))}`);
       }
       lines.push("");
     }
@@ -183,7 +184,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Funnel Map — ${id.name}`);
+  lines.push(`# Funnel Map — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> User acquisition funnel from awareness to advocacy");
   lines.push("");
@@ -191,7 +192,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -201,7 +202,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -239,7 +240,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
 
   const entryPoints = ctx.entry_points.slice(0, 3);
   if (entryPoints.length > 0) {
-    lines.push(`- Quickstart showing core entry points: ${entryPoints.map(e => `\`${e.path}\``).join(", ")}`);
+    lines.push(`- Quickstart showing core entry points: ${entryPoints.map(e => `\`${mdCode(e.path)}\``).join(", ")}`);
   }
   lines.push("- Architecture overview explaining design decisions");
   lines.push("- Comparison table vs alternatives");
@@ -264,7 +265,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   if (warnings.length > 0) {
     lines.push("- Current known issues:");
     for (const w of warnings.slice(0, 3)) {
-      lines.push(`  - ${w}`);
+      lines.push(`  - ${mdText(w)}`);
     }
   }
   lines.push("");
@@ -285,13 +286,13 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   if (activationModels.length > 0) {
     lines.push("### Key Activation Moments (by domain entity)");
     for (const m of activationModels) {
-      lines.push(`- Works with **${m.name}** (${m.kind}) for the first time`);
+      lines.push(`- Works with **${mdText(m.name)}** (${mdText(m.kind)}) for the first time`);
     }
     lines.push("");
   } else if (activationAbstractions.length > 0) {
     lines.push("### Key Activation Moments");
     for (const a of activationAbstractions) {
-      lines.push(`- Uses **${a}** successfully for the first time`);
+      lines.push(`- Uses **${mdText(a)}** successfully for the first time`);
     }
     lines.push("");
   }
@@ -300,7 +301,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   if (postRoutes.length > 0) {
     lines.push("### Action Triggers (POST routes)");
     for (const r of postRoutes) {
-      lines.push(`- \`POST ${r.path}\` — ${r.source_file}`);
+      lines.push(`- \`POST ${mdCode(r.path)}\` — ${mdText(r.source_file)}`);
     }
     lines.push("");
   }
@@ -337,7 +338,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
       lines.push("Map these to funnel stages — each is a potential conversion surface:");
       lines.push("");
       for (const ep of entries.slice(0, 5)) {
-        lines.push(`- \`${ep.path}\``);
+        lines.push(`- \`${mdCode(ep.path)}\``);
       }
       lines.push("");
     }
@@ -358,7 +359,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Sequence Pack — ${id.name}`);
+  lines.push(`# Sequence Pack — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Email and outreach sequences for onboarding, retention, and re-engagement");
   lines.push("");
@@ -366,7 +367,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -376,7 +377,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -387,10 +388,10 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 1: Welcome (Day 0)");
   lines.push("");
-  lines.push(`**Subject**: Welcome to ${id.name} — here's your quickstart`);
+  lines.push(`**Subject**: Welcome to ${mdText(id.name)} — here's your quickstart`);
   lines.push("");
   lines.push("**Body**:");
-  lines.push(`- Brief welcome and what ${id.name} does`);
+  lines.push(`- Brief welcome and what ${mdText(id.name)} does`);
   lines.push("- Link to quickstart guide");
   lines.push("- One concrete example they can try in 2 minutes");
   lines.push("- CTA: Try the quickstart");
@@ -398,17 +399,17 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 2: Core Feature (Day 2)");
   lines.push("");
-  lines.push(`**Subject**: The one ${id.name} feature everyone uses first`);
+  lines.push(`**Subject**: The one ${mdText(id.name)} feature everyone uses first`);
   lines.push("");
 
   const topModels = ctx.domain_models.slice(0, 3);
   const topAbstraction = ctx.ai_context.key_abstractions[0];
   lines.push("**Body**:");
   if (topModels.length > 0) {
-    lines.push(`- Highlight the core entities: ${topModels.map(m => `**${m.name}**`).join(", ")}`);
-    lines.push(`- Show how to create and interact with a \`${topModels[0].name}\` end-to-end`);
+    lines.push(`- Highlight the core entities: ${topModels.map(m => `**${mdText(m.name)}**`).join(", ")}`);
+    lines.push(`- Show how to create and interact with a \`${mdCode(topModels[0].name)}\` end-to-end`);
   } else if (topAbstraction) {
-    lines.push(`- Highlight the core feature: **${topAbstraction}**`);
+    lines.push(`- Highlight the core feature: **${mdText(topAbstraction)}**`);
   } else {
     lines.push("- Highlight the primary use case and core value proposition");
   }
@@ -418,14 +419,14 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 3: Power User Tip (Day 5)");
   lines.push("");
-  lines.push(`**Subject**: Level up your ${id.name} usage`);
+  lines.push(`**Subject**: Level up your ${mdText(id.name)} usage`);
   lines.push("");
   lines.push("**Body**:");
   const conventions = ctx.ai_context.conventions.slice(0, 3);
   lines.push("- Advanced tip or lesser-known feature");
   if (conventions.length > 0) {
     for (const c of conventions) {
-      lines.push(`- Pro convention: ${c}`);
+      lines.push(`- Pro convention: ${mdText(c)}`);
     }
   }
   lines.push("- Link to documentation or example repo");
@@ -438,7 +439,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 1: What's New (Day 14)");
   lines.push("");
-  lines.push(`**Subject**: ${id.name} updates you may have missed`);
+  lines.push(`**Subject**: ${mdText(id.name)} updates you may have missed`);
   lines.push("");
   lines.push("**Body**:");
   lines.push("- Summary of recent updates / changelog highlights");
@@ -448,7 +449,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 2: Community Highlight (Day 21)");
   lines.push("");
-  lines.push(`**Subject**: See what others are building with ${id.name}`);
+  lines.push(`**Subject**: See what others are building with ${mdText(id.name)}`);
   lines.push("");
   lines.push("**Body**:");
   lines.push("- Community showcase or case study");
@@ -462,7 +463,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 1: Thank You (Day 0 — After First PR)");
   lines.push("");
-  lines.push(`**Subject**: Thanks for contributing to ${id.name}!`);
+  lines.push(`**Subject**: Thanks for contributing to ${mdText(id.name)}!`);
   lines.push("");
   lines.push("**Body**:");
   lines.push("- Genuine thank you for their contribution");
@@ -478,7 +479,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
       lines.push("## Detected Contributor Assets");
       lines.push("");
       for (const c of contributing) {
-        lines.push(`- \`${c.path}\` (${c.size} bytes)`);
+        lines.push(`- \`${mdCode(c.path)}\` (${c.size} bytes)`);
       }
       lines.push("");
     }
@@ -500,7 +501,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   const routes = ctx.routes;
   const lines: string[] = [];
 
-  lines.push(`# CRO Playbook — ${id.name}`);
+  lines.push(`# CRO Playbook — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Conversion Rate Optimization playbook based on detected routes and architecture");
   lines.push("");
@@ -508,7 +509,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -518,7 +519,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -557,7 +558,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
       } else if (r.path.includes("docs") || r.path.includes("help")) {
         action = "Track documentation coverage and bounce rate";
       }
-      lines.push(`| \`${r.path}\` | ${r.method} | ${action} |`);
+      lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${action} |`);
     }
     lines.push("");
   }
@@ -624,7 +625,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   if (experimentRoutes.hasApi) {
     lines.push(`### Experiment ${expIdx++}: API First-Call Success`);
     lines.push("");
-    lines.push(`- **Routes**: ${routes.filter(r => r.path.includes("/api/") || r.path.includes("/v1/")).slice(0, 3).map(r => `\`${r.method} ${r.path}\``).join(", ")}`);
+    lines.push(`- **Routes**: ${routes.filter(r => r.path.includes("/api/") || r.path.includes("/v1/")).slice(0, 3).map(r => `\`${mdCode(r.method)} ${mdCode(r.path)}\``).join(", ")}`);
     lines.push("- **Hypothesis**: An interactive API playground will increase developer activation by 40%");
     lines.push("- **Metric**: Time to first successful API call, developer satisfaction");
     lines.push("- **Variants**: A: Static API docs | B: Live try-it-now console in docs");
@@ -674,7 +675,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
       lines.push("## Detected Landing/Conversion Pages");
       lines.push("");
       for (const f of landingFiles.slice(0, 6)) {
-        lines.push(`- \`${f.path}\``);
+        lines.push(`- \`${mdCode(f.path)}\``);
       }
       lines.push("");
     }
@@ -699,15 +700,15 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   const pageRoutes = routes.filter(r => !r.path.startsWith("/api") && r.method === "GET");
 
   const lines: string[] = [];
-  lines.push(`# A/B Test Plan — ${id.name}`);
+  lines.push(`# A/B Test Plan — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`Generated: ${ctx.generated_at}`);
+  lines.push(`Generated: ${mdText(ctx.generated_at)}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -717,7 +718,7 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -755,8 +756,8 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("| Variant | Description |");
   lines.push("|---------|-------------|");
   lines.push(`| Control | Current hero copy |`);
-  lines.push(`| A | Feature-focused: \"${id.name} analyzes your codebase in seconds\" |`);
-  lines.push(`| B | Outcome-focused: \"Ship faster with AI that understands your code\" |`);
+  lines.push(`| A | Feature-focused: \"${mdInline(id.name)} — [lead with your standout feature]\" |`);
+  lines.push(`| B | Outcome-focused: \"[lead with the outcome your users get]\" |`);
   lines.push("");
 
   // Test 2: CTA
@@ -773,8 +774,8 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("| Variant | CTA Text | Color |");
   lines.push("|---------|----------|-------|");
   lines.push("| Control | \"Get Started\" | Primary |");
-  lines.push(`| A | \"Analyze My Repo\" | Primary |`);
-  lines.push(`| B | \"Try ${id.name} Free\" | Accent |`);
+  lines.push(`| A | \"[your primary action — e.g. Get Started]\" | Primary |`);
+  lines.push(`| B | \"Try ${mdInline(id.name)} Free\" | Accent |`);
   lines.push("");
 
   // Test 3: Pricing
