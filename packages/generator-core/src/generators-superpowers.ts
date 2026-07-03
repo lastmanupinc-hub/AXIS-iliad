@@ -4,11 +4,33 @@ import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
 
+// ─── Shared command helpers ─────────────────────────────────────
+// The canonical "run tests" command for the detected stack, so superpower-pack,
+// workflow-registry, and automation-pipeline can never DISAGREE. An adversarial
+// review found the registry telling a pytest repo to run `npm test` and the
+// pipeline emitting the broken `npx pytest run` (pytest isn't an npx bin; `jest
+// run` treats `run` as a path filter) — all three now share this.
+export function testRunCommand(testFrameworks: string[], pkgMgr: string): string {
+  if (testFrameworks.includes("vitest")) return "npx vitest run";
+  if (testFrameworks.includes("jest")) return "npx jest";
+  if (testFrameworks.includes("pytest")) return "python -m pytest";
+  return `${pkgMgr} test`;
+}
+
+/**
+ * Whether a `tsc --noEmit` typecheck stage applies — don't emit it for non-TS
+ * repos. TypeScript can be the PRIMARY language or just present among the detected
+ * languages (a primary-JS repo with .ts files + a tsconfig legitimately runs tsc).
+ */
+export function hasTypecheck(ctx: ContextMap): boolean {
+  return /typescript/i.test(ctx.project_identity.primary_language) ||
+    ctx.detection.languages.some(l => /typescript/i.test(l.name));
+}
+
 // ─── superpower-pack.md ─────────────────────────────────────────
 
 export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
   lines.push(`# Superpower Pack — ${mdText(id.name)}`);
@@ -201,7 +223,6 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
 // ─── workflow-registry.json ─────────────────────────────────────
 
 export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const testFws = ctx.detection.test_frameworks;
   const pkgManagers = ctx.detection.package_managers;
   const pkgMgr = pkgManagers.includes("pnpm") ? "pnpm" : pkgManagers.includes("yarn") ? "yarn" : "npm";
@@ -224,8 +245,8 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
     steps: [
       `${pkgMgr} install`,
       `${pkgMgr} run build`,
-      testFws.includes("vitest") ? "npx vitest run" : testFws.includes("jest") ? "npx jest" : `${pkgMgr} test`,
-      "npx tsc --noEmit",
+      testRunCommand(testFws, pkgMgr),
+      ...(hasTypecheck(ctx) ? ["npx tsc --noEmit"] : []),
     ],
     applicable: true,
   });
@@ -239,7 +260,7 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
       ? ["npx vitest --changed"]
       : testFws.includes("jest")
         ? ["npx jest --onlyChanged"]
-        : [`${pkgMgr} test`],
+        : [testRunCommand(testFws, pkgMgr)],
     applicable: testFws.length > 0,
   });
 
@@ -362,7 +383,6 @@ export function generateWorkflowRegistry(ctx: ContextMap, profile: RepoProfile, 
 export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const testFws = ctx.detection.test_frameworks;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
   lines.push(`# Test Generation Rules — ${mdText(id.name)}`);
@@ -594,13 +614,23 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
     const sourceFiles = findFiles(files, ["*.ts", "*.tsx", "*.js", "*.jsx", "*.py"])
       .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec.") && !f.path.includes("test_"));
     const untestedExports: string[] = [];
-    for (const sf of sourceFiles.slice(0, 20)) {
+    for (const sf of sourceFiles.slice(0, 150)) {
       const exports = extractExports(sf.content);
-      if (exports.length > 0) {
-        const hasTest = testFiles.some(tf => tf.path.includes(sf.path.replace(/\.[^.]+$/, "")));
-        if (!hasTest) {
-          untestedExports.push(`\`${mdCode(sf.path)}\` — ${mdText(exports.join(", "))}`);
-        }
+      if (exports.length === 0) continue;
+      // Match a test file by the source's STEM with a boundary, so `api.ts` is not
+      // marked tested by an unrelated `api-client.test.ts` (substring false match).
+      // Also require directory affinity (same dir or a subdir like __tests__), so
+      // `a/index.ts` and `b/index.ts` don't both get claimed by one `a/index.test.ts`.
+      const stem = sf.path.replace(/\.[^.]+$/, "").split("/").pop() ?? "";
+      const dir = sf.path.includes("/") ? sf.path.slice(0, sf.path.lastIndexOf("/")) : "";
+      const hasTest = stem.length > 0 && testFiles.some(tf => {
+        const tb = tf.path.split("/").pop() ?? "";
+        const nameMatch = tb.startsWith(`${stem}.test.`) || tb.startsWith(`${stem}.spec.`) ||
+          tb.startsWith(`test_${stem}.`) || tb.startsWith(`${stem}_test.`);
+        return nameMatch && (dir === "" || tf.path.startsWith(`${dir}/`));
+      });
+      if (!hasTest) {
+        untestedExports.push(`\`${mdCode(sf.path)}\` — ${mdText(exports.join(", "))}`);
       }
     }
     if (untestedExports.length > 0) {
@@ -611,6 +641,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       for (const ue of untestedExports.slice(0, 10)) {
         lines.push(`- ${ue}`);
       }
+      if (untestedExports.length > 10) lines.push(`- *… and ${untestedExports.length - 10} more untested*`);
       lines.push("");
     }
   }
@@ -681,7 +712,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
       lines.push("");
     }
   } else {
-    lines.push("No dependency hotspots detected. Codebase has even dependency distribution.");
+    lines.push("No dependency hotspots detected — the import graph is either well-decoupled or was not fully resolved (verify against context-map.json).");
     lines.push("");
   }
 
@@ -876,15 +907,17 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push(`        paths: [${pm === "pnpm" ? "~/.pnpm-store" : "node_modules"}]`);
   lines.push("");
 
-  // Stage 2: Lint
+  // Stage 2: Lint — collect commands so the block is never empty (an empty
+  // `commands:` for a repo with no eslint and no typecheck would emit `null`).
+  const lintCmds: string[] = [];
+  if (buildTools.includes("eslint")) lintCmds.push(`${pm === "pnpm" ? "pnpm" : "npx"} eslint .`);
+  if (hasTypecheck(ctx)) lintCmds.push(`${pm === "pnpm" ? "pnpm" : "npx"} tsc --noEmit`);
+  if (lintCmds.length === 0) lintCmds.push('echo "No linter/typechecker detected — add one before enabling this stage"');
   lines.push("    - name: lint");
   lines.push("      description: Static analysis and linting");
   lines.push("      depends_on: [install]");
   lines.push("      commands:");
-  if (buildTools.includes("eslint")) {
-    lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} eslint .`);
-  }
-  lines.push(`        - ${pm === "pnpm" ? "pnpm" : "npx"} tsc --noEmit`);
+  for (const c of lintCmds) lines.push(`        - ${yamlFlowScalar(c)}`);
   lines.push("      fail_fast: true");
   lines.push("");
 
@@ -894,11 +927,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      depends_on: [install]");
   lines.push("      parallel_with: [lint]");
   lines.push("      commands:");
-  if (testFrameworks.length > 0) {
-    lines.push(`        - ${yamlFlowScalar(`${pm === "pnpm" ? "pnpm" : "npx"} ${testFrameworks[0]} run`)}`);
-  } else {
-    lines.push(`        - ${yamlFlowScalar(`${pm} test`)}`);
-  }
+  lines.push(`        - ${yamlFlowScalar(testRunCommand(testFrameworks, pm))}`);
   lines.push("      coverage:");
   lines.push("        minimum: 80");
   lines.push("        report_format: lcov");
