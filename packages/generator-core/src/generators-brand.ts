@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── brand-guidelines.md ────────────────────────────────────────
 
@@ -421,7 +422,9 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
 
 export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  // Dedupe by (method, path) + drop test/README noise so counts reflect the real
+  // API surface, not the parser's per-mention rows (dogfood: 537 raw → ~163).
+  const routes = displayRoutes(ctx.routes);
   const entryPoints = ctx.entry_points;
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
@@ -594,7 +597,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   const lines: string[] = [];
   lines.push(`# Channel Rulebook — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`Generated: ${ctx.generated_at}`);
+  lines.push(`Generated: ${mdText(ctx.generated_at)}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
@@ -695,10 +698,10 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| Bug reports | Always acknowledge, provide issue tracker link |");
   lines.push("| Feature requests | Thank + route to roadmap or GitHub Discussions |");
   lines.push("| Billing issues | High priority SLA — respond within 2 business hours |");
-  if (ctx.routes.some(r => r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"))) {
-    const supportRoutes = ctx.routes.filter(r =>
-      r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"),
-    );
+  const supportRoutes = displayRoutes(ctx.routes).filter(r =>
+    r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"),
+  );
+  if (supportRoutes.length > 0) {
     lines.push(`| Detected support routes | ${supportRoutes.slice(0, 3).map(r => `\`${mdCellCode(r.path)}\``).join(", ")} |`);
   }
   lines.push("");
