@@ -67,6 +67,25 @@ function resolveImportPath(
     base + "/index.js",
   ];
 
+  // NodeNext/ESM TypeScript imports name the EMITTED file: `import "./router.js"`
+  // while the repo contains `router.ts`. Without this remap the resolver produced
+  // ZERO internal edges for modern ESM-style TS projects — hotspots (and every
+  // downstream risk artifact) stayed permanently empty. The literal candidate
+  // above still wins when a real .js file exists alongside.
+  const extMatch = base.match(/\.(js|jsx|mjs|cjs)$/);
+  if (extMatch) {
+    const stem = base.slice(0, -extMatch[0].length);
+    const tsEquivalents: Record<string, string[]> = {
+      js: [".ts", ".tsx"],
+      jsx: [".tsx", ".ts"],
+      mjs: [".mts", ".ts"],
+      cjs: [".cts", ".ts"],
+    };
+    for (const ext of tsEquivalents[extMatch[1]]) {
+      candidates.push(stem + ext);
+    }
+  }
+
   for (const c of candidates) {
     if (knownFiles.has(c)) return c;
   }
