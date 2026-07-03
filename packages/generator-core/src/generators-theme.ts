@@ -7,27 +7,17 @@ import { findFiles, detectStyleFiles, renderExcerpts, fileTree, extractExports }
 // JSON.stringify(obj) (contained by construction).
 import { mdText, mdInline, mdCode, cssComment } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
+import { detectStyling, componentFileEntries } from "./theme-detect.js";
 
 // ─── .ai/design-tokens.json ────────────────────────────────────
 
 export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const fwNames = frameworks.map(f => f.name);
 
-  // Detect styling approach from file tree
-  const treeFiles = ctx.structure.file_tree_summary;
-  const hasTailwind = treeFiles.some(f => f.path.includes("tailwind.config"));
-  const hasCssModules = treeFiles.some(f => f.path.endsWith(".module.css") || f.path.endsWith(".module.scss"));
-  const hasStyledComponents = ctx.dependency_graph.external_dependencies.some(
-    d => d.name === "styled-components" || d.name === "@emotion/styled" || d.name === "@emotion/react",
-  );
-  const hasSass = treeFiles.some(f => f.path.endsWith(".scss") || f.path.endsWith(".sass"));
-
-  const stylingApproach = hasTailwind ? "tailwind" :
-    hasStyledComponents ? "css-in-js" :
-    hasCssModules ? "css-modules" :
-    hasSass ? "sass" : "plain-css";
+  // Styling approach — shared detector so this JSON, the guidelines doc, and the
+  // dark-mode tokens can never disagree about the same repo.
+  const { hasTailwind, hasCssModules, hasStyledComponents, hasSass, approach: stylingApproach } = detectStyling(ctx);
 
   // Base color palette (adaptive to detected stack)
   // Averionics palette — HUD cyan primary, cool cockpit-slate neutrals, instrument amber.
@@ -613,16 +603,11 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
 
 export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const frameworks = ctx.detection.frameworks.map(f => f.name);
-  const treeFiles = ctx.structure.file_tree_summary;
   const lines: string[] = [];
 
-  // Detect styling signals
-  const hasTailwind = treeFiles.some(f => f.path.includes("tailwind.config"));
-  const hasCssModules = treeFiles.some(f => f.path.endsWith(".module.css") || f.path.endsWith(".module.scss"));
-  const hasStyledComponents = ctx.dependency_graph.external_dependencies.some(
-    d => d.name === "styled-components" || d.name === "@emotion/styled",
-  );
+  // Styling signals — shared detector so this doc agrees with design-tokens.json
+  // and dark-mode-tokens.json (incl. @emotion/react and Sass, previously missed).
+  const { hasTailwind, hasCssModules, hasStyledComponents, hasSass } = detectStyling(ctx);
 
   lines.push(`# Theme Guidelines — ${mdText(id.name)}`);
   lines.push("");
@@ -697,6 +682,14 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("- Keep module files co-located with their components");
     lines.push("- Use `composes` for shared styles between modules");
     lines.push("");
+  } else if (hasSass) {
+    lines.push("**Detected: Sass / SCSS**");
+    lines.push("");
+    lines.push("- Import `theme.css` and reference tokens via `var(--token-name)` — don't fork them into Sass variables");
+    lines.push("- Mirror the token contract in a Sass map only where you need compile-time math");
+    lines.push("- Use `@use` / `@forward` (not the deprecated `@import`) for module composition");
+    lines.push("- Keep partials co-located with their components");
+    lines.push("");
   } else {
     lines.push("**No CSS framework detected.** Using vanilla CSS custom properties.");
     lines.push("");
@@ -750,10 +743,9 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   // Component Patterns
   lines.push("## Component Patterns");
   lines.push("");
-  const componentFiles = treeFiles.filter(f =>
-    f.path.includes("component") || f.path.includes("Component") ||
-    (f.path.endsWith(".tsx") && !f.path.includes("page") && !f.path.includes("layout") && !f.path.includes("route")),
-  );
+  // Shared canonical predicate — this headline count MUST match
+  // component-theme-map.json's total_components for the same repo.
+  const componentFiles = componentFileEntries(ctx);
   if (componentFiles.length > 0) {
     lines.push(`Detected ${componentFiles.length} component file(s). Apply these patterns:`);
     lines.push("");
@@ -962,15 +954,10 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
 // ─── component-theme-map.json ───────────────────────────────────
 
 export function generateComponentThemeMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
-  const treeFiles = ctx.structure.file_tree_summary;
-
-  // Find component files
-  const componentFiles = treeFiles.filter(f =>
-    f.type === "file" &&
-    (f.path.endsWith(".tsx") || f.path.endsWith(".vue") || f.path.endsWith(".svelte")) &&
-    !f.path.includes("test") && !f.path.includes("spec") &&
-    !f.path.includes("node_modules"),
-  );
+  // Shared canonical predicate — total_components here MUST match the guidelines
+  // "Detected N component file(s)" headline for the same repo. (Uses .test./.spec.
+  // infixes, so components like Prospect.tsx / Contest.tsx are no longer dropped.)
+  const componentFiles = componentFileEntries(ctx);
 
   // Classify components by pattern
   const components = componentFiles.map(f => {
@@ -1064,7 +1051,9 @@ export function generateComponentThemeMap(ctx: ContextMap, files?: SourceFile[])
 export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
+  // Shared tailwind signal (config file OR detected framework) — matches
+  // design-tokens.json's has_tailwind and the guidelines' styling section.
+  const { hasTailwind } = detectStyling(ctx);
 
   // Generate a full dark mode token set derived from the project context
   const tokens = {
