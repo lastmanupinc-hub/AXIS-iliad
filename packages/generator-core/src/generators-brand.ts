@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, extractExports } from "./file-excerpt-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
 
 // ─── brand-guidelines.md ────────────────────────────────────────
 
@@ -10,16 +11,16 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
-  lines.push(`# Brand Guidelines — ${id.name}`);
+  lines.push(`# Brand Guidelines — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Brand identity and communication standards for ${id.name}`);
+  lines.push(`> Brand identity and communication standards for ${mdText(id.name)}`);
   lines.push("");
 
   // Project Overview
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -30,7 +31,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -38,11 +39,11 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   // Brand Identity
   lines.push("## Brand Identity");
   lines.push("");
-  lines.push(`**Product Name:** ${id.name}`);
-  lines.push(`**Category:** ${id.type.replace(/_/g, " ")}`);
-  lines.push(`**Primary Technology:** ${id.primary_language}`);
+  lines.push(`**Product Name:** ${mdText(id.name)}`);
+  lines.push(`**Category:** ${mdText(id.type.replace(/_/g, " "))}`);
+  lines.push(`**Primary Technology:** ${mdText(id.primary_language)}`);
   if (id.description) {
-    lines.push(`**Description:** ${id.description}`);
+    lines.push(`**Description:** ${mdText(id.description)}`);
   }
   lines.push("");
 
@@ -53,19 +54,19 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   const isCli = id.type.includes("cli") || id.type.includes("tool");
   const isLibrary = id.type.includes("library") || id.type.includes("package");
   if (isWebApp) {
-    lines.push(`${id.name} is a web application that delivers value through its user interface and API surface.`);
+    lines.push(`${mdText(id.name)} is a web application that delivers value through its user interface and API surface.`);
     lines.push("");
     lines.push("**Target Audience:** Developers, technical teams, and end users who interact with the web interface.");
   } else if (isCli) {
-    lines.push(`${id.name} is a command-line tool built for developer productivity.`);
+    lines.push(`${mdText(id.name)} is a command-line tool built for developer productivity.`);
     lines.push("");
     lines.push("**Target Audience:** Developers and DevOps engineers working in terminal environments.");
   } else if (isLibrary) {
-    lines.push(`${id.name} is a library/package consumed by other software projects.`);
+    lines.push(`${mdText(id.name)} is a library/package consumed by other software projects.`);
     lines.push("");
     lines.push("**Target Audience:** Developers integrating this library into their applications.");
   } else {
-    lines.push(`${id.name} is a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}.`);
+    lines.push(`${mdText(id.name)} is a ${mdText(id.type.replace(/_/g, " "))} built with ${mdText(id.primary_language)}.`);
     lines.push("");
     lines.push("**Target Audience:** Technical users and developers.");
   }
@@ -119,7 +120,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   if (frameworks.length > 0) {
     lines.push("## Stack-Specific Application");
     lines.push("");
-    lines.push(`This project uses: ${frameworks.join(", ")}`);
+    lines.push(`This project uses: ${frameworks.map(mdText).join(", ")}`);
     lines.push("");
     if (hasFw(ctx, "Next.js", "React")) {
       lines.push("- Component names should be descriptive and PascalCase");
@@ -134,7 +135,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("");
   lines.push("| Element | Convention | Example |");
   lines.push("|---------|-----------|---------|");
-  lines.push("| Product name | Capitalized | " + id.name + " |");
+  lines.push("| Product name | Capitalized | " + mdInline(id.name) + " |");
   lines.push("| Feature names | Sentence case | \"Context analysis\" |");
   lines.push("| CLI commands | kebab-case | `generate-report` |");
   lines.push("| API endpoints | kebab-case | `/v1/search/export` |");
@@ -149,7 +150,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
       lines.push("## Existing Brand Assets");
       lines.push("");
       for (const r of readmes.slice(0, 4)) {
-        lines.push(`- \`${r.path}\` (${r.size} bytes)`);
+        lines.push(`- \`${mdCode(r.path)}\` (${r.size} bytes)`);
       }
       lines.push("");
     }
@@ -170,7 +171,7 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Voice & Tone — ${id.name}`);
+  lines.push(`# Voice & Tone — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Context-sensitive tone guidance for every communication surface");
   lines.push("");
@@ -178,7 +179,7 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -188,7 +189,7 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -279,7 +280,7 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
       lines.push(`Found ${docFiles.length} documentation files to audit for tone consistency.`);
       lines.push("");
       for (const d of docFiles.slice(0, 6)) {
-        lines.push(`- \`${d.path}\``);
+        lines.push(`- \`${mdCode(d.path)}\``);
       }
       lines.push("");
     }
@@ -301,7 +302,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
   const conventions = ctx.ai_context.conventions;
   const lines: string[] = [];
 
-  lines.push(`# Content Constraints — ${id.name}`);
+  lines.push(`# Content Constraints — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Enforceable rules for AI-generated and human-written content");
   lines.push("");
@@ -309,7 +310,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -319,7 +320,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -366,7 +367,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
     lines.push("Detected from codebase analysis — enforce in all generated content:");
     lines.push("");
     for (const c of conventions) {
-      lines.push(`- ${c}`);
+      lines.push(`- ${mdText(c)}`);
     }
     lines.push("");
   }
@@ -401,7 +402,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
       lines.push("## Detected Formatting Configs");
       lines.push("");
       for (const c of configFiles.slice(0, 5)) {
-        lines.push(`- \`${c.path}\``);
+        lines.push(`- \`${mdCode(c.path)}\``);
       }
       lines.push("");
     }
@@ -430,18 +431,18 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
   const lines: string[] = [];
 
   lines.push("# Messaging System");
-  lines.push(`# Project: ${id.name}`);
-  lines.push(`# Generated: ${ctx.generated_at}`);
+  lines.push(`# Project: ${yamlFlowScalar(id.name)}`);
+  lines.push(`# Generated: ${yamlFlowScalar(ctx.generated_at)}`);
   if (ctx.ai_context.project_summary) {
-    lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
+    lines.push(`# Summary: ${yamlFlowScalar(ctx.ai_context.project_summary.split("\n")[0])}`);
   }
   lines.push("");
   lines.push("product:");
-  lines.push(`  name: "${id.name}"`);
-  lines.push(`  type: "${id.type}"`);
-  lines.push(`  primary_language: "${id.primary_language}"`);
+  lines.push(`  name: ${yamlFlowScalar(id.name)}`);
+  lines.push(`  type: ${yamlFlowScalar(id.type)}`);
+  lines.push(`  primary_language: ${yamlFlowScalar(id.primary_language)}`);
   if (frameworks.length > 0) {
-    lines.push(`  stack: "${frameworks.map(f => f.name).join(", ")}"`);
+    lines.push(`  stack: ${yamlFlowScalar(frameworks.map(f => f.name).join(", "))}`);
   }
   lines.push("");
 
@@ -449,17 +450,18 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
   const primaryLang = id.primary_language;
   const fwNames = frameworks.map(f => f.name).join(" + ");
   /* v8 ignore next */
-  const projectDesc = ctx.ai_context.project_summary?.split("\n")[0] ?? id.name;
+  const firstSummaryLine = ctx.ai_context.project_summary?.split("\n")[0]?.trim();
+  const projectDesc = firstSummaryLine || id.name;
   lines.push("taglines:");
   if (fwNames) {
-    lines.push(`  primary: "${projectDesc}"`);
-    lines.push(`  technical: "${fwNames} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString()} lines of ${primaryLang}"`);
+    lines.push(`  primary: ${yamlFlowScalar(projectDesc)}`);
+    lines.push(`  technical: ${yamlFlowScalar(`${fwNames} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString("en-US")} lines`)}`);
   } else {
-    lines.push(`  primary: "${projectDesc}"`);
-    lines.push(`  technical: "${primaryLang} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString()} lines"`);
+    lines.push(`  primary: ${yamlFlowScalar(projectDesc)}`);
+    lines.push(`  technical: ${yamlFlowScalar(`${primaryLang} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString("en-US")} lines`)}`);
   }
   if (abstractions.length > 0) {
-    lines.push(`  conceptual: "Built around ${abstractions.slice(0, 3).join(", ")}"`);
+    lines.push(`  conceptual: ${yamlFlowScalar(`Built around ${abstractions.slice(0, 3).join(", ")}`)}`);
   }
   lines.push("");
 
@@ -467,8 +469,8 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("value_propositions:");
   if (frameworks.length > 0) {
     lines.push("  - id: stack");
-    lines.push(`    headline: "${fwNames} Expertise"`);
-    lines.push(`    detail: "Built with ${frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ")} — stack-native patterns throughout."`);
+    lines.push(`    headline: ${yamlFlowScalar(`${fwNames} Expertise`)}`);
+    lines.push(`    detail: ${yamlFlowScalar(`Built with ${frameworks.map(f => `${f.name}${f.version ? ` ${f.version}` : ""}`).join(", ")} — stack-native patterns throughout.`)}`);
   }
   if (routes.length > 0) {
     lines.push("  - id: api_surface");
@@ -476,24 +478,28 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
     const methods = new Map<string, number>();
     for (const r of routes) methods.set(r.method, (methods.get(r.method) ?? 0) + 1);
     const methodStr = [...methods.entries()].map(([m, c]) => `${c} ${m}`).join(", ");
-    lines.push(`    detail: "Complete API with ${methodStr} — ready for integration."`);
+    lines.push(`    detail: ${yamlFlowScalar(`Complete API with ${methodStr} — ready for integration.`)}`);
   }
   if (models.length > 0) {
     lines.push("  - id: domain_model");
     lines.push(`    headline: "${models.length} Domain Entities"`);
-    lines.push(`    detail: "Rich domain model with ${models.slice(0, 5).map(m => m.name).join(", ")}${models.length > 5 ? ` and ${models.length - 5} more` : ""}."`);
+    lines.push(`    detail: ${yamlFlowScalar(`Rich domain model with ${models.slice(0, 5).map(m => m.name).join(", ")}${models.length > 5 ? ` and ${models.length - 5} more` : ""}.`)}`);
   }
-  if (signals.separation_score > 0.5) {
+  if (signals.separation_score > 0.5 && signals.layer_boundaries.length > 0) {
     lines.push("  - id: architecture");
-    lines.push(`    headline: "Clean Architecture (${signals.separation_score.toFixed(2)} separation)"`);
-    lines.push(`    detail: "${signals.patterns_detected.length > 0 ? signals.patterns_detected.join(", ") : "Well-structured"} with ${signals.layer_boundaries.length} layer boundaries."`);
+    lines.push(`    headline: ${yamlFlowScalar(`Clean Architecture (${signals.separation_score.toFixed(2)} separation)`)}`);
+    lines.push(`    detail: ${yamlFlowScalar(`${signals.patterns_detected.length > 0 ? signals.patterns_detected.join(", ") : "Layered"} with ${signals.layer_boundaries.length} layer boundaries.`)}`);
   }
-  if (ctx.detection.test_frameworks.length > 0) {
+  // Count real test files by PATH (the `role` field isn't reliably populated).
+  // Only claim "tested" when tests actually exist, not merely because a test
+  // framework is in devDependencies.
+  const testCount = ctx.structure.file_tree_summary?.filter(
+    f => /\.(test|spec)\.[cm]?[jt]sx?$/.test(f.path) || /(^|\/)__tests__\//.test(f.path),
+  ).length ?? 0;
+  if (ctx.detection.test_frameworks.length > 0 && testCount > 0) {
     lines.push("  - id: quality");
     lines.push(`    headline: "Test-Driven Quality"`);
-    /* v8 ignore next */
-    const testCount = ctx.structure.file_tree_summary?.filter(f => f.role === "test").length ?? 0;
-    lines.push(`    detail: "Tested with ${ctx.detection.test_frameworks.join(", ")}${testCount > 0 ? ` across ${testCount} test files` : ""}."`);
+    lines.push(`    detail: ${yamlFlowScalar(`Tested with ${ctx.detection.test_frameworks.join(", ")} across ${testCount} test files.`)}`);
   }
   lines.push("");
 
@@ -505,15 +511,16 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
     lines.push(`    message: "${routes.length} API endpoints ready for integration"`);
     lines.push("    routes:");
     for (const r of routes.slice(0, 10)) {
-      lines.push(`      - "${r.method} ${r.path}"`);
+      lines.push(`      - ${yamlFlowScalar(`${r.method} ${r.path}`)}`);
     }
   }
   if (entryPoints.length > 0) {
     lines.push("  entry_points:");
     lines.push(`    count: ${entryPoints.length}`);
     lines.push(`    message: "${entryPoints.length} detected entry points mapped for context"`);
+    lines.push("    list:");
     for (const ep of entryPoints) {
-      lines.push(`      - "${ep.path} (${ep.type})"`);
+      lines.push(`      - ${yamlFlowScalar(`${ep.path} (${ep.type})`)}`);
     }
   }
   if (languages.length > 0) {
@@ -522,7 +529,10 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
     lines.push(`    message: "${languages.length} languages detected and analyzed"`);
     lines.push("    breakdown:");
     for (const lang of languages.slice(0, 5)) {
-      lines.push(`      - "${lang.name}: ${(lang.loc ?? 0).toLocaleString()} lines (${lang.loc_percent}%)"`);
+      lines.push(`      - ${yamlFlowScalar(`${lang.name}: ${(lang.loc ?? 0).toLocaleString("en-US")} lines (${lang.loc_percent}%)`)}`);
+    }
+    if (languages.length > 5) {
+      lines.push(`      - ${yamlFlowScalar(`(+${languages.length - 5} more languages)`)}`);
     }
   }
   if (frameworks.length > 0) {
@@ -531,7 +541,7 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
     lines.push(`    message: "${frameworks.length} frameworks detected with stack-aware output"`);
     lines.push("    detected:");
     for (const fw of frameworks) {
-      lines.push(`      - name: "${fw.name}"`);
+      lines.push(`      - name: ${yamlFlowScalar(fw.name)}`);
       lines.push(`        version: ${JSON.stringify(fw.version)}`);
       lines.push(`        confidence: ${fw.confidence}`);
     }
@@ -582,7 +592,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   const abstractions = ctx.ai_context.key_abstractions;
 
   const lines: string[] = [];
-  lines.push(`# Channel Rulebook — ${id.name}`);
+  lines.push(`# Channel Rulebook — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -590,7 +600,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -600,7 +610,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -622,7 +632,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| Person | Second person (\"you\") |");
   lines.push("| Code examples | Required for every concept |");
   lines.push("| Max paragraph length | 3 sentences |");
-  lines.push(`| Key terms | ${keyTerms} |`);
+  lines.push(`| Key terms | ${mdInline(keyTerms)} |`);
   lines.push("| Emoji | None |");
   lines.push("| CTA style | Inline links, \"Learn more\" |");
   lines.push("");
@@ -689,7 +699,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
     const supportRoutes = ctx.routes.filter(r =>
       r.path.includes("support") || r.path.includes("contact") || r.path.includes("help"),
     );
-    lines.push(`| Detected support routes | ${supportRoutes.slice(0, 3).map(r => `\`${r.path}\``).join(", ")} |`);
+    lines.push(`| Detected support routes | ${supportRoutes.slice(0, 3).map(r => `\`${mdCellCode(r.path)}\``).join(", ")} |`);
   }
   lines.push("");
 
@@ -723,7 +733,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
       lines.push("These files should comply with channel rules:");
       lines.push("");
       for (const r of readmes.slice(0, 4)) {
-        lines.push(`- \`${r.path}\` (${r.size} bytes)`);
+        lines.push(`- \`${mdCode(r.path)}\` (${r.size} bytes)`);
       }
       lines.push("");
     }
