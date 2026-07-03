@@ -221,4 +221,83 @@ describe("extractImports", () => {
     const edges = extractImports(files, "github.com/acme/app");
     expect(edges).toHaveLength(0);
   });
+
+  // ─── DEVELOP (Program 1 loop): NodeNext/ESM .js-suffixed TS imports ──────
+  //
+  // Modern ESM TypeScript ("module": "nodenext") imports name the EMITTED file
+  // (`import "./db.js"`) while the repo contains `db.ts`. Pre-fix, such repos —
+  // including this monorepo itself — produced ZERO internal import edges, so
+  // hotspots and every downstream risk artifact stayed permanently empty.
+  describe("NodeNext/ESM .js-suffixed imports resolve to TypeScript sources", () => {
+    it("resolves import './db.js' to src/db.ts", () => {
+      const files = makeFiles([
+        { path: "src/index.ts", content: 'import { db } from "./db.js";' },
+        { path: "src/db.ts", content: "export const db = {};" },
+      ]);
+      expect(extractImports(files)).toEqual([{ source: "src/index.ts", target: "src/db.ts" }]);
+    });
+
+    it("resolves import './Widget.jsx' to Widget.tsx", () => {
+      const files = makeFiles([
+        { path: "src/App.tsx", content: 'import { Widget } from "./Widget.jsx";' },
+        { path: "src/Widget.tsx", content: "export function Widget() {}" },
+      ]);
+      expect(extractImports(files)).toEqual([{ source: "src/App.tsx", target: "src/Widget.tsx" }]);
+    });
+
+    it("resolves import './util.mjs' to util.mts and './legacy.cjs' to legacy.cts", () => {
+      const files = makeFiles([
+        { path: "src/a.ts", content: 'import { u } from "./util.mjs";\nimport { l } from "./legacy.cjs";' },
+        { path: "src/util.mts", content: "export const u = 1;" },
+        { path: "src/legacy.cts", content: "export const l = 1;" },
+      ]);
+      const edges = extractImports(files);
+      expect(edges.map((e) => e.target).sort()).toEqual(["src/legacy.cts", "src/util.mts"]);
+    });
+
+    it("a REAL .js file still wins over the .ts remap (literal candidate first)", () => {
+      const files = makeFiles([
+        { path: "src/index.ts", content: 'import { x } from "./mixed.js";' },
+        { path: "src/mixed.js", content: "export const x = 1;" },
+        { path: "src/mixed.ts", content: "export const x = 2;" },
+      ]);
+      expect(extractImports(files)).toEqual([{ source: "src/index.ts", target: "src/mixed.js" }]);
+    });
+
+    it("still skips a .js import with no matching source at all", () => {
+      const files = makeFiles([
+        { path: "src/index.ts", content: 'import { x } from "./ghost.js";' },
+      ]);
+      expect(extractImports(files)).toHaveLength(0);
+    });
+
+    it("parent-relative ESM imports resolve across directories", () => {
+      const files = makeFiles([
+        { path: "src/api/handler.ts", content: 'import { log } from "../logger.js";' },
+        { path: "src/logger.ts", content: "export const log = () => {};" },
+      ]);
+      expect(extractImports(files)).toEqual([{ source: "src/api/handler.ts", target: "src/logger.ts" }]);
+    });
+
+    // HARDEN-2: tsc's NodeNext order includes .d.ts — declaration-only modules
+    // are often a repo's most-imported files.
+    it("resolves import './types.js' to a declaration-only types.d.ts", () => {
+      const files = makeFiles([
+        { path: "src/x.ts", content: 'import type { Y } from "./types.js";' },
+        { path: "src/types.d.ts", content: "export interface Y {}" },
+      ]);
+      expect(extractImports(files)).toEqual([{ source: "src/x.ts", target: "src/types.d.ts" }]);
+    });
+
+    // HARDEN-2: a specifier that walks ABOVE the analyzed root references a file
+    // outside the upload — resolving it to an in-repo file that merely shares a
+    // basename fabricated a phantom edge (inflating that file's hotspot risk).
+    it("produces NO edge when the specifier escapes the analyzed root", () => {
+      const files = makeFiles([
+        { path: "src/deep/x.ts", content: 'import y from "../../../shared.js";' },
+        { path: "shared.ts", content: "export default 1;" },
+      ]);
+      expect(extractImports(files)).toEqual([]);
+    });
+  });
 });

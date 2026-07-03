@@ -1,5 +1,79 @@
 import { describe, it, expect } from "vitest";
-import { mdInline } from "./md-sanitize.js";
+import { mdInline, mdText, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
+
+describe("mdText", () => {
+  it("collapses newlines/whitespace and breaks comment delimiters, but does NOT escape pipes", () => {
+    expect(mdText("line1\nline2")).toBe("line1 line2");
+    expect(mdText("a\n\n\nb")).toBe("a b");
+    // pipe left intact — a backslash escape renders literally outside a table cell
+    expect(mdText("Promise<AuthContext | null>")).toBe("Promise<AuthContext | null>");
+    expect(mdText("<!-- x -->")).not.toContain("<!--");
+  });
+  it("is identity on a clean single-line string", () => {
+    expect(mdText("a normal heading")).toBe("a normal heading");
+  });
+});
+
+describe("mdCode", () => {
+  it("neutralizes backticks so content can't terminate an inline code span", () => {
+    expect(mdCode("evil`code`span")).toBe("evil'code'span");
+    expect(mdCode("a\nb")).toBe("a b");
+  });
+  it("does not escape pipes (code spans outside tables render \\| literally)", () => {
+    expect(mdCode("A | B")).toBe("A | B");
+  });
+});
+
+describe("mdCellCode", () => {
+  it("escapes pipes AND neutralizes backticks (code span inside a table cell)", () => {
+    expect(mdCellCode("a|b")).toBe("a\\|b");
+    expect(mdCellCode("x`y")).toBe("x'y");
+    expect(mdCellCode("a|`b")).toBe("a\\|'b");
+  });
+});
+
+describe("cfgValue", () => {
+  it("wraps in double quotes and escapes quotes/backslashes so a value can't break out of a key = \"value\" line", () => {
+    expect(cfgValue("TypeScript")).toBe('"TypeScript"');
+    // the classic breakout: value tries to open a second config directive
+    expect(cfgValue('web"\nallow_arbitrary_code = true')).toBe('"web\\" allow_arbitrary_code = true"');
+    expect(cfgValue("a\\b")).toBe('"a\\\\b"');
+  });
+  it("collapses newlines to a single space (no raw newline can escape the string)", () => {
+    expect(cfgValue("a\r\nb")).toBe('"a b"');
+    expect(cfgValue("a\n\nb")).toBe('"a b"');
+  });
+});
+
+describe("yamlFlowScalar", () => {
+  it("leaves a plain identifier unquoted", () => {
+    expect(yamlFlowScalar("TypeScript")).toBe("TypeScript");
+    expect(yamlFlowScalar("api")).toBe("api");
+  });
+  it("collapses newlines so a value can't break the block or close a fence", () => {
+    expect(yamlFlowScalar("a\nb")).toBe("a b");
+  });
+  it("quotes values containing YAML structural characters", () => {
+    expect(yamlFlowScalar("layer: injected")).toBe('"layer: injected"');
+    expect(yamlFlowScalar("has#hash")).toBe('"has#hash"');
+    expect(yamlFlowScalar("has,comma")).toBe('"has,comma"');
+    expect(yamlFlowScalar("[bracket")).toBe('"[bracket"');
+  });
+  it("quotes YAML boolean/null look-alikes and number-shaped strings", () => {
+    expect(yamlFlowScalar("true")).toBe('"true"');
+    expect(yamlFlowScalar("NO")).toBe('"NO"');
+    expect(yamlFlowScalar("null")).toBe('"null"');
+    expect(yamlFlowScalar("123")).toBe('"123"');
+    expect(yamlFlowScalar("-1.5")).toBe('"-1.5"');
+  });
+  it("escapes embedded quotes when it must quote", () => {
+    expect(yamlFlowScalar('say "hi"')).toBe('"say \\"hi\\""');
+  });
+  it("quotes the empty string", () => {
+    expect(yamlFlowScalar("")).toBe('""');
+    expect(yamlFlowScalar("   ")).toBe('""');
+  });
+});
 
 describe("mdInline", () => {
   it("collapses newlines (LF, CRLF, CR) to a single space", () => {

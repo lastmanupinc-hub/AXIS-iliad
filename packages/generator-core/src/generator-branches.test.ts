@@ -2185,12 +2185,17 @@ describe("Superpowers workflow and refactor branches", () => {
       { path: "god.ts", inbound_count: 20, outbound_count: 15, risk_score: 0.85 },
       { path: "mid.ts", inbound_count: 5, outbound_count: 3, risk_score: 0.3 },
     ];
+    inp.source_files = s.files; // the export-surface section needs source files
     const result = generateFiles(inp);
     const f = getFile(result, "refactor-checklist.md");
     expect(f).toBeDefined();
     expect(f!.content).toContain("High-Risk Files");
     expect(f!.content).toContain("god.ts");
     expect(f!.content).toContain("85%");
+    // HARDEN-2: the Source File Analysis section used a leftover 0–10 threshold
+    // (> 5) that could never fire — the export-surface section was unreachable
+    // for ANY input even when the doc claimed high-risk files existed.
+    expect(f!.content).toContain("High-Risk File Export Surface");
   });
 
   it("refactor-checklist: shows architecture patterns when present", () => {

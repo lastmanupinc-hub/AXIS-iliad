@@ -52,9 +52,18 @@ function resolveImportPath(
   // drop the last char and corrupt the dir, so handle root files explicitly.
   const slash = fromFile.lastIndexOf("/");
   const dir = slash === -1 ? "" : fromFile.substring(0, slash);
-  const base = importPath.startsWith("./") || importPath.startsWith("../")
-    ? normalizePath(dir + "/" + importPath)
-    : importPath;
+  let base: string;
+  if (importPath.startsWith("./") || importPath.startsWith("../")) {
+    const normalized = normalizePath(dir + "/" + importPath);
+    // A specifier that walks above the analyzed root references a file OUTSIDE
+    // the upload — resolving it against in-repo names produces a phantom edge
+    // to an unrelated file that merely shares a basename (inflating its
+    // inbound count and hotspot risk). Skip it instead.
+    if (normalized === null) return null;
+    base = normalized;
+  } else {
+    base = importPath;
+  }
 
   const candidates = [
     base,
@@ -67,18 +76,41 @@ function resolveImportPath(
     base + "/index.js",
   ];
 
+  // NodeNext/ESM TypeScript imports name the EMITTED file: `import "./router.js"`
+  // while the repo contains `router.ts`. Without this remap the resolver produced
+  // ZERO internal edges for modern ESM-style TS projects — hotspots (and every
+  // downstream risk artifact) stayed permanently empty. The literal candidate
+  // above still wins when a real .js file exists alongside. `.d.ts` is included
+  // last for `.js` (tsc's own NodeNext order): declaration-only modules are
+  // often a repo's most-imported files.
+  const extMatch = base.match(/\.(js|jsx|mjs|cjs)$/);
+  if (extMatch) {
+    const stem = base.slice(0, -extMatch[0].length);
+    const tsEquivalents: Record<string, string[]> = {
+      js: [".ts", ".tsx", ".d.ts"],
+      jsx: [".tsx", ".ts"],
+      mjs: [".mts", ".ts"],
+      cjs: [".cts", ".ts"],
+    };
+    for (const ext of tsEquivalents[extMatch[1]]) {
+      candidates.push(stem + ext);
+    }
+  }
+
   for (const c of candidates) {
     if (knownFiles.has(c)) return c;
   }
   return null;
 }
 
-function normalizePath(p: string): string {
+/** Collapse ./ and ../ segments. Returns null when ".." escapes the repo root. */
+function normalizePath(p: string): string | null {
   const parts = p.split("/");
   const resolved: string[] = [];
   for (const part of parts) {
     if (part === "." || part === "") continue;
     if (part === "..") {
+      if (resolved.length === 0) return null; // escaped the analyzed root
       resolved.pop();
     } else {
       resolved.push(part);

@@ -114,7 +114,34 @@ describe("generateDependencyHotspots", () => {
     const result = generateDependencyHotspots(ctx);
     expect(result.content).toContain("No hotspots detected");
     expect(result.content).toContain("No external dependencies detected.");
-    expect(result.content).toContain("Review circular dependencies");
+    // POLISH-1: with NO import graph resolved, the report recommends re-analysis
+    // rather than advising a circular-dependency review of a graph that doesn't exist.
+    expect(result.content).toContain("Re-analyze with the full source tree");
+  });
+
+  it("distinguishes a RESOLVED low-coupling graph from an unresolved one (honest empty state)", () => {
+    // internal_imports is non-empty (graph resolved) but no file crossed the
+    // coupling thresholds → hotspots is empty. This must read as a clean bill,
+    // NOT as a partial-upload / re-analyze diagnostic (which would tell a
+    // well-decoupled repo to re-upload its own source).
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [
+          { source: "src/a.ts", target: "src/b.ts" },
+          { source: "src/b.ts", target: "src/c.ts" },
+        ],
+        hotspots: [],
+      },
+    });
+
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).toContain("No hotspots detected");
+    expect(result.content).toContain("Coupling looks healthy");
+    // The alarmist diagnostic and the re-upload recommendation must NOT appear.
+    expect(result.content).not.toContain("may not have been resolvable");
+    expect(result.content).not.toContain("Re-analyze with the full source tree");
+    expect(result.content).toContain("Maintain the current low coupling");
   });
 
   it("handles only medium-risk hotspots (no high)", () => {
@@ -487,10 +514,173 @@ describe("harden: external dependency version-risk classification", () => {
     expect(table).not.toContain("Pre-1.0");
   });
 
-  it("non-numeric versions (workspace ranges) fall back to Stable without NaN leaking into output", () => {
+  it("non-numeric versions are labeled honestly, never Stable and never NaN (HARDEN-2)", () => {
     const result = generateDependencyHotspots(depsCtx([{ name: "ws-dep", version: "workspace:x" }]));
-    expect(result.content).toContain("| Stable |");
+    expect(result.content).toContain("| Internal workspace package |");
+    expect(result.content).not.toContain("| Stable |");
     expect(result.content).not.toContain("NaN");
+  });
+});
+
+// ─── POLISH pass 1: empty-state honesty + output caps ───────────
+
+describe("polish: dependency-hotspots empty-state rendering", () => {
+  const emptyCtx = () => makeContextMap({
+    dependency_graph: { external_dependencies: [] as never, internal_imports: [], hotspots: [] },
+  });
+
+  it("renders the UNRESOLVED-graph diagnostic when zero import edges resolved (not a clean bill)", () => {
+    const result = generateDependencyHotspots(emptyCtx());
+    expect(result.content).toContain("no internal import edges were resolved at all");
+    expect(result.content).toContain("may not have been resolvable");
+    // must NOT misread an unresolved graph as healthy low coupling
+    expect(result.content).not.toContain("Coupling looks healthy");
+  });
+
+  it("omits the Coupling Analysis section entirely when there are no hotspots (no dangling heading)", () => {
+    const result = generateDependencyHotspots(emptyCtx());
+    expect(result.content).not.toContain("## Coupling Analysis");
+  });
+
+  it("recommends re-analysis instead of reviewing a nonexistent import graph", () => {
+    const result = generateDependencyHotspots(emptyCtx());
+    expect(result.content).not.toContain("Review circular dependencies");
+    expect(result.content).toContain("1. **Re-analyze with the full source tree**");
+  });
+
+  it("still renders Coupling Analysis and the circular-deps recommendation when hotspots exist (regression)", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/a.ts", inbound_count: 5, outbound_count: 5, risk_score: 0.5 }],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).toContain("## Coupling Analysis");
+    expect(result.content).toContain("**Review circular dependencies**");
+    expect(result.content).not.toContain("Re-analyze with the full source tree");
+  });
+});
+
+describe("polish: architecture-summary routes table cap", () => {
+  it("caps the routes table at 40 rows with an explicit overflow note", () => {
+    const ctx = makeContextMap({
+      routes: Array.from({ length: 45 }, (_, i) => ({ path: `/r${i}`, method: "GET", source_file: "src/app.ts" })),
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const rows = result.content.split("\n").filter((l) => l.startsWith("| GET |"));
+    expect(rows).toHaveLength(40);
+    expect(result.content).toContain("*… 5 more*");
+  });
+
+  it("renders all routes with no overflow note at or under the cap", () => {
+    const ctx = makeContextMap({
+      routes: Array.from({ length: 40 }, (_, i) => ({ path: `/r${i}`, method: "GET", source_file: "src/app.ts" })),
+    } as Partial<ContextMap>);
+    const result = generateArchitectureSummary(ctx);
+    const rows = result.content.split("\n").filter((l) => l.startsWith("| GET |"));
+    expect(rows).toHaveLength(40);
+    expect(result.content).not.toContain("more*");
+  });
+});
+
+// ─── HARDEN-2: context-aware sanitization + YAML edge closure ────
+
+describe("harden-2: context-aware markdown sanitization", () => {
+  it("pipes in non-table contexts are NOT backslash-escaped (the \\| corruption)", () => {
+    // Real-world case: a TS union type in the Hotspot Export Surface list.
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/auth.ts", inbound_count: 15, outbound_count: 3, risk_score: 0.9 }],
+      },
+    });
+    const files = [{ path: "src/auth.ts", content: "export async function requireAuth(): Promise<AuthContext | null> { return null; }", size: 90 }];
+    const result = generateDependencyHotspots(ctx, files);
+    expect(result.content).toContain("Promise<AuthContext | null>");
+    expect(result.content).not.toContain("\\|");
+  });
+
+  it("a hostile project name flowing through project_summary cannot inject structure", () => {
+    const ctx = makeContextMap({
+      ai_context: {
+        project_summary: "x\n\n# Injected\n<!-- memory-weave --> is a monorepo",
+        key_abstractions: [],
+        conventions: [],
+        warnings: [],
+      },
+    } as Partial<ContextMap>);
+    for (const result of [generateArchitectureSummary(ctx), generateDependencyHotspots(ctx)]) {
+      const lines = result.content.split("\n");
+      expect(lines.some((l) => l === "# Injected")).toBe(false);
+      expect(result.content).not.toContain("<!--");
+    }
+  });
+
+  it("backticks in paths cannot terminate code spans (neutralized to apostrophes)", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [] as never,
+        internal_imports: [],
+        hotspots: [{ path: "src/evil`**x**`.ts", inbound_count: 10, outbound_count: 5, risk_score: 0.9 }],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).not.toContain("evil`");
+    expect(result.content).toContain("evil'**x**'.ts");
+  });
+});
+
+describe("harden-2: version-risk honesty for unparseable specifiers", () => {
+  it("workspace/floating specifiers are never called Stable", () => {
+    const ctx = makeContextMap({
+      dependency_graph: {
+        external_dependencies: [
+          { name: "internal-pkg", version: "workspace:*", type: "production" },
+          { name: "floating-a", version: "latest", type: "production" },
+          { name: "floating-b", version: "*", type: "production" },
+        ] as never,
+        internal_imports: [],
+        hotspots: [],
+      },
+    });
+    const result = generateDependencyHotspots(ctx);
+    expect(result.content).toContain("| internal-pkg | workspace:* | Internal workspace package |");
+    expect(result.content).toContain("| floating-a | latest | Unpinned — floating version |");
+    expect(result.content).toContain("| floating-b | * | Unpinned — floating version |");
+    const table = result.content.split("## External Dependency Risk")[1];
+    expect(table).not.toContain("| Stable |");
+  });
+});
+
+describe("harden-2: YAML numeric-lookalike quoting + control-char escaping", () => {
+  it("hex/exponent/dot-leading/underscore/inf numeric-lookalike strings are quoted", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["0x1F", "1e5", ".5", "1_000", ".inf", "1."],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    for (const v of ["0x1F", "1e5", ".5", "1_000", ".inf", "1."]) {
+      expect(result.content).toContain(`- "${v}"`);
+    }
+  });
+
+  it("C0 control characters are \\xNN-escaped inside quoted scalars (strict parsers reject raw C0)", () => {
+    const profile = makeProfile({
+      goals: {
+        objectives: ["ship\x07it", "ansi \x1b[31m red"],
+        requested_outputs: ["search"],
+      },
+    } as Partial<RepoProfile>);
+    const result = generateRepoProfileYAML(profile);
+    expect(result.content).toContain("ship\\x07it");
+    expect(result.content).toContain("ansi \\x1b[31m red");
+    expect(result.content).not.toContain("\x07");
+    expect(result.content).not.toContain("\x1b");
   });
 });
 

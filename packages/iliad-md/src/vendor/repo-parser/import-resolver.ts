@@ -1,5 +1,8 @@
 // Vendored from @axis/repo-parser (packages/repo-parser/src/import-resolver.ts).
 // FileEntry import rewired to the local snapshots type redeclaration.
+// KEEP IN SYNC: HARDEN-2 found this copy had drifted (missing the NodeNext
+// .js->.ts remap AND the root-file resolution fix) — the shipped CLI produced
+// zero import edges for ESM TS repos while the platform was fixed.
 
 import type { FileEntry } from "../snapshots/types.js";
 import type { ImportEdge } from "./types.js";
@@ -51,10 +54,22 @@ function resolveImportPath(
   importPath: string,
   knownFiles: Set<string>,
 ): string | null {
-  const dir = fromFile.substring(0, fromFile.lastIndexOf("/"));
-  const base = importPath.startsWith("./") || importPath.startsWith("../")
-    ? normalizePath(dir + "/" + importPath)
-    : importPath;
+  // lastIndexOf returns -1 for a repo-root file (no slash); substring(0, -1) would
+  // drop the last char and corrupt the dir, so handle root files explicitly.
+  const slash = fromFile.lastIndexOf("/");
+  const dir = slash === -1 ? "" : fromFile.substring(0, slash);
+  let base: string;
+  if (importPath.startsWith("./") || importPath.startsWith("../")) {
+    const normalized = normalizePath(dir + "/" + importPath);
+    // A specifier that walks above the analyzed root references a file OUTSIDE
+    // the upload — resolving it against in-repo names produces a phantom edge
+    // to an unrelated file that merely shares a basename (inflating its
+    // inbound count and hotspot risk). Skip it instead.
+    if (normalized === null) return null;
+    base = normalized;
+  } else {
+    base = importPath;
+  }
 
   const candidates = [
     base,
@@ -67,18 +82,41 @@ function resolveImportPath(
     base + "/index.js",
   ];
 
+  // NodeNext/ESM TypeScript imports name the EMITTED file: `import "./router.js"`
+  // while the repo contains `router.ts`. Without this remap the resolver produced
+  // ZERO internal edges for modern ESM-style TS projects — hotspots (and every
+  // downstream risk artifact) stayed permanently empty. The literal candidate
+  // above still wins when a real .js file exists alongside. `.d.ts` is included
+  // last for `.js` (tsc's own NodeNext order): declaration-only modules are
+  // often a repo's most-imported files.
+  const extMatch = base.match(/\.(js|jsx|mjs|cjs)$/);
+  if (extMatch) {
+    const stem = base.slice(0, -extMatch[0].length);
+    const tsEquivalents: Record<string, string[]> = {
+      js: [".ts", ".tsx", ".d.ts"],
+      jsx: [".tsx", ".ts"],
+      mjs: [".mts", ".ts"],
+      cjs: [".cts", ".ts"],
+    };
+    for (const ext of tsEquivalents[extMatch[1]]) {
+      candidates.push(stem + ext);
+    }
+  }
+
   for (const c of candidates) {
     if (knownFiles.has(c)) return c;
   }
   return null;
 }
 
-function normalizePath(p: string): string {
+/** Collapse ./ and ../ segments. Returns null when ".." escapes the repo root. */
+function normalizePath(p: string): string | null {
   const parts = p.split("/");
   const resolved: string[] = [];
   for (const part of parts) {
     if (part === "." || part === "") continue;
     if (part === "..") {
+      if (resolved.length === 0) return null; // escaped the analyzed root
       resolved.pop();
     } else {
       resolved.push(part);

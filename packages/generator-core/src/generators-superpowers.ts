@@ -799,7 +799,10 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
     const hotspotPaths = hotspots
-      .filter(h => h.risk_score > 5)
+      // 0–1 scale (engine.ts) — the old > 5 threshold could never fire, so the
+      // High-Risk File Export Surface section was unreachable for any input
+      // (the same dead-threshold class fixed at the Risk Assessment above).
+      .filter(h => h.risk_score > 0.7)
       .sort((a, b) => b.risk_score - a.risk_score)
       .slice(0, 4)
       .map(h => h.path);
