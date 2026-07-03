@@ -189,7 +189,7 @@ The free tier is the product's moat. It delivers genuine value (Search + Debug +
 - Build case studies from real repos
 
 ### Phase 2: Product Hunt Launch
-- Timing: After v1.0 (all 82 capabilities Grade A)
+- Timing: After v1.0
 - Assets needed: 60s demo video, 5 screenshots, maker comment
 - Goal: Top 5 of the day
 

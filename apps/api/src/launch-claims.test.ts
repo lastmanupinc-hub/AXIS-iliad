@@ -49,7 +49,10 @@ function parseLaunchClaims(text: string): Claim[] {
     if (current) claims.push(current as unknown as Claim);
     current = null;
   };
-  for (const rawLine of text.split("\n")) {
+  // Split on CRLF or LF: on a Windows (autocrlf) checkout the file has CRLF, and
+  // a trailing \r would otherwise ride along in every value ("artifact_count\r",
+  // "140\r" → not a number), silently emptying the registry and no-opping the gate.
+  for (const rawLine of text.split(/\r?\n/)) {
     const itemMatch = rawLine.match(/^ {2}- (\w+): (.*)$/);
     if (itemMatch) {
       flush();
@@ -192,6 +195,20 @@ describe("launch corpus vs the registry (SPEC-12)", () => {
     const bad: string[] = [];
     for (const { name, text } of corpus()) {
       for (const m of text.matchAll(/\b(?:SQLite|better-sqlite3|FTS5)\b/gi)) bad.push(`${name}: "${m[0]}"`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("no unverifiable 'N capabilities … Grade A' self-audit claims in the corpus", () => {
+    // The capability-grade numbers ("81/82", "83/83", "all 82 … Grade A") trace
+    // to a stale capability_inventory.yaml (v0.5.0, predating this program) and
+    // can't be verified against runtime — SPEC-12 removed them. This guards the
+    // class the numbers-only gate (generatorClaims etc.) structurally can't see,
+    // so a reworded "capabilities at Grade A" can't creep back into launch copy.
+    const CAPABILITY_GRADE = /capabilit(?:y|ies)\b[^.\n]{0,40}\bgrade\s*a\b/gi;
+    const bad: string[] = [];
+    for (const { name, text } of corpus()) {
+      for (const m of visible(text).matchAll(CAPABILITY_GRADE)) bad.push(`${name}: "${m[0].trim()}"`);
     }
     expect(bad).toEqual([]);
   });
