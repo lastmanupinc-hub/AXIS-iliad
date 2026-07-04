@@ -98,7 +98,7 @@ import { attestRun } from "./attestation.js";
 import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate.js";
 import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
-import { computePurchasingReadinessScore, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
+import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { parseAgentBudget, resolveAgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
@@ -1225,12 +1225,7 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
     if (combinedContent.includes(needle)) detectedFrameworks.add(label);
   }
 
-  const riskLevel: "low" | "medium" | "high" =
-    currentScore >= 80 ? "low" : currentScore >= 50 ? "medium" : "high";
-  const interpretation =
-    currentScore >= 80 ? "production-ready"
-    : currentScore >= 50 ? "partially-ready"
-    : "needs-hardening";
+  const { interpretation, risk_level: riskLevel } = interpretReadiness(currentScore);
 
   const top3 = gaps.slice(0, 3);
   const whatAxisWouldAdd: string[] = [];
@@ -2221,7 +2216,7 @@ export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>)
   const readinessContext = currentReadiness !== null
     ? {
         current_score: currentReadiness,
-        interpretation: currentReadiness >= 80 ? "production-ready" : currentReadiness >= 50 ? "partially-ready" : "needs-hardening",
+        interpretation: interpretReadiness(currentReadiness).interpretation,
         recommendation: currentReadiness >= 80
           ? "Your score is strong. Call prepare_agentic_purchasing to re-validate after changes."
           : currentReadiness >= 50
@@ -2824,7 +2819,7 @@ export async function runPreparePurchasing(
     : "all";
 
   // â”€â”€ Derived summary fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  const riskLevel = score >= 80 ? "low" : score >= 50 ? "medium" : "high";
+  const { interpretation: readinessInterpretation, risk_level: riskLevel } = interpretReadiness(score);
   const recommendedNextAction =
     score >= 80 ? "ready_for_agentic_checkout" :
     score >= 50 ? "address_gaps_then_checkout" :
@@ -2923,7 +2918,7 @@ export async function runPreparePurchasing(
         risk_level: riskLevel,
         recommended_next_action: recommendedNextAction,
         estimated_agent_success_rate: estimatedSuccessRate,
-        interpretation: score >= 80 ? "production-ready" : score >= 50 ? "partially-ready" : "needs-work",
+        interpretation: readinessInterpretation,
         compliance_depth: complianceDepth,
         focus_areas: parsedFocusAreas,
         compliance_depth_reason:
