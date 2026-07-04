@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
+import { mdText, mdBlock, mdCode, yamlFlowScalar, codeComment, dockerfileLabelValue, makefileEchoArg } from "./md-sanitize.js";
 
 const PROGRAM = "closer";
 const CERTLIB_PROFILE = "certlib-offline-v1";
@@ -301,9 +302,9 @@ export function generatePackagingReadme(
   const score = readinessScore(signals, branding.target_marketplaces.length);
 
   const content = [
-    `# ${branding.product_name}`,
+    `# ${mdText(branding.product_name)}`,
     "",
-    `> ${branding.tagline}`,
+    `> ${mdText(branding.tagline)}`,
     "",
     `## Why Teams Buy This`,
     "",
@@ -340,8 +341,8 @@ export function generatePackagingReadme(
     "",
     `## Compatibility`,
     "",
-    `- Primary language: ${signals.primary_language}`,
-    `- Detected frameworks: ${signals.detected_frameworks.join(", ") || "none"}`,
+    `- Primary language: ${mdText(signals.primary_language)}`,
+    `- Detected frameworks: ${signals.detected_frameworks.map(mdText).join(", ") || "none"}`,
     `- Targets: Linux containers, cloud runners, and local developer setup`,
   ].join("\n");
 
@@ -364,7 +365,7 @@ export function generatePackagingLicense(
   return {
     path: "packaging/LICENSE",
     // Year is snapshot-derived (ISO timestamp prefix) so output stays deterministic.
-    content: renderLicense(signals.selected_license, branding.product_name, ctx.generated_at.slice(0, 4)),
+    content: renderLicense(signals.selected_license, codeComment(branding.product_name), ctx.generated_at.slice(0, 4)),
     content_type: "text/plain",
     program: PROGRAM,
     description: "Commercially suitable licensing file selected from MIT, Apache-2.0, or Proprietary",
@@ -405,8 +406,8 @@ export function generateCloserDockerfile(
       "USER nonroot:nonroot",
       "ENV PORT=8080",
       "EXPOSE 8080",
-      `LABEL org.opencontainers.image.title=\"${ctx.project_identity.name}\"`,
-      `LABEL org.opencontainers.image.source=\"${ctx.project_identity.repo_url ?? ""}\"`,
+      `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
+      `LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url ?? "")}\"`,
       "ENTRYPOINT [\"/app/app\"]",
     ].join("\n");
   } else if (lang === "Python") {
@@ -430,7 +431,7 @@ export function generateCloserDockerfile(
       "COPY --from=build /src /app",
       "USER app",
       "EXPOSE 8080",
-      `LABEL org.opencontainers.image.title=\"${ctx.project_identity.name}\"`,
+      `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
       "HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\",
       "  CMD python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{__import__(\\\"os\\\").environ.get(\\\"PORT\\\",\\\"8080\\\")}/health').status==200 else 1)\" || exit 1",
       "CMD [\"python\", \"-m\", \"app\"]",
@@ -483,8 +484,8 @@ export function generateCloserDockerfile(
       "COPY --from=build --chown=app:app /src/package.json ./package.json",
       "USER app",
       "EXPOSE 8080",
-      `LABEL org.opencontainers.image.title=\"${ctx.project_identity.name}\"`,
-      `LABEL org.opencontainers.image.source=\"${ctx.project_identity.repo_url ?? ""}\"`,
+      `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
+      `LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url ?? "")}\"`,
       "HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\",
       "  CMD wget --quiet --tries=1 --spider http://127.0.0.1:${PORT}/health || exit 1",
       `CMD [\"sh\", \"-lc\", \"${entry}\"]`,
@@ -509,7 +510,7 @@ export function generateCloserDockerCompose(
   // Compose v2 schema — top-level `version` is deprecated/ignored. Healthcheck
   // and env_file present so a copied .env.example wires through automatically.
   const content = [
-    `# docker compose for ${name}`,
+    `# docker compose for ${codeComment(name)}`,
     "# Usage:",
     "#   cp .env.example .env  (if present)",
     "#   docker compose up --build",
@@ -530,7 +531,7 @@ export function generateCloserDockerCompose(
     "      - path: .env",
     "        required: false",
     "    environment:",
-    `      - PRODUCT_NAME=${name}`,
+    `      - ${yamlFlowScalar(`PRODUCT_NAME=${name}`)}`,
     "      - NODE_ENV=production",
     "      - PORT=8080",
     "    healthcheck:",
@@ -887,7 +888,7 @@ export function generateCloserReleaseWorkflow(
     "      - name: Create GitHub Release",
     "        uses: softprops/action-gh-release@v2",
     "        with:",
-    `          name: ${config.product_name} \${{ github.ref_name }}`,
+    `          name: ${yamlFlowScalar(`${config.product_name} \${{ github.ref_name }}`)}`,
     "          generate_release_notes: true",
     "          fail_on_unmatched_files: true",
     "          files: |",
@@ -1033,11 +1034,11 @@ export function generateCloserManifestDockerHub(
   // your-org/your-image (which never gets edited in practice).
   const image = `<your-org>/${slug}`;
   const content = [
-    `# Docker Hub Listing — ${branding.product_name}`,
+    `# Docker Hub Listing — ${mdText(branding.product_name)}`,
     "",
     "## Overview",
-    branding.tagline,
-    ...(ctx.project_identity.repo_url ? ["", `**Source**: ${ctx.project_identity.repo_url}`] : []),
+    mdBlock(branding.tagline),
+    ...(ctx.project_identity.repo_url ? ["", `**Source**: ${mdText(ctx.project_identity.repo_url)}`] : []),
     "",
     "## Tags",
     "- `latest` — current stable build",
@@ -1084,11 +1085,11 @@ export function generateCloserManifestGitHubMarketplace(
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
   const content = [
-    `# GitHub Marketplace Listing — ${branding.product_name}`,
+    `# GitHub Marketplace Listing — ${mdText(branding.product_name)}`,
     "",
     "## Value Proposition",
-    branding.tagline,
-    ...(ctx.project_identity.repo_url ? ["", `**Source**: ${ctx.project_identity.repo_url}`] : []),
+    mdBlock(branding.tagline),
+    ...(ctx.project_identity.repo_url ? ["", `**Source**: ${mdText(ctx.project_identity.repo_url)}`] : []),
     "",
     "## Features",
     "- Production packaging profile — CI, release workflow, multi-stage container.",
@@ -1098,7 +1099,7 @@ export function generateCloserManifestGitHubMarketplace(
     "",
     "## Installation",
     "```bash",
-    `git clone ${ctx.project_identity.repo_url ?? "<repo-url>"}`,
+    `git clone ${mdCode(ctx.project_identity.repo_url ?? "<repo-url>")}`,
     "cd " + branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     "make ship",
     "```",
@@ -1232,8 +1233,8 @@ export function generateCloserPackagingReport(
     "",
     "## Commercial Potential",
     "",
-    `- Product: ${branding.product_name}`,
-    `- Tagline: ${branding.tagline}`,
+    `- Product: ${mdText(branding.product_name)}`,
+    `- Tagline: ${mdText(branding.tagline)}`,
     `- Target marketplaces: ${branding.target_marketplaces.join(", ")}`,
     `- Monetization signals: ${signals.monetization_hints.length > 0 ? signals.monetization_hints.join("; ") : "No direct signal found, but package is commercially structured."}`,
     "",
@@ -1260,7 +1261,7 @@ export function generateDistributableGuide(
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
   const content = [
-    `# DISTRIBUTABLE — ${branding.product_name}`,
+    `# DISTRIBUTABLE — ${mdText(branding.product_name)}`,
     "",
     "This project is packaged for marketplace distribution.",
     "",
@@ -1359,7 +1360,7 @@ export function generateMakefileWithShipTarget(
   const imageTag = `${ctx.project_identity.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`;
 
   const content = [
-    `# Build orchestration for ${ctx.project_identity.name}`,
+    `# Build orchestration for ${codeComment(ctx.project_identity.name)}`,
     "# Run \"make help\" for available targets.",
     "",
     ".PHONY: help install dev start lint format typecheck test build audit clean package attest ship ship-summary",
@@ -1367,7 +1368,7 @@ export function generateMakefileWithShipTarget(
     "help:",
     "\t@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = \":.*?## \"}; {printf \"\\033[36m%-15s\\033[0m %s\\n\", $$1, $$2}'",
     "",
-    `install: ## Install dependencies (${pm === "none" ? "npm" : pm} / ${lang})`,
+    `install: ## Install dependencies (${pm === "none" ? "npm" : pm} / ${codeComment(lang)})`,
     `\t${installCmd}`,
     "",
     "dev: ## Run dev server with hot reload",
@@ -1411,10 +1412,10 @@ export function generateMakefileWithShipTarget(
     "\t@echo \"\\033[32mReady to ship.\\033[0m Publish: gh release create vX.Y.Z\"",
     "",
     "ship-summary: ## Print release context for logs and dashboards",
-    `\t@echo \"Project:       ${ctx.project_identity.name}\"`,
-    `\t@echo \"Language:      ${lang}\"`,
+    `\t@echo 'Project:       ${makefileEchoArg(ctx.project_identity.name)}'`,
+    `\t@echo 'Language:      ${makefileEchoArg(lang)}'`,
     `\t@echo \"Package mgr:   ${pm}\"`,
-    `\t@echo \"Frameworks:    ${signals.detected_frameworks.join(", ") || "(none detected)"}\"`,
+    `\t@echo 'Frameworks:    ${signals.detected_frameworks.map(makefileEchoArg).join(", ") || "(none detected)"}'`,
     `\t@echo \"Docker:        ${signals.uses_docker}\"`,
     `\t@echo \"Container:     ${imageTag}\"`,
   ].join("\n");
