@@ -4836,9 +4836,10 @@ describe("Layer 6 branch coverage", () => {
       const result = generateFiles(inp);
       const f = getFile(result, "prompt-diff-report.md");
       expect(f).toBeDefined();
-      expect(f!.content).toContain("Score Summary");
+      // Reframed to an explicitly illustrative projection (Uplift column, not "Delta").
+      expect(f!.content).toContain("Illustrative Prompt-Quality Projection");
       expect(f!.content).toContain("Context Precision");
-      expect(f!.content).toContain("Delta");
+      expect(f!.content).toContain("Uplift");
     });
 
     // optimization: cost-estimate.json language breakdown with LOC (line 329)

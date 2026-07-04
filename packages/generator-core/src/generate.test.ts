@@ -251,11 +251,11 @@ describe("optimization generators content", () => {
     expect(file.content.length).toBeGreaterThan(200);
   });
 
-  it("prompt-diff-report.md has before/after scores", () => {
+  it("prompt-diff-report.md has an illustrative before/target projection", () => {
     const file = result.files.find(f => f.path === "prompt-diff-report.md")!;
-    expect(file.content).toContain("Score Summary");
-    expect(file.content).toContain("Before");
-    expect(file.content).toContain("After");
+    // Reframed from a fabricated "Score Summary" to an explicitly illustrative projection.
+    expect(file.content).toContain("Illustrative Prompt-Quality Projection");
+    expect(file.content.toLowerCase()).toContain("illustrative");
     expect(file.content).toContain("Recommendations");
     expect(file.content.length).toBeGreaterThan(200);
   });
