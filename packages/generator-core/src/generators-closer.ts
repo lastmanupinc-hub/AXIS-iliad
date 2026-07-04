@@ -433,7 +433,7 @@ export function generateCloserDockerfile(
       "ENV PORT=8080",
       "EXPOSE 8080",
       `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
-      `LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url ?? "")}\"`,
+      ...(ctx.project_identity.repo_url ? [`LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url)}\"`] : []),
       "ENTRYPOINT [\"/app/app\"]",
     ].join("\n");
   } else if (lang === "Python") {
@@ -511,7 +511,7 @@ export function generateCloserDockerfile(
       "USER app",
       "EXPOSE 8080",
       `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
-      `LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url ?? "")}\"`,
+      ...(ctx.project_identity.repo_url ? [`LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url)}\"`] : []),
       "HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\",
       "  CMD wget --quiet --tries=1 --spider http://127.0.0.1:${PORT}/health || exit 1",
       `CMD [\"sh\", \"-lc\", \"${entry}\"]`,
@@ -532,7 +532,7 @@ export function generateCloserDockerCompose(
   _profile?: RepoProfile,
   _files?: SourceFile[],
 ): GeneratedFile {
-  const name = ctx.project_identity.name;
+  const name = ctx.project_identity.name || "app"; // guard: an empty name would slug to `image: :latest`
   // Compose v2 schema — top-level `version` is deprecated/ignored. Healthcheck
   // and env_file present so a copied .env.example wires through automatically.
   const content = [
@@ -1344,7 +1344,7 @@ export function generateMakefileWithShipTarget(
                  : isPy ? "rm -rf dist/ build/ *.egg-info __pycache__"
                  : "rm -rf dist/ build/ coverage/ .turbo/";
 
-  const imageTag = `${ctx.project_identity.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`;
+  const imageTag = `${(ctx.project_identity.name || "app").toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`;
 
   const content = [
     `# Build orchestration for ${codeComment(ctx.project_identity.name)}`,
