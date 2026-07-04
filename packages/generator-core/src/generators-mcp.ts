@@ -3,6 +3,8 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdCode, cssComment, yamlFlowScalar } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
+import { capNote, capMeta } from "./cap-utils.js";
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
@@ -92,6 +94,12 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
     });
   }
 
+  const truncated: Record<string, { shown: number; total: number }> = {};
+  const dmMeta = capMeta(ctx.domain_models.length, 15);
+  if (dmMeta) truncated.domain_models = dmMeta;
+  const sqlMeta = ctx.sql_schema ? capMeta(ctx.sql_schema.length, 15) : undefined;
+  if (sqlMeta) truncated.sql_schema = sqlMeta;
+
   const config = {
     mcpVersion: "1.0",
     project: id.name,
@@ -152,7 +160,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
     },
     // ─── Domain Models ─────────────────────────────────────────
     domain_models: ctx.domain_models.length > 0
-      ? ctx.domain_models.slice(0, 20).map(m => ({
+      ? ctx.domain_models.slice(0, 15).map(m => ({
           name: m.name,
           kind: m.kind,
           field_count: m.field_count,
@@ -177,6 +185,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
         size: f.size,
       }));
     })() : null,
+    truncated: Object.keys(truncated).length > 0 ? truncated : undefined,
   };
 
   return {
@@ -2030,7 +2039,7 @@ export function generateTestingDocumentationPolishArtifactsGuide(ctx: ContextMap
 
 export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const deps = ctx.dependency_graph.external_dependencies;
   const lines: string[] = [];
@@ -2166,6 +2175,8 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   // ─── MCP Resources (from domain models) ─────────────────────
   if (models.length > 0) {
     lines.push("resources:");
+    const resNote = capNote(models.length, 15, "domain models");
+    if (resNote) lines.push(`  # ${resNote}`);
     for (const m of models.slice(0, 15)) {
       const resId = m.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
       lines.push(`  - id: ${resId}`);
@@ -2181,6 +2192,8 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   // ─── MCP Tools (from API routes) ────────────────────────────
   if (routes.length > 0) {
     lines.push("tools:");
+    const toolNote = capNote(routes.length, 20, "routes");
+    if (toolNote) lines.push(`  # ${toolNote}`);
     for (const r of routes.slice(0, 20)) {
       const toolId = r.path.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
       lines.push(`  - id: ${toolId}`);
@@ -2239,6 +2252,16 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
   const buildTools = ctx.detection.build_tools;
   const pkgManagers = ctx.detection.package_managers;
   const pkgMgr = pkgManagers.includes("pnpm") ? "pnpm" : pkgManagers.includes("yarn") ? "yarn" : "npm";
+  // Honesty gate: only claim npm-style build/dev/install when this is actually a
+  // JS/Node project — a detected JS package manager OR a JS/TS primary language.
+  // A Python/Rust/Go repo (even one with a Makefile) reports these unavailable
+  // rather than fabricating `npm run build`. `buildTools` is NOT a reliable
+  // signal: detectBuildTools emits go_modules/make for non-JS repos, and never
+  // emits tsc for a lockfile-less TS repo — so keying off it both false-positives
+  // Go/Make and false-negatives tsc-only JS.
+  const hasJsPkgMgr = pkgManagers.some((p) => ["npm", "pnpm", "yarn", "bun"].includes(p));
+  const isJsProject = id.primary_language === "TypeScript" || id.primary_language === "JavaScript";
+  const hasJsToolchain = hasJsPkgMgr || isJsProject;
 
   const capabilities: Array<{
     id: string;
@@ -2256,7 +2279,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "build",
     provider: buildTools[0] ?? pkgMgr,
     command: `${pkgMgr} run build`,
-    available: true,
+    available: hasJsToolchain,
   });
 
   capabilities.push({
@@ -2265,7 +2288,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "build",
     provider: buildTools.includes("vite") ? "vite" : pkgMgr,
     command: `${pkgMgr} run dev`,
-    available: true,
+    available: hasJsToolchain,
   });
 
   // Test capabilities
@@ -2328,7 +2351,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "setup",
     provider: pkgMgr,
     command: `${pkgMgr} install`,
-    available: true,
+    available: hasJsToolchain,
   });
 
   // Git capabilities
@@ -2387,7 +2410,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
 export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const deps = ctx.dependency_graph.external_dependencies;
 
   const lines: string[] = [];
@@ -2464,6 +2487,8 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   const models = ctx.domain_models;
   if (models.length > 0) {
+    const qNote = capNote(models.length, 12, "domain-model query tools");
+    if (qNote) lines.push(`    # ${qNote}`);
     for (const m of models.slice(0, 12)) {
       const toolName = `query_${m.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
       lines.push(`    - name: ${toolName}`);
@@ -2501,6 +2526,8 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   const serverModels = ctx.domain_models;
   if (serverModels.length > 0) {
+    const resNote2 = capNote(serverModels.length, 15, "domain-model resources");
+    if (resNote2) lines.push(`    # ${resNote2}`);
     for (const m of serverModels.slice(0, 15)) {
       lines.push(`    - uri: ${yamlFlowScalar(`model://${m.name}`)}`);
       lines.push(`      name: ${yamlFlowScalar(m.name)}`);
@@ -2540,10 +2567,16 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
   lines.push("        default: \"http://localhost:4000\"");
   lines.push("");
 
-  lines.push("  dependencies:");
-  for (const d of deps.slice(0, 8)) {
-    lines.push(`    - name: ${yamlFlowScalar(d.name)}`);
-    lines.push(`      version: ${JSON.stringify(d.version)}`);
+  if (deps.length === 0) {
+    lines.push("  dependencies: []");
+  } else {
+    lines.push("  dependencies:");
+    const depNote = capNote(deps.length, 8, "dependencies");
+    if (depNote) lines.push(`    # ${depNote}`);
+    for (const d of deps.slice(0, 8)) {
+      lines.push(`    - name: ${yamlFlowScalar(d.name)}`);
+      lines.push(`      version: ${JSON.stringify(d.version)}`);
+    }
   }
   lines.push("");
 
@@ -2574,7 +2607,11 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 // ─── mcp/fintech-mcp-surface-package.md ───────────────────────
 
 function detectFintechDependencies(ctx: ContextMap): string[] {
-  const fintechDeps = ["stripe", "dwolla", "plaid", "adyen", "checkout", "marqeta", "unit", "treasury", "finicity"];
+  // Distinctive brand names + real package ids. `checkout-sdk`/`unit-finance`
+  // catch the unscoped Checkout.com SDK (checkout-sdk-node) and Unit
+  // (@unit-finance/*) without the bare "checkout"/"unit"/"treasury" substrings
+  // that false-positived cart-checkouts, unit-test libs, and aws-treasury.
+  const fintechDeps = ["stripe", "dwolla", "plaid", "adyen", "marqeta", "finicity", "modern-treasury", "moderntreasury", "checkout.com", "checkout-sdk", "unit-finance"];
   return ctx.dependency_graph.external_dependencies
     .map((dep) => dep.name)
     .filter((name) => fintechDeps.some((keyword) => name.toLowerCase().includes(keyword)));
@@ -2603,7 +2640,7 @@ export function generateFintechMcpSurfacePackage(
   lines.push("");
   lines.push("## Why This Repo Qualifies");
   lines.push("");
-  lines.push(`- Routes detected: ${ctx.routes.length}`);
+  lines.push(`- Routes detected: ${displayRoutes(ctx.routes).length}`);
   lines.push(`- Domain models detected: ${ctx.domain_models.length}`);
   lines.push(`- SQL tables detected: ${ctx.sql_schema?.length ?? 0}`);
   lines.push(`- Trust Fabric detected: ${hasTrustFabric(files) ? "yes" : "no"}`);
@@ -2776,7 +2813,7 @@ export function generateFintechDomainSchema(
   lines.push("    package_types: [regulator_exam, dispute_representment, onboarding_review, reconciliation_exception]");
   lines.push("    required_artifacts: [timeline, source_hashes, operator_actions, linked_records]");
   lines.push("implementation_targets:");
-  lines.push(`  route_count_hint: ${ctx.routes.length}`);
+  lines.push(`  route_count_hint: ${displayRoutes(ctx.routes).length}`);
   lines.push(`  domain_model_count_hint: ${ctx.domain_models.length}`);
   lines.push(`  sql_schema_count_hint: ${ctx.sql_schema?.length ?? 0}`);
   lines.push("  objective: Build institution-grade API-callable fintech software, not just provider wrappers");
