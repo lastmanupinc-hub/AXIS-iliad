@@ -139,7 +139,7 @@ export const GENERATOR_PROGRAMS: Record<string, string> = {
   "DISTRIBUTABLE.md": "closer",
   "Makefile": "closer",
   "deploy/Dockerfile": "deploy",
-  "deploy/.dockerignore": "deploy",
+  "deploy/Dockerfile.dockerignore": "deploy",
   "deploy/docker-compose.dev.yml": "deploy",
   "deploy/render.yaml": "deploy",
   "deploy/deploy.sh": "deploy",

@@ -189,7 +189,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "Makefile": (ctx, profile, files) => generateMakefileWithShipTarget(ctx, profile, files),
   // ─── deploy generators (zero-pipeline-minutes Render existing-image flow) ──
   "deploy/Dockerfile": (ctx, profile, files) => generateDeployDockerfile(ctx, profile, files),
-  "deploy/.dockerignore": (ctx, profile, files) => generateDeployDockerignore(ctx, profile, files),
+  "deploy/Dockerfile.dockerignore": (ctx, profile, files) => generateDeployDockerignore(ctx, profile, files),
   "deploy/docker-compose.dev.yml": (ctx, profile, files) => generateDeployComposeDev(ctx, profile, files),
   "deploy/render.yaml": (ctx, profile, files) => generateDeployRenderBlueprint(ctx, profile, files),
   "deploy/deploy.sh": (ctx, profile, files) => generateDeployScriptBash(ctx, profile, files),

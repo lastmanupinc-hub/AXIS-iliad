@@ -148,7 +148,7 @@ export function generateDeployDockerignore(
   _files?: SourceFile[],
 ): GeneratedFile {
   const entries = [
-    "# AXIS deploy/.dockerignore — keep build context lean.",
+    "# AXIS deploy/Dockerfile.dockerignore — keep build context lean.",
     "**/node_modules",
     "**/dist",
     "**/build",
@@ -178,7 +178,7 @@ export function generateDeployDockerignore(
     "**/*.spec.tsx",
   ];
   return {
-    path: "deploy/.dockerignore",
+    path: "deploy/Dockerfile.dockerignore",
     content: entries.join("\n") + "\n",
     content_type: "text/plain",
     program: PROGRAM,
@@ -196,8 +196,8 @@ export function generateDeployComposeDev(
   const stack = detectStack(ctx, files);
   const name = projectImageName(ctx);
   const lines: string[] = [];
-  lines.push(`# AXIS deploy/docker-compose.dev.yml — run the prod image locally with hot reload`);
-  lines.push(`# for visual + debugger inspection before pushing to the registry.`);
+  lines.push(`# AXIS deploy/docker-compose.dev.yml — run the prod image locally for visual`);
+  lines.push(`# + debugger inspection before pushing to the registry.`);
   lines.push(`# Run from repo root: docker compose -f deploy/docker-compose.dev.yml up --build`);
   lines.push("");
   lines.push("services:");
@@ -215,14 +215,19 @@ export function generateDeployComposeDev(
   } else if (stack === "go") {
     lines.push("      - \"2345:2345\"  # delve debugger");
   }
+  if (stack === "node-server" || stack === "unknown") {
+    // Override the prod CMD so the inspector listens on the exposed 9229 port
+    // (0.0.0.0 so the host debugger can attach through the port mapping).
+    lines.push("    command: [\"node\", \"--inspect=0.0.0.0:9229\", \"dist/index.js\"]");
+  }
   lines.push("    environment:");
   lines.push("      - PORT=8080");
   lines.push("      - NODE_ENV=development");
+  // env_file is optional: `.env.dev` may not exist, and a required-but-missing
+  // file aborts `docker compose up`.
   lines.push("    env_file:");
-  lines.push("      - ../.env.dev");
-  lines.push("    volumes:");
-  lines.push("      - ../:/app:cached");
-  lines.push("      - /app/node_modules");
+  lines.push("      - path: ../.env.dev");
+  lines.push("        required: false");
   lines.push("    restart: unless-stopped");
 
   return {
@@ -230,7 +235,7 @@ export function generateDeployComposeDev(
     content: lines.join("\n") + "\n",
     content_type: "application/yaml",
     program: PROGRAM,
-    description: "Local dev compose file — runs the prod image with debug ports + volume mount so you can iterate in VSCode before pushing.",
+    description: "Local dev compose file — runs the prod image with debug ports so you can attach a debugger in VSCode before pushing.",
   };
 }
 
@@ -501,12 +506,12 @@ export function generateDeployWranglerContainers(
   }
   lines.push("");
   lines.push(`name = "${name}"`);
-  lines.push(`main = "deploy/worker.ts"`);
+  lines.push(`main = "worker.ts"`);
   lines.push(`compatibility_date = "2025-01-01"`);
   lines.push("");
   lines.push("[[containers]]");
   lines.push(`class_name = "AppContainer"`);
-  lines.push(`image = "./deploy/Dockerfile"`);
+  lines.push(`image = "./Dockerfile"`);
   lines.push("max_instances = 5");
   lines.push(`instance_type = "basic"  # basic | standard | dev`);
   lines.push("");
@@ -583,10 +588,13 @@ export function generateDeployScriptCloudflareBash(
   const stack = detectStack(ctx, files);
   const outDir = hasFw(ctx, "SvelteKit") ? "build" : "dist";
   const name = projectImageName(ctx);
+  // Both wrangler configs are always generated, so `auto` can't pick by file
+  // existence — it resolves to the detected stack's recommended target.
+  const autoTarget = stack === "node-static" ? "pages" : "containers";
   const content = `#!/usr/bin/env bash
 # AXIS deploy/deploy-cloudflare.sh — local build → Cloudflare deploy.
-# Auto-detects Pages (static) vs Containers (backend) from which wrangler config exists.
-# Zero CF build minutes consumed either way.
+# 'auto' (the default) uses the detected stack's recommended target: ${autoTarget}.
+# Pass 'pages' or 'containers' explicitly to override. Zero CF build minutes either way.
 
 set -euo pipefail
 
@@ -603,7 +611,7 @@ TARGET="\${1:-auto}"
 case "\$TARGET" in
   pages)        run_pages=1; run_containers=0 ;;
   containers)   run_pages=0; run_containers=1 ;;
-  auto|"")      run_pages=1; run_containers=1 ;;
+  auto|"")      run_pages=${autoTarget === "pages" ? "1" : "0"}; run_containers=${autoTarget === "pages" ? "0" : "1"} ;;
   *) echo "Usage: \$0 [pages|containers|auto]" >&2; exit 2 ;;
 esac
 
@@ -732,7 +740,7 @@ export function generateDeployQualificationReport(
   });
 
   const usesPortEnv = (files ?? []).some(f =>
-    /\bPORT\b/.test(f.content ?? "") && /process\.env\.PORT|os\.environ.*PORT|os\.Getenv.*PORT/.test(f.content ?? ""),
+    /process\.env\.PORT|os\.environ.*PORT|os\.Getenv.*PORT/.test(f.content ?? ""),
   );
   checks.push({
     name: "Honors $PORT env",
@@ -756,13 +764,13 @@ export function generateDeployQualificationReport(
       : "Dockerfile drops to non-root before CMD.",
   });
 
-  const hasDockerignoreAlready = fileMap.has(".dockerignore");
+  const hasRootDockerignore = fileMap.has(".dockerignore");
   checks.push({
-    name: "Root .dockerignore",
-    status: hasDockerignoreAlready ? "WARN" : "PASS",
-    note: hasDockerignoreAlready
-      ? "An existing root .dockerignore is present; the deploy/.dockerignore is scoped to the deploy build context. Either consolidate or keep both intentionally."
-      : "No conflict — deploy/.dockerignore is the canonical ignore for this build.",
+    name: "Build-context .dockerignore",
+    status: "PASS",
+    note: hasRootDockerignore
+      ? "A root .dockerignore exists; BuildKit (enabled by the Dockerfile `# syntax=` line) reads deploy/Dockerfile.dockerignore for THIS build, so the two coexist without conflict."
+      : "deploy/Dockerfile.dockerignore is read by BuildKit for this Dockerfile — the ignore for this build context.",
   });
 
   // ─── Cloudflare-specific checks ───────────────────────────────
@@ -798,7 +806,7 @@ export function generateDeployQualificationReport(
   const lines: string[] = [];
   lines.push(`# Deploy Qualification Report — ${mdText(ctx.project_identity.name)}`);
   lines.push("");
-  lines.push("Generated by AXIS `deploy` program. Verifies the emitted artifacts will pass Render's existing-image and Cloudflare's wrangler-driven deploy qualifications without manual edits.");
+  lines.push("Generated by AXIS `deploy` program. The emitted artifacts are intended to pass Render's existing-image and Cloudflare's wrangler-driven deploy qualifications with minimal setup — set your image owner (`REPLACE_OWNER`/`<owner>`), confirm the entrypoint, and install the worker dependency where flagged below.");
   lines.push("");
   lines.push(`**Targets:** Render (\`runtime: image\`) · Cloudflare ${recommendedCfTarget}  •  **Image:** \`ghcr.io/<owner>/${name}:prod\`  •  **Port:** 8080  •  **Healthcheck:** \`/healthz\``);
   lines.push("");
