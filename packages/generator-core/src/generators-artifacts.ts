@@ -4,6 +4,8 @@ import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, jsString, jsxText, htmlEscape, codeComment } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
+import { detectStyling } from "./theme-detect.js";
+import { capNote } from "./cap-utils.js";
 
 // ─── generated-component.tsx ────────────────────────────────────
 
@@ -950,7 +952,7 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
   const routes = displayRoutes(ctx.routes);
   const layout = ctx.structure.top_level_layout;
   const hasFrontend = frameworks.some(f => ["React", "Next.js", "Vue", "Nuxt", "Svelte", "SvelteKit"].includes(f));
-  const styling = frameworks.find(f => ["Tailwind", "styled-components", "Emotion", "CSS Modules"].includes(f));
+  const styling = detectStyling(ctx);
 
   const lines: string[] = [];
   lines.push(`# ${mdText(id.name)} — Design Doc`);
@@ -994,7 +996,9 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
     for (const l of layout.slice(0, 12)) {
       lines.push(`| \`${mdCellCode(l.name)}/\` | ${mdInline(l.purpose)} | ${l.file_count} |`);
     }
+    const layoutNote = capNote(layout.length, 12, "top-level entries");
     lines.push("");
+    if (layoutNote) { lines.push(`_${layoutNote} — the file tree has the rest._`); lines.push(""); }
   }
 
   if (routes.length > 0) {
@@ -1023,7 +1027,10 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
     lines.push("## UI / UX Decisions");
     lines.push("");
     lines.push(`- **Component model**: ${frameworks.includes("React") || frameworks.includes("Next.js") ? "React function components" : frameworks.includes("Svelte") || frameworks.includes("SvelteKit") ? "Svelte components" : frameworks.includes("Vue") || frameworks.includes("Nuxt") ? "Vue 3 SFCs" : "framework-native components"}. No class components.`);
-    if (styling) lines.push(`- **Styling**: ${styling} as the single styling layer — do not mix with another approach.`);
+    if (styling.approach !== "plain-css") {
+      const label = { tailwind: "Tailwind CSS", "css-in-js": "CSS-in-JS", "css-modules": "CSS Modules", sass: "Sass", "plain-css": "plain CSS" }[styling.approach];
+      lines.push(`- **Styling**: ${label} as the single styling layer — do not mix with another approach.`);
+    }
     lines.push("- **Accessibility**: WCAG 2.1 AA on primary flows. Every interactive element ships keyboard-navigable.");
     lines.push("- **State**: prefer co-located state and URL-driven routing; introduce a store only when state spans 3+ unrelated components.");
     lines.push("- **Loading & error states**: every async surface ships explicit loading + error UI, no silent fallbacks.");
@@ -1299,12 +1306,6 @@ export function generateIndexHtml(ctx: ContextMap, _profile: RepoProfile, _files
   const metaDescription = description.length > 160
     ? description.slice(0, 157).replace(/[\s,;]+\S*$/, "") + "…"
     : description;
-  const escape = (s: string) => s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
   const lines: string[] = [
     "<!doctype html>",
@@ -1315,17 +1316,17 @@ export function generateIndexHtml(ctx: ContextMap, _profile: RepoProfile, _files
     "    <meta name=\"color-scheme\" content=\"light dark\" />",
     `    <meta name=\"theme-color\" content=\"#0f172a\" media=\"(prefers-color-scheme: dark)\" />`,
     `    <meta name=\"theme-color\" content=\"#ffffff\" media=\"(prefers-color-scheme: light)\" />`,
-    `    <meta name=\"description\" content=\"${escape(metaDescription)}\" />`,
-    `    <meta property=\"og:title\" content=\"${escape(id.name)}\" />`,
-    `    <meta property=\"og:description\" content=\"${escape(metaDescription)}\" />`,
+    `    <meta name=\"description\" content=\"${htmlEscape(metaDescription)}\" />`,
+    `    <meta property=\"og:title\" content=\"${htmlEscape(id.name)}\" />`,
+    `    <meta property=\"og:description\" content=\"${htmlEscape(metaDescription)}\" />`,
     `    <meta property=\"og:type\" content=\"website\" />`,
     "    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\" />",
     "    <link rel=\"stylesheet\" href=\"/theme.css\" />",
-    `    <title>${escape(id.name)}</title>`,
+    `    <title>${htmlEscape(id.name)}</title>`,
     "  </head>",
     "  <body>",
     "    <noscript>",
-    `      <p>${escape(id.name)} requires JavaScript to run. Enable it or fall back to the API at <code>/api</code>.</p>`,
+    `      <p>${htmlEscape(id.name)} requires JavaScript to run. Enable it or fall back to the API at <code>/api</code>.</p>`,
     "    </noscript>",
     "    <div id=\"root\"></div>",
     "    <script type=\"module\" src=\"/src/main.tsx\"></script>",
