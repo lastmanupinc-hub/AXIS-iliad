@@ -2,7 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, extractExports } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock, yamlFlowScalar } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 
 // ─── brand-guidelines.md ────────────────────────────────────────
@@ -21,7 +21,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -55,19 +55,19 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   const isCli = id.type.includes("cli") || id.type.includes("tool");
   const isLibrary = id.type.includes("library") || id.type.includes("package");
   if (isWebApp) {
-    lines.push(`${mdText(id.name)} is a web application that delivers value through its user interface and API surface.`);
+    lines.push(`${mdBlock(id.name)} is a web application that delivers value through its user interface and API surface.`);
     lines.push("");
     lines.push("**Target Audience:** Developers, technical teams, and end users who interact with the web interface.");
   } else if (isCli) {
-    lines.push(`${mdText(id.name)} is a command-line tool built for developer productivity.`);
+    lines.push(`${mdBlock(id.name)} is a command-line tool built for developer productivity.`);
     lines.push("");
     lines.push("**Target Audience:** Developers and DevOps engineers working in terminal environments.");
   } else if (isLibrary) {
-    lines.push(`${mdText(id.name)} is a library/package consumed by other software projects.`);
+    lines.push(`${mdBlock(id.name)} is a library/package consumed by other software projects.`);
     lines.push("");
     lines.push("**Target Audience:** Developers integrating this library into their applications.");
   } else {
-    lines.push(`${mdText(id.name)} is a ${mdText(id.type.replace(/_/g, " "))} built with ${mdText(id.primary_language)}.`);
+    lines.push(`${mdBlock(id.name)} is a ${mdText(id.type.replace(/_/g, " "))} built with ${mdText(id.primary_language)}.`);
     lines.push("");
     lines.push("**Target Audience:** Technical users and developers.");
   }
@@ -141,7 +141,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| CLI commands | kebab-case | `generate-report` |");
   lines.push("| API endpoints | kebab-case | `/v1/search/export` |");
   lines.push("| Config keys | snake_case | `max_file_size` |");
-  lines.push("| Environment vars | SCREAMING_SNAKE | `AXIS_DB_PATH` |");
+  lines.push("| Environment vars | SCREAMING_SNAKE | `DATABASE_URL` |");
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -153,6 +153,7 @@ export function generateBrandGuidelines(ctx: ContextMap, files?: SourceFile[]): 
       for (const r of readmes.slice(0, 4)) {
         lines.push(`- \`${mdCode(r.path)}\` (${r.size} bytes)`);
       }
+      if (readmes.length > 4) lines.push(`- … and ${readmes.length - 4} more`);
       lines.push("");
     }
   }
@@ -180,7 +181,7 @@ export function generateVoiceAndTone(ctx: ContextMap, files?: SourceFile[]): Gen
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -311,7 +312,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -405,6 +406,7 @@ export function generateContentConstraints(ctx: ContextMap, files?: SourceFile[]
       for (const c of configFiles.slice(0, 5)) {
         lines.push(`- \`${mdCode(c.path)}\``);
       }
+      if (configFiles.length > 5) lines.push(`- … and ${configFiles.length - 5} more`);
       lines.push("");
     }
     // Turn the rules above into a REAL audit: scan the repo's docs for actual
@@ -438,7 +440,8 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
 
   lines.push("# Messaging System");
   lines.push(`# Project: ${yamlFlowScalar(id.name)}`);
-  lines.push(`# Generated: ${yamlFlowScalar(ctx.generated_at)}`);
+  // No `# Generated:` line — generated_at is zeroed for deterministic output, so it
+  // would print a false "1970-01-01" in a customer-facing brand artifact.
   if (ctx.ai_context.project_summary) {
     lines.push(`# Summary: ${yamlFlowScalar(ctx.ai_context.project_summary.split("\n")[0])}`);
   }
@@ -455,15 +458,16 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
   // Project-specific taglines derived from actual data
   const primaryLang = id.primary_language;
   const fwNames = frameworks.map(f => f.name).join(" + ");
-  /* v8 ignore next */
-  const firstSummaryLine = ctx.ai_context.project_summary?.split("\n")[0]?.trim();
-  const projectDesc = firstSummaryLine || id.name;
+  const shortType = id.type.replace(/_/g, " ");
+  // A SHORT tagline built from name + stack — not the first line of project_summary,
+  // which is a multi-sentence stats blob ("… is a monorepo … 500 files … 242 models"),
+  // wrong under a `primary:` tagline field.
+  const primaryTagline = `${id.name} — ${fwNames || primaryLang} ${shortType}`;
   lines.push("taglines:");
+  lines.push(`  primary: ${yamlFlowScalar(primaryTagline)}`);
   if (fwNames) {
-    lines.push(`  primary: ${yamlFlowScalar(projectDesc)}`);
     lines.push(`  technical: ${yamlFlowScalar(`${fwNames} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString("en-US")} lines`)}`);
   } else {
-    lines.push(`  primary: ${yamlFlowScalar(projectDesc)}`);
     lines.push(`  technical: ${yamlFlowScalar(`${primaryLang} ${id.type} — ${ctx.structure.total_files} files, ${ctx.structure.total_loc.toLocaleString("en-US")} lines`)}`);
   }
   if (abstractions.length > 0) {
@@ -491,10 +495,13 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
     lines.push(`    headline: "${models.length} Domain Entities"`);
     lines.push(`    detail: ${yamlFlowScalar(`Rich domain model with ${models.slice(0, 5).map(m => m.name).join(", ")}${models.length > 5 ? ` and ${models.length - 5} more` : ""}.`)}`);
   }
-  if (signals.separation_score > 0.5 && signals.layer_boundaries.length > 0) {
+  // Require a genuinely strong signal before making an architecture value-prop —
+  // a 0.51 score with ONE boundary is too thin to brand a repo "Clean Architecture".
+  if (signals.separation_score >= 0.7 && signals.layer_boundaries.length >= 2) {
+    const boundaries = signals.layer_boundaries.length;
     lines.push("  - id: architecture");
-    lines.push(`    headline: ${yamlFlowScalar(`Clean Architecture (${signals.separation_score.toFixed(2)} separation)`)}`);
-    lines.push(`    detail: ${yamlFlowScalar(`${signals.patterns_detected.length > 0 ? signals.patterns_detected.join(", ") : "Layered"} with ${signals.layer_boundaries.length} layer boundaries.`)}`);
+    lines.push(`    headline: ${yamlFlowScalar(`Well-separated architecture (${signals.separation_score.toFixed(2)} separation score)`)}`);
+    lines.push(`    detail: ${yamlFlowScalar(`${signals.patterns_detected.length > 0 ? signals.patterns_detected.join(", ") : "Layered"} with ${boundaries} layer boundar${boundaries === 1 ? "y" : "ies"}.`)}`);
   }
   // Count real test files by PATH (the `role` field isn't reliably populated).
   // Only claim "tested" when tests actually exist, not merely because a test
@@ -548,23 +555,29 @@ export function generateMessagingSystem(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("    detected:");
     for (const fw of frameworks) {
       lines.push(`      - name: ${yamlFlowScalar(fw.name)}`);
-      lines.push(`        version: ${JSON.stringify(fw.version)}`);
+      lines.push(`        version: ${fw.version ? JSON.stringify(fw.version) : "null"}`);
       lines.push(`        confidence: ${fw.confidence}`);
     }
   }
   lines.push("");
 
-  // CTA messaging
+  // CTA messaging. STARTER TEMPLATES — these are generic placeholders to replace
+  // with the product's real calls-to-action, NOT values derived from the repo.
+  // (Previously hardcoded AXIS's own "Upload Project"/"Send Snapshot via API",
+  // which were false brand facts for any other analyzed project.)
+  lines.push("# calls_to_action are starter placeholders — replace with your product's real CTAs.");
   lines.push("calls_to_action:");
   lines.push("  primary:");
-  lines.push("    label: \"Upload Project\"");
+  lines.push("    label: \"Get Started\"");
   lines.push("    context: \"Main landing page, empty states\"");
   lines.push("  secondary:");
-  lines.push("    label: \"View Results\"");
-  lines.push("    context: \"After snapshot processing complete\"");
-  lines.push("  api:");
-  lines.push("    label: \"Send Snapshot via API\"");
-  lines.push("    context: \"Developer documentation, API reference\"");
+  lines.push("    label: \"See How It Works\"");
+  lines.push("    context: \"Feature sections, docs\"");
+  if (displayRoutes(ctx.routes).length > 0) {
+    lines.push("  api:");
+    lines.push("    label: \"Read the API Docs\"");
+    lines.push("    context: \"Developer documentation, API reference\"");
+  }
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -600,13 +613,13 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   const lines: string[] = [];
   lines.push(`# Channel Rulebook — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`Generated: ${mdText(ctx.generated_at)}`);
+  // No "Generated:" line — generated_at is zeroed for determinism (would show 1970).
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -662,7 +675,10 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("| Tone | Confident, concise, technical-but-approachable |");
   lines.push("| Max length | 280 chars (aim for < 200) |");
   lines.push("| Hashtags | Max 2 per post |");
-  lines.push(`| Branded hashtags | #${id.name.replace(/[^a-zA-Z]/g, "")}, #BuiltWith${id.name.replace(/[^a-zA-Z]/g, "")} |`);
+  // PascalCase the alpha-stripped name, and fall back to a slug when the strip is
+  // empty (a non-ASCII-alpha or all-digit name) so we never emit a bare `#`.
+  const hashtagBase = id.name.replace(/[^a-zA-Z0-9]+/g, " ").trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join("") || "Project";
+  lines.push(`| Branded hashtags | #${mdInline(hashtagBase)}, #BuiltWith${mdInline(hashtagBase)} |`);
   lines.push("| Thread style | Numbered, each tweet self-contained |");
   lines.push("| Media | Screenshot or GIF with every thread |");
   lines.push("");
@@ -741,6 +757,7 @@ export function generateChannelRulebook(ctx: ContextMap, files?: SourceFile[]): 
       for (const r of readmes.slice(0, 4)) {
         lines.push(`- \`${mdCode(r.path)}\` (${r.size} bytes)`);
       }
+      if (readmes.length > 4) lines.push(`- … and ${readmes.length - 4} more`);
       lines.push("");
     }
   }
