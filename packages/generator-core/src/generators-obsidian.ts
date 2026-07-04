@@ -149,7 +149,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push(`vault/`);
   lines.push(`├── Projects/`);
   lines.push(`│   └── ${mdCode(id.name)}/`);
-  lines.push(`│       ├── Overview.md`);
+  lines.push(`│       ├── ${mdCode(id.name)}.md    ← project hub (the [[${mdCode(id.name)}]] note)`);
   lines.push(`│       ├── Architecture.md`);
   lines.push(`│       ├── ADRs/`);
   lines.push(`│       ├── Meeting Notes/`);
@@ -338,6 +338,13 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const abstractions = ctx.ai_context.key_abstractions;
 
+  // Cap nodes per type so the vault graph stays usable — a repo with hundreds of
+  // domain models otherwise produces a multi-MB graph-prompt-map.json. Counts and
+  // a `truncated` field below stay honest about what was elided.
+  const MAX_NODES = { abstractions: 30, entry_points: 40, domain_models: 60, sql_schema: 40 };
+  const nEntries = Math.min(ctx.entry_points.length, MAX_NODES.entry_points);
+  const nModels = Math.min(ctx.domain_models.length, MAX_NODES.domain_models);
+
   const nodes: Array<{ id: string; type: string; label: string; note_path: string }> = [];
   const edges: Array<{ from: string; to: string; relationship: string }> = [];
 
@@ -346,7 +353,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     id: "project",
     type: "project",
     label: id.name,
-    note_path: `Projects/${id.name}/Overview.md`,
+    note_path: `Projects/${id.name}/${id.name}.md`,
   });
 
   // Architecture node
@@ -371,7 +378,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   }
 
   // Abstraction nodes
-  for (let i = 0; i < abstractions.length; i++) {
+  for (let i = 0; i < Math.min(abstractions.length, MAX_NODES.abstractions); i++) {
     const aId = `abs_${i}`;
     nodes.push({
       id: aId,
@@ -383,7 +390,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   }
 
   // Entry point nodes
-  for (let i = 0; i < ctx.entry_points.length; i++) {
+  for (let i = 0; i < nEntries; i++) {
     const epId = `ep_${i}`;
     nodes.push({
       id: epId,
@@ -395,7 +402,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   }
 
   // Domain model nodes
-  for (let i = 0; i < ctx.domain_models.length; i++) {
+  for (let i = 0; i < nModels; i++) {
     const dm = ctx.domain_models[i];
     const dmId = `model_${i}`;
     nodes.push({
@@ -407,13 +414,13 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     edges.push({ from: "architecture", to: dmId, relationship: "has_model" });
     // Link model to its source entry point if one exists
     const epIdx = ctx.entry_points.findIndex(ep => ep.path === dm.source_file);
-    if (epIdx !== -1) {
+    if (epIdx !== -1 && epIdx < nEntries) {
       edges.push({ from: `ep_${epIdx}`, to: dmId, relationship: "defines_model" });
     }
   }
 
   // SQL table nodes
-  for (let i = 0; i < ctx.sql_schema.length; i++) {
+  for (let i = 0; i < Math.min(ctx.sql_schema.length, MAX_NODES.sql_schema); i++) {
     const tbl = ctx.sql_schema[i];
     const tblId = `table_${i}`;
     nodes.push({
@@ -429,7 +436,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       m => m.name.toLowerCase() === tbl.name.toLowerCase() ||
            m.name.toLowerCase() === tbl.name.replace(/_/g, "").toLowerCase()
     );
-    if (matchingModelIdx !== -1) {
+    if (matchingModelIdx !== -1 && matchingModelIdx < nModels) {
       edges.push({ from: `model_${matchingModelIdx}`, to: tblId, relationship: "maps_to_table" });
     }
   }
@@ -456,6 +463,12 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     })),
     total_nodes: nodes.length,
     total_edges: edges.length,
+    truncated: {
+      ...(ctx.domain_models.length > MAX_NODES.domain_models ? { domain_models: { shown: MAX_NODES.domain_models, total: ctx.domain_models.length } } : {}),
+      ...(ctx.entry_points.length > MAX_NODES.entry_points ? { entry_points: { shown: MAX_NODES.entry_points, total: ctx.entry_points.length } } : {}),
+      ...(ctx.sql_schema.length > MAX_NODES.sql_schema ? { sql_schema: { shown: MAX_NODES.sql_schema, total: ctx.sql_schema.length } } : {}),
+      ...(abstractions.length > MAX_NODES.abstractions ? { abstractions: { shown: MAX_NODES.abstractions, total: abstractions.length } } : {}),
+    },
     nodes,
     edges,
     // ─── Source File Analysis ──────────────────────────────────
