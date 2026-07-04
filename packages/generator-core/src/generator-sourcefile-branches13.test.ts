@@ -192,8 +192,11 @@ describe("server-manifest.yaml — domain_models enrichment", () => {
     const inp = withModels(input(s, ["server-manifest.yaml"]));
     const result = generateFiles(inp);
     const content = getFile(result, "server-manifest.yaml")!.content;
-    expect(content).toContain("uri: model://User");
-    expect(content).toContain("uri: model://Order");
+    // The uri scalar is now yamlFlowScalar-quoted (injection hardening): the
+    // `model://` colon triggers conservative quoting. Still valid YAML, same
+    // parsed value — assert the quoted serialization.
+    expect(content).toContain('uri: "model://User"');
+    expect(content).toContain('uri: "model://Order"');
   });
 
   it("model resources have mime_type and description", () => {
