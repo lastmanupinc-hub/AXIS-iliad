@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── canvas-spec.json ───────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile, files?
       entry_point_count: ctx.entry_points.length,
       hotspot_count: ctx.dependency_graph.hotspots.length,
       domain_model_count: ctx.domain_models.length,
-      route_count: ctx.routes.length,
+      route_count: displayRoutes(ctx.routes).length,
       total_files: ctx.structure.total_files,
       total_loc: ctx.structure.total_loc,
     },
@@ -178,7 +179,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push(`| ${mdInline(lang.name)} | ${lang.loc_percent}% |`);
   }
   lines.push(`| Frameworks | ${frameworks.length} |`);
-  lines.push(`| Architecture Score | ${ctx.architecture_signals.separation_score}/100 |`);
+  lines.push(`| Architecture Score | ${Math.round(ctx.architecture_signals.separation_score * 100)}/100 |`);
   lines.push("");
 
   lines.push("## Twitter/X Card");
@@ -188,7 +189,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push(`🧵 1/ Just analyzed ${mdText(id.name)} with @AxisIliad`);
   lines.push("");
   lines.push(`📊 2/ Tech stack: ${mdText(frameworks.slice(0, 3).join(", ") || id.primary_language)}`);
-  lines.push(`Architecture score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`Architecture score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("");
   lines.push(`🔍 3/ Found ${ctx.entry_points.length} entry points and ${ctx.dependency_graph.hotspots.length} hotspots`);
   lines.push("");
@@ -204,7 +205,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push(`• Type: ${mdText(id.type)}`);
   lines.push(`• Primary Language: ${mdText(id.primary_language)}`);
   lines.push(`• Frameworks: ${mdText(frameworks.join(", ") || "None")}`);
-  lines.push(`• Architecture Score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`• Architecture Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -276,7 +277,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("**Stats Grid**");
   lines.push(`- Entry Points: ${ctx.entry_points.length}`);
   lines.push(`- Hotspots: ${ctx.dependency_graph.hotspots.length}`);
-  lines.push(`- Architecture Score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`- Architecture Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push(`- Dependencies: ${ctx.dependency_graph.external_dependencies.length}`);
   lines.push("");
   lines.push("**Language Breakdown**");
@@ -324,7 +325,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push(`- Name: ${mdText(id.name)}`);
   lines.push(`- Type: ${mdText(id.type)}`);
-  lines.push(`- Score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`- Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push(`- Badges: ${mdText(frameworks.join(", ") || id.primary_language)}`);
   lines.push("");
 
