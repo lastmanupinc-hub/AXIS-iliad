@@ -5,6 +5,30 @@ import { findFiles, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdBlock, codeComment, yamlFlowScalar } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 
+// ─── Shared language→color palette ───────────────────────────────
+
+export interface AlgoColor { name: string; hue: number; weight: number; }
+
+/**
+ * The ONE language→color palette derivation, shared by generative-sketch.ts
+ * (node hues) and parameter-pack.json (color.palette). Both derived it
+ * independently before, and NEITHER guarded the empty case — a repo with zero
+ * detected languages produced an empty palette, and the generated sketch then
+ * hit `palette[i % 0]` = `palette[NaN]` = undefined at runtime (a TypeError the
+ * moment renderSketch runs). This always returns a non-empty palette (a neutral
+ * fallback when no languages are detected), matching how generateVariationMatrix
+ * already guards its colors. Pure + deterministic.
+ */
+export function deriveAlgoPalette(ctx: ContextMap): AlgoColor[] {
+  const hues = [220, 280, 340, 160, 40];
+  const palette = ctx.detection.languages.slice(0, 5).map((l, i) => ({
+    name: l.name,
+    hue: hues[i % hues.length],
+    weight: l.loc_percent,
+  }));
+  return palette.length > 0 ? palette : [{ name: "source", hue: 220, weight: 50 }];
+}
+
 // ─── generative-sketch.ts ───────────────────────────────────────
 
 export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -16,10 +40,7 @@ export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]):
   // Derive visual parameters from project data
   const nodeCount = Math.max(5, Math.min(50, ctx.entry_points.length * 3 + hotspots.length * 2));
   const complexity = Math.min(1, ctx.architecture_signals.separation_score);
-  const langColors = languages.slice(0, 5).map((l, i) => {
-    const hues = [220, 280, 340, 160, 40];
-    return { name: l.name, hue: hues[i % hues.length], weight: l.loc_percent };
-  });
+  const langColors = deriveAlgoPalette(ctx);
 
   const lines: string[] = [];
 
@@ -210,16 +231,13 @@ export function generateParameterPack(ctx: ContextMap, files?: SourceFile[]): Ge
         symmetry: score > 70 ? "radial" : score > 40 ? "bilateral" : "organic",
       },
       color: {
-        palette: languages.slice(0, 5).map((l, i) => {
-          const hues = [220, 280, 340, 160, 40];
-          return {
-            name: l.name,
-            hue: hues[i % hues.length],
-            saturation: 60 + (l.loc_percent / 100) * 20,
-            lightness: 50 + (l.loc_percent / 100) * 15,
-            weight: l.loc_percent,
-          };
-        }),
+        palette: deriveAlgoPalette(ctx).map((c) => ({
+          name: c.name,
+          hue: c.hue,
+          saturation: 60 + (c.weight / 100) * 20,
+          lightness: 50 + (c.weight / 100) * 15,
+          weight: c.weight,
+        })),
         background: { h: 220, s: 40, l: 8 },
         accent: { h: 240, s: 80, l: 65 },
       },
