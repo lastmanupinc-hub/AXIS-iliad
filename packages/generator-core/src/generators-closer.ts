@@ -86,7 +86,7 @@ function defaultBranding(ctx: ContextMap): BrandingConfig {
   const projectName = (ctx.project_identity.name || "Project").trim();
   return {
     product_name: projectName,
-    tagline: `Production-grade ${projectName} packaging and release kit`,
+    tagline: `Packaging and release kit for ${projectName}`,
     target_marketplaces: [...TARGET_MARKETPLACES],
   };
 }
@@ -138,14 +138,14 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
   const allText = files?.map(f => `${f.path}\n${f.content}`).join("\n") ?? "";
 
   const monetization_hints: string[] = [];
-  if (/pricing|subscription|plan|checkout|invoice|billing|license/i.test(allText)) {
+  if (/pricing|subscription|paywall|checkout|invoice|billing/i.test(allText)) {
     monetization_hints.push("Monetization intent detected in source files");
   }
   if (/enterprise|saas|marketplace|plugin|extension/i.test(allText)) {
     monetization_hints.push("Marketplace distribution language detected");
   }
   if (ctx.routes.length > 0) {
-    monetization_hints.push("API surface detected — package supports commercial integration");
+    monetization_hints.push("API surface detected");
   }
 
   const hasInternalOnly = /internal use only|confidential|proprietary|all rights reserved/i.test(allText);
@@ -202,7 +202,7 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
       "",
       "This software is licensed, not sold. Unauthorized reproduction, modification, or redistribution of this package or any derived work is prohibited unless explicitly permitted in a separate written commercial agreement.",
       "",
-      "For commercial licensing inquiries: legal@company.example",
+      "For commercial licensing inquiries: <add your legal contact>",
     ].join("\n");
   }
 
@@ -253,14 +253,15 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
   ].join("\n");
 }
 
-function buildMerkleBundle(
-  ctx: ContextMap,
-  branding: BrandingConfig,
-  signals: ProjectSignals,
-): MerkleBundle {
-  const leaves = CLOSER_OUTPUT_PATHS.map(path => ({
+// Build a Merkle bundle whose leaves are CONTENT-derived: each leaf digest covers
+// the artifact's actual bytes (path-prefixed for domain separation), so tampering
+// with any generated file changes its leaf and the root. The previous version
+// hashed only the path + snapshot IDs, so it could not detect content tampering
+// (and its "content-derived" label was untrue).
+function buildMerkleBundle(leafInputs: Array<{ path: string; content: string }>): MerkleBundle {
+  const leaves = leafInputs.map(({ path, content }) => ({
     path,
-    digest: hash(`${ctx.snapshot_id}|${ctx.project_id}|${branding.product_name}|${signals.primary_language}|${path}`),
+    digest: hash(`${path}\n${content}`),
   }));
 
   let current = leaves.map(leaf => leaf.digest);
@@ -276,18 +277,56 @@ function buildMerkleBundle(
     levels.push(current);
   }
 
-  const root = current[0];
-  const signature = hash(`${CERTLIB_PROFILE}:${root}:${ctx.snapshot_id}:${ctx.project_id}`);
+  const root = current[0] ?? hash("");
+  const signature = hash(`${CERTLIB_PROFILE}:${root}`);
 
   return { root, leaves, levels, signature };
 }
 
+// The artifacts the trust fabric attests: the build & configuration outputs that
+// ship BYTE-FOR-BYTE as generated — the supply-chain-critical files (Dockerfile,
+// compose, CI/release workflows, LICENSE, Makefile, package manifests). Excluded:
+//   - the 2 trust-fabric files themselves (a file can't content-hash itself);
+//   - every markdown doc (README, dockerhub/marketplace listings, packaging-report,
+//     DISTRIBUTABLE) — the autonomy loop appends a ⟳ footer to each `.md` AFTER
+//     generation, so a doc's shipped bytes differ from anything we could hash here.
+//     Attesting them would make the recompute recipe report a false tamper on an
+//     untouched package.
+// Regenerated here so the Merkle leaves cover real bytes. Pure + deterministic, so
+// the attestation and merkle-proof generators compute an identical bundle. None of
+// these generators reference the bundle, so there is no recursion.
+function closerAttestedArtifacts(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): Array<{ path: string; content: string }> {
+  return [
+    generatePackagingReadme(ctx, profile, files),
+    generatePackagingLicense(ctx, profile, files),
+    generateCloserDockerfile(ctx, profile, files),
+    generateCloserDockerCompose(ctx, profile, files),
+    generateCloserCiWorkflow(ctx, profile, files),
+    generateCloserReleaseWorkflow(ctx, profile, files),
+    generateCloserManifestNpm(ctx, profile, files),
+    generateCloserManifestUnreal(ctx, profile, files),
+    generateCloserManifestVsCode(ctx, profile, files),
+    generateCloserManifestDockerHub(ctx, profile, files),
+    generateCloserManifestGitHubMarketplace(ctx, profile, files),
+    generateCloserPackagingReport(ctx, profile, files),
+    generateDistributableGuide(ctx, profile, files),
+    generateMakefileWithShipTarget(ctx, profile, files),
+  ]
+    .filter(f => f.content_type !== "text/markdown")
+    .map(f => ({ path: f.path, content: f.content }));
+}
+
 function readinessScore(signals: ProjectSignals, marketplaces: number): number {
-  let score = 72;
-  if (signals.uses_docker) score += 5;
-  if (signals.has_ci) score += 5;
-  if (signals.has_makefile) score += 4;
-  score += Math.min(10, marketplaces * 2);
+  // Scores the INPUT repo's packaging maturity (what closer had to work with), not
+  // the generated bundle. A low base with points from real, per-repo signals — so
+  // the score varies meaningfully AND the higher bands stay reachable (a repo with
+  // all signals reaches 100; a bare repo lands ~48/hardening-required).
+  let score = 40;
+  if (signals.uses_docker) score += 15;
+  if (signals.has_ci) score += 15;
+  if (signals.has_makefile) score += 10;
+  if (signals.has_tests) score += 12;
+  score += Math.min(8, marketplaces * 2);
   if (signals.selected_license === "Proprietary") score -= 4;
   return Math.max(0, Math.min(100, score));
 }
@@ -317,7 +356,7 @@ export function generatePackagingReadme(
     "```bash",
     "git clone <repo-url>",
     "cd <project>",
-    "make ship",
+    "make install && make start",
     "```",
     "",
     `## Screenshots`,
@@ -335,8 +374,8 @@ export function generatePackagingReadme(
     "",
     `## Monetization`,
     "",
-    `- Recommended pricing: $99-$499 depending on support tier and hosting footprint.`,
-    `- Suggested SKUs: Starter (self-serve), Team (SLA + onboarding), Enterprise (private deployment).`,
+    `- Pricing: set to your own support tier and hosting footprint.`,
+    `- Example SKU structure: Starter (self-serve), Team (SLA + onboarding), Enterprise (private deployment).`,
     `- Distribution targets: ${branding.target_marketplaces.join(", ")}.`,
     "",
     `## Compatibility`,
@@ -407,7 +446,7 @@ export function generateCloserDockerfile(
       "ENV PORT=8080",
       "EXPOSE 8080",
       `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
-      `LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url ?? "")}\"`,
+      ...(ctx.project_identity.repo_url ? [`LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url)}\"`] : []),
       "ENTRYPOINT [\"/app/app\"]",
     ].join("\n");
   } else if (lang === "Python") {
@@ -485,7 +524,7 @@ export function generateCloserDockerfile(
       "USER app",
       "EXPOSE 8080",
       `LABEL org.opencontainers.image.title=\"${dockerfileLabelValue(ctx.project_identity.name)}\"`,
-      `LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url ?? "")}\"`,
+      ...(ctx.project_identity.repo_url ? [`LABEL org.opencontainers.image.source=\"${dockerfileLabelValue(ctx.project_identity.repo_url)}\"`] : []),
       "HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\",
       "  CMD wget --quiet --tries=1 --spider http://127.0.0.1:${PORT}/health || exit 1",
       `CMD [\"sh\", \"-lc\", \"${entry}\"]`,
@@ -506,7 +545,7 @@ export function generateCloserDockerCompose(
   _profile?: RepoProfile,
   _files?: SourceFile[],
 ): GeneratedFile {
-  const name = ctx.project_identity.name;
+  const name = ctx.project_identity.name || "app"; // guard: an empty name would slug to `image: :latest`
   // Compose v2 schema — top-level `version` is deprecated/ignored. Healthcheck
   // and env_file present so a copied .env.example wires through automatically.
   const content = [
@@ -712,14 +751,12 @@ export function generateCloserCiWorkflow(
     runScript("typecheck"),
     ...(signals.has_tests ? [
       "      - name: Test",
-      `        run: ${runner} ${runner === "npm" ? "test" : "test"} --if-present`,
+      `        run: ${runner} test --if-present`,
     ] : []),
     "      - name: Build",
     runScript("build"),
     "      - name: Audit",
     `        run: ${runner === "npm" ? "npm audit --omit=dev --audit-level=high" : runner === "pnpm" ? "pnpm audit --prod --audit-level high" : runner === "yarn" ? "yarn npm audit --severity high --recursive" : "bun audit"} || true`,
-    "      - name: Package audit",
-    "        run: make ship",
   ].join("\n");
 
   return {
@@ -732,49 +769,13 @@ export function generateCloserCiWorkflow(
 }
 
 export function generateCloserReleaseWorkflow(
-  _ctx: ContextMap,
+  ctx: ContextMap,
   _profile: RepoProfile,
   files?: SourceFile[],
 ): GeneratedFile {
-  const config = readBrandingConfig(files, {
-    version: "1.0.0",
-    snapshot_id: "",
-    project_id: "",
-    generated_at: "",
-    project_identity: {
-      name: "project",
-      type: "unknown",
-      primary_language: "unknown",
-      description: null,
-      repo_url: null,
-      go_module: null,
-    },
-    structure: {
-      total_files: 0,
-      total_directories: 0,
-      total_loc: 0,
-      file_tree_summary: [],
-      top_level_layout: [],
-    },
-    detection: {
-      languages: [],
-      frameworks: [],
-      build_tools: [],
-      test_frameworks: [],
-      package_managers: [],
-      ci_platform: null,
-      deployment_target: null,
-    },
-    dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
-    entry_points: [],
-    routes: [],
-    domain_models: [],
-    sql_schema: [],
-    architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0 },
-    ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
-  });
+  const config = readBrandingConfig(files, ctx);
 
-  const signals = detectProjectSignals(_ctx, _profile, files);
+  const signals = detectProjectSignals(ctx, _profile, files);
   const lang = signals.primary_language;
   const pm = signals.package_manager;
   const targets = config.target_marketplaces;
@@ -1101,14 +1102,14 @@ export function generateCloserManifestGitHubMarketplace(
     "```bash",
     `git clone ${mdCode(ctx.project_identity.repo_url ?? "<repo-url>")}`,
     "cd " + branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-    "make ship",
+    "make install && make start",
     "```",
     "",
     "## Verification",
     "Every release attaches the attestation bundle. Verify after install:",
     "",
     "```bash",
-    "cat packaging/trust-fabric/attestation.json | jq .digest",
+    "cat packaging/trust-fabric/attestation.json | jq -r .merkle_root",
     "```",
     "",
     "## Support",
@@ -1130,8 +1131,7 @@ export function generateCloserTrustAttestation(
   files?: SourceFile[],
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
-  const signals = detectProjectSignals(ctx, profile, files);
-  const bundle = buildMerkleBundle(ctx, branding, signals);
+  const bundle = buildMerkleBundle(closerAttestedArtifacts(ctx, profile, files));
 
   const content = JSON.stringify(
     {
@@ -1142,6 +1142,7 @@ export function generateCloserTrustAttestation(
       project_id: ctx.project_id,
       product_name: branding.product_name,
       package_root: "./",
+      attests: "Build & configuration artifacts that ship byte-for-byte (Dockerfile, docker-compose, CI/release workflows, LICENSE, Makefile, package manifests). Markdown docs are excluded — the autonomy loop appends a footer to each after generation, so their shipped bytes are not knowable here.",
       merkle_root: bundle.root,
       signature: {
         algorithm: "sha256-pseudo-signature",
@@ -1160,7 +1161,7 @@ export function generateCloserTrustAttestation(
     content,
     content_type: "application/json",
     program: PROGRAM,
-    description: "Trust Fabric certlib-style attestation with a content-derived Merkle root integrity digest (not a cryptographic signature) over package artifacts",
+    description: "Trust Fabric certlib-style attestation: a content-derived Merkle root integrity digest (not a cryptographic signature) over the build & configuration artifacts that ship verbatim (docs, which carry a post-generation loop footer, are excluded)",
   };
 }
 
@@ -1169,9 +1170,7 @@ export function generateCloserMerkleProof(
   profile: RepoProfile,
   files?: SourceFile[],
 ): GeneratedFile {
-  const branding = readBrandingConfig(files, ctx);
-  const signals = detectProjectSignals(ctx, profile, files);
-  const bundle = buildMerkleBundle(ctx, branding, signals);
+  const bundle = buildMerkleBundle(closerAttestedArtifacts(ctx, profile, files));
 
   const content = JSON.stringify(
     {
@@ -1182,7 +1181,9 @@ export function generateCloserMerkleProof(
       verification: {
         algorithm: "sha256",
         certlib_profile: CERTLIB_PROFILE,
-        replay_command: "node verify-attestation.js packaging/trust-fabric/attestation.json packaging/trust-fabric/merkle-proof.json",
+        leaf_formula: "sha256(path + \"\\n\" + file_bytes)",
+        recompute_leaf: "{ printf '%s\\n' <path>; cat <path>; } | sha256sum",
+        note: "Recompute each leaf digest from its file, rebuild the tree pairwise (sha256 of concatenated child digests, last node duplicated when odd), and compare the root to .merkle_root in attestation.json.",
       },
     },
     null,
@@ -1357,7 +1358,7 @@ export function generateMakefileWithShipTarget(
                  : isPy ? "rm -rf dist/ build/ *.egg-info __pycache__"
                  : "rm -rf dist/ build/ coverage/ .turbo/";
 
-  const imageTag = `${ctx.project_identity.name.toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`;
+  const imageTag = `${(ctx.project_identity.name || "app").toLowerCase().replace(/[^a-z0-9-]+/g, "-")}:latest`;
 
   const content = [
     `# Build orchestration for ${codeComment(ctx.project_identity.name)}`,
@@ -1405,7 +1406,7 @@ export function generateMakefileWithShipTarget(
     "",
     "attest: ## Verify release attestation",
     "\t@test -f packaging/trust-fabric/attestation.json || (echo \"missing packaging/trust-fabric/attestation.json\" && exit 1)",
-    "\t@echo \"Attestation: $$(jq -r .digest packaging/trust-fabric/attestation.json)\"",
+    "\t@echo \"Attestation root: $$(jq -r .merkle_root packaging/trust-fabric/attestation.json)\"",
     "",
     "ship: clean install lint test build package attest ## Full release sequence (clean → install → lint → test → build → package → attest)",
     "\t@echo \"\"",
