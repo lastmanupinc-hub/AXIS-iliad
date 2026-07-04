@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findEntryPoints, findConfigs, extractExports } from "./file-excerpt-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 // ─── obsidian-skill-pack.md ─────────────────────────────────────
 
@@ -10,16 +11,16 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const lines: string[] = [];
 
-  lines.push(`# Obsidian Skill Pack — ${id.name}`);
+  lines.push(`# Obsidian Skill Pack — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Vault workflows, templates, and prompt snippets for a ${id.type.replace(/_/g, " ")} project`);
+  lines.push(`> Vault workflows, templates, and prompt snippets for a ${mdText(id.type.replace(/_/g, " "))} project`);
   lines.push("");
 
   // Project Overview
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -30,7 +31,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -54,7 +55,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push("## Notes");
   lines.push("- ");
   lines.push("");
-  lines.push(`## ${id.name} Changes`);
+  lines.push(`## ${mdCode(id.name)} Changes`);
   lines.push("- Files modified:");
   lines.push("- Tests added/changed:");
   lines.push("- Commit:");
@@ -80,7 +81,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push("[What becomes easier or harder as a result?]");
   lines.push("");
   lines.push("## References");
-  lines.push(`- Project: [[${id.name}]]`);
+  lines.push(`- Project: [[${mdCode(id.name)}]]`);
   lines.push("- Related ADRs:");
   lines.push("```");
   lines.push("");
@@ -93,13 +94,13 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
 
   lines.push("### Project Context Preamble");
   lines.push("```");
-  lines.push(`I'm working on ${id.name}, a ${id.type.replace(/_/g, " ")} built with ${id.primary_language}.`);
+  lines.push(`I'm working on ${mdCode(id.name)}, a ${mdCode(id.type.replace(/_/g, " "))} built with ${mdCode(id.primary_language)}.`);
   if (frameworks.length > 0) {
-    lines.push(`Stack: ${frameworks.join(", ")}.`);
+    lines.push(`Stack: ${mdCode(frameworks.join(", "))}.`);
   }
   const conventions = ctx.ai_context.conventions;
   if (conventions.length > 0) {
-    lines.push(`Conventions: ${conventions.slice(0, 3).join("; ")}.`);
+    lines.push(`Conventions: ${mdCode(conventions.slice(0, 3).join("; "))}.`);
   }
   lines.push("```");
   lines.push("");
@@ -116,7 +117,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
 
   lines.push("### Bug Investigation Prompt");
   lines.push("```");
-  lines.push(`In ${id.name} (${id.primary_language}), I'm seeing [describe bug].`);
+  lines.push(`In ${mdCode(id.name)} (${mdCode(id.primary_language)}), I'm seeing [describe bug].`);
   lines.push("Steps to reproduce: [steps]");
   lines.push("Expected: [expected behavior]");
   lines.push("Actual: [actual behavior]");
@@ -129,9 +130,9 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   if (domainModels.length > 0) {
     lines.push("### Domain Model Prompt");
     lines.push("```");
-    lines.push(`I'm working with the following domain models in ${id.name}:`);
+    lines.push(`I'm working with the following domain models in ${mdCode(id.name)}:`);
     for (const m of domainModels.slice(0, 8)) {
-      lines.push(`- ${m.name} (${m.kind}, ${m.field_count} fields) — defined in ${m.source_file}`);
+      lines.push(`- ${mdCode(m.name)} (${mdCode(m.kind)}, ${m.field_count} fields) — defined in ${mdCode(m.source_file)}`);
     }
     if (domainModels.length > 8) lines.push(`  ... and ${domainModels.length - 8} more`);
     lines.push("");
@@ -147,7 +148,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push("```");
   lines.push(`vault/`);
   lines.push(`├── Projects/`);
-  lines.push(`│   └── ${id.name}/`);
+  lines.push(`│   └── ${mdCode(id.name)}/`);
   lines.push(`│       ├── Overview.md`);
   lines.push(`│       ├── Architecture.md`);
   lines.push(`│       ├── ADRs/`);
@@ -173,7 +174,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
       lines.push("## Detected Config Files for Vault Import");
       lines.push("");
       for (const c of configs.slice(0, 6)) {
-        lines.push(`- \`${c.path}\``);
+        lines.push(`- \`${mdCode(c.path)}\``);
       }
       lines.push("");
     }
@@ -194,7 +195,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Vault Rules — ${id.name}`);
+  lines.push(`# Vault Rules — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Governance rules for maintaining a clean, linked knowledge vault");
   lines.push("");
@@ -202,7 +203,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -212,7 +213,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -239,7 +240,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("| Tag | When to Use |");
   lines.push("|-----|-----------|");
-  lines.push(`| \`#project/${id.name.toLowerCase().replace(/\s+/g, "-")}\` | Anything related to this project |`);
+  lines.push(`| \`#project/${id.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}\` | Anything related to this project |`);
   lines.push("| `#decision` | Architecture or design decisions |");
   lines.push("| `#bug` | Bug reports and investigations |");
   lines.push("| `#feature` | Feature specifications |");
@@ -253,7 +254,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   // vocabulary matches the codebase instead of a generic template.
   const stackTags: string[] = [];
   for (const fw of ctx.detection.frameworks) {
-    stackTags.push(`| \`#${fw.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}\` | Notes about ${fw.name}${fw.version ? ` (v${fw.version})` : ""} code |`);
+    stackTags.push(`| \`#${fw.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}\` | Notes about ${mdInline(fw.name)}${fw.version ? ` (v${mdInline(fw.version)})` : ""} code |`);
   }
   if (ctx.routes.length > 0) stackTags.push(`| \`#api-endpoint\` | Route/endpoint notes (${ctx.routes.length} detected) |`);
   if (ctx.sql_schema.length > 0) stackTags.push(`| \`#database-schema\` | Schema notes (${ctx.sql_schema.length} table${ctx.sql_schema.length === 1 ? "" : "s"} detected) |`);
@@ -272,13 +273,13 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   // Linking Rules
   lines.push("## Linking Rules");
   lines.push("");
-  lines.push("1. **Always link to the project note** — Every project-related note must include `[[" + id.name + "]]`");
+  lines.push("1. **Always link to the project note** — Every project-related note must include `[[" + mdCode(id.name) + "]]`");
   lines.push("2. **Link decisions to context** — ADRs must link to the notes that prompted them");
   lines.push("3. **Link bugs to code areas** — Bug notes should reference the affected module or file");
   lines.push("4. **Cross-link related notes** — If two notes discuss the same topic, link them");
   lines.push("5. **Use aliases for common references** — Add YAML frontmatter aliases for frequently linked notes");
   if (ctx.entry_points.length > 0) {
-    const eps = ctx.entry_points.slice(0, 3).map((e) => `\`${e.path}\``).join(", ");
+    const eps = ctx.entry_points.slice(0, 3).map((e) => `\`${mdCode(e.path)}\``).join(", ");
     lines.push(`6. **Anchor to real entry points** — Link code and bug notes to this repo's entry points (${eps}) so navigation starts from actual code`);
   }
   lines.push("");
@@ -293,7 +294,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("created: {{date:YYYY-MM-DD}}");
   lines.push("updated: {{date:YYYY-MM-DD}}");
   lines.push("tags:");
-  lines.push(`  - project/${id.name.toLowerCase().replace(/\s+/g, "-")}`);
+  lines.push(`  - project/${id.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
   lines.push("  - [additional tags]");
   lines.push("status: [draft | active | archived]");
   lines.push("---");
@@ -481,7 +482,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   const hotspots = ctx.dependency_graph.hotspots;
   const lines: string[] = [];
 
-  lines.push(`# Linking Policy — ${id.name}`);
+  lines.push(`# Linking Policy — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Rules for how notes should be interconnected in the knowledge graph");
   lines.push("");
@@ -489,7 +490,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -499,7 +500,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -521,7 +522,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push("These links are required to maintain graph integrity:");
   lines.push("");
-  lines.push(`1. Every code note → \`[[${id.name}]]\` (project hub)`);
+  lines.push(`1. Every code note → \`[[${mdCode(id.name)}]]\` (project hub)`);
   lines.push("2. Every ADR → the triggering note or issue");
   lines.push("3. Every daily note → notes created or modified that day");
   lines.push("4. Every bug report → the affected module or file note");
@@ -535,7 +536,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push(`| Hub | Purpose | Minimum Links |`);
   lines.push(`|-----|---------|--------------|`);
-  lines.push(`| \`[[${id.name}]]\` | Project overview | 10+ |`);
+  lines.push(`| \`[[${mdCellCode(id.name)}]]\` | Project overview | 10+ |`);
   lines.push(`| \`[[Architecture]]\` | System design | 5+ |`);
   lines.push(`| \`[[ADR Index]]\` | Decision log | All ADRs |`);
   lines.push(`| \`[[Tech Stack]]\` | Technology choices | All framework notes |`);
@@ -552,7 +553,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("|-----------|------|-----------|");
     for (const h of hotspots.slice(0, 8)) {
       const noteName = h.path.replace(/\//g, "-").replace(/\.[^.]+$/, "");
-      lines.push(`| \`${h.path}\` | ${h.risk_score.toFixed(1)} | \`[[Code/${noteName}]]\` |`);
+      lines.push(`| \`${mdCellCode(h.path)}\` | ${h.risk_score.toFixed(1)} | \`[[Code/${mdCellCode(noteName)}]]\` |`);
     }
     lines.push("");
   }
@@ -591,7 +592,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
       lines.push("");
       for (const ep of entries.slice(0, 5)) {
         const exports = extractExports(ep.content);
-        lines.push(`- \`${ep.path}\` → exports: ${exports.join(", ") || "default"}`);
+        lines.push(`- \`${mdCode(ep.path)}\` → exports: ${mdText(exports.join(", ") || "default")}`);
       }
       lines.push("");
     }
@@ -615,15 +616,15 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   const conventions = ctx.ai_context.conventions;
 
   const lines: string[] = [];
-  lines.push(`# Template Pack — ${id.name}`);
+  lines.push(`# Template Pack — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`Generated: ${ctx.generated_at}`);
+  lines.push(`Generated: ${mdText(ctx.generated_at)}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -633,7 +634,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${fw.version ? mdInline(fw.version) : "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -646,7 +647,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: decision");
-  lines.push(`project: ${id.name}`);
+  lines.push(`project: ${mdCode(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("status: proposed | accepted | deprecated");
   lines.push("---");
@@ -676,7 +677,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: meeting");
-  lines.push(`project: ${id.name}`);
+  lines.push(`project: ${mdCode(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("attendees: ");
   lines.push("---");
@@ -701,7 +702,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: investigation");
-  lines.push(`project: ${id.name}`);
+  lines.push(`project: ${mdCode(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("severity: low | medium | high | critical");
   lines.push("status: investigating | root-caused | resolved");
@@ -731,8 +732,8 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: concept");
-  lines.push(`project: ${id.name}`);
-  lines.push(`tags: [${abstractions.slice(0, 3).map(a => JSON.stringify(a.toLowerCase())).join(", ")}]`);
+  lines.push(`project: ${mdCode(id.name)}`);
+  lines.push(`tags: [${abstractions.slice(0, 3).map(a => JSON.stringify(a.toLowerCase().replace(/`/g, "'"))).join(", ")}]`);
   lines.push("---");
   lines.push("# {{title}}");
   lines.push("");
@@ -740,7 +741,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("One-paragraph explanation of this concept.");
   lines.push("");
   lines.push("## In This Project");
-  lines.push("How this concept applies specifically to " + id.name + ".");
+  lines.push("How this concept applies specifically to " + mdCode(id.name) + ".");
   lines.push("");
   lines.push("## Related Concepts");
   lines.push("- [[]]");
@@ -755,7 +756,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: retrospective");
-  lines.push(`project: ${id.name}`);
+  lines.push(`project: ${mdCode(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("sprint: ");
   lines.push("---");
@@ -786,7 +787,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
     lines.push(`Total source files: ${files.length}`);
     const configs = findConfigs(files);
     if (configs.length > 0) {
-      lines.push(`Config files: ${configs.map(c => c.path).join(", ")}`);
+      lines.push(`Config files: ${mdText(configs.map(c => c.path).join(", "))}`);
     }
     lines.push("");
   }
