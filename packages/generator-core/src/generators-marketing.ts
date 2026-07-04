@@ -36,6 +36,17 @@ const CRO_ACTIONS: Record<RouteCategory, string> = {
   other: "Monitor usage metrics",
 };
 
+// Static/machine endpoints that are NOT conversion surfaces (favicon, robots,
+// sitemap, humans/security/llms .txt, .well-known, and data/asset files). This is
+// intentionally NARROWER than isApiRoute — /api and /docs DO carry CRO signal
+// (API adoption, docs→signup) and must stay in the CRO table.
+export function isStaticAssetRoute(path: string): boolean {
+  const base = path.toLowerCase().split("/").pop() ?? "";
+  return /^\/\.well-known\//i.test(path)
+    || /^(robots\.txt|sitemap[\w-]*\.xml|favicon\.\w+|humans\.txt|security\.txt|llms\.txt|manifest\.webmanifest)$/i.test(base)
+    || /\.(ico|png|jpe?g|gif|svg|webmanifest|map|xml|txt|json|ya?ml|rss|css|js)$/i.test(base);
+}
+
 // ─── campaign-brief.md ──────────────────────────────────────────
 
 export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -585,10 +596,10 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   lines.push("| Contribute | User opens issue or PR | Medium |");
   lines.push("");
 
-  // Route Analysis for CRO — PAGE routes only (backend/asset endpoints like
-  // /favicon.ico, /robots.txt, /.well-known/*, /oauth/jwks aren't conversion
-  // surfaces), capped so a large API doesn't emit an unbounded table.
-  const croRoutes = routes.filter(r => !isApiRoute(r.path));
+  // Route Analysis for CRO — drop only static/asset endpoints (favicon, robots,
+  // sitemap, .well-known, *.json); /api + /docs DO carry CRO signal (API adoption,
+  // docs→signup) and stay. Capped so a large route surface isn't unbounded.
+  const croRoutes = routes.filter(r => !isStaticAssetRoute(r.path));
   if (croRoutes.length > 0) {
     lines.push("## Route Optimization Opportunities");
     lines.push("");

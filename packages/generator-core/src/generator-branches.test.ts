@@ -948,8 +948,9 @@ describe("Hotspot branches (remotion, algorithmic, obsidian, artifacts)", () => 
     expect(f).toBeDefined();
     expect(f!.content).toContain("Code-to-Vault Mapping");
     expect(f!.content).toContain("| Code File | Risk | Vault Note |");
-    // Path transform: src/database/connection.ts → src-database-connection
-    expect(f!.content).toContain("[[Code/src-database-connection]]");
+    // Path transform: src/database/connection.ts → src-database-connection-ts
+    // (extension kept for distinct notes), linked in the graph's Code folder.
+    expect(f!.content).toContain("[[Projects/rich-project/Code/src-database-connection-ts]]");
   });
 
   it("artifacts: renders entry points table", () => {
