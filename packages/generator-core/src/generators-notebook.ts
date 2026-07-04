@@ -1,7 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
-import { hasFw, getFw } from "./fw-helpers.js";
 import { findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 // Curated docs URLs for common frameworks; any package not listed falls back to
 // its npm registry page (URL-encoded so scoped names like @scope/pkg resolve).
@@ -43,34 +43,34 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Notebook Summary — ${id.name}`);
+  lines.push(`# Notebook Summary — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> Research and knowledge notebook for a ${id.type.replace(/_/g, " ")} (${id.primary_language})`);
+  lines.push(`> Research and knowledge notebook for a ${mdText(id.type.replace(/_/g, " "))} (${mdText(id.primary_language)})`);
   lines.push("");
 
   // Project Synopsis
   lines.push("## Project Synopsis");
   lines.push("");
-  lines.push(ctx.ai_context.project_summary);
+  lines.push(mdText(ctx.ai_context.project_summary));
   lines.push("");
 
   // Architecture Overview
   lines.push("## Architecture Overview");
   lines.push("");
   lines.push(`- **Files**: ${ctx.structure.total_files} files across ${ctx.structure.total_directories} directories`);
-  lines.push(`- **Lines of Code**: ${ctx.structure.total_loc.toLocaleString()}`);
-  lines.push(`- **Primary Language**: ${id.primary_language}`);
+  lines.push(`- **Lines of Code**: ${ctx.structure.total_loc.toLocaleString("en-US")}`);
+  lines.push(`- **Primary Language**: ${mdText(id.primary_language)}`);
 
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   if (frameworks.length > 0) {
-    lines.push(`- **Frameworks**: ${frameworks.join(", ")}`);
+    lines.push(`- **Frameworks**: ${mdText(frameworks.join(", "))}`);
   }
 
   const patterns = ctx.architecture_signals.patterns_detected;
   if (patterns.length > 0) {
-    lines.push(`- **Patterns**: ${patterns.join(", ")}`);
+    lines.push(`- **Patterns**: ${mdText(patterns.join(", "))}`);
   }
-  lines.push(`- **Separation Score**: ${ctx.architecture_signals.separation_score}/10`);
+  lines.push(`- **Separation Score**: ${ctx.architecture_signals.separation_score.toFixed(2)} / 1.0`);
   lines.push("");
 
   // Key Concepts — prefer domain models over folder-path abstractions
@@ -80,13 +80,13 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
   const domainModels = ctx.domain_models ?? [];
   if (domainModels.length > 0) {
     for (const m of domainModels.slice(0, 10)) {
-      lines.push(`- **\`${m.name}\`** — ${m.kind} (${m.field_count} fields in \`${m.source_file}\`)`);
+      lines.push(`- **\`${mdCode(m.name)}\`** — ${mdText(m.kind)} (${m.field_count} fields in \`${mdCode(m.source_file)}\`)`);
     }
   } else {
     const abstractions = ctx.ai_context.key_abstractions;
     if (abstractions.length > 0) {
       for (const a of abstractions) {
-        lines.push(`- ${a}`);
+        lines.push(`- ${mdText(a)}`);
       }
     } else {
       lines.push("No key abstractions detected yet.");
@@ -98,7 +98,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("## Conventions");
   lines.push("");
   for (const c of ctx.ai_context.conventions) {
-    lines.push(`- ${c}`);
+    lines.push(`- ${mdText(c)}`);
   }
   lines.push("");
 
@@ -117,7 +117,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("## Warnings & Notes");
     lines.push("");
     for (const w of warnings) {
-      lines.push(`- ⚠ ${w}`);
+      lines.push(`- ⚠ ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -130,7 +130,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("| Path | Type | Description |");
     lines.push("|------|------|-------------|");
     for (const e of entries) {
-      lines.push(`| \`${e.path}\` | ${e.type} | ${e.description} |`);
+      lines.push(`| \`${mdCellCode(e.path)}\` | ${mdInline(e.type)} | ${mdInline(e.description)} |`);
     }
     lines.push("");
   }
@@ -146,7 +146,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("| Package | Version |");
     lines.push("|---------|---------|");
     for (const d of top) {
-      lines.push(`| ${d.name} | ${d.version} |`);
+      lines.push(`| ${mdInline(d.name)} | ${mdInline(d.version)} |`);
     }
     if (deps.length > 10) {
       lines.push(`| ... | +${deps.length - 10} more |`);
@@ -164,7 +164,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
       lines.push("|------|---------|");
       for (const ep of entries.slice(0, 6)) {
         const exports = extractExports(ep.content);
-        lines.push(`| \`${ep.path}\` | ${exports.join(", ") || "default"} |`);
+        lines.push(`| \`${mdCellCode(ep.path)}\` | ${mdInline(exports.join(", ") || "default")} |`);
       }
       lines.push("");
     }
@@ -251,7 +251,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Study Brief — ${id.name}`);
+  lines.push(`# Study Brief — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Structured learning guide for understanding this codebase");
   lines.push("");
@@ -261,16 +261,16 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push(`Before diving into this codebase, you should be comfortable with:`);
   lines.push("");
-  lines.push(`- **${id.primary_language}** — the primary language`);
+  lines.push(`- **${mdText(id.primary_language)}** — the primary language`);
 
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   for (const fw of frameworks.slice(0, 5)) {
-    lines.push(`- **${fw}** — used framework`);
+    lines.push(`- **${mdText(fw)}** — used framework`);
   }
 
   const buildTools = ctx.detection.build_tools;
   if (buildTools.length > 0) {
-    lines.push(`- **Build tools**: ${buildTools.join(", ")}`);
+    lines.push(`- **Build tools**: ${mdText(buildTools.join(", "))}`);
   }
   lines.push("");
 
@@ -283,7 +283,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("2. Understand the top-level directory structure:");
   lines.push("");
   for (const dir of ctx.structure.top_level_layout.slice(0, 8)) {
-    lines.push(`   - \`${dir.name}\` — ${dir.purpose} (${dir.file_count} files)`);
+    lines.push(`   - \`${mdCode(dir.name)}\` — ${mdText(dir.purpose)} (${dir.file_count} files)`);
   }
   lines.push("");
 
@@ -294,7 +294,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("Start with these files to understand the application flow:");
     lines.push("");
     for (const e of entries) {
-      lines.push(`- \`${e.path}\` — ${e.description}`);
+      lines.push(`- \`${mdCode(e.path)}\` — ${mdText(e.description)}`);
     }
   } else {
     lines.push("Identify the main entry point by checking package.json `main` or `bin` fields.");
@@ -304,13 +304,13 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("### Phase 3: Core Domain Models");
   lines.push("");
   const abstractions = ctx.ai_context.key_abstractions;
-  if (ctx.domain_models.length > 0) {
+  if ((ctx.domain_models ?? []).length > 0) {
     lines.push("These are the core data structures that define what the system works with:");
     lines.push("");
     lines.push("| Model | Kind | Fields | File |");
     lines.push("|-------|------|--------|------|");
     for (const m of ctx.domain_models.slice(0, 10)) {
-      lines.push(`| \`${m.name}\` | ${m.kind} | ${m.field_count} | \`${m.source_file}\` |`);
+      lines.push(`| \`${mdCellCode(m.name)}\` | ${mdInline(m.kind)} | ${m.field_count} | \`${mdCellCode(m.source_file)}\` |`);
     }
     if (ctx.domain_models.length > 10) {
       lines.push(`| *(+${ctx.domain_models.length - 10} more)* | | | |`);
@@ -319,7 +319,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("These are the key concepts to understand:");
     lines.push("");
     for (const a of abstractions) {
-      lines.push(`- **${a}**`);
+      lines.push(`- **${mdText(a)}**`);
     }
   } else {
     lines.push("Identify core abstractions by following imports from entry points.");
@@ -335,7 +335,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("Key routes to trace:");
     lines.push("");
     for (const r of routes.slice(0, 5)) {
-      lines.push(`- \`${r.method} ${r.path}\` → \`${r.source_file}\``);
+      lines.push(`- \`${mdCode(r.method)} ${mdCode(r.path)}\` → \`${mdCode(r.source_file)}\``);
     }
   } else {
     lines.push("- Follow the primary entry point → processing → output chain");
@@ -346,7 +346,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   const testFws = ctx.detection.test_frameworks;
   if (testFws.length > 0) {
-    lines.push(`Test framework: **${testFws.join(", ")}**`);
+    lines.push(`Test framework: **${mdText(testFws.join(", "))}**`);
     lines.push("");
     lines.push("- Run the test suite to verify your environment");
     lines.push("- Read test files — they're the best documentation of expected behavior");
@@ -361,14 +361,14 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("Answer these to confirm understanding:");
   lines.push("");
-  lines.push(`1. What is the primary purpose of ${id.name}?`);
+  lines.push(`1. What is the primary purpose of ${mdText(id.name)}?`);
   lines.push("2. What happens when a request enters the system?");
   lines.push("3. Where is state stored and how is it managed?");
   lines.push("4. What are the key boundaries between modules?");
   lines.push("5. What would break if you renamed the primary entry point?");
-  if (ctx.domain_models.length > 0) {
+  if ((ctx.domain_models ?? []).length > 0) {
     const topModel = [...ctx.domain_models].sort((a, b) => b.field_count - a.field_count)[0];
-    lines.push(`6. Trace the lifecycle of a \`${topModel.name}\` from creation to storage. What touches it?`);
+    lines.push(`6. Trace the lifecycle of a \`${mdCode(topModel.name)}\` from creation to storage. What touches it?`);
     lines.push(`7. Which domain model has the most dependencies? Is that appropriate?`);
   }
   lines.push("");
@@ -403,7 +403,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   const id = ctx.project_identity;
   const lines: string[] = [];
 
-  lines.push(`# Research Threads — ${id.name}`);
+  lines.push(`# Research Threads — ${mdText(id.name)}`);
   lines.push("");
   lines.push("> Open research questions and investigation threads for the codebase");
   lines.push("");
@@ -415,13 +415,13 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   const patterns = ctx.architecture_signals.patterns_detected;
   const score = ctx.architecture_signals.separation_score;
 
-  lines.push(`### Thread 1: Architectural Fitness (Score: ${score}/10)`);
+  lines.push(`### Thread 1: Architectural Fitness (Score: ${score.toFixed(2)} / 1.0)`);
   lines.push("");
-  if (score >= 7) {
+  if (score >= 0.7) {
     lines.push("Architecture separation is strong. Research focus:");
     lines.push("- Can any layers be further decomposed for independent deployment?");
     lines.push("- Are there hidden coupling points not reflected in the score?");
-  } else if (score >= 4) {
+  } else if (score >= 0.4) {
     lines.push("Architecture separation is moderate. Research focus:");
     lines.push("- Which layer boundaries are weakest?");
     lines.push("- What refactoring would yield the highest separation improvement?");
@@ -432,7 +432,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   }
   if (patterns.length > 0) {
     lines.push("");
-    lines.push(`Detected patterns: ${patterns.join(", ")}`);
+    lines.push(`Detected patterns: ${mdText(patterns.join(", "))}`);
   }
   lines.push("");
 
@@ -444,7 +444,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("High-risk files that warrant investigation:");
     lines.push("");
     for (const h of hotspots.slice(0, 5)) {
-      lines.push(`- **\`${h.path}\`** — risk ${h.risk_score.toFixed(1)}`);
+      lines.push(`- **\`${mdCode(h.path)}\`** — risk ${h.risk_score.toFixed(1)}`);
       lines.push(`  - Question: Is this file doing too many things? Can responsibilities be split?`);
     }
     lines.push("");
@@ -460,7 +460,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   const frameworks = ctx.detection.frameworks.map(f => f.name);
 
   if (frameworks.length > 0) {
-    lines.push(`- Are the chosen frameworks (${frameworks.join(", ")}) still the best fit for the project's direction?`);
+    lines.push(`- Are the chosen frameworks (${mdText(frameworks.join(", "))}) still the best fit for the project's direction?`);
   }
   lines.push(`- Are there dependencies that could be removed or replaced with lighter alternatives?`);
   lines.push(`- External dependency count: ${deps.length} — is this sustainable?`);
@@ -471,7 +471,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("");
   lines.push("Investigation areas:");
   lines.push("");
-  lines.push(`- What is the baseline performance metric for ${id.name}?`);
+  lines.push(`- What is the baseline performance metric for ${mdText(id.name)}?`);
   lines.push("- Are there obvious bottlenecks in the critical path?");
 
   const routes = ctx.routes;
@@ -486,7 +486,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("");
   const testFws = ctx.detection.test_frameworks;
   if (testFws.length > 0) {
-    lines.push(`Test framework: ${testFws.join(", ")}`);
+    lines.push(`Test framework: ${mdText(testFws.join(", "))}`);
     lines.push("");
     lines.push("Open questions:");
     lines.push("- What is the current test coverage percentage?");
@@ -502,7 +502,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("");
 
   // Filter false-positive warnings by cross-checking actual file tree
-  const fileTreePaths = ctx.structure.file_tree_summary.map(f => f.path);
+  const fileTreePaths = (ctx.structure.file_tree_summary ?? []).map(f => f.path);
   const hasCiCd = fileTreePaths.some(p =>
     p.includes(".github/workflow") || p.includes("Dockerfile") ||
     p.includes("render.yaml") || p.includes(".travis") || p.includes("Jenkinsfile"),
@@ -511,7 +511,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
     p.includes("pnpm-lock") || p.includes("package-lock") || p.includes("yarn.lock"),
   );
 
-  const warnings = ctx.ai_context.warnings.filter(w => {
+  const warnings = (ctx.ai_context.warnings ?? []).filter(w => {
     if (w.toLowerCase().includes("ci/cd") && hasCiCd) return false;
     if (w.toLowerCase().includes("lockfile") && hasLockfile) return false;
     return true;
@@ -521,13 +521,13 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
     lines.push("### Known Issues to Investigate");
     lines.push("");
     for (const w of warnings) {
-      lines.push(`- ${w}`);
+      lines.push(`- ${mdText(w)}`);
     }
     lines.push("");
   }
 
   // Domain model complexity thread
-  if (ctx.domain_models.length > 0) {
+  if ((ctx.domain_models ?? []).length > 0) {
     // v8 ignore next
     const topModels = [...ctx.domain_models].sort((a, b) => b.field_count - a.field_count).slice(0, 5);
     lines.push("### Domain Model Complexity");
@@ -535,7 +535,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
     lines.push(`The project defines **${ctx.domain_models.length} domain models**. High field-count models may need documentation or decomposition:`);
     lines.push("");
     for (const m of topModels) {
-      lines.push(`- **\`${m.name}\`** — ${m.kind}, ${m.field_count} fields (\`${m.source_file}\`)`);
+      lines.push(`- **\`${mdCode(m.name)}\`** — ${mdText(m.kind)}, ${m.field_count} fields (\`${mdCode(m.source_file)}\`)`);
     }
     lines.push("");
     lines.push("Questions to answer:");
@@ -549,7 +549,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   lines.push("");
   lines.push("- What is the current bottleneck for scaling?");
   lines.push("- What would change if usage grew 10x?");
-  lines.push(`- Is the ${id.type.replace(/_/g, " ")} architecture suited for the next 6 months of growth?`);
+  lines.push(`- Is the ${mdText(id.type.replace(/_/g, " "))} architecture suited for the next 6 months of growth?`);
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -565,7 +565,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
       for (const ep of entries.slice(0, 5)) {
         const exports = extractExports(ep.content);
         const lineCount = ep.content.split("\n").length;
-        lines.push(`- **\`${ep.path}\`** — ${lineCount} lines, exports: ${exports.join(", ") || "default"}`);
+        lines.push(`- **\`${mdCode(ep.path)}\`** — ${lineCount} lines, exports: ${mdText(exports.join(", ") || "default")}`);
       }
       lines.push("");
     }

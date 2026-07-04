@@ -1450,7 +1450,7 @@ describe("Notebook empty-data branches", () => {
       { path: "everything.js", content: "// monolith", size: 50, language: null },
     ]});
     const inp = input(s, ["research-threads.md"]);
-    inp.context_map.architecture_signals.separation_score = 2;
+    inp.context_map.architecture_signals.separation_score = 0.2;
     const result = generateFiles(inp);
     const f = getFile(result, "research-threads.md");
     expect(f).toBeDefined();
@@ -2338,7 +2338,7 @@ describe("Notebook build_tools and score branches", () => {
       { path: "app.ts", content: "x", size: 3, language: null },
     ]});
     const inp = input(s, ["research-threads.md"]);
-    inp.context_map.architecture_signals.separation_score = 2;
+    inp.context_map.architecture_signals.separation_score = 0.2;
     inp.context_map.architecture_signals.patterns_detected = [];
     const result = generateFiles(inp);
     const f = getFile(result, "research-threads.md");
@@ -3180,7 +3180,7 @@ describe("Layer 5 branch coverage", () => {
   it("research-threads shows low separation for score < 4", () => {
     const s = snap({ files: REACT_SPA_FILES });
     const inp = input(s, ["research-threads.md"]);
-    inp.context_map.architecture_signals.separation_score = 2;
+    inp.context_map.architecture_signals.separation_score = 0.2;
     const result = generateFiles(inp);
     const f = getFile(result, "research-threads.md");
     expect(f).toBeDefined();
@@ -3498,7 +3498,7 @@ describe("Layer 6 branch coverage", () => {
   it("research-threads shows moderate architecture for score 5", () => {
     const s = snap({ files: REACT_SPA_FILES });
     const inp = input(s, ["research-threads.md"]);
-    inp.context_map.architecture_signals.separation_score = 5;
+    inp.context_map.architecture_signals.separation_score = 0.5;
     const result = generateFiles(inp);
     const f = getFile(result, "research-threads.md");
     expect(f).toBeDefined();
@@ -3877,7 +3877,7 @@ describe("Layer 6 branch coverage", () => {
   it("research-threads with low separation score (< 4)", () => {
     const s = snap({ files: EMPTY_PROJECT_FILES });
     const inp = input(s, ["research-threads.md"]);
-    inp.context_map.architecture_signals.separation_score = 2;
+    inp.context_map.architecture_signals.separation_score = 0.2;
     const result = generateFiles(inp);
     const f = getFile(result, "research-threads.md");
     expect(f).toBeDefined();

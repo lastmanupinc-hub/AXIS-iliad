@@ -78,7 +78,8 @@ export function excerpt(file: SourceFile, maxLines = EXCERPT_LINES): string {
  * Build a compact file tree string from source files.
  */
 export function fileTree(files: SourceFile[]): string {
-  const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path));
+  // code-unit compare (not localeCompare) for host-locale-independent order
+  const sorted = [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   const lines: string[] = [];
   for (const f of sorted) {
     const sizeKB = (f.size / 1024).toFixed(1);
