@@ -2,7 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode, yamlFlowScalar } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock, yamlFlowScalar } from "./md-sanitize.js";
 
 // ─── Shared command helpers ─────────────────────────────────────
 // The canonical "run tests" command for the detected stack, so superpower-pack,
@@ -42,7 +42,7 @@ export function generateSuperpowerPack(ctx: ContextMap, files?: SourceFile[]): G
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -393,7 +393,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -524,10 +524,15 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
 
     // High-field-count models → likely complex, need edge-case coverage
     const complexModels = models.filter(m => m.field_count >= 5).sort((a, b) => b.field_count - a.field_count);
-    if (complexModels.length > 0) {
+    // Dedup by name (keep the max-field entry, first after the desc sort) — the same
+    // model appears once per source file, so a "top 5" was 3 distinct names with
+    // contradictory field counts (`ContextMap` shown as both 69 AND 61 fields).
+    const complexSeen = new Set<string>();
+    const complexUniq = complexModels.filter(m => !complexSeen.has(m.name) && complexSeen.add(m.name));
+    if (complexUniq.length > 0) {
       lines.push("### High-Complexity Models (prioritize edge-case coverage)");
       lines.push("");
-      for (const m of complexModels.slice(0, 5)) {
+      for (const m of complexUniq.slice(0, 5)) {
         lines.push(`- **\`${mdCode(m.name)}\`** (${m.field_count} fields) — test with partial input, null fields, and boundary values`);
       }
       lines.push("");
@@ -600,6 +605,7 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
       for (const tf of testFiles.slice(0, 12)) {
         lines.push(`| \`${mdCellCode(tf.path)}\` | ${tf.content.split("\n").length} |`);
       }
+      if (testFiles.length > 12) lines.push(`| *… and ${testFiles.length - 12} more* | |`);
       lines.push("");
 
       const exemplar = testFiles.find(f => {
@@ -614,7 +620,8 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
     const sourceFiles = findFiles(files, ["*.ts", "*.tsx", "*.js", "*.jsx", "*.py"])
       .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec.") && !f.path.includes("test_"));
     const untestedExports: string[] = [];
-    for (const sf of sourceFiles.slice(0, 150)) {
+    const UNTESTED_SCAN_CAP = 150;
+    for (const sf of sourceFiles.slice(0, UNTESTED_SCAN_CAP)) {
       const exports = extractExports(sf.content);
       if (exports.length === 0) continue;
       // Match a test file by the source's STEM with a boundary, so `api.ts` is not
@@ -642,6 +649,8 @@ export function generateTestGenerationRules(ctx: ContextMap, files?: SourceFile[
         lines.push(`- ${ue}`);
       }
       if (untestedExports.length > 10) lines.push(`- *… and ${untestedExports.length - 10} more untested*`);
+      // Disclose the scan cap — the untested count is only within the first N files.
+      if (sourceFiles.length > UNTESTED_SCAN_CAP) lines.push(`- *(scanned the first ${UNTESTED_SCAN_CAP} of ${sourceFiles.length} source files; files past that weren't checked)*`);
       lines.push("");
     }
   }
@@ -670,7 +679,7 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -774,17 +783,20 @@ export function generateRefactorChecklist(ctx: ContextMap, files?: SourceFile[])
     lines.push("");
 
     const largeModels = sortedModels.filter(m => m.field_count >= 8);
-    if (largeModels.length > 0) {
+    // Dedup by name (same model from two files → duplicate "top 5" slots).
+    const largeSeen = new Set<string>();
+    const largeUniq = largeModels.filter(m => !largeSeen.has(m.name) && largeSeen.add(m.name));
+    if (largeUniq.length > 0) {
       lines.push("### Decomposition Candidates");
       lines.push("");
-      for (const m of largeModels.slice(0, 5)) {
+      for (const m of largeUniq.slice(0, 5)) {
         lines.push(`- **\`${mdCode(m.name)}\`** (${m.field_count} fields) — consider extracting related field groups into value objects`);
       }
       lines.push("");
     }
 
     // Interface vs class split
-    const interfaces = domainModels.filter(m => m.kind === "interface" || m.kind === "type");
+    const interfaces = domainModels.filter(m => m.kind === "interface" || m.kind === "type_alias");
     const classes = domainModels.filter(m => m.kind === "class" || m.kind === "struct");
     if (interfaces.length > 0 && classes.length > 0) {
       lines.push(`**Model balance**: ${interfaces.length} interface/type definitions, ${classes.length} class/struct definitions.`);
@@ -938,7 +950,7 @@ export function generateAutomationPipeline(ctx: ContextMap, profile: RepoProfile
   lines.push("      description: Build production artifacts");
   lines.push("      depends_on: [lint, test]");
   lines.push("      commands:");
-  lines.push(`        - ${yamlFlowScalar(`${pm === "pnpm" ? "pnpm -r" : pm} build`)}`);
+  lines.push(`        - ${yamlFlowScalar(pm === "pnpm" ? "pnpm -r build" : `${pm} run build`)}`);
   lines.push("      artifacts:");
   lines.push("        paths: [dist/, build/]");
   lines.push("        retention: 30d");
