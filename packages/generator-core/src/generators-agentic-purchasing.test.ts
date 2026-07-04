@@ -698,18 +698,19 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
   it("ap2 interpretation is strong-signal-coverage for fully-instrumented repo", () => {
     const file = generateCommerceRegistry(stripeCtx, stripeProfile, stripeFiles);
     const registry = JSON.parse(file.content);
-    // stripeFiles has: providers(20) + checkout(15) + recurring(10) + sca(15) + dispute(10) + webhooks(10) = 80
-    // No TAP(8)/tokenization(7)/mandate(5) files → score 80 → strong-signal-coverage
+    // 1 provider(10, graduated) + checkout(15) + recurring(10) + sca(15) + dispute(10) + webhooks(10) = 70
+    // No TAP(8)/tokenization(7)/mandate(5) files → score 70 → strong-signal-coverage (>=70)
     // (honest wording: a keyword scan reports signal coverage, never "production-ready")
-    expect(registry.ap2_compliance_assessment.readiness_score).toBe(80);
+    expect(registry.ap2_compliance_assessment.readiness_score).toBe(70);
     expect(registry.ap2_compliance_assessment.interpretation).toBe("strong-signal-coverage");
   });
 
   it("ap2 interpretation is partial-signal-coverage for score 40-69", () => {
-    // stripe(20) + checkout(15) + recurring(10) = 45 → partial-signal-coverage
+    // stripe(10, graduated) + checkout(15) + recurring(10) + dispute(10) = 45 → partial-signal-coverage
     const partialFiles: FileEntry[] = [
       { path: "src/checkout.ts", content: "stripe.checkout.sessions.create({})", size: 40 },
       { path: "src/subs.ts", content: "// recurring mandate billing_cycle_anchor", size: 45 },
+      { path: "src/disputes.ts", content: "// chargeback refund handling", size: 35 },
     ];
     const snap = makeSnapshot({ files: partialFiles, file_count: partialFiles.length, total_size_bytes: 85 });
     const ctx = buildContextMap(snap);
@@ -732,13 +733,15 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
     expect(gaps.some(g => g.includes("SCA"))).toBe(true);
   });
 
-  it("visa_intelligent_commerce includes stripe as likely-supported", () => {
+  it("network_tokenization is NOT inferred from a provider name (evidence-only)", () => {
+    // stripeFiles has no actual token patterns — the mere presence of "stripe" must
+    // not assert a tokenization capability (the playbook's stated evidence-only policy).
     const file = generateCommerceRegistry(stripeCtx, stripeProfile, stripeFiles);
     const registry = JSON.parse(file.content);
-    expect(registry.ap2_compliance_assessment.visa_intelligent_commerce.network_tokenization).toBe("likely-supported");
+    expect(registry.ap2_compliance_assessment.visa_intelligent_commerce.network_tokenization).toBe("not-detected-verify-with-psp");
   });
 
-  it("visa_intelligent_commerce is unknown for unknown provider", () => {
+  it("network_tokenization is not-detected when no token patterns are present", () => {
     const unknownFiles: FileEntry[] = [
       { path: "src/pay.ts", content: "// some custom payment gateway", size: 35 },
     ];
@@ -747,7 +750,7 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
     const profile = buildRepoProfile(snap);
     const file = generateCommerceRegistry(ctx, profile, unknownFiles);
     const registry = JSON.parse(file.content);
-    expect(registry.ap2_compliance_assessment.visa_intelligent_commerce.network_tokenization).toBe("unknown");
+    expect(registry.ap2_compliance_assessment.visa_intelligent_commerce.network_tokenization).toBe("not-detected-verify-with-psp");
   });
 
   it("catalog still has 4 bundles", () => {
@@ -908,19 +911,20 @@ describe("ap2ReadyScore — updated weighting with new signals", () => {
     const profile = buildRepoProfile(snap);
     const file = generateCommerceRegistry(ctx, profile, fullFiles);
     const registry = JSON.parse(file.content);
-    // All 9 factors detected: 20+15+10+15+10+10+8+7+5 = 100
-    expect(registry.ap2_compliance_assessment.readiness_score).toBe(100);
+    // All 9 factors, 1 provider (graduated 10): 10+15+10+15+10+10+8+7+5 = 90
+    // (>2 providers would score the full 20 → 100)
+    expect(registry.ap2_compliance_assessment.readiness_score).toBe(90);
   });
 
   it("score is lower without new signals", () => {
-    // stripeFiles (original) lacks TAP/tokenization/mandate → max = 20+15+10+15+10+10 = 80
+    // stripeFiles (1 provider, no TAP/tokenization/mandate) → 10+15+10+15+10+10 = 70
     const file = generateCommerceRegistry(
       buildContextMap(makeStripeSnapshot()),
       buildRepoProfile(makeStripeSnapshot()),
       stripeFiles,
     );
     const registry = JSON.parse(file.content);
-    expect(registry.ap2_compliance_assessment.readiness_score).toBe(80);
+    expect(registry.ap2_compliance_assessment.readiness_score).toBe(70);
   });
 });
 

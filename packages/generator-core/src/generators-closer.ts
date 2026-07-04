@@ -148,8 +148,17 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
     monetization_hints.push("API surface detected");
   }
 
-  const hasInternalOnly = /internal use only|confidential|proprietary|all rights reserved/i.test(allText);
-  const hasApacheHint = /patent|contributor license agreement|cla/i.test(allText);
+  // Prefer the explicit package.json `license` field (authoritative). A free-text
+  // scan for "all rights reserved" / bare "proprietary" flipped MIT/Apache repos to
+  // a Proprietary LICENSE — that footer is a ubiquitous OSS UI string. Only an
+  // explicit UNLICENSED/proprietary declaration or a strong whole-phrase signal
+  // ("internal use only", "confidential and proprietary") counts now.
+  const declaredLicense = allText.match(/"license"\s*:\s*"([^"]+)"/i)?.[1] ?? "";
+  const declaredIsOss = /^(mit|apache|bsd|isc|gpl|lgpl|mpl|unlicense\b|0bsd|cc|mozilla)/i.test(declaredLicense);
+  const declaredIsProprietary = /^(unlicensed|proprietary|see[- ]license|private)/i.test(declaredLicense);
+  const hasInternalOnly = declaredIsProprietary ||
+    (!declaredIsOss && /internal use only|confidential and proprietary/i.test(allText));
+  const hasApacheHint = /apache/i.test(declaredLicense) || /patent|contributor license agreement|cla/i.test(allText);
   const selected_license: "MIT" | "Apache-2.0" | "Proprietary" =
     hasInternalOnly ? "Proprietary" : hasApacheHint || profile.project.primary_language === "Go" ? "Apache-2.0" : "MIT";
 
@@ -261,7 +270,10 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
 function buildMerkleBundle(leafInputs: Array<{ path: string; content: string }>): MerkleBundle {
   const leaves = leafInputs.map(({ path, content }) => ({
     path,
-    digest: hash(`${path}\n${content}`),
+    // Normalize CRLF→LF before hashing so the digest is line-ending-independent.
+    // A Windows/autocrlf checkout re-hashing the raw on-disk bytes otherwise
+    // false-flags every file as tampered; the recompute recipe normalizes to match.
+    digest: hash(`${path}\n${content.replace(/\r\n/g, "\n")}`),
   }));
 
   let current = leaves.map(leaf => leaf.digest);
@@ -367,7 +379,10 @@ export function generatePackagingReadme(
     "",
     `## Trust Signals`,
     "",
-    `- Packaging readiness score: **${score}/100**`,
+    // Scores the INPUT repo's pre-packaging state (docker/CI/make/tests) — NOT the
+    // shipped bundle, which always adds a Dockerfile, CI, and Makefile. Labeled as
+    // such so it isn't read as the product's ship-readiness.
+    `- Input-repo readiness score (pre-packaging): **${score}/100**`,
     `- License strategy: **${signals.selected_license}**`,
     `- Build + release automation included`,
     `- Merkle integrity attestation (content-derived digest, not a cryptographic signature) included in packaging/trust-fabric`,
@@ -404,7 +419,9 @@ export function generatePackagingLicense(
   return {
     path: "packaging/LICENSE",
     // Year is snapshot-derived (ISO timestamp prefix) so output stays deterministic.
-    content: renderLicense(signals.selected_license, codeComment(branding.product_name), ctx.generated_at.slice(0, 4)),
+    // A fill-in placeholder, NOT ctx.generated_at (which is zeroed for determinism
+    // → every shipped LICENSE read "Copyright (c) 1970"). The publisher sets the year.
+    content: renderLicense(signals.selected_license, codeComment(branding.product_name), "<YEAR>"),
     content_type: "text/plain",
     program: PROGRAM,
     description: "Commercially suitable licensing file selected from MIT, Apache-2.0, or Proprietary",
@@ -741,7 +758,7 @@ export function generateCloserCiWorkflow(
     "    strategy:",
     "      fail-fast: false",
     "      matrix:",
-    "        node: [22]",
+    "        node: [20, 22]",
     "    steps:",
     "      - uses: actions/checkout@v4",
     ...setupSteps,
@@ -764,7 +781,7 @@ export function generateCloserCiWorkflow(
     content,
     content_type: "application/yaml",
     program: PROGRAM,
-    description: `${lang} CI workflow tuned for ${pm}: concurrency-canceled PR checks, Node-version matrix, lint/typecheck/test/build/audit/ship.`,
+    description: `${lang} CI workflow tuned for ${pm}: concurrency-canceled PR checks, Node-version matrix, lint/typecheck/test/build/audit. (Publishing runs separately in release.yml.)`,
   };
 }
 
@@ -1182,7 +1199,7 @@ export function generateCloserMerkleProof(
         algorithm: "sha256",
         certlib_profile: CERTLIB_PROFILE,
         leaf_formula: "sha256(path + \"\\n\" + file_bytes)",
-        recompute_leaf: "{ printf '%s\\n' <path>; cat <path>; } | sha256sum",
+        recompute_leaf: "{ printf '%s\\n' <path>; tr -d '\\r' < <path>; } | sha256sum   # tr strips CR so the digest is line-ending-independent (matches the generator)",
         note: "Recompute each leaf digest from its file, rebuild the tree pairwise (sha256 of concatenated child digests, last node duplicated when odd), and compare the root to .merkle_root in attestation.json.",
       },
     },
