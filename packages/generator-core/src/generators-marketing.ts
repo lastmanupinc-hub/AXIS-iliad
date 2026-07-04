@@ -2,8 +2,8 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, extractExports } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
-import { displayRoutes } from "./route-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
+import { displayRoutes, isApiRoute } from "./route-utils.js";
 
 // ─── Route classification (shared by the CRO table + experiments) ───────────
 // ONE classifier used by both the route table and the experiments, so a route's
@@ -52,7 +52,7 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -194,8 +194,16 @@ export function generateCampaignBrief(ctx: ContextMap, files?: SourceFile[]): Ge
         if (keywords) lines.push(`- **Keywords**: ${mdText(keywords[1].replace(/"/g, "").trim())}`);
       }
       for (const r of readmes.slice(0, 2)) {
-        const firstLine = r.content.split("\n").find(l => l.trim().length > 10 && !l.startsWith("#"));
-        if (firstLine) lines.push(`- **README tagline**: ${mdText(firstLine.trim().slice(0, 120))}`);
+        // Skip structural/badge lines (blockquote, list, table, code fence, image/
+        // link/HTML) — not just ATX headings — so the "tagline" is real prose, and
+        // add an ellipsis when truncating instead of cutting mid-word silently.
+        const firstLine = r.content.split("\n")
+          .map(l => l.trim())
+          .find(l => l.length > 10 && !/^([#>\-*|]|`{3}|~{3}|!?\[|<)/.test(l));
+        if (firstLine) {
+          const tagline = firstLine.length > 120 ? firstLine.slice(0, 119).trimEnd() + "…" : firstLine;
+          lines.push(`- **README tagline**: ${mdText(tagline)}`);
+        }
       }
       lines.push("");
     }
@@ -224,7 +232,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -270,9 +278,14 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("");
   lines.push("### Content Needs");
 
-  const entryPoints = ctx.entry_points.slice(0, 3);
-  if (entryPoints.length > 0) {
-    lines.push(`- Quickstart showing core entry points: ${entryPoints.map(e => `\`${mdCode(e.path)}\``).join(", ")}`);
+  // Fall back to the file-based detector when ctx.entry_points is empty (it usually
+  // is) so this bullet isn't dropped while the same doc's "Detected Product Entry
+  // Points" section (findEntryPoints) lists several.
+  const entryPaths = ctx.entry_points.length > 0
+    ? ctx.entry_points.slice(0, 3).map(e => e.path)
+    : (files ? findEntryPoints(files).slice(0, 3).map(f => f.path) : []);
+  if (entryPaths.length > 0) {
+    lines.push(`- Quickstart showing core entry points: ${entryPaths.map(p => `\`${mdCode(p)}\``).join(", ")}`);
   }
   lines.push("- Architecture overview explaining design decisions");
   lines.push("- Comparison table vs alternatives");
@@ -347,6 +360,7 @@ export function generateFunnelMap(ctx: ContextMap, files?: SourceFile[]): Genera
   // Advocacy
   lines.push("## 5. Advocacy");
   lines.push("");
+  lines.push("**Goal**: Turn satisfied users into advocates and contributors.");
   lines.push("");
   lines.push("### Triggers");
   lines.push("- User shares on social media");
@@ -399,7 +413,7 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -431,15 +445,17 @@ export function generateSequencePack(ctx: ContextMap, files?: SourceFile[]): Gen
 
   lines.push("### Email 2: Core Feature (Day 2)");
   lines.push("");
-  lines.push(`**Subject**: The one ${mdText(id.name)} feature everyone uses first`);
+  lines.push(`**Subject**: Getting started with ${mdText(id.name)}'s core concepts`);
   lines.push("");
 
   const topModels = ctx.domain_models.slice(0, 3);
   const topAbstraction = ctx.ai_context.key_abstractions[0];
   lines.push("**Body**:");
   if (topModels.length > 0) {
-    lines.push(`- Highlight these domain entities: ${topModels.map(m => `**${mdText(m.name)}**`).join(", ")}`);
-    lines.push(`- Show how to create and interact with a \`${mdCode(topModels[0].name)}\` end-to-end`);
+    // Detected domain entities — NOT usage-ranked (the generator has no usage
+    // data), so don't frame them as "the feature everyone uses first".
+    lines.push(`- Detected domain entities to consider featuring: ${topModels.map(m => `**${mdText(m.name)}**`).join(", ")}`);
+    lines.push(`- Pick the most user-facing one and show how to create/interact with it end-to-end`);
   } else if (topAbstraction) {
     lines.push(`- Highlight a detected key abstraction: **${mdText(topAbstraction)}**`);
   } else {
@@ -541,7 +557,7 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -569,17 +585,21 @@ export function generateCroPlaybook(ctx: ContextMap, files?: SourceFile[]): Gene
   lines.push("| Contribute | User opens issue or PR | Medium |");
   lines.push("");
 
-  // Route Analysis for CRO
-  if (routes.length > 0) {
+  // Route Analysis for CRO — PAGE routes only (backend/asset endpoints like
+  // /favicon.ico, /robots.txt, /.well-known/*, /oauth/jwks aren't conversion
+  // surfaces), capped so a large API doesn't emit an unbounded table.
+  const croRoutes = routes.filter(r => !isApiRoute(r.path));
+  if (croRoutes.length > 0) {
     lines.push("## Route Optimization Opportunities");
     lines.push("");
-    lines.push("Detected routes that are candidates for conversion optimization:");
+    lines.push("Detected page routes that are candidates for conversion optimization:");
     lines.push("");
     lines.push("| Route | Method | CRO Action |");
     lines.push("|-------|--------|-----------|");
-    for (const r of routes) {
+    for (const r of croRoutes.slice(0, 25)) {
       lines.push(`| \`${mdCellCode(r.path)}\` | ${mdInline(r.method)} | ${CRO_ACTIONS[classifyRoute(r.path)]} |`);
     }
+    if (croRoutes.length > 25) lines.push(`| … | | +${croRoutes.length - 25} more |`);
     lines.push("");
   }
 
@@ -719,18 +739,19 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   const routes = displayRoutes(ctx.routes);
   const frameworks = ctx.detection.frameworks;
 
-  const pageRoutes = routes.filter(r => !r.path.startsWith("/api") && r.method === "GET");
+  const pageRoutes = routes.filter(r => r.method === "GET" && !isApiRoute(r.path));
 
   const lines: string[] = [];
   lines.push(`# A/B Test Plan — ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`Generated: ${mdText(ctx.generated_at)}`);
+  // No "Generated:" line — generated_at is zeroed for deterministic output (would
+  // print 1970), and it made this one artifact's bytes depend on upload time.
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -805,7 +826,10 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("| Parameter | Value |");
   lines.push("|-----------|-------|");
-  lines.push(`| Target page | /pricing |`);
+  // Derive the pricing target from a real detected route; only fall back to the
+  // /pricing placeholder (marked as such) when the repo has no pricing page.
+  const pricingRoute = pageRoutes.find(r => /pric|plan|billing|subscri/i.test(r.path));
+  lines.push(`| Target page | ${pricingRoute ? mdInline(pricingRoute.path) : "/pricing (no pricing route detected — placeholder)"} |`);
   lines.push("| Hypothesis | Highlighting popular plan increases conversions |");
   lines.push("| Primary metric | Plan selection rate |");
   lines.push("| Secondary metric | Revenue per visitor |");
