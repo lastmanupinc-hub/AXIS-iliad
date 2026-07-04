@@ -535,7 +535,9 @@ export function generateAgentPurchasingPlaybook(
     ? signals.detected_providers.map(p => {
       const ev = detectProviderEvidence(p, files);
       const mandate = ev.files > 0 && ev.mandateTypes ? ev.mandateTypes : "none found in repo";
-      const token = ev.tokenization ? `detected in repo (${ev.files} file${ev.files === 1 ? "" : "s"})` : "not found — verify with PSP";
+      // No file count here: ev.files counts provider-matching files, NOT tokenization
+      // matches, so "(55 files)" would overstate the tokenization footprint.
+      const token = ev.tokenization ? "detected in repo" : "not found — verify with PSP";
       const sca = ev.sca ? "detected in repo" : "not detected — verify (regulatory)";
       return `| ${p} | ${mandate} | ${token} | ${sca} |`;
     }).join("\n")
@@ -1323,7 +1325,10 @@ export function generateCommerceRegistry(
     liability_risk: {
       note: "Non-compliance consequences (fines, enrollment deadlines, program requirements) vary by acquirer, card network, and region — consult your acquirer and current network bulletins.",
       psd2_sca_enforcement: "active",
-      risk_level: ap2ReadyScore >= 70 ? "low" : ap2ReadyScore >= 40 ? "moderate" : "high",
+      // A keyword scan cannot verdict a repo's liability risk, and "more payment
+      // keywords → lower risk" is an unfounded inference that contradicts the note
+      // above. Emit an action, not a fabricated low/moderate/high grade.
+      risk_level: "assess-with-acquirer",
     },
   };
 
