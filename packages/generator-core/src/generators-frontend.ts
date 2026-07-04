@@ -1,13 +1,13 @@
 import type { ContextMap } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findFiles, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
-import { hasFw, getFw } from "./fw-helpers.js";
+import { hasFw } from "./fw-helpers.js";
 // Prompt-injection defense: these frontend artifacts are agent-consumed rule/
 // audit files, so every repo/manifest-derived string is sanitized for its sink —
 // mdText (prose/headings/lists), mdInline (GFM table cells), mdCode (inline code
 // spans outside tables), mdCellCode (code spans inside table cells).
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
-import { displayRoutes } from "./route-utils.js";
+import { displayRoutes, isApiRoute } from "./route-utils.js";
 
 export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -100,7 +100,7 @@ export function generateFrontendRules(ctx: ContextMap, files?: SourceFile[]): Ge
   // (which matched "/capital", "/rapid", …) — and match the siblings, which use
   // startsWith("/api"). displayRoutes dedups the per-mention rows and drops
   // test/README noise so this lists distinct real endpoints.
-  const apiRoutes = displayRoutes(ctx.routes).filter(r => r.path.startsWith("/api"));
+  const apiRoutes = displayRoutes(ctx.routes).filter(r => isApiRoute(r.path));
   if (apiRoutes.length > 0) {
     lines.push("## Data Fetching");
     lines.push("");
@@ -465,7 +465,7 @@ export function generateLayoutPatterns(ctx: ContextMap, files?: SourceFile[]): G
     lines.push("| Route | Suggested Layout |");
     lines.push("|-------|-----------------|");
     for (const r of routes.slice(0, 12)) {
-      const layout = r.path.startsWith("/api") ? "N/A (API)" :
+      const layout = isApiRoute(r.path) ? "N/A (API)" :
         r.path.includes("login") || r.path.includes("auth") || r.path.includes("signup") ? "AuthLayout" :
         r.path.includes("dashboard") || r.path.includes("settings") ? "DashboardLayout" :
         r.path === "/" ? "MarketingLayout" : "DashboardLayout";
@@ -619,7 +619,7 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
 
   lines.push("## Component Coverage");
   lines.push("");
-  const pageRoutes = routes.filter(r => !r.path.startsWith("/api"));
+  const pageRoutes = routes.filter(r => !isApiRoute(r.path));
   if (pageRoutes.length > 0) {
     lines.push("| Route | Has Component | Interactive | Needs Testing |");
     lines.push("|-------|--------------|-------------|---------------|");
@@ -633,15 +633,18 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
 
   // Score
   let score = 50; // base
+  // Count PAGE routes only — backend/API endpoints (/v1, /mcp, *.json …) aren't UI.
+  const pageRouteCount = routes.filter(r => !isApiRoute(r.path)).length;
   if (uiFrameworks.length > 0) score += 15;
   /* v8 ignore next — V8 quirk: tailwind score branch tested */
   if (hasFw(ctx, "Tailwind CSS", "tailwind")) score += 10;
+  else if (hasCSS) score += 5; // partial credit for CSS/SCSS/SASS/LESS (was: only Tailwind scored, contradicting the summary)
   /* v8 ignore next */
   if (hasTSX) score += 10;
   /* v8 ignore next */
   if (uiDeps.length > 0) score += 5;
   /* v8 ignore next */
-  if (routes.length > 5) score += 10;
+  if (pageRouteCount > 5) score += 10;
 
   lines.push("## Audit Score");
   lines.push("");
@@ -653,13 +656,13 @@ export function generateUiAudit(ctx: ContextMap, files?: SourceFile[]): Generate
   lines.push("| Base | +50 |");
   lines.push(`| Framework detection | ${uiFrameworks.length > 0 ? "+15" : "0"} |`);
   /* v8 ignore next — V8 quirk: tailwind score display ternary tested */
-  lines.push(`| Styling system | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "+10" : "0"} |`);
+  lines.push(`| Styling system | ${hasFw(ctx, "Tailwind CSS", "tailwind") ? "+10" : hasCSS ? "+5" : "0"} |`);
   /* v8 ignore next */
   lines.push(`| TypeScript | ${hasTSX ? "+10" : "0"} |`);
   /* v8 ignore next */
   lines.push(`| UI component library | ${uiDeps.length > 0 ? "+5" : "0"} |`);
   /* v8 ignore next */
-  lines.push(`| Route coverage | ${routes.length > 5 ? "+10" : "0"} |`);
+  lines.push(`| Route coverage | ${pageRouteCount > 5 ? "+10" : "0"} |`);
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -719,6 +722,33 @@ export interface UiFinding {
   note: string;
 }
 
+/**
+ * Extract JSX/HTML OPENING tags from source, tracking `{}` depth so a `>` inside
+ * an expression (`onClick={(e) => …}`, `style={{…}}`, `x > y` in a `{…}`) doesn't
+ * end the tag early. Closing tags (`</div>`) and non-tag `<` (comparisons) are
+ * skipped. Returns each tag's start index + full text. Pure + deterministic.
+ */
+function openingTags(content: string): Array<{ index: number; tag: string }> {
+  const tags: Array<{ index: number; tag: string }> = [];
+  for (let i = 0; i < content.length; i++) {
+    if (content[i] !== "<") continue;
+    // an opening element name starts with a letter (skip `</…>` and `a < b`)
+    if (!/[a-zA-Z]/.test(content[i + 1] ?? "")) continue;
+    let depth = 0;
+    let j = i + 1;
+    for (; j < content.length; j++) {
+      const c = content[j];
+      if (c === "{") depth++;
+      else if (c === "}") depth = Math.max(0, depth - 1);
+      else if (depth === 0 && c === ">") break;
+      else if (depth === 0 && c === "<") { j--; break; } // unterminated tag — bail
+    }
+    tags.push({ index: i, tag: content.slice(i, j + 1) });
+    i = j;
+  }
+  return tags;
+}
+
 /** Static UI-issue scan of component files (skips tests + generated dirs). Deterministic. */
 export function analyzeUiSurface(files: SourceFile[]): UiFinding[] {
   const out: UiFinding[] = [];
@@ -729,31 +759,57 @@ export function analyzeUiSurface(files: SourceFile[]): UiFinding[] {
     // code-unit sort (not localeCompare) for host-locale-independent order
     .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   for (const f of src) {
-    const lines = f.content.split("\n");
+    // Blank out block comments (incl. multi-line /* … */) so commented-out example
+    // JSX/TS isn't scanned as live code — replace non-newline chars with spaces so
+    // every line number is preserved.
+    const blockStripped = f.content.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, " "));
+    // Then strip a trailing `//` line comment per line (but keep `://` in URLs), so
+    // `foo(); // <img> removed` / `x: string // any note` don't false-positive.
+    const lines = blockStripped.split("\n").map(l => l.replace(/(^|[^:])\/\/.*$/, "$1"));
+    const joined = lines.join("\n");
+    const lineOf = (index: number) => joined.slice(0, index).split("\n").length;
+    const at = (line: number, category: UiFinding["category"], klass: UiIssueClass, note: string) =>
+      out.push({ file: f.path, line, category, klass, note });
+
+    // ── Line-scoped rules ──
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
-      const t = ln.trim();
-      // commented-out code must not be flagged
-      if (t.startsWith("//") || t.startsWith("/*") || /^\*(\s|\/|$)/.test(t)) continue;
-      const at = (category: UiFinding["category"], klass: UiIssueClass, note: string) =>
-        out.push({ file: f.path, line: i + 1, category, klass, note });
-      // <img …> that closes on this line, with no alt attribute
-      if (/<img\b[^>]*>/i.test(ln) && !/\balt\s*=/i.test(ln)) {
-        at("missing-alt", "A11Y", "<img> without an alt attribute — screen readers can't describe it");
+      if (/dangerouslySetInnerHTML/.test(ln) || /\.innerHTML\s*=(?!=)/.test(ln)) {
+        at(i + 1, "dangerous-html", "XSS", "dangerouslySetInnerHTML / innerHTML — sanitize the HTML or render text instead");
       }
-      if (/dangerouslySetInnerHTML/.test(ln)) {
-        at("dangerous-html", "XSS", "dangerouslySetInnerHTML — sanitize the HTML or render text instead");
+      // `any`, EXCEPT idiomatic `catch (e: any)`. Require a real TYPE position — a
+      // `: any` annotation followed by a type-terminator (so JSX copy like
+      // "Availability: any" is not flagged), a generic `<… any …>`, `as any`, or a
+      // `= any` alias — not a bare `:\s*any` that also matches prose.
+      if (!/\bcatch\s*\(/.test(ln) &&
+          (/\bas\s+any\b/.test(ln)
+            || /\b\w+\??\s*:\s*any\b(?=\s*[),;=}]|$)/.test(ln)
+            || /<[^<>]*\bany\b[^<>]*>/.test(ln)
+            || /=\s*any\b(?=\s*[;,)]|$)/.test(ln))) {
+        at(i + 1, "any-type", "TYPE", "`any` in a component — prefer a precise prop/state type");
       }
-      // `any` in a component, EXCEPT the idiomatic `catch (e: any)` (TS defaults
-      // catch to `unknown`; re-typing it `any` is common interop, low-signal).
-      if ((/\bas any\b/.test(ln) || /:\s*any\b/.test(ln)) && !/\bcatch\s*\(/.test(ln)) {
-        at("any-type", "TYPE", "`any` in a component — prefer a precise prop/state type");
+    }
+
+    // ── Element rules — extract each opening tag with brace-aware scanning so a
+    // `>` inside `onClick={(e) => …}` or `style={{…}}` doesn't truncate it, and so
+    // multi-line tags are seen whole. ──
+    for (const { index, tag } of openingTags(joined)) {
+      // <img …> with no REAL alt attribute — `data-alt` / `aria-*` don't satisfy it.
+      if (/^<img\b/i.test(tag)) {
+        if (!/(?<![\w-])alt\s*=/i.test(tag)) {
+          at(lineOf(index), "missing-alt", "A11Y", "<img> without an alt attribute — screen readers can't describe it");
+        }
+        continue;
       }
-      // onClick on a non-interactive element — but NOT when it's made keyboard-
-      // operable with an onKey* handler (that's the concrete a11y fix; a `role`
-      // alone doesn't make it keyboard-operable, so role-only is still flagged).
-      if (/<(?:div|span|li)\b[^>]*\bonClick\b/i.test(ln) && !/\bonKey(?:Down|Up|Press)\s*=/i.test(ln)) {
-        at("click-nonbutton", "A11Y", "onClick on a <div>/<span>/<li> — use <button> or add role + keyboard handlers");
+      // onClick on a non-interactive element with no keyboard handler. Skip a real
+      // <a href> link, and skip stopPropagation/preventDefault-only handlers — those
+      // add no interactive affordance, they just contain an existing click. A `role`
+      // alone doesn't make it keyboard-operable, so role-only is still flagged.
+      if (/^<(?:div|span|li|a|td|tr|label|i|svg)\b/i.test(tag) && /\bonClick\b/.test(tag)) {
+        if (/\bonKey(?:Down|Up|Press)\s*=/i.test(tag)) continue;
+        if (/onClick=\{\s*\(?\s*e?\s*\)?\s*=>\s*e\.(?:stopPropagation|preventDefault)\(\)\s*;?\s*\}/i.test(tag)) continue;
+        if (/^<a\b/i.test(tag) && /\bhref\s*=/i.test(tag)) continue;
+        at(lineOf(index), "click-nonbutton", "A11Y", "onClick on a non-button element — use <button>/<a href> or add role + keyboard handlers");
       }
     }
   }
