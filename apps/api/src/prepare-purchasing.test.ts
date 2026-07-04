@@ -327,7 +327,7 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
     expect(Array.isArray(bd.strengths)).toBe(true);
     expect(Array.isArray(bd.gaps)).toBe(true);
     expect(bd.max_score).toBe(100);
-    expect(["production-ready", "partially-ready", "needs-work"]).toContain(bd.interpretation);
+    expect(["strong-coverage", "partial-coverage", "minimal-coverage"]).toContain(bd.interpretation);
   });
 
   it("replaces the incentives pitch with a neutral referral_program facts object", async () => {

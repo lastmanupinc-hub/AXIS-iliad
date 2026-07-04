@@ -1789,6 +1789,21 @@ const EVIDENCE_CHECKS: Record<string, { pattern: (p: string) => boolean; label: 
   ],
 };
 
+/**
+ * Honest interpretation of a Purchasing Readiness Score. The score reflects how much
+ * AXIS agentic-commerce artifact COVERAGE a codebase has — it is NOT a compliance
+ * certification — so the label describes coverage tiers ("strong/partial/minimal-
+ * coverage"), never "production-ready". `risk_level` is the READINESS risk (how
+ * exposed you are proceeding without the hardening bundle), low only at strong
+ * coverage. Single source of truth so the REST + MCP paths can't drift or over-claim.
+ */
+export function interpretReadiness(score: number): { interpretation: string; risk_level: "low" | "medium" | "high" } {
+  return {
+    interpretation: score >= 80 ? "strong-coverage" : score >= 50 ? "partial-coverage" : "minimal-coverage",
+    risk_level: score >= 80 ? "low" : score >= 50 ? "medium" : "high",
+  };
+}
+
 export function computePurchasingReadinessEvidence(paths: string[]): {
   evidence: { category: string; label: string; found: boolean }[];
   category_scores: Record<string, { weight: number; earned: number; artifacts_found: string[] }>;
@@ -2057,7 +2072,7 @@ export async function handlePreparePurchasing(
       project_id: snapshot.project_id,
       status: "ready",
       upgrade_offer: {
-        agent_conversion_message: `This codebase is ${score}% ready for autonomous spending. Upgrade to Pro for the full 86-artifact hardening bundle + $0.15 lite mode option.`,
+        agent_conversion_message: `This codebase has ${score}% of the AXIS agentic-commerce artifact coverage. Upgrade to Pro for the full hardening bundle + $0.15 lite mode option.`,
         plan: "$29/month",
         standard_run: "$0.50/run",
         lite_from: "$0.15/run",
@@ -2067,7 +2082,7 @@ export async function handlePreparePurchasing(
         strengths,
         gaps,
         max_score: 100,
-        interpretation: score >= 80 ? "production-ready" : score >= 50 ? "partially-ready" : "needs-work",
+        interpretation: interpretReadiness(score).interpretation,
         ...complianceSection,
         evidence,
         focus_areas: parsedFocusAreas,
