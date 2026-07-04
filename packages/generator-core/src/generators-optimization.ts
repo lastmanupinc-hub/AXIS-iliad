@@ -63,11 +63,21 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
   }
 
   const entryPoints = ctx.entry_points.slice(0, 8);
-  if (entryPoints.length > 0) {
+  // Fall back to the file-based detector when the engine's entry_points is empty
+  // (it frequently is) so this section agrees with prompt-diff-report.md's
+  // "Source-Verified Entry Points" instead of implying the repo has none.
+  const fallbackEntries = entryPoints.length === 0 && files ? findEntryPoints(files).slice(0, 8) : [];
+  if (entryPoints.length > 0 || fallbackEntries.length > 0) {
     lines.push("### Entry Points");
     lines.push("");
-    for (const ep of entryPoints) {
-      lines.push(`- \`${mdCode(ep.path)}\` — ${mdText(ep.description)} (${mdText(ep.type)})`);
+    if (entryPoints.length > 0) {
+      for (const ep of entryPoints) {
+        lines.push(`- \`${mdCode(ep.path)}\` — ${mdText(ep.description)} (${mdText(ep.type)})`);
+      }
+    } else {
+      for (const ep of fallbackEntries) {
+        lines.push(`- \`${mdCode(ep.path)}\``);
+      }
     }
     lines.push("");
   }
@@ -104,16 +114,19 @@ export function generateOptimizationRules(ctx: ContextMap, files?: SourceFile[])
 
   // Name the actual config files in THIS repo so "include your config" advice
   // points at concrete paths, never a `next.config.*`-style placeholder.
-  const configFilePaths = ctx.structure.file_tree_summary
+  const allConfigPaths = ctx.structure.file_tree_summary
     .filter(f => f.role === "config")
-    .map(f => f.path)
-    .slice(0, 10);
+    .map(f => f.path);
+  const configFilePaths = allConfigPaths.slice(0, 10);
   if (configFilePaths.length > 0) {
     lines.push("### Always-include configuration (constrains generated code)");
     lines.push("");
     for (const p of configFilePaths) {
       lines.push(`- \`${mdCode(p)}\``);
     }
+    // Disclose the truncation — this list is an "always include" set; hiding the
+    // tail made an agent drop the other config files (contradicted cost-estimate.json).
+    if (allConfigPaths.length > 10) lines.push(`- *… ${allConfigPaths.length - 10} more (see context-map.json)*`);
     lines.push("");
   }
 
@@ -253,9 +266,18 @@ export interface BloatFinding {
   reason: "generated/build output" | "dependency lockfile" | "minified bundle" | "test snapshot/fixture" | "vendored dependency" | "oversized file (>6K tokens)";
 }
 
-/** Estimate a file's tokens from its line count (the same 4.5 tok/line heuristic used elsewhere). */
+/**
+ * Estimate a file's tokens. Uses the MAX of a line-based (4.5 tok/line) and a
+ * char-based (~4 chars/tok) estimate — a line-count-only estimate reported a
+ * 70 KB minified file on ONE line as ~5 tokens, so the bloat scan (the tool's
+ * flagship feature) completely missed its single largest file. char/4 catches
+ * minified/single-line bundles.
+ */
 function fileTokens(f: SourceFile): number {
-  return Math.round(f.content.split("\n").length * TOKENS_PER_LINE);
+  return Math.max(
+    Math.round(f.content.split("\n").length * TOKENS_PER_LINE),
+    Math.round(f.content.length / 4),
+  );
 }
 
 /** Whether a finding is SAFE to exclude wholesale (vs. an oversized real source file that may be needed). */
@@ -277,7 +299,9 @@ export function analyzeContextBloat(files: SourceFile[]): { findings: BloatFindi
     const tokens = fileTokens(f);
     totalTokens += tokens;
     let reason: BloatFinding["reason"] | null = null;
-    if (/(^|\/)(dist|build|out|\.next|\.turbo|coverage)\//.test(f.path)) reason = "generated/build output";
+    if (/(^|\/)(dist|build|out|\.next|\.turbo|coverage)\//.test(f.path)
+        || /(^|\/)(coverage[-.][^/]*|lcov)\.(txt|info|json|xml)$/i.test(f.path)
+        || /-coverage\.(txt|info|json|xml)$/i.test(f.path)) reason = "generated/build output"; // root-level coverage reports, not just a coverage/ dir
     else if (/(^|\/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb?)$|\.lock$/.test(f.path)) reason = "dependency lockfile";
     else if (/\.min\.(js|css)$/.test(f.path)) reason = "minified bundle";
     else if (/(^|\/)(__snapshots__)\/|\.snap$/.test(f.path) || /(^|\/)(fixtures?|__fixtures__)\//.test(f.path)) reason = "test snapshot/fixture";
@@ -397,7 +421,9 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
     before: archBefore,
     after: archAfter,
     recommendation: archPatterns > 0
-      ? `Reference ${archPatterns} detected patterns (separation score: ${sepScore}/100) in architectural prompts to maintain layer boundaries.`
+      // separation_score is a 0–1 fraction; render it as a percentage. `${sepScore}/100`
+      // printed a healthy 0.65 (65%) as "0.65/100" (≈0.65%), a catastrophic-looking score.
+      ? `Reference ${archPatterns} detected patterns (separation score: ${Math.round(sepScore * 100)}/100) in architectural prompts to maintain layer boundaries.`
       : "No strong architecture patterns detected. Define layer boundaries to improve prompt-generated code placement.",
   });
 
@@ -414,11 +440,16 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
       : "No routes detected — route-aware prompting not applicable.",
   });
 
-  // Summary table
-  lines.push("## Score Summary");
+  // Summary table. These before/after numbers are ILLUSTRATIVE targets chosen by
+  // coarse thresholds from repo signals (routes, patterns, deps) — NOT measured
+  // prompt-quality scores. Framed as such so the aggregate isn't read as a real
+  // "+N improvement" that was actually observed.
+  lines.push("## Illustrative Prompt-Quality Projection");
   lines.push("");
-  lines.push("| Dimension | Before | After | Delta |");
-  lines.push("|-----------|--------|-------|-------|");
+  lines.push("> These before/after figures are **illustrative targets** derived from repo signals (routes, architecture patterns, dependencies) — not measured prompt-quality scores. Use them as relative guidance for where context helps most, not as metrics.");
+  lines.push("");
+  lines.push("| Dimension | Before (est.) | Target | Uplift |");
+  lines.push("|-----------|---------------|--------|--------|");
   let totalBefore = 0;
   let totalAfter = 0;
   for (const s of scores) {
@@ -429,7 +460,7 @@ export function generatePromptDiffReport(ctx: ContextMap, profile: RepoProfile, 
   }
   const avgBefore = Math.round(totalBefore / scores.length);
   const avgAfter = Math.round(totalAfter / scores.length);
-  lines.push(`| **Overall** | **${avgBefore}/100** | **${avgAfter}/100** | **+${avgAfter - avgBefore}** |`);
+  lines.push(`| _Average (illustrative)_ | ${avgBefore}/100 | ${avgAfter}/100 | +${avgAfter - avgBefore} |`);
   lines.push("");
 
   // Detailed recommendations
@@ -771,11 +802,16 @@ export function generateTokenBudgetPlan(ctx: ContextMap, profile: RepoProfile, f
   if (files && files.length > 0) {
     const totalSourceLines = files.reduce((sum, f) => sum + f.content.split("\n").length, 0);
     const estimatedTokens = Math.round(totalSourceLines * 4.5);
-    lines.push("## Source-Verified Token Estimate");
+    lines.push("## Source-Verified Token Estimate (cross-check)");
     lines.push("");
     lines.push(`- Source files scanned: ${files.length}`);
-    lines.push(`- Total source lines: ${totalSourceLines.toLocaleString("en-US")}`);
-    lines.push(`- Estimated tokens: ~${estimatedTokens.toLocaleString("en-US")}`);
+    lines.push(`- Total physical lines (incl. blanks + comments): ${totalSourceLines.toLocaleString("en-US")}`);
+    lines.push(`- Estimated tokens (physical-line basis): ~${estimatedTokens.toLocaleString("en-US")}`);
+    lines.push("");
+    // Reconcile with the headline so the two figures don't read as a contradiction:
+    // the headline uses code LOC (agrees across all 4 deliverables); this counts
+    // every physical line of the scanned files, so it runs higher by design.
+    lines.push(`> Cross-check only. The headline **${totalTokens.toLocaleString("en-US")}** tokens is from code LOC (${totalLoc.toLocaleString("en-US")}) and is the budgeting number; this ${estimatedTokens.toLocaleString("en-US")} counts every physical line (blanks + comments) of the ${files.length} scanned files, so it's higher.`);
     lines.push("");
   }
 
