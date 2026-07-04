@@ -37,6 +37,34 @@ function getDocsUrl(name: string): string {
   return DOCS_URLS[name.toLowerCase()] ?? `https://www.npmjs.com/package/${encodeURIComponent(name)}`;
 }
 
+// Curated official-docs URLs for common languages. Unknown languages fall back to
+// a URL-ENCODED search (so `C++` / `C#` don't produce a malformed link), which is
+// honestly a search, not a curated reference.
+const LANG_DOCS: Record<string, string> = {
+  typescript: "https://www.typescriptlang.org/docs",
+  javascript: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+  python: "https://docs.python.org/3/",
+  go: "https://go.dev/doc/",
+  rust: "https://doc.rust-lang.org/book/",
+  java: "https://docs.oracle.com/en/java/",
+  ruby: "https://www.ruby-lang.org/en/documentation/",
+  "c#": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+  csharp: "https://learn.microsoft.com/en-us/dotnet/csharp/",
+  php: "https://www.php.net/docs.php",
+  swift: "https://www.swift.org/documentation/",
+  kotlin: "https://kotlinlang.org/docs/home.html",
+  "c++": "https://en.cppreference.com/w/",
+  cpp: "https://en.cppreference.com/w/",
+  c: "https://en.cppreference.com/w/c",
+  scala: "https://docs.scala-lang.org/",
+  elixir: "https://elixir-lang.org/docs.html",
+};
+
+/** Language reference URL: curated official docs if known, else an encoded search. */
+function getLanguageRef(name: string): string {
+  return LANG_DOCS[name.toLowerCase()] ?? `https://www.google.com/search?q=${encodeURIComponent(name + " language reference")}`;
+}
+
 // ─── notebook-summary.md ────────────────────────────────────────
 
 export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -620,10 +648,7 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
       id: `lang-${lang.name.toLowerCase()}`,
       type: "reference",
       title: `${lang.name} Language Reference`,
-      source: lang.name === "TypeScript" ? "https://www.typescriptlang.org/docs" :
-        lang.name === "JavaScript" ? "https://developer.mozilla.org/en-US/docs/Web/JavaScript" :
-        lang.name === "Python" ? "https://docs.python.org/3/" :
-        `https://www.google.com/search?q=${lang.name}+reference`,
+      source: getLanguageRef(lang.name),
       relevance: lang.loc_percent > 30 ? "primary" : "secondary",
       tags: ["language", lang.name.toLowerCase()],
     });
@@ -635,7 +660,9 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
       id: `pattern-${p.toLowerCase().replace(/\s+/g, "-")}`,
       type: "pattern",
       title: `${p} Pattern Reference`,
-      source: `Architecture pattern detected in project`,
+      // Detected in the project by static analysis; the source is a locatable
+      // search for the pattern (not a prose sentence masquerading as a citation).
+      source: `https://www.google.com/search?q=${encodeURIComponent(p + " architecture pattern")}`,
       relevance: "contextual",
       tags: ["architecture", "pattern", p.toLowerCase()],
     });
