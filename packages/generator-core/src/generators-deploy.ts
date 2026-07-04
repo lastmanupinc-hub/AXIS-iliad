@@ -77,7 +77,13 @@ function pmCommands(pm: DeployPm): { corepack: string; lockGlob: string; install
 // which the app may not serve → Render marks the first deploy unhealthy.
 function deriveHealthPath(ctx: ContextMap): { path: string; detected: boolean } {
   const route = (ctx.routes ?? []).find(r => /\/(healthz|_health|health|livez|readyz|ping)\b/i.test(r.path));
-  return route ? { path: route.path, detected: true } : { path: "/healthz", detected: false };
+  if (!route) return { path: "/healthz", detected: false };
+  // A health-check path is a URL path. ctx.routes is repo-derived, so strip anything
+  // outside a safe path charset (blocks a hostile route from injecting a newline/`:`
+  // into render.yaml or the report) and cap the length; fall back to /healthz if empty.
+  const cleaned = String(route.path ?? "").replace(/[^a-zA-Z0-9/_.-]/g, "").slice(0, 64);
+  const safe = cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+  return { path: safe.length > 1 ? safe : "/healthz", detected: true };
 }
 
 // A single-Dockerfile deploy can't correctly target a multi-app monorepo (which
