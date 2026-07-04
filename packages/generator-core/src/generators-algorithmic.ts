@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdBlock, codeComment, yamlFlowScalar } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── generative-sketch.ts ───────────────────────────────────────
 
@@ -14,7 +15,7 @@ export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]):
 
   // Derive visual parameters from project data
   const nodeCount = Math.max(5, Math.min(50, ctx.entry_points.length * 3 + hotspots.length * 2));
-  const complexity = Math.min(1, ctx.architecture_signals.separation_score / 100);
+  const complexity = Math.min(1, ctx.architecture_signals.separation_score);
   const langColors = languages.slice(0, 5).map((l, i) => {
     const hues = [220, 280, 340, 160, 40];
     return { name: l.name, hue: hues[i % hues.length], weight: l.loc_percent };
@@ -174,9 +175,9 @@ export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]):
   if (files && files.length > 0) {
     lines.push("");
     lines.push("// ─── Source File Tree ──────────────────────────────────");
-    const tree = fileTree(files);
+    const tree = fileTree(files).split("\n");
     for (const line of tree.slice(0, 20)) {
-      lines.push(`// ${line}`);
+      lines.push(`// ${codeComment(line)}`);
     }
   }
 
@@ -194,7 +195,7 @@ export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]):
 export function generateParameterPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const languages = ctx.detection.languages;
-  const score = ctx.architecture_signals.separation_score;
+  const score = ctx.architecture_signals.separation_score * 100; // 0–100 scale for the thresholds below
   const hotspots = ctx.dependency_graph.hotspots;
 
   const pack = {
@@ -342,7 +343,7 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("### 3. Architecture Terrain");
   lines.push("");
   lines.push("- **Type**: Topographic height map");
-  lines.push(`- **Elevation**: Architecture score ${ctx.architecture_signals.separation_score}/100 → height multiplier`);
+  lines.push(`- **Elevation**: Architecture score ${Math.round(ctx.architecture_signals.separation_score * 100)}/100 → height multiplier`);
   if (patterns.length > 0) {
     lines.push(`- **Ridges**: ${mdText(patterns.join(", "))}`);
   }
@@ -379,7 +380,7 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push(`| Source Project | ${mdInline(id.name)} |`);
   lines.push(`| Data Points | ${ctx.entry_points.length + hotspots.length + languages.length + patterns.length} |`);
   lines.push(`| Domain Models | ${ctx.domain_models.length} |`);
-  lines.push(`| Routes | ${ctx.routes.length} |`);
+  lines.push(`| Routes | ${displayRoutes(ctx.routes).length} |`);
   lines.push(`| Total Files | ${ctx.structure.total_files} |`);
   lines.push(`| Total LOC | ${ctx.structure.total_loc} |`);
   lines.push(`| Render Target | Canvas 2D / WebGL |`);
@@ -391,9 +392,9 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("## Source File Tree");
     lines.push("");
     lines.push("```");
-    const tree = fileTree(files);
+    const tree = fileTree(files).split("\n");
     for (const line of tree.slice(0, 25)) {
-      lines.push(line);
+      lines.push(mdCode(line));
     }
     lines.push("```");
     lines.push("");

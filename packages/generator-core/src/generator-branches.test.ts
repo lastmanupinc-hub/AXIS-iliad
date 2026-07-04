@@ -1749,7 +1749,7 @@ describe("Algorithmic empty patterns + layers", () => {
       { path: "main.js", content: "// monolith", size: 12, language: null },
     ]});
     const inp = input(s, ["parameter-pack.json"]);
-    inp.context_map.architecture_signals.separation_score = 20;
+    inp.context_map.architecture_signals.separation_score = 0.2;
     inp.context_map.architecture_signals.layer_boundaries = [];
     const result = generateFiles(inp);
     const f = getFile(result, "parameter-pack.json");
@@ -2406,7 +2406,7 @@ describe("Algorithmic project type branches", () => {
       { path: "cli.ts", content: "process.argv", size: 15, language: null },
     ]});
     const inp = input(s, ["parameter-pack.json"]);
-    inp.context_map.architecture_signals.separation_score = 30;
+    inp.context_map.architecture_signals.separation_score = 0.3;
     const result = generateFiles(inp);
     const f = getFile(result, "parameter-pack.json");
     expect(f).toBeDefined();
@@ -3265,7 +3265,7 @@ describe("Layer 5 branch coverage", () => {
   it("parameter-pack uses radial symmetry for very high score", () => {
     const s = snap({ files: REACT_SPA_FILES });
     const inp = input(s, ["parameter-pack.json"]);
-    inp.context_map.architecture_signals.separation_score = 80;
+    inp.context_map.architecture_signals.separation_score = 0.8;
     const result = generateFiles(inp);
     const f = getFile(result, "parameter-pack.json");
     expect(f).toBeDefined();
@@ -3276,7 +3276,7 @@ describe("Layer 5 branch coverage", () => {
   it("parameter-pack uses bilateral symmetry for mid score", () => {
     const s = snap({ files: REACT_SPA_FILES });
     const inp = input(s, ["parameter-pack.json"]);
-    inp.context_map.architecture_signals.separation_score = 50;
+    inp.context_map.architecture_signals.separation_score = 0.5;
     const result = generateFiles(inp);
     const f = getFile(result, "parameter-pack.json");
     expect(f).toBeDefined();
