@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdCode, cssComment, yamlFlowScalar } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
@@ -152,7 +153,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
     },
     // ─── Domain Models ─────────────────────────────────────────
     domain_models: ctx.domain_models.length > 0
-      ? ctx.domain_models.slice(0, 20).map(m => ({
+      ? ctx.domain_models.slice(0, 15).map(m => ({
           name: m.name,
           kind: m.kind,
           field_count: m.field_count,
@@ -2030,7 +2031,7 @@ export function generateTestingDocumentationPolishArtifactsGuide(ctx: ContextMap
 
 export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const deps = ctx.dependency_graph.external_dependencies;
   const lines: string[] = [];
@@ -2239,6 +2240,10 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
   const buildTools = ctx.detection.build_tools;
   const pkgManagers = ctx.detection.package_managers;
   const pkgMgr = pkgManagers.includes("pnpm") ? "pnpm" : pkgManagers.includes("yarn") ? "yarn" : "npm";
+  // Honesty gate: only claim npm-style build/dev/install when a JS toolchain
+  // is actually detected — a Python/Rust/Go repo has none of these.
+  const hasJsPkgMgr = pkgManagers.some((p) => ["npm", "pnpm", "yarn", "bun"].includes(p));
+  const hasJsToolchain = hasJsPkgMgr || buildTools.length > 0;
 
   const capabilities: Array<{
     id: string;
@@ -2256,7 +2261,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "build",
     provider: buildTools[0] ?? pkgMgr,
     command: `${pkgMgr} run build`,
-    available: true,
+    available: hasJsToolchain,
   });
 
   capabilities.push({
@@ -2265,7 +2270,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "build",
     provider: buildTools.includes("vite") ? "vite" : pkgMgr,
     command: `${pkgMgr} run dev`,
-    available: true,
+    available: hasJsToolchain,
   });
 
   // Test capabilities
@@ -2328,7 +2333,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "setup",
     provider: pkgMgr,
     command: `${pkgMgr} install`,
-    available: true,
+    available: hasJsPkgMgr,
   });
 
   // Git capabilities
@@ -2387,7 +2392,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
 export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const frameworks = ctx.detection.frameworks;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const deps = ctx.dependency_graph.external_dependencies;
 
   const lines: string[] = [];
@@ -2540,10 +2545,14 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
   lines.push("        default: \"http://localhost:4000\"");
   lines.push("");
 
-  lines.push("  dependencies:");
-  for (const d of deps.slice(0, 8)) {
-    lines.push(`    - name: ${yamlFlowScalar(d.name)}`);
-    lines.push(`      version: ${JSON.stringify(d.version)}`);
+  if (deps.length === 0) {
+    lines.push("  dependencies: []");
+  } else {
+    lines.push("  dependencies:");
+    for (const d of deps.slice(0, 8)) {
+      lines.push(`    - name: ${yamlFlowScalar(d.name)}`);
+      lines.push(`      version: ${JSON.stringify(d.version)}`);
+    }
   }
   lines.push("");
 
@@ -2574,7 +2583,7 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 // ─── mcp/fintech-mcp-surface-package.md ───────────────────────
 
 function detectFintechDependencies(ctx: ContextMap): string[] {
-  const fintechDeps = ["stripe", "dwolla", "plaid", "adyen", "checkout", "marqeta", "unit", "treasury", "finicity"];
+  const fintechDeps = ["stripe", "dwolla", "plaid", "adyen", "marqeta", "finicity", "modern-treasury", "moderntreasury", "checkout.com"];
   return ctx.dependency_graph.external_dependencies
     .map((dep) => dep.name)
     .filter((name) => fintechDeps.some((keyword) => name.toLowerCase().includes(keyword)));
@@ -2603,7 +2612,7 @@ export function generateFintechMcpSurfacePackage(
   lines.push("");
   lines.push("## Why This Repo Qualifies");
   lines.push("");
-  lines.push(`- Routes detected: ${ctx.routes.length}`);
+  lines.push(`- Routes detected: ${displayRoutes(ctx.routes).length}`);
   lines.push(`- Domain models detected: ${ctx.domain_models.length}`);
   lines.push(`- SQL tables detected: ${ctx.sql_schema?.length ?? 0}`);
   lines.push(`- Trust Fabric detected: ${hasTrustFabric(files) ? "yes" : "no"}`);
@@ -2776,7 +2785,7 @@ export function generateFintechDomainSchema(
   lines.push("    package_types: [regulator_exam, dispute_representment, onboarding_review, reconciliation_exception]");
   lines.push("    required_artifacts: [timeline, source_hashes, operator_actions, linked_records]");
   lines.push("implementation_targets:");
-  lines.push(`  route_count_hint: ${ctx.routes.length}`);
+  lines.push(`  route_count_hint: ${displayRoutes(ctx.routes).length}`);
   lines.push(`  domain_model_count_hint: ${ctx.domain_models.length}`);
   lines.push(`  sql_schema_count_hint: ${ctx.sql_schema?.length ?? 0}`);
   lines.push("  objective: Build institution-grade API-callable fintech software, not just provider wrappers");
