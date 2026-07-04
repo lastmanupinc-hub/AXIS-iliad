@@ -611,7 +611,9 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
   });
 
   // Seed values for reproducibility
-  const seedBase = id.name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  // Fall back to a non-empty label so an empty project name doesn't collapse
+  // seedBase to 0 (which would make every "deterministic seed" identical).
+  const seedBase = (id.name || "axis-project").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   const seeds = Array.from({ length: 6 }, (_, i) => seedBase * (i + 1) + 42);
   parameters.push({
     name: "seed",
@@ -620,7 +622,7 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
     description: `Deterministic seeds derived from project name "${id.name}"`,
   });
 
-  // Generate variation grid (top 24 combinations)
+  // Generate the variation grid (colors × palettes × layouts; variation_count below reports the true total)
   const variations: Record<string, unknown>[] = [];
   let variationId = 0;
   for (const color of (parameters[0].values as string[]).slice(0, 2)) {
