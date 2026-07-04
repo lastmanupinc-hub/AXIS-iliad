@@ -45,6 +45,42 @@ export function deriveRemotionTheme(ctx: ContextMap): RemotionTheme {
   return { bg: "#0f0f23", fg: "#e2e8f0", accent: "#6366f1", muted: "#64748b" };
 }
 
+// ─── Canonical scene plan ────────────────────────────────────────
+
+export interface RemotionScene {
+  id: string;
+  from: number;
+  durationInFrames: number;
+  label: string;
+  dataPoints: number;
+}
+
+/**
+ * The ONE canonical scene layout, consumed by both the generated composition
+ * (remotion-script.ts emits a `<Sequence>` per scene) AND render-config.json
+ * (scene list + total frames). Before this, the two drifted: the script
+ * hardcoded 4 fixed scenes (Intro/TechStack/Architecture/Abstractions, 360
+ * frames) while render-config invented a variable 5–7 scene set with a
+ * different order and 270–630 frames — so a config-driven render played blank
+ * frames and declared scenes that never appear. Deriving both from here makes
+ * that impossible.
+ *
+ * The layout matches the composition's four scene COMPONENTS exactly (same
+ * order); the `scenes` array length is therefore always 4. Pure + deterministic.
+ */
+export const SCENE_COMPONENT_NAMES = ["IntroScene", "TechStackScene", "ArchitectureScene", "AbstractionsScene"] as const;
+
+export function deriveScenePlan(ctx: ContextMap): { scenes: RemotionScene[]; totalFrames: number; fps: number } {
+  const DUR = 90;
+  const scenes: RemotionScene[] = [
+    { id: "intro", from: 0, durationInFrames: DUR, label: "Introduction", dataPoints: 1 },
+    { id: "tech-stack", from: DUR, durationInFrames: DUR, label: "Tech Stack", dataPoints: ctx.detection.frameworks.length + ctx.detection.languages.length },
+    { id: "architecture", from: DUR * 2, durationInFrames: DUR, label: "Architecture", dataPoints: ctx.architecture_signals.patterns_detected.length },
+    { id: "abstractions", from: DUR * 3, durationInFrames: DUR, label: "Key Abstractions", dataPoints: ctx.ai_context.key_abstractions.length },
+  ];
+  return { scenes, totalFrames: DUR * scenes.length, fps: 30 };
+}
+
 // ─── remotion-script.ts ─────────────────────────────────────────
 
 export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -149,10 +185,11 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`export function ${compName}Video() {`);
   lines.push(`  return (`);
   lines.push(`    <AbsoluteFill>`);
-  lines.push(`      <Sequence from={0} durationInFrames={90}><IntroScene /></Sequence>`);
-  lines.push(`      <Sequence from={90} durationInFrames={90}><TechStackScene /></Sequence>`);
-  lines.push(`      <Sequence from={180} durationInFrames={90}><ArchitectureScene /></Sequence>`);
-  lines.push(`      <Sequence from={270} durationInFrames={90}><AbstractionsScene /></Sequence>`);
+  // Sequences are emitted from the shared scene plan so their offsets/durations
+  // stay identical to render-config.json's scene list + total frames.
+  deriveScenePlan(ctx).scenes.forEach((sc, i) => {
+    lines.push(`      <Sequence from={${sc.from}} durationInFrames={${sc.durationInFrames}}><${SCENE_COMPONENT_NAMES[i]} /></Sequence>`);
+  });
   lines.push(`    </AbsoluteFill>`);
   lines.push(`  );`);
   lines.push(`}`);
@@ -328,39 +365,13 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, file
   const abstractions = ctx.ai_context.key_abstractions;
   const languages = ctx.detection.languages;
 
-  // Build dynamic scenes based on available data
-  const scenes: { id: string; from: number; duration: number; label: string; data_points: number }[] = [];
-  let frame = 0;
-  const SCENE_DUR = 90;
-
-  scenes.push({ id: "intro", from: frame, duration: SCENE_DUR, label: "Introduction", data_points: 1 });
-  frame += SCENE_DUR;
-
-  scenes.push({ id: "tech-stack", from: frame, duration: SCENE_DUR, label: "Tech Stack", data_points: ctx.detection.frameworks.length + languages.length });
-  frame += SCENE_DUR;
-
-  if (routes.length > 0) {
-    scenes.push({ id: "api-surface", from: frame, duration: SCENE_DUR, label: `API Surface (${routes.length} routes)`, data_points: routes.length });
-    frame += SCENE_DUR;
-  }
-
-  if (models.length > 0) {
-    scenes.push({ id: "data-model", from: frame, duration: SCENE_DUR, label: `Data Model (${models.length} entities)`, data_points: models.length });
-    frame += SCENE_DUR;
-  }
-
-  if (hotspots.length > 0) {
-    scenes.push({ id: "complexity", from: frame, duration: SCENE_DUR, label: `Complexity Hotspots (${hotspots.length})`, data_points: hotspots.length });
-    frame += SCENE_DUR;
-  }
-
-  scenes.push({ id: "architecture", from: frame, duration: SCENE_DUR, label: "Architecture", data_points: ctx.architecture_signals.patterns_detected.length });
-  frame += SCENE_DUR;
-
-  if (abstractions.length > 0) {
-    scenes.push({ id: "abstractions", from: frame, duration: SCENE_DUR, label: "Key Abstractions", data_points: abstractions.length });
-    frame += SCENE_DUR;
-  }
+  // Scenes + total frames come from the ONE canonical plan the composition
+  // itself renders — so this config can never declare a scene the video lacks
+  // (previously it invented api-surface/data-model/complexity scenes with a
+  // total-frame count the 4-scene composition never reaches). The richer
+  // per-scene DATA still lives under scene_data below for overlay builders.
+  const plan = deriveScenePlan(ctx);
+  const scenes = plan.scenes.map(sc => ({ id: sc.id, from: sc.from, duration: sc.durationInFrames, label: sc.label, data_points: sc.dataPoints }));
 
   const config = {
     project: id.name,
@@ -369,8 +380,8 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, file
       id: `${compName}Video`,
       width: 1920,
       height: 1080,
-      fps: 30,
-      durationInFrames: frame,
+      fps: plan.fps,
+      durationInFrames: plan.totalFrames,
     },
     scenes,
     render: {

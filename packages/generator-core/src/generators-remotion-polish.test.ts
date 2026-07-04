@@ -46,12 +46,10 @@ describe("POLISH: render-config route counts report distinct routes", () => {
     { path: "/a", method: "GET", source_file: "a.test.ts", handler: "h" },
     { path: "/b", method: "POST", source_file: "src/b.ts", handler: "h" },
   ] as ContextMap["routes"];
-  it("total_routes + the API Surface scene label count distinct routes (2, not 3 rows)", () => {
+  it("scene_data.api_surface.total_routes counts distinct routes (2, not 3 rows)", () => {
     const cfg = JSON.parse(generateRenderConfig(ctxWith({ routes }), profile, files).content) as {
       scene_data: { api_surface: { total_routes: number } };
-      scenes: Array<{ label: string }>;
     };
     expect(cfg.scene_data.api_surface.total_routes).toBe(2);
-    expect(cfg.scenes.some((sc) => sc.label === "API Surface (2 routes)")).toBe(true);
   });
 });
