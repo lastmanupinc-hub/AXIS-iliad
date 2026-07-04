@@ -65,6 +65,36 @@ function getLanguageRef(name: string): string {
   return LANG_DOCS[name.toLowerCase()] ?? `https://www.google.com/search?q=${encodeURIComponent(name + " language reference")}`;
 }
 
+export interface ReadingStep {
+  path: string;
+  inbound: number;
+  outbound: number;
+  role: "foundational" | "orchestrator" | "connector";
+}
+
+/**
+ * A dependency-grounded reading order derived from the import graph. Ranks files
+ * by how FOUNDATIONAL they are (inbound − outbound): the modules the most other
+ * files depend on — the shared types and core utilities — come first (read them
+ * to learn the vocabulary), and the orchestrators that wire everything together
+ * come last. Deterministic (stable tie-break on inbound then code-unit path).
+ */
+export function computeReadingOrder(ctx: ContextMap, limit = 8): ReadingStep[] {
+  const nodes = ctx.dependency_graph.hotspots ?? [];
+  const sorted = [...nodes].sort((a, b) =>
+    ((b.inbound_count - b.outbound_count) - (a.inbound_count - a.outbound_count)) ||
+    (b.inbound_count - a.inbound_count) ||
+    (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  return sorted.slice(0, limit).map(h => ({
+    path: h.path,
+    inbound: h.inbound_count,
+    outbound: h.outbound_count,
+    role: h.inbound_count > h.outbound_count ? "foundational"
+      : h.outbound_count > h.inbound_count ? "orchestrator"
+      : "connector",
+  }));
+}
+
 // ─── notebook-summary.md ────────────────────────────────────────
 
 export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -400,6 +430,21 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push(`7. Which domain model has the most dependencies? Is that appropriate?`);
   }
   lines.push("");
+
+  // Dependency-based reading order — derived from the import graph, not a template.
+  const readingOrder = computeReadingOrder(ctx);
+  if (readingOrder.length > 0) {
+    lines.push("## Dependency-Based Reading Order");
+    lines.push("");
+    lines.push("Read the codebase **bottom-up**: the modules the most other files depend on first (they define the shared vocabulary — types, core utilities), and the orchestrators that wire everything together last. Derived from the actual import graph:");
+    lines.push("");
+    lines.push("| # | Module | Depended-on by | Depends on | Role |");
+    lines.push("|---|--------|----------------|------------|------|");
+    readingOrder.forEach((s, i) => {
+      lines.push(`| ${i + 1} | \`${mdCellCode(s.path)}\` | ${s.inbound} | ${s.outbound} | ${s.role} |`);
+    });
+    lines.push("");
+  }
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
