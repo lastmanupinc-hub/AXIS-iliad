@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
 // ─── canvas-spec.json ───────────────────────────────────────────
 
@@ -119,7 +120,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
 
   const lines: string[] = [];
 
-  lines.push(`# Social Pack — ${id.name}`);
+  lines.push(`# Social Pack — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -127,7 +128,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -138,7 +139,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${mdInline(fw.version ?? "—")} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -150,10 +151,10 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("┌──────────────────────────────────────────┐");
   lines.push("│  [gradient background]                    │");
   lines.push("│                                           │");
-  lines.push(`│     ${id.name}                            │`);
-  lines.push(`│     ${(id.description ?? "").slice(0, 50)}...     │`);
+  lines.push(`│     ${mdCode(id.name)}                            │`);
+  lines.push(`│     ${mdCode((id.description ?? "").slice(0, 50))}...     │`);
   lines.push("│                                           │");
-  lines.push(`│     [${frameworks.slice(0, 4).join("] [")}]    │`);
+  lines.push(`│     [${frameworks.slice(0, 4).map(f => mdCode(f)).join("] [")}]    │`);
   lines.push("│                                           │");
   lines.push("│     Powered by Axis' Iliad               │");
   lines.push("└──────────────────────────────────────────┘");
@@ -162,9 +163,9 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
 
   lines.push("### Copy Variants");
   lines.push("");
-  lines.push(`1. **Technical**: "${id.name} — ${id.type} built with ${id.primary_language}"`);
-  lines.push(`2. **Marketing**: "${id.name}: ${id.description}"`);
-  lines.push(`3. **Minimal**: "${id.name}"`);
+  lines.push(`1. **Technical**: "${mdText(id.name)} — ${mdText(id.type)} built with ${mdText(id.primary_language)}"`);
+  lines.push(`2. **Marketing**: "${mdText(id.name)}: ${mdText(id.description ?? "")}"`);
+  lines.push(`3. **Minimal**: "${mdText(id.name)}"`);
   lines.push("");
 
   lines.push("## Square Post (1080×1080)");
@@ -174,7 +175,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("| Stat | Value |");
   lines.push("|------|-------|");
   for (const lang of languages.slice(0, 3)) {
-    lines.push(`| ${lang.name} | ${lang.loc_percent}% |`);
+    lines.push(`| ${mdInline(lang.name)} | ${lang.loc_percent}% |`);
   }
   lines.push(`| Frameworks | ${frameworks.length} |`);
   lines.push(`| Architecture Score | ${ctx.architecture_signals.separation_score}/100 |`);
@@ -184,25 +185,25 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("### Thread Template");
   lines.push("");
-  lines.push(`🧵 1/ Just analyzed ${id.name} with @AxisIliad`);
+  lines.push(`🧵 1/ Just analyzed ${mdText(id.name)} with @AxisIliad`);
   lines.push("");
-  lines.push(`📊 2/ Tech stack: ${frameworks.slice(0, 3).join(", ") || id.primary_language}`);
+  lines.push(`📊 2/ Tech stack: ${mdText(frameworks.slice(0, 3).join(", ") || id.primary_language)}`);
   lines.push(`Architecture score: ${ctx.architecture_signals.separation_score}/100`);
   lines.push("");
   lines.push(`🔍 3/ Found ${ctx.entry_points.length} entry points and ${ctx.dependency_graph.hotspots.length} hotspots`);
   lines.push("");
-  lines.push(`🎯 4/ Key patterns: ${ctx.architecture_signals.patterns_detected.slice(0, 3).join(", ") || "Custom architecture"}`);
+  lines.push(`🎯 4/ Key patterns: ${mdText(ctx.architecture_signals.patterns_detected.slice(0, 3).join(", ") || "Custom architecture")}`);
   lines.push("");
 
   lines.push("## LinkedIn Post");
   lines.push("");
-  lines.push(`📋 Project Analysis: ${id.name}`);
+  lines.push(`📋 Project Analysis: ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`I ran ${id.name} through Axis' Iliad and here's what it found:`);
+  lines.push(`I ran ${mdText(id.name)} through Axis' Iliad and here's what it found:`);
   lines.push("");
-  lines.push(`• Type: ${id.type}`);
-  lines.push(`• Primary Language: ${id.primary_language}`);
-  lines.push(`• Frameworks: ${frameworks.join(", ") || "None"}`);
+  lines.push(`• Type: ${mdText(id.type)}`);
+  lines.push(`• Primary Language: ${mdText(id.primary_language)}`);
+  lines.push(`• Frameworks: ${mdText(frameworks.join(", ") || "None")}`);
   lines.push(`• Architecture Score: ${ctx.architecture_signals.separation_score}/100`);
   lines.push("");
 
@@ -213,7 +214,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
       lines.push("## Available Brand Assets");
       lines.push("");
       for (const mf of mediaFiles.slice(0, 10)) {
-        lines.push(`- \`${mf.path}\``);
+        lines.push(`- \`${mdCode(mf.path)}\``);
       }
       lines.push("");
     }
@@ -239,7 +240,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
 
   const lines: string[] = [];
 
-  lines.push(`# Poster Layouts — ${id.name}`);
+  lines.push(`# Poster Layouts — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -268,9 +269,9 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("### Data for Zones");
   lines.push("");
   lines.push("**Hero Zone**");
-  lines.push(`- Title: ${id.name}`);
-  lines.push(`- Subtitle: ${id.description}`);
-  lines.push(`- Type Badge: ${id.type}`);
+  lines.push(`- Title: ${mdText(id.name)}`);
+  lines.push(`- Subtitle: ${mdText(id.description ?? "")}`);
+  lines.push(`- Type Badge: ${mdText(id.type)}`);
   lines.push("");
   lines.push("**Stats Grid**");
   lines.push(`- Entry Points: ${ctx.entry_points.length}`);
@@ -280,18 +281,18 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push("**Language Breakdown**");
   for (const lang of languages) {
-    lines.push(`- ${lang.name}: ${lang.loc_percent}% (${lang.loc} LOC)`);
+    lines.push(`- ${mdText(lang.name)}: ${lang.loc_percent}% (${lang.loc} LOC)`);
   }
   lines.push("");
 
   if (patterns.length > 0 || layers.length > 0) {
     lines.push("**Architecture Diagram**");
     if (patterns.length > 0) {
-      lines.push(`- Patterns: ${patterns.join(", ")}`);
+      lines.push(`- Patterns: ${mdText(patterns.join(", "))}`);
     }
     if (layers.length > 0) {
       for (const l of layers) {
-        lines.push(`- ${l.layer}: ${l.directories.join(", ")}`);
+        lines.push(`- ${mdText(l.layer)}: ${mdText(l.directories.join(", "))}`);
       }
     }
     lines.push("");
@@ -299,14 +300,14 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
 
   lines.push("**Framework Badges**");
   for (const fw of ctx.detection.frameworks) {
-    lines.push(`- ${fw.name}${fw.version ? " " + fw.version : ""}`);
+    lines.push(`- ${mdText(fw.name)}${fw.version ? " " + mdText(fw.version) : ""}`);
   }
   lines.push("");
 
   if (ctx.domain_models.length > 0) {
     lines.push("**Domain Models**");
     for (const m of ctx.domain_models.slice(0, 6)) {
-      lines.push(`- ${m.name} (${m.kind}, ${m.field_count} fields)`);
+      lines.push(`- ${mdText(m.name)} (${mdText(m.kind)}, ${m.field_count} fields)`);
     }
     lines.push("");
   }
@@ -321,10 +322,10 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("└──────────────────────────────────────────┘");
   lines.push("```");
   lines.push("");
-  lines.push(`- Name: ${id.name}`);
-  lines.push(`- Type: ${id.type}`);
+  lines.push(`- Name: ${mdText(id.name)}`);
+  lines.push(`- Type: ${mdText(id.type)}`);
   lines.push(`- Score: ${ctx.architecture_signals.separation_score}/100`);
-  lines.push(`- Badges: ${frameworks.join(", ") || id.primary_language}`);
+  lines.push(`- Badges: ${mdText(frameworks.join(", ") || id.primary_language)}`);
   lines.push("");
 
   lines.push("## Layout C: Data Dashboard");
@@ -348,7 +349,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
       lines.push("## Detected Image Assets");
       lines.push("");
       for (const img of imageFiles.slice(0, 10)) {
-        lines.push(`- \`${img.path}\` (${img.size} bytes)`);
+        lines.push(`- \`${mdCode(img.path)}\` (${img.size} bytes)`);
       }
       lines.push("");
     }
@@ -371,7 +372,7 @@ export function generateCanvasAssetGuidelines(ctx: ContextMap, files?: SourceFil
 
   const lines: string[] = [];
 
-  lines.push(`# Asset Guidelines — ${id.name}`);
+  lines.push(`# Asset Guidelines — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -412,10 +413,10 @@ export function generateCanvasAssetGuidelines(ctx: ContextMap, files?: SourceFil
   lines.push("## Required Assets");
   lines.push("");
   lines.push("### Logos & Icons");
-  lines.push(`- [ ] ${id.name} logo (SVG, light + dark variants)`);
+  lines.push(`- [ ] ${mdText(id.name)} logo (SVG, light + dark variants)`);
   lines.push("- [ ] Axis' Iliad watermark (SVG, low opacity)");
   for (const fw of frameworks.slice(0, 6)) {
-    lines.push(`- [ ] ${fw} icon (SVG or PNG)`);
+    lines.push(`- [ ] ${mdText(fw)} icon (SVG or PNG)`);
   }
   lines.push("");
 
@@ -455,7 +456,7 @@ export function generateCanvasAssetGuidelines(ctx: ContextMap, files?: SourceFil
       lines.push("| File | Size |");
       lines.push("|------|------|");
       for (const af of assetFiles.slice(0, 12)) {
-        lines.push(`| \`${af.path}\` | ${af.size} bytes |`);
+        lines.push(`| \`${mdCellCode(af.path)}\` | ${af.size} bytes |`);
       }
       lines.push("");
     }
@@ -480,7 +481,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   const abstractions = ctx.ai_context.key_abstractions;
 
   const lines: string[] = [];
-  lines.push(`# Brand Board — ${id.name}`);
+  lines.push(`# Brand Board — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -490,7 +491,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -545,7 +546,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   // Logo Usage
   lines.push("## Logo & Mark");
   lines.push("");
-  lines.push(`### Project: ${id.name}`);
+  lines.push(`### Project: ${mdText(id.name)}`);
   lines.push("");
   lines.push("| Variant | Usage | Min Size | Clear Space |");
   lines.push("|---------|-------|----------|-------------|");
@@ -565,7 +566,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
     "Clean", "Technical", "Precise", "Structured",
     id.primary_language, ...frameworks.slice(0, 2).map(f => f.name),
   ];
-  lines.push(styleKeywords.map(k => `\`${k}\``).join(" · "));
+  lines.push(styleKeywords.map(k => `\`${mdCode(k)}\``).join(" · "));
   lines.push("");
   lines.push("### Visual Language");
   lines.push("");
@@ -584,10 +585,10 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("### Stack Badge Bar");
   lines.push("");
   for (const fw of frameworks.slice(0, 6)) {
-    lines.push(`- \`${fw.name}\``);
+    lines.push(`- \`${mdCode(fw.name)}\``);
   }
   for (const l of languages.slice(0, 3)) {
-    lines.push(`- \`${l.name}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
+    lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
   }
   lines.push("");
 
@@ -595,7 +596,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("### Key Abstractions for Branding");
     lines.push("");
     for (const a of abstractions.slice(0, 5)) {
-      lines.push(`- **${a}** — candidate for conceptual branding element`);
+      lines.push(`- **${mdText(a)}** — candidate for conceptual branding element`);
     }
     lines.push("");
   }
@@ -606,7 +607,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("Consider domain-specific iconography for:");
     lines.push("");
     for (const m of ctx.domain_models.slice(0, 6)) {
-      lines.push(`- **${m.name}** (${m.kind}) — ${m.field_count} fields, from ${m.source_file}`);
+      lines.push(`- **${mdText(m.name)}** (${mdText(m.kind)}) — ${m.field_count} fields, from ${mdText(m.source_file)}`);
     }
     lines.push("");
   }
@@ -615,7 +616,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push("### Brand Warnings");
     lines.push("");
     for (const w of ctx.ai_context.warnings) {
-      lines.push(`> ⚠ ${w}`);
+      lines.push(`> ⚠ ${mdText(w)}`);
     }
     lines.push("");
   }
@@ -642,7 +643,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("| Template | Size | Elements |");
   lines.push("|----------|------|----------|");
-  lines.push(`| OG Image | 1200×630 | Brand bg, "${id.name}" heading, description, stack badges |`);
+  lines.push(`| OG Image | 1200×630 | Brand bg, "${mdInline(id.name)}" heading, description, stack badges |`);
   lines.push(`| Twitter Card | 1200×600 | Brand gradient, project mark, tagline |`);
   lines.push("| GitHub Social | 1280×640 | Minimal, mark + wordmark centered |");
   lines.push("| LinkedIn Banner | 1584×396 | Brand gradient, wordmark left-aligned |");
