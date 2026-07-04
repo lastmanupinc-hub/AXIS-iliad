@@ -123,6 +123,28 @@ describe("deploy build/script artifacts — the hostile name is slugified, never
   });
 });
 
+// DEVELOP derives render.yaml's healthCheckPath from ctx.routes — a repo-derived
+// value. A hostile route path must not inject a forged YAML key into render.yaml.
+describe("deploy render.yaml — hostile health route cannot forge a YAML key", () => {
+  const hostileRoute = [{ path: "/health\n    injected_key: pwned\n    autoDeploy: true", method: "GET", source_file: "s", handler: "h" }] as ContextMap["routes"];
+  it("the sanitized health path yields valid YAML with no forged root/service key", () => {
+    const content = generateDeployRenderBlueprint(hostileCtx({ routes: hostileRoute }), profile, files).content;
+    const doc = parseYaml(content) as { services: Array<Record<string, unknown>> };
+    expect(Object.keys(doc)).toEqual(["services"]);
+    expect(doc.services[0]).not.toHaveProperty("injected_key");
+    expect(String(doc.services[0].healthCheckPath)).not.toMatch(/[\r\n]/);
+    // autoDeploy stays the generator's literal false, not the injected true
+    expect(doc.services[0].autoDeploy).toBe(false);
+  });
+  it("the qualification report contains the hostile route path safely (no forged heading)", () => {
+    const content = generateDeployQualificationReport(hostileCtx({ routes: hostileRoute }), profile, files).content;
+    for (const l of stripFences(content).split("\n")) {
+      expect(l).not.toMatch(/^\s*#{1,6}\s+(INJ|HEAD|injected)/);
+    }
+    expect((content.match(/^```/gm) ?? []).length % 2).toBe(0);
+  });
+});
+
 describe("deploy — deterministic under hostile input", () => {
   it("all 13 generators are byte-stable across two runs", () => {
     const c = hostileCtx();

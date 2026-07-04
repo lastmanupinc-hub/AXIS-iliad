@@ -45,6 +45,59 @@ function projectImageName(ctx: ContextMap): string {
   return safeImageName(ctx.project_identity.name);
 }
 
+// ─── Package-manager + health-path detection ────────────────────
+// The Dockerfile MUST use the repo's real package manager — `npm ci` on a pnpm
+// repo (no package-lock.json) fails the build outright. Detected from the lockfile
+// (authoritative) then the package.json `packageManager` field.
+type DeployPm = "pnpm" | "yarn" | "bun" | "npm";
+function detectPackageManager(files?: SourceFile[]): DeployPm {
+  const has = (re: RegExp) => (files ?? []).some(f => re.test(f.path));
+  if (has(/(^|\/)pnpm-lock\.yaml$/i)) return "pnpm";
+  if (has(/(^|\/)yarn\.lock$/i)) return "yarn";
+  if (has(/(^|\/)bun\.lockb?$/i)) return "bun";
+  if (has(/(^|\/)package-lock\.json$/i)) return "npm";
+  const pkg = (files ?? []).find(f => /(^|\/)package\.json$/i.test(f.path));
+  const field = pkg?.content.match(/"packageManager"\s*:\s*"(pnpm|yarn|bun|npm)/)?.[1];
+  return (field as DeployPm) ?? "npm";
+}
+
+// Per-package-manager Docker settings so the emitted Dockerfile reproduces the repo's
+// install/build/runtime rather than guessing npm. `base`/`runCmd` matter for bun,
+// which needs the oven/bun image + a `bun` entrypoint (node:alpine has no `bun`).
+function pmCommands(pm: DeployPm): { corepack: boolean; base: string; runCmd: string; lockGlob: string; installAll: string; build: string } {
+  // Run the build only when a "build" script exists, but still FAIL on a real build
+  // error (unlike `<pm> build || echo …`, which swallows failures → an empty dist/).
+  const guarded = (cmd: string) => `if grep -q '"build"' package.json; then ${cmd}; fi`;
+  switch (pm) {
+    case "pnpm": return { corepack: true,  base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package.json pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc*", installAll: "pnpm install --frozen-lockfile", build: "pnpm run build --if-present" };
+    case "yarn": return { corepack: true,  base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package.json yarn.lock* .yarnrc.yml*", installAll: "yarn install --frozen-lockfile", build: guarded("yarn build") };
+    case "bun":  return { corepack: false, base: "oven/bun:1-alpine", runCmd: 'CMD ["bun", "dist/index.js"]', lockGlob: "package.json bun.lockb*", installAll: "bun install --frozen-lockfile", build: guarded("bun run build") };
+    default:     return { corepack: false, base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package*.json", installAll: "npm ci --include=dev", build: "npm run build --if-present" };
+  }
+}
+
+// The Render healthCheckPath must be a path the app actually serves. Derive it from
+// the analyzed routes (a real /health-style route) instead of hardcoding /healthz,
+// which the app may not serve → Render marks the first deploy unhealthy.
+function deriveHealthPath(ctx: ContextMap): { path: string; detected: boolean } {
+  const route = (ctx.routes ?? []).find(r => /\/(healthz|_health|health|livez|readyz|ping)\b/i.test(r.path));
+  if (!route) return { path: "/healthz", detected: false };
+  // A health-check path is a URL path. ctx.routes is repo-derived, so strip anything
+  // outside a safe path charset (blocks a hostile route from injecting a newline/`:`
+  // into render.yaml or the report) and cap the length; fall back to /healthz if empty.
+  const cleaned = String(route.path ?? "").replace(/[^a-zA-Z0-9/_.-]/g, "").slice(0, 64);
+  const safe = cleaned.startsWith("/") ? cleaned : `/${cleaned}`;
+  return { path: safe.length > 1 ? safe : "/healthz", detected: true };
+}
+
+// A single-Dockerfile deploy can't correctly target a multi-app monorepo (which
+// app is the deployable service? where does its build land?) — detect it so the
+// report can say so honestly instead of silently guessing `dist/index.js`.
+function isMonorepo(files?: SourceFile[]): boolean {
+  return (files ?? []).some(f => /(^|\/)(pnpm-workspace\.yaml|lerna\.json|nx\.json|turbo\.json)$/i.test(f.path))
+    || (files ?? []).some(f => /(^|\/)package\.json$/i.test(f.path) && /"workspaces"\s*:/.test(f.content ?? ""));
+}
+
 // ─── deploy/Dockerfile ──────────────────────────────────────────
 
 export function generateDeployDockerfile(
@@ -53,12 +106,20 @@ export function generateDeployDockerfile(
   files?: SourceFile[],
 ): GeneratedFile {
   const stack = detectStack(ctx, files);
+  const pm = detectPackageManager(files);
+  const c = pmCommands(pm);
+  const mono = isMonorepo(files);
   const lines: string[] = [];
 
   lines.push("# syntax=docker/dockerfile:1.7");
   lines.push(`# AXIS deploy/Dockerfile — local-build → registry → Render existing-image pull.`);
-  lines.push(`# Detected stack: ${stack}. Build from repo root:`);
+  lines.push(`# Detected stack: ${stack}${stack === "go" || stack === "python" ? "" : ` (package manager: ${pm})`}. Build from repo root:`);
   lines.push(`#   docker build -f deploy/Dockerfile -t ghcr.io/<owner>/${projectImageName(ctx)}:prod .`);
+  if (mono && (stack === "node-server" || stack === "node-static" || stack === "unknown")) {
+    lines.push("# NOTE: monorepo detected — the build below runs at the repo root and the");
+    lines.push("#       runtime CMD assumes ./dist. Point WORKDIR/COPY/CMD at your deployable");
+    lines.push("#       app (e.g. apps/<service>) before pushing.");
+  }
   lines.push("");
 
   if (stack === "go") {
@@ -96,12 +157,13 @@ export function generateDeployDockerfile(
     lines.push("# Override CMD if your entry point differs (e.g. gunicorn, django).");
     lines.push("CMD [\"sh\", \"-c\", \"uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}\"]");
   } else if (stack === "node-static") {
-    lines.push("FROM node:22-alpine AS builder");
+    lines.push(`FROM ${c.base} AS builder`);
     lines.push("WORKDIR /app");
-    lines.push("COPY package*.json ./");
-    lines.push("RUN npm ci");
+    if (c.corepack) lines.push("RUN corepack enable");
+    lines.push(`COPY ${c.lockGlob} ./`);
+    lines.push(`RUN ${c.installAll}`);
     lines.push("COPY . .");
-    lines.push("RUN npm run build");
+    lines.push(`RUN ${c.build}`);
     lines.push("");
     lines.push("FROM nginx:1.27-alpine");
     lines.push("# Vite outputs to /dist, SvelteKit static adapter to /build — adjust if needed.");
@@ -110,25 +172,27 @@ export function generateDeployDockerfile(
     lines.push("EXPOSE 8080");
   } else {
     // node-server and unknown both get a Node server template — safest default.
-    lines.push("FROM node:22-alpine AS builder");
+    lines.push(`FROM ${c.base} AS builder`);
     lines.push("WORKDIR /app");
-    lines.push("COPY package*.json ./");
-    lines.push("RUN npm ci --include=dev");
+    if (c.corepack) lines.push("RUN corepack enable");
+    lines.push(`COPY ${c.lockGlob} ./`);
+    lines.push(`RUN ${c.installAll}`);
     lines.push("COPY . .");
     lines.push("# Skip build step gracefully if the project has no build script.");
-    lines.push("RUN npm run build --if-present");
+    lines.push(`RUN ${c.build}`);
     lines.push("");
-    lines.push("FROM node:22-alpine");
+    lines.push(`FROM ${c.base}`);
     lines.push("RUN addgroup -S app && adduser -S app -G app");
     lines.push("WORKDIR /app");
-    lines.push("COPY --from=builder --chown=app:app /app/package*.json ./");
-    lines.push("RUN npm ci --omit=dev && npm cache clean --force");
+    lines.push("# Copy resolved dependencies + build output from the builder (package-manager-agnostic).");
+    lines.push("COPY --from=builder --chown=app:app /app/node_modules ./node_modules");
     lines.push("COPY --from=builder --chown=app:app /app/dist ./dist");
+    lines.push("COPY --from=builder --chown=app:app /app/package.json ./package.json");
     lines.push("ENV NODE_ENV=production PORT=8080");
     lines.push("EXPOSE 8080");
     lines.push("USER app");
-    lines.push("# Adjust entrypoint to match your built output path.");
-    lines.push("CMD [\"node\", \"dist/index.js\"]");
+    lines.push(mono ? "# Monorepo: build output is likely apps/<service>/dist — set CMD to your service entry." : "# Adjust entrypoint to match your built output path.");
+    lines.push(c.runCmd);
   }
 
   return {
@@ -148,7 +212,7 @@ export function generateDeployDockerignore(
   _files?: SourceFile[],
 ): GeneratedFile {
   const entries = [
-    "# AXIS deploy/.dockerignore — keep build context lean.",
+    "# AXIS deploy/Dockerfile.dockerignore — keep build context lean.",
     "**/node_modules",
     "**/dist",
     "**/build",
@@ -178,7 +242,7 @@ export function generateDeployDockerignore(
     "**/*.spec.tsx",
   ];
   return {
-    path: "deploy/.dockerignore",
+    path: "deploy/Dockerfile.dockerignore",
     content: entries.join("\n") + "\n",
     content_type: "text/plain",
     program: PROGRAM,
@@ -196,8 +260,8 @@ export function generateDeployComposeDev(
   const stack = detectStack(ctx, files);
   const name = projectImageName(ctx);
   const lines: string[] = [];
-  lines.push(`# AXIS deploy/docker-compose.dev.yml — run the prod image locally with hot reload`);
-  lines.push(`# for visual + debugger inspection before pushing to the registry.`);
+  lines.push(`# AXIS deploy/docker-compose.dev.yml — run the prod image locally for visual`);
+  lines.push(`# + debugger inspection before pushing to the registry.`);
   lines.push(`# Run from repo root: docker compose -f deploy/docker-compose.dev.yml up --build`);
   lines.push("");
   lines.push("services:");
@@ -215,14 +279,19 @@ export function generateDeployComposeDev(
   } else if (stack === "go") {
     lines.push("      - \"2345:2345\"  # delve debugger");
   }
+  if (stack === "node-server" || stack === "unknown") {
+    // Override the prod CMD so the inspector listens on the exposed 9229 port
+    // (0.0.0.0 so the host debugger can attach through the port mapping).
+    lines.push("    command: [\"node\", \"--inspect=0.0.0.0:9229\", \"dist/index.js\"]");
+  }
   lines.push("    environment:");
   lines.push("      - PORT=8080");
   lines.push("      - NODE_ENV=development");
+  // env_file is optional: `.env.dev` may not exist, and a required-but-missing
+  // file aborts `docker compose up`.
   lines.push("    env_file:");
-  lines.push("      - ../.env.dev");
-  lines.push("    volumes:");
-  lines.push("      - ../:/app:cached");
-  lines.push("      - /app/node_modules");
+  lines.push("      - path: ../.env.dev");
+  lines.push("        required: false");
   lines.push("    restart: unless-stopped");
 
   return {
@@ -230,7 +299,7 @@ export function generateDeployComposeDev(
     content: lines.join("\n") + "\n",
     content_type: "application/yaml",
     program: PROGRAM,
-    description: "Local dev compose file — runs the prod image with debug ports + volume mount so you can iterate in VSCode before pushing.",
+    description: "Local dev compose file — runs the prod image with debug ports so you can attach a debugger in VSCode before pushing.",
   };
 }
 
@@ -257,7 +326,7 @@ export function generateDeployRenderBlueprint(
   lines.push(`      url: ghcr.io/REPLACE_OWNER/${name}:prod`);
   lines.push("    plan: starter");
   lines.push("    region: oregon");
-  lines.push("    healthCheckPath: /healthz");
+  lines.push(`    healthCheckPath: ${deriveHealthPath(ctx).path}`);
   lines.push("    autoDeploy: false  # flip to true to redeploy on every new image push");
   lines.push("    envVars:");
   lines.push("      - key: PORT");
@@ -340,7 +409,7 @@ param(
 \$ErrorActionPreference = 'Stop'
 
 if (-not \$env:GHCR_OWNER) {
-  throw "Set GHCR_OWNER, e.g. \\\$env:GHCR_OWNER = 'yourgithubuser'"
+  throw 'Set GHCR_OWNER first, e.g. $env:GHCR_OWNER = your-github-user'
 }
 
 \$Image = "ghcr.io/\$(\$env:GHCR_OWNER)/${name}:\$Tag"
@@ -380,7 +449,7 @@ export function generateDeployVSCodeLaunchTemplate(
   // Emit a stack-specific debug config. Copy this into .vscode/launch.json
   // (merging with any existing entries) to attach to the container.
   const configs: Array<Record<string, unknown>> = [];
-  if (stack === "node-server" || stack === "unknown" || stack === "node-static") {
+  if (stack === "node-server" || stack === "unknown") {
     configs.push({
       type: "node",
       request: "attach",
@@ -390,6 +459,17 @@ export function generateDeployVSCodeLaunchTemplate(
       localRoot: "${workspaceFolder}",
       remoteRoot: "/app",
       skipFiles: ["<node_internals>/**"],
+    });
+  }
+  if (stack === "node-static") {
+    // A static build is served by nginx (no Node inspector to attach to) — debug the
+    // frontend in the browser against the running container instead.
+    configs.push({
+      type: "msedge",
+      request: "launch",
+      name: `Debug ${name} in browser`,
+      url: "http://localhost:8080",
+      webRoot: "${workspaceFolder}",
     });
   }
   if (stack === "python") {
@@ -501,12 +581,12 @@ export function generateDeployWranglerContainers(
   }
   lines.push("");
   lines.push(`name = "${name}"`);
-  lines.push(`main = "deploy/worker.ts"`);
+  lines.push(`main = "worker.ts"`);
   lines.push(`compatibility_date = "2025-01-01"`);
   lines.push("");
   lines.push("[[containers]]");
   lines.push(`class_name = "AppContainer"`);
-  lines.push(`image = "./deploy/Dockerfile"`);
+  lines.push(`image = "./Dockerfile"`);
   lines.push("max_instances = 5");
   lines.push(`instance_type = "basic"  # basic | standard | dev`);
   lines.push("");
@@ -559,6 +639,10 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // Routes every request to ONE container instance (good for a singleton/stateful
+    // service). To use all \`max_instances\` in wrangler.containers.toml, pass a
+    // per-request key (e.g. a session id) as the second arg, or use the library's
+    // load-balancing helper, so requests fan out across instances.
     const container = getContainer(env.APP_CONTAINER, "${name}");
     return container.fetch(request);
   },
@@ -583,10 +667,13 @@ export function generateDeployScriptCloudflareBash(
   const stack = detectStack(ctx, files);
   const outDir = hasFw(ctx, "SvelteKit") ? "build" : "dist";
   const name = projectImageName(ctx);
+  // Both wrangler configs are always generated, so `auto` can't pick by file
+  // existence — it resolves to the detected stack's recommended target.
+  const autoTarget = stack === "node-static" ? "pages" : "containers";
   const content = `#!/usr/bin/env bash
 # AXIS deploy/deploy-cloudflare.sh — local build → Cloudflare deploy.
-# Auto-detects Pages (static) vs Containers (backend) from which wrangler config exists.
-# Zero CF build minutes consumed either way.
+# 'auto' (the default) uses the detected stack's recommended target: ${autoTarget}.
+# Pass 'pages' or 'containers' explicitly to override. Zero CF build minutes either way.
 
 set -euo pipefail
 
@@ -603,7 +690,7 @@ TARGET="\${1:-auto}"
 case "\$TARGET" in
   pages)        run_pages=1; run_containers=0 ;;
   containers)   run_pages=0; run_containers=1 ;;
-  auto|"")      run_pages=1; run_containers=1 ;;
+  auto|"")      run_pages=${autoTarget === "pages" ? "1" : "0"}; run_containers=${autoTarget === "pages" ? "0" : "1"} ;;
   *) echo "Usage: \$0 [pages|containers|auto]" >&2; exit 2 ;;
 esac
 
@@ -644,6 +731,9 @@ export function generateDeployScriptCloudflarePwsh(
 ): GeneratedFile {
   const outDir = hasFw(ctx, "SvelteKit") ? "build" : "dist";
   const name = projectImageName(ctx);
+  // Both wrangler configs are always generated, so `auto` resolves to the detected
+  // stack's target (matching deploy-cloudflare.sh) rather than always-Pages.
+  const autoTarget = detectStack(ctx, files) === "node-static" ? "pages" : "containers";
   const content = `# AXIS deploy/deploy-cloudflare.ps1 — Cloudflare deploy, Windows/PowerShell variant.
 # Usage:
 #   .\\deploy\\deploy-cloudflare.ps1                # auto
@@ -686,9 +776,8 @@ switch (\$Target) {
   'pages'      { Invoke-Pages }
   'containers' { Invoke-Containers }
   default {
-    if (Test-Path \$PagesCfg) { Invoke-Pages }
-    elseif (Test-Path \$ContainersCfg) { Invoke-Containers }
-    else { throw "No wrangler config found (\$PagesCfg or \$ContainersCfg)" }
+    # 'auto' → the detected stack's recommended target: ${autoTarget}
+    ${autoTarget === "pages" ? "Invoke-Pages" : "Invoke-Containers"}
   }
 }
 `;
@@ -709,30 +798,41 @@ export function generateDeployQualificationReport(
   files?: SourceFile[],
 ): GeneratedFile {
   const stack = detectStack(ctx, files);
+  const pm = detectPackageManager(files);
+  const health = deriveHealthPath(ctx);
+  const mono = isMonorepo(files);
   const fileMap = new Map((files ?? []).map(f => [f.path.toLowerCase(), f]));
   const name = projectImageName(ctx);
 
   const checks: Array<{ name: string; status: "PASS" | "WARN" | "FAIL"; note: string }> = [];
 
+  const isNode = stack === "node-server" || stack === "node-static" || stack === "unknown";
   checks.push({
     name: "Stack detected",
     status: stack === "unknown" ? "WARN" : "PASS",
     note: stack === "unknown"
       ? "Could not infer language; Dockerfile defaulted to Node server template — review before pushing."
-      : `Detected '${stack}' — Dockerfile template matches.`,
+      : `Detected '${stack}'${isNode ? ` (package manager: ${pm})` : ""} — Dockerfile template matches.`,
   });
 
-  const hasHealthRoute = (ctx.routes ?? []).some(r => /\/healthz|\/_health|\/health/.test(r.path));
+  if (mono && isNode) {
+    checks.push({
+      name: "Monorepo entrypoint",
+      status: "WARN",
+      note: "Monorepo detected. One Dockerfile can't know which app is the deployable service — the build runs at the repo root and CMD assumes ./dist. Point WORKDIR/COPY/CMD at your app (e.g. apps/<service>) before pushing.",
+    });
+  }
+
   checks.push({
-    name: "Healthcheck route /healthz",
-    status: hasHealthRoute ? "PASS" : "WARN",
-    note: hasHealthRoute
-      ? "Detected an existing /healthz-style route — Render healthCheckPath will pass."
-      : "No /healthz route detected. Render will mark the service unhealthy on first deploy. Add a 200 OK handler at GET /healthz before pushing.",
+    name: "Healthcheck route",
+    status: health.detected ? "PASS" : "WARN",
+    note: health.detected
+      ? `Detected route ${health.path} — render.yaml healthCheckPath is set to it, so Render's probe will pass.`
+      : "No /health-style route detected. render.yaml defaults healthCheckPath to /healthz; add a 200 OK handler at that path (or edit render.yaml to your real health route) before pushing, or Render marks the first deploy unhealthy.",
   });
 
   const usesPortEnv = (files ?? []).some(f =>
-    /\bPORT\b/.test(f.content ?? "") && /process\.env\.PORT|os\.environ.*PORT|os\.Getenv.*PORT/.test(f.content ?? ""),
+    /process\.env\.PORT|os\.environ.*PORT|os\.Getenv.*PORT/.test(f.content ?? ""),
   );
   checks.push({
     name: "Honors $PORT env",
@@ -756,13 +856,13 @@ export function generateDeployQualificationReport(
       : "Dockerfile drops to non-root before CMD.",
   });
 
-  const hasDockerignoreAlready = fileMap.has(".dockerignore");
+  const hasRootDockerignore = fileMap.has(".dockerignore");
   checks.push({
-    name: "Root .dockerignore",
-    status: hasDockerignoreAlready ? "WARN" : "PASS",
-    note: hasDockerignoreAlready
-      ? "An existing root .dockerignore is present; the deploy/.dockerignore is scoped to the deploy build context. Either consolidate or keep both intentionally."
-      : "No conflict — deploy/.dockerignore is the canonical ignore for this build.",
+    name: "Build-context .dockerignore",
+    status: "PASS",
+    note: hasRootDockerignore
+      ? "A root .dockerignore exists; BuildKit (enabled by the Dockerfile `# syntax=` line) reads deploy/Dockerfile.dockerignore for THIS build, so the two coexist without conflict."
+      : "deploy/Dockerfile.dockerignore is read by BuildKit for this Dockerfile — the ignore for this build context.",
   });
 
   // ─── Cloudflare-specific checks ───────────────────────────────
@@ -798,9 +898,9 @@ export function generateDeployQualificationReport(
   const lines: string[] = [];
   lines.push(`# Deploy Qualification Report — ${mdText(ctx.project_identity.name)}`);
   lines.push("");
-  lines.push("Generated by AXIS `deploy` program. Verifies the emitted artifacts will pass Render's existing-image and Cloudflare's wrangler-driven deploy qualifications without manual edits.");
+  lines.push("Generated by AXIS `deploy` program. The emitted artifacts are intended to pass Render's existing-image and Cloudflare's wrangler-driven deploy qualifications with minimal setup — set your image owner (`REPLACE_OWNER`/`<owner>`), confirm the entrypoint, and install the worker dependency where flagged below.");
   lines.push("");
-  lines.push(`**Targets:** Render (\`runtime: image\`) · Cloudflare ${recommendedCfTarget}  •  **Image:** \`ghcr.io/<owner>/${name}:prod\`  •  **Port:** 8080  •  **Healthcheck:** \`/healthz\``);
+  lines.push(`**Targets:** Render (\`runtime: image\`) · Cloudflare ${recommendedCfTarget}  •  **Image:** \`ghcr.io/<owner>/${name}:prod\`  •  **Port:** 8080  •  **Healthcheck:** \`${health.path}\``);
   lines.push("");
   lines.push(`**Summary:** ${checks.length - warning - failing} pass  /  ${warning} warn  /  ${failing} fail`);
   lines.push("");
