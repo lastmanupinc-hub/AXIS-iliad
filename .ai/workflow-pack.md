@@ -81,7 +81,7 @@ steps:
 ## Detected Config Files
 
 - `.prettierrc.json` (7 lines)
-- `apps/api/package.json` (30 lines)
+- `apps/api/package.json` (37 lines)
 - `apps/api/tsconfig.json` (10 lines)
 - `apps/cli/package.json` (23 lines)
 - `apps/cli/tsconfig.json` (18 lines)
@@ -98,6 +98,7 @@ steps:
 ```typescript
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
+import { startAlerting } from "./alerting.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -115,8 +116,7 @@ import {
   handleSuperpowersGenerate,
   handleMarketingGenerate,
   handleNotebookGenerate,
-  handleObsidianAnalyze,
-... (438 more lines)
+... (477 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -135,14 +135,14 @@ import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
+import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
 import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
 import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-import { StatusBar } from "./components/StatusBar.tsx";
-... (470 more lines)
+... (559 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -168,3 +168,12 @@ export type { ContextMap, RepoProfile } from "./types.js";
 export { buildContextMap, buildRepoProfile } from "./engine.js";
 
 ```
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `workflow-pack.md` — agent step 52 of 70.
+- **Next:** `policy-pack.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

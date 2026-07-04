@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -30,46 +30,25 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - Shared state: Context API or state library
 - Server state: data-fetching library (SWR, React Query, etc.)
 
-## Data Fetching
-
-Available API routes:
-
-- `POST /portal/api/subscribe` → apps/api/src/paid-handlers.test.ts
-- `POST /portal/api/paid/webhook` → apps/api/src/paid-handlers.test.ts
-- `GET /openapi.json` → apps/api/src/server.ts
-- `POST /portal/api/subscribe` → apps/api/src/server.ts
-- `POST /portal/api/paid/webhook` → apps/api/src/server.ts
-- `GET /openapi.json` → apps/api/src/well-known-handlers.test.ts
-- `GET /api/health` → packages/context-engine/src/engine-branches.test.ts
-- `POST /api/users` → packages/context-engine/src/engine-branches.test.ts
-- `GET /api/users` → packages/context-engine/src/engine-edge.test.ts
-- `POST /api/users` → packages/context-engine/src/engine-edge.test.ts
-- `DELETE /api/users/:id` → packages/context-engine/src/engine-edge.test.ts
-- `GET /api/health` → packages/generator-core/src/generator-branches.test.ts
-- `GET /api/users` → packages/generator-core/src/generator-branches.test.ts
-- `POST /api/users` → packages/generator-core/src/generator-branches.test.ts
-- `GET /api/health` → packages/generator-core/src/generator-sourcefile-branches6.test.ts
-
-
 ## UI Data Types
 
 These domain models were detected in the codebase. Use their type names in component props and state:
 
 | Type | Kind | Fields | Source |
 |------|------|--------|--------|
-| `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
-| `EmailConfig` | interface | 2 | `apps/api/src/email.ts` |
-| `ResendErrorResponse` | interface | 3 | `apps/api/src/email.ts` |
-| `ResendSuccessResponse` | interface | 1 | `apps/api/src/email.ts` |
-| `SendEmailOptions` | interface | 5 | `apps/api/src/email.ts` |
-| `SendEmailResult` | interface | 4 | `apps/api/src/email.ts` |
-| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
-| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
-| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
-| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
-| `EnvSpec` | interface | 5 | `apps/api/src/env.ts` |
-| `ValidationError` | interface | 2 | `apps/api/src/env.ts` |
-| *... and 252 more* | | | |
+| `AlertThresholds` | interface | 2 | `apps/api/src/alerting.ts` |
+| `Counters` | type_alias | 2 | `apps/api/src/alerting.ts` |
+| `DebounceState` | interface | 2 | `apps/api/src/alerting.ts` |
+| `WindowResult` | interface | 4 | `apps/api/src/alerting.ts` |
+| `AnalyticsCountByBucketResult` | interface | 3 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountByBucketRow` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountByEventResult` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountByEventRow` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountResult` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsDistinctUsersResult` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsEvent` | interface | 4 | `apps/api/src/analytics.ts` |
+| `AnalyticsQuery` | interface | 8 | `apps/api/src/analytics.ts` |
+| *... and 230 more* | | | |
 
 **Rule**: Component prop types must reference these detected types, not re-define them. Import from the canonical source file.
 
@@ -95,44 +74,53 @@ These domain models were detected in the codebase. Use their type names in compo
 ## Project Components
 
 - **`apps/web/src/App.tsx`**: `export function App() { ... }`
+- **`apps/web/src/components/AuthButtons.tsx`**: `export function AuthButtons({ ... }`
 - **`apps/web/src/components/AxisIcons.tsx`**: `export function Icon({ ... }`
 - **`apps/web/src/components/CommandPalette.tsx`**: `export interface PaletteAction { ... }`, `export function CommandPalette({ ... }`
 - **`apps/web/src/components/FilesTab.tsx`**: `export function FilesTab({ ... }`
 - **`apps/web/src/components/GeneratedTab.tsx`**: `export function GeneratedTab({ ... }`
 - **`apps/web/src/components/GraphTab.tsx`**: `export function GraphTab({ ... }`
+- **`apps/web/src/components/Icon.tsx`**: `export function Icon({ ... }`
 - **`apps/web/src/components/OverviewTab.tsx`**: `export function OverviewTab({ ... }`
 - **`apps/web/src/components/ProgramLauncher.tsx`**: `export function ProgramLauncher({ ... }`
-- **`apps/web/src/components/SearchTab.tsx`**: `export function SearchTab({ ... }`
-- **`apps/web/src/components/SignUpModal.tsx`**: `export function SignUpModal({ ... }`
-- *... and 27 more*
+- *... and 25 more*
 
 ## Style Sources
 
 ### `apps/web/src/index.css`
 
 ```css
-:root {
-  --bg: #f8f9fa;
-  --bg-card: #ffffff;
-  --bg-hover: #f0f1f3;
-  --border: #d1d5db;
-  --text: #1a1a2e;
-  --text-muted: #6b7280;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --green: #16a34a;
-  --yellow: #ca8a04;
-  --red: #dc2626;
-  --blue: #2563eb;
-  --radius: 8px;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
+/* ==========================================================================
+   AVERIONICS theme pack — Axis' Iliad
+   A cockpit/instrument design system: HUD cyan accent, amber caution, precise
+   panel borders, glow focus, monospace instrument labels. Full light + dark.
+   :root = "daylight instrument" · [data-theme="dark"] = "night cockpit".
+   ========================================================================== */
 
-[data-theme="dark"] {
-... (750 more lines)
+:root {
+  /* Surfaces — daylight instrument */
+  --bg: #eceff3;
+  --bg-card: #ffffff;
+  --bg-hover: #e2e7ee;
+  --bg-inset: #f4f6f9;
+  --bg-tertiary: #e8edf3;
+  /* Edges */
+  --border: #ccd5e0;
+  --border-strong: #b3bfce;
+  /* Ink */
+  --text: #0c1118;
+  --text-muted: #5b6878;
+... (1329 more lines)
 ```
 
 ---
 *Generated by Axis Frontend*
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `frontend-rules.md` — agent step 7 of 70.
+- **Next:** `component-guidelines.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

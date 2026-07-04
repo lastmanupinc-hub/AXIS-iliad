@@ -4,29 +4,29 @@
 
 ## Project Synopsis
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Architecture Overview
 
-- **Files**: 500 files across 65 directories
-- **Lines of Code**: 133,500
+- **Files**: 500 files across 57 directories
+- **Lines of Code**: 115,124
 - **Primary Language**: TypeScript
 - **Frameworks**: React
 - **Patterns**: monorepo, containerized
-- **Separation Score**: 0.65/10
+- **Separation Score**: 0.65 / 1.0
 
 ## Key Concepts
 
-- **`AuthContext`** — interface (3 fields in `apps/api/src/billing.ts`)
-- **`EmailConfig`** — interface (2 fields in `apps/api/src/email.ts`)
-- **`ResendErrorResponse`** — interface (3 fields in `apps/api/src/email.ts`)
-- **`ResendSuccessResponse`** — interface (1 fields in `apps/api/src/email.ts`)
-- **`SendEmailOptions`** — interface (5 fields in `apps/api/src/email.ts`)
-- **`SendEmailResult`** — interface (4 fields in `apps/api/src/email.ts`)
-- **`EmbeddingsConfig`** — interface (2 fields in `apps/api/src/embeddings.ts`)
-- **`EmbeddingsResult`** — interface (4 fields in `apps/api/src/embeddings.ts`)
-- **`OpenAIEmbeddingResponse`** — interface (5 fields in `apps/api/src/embeddings.ts`)
-- **`OpenAIErrorResponse`** — interface (3 fields in `apps/api/src/embeddings.ts`)
+- **`AlertThresholds`** — interface (2 fields in `apps/api/src/alerting.ts`)
+- **`Counters`** — type_alias (2 fields in `apps/api/src/alerting.ts`)
+- **`DebounceState`** — interface (2 fields in `apps/api/src/alerting.ts`)
+- **`WindowResult`** — interface (4 fields in `apps/api/src/alerting.ts`)
+- **`AnalyticsCountByBucketResult`** — interface (3 fields in `apps/api/src/analytics.ts`)
+- **`AnalyticsCountByBucketRow`** — interface (2 fields in `apps/api/src/analytics.ts`)
+- **`AnalyticsCountByEventResult`** — interface (2 fields in `apps/api/src/analytics.ts`)
+- **`AnalyticsCountByEventRow`** — interface (2 fields in `apps/api/src/analytics.ts`)
+- **`AnalyticsCountResult`** — interface (2 fields in `apps/api/src/analytics.ts`)
+- **`AnalyticsDistinctUsersResult`** — interface (2 fields in `apps/api/src/analytics.ts`)
 
 ## Conventions
 
@@ -41,21 +41,21 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Dependency Snapshot
 
-Total external dependencies: **27**
+Total external dependencies: **32**
 
 | Package | Version |
 |---------|---------|
 | @axis/context-engine | workspace:* |
 | @axis/generator-core | workspace:* |
 | @axis/mpp | workspace:* |
+| @axis/paid-client | workspace:* |
 | @axis/repo-parser | workspace:* |
 | @axis/snapshots | workspace:* |
 | @jmondi/oauth2-server | ^4.2.2 |
+| dockerode | ^4.0.12 |
+| ffmpeg-static | ^5.3.0 |
 | jsonwebtoken | ^9.0.3 |
-| mppx | ^0.5.12 |
-| jszip | ^3.10.1 |
-| react | ^19.1.0 |
-| ... | +17 more |
+| ... | +22 more |
 
 ## Entry Point Source
 
@@ -65,8 +65,6 @@ Total external dependencies: **27**
 | `apps/web/src/App.tsx` | export function App() { ... } |
 | `apps/web/src/main.tsx` | default |
 | `packages/context-engine/src/index.ts` | export type { ... }, export { ... } |
-| `packages/generator-core/src/index.ts` | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... } |
-| `packages/mpp/src/index.ts` | export type ChargeOptions = ..., export type MppResult = ..., export interface AgentBudget { ... }, export interface PricingTier { ... }, export interface Build402Options { ... }, export const PRICING_TIERS: Record<string, PricingTier> = ..., export const LEGACY_TOOL_ALIASES: Record<string, string> = ..., export function getPricingTier(tool: string): PricingTier { ... }, export function negotiatePrice(, export function build402NegotiationBody(, export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined { ... }, export function resolveAgentMode(req: IncomingMessage): "standard" | "lite" { ... } |
 
 ## Configuration Files
 
@@ -100,7 +98,7 @@ Total external dependencies: **27**
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
     "@axis/mpp": "workspace:*",
-... (15 more lines)
+... (22 more lines)
 ```
 
 ### `apps/api/tsconfig.json`
@@ -117,3 +115,12 @@ Total external dependencies: **27**
 }
 
 ```
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `notebook-summary.md` — agent step 25 of 70.
+- **Next:** `study-brief.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

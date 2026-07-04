@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.770Z",
+  "generated_at": "1970-01-01T00:00:00.000Z",
   "scheme": "dark",
   "detected_stack": {
     "frameworks": [
@@ -11,67 +11,67 @@
   },
   "colors": {
     "background": {
-      "base": "#0f172a",
-      "surface": "#1e293b",
-      "elevated": "#334155",
-      "overlay": "rgba(0, 0, 0, 0.6)"
+      "base": "#070b11",
+      "surface": "#0d141d",
+      "elevated": "#141e29",
+      "overlay": "rgba(0, 0, 0, 0.7)"
     },
     "foreground": {
-      "primary": "#f8fafc",
-      "secondary": "#94a3b8",
-      "muted": "#64748b",
-      "inverse": "#0f172a"
+      "primary": "#d6e2ee",
+      "secondary": "#8b9bb0",
+      "muted": "#6e8093",
+      "inverse": "#070b11"
     },
     "brand": {
-      "primary": "#38bdf8",
-      "primary-hover": "#7dd3fc",
-      "secondary": "#fb923c",
-      "secondary-hover": "#fdba74",
-      "accent": "#a78bfa"
+      "primary": "#22d3ee",
+      "primary-hover": "#67e8f9",
+      "secondary": "#ffb020",
+      "secondary-hover": "#ffc53d",
+      "accent": "#22d3ee"
     },
     "semantic": {
-      "success": "#4ade80",
-      "success-bg": "rgba(74, 222, 128, 0.1)",
-      "warning": "#fbbf24",
-      "warning-bg": "rgba(251, 191, 36, 0.1)",
-      "error": "#f87171",
-      "error-bg": "rgba(248, 113, 113, 0.1)",
-      "info": "#60a5fa",
-      "info-bg": "rgba(96, 165, 250, 0.1)"
+      "success": "#2ee6a6",
+      "success-bg": "rgba(46, 230, 166, 0.1)",
+      "warning": "#ffc53d",
+      "warning-bg": "rgba(255, 197, 61, 0.1)",
+      "error": "#ff5d6c",
+      "error-bg": "rgba(255, 93, 108, 0.1)",
+      "info": "#22d3ee",
+      "info-bg": "rgba(34, 211, 238, 0.1)"
     },
     "border": {
-      "default": "#334155",
-      "focus": "#38bdf8",
-      "subtle": "#1e293b"
+      "default": "#1b2733",
+      "focus": "#22d3ee",
+      "subtle": "#141e29"
     }
   },
   "surfaces": {
     "page": {
-      "bg": "#0a0a0a",
-      "text": "#fafafa",
-      "border": "#262626"
+      "bg": "#070b11",
+      "text": "#d6e2ee",
+      "border": "#1b2733"
     },
     "card": {
-      "bg": "#171717",
-      "text": "#f5f5f5",
-      "border": "#262626",
-      "shadow": "0 1px 3px rgba(0,0,0,0.4)"
+      "bg": "#0d141d",
+      "text": "#d6e2ee",
+      "border": "#1b2733",
+      "shadow": "0 1px 2px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35)"
     },
     "elevated": {
-      "bg": "#262626",
-      "text": "#f5f5f5",
-      "border": "#404040",
-      "shadow": "0 10px 15px rgba(0,0,0,0.5)"
+      "bg": "#141e29",
+      "text": "#d6e2ee",
+      "border": "#29384a",
+      "shadow": "0 10px 18px rgba(0,0,0,0.55)"
     },
     "inset": {
-      "bg": "#0f0f0f",
-      "text": "#d4d4d4",
-      "border": "#262626"
+      "bg": "#0a0f16",
+      "text": "#aebccd",
+      "border": "#1b2733"
     },
     "overlay": {
-      "bg": "#171717",
-      "text": "#fafafa",
-      "shadow": "0 10px 15px rgba(0,0,0,0.6)",
+      "bg": "#0d141d",
+      "text": "#d6e2ee",
+      "shadow": "0 10px 18px rgba(0,0,0,0.6)",
       "backdrop": "rgba(0,0,0,0.7)"
     }
   },
@@ -79,13 +79,13 @@
     "sm": "0 1px 2px rgba(0, 0, 0, 0.3)",
     "md": "0 4px 6px rgba(0, 0, 0, 0.4)",
     "lg": "0 10px 15px rgba(0, 0, 0, 0.5)",
-    "glow": "0 0 20px rgba(56, 189, 248, 0.15)"
+    "glow": "0 0 20px rgba(34, 211, 238, 0.15)"
   },
   "motion": {
     "note": "Dark mode may warrant subtler motion. Reduce glow/shadow transitions in dark contexts.",
     "transition_overrides": {
       "shadow_transition": "box-shadow 200ms ease",
-      "glow_on_focus": "0 0 0 3px rgba(56, 189, 248, 0.25)"
+      "glow_on_focus": "0 0 0 3px rgba(34, 211, 238, 0.25)"
     }
   },
   "implementation": {
@@ -95,7 +95,7 @@
     "tailwind_config": null,
     "css_variables": {
       "prefix": "--color",
-      "example": "--color-bg-base: #0f172a",
+      "example": "--color-bg-base: #070b11",
       "selector": ":root[data-theme='dark']"
     }
   },
@@ -122,9 +122,6 @@
     }
   },
   "source_theme_files": [
-    "apps/web/src/index.css",
-    "component-theme-map.json",
-    "dark-mode-tokens.json",
-    "packages/generator-core/src/generators-theme.ts"
+    "apps/web/src/index.css"
   ]
 }

@@ -1,0 +1,12 @@
+# AXIS deploy/wrangler.pages.toml — Cloudflare Pages, direct upload.
+# Zero CF build minutes: you build locally, wrangler uploads the dist.
+# Run:  npm run build  &&  npx wrangler pages deploy dist/ --config=deploy/wrangler.pages.toml
+# NOTE: detected 'node-server' stack — Pages is for static frontends. If this
+#       project is a backend, use deploy/wrangler.containers.toml instead.
+
+name = "axis-iliad"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "dist"
+
+# Set runtime env vars via: npx wrangler pages secret put <NAME> --project-name=axis-iliad
+# or in the Cloudflare dashboard. Do not commit secrets to this file.

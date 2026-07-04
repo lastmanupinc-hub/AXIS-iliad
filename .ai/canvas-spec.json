@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.306Z",
+  "generated_at": "1970-01-01T00:00:00.000Z",
   "design_system": {
     "colors": {
       "primary": "#6366f1",
@@ -119,10 +119,10 @@
   ],
   "data_bindings": {
     "title": "axis-iliad",
-    "subtitle": null,
+    "subtitle": "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**",
     "type": "monorepo",
     "language": "TypeScript",
-    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
+    "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
     "frameworks": [
       {
         "name": "React",
@@ -136,33 +136,33 @@
     "language_stats": [
       {
         "name": "TypeScript",
-        "percent": 76.5,
-        "loc": 93770
+        "percent": 80,
+        "loc": 89597
       },
       {
         "name": "YAML",
-        "percent": 8.1,
-        "loc": 9885
-      },
-      {
-        "name": "JSON",
-        "percent": 6.6,
-        "loc": 8079
+        "percent": 9.5,
+        "loc": 10597
       },
       {
         "name": "Markdown",
-        "percent": 6.5,
-        "loc": 7944
+        "percent": 5.6,
+        "loc": 6295
       },
       {
         "name": "JavaScript",
+        "percent": 2,
+        "loc": 2273
+      },
+      {
+        "name": "JSON",
         "percent": 1.7,
-        "loc": 2093
+        "loc": 1922
       },
       {
         "name": "CSS",
-        "percent": 0.6,
-        "loc": 675
+        "percent": 1,
+        "loc": 1149
       },
       {
         "name": "HTML",
@@ -190,11 +190,11 @@
       }
     ],
     "entry_point_count": 0,
-    "hotspot_count": 7,
-    "domain_model_count": 264,
-    "route_count": 497,
+    "hotspot_count": 20,
+    "domain_model_count": 242,
+    "route_count": 163,
     "total_files": 500,
-    "total_loc": 133500
+    "total_loc": 115124
   },
   "source_asset_files": null
 }

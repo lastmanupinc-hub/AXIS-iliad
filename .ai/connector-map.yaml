@@ -1,7 +1,7 @@
 # Connector Map
 # Project: axis-iliad
-# Generated: 2026-05-23T03:31:46.189Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+# Generated: 1970-01-01T00:00:00.000Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 connectors:
   - id: vscode
@@ -32,16 +32,6 @@ connectors:
       - build_trigger
       - test_execution
       - deployment
-  - id: sqlite
-    name: SQLite
-    type: database
-    protocol: sqlite
-    status: detected
-    version: "^12.8.0"
-    capabilities:
-      - read
-      - write
-      - wal_mode
   - id: git
     name: Git
     type: version_control
@@ -54,198 +44,200 @@ connectors:
       - push
 
 resources:
-  - id: authcontext
-    name: AuthContext
-    type: domain_model
-    kind: interface
-    fields: 3
-    source: apps/api/src/billing.ts
-  - id: emailconfig
-    name: EmailConfig
+  # showing 15 of 242 domain models
+  - id: alertthresholds
+    name: AlertThresholds
     type: domain_model
     kind: interface
     fields: 2
-    source: apps/api/src/email.ts
-  - id: resenderrorresponse
-    name: ResendErrorResponse
+    source: apps/api/src/alerting.ts
+  - id: counters
+    name: Counters
     type: domain_model
-    kind: interface
-    fields: 3
-    source: apps/api/src/email.ts
-  - id: resendsuccessresponse
-    name: ResendSuccessResponse
-    type: domain_model
-    kind: interface
-    fields: 1
-    source: apps/api/src/email.ts
-  - id: sendemailoptions
-    name: SendEmailOptions
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/email.ts
-  - id: sendemailresult
-    name: SendEmailResult
-    type: domain_model
-    kind: interface
-    fields: 4
-    source: apps/api/src/email.ts
-  - id: embeddingsconfig
-    name: EmbeddingsConfig
+    kind: type_alias
+    fields: 2
+    source: apps/api/src/alerting.ts
+  - id: debouncestate
+    name: DebounceState
     type: domain_model
     kind: interface
     fields: 2
-    source: apps/api/src/embeddings.ts
-  - id: embeddingsresult
-    name: EmbeddingsResult
+    source: apps/api/src/alerting.ts
+  - id: windowresult
+    name: WindowResult
     type: domain_model
     kind: interface
     fields: 4
-    source: apps/api/src/embeddings.ts
-  - id: openaiembeddingresponse
-    name: OpenAIEmbeddingResponse
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/embeddings.ts
-  - id: openaierrorresponse
-    name: OpenAIErrorResponse
+    source: apps/api/src/alerting.ts
+  - id: analyticscountbybucketresult
+    name: AnalyticsCountByBucketResult
     type: domain_model
     kind: interface
     fields: 3
-    source: apps/api/src/embeddings.ts
-  - id: envspec
-    name: EnvSpec
-    type: domain_model
-    kind: interface
-    fields: 5
-    source: apps/api/src/env.ts
-  - id: validationerror
-    name: ValidationError
+    source: apps/api/src/analytics.ts
+  - id: analyticscountbybucketrow
+    name: AnalyticsCountByBucketRow
     type: domain_model
     kind: interface
     fields: 2
-    source: apps/api/src/env.ts
-  - id: validationresult
-    name: ValidationResult
+    source: apps/api/src/analytics.ts
+  - id: analyticscountbyeventresult
+    name: AnalyticsCountByEventResult
     type: domain_model
     kind: interface
-    fields: 3
-    source: apps/api/src/env.ts
-  - id: zipentry
-    name: ZipEntry
+    fields: 2
+    source: apps/api/src/analytics.ts
+  - id: analyticscountbyeventrow
+    name: AnalyticsCountByEventRow
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/analytics.ts
+  - id: analyticscountresult
+    name: AnalyticsCountResult
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/analytics.ts
+  - id: analyticsdistinctusersresult
+    name: AnalyticsDistinctUsersResult
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/analytics.ts
+  - id: analyticsevent
+    name: AnalyticsEvent
     type: domain_model
     kind: interface
     fields: 4
-    source: apps/api/src/export.ts
-  - id: pullrequestpayload
-    name: PullRequestPayload
+    source: apps/api/src/analytics.ts
+  - id: analyticsquery
+    name: AnalyticsQuery
+    type: domain_model
+    kind: interface
+    fields: 8
+    source: apps/api/src/analytics.ts
+  - id: whereclause
+    name: WhereClause
+    type: domain_model
+    kind: interface
+    fields: 2
+    source: apps/api/src/analytics.ts
+  - id: driftdeps
+    name: DriftDeps
     type: domain_model
     kind: interface
     fields: 5
-    source: apps/api/src/github-webhook.ts
+    source: apps/api/src/architecture-drift-webhook.ts
+  - id: driftoutcome
+    name: DriftOutcome
+    type: domain_model
+    kind: interface
+    fields: 3
+    source: apps/api/src/architecture-drift-webhook.ts
 
 tools:
+  # showing 20 of 163 routes
   - id: v1_health
-    name: "GET /v1/health"
+    name: GET /v1/health
     method: GET
     path: /v1/health
-    source: apps/api/src/admin.test.ts
+    source: apps/api/src/server.ts
   - id: v1_accounts
-    name: "POST /v1/accounts"
+    name: POST /v1/accounts
     method: POST
     path: /v1/accounts
-    source: apps/api/src/admin.test.ts
+    source: apps/api/src/server.ts
   - id: v1_snapshots
-    name: "POST /v1/snapshots"
+    name: POST /v1/snapshots
     method: POST
     path: /v1/snapshots
-    source: apps/api/src/admin.test.ts
+    source: apps/api/src/server.ts
   - id: v1_admin_stats
-    name: "GET /v1/admin/stats"
+    name: GET /v1/admin/stats
     method: GET
     path: /v1/admin/stats
-    source: apps/api/src/admin.test.ts
+    source: apps/api/src/server.ts
   - id: v1_admin_accounts
-    name: "GET /v1/admin/accounts"
+    name: GET /v1/admin/accounts
     method: GET
     path: /v1/admin/accounts
-    source: apps/api/src/admin.test.ts
+    source: apps/api/src/server.ts
   - id: v1_admin_activity
-    name: "GET /v1/admin/activity"
+    name: GET /v1/admin/activity
     method: GET
     path: /v1/admin/activity
-    source: apps/api/src/admin.test.ts
+    source: apps/api/src/server.ts
+  - id: v1_admin_mcp_usage
+    name: GET /v1/admin/mcp-usage
+    method: GET
+    path: /v1/admin/mcp-usage
+    source: apps/api/src/server.ts
+  - id: v1_admin_revenue
+    name: GET /v1/admin/revenue
+    method: GET
+    path: /v1/admin/revenue
+    source: apps/api/src/server.ts
   - id: llms_txt
-    name: "GET /llms.txt"
+    name: GET /llms.txt
     method: GET
     path: /llms.txt
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: well_known_skills_index_json
-    name: "GET /.well-known/skills/index.json"
+    name: GET /.well-known/skills/index.json
     method: GET
     path: /.well-known/skills/index.json
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: v1_docs_md
-    name: "GET /v1/docs.md"
+    name: GET /v1/docs.md
     method: GET
     path: /v1/docs.md
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: well_known_axis_json
-    name: "GET /.well-known/axis.json"
+    name: GET /.well-known/axis.json
     method: GET
     path: /.well-known/axis.json
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: for_agents
-    name: "GET /for-agents"
+    name: GET /for-agents
     method: GET
     path: /for-agents
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: v1_install
-    name: "GET /v1/install"
+    name: GET /v1/install
     method: GET
     path: /v1/install
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: v1_install__platform
     name: "GET /v1/install/:platform"
     method: GET
-    path: /v1/install/:platform
-    source: apps/api/src/agent-discovery.test.ts
+    path: "/v1/install/:platform"
+    source: apps/api/src/server.ts
   - id: probe_intent
-    name: "POST /probe-intent"
+    name: POST /probe-intent
     method: POST
     path: /probe-intent
-    source: apps/api/src/agent-discovery.test.ts
+    source: apps/api/src/server.ts
   - id: mcp
-    name: "POST /mcp"
+    name: POST /mcp
     method: POST
     path: /mcp
-    source: apps/api/src/analyze-repo-success.test.ts
+    source: apps/api/src/server.ts
   - id: v1_analyze
-    name: "POST /v1/analyze"
+    name: POST /v1/analyze
     method: POST
     path: /v1/analyze
-    source: apps/api/src/analyze.test.ts
-  - id: well_known_axis_json
-    name: "GET /.well-known/axis.json"
-    method: GET
-    path: /.well-known/axis.json
-    source: apps/api/src/analyze.test.ts
-  - id: v1_snapshots
-    name: "POST /v1/snapshots"
-    method: POST
-    path: /v1/snapshots
-    source: apps/api/src/api-branches.test.ts
+    source: apps/api/src/server.ts
   - id: v1_snapshots__snapshot_id
     name: "GET /v1/snapshots/:snapshot_id"
     method: GET
-    path: /v1/snapshots/:snapshot_id
-    source: apps/api/src/api-branches.test.ts
+    path: "/v1/snapshots/:snapshot_id"
+    source: apps/api/src/server.ts
   - id: v1_snapshots__snapshot_id
     name: "DELETE /v1/snapshots/:snapshot_id"
     method: DELETE
-    path: /v1/snapshots/:snapshot_id
-    source: apps/api/src/api-branches.test.ts
+    path: "/v1/snapshots/:snapshot_id"
+    source: apps/api/src/server.ts
 
 integration_flows:
   - name: development_loop
@@ -263,12 +255,14 @@ integration_flows:
 # Detected CI/Deployment Files
 detected_configs:
   - path: ".github/workflows/ci.yml"
-    size: 4859
+    size: 8725
   - path: ".github/workflows/compliance-check.yml"
     size: 733
+  - path: ".github/workflows/context-freshness.yml"
+    size: 951
   - path: ".github/workflows/release.yml"
     size: 570
-  - path: "docker-compose.yml"
-    size: 548
   - path: "Dockerfile"
     size: 887
+  - path: "docker-compose.yml"
+    size: 740

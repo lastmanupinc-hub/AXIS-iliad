@@ -1,7 +1,7 @@
 {
   "$schema": "https://design-tokens.github.io/community-group/format/",
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.065Z",
+  "generated_at": "1970-01-01T00:00:00.000Z",
   "styling_approach": "plain-css",
   "project_type": "monorepo",
   "primary_language": "TypeScript",
@@ -21,33 +21,33 @@
   "languages": [
     {
       "name": "TypeScript",
-      "file_count": 283,
-      "loc_percent": 76.5
+      "file_count": 312,
+      "loc_percent": 80
     },
     {
       "name": "YAML",
       "file_count": 57,
-      "loc_percent": 8.1
-    },
-    {
-      "name": "JSON",
-      "file_count": 60,
-      "loc_percent": 6.6
+      "loc_percent": 9.5
     },
     {
       "name": "Markdown",
-      "file_count": 74,
-      "loc_percent": 6.5
+      "file_count": 77,
+      "loc_percent": 5.6
     },
     {
       "name": "JavaScript",
-      "file_count": 8,
+      "file_count": 9,
+      "loc_percent": 2
+    },
+    {
+      "name": "JSON",
+      "file_count": 34,
       "loc_percent": 1.7
     },
     {
       "name": "CSS",
       "file_count": 1,
-      "loc_percent": 0.6
+      "loc_percent": 1
     },
     {
       "name": "HTML",
@@ -67,46 +67,54 @@
       "containerized"
     ],
     "total_files": 500,
-    "total_loc": 133500
+    "total_loc": 115124
   },
   "colors": {
     "primary": {
-      "50": "#eff6ff",
-      "100": "#dbeafe",
-      "200": "#bfdbfe",
-      "300": "#93c5fd",
-      "400": "#60a5fa",
-      "500": "#3b82f6",
-      "600": "#2563eb",
-      "700": "#1d4ed8",
-      "800": "#1e40af",
-      "900": "#1e3a8a",
-      "950": "#172554"
+      "50": "#ecfeff",
+      "100": "#cffafe",
+      "200": "#a5f3fc",
+      "300": "#67e8f9",
+      "400": "#22d3ee",
+      "500": "#06b6d4",
+      "600": "#0891b2",
+      "700": "#0e7490",
+      "800": "#155e75",
+      "900": "#164e63",
+      "950": "#083344"
     },
     "neutral": {
-      "50": "#fafafa",
-      "100": "#f5f5f5",
-      "200": "#e5e5e5",
-      "300": "#d4d4d4",
-      "400": "#a3a3a3",
-      "500": "#737373",
-      "600": "#525252",
-      "700": "#404040",
-      "800": "#262626",
-      "900": "#171717",
-      "950": "#0a0a0a"
+      "50": "#f4f7fa",
+      "100": "#e8edf3",
+      "200": "#cfd9e4",
+      "300": "#aebccd",
+      "400": "#7e8ea3",
+      "500": "#5b6b81",
+      "600": "#44566b",
+      "700": "#324153",
+      "800": "#1b2733",
+      "900": "#0d141d",
+      "950": "#070b11"
+    },
+    "accent": {
+      "500": "#0a8aa6",
+      "600": "#0e7490"
+    },
+    "amber": {
+      "500": "#b06a00",
+      "600": "#8a5300"
     },
     "success": {
-      "500": "#22c55e",
-      "600": "#16a34a"
+      "500": "#0f9d58",
+      "600": "#0c7a45"
     },
     "warning": {
-      "500": "#eab308",
-      "600": "#ca8a04"
+      "500": "#b06a00",
+      "600": "#8a5300"
     },
     "error": {
-      "500": "#ef4444",
-      "600": "#dc2626"
+      "500": "#d23b3b",
+      "600": "#b02e2e"
     }
   },
   "spacing": {
@@ -259,11 +267,6 @@
     }
   },
   "source_theme_files": [
-    "apps/web/src/index.css",
-    "component-theme-map.json",
-    "dark-mode-tokens.json",
-    "packages/generator-core/src/generators-theme.ts",
-    "packages/snapshots/src/github-token-branches.test.ts",
-    "packages/snapshots/src/github-token-store.ts"
+    "apps/web/src/index.css"
   ]
 }

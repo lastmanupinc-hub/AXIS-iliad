@@ -14,7 +14,7 @@ const data: DashboardData = {
   type: "monorepo",
   language: "TypeScript",
   entryPoints: 0,
-  hotspots: 7,
+  hotspots: 20,
   frameworks: ["React"],
 };
 
@@ -36,9 +36,9 @@ export function DashboardWidget() {
         <StatCard label="Language" value={data.language} />
         <StatCard label="Entry Points" value={data.entryPoints} />
         <StatCard label="Hotspots" value={data.hotspots} />
-        <StatCard label="TypeScript" value={`${76.5}%`} />
-        <StatCard label="YAML" value={`${8.1}%`} />
-        <StatCard label="JSON" value={`${6.6}%`} />
+        <StatCard label="TypeScript" value={`${80}%`} />
+        <StatCard label="YAML" value={`${9.5}%`} />
+        <StatCard label="Markdown" value={`${5.6}%`} />
       </div>
       <div className="framework-tags">
         {data.frameworks.map(f => (
@@ -53,30 +53,33 @@ export default DashboardWidget;
 
 // ─── Dependency Hotspots (highest risk) ───
 // Path | Inbound | Outbound | Risk Score
-// apps/web/src/App.tsx | 1 in | 21 out | risk 1.00
-// apps/web/src/api.ts | 19 in | 0 out | risk 0.95
-// apps/web/src/pages.test.tsx | 0 in | 17 out | risk 0.85
-// apps/web/src/pages/DashboardPage.tsx | 1 in | 10 out | risk 0.55
-// apps/web/src/components/Toast.tsx | 4 in | 0 out | risk 0.20
-// apps/web/src/components/AxisIcons.tsx | 4 in | 0 out | risk 0.20
-// apps/web/src/upload-utils.ts | 3 in | 0 out | risk 0.15
+// apps/api/src/router.ts | 96 in | 4 out | risk 1.00
+// apps/api/src/test-helpers.ts | 41 in | 1 out | risk 1.00
+// apps/api/src/billing.ts | 28 in | 3 out | risk 1.00
+// apps/api/src/handlers.ts | 23 in | 14 out | risk 1.00
+// apps/api/src/rate-limiter.ts | 36 in | 2 out | risk 1.00
+// apps/api/src/logger.ts | 25 in | 0 out | risk 1.00
+// apps/api/src/server.ts | 1 in | 35 out | risk 1.00
+// apps/web/src/App.tsx | 1 in | 24 out | risk 1.00
+// packages/generator-core/src/generate.ts | 30 in | 6 out | risk 1.00
+// apps/api/src/mcp-tool-impls.ts | 0 in | 24 out | risk 1.00
 
-// ─── API Surface: 497 routes ───
-// GET: 272 endpoints
-// POST: 204 endpoints
-// DELETE: 21 endpoints
+// ─── API Surface: 163 routes ───
+// GET: 92 endpoints
+// POST: 66 endpoints
+// DELETE: 5 endpoints
 
-// ─── Domain Models: 264 entities ───
-// AuthContext (interface, 3 fields) — apps/api/src/billing.ts
-// EmailConfig (interface, 2 fields) — apps/api/src/email.ts
-// ResendErrorResponse (interface, 3 fields) — apps/api/src/email.ts
-// ResendSuccessResponse (interface, 1 fields) — apps/api/src/email.ts
-// SendEmailOptions (interface, 5 fields) — apps/api/src/email.ts
-// SendEmailResult (interface, 4 fields) — apps/api/src/email.ts
-// EmbeddingsConfig (interface, 2 fields) — apps/api/src/embeddings.ts
-// EmbeddingsResult (interface, 4 fields) — apps/api/src/embeddings.ts
-// OpenAIEmbeddingResponse (interface, 5 fields) — apps/api/src/embeddings.ts
-// OpenAIErrorResponse (interface, 3 fields) — apps/api/src/embeddings.ts
+// ─── Domain Models: 242 entities ───
+// AlertThresholds (interface, 2 fields) — apps/api/src/alerting.ts
+// Counters (type_alias, 2 fields) — apps/api/src/alerting.ts
+// DebounceState (interface, 2 fields) — apps/api/src/alerting.ts
+// WindowResult (interface, 4 fields) — apps/api/src/alerting.ts
+// AnalyticsCountByBucketResult (interface, 3 fields) — apps/api/src/analytics.ts
+// AnalyticsCountByBucketRow (interface, 2 fields) — apps/api/src/analytics.ts
+// AnalyticsCountByEventResult (interface, 2 fields) — apps/api/src/analytics.ts
+// AnalyticsCountByEventRow (interface, 2 fields) — apps/api/src/analytics.ts
+// AnalyticsCountResult (interface, 2 fields) — apps/api/src/analytics.ts
+// AnalyticsDistinctUsersResult (interface, 2 fields) — apps/api/src/analytics.ts
 
 // ─── Architecture Health ───
 // Separation score: 0.65
@@ -89,4 +92,4 @@ export default DashboardWidget;
 
 // Source file metrics
 // Total source files scanned: 500
-// Config files: .prettierrc.json, apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json, packages/generator-core/tsconfig.json, packages/mpp/package.json, packages/mpp/tsconfig.json, packages/repo-parser/package.json, packages/repo-parser/tsconfig.json, packages/sdk/package.json, packages/sdk/tsconfig.json, packages/snapshots/package.json, packages/snapshots/tsconfig.json, packaging/manifests/npm-package.json
+// Config files: .prettierrc.json, apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json

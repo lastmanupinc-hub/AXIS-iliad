@@ -1,12 +1,12 @@
 # Brand Board — axis-iliad
 
-Generated: 2026-05-23T03:31:46.818Z
+Generated: 1970-01-01T00:00:00.000Z
 
 Comprehensive visual identity reference for all project-branded outputs.
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Color Palette
 
@@ -14,9 +14,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Role | Hex | HSL | Usage |
 |------|-----|-----|-------|
-| Brand Primary | `#2563EB` | 217° 91% 53% | Headers, CTAs, primary actions |
-| Brand Secondary | `#7C3AED` | 263° 83% 58% | Accents, secondary labels |
-| Brand Accent | `#06B6D4` | 188° 95% 43% | Links, highlights, interactive |
+| Brand Primary | `#6366f1` | 239° 84% 67% | Headers, CTAs, primary actions |
+| Brand Secondary | `#8b5cf6` | 258° 90% 66% | Accents, secondary labels |
+| Brand Accent | `#06b6d4` | 189° 94% 43% | Links, highlights, interactive |
 
 ### Semantic Colors
 
@@ -85,28 +85,28 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Stack Badge Bar
 
 - `React`
-- `TypeScript` — 77% of codebase
-- `YAML` — 8% of codebase
-- `JSON` — 7% of codebase
+- `TypeScript` — 80% of codebase
+- `YAML` — 10% of codebase
+- `Markdown` — 6% of codebase
 
 ### Key Abstractions for Branding
 
 - **apps/ (monorepo_apps)** — candidate for conceptual branding element
 - **packages/ (monorepo_packages)** — candidate for conceptual branding element
+- **docs/ (documentation)** — candidate for conceptual branding element
 - **examples/ (project_directory)** — candidate for conceptual branding element
 - **mcp/ (project_directory)** — candidate for conceptual branding element
-- **payment-processing-output/ (project_directory)** — candidate for conceptual branding element
 
 ### Domain Models
 
 Consider domain-specific iconography for:
 
-- **AuthContext** (interface) — 3 fields, from apps/api/src/billing.ts
-- **EmailConfig** (interface) — 2 fields, from apps/api/src/email.ts
-- **ResendErrorResponse** (interface) — 3 fields, from apps/api/src/email.ts
-- **ResendSuccessResponse** (interface) — 1 fields, from apps/api/src/email.ts
-- **SendEmailOptions** (interface) — 5 fields, from apps/api/src/email.ts
-- **SendEmailResult** (interface) — 4 fields, from apps/api/src/email.ts
+- **AlertThresholds** (interface) — 2 fields, from apps/api/src/alerting.ts
+- **Counters** (type_alias) — 2 fields, from apps/api/src/alerting.ts
+- **DebounceState** (interface) — 2 fields, from apps/api/src/alerting.ts
+- **WindowResult** (interface) — 4 fields, from apps/api/src/alerting.ts
+- **AnalyticsCountByBucketResult** (interface) — 3 fields, from apps/api/src/analytics.ts
+- **AnalyticsCountByBucketRow** (interface) — 2 fields, from apps/api/src/analytics.ts
 
 ### Brand Warnings
 
@@ -139,11 +139,21 @@ Consider domain-specific iconography for:
 ## Detected Brand Assets
 
 - `apps/web/src/components/AxisIcons.tsx`
+- `apps/web/src/components/Icon.tsx`
+- `brand/MEMORY.yaml`
 - `brand/begin.yaml`
 - `brand/continuation.yaml`
-- `brand/MEMORY.yaml`
 - `brand/schemas/output-contract.schema.json`
-- `brand-board.md`
-- `brand-guidelines.md`
+- `packages/generator-core/src/generators-brand-develop.test.ts`
+- `packages/generator-core/src/generators-brand-injection.test.ts`
+- `packages/generator-core/src/generators-brand-polish.test.ts`
 - `packages/generator-core/src/generators-brand.ts`
-- `payment-processing-output/brand-board.md`
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `brand-board.md` — agent step 61 of 70.
+- **Next:** `agent-purchasing-playbook.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

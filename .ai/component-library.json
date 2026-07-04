@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.811Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
+  "generated_at": "1970-01-01T00:00:00.000Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -286,7 +286,14 @@
       "exports": [
         "export function App() { ... }"
       ],
-      "size": 22649
+      "size": 31228
+    },
+    {
+      "path": "apps/web/src/components/AuthButtons.tsx",
+      "exports": [
+        "export function AuthButtons({ ... }"
+      ],
+      "size": 5209
     },
     {
       "path": "apps/web/src/components/AxisIcons.tsx",
@@ -325,6 +332,13 @@
       "size": 4890
     },
     {
+      "path": "apps/web/src/components/Icon.tsx",
+      "exports": [
+        "export function Icon({ ... }"
+      ],
+      "size": 4555
+    },
+    {
       "path": "apps/web/src/components/OverviewTab.tsx",
       "exports": [
         "export function OverviewTab({ ... }"
@@ -336,36 +350,21 @@
       "exports": [
         "export function ProgramLauncher({ ... }"
       ],
-      "size": 7551
+      "size": 8125
     },
     {
       "path": "apps/web/src/components/SearchTab.tsx",
       "exports": [
         "export function SearchTab({ ... }"
       ],
-      "size": 11321
+      "size": 11316
     },
     {
       "path": "apps/web/src/components/SignUpModal.tsx",
       "exports": [
         "export function SignUpModal({ ... }"
       ],
-      "size": 4008
-    },
-    {
-      "path": "apps/web/src/components/StatusBar.tsx",
-      "exports": [
-        "export function StatusBar({ ... }"
-      ],
-      "size": 2375
-    },
-    {
-      "path": "apps/web/src/components/Toast.tsx",
-      "exports": [
-        "export function useToast() { ... }",
-        "export function ToastProvider({ ... }"
-      ],
-      "size": 3860
+      "size": 1032
     }
   ]
 }

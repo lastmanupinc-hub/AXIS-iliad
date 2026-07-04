@@ -16,17 +16,17 @@
 
 Detection results from `500` source files:
 
-- **adyen** detected in 97 file(s)
-- **affirm** detected in 97 file(s)
-- **afterpay** detected in 97 file(s)
-- **amazon_pay** detected in 97 file(s)
-- **apple_pay** detected in 97 file(s)
-- **braintree** detected in 97 file(s)
-- **google_pay** detected in 97 file(s)
-- **klarna** detected in 97 file(s)
-- **paypal** detected in 97 file(s)
-- **square** detected in 97 file(s)
-- **stripe** detected in 97 file(s)
+- **adyen** detected in 5 files
+- **affirm** detected in 3 files
+- **afterpay** detected in 2 files
+- **amazon_pay** detected in 1 file
+- **apple_pay** detected in 2 files
+- **braintree** detected in 3 files
+- **google_pay** detected in 3 files
+- **klarna** detected in 3 files
+- **paypal** detected in 7 files
+- **square** detected in 2 files
+- **stripe** detected in 70 files
 - Checkout flow code: ✅ Detected
 - Recurring/mandate billing: ✅ Detected
 - SCA/3DS2 handling: ✅ Detected
@@ -40,21 +40,23 @@ Detection results from `500` source files:
 
 | Provider | Mandate Types | Network Tokenization | SCA Required |
 |----------|---------------|---------------------|--------------|
-| adyen | single | ✅ Supported | Required |
-| affirm | single | ⚠️ Verify | Required |
-| afterpay | single | ⚠️ Verify | Required |
-| amazon_pay | single | ⚠️ Verify | Required |
-| apple_pay | single | ⚠️ Verify | Required |
-| braintree | single | ⚠️ Verify | Required |
-| google_pay | single | ⚠️ Verify | Required |
-| klarna | single | ⚠️ Verify | Required |
-| paypal | single/recurring | ⚠️ Verify | Required |
-| square | single | ⚠️ Verify | Required |
-| stripe | single/recurring/setup | ✅ Supported | Required |
+| adyen | mandate, recurring, single | detected in repo | detected in repo |
+| affirm | mandate, recurring, single | detected in repo | detected in repo |
+| afterpay | mandate, recurring, single | detected in repo | detected in repo |
+| amazon_pay | mandate, recurring, single | detected in repo | detected in repo |
+| apple_pay | mandate, recurring, single | detected in repo | detected in repo |
+| braintree | mandate, recurring, single | detected in repo | detected in repo |
+| google_pay | mandate, recurring, single | detected in repo | detected in repo |
+| klarna | mandate, recurring, single | detected in repo | detected in repo |
+| paypal | mandate, recurring, single | detected in repo | detected in repo |
+| square | mandate, recurring, single | detected in repo | detected in repo |
+| stripe | mandate, recurring, single | detected in repo | detected in repo |
+
+> These cells report what was **detected in this repository** for each provider (patterns co-occurring in the files that reference it) — not the provider's own capabilities. "Not found in repo" means this codebase shows no such code yet; confirm actual support with your PSP.
 
 ## What Is AXIS?
 
-Axis' Iliad analyzes codebases and generates 137 structured artifacts across 20 programs.
+Axis' Iliad analyzes codebases and generates 140 structured artifacts across 20 programs.
 Each program is a separate SKU that produces AI-consumable governance files — AGENTS.md,
 .cursorrules, architecture maps, debug playbooks, brand guidelines, design tokens, and more.
 
@@ -75,7 +77,7 @@ POST /mcp
 
 Returns all 20 programs with tier (free/pro) and generator counts.
 Free programs: search, skills, debug.
-Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer).
+Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer, deploy).
 
 ### Step 2 — Obtain an API Key (if not already held)
 ```
@@ -434,3 +436,12 @@ Your repo: ✅ SCA code detected — wire the decision tree into your existing f
 | network_tokenization | PASS | token patterns found |
 | mandate_management | PASS | mandate patterns found |
 | tap_protocol_support | PASS | TAP protocol references found |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `agent-purchasing-playbook.md` — agent step 62 of 70.
+- **Next:** `checkout-flow.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

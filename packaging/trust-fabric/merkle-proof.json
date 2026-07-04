@@ -1,134 +1,90 @@
 {
   "schema_version": "1.0",
-  "merkle_root": "844e749796c4e71db7dfad6f53c2b9b52713f536bb4bef38db413b04aa10a7ea",
+  "merkle_root": "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18",
   "levels": [
     [
-      "8553a09bf613ed6e33797a70306cd4dd7071f461810233143aa14f86b8c55b33",
-      "29700c9588423ac52334b22f0e2ee1c8e4bc209c707fd5942a962dd21dcaf5aa",
-      "70b546d385fbc884fc3cbb175b4d93a337e009aee45c0172e4cc5216e7cdd41c",
-      "380c90bc582d62a9d036197c03e74998c3e044343b9e393f8432ab4ea20925d9",
-      "6dd546c11faa8c18a736fd5e393e53e2912d374580d96d7222864d163fe36326",
-      "d84e9611f8c846d1795759a9a3ae4085fcff64ae41649e13710b95d728102e1a",
-      "c7dfedabee4365a402d0f80a8b1f8fb02123c941f0f678da035ef3311fada4bc",
-      "85107397389e420a0bdd1ba206dd23b8bfc89be07241126c815d37b75ad87e17",
-      "e6439f9926b7ceae54a6a0296be089d08559f3299d9e409f3663b893d5e60cd2",
-      "c57503dfa79212216132b78f4fb0cc53d5350116322988fd0cb50f22b629172f",
-      "657e8ac7a3bd31e2f9df62afde809ca51e8cb11dbf6bccdc8ec24a26107a74ee",
-      "010d316b255c019086fe969bfc80773eeaa0e7f4a4e7c3f730296f50767e6a5f",
-      "bc2c1a1a2b6f8d237fdef31db7ce508886a6d7d626d6eece95d1b3fe45645ba8",
-      "7564678c350bad4e43369a892c78e0616ae56ba7d93ebb377618eca556b58cbd",
-      "40a01b06b6389c21f04dd3831d7586483778069aff3ec10a8b55b825b2150aec",
-      "f743d49162f2ba6f2e6ff102ce36b276e6762115e85c650b8e7afca931d72d38"
+      "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e",
+      "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0",
+      "a5ab2b574fbbcc845917547f5fcfc58702e285e72cb23178d338cb45910b6c7c",
+      "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2",
+      "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad",
+      "e5cbee85c965b5717bbea83a195e9cb92c59d11566e087024a8f6b4645ffb4c0",
+      "c2df0ed39e2f94c2ab6d932c413153fc5b99a8a584f7d9355a349004eeb352fd",
+      "328ea322352f1e320d238afb577140d54e895efc3969aee722bfac28e12ec9a6",
+      "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
     ],
     [
-      "d7e9968cb08d03501b0991c036fe99edc9ebddb49c7375df91053772e854aa4d",
-      "2f50acc7503e8c4ee0dbe2f2c8b955ef96ca9b27d434091962f5bca59ca55c7c",
-      "dcb86202752e48ced322f4d9b9f2e68b84120c1069ef9b2f3fb6d9a34270fe63",
-      "dc6e104641be8762ce7c0f73de202566e822d66083727921ac68347b00d6d1fd",
-      "d6159289a80f6b197aef61faaf0016ed6ab534493a29c057d79816f0a8a8a259",
-      "de327db665107573e128600617d780fb568add3469924cd08badd285def89392",
-      "32321bdcd863a18f48b348dabf182c11989cf06aa417c66431de66fc19f96265",
-      "a5be8d33fc71f092b92d8aeb180125700524eaad1079a78676f831edffbd4df7"
+      "9f4f7d6599115cd6d987c360d8070bd011a6f8d075ce872a70af3101a1590137",
+      "4cd8a4c4daa1736e7a2644964ed4bfd3bf9b70aa62551e7f52b2823423368fd1",
+      "ae3f1874665f37517d61158aac82c12e3bed2fbb2c47309c518ae1b98a925839",
+      "0da395d912e2b6b8a666aaccc110ccc2582b58f278a30b321a80b8726508722d",
+      "ed5bb941af16da52c48fe372d826da4b4b301194778c81c4171a5b74e6c92f21"
     ],
     [
-      "7bb005224da8788647ec5f976c948e963015f06103cc23844c467f82178ed243",
-      "8860ea0cc0a8c2ed3f625e49361c9d1a46aac7221759a9c46885d720241a48b3",
-      "8b749235b15390e6f1d235a1f77493caa7353562df7817199ce5289fa2baf8b3",
-      "224547b6341141e797d53b9832ad1f22a6cdae285c75104d2088fcd95e2cdd0a"
+      "2234b30e3db587cd42ab7a990b056332640d1e17071bf5de4cf8dd13301b7860",
+      "ce834066aa1b7058b3ce17c3496749a18a362b47b625a10f1eb9702309f2e554",
+      "844d25f301a5016b770f0bd1ed7f67053949570ef92703db0b776431a287e648"
     ],
     [
-      "c38579b378a594b6839fdd95b2689558aa5cff98a90972fef61c44a017bf5736",
-      "d2f5624ec17d3ea55e9c3d4186b3b57aa1a3c105e852b0affef3efd26dea5772"
+      "fa1d4e4c6fb30e60344bd19897351122404e6ac48c123122200619c6ab75b350",
+      "16b078b4bbc84b220d9f523c76b8afaa4570e188768061363980c975b137a4ea"
     ],
     [
-      "844e749796c4e71db7dfad6f53c2b9b52713f536bb4bef38db413b04aa10a7ea"
+      "530402debdbd410d0374e13b32d802e113700cd69ea7bd2b110d1397c203fc18"
     ]
   ],
   "leaf_index": [
     {
       "index": 0,
-      "path": "packaging/README.md",
-      "digest": "8553a09bf613ed6e33797a70306cd4dd7071f461810233143aa14f86b8c55b33"
+      "path": "packaging/LICENSE",
+      "digest": "7db02c9214aeae701d5d9105e2a05e24aa5796568ef10aca87cee3793158d09e"
     },
     {
       "index": 1,
-      "path": "packaging/LICENSE",
-      "digest": "29700c9588423ac52334b22f0e2ee1c8e4bc209c707fd5942a962dd21dcaf5aa"
+      "path": "Dockerfile",
+      "digest": "b998a21452923f86e5357c0800b20e1b5f3148fdc40935bd918372e9f8e866c0"
     },
     {
       "index": 2,
-      "path": "Dockerfile",
-      "digest": "70b546d385fbc884fc3cbb175b4d93a337e009aee45c0172e4cc5216e7cdd41c"
+      "path": "docker-compose.yml",
+      "digest": "a5ab2b574fbbcc845917547f5fcfc58702e285e72cb23178d338cb45910b6c7c"
     },
     {
       "index": 3,
-      "path": "docker-compose.yml",
-      "digest": "380c90bc582d62a9d036197c03e74998c3e044343b9e393f8432ab4ea20925d9"
+      "path": ".github/workflows/ci.yml",
+      "digest": "c12f8e291228b123ae41880bd4c282a308287022de7dd560736cdf8c882329e2"
     },
     {
       "index": 4,
-      "path": ".github/workflows/ci.yml",
-      "digest": "6dd546c11faa8c18a736fd5e393e53e2912d374580d96d7222864d163fe36326"
+      "path": ".github/workflows/release.yml",
+      "digest": "af7b9c2a1435fe757537839b0c2d3446e0545dead267b9b7a4695a06dfe71dad"
     },
     {
       "index": 5,
-      "path": ".github/workflows/release.yml",
-      "digest": "d84e9611f8c846d1795759a9a3ae4085fcff64ae41649e13710b95d728102e1a"
+      "path": "packaging/manifests/npm-package.json",
+      "digest": "e5cbee85c965b5717bbea83a195e9cb92c59d11566e087024a8f6b4645ffb4c0"
     },
     {
       "index": 6,
-      "path": "packaging/manifests/npm-package.json",
-      "digest": "c7dfedabee4365a402d0f80a8b1f8fb02123c941f0f678da035ef3311fada4bc"
+      "path": "packaging/manifests/unreal.uplugin",
+      "digest": "c2df0ed39e2f94c2ab6d932c413153fc5b99a8a584f7d9355a349004eeb352fd"
     },
     {
       "index": 7,
-      "path": "packaging/manifests/unreal.uplugin",
-      "digest": "85107397389e420a0bdd1ba206dd23b8bfc89be07241126c815d37b75ad87e17"
+      "path": "packaging/manifests/vscode-extension.json",
+      "digest": "328ea322352f1e320d238afb577140d54e895efc3969aee722bfac28e12ec9a6"
     },
     {
       "index": 8,
-      "path": "packaging/manifests/vscode-extension.json",
-      "digest": "e6439f9926b7ceae54a6a0296be089d08559f3299d9e409f3663b893d5e60cd2"
-    },
-    {
-      "index": 9,
-      "path": "packaging/manifests/dockerhub-repository.md",
-      "digest": "c57503dfa79212216132b78f4fb0cc53d5350116322988fd0cb50f22b629172f"
-    },
-    {
-      "index": 10,
-      "path": "packaging/manifests/github-marketplace-listing.md",
-      "digest": "657e8ac7a3bd31e2f9df62afde809ca51e8cb11dbf6bccdc8ec24a26107a74ee"
-    },
-    {
-      "index": 11,
-      "path": "packaging/trust-fabric/attestation.json",
-      "digest": "010d316b255c019086fe969bfc80773eeaa0e7f4a4e7c3f730296f50767e6a5f"
-    },
-    {
-      "index": 12,
-      "path": "packaging/trust-fabric/merkle-proof.json",
-      "digest": "bc2c1a1a2b6f8d237fdef31db7ce508886a6d7d626d6eece95d1b3fe45645ba8"
-    },
-    {
-      "index": 13,
-      "path": "packaging-report.md",
-      "digest": "7564678c350bad4e43369a892c78e0616ae56ba7d93ebb377618eca556b58cbd"
-    },
-    {
-      "index": 14,
-      "path": "DISTRIBUTABLE.md",
-      "digest": "40a01b06b6389c21f04dd3831d7586483778069aff3ec10a8b55b825b2150aec"
-    },
-    {
-      "index": 15,
       "path": "Makefile",
-      "digest": "f743d49162f2ba6f2e6ff102ce36b276e6762115e85c650b8e7afca931d72d38"
+      "digest": "a0cbce1caeb7b7c589b3d2c64dd72d90a2acc91173bde9784771962d04752cb3"
     }
   ],
   "verification": {
     "algorithm": "sha256",
     "certlib_profile": "certlib-offline-v1",
-    "replay_command": "node verify-attestation.js packaging/trust-fabric/attestation.json packaging/trust-fabric/merkle-proof.json"
+    "leaf_formula": "sha256(path + \"\\n\" + file_bytes)",
+    "recompute_leaf": "{ printf '%s\\n' <path>; cat <path>; } | sha256sum",
+    "note": "Recompute each leaf digest from its file, rebuild the tree pairwise (sha256 of concatenated child digests, last node duplicated when odd), and compare the root to .merkle_root in attestation.json."
   }
 }

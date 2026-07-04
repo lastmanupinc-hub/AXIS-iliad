@@ -1,7 +1,7 @@
 # MCP Server Manifest
 # Project: axis-iliad
-# Generated: 2026-05-23T03:31:46.793Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+# Generated: 1970-01-01T00:00:00.000Z
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 server:
   name: "axis-iliad-mcp-server"
@@ -48,7 +48,7 @@ server:
             enum: [search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic]
 
     - name: list_routes
-      description: List all 497 detected routes
+      description: List all 163 detected routes
       input_schema:
         type: object
         properties:
@@ -56,146 +56,147 @@ server:
             type: string
             enum: [GET, POST, PUT, DELETE, PATCH]
 
-    - name: query_authcontext
-      description: Query AuthContext records (interface, 3 fields)
+    # showing 12 of 242 domain-model query tools
+    - name: query_alertthresholds
+      description: "Query AlertThresholds records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for AuthContext
+            description: Primary key or identifier for AlertThresholds
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_emailconfig
-      description: Query EmailConfig records (interface, 2 fields)
+    - name: query_counters
+      description: "Query Counters records (type_alias, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for EmailConfig
+            description: Primary key or identifier for Counters
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_resenderrorresponse
-      description: Query ResendErrorResponse records (interface, 3 fields)
+    - name: query_debouncestate
+      description: "Query DebounceState records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for ResendErrorResponse
+            description: Primary key or identifier for DebounceState
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_resendsuccessresponse
-      description: Query ResendSuccessResponse records (interface, 1 fields)
+    - name: query_windowresult
+      description: "Query WindowResult records (interface, 4 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for ResendSuccessResponse
+            description: Primary key or identifier for WindowResult
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_sendemailoptions
-      description: Query SendEmailOptions records (interface, 5 fields)
+    - name: query_analyticscountbybucketresult
+      description: "Query AnalyticsCountByBucketResult records (interface, 3 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for SendEmailOptions
+            description: Primary key or identifier for AnalyticsCountByBucketResult
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_sendemailresult
-      description: Query SendEmailResult records (interface, 4 fields)
+    - name: query_analyticscountbybucketrow
+      description: "Query AnalyticsCountByBucketRow records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for SendEmailResult
+            description: Primary key or identifier for AnalyticsCountByBucketRow
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_embeddingsconfig
-      description: Query EmbeddingsConfig records (interface, 2 fields)
+    - name: query_analyticscountbyeventresult
+      description: "Query AnalyticsCountByEventResult records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for EmbeddingsConfig
+            description: Primary key or identifier for AnalyticsCountByEventResult
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_embeddingsresult
-      description: Query EmbeddingsResult records (interface, 4 fields)
+    - name: query_analyticscountbyeventrow
+      description: "Query AnalyticsCountByEventRow records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for EmbeddingsResult
+            description: Primary key or identifier for AnalyticsCountByEventRow
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_openaiembeddingresponse
-      description: Query OpenAIEmbeddingResponse records (interface, 5 fields)
+    - name: query_analyticscountresult
+      description: "Query AnalyticsCountResult records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for OpenAIEmbeddingResponse
+            description: Primary key or identifier for AnalyticsCountResult
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_openaierrorresponse
-      description: Query OpenAIErrorResponse records (interface, 3 fields)
+    - name: query_analyticsdistinctusersresult
+      description: "Query AnalyticsDistinctUsersResult records (interface, 2 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for OpenAIErrorResponse
+            description: Primary key or identifier for AnalyticsDistinctUsersResult
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_envspec
-      description: Query EnvSpec records (interface, 5 fields)
+    - name: query_analyticsevent
+      description: "Query AnalyticsEvent records (interface, 4 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for EnvSpec
+            description: Primary key or identifier for AnalyticsEvent
           filter:
             type: object
             description: Optional filter criteria
 
-    - name: query_validationerror
-      description: Query ValidationError records (interface, 2 fields)
+    - name: query_analyticsquery
+      description: "Query AnalyticsQuery records (interface, 8 fields)"
       input_schema:
         type: object
         properties:
           id:
             type: string
-            description: Primary key or identifier for ValidationError
+            description: Primary key or identifier for AnalyticsQuery
           filter:
             type: object
             description: Optional filter criteria
@@ -216,80 +217,81 @@ server:
       mime_type: text/markdown
       description: Human-readable architecture overview
 
-    - uri: model://AuthContext
-      name: AuthContext
+    # showing 15 of 242 domain-model resources
+    - uri: "model://AlertThresholds"
+      name: AlertThresholds
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/billing.ts)
+      description: interface with 2 fields (apps/api/src/alerting.ts)
 
-    - uri: model://EmailConfig
-      name: EmailConfig
+    - uri: "model://Counters"
+      name: Counters
       mime_type: application/json
-      description: interface with 2 fields (apps/api/src/email.ts)
+      description: type_alias with 2 fields (apps/api/src/alerting.ts)
 
-    - uri: model://ResendErrorResponse
-      name: ResendErrorResponse
+    - uri: "model://DebounceState"
+      name: DebounceState
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/email.ts)
+      description: interface with 2 fields (apps/api/src/alerting.ts)
 
-    - uri: model://ResendSuccessResponse
-      name: ResendSuccessResponse
+    - uri: "model://WindowResult"
+      name: WindowResult
       mime_type: application/json
-      description: interface with 1 field (apps/api/src/email.ts)
+      description: interface with 4 fields (apps/api/src/alerting.ts)
 
-    - uri: model://SendEmailOptions
-      name: SendEmailOptions
+    - uri: "model://AnalyticsCountByBucketResult"
+      name: AnalyticsCountByBucketResult
       mime_type: application/json
-      description: interface with 5 fields (apps/api/src/email.ts)
+      description: interface with 3 fields (apps/api/src/analytics.ts)
 
-    - uri: model://SendEmailResult
-      name: SendEmailResult
+    - uri: "model://AnalyticsCountByBucketRow"
+      name: AnalyticsCountByBucketRow
       mime_type: application/json
-      description: interface with 4 fields (apps/api/src/email.ts)
+      description: interface with 2 fields (apps/api/src/analytics.ts)
 
-    - uri: model://EmbeddingsConfig
-      name: EmbeddingsConfig
+    - uri: "model://AnalyticsCountByEventResult"
+      name: AnalyticsCountByEventResult
       mime_type: application/json
-      description: interface with 2 fields (apps/api/src/embeddings.ts)
+      description: interface with 2 fields (apps/api/src/analytics.ts)
 
-    - uri: model://EmbeddingsResult
-      name: EmbeddingsResult
+    - uri: "model://AnalyticsCountByEventRow"
+      name: AnalyticsCountByEventRow
       mime_type: application/json
-      description: interface with 4 fields (apps/api/src/embeddings.ts)
+      description: interface with 2 fields (apps/api/src/analytics.ts)
 
-    - uri: model://OpenAIEmbeddingResponse
-      name: OpenAIEmbeddingResponse
+    - uri: "model://AnalyticsCountResult"
+      name: AnalyticsCountResult
       mime_type: application/json
-      description: interface with 5 fields (apps/api/src/embeddings.ts)
+      description: interface with 2 fields (apps/api/src/analytics.ts)
 
-    - uri: model://OpenAIErrorResponse
-      name: OpenAIErrorResponse
+    - uri: "model://AnalyticsDistinctUsersResult"
+      name: AnalyticsDistinctUsersResult
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/embeddings.ts)
+      description: interface with 2 fields (apps/api/src/analytics.ts)
 
-    - uri: model://EnvSpec
-      name: EnvSpec
+    - uri: "model://AnalyticsEvent"
+      name: AnalyticsEvent
       mime_type: application/json
-      description: interface with 5 fields (apps/api/src/env.ts)
+      description: interface with 4 fields (apps/api/src/analytics.ts)
 
-    - uri: model://ValidationError
-      name: ValidationError
+    - uri: "model://AnalyticsQuery"
+      name: AnalyticsQuery
       mime_type: application/json
-      description: interface with 2 fields (apps/api/src/env.ts)
+      description: interface with 8 fields (apps/api/src/analytics.ts)
 
-    - uri: model://ValidationResult
-      name: ValidationResult
+    - uri: "model://WhereClause"
+      name: WhereClause
       mime_type: application/json
-      description: interface with 3 fields (apps/api/src/env.ts)
+      description: interface with 2 fields (apps/api/src/analytics.ts)
 
-    - uri: model://ZipEntry
-      name: ZipEntry
+    - uri: "model://DriftDeps"
+      name: DriftDeps
       mime_type: application/json
-      description: interface with 4 fields (apps/api/src/export.ts)
+      description: interface with 5 fields (apps/api/src/architecture-drift-webhook.ts)
 
-    - uri: model://PullRequestPayload
-      name: PullRequestPayload
+    - uri: "model://DriftOutcome"
+      name: DriftOutcome
       mime_type: application/json
-      description: interface with 5 fields (apps/api/src/github-webhook.ts)
+      description: interface with 3 fields (apps/api/src/architecture-drift-webhook.ts)
 
   prompts:
     - name: review_code
@@ -318,38 +320,39 @@ server:
         default: "http://localhost:4000"
 
   dependencies:
-    - name: @axis/context-engine
+    # showing 8 of 32 dependencies
+    - name: "@axis/context-engine"
       version: "workspace:*"
-    - name: @axis/generator-core
+    - name: "@axis/generator-core"
       version: "workspace:*"
-    - name: @axis/mpp
+    - name: "@axis/mpp"
       version: "workspace:*"
-    - name: @axis/repo-parser
+    - name: "@axis/paid-client"
       version: "workspace:*"
-    - name: @axis/snapshots
+    - name: "@axis/repo-parser"
       version: "workspace:*"
-    - name: @jmondi/oauth2-server
+    - name: "@axis/snapshots"
+      version: "workspace:*"
+    - name: "@jmondi/oauth2-server"
       version: "^4.2.2"
-    - name: jsonwebtoken
-      version: "^9.0.3"
-    - name: mppx
-      version: "^0.5.12"
+    - name: dockerode
+      version: "^4.0.12"
 
   # Detected Server/Tool Files
   source_files:
+    - path: "SETUP_PAID_STRIPE_MCP.md"
+      exports: []
     - path: "apps/api/mcp-server.json"
       exports: []
+    - path: "apps/api/src/mcp-runtime.ts"
+      exports: ["export const REGISTRY_DISPLAY_NAME = ...", "export const SERVER_SLUG = ...", "export const REGISTRY_VERSION = ...", "export const RPC_PARSE_ERROR = ...", "export const RPC_INVALID_REQUEST = ..."]
     - path: "apps/api/src/mcp-server.test.ts"
       exports: []
     - path: "apps/api/src/mcp-server.ts"
-      exports: ["export const MCP_PROTOCOL_VERSION = ...", "export type ProbeClass = ...", "export function classifyProbe(userAgent: string): ProbeClass { ... }", "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }", "export function getIntentLog(): IntentCapture[] { ... }"]
+      exports: ["export { ... }", "export { ... }", "export const MCP_PROTOCOL_VERSION = ...", "export async function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | ", "export function getMcpCallCounters(): McpCallCounters { ... }"]
+    - path: "apps/api/src/mcp-tool-impls.ts"
+      exports: ["export function runPlannedCapability(capability: PlannedCapability): string { ... }", "export async function runObjectStorage(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }", "export async function runTransactionalEmail(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... ", "export async function runEmbeddings(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }", "export async function runVectorDatabase(args: Record<string, unknown>, req: IncomingMessage): Promise<string> { ... }"]
+    - path: "apps/api/src/mcp-tools.ts"
+      exports: ["export interface PlannedCapability { ... }", "export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = ...", "export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = ...", "export const MCP_TOOLS = ..."]
     - path: "apps/api/src/oauth-server.ts"
       exports: ["export async function handleOAuthAuthorize(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthToken(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }", "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }"]
-    - path: "apps/api/src/server.ts"
-      exports: ["export const app = ..."]
-    - path: "mcp/begin.yaml"
-      exports: []
-    - path: "mcp/build-artifacts.md"
-      exports: []
-    - path: "mcp/continuation.yaml"
-      exports: []

@@ -1,7 +1,7 @@
 # Automation Pipeline
 # Project: axis-iliad
-# Generated: 2026-05-23T03:31:46.808Z
-# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+# Generated: "1970-01-01T00:00:00.000Z"
+# Summary: axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 pipeline:
   name: "axis-iliad-automation"
@@ -94,26 +94,26 @@ pipeline:
   # ─── Detected CI / Config Files ─────────────────────
   source_files:
     - path: ".github/actions/compliance-check/action.yml"
-      lines: 290
+      lines: 284
+    - path: ".github/actions/context-freshness/action.yml"
+      lines: 173
     - path: ".github/workflows/ci.yml"
-      lines: 154
+      lines: 227
     - path: ".github/workflows/compliance-check.yml"
       lines: 29
+    - path: ".github/workflows/context-freshness.yml"
+      lines: 38
     - path: ".github/workflows/release.yml"
       lines: 25
-    - path: "algorithmic/begin.yaml"
-      lines: 27
-    - path: "algorithmic/continuation.yaml"
-      lines: 83
+    - path: "Dockerfile"
+      lines: 25
+    - path: "ILIAD_PRODUCT_READINESS_SCORECARD.yaml"
+      lines: 217
+    - path: "LAUNCH_CLAIMS.yaml"
+      lines: 113
+    - path: "Makefile"
+      lines: 19
     - path: "algorithmic/MEMORY.yaml"
       lines: 41
-    - path: "artifacts/begin.yaml"
+    - path: "algorithmic/begin.yaml"
       lines: 27
-    - path: "artifacts/continuation.yaml"
-      lines: 83
-    - path: "artifacts/MEMORY.yaml"
-      lines: 43
-    - path: "automated remedial action.yaml"
-      lines: 106
-    - path: "automation-pipeline.yaml"
-      lines: 120

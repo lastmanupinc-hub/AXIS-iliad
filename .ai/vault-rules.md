@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -40,6 +40,16 @@ Every note must have at least one of:
 | `#reference` | External references and resources |
 | `#prompt` | AI prompt templates |
 
+### Stack-Specific Tags
+
+Tags matched to this codebase's detected stack:
+
+| Tag | When to Use |
+|-----|-----------|
+| `#react` | Notes about React (v^19.1.0) code |
+| `#api-endpoint` | Route/endpoint notes (540 detected) |
+| `#domain-model` | Domain model notes (242 detected) |
+
 ## Linking Rules
 
 1. **Always link to the project note** — Every project-related note must include `[[axis-iliad]]`
@@ -73,4 +83,13 @@ status: [draft | active | archived]
 
 ## Existing Markdown Files
 
-Found 74 markdown files in the project — candidates for vault import.
+Found 77 markdown files in the project — candidates for vault import.
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `vault-rules.md` — agent step 29 of 70.
+- **Next:** `linking-policy.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.089Z",
+  "generated_at": "1970-01-01T00:00:00.000Z",
   "detected_stack": [
     {
       "name": "React",
@@ -10,12 +10,13 @@
   ],
   "primary_language": "TypeScript",
   "summary": {
-    "total_components": 33,
+    "total_components": 34,
     "by_type": {
-      "custom": 13,
-      "decorative": 1,
+      "custom": 11,
+      "interactive": 1,
+      "decorative": 2,
       "overlay": 2,
-      "page": 17
+      "page": 18
     }
   },
   "components": [
@@ -27,6 +28,19 @@
       "token_categories": [
         "colors",
         "typography"
+      ]
+    },
+    {
+      "name": "AuthButtons",
+      "path": "apps/web/src/components/AuthButtons.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "interactive",
+      "token_categories": [
+        "colors",
+        "typography",
+        "spacing",
+        "border_radius",
+        "shadows"
       ]
     },
     {
@@ -74,6 +88,16 @@
       "path": "apps/web/src/components/GraphTab.tsx",
       "directory": "apps/web/src/components",
       "component_type": "custom",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
+      "name": "Icon",
+      "path": "apps/web/src/components/Icon.tsx",
+      "directory": "apps/web/src/components",
+      "component_type": "decorative",
       "token_categories": [
         "colors",
         "typography"
@@ -266,6 +290,16 @@
       ]
     },
     {
+      "name": "PaidCheckoutPage",
+      "path": "apps/web/src/pages/PaidCheckoutPage.tsx",
+      "directory": "apps/web/src/pages",
+      "component_type": "page",
+      "token_categories": [
+        "colors",
+        "typography"
+      ]
+    },
+    {
       "name": "PlansPage",
       "path": "apps/web/src/pages/PlansPage.tsx",
       "directory": "apps/web/src/pages",
@@ -306,16 +340,6 @@
       ]
     },
     {
-      "name": "WebResearchPage",
-      "path": "apps/web/src/pages/tools/WebResearchPage.tsx",
-      "directory": "apps/web/src/pages/tools",
-      "component_type": "page",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
       "name": "ToolsIndexPage",
       "path": "apps/web/src/pages/ToolsIndexPage.tsx",
       "directory": "apps/web/src/pages",
@@ -336,20 +360,10 @@
       ]
     },
     {
-      "name": "dashboard-widget",
-      "path": "dashboard-widget.tsx",
-      "directory": "",
-      "component_type": "custom",
-      "token_categories": [
-        "colors",
-        "typography"
-      ]
-    },
-    {
-      "name": "generated-component",
-      "path": "generated-component.tsx",
-      "directory": "",
-      "component_type": "custom",
+      "name": "WebResearchPage",
+      "path": "apps/web/src/pages/tools/WebResearchPage.tsx",
+      "directory": "apps/web/src/pages/tools",
+      "component_type": "page",
       "token_categories": [
         "colors",
         "typography"
@@ -369,11 +383,13 @@
   },
   "source_component_files": [
     "apps/web/src/App.tsx",
+    "apps/web/src/components/AuthButtons.tsx",
     "apps/web/src/components/AxisIcons.tsx",
     "apps/web/src/components/CommandPalette.tsx",
     "apps/web/src/components/FilesTab.tsx",
     "apps/web/src/components/GeneratedTab.tsx",
     "apps/web/src/components/GraphTab.tsx",
+    "apps/web/src/components/Icon.tsx",
     "apps/web/src/components/OverviewTab.tsx",
     "apps/web/src/components/ProgramLauncher.tsx",
     "apps/web/src/components/SearchTab.tsx",
@@ -385,8 +401,6 @@
     "apps/web/src/main.tsx",
     "apps/web/src/pages/AccountPage.tsx",
     "apps/web/src/pages/AdminPage.tsx",
-    "apps/web/src/pages/DashboardPage.tsx",
-    "apps/web/src/pages/DocsPage.tsx",
-    "apps/web/src/pages/ExamplesPage.tsx"
+    "apps/web/src/pages/DashboardPage.tsx"
   ]
 }

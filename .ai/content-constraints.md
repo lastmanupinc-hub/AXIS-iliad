@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -76,3 +76,31 @@ Detected from codebase analysis — enforce in all generated content:
 - `apps/api/tsconfig.json`
 - `apps/cli/package.json`
 - `apps/cli/tsconfig.json`
+
+## Detected Content Violations (deterministic)
+
+> Static scan of the repo's docs (`*.md`, README/CONTRIBUTING/CHANGELOG) against the rules above — grep + a fixed table, **no AI**. Fenced code blocks are skipped. `PLACEHOLDER` = a shipped placeholder/marker (a hard-constraint defect); `MARKETING` = fluff to strip; `DISMISSIVE` = "simple/effortless/just …" (a Forbidden Pattern).
+
+| Class | Count |
+|-------|-------|
+| PLACEHOLDER | 1 |
+| MARKETING | 3 |
+| DISMISSIVE | 2 |
+
+| File | Line | Term | Class |
+|------|------|------|-------|
+| `TERMS_OF_SERVICE.md` | 125 | PLACEHOLDER | PLACEHOLDER |
+| `AXIS_DEMO_REPORT.md` | 89 | revolutionary | MARKETING |
+| `launch-content.md` | 101 | seamlessly | MARKETING |
+| `launch-content.md` | 161 | seamless | MARKETING |
+| `HARDENING_AUDIT.md` | 30 | simple | DISMISSIVE |
+| `docs/MERCHANT_INTEGRATION_DOGFOODING.md` | 76 | simple | DISMISSIVE |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `content-constraints.md` — agent step 17 of 70.
+- **Next:** `superpower-pack.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

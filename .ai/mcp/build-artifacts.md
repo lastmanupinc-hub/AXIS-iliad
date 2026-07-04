@@ -31,3 +31,11 @@ npx vitest run
 - Publish generated artifacts alongside server build outputs.
 - Keep deterministic generation enabled to avoid drift between runs.
 - Fail CI on missing or stale MCP artifacts.
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `mcp/build-artifacts.md` — agent step 34 of 70.
+- **Next:** `mcp/monorepo-structure.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

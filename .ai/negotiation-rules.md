@@ -7,7 +7,7 @@
 | Signal | Value | Weight |
 |--------|-------|--------|
 | File count | 500 files | Medium |
-| Lines of code | 134571 LOC | High |
+| Lines of code | 115124 LOC | High |
 | Complexity estimate | medium | High |
 | Separation score | 0.65 / 1.0 | High |
 
@@ -23,7 +23,7 @@ value_score = (loc / 1000) * 0.4
 Where `complexity_score` = 1 (low) | 2 (medium) | 3 (high).
 Where `commerce_signal_bonus` = detected_providers × 0.15 + (has_sca ? 0.10 : 0) + (has_dispute ? 0.10 : 0).
 
-**Estimated value score for axis-iliad:** 71.28
+**Estimated value score for axis-iliad:** 63.50
 
 ## Cost Considerations
 
@@ -71,17 +71,17 @@ Example conservative defaults — your operator's spending policy always takes p
 
 | Provider | Mandate Scope | Constraint | Risk Level | Max Per-Session Cap |
 |----------|---------------|-----------|-----------|---------------------|
-| adyen | Per-transaction | Require SCA pre-auth | Low | $5,000 |
-| affirm | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| afterpay | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| amazon_pay | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| apple_pay | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| braintree | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| google_pay | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| klarna | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| paypal | Per-transaction | Require SCA pre-auth | Medium | $10,000 |
-| square | Per-transaction | Require SCA pre-auth | High | $5,000 |
-| stripe | Per-transaction | Require SCA pre-auth | Low | $50,000 |
+| adyen | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| affirm | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| afterpay | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| amazon_pay | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| apple_pay | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| braintree | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| google_pay | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| klarna | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| paypal | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| square | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
+| stripe | Per-transaction | Require SCA pre-auth | set per policy (SCA code present) | set per policy |
 
 **Hard limits (recommended autonomous agent spending rules):**
 1. No single payment > 10% of monthly credit balance without confirmation
@@ -172,3 +172,12 @@ operator's dispute policy — AXIS does not publish win-rate estimates.
 | network_tokenization | PASS | token patterns found |
 | mandate_management | PASS | mandate patterns found |
 | tap_protocol_support | PASS | TAP protocol references found |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `negotiation-rules.md` — agent step 64 of 70.
+- **Next:** `packaging/README.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

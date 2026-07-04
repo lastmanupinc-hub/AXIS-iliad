@@ -1,26 +1,26 @@
 # Token Budget Plan — axis-iliad
 
-Generated: 2026-05-23T03:31:46.699Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Token Profile
 
 | Metric | Value |
 |--------|-------|
-| Total LOC | 122,625 |
-| Total Files | 485 |
-| Est. Total Tokens | 551,813 |
-| Avg Tokens/File | 1,138 |
+| Total LOC | 115,124 |
+| Total Files | 500 |
+| Est. Total Tokens | 518,058 |
+| Avg Tokens/File | 1,036 |
 
 ## Token Budget by Language
 
 | Language | LOC | Tokens | % of Budget |
 |----------|-----|--------|-------------|
-| TypeScript | 93,770 | 421,965 | 76.5% |
-| YAML | 9,885 | 44,483 | 8.1% |
-| JSON | 8,079 | 36,356 | 6.6% |
-| Markdown | 7,944 | 35,748 | 6.5% |
-| JavaScript | 2,093 | 9,419 | 1.7% |
-| CSS | 675 | 3,038 | 0.6% |
+| TypeScript | 89,597 | 403,187 | 80.0% |
+| YAML | 10,597 | 47,687 | 9.5% |
+| Markdown | 6,295 | 28,328 | 5.6% |
+| JavaScript | 2,273 | 10,229 | 2.0% |
+| JSON | 1,922 | 8,649 | 1.7% |
+| CSS | 1,149 | 5,171 | 1.0% |
 | HTML | 158 | 711 | 0.1% |
 | Dockerfile | 21 | 95 | 0.0% |
 
@@ -29,9 +29,9 @@ Generated: 2026-05-23T03:31:46.699Z
 | Model | Context Window | Repo Fits | Recommended Strategy |
 |-------|---------------|-----------|----------------------|
 | GPT-4o | 128K | ❌ No | Chunked / RAG approach |
-| Claude 3.5 Sonnet | 200K | ❌ No | Selective file context |
+| Claude Sonnet 4 | 200K | ❌ No | Selective file context |
 | Claude Opus 4 | 200K | ❌ No | Selective file context |
-| Gemini 1.5 Pro | 1000K | ✅ Yes | Full repo context |
+| Gemini 2.5 Pro | 1M | ✅ Yes | Full repo context |
 
 ## Budget Allocation Strategy
 
@@ -57,15 +57,24 @@ Generated: 2026-05-23T03:31:46.699Z
 | Operation | Input | Output | Daily | Monthly Cost (GPT-4o) |
 |-----------|-------|--------|-------|----------------------|
 | Code review (1 file) | 1,500 | 500 | 10 | $1.93 |
-| API endpoint work (497 routes detected) | 8,000 | 2,000 | 5 | $4.40 |
-| Hotspot refactor (7 hotspots, avg 1287 tok each) | 12,000 | 1,500 | 3 | $2.97 |
-| Domain model change (264 models) | 8,000 | 2,500 | 2 | $1.98 |
-| Documentation | 27,591 | 1,500 | 2 | $3.70 |
+| API endpoint work (540 routes detected) | 8,000 | 2,000 | 5 | $4.40 |
+| Hotspot refactor (20 hotspots, avg 4032 tok each) | 12,000 | 1,500 | 3 | $2.97 |
+| Domain model change (242 models) | 8,000 | 2,500 | 2 | $1.98 |
+| Documentation | 25,903 | 1,500 | 2 | $3.51 |
 
 > Token estimates derived from detected project signals: routes, hotspots, domain models, and average file size.
 
 ## Source-Verified Token Estimate
 
 - Source files scanned: 500
-- Total source lines: 156,665
-- Estimated tokens: ~704,993
+- Total source lines: 138,726
+- Estimated tokens: ~624,267
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `token-budget-plan.md` — agent step 56 of 70.
+- **Next:** `channel-rulebook.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

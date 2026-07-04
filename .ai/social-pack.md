@@ -1,10 +1,10 @@
 # Social Pack — axis-iliad
 
-Generated: 2026-05-23T03:31:46.310Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -20,7 +20,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 │  [gradient background]                    │
 │                                           │
 │     axis-iliad                            │
-│     ...     │
+│     > **Axis' Iliad — The modern epic that shapes raw…     │
 │                                           │
 │     [React]    │
 │                                           │
@@ -31,7 +31,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Copy Variants
 
 1. **Technical**: "axis-iliad — monorepo built with TypeScript"
-2. **Marketing**: "axis-iliad: null"
+2. **Marketing**: "axis-iliad: > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**"
 3. **Minimal**: "axis-iliad"
 
 ## Square Post (1080×1080)
@@ -40,11 +40,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Stat | Value |
 |------|-------|
-| TypeScript | 76.5% |
-| YAML | 8.1% |
-| JSON | 6.6% |
+| TypeScript | 80% |
+| YAML | 9.5% |
+| Markdown | 5.6% |
 | Frameworks | 1 |
-| Architecture Score | 0.65/100 |
+| Architecture Score | 65/100 |
 
 ## Twitter/X Card
 
@@ -53,9 +53,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 🧵 1/ Just analyzed axis-iliad with @AxisIliad
 
 📊 2/ Tech stack: React
-Architecture score: 0.65/100
+Architecture score: 65/100
 
-🔍 3/ Found 0 entry points and 7 hotspots
+🔍 3/ Found 0 entry points and 20 hotspots
 
 🎯 4/ Key patterns: monorepo, containerized
 
@@ -68,4 +68,13 @@ I ran axis-iliad through Axis' Iliad and here's what it found:
 • Type: monorepo
 • Primary Language: TypeScript
 • Frameworks: React
-• Architecture Score: 0.65/100
+• Architecture Score: 65/100
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `social-pack.md` — agent step 46 of 70.
+- **Next:** `poster-layouts.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

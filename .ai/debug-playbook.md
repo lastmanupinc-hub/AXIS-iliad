@@ -2,9 +2,11 @@
 
 > Structured debugging guide for a monorepo built with TypeScript
 
+> > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
+
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Quick Reference
 
@@ -17,19 +19,19 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | CI | github_actions |
 | Deploy Target | docker |
 | Package Manager | npm |
-| Files | 500 files, 133,500 LOC |
+| Files | 500 files, 115,124 LOC |
 | Separation Score | 0.65/1.0 |
 
 ## Language Distribution
 
 | Language | Files | LOC | % |
 |----------|-------|-----|---|
-| TypeScript | 283 | 93,770 | 76.5% |
-| YAML | 57 | 9,885 | 8.1% |
-| JSON | 60 | 8,079 | 6.6% |
-| Markdown | 74 | 7,944 | 6.5% |
-| JavaScript | 8 | 2,093 | 1.7% |
-| CSS | 1 | 675 | 0.6% |
+| TypeScript | 312 | 89,597 | 80% |
+| YAML | 57 | 10,597 | 9.5% |
+| Markdown | 77 | 6,295 | 5.6% |
+| JavaScript | 9 | 2,273 | 2% |
+| JSON | 34 | 1,922 | 1.7% |
+| CSS | 1 | 1,149 | 1% |
 | HTML | 1 | 158 | 0.1% |
 | Dockerfile | 1 | 21 | 0% |
 
@@ -43,12 +45,12 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - apps/ (monorepo_apps)
 - packages/ (monorepo_packages)
+- docs/ (documentation)
 - examples/ (project_directory)
 - mcp/ (project_directory)
-- payment-processing-output/ (project_directory)
-- packaging/ (project_directory)
 - .github/ (project_directory)
 - algorithmic/ (project_directory)
+- artifacts/ (project_directory)
 
 ## Triage Steps
 
@@ -71,13 +73,16 @@ These files have many inbound or outbound imports — changes here cascade:
 
 | File | Inbound | Outbound | Risk |
 |------|---------|----------|------|
-| `apps/web/src/App.tsx` | 1 | 21 | 100% |
-| `apps/web/src/api.ts` | 19 | 0 | 95% |
-| `apps/web/src/pages.test.tsx` | 0 | 17 | 85% |
-| `apps/web/src/pages/DashboardPage.tsx` | 1 | 10 | 55% |
-| `apps/web/src/components/Toast.tsx` | 4 | 0 | 20% |
-| `apps/web/src/components/AxisIcons.tsx` | 4 | 0 | 20% |
-| `apps/web/src/upload-utils.ts` | 3 | 0 | 15% |
+| `apps/api/src/router.ts` | 96 | 4 | 100% |
+| `apps/api/src/test-helpers.ts` | 41 | 1 | 100% |
+| `apps/api/src/billing.ts` | 28 | 3 | 100% |
+| `apps/api/src/handlers.ts` | 23 | 14 | 100% |
+| `apps/api/src/rate-limiter.ts` | 36 | 2 | 100% |
+| `apps/api/src/logger.ts` | 25 | 0 | 100% |
+| `apps/api/src/server.ts` | 1 | 35 | 100% |
+| `apps/web/src/App.tsx` | 1 | 24 | 100% |
+| `packages/generator-core/src/generate.ts` | 30 | 6 | 100% |
+| `apps/api/src/mcp-tool-impls.ts` | 0 | 24 | 100% |
 
 ### 3. Framework-Specific Debugging
 
@@ -93,677 +98,73 @@ Key entities — bugs often involve state transitions or relationship integrity:
 
 | Model | Kind | Language | Fields | Source |
 |-------|------|----------|--------|--------|
+| AlertThresholds | interface | TypeScript | 2 | `apps/api/src/alerting.ts` |
+| Counters | type_alias | TypeScript | 2 | `apps/api/src/alerting.ts` |
+| DebounceState | interface | TypeScript | 2 | `apps/api/src/alerting.ts` |
+| WindowResult | interface | TypeScript | 4 | `apps/api/src/alerting.ts` |
+| AnalyticsCountByBucketResult | interface | TypeScript | 3 | `apps/api/src/analytics.ts` |
+| AnalyticsCountByBucketRow | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| AnalyticsCountByEventResult | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| AnalyticsCountByEventRow | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| AnalyticsCountResult | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| AnalyticsDistinctUsersResult | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| AnalyticsEvent | interface | TypeScript | 4 | `apps/api/src/analytics.ts` |
+| AnalyticsQuery | interface | TypeScript | 8 | `apps/api/src/analytics.ts` |
+| WhereClause | interface | TypeScript | 2 | `apps/api/src/analytics.ts` |
+| DriftDeps | interface | TypeScript | 5 | `apps/api/src/architecture-drift-webhook.ts` |
+| DriftOutcome | interface | TypeScript | 3 | `apps/api/src/architecture-drift-webhook.ts` |
+| DriftResult | interface | TypeScript | 3 | `apps/api/src/architecture-drift.ts` |
+| PushInfo | interface | TypeScript | 7 | `apps/api/src/architecture-drift.ts` |
+| Attestation | interface | TypeScript | 12 | `apps/api/src/attestation.ts` |
+| AttestationInput | interface | TypeScript | 3 | `apps/api/src/attestation.ts` |
+| AttestationOutput | interface | TypeScript | 3 | `apps/api/src/attestation.ts` |
+| ChainLink | interface | TypeScript | 3 | `apps/api/src/attestation.ts` |
 | AuthContext | interface | TypeScript | 3 | `apps/api/src/billing.ts` |
-| EmailConfig | interface | TypeScript | 2 | `apps/api/src/email.ts` |
-| ResendErrorResponse | interface | TypeScript | 3 | `apps/api/src/email.ts` |
-| ResendSuccessResponse | interface | TypeScript | 1 | `apps/api/src/email.ts` |
-| SendEmailOptions | interface | TypeScript | 5 | `apps/api/src/email.ts` |
-| SendEmailResult | interface | TypeScript | 4 | `apps/api/src/email.ts` |
-| EmbeddingsConfig | interface | TypeScript | 2 | `apps/api/src/embeddings.ts` |
-| EmbeddingsResult | interface | TypeScript | 4 | `apps/api/src/embeddings.ts` |
-| OpenAIEmbeddingResponse | interface | TypeScript | 5 | `apps/api/src/embeddings.ts` |
-| OpenAIErrorResponse | interface | TypeScript | 3 | `apps/api/src/embeddings.ts` |
-| EnvSpec | interface | TypeScript | 5 | `apps/api/src/env.ts` |
-| ValidationError | interface | TypeScript | 2 | `apps/api/src/env.ts` |
-| ValidationResult | interface | TypeScript | 3 | `apps/api/src/env.ts` |
-| ZipEntry | interface | TypeScript | 4 | `apps/api/src/export.ts` |
-| PullRequestPayload | interface | TypeScript | 5 | `apps/api/src/github-webhook.ts` |
-| PushPayload | interface | TypeScript | 7 | `apps/api/src/github-webhook.ts` |
-| SnapshotTarget | interface | TypeScript | 5 | `apps/api/src/github-webhook.ts` |
-| FirecrawlCrawlRequest | interface | TypeScript | 5 | `apps/api/src/handlers.ts` |
-| FirecrawlCrawlResponse | interface | TypeScript | 4 | `apps/api/src/handlers.ts` |
-| FirecrawlScrapeRequest | interface | TypeScript | 6 | `apps/api/src/handlers.ts` |
-| FirecrawlScrapeResponse | interface | TypeScript | 5 | `apps/api/src/handlers.ts` |
-| IntentCapture | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
-| JsonRpcRequest | interface | TypeScript | 4 | `apps/api/src/mcp-server.ts` |
-| McpCallCounters | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
-| PlannedCapability | interface | TypeScript | 7 | `apps/api/src/mcp-server.ts` |
-| RpcError | interface | TypeScript | 5 | `apps/api/src/mcp-server.ts` |
-| RpcSuccess | interface | TypeScript | 3 | `apps/api/src/mcp-server.ts` |
-| HistogramEntry | interface | TypeScript | 3 | `apps/api/src/metrics.ts` |
-| CacheKey | type_alias | TypeScript | 2 | `apps/api/src/mpp.ts` |
-| OAuthClientRow | interface | TypeScript | 3 | `apps/api/src/oauth-server-simple.ts` |
-| PresignOptions | interface | TypeScript | 5 | `apps/api/src/object-storage.ts` |
-| PresignResult | interface | TypeScript | 5 | `apps/api/src/object-storage.ts` |
-| R2Config | interface | TypeScript | 4 | `apps/api/src/object-storage.ts` |
-| OpenApiSpec | interface | TypeScript | 6 | `apps/api/src/openapi.ts` |
-| CreateIntentInput | interface | TypeScript | 3 | `apps/api/src/paid-client.ts` |
-| CreateSubscriptionInput | interface | TypeScript | 3 | `apps/api/src/paid-client.ts` |
-| PaidConfig | interface | TypeScript | 6 | `apps/api/src/paid-client.ts` |
-| PaymentIntent | interface | TypeScript | 6 | `apps/api/src/paid-client.ts` |
-| Subscription | interface | TypeScript | 4 | `apps/api/src/paid-client.ts` |
-| VerifyWebhookOptions | interface | TypeScript | 4 | `apps/api/src/paid-client.ts` |
-| WindowEntry | interface | TypeScript | 2 | `apps/api/src/rate-limiter.ts` |
-| AppHandle | interface | TypeScript | 3 | `apps/api/src/router.ts` |
-| Route | interface | TypeScript | 4 | `apps/api/src/router.ts` |
-| QueryOptions | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
-| VectorMatch | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
-| VectorRecord | interface | TypeScript | 3 | `apps/api/src/vector-db.ts` |
-| CliArgs | interface | TypeScript | 5 | `apps/cli/src/cli.ts` |
-| AxisConfig | interface | TypeScript | 2 | `apps/cli/src/credential-store.ts` |
-| RunResult | interface | TypeScript | 4 | `apps/cli/src/runner.ts` |
-| ScanResult | interface | TypeScript | 3 | `apps/cli/src/scanner.ts` |
-| WriteResult | interface | TypeScript | 3 | `apps/cli/src/writer.ts` |
-| Account | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| AdminAccountsResponse | interface | TypeScript | 4 | `apps/web/src/api.ts` |
-| AdminAccountSummary | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| AdminActivityEvent | interface | TypeScript | 6 | `apps/web/src/api.ts` |
-| AdminActivityResponse | interface | TypeScript | 2 | `apps/web/src/api.ts` |
-| AdminStats | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| ApiEndpointUsage | interface | TypeScript | 4 | `apps/web/src/api.ts` |
-| ApiKeyInfo | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| ApiStatusUsage | interface | TypeScript | 2 | `apps/web/src/api.ts` |
-| ContextMap | interface | TypeScript | 8 | `apps/web/src/api.ts` |
-| CrawlPage | interface | TypeScript | 3 | `apps/web/src/api.ts` |
-| CrawlResult | interface | TypeScript | 4 | `apps/web/src/api.ts` |
-| CreditsInfo | interface | TypeScript | 7 | `apps/web/src/api.ts` |
-| FunnelMetrics | interface | TypeScript | 8 | `apps/web/src/api.ts` |
-| GeneratedFile | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| GeneratedFilesResponse | interface | TypeScript | 6 | `apps/web/src/api.ts` |
-| MyAnalyticsSummary | interface | TypeScript | 11 | `apps/web/src/api.ts` |
-| PlanDefinition | interface | TypeScript | 6 | `apps/web/src/api.ts` |
-| PlanFeature | interface | TypeScript | 6 | `apps/web/src/api.ts` |
-| RepoProfile | interface | TypeScript | 4 | `apps/web/src/api.ts` |
-| ScrapeResult | interface | TypeScript | 4 | `apps/web/src/api.ts` |
-| SearchResponse | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| SearchResult | interface | TypeScript | 4 | `apps/web/src/api.ts` |
-| Seat | interface | TypeScript | 7 | `apps/web/src/api.ts` |
-| SnapshotPayload | interface | TypeScript | 6 | `apps/web/src/api.ts` |
-| SnapshotResponse | interface | TypeScript | 8 | `apps/web/src/api.ts` |
-| SubscriptionInfo | interface | TypeScript | 12 | `apps/web/src/api.ts` |
-| SymbolResult | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| SymbolsResponse | interface | TypeScript | 3 | `apps/web/src/api.ts` |
-| UpgradePrompt | interface | TypeScript | 9 | `apps/web/src/api.ts` |
-| UsageSummary | interface | TypeScript | 5 | `apps/web/src/api.ts` |
-| IconProps | interface | TypeScript | 5 | `apps/web/src/components/AxisIcons.tsx` |
-| PaletteAction | interface | TypeScript | 6 | `apps/web/src/components/CommandPalette.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/components/CommandPalette.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/components/FilesTab.tsx` |
-| Props | interface | TypeScript | 2 | `apps/web/src/components/GeneratedTab.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/components/GraphTab.tsx` |
-| Props | interface | TypeScript | 2 | `apps/web/src/components/OverviewTab.tsx` |
-| ProgramDef | interface | TypeScript | 5 | `apps/web/src/components/ProgramLauncher.tsx` |
-| Props | interface | TypeScript | 3 | `apps/web/src/components/ProgramLauncher.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/components/SearchTab.tsx` |
-| Props | interface | TypeScript | 3 | `apps/web/src/components/SignUpModal.tsx` |
-| Props | interface | TypeScript | 2 | `apps/web/src/components/StatusBar.tsx` |
-| Toast | interface | TypeScript | 4 | `apps/web/src/components/Toast.tsx` |
-| ToastContextValue | interface | TypeScript | 1 | `apps/web/src/components/Toast.tsx` |
-| ToolPageProps | interface | TypeScript | 11 | `apps/web/src/components/ToolPage.tsx` |
-| ToolPricing | interface | TypeScript | 5 | `apps/web/src/components/ToolPage.tsx` |
-| Props | interface | TypeScript | 4 | `apps/web/src/components/UpsellModal.tsx` |
-| Props | interface | TypeScript | 2 | `apps/web/src/pages/DashboardPage.tsx` |
-| ProgramDoc | interface | TypeScript | 13 | `apps/web/src/pages/DocsPage.tsx` |
-| Example | interface | TypeScript | 7 | `apps/web/src/pages/ExamplesPage.tsx` |
-| Step | interface | TypeScript | 4 | `apps/web/src/pages/HelpPage.tsx` |
-| TroubleshootItem | interface | TypeScript | 2 | `apps/web/src/pages/HelpPage.tsx` |
-| StrategyItem | interface | TypeScript | 3 | `apps/web/src/pages/MyAnalyticsPage.tsx` |
-| Props | interface | TypeScript | 2 | `apps/web/src/pages/PlansPage.tsx` |
-| ProgramDef | interface | TypeScript | 7 | `apps/web/src/pages/ProgramsPage.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/pages/ProgramsPage.tsx` |
-| QAItem | interface | TypeScript | 3 | `apps/web/src/pages/QAPage.tsx` |
-| Section | interface | TypeScript | 2 | `apps/web/src/pages/TermsPage.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/pages/tools/WebResearchPage.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/pages/ToolsIndexPage.tsx` |
-| ToolCatalogEntry | interface | TypeScript | 8 | `apps/web/src/pages/ToolsIndexPage.tsx` |
-| Props | interface | TypeScript | 1 | `apps/web/src/pages/UploadPage.tsx` |
-| ImportMeta | interface | TypeScript | 1 | `apps/web/src/vite-env.d.ts` |
-| ImportMetaEnv | interface | TypeScript | 1 | `apps/web/src/vite-env.d.ts` |
-| DashboardData | interface | TypeScript | 6 | `dashboard-widget.tsx` |
-| AgentBudget | interface | TypeScript | 0 | `embed-snippet.ts` |
-| Build402Options | interface | TypeScript | 0 | `embed-snippet.ts` |
-| PricingTier | interface | TypeScript | 0 | `embed-snippet.ts` |
-| axisiliadProps | interface | TypeScript | 3 | `generated-component.tsx` |
-| PaletteAction | interface | TypeScript | 0 | `generated-component.tsx` |
-| Edge | interface | TypeScript | 3 | `generative-sketch.ts` |
-| Node | interface | TypeScript | 7 | `generative-sketch.ts` |
-| ContextMap | interface | TypeScript | 10 | `packages/context-engine/src/types.ts` |
-| RepoProfile | interface | TypeScript | 12 | `packages/context-engine/src/types.ts` |
-| CommerceSignals | interface | TypeScript | 10 | `packages/generator-core/src/generators-agentic-purchasing.ts` |
-| ComplianceGradeResult | interface | TypeScript | 3 | `packages/generator-core/src/generators-agentic-purchasing.ts` |
-| Edge | interface | TypeScript | 3 | `packages/generator-core/src/generators-algorithmic.ts` |
-| Node | interface | TypeScript | 7 | `packages/generator-core/src/generators-algorithmic.ts` |
-| DashboardData | interface | TypeScript | 6 | `packages/generator-core/src/generators-artifacts.ts` |
-| Entry | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-artifacts.ts` |
-| Model | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-artifacts.ts` |
-| ResellCapability | interface | TypeScript | 10 | `packages/generator-core/src/generators-artifacts.ts` |
-| ResellProvider | interface | TypeScript | 3 | `packages/generator-core/src/generators-artifacts.ts` |
-| Route | type_alias | TypeScript | 3 | `packages/generator-core/src/generators-artifacts.ts` |
-| BrandingConfig | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
-| MerkleBundle | interface | TypeScript | 3 | `packages/generator-core/src/generators-closer.ts` |
-| ProjectSignals | interface | TypeScript | 10 | `packages/generator-core/src/generators-closer.ts` |
-| MyComponentProps | interface | TypeScript | 2 | `packages/generator-core/src/generators-frontend.ts` |
-| CancelParams | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
-| CancelRequest | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| CapabilityAdvertisement | interface | TypeScript | 5 | `packages/generator-core/src/generators-mcp.ts` |
-| ClientInfo | interface | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| InitializeParams | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| InitializeResult | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| InitializeResult | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| JsonRpcError | type_alias | TypeScript | 5 | `packages/generator-core/src/generators-mcp.ts` |
-| JsonRpcErrorObject | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| JsonRpcErrorResponse | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| JsonRpcRequest | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| JsonRpcSuccess | type_alias | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| ProgressNotification | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ProgressParams | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| PromptArgument | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| PromptDefinition | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| PromptGetParams | interface | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| PromptGetResult | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
-| PromptMessage | interface | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| RegisteredSchema | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| ResourceContent | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ResourceDefinition | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ResourceReadParams | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
-| ResourceReadResult | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
-| ResourcesListResult | interface | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| ResourceTemplate | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ServerInfo | interface | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| SessionContext | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| StandardSchemaV1 | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| StandardSchemaV1 | type_alias | TypeScript | 6 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolCall | type_alias | TypeScript | 2 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolCallResult | interface | TypeScript | 3 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolContentBlock | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolDefinition | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolDefinition | type_alias | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolSchema | interface | TypeScript | 4 | `packages/generator-core/src/generators-mcp.ts` |
-| ToolsListResult | interface | TypeScript | 1 | `packages/generator-core/src/generators-mcp.ts` |
-| TransportAdapter | interface | TypeScript | 0 | `packages/generator-core/src/generators-mcp.ts` |
-| RemotionTheme | interface | TypeScript | 4 | `packages/generator-core/src/generators-remotion.ts` |
-| GeneratedFile | interface | TypeScript | 5 | `packages/generator-core/src/types.ts` |
-| GeneratorInput | interface | TypeScript | 4 | `packages/generator-core/src/types.ts` |
-| GeneratorResult | interface | TypeScript | 6 | `packages/generator-core/src/types.ts` |
-| SourceFile | interface | TypeScript | 3 | `packages/generator-core/src/types.ts` |
-| AgentBudget | interface | TypeScript | 5 | `packages/mpp/src/index.ts` |
-| Build402Options | interface | TypeScript | 2 | `packages/mpp/src/index.ts` |
-| ChargeOptions | type_alias | TypeScript | 5 | `packages/mpp/src/index.ts` |
-| MppResult | type_alias | TypeScript | 1 | `packages/mpp/src/index.ts` |
-| PricingTier | interface | TypeScript | 4 | `packages/mpp/src/index.ts` |
-| DomainModel | interface | TypeScript | 5 | `packages/repo-parser/src/domain-extractor.ts` |
-| FrameworkRule | interface | TypeScript | 4 | `packages/repo-parser/src/framework-detector.ts` |
-| DepGroups | interface | TypeScript | 3 | `packages/repo-parser/src/parser.ts` |
-| CreateUserRequest | interface | TypeScript | 3 | `packages/repo-parser/src/perf.bench.ts` |
-| SQLTable | interface | TypeScript | 5 | `packages/repo-parser/src/sql-extractor.ts` |
-| DependencyInfo | interface | TypeScript | 3 | `packages/repo-parser/src/types.ts` |
-| FileAnnotation | interface | TypeScript | 5 | `packages/repo-parser/src/types.ts` |
-| FrameworkDetection | interface | TypeScript | 4 | `packages/repo-parser/src/types.ts` |
-| ImportEdge | interface | TypeScript | 2 | `packages/repo-parser/src/types.ts` |
-| LanguageStats | interface | TypeScript | 4 | `packages/repo-parser/src/types.ts` |
-| ParseResult | interface | TypeScript | 13 | `packages/repo-parser/src/types.ts` |
-| AnalyzeFilesInput | interface | TypeScript | 5 | `packages/sdk/src/index.ts` |
-| AnalyzeRepoInput | interface | TypeScript | 1 | `packages/sdk/src/index.ts` |
-| ArtifactEntry | interface | TypeScript | 3 | `packages/sdk/src/index.ts` |
-| AxisClientOptions | interface | TypeScript | 3 | `packages/sdk/src/index.ts` |
-| FileEntry | interface | TypeScript | 2 | `packages/sdk/src/index.ts` |
-| HealthResponse | interface | TypeScript | 4 | `packages/sdk/src/index.ts` |
-| McpToolCallResult | interface | TypeScript | 5 | `packages/sdk/src/index.ts` |
-| OpenApiSpec | interface | TypeScript | 4 | `packages/sdk/src/index.ts` |
-| SnapshotResult | interface | TypeScript | 7 | `packages/sdk/src/index.ts` |
-| AccountApiAnalyticsSummary | interface | TypeScript | 7 | `packages/snapshots/src/billing-store.ts` |
-| AccountSummary | interface | TypeScript | 7 | `packages/snapshots/src/billing-store.ts` |
-| ApiEndpointUsage | interface | TypeScript | 4 | `packages/snapshots/src/billing-store.ts` |
-| ApiStatusUsage | interface | TypeScript | 2 | `packages/snapshots/src/billing-store.ts` |
-| QuotaCheck | interface | TypeScript | 6 | `packages/snapshots/src/billing-store.ts` |
-| RecentActivity | interface | TypeScript | 5 | `packages/snapshots/src/billing-store.ts` |
-| SystemStats | interface | TypeScript | 7 | `packages/snapshots/src/billing-store.ts` |
-| Account | interface | TypeScript | 5 | `packages/snapshots/src/billing-types.ts` |
-| ApiKey | interface | TypeScript | 6 | `packages/snapshots/src/billing-types.ts` |
-| PersistenceCreditRecord | interface | TypeScript | 7 | `packages/snapshots/src/billing-types.ts` |
-| ProgramEntitlement | interface | TypeScript | 3 | `packages/snapshots/src/billing-types.ts` |
-| TierLimits | interface | TypeScript | 5 | `packages/snapshots/src/billing-types.ts` |
-| UsageRecord | interface | TypeScript | 8 | `packages/snapshots/src/billing-types.ts` |
-| UsageSummary | interface | TypeScript | 5 | `packages/snapshots/src/billing-types.ts` |
-| DbMaintenanceResult | interface | TypeScript | 3 | `packages/snapshots/src/db.ts` |
-| Migration | interface | TypeScript | 3 | `packages/snapshots/src/db.ts` |
-| EmailDelivery | interface | TypeScript | 10 | `packages/snapshots/src/email-store.ts` |
-| EmailMessage | interface | TypeScript | 4 | `packages/snapshots/src/email-store.ts` |
-| FunnelMetrics | interface | TypeScript | 8 | `packages/snapshots/src/funnel-store.ts` |
-| FunnelEvent | interface | TypeScript | 6 | `packages/snapshots/src/funnel-types.ts` |
-| PlanDefinition | interface | TypeScript | 6 | `packages/snapshots/src/funnel-types.ts` |
-| PlanFeature | interface | TypeScript | 6 | `packages/snapshots/src/funnel-types.ts` |
-| Seat | interface | TypeScript | 8 | `packages/snapshots/src/funnel-types.ts` |
-| UpgradePrompt | interface | TypeScript | 9 | `packages/snapshots/src/funnel-types.ts` |
-| GitHubToken | interface | TypeScript | 10 | `packages/snapshots/src/github-token-store.ts` |
-| GitHubFetchResult | interface | TypeScript | 6 | `packages/snapshots/src/github.ts` |
-| ParsedGitHubUrl | interface | TypeScript | 3 | `packages/snapshots/src/github.ts` |
-| TarParseResult | interface | TypeScript | 3 | `packages/snapshots/src/github.ts` |
-| GitHubTokenResponse | interface | TypeScript | 3 | `packages/snapshots/src/oauth-store.ts` |
-| GitHubUser | interface | TypeScript | 4 | `packages/snapshots/src/oauth-store.ts` |
-| ReferralCode | interface | TypeScript | 3 | `packages/snapshots/src/referral-store.ts` |
-| ReferralConversion | interface | TypeScript | 4 | `packages/snapshots/src/referral-store.ts` |
-| ReferralCredits | interface | TypeScript | 8 | `packages/snapshots/src/referral-store.ts` |
-| ReferralTokenUsageModifier | interface | TypeScript | 3 | `packages/snapshots/src/referral-store.ts` |
-| CodeSymbol | interface | TypeScript | 6 | `packages/snapshots/src/search-store.ts` |
-| SearchIndexEntry | interface | TypeScript | 3 | `packages/snapshots/src/search-store.ts` |
-| SearchResult | interface | TypeScript | 4 | `packages/snapshots/src/search-store.ts` |
-| SymbolSearchResult | interface | TypeScript | 5 | `packages/snapshots/src/search-store.ts` |
-| StripeSubscription | interface | TypeScript | 12 | `packages/snapshots/src/stripe-store.ts` |
-| ProrationResult | interface | TypeScript | 6 | `packages/snapshots/src/tier-audit.ts` |
-| TierChange | interface | TypeScript | 8 | `packages/snapshots/src/tier-audit.ts` |
-| FileEntry | interface | TypeScript | 3 | `packages/snapshots/src/types.ts` |
-| SnapshotInput | interface | TypeScript | 4 | `packages/snapshots/src/types.ts` |
-| SnapshotManifest | interface | TypeScript | 10 | `packages/snapshots/src/types.ts` |
-| SnapshotRecord | interface | TypeScript | 10 | `packages/snapshots/src/types.ts` |
-| UsageCreditChargeResult | interface | TypeScript | 5 | `packages/snapshots/src/usage-credit-metering.ts` |
-| UsageCreditSummary | interface | TypeScript | 6 | `packages/snapshots/src/usage-credit-metering.ts` |
-| FileDiff | interface | TypeScript | 4 | `packages/snapshots/src/version-store.ts` |
-| GenerationVersion | interface | TypeScript | 7 | `packages/snapshots/src/version-store.ts` |
-| VersionDiff | interface | TypeScript | 8 | `packages/snapshots/src/version-store.ts` |
-| VersionFile | interface | TypeScript | 2 | `packages/snapshots/src/version-store.ts` |
-| VersionRow | interface | TypeScript | 7 | `packages/snapshots/src/version-store.ts` |
-| RetryCandidate | interface | TypeScript | 5 | `packages/snapshots/src/webhook-store.ts` |
-| Webhook | interface | TypeScript | 8 | `packages/snapshots/src/webhook-store.ts` |
-| WebhookDelivery | interface | TypeScript | 11 | `packages/snapshots/src/webhook-store.ts` |
-| WebhookRow | interface | TypeScript | 8 | `packages/snapshots/src/webhook-store.ts` |
+| NotConfiguredResult | interface | TypeScript | 4 | `apps/api/src/code-sandbox.ts` |
+| SandboxOptions | interface | TypeScript | 4 | `apps/api/src/code-sandbox.ts` |
+| SandboxResult | interface | TypeScript | 6 | `apps/api/src/code-sandbox.ts` |
+| CommerceArtifact | interface | TypeScript | 3 | `apps/api/src/commerce-integration.ts` |
+| DisputeReadiness | interface | TypeScript | 5 | `apps/api/src/commerce-integration.ts` |
+| PurchaseDeps | interface | TypeScript | 1 | `apps/api/src/commerce-integration.ts` |
+| ReadinessDimension | interface | TypeScript | 4 | `apps/api/src/commerce-integration.ts` |
+| DeliverabilityKit | interface | TypeScript | 7 | `apps/api/src/deliverability.ts` |
+| *… 212 more* | | | | |
 
 ## Route Map
 
 | Method | Path | Source |
 |--------|------|--------|
-| GET | `/v1/health` | apps/api/src/admin.test.ts |
-| POST | `/v1/accounts` | apps/api/src/admin.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/admin.test.ts |
-| GET | `/v1/admin/stats` | apps/api/src/admin.test.ts |
-| GET | `/v1/admin/accounts` | apps/api/src/admin.test.ts |
-| GET | `/v1/admin/activity` | apps/api/src/admin.test.ts |
-| GET | `/llms.txt` | apps/api/src/agent-discovery.test.ts |
-| GET | `/.well-known/skills/index.json` | apps/api/src/agent-discovery.test.ts |
-| GET | `/v1/docs.md` | apps/api/src/agent-discovery.test.ts |
-| GET | `/.well-known/axis.json` | apps/api/src/agent-discovery.test.ts |
-| GET | `/for-agents` | apps/api/src/agent-discovery.test.ts |
-| GET | `/v1/install` | apps/api/src/agent-discovery.test.ts |
-| GET | `/v1/install/:platform` | apps/api/src/agent-discovery.test.ts |
-| POST | `/probe-intent` | apps/api/src/agent-discovery.test.ts |
-| POST | `/mcp` | apps/api/src/analyze-repo-success.test.ts |
-| POST | `/v1/analyze` | apps/api/src/analyze.test.ts |
-| GET | `/.well-known/axis.json` | apps/api/src/analyze.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/api-branches.test.ts |
-| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path` | apps/api/src/api-branches.test.ts |
-| DELETE | `/v1/projects/:project_id` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/health` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/db/stats` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/db/maintenance` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/search/index` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/search/query` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/search/:snapshot_id/stats` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/docs` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/programs` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/account/seats` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/account/seats` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/account/seats/:seat_id/accept` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/account/seats/:seat_id/revoke` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/account/upgrade-prompt` | apps/api/src/api-branches.test.ts |
-| POST | `/v1/account/upgrade-prompt/dismiss` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/account/funnel` | apps/api/src/api-branches.test.ts |
-| GET | `/v1/health` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/accounts` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/account/webhooks` | apps/api/src/api-layer5.test.ts |
-| GET | `/v1/account/webhooks` | apps/api/src/api-layer5.test.ts |
-| DELETE | `/v1/account/webhooks/:webhook_id` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/account/webhooks/:webhook_id/toggle` | apps/api/src/api-layer5.test.ts |
-| GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/search/query` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/account/programs` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/account/github-token` | apps/api/src/api-layer5.test.ts |
-| POST | `/v1/account/seats` | apps/api/src/api-layer5.test.ts |
-| GET | `/v1/admin/stats` | apps/api/src/api-layer5.test.ts |
-| GET | `/v1/admin/accounts` | apps/api/src/api-layer5.test.ts |
-| GET | `/v1/admin/activity` | apps/api/src/api-layer5.test.ts |
-| GET | `/health` | apps/api/src/api.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/api.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/api.test.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/api.test.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/api.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path` | apps/api/src/api.test.ts |
-| POST | `/v1/search/export` | apps/api/src/api.test.ts |
-| POST | `/v1/skills/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/api.test.ts |
-| POST | `/v1/frontend/audit` | apps/api/src/api.test.ts |
-| POST | `/v1/seo/analyze` | apps/api/src/api.test.ts |
-| POST | `/v1/optimization/analyze` | apps/api/src/api.test.ts |
-| POST | `/v1/theme/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/brand/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/superpowers/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/marketing/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/notebook/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/obsidian/analyze` | apps/api/src/api.test.ts |
-| POST | `/v1/mcp/provision` | apps/api/src/api.test.ts |
-| POST | `/v1/artifacts/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/remotion/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/canvas/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/algorithmic/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/agentic-purchasing/generate` | apps/api/src/api.test.ts |
-| POST | `/v1/github/analyze` | apps/api/src/api.test.ts |
-| POST | `/v1/accounts` | apps/api/src/b-grade-upgrade.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/b-grade-upgrade.test.ts |
-| POST | `/v1/account/github-token` | apps/api/src/b-grade-upgrade.test.ts |
-| GET | `/v1/account/github-token` | apps/api/src/b-grade-upgrade.test.ts |
-| DELETE | `/v1/account/github-token/:token_id` | apps/api/src/b-grade-upgrade.test.ts |
-| GET | `/v1/billing/history` | apps/api/src/b-grade-upgrade.test.ts |
-| GET | `/v1/billing/proration` | apps/api/src/b-grade-upgrade.test.ts |
-| GET | `/v1/health` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path*` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/search/export` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/projects/:project_id/export` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/accounts` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/account` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/account/keys` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/keys/:key_id/revoke` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/account/usage` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/account/analytics/summary` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/programs` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/account/credits` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/plans` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/seats` | apps/api/src/billing-flow.test.ts |
-| GET | `/v1/account/seats` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/seats/:seat_id/accept` | apps/api/src/billing-flow.test.ts |
-| POST | `/v1/account/seats/:seat_id/revoke` | apps/api/src/billing-flow.test.ts |
-| GET | `/for-agents` | apps/api/src/budget-probe.test.ts |
-| POST | `/probe-intent` | apps/api/src/budget-probe.test.ts |
-| POST | `/v1/accounts` | apps/api/src/checkout-email.test.ts |
-| POST | `/v1/account/seats` | apps/api/src/checkout-email.test.ts |
-| GET | `/v1/account/seats` | apps/api/src/checkout-email.test.ts |
-| GET | `/v1/plans` | apps/api/src/checkout-email.test.ts |
-| POST | `/v1/webhooks/stripe` | apps/api/src/checkout-email.test.ts |
-| POST | `/v1/checkout` | apps/api/src/checkout-email.test.ts |
-| GET | `/v1/account/subscription` | apps/api/src/checkout-email.test.ts |
-| POST | `/v1/account/subscription/cancel` | apps/api/src/checkout-email.test.ts |
-| GET | `/v1/health` | apps/api/src/crash-resilience.test.ts |
-| GET | `/v1/health` | apps/api/src/crash-resilience.test.ts |
-| GET | `/v1/health` | apps/api/src/credits-api.test.ts |
-| POST | `/v1/accounts` | apps/api/src/credits-api.test.ts |
-| GET | `/v1/account` | apps/api/src/credits-api.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/credits-api.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/credits-api.test.ts |
-| GET | `/v1/account/credits` | apps/api/src/credits-api.test.ts |
-| POST | `/v1/account/credits` | apps/api/src/credits-api.test.ts |
-| GET | `/v1/health` | apps/api/src/db-endpoints.test.ts |
-| GET | `/v1/db/stats` | apps/api/src/db-endpoints.test.ts |
-| POST | `/v1/db/maintenance` | apps/api/src/db-endpoints.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/deletion.test.ts |
-| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/deletion.test.ts |
-| DELETE | `/v1/projects/:project_id` | apps/api/src/deletion.test.ts |
-| GET | `/v1/health` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/health/live` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/health/ready` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/metrics` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/db/stats` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/db/maintenance` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/e2e-flows.test.ts |
-| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/snapshots/:snapshot_id/versions` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/snapshots/:snapshot_id/versions/:version_number` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/snapshots/:snapshot_id/diff` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path` | apps/api/src/e2e-flows.test.ts |
-| DELETE | `/v1/projects/:project_id` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/projects/:project_id/export` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/search/export` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/accounts` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/account` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/account/keys` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/account/keys/:key_id/revoke` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/account/usage` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/account/quota` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/admin/stats` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/admin/accounts` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/admin/activity` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/account/webhooks` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/account/webhooks` | apps/api/src/e2e-flows.test.ts |
-| DELETE | `/v1/account/webhooks/:webhook_id` | apps/api/src/e2e-flows.test.ts |
-| POST | `/v1/account/webhooks/:webhook_id/toggle` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/e2e-flows.test.ts |
-| GET | `/v1/projects/:project_id/export` | apps/api/src/export-edge-cases.test.ts |
-| GET | `/v1/projects/:project_id/export` | apps/api/src/export.test.ts |
-| POST | `/v1/accounts` | apps/api/src/funnel-api.test.ts |
-| GET | `/v1/account` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/funnel-api.test.ts |
-| GET | `/v1/plans` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/seats` | apps/api/src/funnel-api.test.ts |
-| GET | `/v1/account/seats` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/seats/:seat_id/accept` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/seats/:seat_id/revoke` | apps/api/src/funnel-api.test.ts |
-| GET | `/v1/account/upgrade-prompt` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/upgrade-prompt/dismiss` | apps/api/src/funnel-api.test.ts |
-| GET | `/v1/account/funnel` | apps/api/src/funnel-api.test.ts |
-| GET | `/v1/funnel/metrics` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/account/analytics/events` | apps/api/src/funnel-api.test.ts |
-| POST | `/v1/github/webhook` | apps/api/src/github-webhook.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/handler-edge-cases.test.ts |
-| GET | `/health` | apps/api/src/handler-edge-cases.test.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/handler-edge-cases.test.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/handler-edge-cases.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path` | apps/api/src/handler-edge-cases.test.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/handler-edge-cases.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/handler-validation.test.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/handler-validation.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/handlers-deep.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/handlers-deep.test.ts |
-| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/handlers-deep.test.ts |
-| DELETE | `/v1/projects/:project_id` | apps/api/src/handlers-deep.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path` | apps/api/src/handlers-deep.test.ts |
-| POST | `/v1/search/export` | apps/api/src/handlers-deep.test.ts |
-| POST | `/v1/skills/generate` | apps/api/src/handlers-deep.test.ts |
-| POST | `/v1/github/analyze` | apps/api/src/handlers-deep.test.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/handlers-deep.test.ts |
-| GET | `/v1/health/live` | apps/api/src/latency-histogram.test.ts |
-| GET | `/v1/metrics` | apps/api/src/latency-histogram.test.ts |
-| GET | `/v1/health` | apps/api/src/logging.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/logging.test.ts |
-| POST | `/mcp` | apps/api/src/mcp-server.test.ts |
-| GET | `/mcp` | apps/api/src/mcp-server.test.ts |
-| GET | `/mcp/docs` | apps/api/src/mcp-server.test.ts |
-| GET | `/v1/mcp/server.json` | apps/api/src/mcp-server.test.ts |
-| POST | `/v1/accounts` | apps/api/src/mcp-server.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/mcp-server.test.ts |
-| GET | `/v1/stats` | apps/api/src/mcp-server.test.ts |
-| GET | `/ping` | apps/api/src/mcp-server.test.ts |
-| GET | `/` | apps/api/src/mcp-server.test.ts |
-| GET | `/v1/health` | apps/api/src/metrics.test.ts |
-| GET | `/v1/health/live` | apps/api/src/metrics.test.ts |
-| GET | `/v1/health/ready` | apps/api/src/metrics.test.ts |
-| GET | `/v1/metrics` | apps/api/src/metrics.test.ts |
-| GET | `/v1/health` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/multi-tenancy.test.ts |
-| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/multi-tenancy.test.ts |
-| DELETE | `/v1/projects/:project_id` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path*` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/projects/:project_id/export` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/search/index` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/search/query` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/search/:snapshot_id/stats` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/accounts` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/account` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/account/keys` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/account/keys/:key_id/revoke` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/account/usage` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/multi-tenancy.test.ts |
-| POST | `/v1/account/programs` | apps/api/src/multi-tenancy.test.ts |
-| GET | `/v1/auth/github` | apps/api/src/oauth.test.ts |
-| GET | `/v1/auth/github/callback` | apps/api/src/oauth.test.ts |
-| POST | `/v1/accounts` | apps/api/src/paid-handlers.test.ts |
-| POST | `/portal/api/subscribe` | apps/api/src/paid-handlers.test.ts |
-| POST | `/portal/api/paid/webhook` | apps/api/src/paid-handlers.test.ts |
-| POST | `/v1/prepare-for-agentic-purchasing` | apps/api/src/prepare-purchasing.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/health` | apps/api/src/production-startup.test.ts |
-| GET | `/v1/programs` | apps/api/src/programs-billing.test.ts |
-| POST | `/v1/accounts` | apps/api/src/programs-billing.test.ts |
-| GET | `/v1/account` | apps/api/src/programs-billing.test.ts |
-| POST | `/v1/account/keys` | apps/api/src/programs-billing.test.ts |
-| GET | `/v1/account/usage` | apps/api/src/programs-billing.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/programs-billing.test.ts |
-| POST | `/v1/account/programs` | apps/api/src/programs-billing.test.ts |
-| POST | `/mcp` | apps/api/src/quota-guardrails.test.ts |
-| GET | `/v1/health` | apps/api/src/quota.test.ts |
-| POST | `/v1/accounts` | apps/api/src/quota.test.ts |
-| GET | `/v1/account/quota` | apps/api/src/quota.test.ts |
-| GET | `/v1/health` | apps/api/src/rate-limit-integration.test.ts |
-| GET | `/v1/test/fast` | apps/api/src/request-limits.test.ts |
-| GET | `/v1/test/slow` | apps/api/src/request-limits.test.ts |
-| GET | `/slow` | apps/api/src/router-branches.test.ts |
-| GET | `/throw-string` | apps/api/src/router-branches.test.ts |
-| GET | `/throw-after-end` | apps/api/src/router-branches.test.ts |
-| GET | `/null-error` | apps/api/src/router-branches.test.ts |
-| GET | `/array-error` | apps/api/src/router-branches.test.ts |
-| GET | `/ok` | apps/api/src/router-branches.test.ts |
-| GET | `/manual-500` | apps/api/src/router-branches.test.ts |
-| GET | `/manual-422` | apps/api/src/router-branches.test.ts |
-| GET | `/health` | apps/api/src/router-branches.test.ts |
-| GET | `/up` | apps/api/src/router-branches.test.ts |
-| GET | `/echo` | apps/api/src/router.test.ts |
-| POST | `/echo` | apps/api/src/router.test.ts |
-| GET | `/items/:id` | apps/api/src/router.test.ts |
-| GET | `/users/:userId/posts/:postId` | apps/api/src/router.test.ts |
-| GET | `/files/:path*` | apps/api/src/router.test.ts |
-| GET | `/throws` | apps/api/src/router.test.ts |
-| POST | `/status/:code` | apps/api/src/router.test.ts |
-| GET | `/error-shape` | apps/api/src/router.test.ts |
-| GET | `/` | apps/api/src/router.test.ts |
-| GET | `/v1/health` | apps/api/src/security.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/security.test.ts |
-| GET | `/v1/health` | apps/api/src/server-lifecycle.test.ts |
-| GET | `/v1/health` | apps/api/src/server-lifecycle.test.ts |
-| GET | `/` | apps/api/src/server.ts |
 | GET | `/v1/health` | apps/api/src/server.ts |
-| GET | `/v1/health/live` | apps/api/src/server.ts |
-| GET | `/v1/health/ready` | apps/api/src/server.ts |
-| GET | `/v1/metrics` | apps/api/src/server.ts |
-| GET | `/performance` | apps/api/src/server.ts |
-| GET | `/performance/reputation` | apps/api/src/server.ts |
-| GET | `/v1/db/stats` | apps/api/src/server.ts |
-| POST | `/v1/db/maintenance` | apps/api/src/server.ts |
-| GET | `/v1/docs` | apps/api/src/server.ts |
+| POST | `/v1/accounts` | apps/api/src/server.ts |
 | POST | `/v1/snapshots` | apps/api/src/server.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/server.ts |
-| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/server.ts |
-| GET | `/v1/snapshots/:snapshot_id/versions` | apps/api/src/server.ts |
-| GET | `/v1/snapshots/:snapshot_id/versions/:version_number` | apps/api/src/server.ts |
-| GET | `/v1/snapshots/:snapshot_id/diff` | apps/api/src/server.ts |
-| GET | `/v1/projects/:project_id/context` | apps/api/src/server.ts |
-| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/server.ts |
-| GET | `/v1/projects/:project_id/generated-files/:file_path*` | apps/api/src/server.ts |
-| DELETE | `/v1/projects/:project_id` | apps/api/src/server.ts |
-| POST | `/v1/search/export` | apps/api/src/server.ts |
-| POST | `/v1/skills/generate` | apps/api/src/server.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/server.ts |
-| POST | `/v1/frontend/audit` | apps/api/src/server.ts |
-| POST | `/v1/seo/analyze` | apps/api/src/server.ts |
-| POST | `/v1/optimization/analyze` | apps/api/src/server.ts |
-| POST | `/v1/theme/generate` | apps/api/src/server.ts |
-| POST | `/v1/brand/generate` | apps/api/src/server.ts |
-| POST | `/v1/superpowers/generate` | apps/api/src/server.ts |
-| POST | `/v1/marketing/generate` | apps/api/src/server.ts |
-| POST | `/v1/notebook/generate` | apps/api/src/server.ts |
-| POST | `/v1/obsidian/analyze` | apps/api/src/server.ts |
-| POST | `/v1/mcp/provision` | apps/api/src/server.ts |
-| POST | `/v1/artifacts/generate` | apps/api/src/server.ts |
-| POST | `/v1/remotion/generate` | apps/api/src/server.ts |
-| POST | `/v1/canvas/generate` | apps/api/src/server.ts |
-| POST | `/v1/algorithmic/generate` | apps/api/src/server.ts |
-| POST | `/v1/agentic-purchasing/generate` | apps/api/src/server.ts |
-| POST | `/v1/closer/generate` | apps/api/src/server.ts |
-| POST | `/v1/prepare-for-agentic-purchasing` | apps/api/src/server.ts |
-| POST | `/v1/analyze` | apps/api/src/server.ts |
-| POST | `/v1/github/analyze` | apps/api/src/server.ts |
-| POST | `/v1/github/webhook` | apps/api/src/server.ts |
-| POST | `/v1/research/scrape` | apps/api/src/server.ts |
-| POST | `/v1/research/crawl` | apps/api/src/server.ts |
-| GET | `/.well-known/axis.json` | apps/api/src/server.ts |
-| GET | `/.well-known/capabilities.json` | apps/api/src/server.ts |
-| GET | `/.well-known/mcp.json` | apps/api/src/server.ts |
-| GET | `/.well-known/security.txt` | apps/api/src/server.ts |
-| GET | `/.well-known/glama.json` | apps/api/src/server.ts |
-| GET | `/.well-known/agent.json` | apps/api/src/server.ts |
-| GET | `/.well-known/oauth-authorization-server` | apps/api/src/server.ts |
-| GET | `/mcp/.well-known/mcp.json` | apps/api/src/server.ts |
-| GET | `/mcp/.well-known/agent.json` | apps/api/src/server.ts |
-| GET | `/robots.txt` | apps/api/src/server.ts |
-| GET | `/sitemap.xml` | apps/api/src/server.ts |
-| GET | `/health` | apps/api/src/server.ts |
-| GET | `/docs` | apps/api/src/server.ts |
-| GET | `/pricing` | apps/api/src/server.ts |
-| GET | `/openapi.json` | apps/api/src/server.ts |
+| GET | `/v1/admin/stats` | apps/api/src/server.ts |
+| GET | `/v1/admin/accounts` | apps/api/src/server.ts |
+| GET | `/v1/admin/activity` | apps/api/src/server.ts |
+| GET | `/v1/admin/mcp-usage` | apps/api/src/server.ts |
+| GET | `/v1/admin/revenue` | apps/api/src/server.ts |
 | GET | `/llms.txt` | apps/api/src/server.ts |
 | GET | `/.well-known/skills/index.json` | apps/api/src/server.ts |
 | GET | `/v1/docs.md` | apps/api/src/server.ts |
+| GET | `/.well-known/axis.json` | apps/api/src/server.ts |
 | GET | `/for-agents` | apps/api/src/server.ts |
-| POST | `/probe-intent` | apps/api/src/server.ts |
 | GET | `/v1/install` | apps/api/src/server.ts |
 | GET | `/v1/install/:platform` | apps/api/src/server.ts |
+| POST | `/probe-intent` | apps/api/src/server.ts |
+| POST | `/mcp` | apps/api/src/server.ts |
+| POST | `/v1/analyze` | apps/api/src/server.ts |
+| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/server.ts |
+| DELETE | `/v1/snapshots/:snapshot_id` | apps/api/src/server.ts |
+| GET | `/v1/projects/:project_id/context` | apps/api/src/server.ts |
+| GET | `/v1/projects/:project_id/generated-files` | apps/api/src/server.ts |
+| DELETE | `/v1/projects/:project_id` | apps/api/src/server.ts |
+| GET | `/v1/db/stats` | apps/api/src/server.ts |
+| POST | `/v1/db/maintenance` | apps/api/src/server.ts |
 | POST | `/v1/search/index` | apps/api/src/server.ts |
 | POST | `/v1/search/query` | apps/api/src/server.ts |
 | GET | `/v1/search/:snapshot_id/stats` | apps/api/src/server.ts |
-| GET | `/v1/search/:snapshot_id/symbols` | apps/api/src/server.ts |
-| GET | `/v1/projects/:project_id/export` | apps/api/src/server.ts |
+| POST | `/v1/debug/analyze` | apps/api/src/server.ts |
+| GET | `/v1/docs` | apps/api/src/server.ts |
 | GET | `/v1/programs` | apps/api/src/server.ts |
-| POST | `/mcp` | apps/api/src/server.ts |
-| POST | `/mcp/` | apps/api/src/server.ts |
-| POST | `/v1/mcp` | apps/api/src/server.ts |
-| POST | `/v1/mcp/` | apps/api/src/server.ts |
-| GET | `/mcp` | apps/api/src/server.ts |
-| GET | `/mcp/` | apps/api/src/server.ts |
-| GET | `/v1/mcp` | apps/api/src/server.ts |
-| GET | `/v1/mcp/` | apps/api/src/server.ts |
-| GET | `/mcp/docs` | apps/api/src/server.ts |
-| GET | `/favicon.ico` | apps/api/src/server.ts |
-| GET | `/mcp/sse` | apps/api/src/server.ts |
-| POST | `/mcp/sse` | apps/api/src/server.ts |
-| GET | `/mcp/mcp/*` | apps/api/src/server.ts |
-| POST | `/mcp/mcp/*` | apps/api/src/server.ts |
-| DELETE | `/mcp/mcp/*` | apps/api/src/server.ts |
-| GET | `/v1/stats` | apps/api/src/server.ts |
-| GET | `/v1/mcp/server.json` | apps/api/src/server.ts |
-| GET | `/v1/mcp/tools` | apps/api/src/server.ts |
-| POST | `/v1/accounts` | apps/api/src/server.ts |
-| POST | `/accounts` | apps/api/src/server.ts |
-| GET | `/v1/accounts` | apps/api/src/server.ts |
-| GET | `/v1/accounts/` | apps/api/src/server.ts |
-| GET | `/accounts` | apps/api/src/server.ts |
-| GET | `/accounts/` | apps/api/src/server.ts |
-| GET | `/v1/account` | apps/api/src/server.ts |
-| POST | `/v1/account/keys` | apps/api/src/server.ts |
-| GET | `/v1/account/keys` | apps/api/src/server.ts |
-| POST | `/v1/account/keys/:key_id/revoke` | apps/api/src/server.ts |
-| GET | `/v1/account/usage` | apps/api/src/server.ts |
-| GET | `/v1/account/analytics/summary` | apps/api/src/server.ts |
-| GET | `/v1/account/quota` | apps/api/src/server.ts |
-| POST | `/v1/account/tier` | apps/api/src/server.ts |
-| POST | `/v1/account/programs` | apps/api/src/server.ts |
-| POST | `/v1/account/github-token` | apps/api/src/server.ts |
-| GET | `/v1/account/github-token` | apps/api/src/server.ts |
-| DELETE | `/v1/account/github-token/:token_id` | apps/api/src/server.ts |
-| GET | `/v1/billing/history` | apps/api/src/server.ts |
-| GET | `/v1/billing/proration` | apps/api/src/server.ts |
-| GET | `/v1/account/credits` | apps/api/src/server.ts |
-| POST | `/v1/account/credits` | apps/api/src/server.ts |
-| GET | `/v1/plans` | apps/api/src/server.ts |
 | POST | `/v1/account/seats` | apps/api/src/server.ts |
 | GET | `/v1/account/seats` | apps/api/src/server.ts |
 | POST | `/v1/account/seats/:seat_id/accept` | apps/api/src/server.ts |
@@ -771,94 +172,19 @@ Key entities — bugs often involve state transitions or relationship integrity:
 | GET | `/v1/account/upgrade-prompt` | apps/api/src/server.ts |
 | POST | `/v1/account/upgrade-prompt/dismiss` | apps/api/src/server.ts |
 | GET | `/v1/account/funnel` | apps/api/src/server.ts |
-| GET | `/v1/funnel/metrics` | apps/api/src/server.ts |
-| POST | `/v1/account/analytics/events` | apps/api/src/server.ts |
-| GET | `/v1/admin/stats` | apps/api/src/server.ts |
-| GET | `/v1/admin/accounts` | apps/api/src/server.ts |
-| GET | `/v1/admin/activity` | apps/api/src/server.ts |
-| GET | `/v1/auth/github` | apps/api/src/server.ts |
-| GET | `/v1/auth/github/callback` | apps/api/src/server.ts |
-| GET | `/oauth/authorize` | apps/api/src/server.ts |
-| POST | `/oauth/token` | apps/api/src/server.ts |
-| GET | `/oauth/jwks` | apps/api/src/server.ts |
-| POST | `/oauth/introspect` | apps/api/src/server.ts |
 | POST | `/v1/account/webhooks` | apps/api/src/server.ts |
 | GET | `/v1/account/webhooks` | apps/api/src/server.ts |
 | DELETE | `/v1/account/webhooks/:webhook_id` | apps/api/src/server.ts |
 | POST | `/v1/account/webhooks/:webhook_id/toggle` | apps/api/src/server.ts |
 | GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/server.ts |
-| POST | `/v1/webhooks/stripe` | apps/api/src/server.ts |
-| POST | `/v1/checkout` | apps/api/src/server.ts |
-| GET | `/v1/account/subscription` | apps/api/src/server.ts |
-| POST | `/v1/account/subscription/cancel` | apps/api/src/server.ts |
-| POST | `/portal/api/subscribe` | apps/api/src/server.ts |
-| POST | `/portal/api/paid/webhook` | apps/api/src/server.ts |
-| POST | `/v1/snapshots` | apps/api/src/snapshot-auth.test.ts |
-| GET | `/v1/snapshots/:snapshot_id` | apps/api/src/snapshot-auth.test.ts |
-| POST | `/v1/accounts` | apps/api/src/snapshot-auth.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/snapshot-auth.test.ts |
-| POST | `/v1/accounts` | apps/api/src/stripe-branches.test.ts |
-| POST | `/v1/webhooks/stripe` | apps/api/src/stripe-branches.test.ts |
-| POST | `/v1/checkout` | apps/api/src/stripe-branches.test.ts |
-| GET | `/v1/account/subscription` | apps/api/src/stripe-branches.test.ts |
-| POST | `/v1/account/subscription/cancel` | apps/api/src/stripe-branches.test.ts |
-| POST | `/v1/accounts` | apps/api/src/stripe.test.ts |
-| POST | `/v1/webhooks/stripe` | apps/api/src/stripe.test.ts |
-| GET | `/v1/account/subscription` | apps/api/src/stripe.test.ts |
-| POST | `/v1/snapshots` | apps/api/src/validation.test.ts |
-| POST | `/v1/search/export` | apps/api/src/validation.test.ts |
-| POST | `/v1/skills/generate` | apps/api/src/validation.test.ts |
-| POST | `/v1/debug/analyze` | apps/api/src/validation.test.ts |
-| POST | `/v1/accounts` | apps/api/src/validation.test.ts |
-| POST | `/v1/account/tier` | apps/api/src/validation.test.ts |
-| POST | `/v1/account/programs` | apps/api/src/validation.test.ts |
-| POST | `/v1/account/seats` | apps/api/src/validation.test.ts |
-| GET | `/v1/health` | apps/api/src/versions.test.ts |
-| GET | `/v1/snapshots/:snapshot_id/versions` | apps/api/src/versions.test.ts |
-| GET | `/v1/snapshots/:snapshot_id/versions/:version_number` | apps/api/src/versions.test.ts |
-| GET | `/v1/snapshots/:snapshot_id/diff` | apps/api/src/versions.test.ts |
-| POST | `/v1/account/webhooks` | apps/api/src/webhook-branches.test.ts |
-| GET | `/v1/account/webhooks` | apps/api/src/webhook-branches.test.ts |
-| DELETE | `/v1/account/webhooks/:webhook_id` | apps/api/src/webhook-branches.test.ts |
-| POST | `/v1/account/webhooks/:webhook_id/toggle` | apps/api/src/webhook-branches.test.ts |
-| GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/webhook-branches.test.ts |
-| GET | `/v1/health` | apps/api/src/webhooks.test.ts |
-| POST | `/v1/accounts` | apps/api/src/webhooks.test.ts |
-| POST | `/v1/account/webhooks` | apps/api/src/webhooks.test.ts |
-| GET | `/v1/account/webhooks` | apps/api/src/webhooks.test.ts |
-| DELETE | `/v1/account/webhooks/:webhook_id` | apps/api/src/webhooks.test.ts |
-| POST | `/v1/account/webhooks/:webhook_id/toggle` | apps/api/src/webhooks.test.ts |
-| GET | `/v1/account/webhooks/:webhook_id/deliveries` | apps/api/src/webhooks.test.ts |
-| GET | `/.well-known/agent.json` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/.well-known/glama.json` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/.well-known/security.txt` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/.well-known/capabilities.json` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/robots.txt` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/sitemap.xml` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/health` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/docs` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/openapi.json` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/performance` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/performance/reputation` | apps/api/src/well-known-handlers.test.ts |
-| GET | `/health` | e2e_ui_audit.yaml |
-| GET | `/v1/health` | e2e_ui_audit.yaml |
-| GET | `/api/health` | packages/context-engine/src/engine-branches.test.ts |
-| POST | `/api/users` | packages/context-engine/src/engine-branches.test.ts |
-| GET | `/api/users` | packages/context-engine/src/engine-edge.test.ts |
-| POST | `/api/users` | packages/context-engine/src/engine-edge.test.ts |
-| DELETE | `/api/users/:id` | packages/context-engine/src/engine-edge.test.ts |
-| GET | `/api/health` | packages/generator-core/src/generator-branches.test.ts |
-| GET | `/api/users` | packages/generator-core/src/generator-branches.test.ts |
-| POST | `/api/users` | packages/generator-core/src/generator-branches.test.ts |
-| GET | `/` | packages/generator-core/src/generator-branches.test.ts |
-| GET | `/health` | packages/generator-core/src/generator-sourcefile-branches.test.ts |
-| GET | `/api/health` | packages/generator-core/src/generator-sourcefile-branches6.test.ts |
-| POST | `/webhook` | packages/generator-core/src/generators-agentic-purchasing.test.ts |
-| POST | `/v1/my-tool` | packages/mpp/README.md |
-| POST | `/v1/my-tool` | packages/mpp/README.md |
-| POST | `/v1/my-tool` | packages/mpp/README.md |
-| GET | `/users/:id` | packages/repo-parser/src/perf.bench.ts |
-| POST | `/users` | packages/repo-parser/src/perf.bench.ts |
+| POST | `/v1/account/programs` | apps/api/src/server.ts |
+| POST | `/v1/account/github-token` | apps/api/src/server.ts |
+| GET | `/health` | apps/api/src/server.ts |
+| POST | `/v1/search/export` | apps/api/src/server.ts |
+| POST | `/v1/skills/generate` | apps/api/src/server.ts |
+| POST | `/v1/frontend/audit` | apps/api/src/server.ts |
+| POST | `/v1/seo/analyze` | apps/api/src/server.ts |
+| *… 113 more* | | |
 
 ## Architecture Layer Boundaries
 
@@ -885,23 +211,84 @@ Bugs often occur at layer boundaries. Verify data flow between:
 - ✅ Formatter configured
 - ✅ Makefile build
 
+## Failure Surface (deterministic)
+
+> Static failure-mode scan — grep + a fixed rule table, **no AI**. `SILENT` / `TYPE_HOLE` = a failure the type/test net won't catch; `OBSERVABILITY` = only reaches `console`; `REVIEW` = confirm intent; `ACCEPTABLE` = deliberate cleanup swallow.
+
+| Class | Count |
+|-------|-------|
+| SILENT | 2 |
+| TYPE_HOLE | 1 |
+| OBSERVABILITY | 19 |
+| REVIEW | 19 |
+| ACCEPTABLE | 6 |
+
+| File | Line | Category | Class | Note |
+|------|------|----------|-------|------|
+| `apps/api/src/mcp-server.ts` | 430 | swallowed-async-error | SILENT | side-effect failure is invisible |
+| `apps/web/src/components/GeneratedTab.tsx` | 58 | empty-catch | SILENT | side-effect failure is invisible |
+| `apps/api/src/mpp.ts` | 157 | type-hole | TYPE_HOLE | suppresses the type net |
+| `apps/api/check-table.js` | 6 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/check-table.js` | 8 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/gen-keys.js` | 3 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/gen-keys.js` | 4 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mcp-server.ts` | 123 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mcp-tools.ts` | 1105 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 160 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 167 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/mpp.ts` | 171 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/server.ts` | 125 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/api.ts` | 424 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/api.ts` | 454 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/App.tsx` | 34 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/web/src/pages/UploadPage.tsx` | 286 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `generate-keys.js` | 14 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `generate-keys.js` | 15 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `generate-keys.js` | 16 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `packages/generator-core/src/generators-artifacts.ts` | 118 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `packages/generator-core/src/generators-debug.ts` | 676 | unstructured-log | OBSERVABILITY | console.* — prefer a structured logger for correlation |
+| `apps/api/src/document-parsing.ts` | 181 | empty-catch | REVIEW | empty catch — confirm intent |
+| `apps/api/src/export.ts` | 175 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/export.ts` | 188 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/github-webhook.ts` | 259 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/github-webhook.ts` | 264 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/handlers.ts` | 944 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/handlers.ts` | 1438 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/handlers.ts` | 3337 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/handlers.ts` | 3351 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/handlers.ts` | 3352 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/handlers.ts` | 3419 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/mcp-tool-impls.ts` | 1415 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/paid-handlers.ts` | 409 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/speech-to-text.ts` | 489 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/api/src/text-to-speech.ts` | 482 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/web/src/components/ProgramLauncher.tsx` | 48 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/web/src/pages/AccountPage.tsx` | 81 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| `apps/web/src/pages/AccountPage.tsx` | 82 | swallowed-async-error | REVIEW | swallowed — confirm intent |
+| … | | | | +7 more |
+
 ## Production Dependencies
 
-13 production dependencies. Key packages:
+18 production dependencies. Key packages:
 
 - `@axis/context-engine` @ workspace:*
 - `@axis/generator-core` @ workspace:*
 - `@axis/mpp` @ workspace:*
+- `@axis/paid-client` @ workspace:*
 - `@axis/repo-parser` @ workspace:*
 - `@axis/snapshots` @ workspace:*
 - `@jmondi/oauth2-server` @ ^4.2.2
+- `dockerode` @ ^4.0.12
+- `ffmpeg-static` @ ^5.3.0
 - `jsonwebtoken` @ ^9.0.3
+- `mammoth` @ ^1.12.0
 - `mppx` @ ^0.5.12
+- `node-llama-cpp` @ ^3.18.1
+- `pdfjs-dist` @ ^4.10.38
+- `tesseract.js` @ ^7.0.0
 - `jszip` @ ^3.10.1
 - `react` @ ^19.1.0
 - `react-dom` @ ^19.1.0
-- `better-sqlite3` @ ^12.8.0
-- `uuid` @ ^11.1.0
 
 ## Entry Point Source (for tracing)
 
@@ -910,6 +297,7 @@ Bugs often occur at layer boundaries. Verify data flow between:
 ```typescript
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
+import { startAlerting } from "./alerting.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -932,8 +320,7 @@ import {
   handleArtifactsGenerate,
   handleRemotionGenerate,
   handleCanvasGenerate,
-  handleAlgorithmicGenerate,
-... (433 more lines)
+... (472 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -952,6 +339,7 @@ import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
+import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
 import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
@@ -960,11 +348,10 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
-import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
-
-// ─── Error Boundary ─────────────────────────────────────────────
-// React requires a class for getDerivedStateFromError; this thin wrapper
-... (465 more lines)
+import { Icon } from "./components/Icon.tsx";
+import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
+import { APP_VERSION } from "./version.ts";
+... (554 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -985,3 +372,12 @@ createRoot(document.getElementById("root")!).render(
 
 ---
 *Generated by Axis Debug*
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `debug-playbook.md` — agent step 4 of 70.
+- **Next:** `incident-template.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

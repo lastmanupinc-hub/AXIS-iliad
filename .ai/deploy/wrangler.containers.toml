@@ -1,0 +1,22 @@
+# AXIS deploy/wrangler.containers.toml — Cloudflare Containers, local Docker build.
+# wrangler runs your local Docker to build deploy/Dockerfile, then pushes the image
+# to CF's managed registry and routes the Worker to it. Zero CF build minutes used.
+# Run:  npx wrangler deploy --config=deploy/wrangler.containers.toml
+
+name = "axis-iliad"
+main = "worker.ts"
+compatibility_date = "2025-01-01"
+
+[[containers]]
+class_name = "AppContainer"
+image = "./Dockerfile"
+max_instances = 5
+instance_type = "basic"  # basic | standard | dev
+
+[[durable_objects.bindings]]
+name = "APP_CONTAINER"
+class_name = "AppContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AppContainer"]

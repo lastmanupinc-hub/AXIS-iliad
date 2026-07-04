@@ -17,14 +17,14 @@ Before diving into this codebase, you should be comfortable with:
 1. Read the project README and any CONTRIBUTING.md
 2. Understand the top-level directory structure:
 
-   - `apps` — monorepo_apps (161 files)
-   - `packages` — monorepo_packages (144 files)
+   - `apps` — monorepo_apps (235 files)
+   - `packages` — monorepo_packages (93 files)
+   - `docs` — documentation (21 files)
    - `examples` — project_directory (17 files)
    - `mcp` — project_directory (16 files)
-   - `payment-processing-output` — project_directory (8 files)
-   - `packaging` — project_directory (7 files)
-   - `.github` — project_directory (5 files)
+   - `.github` — project_directory (8 files)
    - `algorithmic` — project_directory (4 files)
+   - `artifacts` — project_directory (4 files)
 
 ### Phase 2: Entry Points
 
@@ -36,17 +36,17 @@ These are the core data structures that define what the system works with:
 
 | Model | Kind | Fields | File |
 |-------|------|--------|------|
-| `AuthContext` | interface | 3 | `apps/api/src/billing.ts` |
-| `EmailConfig` | interface | 2 | `apps/api/src/email.ts` |
-| `ResendErrorResponse` | interface | 3 | `apps/api/src/email.ts` |
-| `ResendSuccessResponse` | interface | 1 | `apps/api/src/email.ts` |
-| `SendEmailOptions` | interface | 5 | `apps/api/src/email.ts` |
-| `SendEmailResult` | interface | 4 | `apps/api/src/email.ts` |
-| `EmbeddingsConfig` | interface | 2 | `apps/api/src/embeddings.ts` |
-| `EmbeddingsResult` | interface | 4 | `apps/api/src/embeddings.ts` |
-| `OpenAIEmbeddingResponse` | interface | 5 | `apps/api/src/embeddings.ts` |
-| `OpenAIErrorResponse` | interface | 3 | `apps/api/src/embeddings.ts` |
-| *(+254 more)* | | | |
+| `AlertThresholds` | interface | 2 | `apps/api/src/alerting.ts` |
+| `Counters` | type_alias | 2 | `apps/api/src/alerting.ts` |
+| `DebounceState` | interface | 2 | `apps/api/src/alerting.ts` |
+| `WindowResult` | interface | 4 | `apps/api/src/alerting.ts` |
+| `AnalyticsCountByBucketResult` | interface | 3 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountByBucketRow` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountByEventResult` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountByEventRow` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsCountResult` | interface | 2 | `apps/api/src/analytics.ts` |
+| `AnalyticsDistinctUsersResult` | interface | 2 | `apps/api/src/analytics.ts` |
+| *(+232 more)* | | | |
 
 ### Phase 4: Data Flow
 
@@ -77,8 +77,23 @@ Answer these to confirm understanding:
 3. Where is state stored and how is it managed?
 4. What are the key boundaries between modules?
 5. What would break if you renamed the primary entry point?
-6. Trace the lifecycle of a `ProgramDoc` from creation to storage. What touches it?
+6. Trace the lifecycle of a `ContextMap` from creation to storage. What touches it?
 7. Which domain model has the most dependencies? Is that appropriate?
+
+## Dependency-Based Reading Order
+
+Read the codebase **bottom-up**: the modules the most other files depend on first (they define the shared vocabulary — types, core utilities), and the orchestrators that wire everything together last. Derived from the actual import graph:
+
+| # | Module | Depended-on by | Depends on | Role |
+|---|--------|----------------|------------|------|
+| 1 | `apps/api/src/router.ts` | 96 | 4 | foundational |
+| 2 | `apps/api/src/test-helpers.ts` | 41 | 1 | foundational |
+| 3 | `apps/api/src/rate-limiter.ts` | 36 | 2 | foundational |
+| 4 | `apps/api/src/billing.ts` | 28 | 3 | foundational |
+| 5 | `apps/api/src/logger.ts` | 25 | 0 | foundational |
+| 6 | `packages/generator-core/src/generate.ts` | 30 | 6 | foundational |
+| 7 | `apps/web/src/api.ts` | 19 | 0 | foundational |
+| 8 | `apps/api/src/counts.ts` | 12 | 0 | foundational |
 
 ## Key Files to Read
 
@@ -89,6 +104,7 @@ Answer these to confirm understanding:
 ```typescript
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Router, createApp } from "./router.js";
+import { startAlerting } from "./alerting.js";
 import {
   handleCreateSnapshot,
   handleGetSnapshot,
@@ -106,8 +122,7 @@ import {
   handleSuperpowersGenerate,
   handleMarketingGenerate,
   handleNotebookGenerate,
-  handleObsidianAnalyze,
-... (438 more lines)
+... (477 more lines)
 ```
 
 ### `apps/web/src/App.tsx`
@@ -126,14 +141,14 @@ import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
 import { InstallPage } from "./pages/InstallPage.tsx";
+import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
 import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
 import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-import { StatusBar } from "./components/StatusBar.tsx";
-... (470 more lines)
+... (559 more lines)
 ```
 
 ### `apps/web/src/main.tsx`
@@ -184,5 +199,14 @@ createRoot(document.getElementById("root")!).render(
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
     "@axis/mpp": "workspace:*",
-... (15 more lines)
+... (22 more lines)
 ```
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `study-brief.md` — agent step 26 of 70.
+- **Next:** `research-threads.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

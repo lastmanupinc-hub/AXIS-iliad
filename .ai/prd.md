@@ -1,10 +1,10 @@
 # axis-iliad — Product Requirements
 
-> axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+> axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Problem & Context
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 **Known gaps & risks (detected in the codebase):**
 
@@ -12,8 +12,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Goals
 
-- Deliver 497 HTTP endpoints (3 methods) backing the user-facing surface.
-- Maintain a stable, typed contract over 264 domain models with no breaking changes within a minor version.
+- Deliver 163 HTTP endpoints (3 methods) backing the user-facing surface.
+- Maintain a stable, typed contract over 242 domain models with no breaking changes within a minor version.
 - Ship a responsive UI that meets WCAG 2.1 AA accessibility on the primary user flows.
 - Land all changes behind tests; keep the green-build invariant for the main branch.
 
@@ -26,29 +26,27 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ## User Stories
 
 ### v1
-- As a user, I can call `GET /v1/health` (source: `apps/api/src/admin.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `POST /v1/accounts` (source: `apps/api/src/admin.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `POST /v1/snapshots` (source: `apps/api/src/admin.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `GET /v1/admin/stats` (source: `apps/api/src/admin.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `GET /v1/admin/accounts` (source: `apps/api/src/admin.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `GET /v1/admin/activity` (source: `apps/api/src/admin.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `GET /v1/docs.md` (source: `apps/api/src/agent-discovery.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `GET /v1/install` (source: `apps/api/src/agent-discovery.test.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/health` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `POST /v1/accounts` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `POST /v1/snapshots` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/admin/stats` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/admin/accounts` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/admin/activity` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/admin/mcp-usage` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/admin/revenue` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /v1/docs.md` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
 
 ### llms.txt
-- As a user, I can call `GET /llms.txt` (source: `apps/api/src/agent-discovery.test.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /llms.txt` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
 
 ### .well-known
-- As a user, I can call `GET /.well-known/skills/index.json` (source: `apps/api/src/agent-discovery.test.ts`) and receive a successful, deterministic response.
-- As a user, I can call `GET /.well-known/axis.json` (source: `apps/api/src/agent-discovery.test.ts`) and receive a successful, deterministic response.
-
-### for-agents
-- As a user, I can call `GET /for-agents` (source: `apps/api/src/agent-discovery.test.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /.well-known/skills/index.json` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
+- As a user, I can call `GET /.well-known/axis.json` (source: `apps/api/src/server.ts`) and receive a successful, deterministic response.
 
 ## Success Metrics
 
 - **Build/test health**: `npm test` exits 0 on every PR. Coverage trend non-decreasing across releases.
-- **API latency**: p95 ≤ 250ms for each of the 497 endpoints under nominal load.
+- **API latency**: p95 ≤ 250ms for each of the 163 endpoints under nominal load.
 - **Error budget**: < 1% 5xx responses over a rolling 30-day window.
 - **Time-to-onboard**: a new contributor can run the project locally inside 10 minutes from a clean checkout.
 
@@ -73,3 +71,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ---
 
 _Generated by Axis Artifacts from the current snapshot. Re-run after every significant scope change._
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `prd.md` — agent step 40 of 70.
+- **Next:** `design.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

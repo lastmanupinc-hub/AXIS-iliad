@@ -1,0 +1,22 @@
+# AXIS deploy/render.yaml — Render Blueprint, existing-image deploy.
+# Render pulls your prebuilt image from GHCR; ZERO Render pipeline minutes used.
+# Set up: 1) push image to ghcr.io/<owner>/axis-iliad:prod
+#         2) in Render dashboard → New → Blueprint → connect this file
+#         3) provide GHCR PAT under Settings → Registry Credentials if image is private
+
+services:
+  - type: web
+    name: axis-iliad
+    runtime: image
+    image:
+      url: ghcr.io/REPLACE_OWNER/axis-iliad:prod
+    plan: starter
+    region: oregon
+    healthCheckPath: /v1/health
+    autoDeploy: false  # flip to true to redeploy on every new image push
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: NODE_ENV
+        value: production
+      # Add your runtime secrets via the Render dashboard, not this file.

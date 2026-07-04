@@ -1,6 +1,6 @@
 # Core Implementation Artifacts — axis-iliad
 
-Generated: 2026-05-23T03:31:46.188Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Purpose
 
@@ -410,3 +410,11 @@ packages/
 |- sdk/src/index.ts
 `- middleware/src/{express/,hono/,node-http/}
 ```
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `mcp/core-implementation-artifacts.md` — agent step 36 of 70.
+- **Next:** `mcp/testing-documentation-polish-artifacts.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

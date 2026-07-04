@@ -1,10 +1,10 @@
 schema_version: "1.0"
-generated_at: "2026-05-23T03:31:46.198Z"
+generated_at: "1970-01-01T00:00:00.000Z"
 domain: fintech_mcp_buildout
 project:
   name: "axis-iliad"
   primary_language: "TypeScript"
-  trust_fabric_detected: true
+  trust_fabric_detected: false
   detected_provider_hints: []
 bounded_contexts:
   - onboarding
@@ -59,7 +59,7 @@ resources:
     package_types: [regulator_exam, dispute_representment, onboarding_review, reconciliation_exception]
     required_artifacts: [timeline, source_hashes, operator_actions, linked_records]
 implementation_targets:
-  route_count_hint: 497
-  domain_model_count_hint: 264
+  route_count_hint: 163
+  domain_model_count_hint: 242
   sql_schema_count_hint: 0
   objective: Build institution-grade API-callable fintech software, not just provider wrappers

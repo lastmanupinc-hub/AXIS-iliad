@@ -40,3 +40,11 @@ curl http://localhost:4000/.well-known/mcp.json
 - [ ] Build completes without type errors
 - [ ] MCP discovery endpoint responds
 - [ ] `tools/list` returns expected tool inventory
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `mcp/project-setup.md` — agent step 33 of 70.
+- **Next:** `mcp/build-artifacts.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

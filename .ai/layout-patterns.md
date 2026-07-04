@@ -1,10 +1,10 @@
 # Layout Patterns — axis-iliad
 
-Generated: 2026-05-23T03:31:46.683Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -56,12 +56,12 @@ src/
 | GET /v1/admin/stats | DashboardLayout |
 | GET /v1/admin/accounts | DashboardLayout |
 | GET /v1/admin/activity | DashboardLayout |
+| GET /v1/admin/mcp-usage | DashboardLayout |
+| GET /v1/admin/revenue | DashboardLayout |
 | GET /llms.txt | DashboardLayout |
 | GET /.well-known/skills/index.json | DashboardLayout |
 | GET /v1/docs.md | DashboardLayout |
 | GET /.well-known/axis.json | DashboardLayout |
-| GET /for-agents | DashboardLayout |
-| GET /v1/install | DashboardLayout |
 
 ## Grid System
 
@@ -77,8 +77,11 @@ src/
 }
 ```
 
-## Detected Layout Files
 
-| File | Exports |
-|------|---------|
-| `layout-patterns.md` | default |
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `layout-patterns.md` — agent step 54 of 70.
+- **Next:** `ui-audit.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

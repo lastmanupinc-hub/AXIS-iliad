@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -19,7 +19,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 **Primary Language**: TypeScript
 **Framework Stack**: React
 
-**Description**: A monorepo that leverages TypeScript and modern tooling.
+**Description**: > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
 
 ## Target Audience
 
@@ -36,9 +36,9 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 ### Value Propositions
 
 1. **React Stack** — Built on React ^19.1.0 with stack-native patterns throughout
-2. **497 API Endpoints** — 272 GET, 204 POST, 21 DELETE across 59 source files
-3. **264 Domain Entities** — AuthContext, EmailConfig, ResendErrorResponse, ResendSuccessResponse, SendEmailOptions and 259 more
-4. **Test-Driven Quality** — Verified with vitest across 151 test files
+2. **163 Routes** — 92 GET, 66 POST, 5 DELETE across 2 source files
+3. **242 Domain Entities** — AlertThresholds, Counters, DebounceState, WindowResult, AnalyticsCountByBucketResult and 237 more
+4. **Test-Driven Quality** — Verified with vitest across 189 test files
 5. **Clean Architecture** — monorepo, containerized (0.65 separation score)
 
 ## Distribution Channels
@@ -62,5 +62,14 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Source-Derived Messaging
 
-- **README tagline**: **Stack:** Go + Svelte + PostgreSQL + Docker
-- **README tagline**: **Stack:** Python + TypeScript
+- **README tagline**: A composite GitHub Action that checks whether a repo's agent-context files have
+- **README tagline**: > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors t
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `campaign-brief.md` — agent step 21 of 70.
+- **Next:** `funnel-map.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

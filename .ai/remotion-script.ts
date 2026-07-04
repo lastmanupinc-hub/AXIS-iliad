@@ -1,7 +1,7 @@
 import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from "remotion";
 
 // Auto-generated Remotion composition for axis-iliad
-// Scenes: Intro → Tech Stack → Architecture → Key Abstractions → Outro
+// Scenes: Intro → Tech Stack → Architecture → Key Abstractions
 
 const THEME = {
   bg: "#0d1117",
@@ -16,7 +16,7 @@ function IntroScene() {
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, justifyContent: "center", alignItems: "center" }}>
       <h1 style={{ color: THEME.fg, fontSize: 72, opacity }}>axis-iliad</h1>
-      <p style={{ color: THEME.muted, fontSize: 28, opacity }}>null</p>
+      <p style={{ color: THEME.muted, fontSize: 28, opacity }}>&gt; **Axis&#39; Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis&#39; Iliad authors the definitive foundation for the next era of natural-language workspace development.**</p>
     </AbsoluteFill>
   );
 }
@@ -45,7 +45,7 @@ function TechStackScene() {
 function ArchitectureScene() {
   const frame = useCurrentFrame();
   const patterns = ["monorepo","containerized"];
-  const score = 0.65;
+  const score = 65;
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>
       <h2 style={{ color: THEME.accent, fontSize: 48 }}>Architecture</h2>
@@ -61,7 +61,7 @@ function ArchitectureScene() {
 
 function AbstractionsScene() {
   const frame = useCurrentFrame();
-  const items = ["apps/ (monorepo_apps)","packages/ (monorepo_packages)","examples/ (project_directory)","mcp/ (project_directory)","payment-processing-output/ (project_directory)","packaging/ (project_directory)"];
+  const items = ["apps/ (monorepo_apps)","packages/ (monorepo_packages)","docs/ (documentation)","examples/ (project_directory)","mcp/ (project_directory)",".github/ (project_directory)"];
   return (
     <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>
       <h2 style={{ color: THEME.accent, fontSize: 48 }}>Key Abstractions</h2>

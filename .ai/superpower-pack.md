@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -50,11 +50,11 @@ npx vitest run --coverage
 1. **Reproduce** — Create a minimal test case that triggers the bug
 2. **Isolate** — Use dependency hotspots to narrow the search area:
 
-   - `apps/web/src/App.tsx` (risk: 1.0, 1 inbound, 21 outbound)
-   - `apps/web/src/api.ts` (risk: 0.9, 19 inbound, 0 outbound)
-   - `apps/web/src/pages.test.tsx` (risk: 0.8, 0 inbound, 17 outbound)
-   - `apps/web/src/pages/DashboardPage.tsx` (risk: 0.6, 1 inbound, 10 outbound)
-   - `apps/web/src/components/Toast.tsx` (risk: 0.2, 4 inbound, 0 outbound)
+   - `apps/api/src/router.ts` (risk: 1.0, 96 inbound, 4 outbound)
+   - `apps/api/src/test-helpers.ts` (risk: 1.0, 41 inbound, 1 outbound)
+   - `apps/api/src/billing.ts` (risk: 1.0, 28 inbound, 3 outbound)
+   - `apps/api/src/handlers.ts` (risk: 1.0, 23 inbound, 14 outbound)
+   - `apps/api/src/rate-limiter.ts` (risk: 1.0, 36 inbound, 2 outbound)
 
 3. **Trace** — Follow the import chain from entry point to failure
 4. **Fix** — Make the smallest change that resolves the issue
@@ -98,80 +98,89 @@ npx vitest run --coverage
 
 ## Key Hotspot Files (for Debugging)
 
-### `apps/web/src/api.ts`
+### `apps/api/src/billing.ts`
 
 ```typescript
-const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
-const isLocalHost =
-  typeof window === "undefined" ||
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { sendJSON, readBody, sendError } from "./router.js";
+import { ErrorCode, log } from "./logger.js";
+import { getClientWindow, getClientIp } from "./rate-limiter.js";
+import {
+  resolveApiKey,
+  createAccount,
+  getAccount,
+  getAccountByEmail,
+  updateAccountTier,
+  createApiKey,
+  revokeApiKey,
+  listApiKeys,
+  enableProgram,
+  disableProgram,
+  getEntitlements,
+  checkQuota,
+  getUsageSummary,
+  getApiCallSummary,
+... (836 more lines)
+```
 
-// ─── Snapshot types ─────────────────────────────────────────────
+### `apps/api/src/router.ts`
 
-export interface SnapshotPayload {
-  input_method: string;
-  manifest: {
-    project_name: string;
-    project_type: string;
-    frameworks: string[];
-    goals: string[];
-    requested_outputs: string[];
-  };
-  files: Array<{ path: string; content: string; size: number }>;
+```typescript
+import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
+import type { Socket } from "node:net";
+import { gzipSync, gunzipSync } from "node:zlib";
+import { initRequest, getRequestId, getRequestStart, log, ErrorCode, type ErrorCodeValue } from "./logger.js";
+import { checkRateLimit } from "./rate-limiter.js";
+import { resolveAuth } from "./billing.js";
+import { recordRequest, recordLatency } from "./metrics.js";
+import { recordApiCall, checkQuota, getPersistenceBalance, runPgMigrations, closePool } from "@axis/snapshots";
+
+// Store request reference on response for sendJSON gzip negotiation
+const REQUEST_REF = new WeakMap<ServerResponse, IncomingMessage>();
+
+type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<string, string>) => Promise<void>;
+
+interface Route {
+  method: string;
+  pattern: RegExp;
+  paramNames: string[];
+  handler: RouteHandler;
 }
-... (701 more lines)
+... (471 more lines)
 ```
 
-### `apps/web/src/App.tsx`
+### `apps/api/src/test-helpers.ts`
 
-```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
-import { ToastProvider } from "./components/Toast.tsx";
-import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-import { StatusBar } from "./components/StatusBar.tsx";
-... (470 more lines)
+```typescript
+// Shared test-server helper. Replaces the flaky `createApp(router, FIXED_PORT)`
+// + `setTimeout(...)` readiness guess used across the api test suites, which
+// raced under load (esp. `--coverage`) and produced intermittent
+// `ECONNREFUSED`/"Server is not running" failures.
+//
+// startTestServer binds an OS-assigned ephemeral port (0) — no cross-worker
+// port collisions — and resolves only once the socket is actually `listening`
+// (rejecting on bind error). Deterministic readiness.
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { createApp, type Router } from "./router.js";
+
+export interface TestServer {
+  server: Server;
+  port: number;
+  baseUrl: string;
+}
+
+export async function startTestServer(router: Router): Promise<TestServer> {
+  const server = createApp(router, 0);
+... (10 more lines)
 ```
 
-### `apps/web/src/pages.test.tsx`
 
-```tsx
-/**
- * @vitest-environment happy-dom
- */
+---
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+## ⟳ Continue the loop
 
-// ─── Zero-prop page smoke tests ─────────────────────────────────
-// Each test renders the page and verifies it mounts without throwing.
-
-import { DocsPage } from "./pages/DocsPage";
-import { ExamplesPage } from "./pages/ExamplesPage";
-import { ForAgentsPage } from "./pages/ForAgentsPage";
-import { HelpPage } from "./pages/HelpPage";
-import { InstallPage } from "./pages/InstallPage";
-import { QAPage } from "./pages/QAPage";
-import { TermsPage } from "./pages/TermsPage";
-
-beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
-... (142 more lines)
-```
+- **You are here:** `superpower-pack.md` — agent step 18 of 70.
+- **Next:** `test-generation-rules.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

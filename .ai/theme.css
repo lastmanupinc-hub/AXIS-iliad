@@ -8,40 +8,43 @@
    Type:        monorepo
    Language:    TypeScript
    Stack:       React
-   Total LOC:   122,625
-   Routes:      497 (272 GET · 204 POST)
-   Models:      264 domain models
+   Total LOC:   112,012
+   Routes:      163 (92 GET · 66 POST · 5 other)
+   Models:      242 domain models
    ─────────────────────────────────────────────────────── */
 
 :root {
-  /* Colors — Primary */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* Colors — Primary (averionics HUD cyan) */
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e8f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #06b6d4;
+  --color-primary-600: #0891b2;
+  --color-primary-700: #0e7490;
+  --color-primary-800: #155e75;
+  --color-primary-900: #164e63;
 
-  /* Colors — Neutral */
-  --color-neutral-50: #fafafa;
-  --color-neutral-100: #f5f5f5;
-  --color-neutral-200: #e5e5e5;
-  --color-neutral-300: #d4d4d4;
-  --color-neutral-400: #a3a3a3;
-  --color-neutral-500: #737373;
-  --color-neutral-600: #525252;
-  --color-neutral-700: #404040;
-  --color-neutral-800: #262626;
-  --color-neutral-900: #171717;
+  /* Colors — Neutral (cool cockpit slate) */
+  --color-neutral-50: #f4f7fa;
+  --color-neutral-100: #e8edf3;
+  --color-neutral-200: #cfd9e4;
+  --color-neutral-300: #aebccd;
+  --color-neutral-400: #7e8ea3;
+  --color-neutral-500: #5b6b81;
+  --color-neutral-600: #44566b;
+  --color-neutral-700: #324153;
+  --color-neutral-800: #1b2733;
+  --color-neutral-900: #0d141d;
 
-  /* Colors — Semantic */
-  --color-success: #22c55e;
-  --color-warning: #eab308;
-  --color-error: #ef4444;
+  /* Colors — Semantic + accent (averionics: HUD cyan + instrument amber) */
+  --color-accent: #0a8aa6;
+  --color-accent-ink: #ffffff;
+  --color-amber: #b06a00;
+  --color-success: #0f9d58;
+  --color-warning: #b06a00;
+  --color-error: #d23b3b;
 
   /* Typography */
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -98,36 +101,101 @@
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Surfaces */
-  --surface-page: var(--color-neutral-50);
+  /* Surfaces (averionics daylight instrument) */
+  --surface-page: #eceff3;
   --surface-card: #ffffff;
   --surface-elevated: #ffffff;
-  --surface-inset: var(--color-neutral-100);
-  --surface-overlay-backdrop: rgba(0, 0, 0, 0.4);
+  --surface-inset: #f4f6f9;
+  --surface-overlay-backdrop: rgba(7, 11, 17, 0.45);
 
-  /* Focus Ring */
-  --ring-color: var(--color-primary-500);
+  /* Focus Ring + HUD glow */
+  --ring-color: var(--color-accent);
   --ring-offset: 2px;
   --ring-width: 2px;
+  --glow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-primary-50: #172554;
-    --color-primary-100: #1e3a8a;
-    --color-primary-500: #60a5fa;
-    --color-primary-600: #93c5fd;
-    --color-neutral-50: #0a0a0a;
-    --color-neutral-100: #171717;
-    --color-neutral-200: #262626;
-    --color-neutral-800: #f5f5f5;
-    --color-neutral-900: #fafafa;
-    --surface-page: #0a0a0a;
-    --surface-card: #171717;
-    --surface-elevated: #262626;
-    --surface-inset: #0f0f0f;
+  :root:not([data-theme='light']) {
+    --color-primary-50: #083344;
+    --color-primary-100: #164e63;
+    --color-primary-200: #155e75;
+    --color-primary-300: #0e7490;
+    --color-primary-400: #0891b2;
+    --color-primary-500: #22d3ee;
+    --color-primary-600: #67e8f9;
+    --color-primary-700: #a5f3fc;
+    --color-primary-800: #cffafe;
+    --color-primary-900: #ecfeff;
+    --color-neutral-50: #070b11;
+    --color-neutral-100: #0d141d;
+    --color-neutral-200: #141e29;
+    --color-neutral-300: #1b2733;
+    --color-neutral-400: #29384a;
+    --color-neutral-500: #6e8093;
+    --color-neutral-600: #8b9bb0;
+    --color-neutral-700: #aebccd;
+    --color-neutral-800: #cdd9e6;
+    --color-neutral-900: #d6e2ee;
+    --color-accent: #22d3ee;
+    --color-accent-ink: #04131a;
+    --color-amber: #ffb020;
+    --color-success: #2ee6a6;
+    --color-warning: #ffc53d;
+    --color-error: #ff5d6c;
+    --surface-page: #070b11;
+    --surface-card: #0d141d;
+    --surface-elevated: #141e29;
+    --surface-inset: #0a0f16;
     --surface-overlay-backdrop: rgba(0, 0, 0, 0.7);
+    --ring-color: var(--color-accent);
+    --glow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent), 0 0 18px color-mix(in srgb, var(--color-accent) 28%, transparent);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-base: 0 1px 2px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.45);
+    --shadow-lg: 0 10px 18px rgba(0,0,0,0.55);
   }
+}
+
+/* Explicit toggle — wins regardless of OS preference. */
+[data-theme="dark"] {
+  --color-primary-50: #083344;
+  --color-primary-100: #164e63;
+  --color-primary-200: #155e75;
+  --color-primary-300: #0e7490;
+  --color-primary-400: #0891b2;
+  --color-primary-500: #22d3ee;
+  --color-primary-600: #67e8f9;
+  --color-primary-700: #a5f3fc;
+  --color-primary-800: #cffafe;
+  --color-primary-900: #ecfeff;
+  --color-neutral-50: #070b11;
+  --color-neutral-100: #0d141d;
+  --color-neutral-200: #141e29;
+  --color-neutral-300: #1b2733;
+  --color-neutral-400: #29384a;
+  --color-neutral-500: #6e8093;
+  --color-neutral-600: #8b9bb0;
+  --color-neutral-700: #aebccd;
+  --color-neutral-800: #cdd9e6;
+  --color-neutral-900: #d6e2ee;
+  --color-accent: #22d3ee;
+  --color-accent-ink: #04131a;
+  --color-amber: #ffb020;
+  --color-success: #2ee6a6;
+  --color-warning: #ffc53d;
+  --color-error: #ff5d6c;
+  --surface-page: #070b11;
+  --surface-card: #0d141d;
+  --surface-elevated: #141e29;
+  --surface-inset: #0a0f16;
+  --surface-overlay-backdrop: rgba(0, 0, 0, 0.7);
+  --ring-color: var(--color-accent);
+  --glow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent), 0 0 18px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-base: 0 1px 2px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.35);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.45);
+  --shadow-lg: 0 10px 18px rgba(0,0,0,0.55);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -323,16 +391,16 @@ th { font-weight: 600; }
 /*    Use .surface-card / .surface-elevated for cards backed by these models. */
 /*    Add model-specific tweaks in your own stylesheet, not here.            */
 
-/*   .auth-context-card    — AuthContext (interface, 3 fields). Apply .surface-card. */
-/*   .email-config-card    — EmailConfig (interface, 2 fields). Apply .surface-card. */
-/*   .resend-error-response-card    — ResendErrorResponse (interface, 3 fields). Apply .surface-card. */
-/*   .resend-success-response-card    — ResendSuccessResponse (interface, 1 fields). Apply .surface-card. */
-/*   .send-email-options-card    — SendEmailOptions (interface, 5 fields). Apply .surface-card. */
-/*   .send-email-result-card    — SendEmailResult (interface, 4 fields). Apply .surface-card. */
-/*   .embeddings-config-card    — EmbeddingsConfig (interface, 2 fields). Apply .surface-card. */
-/*   .embeddings-result-card    — EmbeddingsResult (interface, 4 fields). Apply .surface-card. */
+/*   .alert-thresholds-card    — AlertThresholds (interface, 2 fields). Apply .surface-card. */
+/*   .counters-card    — Counters (type_alias, 2 fields). Apply .surface-card. */
+/*   .debounce-state-card    — DebounceState (interface, 2 fields). Apply .surface-card. */
+/*   .window-result-card    — WindowResult (interface, 4 fields). Apply .surface-card. */
+/*   .analytics-count-by-bucket-result-card    — AnalyticsCountByBucketResult (interface, 3 fields). Apply .surface-card. */
+/*   .analytics-count-by-bucket-row-card    — AnalyticsCountByBucketRow (interface, 2 fields). Apply .surface-card. */
+/*   .analytics-count-by-event-result-card    — AnalyticsCountByEventResult (interface, 2 fields). Apply .surface-card. */
+/*   .analytics-count-by-event-row-card    — AnalyticsCountByEventRow (interface, 2 fields). Apply .surface-card. */
 
 /* ─── Detected Style Files ─────────────────────────────── */
 /*
-   apps/web/src/index.css (770 lines)
+   apps/web/src/index.css (1349 lines)
 */

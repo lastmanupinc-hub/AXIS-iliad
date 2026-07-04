@@ -183,8 +183,8 @@
     {
       "slug": "superpowers",
       "tier": "pro",
-      "outputs": 5,
-      "description": "Superpower pack, workflow registry, test generation rules, refactor checklist, automation pipeline"
+      "outputs": 8,
+      "description": "Superpower pack, workflow registry, test generation rules, refactor checklist, automation pipeline, and the verify gate (verify.sh, verify-full.sh, pre-push hook)"
     },
     {
       "slug": "marketing",
@@ -274,5 +274,5 @@
     }
   },
   "total_programs": 20,
-  "total_outputs": 137
+  "total_outputs": 140
 }

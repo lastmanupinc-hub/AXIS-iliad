@@ -17,7 +17,7 @@
 
 ### Context Precision
 
-Use dependency hotspot analysis to select the 7 highest-signal files instead of including entire directories.
+Use dependency hotspot analysis to select the 10 highest-signal files instead of including entire directories.
 
 ### Convention Compliance
 
@@ -25,7 +25,7 @@ Embed 4 detected conventions as system-level constraints in every code generatio
 
 ### Dependency Awareness
 
-Reference package.json in prompts to constrain imports to the 27 actual dependencies. Prevents hallucinated package references.
+Reference package.json in prompts to constrain imports to the 32 actual dependencies. Prevents hallucinated package references.
 
 ### Architecture Alignment
 
@@ -33,11 +33,11 @@ Reference 2 detected patterns (separation score: 0.65/100) in architectural prom
 
 ### Route Awareness
 
-Include route map (497 routes) in prompts when working on API or page code to prevent duplicate endpoints.
+Include route map (540 routes) in prompts when working on API or page code to prevent duplicate endpoints.
 
 ## Token Budget Guidance
 
-Estimated full-project tokens: ~600,750
+Estimated full-project tokens: ~518,058
 
 **Selective context required.** Use this priority order:
 1. Active file being modified
@@ -50,9 +50,16 @@ Estimated full-project tokens: ~600,750
 
 | File | Lines | Exports |
 |------|-------|---------|
-| `apps/api/src/server.ts` | 458 | export const app = ... |
-| `apps/web/src/App.tsx` | 490 | export function App() { ... } |
+| `apps/api/src/server.ts` | 497 | export const app = ... |
+| `apps/web/src/App.tsx` | 579 | export function App() { ... } |
 | `apps/web/src/main.tsx` | 11 | default |
 | `packages/context-engine/src/index.ts` | 3 | export type { ... }, export { ... } |
-| `packages/generator-core/src/index.ts` | 40 | export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... } |
-| `packages/mpp/src/index.ts` | 325 | export type ChargeOptions = ..., export type MppResult = ..., export interface AgentBudget { ... }, export interface PricingTier { ... }, export interface Build402Options { ... }, export const PRICING_TIERS: Record<string, PricingTier> = ..., export const LEGACY_TOOL_ALIASES: Record<string, string> = ..., export function getPricingTier(tool: string): PricingTier { ... }, export function negotiatePrice(, export function build402NegotiationBody(, export function parseAgentBudget(req: IncomingMessage): AgentBudget | undefined { ... }, export function resolveAgentMode(req: IncomingMessage): "standard" | "lite" { ... } |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `prompt-diff-report.md` — agent step 13 of 70.
+- **Next:** `theme-guidelines.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

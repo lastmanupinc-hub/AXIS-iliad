@@ -1,8 +1,8 @@
 {
   "mcpVersion": "1.0",
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.176Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
+  "generated_at": "1970-01-01T00:00:00.000Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -90,93 +90,93 @@
       "mimeType": "application/yaml"
     },
     {
-      "uri": "model://axis-iliad/AuthContext",
-      "name": "AuthContext",
-      "description": "interface with 3 fields (apps/api/src/billing.ts)",
+      "uri": "model://axis-iliad/AlertThresholds",
+      "name": "AlertThresholds",
+      "description": "interface with 2 fields (apps/api/src/alerting.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/EmailConfig",
-      "name": "EmailConfig",
-      "description": "interface with 2 fields (apps/api/src/email.ts)",
+      "uri": "model://axis-iliad/Counters",
+      "name": "Counters",
+      "description": "type_alias with 2 fields (apps/api/src/alerting.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/ResendErrorResponse",
-      "name": "ResendErrorResponse",
-      "description": "interface with 3 fields (apps/api/src/email.ts)",
+      "uri": "model://axis-iliad/DebounceState",
+      "name": "DebounceState",
+      "description": "interface with 2 fields (apps/api/src/alerting.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/ResendSuccessResponse",
-      "name": "ResendSuccessResponse",
-      "description": "interface with 1 field (apps/api/src/email.ts)",
+      "uri": "model://axis-iliad/WindowResult",
+      "name": "WindowResult",
+      "description": "interface with 4 fields (apps/api/src/alerting.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/SendEmailOptions",
-      "name": "SendEmailOptions",
-      "description": "interface with 5 fields (apps/api/src/email.ts)",
+      "uri": "model://axis-iliad/AnalyticsCountByBucketResult",
+      "name": "AnalyticsCountByBucketResult",
+      "description": "interface with 3 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/SendEmailResult",
-      "name": "SendEmailResult",
-      "description": "interface with 4 fields (apps/api/src/email.ts)",
+      "uri": "model://axis-iliad/AnalyticsCountByBucketRow",
+      "name": "AnalyticsCountByBucketRow",
+      "description": "interface with 2 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/EmbeddingsConfig",
-      "name": "EmbeddingsConfig",
-      "description": "interface with 2 fields (apps/api/src/embeddings.ts)",
+      "uri": "model://axis-iliad/AnalyticsCountByEventResult",
+      "name": "AnalyticsCountByEventResult",
+      "description": "interface with 2 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/EmbeddingsResult",
-      "name": "EmbeddingsResult",
-      "description": "interface with 4 fields (apps/api/src/embeddings.ts)",
+      "uri": "model://axis-iliad/AnalyticsCountByEventRow",
+      "name": "AnalyticsCountByEventRow",
+      "description": "interface with 2 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/OpenAIEmbeddingResponse",
-      "name": "OpenAIEmbeddingResponse",
-      "description": "interface with 5 fields (apps/api/src/embeddings.ts)",
+      "uri": "model://axis-iliad/AnalyticsCountResult",
+      "name": "AnalyticsCountResult",
+      "description": "interface with 2 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/OpenAIErrorResponse",
-      "name": "OpenAIErrorResponse",
-      "description": "interface with 3 fields (apps/api/src/embeddings.ts)",
+      "uri": "model://axis-iliad/AnalyticsDistinctUsersResult",
+      "name": "AnalyticsDistinctUsersResult",
+      "description": "interface with 2 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/EnvSpec",
-      "name": "EnvSpec",
-      "description": "interface with 5 fields (apps/api/src/env.ts)",
+      "uri": "model://axis-iliad/AnalyticsEvent",
+      "name": "AnalyticsEvent",
+      "description": "interface with 4 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/ValidationError",
-      "name": "ValidationError",
-      "description": "interface with 2 fields (apps/api/src/env.ts)",
+      "uri": "model://axis-iliad/AnalyticsQuery",
+      "name": "AnalyticsQuery",
+      "description": "interface with 8 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/ValidationResult",
-      "name": "ValidationResult",
-      "description": "interface with 3 fields (apps/api/src/env.ts)",
+      "uri": "model://axis-iliad/WhereClause",
+      "name": "WhereClause",
+      "description": "interface with 2 fields (apps/api/src/analytics.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/ZipEntry",
-      "name": "ZipEntry",
-      "description": "interface with 4 fields (apps/api/src/export.ts)",
+      "uri": "model://axis-iliad/DriftDeps",
+      "name": "DriftDeps",
+      "description": "interface with 5 fields (apps/api/src/architecture-drift-webhook.ts)",
       "mimeType": "application/json"
     },
     {
-      "uri": "model://axis-iliad/PullRequestPayload",
-      "name": "PullRequestPayload",
-      "description": "interface with 5 fields (apps/api/src/github-webhook.ts)",
+      "uri": "model://axis-iliad/DriftOutcome",
+      "name": "DriftOutcome",
+      "description": "interface with 3 fields (apps/api/src/architecture-drift-webhook.ts)",
       "mimeType": "application/json"
     }
   ],
@@ -212,144 +212,109 @@
   },
   "domain_models": [
     {
-      "name": "AuthContext",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/api/src/billing.ts",
-      "resource_uri": "model://axis-iliad/AuthContext"
-    },
-    {
-      "name": "EmailConfig",
+      "name": "AlertThresholds",
       "kind": "interface",
       "field_count": 2,
-      "source_file": "apps/api/src/email.ts",
-      "resource_uri": "model://axis-iliad/EmailConfig"
+      "source_file": "apps/api/src/alerting.ts",
+      "resource_uri": "model://axis-iliad/AlertThresholds"
     },
     {
-      "name": "ResendErrorResponse",
-      "kind": "interface",
-      "field_count": 3,
-      "source_file": "apps/api/src/email.ts",
-      "resource_uri": "model://axis-iliad/ResendErrorResponse"
+      "name": "Counters",
+      "kind": "type_alias",
+      "field_count": 2,
+      "source_file": "apps/api/src/alerting.ts",
+      "resource_uri": "model://axis-iliad/Counters"
     },
     {
-      "name": "ResendSuccessResponse",
-      "kind": "interface",
-      "field_count": 1,
-      "source_file": "apps/api/src/email.ts",
-      "resource_uri": "model://axis-iliad/ResendSuccessResponse"
-    },
-    {
-      "name": "SendEmailOptions",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/email.ts",
-      "resource_uri": "model://axis-iliad/SendEmailOptions"
-    },
-    {
-      "name": "SendEmailResult",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/api/src/email.ts",
-      "resource_uri": "model://axis-iliad/SendEmailResult"
-    },
-    {
-      "name": "EmbeddingsConfig",
+      "name": "DebounceState",
       "kind": "interface",
       "field_count": 2,
-      "source_file": "apps/api/src/embeddings.ts",
-      "resource_uri": "model://axis-iliad/EmbeddingsConfig"
+      "source_file": "apps/api/src/alerting.ts",
+      "resource_uri": "model://axis-iliad/DebounceState"
     },
     {
-      "name": "EmbeddingsResult",
+      "name": "WindowResult",
       "kind": "interface",
       "field_count": 4,
-      "source_file": "apps/api/src/embeddings.ts",
-      "resource_uri": "model://axis-iliad/EmbeddingsResult"
+      "source_file": "apps/api/src/alerting.ts",
+      "resource_uri": "model://axis-iliad/WindowResult"
     },
     {
-      "name": "OpenAIEmbeddingResponse",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/embeddings.ts",
-      "resource_uri": "model://axis-iliad/OpenAIEmbeddingResponse"
-    },
-    {
-      "name": "OpenAIErrorResponse",
+      "name": "AnalyticsCountByBucketResult",
       "kind": "interface",
       "field_count": 3,
-      "source_file": "apps/api/src/embeddings.ts",
-      "resource_uri": "model://axis-iliad/OpenAIErrorResponse"
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsCountByBucketResult"
     },
     {
-      "name": "EnvSpec",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/env.ts",
-      "resource_uri": "model://axis-iliad/EnvSpec"
-    },
-    {
-      "name": "ValidationError",
+      "name": "AnalyticsCountByBucketRow",
       "kind": "interface",
       "field_count": 2,
-      "source_file": "apps/api/src/env.ts",
-      "resource_uri": "model://axis-iliad/ValidationError"
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsCountByBucketRow"
     },
     {
-      "name": "ValidationResult",
+      "name": "AnalyticsCountByEventResult",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsCountByEventResult"
+    },
+    {
+      "name": "AnalyticsCountByEventRow",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsCountByEventRow"
+    },
+    {
+      "name": "AnalyticsCountResult",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsCountResult"
+    },
+    {
+      "name": "AnalyticsDistinctUsersResult",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsDistinctUsersResult"
+    },
+    {
+      "name": "AnalyticsEvent",
+      "kind": "interface",
+      "field_count": 4,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsEvent"
+    },
+    {
+      "name": "AnalyticsQuery",
+      "kind": "interface",
+      "field_count": 8,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/AnalyticsQuery"
+    },
+    {
+      "name": "WhereClause",
+      "kind": "interface",
+      "field_count": 2,
+      "source_file": "apps/api/src/analytics.ts",
+      "resource_uri": "model://axis-iliad/WhereClause"
+    },
+    {
+      "name": "DriftDeps",
+      "kind": "interface",
+      "field_count": 5,
+      "source_file": "apps/api/src/architecture-drift-webhook.ts",
+      "resource_uri": "model://axis-iliad/DriftDeps"
+    },
+    {
+      "name": "DriftOutcome",
       "kind": "interface",
       "field_count": 3,
-      "source_file": "apps/api/src/env.ts",
-      "resource_uri": "model://axis-iliad/ValidationResult"
-    },
-    {
-      "name": "ZipEntry",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/api/src/export.ts",
-      "resource_uri": "model://axis-iliad/ZipEntry"
-    },
-    {
-      "name": "PullRequestPayload",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/github-webhook.ts",
-      "resource_uri": "model://axis-iliad/PullRequestPayload"
-    },
-    {
-      "name": "PushPayload",
-      "kind": "interface",
-      "field_count": 7,
-      "source_file": "apps/api/src/github-webhook.ts",
-      "resource_uri": "model://axis-iliad/PushPayload"
-    },
-    {
-      "name": "SnapshotTarget",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/github-webhook.ts",
-      "resource_uri": "model://axis-iliad/SnapshotTarget"
-    },
-    {
-      "name": "FirecrawlCrawlRequest",
-      "kind": "interface",
-      "field_count": 5,
-      "source_file": "apps/api/src/handlers.ts",
-      "resource_uri": "model://axis-iliad/FirecrawlCrawlRequest"
-    },
-    {
-      "name": "FirecrawlCrawlResponse",
-      "kind": "interface",
-      "field_count": 4,
-      "source_file": "apps/api/src/handlers.ts",
-      "resource_uri": "model://axis-iliad/FirecrawlCrawlResponse"
-    },
-    {
-      "name": "FirecrawlScrapeRequest",
-      "kind": "interface",
-      "field_count": 6,
-      "source_file": "apps/api/src/handlers.ts",
-      "resource_uri": "model://axis-iliad/FirecrawlScrapeRequest"
+      "source_file": "apps/api/src/architecture-drift-webhook.ts",
+      "resource_uri": "model://axis-iliad/DriftOutcome"
     }
   ],
   "sql_schema": null,
@@ -357,39 +322,21 @@
     {
       "path": "apps/api/mcp-server.json",
       "exports": [],
-      "size": 10663
+      "size": 10640
     },
     {
       "path": "apps/api/src/mcp-server.test.ts",
       "exports": [],
-      "size": 85179
+      "size": 107938
     },
     {
       "path": "apps/api/src/mcp-server.ts",
       "exports": [
+        "export { ... }",
+        "export { ... }",
         "export const MCP_PROTOCOL_VERSION = ...",
-        "export type ProbeClass = ...",
-        "export function classifyProbe(userAgent: string): ProbeClass { ... }",
-        "export function captureIntent(tool: string, intent: string | null, userAgent: string): void { ... }",
-        "export function getIntentLog(): IntentCapture[] { ... }",
-        "export function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | string",
+        "export async function logMcpCall(toolName: string, userId: string | null, ip: string, headers?: Record<string, string | ",
         "export function getMcpCallCounters(): McpCallCounters { ... }",
-        "export const PLANNED_CAPABILITIES: readonly PlannedCapability[] = ...",
-        "export const PLANNED_CAPABILITY_NAMES: ReadonlySet<string> = ...",
-        "export const MCP_TOOLS = ...",
-        "export async function runAnalyzeFiles(",
-        "export async function runAnalyzeRepo(",
-        "export function runSearchTools(args: Record<string, unknown>): string { ... }",
-        "export function runDiscoverAgenticCommerceTools(): string { ... }",
-        "export async function runImproveMyAgent(",
-        "export function runDiscoverAgenticPurchasingNeeds(args: Record<string, unknown>): string { ... }",
-        "export function runGetReferralCode(req: IncomingMessage): string { ... }",
-        "export function runCheckReferralCredits(req: IncomingMessage): string { ... }",
-        "export function runListPrograms(): string { ... }",
-        "export function runGetSnapshot(",
-        "export function runGetArtifact(",
-        "export function runCloser(",
-        "export async function runPreparePurchasing(",
         "export async function dispatch(",
         "export async function handleMcpPost(",
         "export async function handleMcpGet(",
@@ -397,7 +344,7 @@
         "export function getMcpServerMeta(): Record<string, unknown> { ... }",
         "export async function handleMcpServerJson("
       ],
-      "size": 159527
+      "size": 24211
     },
     {
       "path": "apps/api/src/oauth-server.ts",
@@ -407,16 +354,22 @@
         "export async function handleOAuthJwks(_req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
         "export async function handleOAuthIntrospect(req: IncomingMessage, res: ServerResponse): Promise<void> { ... }",
         "export async function requireBearerToken(req: IncomingMessage, res: ServerResponse): Promise<boolean> { ... }",
-        "export function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ..."
+        "export async function createOAuthClient(name: string, redirectUris: string[], scopes: string[] = ..."
       ],
-      "size": 8292
+      "size": 9008
     },
     {
       "path": "apps/api/src/server.ts",
       "exports": [
         "export const app = ..."
       ],
-      "size": 18014
+      "size": 20249
     }
-  ]
+  ],
+  "truncated": {
+    "domain_models": {
+      "shown": 15,
+      "total": 242
+    }
+  }
 }

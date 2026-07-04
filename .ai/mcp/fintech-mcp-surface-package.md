@@ -1,6 +1,6 @@
 # Fintech MCP Surface Package — axis-iliad
 
-Generated: 2026-05-23T03:31:46.194Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Objective
 
@@ -8,10 +8,10 @@ This package defines the initial MCP surface for an agent that does more than au
 
 ## Why This Repo Qualifies
 
-- Routes detected: 497
-- Domain models detected: 264
+- Routes detected: 163
+- Domain models detected: 242
 - SQL tables detected: 0
-- Trust Fabric detected: yes
+- Trust Fabric detected: no
 - Fintech dependency hints: none directly detected
 
 ## Target Package Structure
@@ -93,160 +93,11 @@ export function registerFintechTools(server: McpServer) {
 4. Attach dispute/evidence generation, mandate controls, and reconciliation invariants.
 5. Only then map third-party fintech vendors behind internal abstractions.
 
-## Fintech Source Signals
 
-### `packaging/trust-fabric/attestation.json`
+---
 
-```json
-{
-  "schema_version": "1.0",
-  "certlib_profile": "certlib-offline-v1",
-  "generated_at": "2026-05-14T02:05:27.493Z",
-  "snapshot_id": "56f35484-90df-4fed-bd85-90b7545be9e3",
-  "project_id": "86360ec8-d5a3-4358-a674-b16fa514c555",
-  "product_name": "axis-iliad",
-  "package_root": "./",
-  "merkle_root": "844e749796c4e71db7dfad6f53c2b9b52713f536bb4bef38db413b04aa10a7ea",
-  "signature": {
-    "algorithm": "sha256-pseudo-signature",
-    "signer": "axis-closer",
-    "value": "2d2c1bdae3c3a416508e77a0b47719a349e9d8f9a0b5bf3e41a992a76b6fff02"
-  },
-  "leaf_count": 16,
-  "leaves": [
-    {
-      "path": "packaging/README.md",
-      "digest": "8553a09bf613ed6e33797a70306cd4dd7071f461810233143aa14f86b8c55b33"
-    },
-... (62 more lines)
-```
+## ⟳ Continue the loop
 
-### `packaging/trust-fabric/merkle-proof.json`
-
-```json
-{
-  "schema_version": "1.0",
-  "merkle_root": "844e749796c4e71db7dfad6f53c2b9b52713f536bb4bef38db413b04aa10a7ea",
-  "levels": [
-    [
-      "8553a09bf613ed6e33797a70306cd4dd7071f461810233143aa14f86b8c55b33",
-      "29700c9588423ac52334b22f0e2ee1c8e4bc209c707fd5942a962dd21dcaf5aa",
-      "70b546d385fbc884fc3cbb175b4d93a337e009aee45c0172e4cc5216e7cdd41c",
-      "380c90bc582d62a9d036197c03e74998c3e044343b9e393f8432ab4ea20925d9",
-      "6dd546c11faa8c18a736fd5e393e53e2912d374580d96d7222864d163fe36326",
-      "d84e9611f8c846d1795759a9a3ae4085fcff64ae41649e13710b95d728102e1a",
-      "c7dfedabee4365a402d0f80a8b1f8fb02123c941f0f678da035ef3311fada4bc",
-      "85107397389e420a0bdd1ba206dd23b8bfc89be07241126c815d37b75ad87e17",
-      "e6439f9926b7ceae54a6a0296be089d08559f3299d9e409f3663b893d5e60cd2",
-      "c57503dfa79212216132b78f4fb0cc53d5350116322988fd0cb50f22b629172f",
-      "657e8ac7a3bd31e2f9df62afde809ca51e8cb11dbf6bccdc8ec24a26107a74ee",
-      "010d316b255c019086fe969bfc80773eeaa0e7f4a4e7c3f730296f50767e6a5f",
-      "bc2c1a1a2b6f8d237fdef31db7ce508886a6d7d626d6eece95d1b3fe45645ba8",
-      "7564678c350bad4e43369a892c78e0616ae56ba7d93ebb377618eca556b58cbd",
-      "40a01b06b6389c21f04dd3831d7586483778069aff3ec10a8b55b825b2150aec",
-... (114 more lines)
-```
-
-### `payment-processing-output/ab-test-plan.md`
-
-```markdown
-# A/B Test Plan — avery-pay-platform
-
-Generated: 2026-04-05T07:37:21.804Z
-
-## Test Framework Setup
-
-**Recommended**: Client-side feature flag with cookie persistence
-- Set variant on first visit, persist in cookie
-- Read variant cookie before rendering
-
-## Priority Tests
-
-### Test 1: Landing Page Hero
-
-| Parameter | Value |
-|-----------|-------|
-| Target page | / |
-| Hypothesis | A benefit-driven headline increases signup rate |
-| Primary metric | Signup conversion rate |
-| Secondary metric | Time on page, scroll depth |
-... (57 more lines)
-```
-
-### `payment-processing-output/AGENTS.md`
-
-```markdown
-# AGENTS.md — avery-pay-platform
-
-## Project Context
-
-This is a **static site** built with **Go**.
-PAI'D is **two systems in one repo**:
-
-### Stack
-
-- Svelte
-
-### Architecture
-
-- containerized
-
-### Conventions
-
-- TypeScript strict mode
-
-### Key Directories
-... (42 more lines)
-```
-
-### `payment-processing-output/architecture-summary.md`
-
-```markdown
-# Architecture Summary: avery-pay-platform
-
-> PAI'D is **two systems in one repo**:
-
-## Overview
-
-- **Primary Language:** Go
-- **Project Type:** static site
-- **Files:** 1829 (417166 LOC)
-- **Directories:** 328
-
-## Frameworks & Libraries
-
-- **Svelte**  (30% confidence)
-
-## Architecture Patterns
-
-- `containerized`
-- **Separation Score:** 0
-
-... (70 more lines)
-```
-
-### `payment-processing-output/artifact-spec.md`
-
-```markdown
-# Artifact Specification — avery-pay-platform
-
-Generated: 2026-04-05T07:37:21.795Z
-
-## Project Overview
-
-| Field | Value |
-|-------|-------|
-| Name | avery-pay-platform |
-| Type | static_site |
-| Language | Go |
-| Frameworks | Svelte |
-
-## Language Distribution
-
-- **Go**: 73.4% ███████████████ (1054 files, 303678 LOC)
-- **YAML**: 9.6% ██ (129 files, 39835 LOC)
-- **Svelte**: 6.6% █ (196 files, 27505 LOC)
-- **TypeScript**: 4.2% █ (167 files, 17577 LOC)
-- **Markdown**: 3.4% █ (66 files, 14091 LOC)
-... (53 more lines)
-```
+- **You are here:** `mcp/fintech-mcp-surface-package.md` — agent step 38 of 70.
+- **Next:** `artifact-spec.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

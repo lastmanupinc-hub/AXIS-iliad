@@ -1,10 +1,10 @@
 # Template Pack — axis-iliad
 
-Generated: 2026-05-23T03:31:46.803Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -102,7 +102,7 @@ What was changed and why.
 ---
 type: concept
 project: axis-iliad
-tags: ["apps/ (monorepo_apps)", "packages/ (monorepo_packages)", "examples/ (project_directory)"]
+tags: ["apps/ (monorepo_apps)", "packages/ (monorepo_packages)", "docs/ (documentation)"]
 ---
 # {{title}}
 
@@ -150,4 +150,13 @@ sprint:
 ## Source File Summary
 
 Total source files: 500
-Config files: .prettierrc.json, apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json, packages/generator-core/tsconfig.json, packages/mpp/package.json, packages/mpp/tsconfig.json, packages/repo-parser/package.json, packages/repo-parser/tsconfig.json, packages/sdk/package.json, packages/sdk/tsconfig.json, packages/snapshots/package.json, packages/snapshots/tsconfig.json, packaging/manifests/npm-package.json
+Config files: .prettierrc.json, apps/api/package.json, apps/api/tsconfig.json, apps/cli/package.json, apps/cli/tsconfig.json, apps/web/package.json, apps/web/tsconfig.json, apps/web/vite.config.ts, mcp/tsconfig.package.template.json, mcp/tsconfig.root.template.json, package.json, packages/context-engine/package.json, packages/context-engine/tsconfig.json, packages/generator-core/package.json
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `template-pack.md` — agent step 59 of 70.
+- **Next:** `storyboard.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

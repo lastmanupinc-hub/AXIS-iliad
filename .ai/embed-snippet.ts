@@ -8,7 +8,7 @@ export const PROJECT_CONTEXT = {
   name: "axis-iliad",
   type: "monorepo",
   language: "TypeScript",
-  description: null,
+  description: "> **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**",
 } as const;
 
 export const CONVENTIONS = [
@@ -25,12 +25,12 @@ export const WARNINGS = [
 export const KEY_ABSTRACTIONS = [
   "apps/ (monorepo_apps)",
   "packages/ (monorepo_packages)",
+  "docs/ (documentation)",
   "examples/ (project_directory)",
   "mcp/ (project_directory)",
-  "payment-processing-output/ (project_directory)",
-  "packaging/ (project_directory)",
   ".github/ (project_directory)",
   "algorithmic/ (project_directory)",
+  "artifacts/ (project_directory)",
 ] as const;
 
 /**
@@ -60,6 +60,4 @@ export const ENTRY_POINTS = [
   { path: "apps/web/src/App.tsx", exports: ["export function App() { ... }"] },
   { path: "apps/web/src/main.tsx", exports: [] },
   { path: "packages/context-engine/src/index.ts", exports: ["export type { ... }","export { ... }"] },
-  { path: "packages/generator-core/src/index.ts", exports: ["export type { ... }","export { ... }","export { ... }","export { ... }","export { ... }"] },
-  { path: "packages/mpp/src/index.ts", exports: ["export type ChargeOptions = ...","export type MppResult = ...","export interface AgentBudget { ... }","export interface PricingTier { ... }","export interface Build402Options { ... }"] },
 ] as const;

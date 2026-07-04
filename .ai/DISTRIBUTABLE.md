@@ -27,3 +27,11 @@ This project is packaged for marketplace distribution.
 cat packaging/trust-fabric/attestation.json
 cat packaging/trust-fabric/merkle-proof.json
 ```
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `DISTRIBUTABLE.md` — agent step 69 of 70.
+- **Next:** `deploy/deploy-qualification-report.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

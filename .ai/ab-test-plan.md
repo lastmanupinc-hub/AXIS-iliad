@@ -1,10 +1,10 @@
 # A/B Test Plan — axis-iliad
 
-Generated: 2026-05-23T03:31:46.781Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -35,8 +35,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | Variant | Description |
 |---------|-------------|
 | Control | Current hero copy |
-| A | Feature-focused: "axis-iliad analyzes your codebase in seconds" |
-| B | Outcome-focused: "Ship faster with AI that understands your code" |
+| A | Feature-focused: "axis-iliad — [lead with your standout feature]" |
+| B | Outcome-focused: "[lead with the outcome your users get]" |
 
 ### Test 2: Primary CTA
 
@@ -51,7 +51,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | Variant | CTA Text | Color |
 |---------|----------|-------|
 | Control | "Get Started" | Primary |
-| A | "Analyze My Repo" | Primary |
+| A | "[your primary action — e.g. Get Started]" | Primary |
 | B | "Try axis-iliad Free" | Accent |
 
 ### Test 3: Pricing Page Layout
@@ -87,4 +87,13 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 ## Existing Test Infrastructure
 
-Found 151 test files — leverage this infrastructure for experiment validation.
+Found 189 test files — leverage this infrastructure for experiment validation.
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `ab-test-plan.md` — agent step 58 of 70.
+- **Next:** `template-pack.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -49,13 +49,14 @@ Map high-importance code files to vault notes for traceability:
 
 | Code File | Risk | Vault Note |
 |-----------|------|-----------|
+| `apps/api/src/router.ts` | 1.0 | `[[Code/apps-api-src-router]]` |
+| `apps/api/src/test-helpers.ts` | 1.0 | `[[Code/apps-api-src-test-helpers]]` |
+| `apps/api/src/billing.ts` | 1.0 | `[[Code/apps-api-src-billing]]` |
+| `apps/api/src/handlers.ts` | 1.0 | `[[Code/apps-api-src-handlers]]` |
+| `apps/api/src/rate-limiter.ts` | 1.0 | `[[Code/apps-api-src-rate-limiter]]` |
+| `apps/api/src/logger.ts` | 1.0 | `[[Code/apps-api-src-logger]]` |
+| `apps/api/src/server.ts` | 1.0 | `[[Code/apps-api-src-server]]` |
 | `apps/web/src/App.tsx` | 1.0 | `[[Code/apps-web-src-App]]` |
-| `apps/web/src/api.ts` | 0.9 | `[[Code/apps-web-src-api]]` |
-| `apps/web/src/pages.test.tsx` | 0.8 | `[[Code/apps-web-src-pages.test]]` |
-| `apps/web/src/pages/DashboardPage.tsx` | 0.6 | `[[Code/apps-web-src-pages-DashboardPage]]` |
-| `apps/web/src/components/Toast.tsx` | 0.2 | `[[Code/apps-web-src-components-Toast]]` |
-| `apps/web/src/components/AxisIcons.tsx` | 0.2 | `[[Code/apps-web-src-components-AxisIcons]]` |
-| `apps/web/src/upload-utils.ts` | 0.1 | `[[Code/apps-web-src-upload-utils]]` |
 
 ## Anti-Patterns
 
@@ -85,4 +86,12 @@ Track these metrics to ensure vault health:
 - `apps/web/src/App.tsx` → exports: export function App() { ... }
 - `apps/web/src/main.tsx` → exports: default
 - `packages/context-engine/src/index.ts` → exports: export type { ... }, export { ... }
-- `packages/generator-core/src/index.ts` → exports: export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... }
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `linking-policy.md` — agent step 30 of 70.
+- **Next:** `protocol-spec.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

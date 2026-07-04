@@ -1,6 +1,6 @@
 # axis-iliad
 
-> Production-grade axis-iliad packaging and release kit
+> Packaging and release kit for axis-iliad
 
 ## Why Teams Buy This
 
@@ -13,7 +13,7 @@
 ```bash
 git clone <repo-url>
 cd <project>
-make ship
+make install && make start
 ```
 
 ## Screenshots
@@ -24,15 +24,15 @@ make ship
 
 ## Trust Signals
 
-- Packaging readiness score: **92/100**
+- Packaging readiness score: **96/100**
 - License strategy: **Proprietary**
 - Build + release automation included
-- Signed Merkle attestation included in packaging/trust-fabric
+- Merkle integrity attestation (content-derived digest, not a cryptographic signature) included in packaging/trust-fabric
 
 ## Monetization
 
-- Recommended pricing: $99-$499 depending on support tier and hosting footprint.
-- Suggested SKUs: Starter (self-serve), Team (SLA + onboarding), Enterprise (private deployment).
+- Pricing: set to your own support tier and hosting footprint.
+- Example SKU structure: Starter (self-serve), Team (SLA + onboarding), Enterprise (private deployment).
 - Distribution targets: npm, unreal, vscode, dockerhub, github-marketplace.
 
 ## Compatibility
@@ -40,3 +40,11 @@ make ship
 - Primary language: TypeScript
 - Detected frameworks: React
 - Targets: Linux containers, cloud runners, and local developer setup
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `packaging/README.md` — agent step 65 of 70.
+- **Next:** `packaging/manifests/dockerhub-repository.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.
