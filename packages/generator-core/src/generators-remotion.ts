@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { mdText, mdInline, mdCode, mdCellCode, jsxText, codeComment } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
 
 // ─── Theme derivation ────────────────────────────────────────────
@@ -44,6 +45,42 @@ export function deriveRemotionTheme(ctx: ContextMap): RemotionTheme {
   return { bg: "#0f0f23", fg: "#e2e8f0", accent: "#6366f1", muted: "#64748b" };
 }
 
+// ─── Canonical scene plan ────────────────────────────────────────
+
+export interface RemotionScene {
+  id: string;
+  from: number;
+  durationInFrames: number;
+  label: string;
+  dataPoints: number;
+}
+
+/**
+ * The ONE canonical scene layout, consumed by both the generated composition
+ * (remotion-script.ts emits a `<Sequence>` per scene) AND render-config.json
+ * (scene list + total frames). Before this, the two drifted: the script
+ * hardcoded 4 fixed scenes (Intro/TechStack/Architecture/Abstractions, 360
+ * frames) while render-config invented a variable 5–7 scene set with a
+ * different order and 270–630 frames — so a config-driven render played blank
+ * frames and declared scenes that never appear. Deriving both from here makes
+ * that impossible.
+ *
+ * The layout matches the composition's four scene COMPONENTS exactly (same
+ * order); the `scenes` array length is therefore always 4. Pure + deterministic.
+ */
+export const SCENE_COMPONENT_NAMES = ["IntroScene", "TechStackScene", "ArchitectureScene", "AbstractionsScene"] as const;
+
+export function deriveScenePlan(ctx: ContextMap): { scenes: RemotionScene[]; totalFrames: number; fps: number } {
+  const DUR = 90;
+  const scenes: RemotionScene[] = [
+    { id: "intro", from: 0, durationInFrames: DUR, label: "Introduction", dataPoints: 1 },
+    { id: "tech-stack", from: DUR, durationInFrames: DUR, label: "Tech Stack", dataPoints: ctx.detection.frameworks.length + ctx.detection.languages.length },
+    { id: "architecture", from: DUR * 2, durationInFrames: DUR, label: "Architecture", dataPoints: ctx.architecture_signals.patterns_detected.length },
+    { id: "abstractions", from: DUR * 3, durationInFrames: DUR, label: "Key Abstractions", dataPoints: ctx.ai_context.key_abstractions.length },
+  ];
+  return { scenes, totalFrames: DUR * scenes.length, fps: 30 };
+}
+
 // ─── remotion-script.ts ─────────────────────────────────────────
 
 export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -58,7 +95,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from "remotion";`);
   lines.push("");
   lines.push(`// Auto-generated Remotion composition for ${codeComment(id.name)}`);
-  lines.push(`// Scenes: Intro → Tech Stack → Architecture → Key Abstractions → Outro`);
+  lines.push(`// Scenes: Intro → Tech Stack → Architecture → Key Abstractions`);
   lines.push("");
 
   const theme = deriveRemotionTheme(ctx);
@@ -110,7 +147,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`function ArchitectureScene() {`);
   lines.push(`  const frame = useCurrentFrame();`);
   lines.push(`  const patterns = ${JSON.stringify(ctx.architecture_signals.patterns_detected.slice(0, 4))};`);
-  lines.push(`  const score = ${ctx.architecture_signals.separation_score};`);
+  lines.push(`  const score = ${Math.round(ctx.architecture_signals.separation_score * 100)};`);
   lines.push(`  return (`);
   lines.push(`    <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>`);
   lines.push(`      <h2 style={{ color: THEME.accent, fontSize: 48 }}>Architecture</h2>`);
@@ -148,10 +185,11 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`export function ${compName}Video() {`);
   lines.push(`  return (`);
   lines.push(`    <AbsoluteFill>`);
-  lines.push(`      <Sequence from={0} durationInFrames={90}><IntroScene /></Sequence>`);
-  lines.push(`      <Sequence from={90} durationInFrames={90}><TechStackScene /></Sequence>`);
-  lines.push(`      <Sequence from={180} durationInFrames={90}><ArchitectureScene /></Sequence>`);
-  lines.push(`      <Sequence from={270} durationInFrames={90}><AbstractionsScene /></Sequence>`);
+  // Sequences are emitted from the shared scene plan so their offsets/durations
+  // stay identical to render-config.json's scene list + total frames.
+  deriveScenePlan(ctx).scenes.forEach((sc, i) => {
+    lines.push(`      <Sequence from={${sc.from}} durationInFrames={${sc.durationInFrames}}><${SCENE_COMPONENT_NAMES[i]} /></Sequence>`);
+  });
   lines.push(`    </AbsoluteFill>`);
   lines.push(`  );`);
   lines.push(`}`);
@@ -250,7 +288,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("");
   lines.push("- **Content**: Architecture patterns and separation score");
   lines.push(`- **Patterns**: ${mdText(patterns.join(", ") || "None detected")}`);
-  lines.push(`- **Separation Score**: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`- **Separation Score**: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("- **Animation**: List items reveal sequentially");
   lines.push("- **Visual**: Bullet list with score indicator");
   lines.push("");
@@ -264,24 +302,16 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("- **Visual**: Arrow-prefixed list items");
   lines.push("");
 
-  // Scene 5: Domain Models (conditional)
-  const models = ctx.domain_models;
-  if (models.length > 0) {
-    lines.push("### Scene 5: Domain Models (0:12–0:15)");
-    lines.push("");
-    lines.push("- **Content**: Detected domain model entities");
-    lines.push(`- **Models**: ${models.slice(0, 6).map(m => `${mdText(m.name)} (${mdText(m.kind)}, ${m.field_count} fields)`).join("; ")}`);
-    lines.push(`- **Total**: ${models.length} model${models.length === 1 ? "" : "s"} detected`);
-    lines.push("- **Animation**: Entity cards fade in with field-count pill badges");
-    lines.push("- **Visual**: Grid of entity cards with kind and field count");
-    lines.push("");
-  }
+  // The composition renders exactly these 4 scenes (see deriveScenePlan); there
+  // is no Domain Models scene, so the scene breakdown ends here to stay honest
+  // with the "Total Scenes: 4" summary above and the actual video. Model data is
+  // surfaced in render-config.json's scene_data for overlay builders.
 
   lines.push("## Narration Script");
   lines.push("");
   lines.push(`> This is ${mdText(id.name)}, a ${mdText(id.type)} built with ${mdText(id.primary_language)}.`);
   lines.push(`> The tech stack includes ${mdText(frameworks.slice(0, 3).join(", ") || id.primary_language)}.`);
-  lines.push(`> The architecture scores ${ctx.architecture_signals.separation_score} out of 100 for separation.`);
+  lines.push(`> The architecture scores ${Math.round(ctx.architecture_signals.separation_score * 100)} out of 100 for separation.`);
   lines.push(`> Key abstractions include ${mdText(abstractions.slice(0, 3).join(", ") || "the core modules")}.`);
   lines.push("");
 
@@ -321,45 +351,19 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const compName = id.name.replace(/[^a-zA-Z0-9]/g, "");
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const hotspots = ctx.dependency_graph.hotspots;
   const abstractions = ctx.ai_context.key_abstractions;
   const languages = ctx.detection.languages;
 
-  // Build dynamic scenes based on available data
-  const scenes: { id: string; from: number; duration: number; label: string; data_points: number }[] = [];
-  let frame = 0;
-  const SCENE_DUR = 90;
-
-  scenes.push({ id: "intro", from: frame, duration: SCENE_DUR, label: "Introduction", data_points: 1 });
-  frame += SCENE_DUR;
-
-  scenes.push({ id: "tech-stack", from: frame, duration: SCENE_DUR, label: "Tech Stack", data_points: ctx.detection.frameworks.length + languages.length });
-  frame += SCENE_DUR;
-
-  if (routes.length > 0) {
-    scenes.push({ id: "api-surface", from: frame, duration: SCENE_DUR, label: `API Surface (${routes.length} routes)`, data_points: routes.length });
-    frame += SCENE_DUR;
-  }
-
-  if (models.length > 0) {
-    scenes.push({ id: "data-model", from: frame, duration: SCENE_DUR, label: `Data Model (${models.length} entities)`, data_points: models.length });
-    frame += SCENE_DUR;
-  }
-
-  if (hotspots.length > 0) {
-    scenes.push({ id: "complexity", from: frame, duration: SCENE_DUR, label: `Complexity Hotspots (${hotspots.length})`, data_points: hotspots.length });
-    frame += SCENE_DUR;
-  }
-
-  scenes.push({ id: "architecture", from: frame, duration: SCENE_DUR, label: "Architecture", data_points: ctx.architecture_signals.patterns_detected.length });
-  frame += SCENE_DUR;
-
-  if (abstractions.length > 0) {
-    scenes.push({ id: "abstractions", from: frame, duration: SCENE_DUR, label: "Key Abstractions", data_points: abstractions.length });
-    frame += SCENE_DUR;
-  }
+  // Scenes + total frames come from the ONE canonical plan the composition
+  // itself renders — so this config can never declare a scene the video lacks
+  // (previously it invented api-surface/data-model/complexity scenes with a
+  // total-frame count the 4-scene composition never reaches). The richer
+  // per-scene DATA still lives under scene_data below for overlay builders.
+  const plan = deriveScenePlan(ctx);
+  const scenes = plan.scenes.map(sc => ({ id: sc.id, from: sc.from, duration: sc.durationInFrames, label: sc.label, data_points: sc.dataPoints }));
 
   const config = {
     project: id.name,
@@ -368,8 +372,8 @@ export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, file
       id: `${compName}Video`,
       width: 1920,
       height: 1080,
-      fps: 30,
-      durationInFrames: frame,
+      fps: plan.fps,
+      durationInFrames: plan.totalFrames,
     },
     scenes,
     render: {

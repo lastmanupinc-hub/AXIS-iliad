@@ -150,8 +150,8 @@ describe("remotion: Java palette — branch 14 (line 37)", () => {
   });
 });
 
-describe("remotion: hotspots scene in render-config — branches 36, 41", () => {
-  it("includes complexity hotspot scene when hotspots exist", () => {
+describe("remotion: hotspots data in render-config (canonical scene list)", () => {
+  it("puts hotspot data in scene_data without inventing a 'complexity' scene", () => {
     const inp = withHotspots(input(snap(), ["render-config.json"]), [
       { path: "src/utils.ts", inbound_count: 12, outbound_count: 4, risk_score: 0.85 },
       { path: "src/core.ts", inbound_count: 8, outbound_count: 6, risk_score: 0.72 },
@@ -160,9 +160,10 @@ describe("remotion: hotspots scene in render-config — branches 36, 41", () => 
     const f = getFile(res, "render-config.json");
     expect(f).toBeDefined();
     const parsed = JSON.parse(f!.content);
-    // Branch 36: hotspots.length > 0 → adds "complexity" scene
-    expect(parsed.scenes.some((s: { id: string }) => s.id === "complexity")).toBe(true);
-    // Branch 41: scene_data.hotspots is populated (not null)
+    // The scene list is the canonical 4-scene composition layout — no per-data
+    // "complexity" scene the video never renders.
+    expect(parsed.scenes.map((s: { id: string }) => s.id)).toEqual(["intro", "tech-stack", "architecture", "abstractions"]);
+    // The hotspot DATA is still populated for overlay builders.
     expect(parsed.scene_data.hotspots).not.toBeNull();
     expect(parsed.scene_data.hotspots.length).toBeGreaterThan(0);
     expect(parsed.scene_data.hotspots[0].path).toBe("src/utils.ts");

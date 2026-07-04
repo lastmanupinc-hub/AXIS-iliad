@@ -137,8 +137,8 @@ describe("remotion: Rust language palette path — branch 14[0] (line 37)", () =
   });
 });
 
-describe("remotion: routes + models in scene plan — branches 35[0], 36[0] (lines 345, 350)", () => {
-  it("generates API surface and data model scenes when routes and models exist", () => {
+describe("remotion: routes + models put data in scene_data (canonical scene list)", () => {
+  it("keeps the fixed 4-scene composition layout; route/model content lives in scene_data", () => {
     const inp = withRoutes(
       withModels(input(snap(), ["render-config.json"]), [
         { name: "User", kind: "interface", field_count: 5 },
@@ -153,8 +153,12 @@ describe("remotion: routes + models in scene plan — branches 35[0], 36[0] (lin
     const f = getFile(res, "render-config.json");
     expect(f).toBeDefined();
     const parsed = JSON.parse(f!.content);
-    expect(parsed.scenes.some((s: { id: string }) => s.id === "api-surface")).toBe(true);
-    expect(parsed.scenes.some((s: { id: string }) => s.id === "data-model")).toBe(true);
+    // render-config now declares exactly the scenes the composition renders — it
+    // no longer invents api-surface/data-model scenes the video never shows.
+    expect(parsed.scenes.map((s: { id: string }) => s.id)).toEqual(["intro", "tech-stack", "architecture", "abstractions"]);
+    // the route/model DATA is still available for overlay builders under scene_data.
+    expect(parsed.scene_data.api_surface).not.toBeNull();
+    expect(parsed.scene_data.data_model).not.toBeNull();
   });
 });
 
