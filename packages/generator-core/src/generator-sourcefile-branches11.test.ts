@@ -140,11 +140,11 @@ describe("all generators: entry points with exports", () => {
 /* ================================================================= */
 
 describe("generators: entry points without exports (|| default path)", () => {
-  it("research-threads shows default exports", () => {
+  it("research-threads labels a no-export entry honestly (not a fabricated 'default')", () => {
     const inp = input(snap(), ["research-threads.md"], [ENTRY_NO_EXPORTS]);
     const res = generateFiles(inp);
     const f = getFile(res, "research-threads.md");
-    expect(f!.content).toContain("default");
+    expect(f!.content).toContain("(no exports)");
   });
 
   it("linking-policy shows default exports", () => {
