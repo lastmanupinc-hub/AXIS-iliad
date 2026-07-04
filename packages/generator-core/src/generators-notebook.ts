@@ -37,6 +37,64 @@ function getDocsUrl(name: string): string {
   return DOCS_URLS[name.toLowerCase()] ?? `https://www.npmjs.com/package/${encodeURIComponent(name)}`;
 }
 
+// Curated official-docs URLs for common languages. Unknown languages fall back to
+// a URL-ENCODED search (so `C++` / `C#` don't produce a malformed link), which is
+// honestly a search, not a curated reference.
+const LANG_DOCS: Record<string, string> = {
+  typescript: "https://www.typescriptlang.org/docs",
+  javascript: "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+  python: "https://docs.python.org/3/",
+  go: "https://go.dev/doc/",
+  rust: "https://doc.rust-lang.org/book/",
+  java: "https://docs.oracle.com/en/java/",
+  ruby: "https://www.ruby-lang.org/en/documentation/",
+  "c#": "https://learn.microsoft.com/en-us/dotnet/csharp/",
+  csharp: "https://learn.microsoft.com/en-us/dotnet/csharp/",
+  php: "https://www.php.net/docs.php",
+  swift: "https://www.swift.org/documentation/",
+  kotlin: "https://kotlinlang.org/docs/home.html",
+  "c++": "https://en.cppreference.com/w/",
+  cpp: "https://en.cppreference.com/w/",
+  c: "https://en.cppreference.com/w/c",
+  scala: "https://docs.scala-lang.org/",
+  elixir: "https://elixir-lang.org/docs.html",
+};
+
+/** Language reference URL: curated official docs if known, else an encoded search. */
+function getLanguageRef(name: string): string {
+  return LANG_DOCS[name.toLowerCase()] ?? `https://www.google.com/search?q=${encodeURIComponent(name + " language reference")}`;
+}
+
+export interface ReadingStep {
+  path: string;
+  inbound: number;
+  outbound: number;
+  role: "foundational" | "orchestrator" | "connector";
+}
+
+/**
+ * A dependency-grounded reading order derived from the import graph. Ranks files
+ * by how FOUNDATIONAL they are (inbound − outbound): the modules the most other
+ * files depend on — the shared types and core utilities — come first (read them
+ * to learn the vocabulary), and the orchestrators that wire everything together
+ * come last. Deterministic (stable tie-break on inbound then code-unit path).
+ */
+export function computeReadingOrder(ctx: ContextMap, limit = 8): ReadingStep[] {
+  const nodes = ctx.dependency_graph.hotspots ?? [];
+  const sorted = [...nodes].sort((a, b) =>
+    ((b.inbound_count - b.outbound_count) - (a.inbound_count - a.outbound_count)) ||
+    (b.inbound_count - a.inbound_count) ||
+    (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  return sorted.slice(0, limit).map(h => ({
+    path: h.path,
+    inbound: h.inbound_count,
+    outbound: h.outbound_count,
+    role: h.inbound_count > h.outbound_count ? "foundational"
+      : h.outbound_count > h.inbound_count ? "orchestrator"
+      : "connector",
+  }));
+}
+
 // ─── notebook-summary.md ────────────────────────────────────────
 
 export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -373,6 +431,21 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   }
   lines.push("");
 
+  // Dependency-based reading order — derived from the import graph, not a template.
+  const readingOrder = computeReadingOrder(ctx);
+  if (readingOrder.length > 0) {
+    lines.push("## Dependency-Based Reading Order");
+    lines.push("");
+    lines.push("Read the codebase **bottom-up**: the modules the most other files depend on first (they define the shared vocabulary — types, core utilities), and the orchestrators that wire everything together last. Derived from the actual import graph:");
+    lines.push("");
+    lines.push("| # | Module | Depended-on by | Depends on | Role |");
+    lines.push("|---|--------|----------------|------------|------|");
+    readingOrder.forEach((s, i) => {
+      lines.push(`| ${i + 1} | \`${mdCellCode(s.path)}\` | ${s.inbound} | ${s.outbound} | ${s.role} |`);
+    });
+    lines.push("");
+  }
+
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
     const entries = findEntryPoints(files);
@@ -620,10 +693,7 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
       id: `lang-${lang.name.toLowerCase()}`,
       type: "reference",
       title: `${lang.name} Language Reference`,
-      source: lang.name === "TypeScript" ? "https://www.typescriptlang.org/docs" :
-        lang.name === "JavaScript" ? "https://developer.mozilla.org/en-US/docs/Web/JavaScript" :
-        lang.name === "Python" ? "https://docs.python.org/3/" :
-        `https://www.google.com/search?q=${lang.name}+reference`,
+      source: getLanguageRef(lang.name),
       relevance: lang.loc_percent > 30 ? "primary" : "secondary",
       tags: ["language", lang.name.toLowerCase()],
     });
@@ -635,7 +705,9 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
       id: `pattern-${p.toLowerCase().replace(/\s+/g, "-")}`,
       type: "pattern",
       title: `${p} Pattern Reference`,
-      source: `Architecture pattern detected in project`,
+      // Detected in the project by static analysis; the source is a locatable
+      // search for the pattern (not a prose sentence masquerading as a citation).
+      source: `https://www.google.com/search?q=${encodeURIComponent(p + " architecture pattern")}`,
       relevance: "contextual",
       tags: ["architecture", "pattern", p.toLowerCase()],
     });
