@@ -19,8 +19,9 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
   // dark-mode tokens can never disagree about the same repo.
   const { hasTailwind, hasCssModules, hasStyledComponents, hasSass, approach: stylingApproach } = detectStyling(ctx);
 
-  // Base color palette (adaptive to detected stack)
-  // Averionics palette — HUD cyan primary, cool cockpit-slate neutrals, instrument amber.
+  // Base color palette — a FIXED "averionics" preset (same for every repo), NOT
+  // adaptive: HUD cyan primary, cool cockpit-slate neutrals, instrument amber.
+  // It's a starting aesthetic to restyle; only the token CONTRACT is derived.
   const colors: Record<string, Record<string, string>> = {
     primary: {
       "50": "#ecfeff", "100": "#cffafe", "200": "#a5f3fc", "300": "#67e8f9",
@@ -84,6 +85,7 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
     $schema: "https://design-tokens.github.io/community-group/format/",
     project: id.name,
     generated_at: ctx.generated_at,
+    css_coverage_note: "This is the full token CATALOG. theme.css ships a curated subset as CSS custom properties — some catalog tokens (e.g. z_index.popover, the *-600/*-950 color stops, 5xl/6xl font sizes) have no --var yet; add them before referencing.",
     styling_approach: stylingApproach,
     project_type: id.type,
     primary_language: id.primary_language,
@@ -153,7 +155,7 @@ export function generateDesignTokens(ctx: ContextMap, files?: SourceFile[]): Gen
     content: JSON.stringify(tokens, null, 2),
     content_type: "application/json",
     program: "theme",
-    description: "Design token system derived from project stack and styling approach",
+    description: "Starting design-token system (fixed averionics preset) plus detected stack/architecture metadata",
   };
 }
 
@@ -170,8 +172,10 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
 
   // ─── Project snapshot comment ────────────────────────────────
   const fwStack = ctx.detection.frameworks.slice(0, 4).map(f => cssComment(f.name)).join(", ") || "—";
-  /* v8 ignore next */
-  const totalLoc = ctx.detection.languages.reduce((sum, l) => sum + (l.loc ?? 0), 0);
+  // Use the SAME total as design-tokens.json (ctx.structure.total_loc) — summing
+  // per-language loc here excluded files not attributed to a detected language, so
+  // the two theme artifacts reported different LOC totals for one repo.
+  const totalLoc = ctx.structure.total_loc;
   // Dedupe by (method, path) and drop test/README noise so the headline count
   // reflects the real API surface, not the parser's per-mention rows.
   const routes = displayRoutes(ctx.routes);
@@ -570,8 +574,15 @@ export function generateThemeCss(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("/*    Add model-specific tweaks in your own stylesheet, not here.            */");
     lines.push("");
     for (const model of ctx.domain_models.slice(0, 8)) {
-      const slug = model.name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-      lines.push(`/*   .${slug}-card    — ${model.name} (${model.kind}, ${model.field_count} fields). Apply .surface-card. */`);
+      // model.name/.kind are untrusted (parsed from an arbitrary repo) and land in
+      // a CSS `/* … */` comment — a name containing `*/` would close the comment
+      // early and inject live rules. cssComment neutralizes the delimiter (the file
+      // header promises exactly this); derive the slug from the sanitized name too.
+      const slug = cssComment(model.name).replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+      lines.push(`/*   .${slug}-card    — ${cssComment(model.name)} (${cssComment(model.kind)}, ${model.field_count} fields). Apply .surface-card. */`);
+    }
+    if (ctx.domain_models.length > 8) {
+      lines.push(`/*   … and ${ctx.domain_models.length - 8} more models. */`);
     }
     lines.push("");
   }
@@ -897,6 +908,7 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
     for (const m of ctx.domain_models.slice(0, 8)) {
       lines.push(`- **${mdText(m.name)}** (${mdText(m.kind)}): ${m.field_count} fields — ${mdText(m.source_file)}`);
     }
+    if (ctx.domain_models.length > 8) lines.push(`- … and ${ctx.domain_models.length - 8} more models`);
     lines.push("");
   }
 
@@ -927,7 +939,11 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
       lines.push(...renderExcerpts("Style File Contents", styleFiles.slice(0, 3), 20));
     }
 
+    // Extension-ANCHORED (findFiles is a substring matcher, so "*.tsx" also matched
+    // Button.tsx.snap / a tsx-helpers/ dir) — keeps this list consistent with the
+    // $-anchored total_components headline in component-theme-map.json.
     const compFiles = findFiles(files, ["*.tsx", "*.vue", "*.svelte"])
+      .filter(f => /\.(tsx|vue|svelte)$/.test(f.path))
       .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
     if (compFiles.length > 0) {
       lines.push("## Component Style Usage");
@@ -938,6 +954,7 @@ export function generateThemeGuidelines(ctx: ContextMap, files?: SourceFile[]): 
         const exports = extractExports(cf.content);
         lines.push(`| \`${mdCode(cf.path)}\` | ${exports.map(mdInline).join(", ") || "default"} | ${cf.content.split("\n").length} |`);
       }
+      if (compFiles.length > 12) lines.push(`| *… and ${compFiles.length - 12} more* | | |`);
       lines.push("");
     }
   }
@@ -1130,12 +1147,17 @@ export function generateDarkModeTokens(ctx: ContextMap, files?: SourceFile[]): G
         extend_colors: "Map tokens above to theme.extend.colors in tailwind.config",
       } : null,
       css_variables: {
-        prefix: "--color",
-        example: "--color-bg-base: #070b11",
-        selector: ":root[data-theme='dark']",
+        prefix: "--surface / --color",
+        // Reference a token generateThemeCss actually emits, under the selector it
+        // actually uses — the old example named `--color-bg-base` (never emitted)
+        // under `:root[data-theme='dark']` (not the emitted `[data-theme="dark"]`),
+        // so an agent following it targeted a non-existent variable + selector.
+        example: "--surface-page: #070b11",
+        selector: "[data-theme=\"dark\"]",
       },
     },
     contrast_ratios: {
+      note: "Approximate — computed for the preset palette; re-verify after you restyle the tokens.",
       "primary-on-base": { ratio: "15.3:1", passes: "AAA" },
       "secondary-on-base": { ratio: "7.2:1", passes: "AA" },
       "muted-on-base": { ratio: "4.6:1", passes: "AA" },
