@@ -292,16 +292,11 @@ describe("asset-checklist.md — framework-derived colors", () => {
 
 // ─── scene-plan.md — domain models scene ────────────────────────
 
-describe("scene-plan.md — domain models scene", () => {
-  it("no domain models scene when models empty", () => {
-    const s = snap();
-    const inp = input(s, ["scene-plan.md"]);
-    const result = generateFiles(inp);
-    const content = getFile(result, "scene-plan.md")!.content;
-    expect(content).not.toContain("Scene 5: Domain Models");
-  });
-
-  it("adds Scene 5 when domain_models exist", () => {
+// The composition renders exactly 4 scenes (deriveScenePlan). scene-plan
+// describes those four and no longer invents a conditional "Scene 5: Domain
+// Models" that contradicted its own "Total Scenes: 4" summary and the video.
+describe("scene-plan.md — canonical 4-scene breakdown (no phantom Domain Models scene)", () => {
+  it("never adds a Domain Models scene, even when models exist", () => {
     const s = snap();
     const inp = input(s, ["scene-plan.md"]);
     inp.context_map.domain_models = [
@@ -310,48 +305,11 @@ describe("scene-plan.md — domain models scene", () => {
     ];
     const result = generateFiles(inp);
     const content = getFile(result, "scene-plan.md")!.content;
-    expect(content).toContain("Scene 5: Domain Models");
-    expect(content).toContain("User");
-    expect(content).toContain("Order");
-  });
-
-  it("domain models scene includes kind and field count", () => {
-    const s = snap();
-    const inp = input(s, ["scene-plan.md"]);
-    inp.context_map.domain_models = [
-      { name: "Product", kind: "interface", language: "TypeScript", field_count: 5, source_file: "src/product.ts" },
-    ];
-    const result = generateFiles(inp);
-    const content = getFile(result, "scene-plan.md")!.content;
-    expect(content).toContain("interface");
-    expect(content).toContain("5 fields");
-  });
-
-  it("domain models scene references animation and visual descriptions", () => {
-    const s = snap();
-    const inp = input(s, ["scene-plan.md"]);
-    inp.context_map.domain_models = [
-      { name: "Session", kind: "class", language: "TypeScript", field_count: 3, source_file: "src/session.ts" },
-    ];
-    const result = generateFiles(inp);
-    const content = getFile(result, "scene-plan.md")!.content;
-    expect(content).toContain("Animation");
-    expect(content).toContain("Visual");
-    expect(content).toContain("Entity cards");
-  });
-
-  it("domain models total count shown in scene plan", () => {
-    const s = snap();
-    const inp = input(s, ["scene-plan.md"]);
-    inp.context_map.domain_models = Array.from({ length: 8 }, (_, i) => ({
-      name: `Model${i}`,
-      kind: "interface" as const,
-      language: "TypeScript",
-      field_count: 3,
-      source_file: `src/m${i}.ts`,
-    }));
-    const result = generateFiles(inp);
-    const content = getFile(result, "scene-plan.md")!.content;
-    expect(content).toContain("8 models");
+    // No 5th scene HEADING in the breakdown (the "Add Scene 5: …" suggestions in
+    // the future-enhancements list are proposals, not a claim the video has one).
+    expect(content).not.toContain("### Scene 5");
+    expect(content).not.toContain("Scene 5: Domain Models");
+    expect(content).toContain("| Total Scenes | 4 |");
+    expect(content).toContain("### Scene 4: Key Abstractions");
   });
 });

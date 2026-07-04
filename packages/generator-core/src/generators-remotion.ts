@@ -95,7 +95,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from "remotion";`);
   lines.push("");
   lines.push(`// Auto-generated Remotion composition for ${codeComment(id.name)}`);
-  lines.push(`// Scenes: Intro → Tech Stack → Architecture → Key Abstractions → Outro`);
+  lines.push(`// Scenes: Intro → Tech Stack → Architecture → Key Abstractions`);
   lines.push("");
 
   const theme = deriveRemotionTheme(ctx);
@@ -302,18 +302,10 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("- **Visual**: Arrow-prefixed list items");
   lines.push("");
 
-  // Scene 5: Domain Models (conditional)
-  const models = ctx.domain_models;
-  if (models.length > 0) {
-    lines.push("### Scene 5: Domain Models (0:12–0:15)");
-    lines.push("");
-    lines.push("- **Content**: Detected domain model entities");
-    lines.push(`- **Models**: ${models.slice(0, 6).map(m => `${mdText(m.name)} (${mdText(m.kind)}, ${m.field_count} fields)`).join("; ")}`);
-    lines.push(`- **Total**: ${models.length} model${models.length === 1 ? "" : "s"} detected`);
-    lines.push("- **Animation**: Entity cards fade in with field-count pill badges");
-    lines.push("- **Visual**: Grid of entity cards with kind and field count");
-    lines.push("");
-  }
+  // The composition renders exactly these 4 scenes (see deriveScenePlan); there
+  // is no Domain Models scene, so the scene breakdown ends here to stay honest
+  // with the "Total Scenes: 4" summary above and the actual video. Model data is
+  // surfaced in render-config.json's scene_data for overlay builders.
 
   lines.push("## Narration Script");
   lines.push("");
