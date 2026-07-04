@@ -439,7 +439,7 @@ describe("harden: repo-profile.yaml fidelity (escape-grammar round-trip)", () =>
     expect(quotedArrayItems(result.content)).toContain(hostile);
   });
 
-  it("the multiline source_file_tree emits as ONE escaped line (was malformed YAML on every run with files)", () => {
+  it("the multiline source_file_tree emits as a readable YAML block scalar (not a ~30 KB escaped one-liner)", () => {
     const profile = makeProfile();
     const files = [
       { path: "src/index.ts", content: "export {};", size: 10 },
@@ -447,11 +447,16 @@ describe("harden: repo-profile.yaml fidelity (escape-grammar round-trip)", () =>
     ];
     const result = generateRepoProfileYAML(profile, files);
     expect(result.content).toContain("source_file_count: 2");
-    const treeLine = result.content.split("\n").find((l) => l.startsWith("source_file_tree:"))!;
-    expect(treeLine).toBeDefined();
-    const decoded = unquoteYAML(treeLine.slice(treeLine.indexOf(":") + 1).trim());
-    expect(decoded).toContain("index.ts");
-    expect(decoded).toContain("\n"); // genuinely multiline after decoding — escaped, not broken
+    const outLines = result.content.split("\n");
+    const treeIdx = outLines.findIndex((l) => l.startsWith("source_file_tree:"));
+    expect(treeIdx).toBeGreaterThanOrEqual(0);
+    // key line carries no inline value; a `|` block scalar follows, then the tree
+    expect(outLines[treeIdx].slice("source_file_tree:".length).trim()).toBe("");
+    expect(outLines[treeIdx + 1].trim()).toBe("|");
+    const block = outLines.slice(treeIdx + 2, treeIdx + 4).join("\n");
+    expect(block).toContain("index.ts");
+    expect(block).toContain("util.ts"); // genuinely multiline, no literal \n escapes
+    expect(block).not.toContain("\\n");
   });
 
   it("ambiguous scalars (null/true/numeric-looking strings) are QUOTED so they stay strings", () => {
