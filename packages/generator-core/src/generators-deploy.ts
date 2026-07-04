@@ -399,7 +399,7 @@ param(
 \$ErrorActionPreference = 'Stop'
 
 if (-not \$env:GHCR_OWNER) {
-  throw "Set GHCR_OWNER, e.g. \\\$env:GHCR_OWNER = 'yourgithubuser'"
+  throw 'Set GHCR_OWNER first, e.g. $env:GHCR_OWNER = your-github-user'
 }
 
 \$Image = "ghcr.io/\$(\$env:GHCR_OWNER)/${name}:\$Tag"
@@ -439,7 +439,7 @@ export function generateDeployVSCodeLaunchTemplate(
   // Emit a stack-specific debug config. Copy this into .vscode/launch.json
   // (merging with any existing entries) to attach to the container.
   const configs: Array<Record<string, unknown>> = [];
-  if (stack === "node-server" || stack === "unknown" || stack === "node-static") {
+  if (stack === "node-server" || stack === "unknown") {
     configs.push({
       type: "node",
       request: "attach",
@@ -449,6 +449,17 @@ export function generateDeployVSCodeLaunchTemplate(
       localRoot: "${workspaceFolder}",
       remoteRoot: "/app",
       skipFiles: ["<node_internals>/**"],
+    });
+  }
+  if (stack === "node-static") {
+    // A static build is served by nginx (no Node inspector to attach to) — debug the
+    // frontend in the browser against the running container instead.
+    configs.push({
+      type: "msedge",
+      request: "launch",
+      name: `Debug ${name} in browser`,
+      url: "http://localhost:8080",
+      webRoot: "${workspaceFolder}",
     });
   }
   if (stack === "python") {
@@ -618,6 +629,10 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // Routes every request to ONE container instance (good for a singleton/stateful
+    // service). To use all \`max_instances\` in wrangler.containers.toml, pass a
+    // per-request key (e.g. a session id) as the second arg, or use the library's
+    // load-balancing helper, so requests fan out across instances.
     const container = getContainer(env.APP_CONTAINER, "${name}");
     return container.fetch(request);
   },
