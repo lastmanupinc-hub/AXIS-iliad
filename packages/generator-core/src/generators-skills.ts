@@ -6,11 +6,36 @@ import { hasFw, getFw } from "./fw-helpers.js";
 // EVERY repo/manifest-derived string must be sanitized for its sink context —
 // mdText (prose/headings/lists), mdInline (table cells), mdCode (code spans),
 // cfgValue (.cursorrules key = "value"), yamlFlowScalar (inside ```yaml fences).
-import { mdText, mdInline, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
 // displayRoutes moved to the shared route-utils module (also used by the debug
 // program). Re-exported here so existing importers keep resolving it from skills.
 import { displayRoutes } from "./route-utils.js";
 export { displayRoutes } from "./route-utils.js";
+
+/**
+ * Resolve the package manager to put in generated commands. The parser only
+ * populates `package_managers` when it finds a LOCKFILE — a repo with none but a
+ * `packageManager:` field or a workspace (this monorepo declares `pnpm@…` with no
+ * committed lock) would otherwise be told to run `npm`, which breaks a pnpm/yarn
+ * workspace (`workspace:*` deps resolve differently). Order: detected → package.json
+ * `packageManager` field → lockfile name → npm. Pure + deterministic.
+ */
+function resolvePackageManager(ctx: ContextMap, files?: SourceFile[]): string {
+  const detected = ctx.detection.package_managers[0];
+  if (detected) return detected;
+  if (files) {
+    const base = (p: string) => p.split("/").pop() ?? p;
+    const pkg = files.find(f => base(f.path) === "package.json" && !f.path.includes("node_modules"));
+    const field = pkg?.content.match(/"packageManager"\s*:\s*"([a-z]+)@/i);
+    if (field) return field[1].toLowerCase();
+    const has = (name: string) => files.some(f => base(f.path) === name);
+    if (has("pnpm-lock.yaml") || has("pnpm-workspace.yaml")) return "pnpm";
+    if (has("yarn.lock")) return "yarn";
+    if (has("bun.lockb")) return "bun";
+    if (has("package-lock.json")) return "npm";
+  }
+  return "npm";
+}
 
 export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
@@ -22,7 +47,7 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("## Project Context");
   lines.push("");
   lines.push(`This is a **${mdText(id.type.replace(/_/g, " "))}** built with **${mdText(id.primary_language)}**.`);
-  if (id.description) lines.push(mdText(id.description));
+  if (id.description) lines.push(mdBlock(id.description));
   lines.push("");
 
   // Frameworks
@@ -105,6 +130,9 @@ export function generateAgentsMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 15)) {
       lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+    }
+    if (ctx.sql_schema.length > 15) {
+      lines.push(`| *… ${ctx.sql_schema.length - 15} more* | | |`);
     }
     lines.push("");
   }
@@ -217,13 +245,13 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
   lines.push("");
   lines.push("## Project Overview");
   lines.push("");
-  lines.push(mdText(ai.project_summary));
+  lines.push(mdBlock(ai.project_summary));
   lines.push("");
 
   // Build & test commands
   lines.push("## Commands");
   lines.push("");
-  const pm = ctx.detection.package_managers[0] ?? "npm";
+  const pm = resolvePackageManager(ctx, files);
   const pmC = mdCode(pm);
   lines.push(`- **Install:** \`${pmC} install\``);
   if (ctx.detection.build_tools.length > 0)
@@ -305,6 +333,9 @@ export function generateClaudeMD(ctx: ContextMap, files?: SourceFile[]): Generat
     lines.push("|-------|---------|-------------|");
     for (const t of ctx.sql_schema.slice(0, 15)) {
       lines.push(`| \`${mdCellCode(t.name)}\` | ${t.column_count} | ${t.foreign_key_count} |`);
+    }
+    if (ctx.sql_schema.length > 15) {
+      lines.push(`| *… ${ctx.sql_schema.length - 15} more* | | |`);
     }
     lines.push("");
   }
@@ -451,6 +482,9 @@ export function generateCursorRules(ctx: ContextMap, files?: SourceFile[]): Gene
     for (const t of ctx.sql_schema.slice(0, 15)) {
       rules.push(`# ${mdText(t.name)} (${t.column_count} cols, ${t.foreign_key_count} fks)`);
     }
+    if (ctx.sql_schema.length > 15) {
+      rules.push(`# … ${ctx.sql_schema.length - 15} more tables`);
+    }
     rules.push("");
   }
 
@@ -505,6 +539,7 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   const testFrameworks = ctx.detection.test_frameworks;
   const buildTools = ctx.detection.build_tools;
   const ci = ctx.detection.ci_platform;
+  const pm = resolvePackageManager(ctx, files);
 
   const lines: string[] = [];
   lines.push(`# Workflow Pack — ${mdText(id.name)}`);
@@ -527,7 +562,9 @@ export function generateWorkflowPack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("  - name: write_tests");
   lines.push(`    action: Add tests using ${testFrameworks.length > 0 ? testFrameworks.map(mdText).join(", ") : "project test framework"}`);
   lines.push("  - name: validate");
-  lines.push(`    action: ${buildTools.length > 0 ? `Run ${buildTools.map(mdText).join(" && ")}` : "Run build and test"}`);
+  // Validation runs the project's build/test SCRIPTS via the package manager —
+  // not the bare tool names (`vite && make` isn't a runnable validation step).
+  lines.push(`    action: ${buildTools.length > 0 ? `Run \`${mdText(pm)} run build\`${testFrameworks.length > 0 ? ` then \`${mdText(pm)} test\`` : ""}` : "Run build and test"}`);
   lines.push("  - name: review");
   lines.push("    action: Check against component-guidelines.md and frontend-rules.md");
   lines.push("```");
@@ -694,16 +731,19 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("```");
   lines.push("");
 
-  lines.push("## Policy: Testing Requirements");
+  lines.push("## Policy: Testing Requirements (recommended baseline)");
   lines.push("");
+  // These are a RECOMMENDED baseline to adopt — not measured facts about the repo.
+  // The coverage target + no-skip rule are aspirational (this generator can't read
+  // the project's actual coverage or CI skip status), so they're framed as targets.
   lines.push("```yaml");
   lines.push("id: testing-requirements");
   lines.push("scope: all-changes");
-  lines.push("rules:");
+  lines.push("recommended_rules:");
   lines.push("  - new_code_requires_tests: true");
   lines.push("  - bug_fixes_require_regression_tests: true");
-  lines.push("  - minimum_test_coverage: 80%");
-  lines.push("  - no_skipped_tests_in_ci: true");
+  lines.push("  - target_min_test_coverage: 80%   # a suggested target, not a measured value");
+  lines.push("  - avoid_skipped_tests_in_ci: true");
   lines.push(`  - test_frameworks: [${ctx.detection.test_frameworks.map(yamlFlowScalar).join(", ")}]`);
   lines.push("```");
   lines.push("");
@@ -725,10 +765,16 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push(`### ${mdText(fw.name)}`);
     lines.push("");
     const n = fw.name.toLowerCase();
-    if (n === "next" || n === "next.js" || n === "react") {
+    if (n === "next" || n === "next.js") {
       lines.push("- Use functional components only");
       lines.push("- Prefer server components where possible (Next.js App Router)");
       lines.push("- No inline styles — use design tokens or Tailwind");
+    } else if (n === "react") {
+      // Plain React (Vite/CRA/etc.) — NOT Next.js. Server Components / App Router
+      // are Next-only; asserting them for a bare React app is false guidance.
+      lines.push("- Use functional components with hooks only (no class components)");
+      lines.push("- Keep components small and pure; lift state deliberately");
+      lines.push("- No inline styles — use design tokens or your styling system");
     } else if (n === "express" || n === "fastify") {
       lines.push("- All routes must have error handling middleware");
       lines.push("- Validate request bodies before processing");
@@ -750,6 +796,9 @@ export function generatePolicyPack(ctx: ContextMap, files?: SourceFile[]): Gener
       lines.push("");
       for (const cf of configs.slice(0, 8)) {
         lines.push(`- \`${mdCode(cf.path)}\``);
+      }
+      if (configs.length > 8) {
+        lines.push(`- *… ${configs.length - 8} more config files*`);
       }
       lines.push("");
       lines.push(...renderExcerpts("Config Contents", configs.slice(0, 3), 15));

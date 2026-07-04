@@ -26,6 +26,21 @@ function isNoiseSource(sourceFile: string): boolean {
  * Pure + deterministic: first-seen order is preserved (the parser's file-walk
  * order, itself deterministic), and the noise→real upgrade never reorders.
  */
+/**
+ * Heuristic: is this an API / non-page endpoint (JSON/data), as opposed to a UI
+ * page route? Frontend artifacts must not treat backend endpoints as pages to
+ * build, lay out, or test. Keys on the common API path SHAPES — not a bare "/api"
+ * prefix, which misclassifies `/v1/…`, `/graphql`, `/mcp`, `/.well-known/…`, and
+ * `*.json` / `*.txt` files (a repo whose API lives under `/v1` had all 163 of its
+ * backend endpoints treated as pages). Pure + deterministic.
+ */
+export function isApiRoute(path: string): boolean {
+  return /^\/(api|v\d+|graphql|rest|rpc|trpc|internal|webhooks?)(\/|$)/i.test(path)
+    || /^\/mcp(\/|$)/i.test(path)
+    || /^\/\.well-known\//i.test(path)
+    || /\.(json|txt|xml|ya?ml|md|rss|ico|map)$/i.test(path);
+}
+
 export function displayRoutes(routes: readonly Route[]): Route[] {
   const seen = new Map<string, Route>();
   for (const r of routes) {

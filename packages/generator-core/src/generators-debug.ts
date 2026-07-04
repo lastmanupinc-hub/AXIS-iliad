@@ -983,7 +983,9 @@ export function generateRootCauseChecklist(ctx: ContextMap, files?: SourceFile[]
   }
   lines.push("- [ ] Is a new test added for this specific failure mode?");
   if (hotspots.length > 0) {
-    lines.push(`- [ ] Has the fix been reviewed for side effects on ${hotspots.length} coupled hotspot files?`);
+    // Reference the count actually LISTED above (top 10), not hotspots.length —
+    // a 20-hotspot repo previously claimed "20 files" while showing only 10.
+    lines.push(`- [ ] Has the fix been reviewed for side effects on the ${Math.min(hotspots.length, 10)} coupled hotspot files listed above?`);
   }
   if (ctx.detection.ci_platform) {
     lines.push(`- [ ] Does CI pass? (${ctx.detection.ci_platform})`);
@@ -1129,6 +1131,75 @@ function fsIsComment(trimmed: string): boolean {
   return trimmed.startsWith("//") || trimmed.startsWith("/*") || /^\*(\s|\/|$)/.test(trimmed);
 }
 
+// Blank the BODIES of comments (line + block, incl. multi-line) and string /
+// template-literal CONTENTS, preserving every newline and the delimiters so line
+// numbers + code structure survive. Kills two false-positive classes the raw
+// line-regex rules hit: (1) code INSIDE a string — e.g. a generator emitting
+// `lines.push("console.log(x)")` was flagged as an unstructured log in itself;
+// (2) commented-out code inside a multi-line block comment whose body lines don't
+// start with `*`, which the per-line `fsIsComment` skip can't see. Not a full
+// parser (a regex literal containing a double-slash can confuse it → at worst a
+// missed finding, never a false one). Applied to JS/TS + Go alike. Deterministic.
+function fsStripCommentsAndStrings(content: string): string {
+  let out = "";
+  let state: "code" | "line" | "block" | "sq" | "dq" | "tpl" = "code";
+  for (let i = 0; i < content.length; i++) {
+    const c = content[i];
+    const n = content[i + 1];
+    if (c === "\n") { out += "\n"; if (state === "line") state = "code"; continue; }
+    switch (state) {
+      case "code":
+        if (c === "/" && n === "/") { state = "line"; out += " "; }
+        else if (c === "/" && n === "*") { state = "block"; out += " "; }
+        else if (c === "'") { state = "sq"; out += c; }
+        else if (c === '"') { state = "dq"; out += c; }
+        else if (c === "`") { state = "tpl"; out += c; }
+        else out += c;
+        break;
+      case "line":
+        out += " ";
+        break;
+      case "block":
+        if (c === "*" && n === "/") { out += "  "; i++; state = "code"; }
+        else out += " ";
+        break;
+      case "sq":
+      case "dq":
+      case "tpl": {
+        const q = state === "sq" ? "'" : state === "dq" ? '"' : "`";
+        if (c === "\\") { out += " "; if (n && n !== "\n") { out += " "; i++; } }
+        else if (c === q) { out += c; state = "code"; }
+        else out += " ";
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Context for classifying a swallow — the catch line PLUS its enclosing statement
+ * / try body, so a side-effect verb a few lines up (a multi-line `await` chain, a
+ * multi-statement `try`) still classifies the swallow rather than dropping it to
+ * REVIEW. Bounded look-back: empty-catch scans to the enclosing `try {`; a
+ * fluent `.catch` scans back over the awaited expression to the prior statement.
+ */
+function fsSwallowContext(lines: string[], i: number, kind: "catch" | "dotcatch"): string {
+  const parts = [lines[i]];
+  const limit = kind === "catch" ? 8 : 4;
+  for (let j = i - 1; j >= 0 && j >= i - limit; j--) {
+    parts.push(lines[j]);
+    if (kind === "catch" && /\btry\s*\{/.test(lines[j])) break;
+    if (kind === "dotcatch" && /[;{}]\s*$/.test(lines[j])) break;
+  }
+  return parts.join(" ");
+}
+
+// Both failure-surface renderers truncate at the SAME cap so the playbook table
+// and the fix-checklist never disagree on how many findings exist (they used to
+// cap at 40 vs 60, and the checklist pointed overflow at a doc that showed fewer).
+const FS_RENDER_CAP = 50;
+
 /** Static failure-mode scan of source files (skips tests + generated dirs). Deterministic. */
 export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
   const out: FailureFinding[] = [];
@@ -1136,15 +1207,29 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
     .filter(f => /\.([jt]sx?|go)$/.test(f.path))
     .filter(f => !/\.(test|spec)\.[jt]sx?$/.test(f.path) && !/_test\.go$/.test(f.path))
     .filter(f => !/(^|\/)(dist|build|node_modules|vendor|\.next)\//.test(f.path))
-    .sort((a, b) => a.path.localeCompare(b.path));
+    // code-unit sort (not localeCompare) for host-locale-independent order
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   for (const f of src) {
-    const lines = f.content.split("\n");
+    const isGo = /\.go$/.test(f.path);
+    const rawLines = f.content.split("\n");
+    // Match against comment/string-stripped lines so code inside a string literal
+    // and commented-out code (block bodies, trailing //) aren't flagged as live.
+    const lines = fsStripCommentsAndStrings(f.content).split("\n");
     for (let i = 0; i < lines.length; i++) {
+      const raw = rawLines[i];
       const ln = lines[i];
+      // @ts-ignore / @ts-expect-error are COMMENT directives that suppress the
+      // type net — flag them from the RAW line (stripping blanks the comment) and
+      // BEFORE the comment-skip below, which would otherwise drop them entirely.
+      if (!isGo && /@ts-(?:ignore|expect-error)\b/.test(raw)) {
+        out.push({ file: f.path, line: i + 1, category: "type-hole", klass: "TYPE_HOLE",
+          note: "@ts-ignore/@ts-expect-error suppresses the type net" });
+        continue;
+      }
       // Commented-out code must never be flagged as a live failure mode.
-      if (fsIsComment(ln.trim())) continue;
+      if (fsIsComment(raw.trim())) continue;
       // ── Go source: idiomatic silent-failure patterns ──
-      if (/\.go$/.test(f.path)) {
+      if (isGo) {
         if (/\b(?:fmt\.Print(?:f|ln)?|println)\s*\(/.test(ln)) {
           out.push({ file: f.path, line: i + 1, category: "unstructured-log", klass: "OBSERVABILITY",
             note: "fmt.Print*/println — prefer structured logging (slog/zerolog)" });
@@ -1163,32 +1248,36 @@ export function analyzeFailureSurface(files: SourceFile[]): FailureFinding[] {
       // swallowed async error: .catch(() => {} | undefined | null | [] | false | "" | ({})),
       // arrow (incl. async + typed params) or function expression.
       if (FS_CATCH_SWALLOW.test(ln)) {
-        const cleanup = fsHasStem(ln, FS_CLEANUP_STEMS), side = fsHasStem(ln, FS_SIDE_EFFECT_STEMS);
+        // A SIDE-EFFECT verb dominates a cleanup verb: a swallow that both charges
+        // AND closes (`chargeAndClose().catch(()=>{})`) is a SILENT money-loss, not
+        // "best-effort cleanup". Widen context to the awaited expression above.
+        const cx = fsSwallowContext(lines, i, "dotcatch");
+        const side = fsHasStem(cx, FS_SIDE_EFFECT_STEMS), cleanup = fsHasStem(cx, FS_CLEANUP_STEMS);
         out.push({ file: f.path, line: i + 1, category: "swallowed-async-error",
-          klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
-          note: cleanup ? "best-effort cleanup" : side ? "side-effect failure is invisible" : "swallowed — confirm intent" });
+          klass: side ? "SILENT" : cleanup ? "ACCEPTABLE" : "REVIEW",
+          note: side ? "side-effect failure is invisible" : cleanup ? "best-effort cleanup" : "swallowed — confirm intent" });
         continue;
       }
       // empty catch: `} catch {}` / `catch (e: T) {}`, single-line or split across
-      // two lines. Classify from the try body (this + prev line).
+      // two lines. Classify from the enclosing try body (side-effect verb wins).
       if (FS_EMPTY_CATCH.test(ln) || (FS_CATCH_OPEN.test(ln) && FS_CLOSE_ONLY.test(fsNextCode(lines, i)))) {
-        const ctx2 = ln + " " + (lines[i - 1] ?? "");
-        const cleanup = fsHasStem(ctx2, FS_CLEANUP_STEMS), side = fsHasStem(ctx2, FS_SIDE_EFFECT_STEMS);
+        const cx = fsSwallowContext(lines, i, "catch");
+        const side = fsHasStem(cx, FS_SIDE_EFFECT_STEMS), cleanup = fsHasStem(cx, FS_CLEANUP_STEMS);
         out.push({ file: f.path, line: i + 1, category: "empty-catch",
-          klass: cleanup ? "ACCEPTABLE" : side ? "SILENT" : "REVIEW",
-          note: cleanup ? "cleanup swallow" : side ? "side-effect failure is invisible" : "empty catch — confirm intent" });
+          klass: side ? "SILENT" : cleanup ? "ACCEPTABLE" : "REVIEW",
+          note: side ? "side-effect failure is invisible" : cleanup ? "cleanup swallow" : "empty catch — confirm intent" });
         continue;
       }
       // unstructured logging (console.*) outside cli/scripts/bin
-      if (/\bconsole\.(log|error|warn|info)\s*\(/.test(ln) && !/(^|\/)(cli|scripts?|bin)\//.test(f.path)) {
+      if (/\bconsole\.(log|error|warn|info|debug|trace)\s*\(/.test(ln) && !/(^|\/)(cli|scripts?|bin)\//.test(f.path)) {
         out.push({ file: f.path, line: i + 1, category: "unstructured-log", klass: "OBSERVABILITY",
           note: "console.* — prefer a structured logger for correlation" });
         continue;
       }
-      // type-net holes
-      if (/\bas any\b/.test(ln) || /@ts-(ignore|expect-error)/.test(ln)) {
+      // type-net holes (`as any`; @ts-ignore/@ts-expect-error handled above)
+      if (/\bas any\b/.test(ln)) {
         out.push({ file: f.path, line: i + 1, category: "type-hole", klass: "TYPE_HOLE",
-          note: "suppresses the type net" });
+          note: "as any suppresses the type net" });
       }
     }
   }
@@ -1216,13 +1305,14 @@ export function renderFailureSurface(findings: FailureFinding[]): string[] {
   for (const k of FS_ORDER) { const c = tally.get(k); if (c) lines.push(`| ${k} | ${c} |`); }
   lines.push("");
   const sorted = [...findings].sort((a, b) =>
-    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) || a.file.localeCompare(b.file) || a.line - b.line);
+    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
   lines.push("| File | Line | Category | Class | Note |");
   lines.push("|------|------|----------|-------|------|");
-  for (const f of sorted.slice(0, 40)) {
+  for (const f of sorted.slice(0, FS_RENDER_CAP)) {
     lines.push(`| \`${mdCellCode(f.file)}\` | ${f.line} | ${f.category} | ${f.klass} | ${f.note} |`);
   }
-  if (sorted.length > 40) lines.push(`| … | | | | +${sorted.length - 40} more |`);
+  if (sorted.length > FS_RENDER_CAP) lines.push(`| … | | | | +${sorted.length - FS_RENDER_CAP} more |`);
   lines.push("");
   return lines;
 }
@@ -1240,11 +1330,14 @@ export function renderFailureSurfaceChecklist(findings: FailureFinding[]): strin
     return lines;
   }
   const sorted = [...findings].sort((a, b) =>
-    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) || a.file.localeCompare(b.file) || a.line - b.line);
-  for (const f of sorted.slice(0, 60)) {
+    FS_ORDER.indexOf(a.klass) - FS_ORDER.indexOf(b.klass) ||
+    (a.file < b.file ? -1 : a.file > b.file ? 1 : 0) || a.line - b.line);
+  for (const f of sorted.slice(0, FS_RENDER_CAP)) {
     lines.push(`- [ ] \`${f.klass}\` \`${mdCode(f.file)}:${f.line}\` — ${f.category}: ${f.note}`);
   }
-  if (sorted.length > 60) lines.push(`- [ ] … +${sorted.length - 60} more (see debug-playbook.md)`);
+  // Same cap as the playbook table — so the two artifacts agree on the count and
+  // this note doesn't point at a doc that shows fewer. Narrow the scan to see the rest.
+  if (sorted.length > FS_RENDER_CAP) lines.push(`- [ ] … +${sorted.length - FS_RENDER_CAP} more (fix the ${FS_RENDER_CAP} above first)`);
   lines.push("");
   return lines;
 }

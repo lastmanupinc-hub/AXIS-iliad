@@ -5,7 +5,8 @@ import { fileTree, findEntryPoints, findConfigs, renderExcerpts, excerpt, extrac
 import { hasFw, getFw } from "./fw-helpers.js";
 // Context-aware markdown sanitizers now live in md-sanitize.ts (shared with the
 // skills program, which needs the same variants for its instruction files).
-import { mdInline, mdText, mdCode, mdCellCode } from "./md-sanitize.js";
+import { mdInline, mdText, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 export function generateContextMapJSON(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
   const enriched: Record<string, unknown> = { ...ctx };
@@ -52,7 +53,9 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
   // cells, mdCode/mdCellCode inside code spans.
   lines.push(`# Architecture Summary: ${mdText(id.name)}`);
   lines.push("");
-  lines.push(`> ${mdText(id.description ?? id.type.replace(/_/g, " "))}`);
+  // mdBlock (not mdText): this line is already a blockquote, so a description that
+  // itself opens with `>` / `#` must be neutralized or it renders as a nested one.
+  lines.push(`> ${mdBlock(id.description ?? id.type.replace(/_/g, " "))}`);
   lines.push("");
 
   if (ctx.ai_context.project_summary) {
@@ -182,9 +185,14 @@ export function generateArchitectureSummary(ctx: ContextMap, files?: SourceFile[
       lines.push(`| *… ${ctx.domain_models.length - 25} more* | | | |`);
     }
     lines.push("");
-    const complex = ctx.domain_models.filter(m => m.field_count >= 8);
-    if (complex.length > 0) {
-      lines.push(`> **High-complexity models** (8+ fields): ${complex.map(m => `\`${mdCode(m.name)}\``).join(", ")} — consider splitting if they grow further.`);
+    // Dedupe by name (the same model appears once per source file) and cap the
+    // callout, mirroring the table's cap above — it used to print the FULL,
+    // duplicate-laden list on one unbounded line (e.g. `ContextMap` twice).
+    const complexNames = [...new Set(ctx.domain_models.filter(m => m.field_count >= 8).map(m => m.name))];
+    if (complexNames.length > 0) {
+      const shown = complexNames.slice(0, 12).map(n => `\`${mdCode(n)}\``).join(", ");
+      const more = complexNames.length > 12 ? `, +${complexNames.length - 12} more` : "";
+      lines.push(`> **High-complexity models** (8+ fields): ${shown}${more} — consider splitting if they grow further.`);
       lines.push("");
     }
   }
@@ -322,6 +330,11 @@ function toYAML(obj: unknown, indent: number = 0): string {
           if (typeof v === "object" && v !== null) {
             return `${prefix}  ${k}:\n${toYAML(v, indent + 2)}`;
           }
+          // Multiline string → YAML block scalar (readable), not a force-quoted
+          // one-liner with literal \n escapes.
+          if (typeof v === "string" && v.includes("\n")) {
+            return `${prefix}  ${k}:\n${toYAML(v, indent + 2)}`;
+          }
           return `${prefix}  ${k}: ${serializeValue(v)}`;
         });
         return [firstLine, ...rest].join("\n");
@@ -335,6 +348,12 @@ function toYAML(obj: unknown, indent: number = 0): string {
     if (entries.length === 0) return `${prefix}{}\n`;
     return entries.map(([k, v]) => {
       if (typeof v === "object" && v !== null) {
+        return `${prefix}${k}:\n${toYAML(v, indent + 1)}`;
+      }
+      // Multiline string → block scalar (routes to the string branch above) so a
+      // big embedded value (e.g. source_file_tree) is readable, not a ~30 KB line
+      // of "…\n…\n…" escapes.
+      if (typeof v === "string" && v.includes("\n")) {
         return `${prefix}${k}:\n${toYAML(v, indent + 1)}`;
       }
       return `${prefix}${k}: ${serializeValue(v)}`;
@@ -581,15 +600,20 @@ function normalizePath(path: string): string {
 }
 
 function isExcludedFromRunStats(path: string): boolean {
-  const normalized = normalizePath(path);
-  return normalized.includes("/node_modules/") || normalized.includes("/.git/") || normalized.includes("/.ai-output/");
+  // Exact-segment match so it works whether or not the path is leading-slashed
+  // (uploaded ZIPs are relative), and exclude the CURRENT output dir `.ai/` — not
+  // just the legacy `.ai-output/` — so a re-run doesn't count its own prior output.
+  const segments = normalizePath(path).split("/");
+  return segments.some(s => s === "node_modules" || s === ".git" || s === ".ai" || s === ".ai-output");
 }
 
 function getExtension(path: string): string {
   const normalized = normalizePath(path);
   const base = normalized.split("/").pop() ?? "";
   const dot = base.lastIndexOf(".");
-  return dot === -1 ? "[no_ext]" : base.slice(dot).toLowerCase();
+  // `dot <= 0` (not `=== -1`): a dotfile like `.gitignore` has its only dot at
+  // index 0 — that's "no extension", not an extension of ".gitignore".
+  return dot <= 0 ? "[no_ext]" : base.slice(dot).toLowerCase();
 }
 
 function hasRootConfig(rootNames: Set<string>, patterns: string[]): boolean {
@@ -627,15 +651,21 @@ function buildFintechSignals(files: SourceFile[]): {
   let complianceSignals = 0;
   let trustFabricDetected = false;
 
+  // Match on path SEGMENTS (word boundaries), not raw substrings: `path.includes`
+  // counted "score**card**" as a `card` signal, "**ach**" inside cache/attach,
+  // "**wire**" inside hardwire, "**risk**" inside asterisk — inflating the fintech/
+  // compliance signal on any repo. Split on path + word separators into tokens.
+  const tokenize = (p: string) => new Set(p.split(/[/.\-_\s]+/).filter(Boolean));
   for (const file of files) {
     const path = normalizePath(file.path).toLowerCase();
-    if (path.includes("trust-fabric")) {
+    const tokens = tokenize(path);
+    if (path.includes("trust-fabric") || (tokens.has("trust") && tokens.has("fabric"))) {
       trustFabricDetected = true;
     }
-    if (path.includes("compliance") || path.includes("audit") || path.includes("policy") || path.includes("risk")) {
+    if (["compliance", "audit", "policy", "risk"].some((k) => tokens.has(k))) {
       complianceSignals += 1;
     }
-    if (fintechKeywords.some((keyword) => path.includes(keyword))) {
+    if (fintechKeywords.some((keyword) => (keyword.includes("-") ? path.includes(keyword) : tokens.has(keyword)))) {
       fintechSignals += 1;
     }
   }
@@ -721,16 +751,28 @@ export function generateRepoRunStats(
     prettier: hasRootConfig(rootFileNames, ["prettier.config.*", ".prettierrc*"]),
   };
 
+  // Real MCP server-surface artifacts only — NOT any path containing "mcp"
+  // (which swept in mcp-server.test.ts and the docs/templates under mcp/, so a
+  // repo with no callable MCP surface reported 25 "surface files").
   const mcpSurfaceCount = fileList.filter((f) => {
     const p = normalizePath(f.path).toLowerCase();
-    return p.includes("mcp") || p.endsWith("mcp-config.json") || p.endsWith("server-manifest.yaml");
+    if (/\.(test|spec)\.[jt]sx?$/.test(p) || /(^|\/)readme/.test(p) || p.endsWith(".md")) return false;
+    return p.endsWith("mcp-config.json")
+      || p.endsWith("server-manifest.yaml")
+      || p.endsWith("mcp.json")
+      || /(^|\/)mcp-server\.[jt]sx?$/.test(p)
+      || /(^|\/)\.well-known\//.test(p);
   }).length;
 
   const fintechSignals = buildFintechSignals(fileList);
+  // Deduped, noise-stripped route count — the raw ctx.routes is per-mention (test
+  // files + README examples inflate it), so both the score and the published
+  // signal must use the same honest number the rest of the product shows.
+  const routeCount = displayRoutes(ctx.routes).length;
 
   let readinessScore = 0;
-  readinessScore += ctx.routes.length > 0 ? 10 : 0;
-  readinessScore += ctx.routes.length >= 10 ? 10 : 0;
+  readinessScore += routeCount > 0 ? 10 : 0;
+  readinessScore += routeCount >= 10 ? 10 : 0;
   readinessScore += (ctx.sql_schema?.length ?? 0) > 0 ? 20 : 0;
   readinessScore += ctx.domain_models.length > 0 ? 15 : 0;
   readinessScore += ctx.detection.test_frameworks.length > 0 ? 10 : 0;
@@ -738,12 +780,6 @@ export function generateRepoRunStats(
   readinessScore += mcpSurfaceCount > 0 ? 10 : 0;
   readinessScore += fintechSignals.fintech_signal_count > 0 ? 10 : 0;
   readinessScore += fintechSignals.compliance_surface_count > 0 ? 5 : 0;
-
-  const readinessStatus = readinessScore >= 80
-    ? "ready_for_agent_build"
-    : readinessScore >= 60
-      ? "close_with_gaps"
-      : "foundational_work_required";
 
   const nextSteps: string[] = [];
   if ((ctx.sql_schema?.length ?? 0) === 0) {
@@ -762,6 +798,21 @@ export function generateRepoRunStats(
     nextSteps.push("Add compliance policy artifacts (KYC/AML, audit trail, and regulatory evidence packaging).");
   }
 
+  // "ready_for_agent_build" is a FINTECH-MCP verdict — only assert it with actual
+  // fintech/compliance evidence AND no outstanding gaps. Otherwise a mature but
+  // non-fintech repo (sql_table_count: 0, gaps listed) contradicted itself by
+  // reporting "ready" alongside its own next_steps. Score alone ≠ ready.
+  const hasFintechEvidence =
+    fintechSignals.fintech_signal_count > 0 ||
+    fintechSignals.trust_fabric_detected ||
+    fintechSignals.compliance_surface_count > 0;
+  const readinessStatus =
+    readinessScore >= 80 && nextSteps.length === 0 && hasFintechEvidence
+      ? "ready_for_agent_build"
+      : readinessScore >= 60
+        ? "close_with_gaps"
+        : "foundational_work_required";
+
   const report = {
     schema_version: "1.0",
     generated_at: ctx.generated_at,
@@ -779,6 +830,9 @@ export function generateRepoRunStats(
       context_total_loc: ctx.structure.total_loc,
       top_level_directories: [...topLevelDirs].sort(),
       top_extensions: topExtensions,
+      // Disclose the truncation so a >15-extension polyglot repo doesn't read as
+      // if top_extensions is the complete set.
+      top_extensions_total: extensionCounts.size,
       package: packageInfo,
       root_config_exists: rootConfigExists,
     },
@@ -786,8 +840,9 @@ export function generateRepoRunStats(
       score_100: readinessScore,
       status: readinessStatus,
       trust_fabric_detected: fintechSignals.trust_fabric_detected,
+      fintech_evidence: hasFintechEvidence,
       signals: {
-        route_count: ctx.routes.length,
+        route_count: routeCount,
         domain_model_count: ctx.domain_models.length,
         sql_table_count: ctx.sql_schema?.length ?? 0,
         test_framework_count: ctx.detection.test_frameworks.length,
