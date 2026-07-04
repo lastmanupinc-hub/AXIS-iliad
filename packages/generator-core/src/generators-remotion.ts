@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { mdText, mdInline, mdCode, mdCellCode, jsxText, codeComment } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
 
 // ─── Theme derivation ────────────────────────────────────────────
@@ -110,7 +111,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`function ArchitectureScene() {`);
   lines.push(`  const frame = useCurrentFrame();`);
   lines.push(`  const patterns = ${JSON.stringify(ctx.architecture_signals.patterns_detected.slice(0, 4))};`);
-  lines.push(`  const score = ${ctx.architecture_signals.separation_score};`);
+  lines.push(`  const score = ${Math.round(ctx.architecture_signals.separation_score * 100)};`);
   lines.push(`  return (`);
   lines.push(`    <AbsoluteFill style={{ backgroundColor: THEME.bg, padding: 60 }}>`);
   lines.push(`      <h2 style={{ color: THEME.accent, fontSize: 48 }}>Architecture</h2>`);
@@ -250,7 +251,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("");
   lines.push("- **Content**: Architecture patterns and separation score");
   lines.push(`- **Patterns**: ${mdText(patterns.join(", ") || "None detected")}`);
-  lines.push(`- **Separation Score**: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`- **Separation Score**: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("- **Animation**: List items reveal sequentially");
   lines.push("- **Visual**: Bullet list with score indicator");
   lines.push("");
@@ -281,7 +282,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("");
   lines.push(`> This is ${mdText(id.name)}, a ${mdText(id.type)} built with ${mdText(id.primary_language)}.`);
   lines.push(`> The tech stack includes ${mdText(frameworks.slice(0, 3).join(", ") || id.primary_language)}.`);
-  lines.push(`> The architecture scores ${ctx.architecture_signals.separation_score} out of 100 for separation.`);
+  lines.push(`> The architecture scores ${Math.round(ctx.architecture_signals.separation_score * 100)} out of 100 for separation.`);
   lines.push(`> Key abstractions include ${mdText(abstractions.slice(0, 3).join(", ") || "the core modules")}.`);
   lines.push("");
 
@@ -321,7 +322,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const compName = id.name.replace(/[^a-zA-Z0-9]/g, "");
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const hotspots = ctx.dependency_graph.hotspots;
   const abstractions = ctx.ai_context.key_abstractions;
