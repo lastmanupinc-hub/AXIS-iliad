@@ -1,6 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { mdText, mdInline } from "./md-sanitize.js";
+import { PROGRAM_ORDER, PROGRAM_OUTPUT_COUNTS, bundleOutputs } from "./program-manifest.js";
 
 /**
  * Canonical counts — must equal `listAvailableGenerators().length` and the
@@ -599,7 +600,7 @@ POST /mcp
 
 Returns all ${PROGRAM_COUNT} programs with tier (free/pro) and generator counts.
 Free programs: search, skills, debug.
-Pro programs: all others (frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer).
+Pro programs: all others (${PROGRAM_ORDER.filter(p => !["search", "skills", "debug"].includes(p)).join(", ")}).
 
 ### Step 2 — Obtain an API Key (if not already held)
 \`\`\`
@@ -763,28 +764,30 @@ export function generateProductSchema(
         represent_vs_refund: "Business decision — follow your operator's dispute policy. AXIS does not publish win-rate estimates.",
       },
     },
+    // outputs derive from the generator registry (program-manifest) so this
+    // catalog can never drift from what the API actually emits.
     programs: [
-      { slug: "search",            tier: "free", outputs: 6,  description: "Context map, repo profile, architecture summary, dependency hotspots, symbol index, and repo run stats" },
-      { slug: "skills",            tier: "free", outputs: 5,  description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack" },
-      { slug: "debug",             tier: "free", outputs: 4,  description: "Debug playbook, incident template, tracing rules, root cause checklist" },
-      { slug: "frontend",          tier: "pro",  outputs: 4,  description: "Frontend rules, component guidelines, layout patterns, UI audit" },
-      { slug: "seo",               tier: "pro",  outputs: 5,  description: "SEO rules, schema recommendations, route priority map, content audit, meta tag audit" },
-      { slug: "optimization",      tier: "pro",  outputs: 4,  description: "Optimization rules, prompt diff report, cost estimate, token budget plan" },
-      { slug: "theme",             tier: "pro",  outputs: 5,  description: "Design tokens, theme CSS, theme guidelines, component theme map, dark mode tokens" },
-      { slug: "brand",             tier: "pro",  outputs: 5,  description: "Brand guidelines, voice and tone, content constraints, messaging system, channel rulebook" },
-      { slug: "superpowers",       tier: "pro",  outputs: 5,  description: "Superpower pack, workflow registry, test generation rules, refactor checklist, automation pipeline" },
-      { slug: "marketing",         tier: "pro",  outputs: 5,  description: "Campaign brief, funnel map, sequence pack, CRO playbook, A/B test plan" },
-      { slug: "notebook",          tier: "pro",  outputs: 5,  description: "Notebook summary, source map, study brief, research threads, citation index" },
-      { slug: "obsidian",          tier: "pro",  outputs: 5,  description: "Obsidian skill pack, vault rules, graph prompt map, linking policy, template pack" },
-      { slug: "mcp",               tier: "pro",  outputs: 19, description: "MCP config, registry metadata, protocol/types, implementation guides, connector/capability manifests, fintech surface package, and fintech domain schema" },
-      { slug: "artifacts",         tier: "pro",  outputs: 11, description: "Generated component, dashboard widget, embed snippet, artifact spec, component library, PRD, design doc, tasks breakdown, session context, root index.html, capability map" },
-      { slug: "remotion",          tier: "pro",  outputs: 5,  description: "Remotion script, scene plan, render config, asset checklist, storyboard" },
-      { slug: "canvas",            tier: "pro",  outputs: 5,  description: "Canvas spec, social pack, poster layouts, asset guidelines, brand board" },
-      { slug: "algorithmic",       tier: "pro",  outputs: 5,  description: "Generative sketch, parameter pack, collection map, export manifest, variation matrix" },
-      { slug: "agentic-purchasing",tier: "pro",  outputs: 5,  description: "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry" },
-      { slug: "closer",            tier: "pro",  outputs: 16, description: "Packaging README/LICENSE, Dockerfile, docker-compose, GitHub Actions workflows (CI + release), platform manifests (npm/unreal/vscode/dockerhub/github-marketplace), trust-fabric attestation + merkle proof, packaging report, DISTRIBUTABLE.md, and Makefile" },
-      { slug: "deploy",            tier: "pro",  outputs: 13, description: "Zero-pipeline-minutes deploy kit covering Render (runtime: image) and Cloudflare (Pages + Containers): stack-aware Dockerfile + .dockerignore, dev compose, render.yaml, GHCR push scripts (bash + ps1), wrangler.pages.toml, wrangler.containers.toml, Cloudflare Worker entry, deploy-cloudflare scripts (bash + ps1), VSCode debug-attach template, and qualification report" },
-    ],
+      { slug: "search",            tier: "free", description: "Context map, repo profile, architecture summary, dependency hotspots, symbol index, and repo run stats" },
+      { slug: "skills",            tier: "free", description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow pack, policy pack" },
+      { slug: "debug",             tier: "free", description: "Debug playbook, incident template, tracing rules, root cause checklist" },
+      { slug: "frontend",          tier: "pro",  description: "Frontend rules, component guidelines, layout patterns, UI audit" },
+      { slug: "seo",               tier: "pro",  description: "SEO rules, schema recommendations, route priority map, content audit, meta tag audit" },
+      { slug: "optimization",      tier: "pro",  description: "Optimization rules, prompt diff report, cost estimate, token budget plan" },
+      { slug: "theme",             tier: "pro",  description: "Design tokens, theme CSS, theme guidelines, component theme map, dark mode tokens" },
+      { slug: "brand",             tier: "pro",  description: "Brand guidelines, voice and tone, content constraints, messaging system, channel rulebook" },
+      { slug: "superpowers",       tier: "pro",  description: "Superpower pack, workflow registry, test generation rules, refactor checklist, automation pipeline, and the verify gate (verify.sh, verify-full.sh, pre-push hook)" },
+      { slug: "marketing",         tier: "pro",  description: "Campaign brief, funnel map, sequence pack, CRO playbook, A/B test plan" },
+      { slug: "notebook",          tier: "pro",  description: "Notebook summary, source map, study brief, research threads, citation index" },
+      { slug: "obsidian",          tier: "pro",  description: "Obsidian skill pack, vault rules, graph prompt map, linking policy, template pack" },
+      { slug: "mcp",               tier: "pro",  description: "MCP config, registry metadata, protocol/types, implementation guides, connector/capability manifests, fintech surface package, and fintech domain schema" },
+      { slug: "artifacts",         tier: "pro",  description: "Generated component, dashboard widget, embed snippet, artifact spec, component library, PRD, design doc, tasks breakdown, session context, root index.html, capability map" },
+      { slug: "remotion",          tier: "pro",  description: "Remotion script, scene plan, render config, asset checklist, storyboard" },
+      { slug: "canvas",            tier: "pro",  description: "Canvas spec, social pack, poster layouts, asset guidelines, brand board" },
+      { slug: "algorithmic",       tier: "pro",  description: "Generative sketch, parameter pack, collection map, export manifest, variation matrix" },
+      { slug: "agentic-purchasing",tier: "pro",  description: "Purchasing playbook, product schema, checkout flow, negotiation rules, commerce registry" },
+      { slug: "closer",            tier: "pro",  description: "Packaging README/LICENSE, Dockerfile, docker-compose, GitHub Actions workflows (CI + release), platform manifests (npm/unreal/vscode/dockerhub/github-marketplace), trust-fabric attestation + merkle proof, packaging report, DISTRIBUTABLE.md, and Makefile" },
+      { slug: "deploy",            tier: "pro",  description: "Zero-pipeline-minutes deploy kit covering Render (runtime: image) and Cloudflare (Pages + Containers): stack-aware Dockerfile + .dockerignore, dev compose, render.yaml, GHCR push scripts (bash + ps1), wrangler.pages.toml, wrangler.containers.toml, Cloudflare Worker entry, deploy-cloudflare scripts (bash + ps1), VSCode debug-attach template, and qualification report" },
+    ].map(p => ({ slug: p.slug, tier: p.tier, outputs: PROGRAM_OUTPUT_COUNTS[p.slug] ?? 0, description: p.description })),
     purchase_endpoint: "POST /v1/billing/purchase",
     auth: { type: "bearer", header: "Authorization", format: "Bearer <api_key>" },
     agent_quotas: {
@@ -1240,52 +1243,53 @@ export function generateCommerceRegistry(
         })(),
       },
     },
+    // Each bundle's `outputs` is derived from its `programs` via the shared
+    // registry (bundleOutputs), and pro-all enumerates PROGRAM_ORDER — so the
+    // catalog can never claim a program count or output total the API can't back.
     catalog: [
       {
         id: "free-bundle",
         name: "Free Analysis Bundle",
         programs: ["search", "skills", "debug"],
-        outputs: 14,
         tier: "free",
         price_cents: 0,
-        price_interval: "per_call",
-        description: "Context map, AGENTS.md, debug playbook, and 11 more artifacts — no purchase required",
-        api_call: { method: "tools/call", tool: "analyze_repo", requires_auth: true },
+        description: `Context map, AGENTS.md, debug playbook, and ${bundleOutputs(["search", "skills", "debug"]) - 3} more artifacts — no purchase required`,
       },
       {
         id: "pro-all",
         name: `Pro Complete (All ${PROGRAM_COUNT} Programs)`,
-        programs: ["search","skills","debug","frontend","seo","optimization","theme","brand","superpowers","marketing","notebook","obsidian","mcp","artifacts","remotion","canvas","algorithmic","agentic-purchasing"],
-        outputs: ARTIFACT_COUNT,
+        programs: [...PROGRAM_ORDER],
         tier: "pro",
         price_cents: 5000,
-        price_interval: "per_call",
         description: `All ${ARTIFACT_COUNT} structured artifacts across ${PROGRAM_COUNT} programs — full AI-native governance layer`,
-        api_call: { method: "tools/call", tool: "analyze_repo", requires_auth: true },
       },
       {
         id: "dev-essentials",
         name: "Developer Essentials",
         programs: ["search", "skills", "debug", "frontend", "optimization", "superpowers"],
-        outputs: 27,
         tier: "pro",
         price_cents: 2500,
-        price_interval: "per_call",
         description: "Core development artifacts: context, AI rules, debug, frontend, optimization, and superpowers",
-        api_call: { method: "tools/call", tool: "analyze_repo", requires_auth: true },
       },
       {
         id: "brand-marketing",
         name: "Brand & Marketing Suite",
         programs: ["brand", "marketing", "seo", "canvas"],
-        outputs: 19,
         tier: "pro",
         price_cents: 2000,
-        price_interval: "per_call",
         description: "Brand guidelines, marketing playbooks, SEO rules, and visual design artifacts",
-        api_call: { method: "tools/call", tool: "analyze_repo", requires_auth: true },
       },
-    ],
+    ].map(b => ({
+      id: b.id,
+      name: b.name,
+      programs: b.programs,
+      outputs: bundleOutputs(b.programs),
+      tier: b.tier,
+      price_cents: b.price_cents,
+      price_interval: "per_call",
+      description: b.description,
+      api_call: { method: "tools/call", tool: "analyze_repo", requires_auth: true },
+    })),
     agent_endpoints: [
       { path: "/mcp",                          method: "POST", description: "MCP Streamable HTTP — primary agent interface (JSON-RPC 2.0)" },
       { path: "/mcp",                          method: "GET",  description: "MCP SSE — server-initiated messages" },
