@@ -2,17 +2,18 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findEntryPoints, findConfigs, extractExports } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock, wikiLink, yamlFlowScalar } from "./md-sanitize.js";
 
 /**
  * Canonical vault note BASENAME for a source-code file — ONE derivation shared by
- * every generator so the same file has a single note identity across all outputs
- * (the linking-policy hotspot links and the graph's code nodes previously disagreed
- * on the folder AND on whether the extension was kept). Strips the extension and
- * flattens path separators to dashes.
+ * every generator so the same file has a single note identity across all outputs.
+ * KEEPS the extension (flattened to a dash) so `main.ts` and `main.tsx` are
+ * DISTINCT notes (stripping it collapsed them to one node — data loss), and
+ * flattens path separators + wikilink-special chars so the basename is a valid,
+ * collision-free `[[link]]` target.
  */
 export function codeFileNote(path: string): string {
-  return path.replace(/\.[^./\\]+$/, "").replace(/[/\\]+/g, "-");
+  return wikiLink(path.replace(/[/\\.]+/g, "-"));
 }
 
 // ─── obsidian-skill-pack.md ─────────────────────────────────────
@@ -31,7 +32,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -92,7 +93,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push("[What becomes easier or harder as a result?]");
   lines.push("");
   lines.push("## References");
-  lines.push(`- Project: [[${mdCode(id.name)}]]`);
+  lines.push(`- Project: [[${wikiLink(id.name)}]]`);
   lines.push("- Related ADRs:");
   lines.push("```");
   lines.push("");
@@ -160,7 +161,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push(`vault/`);
   lines.push(`├── Projects/`);
   lines.push(`│   └── ${mdCode(id.name)}/`);
-  lines.push(`│       ├── ${mdCode(id.name)}.md    ← project hub (the [[${mdCode(id.name)}]] note)`);
+  lines.push(`│       ├── ${wikiLink(id.name)}.md    ← project hub (the [[${wikiLink(id.name)}]] note)`);
   lines.push(`│       ├── Architecture.md`);
   lines.push(`│       ├── Code/             ← one note per hotspot/entry-point file`);
   lines.push(`│       ├── ADRs/`);
@@ -188,6 +189,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
       for (const c of configs.slice(0, 6)) {
         lines.push(`- \`${mdCode(c.path)}\``);
       }
+      if (configs.length > 6) lines.push(`- … and ${configs.length - 6} more`);
       lines.push("");
     }
   }
@@ -215,7 +217,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -285,7 +287,7 @@ export function generateVaultRules(ctx: ContextMap, files?: SourceFile[]): Gener
   // Linking Rules
   lines.push("## Linking Rules");
   lines.push("");
-  lines.push("1. **Always link to the project note** — Every project-related note must include `[[" + mdCode(id.name) + "]]`");
+  lines.push("1. **Always link to the project note** — Every project-related note must include `[[" + wikiLink(id.name) + "]]`");
   lines.push("2. **Link decisions to context** — ADRs must link to the notes that prompted them");
   lines.push("3. **Link bugs to code areas** — Bug notes should reference the affected module or file");
   lines.push("4. **Cross-link related notes** — If two notes discuss the same topic, link them");
@@ -361,12 +363,18 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   const modelNoteNames = (() => {
     const seen = new Map<string, number>();
     return ctx.domain_models.map(m => {
-      const n = (seen.get(m.name) ?? 0) + 1;
-      seen.set(m.name, n);
+      // Key on lowercase so `Foo` and `foo` also collide (a case-insensitive vault
+      // filesystem would overwrite one otherwise) and both get a -N suffix.
+      const key = m.name.toLowerCase();
+      const n = (seen.get(key) ?? 0) + 1;
+      seen.set(key, n);
       return n === 1 ? m.name : `${m.name}-${n}`;
     });
   })();
 
+  // Path-safe project folder — id.name is untrusted; a `/` in it would otherwise
+  // create bogus subfolders in every note_path below.
+  const projFolder = wikiLink(id.name);
   const nodes: Array<{ id: string; type: string; label: string; note_path: string }> = [];
   const edges: Array<{ from: string; to: string; relationship: string }> = [];
 
@@ -375,7 +383,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     id: "project",
     type: "project",
     label: id.name,
-    note_path: `Projects/${id.name}/${id.name}.md`,
+    note_path: `Projects/${projFolder}/${projFolder}.md`,
   });
 
   // Architecture node
@@ -383,7 +391,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     id: "architecture",
     type: "concept",
     label: "Architecture",
-    note_path: `Projects/${id.name}/Architecture.md`,
+    note_path: `Projects/${projFolder}/Architecture.md`,
   });
   edges.push({ from: "project", to: "architecture", relationship: "has_architecture" });
 
@@ -394,7 +402,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: fwId,
       type: "technology",
       label: frameworks[i],
-      note_path: `References/${frameworks[i]}.md`,
+      note_path: `References/${wikiLink(frameworks[i])}.md`,
     });
     edges.push({ from: "project", to: fwId, relationship: "uses_technology" });
   }
@@ -406,7 +414,9 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: aId,
       type: "concept",
       label: abstractions[i],
-      note_path: `Projects/${id.name}/Concepts/${abstractions[i].replace(/\s+/g, "-")}.md`,
+      // wikiLink (not just whitespace→dash): key_abstractions are `dir/ (purpose)`,
+      // so they contain `/` and `()` that would spawn bogus subfolders + break the note.
+      note_path: `Projects/${projFolder}/Concepts/${wikiLink(abstractions[i])}.md`,
     });
     edges.push({ from: "architecture", to: aId, relationship: "contains_concept" });
   }
@@ -418,9 +428,24 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: epId,
       type: "entry_point",
       label: ctx.entry_points[i].path,
-      note_path: `Projects/${id.name}/Code/${codeFileNote(ctx.entry_points[i].path)}.md`,
+      note_path: `Projects/${projFolder}/Code/${codeFileNote(ctx.entry_points[i].path)}.md`,
     });
     edges.push({ from: "architecture", to: epId, relationship: "has_entry_point" });
+  }
+
+  // Code nodes for dependency hotspots too — linking-policy.md links these
+  // (`[[Projects/<proj>/Code/…]]`), so the graph must declare them or those links
+  // are dead. Same first-8 selection as linking-policy; dedup against entry points.
+  const codeNoteSeen = new Set<string>();
+  for (let i = 0; i < nEntries; i++) codeNoteSeen.add(codeFileNote(ctx.entry_points[i].path));
+  const hotspotNodes = ctx.dependency_graph.hotspots.slice(0, 8);
+  for (let i = 0; i < hotspotNodes.length; i++) {
+    const note = codeFileNote(hotspotNodes[i].path);
+    if (codeNoteSeen.has(note)) continue;
+    codeNoteSeen.add(note);
+    const hId = `hotspot_${i}`;
+    nodes.push({ id: hId, type: "code", label: hotspotNodes[i].path, note_path: `Projects/${projFolder}/Code/${note}.md` });
+    edges.push({ from: "architecture", to: hId, relationship: "high_coupling" });
   }
 
   // Domain model nodes
@@ -431,7 +456,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: dmId,
       type: "domain_model",
       label: dm.name,
-      note_path: `Projects/${id.name}/Models/${modelNoteNames[i]}.md`,
+      note_path: `Projects/${projFolder}/Models/${wikiLink(modelNoteNames[i])}.md`,
     });
     edges.push({ from: "architecture", to: dmId, relationship: "has_model" });
     // Link model to its source entry point if one exists
@@ -449,7 +474,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: tblId,
       type: "database_table",
       label: tbl.name,
-      note_path: `Projects/${id.name}/Database/${tbl.name}.md`,
+      note_path: `Projects/${projFolder}/Database/${wikiLink(tbl.name)}.md`,
     });
     edges.push({ from: "architecture", to: tblId, relationship: "has_table" });
     // Cross-link table to matching domain model by name similarity
@@ -525,7 +550,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -557,7 +582,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push("These links are required to maintain graph integrity:");
   lines.push("");
-  lines.push(`1. Every code note → \`[[${mdCode(id.name)}]]\` (project hub)`);
+  lines.push(`1. Every code note → \`[[${wikiLink(id.name)}]]\` (project hub)`);
   lines.push("2. Every ADR → the triggering note or issue");
   lines.push("3. Every daily note → notes created or modified that day");
   lines.push("4. Every bug report → the affected module or file note");
@@ -571,7 +596,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push(`| Hub | Purpose | Minimum Links |`);
   lines.push(`|-----|---------|--------------|`);
-  lines.push(`| \`[[${mdCellCode(id.name)}]]\` | Project overview | 10+ |`);
+  lines.push(`| \`[[${wikiLink(id.name)}]]\` | Project overview | 10+ |`);
   lines.push(`| \`[[Architecture]]\` | System design | 5+ |`);
   lines.push(`| \`[[ADR Index]]\` | Decision log | All ADRs |`);
   lines.push(`| \`[[Tech Stack]]\` | Technology choices | All framework notes |`);
@@ -586,10 +611,16 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
   if (hotspots.length > 0) {
     lines.push("| Code File | Risk | Vault Note |");
     lines.push("|-----------|------|-----------|");
+    // Link to the SAME folder the graph declares code notes in
+    // (Projects/<proj>/Code/…), not a vault-root Code/ — the two artifacts pointed
+    // at different folders. The graph now also emits a code node per hotspot, so
+    // these links resolve.
+    const projFolder = wikiLink(id.name);
     for (const h of hotspots.slice(0, 8)) {
       const noteName = codeFileNote(h.path);
-      lines.push(`| \`${mdCellCode(h.path)}\` | ${h.risk_score.toFixed(1)} | \`[[Code/${mdCellCode(noteName)}]]\` |`);
+      lines.push(`| \`${mdCellCode(h.path)}\` | ${h.risk_score.toFixed(1)} | \`[[Projects/${projFolder}/Code/${noteName}]]\` |`);
     }
+    if (hotspots.length > 8) lines.push(`| … | | +${hotspots.length - 8} more |`);
     lines.push("");
   }
 
@@ -659,7 +690,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -682,7 +713,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: decision");
-  lines.push(`project: ${mdCode(id.name)}`);
+  lines.push(`project: ${yamlFlowScalar(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("status: proposed | accepted | deprecated");
   lines.push("---");
@@ -712,7 +743,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: meeting");
-  lines.push(`project: ${mdCode(id.name)}`);
+  lines.push(`project: ${yamlFlowScalar(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("attendees: ");
   lines.push("---");
@@ -737,7 +768,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: investigation");
-  lines.push(`project: ${mdCode(id.name)}`);
+  lines.push(`project: ${yamlFlowScalar(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("severity: low | medium | high | critical");
   lines.push("status: investigating | root-caused | resolved");
@@ -767,8 +798,14 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: concept");
-  lines.push(`project: ${mdCode(id.name)}`);
-  lines.push(`tags: [${abstractions.slice(0, 3).map(a => JSON.stringify(a.toLowerCase().replace(/`/g, "'"))).join(", ")}]`);
+  lines.push(`project: ${yamlFlowScalar(id.name)}`);
+  // Slugify abstractions to VALID Obsidian tags — they're directory descriptors
+  // like "apps/ (monorepo_apps)"; spaces/parens/slashes aren't allowed in a tag
+  // (`/` means nesting), so the raw value produced unusable tags. Drop empties.
+  const abstractionTags = abstractions.slice(0, 3)
+    .map(a => a.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""))
+    .filter(Boolean);
+  lines.push(`tags: [${abstractionTags.map(t => JSON.stringify(t)).join(", ")}]`);
   lines.push("---");
   lines.push("# {{title}}");
   lines.push("");
@@ -791,7 +828,7 @@ export function generateTemplatePack(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("```markdown");
   lines.push("---");
   lines.push("type: retrospective");
-  lines.push(`project: ${mdCode(id.name)}`);
+  lines.push(`project: ${yamlFlowScalar(id.name)}`);
   lines.push("date: {{date}}");
   lines.push("sprint: ");
   lines.push("---");

@@ -18,10 +18,11 @@ function ctxWith(over: Partial<ContextMap> = {}): ContextMap {
 type Graph = { nodes: Array<{ id: string; type: string; label: string; note_path: string }> };
 
 describe("codeFileNote — one canonical note identity", () => {
-  it("strips the extension and flattens separators to dashes", () => {
-    expect(codeFileNote("apps/api/src/server.ts")).toBe("apps-api-src-server");
-    expect(codeFileNote("src/index.tsx")).toBe("src-index");
-    expect(codeFileNote("a/b/c.d.ts")).toBe("a-b-c.d"); // only the last extension is stripped
+  it("KEEPS the extension (flattened) so main.ts and main.tsx are distinct notes", () => {
+    // (was: stripped the extension, which collapsed main.ts/main.tsx to one note — data loss)
+    expect(codeFileNote("apps/api/src/server.ts")).toBe("apps-api-src-server-ts");
+    expect(codeFileNote("src/index.tsx")).toBe("src-index-tsx");
+    expect(codeFileNote("src/main.ts")).not.toBe(codeFileNote("src/main.tsx"));
   });
 });
 
@@ -35,8 +36,9 @@ describe("a file's note identity is consistent across generators (review #3)", (
     const graph = JSON.parse(generateGraphPromptMap(ctx).content) as Graph;
     const ep = graph.nodes.find((n) => n.type === "entry_point")!;
     expect(ep.note_path).toBe(`Projects/app/Code/${codeFileNote(path)}.md`);
-    // linking-policy links the same file to the same Code/<note>
-    expect(generateLinkingPolicy(ctx).content).toContain(`[[Code/${codeFileNote(path)}]]`);
+    // linking-policy links the same file to the same folder as the graph node
+    // (Projects/<proj>/Code/…, not a vault-root Code/)
+    expect(generateLinkingPolicy(ctx).content).toContain(`[[Projects/app/Code/${codeFileNote(path)}]]`);
   });
 });
 

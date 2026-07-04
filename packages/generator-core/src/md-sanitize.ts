@@ -57,6 +57,23 @@ export function mdBlock(s: string): string {
 }
 
 /**
+ * Sanitize a value for use INSIDE an Obsidian `[[wikilink]]` (or as the note
+ * basename a link must match). Obsidian treats `[ ] | # ^` as structural inside a
+ * wikilink: `]` closes the link early, `|` starts a display-alias, `#` a heading
+ * ref, `^` a block ref. An untrusted model/project name or a Next.js path segment
+ * like `[slug]` would otherwise produce a dead/garbled link. Collapse every such
+ * char (and path separators, whitespace) to a single dash so the link target and
+ * the generated note filename derive from the same safe string. Null-safe.
+ */
+export function wikiLink(s: string): string {
+  return String(s ?? "")
+    .replace(/[[\]|#^()<>{}\\/]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
  * Quote a value for a `key = "value"` config format (.cursorrules). Returns the
  * FULLY-QUOTED, escaped string (double-quoted with \" and \\ and collapsed
  * newlines) so a hostile value cannot break out of the string and inject a new
