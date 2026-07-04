@@ -4,6 +4,17 @@ import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findEntryPoints, findConfigs, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
+/**
+ * Canonical vault note BASENAME for a source-code file — ONE derivation shared by
+ * every generator so the same file has a single note identity across all outputs
+ * (the linking-policy hotspot links and the graph's code nodes previously disagreed
+ * on the folder AND on whether the extension was kept). Strips the extension and
+ * flattens path separators to dashes.
+ */
+export function codeFileNote(path: string): string {
+  return path.replace(/\.[^./\\]+$/, "").replace(/[/\\]+/g, "-");
+}
+
 // ─── obsidian-skill-pack.md ─────────────────────────────────────
 
 export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -151,6 +162,7 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push(`│   └── ${mdCode(id.name)}/`);
   lines.push(`│       ├── ${mdCode(id.name)}.md    ← project hub (the [[${mdCode(id.name)}]] note)`);
   lines.push(`│       ├── Architecture.md`);
+  lines.push(`│       ├── Code/             ← one note per hotspot/entry-point file`);
   lines.push(`│       ├── ADRs/`);
   lines.push(`│       ├── Meeting Notes/`);
   lines.push(`│       └── Retrospectives/`);
@@ -344,6 +356,16 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   const MAX_NODES = { abstractions: 30, entry_points: 40, domain_models: 60, sql_schema: 40 };
   const nEntries = Math.min(ctx.entry_points.length, MAX_NODES.entry_points);
   const nModels = Math.min(ctx.domain_models.length, MAX_NODES.domain_models);
+  // Disambiguate note paths for same-named models (two `NotConfiguredResult`
+  // interfaces would otherwise collide onto one vault note).
+  const modelNoteNames = (() => {
+    const seen = new Map<string, number>();
+    return ctx.domain_models.map(m => {
+      const n = (seen.get(m.name) ?? 0) + 1;
+      seen.set(m.name, n);
+      return n === 1 ? m.name : `${m.name}-${n}`;
+    });
+  })();
 
   const nodes: Array<{ id: string; type: string; label: string; note_path: string }> = [];
   const edges: Array<{ from: string; to: string; relationship: string }> = [];
@@ -396,7 +418,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: epId,
       type: "entry_point",
       label: ctx.entry_points[i].path,
-      note_path: `Projects/${id.name}/EntryPoints/${ctx.entry_points[i].path.replace(/\//g, "-")}.md`,
+      note_path: `Projects/${id.name}/Code/${codeFileNote(ctx.entry_points[i].path)}.md`,
     });
     edges.push({ from: "architecture", to: epId, relationship: "has_entry_point" });
   }
@@ -409,7 +431,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       id: dmId,
       type: "domain_model",
       label: dm.name,
-      note_path: `Projects/${id.name}/Models/${dm.name}.md`,
+      note_path: `Projects/${id.name}/Models/${modelNoteNames[i]}.md`,
     });
     edges.push({ from: "architecture", to: dmId, relationship: "has_model" });
     // Link model to its source entry point if one exists
@@ -565,7 +587,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Code File | Risk | Vault Note |");
     lines.push("|-----------|------|-----------|");
     for (const h of hotspots.slice(0, 8)) {
-      const noteName = h.path.replace(/\//g, "-").replace(/\.[^.]+$/, "");
+      const noteName = codeFileNote(h.path);
       lines.push(`| \`${mdCellCode(h.path)}\` | ${h.risk_score.toFixed(1)} | \`[[Code/${mdCellCode(noteName)}]]\` |`);
     }
     lines.push("");
