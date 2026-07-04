@@ -1,6 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
+import { mdText, mdInline, mdCode, mdCellCode, jsxText, codeComment } from "./md-sanitize.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
 
 // ─── Theme derivation ────────────────────────────────────────────
@@ -56,7 +57,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
 
   lines.push(`import { AbsoluteFill, Sequence, useCurrentFrame, interpolate } from "remotion";`);
   lines.push("");
-  lines.push(`// Auto-generated Remotion composition for ${id.name}`);
+  lines.push(`// Auto-generated Remotion composition for ${codeComment(id.name)}`);
   lines.push(`// Scenes: Intro → Tech Stack → Architecture → Key Abstractions → Outro`);
   lines.push("");
 
@@ -75,8 +76,8 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   lines.push(`  const opacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: "clamp" });`);
   lines.push(`  return (`);
   lines.push(`    <AbsoluteFill style={{ backgroundColor: THEME.bg, justifyContent: "center", alignItems: "center" }}>`);
-  lines.push(`      <h1 style={{ color: THEME.fg, fontSize: 72, opacity }}>${id.name}</h1>`);
-  lines.push(`      <p style={{ color: THEME.muted, fontSize: 28, opacity }}>${id.description}</p>`);
+  lines.push(`      <h1 style={{ color: THEME.fg, fontSize: 72, opacity }}>${jsxText(id.name)}</h1>`);
+  lines.push(`      <p style={{ color: THEME.muted, fontSize: 28, opacity }}>${jsxText(id.description ?? "")}</p>`);
   lines.push(`    </AbsoluteFill>`);
   lines.push(`  );`);
   lines.push(`}`);
@@ -162,7 +163,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
       lines.push("");
       lines.push("// ─── Detected Media Assets ──────────────────────────────");
       for (const mf of mediaFiles.slice(0, 10)) {
-        lines.push(`// Asset: ${mf.path} (${mf.size} bytes)`);
+        lines.push(`// Asset: ${codeComment(mf.path)} (${mf.size} bytes)`);
       }
     }
   }
@@ -188,7 +189,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 
   const lines: string[] = [];
 
-  lines.push(`# Scene Plan — ${id.name}`);
+  lines.push(`# Scene Plan — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -206,7 +207,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(ctx.ai_context.project_summary);
+    lines.push(mdText(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -217,7 +218,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push("| Framework | Version | Confidence |");
     lines.push("|-----------|---------|------------|");
     for (const fw of ctx.detection.frameworks) {
-      lines.push(`| ${fw.name} | ${fw.version ?? "—"} | ${(fw.confidence * 100).toFixed(0)}% |`);
+      lines.push(`| ${mdInline(fw.name)} | ${mdInline(fw.version ?? "—")} | ${(fw.confidence * 100).toFixed(0)}% |`);
     }
     lines.push("");
   }
@@ -228,7 +229,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   // Scene 1: Intro
   lines.push("### Scene 1: Introduction (0:00–0:03)");
   lines.push("");
-  lines.push(`- **Content**: Project name "${id.name}" with description`);
+  lines.push(`- **Content**: Project name "${mdText(id.name)}" with description`);
   lines.push("- **Animation**: Fade in over 1s");
   lines.push(`- **Visual**: Centered title on dark background`);
   lines.push(`- **Data**: project_identity.name, project_identity.description`);
@@ -238,8 +239,8 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("### Scene 2: Tech Stack (0:03–0:06)");
   lines.push("");
   lines.push("- **Content**: Framework badges with staggered reveal");
-  lines.push(`- **Frameworks**: ${frameworks.join(", ") || "None detected"}`);
-  lines.push(`- **Languages**: ${languages.map(l => `${l.name} (${l.loc_percent}%)`).join(", ")}`);
+  lines.push(`- **Frameworks**: ${mdText(frameworks.join(", ") || "None detected")}`);
+  lines.push(`- **Languages**: ${languages.map(l => `${mdText(l.name)} (${l.loc_percent}%)`).join(", ")}`);
   lines.push("- **Animation**: Staggered fade-in, 0.3s delay per item");
   lines.push("- **Visual**: Pill badges in accent color");
   lines.push("");
@@ -248,7 +249,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("### Scene 3: Architecture (0:06–0:09)");
   lines.push("");
   lines.push("- **Content**: Architecture patterns and separation score");
-  lines.push(`- **Patterns**: ${patterns.join(", ") || "None detected"}`);
+  lines.push(`- **Patterns**: ${mdText(patterns.join(", ") || "None detected")}`);
   lines.push(`- **Separation Score**: ${ctx.architecture_signals.separation_score}/100`);
   lines.push("- **Animation**: List items reveal sequentially");
   lines.push("- **Visual**: Bullet list with score indicator");
@@ -258,7 +259,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
   lines.push("### Scene 4: Key Abstractions (0:09–0:12)");
   lines.push("");
   lines.push("- **Content**: Core abstractions and concepts");
-  lines.push(`- **Items**: ${abstractions.slice(0, 6).join(", ") || "None detected"}`);
+  lines.push(`- **Items**: ${mdText(abstractions.slice(0, 6).join(", ") || "None detected")}`);
   lines.push("- **Animation**: Staggered reveal from top");
   lines.push("- **Visual**: Arrow-prefixed list items");
   lines.push("");
@@ -269,7 +270,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
     lines.push("### Scene 5: Domain Models (0:12–0:15)");
     lines.push("");
     lines.push("- **Content**: Detected domain model entities");
-    lines.push(`- **Models**: ${models.slice(0, 6).map(m => `${m.name} (${m.kind}, ${m.field_count} fields)`).join("; ")}`);
+    lines.push(`- **Models**: ${models.slice(0, 6).map(m => `${mdText(m.name)} (${mdText(m.kind)}, ${m.field_count} fields)`).join("; ")}`);
     lines.push(`- **Total**: ${models.length} model${models.length === 1 ? "" : "s"} detected`);
     lines.push("- **Animation**: Entity cards fade in with field-count pill badges");
     lines.push("- **Visual**: Grid of entity cards with kind and field count");
@@ -278,10 +279,10 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 
   lines.push("## Narration Script");
   lines.push("");
-  lines.push(`> This is ${id.name}, a ${id.type} built with ${id.primary_language}.`);
-  lines.push(`> The tech stack includes ${frameworks.slice(0, 3).join(", ") || id.primary_language}.`);
+  lines.push(`> This is ${mdText(id.name)}, a ${mdText(id.type)} built with ${mdText(id.primary_language)}.`);
+  lines.push(`> The tech stack includes ${mdText(frameworks.slice(0, 3).join(", ") || id.primary_language)}.`);
   lines.push(`> The architecture scores ${ctx.architecture_signals.separation_score} out of 100 for separation.`);
-  lines.push(`> Key abstractions include ${abstractions.slice(0, 3).join(", ") || "the core modules"}.`);
+  lines.push(`> Key abstractions include ${mdText(abstractions.slice(0, 3).join(", ") || "the core modules")}.`);
   lines.push("");
 
   lines.push("## Extension Points");
@@ -300,7 +301,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
       lines.push("## Available Media Assets");
       lines.push("");
       for (const mf of mediaFiles.slice(0, 12)) {
-        lines.push(`- \`${mf.path}\` (${mf.size} bytes)`);
+        lines.push(`- \`${mdCode(mf.path)}\` (${mf.size} bytes)`);
       }
       lines.push("");
     }
@@ -453,7 +454,7 @@ export function generateAssetChecklist(ctx: ContextMap, files?: SourceFile[]): G
 
   const lines: string[] = [];
 
-  lines.push(`# Asset Checklist — ${id.name}`);
+  lines.push(`# Asset Checklist — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -472,17 +473,17 @@ export function generateAssetChecklist(ctx: ContextMap, files?: SourceFile[]): G
   lines.push("");
 
   lines.push("### Images");
-  lines.push(`- [ ] ${id.name} logo (SVG, transparent background)`);
+  lines.push(`- [ ] ${mdText(id.name)} logo (SVG, transparent background)`);
   lines.push("- [ ] Social media preview thumbnail (1200×630)");
   lines.push("- [ ] Video poster frame (1920×1080)");
   lines.push("");
 
   lines.push("### Framework Logos");
   for (const fw of frameworks.slice(0, 8)) {
-    lines.push(`- [ ] ${fw} logo (SVG or PNG, transparent)`);
+    lines.push(`- [ ] ${mdText(fw)} logo (SVG or PNG, transparent)`);
   }
   if (frameworks.length === 0) {
-    lines.push(`- [ ] ${id.primary_language} logo`);
+    lines.push(`- [ ] ${mdText(id.primary_language)} logo`);
   }
   lines.push("");
 
@@ -525,7 +526,7 @@ export function generateAssetChecklist(ctx: ContextMap, files?: SourceFile[]): G
       lines.push("| File | Size |");
       lines.push("|------|------|");
       for (const a of assets.slice(0, 15)) {
-        lines.push(`| \`${a.path}\` | ${a.size} bytes |`);
+        lines.push(`| \`${mdCellCode(a.path)}\` | ${a.size} bytes |`);
       }
       lines.push("");
     }
@@ -550,7 +551,7 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   const hotspots = ctx.dependency_graph.hotspots;
 
   const lines: string[] = [];
-  lines.push(`# Storyboard — ${id.name}`);
+  lines.push(`# Storyboard — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -563,8 +564,8 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("```");
   lines.push("┌────────────────────────────────────┐");
   lines.push("│                                    │");
-  lines.push(`│          ${id.name.toUpperCase().padStart(Math.floor((20 + id.name.length) / 2)).padEnd(20)}              │`);
-  lines.push(`│     ${(id.description ?? id.type.replace(/_/g, " ")).slice(0, 30).padStart(Math.floor((30 + (id.description ?? id.type).length) / 2)).padEnd(30)}     │`);
+  lines.push(`│          ${mdCode(id.name.toUpperCase()).padStart(Math.floor((20 + id.name.length) / 2)).padEnd(20)}              │`);
+  lines.push(`│     ${mdCode(id.description ?? id.type.replace(/_/g, " ")).slice(0, 30).padStart(Math.floor((30 + (id.description ?? id.type).length) / 2)).padEnd(30)}     │`);
   lines.push("│                                    │");
   lines.push("└────────────────────────────────────┘");
   lines.push("```");
@@ -581,13 +582,13 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("┌────────────────────────────────────┐");
   lines.push("│  ┌──────┐ ┌──────┐ ┌──────┐       │");
   for (const fw of frameworks.slice(0, 3)) {
-    lines.push(`│  │ ${fw.name.padEnd(4).slice(0, 4)} │                          │`);
+    lines.push(`│  │ ${mdCode(fw.name).padEnd(4).slice(0, 4)} │                          │`);
   }
   lines.push("│  └──────┘ └──────┘ └──────┘       │");
   lines.push("│                                    │");
   lines.push("│  Languages:                        │");
   for (const l of languages.slice(0, 3)) {
-    lines.push(`│    ${l.name.padEnd(12)} ${"█".repeat(Math.round(l.loc_percent / 5))} ${l.loc_percent.toFixed(0)}%     │`);
+    lines.push(`│    ${mdCode(l.name).padEnd(12)} ${"█".repeat(Math.round(l.loc_percent / 5))} ${l.loc_percent.toFixed(0)}%     │`);
   }
   lines.push("└────────────────────────────────────┘");
   lines.push("```");
@@ -618,7 +619,7 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("- **Animation**: Layers build from bottom up, connections animate between them");
   lines.push("- **Narration**: \"A clean [separation_score]-point architecture with clear boundaries\"");
   if (abstractions.length > 0) {
-    lines.push(`- **Labels**: ${abstractions.slice(0, 4).join(", ")}`);
+    lines.push(`- **Labels**: ${mdText(abstractions.slice(0, 4).join(", "))}`);
   }
   lines.push("");
 
@@ -636,7 +637,7 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
       // risk_score is a 0–1 fraction (engine.ts) — the old 0–10 thresholds never
       // fired and "toFixed(0)/10" rendered every hotspot as "0/10" or "1/10".
       const bar = h.risk_score > 0.7 ? "🔴" : h.risk_score > 0.4 ? "🟡" : "🟢";
-      lines.push(`│  ${bar} ${h.path.slice(-25).padEnd(25)} ${String((h.risk_score * 100).toFixed(0)).padStart(3)}%  │`);
+      lines.push(`│  ${bar} ${mdCode(h.path).slice(-25).padEnd(25)} ${String((h.risk_score * 100).toFixed(0)).padStart(3)}%  │`);
     }
   }
   lines.push("└────────────────────────────────────┘");
@@ -652,7 +653,7 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("```");
   lines.push("┌────────────────────────────────────┐");
   lines.push("│                                    │");
-  lines.push(`│          ${id.name.toUpperCase().padStart(Math.floor((20 + id.name.length) / 2)).padEnd(20)}              │`);
+  lines.push(`│          ${mdCode(id.name.toUpperCase()).padStart(Math.floor((20 + id.name.length) / 2)).padEnd(20)}              │`);
   lines.push("│                                    │");
   lines.push("│     Analyzed by Axis' Iliad       │");
   lines.push("│                                    │");
@@ -685,7 +686,7 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
       lines.push("## Available Visual Assets");
       lines.push("");
       for (const vf of visualFiles.slice(0, 10)) {
-        lines.push(`- \`${vf.path}\``);
+        lines.push(`- \`${mdCode(vf.path)}\``);
       }
       lines.push("");
     }
