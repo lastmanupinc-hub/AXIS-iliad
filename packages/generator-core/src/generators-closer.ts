@@ -309,11 +309,16 @@ function closerAttestedArtifacts(ctx: ContextMap, profile: RepoProfile, files?: 
 }
 
 function readinessScore(signals: ProjectSignals, marketplaces: number): number {
-  let score = 50;
-  if (signals.uses_docker) score += 5;
-  if (signals.has_ci) score += 5;
-  if (signals.has_makefile) score += 4;
-  score += Math.min(10, marketplaces * 2);
+  // Scores the INPUT repo's packaging maturity (what closer had to work with), not
+  // the generated bundle. A low base with points from real, per-repo signals — so
+  // the score varies meaningfully AND the higher bands stay reachable (a repo with
+  // all signals reaches 100; a bare repo lands ~48/hardening-required).
+  let score = 40;
+  if (signals.uses_docker) score += 15;
+  if (signals.has_ci) score += 15;
+  if (signals.has_makefile) score += 10;
+  if (signals.has_tests) score += 12;
+  score += Math.min(8, marketplaces * 2);
   if (signals.selected_license === "Proprietary") score -= 4;
   return Math.max(0, Math.min(100, score));
 }

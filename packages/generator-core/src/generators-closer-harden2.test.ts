@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { SourceFile } from "./types.js";
-import { generateCloserDockerfile, generateCloserDockerCompose, generateMakefileWithShipTarget } from "./generators-closer.js";
+import { generateCloserDockerfile, generateCloserDockerCompose, generateMakefileWithShipTarget, generateCloserPackagingReport } from "./generators-closer.js";
 
 function ctxWith(over: Partial<ContextMap["project_identity"]> = {}): ContextMap {
   return {
@@ -43,5 +43,25 @@ describe("POLISH-2: an empty project name still yields a valid image tag", () =>
     const c = generateMakefileWithShipTarget(ctxWith({ name: "" }), profile, files).content;
     expect(c).not.toMatch(/\s:latest/);
     expect(c).toContain("app:latest");
+  });
+});
+
+// #HARDEN-2: POLISH lowered the readinessScore base and (self-regression) made the
+// top bands dead — a fully-equipped repo maxed at 74 → always "hardening-required".
+// The rebalanced score must keep every band reachable.
+describe("HARDEN-2: readiness bands are all reachable (not a dead constant)", () => {
+  const equipped: SourceFile[] = [
+    { path: "Dockerfile", content: "FROM node", size: 10 } as SourceFile,
+    { path: ".github/workflows/ci.yml", content: "on: push", size: 10 } as SourceFile,
+    { path: "Makefile", content: "build:", size: 10 } as SourceFile,
+    { path: "src/a.test.ts", content: "test()", size: 10 } as SourceFile,
+  ];
+  const bandOf = (fs: SourceFile[]) =>
+    generateCloserPackagingReport(ctxWith(), profile, fs).content.match(/Band: \*\*([\w-]+)\*\*/)![1];
+  it("a fully-equipped repo reaches ship-ready", () => {
+    expect(bandOf(equipped)).toBe("ship-ready");
+  });
+  it("a bare repo is hardening-required", () => {
+    expect(bandOf([])).toBe("hardening-required");
   });
 });
