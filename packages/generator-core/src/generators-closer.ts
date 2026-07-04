@@ -253,14 +253,15 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
   ].join("\n");
 }
 
-function buildMerkleBundle(
-  ctx: ContextMap,
-  branding: BrandingConfig,
-  signals: ProjectSignals,
-): MerkleBundle {
-  const leaves = CLOSER_OUTPUT_PATHS.map(path => ({
+// Build a Merkle bundle whose leaves are CONTENT-derived: each leaf digest covers
+// the artifact's actual bytes (path-prefixed for domain separation), so tampering
+// with any generated file changes its leaf and the root. The previous version
+// hashed only the path + snapshot IDs, so it could not detect content tampering
+// (and its "content-derived" label was untrue).
+function buildMerkleBundle(leafInputs: Array<{ path: string; content: string }>): MerkleBundle {
+  const leaves = leafInputs.map(({ path, content }) => ({
     path,
-    digest: hash(`${ctx.snapshot_id}|${ctx.project_id}|${branding.product_name}|${signals.primary_language}|${path}`),
+    digest: hash(`${path}\n${content}`),
   }));
 
   let current = leaves.map(leaf => leaf.digest);
@@ -276,10 +277,35 @@ function buildMerkleBundle(
     levels.push(current);
   }
 
-  const root = current[0];
-  const signature = hash(`${CERTLIB_PROFILE}:${root}:${ctx.snapshot_id}:${ctx.project_id}`);
+  const root = current[0] ?? hash("");
+  const signature = hash(`${CERTLIB_PROFILE}:${root}`);
 
   return { root, leaves, levels, signature };
+}
+
+// The content-bearing artifacts the trust fabric attests: every closer output
+// EXCEPT the two trust-fabric files themselves (a file can't content-hash itself,
+// and they exist to attest the others). Regenerated here so the Merkle leaves
+// cover real bytes. Pure + deterministic, so the attestation and merkle-proof
+// generators compute an identical bundle. None of these 14 generators reference
+// the bundle, so there is no recursion.
+function closerAttestedArtifacts(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): Array<{ path: string; content: string }> {
+  return [
+    generatePackagingReadme(ctx, profile, files),
+    generatePackagingLicense(ctx, profile, files),
+    generateCloserDockerfile(ctx, profile, files),
+    generateCloserDockerCompose(ctx, profile, files),
+    generateCloserCiWorkflow(ctx, profile, files),
+    generateCloserReleaseWorkflow(ctx, profile, files),
+    generateCloserManifestNpm(ctx, profile, files),
+    generateCloserManifestUnreal(ctx, profile, files),
+    generateCloserManifestVsCode(ctx, profile, files),
+    generateCloserManifestDockerHub(ctx, profile, files),
+    generateCloserManifestGitHubMarketplace(ctx, profile, files),
+    generateCloserPackagingReport(ctx, profile, files),
+    generateDistributableGuide(ctx, profile, files),
+    generateMakefileWithShipTarget(ctx, profile, files),
+  ].map(f => ({ path: f.path, content: f.content }));
 }
 
 function readinessScore(signals: ProjectSignals, marketplaces: number): number {
@@ -1070,7 +1096,7 @@ export function generateCloserManifestGitHubMarketplace(
     "Every release attaches the attestation bundle. Verify after install:",
     "",
     "```bash",
-    "cat packaging/trust-fabric/attestation.json | jq .digest",
+    "cat packaging/trust-fabric/attestation.json | jq -r .merkle_root",
     "```",
     "",
     "## Support",
@@ -1092,8 +1118,7 @@ export function generateCloserTrustAttestation(
   files?: SourceFile[],
 ): GeneratedFile {
   const branding = readBrandingConfig(files, ctx);
-  const signals = detectProjectSignals(ctx, profile, files);
-  const bundle = buildMerkleBundle(ctx, branding, signals);
+  const bundle = buildMerkleBundle(closerAttestedArtifacts(ctx, profile, files));
 
   const content = JSON.stringify(
     {
@@ -1131,9 +1156,7 @@ export function generateCloserMerkleProof(
   profile: RepoProfile,
   files?: SourceFile[],
 ): GeneratedFile {
-  const branding = readBrandingConfig(files, ctx);
-  const signals = detectProjectSignals(ctx, profile, files);
-  const bundle = buildMerkleBundle(ctx, branding, signals);
+  const bundle = buildMerkleBundle(closerAttestedArtifacts(ctx, profile, files));
 
   const content = JSON.stringify(
     {
@@ -1144,7 +1167,9 @@ export function generateCloserMerkleProof(
       verification: {
         algorithm: "sha256",
         certlib_profile: CERTLIB_PROFILE,
-        replay_command: "node verify-attestation.js packaging/trust-fabric/attestation.json packaging/trust-fabric/merkle-proof.json",
+        leaf_formula: "sha256(path + \"\\n\" + file_bytes)",
+        recompute_leaf: "{ printf '%s\\n' <path>; cat <path>; } | sha256sum",
+        note: "Recompute each leaf digest from its file, rebuild the tree pairwise (sha256 of concatenated child digests, last node duplicated when odd), and compare the root to .merkle_root in attestation.json.",
       },
     },
     null,
@@ -1367,7 +1392,7 @@ export function generateMakefileWithShipTarget(
     "",
     "attest: ## Verify release attestation",
     "\t@test -f packaging/trust-fabric/attestation.json || (echo \"missing packaging/trust-fabric/attestation.json\" && exit 1)",
-    "\t@echo \"Attestation: $$(jq -r .digest packaging/trust-fabric/attestation.json)\"",
+    "\t@echo \"Attestation root: $$(jq -r .merkle_root packaging/trust-fabric/attestation.json)\"",
     "",
     "ship: clean install lint test build package attest ## Full release sequence (clean → install → lint → test → build → package → attest)",
     "\t@echo \"\"",
