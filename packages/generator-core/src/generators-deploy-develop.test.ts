@@ -35,8 +35,19 @@ describe("DEVELOP: Dockerfile is package-manager aware", () => {
   it("yarn repo → yarn install --frozen-lockfile", () => {
     expect(generateDeployDockerfile(ctxWith(), profile, lock("yarn.lock")).content).toContain("yarn install --frozen-lockfile");
   });
-  it("bun repo → bun install --frozen-lockfile", () => {
-    expect(generateDeployDockerfile(ctxWith(), profile, lock("bun.lockb")).content).toContain("bun install --frozen-lockfile");
+  it("bun repo → oven/bun base + bun install + bun entrypoint (node:alpine has no bun)", () => {
+    const d = generateDeployDockerfile(ctxWith(), profile, lock("bun.lockb")).content;
+    expect(d).toContain("FROM oven/bun:1-alpine");
+    expect(d).not.toContain("FROM node:22-alpine"); // builder AND runtime must be bun
+    expect(d).toContain("bun install --frozen-lockfile");
+    expect(d).toContain('CMD ["bun", "dist/index.js"]');
+  });
+  it("yarn/bun builds fail on a real error instead of `|| echo`-swallowing it", () => {
+    for (const l of ["yarn.lock", "bun.lockb"]) {
+      const d = generateDeployDockerfile(ctxWith(), profile, lock(l)).content;
+      expect(d).toContain("if grep -q '\"build\"' package.json"); // guarded: skip if absent, fail if present-and-broken
+      expect(d).not.toContain("|| echo 'no build script'");
+    }
   });
   it("npm repo (package-lock.json) → npm ci", () => {
     expect(generateDeployDockerfile(ctxWith(), profile, lock("package-lock.json")).content).toContain("npm ci");

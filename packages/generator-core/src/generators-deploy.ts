@@ -61,14 +61,18 @@ function detectPackageManager(files?: SourceFile[]): DeployPm {
   return (field as DeployPm) ?? "npm";
 }
 
-// Node install/build commands + the lockfile glob to COPY for each package manager,
-// so the emitted Dockerfile reproduces the repo's install rather than guessing npm.
-function pmCommands(pm: DeployPm): { corepack: string; lockGlob: string; installAll: string; build: string; installProd: string } {
+// Per-package-manager Docker settings so the emitted Dockerfile reproduces the repo's
+// install/build/runtime rather than guessing npm. `base`/`runCmd` matter for bun,
+// which needs the oven/bun image + a `bun` entrypoint (node:alpine has no `bun`).
+function pmCommands(pm: DeployPm): { corepack: boolean; base: string; runCmd: string; lockGlob: string; installAll: string; build: string } {
+  // Run the build only when a "build" script exists, but still FAIL on a real build
+  // error (unlike `<pm> build || echo …`, which swallows failures → an empty dist/).
+  const guarded = (cmd: string) => `if grep -q '"build"' package.json; then ${cmd}; fi`;
   switch (pm) {
-    case "pnpm": return { corepack: "RUN corepack enable\n", lockGlob: "package.json pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc*", installAll: "pnpm install --frozen-lockfile", build: "pnpm run build --if-present", installProd: "pnpm install --prod --frozen-lockfile" };
-    case "yarn": return { corepack: "RUN corepack enable\n", lockGlob: "package.json yarn.lock* .yarnrc.yml*", installAll: "yarn install --frozen-lockfile", build: "yarn build || echo 'no build script'", installProd: "yarn install --production --frozen-lockfile" };
-    case "bun":  return { corepack: "", lockGlob: "package.json bun.lockb*", installAll: "bun install --frozen-lockfile", build: "bun run build || echo 'no build script'", installProd: "bun install --production --frozen-lockfile" };
-    default:     return { corepack: "", lockGlob: "package*.json", installAll: "npm ci --include=dev", build: "npm run build --if-present", installProd: "npm ci --omit=dev" };
+    case "pnpm": return { corepack: true,  base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package.json pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc*", installAll: "pnpm install --frozen-lockfile", build: "pnpm run build --if-present" };
+    case "yarn": return { corepack: true,  base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package.json yarn.lock* .yarnrc.yml*", installAll: "yarn install --frozen-lockfile", build: guarded("yarn build") };
+    case "bun":  return { corepack: false, base: "oven/bun:1-alpine", runCmd: 'CMD ["bun", "dist/index.js"]', lockGlob: "package.json bun.lockb*", installAll: "bun install --frozen-lockfile", build: guarded("bun run build") };
+    default:     return { corepack: false, base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package*.json", installAll: "npm ci --include=dev", build: "npm run build --if-present" };
   }
 }
 
@@ -153,7 +157,7 @@ export function generateDeployDockerfile(
     lines.push("# Override CMD if your entry point differs (e.g. gunicorn, django).");
     lines.push("CMD [\"sh\", \"-c\", \"uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}\"]");
   } else if (stack === "node-static") {
-    lines.push("FROM node:22-alpine AS builder");
+    lines.push(`FROM ${c.base} AS builder`);
     lines.push("WORKDIR /app");
     if (c.corepack) lines.push("RUN corepack enable");
     lines.push(`COPY ${c.lockGlob} ./`);
@@ -168,7 +172,7 @@ export function generateDeployDockerfile(
     lines.push("EXPOSE 8080");
   } else {
     // node-server and unknown both get a Node server template — safest default.
-    lines.push("FROM node:22-alpine AS builder");
+    lines.push(`FROM ${c.base} AS builder`);
     lines.push("WORKDIR /app");
     if (c.corepack) lines.push("RUN corepack enable");
     lines.push(`COPY ${c.lockGlob} ./`);
@@ -177,7 +181,7 @@ export function generateDeployDockerfile(
     lines.push("# Skip build step gracefully if the project has no build script.");
     lines.push(`RUN ${c.build}`);
     lines.push("");
-    lines.push("FROM node:22-alpine");
+    lines.push(`FROM ${c.base}`);
     lines.push("RUN addgroup -S app && adduser -S app -G app");
     lines.push("WORKDIR /app");
     lines.push("# Copy resolved dependencies + build output from the builder (package-manager-agnostic).");
@@ -188,7 +192,7 @@ export function generateDeployDockerfile(
     lines.push("EXPOSE 8080");
     lines.push("USER app");
     lines.push(mono ? "# Monorepo: build output is likely apps/<service>/dist — set CMD to your service entry." : "# Adjust entrypoint to match your built output path.");
-    lines.push("CMD [\"node\", \"dist/index.js\"]");
+    lines.push(c.runCmd);
   }
 
   return {
@@ -727,6 +731,9 @@ export function generateDeployScriptCloudflarePwsh(
 ): GeneratedFile {
   const outDir = hasFw(ctx, "SvelteKit") ? "build" : "dist";
   const name = projectImageName(ctx);
+  // Both wrangler configs are always generated, so `auto` resolves to the detected
+  // stack's target (matching deploy-cloudflare.sh) rather than always-Pages.
+  const autoTarget = detectStack(ctx, files) === "node-static" ? "pages" : "containers";
   const content = `# AXIS deploy/deploy-cloudflare.ps1 — Cloudflare deploy, Windows/PowerShell variant.
 # Usage:
 #   .\\deploy\\deploy-cloudflare.ps1                # auto
@@ -769,9 +776,8 @@ switch (\$Target) {
   'pages'      { Invoke-Pages }
   'containers' { Invoke-Containers }
   default {
-    if (Test-Path \$PagesCfg) { Invoke-Pages }
-    elseif (Test-Path \$ContainersCfg) { Invoke-Containers }
-    else { throw "No wrangler config found (\$PagesCfg or \$ContainersCfg)" }
+    # 'auto' → the detected stack's recommended target: ${autoTarget}
+    ${autoTarget === "pages" ? "Invoke-Pages" : "Invoke-Containers"}
   }
 }
 `;

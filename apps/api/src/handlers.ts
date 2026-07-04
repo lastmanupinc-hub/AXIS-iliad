@@ -171,7 +171,7 @@ export const PROGRAM_OUTPUTS: Record<string, string[]> = {
   ],
   deploy: [
     "deploy/Dockerfile",
-    "deploy/.dockerignore",
+    "deploy/Dockerfile.dockerignore",
     "deploy/docker-compose.dev.yml",
     "deploy/render.yaml",
     "deploy/deploy.sh",

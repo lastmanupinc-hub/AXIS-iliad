@@ -6,6 +6,7 @@ import {
   generateDeployScriptPwsh,
   generateDeployVSCodeLaunchTemplate,
   generateDeployContainersWorker,
+  generateDeployScriptCloudflarePwsh,
 } from "./generators-deploy.js";
 
 function ctxWith(frameworks: string[] = ["React"]): ContextMap {
@@ -51,6 +52,21 @@ describe("POLISH-2: node-static gets a working (browser) debug config", () => {
         .split("\n").filter(l => !l.trim().startsWith("//")).join("\n"),
     );
     expect(payload.configurations.some((c: { port?: number }) => c.port === 9229)).toBe(true);
+  });
+});
+
+// #HARDEN-2: POLISH fixed deploy-cloudflare.SH auto but not the .PS1 sibling —
+// its default case still routed by Test-Path (always Pages). A Windows backend
+// user's `auto` must target Containers, matching the .sh.
+describe("HARDEN-2: deploy-cloudflare.ps1 auto matches the .sh (detected target, not always-Pages)", () => {
+  it("a backend auto-invokes Containers", () => {
+    const c = generateDeployScriptCloudflarePwsh(ctxWith(["React"]), profile, files).content;
+    expect(c).not.toContain("if (Test-Path $PagesCfg) { Invoke-Pages }");
+    expect(c).toMatch(/default \{[^}]*Invoke-Containers/s);
+  });
+  it("a static frontend auto-invokes Pages", () => {
+    const c = generateDeployScriptCloudflarePwsh(ctxWith(["Vite"]), profile, files).content;
+    expect(c).toMatch(/default \{[^}]*Invoke-Pages/s);
   });
 });
 
