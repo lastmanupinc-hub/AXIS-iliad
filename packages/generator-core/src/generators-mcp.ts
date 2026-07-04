@@ -4,6 +4,7 @@ import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
 import { mdText, mdCode, cssComment, yamlFlowScalar } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
+import { capNote, capMeta } from "./cap-utils.js";
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
@@ -93,6 +94,12 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
     });
   }
 
+  const truncated: Record<string, { shown: number; total: number }> = {};
+  const dmMeta = capMeta(ctx.domain_models.length, 15);
+  if (dmMeta) truncated.domain_models = dmMeta;
+  const sqlMeta = ctx.sql_schema ? capMeta(ctx.sql_schema.length, 15) : undefined;
+  if (sqlMeta) truncated.sql_schema = sqlMeta;
+
   const config = {
     mcpVersion: "1.0",
     project: id.name,
@@ -178,6 +185,7 @@ export function generateMcpConfig(ctx: ContextMap, profile: RepoProfile, files?:
         size: f.size,
       }));
     })() : null,
+    truncated: Object.keys(truncated).length > 0 ? truncated : undefined,
   };
 
   return {
@@ -2167,6 +2175,8 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   // ─── MCP Resources (from domain models) ─────────────────────
   if (models.length > 0) {
     lines.push("resources:");
+    const resNote = capNote(models.length, 15, "domain models");
+    if (resNote) lines.push(`  # ${resNote}`);
     for (const m of models.slice(0, 15)) {
       const resId = m.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
       lines.push(`  - id: ${resId}`);
@@ -2182,6 +2192,8 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   // ─── MCP Tools (from API routes) ────────────────────────────
   if (routes.length > 0) {
     lines.push("tools:");
+    const toolNote = capNote(routes.length, 20, "routes");
+    if (toolNote) lines.push(`  # ${toolNote}`);
     for (const r of routes.slice(0, 20)) {
       const toolId = r.path.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
       lines.push(`  - id: ${toolId}`);
@@ -2469,6 +2481,8 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   const models = ctx.domain_models;
   if (models.length > 0) {
+    const qNote = capNote(models.length, 12, "domain-model query tools");
+    if (qNote) lines.push(`    # ${qNote}`);
     for (const m of models.slice(0, 12)) {
       const toolName = `query_${m.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
       lines.push(`    - name: ${toolName}`);
@@ -2506,6 +2520,8 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   const serverModels = ctx.domain_models;
   if (serverModels.length > 0) {
+    const resNote2 = capNote(serverModels.length, 15, "domain-model resources");
+    if (resNote2) lines.push(`    # ${resNote2}`);
     for (const m of serverModels.slice(0, 15)) {
       lines.push(`    - uri: ${yamlFlowScalar(`model://${m.name}`)}`);
       lines.push(`      name: ${yamlFlowScalar(m.name)}`);
@@ -2549,6 +2565,8 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
     lines.push("  dependencies: []");
   } else {
     lines.push("  dependencies:");
+    const depNote = capNote(deps.length, 8, "dependencies");
+    if (depNote) lines.push(`    # ${depNote}`);
     for (const d of deps.slice(0, 8)) {
       lines.push(`    - name: ${yamlFlowScalar(d.name)}`);
       lines.push(`      version: ${JSON.stringify(d.version)}`);
