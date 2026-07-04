@@ -2,6 +2,7 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
+import { mdText, mdCode, cssComment, yamlFlowScalar } from "./md-sanitize.js";
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
@@ -260,7 +261,7 @@ export function generateProtocolSpec(ctx: ContextMap): GeneratedFile {
   const projectName = ctx.project_identity.name;
   const lines: string[] = [];
 
-  lines.push(`# Protocol Specification — ${projectName}`);
+  lines.push(`# Protocol Specification — ${mdText(projectName)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -662,7 +663,7 @@ export function generateSpecTypes(ctx: ContextMap): GeneratedFile {
 
   lines.push(`/**`);
   lines.push(` * spec.types.ts`);
-  lines.push(` * Generated protocol contract types for ${projectName}.`);
+  lines.push(` * Generated protocol contract types for ${cssComment(projectName)}.`);
   lines.push(` *`);
   lines.push(` * Scope:`);
   lines.push(` * - JSON-RPC envelopes`);
@@ -915,11 +916,11 @@ export function generateMcpReadme(ctx: ContextMap, profile: RepoProfile): Genera
 
   const lines: string[] = [];
 
-  lines.push(`# ${projectName} MCP Server`);
+  lines.push(`# ${mdText(projectName)} MCP Server`);
   lines.push("");
   lines.push("## Project Overview");
   lines.push("");
-  lines.push(`${projectName} exposes a Model Context Protocol (MCP) server for repository analysis, generation workflows, and agentic automation.`);
+  lines.push(`${mdText(projectName)} exposes a Model Context Protocol (MCP) server for repository analysis, generation workflows, and agentic automation.`);
   lines.push("");
   lines.push("This package README documents the MCP surface area, local setup, runtime compatibility, and contribution process.");
   lines.push("");
@@ -930,7 +931,7 @@ export function generateMcpReadme(ctx: ContextMap, profile: RepoProfile): Genera
   lines.push("");
   lines.push("- Git");
   lines.push("- A supported runtime (Node.js, Bun, or Deno)");
-  lines.push(`- Package manager: ${preferredPackageManager}`);
+  lines.push(`- Package manager: ${mdText(preferredPackageManager)}`);
   lines.push("");
   lines.push("### Install Dependencies");
   lines.push("");
@@ -1008,10 +1009,10 @@ export function generateMcpReadme(ctx: ContextMap, profile: RepoProfile): Genera
 
   lines.push("## Implementation Notes");
   lines.push("");
-  lines.push(`- Primary language: ${primaryLanguage}`);
-  lines.push(`- Package manager(s): ${packageManagers.length > 0 ? packageManagers.join(", ") : "unknown"}`);
+  lines.push(`- Primary language: ${mdText(primaryLanguage)}`);
+  lines.push(`- Package manager(s): ${packageManagers.length > 0 ? mdText(packageManagers.join(", ")) : "unknown"}`);
   const detectedFrameworks = ctx.detection.frameworks.map(f => (f.version ? `${f.name}@${f.version}` : f.name));
-  lines.push(`- Detected frameworks: ${detectedFrameworks.length > 0 ? detectedFrameworks.join(", ") : "none"}`);
+  lines.push(`- Detected frameworks: ${detectedFrameworks.length > 0 ? mdText(detectedFrameworks.join(", ")) : "none"}`);
 
   return {
     path: "mcp/README.md",
@@ -1034,7 +1035,7 @@ export function generateProjectSetupGuide(ctx: ContextMap): GeneratedFile {
       : "npm";
 
   const lines: string[] = [];
-  lines.push(`# Project Setup Guide — ${projectName}`);
+  lines.push(`# Project Setup Guide — ${mdText(projectName)}`);
   lines.push("");
   lines.push("## Goal");
   lines.push("");
@@ -1045,13 +1046,13 @@ export function generateProjectSetupGuide(ctx: ContextMap): GeneratedFile {
   lines.push("- Git");
   lines.push("- Node.js 20+");
   lines.push("- One runtime adapter (Node.js, Bun, or Deno)");
-  lines.push(`- Preferred package manager: ${preferredPackageManager}`);
+  lines.push(`- Preferred package manager: ${mdText(preferredPackageManager)}`);
   lines.push("");
   lines.push("## Bootstrap");
   lines.push("");
   lines.push("```bash");
   lines.push("git clone <repo-url>");
-  lines.push(`cd ${projectName}`);
+  lines.push(`cd ${mdCode(projectName)}`);
   if (preferredPackageManager === "pnpm") {
     lines.push("pnpm install");
     lines.push("pnpm build");
@@ -1100,7 +1101,7 @@ export function generateBuildArtifactsGuide(ctx: ContextMap): GeneratedFile {
   const projectName = ctx.project_identity.name;
   const lines: string[] = [];
 
-  lines.push(`# Build Artifacts Guide — ${projectName}`);
+  lines.push(`# Build Artifacts Guide — ${mdText(projectName)}`);
   lines.push("");
   lines.push("## Purpose");
   lines.push("");
@@ -1415,7 +1416,7 @@ export function generateMonorepoStructureGuide(ctx: ContextMap): GeneratedFile {
   const projectName = ctx.project_identity.name;
   const lines: string[] = [];
 
-  lines.push(`# Monorepo Structure Template — ${projectName}`);
+  lines.push(`# Monorepo Structure Template — ${mdText(projectName)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -1534,7 +1535,7 @@ export function generateCoreImplementationArtifactsGuide(ctx: ContextMap): Gener
   const projectName = ctx.project_identity.name;
   const lines: string[] = [];
 
-  lines.push(`# Core Implementation Artifacts — ${projectName}`);
+  lines.push(`# Core Implementation Artifacts — ${mdText(projectName)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -1972,7 +1973,7 @@ export function generateTestingDocumentationPolishArtifactsGuide(ctx: ContextMap
   const projectName = ctx.project_identity.name;
   const lines: string[] = [];
 
-  lines.push(`# Testing, Documentation & Polish Artifacts — ${projectName}`);
+  lines.push(`# Testing, Documentation & Polish Artifacts — ${mdText(projectName)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -2035,10 +2036,10 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   const lines: string[] = [];
 
   lines.push("# Connector Map");
-  lines.push(`# Project: ${id.name}`);
+  lines.push(`# Project: ${yamlFlowScalar(id.name)}`);
   lines.push(`# Generated: ${ctx.generated_at}`);
   if (ctx.ai_context.project_summary) {
-    lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
+    lines.push(`# Summary: ${yamlFlowScalar(ctx.ai_context.project_summary.split("\n")[0])}`);
   }
   lines.push("");
   lines.push("connectors:");
@@ -2067,8 +2068,8 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
 
   // CI/CD connectors
   if (ctx.detection.ci_platform) {
-    lines.push(`  - id: ci_${ctx.detection.ci_platform.toLowerCase().replace(/\s+/g, "_")}`);
-    lines.push(`    name: ${ctx.detection.ci_platform}`);
+    lines.push(`  - id: ci_${ctx.detection.ci_platform.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`);
+    lines.push(`    name: ${yamlFlowScalar(ctx.detection.ci_platform)}`);
     lines.push("    type: ci_cd");
     lines.push("    protocol: webhook");
     lines.push("    status: detected");
@@ -2168,11 +2169,11 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
     for (const m of models.slice(0, 15)) {
       const resId = m.name.toLowerCase().replace(/[^a-z0-9]/g, "_");
       lines.push(`  - id: ${resId}`);
-      lines.push(`    name: ${m.name}`);
+      lines.push(`    name: ${yamlFlowScalar(m.name)}`);
       lines.push(`    type: domain_model`);
-      lines.push(`    kind: ${m.kind}`);
+      lines.push(`    kind: ${yamlFlowScalar(m.kind)}`);
       lines.push(`    fields: ${m.field_count}`);
-      lines.push(`    source: ${m.source_file}`);
+      lines.push(`    source: ${yamlFlowScalar(m.source_file)}`);
     }
     lines.push("");
   }
@@ -2183,10 +2184,10 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
     for (const r of routes.slice(0, 20)) {
       const toolId = r.path.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
       lines.push(`  - id: ${toolId}`);
-      lines.push(`    name: "${r.method} ${r.path}"`);
-      lines.push(`    method: ${r.method}`);
-      lines.push(`    path: ${r.path}`);
-      lines.push(`    source: ${r.source_file}`);
+      lines.push(`    name: ${yamlFlowScalar(`${r.method} ${r.path}`)}`);
+      lines.push(`    method: ${yamlFlowScalar(r.method)}`);
+      lines.push(`    path: ${yamlFlowScalar(r.path)}`);
+      lines.push(`    source: ${yamlFlowScalar(r.source_file)}`);
     }
     lines.push("");
   }
@@ -2202,7 +2203,7 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   lines.push("      - connector: git");
   lines.push("        action: commit");
   if (ctx.detection.ci_platform) {
-    lines.push(`      - connector: ci_${ctx.detection.ci_platform.toLowerCase().replace(/\s+/g, "_")}`);
+    lines.push(`      - connector: ci_${ctx.detection.ci_platform.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`);
     lines.push("        action: build_and_test");
   }
   lines.push("");
@@ -2391,10 +2392,10 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   const lines: string[] = [];
   lines.push("# MCP Server Manifest");
-  lines.push(`# Project: ${id.name}`);
+  lines.push(`# Project: ${yamlFlowScalar(id.name)}`);
   lines.push(`# Generated: ${ctx.generated_at}`);
   if (ctx.ai_context.project_summary) {
-    lines.push(`# Summary: ${ctx.ai_context.project_summary.split("\n")[0]}`);
+    lines.push(`# Summary: ${yamlFlowScalar(ctx.ai_context.project_summary.split("\n")[0])}`);
   }
   lines.push("");
 
@@ -2466,13 +2467,13 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
     for (const m of models.slice(0, 12)) {
       const toolName = `query_${m.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
       lines.push(`    - name: ${toolName}`);
-      lines.push(`      description: Query ${m.name} records (${m.kind}, ${m.field_count} fields)`);
+      lines.push(`      description: ${yamlFlowScalar(`Query ${m.name} records (${m.kind}, ${m.field_count} fields)`)}`);
       lines.push("      input_schema:");
       lines.push("        type: object");
       lines.push("        properties:");
       lines.push(`          id:`);
       lines.push(`            type: string`);
-      lines.push(`            description: Primary key or identifier for ${m.name}`);
+      lines.push(`            description: ${yamlFlowScalar(`Primary key or identifier for ${m.name}`)}`);
       lines.push(`          filter:`);
       lines.push(`            type: object`);
       lines.push(`            description: Optional filter criteria`);
@@ -2501,10 +2502,10 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
   const serverModels = ctx.domain_models;
   if (serverModels.length > 0) {
     for (const m of serverModels.slice(0, 15)) {
-      lines.push(`    - uri: model://${m.name}`);
-      lines.push(`      name: ${m.name}`);
+      lines.push(`    - uri: ${yamlFlowScalar(`model://${m.name}`)}`);
+      lines.push(`      name: ${yamlFlowScalar(m.name)}`);
       lines.push("      mime_type: application/json");
-      lines.push(`      description: ${m.kind} with ${m.field_count} field${m.field_count === 1 ? "" : "s"} (${m.source_file})`);
+      lines.push(`      description: ${yamlFlowScalar(`${m.kind} with ${m.field_count} field${m.field_count === 1 ? "" : "s"} (${m.source_file})`)}`);
       lines.push("");
     }
   }
@@ -2512,7 +2513,7 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
   // Prompts
   lines.push("  prompts:");
   lines.push("    - name: review_code");
-  lines.push(`      description: Review code following ${id.name} conventions`);
+  lines.push(`      description: ${yamlFlowScalar(`Review code following ${id.name} conventions`)}`);
   lines.push("      arguments:");
   lines.push("        - name: file_path");
   lines.push("          type: string");
@@ -2530,7 +2531,7 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   // Runtime config
   lines.push("  runtime:");
-  lines.push(`    language: ${id.primary_language}`);
+  lines.push(`    language: ${yamlFlowScalar(id.primary_language)}`);
   lines.push(`    entry: ${JSON.stringify(ctx.entry_points[0]?.path ?? "src/index.ts")}`);
   lines.push("    env:");
   lines.push("      - name: AXIS_PROJECT_ID");
@@ -2541,7 +2542,7 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 
   lines.push("  dependencies:");
   for (const d of deps.slice(0, 8)) {
-    lines.push(`    - name: ${d.name}`);
+    lines.push(`    - name: ${yamlFlowScalar(d.name)}`);
     lines.push(`      version: ${JSON.stringify(d.version)}`);
   }
   lines.push("");
@@ -2592,7 +2593,7 @@ export function generateFintechMcpSurfacePackage(
   const deps = detectFintechDependencies(ctx);
   const lines: string[] = [];
 
-  lines.push(`# Fintech MCP Surface Package — ${id.name}`);
+  lines.push(`# Fintech MCP Surface Package — ${mdText(id.name)}`);
   lines.push("");
   lines.push(`Generated: ${ctx.generated_at}`);
   lines.push("");
@@ -2606,7 +2607,7 @@ export function generateFintechMcpSurfacePackage(
   lines.push(`- Domain models detected: ${ctx.domain_models.length}`);
   lines.push(`- SQL tables detected: ${ctx.sql_schema?.length ?? 0}`);
   lines.push(`- Trust Fabric detected: ${hasTrustFabric(files) ? "yes" : "no"}`);
-  lines.push(`- Fintech dependency hints: ${deps.length > 0 ? deps.join(", ") : "none directly detected"}`);
+  lines.push(`- Fintech dependency hints: ${deps.length > 0 ? mdText(deps.join(", ")) : "none directly detected"}`);
   lines.push("");
   lines.push("## Target Package Structure");
   lines.push("");
