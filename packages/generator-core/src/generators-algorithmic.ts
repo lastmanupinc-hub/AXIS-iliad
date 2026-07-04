@@ -200,6 +200,7 @@ export function generateGenerativeSketch(ctx: ContextMap, files?: SourceFile[]):
     for (const line of tree.slice(0, 20)) {
       lines.push(`// ${codeComment(line)}`);
     }
+    if (tree.length > 20) lines.push(`// … ${tree.length - 20} more entries omitted`);
   }
 
   return {
@@ -339,7 +340,7 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("### 1. Dependency Network");
   lines.push("");
   lines.push("- **Type**: Force-directed graph");
-  lines.push(`- **Nodes**: ${ctx.entry_points.length + hotspots.length} (entry points + hotspots)`);
+  lines.push(`- **Nodes**: ${Math.max(5, Math.min(50, ctx.entry_points.length * 3 + hotspots.length * 2))} (derived: entry points ×3 + hotspots ×2)`);
   lines.push(`- **Edges**: Based on import graph density`);
   lines.push("- **Color mapping**: Language → hue");
   lines.push("- **Animation**: Continuous force simulation");
@@ -352,7 +353,7 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("- **Type**: Concentric ring visualization");
   lines.push("- **Rings**: One per language, radius ∝ LOC percentage");
   for (const lang of languages) {
-    lines.push(`  - ${mdText(lang.name)}: ${lang.loc_percent}% → radius ${Math.round(lang.loc_percent * 3)}px`);
+    lines.push(`  - ${mdText(lang.name)}: ${lang.loc_percent}% → radius ${Math.max(2, Math.round(lang.loc_percent * 3))}px`);
   }
   lines.push("- **Animation**: Slow rotation, pulse on interaction");
   lines.push("");
@@ -414,6 +415,7 @@ export function generateCollectionMap(ctx: ContextMap, files?: SourceFile[]): Ge
     for (const line of tree.slice(0, 25)) {
       lines.push(mdCode(line));
     }
+    if (tree.length > 25) lines.push(`… ${tree.length - 25} more entries omitted`);
     lines.push("```");
     lines.push("");
   }
@@ -441,7 +443,7 @@ export function generateExportManifest(ctx: ContextMap, profile: RepoProfile, fi
   lines.push("manifest:");
   lines.push(`  project: ${JSON.stringify(id.name)}`);
   lines.push("  version: \"1.0\"");
-  lines.push(`  total_artifacts: 4`);
+  lines.push(`  total_artifacts: 5`);
   lines.push("");
 
   lines.push("  artifacts:");
@@ -496,6 +498,18 @@ export function generateExportManifest(ctx: ContextMap, profile: RepoProfile, fi
   lines.push("      type: metadata");
   lines.push("      format: yaml");
   lines.push("      description: This manifest file");
+  lines.push("");
+
+  // The program emits variation-matrix.json too — it was omitted from the manifest
+  // (and total_artifacts said 4), so a consumer iterating `artifacts:` skipped it.
+  lines.push("    - id: variation-matrix");
+  lines.push("      file: variation-matrix.json");
+  lines.push("      type: data");
+  lines.push("      format: json");
+  lines.push("      description: Color × complexity × layout variation grid");
+  lines.push("      exports:");
+  lines.push("        - format: json");
+  lines.push("          description: Variation parameter grid");
   lines.push("");
 
   lines.push("  render_pipeline:");
@@ -588,8 +602,10 @@ export function generateVariationMatrix(ctx: ContextMap, files?: SourceFile[]): 
     description: "Visual complexity scaling factor",
   });
 
-  // Density parameter from file count
-  const totalFiles = languages.reduce((t, l) => t + l.file_count, 0);
+  // Use the canonical total (structure.total_files) so the "(N files)" description
+  // agrees with source_file_count/500 across the collection — summing per-language
+  // file_count (492) dropped files with no detected language.
+  const totalFiles = ctx.structure.total_files;
   const densityRange = totalFiles > 200 ? [50, 100, 200, 400] : [10, 25, 50, 100];
   parameters.push({
     name: "element_count",
