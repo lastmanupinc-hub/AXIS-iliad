@@ -2,8 +2,25 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
+
+// ─── Canonical brand palette ─────────────────────────────────────
+// ONE source of truth for the brand colors, consumed by canvas-spec.json,
+// asset-guidelines.md, AND brand-board.md. Before this, brand-board drifted to a
+// different primary/secondary (#2563EB / #7C3AED) than the spec + guidelines
+// (#6366f1 / #8b5cf6), so a renderer consuming canvas-spec drew one color while
+// the brand board told the designer another. Deriving all three from here makes
+// that impossible. (Hex values are Tailwind indigo/violet/cyan-500.)
+const CANVAS_BRAND = {
+  primary: { hex: "#6366f1", hsl: "239° 84% 67%" },
+  secondary: { hex: "#8b5cf6", hsl: "258° 90% 66%" },
+  accent: { hex: "#06b6d4", hsl: "189° 94% 43%" },
+  background: "#0f172a",
+  surface: "#1e293b",
+  text: "#f8fafc",
+  muted: "#94a3b8",
+} as const;
 
 // ─── canvas-spec.json ───────────────────────────────────────────
 
@@ -13,13 +30,13 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile, files?
   const languages = ctx.detection.languages;
 
   const brandColors = {
-    primary: "#6366f1",
-    secondary: "#8b5cf6",
-    accent: "#06b6d4",
-    background: "#0f172a",
-    surface: "#1e293b",
-    text: "#f8fafc",
-    muted: "#94a3b8",
+    primary: CANVAS_BRAND.primary.hex,
+    secondary: CANVAS_BRAND.secondary.hex,
+    accent: CANVAS_BRAND.accent.hex,
+    background: CANVAS_BRAND.background,
+    surface: CANVAS_BRAND.surface,
+    text: CANVAS_BRAND.text,
+    muted: CANVAS_BRAND.muted,
   };
 
   const spec = {
@@ -129,7 +146,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -382,13 +399,13 @@ export function generateCanvasAssetGuidelines(ctx: ContextMap, files?: SourceFil
   lines.push("");
   lines.push("| Role | Hex | Usage |");
   lines.push("|------|-----|-------|");
-  lines.push("| Primary | #6366f1 | CTAs, links, active states |");
-  lines.push("| Secondary | #8b5cf6 | Gradients, accents |");
-  lines.push("| Accent | #06b6d4 | Highlights, badges |");
-  lines.push("| Background | #0f172a | Dark canvas base |");
-  lines.push("| Surface | #1e293b | Cards, panels |");
-  lines.push("| Text | #f8fafc | Primary text |");
-  lines.push("| Muted | #94a3b8 | Secondary text, labels |");
+  lines.push(`| Primary | ${CANVAS_BRAND.primary.hex} | CTAs, links, active states |`);
+  lines.push(`| Secondary | ${CANVAS_BRAND.secondary.hex} | Gradients, accents |`);
+  lines.push(`| Accent | ${CANVAS_BRAND.accent.hex} | Highlights, badges |`);
+  lines.push(`| Background | ${CANVAS_BRAND.background} | Dark canvas base |`);
+  lines.push(`| Surface | ${CANVAS_BRAND.surface} | Cards, panels |`);
+  lines.push(`| Text | ${CANVAS_BRAND.text} | Primary text |`);
+  lines.push(`| Muted | ${CANVAS_BRAND.muted} | Secondary text, labels |`);
   lines.push("");
 
   lines.push("## Typography");
@@ -492,7 +509,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -503,9 +520,9 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("| Role | Hex | HSL | Usage |");
   lines.push("|------|-----|-----|-------|");
-  lines.push("| Brand Primary | `#2563EB` | 217° 91% 53% | Headers, CTAs, primary actions |");
-  lines.push("| Brand Secondary | `#7C3AED` | 263° 83% 58% | Accents, secondary labels |");
-  lines.push("| Brand Accent | `#06B6D4` | 188° 95% 43% | Links, highlights, interactive |");
+  lines.push(`| Brand Primary | \`${CANVAS_BRAND.primary.hex}\` | ${CANVAS_BRAND.primary.hsl} | Headers, CTAs, primary actions |`);
+  lines.push(`| Brand Secondary | \`${CANVAS_BRAND.secondary.hex}\` | ${CANVAS_BRAND.secondary.hsl} | Accents, secondary labels |`);
+  lines.push(`| Brand Accent | \`${CANVAS_BRAND.accent.hex}\` | ${CANVAS_BRAND.accent.hsl} | Links, highlights, interactive |`);
   lines.push("");
   lines.push("### Semantic Colors");
   lines.push("");
