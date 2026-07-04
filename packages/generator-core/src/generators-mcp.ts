@@ -5,6 +5,24 @@ import { findFiles, findFile, findConfigs, renderExcerpts, extractExports, fileT
 import { mdText, mdCode, cssComment, yamlFlowScalar } from "./md-sanitize.js";
 import { displayRoutes } from "./route-utils.js";
 import { capNote, capMeta } from "./cap-utils.js";
+import { PROGRAM_ORDER } from "./program-manifest.js";
+
+/**
+ * The ROOT package.json — shortest path, not the first file-walk match (which was
+ * an arbitrary nested `apps/api/package.json`, often `private:true`, wrongly used
+ * as the server's publish identity). `preferPublishable` additionally skips a
+ * `"private": true` manifest so publish metadata comes from a publishable one.
+ */
+function rootPackageJson(files: SourceFile[], preferPublishable = false): SourceFile | undefined {
+  const candidates = files
+    .filter(f => (f.path === "package.json" || f.path.endsWith("/package.json")) && !f.path.includes("node_modules"))
+    .sort((a, b) => a.path.split("/").length - b.path.split("/").length || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  if (preferPublishable) {
+    const publishable = candidates.find(f => !/"private"\s*:\s*true/.test(f.content));
+    if (publishable) return publishable;
+  }
+  return candidates[0];
+}
 
 // ─── mcp-config.json ────────────────────────────────────────────
 
@@ -210,7 +228,9 @@ export function generateMcpRegistryMetadata(
   let packageDescription: string | null = null;
 
   if (files && files.length > 0) {
-    const pkg = findFile(files, "package.json");
+    // ROOT publishable package.json — not the first file-walk match (a private
+    // nested apps/api/package.json was published as the server's registry identity).
+    const pkg = rootPackageJson(files, true);
     if (pkg) {
       try {
         const parsed = JSON.parse(pkg.content) as Record<string, unknown>;
@@ -2190,12 +2210,21 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
   }
 
   // ─── MCP Tools (from API routes) ────────────────────────────
-  if (routes.length > 0) {
+  // Drop static/doc GET routes (/.well-known/*, /llms.txt, /v1/docs.md, favicon,
+  // sitemap) — those are documents, not callable MCP tools. Keep /api//v1 endpoints.
+  const isDocOrAsset = (p: string) =>
+    /^\/\.well-known\//i.test(p)
+    || /\.(txt|md|ico|png|jpe?g|gif|svg|xml|map|rss|webmanifest)$/i.test(p)
+    || /(^|\/)(robots\.txt|sitemap[\w-]*\.xml|favicon\.\w+|llms\.txt)$/i.test(p);
+  const toolRoutes = routes.filter(r => !isDocOrAsset(r.path));
+  if (toolRoutes.length > 0) {
     lines.push("tools:");
-    const toolNote = capNote(routes.length, 20, "routes");
+    const toolNote = capNote(toolRoutes.length, 20, "routes");
     if (toolNote) lines.push(`  # ${toolNote}`);
-    for (const r of routes.slice(0, 20)) {
-      const toolId = r.path.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+    for (const r of toolRoutes.slice(0, 20)) {
+      // Include the METHOD in the id — GET /x and DELETE /x are distinct routes
+      // (displayRoutes keeps both) but collapsed to one id when keyed on path alone.
+      const toolId = `${r.method}_${r.path}`.replace(/[^a-zA-Z0-9]/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
       lines.push(`  - id: ${toolId}`);
       lines.push(`    name: ${yamlFlowScalar(`${r.method} ${r.path}`)}`);
       lines.push(`    method: ${yamlFlowScalar(r.method)}`);
@@ -2226,6 +2255,8 @@ export function generateConnectorMap(ctx: ContextMap, files?: SourceFile[]): Gen
     const ciFiles = findFiles(files, ["**/.github/workflows/*", "**/Dockerfile*", "**/docker-compose*", "**/.gitlab-ci*", "**/Jenkinsfile*"]);
     if (ciFiles.length > 0) {
       lines.push("# Detected CI/Deployment Files");
+      const cfNote = capNote(ciFiles.length, 8, "config files");
+      if (cfNote) lines.push(`# ${cfNote}`);
       lines.push("detected_configs:");
       for (const f of ciFiles.slice(0, 8)) {
         lines.push(`  - path: ${JSON.stringify(f.path)}`);
@@ -2387,12 +2418,19 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     capabilities,
     // ─── Source File Analysis ──────────────────────────────────
     source_scripts: files && files.length > 0 ? (() => {
-      const pkgJson = findFile(files, "package.json");
+      // Parse the ROOT, non-private package.json (see rootPackageJson) and read
+      // .scripts via JSON.parse — the old `{([^}]+)}` regex stopped at the first
+      // `}` in any script value (e.g. `foo ${VERSION}` / inline JSON), truncating
+      // the list and emitting a partial fragment.
+      const pkgJson = rootPackageJson(files);
       if (!pkgJson) return null;
-      const match = pkgJson.content.match(/"scripts"\s*:\s*\{([^}]+)\}/);
-      if (!match) return null;
-      const scriptLines = match[1].split("\n").map(l => l.trim()).filter(l => l.length > 0);
-      return scriptLines.slice(0, 15).map(l => l.replace(/,$/, ""));
+      try {
+        const parsed = JSON.parse(pkgJson.content) as { scripts?: Record<string, string> };
+        const scripts = parsed.scripts ?? {};
+        return Object.entries(scripts).slice(0, 15).map(([name, cmd]) => `${name}: ${cmd}`);
+      } catch {
+        return null;
+      }
     })() : null,
   };
 
@@ -2470,7 +2508,7 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
   lines.push("        properties:");
   lines.push("          program:");
   lines.push("            type: string");
-  lines.push("            enum: [search, debug, skills, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic]");
+  lines.push(`            enum: [${PROGRAM_ORDER.join(", ")}]`);
   lines.push("");
 
   if (routes.length > 0) {
@@ -2585,6 +2623,8 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
     const serverFiles = findFiles(files, ["**/server.*", "**/handler.*", "**/tool.*", "**/mcp*"]);
     if (serverFiles.length > 0) {
       lines.push("  # Detected Server/Tool Files");
+      const sfNote = capNote(serverFiles.length, 8, "server/tool files");
+      if (sfNote) lines.push(`  # ${sfNote}`);
       lines.push("  source_files:");
       for (const f of serverFiles.slice(0, 8)) {
         const exports = extractExports(f.content);
