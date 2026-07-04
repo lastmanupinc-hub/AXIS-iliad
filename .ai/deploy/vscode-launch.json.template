@@ -1,0 +1,20 @@
+// AXIS deploy/vscode-launch.json.template — copy into .vscode/launch.json
+// (merging with any existing configurations) to attach a debugger to the
+// running container started via deploy/docker-compose.dev.yml.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to axis-iliad (Docker)",
+      "port": 9229,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/app",
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    }
+  ]
+}

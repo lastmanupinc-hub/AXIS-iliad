@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -68,18 +68,18 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 **Goal**: User completes a meaningful action and sees value
 
 ### Key Activation Moments (by domain entity)
-- Works with **AuthContext** (interface) for the first time
-- Works with **EmailConfig** (interface) for the first time
-- Works with **ResendErrorResponse** (interface) for the first time
-- Works with **ResendSuccessResponse** (interface) for the first time
-- Works with **SendEmailOptions** (interface) for the first time
+- Works with **AlertThresholds** (interface) for the first time
+- Works with **Counters** (type_alias) for the first time
+- Works with **DebounceState** (interface) for the first time
+- Works with **WindowResult** (interface) for the first time
+- Works with **AnalyticsCountByBucketResult** (interface) for the first time
 
 ### Action Triggers (POST routes)
-- `POST /v1/accounts` — apps/api/src/admin.test.ts
-- `POST /v1/snapshots` — apps/api/src/admin.test.ts
-- `POST /probe-intent` — apps/api/src/agent-discovery.test.ts
-- `POST /mcp` — apps/api/src/analyze-repo-success.test.ts
-- `POST /v1/analyze` — apps/api/src/analyze.test.ts
+- `POST /v1/accounts` — apps/api/src/server.ts
+- `POST /v1/snapshots` — apps/api/src/server.ts
+- `POST /probe-intent` — apps/api/src/server.ts
+- `POST /mcp` — apps/api/src/server.ts
+- `POST /v1/analyze` — apps/api/src/server.ts
 
 ### Metrics
 - Feature usage depth (which features are used first)
@@ -109,4 +109,12 @@ Map these to funnel stages — each is a potential conversion surface:
 - `apps/web/src/App.tsx`
 - `apps/web/src/main.tsx`
 - `packages/context-engine/src/index.ts`
-- `packages/generator-core/src/index.ts`
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `funnel-map.md` — agent step 22 of 70.
+- **Next:** `sequence-pack.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

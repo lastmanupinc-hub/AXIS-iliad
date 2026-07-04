@@ -115,7 +115,7 @@ These project-specific warnings must be addressed in all AI-generated code:
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
     "@axis/mpp": "workspace:*",
-... (15 more lines)
+... (22 more lines)
 ```
 
 ### `apps/api/tsconfig.json`
@@ -132,3 +132,12 @@ These project-specific warnings must be addressed in all AI-generated code:
 }
 
 ```
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `policy-pack.md` — agent step 53 of 70.
+- **Next:** `layout-patterns.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

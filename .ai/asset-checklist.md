@@ -1,6 +1,6 @@
 # Asset Checklist — axis-iliad
 
-Generated: 2026-05-23T03:31:46.302Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Required Assets
 
@@ -47,3 +47,12 @@ Generated: 2026-05-23T03:31:46.302Z
 | WebM (VP9) | 1920×1080 | Web embedding |
 | GIF | 800×450 | Social preview |
 | PNG Sequence | 1920×1080 | Custom compositing |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `asset-checklist.md` — agent step 45 of 70.
+- **Next:** `social-pack.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

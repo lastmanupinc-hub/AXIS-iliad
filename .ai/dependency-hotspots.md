@@ -1,10 +1,10 @@
 # Dependency Hotspots — axis-iliad
 
-Generated: 2026-05-23T03:31:46.326Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -16,231 +16,279 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 | Severity | Count |
 |----------|-------|
-| High (>7) | 0 |
-| Medium (4–7) | 0 |
-| Low (≤4) | 7 |
-| **Total** | **7** |
+| High (>70%) | 13 |
+| Medium (40–70%) | 5 |
+| Low (≤40%) | 2 |
+| **Total** | **20** |
 
 ## Hotspot Files
 
 | File | Risk | Inbound | Outbound | Total Connections |
 |------|------|---------|----------|-------------------|
-| `apps/web/src/App.tsx` | 🟢 1.0 | 1 | 21 | 22 |
-| `apps/web/src/api.ts` | 🟢 0.9 | 19 | 0 | 19 |
-| `apps/web/src/pages.test.tsx` | 🟢 0.8 | 0 | 17 | 17 |
-| `apps/web/src/pages/DashboardPage.tsx` | 🟢 0.6 | 1 | 10 | 11 |
-| `apps/web/src/components/Toast.tsx` | 🟢 0.2 | 4 | 0 | 4 |
-| `apps/web/src/components/AxisIcons.tsx` | 🟢 0.2 | 4 | 0 | 4 |
-| `apps/web/src/upload-utils.ts` | 🟢 0.1 | 3 | 0 | 3 |
+| `apps/api/src/router.ts` | 🔴 100% | 96 | 4 | 100 |
+| `apps/api/src/test-helpers.ts` | 🔴 100% | 41 | 1 | 42 |
+| `apps/api/src/billing.ts` | 🔴 100% | 28 | 3 | 31 |
+| `apps/api/src/handlers.ts` | 🔴 100% | 23 | 14 | 37 |
+| `apps/api/src/rate-limiter.ts` | 🔴 100% | 36 | 2 | 38 |
+| `apps/api/src/logger.ts` | 🔴 100% | 25 | 0 | 25 |
+| `apps/api/src/server.ts` | 🔴 100% | 1 | 35 | 36 |
+| `apps/web/src/App.tsx` | 🔴 100% | 1 | 24 | 25 |
+| `packages/generator-core/src/generate.ts` | 🔴 100% | 30 | 6 | 36 |
+| `apps/api/src/mcp-tool-impls.ts` | 🔴 100% | 0 | 24 | 24 |
+| `apps/api/src/mcp-server.ts` | 🔴 95% | 11 | 8 | 19 |
+| `apps/web/src/api.ts` | 🔴 95% | 19 | 0 | 19 |
+| `apps/web/src/pages.test.tsx` | 🔴 90% | 0 | 18 | 18 |
+| `apps/api/src/counts.ts` | 🟡 60% | 12 | 0 | 12 |
+| `apps/web/src/pages/DashboardPage.tsx` | 🟡 55% | 1 | 10 | 11 |
+| `apps/api/src/metrics.ts` | 🟡 50% | 9 | 1 | 10 |
+| `apps/api/src/env.ts` | 🟡 50% | 10 | 0 | 10 |
+| `apps/api/src/export.ts` | 🟡 45% | 6 | 3 | 9 |
+| `apps/api/src/architecture-drift-webhook.ts` | 🟢 40% | 2 | 6 | 8 |
+| `apps/cli/src/scanner.ts` | 🟢 40% | 8 | 0 | 8 |
 
 ## Coupling Analysis
 
-### `apps/web/src/App.tsx`
+### `apps/api/src/router.ts`
 
-- **Risk Score**: 1.0/10
-- **Inbound**: 1 files depend on this
-- **Outbound**: 21 dependencies
-- **Refactor Priority**: LOW — acceptable coupling
+- **Risk Score**: 100%
+- **Inbound**: 96 files depend on this
+- **Outbound**: 4 dependencies
+- **Refactor Priority**: HIGH — extract interface or split module
 
-### `apps/web/src/api.ts`
+### `apps/api/src/test-helpers.ts`
 
-- **Risk Score**: 0.9/10
-- **Inbound**: 19 files depend on this
-- **Outbound**: 0 dependencies
-- **Refactor Priority**: LOW — acceptable coupling
+- **Risk Score**: 100%
+- **Inbound**: 41 files depend on this
+- **Outbound**: 1 dependencies
+- **Refactor Priority**: HIGH — extract interface or split module
 
-### `apps/web/src/pages.test.tsx`
+### `apps/api/src/billing.ts`
 
-- **Risk Score**: 0.8/10
-- **Inbound**: 0 files depend on this
-- **Outbound**: 17 dependencies
-- **Refactor Priority**: LOW — acceptable coupling
+- **Risk Score**: 100%
+- **Inbound**: 28 files depend on this
+- **Outbound**: 3 dependencies
+- **Refactor Priority**: HIGH — extract interface or split module
 
-### `apps/web/src/pages/DashboardPage.tsx`
+### `apps/api/src/handlers.ts`
 
-- **Risk Score**: 0.6/10
-- **Inbound**: 1 files depend on this
-- **Outbound**: 10 dependencies
-- **Refactor Priority**: LOW — acceptable coupling
+- **Risk Score**: 100%
+- **Inbound**: 23 files depend on this
+- **Outbound**: 14 dependencies
+- **Refactor Priority**: HIGH — extract interface or split module
 
-### `apps/web/src/components/Toast.tsx`
+### `apps/api/src/rate-limiter.ts`
 
-- **Risk Score**: 0.2/10
-- **Inbound**: 4 files depend on this
-- **Outbound**: 0 dependencies
-- **Refactor Priority**: LOW — acceptable coupling
+- **Risk Score**: 100%
+- **Inbound**: 36 files depend on this
+- **Outbound**: 2 dependencies
+- **Refactor Priority**: HIGH — extract interface or split module
 
 ## External Dependency Risk
 
 | Package | Version | Risk Factor |
 |---------|---------|-------------|
-| @axis/context-engine | workspace:* | Stable |
-| @axis/generator-core | workspace:* | Stable |
-| @axis/mpp | workspace:* | Stable |
-| @axis/repo-parser | workspace:* | Stable |
-| @axis/snapshots | workspace:* | Stable |
+| @axis/context-engine | workspace:* | Internal workspace package |
+| @axis/generator-core | workspace:* | Internal workspace package |
+| @axis/mpp | workspace:* | Internal workspace package |
+| @axis/paid-client | workspace:* | Internal workspace package |
+| @axis/repo-parser | workspace:* | Internal workspace package |
+| @axis/snapshots | workspace:* | Internal workspace package |
 | @jmondi/oauth2-server | ^4.2.2 | Stable |
+| dockerode | ^4.0.12 | Stable |
+| ffmpeg-static | ^5.3.0 | Stable |
 | jsonwebtoken | ^9.0.3 | Stable |
+| mammoth | ^1.12.0 | Stable |
 | mppx | ^0.5.12 | Pre-1.0 — unstable API |
-| jszip | ^3.10.1 | Stable |
-| react | ^19.1.0 | Stable |
-| react-dom | ^19.1.0 | Stable |
-| better-sqlite3 | ^12.8.0 | Stable |
-| uuid | ^11.1.0 | Stable |
-| @types/better-sqlite3 | ^7.6.13 | Stable |
-| @types/jsonwebtoken | ^9.0.10 | Stable |
+| node-llama-cpp | ^3.18.1 | Stable |
+| pdfjs-dist | ^4.10.38 | Stable |
+| tesseract.js | ^7.0.0 | Stable |
 
 ## Recommendations
 
-1. **Review circular dependencies** in the import graph
+1. **Extract interfaces** for files with >70% risk score to reduce direct coupling
+2. **Introduce facade pattern** where inbound count exceeds 5
+3. **Monitor medium-risk files** — add import lint rules to prevent further coupling
+4. **Review circular dependencies** in the import graph
 
 ## Hotspot Export Surface
 
-### `apps/web/src/api.ts`
+### `apps/api/src/billing.ts`
 
-- `export interface SnapshotPayload { ... }`
-- `export interface SnapshotResponse { ... }`
-- `export interface ContextMap { ... }`
-- `export interface RepoProfile { ... }`
-- `export interface GeneratedFile { ... }`
-- `export interface GeneratedFilesResponse { ... }`
-- `export type BillingTier = ...`
-- `export interface Account { ... }`
-- `export interface ApiKeyInfo { ... }`
-- `export interface UsageSummary { ... }`
-- `export interface ApiEndpointUsage { ... }`
-- `export interface ApiStatusUsage { ... }`
+- `export interface AuthContext { ... }`
+- `export const SESSION_COOKIE = ...`
+- `export async function resolveAuth(req: IncomingMessage): Promise<AuthContext> { ... }`
+- `export async function requireAuth(req: IncomingMessage, res: ServerResponse): Promise<AuthContext | null> { ... }`
+- `export function constantTimeEqual(a: string, b: string): boolean { ... }`
+- `export async function handleCreateAccount(`
+- `export async function handleGetAccount(`
+- `export async function handleCreateApiKey(`
+- `export async function handleListApiKeys(`
+- `export async function handleRevokeApiKey(`
+- `export async function handleGetUsage(`
+- `export async function handleGetAnalyticsSummary(`
 
-### `apps/web/src/App.tsx`
+### `apps/api/src/handlers.ts`
 
-- `export function App() { ... }`
+- `export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResponse, snapshot: { ... }`
+- `export const PROGRAM_OUTPUTS: Record<string, string[]> = ...`
+- `export function makeProgramHandler(program: string, defaultOutputs: string[]) { ... }`
+- `export const handleDebugAnalyze = ...`
+- `export const handleFrontendAudit = ...`
+- `export const handleSeoAnalyze = ...`
+- `export const handleOptimizationAnalyze = ...`
+- `export const handleThemeGenerate = ...`
+- `export const handleBrandGenerate = ...`
+- `export const handleSuperpowersGenerate = ...`
+- `export const handleMarketingGenerate = ...`
+- `export const handleNotebookGenerate = ...`
 
-### `apps/web/src/pages/DashboardPage.tsx`
+### `apps/api/src/router.ts`
 
-- `export function DashboardPage({ ... }`
+- `export class Router { ... }`
+- `export function sendJSON(res: ServerResponse, status: number, data: unknown) { ... }`
+- `export function sendError(`
+- `export async function readBody(req: IncomingMessage): Promise<string> { ... }`
+- `export interface AppHandle { ... }`
+- `export function isShuttingDown(): boolean { ... }`
+- `export function scheduleBootMigrations(`
+- `export function createApp(router: Router, port: number): Server { ... }`
+
+### `apps/api/src/test-helpers.ts`
+
+- `export interface TestServer { ... }`
+- `export async function startTestServer(router: Router): Promise<TestServer> { ... }`
 
 ## Hotspot File Excerpts
 
-### `apps/web/src/api.ts`
+### `apps/api/src/billing.ts`
 
 ```typescript
-const PROD_API_BASE = "https://axis-api-6c7z.onrender.com";
-const isLocalHost =
-  typeof window === "undefined" ||
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { sendJSON, readBody, sendError } from "./router.js";
+import { ErrorCode, log } from "./logger.js";
+import { getClientWindow, getClientIp } from "./rate-limiter.js";
+import {
+  resolveApiKey,
+  createAccount,
+  getAccount,
+  getAccountByEmail,
+  updateAccountTier,
+  createApiKey,
+  revokeApiKey,
+  listApiKeys,
+  enableProgram,
+  disableProgram,
+  getEntitlements,
+  checkQuota,
+  getUsageSummary,
+  getApiCallSummary,
+  recordUsage,
+  isProgramEnabled,
+  trackEvent,
+  saveGitHubToken,
+  getGitHubTokens,
+... (831 more lines)
+```
 
-// ─── Snapshot types ─────────────────────────────────────────────
+### `apps/api/src/handlers.ts`
 
-export interface SnapshotPayload {
-  input_method: string;
-  manifest: {
-    project_name: string;
-    project_type: string;
-    frameworks: string[];
-    goals: string[];
-    requested_outputs: string[];
-  };
-  files: Array<{ path: string; content: string; size: number }>;
+```typescript
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { chargeMpp, parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import type { AgentBudget } from "./mpp.js";
+import { classifyProbe, captureIntent } from "./intent.js";
+import {
+  createSnapshot,
+  getSnapshot,
+  updateSnapshotStatus,
+  getProjectSnapshots,
+  getProjectOwner,
+  deleteSnapshot,
+  deleteProject,
+  saveContextMap,
+  getContextMap,
+  saveRepoProfile,
+  getRepoProfile,
+  saveGeneratorResult,
+  getGeneratorResult,
+  recordUsage,
+  checkQuota,
+  trackEvent,
+  resolveStage,
+  TIER_LIMITS,
+  ALL_PROGRAMS,
+  isProgramEnabled,
+... (3800 more lines)
+```
+
+### `apps/api/src/router.ts`
+
+```typescript
+import { createServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
+import type { Socket } from "node:net";
+import { gzipSync, gunzipSync } from "node:zlib";
+import { initRequest, getRequestId, getRequestStart, log, ErrorCode, type ErrorCodeValue } from "./logger.js";
+import { checkRateLimit } from "./rate-limiter.js";
+import { resolveAuth } from "./billing.js";
+import { recordRequest, recordLatency } from "./metrics.js";
+import { recordApiCall, checkQuota, getPersistenceBalance, runPgMigrations, closePool } from "@axis/snapshots";
+
+// Store request reference on response for sendJSON gzip negotiation
+const REQUEST_REF = new WeakMap<ServerResponse, IncomingMessage>();
+
+type RouteHandler = (req: IncomingMessage, res: ServerResponse, params: Record<string, string>) => Promise<void>;
+
+interface Route {
+  method: string;
+  pattern: RegExp;
+  paramNames: string[];
+  handler: RouteHandler;
 }
 
-export interface SnapshotResponse {
-  snapshot_id: string;
-  project_id: string;
-  status: string;
-... (696 more lines)
+export class Router {
+  private routes: Route[] = [];
+
+  post(path: string, handler: RouteHandler) {
+... (466 more lines)
 ```
 
-### `apps/web/src/App.tsx`
+### `apps/api/src/test-helpers.ts`
 
-```tsx
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
-import { ToastProvider } from "./components/Toast.tsx";
-import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
-import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
-import { getAdminStats, ApiError, type SnapshotResponse } from "./api.ts";
+```typescript
+// Shared test-server helper. Replaces the flaky `createApp(router, FIXED_PORT)`
+// + `setTimeout(...)` readiness guess used across the api test suites, which
+// raced under load (esp. `--coverage`) and produced intermittent
+// `ECONNREFUSED`/"Server is not running" failures.
+//
+// startTestServer binds an OS-assigned ephemeral port (0) — no cross-worker
+// port collisions — and resolves only once the socket is actually `listening`
+// (rejecting on bind error). Deterministic readiness.
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { createApp, type Router } from "./router.js";
 
-// ─── Error Boundary ─────────────────────────────────────────────
-// React requires a class for getDerivedStateFromError; this thin wrapper
-... (465 more lines)
-```
-
-### `apps/web/src/pages/DashboardPage.tsx`
-
-```tsx
-import { useState, useEffect } from "react";
-import type { SnapshotResponse, GeneratedFile } from "../api.ts";
-import { getGeneratedFiles, runProgram, downloadExport, ApiError } from "../api.ts";
-import { OverviewTab } from "../components/OverviewTab.tsx";
-import { FilesTab } from "../components/FilesTab.tsx";
-import { GraphTab } from "../components/GraphTab.tsx";
-import { GeneratedTab } from "../components/GeneratedTab.tsx";
-import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
-import { SearchTab } from "../components/SearchTab.tsx";
-import { UpsellModal } from "../components/UpsellModal.tsx";
-import { useToast } from "../components/Toast.tsx";
-
-interface Props {
-  result: SnapshotResponse;
-  onGeneratedCountChange?: (count: number) => void;
+export interface TestServer {
+  server: Server;
+  port: number;
+  baseUrl: string;
 }
 
-const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
-type Tab = (typeof TABS)[number];
-
-function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: number; onDownload: () => void; downloading: boolean }) {
-  const [dismissed, setDismissed] = useState(false);
-  if (dismissed || fileCount === 0) return null;
-
-  return (
-... (172 more lines)
+export async function startTestServer(router: Router): Promise<TestServer> {
+  const server = createApp(router, 0);
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    if (server.listening) resolve();
+    else server.once("listening", () => resolve());
+  });
+... (5 more lines)
 ```
 
-### `apps/web/src/pages.test.tsx`
 
-```tsx
-/**
- * @vitest-environment happy-dom
- */
+---
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render } from "@testing-library/react";
+## ⟳ Continue the loop
 
-// ─── Zero-prop page smoke tests ─────────────────────────────────
-// Each test renders the page and verifies it mounts without throwing.
-
-import { DocsPage } from "./pages/DocsPage";
-import { ExamplesPage } from "./pages/ExamplesPage";
-import { ForAgentsPage } from "./pages/ForAgentsPage";
-import { HelpPage } from "./pages/HelpPage";
-import { InstallPage } from "./pages/InstallPage";
-import { QAPage } from "./pages/QAPage";
-import { TermsPage } from "./pages/TermsPage";
-
-beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
-    const url = String(input);
-
-    if (url.endsWith("/v1/plans")) {
-      return {
-        ok: true,
-... (137 more lines)
-```
+- **You are here:** `dependency-hotspots.md` — agent step 50 of 70.
+- **Next:** `root-cause-checklist.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

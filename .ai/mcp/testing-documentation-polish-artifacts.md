@@ -1,6 +1,6 @@
 # Testing, Documentation & Polish Artifacts — axis-iliad
 
-Generated: 2026-05-23T03:31:46.188Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Phase Goal
 
@@ -41,3 +41,11 @@ packages/
 - [ ] README, API docs, and protocol spec updated for current release
 - [ ] CI quality gates (lint/typecheck/test) required on main branch
 - [ ] Transport adapters validated: stdio, streamable HTTP, websocket
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `mcp/testing-documentation-polish-artifacts.md` — agent step 37 of 70.
+- **Next:** `mcp/fintech-mcp-surface-package.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

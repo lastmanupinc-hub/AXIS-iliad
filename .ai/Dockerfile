@@ -20,7 +20,6 @@ COPY --from=build --chown=app:app /src/package.json ./package.json
 USER app
 EXPOSE 8080
 LABEL org.opencontainers.image.title="axis-iliad"
-LABEL org.opencontainers.image.source=""
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --quiet --tries=1 --spider http://127.0.0.1:${PORT}/health || exit 1
 CMD ["sh", "-lc", "node dist/server.js"]

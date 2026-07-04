@@ -23,9 +23,9 @@ interface Edge {
 const CONFIG = {
   width: 1920,
   height: 1080,
-  nodeCount: 14,
-  complexity: 0.01,
-  palette: [{"name":"TypeScript","hue":220,"weight":76.5},{"name":"YAML","hue":280,"weight":8.1},{"name":"JSON","hue":340,"weight":6.6},{"name":"Markdown","hue":160,"weight":6.5},{"name":"JavaScript","hue":40,"weight":1.7}],
+  nodeCount: 40,
+  complexity: 0.65,
+  palette: [{"name":"TypeScript","hue":220,"weight":80},{"name":"YAML","hue":280,"weight":9.5},{"name":"Markdown","hue":340,"weight":5.6},{"name":"JavaScript","hue":160,"weight":2},{"name":"JSON","hue":40,"weight":1.7}],
   dampening: 0.98,
   attractionStrength: 0.001,
   repulsionStrength: 500,
@@ -141,23 +141,23 @@ export function renderSketch(canvas: HTMLCanvasElement) {
 export { CONFIG, createNodes, createEdges, simulate };
 
 // ─── Source File Tree ──────────────────────────────────
-// .
-// g
-// i
-// t
-// h
-// u
-// b
-// /
-// a
-// c
-// t
-// i
-// o
-// n
-// s
-// /
-// c
-// o
-// m
-// p
+// .github/actions/compliance-check/action.yml (12.3 KB)
+// .github/actions/context-freshness/README.md (5.3 KB)
+// .github/actions/context-freshness/action.yml (6.0 KB)
+// .github/app-manifest.json (0.9 KB)
+// .github/workflows/ci.yml (8.5 KB)
+// .github/workflows/compliance-check.yml (0.7 KB)
+// .github/workflows/context-freshness.yml (0.9 KB)
+// .github/workflows/release.yml (0.6 KB)
+// .gitignore (0.6 KB)
+// .prettierrc.json (0.1 KB)
+// .tmp-vitest.json (68.7 KB)
+// ACTIVATION_TRACKER.md (7.6 KB)
+// AGENTS.md (7.0 KB)
+// AXIS_Board_Pitch.md (30.7 KB)
+// AXIS_DEMO_REPORT.md (12.3 KB)
+// CHANGELOG.md (7.8 KB)
+// CLAUDE.md (7.0 KB)
+// CONTRIBUTING.md (6.4 KB)
+// DEPLOY_OFF_ACTIONS_RUNBOOK.md (10.6 KB)
+// DISTRIBUTABLE.md (0.6 KB)

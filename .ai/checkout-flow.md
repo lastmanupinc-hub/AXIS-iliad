@@ -280,3 +280,12 @@ AXIS auto-generates the evidence payload structure — agents fill transaction-s
 | network_tokenization | PASS | token patterns found |
 | mandate_management | PASS | mandate patterns found |
 | tap_protocol_support | PASS | TAP protocol references found |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `checkout-flow.md` — agent step 63 of 70.
+- **Next:** `negotiation-rules.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -1,0 +1,44 @@
+{
+  "schema": "axis-package-quality/2",
+  "floors_passed": true,
+  "grade": "A",
+  "overall": 98,
+  "floors": {
+    "assessment_validity": {
+      "score": 95,
+      "passed": true,
+      "evidence": [
+        "frameworks=1",
+        "domain_models=242",
+        "routes=540",
+        "external_deps=32",
+        "files=500",
+        "separation_score=0.65"
+      ]
+    },
+    "grounding": {
+      "score": 100,
+      "passed": true,
+      "evidence": [
+        "grounded_docs=70/70 (target 3)"
+      ]
+    },
+    "needs_coverage": {
+      "score": 100,
+      "passed": true,
+      "evidence": [
+        "covered 2/2"
+      ]
+    }
+  },
+  "detected_needs": [
+    "lockfile",
+    "dependency_hygiene"
+  ],
+  "uncovered_needs": [],
+  "appended": [],
+  "design": {
+    "assessed": false,
+    "note": "Design quality is judged by the engineer-mode AI judge; not assessed on this call."
+  }
+}

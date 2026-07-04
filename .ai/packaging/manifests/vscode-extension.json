@@ -1,7 +1,7 @@
 {
   "name": "axis-iliad",
   "displayName": "axis-iliad",
-  "description": "Production-grade axis-iliad packaging and release kit",
+  "description": "Packaging and release kit for axis-iliad",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.95.0"

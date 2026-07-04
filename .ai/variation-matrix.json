@@ -1,6 +1,6 @@
 {
   "project": "axis-iliad",
-  "generated": "2026-05-23T03:31:46.832Z",
+  "generated": "1970-01-01T00:00:00.000Z",
   "parameters": [
     {
       "name": "primary_hue",
@@ -9,7 +9,7 @@
         "#3178C6",
         "#64748B",
         "#64748B",
-        "#64748B"
+        "#F7DF1E"
       ],
       "description": "Base color derived from project language palette"
     },
@@ -39,7 +39,7 @@
         200,
         400
       ],
-      "description": "Element density based on project scale (485 files)"
+      "description": "Element density based on project scale (492 files)"
     },
     {
       "name": "layout",
@@ -252,34 +252,34 @@
   ],
   "feature_highlights": [
     {
-      "source_file": "apps/web/src/App.tsx",
+      "source_file": "apps/api/src/router.ts",
       "risk_score": 1,
-      "visual_weight": 0.1,
-      "suggested_emphasis": "subtle"
+      "visual_weight": 1,
+      "suggested_emphasis": "glow"
     },
     {
-      "source_file": "apps/web/src/api.ts",
-      "risk_score": 0.95,
-      "visual_weight": 0.095,
-      "suggested_emphasis": "subtle"
+      "source_file": "apps/api/src/test-helpers.ts",
+      "risk_score": 1,
+      "visual_weight": 1,
+      "suggested_emphasis": "glow"
     },
     {
-      "source_file": "apps/web/src/pages.test.tsx",
-      "risk_score": 0.85,
-      "visual_weight": 0.08499999999999999,
-      "suggested_emphasis": "subtle"
+      "source_file": "apps/api/src/billing.ts",
+      "risk_score": 1,
+      "visual_weight": 1,
+      "suggested_emphasis": "glow"
     },
     {
-      "source_file": "apps/web/src/pages/DashboardPage.tsx",
-      "risk_score": 0.55,
-      "visual_weight": 0.05500000000000001,
-      "suggested_emphasis": "subtle"
+      "source_file": "apps/api/src/handlers.ts",
+      "risk_score": 1,
+      "visual_weight": 1,
+      "suggested_emphasis": "glow"
     },
     {
-      "source_file": "apps/web/src/components/Toast.tsx",
-      "risk_score": 0.2,
-      "visual_weight": 0.02,
-      "suggested_emphasis": "subtle"
+      "source_file": "apps/api/src/rate-limiter.ts",
+      "risk_score": 1,
+      "visual_weight": 1,
+      "suggested_emphasis": "glow"
     }
   ],
   "label_overlays": [
@@ -294,8 +294,13 @@
       "style": "caption"
     },
     {
-      "text": "examples/ (project_directory)",
+      "text": "docs/ (documentation)",
       "position": "top",
+      "style": "caption"
+    },
+    {
+      "text": "examples/ (project_directory)",
+      "position": "bottom",
       "style": "caption"
     },
     {
@@ -304,12 +309,7 @@
       "style": "caption"
     },
     {
-      "text": "payment-processing-output/ (project_directory)",
-      "position": "bottom",
-      "style": "caption"
-    },
-    {
-      "text": "packaging/ (project_directory)",
+      "text": ".github/ (project_directory)",
       "position": "bottom",
       "style": "caption"
     }

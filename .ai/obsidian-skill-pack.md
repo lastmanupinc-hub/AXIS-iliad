@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -90,15 +90,15 @@ Help me trace this from the entry point to the failure.
 ### Domain Model Prompt
 ```
 I'm working with the following domain models in axis-iliad:
-- AuthContext (interface, 3 fields) — defined in apps/api/src/billing.ts
-- EmailConfig (interface, 2 fields) — defined in apps/api/src/email.ts
-- ResendErrorResponse (interface, 3 fields) — defined in apps/api/src/email.ts
-- ResendSuccessResponse (interface, 1 fields) — defined in apps/api/src/email.ts
-- SendEmailOptions (interface, 5 fields) — defined in apps/api/src/email.ts
-- SendEmailResult (interface, 4 fields) — defined in apps/api/src/email.ts
-- EmbeddingsConfig (interface, 2 fields) — defined in apps/api/src/embeddings.ts
-- EmbeddingsResult (interface, 4 fields) — defined in apps/api/src/embeddings.ts
-  ... and 256 more
+- AlertThresholds (interface, 2 fields) — defined in apps/api/src/alerting.ts
+- Counters (type_alias, 2 fields) — defined in apps/api/src/alerting.ts
+- DebounceState (interface, 2 fields) — defined in apps/api/src/alerting.ts
+- WindowResult (interface, 4 fields) — defined in apps/api/src/alerting.ts
+- AnalyticsCountByBucketResult (interface, 3 fields) — defined in apps/api/src/analytics.ts
+- AnalyticsCountByBucketRow (interface, 2 fields) — defined in apps/api/src/analytics.ts
+- AnalyticsCountByEventResult (interface, 2 fields) — defined in apps/api/src/analytics.ts
+- AnalyticsCountByEventRow (interface, 2 fields) — defined in apps/api/src/analytics.ts
+  ... and 234 more
 
 When generating code that uses these types, import from their source files and
 do not redefine them.
@@ -110,8 +110,9 @@ do not redefine them.
 vault/
 ├── Projects/
 │   └── axis-iliad/
-│       ├── Overview.md
+│       ├── axis-iliad.md    ← project hub (the [[axis-iliad]] note)
 │       ├── Architecture.md
+│       ├── Code/             ← one note per hotspot/entry-point file
 │       ├── ADRs/
 │       ├── Meeting Notes/
 │       └── Retrospectives/
@@ -135,3 +136,12 @@ vault/
 - `apps/cli/package.json`
 - `apps/cli/tsconfig.json`
 - `apps/web/package.json`
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `obsidian-skill-pack.md` — agent step 28 of 70.
+- **Next:** `vault-rules.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

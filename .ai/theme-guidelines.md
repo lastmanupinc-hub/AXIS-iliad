@@ -2,9 +2,15 @@
 
 > Design system rules for a monorepo built with TypeScript
 
+This pack ships the **averionics** starting aesthetic — a cockpit/instrument system with a
+HUD-cyan accent, instrument amber for caution, cool blue-black panels, monospace data labels
+and a glow focus ring — as a complete **light + dark** theme (`theme.css`). It's a starting
+point: keep the token contract and restyle freely. Reference the cyan primary scale for
+interactive surfaces and `--color-amber` for caution states.
+
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -30,11 +36,15 @@ Theme tokens should be applied consistently across these layers:
 
 ## Color Usage
 
-| Context | Token Range | Example |
-|---------|------------|---------|
-| Background (light) | neutral-50 to neutral-100 | Page backgrounds, cards |
-| Background (dark) | neutral-800 to neutral-900 | Dark mode surfaces |
-| Text (primary) | neutral-900 / neutral-50 (dark) | Body text |
+> The neutral scale **inverts in dark mode** (`neutral-50` = darkest, `neutral-900` = lightest),
+> so the *same* token names stay legible in both modes — don't swap indices per theme.
+> Prefer the `--surface-*` tokens for backgrounds; they auto-adapt.
+
+| Context | Token | Example |
+|---------|-------|---------|
+| Page background | `--surface-page` (or neutral-50) | Root background — light in light mode, dark in dark |
+| Card / panel background | `--surface-card` / `--surface-elevated` | Cards, popovers |
+| Text (primary) | neutral-900 | Body text — auto-inverts, no per-mode swap |
 | Text (secondary) | neutral-500 to neutral-600 | Labels, captions |
 | Interactive | primary-500 to primary-600 | Buttons, links |
 | Interactive (hover) | primary-600 to primary-700 | Hover states |
@@ -46,7 +56,7 @@ Theme tokens should be applied consistently across these layers:
 
 - Use `font-sans` for UI text and body copy
 - Use `font-mono` for code blocks, terminal output, and technical data
-- Heading scale: h1=4xl, h2=3xl, h3=2xl, h4=xl, h5=lg, h6=base
+- Heading scale (as shipped in `theme.css`): h1=4xl, h2=2xl, h3=xl, h4=lg. h5/h6 inherit `base` — set explicitly if you need them larger.
 - Body text: base size (1rem / 16px) with normal line-height (1.5)
 - Small text: sm size for captions, helper text, labels
 - Never use more than 3 font weights on a single page
@@ -61,7 +71,7 @@ Theme tokens should be applied consistently across these layers:
 
 ## Component Patterns
 
-Detected 20 component file(s). Apply these patterns:
+Detected 34 component file(s). Apply these patterns:
 
 - Buttons: `radius-md`, `primary-500` bg, `space-2` horizontal padding, `space-1` vertical
 - Cards: `radius-lg`, `shadow-base`, `space-4` padding, `neutral-50` bg
@@ -166,32 +176,32 @@ Surfaces automatically adapt in dark mode via CSS custom properties.
 
 Routes detected — consider zone-based theming:
 
-- `/v1/health` (GET) → apps/api/src/admin.test.ts
-- `/v1/accounts` (POST) → apps/api/src/admin.test.ts
-- `/v1/snapshots` (POST) → apps/api/src/admin.test.ts
-- `/v1/admin/stats` (GET) → apps/api/src/admin.test.ts
-- `/v1/admin/accounts` (GET) → apps/api/src/admin.test.ts
-- `/v1/admin/activity` (GET) → apps/api/src/admin.test.ts
-- `/llms.txt` (GET) → apps/api/src/agent-discovery.test.ts
-- `/.well-known/skills/index.json` (GET) → apps/api/src/agent-discovery.test.ts
-- `/v1/docs.md` (GET) → apps/api/src/agent-discovery.test.ts
-- `/.well-known/axis.json` (GET) → apps/api/src/agent-discovery.test.ts
-- `/for-agents` (GET) → apps/api/src/agent-discovery.test.ts
-- `/v1/install` (GET) → apps/api/src/agent-discovery.test.ts
-- … and 485 more routes
+- `/v1/health` (GET) → apps/api/src/server.ts
+- `/v1/accounts` (POST) → apps/api/src/server.ts
+- `/v1/snapshots` (POST) → apps/api/src/server.ts
+- `/v1/admin/stats` (GET) → apps/api/src/server.ts
+- `/v1/admin/accounts` (GET) → apps/api/src/server.ts
+- `/v1/admin/activity` (GET) → apps/api/src/server.ts
+- `/v1/admin/mcp-usage` (GET) → apps/api/src/server.ts
+- `/v1/admin/revenue` (GET) → apps/api/src/server.ts
+- `/llms.txt` (GET) → apps/api/src/server.ts
+- `/.well-known/skills/index.json` (GET) → apps/api/src/server.ts
+- `/v1/docs.md` (GET) → apps/api/src/server.ts
+- `/.well-known/axis.json` (GET) → apps/api/src/server.ts
+- … and 151 more routes
 
 ## Domain-Specific Tokens
 
 Consider extending the token system for domain entity states:
 
-- **AuthContext** (interface): 3 fields — apps/api/src/billing.ts
-- **EmailConfig** (interface): 2 fields — apps/api/src/email.ts
-- **ResendErrorResponse** (interface): 3 fields — apps/api/src/email.ts
-- **ResendSuccessResponse** (interface): 1 fields — apps/api/src/email.ts
-- **SendEmailOptions** (interface): 5 fields — apps/api/src/email.ts
-- **SendEmailResult** (interface): 4 fields — apps/api/src/email.ts
-- **EmbeddingsConfig** (interface): 2 fields — apps/api/src/embeddings.ts
-- **EmbeddingsResult** (interface): 4 fields — apps/api/src/embeddings.ts
+- **AlertThresholds** (interface): 2 fields — apps/api/src/alerting.ts
+- **Counters** (type_alias): 2 fields — apps/api/src/alerting.ts
+- **DebounceState** (interface): 2 fields — apps/api/src/alerting.ts
+- **WindowResult** (interface): 4 fields — apps/api/src/alerting.ts
+- **AnalyticsCountByBucketResult** (interface): 3 fields — apps/api/src/analytics.ts
+- **AnalyticsCountByBucketRow** (interface): 2 fields — apps/api/src/analytics.ts
+- **AnalyticsCountByEventResult** (interface): 2 fields — apps/api/src/analytics.ts
+- **AnalyticsCountByEventRow** (interface): 2 fields — apps/api/src/analytics.ts
 
 ## Warnings
 
@@ -199,106 +209,58 @@ Consider extending the token system for domain entity states:
 
 ## Detected Style Files
 
-- `apps/web/src/index.css` (770 lines)
-- `component-theme-map.json` (362 lines)
-- `dark-mode-tokens.json` (132 lines)
-- `packages/generator-core/src/generators-theme.ts` (1109 lines)
-- `packages/snapshots/src/github-token-branches.test.ts` (89 lines)
-- `packages/snapshots/src/github-token-store.ts` (136 lines)
+- `apps/web/src/index.css` (1349 lines)
 
 ## Style File Contents
 
 ### `apps/web/src/index.css`
 
 ```css
+/* ==========================================================================
+   AVERIONICS theme pack — Axis' Iliad
+   A cockpit/instrument design system: HUD cyan accent, amber caution, precise
+   panel borders, glow focus, monospace instrument labels. Full light + dark.
+   :root = "daylight instrument" · [data-theme="dark"] = "night cockpit".
+   ========================================================================== */
+
 :root {
-  --bg: #f8f9fa;
+  /* Surfaces — daylight instrument */
+  --bg: #eceff3;
   --bg-card: #ffffff;
-  --bg-hover: #f0f1f3;
-  --border: #d1d5db;
-  --text: #1a1a2e;
-  --text-muted: #6b7280;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --green: #16a34a;
-  --yellow: #ca8a04;
-  --red: #dc2626;
-  --blue: #2563eb;
-  --radius: 8px;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-
-[data-theme="dark"] {
-... (750 more lines)
-```
-
-### `component-theme-map.json`
-
-```json
-{
-  "project": "axis-iliad",
-  "generated_at": "2026-05-14T02:05:24.906Z",
-  "detected_stack": [
-    {
-      "name": "React",
-      "version": "^19.1.0",
-      "confidence": 0.95
-    }
-  ],
-  "primary_language": "TypeScript",
-  "summary": {
-    "total_components": 30,
-    "by_type": {
-      "custom": 15,
-      "decorative": 1,
-      "overlay": 2,
-      "page": 12
-    }
-  },
-... (342 more lines)
-```
-
-### `dark-mode-tokens.json`
-
-```json
-{
-  "project": "axis-iliad",
-  "generated_at": "2026-05-14T02:05:25.649Z",
-  "scheme": "dark",
-  "detected_stack": {
-    "frameworks": [
-      "React ^19.1.0"
-    ],
-    "primary_language": "TypeScript",
-    "project_type": "monorepo"
-  },
-  "colors": {
-    "background": {
-      "base": "#0f172a",
-      "surface": "#1e293b",
-      "elevated": "#334155",
-      "overlay": "rgba(0, 0, 0, 0.6)"
-    },
-    "foreground": {
-      "primary": "#f8fafc",
-... (112 more lines)
+  --bg-hover: #e2e7ee;
+  --bg-inset: #f4f6f9;
+  --bg-tertiary: #e8edf3;
+  /* Edges */
+  --border: #ccd5e0;
+  --border-strong: #b3bfce;
+  /* Ink */
+  --text: #0c1118;
+  --text-muted: #5b6878;
+... (1329 more lines)
 ```
 
 ## Component Style Usage
 
 | Component | Exports | Lines |
 |-----------|---------|-------|
-| `apps/web/src/App.tsx` | export function App() { ... } | 490 |
+| `apps/web/src/App.tsx` | export function App() { ... } | 579 |
+| `apps/web/src/components/AuthButtons.tsx` | export function AuthButtons({ ... } | 101 |
 | `apps/web/src/components/AxisIcons.tsx` | export function Icon({ ... } | 111 |
 | `apps/web/src/components/CommandPalette.tsx` | export interface PaletteAction { ... }, export function CommandPalette({ ... } | 214 |
 | `apps/web/src/components/FilesTab.tsx` | export function FilesTab({ ... } | 126 |
 | `apps/web/src/components/GeneratedTab.tsx` | export function GeneratedTab({ ... } | 118 |
 | `apps/web/src/components/GraphTab.tsx` | export function GraphTab({ ... } | 128 |
+| `apps/web/src/components/Icon.tsx` | export function Icon({ ... } | 53 |
 | `apps/web/src/components/OverviewTab.tsx` | export function OverviewTab({ ... } | 223 |
-| `apps/web/src/components/ProgramLauncher.tsx` | export function ProgramLauncher({ ... } | 169 |
+| `apps/web/src/components/ProgramLauncher.tsx` | export function ProgramLauncher({ ... } | 172 |
 | `apps/web/src/components/SearchTab.tsx` | export function SearchTab({ ... } | 307 |
-| `apps/web/src/components/SignUpModal.tsx` | export function SignUpModal({ ... } | 122 |
-| `apps/web/src/components/StatusBar.tsx` | export function StatusBar({ ... } | 76 |
-| `apps/web/src/components/Toast.tsx` | export function useToast() { ... }, export function ToastProvider({ ... } | 115 |
+| `apps/web/src/components/SignUpModal.tsx` | export function SignUpModal({ ... } | 34 |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `theme-guidelines.md` — agent step 14 of 70.
+- **Next:** `brand-guidelines.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

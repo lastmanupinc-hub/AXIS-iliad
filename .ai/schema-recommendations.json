@@ -1,7 +1,7 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:45.975Z",
-  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.",
+  "generated_at": "1970-01-01T00:00:00.000Z",
+  "project_summary": "axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.",
   "detected_stack": [
     {
       "name": "React",
@@ -9,7 +9,7 @@
       "confidence": 0.95
     }
   ],
-  "total_recommendations": 31,
+  "total_recommendations": 22,
   "recommendations": [
     {
       "page": "/",
@@ -23,17 +23,6 @@
       ]
     },
     {
-      "page": "/v1/docs.md",
-      "schema_type": "TechArticle",
-      "priority": "medium",
-      "fields": [
-        "headline",
-        "author",
-        "datePublished",
-        "proficiencyLevel"
-      ]
-    },
-    {
       "page": "/v1/docs",
       "schema_type": "TechArticle",
       "priority": "medium",
@@ -42,28 +31,6 @@
         "author",
         "datePublished",
         "proficiencyLevel"
-      ]
-    },
-    {
-      "page": "/v1/plans",
-      "schema_type": "Product",
-      "priority": "medium",
-      "fields": [
-        "name",
-        "description",
-        "offers.price",
-        "offers.priceCurrency"
-      ]
-    },
-    {
-      "page": "/v1/plans",
-      "schema_type": "Product",
-      "priority": "medium",
-      "fields": [
-        "name",
-        "description",
-        "offers.price",
-        "offers.priceCurrency"
       ]
     },
     {
@@ -79,29 +46,6 @@
     },
     {
       "page": "/mcp/docs",
-      "schema_type": "TechArticle",
-      "priority": "medium",
-      "fields": [
-        "headline",
-        "author",
-        "datePublished",
-        "proficiencyLevel"
-      ]
-    },
-    {
-      "page": "/users/:userId/posts/:postId",
-      "schema_type": "Article",
-      "priority": "high",
-      "fields": [
-        "headline",
-        "author",
-        "datePublished",
-        "dateModified",
-        "image"
-      ]
-    },
-    {
-      "page": "/v1/docs",
       "schema_type": "TechArticle",
       "priority": "medium",
       "fields": [
@@ -131,50 +75,6 @@
         "description",
         "offers.price",
         "offers.priceCurrency"
-      ]
-    },
-    {
-      "page": "/v1/docs.md",
-      "schema_type": "TechArticle",
-      "priority": "medium",
-      "fields": [
-        "headline",
-        "author",
-        "datePublished",
-        "proficiencyLevel"
-      ]
-    },
-    {
-      "page": "/mcp/docs",
-      "schema_type": "TechArticle",
-      "priority": "medium",
-      "fields": [
-        "headline",
-        "author",
-        "datePublished",
-        "proficiencyLevel"
-      ]
-    },
-    {
-      "page": "/v1/plans",
-      "schema_type": "Product",
-      "priority": "medium",
-      "fields": [
-        "name",
-        "description",
-        "offers.price",
-        "offers.priceCurrency"
-      ]
-    },
-    {
-      "page": "/docs",
-      "schema_type": "TechArticle",
-      "priority": "medium",
-      "fields": [
-        "headline",
-        "author",
-        "datePublished",
-        "proficiencyLevel"
       ]
     },
     {
@@ -222,39 +122,6 @@
       ]
     },
     {
-      "page": "/.well-known/axis.json",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/health",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
-      "page": "/for-agents",
-      "schema_type": "WebPage",
-      "priority": "low",
-      "fields": [
-        "name",
-        "url",
-        "description",
-        "breadcrumb"
-      ]
-    },
-    {
       "page": "/health",
       "schema_type": "WebPage",
       "priority": "low",
@@ -277,7 +144,7 @@
       ]
     },
     {
-      "page": "/ping",
+      "page": "/performance",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -288,7 +155,7 @@
       ]
     },
     {
-      "page": "/slow",
+      "page": "/performance/reputation",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -299,7 +166,7 @@
       ]
     },
     {
-      "page": "/throw-string",
+      "page": "/.well-known/capabilities.json",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -310,7 +177,7 @@
       ]
     },
     {
-      "page": "/throw-after-end",
+      "page": "/.well-known/mcp.json",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -321,7 +188,7 @@
       ]
     },
     {
-      "page": "/null-error",
+      "page": "/.well-known/security.txt",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -332,7 +199,40 @@
       ]
     },
     {
-      "page": "/array-error",
+      "page": "/.well-known/glama.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/agent.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/.well-known/ai-plugin.json",
+      "schema_type": "WebPage",
+      "priority": "low",
+      "fields": [
+        "name",
+        "url",
+        "description",
+        "breadcrumb"
+      ]
+    },
+    {
+      "page": "/agents.json",
       "schema_type": "WebPage",
       "priority": "low",
       "fields": [
@@ -364,9 +264,9 @@
     "apps/web/src/pages/HelpPage.tsx",
     "apps/web/src/pages/InstallPage.tsx",
     "apps/web/src/pages/MyAnalyticsPage.tsx",
+    "apps/web/src/pages/PaidCheckoutPage.tsx",
     "apps/web/src/pages/PlansPage.tsx",
     "apps/web/src/pages/ProgramsPage.tsx",
-    "apps/web/src/pages/QAPage.tsx",
-    "apps/web/src/pages/TermsPage.tsx"
+    "apps/web/src/pages/QAPage.tsx"
   ]
 }

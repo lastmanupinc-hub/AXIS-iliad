@@ -3,7 +3,7 @@
   "Version": 1,
   "VersionName": "1.0.0",
   "FriendlyName": "axis-iliad",
-  "Description": "Production-grade axis-iliad packaging and release kit",
+  "Description": "Packaging and release kit for axis-iliad",
   "Category": "Tools",
   "CreatedBy": "<add your publisher name>",
   "CreatedByURL": "<add your homepage URL>",

@@ -2,7 +2,7 @@
 
 ## Readiness Score
 
-- Score: **92/100**
+- Score: **96/100**
 - Band: **ship-ready**
 
 ## Auto-Added
@@ -34,12 +34,20 @@
 ## Commercial Potential
 
 - Product: axis-iliad
-- Tagline: Production-grade axis-iliad packaging and release kit
+- Tagline: Packaging and release kit for axis-iliad
 - Target marketplaces: npm, unreal, vscode, dockerhub, github-marketplace
-- Monetization signals: Monetization intent detected in source files; Marketplace distribution language detected; API surface detected — package supports commercial integration
+- Monetization signals: Monetization intent detected in source files; Marketplace distribution language detected; API surface detected
 
 ## Certification Summary
 
 - Attestation profile: certlib-offline-v1
-- Signed Merkle root generated
+- Content-derived Merkle root integrity digest generated (not a cryptographic signature)
 - Offline verification supported
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `packaging-report.md` — agent step 68 of 70.
+- **Next:** `DISTRIBUTABLE.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

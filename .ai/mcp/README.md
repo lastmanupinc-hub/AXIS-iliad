@@ -76,4 +76,12 @@ npx vitest run
 
 - Primary language: TypeScript
 - Package manager(s): unknown
-- Detected frameworks: React
+- Detected frameworks: React@^19.1.0
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `mcp/README.md` — agent step 32 of 70.
+- **Next:** `mcp/project-setup.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

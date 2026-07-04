@@ -1,6 +1,6 @@
 # Scene Plan — axis-iliad
 
-Generated: 2026-05-23T03:31:46.296Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Video Overview
 
@@ -14,7 +14,7 @@ Generated: 2026-05-23T03:31:46.296Z
 
 ## Project Summary
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -35,7 +35,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Framework badges with staggered reveal
 - **Frameworks**: React
-- **Languages**: TypeScript (76.5%), YAML (8.1%), JSON (6.6%), Markdown (6.5%), JavaScript (1.7%), CSS (0.6%), HTML (0.1%), Dockerfile (0%)
+- **Languages**: TypeScript (80%), YAML (9.5%), Markdown (5.6%), JavaScript (2%), JSON (1.7%), CSS (1%), HTML (0.1%), Dockerfile (0%)
 - **Animation**: Staggered fade-in, 0.3s delay per item
 - **Visual**: Pill badges in accent color
 
@@ -43,31 +43,23 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 
 - **Content**: Architecture patterns and separation score
 - **Patterns**: monorepo, containerized
-- **Separation Score**: 0.65/100
+- **Separation Score**: 65/100
 - **Animation**: List items reveal sequentially
 - **Visual**: Bullet list with score indicator
 
 ### Scene 4: Key Abstractions (0:09–0:12)
 
 - **Content**: Core abstractions and concepts
-- **Items**: apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory), mcp/ (project_directory), payment-processing-output/ (project_directory), packaging/ (project_directory)
+- **Items**: apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation), examples/ (project_directory), mcp/ (project_directory), .github/ (project_directory)
 - **Animation**: Staggered reveal from top
 - **Visual**: Arrow-prefixed list items
-
-### Scene 5: Domain Models (0:12–0:15)
-
-- **Content**: Detected domain model entities
-- **Models**: AuthContext (interface, 3 fields); EmailConfig (interface, 2 fields); ResendErrorResponse (interface, 3 fields); ResendSuccessResponse (interface, 1 fields); SendEmailOptions (interface, 5 fields); SendEmailResult (interface, 4 fields)
-- **Total**: 264 models detected
-- **Animation**: Entity cards fade in with field-count pill badges
-- **Visual**: Grid of entity cards with kind and field count
 
 ## Narration Script
 
 > This is axis-iliad, a monorepo built with TypeScript.
 > The tech stack includes React.
-> The architecture scores 0.65 out of 100 for separation.
-> Key abstractions include apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory).
+> The architecture scores 65 out of 100 for separation.
+> Key abstractions include apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation).
 
 ## Extension Points
 
@@ -76,3 +68,12 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 - Add Scene 7: 0 entry points walkthrough
 - Add audio track with project-appropriate music
 - Add branded intro/outro with logo
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `scene-plan.md` — agent step 44 of 70.
+- **Next:** `asset-checklist.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

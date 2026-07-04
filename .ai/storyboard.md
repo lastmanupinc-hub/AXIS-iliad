@@ -1,6 +1,6 @@
 # Storyboard — axis-iliad
 
-Generated: 2026-05-23T03:31:46.815Z
+Generated: 1970-01-01T00:00:00.000Z
 
 Frame-by-frame storyboard for a 60-second project showcase video.
 
@@ -10,7 +10,7 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 ┌────────────────────────────────────┐
 │                                    │
 │               AXIS-ILIAD                   │
-│                monorepo                │
+│                                                                                             > **Axis' Iliad — The modern e     │
 │                                    │
 └────────────────────────────────────┘
 ```
@@ -28,9 +28,9 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 │  └──────┘ └──────┘ └──────┘       │
 │                                    │
 │  Languages:                        │
-│    TypeScript   ███████████████ 77%     │
-│    YAML         ██ 8%     │
-│    JSON         █ 7%     │
+│    TypeScript   ████████████████ 80%     │
+│    YAML         ██ 10%     │
+│    Markdown     █ 6%     │
 └────────────────────────────────────┘
 ```
 
@@ -57,7 +57,7 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 
 - **Animation**: Layers build from bottom up, connections animate between them
 - **Narration**: "A clean [separation_score]-point architecture with clear boundaries"
-- **Labels**: apps/ (monorepo_apps), packages/ (monorepo_packages), examples/ (project_directory), mcp/ (project_directory)
+- **Labels**: apps/ (monorepo_apps), packages/ (monorepo_packages), docs/ (documentation), examples/ (project_directory)
 
 ## Scene 4: Code Health (0:30–0:45)
 
@@ -67,9 +67,9 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 │  ━━━━━━━━━━━━━━━━━━━ 85/100       │
 │                                    │
 │  Hotspots:                         │
-│  🟢 apps/web/src/App.tsx      1/10  │
-│  🟢 apps/web/src/api.ts       1/10  │
-│  🟢 ps/web/src/pages.test.tsx 1/10  │
+│  🔴 apps/api/src/router.ts    100%  │
+│  🔴 s/api/src/test-helpers.ts 100%  │
+│  🔴 apps/api/src/billing.ts   100%  │
 └────────────────────────────────────┘
 ```
 
@@ -104,3 +104,12 @@ Frame-by-frame storyboard for a 60-second project showcase video.
 | Transitions | Fade + slide |
 | Music | Ambient electronic, licensed |
 | Voiceover | Optional, see narration notes |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `storyboard.md` — agent step 60 of 70.
+- **Next:** `brand-board.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

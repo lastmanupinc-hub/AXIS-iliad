@@ -1,11 +1,11 @@
 # capability-map.yaml
 # AXIS resell-tool catalog + in-house replication plan.
-# Generated for axis-iliad (snapshot cli-15b433184762a709888449258768e2ff).
+# Generated for axis-iliad (snapshot cli-dc287bfb6acf261b63d4f30ec497f13b).
 # Generated at: 1970-01-01T00:00:00.000Z
 
 meta:
   project: "axis-iliad"
-  snapshot_id: "cli-15b433184762a709888449258768e2ff"
+  snapshot_id: "cli-dc287bfb6acf261b63d4f30ec497f13b"
   generated_at: "1970-01-01T00:00:00.000Z"
   capability_count: 14
   capabilities_detected_in_repo: 11
@@ -83,7 +83,7 @@ capabilities:
     detected_in_repo: true
     detection_evidence:
       - "apps/api/src/env.ts references FIRECRAWL_API_KEY"
-      - "source references /firecrawl.*crawl/ (e.g. PRIVACY_POLICY.md)"
+      - "source references /firecrawl.*crawl/ (e.g. HARDENING_AUDIT.md)"
     third_party_providers:
       - name: "Firecrawl"
         url: "https://firecrawl.dev"

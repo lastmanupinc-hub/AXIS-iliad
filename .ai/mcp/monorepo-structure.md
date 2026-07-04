@@ -1,6 +1,6 @@
 # Monorepo Structure Template — axis-iliad
 
-Generated: 2026-05-23T03:31:46.186Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Recommended Folder Layout
 
@@ -101,3 +101,11 @@ Generated: 2026-05-23T03:31:46.186Z
 - Create root and per-package `tsconfig` files with strict ESM settings.
 - Configure workspace manager (`pnpm-workspace.yaml` or equivalent).
 - Add CI checks for build, test, lint, and typecheck across all packages.
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `mcp/monorepo-structure.md` — agent step 35 of 70.
+- **Next:** `mcp/core-implementation-artifacts.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

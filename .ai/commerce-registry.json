@@ -27,13 +27,13 @@
     "has_tap_protocol": true,
     "has_network_tokenization": true,
     "has_mandate_management": true,
-    "total_payment_files": 97
+    "total_payment_files": 116
   },
   "ap2_compliance_assessment": {
     "methodology": "Keyword-signal scan of repository files — a checklist starting point, not a certification, audit, or legal/compliance advice.",
     "readiness_score": 100,
     "max_score": 100,
-    "interpretation": "production-ready",
+    "interpretation": "strong-signal-coverage",
     "gaps": [],
     "visa_intelligent_commerce": {
       "network_tokenization": "detected",
@@ -85,11 +85,11 @@
         "skills",
         "debug"
       ],
-      "outputs": 14,
+      "outputs": 15,
       "tier": "free",
       "price_cents": 0,
       "price_interval": "per_call",
-      "description": "Context map, AGENTS.md, debug playbook, and 11 more artifacts — no purchase required",
+      "description": "Context map, AGENTS.md, debug playbook, and 12 more artifacts — no purchase required",
       "api_call": {
         "method": "tools/call",
         "tool": "analyze_repo",
@@ -117,13 +117,15 @@
         "remotion",
         "canvas",
         "algorithmic",
-        "agentic-purchasing"
+        "agentic-purchasing",
+        "closer",
+        "deploy"
       ],
-      "outputs": 137,
+      "outputs": 140,
       "tier": "pro",
       "price_cents": 5000,
       "price_interval": "per_call",
-      "description": "All 137 structured artifacts across 20 programs — full AI-native governance layer",
+      "description": "All 140 structured artifacts across 20 programs — full AI-native governance layer",
       "api_call": {
         "method": "tools/call",
         "tool": "analyze_repo",
@@ -141,7 +143,7 @@
         "optimization",
         "superpowers"
       ],
-      "outputs": 27,
+      "outputs": 31,
       "tier": "pro",
       "price_cents": 2500,
       "price_interval": "per_call",
@@ -161,7 +163,7 @@
         "seo",
         "canvas"
       ],
-      "outputs": 19,
+      "outputs": 20,
       "tier": "pro",
       "price_cents": 2000,
       "price_interval": "per_call",
@@ -253,6 +255,6 @@
   "liability_risk": {
     "note": "Non-compliance consequences (fines, enrollment deadlines, program requirements) vary by acquirer, card network, and region — consult your acquirer and current network bulletins.",
     "psd2_sca_enforcement": "active",
-    "risk_level": "low"
+    "risk_level": "assess-with-acquirer"
   }
 }

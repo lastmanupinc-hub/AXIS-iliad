@@ -1,6 +1,6 @@
 # Asset Guidelines — axis-iliad
 
-Generated: 2026-05-23T03:31:46.317Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Color System
 
@@ -62,3 +62,12 @@ Generated: 2026-05-23T03:31:46.317Z
 - Badge padding: 8px 16px
 - Section gap: 32px
 - Border radius: 8px (cards), 4px (badges)
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `asset-guidelines.md` — agent step 48 of 70.
+- **Next:** `collection-map.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

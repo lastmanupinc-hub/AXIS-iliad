@@ -1,17 +1,20 @@
 {
   "name": "axis-iliad",
   "version": "1.0.0",
-  "description": "Production-grade axis-iliad packaging and release kit",
+  "description": "Packaging and release kit for axis-iliad",
+  "type": "module",
   "license": "SEE LICENSE IN packaging/LICENSE",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/owner/repo"
+  "engines": {
+    "node": ">=20"
   },
-  "homepage": "https://example.com",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "keywords": [
-    "marketplace",
-    "packaged",
-    "production",
-    "certified"
+    "axis-iliad",
+    "typescript",
+    "react"
   ]
 }

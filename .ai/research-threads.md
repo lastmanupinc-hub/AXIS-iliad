@@ -4,11 +4,11 @@
 
 ## Architecture Threads
 
-### Thread 1: Architectural Fitness (Score: 0.65/10)
+### Thread 1: Architectural Fitness (Score: 0.65 / 1.0)
 
-Architecture separation is low. Research focus:
-- Should modular boundaries be introduced?
-- What is the minimum viable modularization that reduces coupling?
+Architecture separation is moderate. Research focus:
+- Which layer boundaries are weakest?
+- What refactoring would yield the highest separation improvement?
 
 Detected patterns: monorepo, containerized
 
@@ -16,15 +16,15 @@ Detected patterns: monorepo, containerized
 
 High-risk files that warrant investigation:
 
-- **`apps/web/src/App.tsx`** — risk 1.0
+- **`apps/api/src/router.ts`** — risk 1.0
   - Question: Is this file doing too many things? Can responsibilities be split?
-- **`apps/web/src/api.ts`** — risk 0.9
+- **`apps/api/src/test-helpers.ts`** — risk 1.0
   - Question: Is this file doing too many things? Can responsibilities be split?
-- **`apps/web/src/pages.test.tsx`** — risk 0.8
+- **`apps/api/src/billing.ts`** — risk 1.0
   - Question: Is this file doing too many things? Can responsibilities be split?
-- **`apps/web/src/pages/DashboardPage.tsx`** — risk 0.6
+- **`apps/api/src/handlers.ts`** — risk 1.0
   - Question: Is this file doing too many things? Can responsibilities be split?
-- **`apps/web/src/components/Toast.tsx`** — risk 0.2
+- **`apps/api/src/rate-limiter.ts`** — risk 1.0
   - Question: Is this file doing too many things? Can responsibilities be split?
 
 ### Thread 3: Technology Choices
@@ -33,7 +33,7 @@ Open questions about the current technology stack:
 
 - Are the chosen frameworks (React) still the best fit for the project's direction?
 - Are there dependencies that could be removed or replaced with lighter alternatives?
-- External dependency count: 27 — is this sustainable?
+- External dependency count: 32 — is this sustainable?
 
 ### Thread 4: Performance
 
@@ -41,7 +41,7 @@ Investigation areas:
 
 - What is the baseline performance metric for axis-iliad?
 - Are there obvious bottlenecks in the critical path?
-- Which of the 497 routes are most latency-sensitive?
+- Which of the 540 routes are most latency-sensitive?
 - What caching strategies would have the highest impact?
 
 ### Thread 5: Test Coverage
@@ -61,13 +61,13 @@ Open questions:
 
 ### Domain Model Complexity
 
-The project defines **264 domain models**. High field-count models may need documentation or decomposition:
+The project defines **242 domain models**. High field-count models may need documentation or decomposition:
 
-- **`ProgramDoc`** — interface, 13 fields (`apps/web/src/pages/DocsPage.tsx`)
-- **`ParseResult`** — interface, 13 fields (`packages/repo-parser/src/types.ts`)
-- **`SubscriptionInfo`** — interface, 12 fields (`apps/web/src/api.ts`)
-- **`RepoProfile`** — interface, 12 fields (`packages/context-engine/src/types.ts`)
-- **`StripeSubscription`** — interface, 12 fields (`packages/snapshots/src/stripe-store.ts`)
+- **`ContextMap`** — interface, 69 fields (`packages/context-engine/src/types.ts`)
+- **`ContextMap`** — interface, 61 fields (`apps/web/src/api.ts`)
+- **`ResellCapability`** — interface, 29 fields (`packages/generator-core/src/generators-artifacts.ts`)
+- **`RepoProfile`** — interface, 26 fields (`apps/web/src/api.ts`)
+- **`RepoProfile`** — interface, 21 fields (`packages/context-engine/src/types.ts`)
 
 Questions to answer:
 - Are all field names self-documenting? Do any need JSDoc?
@@ -86,8 +86,16 @@ Questions to answer:
 
 Entry points to investigate for complexity and coupling:
 
-- **`apps/api/src/server.ts`** — 458 lines, exports: export const app = ...
-- **`apps/web/src/App.tsx`** — 490 lines, exports: export function App() { ... }
+- **`apps/api/src/server.ts`** — 497 lines, exports: export const app = ...
+- **`apps/web/src/App.tsx`** — 579 lines, exports: export function App() { ... }
 - **`apps/web/src/main.tsx`** — 11 lines, exports: default
 - **`packages/context-engine/src/index.ts`** — 3 lines, exports: export type { ... }, export { ... }
-- **`packages/generator-core/src/index.ts`** — 40 lines, exports: export type { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export { ... }, export type { ... }, export { ... }
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `research-threads.md` — agent step 27 of 70.
+- **Next:** `obsidian-skill-pack.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

@@ -1,0 +1,21 @@
+# AXIS deploy/docker-compose.dev.yml — run the prod image locally for visual
+# + debugger inspection before pushing to the registry.
+# Run from repo root: docker compose -f deploy/docker-compose.dev.yml up --build
+
+services:
+  axis-iliad:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: axis-iliad:dev
+    ports:
+      - "8080:8080"
+      - "9229:9229"  # node --inspect debugger port
+    command: ["node", "--inspect=0.0.0.0:9229", "dist/index.js"]
+    environment:
+      - PORT=8080
+      - NODE_ENV=development
+    env_file:
+      - path: ../.env.dev
+        required: false
+    restart: unless-stopped

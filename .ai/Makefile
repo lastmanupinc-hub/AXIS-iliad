@@ -41,16 +41,16 @@ package: build ## Build container image
 
 attest: ## Verify release attestation
 	@test -f packaging/trust-fabric/attestation.json || (echo "missing packaging/trust-fabric/attestation.json" && exit 1)
-	@echo "Attestation: $$(jq -r .digest packaging/trust-fabric/attestation.json)"
+	@echo "Attestation root: $$(jq -r .merkle_root packaging/trust-fabric/attestation.json)"
 
 ship: clean install lint test build package attest ## Full release sequence (clean → install → lint → test → build → package → attest)
 	@echo ""
 	@echo "\033[32mReady to ship.\033[0m Publish: gh release create vX.Y.Z"
 
 ship-summary: ## Print release context for logs and dashboards
-	@echo "Project:       axis-iliad"
-	@echo "Language:      TypeScript"
+	@echo 'Project:       axis-iliad'
+	@echo 'Language:      TypeScript'
 	@echo "Package mgr:   npm"
-	@echo "Frameworks:    React"
+	@echo 'Frameworks:    React'
 	@echo "Docker:        true"
 	@echo "Container:     axis-iliad:latest"

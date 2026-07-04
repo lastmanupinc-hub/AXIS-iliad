@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 17 top-level directories. It defines 264 domain models.
+axis-iliad is a monorepo built with TypeScript using React. It contains 500 files across 16 top-level directories. It defines 242 domain models.
 
 ## Detected Stack
 
@@ -47,6 +47,8 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/admin/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/admin/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/admin/activity` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/admin/mcp-usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
+| `/v1/admin/revenue` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/llms.txt` | GET | Add WebPage schema · unique title + description required |
 | `/.well-known/skills/index.json` | GET | Add WebPage schema · unique title + description required |
 | `/v1/docs.md` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
@@ -57,15 +59,11 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/probe-intent` | POST | API route — exclude from sitemap |
 | `/mcp` | POST | API route — exclude from sitemap |
 | `/v1/analyze` | POST | API route — exclude from sitemap |
-| `/.well-known/axis.json` | GET | Add WebPage schema · unique title + description required |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
 | `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/snapshots/:snapshot_id` | DELETE | API route — exclude from sitemap |
 | `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/projects/:project_id` | DELETE | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/db/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/db/maintenance` | POST | API route — exclude from sitemap |
 | `/v1/search/index` | POST | API route — exclude from sitemap |
@@ -81,29 +79,16 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/account/upgrade-prompt` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/upgrade-prompt/dismiss` | POST | API route — exclude from sitemap |
 | `/v1/account/funnel` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
 | `/v1/account/webhooks` | POST | API route — exclude from sitemap |
 | `/v1/account/webhooks` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/account/webhooks/:webhook_id` | DELETE | API route — exclude from sitemap |
 | `/v1/account/webhooks/:webhook_id/toggle` | POST | API route — exclude from sitemap |
 | `/v1/account/webhooks/:webhook_id/deliveries` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/query` | POST | API route — exclude from sitemap |
 | `/v1/account/programs` | POST | API route — exclude from sitemap |
 | `/v1/account/github-token` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | POST | API route — exclude from sitemap |
-| `/v1/admin/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/activity` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/health` | GET | Add WebPage schema · unique title + description required |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
 | `/v1/search/export` | POST | API route — exclude from sitemap |
 | `/v1/skills/generate` | POST | API route — exclude from sitemap |
-| `/v1/debug/analyze` | POST | API route — exclude from sitemap |
 | `/v1/frontend/audit` | POST | API route — exclude from sitemap |
 | `/v1/seo/analyze` | POST | API route — exclude from sitemap |
 | `/v1/optimization/analyze` | POST | API route — exclude from sitemap |
@@ -116,428 +101,7 @@ axis-iliad is a monorepo built with TypeScript using React. It contains 500 file
 | `/v1/mcp/provision` | POST | API route — exclude from sitemap |
 | `/v1/artifacts/generate` | POST | API route — exclude from sitemap |
 | `/v1/remotion/generate` | POST | API route — exclude from sitemap |
-| `/v1/canvas/generate` | POST | API route — exclude from sitemap |
-| `/v1/algorithmic/generate` | POST | API route — exclude from sitemap |
-| `/v1/agentic-purchasing/generate` | POST | API route — exclude from sitemap |
-| `/v1/github/analyze` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/github-token` | POST | API route — exclude from sitemap |
-| `/v1/account/github-token` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/github-token/:token_id` | DELETE | API route — exclude from sitemap |
-| `/v1/billing/history` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/billing/proration` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path*` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/export` | POST | API route — exclude from sitemap |
-| `/v1/projects/:project_id/export` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/keys` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys/:key_id/revoke` | POST | API route — exclude from sitemap |
-| `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/analytics/summary` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/programs` | POST | API route — exclude from sitemap |
-| `/v1/account/credits` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/plans` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/seats` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/seats/:seat_id/accept` | POST | API route — exclude from sitemap |
-| `/v1/account/seats/:seat_id/revoke` | POST | API route — exclude from sitemap |
-| `/for-agents` | GET | Add WebPage schema · unique title + description required |
-| `/probe-intent` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/plans` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/webhooks/stripe` | POST | API route — exclude from sitemap |
-| `/v1/checkout` | POST | API route — exclude from sitemap |
-| `/v1/account/subscription` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/subscription/cancel` | POST | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/credits` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/credits` | POST | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/db/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/db/maintenance` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id` | DELETE | API route — exclude from sitemap |
-| `/v1/projects/:project_id` | DELETE | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health/live` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health/ready` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/db/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/db/maintenance` | POST | API route — exclude from sitemap |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id` | DELETE | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id/versions` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/versions/:version_number` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/diff` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id` | DELETE | API route — exclude from sitemap |
-| `/v1/projects/:project_id/export` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/export` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/keys` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys/:key_id/revoke` | POST | API route — exclude from sitemap |
-| `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/quota` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/activity` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/webhooks` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/webhooks/:webhook_id` | DELETE | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/toggle` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/deliveries` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/export` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/export` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/plans` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/seats` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/seats/:seat_id/accept` | POST | API route — exclude from sitemap |
-| `/v1/account/seats/:seat_id/revoke` | POST | API route — exclude from sitemap |
-| `/v1/account/upgrade-prompt` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/upgrade-prompt/dismiss` | POST | API route — exclude from sitemap |
-| `/v1/account/funnel` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/funnel/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/analytics/events` | POST | API route — exclude from sitemap |
-| `/v1/github/webhook` | POST | API route — exclude from sitemap |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/health` | GET | Add WebPage schema · unique title + description required |
-| `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/debug/analyze` | POST | API route — exclude from sitemap |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/debug/analyze` | POST | API route — exclude from sitemap |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id` | DELETE | API route — exclude from sitemap |
-| `/v1/projects/:project_id` | DELETE | API route — exclude from sitemap |
-| `/v1/projects/:project_id/generated-files/:file_path` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/export` | POST | API route — exclude from sitemap |
-| `/v1/skills/generate` | POST | API route — exclude from sitemap |
-| `/v1/github/analyze` | POST | API route — exclude from sitemap |
-| `/v1/debug/analyze` | POST | API route — exclude from sitemap |
-| `/v1/health/live` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/mcp` | POST | API route — exclude from sitemap |
-| `/mcp` | GET | Add WebPage schema · unique title + description required |
-| `/mcp/docs` | GET | Add TechArticle schema · high crawl priority |
-| `/v1/mcp/server.json` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/ping` | GET | Add WebPage schema · unique title + description required |
-| `/` | GET | Add WebSite + SearchAction schema · highest priority |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health/live` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health/ready` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id` | DELETE | API route — exclude from sitemap |
-| `/v1/projects/:project_id` | DELETE | API route — exclude from sitemap |
-| `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path*` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/export` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/index` | POST | API route — exclude from sitemap |
-| `/v1/search/query` | POST | API route — exclude from sitemap |
-| `/v1/search/:snapshot_id/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/keys` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys/:key_id/revoke` | POST | API route — exclude from sitemap |
-| `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/programs` | POST | API route — exclude from sitemap |
-| `/v1/auth/github` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/auth/github/callback` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/portal/api/subscribe` | POST | API route — exclude from sitemap |
-| `/portal/api/paid/webhook` | POST | API route — exclude from sitemap |
-| `/v1/prepare-for-agentic-purchasing` | POST | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/programs` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/programs` | POST | API route — exclude from sitemap |
-| `/mcp` | POST | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/quota` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/test/fast` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/test/slow` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/slow` | GET | Add WebPage schema · unique title + description required |
-| `/throw-string` | GET | Add WebPage schema · unique title + description required |
-| `/throw-after-end` | GET | Add WebPage schema · unique title + description required |
-| `/null-error` | GET | Add WebPage schema · unique title + description required |
-| `/array-error` | GET | Add WebPage schema · unique title + description required |
-| `/ok` | GET | Add WebPage schema · unique title + description required |
-| `/manual-500` | GET | Add WebPage schema · unique title + description required |
-| `/manual-422` | GET | Add WebPage schema · unique title + description required |
-| `/health` | GET | Add WebPage schema · unique title + description required |
-| `/up` | GET | Add WebPage schema · unique title + description required |
-| `/echo` | GET | Add WebPage schema · unique title + description required |
-| `/echo` | POST | API route — exclude from sitemap |
-| `/items/:id` | GET | Add WebPage schema · unique title + description required |
-| `/users/:userId/posts/:postId` | GET | Add Article/BlogPosting schema · include in sitemap |
-| `/files/:path*` | GET | Add WebPage schema · unique title + description required |
-| `/throws` | GET | Add WebPage schema · unique title + description required |
-| `/status/:code` | POST | API route — exclude from sitemap |
-| `/error-shape` | GET | Add WebPage schema · unique title + description required |
-| `/` | GET | Add WebSite + SearchAction schema · highest priority |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/` | GET | Add WebSite + SearchAction schema · highest priority |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health/live` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health/ready` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/performance` | GET | Add WebPage schema · unique title + description required |
-| `/performance/reputation` | GET | Add WebPage schema · unique title + description required |
-| `/v1/db/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/db/maintenance` | POST | API route — exclude from sitemap |
-| `/v1/docs` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id` | DELETE | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id/versions` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/versions/:version_number` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/diff` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/context` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/generated-files/:file_path*` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id` | DELETE | API route — exclude from sitemap |
-| `/v1/search/export` | POST | API route — exclude from sitemap |
-| `/v1/skills/generate` | POST | API route — exclude from sitemap |
-| `/v1/debug/analyze` | POST | API route — exclude from sitemap |
-| `/v1/frontend/audit` | POST | API route — exclude from sitemap |
-| `/v1/seo/analyze` | POST | API route — exclude from sitemap |
-| `/v1/optimization/analyze` | POST | API route — exclude from sitemap |
-| `/v1/theme/generate` | POST | API route — exclude from sitemap |
-| `/v1/brand/generate` | POST | API route — exclude from sitemap |
-| `/v1/superpowers/generate` | POST | API route — exclude from sitemap |
-| `/v1/marketing/generate` | POST | API route — exclude from sitemap |
-| `/v1/notebook/generate` | POST | API route — exclude from sitemap |
-| `/v1/obsidian/analyze` | POST | API route — exclude from sitemap |
-| `/v1/mcp/provision` | POST | API route — exclude from sitemap |
-| `/v1/artifacts/generate` | POST | API route — exclude from sitemap |
-| `/v1/remotion/generate` | POST | API route — exclude from sitemap |
-| `/v1/canvas/generate` | POST | API route — exclude from sitemap |
-| `/v1/algorithmic/generate` | POST | API route — exclude from sitemap |
-| `/v1/agentic-purchasing/generate` | POST | API route — exclude from sitemap |
-| `/v1/closer/generate` | POST | API route — exclude from sitemap |
-| `/v1/prepare-for-agentic-purchasing` | POST | API route — exclude from sitemap |
-| `/v1/analyze` | POST | API route — exclude from sitemap |
-| `/v1/github/analyze` | POST | API route — exclude from sitemap |
-| `/v1/github/webhook` | POST | API route — exclude from sitemap |
-| `/v1/research/scrape` | POST | API route — exclude from sitemap |
-| `/v1/research/crawl` | POST | API route — exclude from sitemap |
-| `/.well-known/axis.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/capabilities.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/mcp.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/security.txt` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/glama.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/agent.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/oauth-authorization-server` | GET | Mark `noindex` — auth gate, no crawl value |
-| `/mcp/.well-known/mcp.json` | GET | Add WebPage schema · unique title + description required |
-| `/mcp/.well-known/agent.json` | GET | Add WebPage schema · unique title + description required |
-| `/robots.txt` | GET | Add WebPage schema · unique title + description required |
-| `/sitemap.xml` | GET | Add WebPage schema · unique title + description required |
-| `/health` | GET | Add WebPage schema · unique title + description required |
-| `/docs` | GET | Add TechArticle schema · high crawl priority |
-| `/pricing` | GET | Add Product schema · high crawl priority |
-| `/openapi.json` | GET | Add WebPage schema · unique title + description required |
-| `/llms.txt` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/skills/index.json` | GET | Add WebPage schema · unique title + description required |
-| `/v1/docs.md` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/for-agents` | GET | Add WebPage schema · unique title + description required |
-| `/probe-intent` | POST | API route — exclude from sitemap |
-| `/v1/install` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/install/:platform` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/index` | POST | API route — exclude from sitemap |
-| `/v1/search/query` | POST | API route — exclude from sitemap |
-| `/v1/search/:snapshot_id/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/search/:snapshot_id/symbols` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/projects/:project_id/export` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/programs` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/mcp` | POST | API route — exclude from sitemap |
-| `/mcp/` | POST | API route — exclude from sitemap |
-| `/v1/mcp` | POST | API route — exclude from sitemap |
-| `/v1/mcp/` | POST | API route — exclude from sitemap |
-| `/mcp` | GET | Add WebPage schema · unique title + description required |
-| `/mcp/` | GET | Add WebPage schema · unique title + description required |
-| `/v1/mcp` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/mcp/` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/mcp/docs` | GET | Add TechArticle schema · high crawl priority |
-| `/favicon.ico` | GET | Add WebPage schema · unique title + description required |
-| `/mcp/sse` | GET | Add WebPage schema · unique title + description required |
-| `/mcp/sse` | POST | API route — exclude from sitemap |
-| `/mcp/mcp/*` | GET | Add WebPage schema · unique title + description required |
-| `/mcp/mcp/*` | POST | API route — exclude from sitemap |
-| `/mcp/mcp/*` | DELETE | API route — exclude from sitemap |
-| `/v1/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/mcp/server.json` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/mcp/tools` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/accounts` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts/` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/accounts` | GET | Mark `noindex` — user-specific content |
-| `/accounts/` | GET | Mark `noindex` — user-specific content |
-| `/v1/account` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys` | POST | API route — exclude from sitemap |
-| `/v1/account/keys` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/keys/:key_id/revoke` | POST | API route — exclude from sitemap |
-| `/v1/account/usage` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/analytics/summary` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/quota` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/programs` | POST | API route — exclude from sitemap |
-| `/v1/account/github-token` | POST | API route — exclude from sitemap |
-| `/v1/account/github-token` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/github-token/:token_id` | DELETE | API route — exclude from sitemap |
-| `/v1/billing/history` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/billing/proration` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/credits` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/credits` | POST | API route — exclude from sitemap |
-| `/v1/plans` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/seats` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/seats/:seat_id/accept` | POST | API route — exclude from sitemap |
-| `/v1/account/seats/:seat_id/revoke` | POST | API route — exclude from sitemap |
-| `/v1/account/upgrade-prompt` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/upgrade-prompt/dismiss` | POST | API route — exclude from sitemap |
-| `/v1/account/funnel` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/funnel/metrics` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/analytics/events` | POST | API route — exclude from sitemap |
-| `/v1/admin/stats` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/accounts` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/admin/activity` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/auth/github` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/auth/github/callback` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/oauth/authorize` | GET | Mark `noindex` — auth gate, no crawl value |
-| `/oauth/token` | POST | API route — exclude from sitemap |
-| `/oauth/jwks` | GET | Mark `noindex` — auth gate, no crawl value |
-| `/oauth/introspect` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/webhooks/:webhook_id` | DELETE | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/toggle` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/deliveries` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/webhooks/stripe` | POST | API route — exclude from sitemap |
-| `/v1/checkout` | POST | API route — exclude from sitemap |
-| `/v1/account/subscription` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/subscription/cancel` | POST | API route — exclude from sitemap |
-| `/portal/api/subscribe` | POST | API route — exclude from sitemap |
-| `/portal/api/paid/webhook` | POST | API route — exclude from sitemap |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/snapshots/:snapshot_id` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/webhooks/stripe` | POST | API route — exclude from sitemap |
-| `/v1/checkout` | POST | API route — exclude from sitemap |
-| `/v1/account/subscription` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/subscription/cancel` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/webhooks/stripe` | POST | API route — exclude from sitemap |
-| `/v1/account/subscription` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots` | POST | API route — exclude from sitemap |
-| `/v1/search/export` | POST | API route — exclude from sitemap |
-| `/v1/skills/generate` | POST | API route — exclude from sitemap |
-| `/v1/debug/analyze` | POST | API route — exclude from sitemap |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/tier` | POST | API route — exclude from sitemap |
-| `/v1/account/programs` | POST | API route — exclude from sitemap |
-| `/v1/account/seats` | POST | API route — exclude from sitemap |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/versions` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/versions/:version_number` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/snapshots/:snapshot_id/diff` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/webhooks` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/webhooks/:webhook_id` | DELETE | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/toggle` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/deliveries` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/accounts` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/v1/account/webhooks/:webhook_id` | DELETE | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/toggle` | POST | API route — exclude from sitemap |
-| `/v1/account/webhooks/:webhook_id/deliveries` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/.well-known/agent.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/glama.json` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/security.txt` | GET | Add WebPage schema · unique title + description required |
-| `/.well-known/capabilities.json` | GET | Add WebPage schema · unique title + description required |
-| `/robots.txt` | GET | Add WebPage schema · unique title + description required |
-| `/sitemap.xml` | GET | Add WebPage schema · unique title + description required |
-| `/health` | GET | Add WebPage schema · unique title + description required |
-| `/docs` | GET | Add TechArticle schema · high crawl priority |
-| `/openapi.json` | GET | Add WebPage schema · unique title + description required |
-| `/performance` | GET | Add WebPage schema · unique title + description required |
-| `/performance/reputation` | GET | Add WebPage schema · unique title + description required |
-| `/health` | GET | Add WebPage schema · unique title + description required |
-| `/v1/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/api/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/api/users` | POST | API route — exclude from sitemap |
-| `/api/users` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/api/users` | POST | API route — exclude from sitemap |
-| `/api/users/:id` | DELETE | API route — exclude from sitemap |
-| `/api/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/api/users` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/api/users` | POST | API route — exclude from sitemap |
-| `/` | GET | Add WebSite + SearchAction schema · highest priority |
-| `/health` | GET | Add WebPage schema · unique title + description required |
-| `/api/health` | GET | Exclude from sitemap · add `X-Robots-Tag: noindex` |
-| `/webhook` | POST | API route — exclude from sitemap |
-| `/v1/my-tool` | POST | API route — exclude from sitemap |
-| `/v1/my-tool` | POST | API route — exclude from sitemap |
-| `/v1/my-tool` | POST | API route — exclude from sitemap |
-| `/users/:id` | GET | Add WebPage schema · unique title + description required |
-| `/users` | POST | API route — exclude from sitemap |
+| *… 103 more* | | |
 
 ## Domain Models as Content Entities
 
@@ -545,21 +109,21 @@ These domain models represent structured content — mapping them to schema type
 
 | Model | Kind | Fields | Suggested Schema Type |
 |-------|------|--------|-----------------------|
-| `AuthContext` | interface | 3 | WebPage |
-| `EmailConfig` | interface | 2 | WebPage |
-| `ResendErrorResponse` | interface | 3 | WebPage |
-| `ResendSuccessResponse` | interface | 1 | WebPage |
-| `SendEmailOptions` | interface | 5 | WebPage |
-| `SendEmailResult` | interface | 4 | WebPage |
-| `EmbeddingsConfig` | interface | 2 | WebPage |
-| `EmbeddingsResult` | interface | 4 | WebPage |
-| `OpenAIEmbeddingResponse` | interface | 5 | WebPage |
-| `OpenAIErrorResponse` | interface | 3 | WebPage |
-| `EnvSpec` | interface | 5 | WebPage |
-| `ValidationError` | interface | 2 | WebPage |
-| `ValidationResult` | interface | 3 | WebPage |
-| `ZipEntry` | interface | 4 | WebPage |
-| `PullRequestPayload` | interface | 5 | WebPage |
+| `AlertThresholds` | interface | 2 | WebPage |
+| `Counters` | type_alias | 2 | Thing |
+| `DebounceState` | interface | 2 | WebPage |
+| `WindowResult` | interface | 4 | WebPage |
+| `AnalyticsCountByBucketResult` | interface | 3 | WebPage |
+| `AnalyticsCountByBucketRow` | interface | 2 | WebPage |
+| `AnalyticsCountByEventResult` | interface | 2 | Event |
+| `AnalyticsCountByEventRow` | interface | 2 | Event |
+| `AnalyticsCountResult` | interface | 2 | WebPage |
+| `AnalyticsDistinctUsersResult` | interface | 2 | Person |
+| `AnalyticsEvent` | interface | 4 | Event |
+| `AnalyticsQuery` | interface | 8 | WebPage |
+| `WhereClause` | interface | 2 | WebPage |
+| `DriftDeps` | interface | 5 | WebPage |
+| `DriftOutcome` | interface | 3 | WebPage |
 
 ## Contact & Support Page SEO
 
@@ -591,11 +155,6 @@ These domain models represent structured content — mapping them to schema type
 
 - `.github/app-manifest.json` (25 lines)
 - `apps/web/public/robots.txt` (26 lines)
-- `export-manifest.yaml` (87 lines)
-- `packaging/manifests/dockerhub-repository.md` (17 lines)
-- `packaging/manifests/github-marketplace-listing.md` (17 lines)
-- `packaging/manifests/npm-package.json` (17 lines)
-- `packaging/manifests/vscode-extension.json` (22 lines)
 
 ## SEO File Contents
 
@@ -604,14 +163,14 @@ These domain models represent structured content — mapping them to schema type
 ```json
 {
   "name": "Axis Iliad Compliance",
-  "url": "https://axis-iliad.jonathanarvay.com",
+  "url": "https://iliad.trustfabric.ai",
   "hook_attributes": {
     "url": "https://axis-api-6c7z.onrender.com/v1/github/webhook",
     "active": true
   },
-  "redirect_url": "https://axis-iliad.jonathanarvay.com/install/github/callback",
+  "redirect_url": "https://iliad.trustfabric.ai/install/github/callback",
   "callback_urls": [
-    "https://axis-iliad.jonathanarvay.com/install/github/callback"
+    "https://iliad.trustfabric.ai/install/github/callback"
   ],
   "description": "Runs AP2/Visa agentic-commerce compliance grading on every push and pull request. Installs the Axis' Iliad GitHub Action under .github/workflows/ and surfaces a 'Axis Compliance: <grade>' Check Run on the head commit. Snapshots prime the analyze cache so subsequent CLI / MCP calls return in <1s.",
   "public": true,
@@ -651,45 +210,28 @@ Allow: /v1/
 ... (6 more lines)
 ```
 
-### `export-manifest.yaml`
-
-```yaml
-# Export Manifest
-# Project: axis-iliad
-# Generated: 2026-05-14T02:05:25.046Z
-
-manifest:
-  project: "axis-iliad"
-  version: "1.0"
-  total_artifacts: 4
-
-  artifacts:
-    - id: generative-sketch
-      file: generative-sketch.ts
-      type: code
-      format: typescript
-      description: Force-directed graph animation
-      exports:
-        - format: html
-          resolution: 1920x1080
-          self_contained: true
-        - format: mp4
-... (67 more lines)
-```
-
 ## Detected Page Files
 
 | Page | Exports | Lines |
 |------|---------|-------|
 | `apps/web/index.html` | default | 167 |
 | `apps/web/src/components/ToolPage.tsx` | export interface ToolPricing { ... }, export interface ToolPageProps { ... }, export function ToolPage({ ... } | 189 |
-| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 630 |
-| `apps/web/src/pages/AdminPage.tsx` | export function AdminPage() { ... } | 206 |
+| `apps/web/src/pages/AccountPage.tsx` | export function AccountPage({ ... } | 599 |
+| `apps/web/src/pages/AdminPage.tsx` | export function AdminPage() { ... } | 334 |
 | `apps/web/src/pages/DashboardPage.tsx` | export function DashboardPage({ ... } | 197 |
 | `apps/web/src/pages/DocsPage.tsx` | export function DocsPage() { ... } | 1293 |
-| `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 505 |
-| `apps/web/src/pages/ForAgentsPage.tsx` | export function ForAgentsPage() { ... } | 168 |
-| `apps/web/src/pages/HelpPage.tsx` | export function HelpPage() { ... } | 769 |
+| `apps/web/src/pages/ExamplesPage.tsx` | export function ExamplesPage() { ... } | 679 |
+| `apps/web/src/pages/ForAgentsPage.tsx` | export function ForAgentsPage() { ... } | 206 |
+| `apps/web/src/pages/HelpPage.tsx` | export function HelpPage() { ... } | 770 |
 | `apps/web/src/pages/InstallPage.tsx` | export function InstallPage() { ... } | 205 |
 | `apps/web/src/pages/MyAnalyticsPage.tsx` | export function MyAnalyticsPage() { ... } | 241 |
-| `apps/web/src/pages/PlansPage.tsx` | export function PlansPage({ ... } | 249 |
+| `apps/web/src/pages/PaidCheckoutPage.tsx` | export function PaidCheckoutPage() { ... } | 177 |
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `seo-rules.md` — agent step 9 of 70.
+- **Next:** `route-priority-map.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

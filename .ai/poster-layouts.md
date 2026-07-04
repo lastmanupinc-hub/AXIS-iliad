@@ -1,6 +1,6 @@
 # Poster Layouts — axis-iliad
 
-Generated: 2026-05-23T03:31:46.315Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Layout A: Tech Overview (A4 Portrait)
 
@@ -26,22 +26,22 @@ Generated: 2026-05-23T03:31:46.315Z
 
 **Hero Zone**
 - Title: axis-iliad
-- Subtitle: null
+- Subtitle: > **Axis' Iliad — The modern epic that shapes raw codebases into canonical, agent-ready artifacts. Axis' Iliad authors the definitive foundation for the next era of natural-language workspace development.**
 - Type Badge: monorepo
 
 **Stats Grid**
 - Entry Points: 0
-- Hotspots: 7
-- Architecture Score: 0.65/100
-- Dependencies: 27
+- Hotspots: 20
+- Architecture Score: 65/100
+- Dependencies: 32
 
 **Language Breakdown**
-- TypeScript: 76.5% (93770 LOC)
-- YAML: 8.1% (9885 LOC)
-- JSON: 6.6% (8079 LOC)
-- Markdown: 6.5% (7944 LOC)
-- JavaScript: 1.7% (2093 LOC)
-- CSS: 0.6% (675 LOC)
+- TypeScript: 80% (89597 LOC)
+- YAML: 9.5% (10597 LOC)
+- Markdown: 5.6% (6295 LOC)
+- JavaScript: 2% (2273 LOC)
+- JSON: 1.7% (1922 LOC)
+- CSS: 1% (1149 LOC)
 - HTML: 0.1% (158 LOC)
 - Dockerfile: 0% (21 LOC)
 
@@ -53,12 +53,12 @@ Generated: 2026-05-23T03:31:46.315Z
 - React ^19.1.0
 
 **Domain Models**
-- AuthContext (interface, 3 fields)
-- EmailConfig (interface, 2 fields)
-- ResendErrorResponse (interface, 3 fields)
-- ResendSuccessResponse (interface, 1 fields)
-- SendEmailOptions (interface, 5 fields)
-- SendEmailResult (interface, 4 fields)
+- AlertThresholds (interface, 2 fields)
+- Counters (type_alias, 2 fields)
+- DebounceState (interface, 2 fields)
+- WindowResult (interface, 4 fields)
+- AnalyticsCountByBucketResult (interface, 3 fields)
+- AnalyticsCountByBucketRow (interface, 2 fields)
 
 ## Layout B: Minimal Card (Landscape)
 
@@ -72,7 +72,7 @@ Generated: 2026-05-23T03:31:46.315Z
 
 - Name: axis-iliad
 - Type: monorepo
-- Score: 0.65/100
+- Score: 65/100
 - Badges: React
 
 ## Layout C: Data Dashboard
@@ -87,3 +87,12 @@ Generated: 2026-05-23T03:31:46.315Z
 │         (node visualization)          │
 └──────────────────────────────────────┘
 ```
+
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `poster-layouts.md` — agent step 47 of 70.
+- **Next:** `asset-guidelines.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

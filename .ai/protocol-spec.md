@@ -1,6 +1,6 @@
 # Protocol Specification — axis-iliad
 
-Generated: 2026-05-23T03:31:46.182Z
+Generated: 1970-01-01T00:00:00.000Z
 
 ## Purpose
 
@@ -348,3 +348,11 @@ Progress messages should be monotonic and end with a terminal success/failure ou
 
 - Update this document when transport/auth/error behavior changes.
 - For breaking changes, bump version and provide migration notes.
+
+---
+
+## ⟳ Continue the loop
+
+- **You are here:** `protocol-spec.md` — agent step 31 of 70.
+- **Next:** `mcp/README.md`.
+- **To iterate:** re-read `begin.yaml` → `continuation.yaml`, take the highest-priority open candidate, complete + verify it, update `continuation.yaml`, then keep going.

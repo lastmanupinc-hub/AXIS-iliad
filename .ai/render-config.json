@@ -1,12 +1,12 @@
 {
   "project": "axis-iliad",
-  "generated_at": "2026-05-23T03:31:46.299Z",
+  "generated_at": "1970-01-01T00:00:00.000Z",
   "composition": {
     "id": "axisiliadVideo",
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "durationInFrames": 630
+    "durationInFrames": 360
   },
   "scenes": [
     {
@@ -24,36 +24,15 @@
       "data_points": 9
     },
     {
-      "id": "api-surface",
-      "from": 180,
-      "duration": 90,
-      "label": "API Surface (497 routes)",
-      "data_points": 497
-    },
-    {
-      "id": "data-model",
-      "from": 270,
-      "duration": 90,
-      "label": "Data Model (264 entities)",
-      "data_points": 264
-    },
-    {
-      "id": "complexity",
-      "from": 360,
-      "duration": 90,
-      "label": "Complexity Hotspots (7)",
-      "data_points": 7
-    },
-    {
       "id": "architecture",
-      "from": 450,
+      "from": 180,
       "duration": 90,
       "label": "Architecture",
       "data_points": 2
     },
     {
       "id": "abstractions",
-      "from": 540,
+      "from": 270,
       "duration": 90,
       "label": "Key Abstractions",
       "data_points": 8
@@ -86,33 +65,33 @@
       "languages": [
         {
           "name": "TypeScript",
-          "loc": 93770,
-          "percent": 76.5
+          "loc": 89597,
+          "percent": 80
         },
         {
           "name": "YAML",
-          "loc": 9885,
-          "percent": 8.1
-        },
-        {
-          "name": "JSON",
-          "loc": 8079,
-          "percent": 6.6
+          "loc": 10597,
+          "percent": 9.5
         },
         {
           "name": "Markdown",
-          "loc": 7944,
-          "percent": 6.5
+          "loc": 6295,
+          "percent": 5.6
         },
         {
           "name": "JavaScript",
-          "loc": 2093,
+          "loc": 2273,
+          "percent": 2
+        },
+        {
+          "name": "JSON",
+          "loc": 1922,
           "percent": 1.7
         },
         {
           "name": "CSS",
-          "loc": 675,
-          "percent": 0.6
+          "loc": 1149,
+          "percent": 1
         }
       ],
       "build_tools": [
@@ -124,232 +103,250 @@
       ]
     },
     "api_surface": {
-      "total_routes": 497,
+      "total_routes": 163,
       "routes": [
         {
           "method": "GET",
           "path": "/v1/health",
-          "source": "apps/api/src/admin.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "POST",
           "path": "/v1/accounts",
-          "source": "apps/api/src/admin.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "POST",
           "path": "/v1/snapshots",
-          "source": "apps/api/src/admin.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/admin/stats",
-          "source": "apps/api/src/admin.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/admin/accounts",
-          "source": "apps/api/src/admin.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/admin/activity",
-          "source": "apps/api/src/admin.test.ts"
+          "source": "apps/api/src/server.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/admin/mcp-usage",
+          "source": "apps/api/src/server.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/v1/admin/revenue",
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/llms.txt",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/.well-known/skills/index.json",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/docs.md",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/.well-known/axis.json",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/for-agents",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/install",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/install/:platform",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "POST",
           "path": "/probe-intent",
-          "source": "apps/api/src/agent-discovery.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "POST",
           "path": "/mcp",
-          "source": "apps/api/src/analyze-repo-success.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "POST",
           "path": "/v1/analyze",
-          "source": "apps/api/src/analyze.test.ts"
-        },
-        {
-          "method": "GET",
-          "path": "/.well-known/axis.json",
-          "source": "apps/api/src/analyze.test.ts"
-        },
-        {
-          "method": "POST",
-          "path": "/v1/snapshots",
-          "source": "apps/api/src/api-branches.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "GET",
           "path": "/v1/snapshots/:snapshot_id",
-          "source": "apps/api/src/api-branches.test.ts"
+          "source": "apps/api/src/server.ts"
         },
         {
           "method": "DELETE",
           "path": "/v1/snapshots/:snapshot_id",
-          "source": "apps/api/src/api-branches.test.ts"
+          "source": "apps/api/src/server.ts"
         }
       ]
     },
     "data_model": {
-      "total_models": 264,
+      "total_models": 242,
       "models": [
         {
-          "name": "AuthContext",
-          "kind": "interface",
-          "fields": 3
-        },
-        {
-          "name": "EmailConfig",
+          "name": "AlertThresholds",
           "kind": "interface",
           "fields": 2
         },
         {
-          "name": "ResendErrorResponse",
-          "kind": "interface",
-          "fields": 3
+          "name": "Counters",
+          "kind": "type_alias",
+          "fields": 2
         },
         {
-          "name": "ResendSuccessResponse",
-          "kind": "interface",
-          "fields": 1
-        },
-        {
-          "name": "SendEmailOptions",
-          "kind": "interface",
-          "fields": 5
-        },
-        {
-          "name": "SendEmailResult",
-          "kind": "interface",
-          "fields": 4
-        },
-        {
-          "name": "EmbeddingsConfig",
+          "name": "DebounceState",
           "kind": "interface",
           "fields": 2
         },
         {
-          "name": "EmbeddingsResult",
+          "name": "WindowResult",
           "kind": "interface",
           "fields": 4
         },
         {
-          "name": "OpenAIEmbeddingResponse",
-          "kind": "interface",
-          "fields": 5
-        },
-        {
-          "name": "OpenAIErrorResponse",
+          "name": "AnalyticsCountByBucketResult",
           "kind": "interface",
           "fields": 3
         },
         {
-          "name": "EnvSpec",
-          "kind": "interface",
-          "fields": 5
-        },
-        {
-          "name": "ValidationError",
+          "name": "AnalyticsCountByBucketRow",
           "kind": "interface",
           "fields": 2
         },
         {
-          "name": "ValidationResult",
+          "name": "AnalyticsCountByEventResult",
           "kind": "interface",
-          "fields": 3
+          "fields": 2
         },
         {
-          "name": "ZipEntry",
+          "name": "AnalyticsCountByEventRow",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "AnalyticsCountResult",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "AnalyticsDistinctUsersResult",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "AnalyticsEvent",
           "kind": "interface",
           "fields": 4
         },
         {
-          "name": "PullRequestPayload",
+          "name": "AnalyticsQuery",
+          "kind": "interface",
+          "fields": 8
+        },
+        {
+          "name": "WhereClause",
+          "kind": "interface",
+          "fields": 2
+        },
+        {
+          "name": "DriftDeps",
           "kind": "interface",
           "fields": 5
+        },
+        {
+          "name": "DriftOutcome",
+          "kind": "interface",
+          "fields": 3
         }
       ]
     },
     "hotspots": [
       {
-        "path": "apps/web/src/App.tsx",
-        "inbound": 1,
-        "outbound": 21,
+        "path": "apps/api/src/router.ts",
+        "inbound": 96,
+        "outbound": 4,
         "risk": 1
       },
       {
-        "path": "apps/web/src/api.ts",
-        "inbound": 19,
+        "path": "apps/api/src/test-helpers.ts",
+        "inbound": 41,
+        "outbound": 1,
+        "risk": 1
+      },
+      {
+        "path": "apps/api/src/billing.ts",
+        "inbound": 28,
+        "outbound": 3,
+        "risk": 1
+      },
+      {
+        "path": "apps/api/src/handlers.ts",
+        "inbound": 23,
+        "outbound": 14,
+        "risk": 1
+      },
+      {
+        "path": "apps/api/src/rate-limiter.ts",
+        "inbound": 36,
+        "outbound": 2,
+        "risk": 1
+      },
+      {
+        "path": "apps/api/src/logger.ts",
+        "inbound": 25,
         "outbound": 0,
-        "risk": 0.95
+        "risk": 1
       },
       {
-        "path": "apps/web/src/pages.test.tsx",
-        "inbound": 0,
-        "outbound": 17,
-        "risk": 0.85
-      },
-      {
-        "path": "apps/web/src/pages/DashboardPage.tsx",
+        "path": "apps/api/src/server.ts",
         "inbound": 1,
-        "outbound": 10,
-        "risk": 0.55
+        "outbound": 35,
+        "risk": 1
       },
       {
-        "path": "apps/web/src/components/Toast.tsx",
-        "inbound": 4,
-        "outbound": 0,
-        "risk": 0.2
+        "path": "apps/web/src/App.tsx",
+        "inbound": 1,
+        "outbound": 24,
+        "risk": 1
       },
       {
-        "path": "apps/web/src/components/AxisIcons.tsx",
-        "inbound": 4,
-        "outbound": 0,
-        "risk": 0.2
+        "path": "packages/generator-core/src/generate.ts",
+        "inbound": 30,
+        "outbound": 6,
+        "risk": 1
       },
       {
-        "path": "apps/web/src/upload-utils.ts",
-        "inbound": 3,
-        "outbound": 0,
-        "risk": 0.15
+        "path": "apps/api/src/mcp-tool-impls.ts",
+        "inbound": 0,
+        "outbound": 24,
+        "risk": 1
       }
     ],
     "architecture": {
@@ -368,18 +365,18 @@
     "abstractions": [
       "apps/ (monorepo_apps)",
       "packages/ (monorepo_packages)",
+      "docs/ (documentation)",
       "examples/ (project_directory)",
       "mcp/ (project_directory)",
-      "payment-processing-output/ (project_directory)",
-      "packaging/ (project_directory)",
       ".github/ (project_directory)",
-      "algorithmic/ (project_directory)"
+      "algorithmic/ (project_directory)",
+      "artifacts/ (project_directory)"
     ]
   },
   "detected_stack": {
     "primary_language": "TypeScript",
     "total_files": 500,
-    "total_loc": 133500
+    "total_loc": 115124
   },
   "source_media_files": null
 }
