@@ -153,7 +153,9 @@ describe("generators-closer", () => {
     expect(attestationJson.certlib_profile).toBe("certlib-offline-v1");
     expect(attestationJson.merkle_root.length).toBe(64);
     expect(attestationJson.signature.value.length).toBe(64);
-    expect(attestationJson.leaf_count).toBeGreaterThan(10);
+    // DEVELOP: attests the verbatim-shipped build/config files (9) — the 2 trust-fabric
+    // files (self-reference) and the 5 footered markdown docs are excluded.
+    expect(attestationJson.leaf_count).toBeGreaterThan(5);
     expect(proofJson.merkle_root).toBe(attestationJson.merkle_root);
     expect(proofJson.levels.length).toBeGreaterThan(1);
   });

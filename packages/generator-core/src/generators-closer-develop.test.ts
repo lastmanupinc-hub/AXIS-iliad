@@ -5,10 +5,23 @@ import type { SourceFile } from "./types.js";
 import {
   generateCloserTrustAttestation,
   generateCloserMerkleProof,
+  generateCloserDockerfile,
   generatePackagingReadme,
   generateMakefileWithShipTarget,
   generateCloserManifestGitHubMarketplace,
+  generateCloserDockerCompose,
+  generateCloserCiWorkflow,
+  generateCloserReleaseWorkflow,
+  generateCloserManifestNpm,
+  generateCloserManifestUnreal,
+  generateCloserManifestVsCode,
+  generatePackagingLicense,
+  generateCloserManifestDockerHub,
+  generateCloserPackagingReport,
+  generateDistributableGuide,
 } from "./generators-closer.js";
+import { appendAutonomyLoop } from "./autonomy-loop.js";
+import type { GeneratedFile } from "./types.js";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
@@ -31,19 +44,21 @@ const files: SourceFile[] = [];
 describe("DEVELOP: trust-fabric attestation covers real file content", () => {
   it("each leaf digest is sha256(path + '\\n' + content) of the actual artifact", () => {
     const att = JSON.parse(generateCloserTrustAttestation(ctxWith(), profile, files).content);
-    const readme = generatePackagingReadme(ctxWith(), profile, files);
-    const leaf = att.leaves.find((l: { path: string }) => l.path === "packaging/README.md");
-    expect(leaf.digest).toBe(sha256(`${readme.path}\n${readme.content}`));
+    const dockerfile = generateCloserDockerfile(ctxWith(), profile, files);
+    const leaf = att.leaves.find((l: { path: string }) => l.path === "Dockerfile");
+    expect(leaf.digest).toBe(sha256(`${dockerfile.path}\n${dockerfile.content}`));
   });
   it("tampering with any artifact's content changes the Merkle root", () => {
     const rootA = JSON.parse(generateCloserTrustAttestation(ctxWith("alpha"), profile, files).content).merkle_root;
     const rootB = JSON.parse(generateCloserTrustAttestation(ctxWith("bravo"), profile, files).content).merkle_root;
     expect(rootA).not.toBe(rootB);
   });
-  it("excludes the two trust-fabric files from its own leaves (no self-attestation)", () => {
+  it("attests only the verbatim-shipped build/config files — no self-attestation, no footered docs", () => {
     const att = JSON.parse(generateCloserTrustAttestation(ctxWith(), profile, files).content);
-    expect(att.leaf_count).toBe(14);
+    expect(att.leaf_count).toBe(9);
     expect(att.leaves.some((l: { path: string }) => l.path.includes("trust-fabric"))).toBe(false);
+    // markdown docs carry a post-generation ⟳ footer, so they can't be content-attested here
+    expect(att.leaves.some((l: { path: string }) => l.path.endsWith(".md"))).toBe(false);
   });
   it("the attestation and merkle-proof compute an identical root, deterministically", () => {
     const att = JSON.parse(generateCloserTrustAttestation(ctxWith(), profile, files).content);
@@ -52,6 +67,29 @@ describe("DEVELOP: trust-fabric attestation covers real file content", () => {
     const att2 = JSON.parse(generateCloserTrustAttestation(ctxWith(), profile, files).content);
     expect(att2.merkle_root).toBe(att.merkle_root);
     expect(att.merkle_root).toHaveLength(64);
+  });
+
+  // END-TO-END: the recompute recipe must reproduce every leaf on the SHIPPED
+  // package — i.e. AFTER appendAutonomyLoop footers the markdown. Attesting a
+  // footered doc would make an untouched package verify as tampered; this test
+  // fails if any footered file ever re-enters the attested set.
+  it("every attested leaf recomputes on the post-footer shipped files", () => {
+    const gens = [
+      generatePackagingReadme, generatePackagingLicense, generateCloserDockerfile, generateCloserDockerCompose,
+      generateCloserCiWorkflow, generateCloserReleaseWorkflow, generateCloserManifestNpm, generateCloserManifestUnreal,
+      generateCloserManifestVsCode, generateCloserManifestDockerHub, generateCloserManifestGitHubMarketplace,
+      generateCloserPackagingReport, generateDistributableGuide, generateMakefileWithShipTarget,
+      generateCloserTrustAttestation, generateCloserMerkleProof,
+    ];
+    const result = { files: gens.map((g) => g(ctxWith(), profile, files)) as GeneratedFile[] };
+    appendAutonomyLoop(result, ctxWith()); // footers every .md IN PLACE, like the real ship path
+    const footered = result.files.filter((f) => f.content_type === "text/markdown" && f.content.includes("Continue"));
+    expect(footered.length).toBeGreaterThan(0); // the hazard is real: docs DID get footered
+    const att = JSON.parse(result.files.find((f) => f.path.endsWith("attestation.json"))!.content);
+    for (const leaf of att.leaves as Array<{ path: string; digest: string }>) {
+      const shipped = result.files.find((f) => f.path === leaf.path)!;
+      expect(sha256(`${shipped.path}\n${shipped.content}`), `leaf ${leaf.path} must match shipped bytes`).toBe(leaf.digest);
+    }
   });
 });
 

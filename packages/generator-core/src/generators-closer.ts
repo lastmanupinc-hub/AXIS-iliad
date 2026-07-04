@@ -283,12 +283,18 @@ function buildMerkleBundle(leafInputs: Array<{ path: string; content: string }>)
   return { root, leaves, levels, signature };
 }
 
-// The content-bearing artifacts the trust fabric attests: every closer output
-// EXCEPT the two trust-fabric files themselves (a file can't content-hash itself,
-// and they exist to attest the others). Regenerated here so the Merkle leaves
-// cover real bytes. Pure + deterministic, so the attestation and merkle-proof
-// generators compute an identical bundle. None of these 14 generators reference
-// the bundle, so there is no recursion.
+// The artifacts the trust fabric attests: the build & configuration outputs that
+// ship BYTE-FOR-BYTE as generated — the supply-chain-critical files (Dockerfile,
+// compose, CI/release workflows, LICENSE, Makefile, package manifests). Excluded:
+//   - the 2 trust-fabric files themselves (a file can't content-hash itself);
+//   - every markdown doc (README, dockerhub/marketplace listings, packaging-report,
+//     DISTRIBUTABLE) — the autonomy loop appends a ⟳ footer to each `.md` AFTER
+//     generation, so a doc's shipped bytes differ from anything we could hash here.
+//     Attesting them would make the recompute recipe report a false tamper on an
+//     untouched package.
+// Regenerated here so the Merkle leaves cover real bytes. Pure + deterministic, so
+// the attestation and merkle-proof generators compute an identical bundle. None of
+// these generators reference the bundle, so there is no recursion.
 function closerAttestedArtifacts(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): Array<{ path: string; content: string }> {
   return [
     generatePackagingReadme(ctx, profile, files),
@@ -305,7 +311,9 @@ function closerAttestedArtifacts(ctx: ContextMap, profile: RepoProfile, files?: 
     generateCloserPackagingReport(ctx, profile, files),
     generateDistributableGuide(ctx, profile, files),
     generateMakefileWithShipTarget(ctx, profile, files),
-  ].map(f => ({ path: f.path, content: f.content }));
+  ]
+    .filter(f => f.content_type !== "text/markdown")
+    .map(f => ({ path: f.path, content: f.content }));
 }
 
 function readinessScore(signals: ProjectSignals, marketplaces: number): number {
@@ -1134,6 +1142,7 @@ export function generateCloserTrustAttestation(
       project_id: ctx.project_id,
       product_name: branding.product_name,
       package_root: "./",
+      attests: "Build & configuration artifacts that ship byte-for-byte (Dockerfile, docker-compose, CI/release workflows, LICENSE, Makefile, package manifests). Markdown docs are excluded — the autonomy loop appends a footer to each after generation, so their shipped bytes are not knowable here.",
       merkle_root: bundle.root,
       signature: {
         algorithm: "sha256-pseudo-signature",
@@ -1152,7 +1161,7 @@ export function generateCloserTrustAttestation(
     content,
     content_type: "application/json",
     program: PROGRAM,
-    description: "Trust Fabric certlib-style attestation with a content-derived Merkle root integrity digest (not a cryptographic signature) over package artifacts",
+    description: "Trust Fabric certlib-style attestation: a content-derived Merkle root integrity digest (not a cryptographic signature) over the build & configuration artifacts that ship verbatim (docs, which carry a post-generation loop footer, are excluded)",
   };
 }
 
