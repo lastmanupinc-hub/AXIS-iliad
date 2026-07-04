@@ -1,5 +1,6 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
+import { mdText, mdInline } from "./md-sanitize.js";
 
 /**
  * Canonical counts — must equal `listAvailableGenerators().length` and the
@@ -536,7 +537,7 @@ export function generateAgentPurchasingPlaybook(
     }).join("\n")
     : "| (no providers detected) | — | — | — |";
 
-  const content = `# AXIS Agent Purchasing Playbook — ${name}
+  const content = `# AXIS Agent Purchasing Playbook — ${mdText(name)}
 
 > How an AI agent can autonomously discover, evaluate, and purchase AXIS analysis programs for this codebase.
 
@@ -544,10 +545,10 @@ export function generateAgentPurchasingPlaybook(
 
 | Field | Value |
 |-------|-------|
-| Project | ${name} |
-| Type | ${type} |
-| Language | ${lang} |
-| Frameworks | ${fws} |
+| Project | ${mdInline(name)} |
+| Type | ${mdInline(type)} |
+| Language | ${mdInline(lang)} |
+| Frameworks | ${mdInline(fws)} |
 | Files | ${ctx.structure.total_files} |
 
 ## Repository Commerce Signals
@@ -638,9 +639,9 @@ POST /mcp
 
 ## Recommended Programs for This Project
 
-Based on project type **${type}** with ${lang}:
+Based on project type **${mdText(type)}** with ${mdText(lang)}:
 
-${ctx.detection.frameworks.length > 0 ? `- **frontend** — Component guidelines and UI audit (detected ${fws})\n` : ""}- **debug** — Debug playbook, incident templates, root cause checklists (free)
+${ctx.detection.frameworks.length > 0 ? `- **frontend** — Component guidelines and UI audit (detected ${mdText(fws)})\n` : ""}- **debug** — Debug playbook, incident templates, root cause checklists (free)
 - **skills** — AGENTS.md, CLAUDE.md, .cursorrules for AI coding tools (free)
 - **optimization** — Token budget plans, cost estimates, prompt diff reports
 - **superpowers** — Workflow registry, test generation rules, automation pipeline
@@ -817,7 +818,7 @@ export function generateCheckoutFlow(
     ? `Detected providers: ${signals.detected_providers.join(", ")}.`
     : "No payment providers detected — implement provider integration before production.";
 
-  const content = `# Autonomous Checkout Flow — ${name}
+  const content = `# Autonomous Checkout Flow — ${mdText(name)}
 
 > Specification for how AI agents complete AXIS program purchases without human intervention.
 
@@ -1016,7 +1017,7 @@ export function generateNegotiationRules(
     }).join("\n")
     : "| (none detected) | — | — | — | — |";
 
-  const content = `# Agent Negotiation Rules — ${name}
+  const content = `# Agent Negotiation Rules — ${mdText(name)}
 
 > Rules governing how agents evaluate value, compare alternatives, and decide whether to purchase AXIS programs.
 
@@ -1041,7 +1042,7 @@ value_score = (loc / 1000) * 0.4
 Where \`complexity_score\` = 1 (low) | 2 (medium) | 3 (high).
 Where \`commerce_signal_bonus\` = detected_providers × 0.15 + (has_sca ? 0.10 : 0) + (has_dispute ? 0.10 : 0).
 
-**Estimated value score for ${name}:** ${((loc / 1000) * 0.4 + (fileCount / 10) * 0.3 + (complexity === "high" ? 3 : complexity === "medium" ? 2 : 1) * 0.3 + signals.detected_providers.length * 0.15 + (signals.has_sca ? 0.10 : 0) + (signals.has_dispute_handling ? 0.10 : 0)).toFixed(2)}
+**Estimated value score for ${mdText(name)}:** ${((loc / 1000) * 0.4 + (fileCount / 10) * 0.3 + (complexity === "high" ? 3 : complexity === "medium" ? 2 : 1) * 0.3 + signals.detected_providers.length * 0.15 + (signals.has_sca ? 0.10 : 0) + (signals.has_dispute_handling ? 0.10 : 0)).toFixed(2)}
 
 ## Cost Considerations
 
