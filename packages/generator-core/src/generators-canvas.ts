@@ -170,7 +170,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("│  [gradient background]                    │");
   lines.push("│                                           │");
   lines.push(`│     ${mdCode(id.name)}                            │`);
-  lines.push(`│     ${mdCode((id.description ?? "").slice(0, 50))}...     │`);
+  lines.push(`│     ${(id.description ?? "").length > 50 ? mdCode((id.description ?? "").slice(0, 50)) + "…" : mdCode(id.description ?? "")}     │`);
   lines.push("│                                           │");
   lines.push(`│     [${frameworks.slice(0, 4).map(f => mdCode(f)).join("] [")}]    │`);
   lines.push("│                                           │");
@@ -297,11 +297,13 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push(`- Architecture Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push(`- Dependencies: ${ctx.dependency_graph.external_dependencies.length}`);
   lines.push("");
-  lines.push("**Language Breakdown**");
-  for (const lang of languages) {
-    lines.push(`- ${mdText(lang.name)}: ${lang.loc_percent}% (${lang.loc} LOC)`);
+  if (languages.length > 0) {
+    lines.push("**Language Breakdown**");
+    for (const lang of languages) {
+      lines.push(`- ${mdText(lang.name)}: ${lang.loc_percent}% (${lang.loc} LOC)`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
   if (patterns.length > 0 || layers.length > 0) {
     lines.push("**Architecture Diagram**");
@@ -316,11 +318,13 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("");
   }
 
-  lines.push("**Framework Badges**");
-  for (const fw of ctx.detection.frameworks) {
-    lines.push(`- ${mdText(fw.name)}${fw.version ? " " + mdText(fw.version) : ""}`);
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("**Framework Badges**");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`- ${mdText(fw.name)}${fw.version ? " " + mdText(fw.version) : ""}`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
   if (ctx.domain_models.length > 0) {
     lines.push("**Domain Models**");
@@ -600,15 +604,17 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   // Tech Identity
   lines.push("## Tech Identity Elements");
   lines.push("");
-  lines.push("### Stack Badge Bar");
-  lines.push("");
-  for (const fw of frameworks.slice(0, 6)) {
-    lines.push(`- \`${mdCode(fw.name)}\``);
+  if (frameworks.length > 0 || languages.length > 0) {
+    lines.push("### Stack Badge Bar");
+    lines.push("");
+    for (const fw of frameworks.slice(0, 6)) {
+      lines.push(`- \`${mdCode(fw.name)}\``);
+    }
+    for (const l of languages.slice(0, 3)) {
+      lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
+    }
+    lines.push("");
   }
-  for (const l of languages.slice(0, 3)) {
-    lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
-  }
-  lines.push("");
 
   if (abstractions.length > 0) {
     lines.push("### Key Abstractions for Branding");
