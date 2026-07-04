@@ -10,7 +10,7 @@ import { findFiles, findConfigs, renderExcerpts, extractExports } from "./file-e
 // repo-derived values are contained by construction and need no extra handling.
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 import { pathHasSegment, isNoindexRoute } from "./seo-routes.js";
-import { displayRoutes } from "./route-utils.js";
+import { displayRoutes, isApiRoute } from "./route-utils.js";
 
 // Route tables are capped: the parser emits per-mention rows, so a real repo has
 // hundreds of (mostly duplicate) routes; rendering them all is 40KB+ of noise.
@@ -292,6 +292,10 @@ export function generateSchemaRecommendations(ctx: ContextMap, files?: SourceFil
   // Routes-based recommendations (deduped — no duplicate recs for the same path).
   const getRoutes = displayRoutes(ctx.routes).filter(r => r.method === "GET");
   for (const route of getRoutes) {
+    // Skip noindex/API routes up front — otherwise /v1/docs matched "docs"→
+    // TechArticle and /v1/plans matched "plans"→Product, contradicting the
+    // route-priority map that (correctly) marks the same routes noindex.
+    if (isNoindexRoute(route.path, route.method)) continue;
     if (pathHasSegment(route.path, ["blog", "post", "posts", "article", "articles"])) {
       recommendations.push({
         page: route.path,
@@ -450,8 +454,11 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   for (const route of getRoutes) {
     if (route.path === "/" || route.path.toLowerCase() === "/home") {
       categorized.push({ path: route.path, priority: 1.0, changefreq: "weekly", indexable: true, reason: "Homepage — highest priority" });
-    } else if (pathHasSegment(route.path, ["api", "v1", "graphql", "_next"])) {
-      categorized.push({ path: route.path, priority: 0.0, changefreq: "never", indexable: false, reason: "API/internal route — noindex" });
+    } else if (isApiRoute(route.path) || pathHasSegment(route.path, ["_next"])) {
+      // isApiRoute catches /api, /v1, /graphql, /mcp, /.well-known, and static/data
+      // files (*.json/.txt/.xml, favicon.ico) — so /robots.txt, /sitemap.xml, and
+      // /favicon.ico are no longer emitted as indexable "Standard page" sitemap rows.
+      categorized.push({ path: route.path, priority: 0.0, changefreq: "never", indexable: false, reason: "API/asset/internal endpoint — noindex" });
     } else if (pathHasSegment(route.path, ["blog", "post", "posts", "article", "articles"])) {
       categorized.push({ path: route.path, priority: 0.8, changefreq: "weekly", indexable: true, reason: "Content page — high traffic potential" });
     } else if (pathHasSegment(route.path, ["pricing", "plan", "plans"])) {
@@ -488,9 +495,12 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
   const noindex = categorized.filter(r => !r.indexable);
   lines.push("## Summary");
   lines.push("");
-  lines.push(`- **Total routes:** ${categorized.length}`);
+  // GET routes only — the non-GET API surface is listed separately below, so
+  // "Total routes" here would undercount the repo's real route count.
+  lines.push(`- **Sitemap-candidate (GET) routes:** ${categorized.length}`);
   lines.push(`- **Indexable:** ${indexable.length}`);
   lines.push(`- **Noindex:** ${noindex.length}`);
+  lines.push(`- **Non-GET / API routes (excluded, see below):** ${apiRoutes.length}`);
   lines.push("");
 
   // API routes (excluded from sitemap)
@@ -505,17 +515,21 @@ export function generateRoutePriorityMap(ctx: ContextMap, files?: SourceFile[]):
     lines.push("");
   }
 
-  // Robots.txt recommendations
+  // Robots.txt recommendations. Disallow prefixes are DERIVED from the actual
+  // noindex + API routes and collapsed to their STATIC prefix — a literal
+  // `Disallow: /v1/x/:id` never matches `/v1/x/42`, and a hardcoded `Disallow:
+  // /api/` is dead on a repo whose API lives under /v1//mcp/.
+  const staticPrefix = (p: string) => (p.split("/:")[0].split("/*")[0].replace(/[`\s]/g, "").replace(/\/+$/, "") || "/");
+  const disallowPaths = [...new Set([...noindex.map(r => r.path), ...apiRoutes.map(r => r.path)].map(staticPrefix))]
+    .filter(p => p !== "/")
+    .sort();
   lines.push("## robots.txt Recommendations");
   lines.push("");
   lines.push("```");
   lines.push("User-agent: *");
   lines.push("Allow: /");
-  for (const r of noindex) {
-    lines.push(`Disallow: ${mdCode(r.path)}`);
-  }
-  if (apiRoutes.length > 0) {
-    lines.push("Disallow: /api/");
+  for (const p of disallowPaths) {
+    lines.push(`Disallow: ${p}`);
   }
   lines.push("");
   lines.push("Sitemap: https://yoursite.com/sitemap.xml");
@@ -600,6 +614,10 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
   // SEO Readiness Score
   const hasSSR = hasFw(ctx, "Next.js", "Svelte", "Vue");
   const hasRoutes = ctx.routes.length > 0;
+  // Credit routes toward the SCORE only if at least one is an INDEXABLE page — a
+  // backend-only repo whose routes are all /v1//mcp/ endpoints has no SEO-relevant
+  // route surface, so it shouldn't earn "Route Detection" toward SEO readiness.
+  const hasIndexablePages = displayRoutes(ctx.routes).some(r => !isNoindexRoute(r.path, r.method));
   const hasHealthy = {
     has_ci: ctx.detection.ci_platform !== null,
     // basename match — a README anywhere in the tree counts, not just at root.
@@ -609,7 +627,7 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
 
   const checks = [
     { name: "Server-Side Rendering", pass: hasSSR, weight: 3 },
-    { name: "Route Detection", pass: hasRoutes, weight: 2 },
+    { name: "Indexable Page Routes", pass: hasIndexablePages, weight: 2 },
     { name: "Has TypeScript", pass: id.primary_language === "TypeScript", weight: 1 },
     { name: "Has CI/CD", pass: hasHealthy.has_ci, weight: 1 },
     { name: "Has README", pass: hasHealthy.has_readme, weight: 1 },
@@ -728,9 +746,11 @@ export function generateContentAudit(ctx: ContextMap, files?: SourceFile[]): Gen
       lines.push("| Component | Has Meta | Lines |");
       lines.push("|-----------|----------|-------|");
       for (const pc of pageComponents.slice(0, 15)) {
-        const hasMeta = pc.content.includes("metadata") || pc.content.includes("<title") ||
-          pc.content.includes("useHead") || pc.content.includes("svelte:head") ||
-          pc.content.includes("generateMetadata") || pc.content.includes("Head");
+        // Use the SAME anchored signal as the deterministic gap scan — bare
+        // substrings flagged `Header`/`PageHeader` (".includes('Head')") and any
+        // `metadata` identifier as meta present, so this table said "Has Meta: Yes"
+        // for pages the gap table below flagged "no-title ERROR" (a contradiction).
+        const hasMeta = SEO_SIGNALS.title.test(pc.content) || SEO_SIGNALS.description.test(pc.content);
         lines.push(`| \`${mdCellCode(pc.path)}\` | ${hasMeta ? "Yes" : "**Missing**"} | ${pc.content.split("\n").length} |`);
       }
       lines.push("");
@@ -942,20 +962,18 @@ export function generateMetaTagAudit(ctx: ContextMap, files?: SourceFile[]): Gen
     ],
     // ─── Source File Analysis ──────────────────────────────────
     source_meta_scan: files && files.length > 0 ? (() => {
-      const pageFiles = findFiles(files, ["**/page.*", "**/index.*", "**/*.html", "**/layout.*", "**/head.*"]);
-      return pageFiles.slice(0, 12).map(f => {
-        const hasTitle = /metadata|<title|useHead|svelte:head|generateMetadata|Head/.test(f.content);
-        const hasOg = /og:|openGraph|opengraph|open_graph/.test(f.content);
-        const hasJsonLd = /application\/ld\+json|JsonLd|jsonLd/.test(f.content);
-        const hasDescription = /description/.test(f.content);
-        return {
-          path: f.path,
-          has_title: hasTitle,
-          has_og_tags: hasOg,
-          has_structured_data: hasJsonLd,
-          has_description: hasDescription,
-        };
-      });
+      // Only REAL page/layout files, via the shared isPageFile predicate — the old
+      // findFiles("**/index.*") substring match pulled in index.css / index.ts
+      // barrels (a stylesheet was reported has_title:true because it contains a
+      // "Header" comment). Flags reuse the anchored SEO_SIGNALS, not loose greps.
+      const pageFiles = files.filter(f => isPageFile(f.path)).slice(0, 12);
+      return pageFiles.map(f => ({
+        path: f.path,
+        has_title: SEO_SIGNALS.title.test(f.content),
+        has_og_tags: SEO_SIGNALS.og.test(f.content),
+        has_structured_data: /application\/ld\+json|JsonLd|jsonLd/.test(f.content),
+        has_description: SEO_SIGNALS.description.test(f.content),
+      }));
     })() : null,
   };
 

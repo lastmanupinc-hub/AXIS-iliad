@@ -1,3 +1,5 @@
+import { isApiRoute } from "./route-utils.js";
+
 // Path-segment matching for SEO route classification.
 //
 // The SEO generators classify routes (index vs noindex, schema type, crawl
@@ -31,5 +33,9 @@ export const NOINDEX_SEGMENTS: readonly string[] = [
 
 /** Whether a route should be excluded from the sitemap / marked noindex — the ONE decision all SEO generators share. */
 export function isNoindexRoute(path: string, method: string): boolean {
-  return method !== "GET" || pathHasSegment(path, NOINDEX_SEGMENTS);
+  // isApiRoute() catches the non-page endpoint SHAPES the segment list can't —
+  // `/mcp`, `/.well-known/*`, and static/data files (`*.json`, `*.txt`, `*.xml`,
+  // `favicon.ico`, …). Without it, /robots.txt & /sitemap.xml were emitted as
+  // indexable "Standard page" and /llms.txt got a full <title>/canonical/OG audit.
+  return method !== "GET" || isApiRoute(path) || pathHasSegment(path, NOINDEX_SEGMENTS);
 }
