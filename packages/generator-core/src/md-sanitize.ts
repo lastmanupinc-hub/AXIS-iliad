@@ -165,3 +165,44 @@ export function codeComment(s: string): string {
     .replace(/-->/g, "-- >")
     .trim();
 }
+
+// ─── Packaging / build-file sanitizers (the closer program) ─────
+//
+// The closer program emits build artifacts that are EXECUTED — a Dockerfile
+// (`docker build`), a Makefile recipe (`make`), and GitHub Actions YAML (`run:`).
+// A repo value dropped raw into these is code execution, not formatting
+// corruption. YAML scalars are covered by yamlFlowScalar above; the two below
+// cover the Dockerfile LABEL and Makefile recipe contexts.
+
+/**
+ * Escape a value for the inside of a double-quoted Dockerfile instruction
+ * argument (the caller supplies the quotes: `LABEL k="${dockerfileLabelValue(x)}"`).
+ * Collapses line breaks so a newline can't terminate the instruction and start a
+ * fresh `RUN`/`ENV` that would execute during `docker build`, then escapes the
+ * backslash (blocks trailing line continuation) and the closing double-quote.
+ * Null-safe.
+ */
+export function dockerfileLabelValue(s: string): string {
+  return String(s ?? "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .trim();
+}
+
+/**
+ * Escape a value for a SINGLE-quoted shell argument inside a Makefile recipe (the
+ * caller supplies the quotes: `\t@echo '${makefileEchoArg(x)}'`). A recipe is
+ * expanded by make and then run by the shell, so this: collapses line breaks (a
+ * newline would start a new recipe/target line), doubles `$`->`$$` so make cannot
+ * expand it into `$(shell ...)`, and escapes the single quote for the shell via
+ * the `'\''` idiom. Inside single quotes the shell treats `"`, backtick and `\`
+ * literally, so they need no further escaping. Null-safe.
+ */
+export function makefileEchoArg(s: string): string {
+  return String(s ?? "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\$/g, "$$$$")
+    .replace(/'/g, "'\\''")
+    .trim();
+}
