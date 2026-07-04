@@ -110,6 +110,20 @@ describe("notebook — determinism + honesty", () => {
     expect(nb).not.toContain("/10");
     expect(rt).not.toContain("/10");
   });
+  it("HARDEN-2: all five generators survive a partial ctx (undefined domain_models/file_tree_summary/warnings)", () => {
+    // A legacy/partial snapshot can omit these; notebook-summary guarded them but
+    // study-brief/research-threads didn't, so 2 of 5 crashed. Now none do.
+    const partial = hostileCtx({
+      structure: { total_files: 1, total_directories: 1, total_loc: 10, file_tree_summary: undefined as unknown as ContextMap["structure"]["file_tree_summary"], top_level_layout: [] },
+      domain_models: undefined as unknown as ContextMap["domain_models"],
+      ai_context: { project_summary: "x", key_abstractions: [], conventions: [], warnings: undefined as unknown as string[] } as ContextMap["ai_context"],
+    });
+    expect(() => generateNotebookSummary(partial, files)).not.toThrow();
+    expect(() => generateSourceMap(partial, files)).not.toThrow();
+    expect(() => generateStudyBrief(partial, files)).not.toThrow();
+    expect(() => generateResearchThreads(partial, files)).not.toThrow();
+    expect(() => generateCitationIndex(partial, files)).not.toThrow();
+  });
   it("HARDEN-1: the 0-1 fitness thresholds fire (a 0.8 score reads 'strong', not always 'low')", () => {
     const strong = generateResearchThreads(hostileCtx({ architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0.8 } } as Partial<ContextMap>)).content;
     expect(strong).toContain("separation is strong");
