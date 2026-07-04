@@ -2426,8 +2426,8 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
       if (!pkgJson) return null;
       try {
         const parsed = JSON.parse(pkgJson.content) as { scripts?: Record<string, string> };
-        const scripts = parsed.scripts ?? {};
-        return Object.entries(scripts).slice(0, 15).map(([name, cmd]) => `${name}: ${cmd}`);
+        const entries = Object.entries(parsed.scripts ?? {});
+        return entries.length > 0 ? entries.slice(0, 15).map(([name, cmd]) => `${name}: ${cmd}`) : null;
       } catch {
         return null;
       }
