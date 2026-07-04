@@ -78,12 +78,15 @@ describe("POLISH: server-manifest.yaml emits a valid empty list, not a childless
 
 // ─── #2 capability-registry honesty (no fabricated npm toolchain) ───
 describe("POLISH: capability-registry does not assert an npm toolchain for non-JS repos", () => {
-  function caps(pkgManagers: string[], buildTools: string[] = []) {
-    const reg = JSON.parse(generateCapabilityRegistry(ctxWith({ detection: { languages: [], frameworks: [], build_tools: buildTools, test_frameworks: [], package_managers: pkgManagers, ci_platform: null, deployment_target: null } }), files).content) as { capabilities: Array<{ id: string; available: boolean }> };
+  function caps(pkgManagers: string[], buildTools: string[] = [], primaryLanguage = "TypeScript") {
+    const reg = JSON.parse(generateCapabilityRegistry(ctxWith({
+      project_identity: { name: "app", type: "app", primary_language: primaryLanguage, description: null, repo_url: null, go_module: null },
+      detection: { languages: [], frameworks: [], build_tools: buildTools, test_frameworks: [], package_managers: pkgManagers, ci_platform: null, deployment_target: null },
+    }), files).content) as { capabilities: Array<{ id: string; available: boolean }> };
     return Object.fromEntries(reg.capabilities.map((c) => [c.id, c.available]));
   }
-  it("build/dev/install are available:false for a Python repo (pkgManagers=[pip])", () => {
-    const c = caps(["pip"]);
+  it("build/dev/install are available:false for a real Python repo (Python language, no JS pkg mgr)", () => {
+    const c = caps(["pip"], [], "Python");
     expect(c.build).toBe(false);
     expect(c.dev).toBe(false);
     expect(c.install).toBe(false);

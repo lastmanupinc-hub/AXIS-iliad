@@ -2252,10 +2252,16 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
   const buildTools = ctx.detection.build_tools;
   const pkgManagers = ctx.detection.package_managers;
   const pkgMgr = pkgManagers.includes("pnpm") ? "pnpm" : pkgManagers.includes("yarn") ? "yarn" : "npm";
-  // Honesty gate: only claim npm-style build/dev/install when a JS toolchain
-  // is actually detected — a Python/Rust/Go repo has none of these.
+  // Honesty gate: only claim npm-style build/dev/install when this is actually a
+  // JS/Node project — a detected JS package manager OR a JS/TS primary language.
+  // A Python/Rust/Go repo (even one with a Makefile) reports these unavailable
+  // rather than fabricating `npm run build`. `buildTools` is NOT a reliable
+  // signal: detectBuildTools emits go_modules/make for non-JS repos, and never
+  // emits tsc for a lockfile-less TS repo — so keying off it both false-positives
+  // Go/Make and false-negatives tsc-only JS.
   const hasJsPkgMgr = pkgManagers.some((p) => ["npm", "pnpm", "yarn", "bun"].includes(p));
-  const hasJsToolchain = hasJsPkgMgr || buildTools.length > 0;
+  const isJsProject = id.primary_language === "TypeScript" || id.primary_language === "JavaScript";
+  const hasJsToolchain = hasJsPkgMgr || isJsProject;
 
   const capabilities: Array<{
     id: string;
@@ -2345,7 +2351,7 @@ export function generateCapabilityRegistry(ctx: ContextMap, files?: SourceFile[]
     category: "setup",
     provider: pkgMgr,
     command: `${pkgMgr} install`,
-    available: hasJsPkgMgr,
+    available: hasJsToolchain,
   });
 
   // Git capabilities
@@ -2601,7 +2607,11 @@ export function generateServerManifest(ctx: ContextMap, profile: RepoProfile, fi
 // ─── mcp/fintech-mcp-surface-package.md ───────────────────────
 
 function detectFintechDependencies(ctx: ContextMap): string[] {
-  const fintechDeps = ["stripe", "dwolla", "plaid", "adyen", "marqeta", "finicity", "modern-treasury", "moderntreasury", "checkout.com"];
+  // Distinctive brand names + real package ids. `checkout-sdk`/`unit-finance`
+  // catch the unscoped Checkout.com SDK (checkout-sdk-node) and Unit
+  // (@unit-finance/*) without the bare "checkout"/"unit"/"treasury" substrings
+  // that false-positived cart-checkouts, unit-test libs, and aws-treasury.
+  const fintechDeps = ["stripe", "dwolla", "plaid", "adyen", "marqeta", "finicity", "modern-treasury", "moderntreasury", "checkout.com", "checkout-sdk", "unit-finance"];
   return ctx.dependency_graph.external_dependencies
     .map((dep) => dep.name)
     .filter((name) => fintechDeps.some((keyword) => name.toLowerCase().includes(keyword)));
