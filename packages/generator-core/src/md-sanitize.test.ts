@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mdInline, mdText, mdCode, mdCellCode, cfgValue, yamlFlowScalar, htmlEscape, jsxText, jsString, codeComment } from "./md-sanitize.js";
+import { mdInline, mdText, mdCode, mdCellCode, cfgValue, yamlFlowScalar, htmlEscape, jsxText, jsString, codeComment, mdBlock } from "./md-sanitize.js";
 
 describe("null-safety (partial/malformed context maps must not crash a generator)", () => {
   it("every sanitizer degrades null/undefined to a safe empty value instead of throwing", () => {
@@ -169,6 +169,24 @@ describe("jsString", () => {
     expect(out.replace(/\\"/g, "")).not.toContain('"');
   });
   it("null-safe", () => { expect(jsString(null as unknown as string)).toBe(""); });
+});
+
+describe("mdBlock", () => {
+  it("escapes a leading block marker so a standalone paragraph can't begin a block", () => {
+    expect(mdBlock("# Not a heading")).toBe("\\# Not a heading");
+    expect(mdBlock("> not a quote")).toBe("\\> not a quote");
+    expect(mdBlock("| not a table")).toBe("\\| not a table");
+    expect(mdBlock("```not a fence")).toBe("\\```not a fence");
+    expect(mdBlock("~~~also not a fence")).toBe("\\~~~also not a fence");
+  });
+  it("still collapses newlines (inherits mdText) so no mid-paragraph block starts", () => {
+    // a `\n## X` cannot become a heading because the newline is collapsed first
+    expect(mdBlock("intro\n## injected heading")).toBe("intro ## injected heading");
+  });
+  it("is identity on clean prose and null-safe", () => {
+    expect(mdBlock("A normal one-line project summary.")).toBe("A normal one-line project summary.");
+    expect(mdBlock(null as unknown as string)).toBe("");
+  });
 });
 
 describe("codeComment", () => {

@@ -42,6 +42,21 @@ export function mdCellCode(s: string): string {
 }
 
 /**
+ * mdText for a STANDALONE untrusted paragraph — a value pushed as its OWN line,
+ * not inline behind a `- **Label**: ` prefix. Inline sinks are safe with mdText
+ * (the prefix means the value can't start the line), but a value on its own line
+ * can still BEGIN a block if it starts with a markdown block marker even after
+ * mdText collapses its newlines. This additionally backslash-escapes a single
+ * leading block opener — heading (`#`), blockquote (`>`), table (`|`), or a
+ * fenced-code run (``` / ~~~) — so the paragraph renders as plain text. List
+ * markers are intentionally left (a summary rendering as a list item is a
+ * formatting quirk, not structural injection). Null-safe; identity on clean prose.
+ */
+export function mdBlock(s: string): string {
+  return mdText(s).replace(/^(#{1,6}\s|>\s?|\||`{3,}|~{3,})/, "\\$1");
+}
+
+/**
  * Quote a value for a `key = "value"` config format (.cursorrules). Returns the
  * FULLY-QUOTED, escaped string (double-quoted with \" and \\ and collapsed
  * newlines) so a hostile value cannot break out of the string and inject a new

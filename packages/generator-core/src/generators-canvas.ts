@@ -2,7 +2,25 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
+
+// ─── Canonical brand palette ─────────────────────────────────────
+// ONE source of truth for the brand colors, consumed by canvas-spec.json,
+// asset-guidelines.md, AND brand-board.md. Before this, brand-board drifted to a
+// different primary/secondary (#2563EB / #7C3AED) than the spec + guidelines
+// (#6366f1 / #8b5cf6), so a renderer consuming canvas-spec drew one color while
+// the brand board told the designer another. Deriving all three from here makes
+// that impossible. (Hex values are Tailwind indigo/violet/cyan-500.)
+const CANVAS_BRAND = {
+  primary: { hex: "#6366f1", hsl: "239° 84% 67%" },
+  secondary: { hex: "#8b5cf6", hsl: "258° 90% 66%" },
+  accent: { hex: "#06b6d4", hsl: "189° 94% 43%" },
+  background: "#0f172a",
+  surface: "#1e293b",
+  text: "#f8fafc",
+  muted: "#94a3b8",
+} as const;
 
 // ─── canvas-spec.json ───────────────────────────────────────────
 
@@ -12,13 +30,13 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile, files?
   const languages = ctx.detection.languages;
 
   const brandColors = {
-    primary: "#6366f1",
-    secondary: "#8b5cf6",
-    accent: "#06b6d4",
-    background: "#0f172a",
-    surface: "#1e293b",
-    text: "#f8fafc",
-    muted: "#94a3b8",
+    primary: CANVAS_BRAND.primary.hex,
+    secondary: CANVAS_BRAND.secondary.hex,
+    accent: CANVAS_BRAND.accent.hex,
+    background: CANVAS_BRAND.background,
+    surface: CANVAS_BRAND.surface,
+    text: CANVAS_BRAND.text,
+    muted: CANVAS_BRAND.muted,
   };
 
   const spec = {
@@ -87,7 +105,7 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile, files?
       entry_point_count: ctx.entry_points.length,
       hotspot_count: ctx.dependency_graph.hotspots.length,
       domain_model_count: ctx.domain_models.length,
-      route_count: ctx.routes.length,
+      route_count: displayRoutes(ctx.routes).length,
       total_files: ctx.structure.total_files,
       total_loc: ctx.structure.total_loc,
     },
@@ -128,7 +146,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -152,7 +170,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("│  [gradient background]                    │");
   lines.push("│                                           │");
   lines.push(`│     ${mdCode(id.name)}                            │`);
-  lines.push(`│     ${mdCode((id.description ?? "").slice(0, 50))}...     │`);
+  lines.push(`│     ${(id.description ?? "").length > 50 ? mdCode((id.description ?? "").slice(0, 50)) + "…" : mdCode(id.description ?? "")}     │`);
   lines.push("│                                           │");
   lines.push(`│     [${frameworks.slice(0, 4).map(f => mdCode(f)).join("] [")}]    │`);
   lines.push("│                                           │");
@@ -178,7 +196,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
     lines.push(`| ${mdInline(lang.name)} | ${lang.loc_percent}% |`);
   }
   lines.push(`| Frameworks | ${frameworks.length} |`);
-  lines.push(`| Architecture Score | ${ctx.architecture_signals.separation_score}/100 |`);
+  lines.push(`| Architecture Score | ${Math.round(ctx.architecture_signals.separation_score * 100)}/100 |`);
   lines.push("");
 
   lines.push("## Twitter/X Card");
@@ -188,7 +206,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push(`🧵 1/ Just analyzed ${mdText(id.name)} with @AxisIliad`);
   lines.push("");
   lines.push(`📊 2/ Tech stack: ${mdText(frameworks.slice(0, 3).join(", ") || id.primary_language)}`);
-  lines.push(`Architecture score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`Architecture score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("");
   lines.push(`🔍 3/ Found ${ctx.entry_points.length} entry points and ${ctx.dependency_graph.hotspots.length} hotspots`);
   lines.push("");
@@ -204,7 +222,7 @@ export function generateSocialPack(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push(`• Type: ${mdText(id.type)}`);
   lines.push(`• Primary Language: ${mdText(id.primary_language)}`);
   lines.push(`• Frameworks: ${mdText(frameworks.join(", ") || "None")}`);
-  lines.push(`• Architecture Score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`• Architecture Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("");
 
   // ─── Source File Analysis ────────────────────────────────────
@@ -276,14 +294,16 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("**Stats Grid**");
   lines.push(`- Entry Points: ${ctx.entry_points.length}`);
   lines.push(`- Hotspots: ${ctx.dependency_graph.hotspots.length}`);
-  lines.push(`- Architecture Score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`- Architecture Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push(`- Dependencies: ${ctx.dependency_graph.external_dependencies.length}`);
   lines.push("");
-  lines.push("**Language Breakdown**");
-  for (const lang of languages) {
-    lines.push(`- ${mdText(lang.name)}: ${lang.loc_percent}% (${lang.loc} LOC)`);
+  if (languages.length > 0) {
+    lines.push("**Language Breakdown**");
+    for (const lang of languages) {
+      lines.push(`- ${mdText(lang.name)}: ${lang.loc_percent}% (${lang.loc} LOC)`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
   if (patterns.length > 0 || layers.length > 0) {
     lines.push("**Architecture Diagram**");
@@ -298,11 +318,13 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("");
   }
 
-  lines.push("**Framework Badges**");
-  for (const fw of ctx.detection.frameworks) {
-    lines.push(`- ${mdText(fw.name)}${fw.version ? " " + mdText(fw.version) : ""}`);
+  if (ctx.detection.frameworks.length > 0) {
+    lines.push("**Framework Badges**");
+    for (const fw of ctx.detection.frameworks) {
+      lines.push(`- ${mdText(fw.name)}${fw.version ? " " + mdText(fw.version) : ""}`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
   if (ctx.domain_models.length > 0) {
     lines.push("**Domain Models**");
@@ -324,7 +346,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
   lines.push("");
   lines.push(`- Name: ${mdText(id.name)}`);
   lines.push(`- Type: ${mdText(id.type)}`);
-  lines.push(`- Score: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`- Score: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push(`- Badges: ${mdText(frameworks.join(", ") || id.primary_language)}`);
   lines.push("");
 
@@ -381,13 +403,13 @@ export function generateCanvasAssetGuidelines(ctx: ContextMap, files?: SourceFil
   lines.push("");
   lines.push("| Role | Hex | Usage |");
   lines.push("|------|-----|-------|");
-  lines.push("| Primary | #6366f1 | CTAs, links, active states |");
-  lines.push("| Secondary | #8b5cf6 | Gradients, accents |");
-  lines.push("| Accent | #06b6d4 | Highlights, badges |");
-  lines.push("| Background | #0f172a | Dark canvas base |");
-  lines.push("| Surface | #1e293b | Cards, panels |");
-  lines.push("| Text | #f8fafc | Primary text |");
-  lines.push("| Muted | #94a3b8 | Secondary text, labels |");
+  lines.push(`| Primary | ${CANVAS_BRAND.primary.hex} | CTAs, links, active states |`);
+  lines.push(`| Secondary | ${CANVAS_BRAND.secondary.hex} | Gradients, accents |`);
+  lines.push(`| Accent | ${CANVAS_BRAND.accent.hex} | Highlights, badges |`);
+  lines.push(`| Background | ${CANVAS_BRAND.background} | Dark canvas base |`);
+  lines.push(`| Surface | ${CANVAS_BRAND.surface} | Cards, panels |`);
+  lines.push(`| Text | ${CANVAS_BRAND.text} | Primary text |`);
+  lines.push(`| Muted | ${CANVAS_BRAND.muted} | Secondary text, labels |`);
   lines.push("");
 
   lines.push("## Typography");
@@ -491,7 +513,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Summary");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -502,9 +524,9 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("| Role | Hex | HSL | Usage |");
   lines.push("|------|-----|-----|-------|");
-  lines.push("| Brand Primary | `#2563EB` | 217° 91% 53% | Headers, CTAs, primary actions |");
-  lines.push("| Brand Secondary | `#7C3AED` | 263° 83% 58% | Accents, secondary labels |");
-  lines.push("| Brand Accent | `#06B6D4` | 188° 95% 43% | Links, highlights, interactive |");
+  lines.push(`| Brand Primary | \`${CANVAS_BRAND.primary.hex}\` | ${CANVAS_BRAND.primary.hsl} | Headers, CTAs, primary actions |`);
+  lines.push(`| Brand Secondary | \`${CANVAS_BRAND.secondary.hex}\` | ${CANVAS_BRAND.secondary.hsl} | Accents, secondary labels |`);
+  lines.push(`| Brand Accent | \`${CANVAS_BRAND.accent.hex}\` | ${CANVAS_BRAND.accent.hsl} | Links, highlights, interactive |`);
   lines.push("");
   lines.push("### Semantic Colors");
   lines.push("");
@@ -582,15 +604,17 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
   // Tech Identity
   lines.push("## Tech Identity Elements");
   lines.push("");
-  lines.push("### Stack Badge Bar");
-  lines.push("");
-  for (const fw of frameworks.slice(0, 6)) {
-    lines.push(`- \`${mdCode(fw.name)}\``);
+  if (frameworks.length > 0 || languages.length > 0) {
+    lines.push("### Stack Badge Bar");
+    lines.push("");
+    for (const fw of frameworks.slice(0, 6)) {
+      lines.push(`- \`${mdCode(fw.name)}\``);
+    }
+    for (const l of languages.slice(0, 3)) {
+      lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
+    }
+    lines.push("");
   }
-  for (const l of languages.slice(0, 3)) {
-    lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
-  }
-  lines.push("");
 
   if (abstractions.length > 0) {
     lines.push("### Key Abstractions for Branding");
