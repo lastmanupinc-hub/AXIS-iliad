@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mdInline, mdText, mdCode, mdCellCode, cfgValue, yamlFlowScalar } from "./md-sanitize.js";
+import { mdInline, mdText, mdCode, mdCellCode, cfgValue, yamlFlowScalar, htmlEscape, jsxText, jsString, codeComment } from "./md-sanitize.js";
 
 describe("null-safety (partial/malformed context maps must not crash a generator)", () => {
   it("every sanitizer degrades null/undefined to a safe empty value instead of throwing", () => {
@@ -124,5 +124,66 @@ describe("mdInline", () => {
   it("is deterministic — same input twice produces the same output", () => {
     const input = "multi\nline <!-- x --> with | pipes";
     expect(mdInline(input)).toBe(mdInline(input));
+  });
+});
+
+// ─── HTML + generated-code escapers (artifacts program) ─────────
+
+describe("htmlEscape", () => {
+  it("entity-escapes the five HTML-significant characters", () => {
+    expect(htmlEscape('a<b>&"x\'')).toBe("a&lt;b&gt;&amp;&quot;x&#39;");
+  });
+  it("neutralizes a tag / attribute breakout", () => {
+    expect(htmlEscape('"><script>alert(1)</script>')).not.toContain("<script>");
+    expect(htmlEscape('" onload="evil')).not.toContain('"');
+  });
+  it("null-safe + identity on clean text", () => {
+    expect(htmlEscape(null as unknown as string)).toBe("");
+    expect(htmlEscape("normal name")).toBe("normal name");
+  });
+});
+
+describe("jsxText", () => {
+  it("escapes HTML plus the JSX expression braces", () => {
+    expect(jsxText("hi {process.env.SECRET} <b>")).toBe("hi &#123;process.env.SECRET&#125; &lt;b&gt;");
+  });
+  it("a value can neither open a tag nor a JSX expression", () => {
+    const out = jsxText("<Comp/>{evil}");
+    expect(out).not.toContain("<");
+    expect(out).not.toContain("{");
+    expect(out).not.toContain("}");
+  });
+  it("null-safe", () => { expect(jsxText(undefined as unknown as string)).toBe(""); });
+});
+
+describe("jsString", () => {
+  it("escapes so `\"${jsString(x)}\"` round-trips back to the original", () => {
+    for (const input of ['a"b', "back\\slash", "line1\nline2", "tab\tend", 'quote";alert(1);"', "u2028 sep"]) {
+      // eslint-disable-next-line no-eval
+      expect(eval('"' + jsString(input) + '"')).toBe(input);
+    }
+  });
+  it("a hostile value cannot break out of the string literal", () => {
+    const out = jsString('x"; globalThis.PWN = 1; const y = "');
+    // the only quotes it emits are escaped ones
+    expect(out.replace(/\\"/g, "")).not.toContain('"');
+  });
+  it("null-safe", () => { expect(jsString(null as unknown as string)).toBe(""); });
+});
+
+describe("codeComment", () => {
+  it("breaks every comment open/close delimiter (//, /* */, <!-- -->)", () => {
+    const out = codeComment("x */ y /* z <!-- w --> v");
+    expect(out).not.toContain("*/");
+    expect(out).not.toContain("/*");
+    expect(out).not.toContain("<!--");
+    expect(out).not.toContain("-->");
+  });
+  it("collapses newlines so a value can't escape a // line comment", () => {
+    expect(codeComment("safe\nexport const evil = 1")).toBe("safe export const evil = 1");
+  });
+  it("null-safe + identity on clean text", () => {
+    expect(codeComment(null as unknown as string)).toBe("");
+    expect(codeComment("a normal comment")).toBe("a normal comment");
   });
 });

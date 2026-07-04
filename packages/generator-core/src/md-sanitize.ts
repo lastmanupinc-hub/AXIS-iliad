@@ -82,3 +82,71 @@ export function yamlFlowScalar(s: string): string {
   if (!needsQuote) return collapsed;
   return `"${collapsed.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
+
+// ─── HTML + generated-code sanitizers ───────────────────────────
+//
+// The artifacts program is the first to emit HTML (index.html) and GENERATED
+// SOURCE CODE (.tsx/.ts React/Svelte/Vue/vanilla). A repo-derived value dropped
+// raw into those contexts is code injection, not just formatting corruption:
+// a project name that closes a string literal, a description that opens a JSX
+// expression, or a path with a newline that starts a new statement inside a
+// `//` comment. Each context below needs its own escaping — an HTML escaper is
+// wrong for a JS string literal and vice-versa.
+
+/**
+ * Escape a value for HTML TEXT content or a (single- or double-quoted) HTML
+ * ATTRIBUTE value: the five significant characters become entities so the value
+ * can neither open a tag nor close the attribute. Null-safe.
+ */
+export function htmlEscape(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Escape a value for JSX TEXT content (between tags). Beyond HTML escaping, JSX
+ * also treats `{` / `}` as expression delimiters, so those are escaped too — a
+ * description like `hi {process.env.SECRET}` must not become a live expression.
+ */
+export function jsxText(s: string): string {
+  return htmlEscape(s).replace(/\{/g, "&#123;").replace(/\}/g, "&#125;");
+}
+
+/**
+ * Escape a value for the INNER of a double-quoted JS/TS string literal (the
+ * caller supplies the surrounding quotes: `"${jsString(x)}"`). Backslash first,
+ * then the double-quote, then the line terminators that would end the literal —
+ * including U+2028 / U+2029, which JS (unlike JSON) treats as line breaks.
+ * Null-safe.
+ */
+export function jsString(s: string): string {
+  return String(s ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+/**
+ * Sanitize a value for interpolation inside ANY generated-code comment — a `//`
+ * line comment, a `/* … *\/` block/JSDoc comment, or an `<!-- … -->` HTML
+ * comment. Collapses whitespace (a newline would end a `//` comment and drop
+ * the rest of the value onto a live code line) and breaks every comment
+ * open/close delimiter so the value can neither close its comment early nor
+ * open a nested one. Null-safe.
+ */
+export function codeComment(s: string): string {
+  return String(s ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/\*\//g, "* /")
+    .replace(/\/\*/g, "/ *")
+    .replace(/<!--/g, "<! --")
+    .replace(/-->/g, "-- >")
+    .trim();
+}
