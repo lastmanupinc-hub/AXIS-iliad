@@ -52,11 +52,16 @@ function projectImageName(ctx: ContextMap): string {
 type DeployPm = "pnpm" | "yarn" | "bun" | "npm";
 function detectPackageManager(files?: SourceFile[]): DeployPm {
   const has = (re: RegExp) => (files ?? []).some(f => re.test(f.path));
-  if (has(/(^|\/)pnpm-lock\.yaml$/i)) return "pnpm";
+  // pnpm-workspace.yaml is a definitive pnpm signal even without a committed lock.
+  if (has(/(^|\/)pnpm-lock\.yaml$/i) || has(/(^|\/)pnpm-workspace\.yaml$/i)) return "pnpm";
   if (has(/(^|\/)yarn\.lock$/i)) return "yarn";
   if (has(/(^|\/)bun\.lockb?$/i)) return "bun";
   if (has(/(^|\/)package-lock\.json$/i)) return "npm";
-  const pkg = (files ?? []).find(f => /(^|\/)package\.json$/i.test(f.path));
+  // Read `packageManager` from the ROOT package.json (shortest path), not the first
+  // file-walk match (an arbitrary nested apps/api one with no packageManager field).
+  const pkg = (files ?? [])
+    .filter(f => /(^|\/)package\.json$/i.test(f.path) && !f.path.includes("node_modules"))
+    .sort((a, b) => a.path.split("/").length - b.path.split("/").length)[0];
   const field = pkg?.content.match(/"packageManager"\s*:\s*"(pnpm|yarn|bun|npm)/)?.[1];
   return (field as DeployPm) ?? "npm";
 }
@@ -72,7 +77,9 @@ function pmCommands(pm: DeployPm): { corepack: boolean; base: string; runCmd: st
     case "pnpm": return { corepack: true,  base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package.json pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc*", installAll: "pnpm install --frozen-lockfile", build: "pnpm run build --if-present" };
     case "yarn": return { corepack: true,  base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package.json yarn.lock* .yarnrc.yml*", installAll: "yarn install --frozen-lockfile", build: guarded("yarn build") };
     case "bun":  return { corepack: false, base: "oven/bun:1-alpine", runCmd: 'CMD ["bun", "dist/index.js"]', lockGlob: "package.json bun.lockb*", installAll: "bun install --frozen-lockfile", build: guarded("bun run build") };
-    default:     return { corepack: false, base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package*.json", installAll: "npm ci --include=dev", build: "npm run build --if-present" };
+    // `npm ci` REQUIRES a package-lock.json — but "npm" is also the fallback when no
+    // lockfile was detected, where `npm ci` aborts. Gate on the lockfile's presence.
+    default:     return { corepack: false, base: "node:22-alpine",   runCmd: 'CMD ["node", "dist/index.js"]', lockGlob: "package*.json", installAll: "if [ -f package-lock.json ]; then npm ci --include=dev; else npm install; fi", build: "npm run build --if-present" };
   }
 }
 
@@ -128,7 +135,11 @@ export function generateDeployDockerfile(
     lines.push("COPY go.mod go.sum* ./");
     lines.push("RUN go mod download");
     lines.push("COPY . .");
-    lines.push("RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags=\"-s -w\" -o /out/app ./...");
+    // Build the single root main package — `-o <file> ./...` fails with "cannot
+    // write multiple packages to non-directory" on any multi-package module (the
+    // common cmd/ + internal/ layout). Point at `.` (adjust to ./cmd/<name> if the
+    // main package lives there).
+    lines.push("RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags=\"-s -w\" -o /out/app .");
     lines.push("");
     lines.push("FROM gcr.io/distroless/static-debian12:nonroot");
     lines.push("WORKDIR /app");
@@ -154,8 +165,18 @@ export function generateDeployDockerfile(
     lines.push("ENV PATH=\"/opt/venv/bin:$PATH\" PORT=8080 PYTHONUNBUFFERED=1");
     lines.push("EXPOSE 8080");
     lines.push("USER app");
-    lines.push("# Override CMD if your entry point differs (e.g. gunicorn, django).");
-    lines.push("CMD [\"sh\", \"-c\", \"uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}\"]");
+    lines.push("# Override CMD if your entry point differs.");
+    // uvicorn is an ASGI server — correct for FastAPI/Starlette, but Flask/Django are
+    // WSGI and usually don't depend on uvicorn (the container would crash with
+    // "uvicorn: not found"). Emit a gunicorn default for those.
+    const pyCmd = hasFw(ctx, "FastAPI", "Starlette")
+      ? "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"
+      : hasFw(ctx, "Django")
+        ? "gunicorn wsgi:application --bind 0.0.0.0:${PORT:-8080}   # set to <project>.wsgi:application"
+        : hasFw(ctx, "Flask")
+          ? "gunicorn app:app --bind 0.0.0.0:${PORT:-8080}   # set to <module>:<app>"
+          : "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}";
+    lines.push(`CMD ["sh", "-c", "${pyCmd}"]`);
   } else if (stack === "node-static") {
     lines.push(`FROM ${c.base} AS builder`);
     lines.push("WORKDIR /app");
@@ -861,7 +882,7 @@ export function generateDeployQualificationReport(
     name: "Build-context .dockerignore",
     status: "PASS",
     note: hasRootDockerignore
-      ? "A root .dockerignore exists; BuildKit (enabled by the Dockerfile `# syntax=` line) reads deploy/Dockerfile.dockerignore for THIS build, so the two coexist without conflict."
+      ? "A root .dockerignore exists; with BuildKit (Docker 23+ / DOCKER_BUILDKIT=1) the per-Dockerfile `deploy/Dockerfile.dockerignore` applies to THIS build, so the two coexist. (The `# syntax=` line selects the frontend when BuildKit is active — it does NOT enable BuildKit; on the legacy builder the per-Dockerfile ignore is not used.)"
       : "deploy/Dockerfile.dockerignore is read by BuildKit for this Dockerfile — the ignore for this build context.",
   });
 
