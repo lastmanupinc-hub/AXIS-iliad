@@ -5,6 +5,17 @@ import { mdText, mdInline, mdCode, mdCellCode, jsxText, codeComment } from "./md
 import { displayRoutes } from "./route-utils.js";
 import { findFiles, renderExcerpts, fileTree } from "./file-excerpt-utils.js";
 
+/**
+ * A valid JS/TS component-identifier from an untrusted project name. Strips
+ * non-alphanumerics, prefixes `V` when the result starts with a digit (a function
+ * name can't), and falls back to `Axis` when empty — so `3d-viewer` → `V3dviewer`
+ * emits compilable `export function V3dviewerVideo()` instead of a SyntaxError.
+ */
+function videoCompName(name: string): string {
+  const raw = name.replace(/[^a-zA-Z0-9]/g, "") || "Axis";
+  return /^[0-9]/.test(raw) ? "V" + raw : raw;
+}
+
 // ─── Theme derivation ────────────────────────────────────────────
 
 interface RemotionTheme {
@@ -88,7 +99,7 @@ export function generateRemotionScript(ctx: ContextMap, files?: SourceFile[]): G
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const languages = ctx.detection.languages;
   const abstractions = ctx.ai_context.key_abstractions;
-  const compName = id.name.replace(/[^a-zA-Z0-9]/g, "");
+  const compName = videoCompName(id.name);
 
   const lines: string[] = [];
 
@@ -350,7 +361,7 @@ export function generateScenePlan(ctx: ContextMap, files?: SourceFile[]): Genera
 
 export function generateRenderConfig(ctx: ContextMap, profile: RepoProfile, files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
-  const compName = id.name.replace(/[^a-zA-Z0-9]/g, "");
+  const compName = videoCompName(id.name);
   const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const hotspots = ctx.dependency_graph.hotspots;
@@ -586,13 +597,19 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("┌────────────────────────────────────┐");
   lines.push("│  ┌──────┐ ┌──────┐ ┌──────┐       │");
   for (const fw of frameworks.slice(0, 3)) {
-    lines.push(`│  │ ${mdCode(fw.name).padEnd(4).slice(0, 4)} │                          │`);
+    // Show more of the framework name with an ellipsis when it doesn't fit, rather
+    // than a hard 4-char cut that rendered "React" as "Reac".
+    const fwLabel = fw.name.length > 10 ? fw.name.slice(0, 9) + "…" : fw.name;
+    lines.push(`│  │ ${mdCode(fwLabel).padEnd(10)} │                    │`);
   }
   lines.push("│  └──────┘ └──────┘ └──────┘       │");
   lines.push("│                                    │");
   lines.push("│  Languages:                        │");
   for (const l of languages.slice(0, 3)) {
-    lines.push(`│    ${mdCode(l.name).padEnd(12)} ${"█".repeat(Math.round(l.loc_percent / 5))} ${l.loc_percent.toFixed(0)}%     │`);
+    // Clamp the bar to the box width — an unclamped repeat overflows the frame,
+    // and a negative/NaN loc_percent would throw RangeError from String.repeat.
+    const barLen = Math.max(0, Math.min(16, Math.round(l.loc_percent / 5) || 0));
+    lines.push(`│    ${mdCode(l.name).padEnd(12)} ${"█".repeat(barLen)} ${l.loc_percent.toFixed(0)}%     │`);
   }
   lines.push("└────────────────────────────────────┘");
   lines.push("```");
@@ -632,8 +649,11 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("```");
   lines.push("┌────────────────────────────────────┐");
+  // Derive from the real separation score (0–1 → /100), not a hardcoded 85 stamped
+  // on every repo next to genuinely-derived hotspot rows.
+  const healthScore = Math.round(ctx.architecture_signals.separation_score * 100);
   lines.push("│  Code Health Score                  │");
-  lines.push("│  ━━━━━━━━━━━━━━━━━━━ 85/100       │");
+  lines.push(`│  ━━━━━━━━━━━━━━━━━━━ ${String(healthScore).padStart(3)}/100       │`);
   lines.push("│                                    │");
   if (hotspots.length > 0) {
     lines.push("│  Hotspots:                         │");
@@ -641,7 +661,11 @@ export function generateStoryboard(ctx: ContextMap, files?: SourceFile[]): Gener
       // risk_score is a 0–1 fraction (engine.ts) — the old 0–10 thresholds never
       // fired and "toFixed(0)/10" rendered every hotspot as "0/10" or "1/10".
       const bar = h.risk_score > 0.7 ? "🔴" : h.risk_score > 0.4 ? "🟡" : "🟢";
-      lines.push(`│  ${bar} ${mdCode(h.path).slice(-25).padEnd(25)} ${String((h.risk_score * 100).toFixed(0)).padStart(3)}%  │`);
+      // Left-truncate with an ellipsis marker (was a bare slice(-25) that produced
+      // a nonsensical partial path like `s/api/src/test-helpers.ts`).
+      const hp = mdCode(h.path);
+      const shownPath = (hp.length > 25 ? "…" + hp.slice(-24) : hp).padEnd(25);
+      lines.push(`│  ${bar} ${shownPath} ${String((h.risk_score * 100).toFixed(0)).padStart(3)}%  │`);
     }
   }
   lines.push("└────────────────────────────────────┘");
