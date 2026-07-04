@@ -28,6 +28,14 @@ describe("classifyRoute — segment-aware, one source of truth", () => {
     expect(classifyRoute("/authors")).toBe("other");
     expect(classifyRoute("/rapid")).toBe("other");
   });
+  it("HARDEN-2: api outranks pricing so an /api/plans endpoint stays 'api'", () => {
+    expect(classifyRoute("/api/plans")).toBe("api");
+    expect(classifyRoute("/api/pricing")).toBe("api");
+    expect(classifyRoute("/pricing")).toBe("pricing"); // a real pricing page still classifies pricing
+  });
+  it("HARDEN-2: /documentation is 'docs' (common docs route)", () => {
+    expect(classifyRoute("/documentation")).toBe("docs");
+  });
 });
 
 describe("CRO experiments never dangle a blank route (the review #4 bug)", () => {

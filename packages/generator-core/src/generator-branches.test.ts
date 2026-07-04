@@ -4091,7 +4091,7 @@ describe("Layer 6 branch coverage", () => {
         { path: "/signup", method: "GET", source_file: "src/Signup.tsx" },
         { path: "/dashboard", method: "GET", source_file: "src/Dashboard.tsx" },
         { path: "/api/users", method: "GET", source_file: "src/api/users.ts" },
-        { path: "/docs/intro", method: "GET", source_file: "src/docs/intro.md" },
+        { path: "/docs/intro", method: "GET", source_file: "src/DocsPage.tsx" }, // real source: a .md source is dropped as noise by displayRoutes
       ];
       const result = generateFiles(inp);
       const f = getFile(result, "cro-playbook.md");

@@ -19,9 +19,10 @@ export function classifyRoute(path: string): RouteCategory {
   if (has("signup", "register")) return "signup";
   if (has("login", "signin", "auth")) return "auth";
   if (has("dashboard", "home")) return "dashboard";
-  if (has("pricing", "plan", "plans")) return "pricing";
+  // api before pricing so `/api/plans` is an API endpoint, not a pricing page.
   if (has("api", "v1")) return "api";
-  if (has("docs", "doc", "help", "guide", "guides")) return "docs";
+  if (has("pricing", "plan", "plans")) return "pricing";
+  if (has("docs", "documentation", "doc", "help", "guide", "guides")) return "docs";
   return "other";
 }
 
@@ -766,7 +767,7 @@ export function generateAbTestPlan(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("| Parameter | Value |");
   lines.push("|-----------|-------|");
-  lines.push(`| Target page | ${pageRoutes.find(r => r.path === "/")?.path ?? "/"} |`);
+  lines.push(`| Target page | ${mdInline(pageRoutes.find(r => r.path === "/")?.path ?? "/")} |`);
   lines.push("| Hypothesis | A benefit-driven headline increases signup rate |");
   lines.push("| Primary metric | Signup conversion rate |");
   lines.push("| Secondary metric | Time on page, scroll depth |");
