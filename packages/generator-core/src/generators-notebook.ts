@@ -1,7 +1,8 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { findEntryPoints, findConfigs, renderExcerpts, extractExports, fileTree } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // Curated docs URLs for common frameworks; any package not listed falls back to
 // its npm registry page (URL-encoded so scoped names like @scope/pkg resolve).
@@ -60,6 +61,14 @@ const LANG_DOCS: Record<string, string> = {
   elixir: "https://elixir-lang.org/docs.html",
 };
 
+// Data/markup/config formats the context engine reports as "languages" — these
+// are NOT programming languages and must not get a "Language Reference" citation.
+const NON_CODE_LANGUAGES = new Set([
+  "yaml", "yml", "json", "json5", "markdown", "md", "mdx", "toml", "xml", "html",
+  "css", "scss", "sass", "less", "ini", "csv", "tsv", "dockerfile", "makefile",
+  "text", "plaintext", "svg", "graphql", "protobuf", "proto",
+]);
+
 /** Language reference URL: curated official docs if known, else an encoded search. */
 function getLanguageRef(name: string): string {
   return LANG_DOCS[name.toLowerCase()] ?? `https://www.google.com/search?q=${encodeURIComponent(name + " language reference")}`;
@@ -109,14 +118,16 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
   // Project Synopsis
   lines.push("## Project Synopsis");
   lines.push("");
-  lines.push(mdText(ctx.ai_context.project_summary));
+  lines.push(mdBlock(ctx.ai_context.project_summary));
   lines.push("");
 
   // Architecture Overview
   lines.push("## Architecture Overview");
   lines.push("");
   lines.push(`- **Files**: ${ctx.structure.total_files} files across ${ctx.structure.total_directories} directories`);
-  lines.push(`- **Lines of Code**: ${ctx.structure.total_loc.toLocaleString("en-US")}`);
+  // Group thousands deterministically (toLocaleString is ICU/host-dependent — it
+  // drops grouping on a no-ICU Node build, a byte-level diff for the same input).
+  lines.push(`- **Lines of Code**: ${String(ctx.structure.total_loc).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`);
   lines.push(`- **Primary Language**: ${mdText(id.primary_language)}`);
 
   const frameworks = ctx.detection.frameworks.map(f => f.name);
@@ -140,6 +151,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
     for (const m of domainModels.slice(0, 10)) {
       lines.push(`- **\`${mdCode(m.name)}\`** — ${mdText(m.kind)} (${m.field_count} fields in \`${mdCode(m.source_file)}\`)`);
     }
+    if (domainModels.length > 10) lines.push(`- *(+${domainModels.length - 10} more)*`);
   } else {
     const abstractions = ctx.ai_context.key_abstractions;
     if (abstractions.length > 0) {
@@ -222,7 +234,7 @@ export function generateNotebookSummary(ctx: ContextMap, files?: SourceFile[]): 
       lines.push("|------|---------|");
       for (const ep of entries.slice(0, 6)) {
         const exports = extractExports(ep.content);
-        lines.push(`| \`${mdCellCode(ep.path)}\` | ${mdInline(exports.join(", ") || "default")} |`);
+        lines.push(`| \`${mdCellCode(ep.path)}\` | ${mdInline(exports.join(", ") || "(no exports)")} |`);
       }
       lines.push("");
     }
@@ -281,7 +293,7 @@ export function generateSourceMap(ctx: ContextMap, files?: SourceFile[]): Genera
       path: e.path,
       type: e.type,
     })),
-    routes: ctx.routes.map(r => ({
+    routes: displayRoutes(ctx.routes).map(r => ({
       path: r.path,
       method: r.method,
       source: r.source_file,
@@ -347,12 +359,17 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
 
   lines.push("### Phase 2: Entry Points");
   lines.push("");
-  const entries = ctx.entry_points;
+  // Fall back to the file-based detector when the engine's entry_points is empty
+  // (it frequently is) so Phase 2 doesn't tell the reader to hunt for entry points
+  // in package.json while the "Key Files" section below lists several.
+  const entries = ctx.entry_points.length > 0
+    ? ctx.entry_points.map(e => ({ path: e.path, description: e.description }))
+    : (files ? findEntryPoints(files).map(f => ({ path: f.path, description: "" })) : []);
   if (entries.length > 0) {
     lines.push("Start with these files to understand the application flow:");
     lines.push("");
     for (const e of entries) {
-      lines.push(`- \`${mdCode(e.path)}\` — ${mdText(e.description)}`);
+      lines.push(e.description ? `- \`${mdCode(e.path)}\` — ${mdText(e.description)}` : `- \`${mdCode(e.path)}\``);
     }
   } else {
     lines.push("Identify the main entry point by checking package.json `main` or `bin` fields.");
@@ -388,7 +405,7 @@ export function generateStudyBrief(ctx: ContextMap, files?: SourceFile[]): Gener
   lines.push("");
   lines.push("Trace the flow of data through the system:");
   lines.push("");
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   if (routes.length > 0) {
     lines.push("Key routes to trace:");
     lines.push("");
@@ -547,7 +564,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
   lines.push(`- What is the baseline performance metric for ${mdText(id.name)}?`);
   lines.push("- Are there obvious bottlenecks in the critical path?");
 
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   if (routes.length > 0) {
     lines.push(`- Which of the ${routes.length} routes are most latency-sensitive?`);
   }
@@ -638,7 +655,7 @@ export function generateResearchThreads(ctx: ContextMap, files?: SourceFile[]): 
       for (const ep of entries.slice(0, 5)) {
         const exports = extractExports(ep.content);
         const lineCount = ep.content.split("\n").length;
-        lines.push(`- **\`${mdCode(ep.path)}\`** — ${lineCount} lines, exports: ${mdText(exports.join(", ") || "default")}`);
+        lines.push(`- **\`${mdCode(ep.path)}\`** — ${lineCount} lines, exports: ${mdText(exports.join(", ") || "(no exports)")}`);
       }
       lines.push("");
     }
@@ -687,8 +704,12 @@ export function generateCitationIndex(ctx: ContextMap, files?: SourceFile[]): Ge
     });
   }
 
-  // Language reference citations
-  for (const lang of languages.slice(0, 3)) {
+  // Language reference citations — exclude DATA/MARKUP formats the context engine
+  // miscounts as "languages" (YAML/Markdown/JSON/…), which got a Google search
+  // dressed up as a typed "Language Reference". Real languages not in LANG_DOCS
+  // (e.g. F#) are kept — they still get a valid encoded-search fallback.
+  const refLanguages = languages.filter(l => !NON_CODE_LANGUAGES.has(l.name.toLowerCase())).slice(0, 3);
+  for (const lang of refLanguages) {
     citations.push({
       id: `lang-${lang.name.toLowerCase()}`,
       type: "reference",
