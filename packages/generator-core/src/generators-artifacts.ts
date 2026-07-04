@@ -3,6 +3,9 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, jsString, jsxText, htmlEscape, codeComment } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
+import { detectStyling } from "./theme-detect.js";
+import { capNote } from "./cap-utils.js";
 
 // ─── generated-component.tsx ────────────────────────────────────
 
@@ -19,7 +22,7 @@ export function generateComponent(ctx: ContextMap, files?: SourceFile[]): Genera
     .join("") || "App";
   const componentName = rawName[0]?.match(/[A-Z]/) ? rawName : "App" + rawName;
   const kebab = componentName.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const entryPoints = ctx.entry_points;
 
@@ -242,7 +245,7 @@ export function generateDashboardWidget(ctx: ContextMap, files?: SourceFile[]): 
   const languages = ctx.detection.languages;
   const entryPoints = ctx.entry_points;
   const hotspots = ctx.dependency_graph.hotspots;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const signals = ctx.architecture_signals;
   const isReact = hasFw(ctx, "React", "Next.js");
@@ -540,14 +543,17 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
   lines.push(`| Frameworks | ${mdInline(frameworks.join(", ") || "None detected")} |`);
   lines.push("");
 
-  lines.push("## Language Distribution");
-  lines.push("");
-  for (const lang of languages) {
-    const bar = "█".repeat(Math.max(1, Math.round(lang.loc_percent / 5)));
-    lines.push(`- **${mdText(lang.name)}**: ${lang.loc_percent}% ${bar} (${lang.file_count} files, ${lang.loc} LOC)`);
+  if (languages.length > 0) {
+    lines.push("## Language Distribution");
+    lines.push("");
+    for (const lang of languages) {
+      const bar = "█".repeat(Math.max(1, Math.round(lang.loc_percent / 5)));
+      lines.push(`- **${mdText(lang.name)}**: ${lang.loc_percent}% ${bar} (${lang.file_count} files, ${lang.loc} LOC)`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
+  if (patterns.length > 0 || layers.length > 0) {
   lines.push("## Architecture");
   lines.push("");
   if (patterns.length > 0) {
@@ -563,6 +569,8 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
       lines.push(`- **${mdText(l.layer)}**: ${mdText(l.directories.join(", "))}`);
     }
     lines.push("");
+  }
+
   }
 
   lines.push("## Entry Points");
@@ -599,7 +607,7 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
   lines.push(`2. **Widget artifacts** should render project metrics from real data`);
   lines.push(`3. **Embed snippets** should include all conventions and warnings`);
   lines.push(`4. **File naming** should follow ${mdText(id.primary_language)} conventions`);
-  lines.push(`5. **Architecture score**: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`5. **Architecture score**: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("");
 
   lines.push("## Dependencies (Top 10)");
@@ -668,7 +676,7 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
   const deps = ctx.dependency_graph.external_dependencies;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
 
   const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
   const hasReact = hasFw(ctx, "React", "Next.js");
@@ -823,7 +831,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
   const id = ctx.project_identity;
   const ai = ctx.ai_context;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const entryPoints = ctx.entry_points;
 
@@ -850,7 +858,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
   lines.push("## Goals");
   lines.push("");
   if (routes.length > 0) {
-    lines.push(`- Deliver ${routes.length} HTTP endpoint${routes.length === 1 ? "" : "s"} (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method)).size === 1 ? "" : "s"}) backing the user-facing surface.`);
+    lines.push(`- Deliver ${routes.length} HTTP endpoint${routes.length === 1 ? "" : "s"} (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method.toUpperCase())).size === 1 ? "" : "s"}) backing the user-facing surface.`);
   }
   if (models.length > 0) {
     lines.push(`- Maintain a stable, typed contract over ${models.length} domain model${models.length === 1 ? "" : "s"} with no breaking changes within a minor version.`);
@@ -897,7 +905,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
 
   lines.push("## Success Metrics");
   lines.push("");
-  lines.push(`- **Build/test health**: \`${frameworks.includes("Go stdlib HTTP") ? "go test ./..." : "npm test"}\` exits 0 on every PR. Coverage trend non-decreasing across releases.`);
+  lines.push(`- **Build/test health**: \`${id.primary_language === "Go" ? "go test ./..." : id.primary_language === "Python" ? "pytest" : id.primary_language === "Rust" ? "cargo test" : "npm test"}\` exits 0 on every PR. Coverage trend non-decreasing across releases.`);
   if (routes.length > 0) {
     lines.push(`- **API latency**: p95 ≤ 250ms for each of the ${routes.length} endpoints under nominal load.`);
   }
@@ -946,10 +954,10 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
   const arch = ctx.architecture_signals;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const models = ctx.domain_models;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const layout = ctx.structure.top_level_layout;
   const hasFrontend = frameworks.some(f => ["React", "Next.js", "Vue", "Nuxt", "Svelte", "SvelteKit"].includes(f));
-  const styling = frameworks.find(f => ["Tailwind", "styled-components", "Emotion", "CSS Modules"].includes(f));
+  const styling = detectStyling(ctx);
 
   const lines: string[] = [];
   lines.push(`# ${mdText(id.name)} — Design Doc`);
@@ -981,7 +989,7 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
       for (const b of arch.layer_boundaries.slice(0, 8)) lines.push(`- \`${mdCode(b.layer)}\``);
       lines.push("");
     }
-    lines.push(`**Separation score**: ${arch.separation_score}/100 — ${arch.separation_score >= 70 ? "well-separated; cross-layer imports rare" : arch.separation_score >= 40 ? "moderate separation; watch for leaks at the boundary" : "low separation; consider extracting a stable interface layer"}.`);
+    lines.push(`**Separation score**: ${Math.round(arch.separation_score * 100)}/100 — ${arch.separation_score >= 0.7 ? "well-separated; cross-layer imports rare" : arch.separation_score >= 0.4 ? "moderate separation; watch for leaks at the boundary" : "low separation; consider extracting a stable interface layer"}.`);
     lines.push("");
   }
 
@@ -993,7 +1001,9 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
     for (const l of layout.slice(0, 12)) {
       lines.push(`| \`${mdCellCode(l.name)}/\` | ${mdInline(l.purpose)} | ${l.file_count} |`);
     }
+    const layoutNote = capNote(layout.length, 12, "top-level entries");
     lines.push("");
+    if (layoutNote) { lines.push(`_${layoutNote} — the file tree has the rest._`); lines.push(""); }
   }
 
   if (routes.length > 0) {
@@ -1022,7 +1032,10 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
     lines.push("## UI / UX Decisions");
     lines.push("");
     lines.push(`- **Component model**: ${frameworks.includes("React") || frameworks.includes("Next.js") ? "React function components" : frameworks.includes("Svelte") || frameworks.includes("SvelteKit") ? "Svelte components" : frameworks.includes("Vue") || frameworks.includes("Nuxt") ? "Vue 3 SFCs" : "framework-native components"}. No class components.`);
-    if (styling) lines.push(`- **Styling**: ${styling} as the single styling layer — do not mix with another approach.`);
+    if (styling.approach !== "plain-css") {
+      const label = { tailwind: "Tailwind CSS", "css-in-js": "CSS-in-JS", "css-modules": "CSS Modules", sass: "Sass", "plain-css": "plain CSS" }[styling.approach];
+      lines.push(`- **Styling**: ${label} as the single styling layer — do not mix with another approach.`);
+    }
     lines.push("- **Accessibility**: WCAG 2.1 AA on primary flows. Every interactive element ships keyboard-navigable.");
     lines.push("- **State**: prefer co-located state and URL-driven routing; introduce a store only when state spans 3+ unrelated components.");
     lines.push("- **Loading & error states**: every async surface ships explicit loading + error UI, no silent fallbacks.");
@@ -1073,7 +1086,7 @@ export function generateTasksMd(ctx: ContextMap, profile: RepoProfile, files?: S
   const hasDocker = Boolean(files?.some(f => /(^|\/)(dockerfile|docker-compose\.ya?ml)$/i.test(f.path)));
   const hasReadme = Boolean(files?.some(f => /^readme\.md$/i.test(f.path)));
   const hasLicense = Boolean(files?.some(f => /^license(\.\w+)?$/i.test(f.path)));
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const warnings = ctx.ai_context.warnings;
 
@@ -1089,7 +1102,7 @@ export function generateTasksMd(ctx: ContextMap, profile: RepoProfile, files?: S
   lines.push(`- [${hasLicense ? "x" : " "}] LICENSE file at repo root`);
   lines.push(`- [${ctx.detection.package_managers.length > 0 ? "x" : " "}] Lockfile committed (\`${mdCode(ctx.detection.package_managers[0] ?? "pnpm/yarn/npm/bun")}\`)`);
   lines.push(`- [${hasTests ? "x" : " "}] Test runner configured (${mdText(ctx.detection.test_frameworks[0] ?? "vitest / jest / go test / pytest")})`);
-  lines.push(`- [${hasCi ? "x" : " "}] CI pipeline runs on every PR (${mdText(ctx.detection.ci_platform ?? "GitHub Actions")})`);
+  lines.push(`- [${hasCi ? "x" : " "}] CI pipeline runs on every PR (${mdText(ctx.detection.ci_platform ?? "GitHub Actions / GitLab CI / CircleCI")})`);
   lines.push(`- [${hasDocker ? "x" : " "}] Container build (Dockerfile + docker-compose for local validation)`);
   lines.push("");
 
@@ -1184,7 +1197,7 @@ export function generateTasksMd(ctx: ContextMap, profile: RepoProfile, files?: S
 export function generateContextMd(ctx: ContextMap, profile: RepoProfile, _files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const structure = ctx.structure;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const entryPoints = ctx.entry_points;
   const conventions = ctx.ai_context.conventions;
@@ -1200,9 +1213,9 @@ export function generateContextMd(ctx: ContextMap, profile: RepoProfile, _files?
 
   lines.push("## Snapshot Stats");
   lines.push("");
-  lines.push(`- **Files**: ${structure.total_files.toLocaleString()}`);
-  lines.push(`- **Directories**: ${structure.total_directories.toLocaleString()}`);
-  lines.push(`- **Lines of code**: ${structure.total_loc.toLocaleString()}`);
+  lines.push(`- **Files**: ${structure.total_files.toLocaleString("en-US")}`);
+  lines.push(`- **Directories**: ${structure.total_directories.toLocaleString("en-US")}`);
+  lines.push(`- **Lines of code**: ${structure.total_loc.toLocaleString("en-US")}`);
   lines.push(`- **Primary language**: ${mdText(id.primary_language)}`);
   if (ctx.detection.frameworks.length > 0) {
     lines.push(`- **Frameworks**: ${mdText(ctx.detection.frameworks.map(f => f.name).join(", "))}`);
@@ -1215,7 +1228,7 @@ export function generateContextMd(ctx: ContextMap, profile: RepoProfile, _files?
     lines.push(`- ${entryPoints.length} entry point${entryPoints.length === 1 ? "" : "s"} wired up`);
   }
   if (routes.length > 0) {
-    lines.push(`- ${routes.length} HTTP route${routes.length === 1 ? "" : "s"} registered (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method)).size === 1 ? "" : "s"})`);
+    lines.push(`- ${routes.length} HTTP route${routes.length === 1 ? "" : "s"} registered (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method.toUpperCase())).size === 1 ? "" : "s"})`);
   }
   if (models.length > 0) {
     lines.push(`- ${models.length} domain model${models.length === 1 ? "" : "s"} defined and typed`);
@@ -1298,12 +1311,6 @@ export function generateIndexHtml(ctx: ContextMap, _profile: RepoProfile, _files
   const metaDescription = description.length > 160
     ? description.slice(0, 157).replace(/[\s,;]+\S*$/, "") + "…"
     : description;
-  const escape = (s: string) => s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 
   const lines: string[] = [
     "<!doctype html>",
@@ -1314,17 +1321,17 @@ export function generateIndexHtml(ctx: ContextMap, _profile: RepoProfile, _files
     "    <meta name=\"color-scheme\" content=\"light dark\" />",
     `    <meta name=\"theme-color\" content=\"#0f172a\" media=\"(prefers-color-scheme: dark)\" />`,
     `    <meta name=\"theme-color\" content=\"#ffffff\" media=\"(prefers-color-scheme: light)\" />`,
-    `    <meta name=\"description\" content=\"${escape(metaDescription)}\" />`,
-    `    <meta property=\"og:title\" content=\"${escape(id.name)}\" />`,
-    `    <meta property=\"og:description\" content=\"${escape(metaDescription)}\" />`,
+    `    <meta name=\"description\" content=\"${htmlEscape(metaDescription)}\" />`,
+    `    <meta property=\"og:title\" content=\"${htmlEscape(id.name)}\" />`,
+    `    <meta property=\"og:description\" content=\"${htmlEscape(metaDescription)}\" />`,
     `    <meta property=\"og:type\" content=\"website\" />`,
     "    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\" />",
     "    <link rel=\"stylesheet\" href=\"/theme.css\" />",
-    `    <title>${escape(id.name)}</title>`,
+    `    <title>${htmlEscape(id.name)}</title>`,
     "  </head>",
     "  <body>",
     "    <noscript>",
-    `      <p>${escape(id.name)} requires JavaScript to run. Enable it or fall back to the API at <code>/api</code>.</p>`,
+    `      <p>${htmlEscape(id.name)} requires JavaScript to run. Enable it or fall back to the API at <code>/api</code>.</p>`,
     "    </noscript>",
     "    <div id=\"root\"></div>",
     "    <script type=\"module\" src=\"/src/main.tsx\"></script>",
