@@ -3,6 +3,7 @@ import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode, jsString, jsxText, htmlEscape, codeComment } from "./md-sanitize.js";
+import { displayRoutes } from "./route-utils.js";
 
 // ─── generated-component.tsx ────────────────────────────────────
 
@@ -19,7 +20,7 @@ export function generateComponent(ctx: ContextMap, files?: SourceFile[]): Genera
     .join("") || "App";
   const componentName = rawName[0]?.match(/[A-Z]/) ? rawName : "App" + rawName;
   const kebab = componentName.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const entryPoints = ctx.entry_points;
 
@@ -242,7 +243,7 @@ export function generateDashboardWidget(ctx: ContextMap, files?: SourceFile[]): 
   const languages = ctx.detection.languages;
   const entryPoints = ctx.entry_points;
   const hotspots = ctx.dependency_graph.hotspots;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const signals = ctx.architecture_signals;
   const isReact = hasFw(ctx, "React", "Next.js");
@@ -599,7 +600,7 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
   lines.push(`2. **Widget artifacts** should render project metrics from real data`);
   lines.push(`3. **Embed snippets** should include all conventions and warnings`);
   lines.push(`4. **File naming** should follow ${mdText(id.primary_language)} conventions`);
-  lines.push(`5. **Architecture score**: ${ctx.architecture_signals.separation_score}/100`);
+  lines.push(`5. **Architecture score**: ${Math.round(ctx.architecture_signals.separation_score * 100)}/100`);
   lines.push("");
 
   lines.push("## Dependencies (Top 10)");
@@ -668,7 +669,7 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
   const frameworks = ctx.detection.frameworks;
   const languages = ctx.detection.languages;
   const deps = ctx.dependency_graph.external_dependencies;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
 
   const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
   const hasReact = hasFw(ctx, "React", "Next.js");
@@ -823,7 +824,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
   const id = ctx.project_identity;
   const ai = ctx.ai_context;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const entryPoints = ctx.entry_points;
 
@@ -946,7 +947,7 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
   const arch = ctx.architecture_signals;
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const models = ctx.domain_models;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const layout = ctx.structure.top_level_layout;
   const hasFrontend = frameworks.some(f => ["React", "Next.js", "Vue", "Nuxt", "Svelte", "SvelteKit"].includes(f));
   const styling = frameworks.find(f => ["Tailwind", "styled-components", "Emotion", "CSS Modules"].includes(f));
@@ -981,7 +982,7 @@ export function generateDesignDoc(ctx: ContextMap, profile: RepoProfile, files?:
       for (const b of arch.layer_boundaries.slice(0, 8)) lines.push(`- \`${mdCode(b.layer)}\``);
       lines.push("");
     }
-    lines.push(`**Separation score**: ${arch.separation_score}/100 — ${arch.separation_score >= 70 ? "well-separated; cross-layer imports rare" : arch.separation_score >= 40 ? "moderate separation; watch for leaks at the boundary" : "low separation; consider extracting a stable interface layer"}.`);
+    lines.push(`**Separation score**: ${Math.round(arch.separation_score * 100)}/100 — ${arch.separation_score >= 0.7 ? "well-separated; cross-layer imports rare" : arch.separation_score >= 0.4 ? "moderate separation; watch for leaks at the boundary" : "low separation; consider extracting a stable interface layer"}.`);
     lines.push("");
   }
 
@@ -1073,7 +1074,7 @@ export function generateTasksMd(ctx: ContextMap, profile: RepoProfile, files?: S
   const hasDocker = Boolean(files?.some(f => /(^|\/)(dockerfile|docker-compose\.ya?ml)$/i.test(f.path)));
   const hasReadme = Boolean(files?.some(f => /^readme\.md$/i.test(f.path)));
   const hasLicense = Boolean(files?.some(f => /^license(\.\w+)?$/i.test(f.path)));
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const warnings = ctx.ai_context.warnings;
 
@@ -1184,7 +1185,7 @@ export function generateTasksMd(ctx: ContextMap, profile: RepoProfile, files?: S
 export function generateContextMd(ctx: ContextMap, profile: RepoProfile, _files?: SourceFile[]): GeneratedFile {
   const id = ctx.project_identity;
   const structure = ctx.structure;
-  const routes = ctx.routes;
+  const routes = displayRoutes(ctx.routes);
   const models = ctx.domain_models;
   const entryPoints = ctx.entry_points;
   const conventions = ctx.ai_context.conventions;
