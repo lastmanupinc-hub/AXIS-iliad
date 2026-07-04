@@ -1274,7 +1274,7 @@ describe("Artifacts component-library framework branches", () => {
     expect(f).toBeDefined();
     const data = JSON.parse(f!.content);
     expect(data.framework).toBe("vue");
-    expect(data.styling).toBe("css-modules");
+    expect(data.styling).toBe("plain-css"); // real detectStyling approach (was a hardcoded css-modules)
   });
 
   it("falls back to primary_language when no frameworks", () => {
@@ -1288,7 +1288,7 @@ describe("Artifacts component-library framework branches", () => {
     const f = getFile(result, "component-library.json");
     const data = JSON.parse(f!.content);
     expect(data.framework).toBe("Python");
-    expect(data.styling).toBe("css-modules");
+    expect(data.styling).toBe("plain-css"); // real detectStyling approach (was a hardcoded css-modules)
   });
 });
 
@@ -3584,7 +3584,7 @@ describe("Layer 6 branch coverage", () => {
     const data = JSON.parse(f!.content);
     // No React, no frameworks → uses id.primary_language
     expect(data.framework).toBeDefined();
-    expect(data.styling).toBe("css-modules");
+    expect(data.styling).toBe("plain-css"); // real detectStyling approach (was a hardcoded css-modules)
   });
 
   // ── generators-seo.ts ─────────────────────────────────────
@@ -4500,7 +4500,7 @@ describe("Layer 6 branch coverage", () => {
       const f = getFile(result, "component-library.json");
       expect(f).toBeDefined();
       const data = JSON.parse(f!.content);
-      expect(data.styling).toBe("css-modules");
+      expect(data.styling).toBe("plain-css"); // real detectStyling approach (was a hardcoded css-modules)
     });
 
     // --- seo: meta-tag-audit root route + description fallback ---

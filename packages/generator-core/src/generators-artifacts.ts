@@ -2,10 +2,10 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findFile, findEntryPoints, findConfigs, renderExcerpts, extractExports } from "./file-excerpt-utils.js";
-import { mdText, mdInline, mdCode, mdCellCode, jsString, jsxText, htmlEscape, codeComment } from "./md-sanitize.js";
-import { displayRoutes } from "./route-utils.js";
+import { mdText, mdInline, mdCode, mdCellCode, mdBlock, jsString, jsxText, htmlEscape, codeComment } from "./md-sanitize.js";
+import { displayRoutes, isApiRoute } from "./route-utils.js";
 import { detectStyling } from "./theme-detect.js";
-import { capNote } from "./cap-utils.js";
+import { capNote, capMeta } from "./cap-utils.js";
 
 // ─── generated-component.tsx ────────────────────────────────────
 
@@ -518,7 +518,7 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
   if (ctx.ai_context.project_summary) {
     lines.push("## Project Overview");
     lines.push("");
-    lines.push(mdText(ctx.ai_context.project_summary));
+    lines.push(mdBlock(ctx.ai_context.project_summary));
     lines.push("");
   }
 
@@ -680,6 +680,12 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
 
   const hasTailwind = hasFw(ctx, "Tailwind CSS", "tailwind");
   const hasReact = hasFw(ctx, "React", "Next.js");
+  // Framework-appropriate children type — `ReactNode` is React-only; a Vue/Svelte
+  // library spec typing children as ReactNode is internally contradictory.
+  const childrenType = hasReact ? "ReactNode"
+    : hasFw(ctx, "Vue", "vue") ? "VNode | slot"
+    : hasFw(ctx, "Svelte", "svelte") ? "Snippet"
+    : "node";
 
   // Build a component library spec from project context
   const components: Array<{
@@ -699,7 +705,7 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
       { name: "size", type: "'sm' | 'md' | 'lg'", required: false },
       { name: "loading", type: "boolean", required: false },
       { name: "disabled", type: "boolean", required: false },
-      { name: "children", type: "ReactNode", required: true },
+      { name: "children", type: childrenType, required: true },
     ],
     variants: ["primary", "secondary", "ghost", "danger"],
     usage: "Primary actions, form submissions, navigation triggers",
@@ -725,7 +731,7 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
       { name: "title", type: "string", required: false },
       { name: "padding", type: "'sm' | 'md' | 'lg'", required: false },
       { name: "hoverable", type: "boolean", required: false },
-      { name: "children", type: "ReactNode", required: true },
+      { name: "children", type: childrenType, required: true },
     ],
     variants: ["default", "elevated", "bordered", "interactive"],
     usage: "Content containers, list items, dashboard widgets",
@@ -736,7 +742,7 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
     category: "primitives",
     props: [
       { name: "variant", type: "'info' | 'success' | 'warning' | 'error' | 'neutral'", required: false },
-      { name: "children", type: "ReactNode", required: true },
+      { name: "children", type: childrenType, required: true },
     ],
     variants: ["info", "success", "warning", "error", "neutral"],
     usage: "Status indicators, labels, counts",
@@ -749,7 +755,7 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
       { name: "open", type: "boolean", required: true },
       { name: "onClose", type: "() => void", required: true },
       { name: "title", type: "string", required: true },
-      { name: "children", type: "ReactNode", required: true },
+      { name: "children", type: childrenType, required: true },
     ],
     variants: ["default", "danger", "fullscreen"],
     usage: "Confirmations, forms, detail views",
@@ -768,13 +774,17 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
     usage: "Data listings, reports, admin views",
   });
 
-  // Add route-derived page components
-  const pageRoutes = routes.filter(r => !r.path.startsWith("/api") && r.method === "GET");
+  // Add route-derived PAGE components — isApiRoute (not a bare /api prefix) so a
+  // repo whose API lives under /v1 doesn't turn every backend endpoint into a
+  // "page" component. Segments are sanitized to a valid identifier (the old code
+  // left `:param` / `.` in, producing `V1Projects:projectIdPage`).
+  const pageRoutes = routes.filter(r => r.method === "GET" && !isApiRoute(r.path));
   for (const r of pageRoutes.slice(0, 4)) {
-    const name = r.path === "/" ? "HomePage" :
-      r.path.split("/").filter(Boolean).map(s =>
-        s.charAt(0).toUpperCase() + s.slice(1).replace(/[-_]/g, "")
-      ).join("") + "Page";
+    const segs = r.path.split("/").filter(Boolean)
+      .map(s => s.replace(/[^a-zA-Z0-9]/g, ""))
+      .filter(Boolean)
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1));
+    const name = r.path === "/" ? "HomePage" : (segs.join("") || "Route") + "Page";
     components.push({
       name,
       category: "pages",
@@ -796,20 +806,23 @@ export function generateComponentLibrary(ctx: ContextMap, files?: SourceFile[]):
       confidence: fw.confidence,
     })),
     framework: hasReact ? "react" : frameworks[0]?.name ?? id.primary_language,
-    styling: hasTailwind ? "tailwind" : "css-modules",
+    // Real detected styling approach (shared detectStyling), not a hardcoded
+    // "css-modules" for everything non-Tailwind (which contradicted design.md).
+    styling: detectStyling(ctx).approach,
     total_components: components.length,
     categories: [...new Set(components.map(c => c.category))],
     components,
     // ─── Source File Analysis ──────────────────────────────────
-    source_components: files && files.length > 0 ? (() => {
-      const compFiles = findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
-        .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."));
-      return compFiles.slice(0, 12).map(f => ({
-        path: f.path,
-        exports: extractExports(f.content),
-        size: f.size,
-      }));
-    })() : null,
+    source_components: files && files.length > 0
+      ? findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"])
+          .filter(f => !f.path.includes(".test.") && !f.path.includes(".spec."))
+          .slice(0, 12)
+          .map(f => ({ path: f.path, exports: extractExports(f.content), size: f.size }))
+      : null,
+    // Disclose truncation of the component-file list (was silently cut at 12).
+    source_components_meta: files && files.length > 0
+      ? capMeta(findFiles(files, ["*.tsx", "*.jsx", "*.vue", "*.svelte"]).filter(f => !f.path.includes(".test.") && !f.path.includes(".spec.")).length, 12)
+      : null,
   };
 
   return {
@@ -845,7 +858,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
   if (ai.project_summary) {
     lines.push(mdText(ai.project_summary));
   } else {
-    lines.push(`${mdText(id.name)} solves a ${mdText(id.type.replace(/_/g, " "))} problem. The current implementation is built in ${mdText(id.primary_language)}${frameworks.length > 0 ? ` using ${mdText(frameworks.slice(0, 3).join(", "))}` : ""}.`);
+    lines.push(`${mdBlock(id.name)} solves a ${mdText(id.type.replace(/_/g, " "))} problem. The current implementation is built in ${mdText(id.primary_language)}${frameworks.length > 0 ? ` using ${mdText(frameworks.slice(0, 3).join(", "))}` : ""}.`);
   }
   lines.push("");
   if (ai.warnings.length > 0) {

@@ -99,7 +99,9 @@ export function generateCanvasSpec(ctx: ContextMap, profile: RepoProfile, files?
       })),
       framework_names: frameworks,
       language_stats: languages.map(l => ({ name: l.name, percent: l.loc_percent, loc: l.loc })),
-      architecture_score: ctx.architecture_signals.separation_score,
+      // 0–100 integer to match every rendered artifact + the `##/100` templates —
+      // storing the raw 0–1 fraction made a renderer bind "0.65/100" (or round to 1).
+      architecture_score: Math.round(ctx.architecture_signals.separation_score * 100),
       patterns: ctx.architecture_signals.patterns_detected,
       layer_boundaries: ctx.architecture_signals.layer_boundaries,
       entry_point_count: ctx.entry_points.length,
@@ -331,6 +333,7 @@ export function generatePosterLayouts(ctx: ContextMap, files?: SourceFile[]): Ge
     for (const m of ctx.domain_models.slice(0, 6)) {
       lines.push(`- ${mdText(m.name)} (${mdText(m.kind)}, ${m.field_count} fields)`);
     }
+    if (ctx.domain_models.length > 6) lines.push(`- …and ${ctx.domain_models.length - 6} more`);
     lines.push("");
   }
 
@@ -611,7 +614,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
       lines.push(`- \`${mdCode(fw.name)}\``);
     }
     for (const l of languages.slice(0, 3)) {
-      lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(0)}% of codebase`);
+      lines.push(`- \`${mdCode(l.name)}\` — ${l.loc_percent.toFixed(1)}% of codebase`);
     }
     lines.push("");
   }
@@ -633,6 +636,7 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
     for (const m of ctx.domain_models.slice(0, 6)) {
       lines.push(`- **${mdText(m.name)}** (${mdText(m.kind)}) — ${m.field_count} fields, from ${mdText(m.source_file)}`);
     }
+    if (ctx.domain_models.length > 6) lines.push(`- …and ${ctx.domain_models.length - 6} more`);
     lines.push("");
   }
 
@@ -675,13 +679,20 @@ export function generateBrandBoard(ctx: ContextMap, files?: SourceFile[]): Gener
 
   // ─── Source File Analysis ────────────────────────────────────
   if (files && files.length > 0) {
-    const brandAssets = findFiles(files, ["*logo*", "*brand*", "*icon*", "*.svg", "*.png"]);
+    // Real image/vector ASSETS only — the old *logo*/*brand*/*icon* substring globs
+    // matched generators-brand.ts, AxisIcons.tsx, brand/MEMORY.yaml (source/test/
+    // config), not assets. Filter to asset EXTENSIONS.
+    const brandAssets = files.filter(f =>
+      /\.(svg|png|jpe?g|gif|webp|ico|pdf|ai|eps)$/i.test(f.path)
+      && !f.path.includes(".test.") && !f.path.includes(".spec."));
     if (brandAssets.length > 0) {
       lines.push("## Detected Brand Assets");
       lines.push("");
       for (const ba of brandAssets.slice(0, 10)) {
-        lines.push(`- \`${ba.path}\``);
+        // mdCode: a backtick in a repo path would otherwise close the code span.
+        lines.push(`- \`${mdCode(ba.path)}\``);
       }
+      if (brandAssets.length > 10) lines.push(`- … and ${brandAssets.length - 10} more`);
       lines.push("");
     }
   }
