@@ -4,6 +4,17 @@ import { hasFw, getFw } from "./fw-helpers.js";
 import { findFiles, findEntryPoints, findConfigs, extractExports } from "./file-excerpt-utils.js";
 import { mdText, mdInline, mdCode, mdCellCode } from "./md-sanitize.js";
 
+/**
+ * Canonical vault note BASENAME for a source-code file — ONE derivation shared by
+ * every generator so the same file has a single note identity across all outputs
+ * (the linking-policy hotspot links and the graph's code nodes previously disagreed
+ * on the folder AND on whether the extension was kept). Strips the extension and
+ * flattens path separators to dashes.
+ */
+export function codeFileNote(path: string): string {
+  return path.replace(/\.[^./\\]+$/, "").replace(/[/\\]+/g, "-");
+}
+
 // ─── obsidian-skill-pack.md ─────────────────────────────────────
 
 export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[]): GeneratedFile {
@@ -149,8 +160,9 @@ export function generateObsidianSkillPack(ctx: ContextMap, files?: SourceFile[])
   lines.push(`vault/`);
   lines.push(`├── Projects/`);
   lines.push(`│   └── ${mdCode(id.name)}/`);
-  lines.push(`│       ├── Overview.md`);
+  lines.push(`│       ├── ${mdCode(id.name)}.md    ← project hub (the [[${mdCode(id.name)}]] note)`);
   lines.push(`│       ├── Architecture.md`);
+  lines.push(`│       ├── Code/             ← one note per hotspot/entry-point file`);
   lines.push(`│       ├── ADRs/`);
   lines.push(`│       ├── Meeting Notes/`);
   lines.push(`│       └── Retrospectives/`);
@@ -338,6 +350,23 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   const frameworks = ctx.detection.frameworks.map(f => f.name);
   const abstractions = ctx.ai_context.key_abstractions;
 
+  // Cap nodes per type so the vault graph stays usable — a repo with hundreds of
+  // domain models otherwise produces a multi-MB graph-prompt-map.json. Counts and
+  // a `truncated` field below stay honest about what was elided.
+  const MAX_NODES = { abstractions: 30, entry_points: 40, domain_models: 60, sql_schema: 40 };
+  const nEntries = Math.min(ctx.entry_points.length, MAX_NODES.entry_points);
+  const nModels = Math.min(ctx.domain_models.length, MAX_NODES.domain_models);
+  // Disambiguate note paths for same-named models (two `NotConfiguredResult`
+  // interfaces would otherwise collide onto one vault note).
+  const modelNoteNames = (() => {
+    const seen = new Map<string, number>();
+    return ctx.domain_models.map(m => {
+      const n = (seen.get(m.name) ?? 0) + 1;
+      seen.set(m.name, n);
+      return n === 1 ? m.name : `${m.name}-${n}`;
+    });
+  })();
+
   const nodes: Array<{ id: string; type: string; label: string; note_path: string }> = [];
   const edges: Array<{ from: string; to: string; relationship: string }> = [];
 
@@ -346,7 +375,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     id: "project",
     type: "project",
     label: id.name,
-    note_path: `Projects/${id.name}/Overview.md`,
+    note_path: `Projects/${id.name}/${id.name}.md`,
   });
 
   // Architecture node
@@ -371,7 +400,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   }
 
   // Abstraction nodes
-  for (let i = 0; i < abstractions.length; i++) {
+  for (let i = 0; i < Math.min(abstractions.length, MAX_NODES.abstractions); i++) {
     const aId = `abs_${i}`;
     nodes.push({
       id: aId,
@@ -383,37 +412,37 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
   }
 
   // Entry point nodes
-  for (let i = 0; i < ctx.entry_points.length; i++) {
+  for (let i = 0; i < nEntries; i++) {
     const epId = `ep_${i}`;
     nodes.push({
       id: epId,
       type: "entry_point",
       label: ctx.entry_points[i].path,
-      note_path: `Projects/${id.name}/EntryPoints/${ctx.entry_points[i].path.replace(/\//g, "-")}.md`,
+      note_path: `Projects/${id.name}/Code/${codeFileNote(ctx.entry_points[i].path)}.md`,
     });
     edges.push({ from: "architecture", to: epId, relationship: "has_entry_point" });
   }
 
   // Domain model nodes
-  for (let i = 0; i < ctx.domain_models.length; i++) {
+  for (let i = 0; i < nModels; i++) {
     const dm = ctx.domain_models[i];
     const dmId = `model_${i}`;
     nodes.push({
       id: dmId,
       type: "domain_model",
       label: dm.name,
-      note_path: `Projects/${id.name}/Models/${dm.name}.md`,
+      note_path: `Projects/${id.name}/Models/${modelNoteNames[i]}.md`,
     });
     edges.push({ from: "architecture", to: dmId, relationship: "has_model" });
     // Link model to its source entry point if one exists
     const epIdx = ctx.entry_points.findIndex(ep => ep.path === dm.source_file);
-    if (epIdx !== -1) {
+    if (epIdx !== -1 && epIdx < nEntries) {
       edges.push({ from: `ep_${epIdx}`, to: dmId, relationship: "defines_model" });
     }
   }
 
   // SQL table nodes
-  for (let i = 0; i < ctx.sql_schema.length; i++) {
+  for (let i = 0; i < Math.min(ctx.sql_schema.length, MAX_NODES.sql_schema); i++) {
     const tbl = ctx.sql_schema[i];
     const tblId = `table_${i}`;
     nodes.push({
@@ -429,7 +458,7 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
       m => m.name.toLowerCase() === tbl.name.toLowerCase() ||
            m.name.toLowerCase() === tbl.name.replace(/_/g, "").toLowerCase()
     );
-    if (matchingModelIdx !== -1) {
+    if (matchingModelIdx !== -1 && matchingModelIdx < nModels) {
       edges.push({ from: `model_${matchingModelIdx}`, to: tblId, relationship: "maps_to_table" });
     }
   }
@@ -456,6 +485,12 @@ export function generateGraphPromptMap(ctx: ContextMap, files?: SourceFile[]): G
     })),
     total_nodes: nodes.length,
     total_edges: edges.length,
+    truncated: {
+      ...(ctx.domain_models.length > MAX_NODES.domain_models ? { domain_models: { shown: MAX_NODES.domain_models, total: ctx.domain_models.length } } : {}),
+      ...(ctx.entry_points.length > MAX_NODES.entry_points ? { entry_points: { shown: MAX_NODES.entry_points, total: ctx.entry_points.length } } : {}),
+      ...(ctx.sql_schema.length > MAX_NODES.sql_schema ? { sql_schema: { shown: MAX_NODES.sql_schema, total: ctx.sql_schema.length } } : {}),
+      ...(abstractions.length > MAX_NODES.abstractions ? { abstractions: { shown: MAX_NODES.abstractions, total: abstractions.length } } : {}),
+    },
     nodes,
     edges,
     // ─── Source File Analysis ──────────────────────────────────
@@ -552,7 +587,7 @@ export function generateLinkingPolicy(ctx: ContextMap, files?: SourceFile[]): Ge
     lines.push("| Code File | Risk | Vault Note |");
     lines.push("|-----------|------|-----------|");
     for (const h of hotspots.slice(0, 8)) {
-      const noteName = h.path.replace(/\//g, "-").replace(/\.[^.]+$/, "");
+      const noteName = codeFileNote(h.path);
       lines.push(`| \`${mdCellCode(h.path)}\` | ${h.risk_score.toFixed(1)} | \`[[Code/${mdCellCode(noteName)}]]\` |`);
     }
     lines.push("");
