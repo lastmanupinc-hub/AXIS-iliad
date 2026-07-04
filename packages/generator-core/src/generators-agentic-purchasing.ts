@@ -238,7 +238,7 @@ function buildCompellingEvidence3Section(signals: CommerceSignals): string {
     `      "lookback_window_days": 365`,
     `    },`,
     `    "agent_automation": {`,
-    `      "auto_collect_ip": ${signals.has_webhooks},`,
+    `      "auto_collect_ip": ${signals.has_checkout},`,
     `      "auto_collect_device_id": ${signals.has_checkout},`,
     `      "auto_match_prior_txns": ${signals.has_dispute_handling && signals.has_webhooks}`,
     `    }`,
@@ -726,7 +726,10 @@ export function generateProductSchema(
         ucp_settlement_path: "UCP settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
         visa_intelligent_commerce: "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding",
         tap_interop: "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens",
-        ready_for_autonomous_purchase: signals.detected_providers.length > 0 || signals.has_checkout,
+        // Require ACTUAL payment-integration evidence (provider + checkout + a
+        // compliance signal), not an incidental keyword — a code-analysis tool that
+        // merely MENTIONS Stripe was declared "ready for autonomous purchase".
+        ready_for_autonomous_purchase: signals.detected_providers.length > 0 && signals.has_checkout && (signals.has_sca || signals.has_dispute_handling),
       },
       sca_exemption_schema: {
         note: "Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.",
@@ -748,7 +751,9 @@ export function generateProductSchema(
           min_prior_transactions: 2,
           min_prior_transaction_age_days: 120,
           lookback_days: 365,
-          target_reason_codes: ["10.2", "10.3", "10.4"],
+          // CE 3.0 applies to card-absent fraud (10.4) only; 10.2/10.3 are
+          // card-present conditions outside its scope.
+          target_reason_codes: ["10.4"],
           auto_assembly_ready: signals.has_dispute_handling && signals.has_webhooks,
         },
       },
@@ -1157,7 +1162,9 @@ export function generateCommerceRegistry(
 ): GeneratedFile {
   const signals = detectCommerceSignals(files);
   // Graduated readiness score — weighted rubric with depth tiers
-  const providerDepth = signals.detected_providers.length > 2 ? 20 : signals.detected_providers.length > 0 ? 20 : 0;
+  // Graduated tiers — both non-zero branches returned 20, so a single incidental
+  // provider keyword scored the full 20 points (same as 11 providers).
+  const providerDepth = signals.detected_providers.length > 2 ? 20 : signals.detected_providers.length > 0 ? 10 : 0;
   const checkoutDepth = signals.has_checkout ? 15 : 0;
   const recurringDepth = signals.has_recurring && signals.has_mandate_management ? 12 : signals.has_recurring ? 10 : 0;
   const scaDepth = signals.has_sca && signals.has_mandate_management ? 15 : signals.has_sca ? 12 : 0;
@@ -1204,20 +1211,27 @@ export function generateCommerceRegistry(
         ...(!signals.has_mandate_management ? ["No mandate management detected — needed for recurring mandate workflows"] : []),
       ],
       visa_intelligent_commerce: {
-        network_tokenization: signals.has_network_tokenization ? "detected" : signals.detected_providers.includes("stripe") || signals.detected_providers.includes("adyen") ? "likely-supported" : "unknown",
+        // Evidence-only (matching the playbook's stated policy) — the mere presence
+        // of a provider NAME can't back a tokenization capability.
+        network_tokenization: signals.has_network_tokenization ? "detected" : "not-detected-verify-with-psp",
         token_service_provider: signals.has_network_tokenization ? "integration-detected" : "requires-manual-verification",
         device_binding: "out-of-scope-for-static-analysis",
         tap_protocol: signals.has_tap_protocol ? "detected" : "not-detected",
       },
       dispute_readiness: {
         has_dispute_code: signals.has_dispute_handling,
-        pre_dispute_mechanism: signals.has_webhooks ? "CDRN-capable" : "not-detected",
+        // Report the raw signal — Visa CDRN capability requires Verifi/Visa
+        // enrollment; it can't be inferred from a generic webhook/event handler.
+        pre_dispute_mechanism: signals.has_webhooks ? "webhook-event-source-present" : "not-detected",
         rapid_dispute_resolution: "requires-enrollment-verification",
         evidence_automation: signals.has_dispute_handling && signals.has_webhooks ? "automatable" : "manual-required",
         compelling_evidence_3: {
-          supported: true,
+          // Derived, not a constant true stamped on every repo (incl. zero-dispute ones).
+          supported: signals.has_dispute_handling,
           auto_assembly_ready: signals.has_dispute_handling && signals.has_webhooks,
-          target_reason_codes: ["10.2", "10.3", "10.4"],
+          // CE 3.0 applies to the card-absent fraud condition 10.4 ONLY — 10.2/10.3
+          // are card-present conditions outside CE 3.0 scope.
+          target_reason_codes: ["10.4"],
           evidence_requirements: {
             min_prior_undisputed_transactions: 2,
             min_prior_transaction_age_days: 120,
