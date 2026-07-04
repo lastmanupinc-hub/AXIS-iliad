@@ -543,14 +543,17 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
   lines.push(`| Frameworks | ${mdInline(frameworks.join(", ") || "None detected")} |`);
   lines.push("");
 
-  lines.push("## Language Distribution");
-  lines.push("");
-  for (const lang of languages) {
-    const bar = "█".repeat(Math.max(1, Math.round(lang.loc_percent / 5)));
-    lines.push(`- **${mdText(lang.name)}**: ${lang.loc_percent}% ${bar} (${lang.file_count} files, ${lang.loc} LOC)`);
+  if (languages.length > 0) {
+    lines.push("## Language Distribution");
+    lines.push("");
+    for (const lang of languages) {
+      const bar = "█".repeat(Math.max(1, Math.round(lang.loc_percent / 5)));
+      lines.push(`- **${mdText(lang.name)}**: ${lang.loc_percent}% ${bar} (${lang.file_count} files, ${lang.loc} LOC)`);
+    }
+    lines.push("");
   }
-  lines.push("");
 
+  if (patterns.length > 0 || layers.length > 0) {
   lines.push("## Architecture");
   lines.push("");
   if (patterns.length > 0) {
@@ -566,6 +569,8 @@ export function generateArtifactSpec(ctx: ContextMap, profile: RepoProfile, file
       lines.push(`- **${mdText(l.layer)}**: ${mdText(l.directories.join(", "))}`);
     }
     lines.push("");
+  }
+
   }
 
   lines.push("## Entry Points");
@@ -853,7 +858,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
   lines.push("## Goals");
   lines.push("");
   if (routes.length > 0) {
-    lines.push(`- Deliver ${routes.length} HTTP endpoint${routes.length === 1 ? "" : "s"} (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method)).size === 1 ? "" : "s"}) backing the user-facing surface.`);
+    lines.push(`- Deliver ${routes.length} HTTP endpoint${routes.length === 1 ? "" : "s"} (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method.toUpperCase())).size === 1 ? "" : "s"}) backing the user-facing surface.`);
   }
   if (models.length > 0) {
     lines.push(`- Maintain a stable, typed contract over ${models.length} domain model${models.length === 1 ? "" : "s"} with no breaking changes within a minor version.`);
@@ -900,7 +905,7 @@ export function generatePrd(ctx: ContextMap, _profile: RepoProfile, files?: Sour
 
   lines.push("## Success Metrics");
   lines.push("");
-  lines.push(`- **Build/test health**: \`${frameworks.includes("Go stdlib HTTP") ? "go test ./..." : "npm test"}\` exits 0 on every PR. Coverage trend non-decreasing across releases.`);
+  lines.push(`- **Build/test health**: \`${id.primary_language === "Go" ? "go test ./..." : id.primary_language === "Python" ? "pytest" : id.primary_language === "Rust" ? "cargo test" : "npm test"}\` exits 0 on every PR. Coverage trend non-decreasing across releases.`);
   if (routes.length > 0) {
     lines.push(`- **API latency**: p95 ≤ 250ms for each of the ${routes.length} endpoints under nominal load.`);
   }
@@ -1097,7 +1102,7 @@ export function generateTasksMd(ctx: ContextMap, profile: RepoProfile, files?: S
   lines.push(`- [${hasLicense ? "x" : " "}] LICENSE file at repo root`);
   lines.push(`- [${ctx.detection.package_managers.length > 0 ? "x" : " "}] Lockfile committed (\`${mdCode(ctx.detection.package_managers[0] ?? "pnpm/yarn/npm/bun")}\`)`);
   lines.push(`- [${hasTests ? "x" : " "}] Test runner configured (${mdText(ctx.detection.test_frameworks[0] ?? "vitest / jest / go test / pytest")})`);
-  lines.push(`- [${hasCi ? "x" : " "}] CI pipeline runs on every PR (${mdText(ctx.detection.ci_platform ?? "GitHub Actions")})`);
+  lines.push(`- [${hasCi ? "x" : " "}] CI pipeline runs on every PR (${mdText(ctx.detection.ci_platform ?? "GitHub Actions / GitLab CI / CircleCI")})`);
   lines.push(`- [${hasDocker ? "x" : " "}] Container build (Dockerfile + docker-compose for local validation)`);
   lines.push("");
 
@@ -1208,9 +1213,9 @@ export function generateContextMd(ctx: ContextMap, profile: RepoProfile, _files?
 
   lines.push("## Snapshot Stats");
   lines.push("");
-  lines.push(`- **Files**: ${structure.total_files.toLocaleString()}`);
-  lines.push(`- **Directories**: ${structure.total_directories.toLocaleString()}`);
-  lines.push(`- **Lines of code**: ${structure.total_loc.toLocaleString()}`);
+  lines.push(`- **Files**: ${structure.total_files.toLocaleString("en-US")}`);
+  lines.push(`- **Directories**: ${structure.total_directories.toLocaleString("en-US")}`);
+  lines.push(`- **Lines of code**: ${structure.total_loc.toLocaleString("en-US")}`);
   lines.push(`- **Primary language**: ${mdText(id.primary_language)}`);
   if (ctx.detection.frameworks.length > 0) {
     lines.push(`- **Frameworks**: ${mdText(ctx.detection.frameworks.map(f => f.name).join(", "))}`);
@@ -1223,7 +1228,7 @@ export function generateContextMd(ctx: ContextMap, profile: RepoProfile, _files?
     lines.push(`- ${entryPoints.length} entry point${entryPoints.length === 1 ? "" : "s"} wired up`);
   }
   if (routes.length > 0) {
-    lines.push(`- ${routes.length} HTTP route${routes.length === 1 ? "" : "s"} registered (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method)).size === 1 ? "" : "s"})`);
+    lines.push(`- ${routes.length} HTTP route${routes.length === 1 ? "" : "s"} registered (${new Set(routes.map(r => r.method.toUpperCase())).size} method${new Set(routes.map(r => r.method.toUpperCase())).size === 1 ? "" : "s"})`);
   }
   if (models.length > 0) {
     lines.push(`- ${models.length} domain model${models.length === 1 ? "" : "s"} defined and typed`);
