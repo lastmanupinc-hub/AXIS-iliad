@@ -106,7 +106,10 @@ describe("generators-closer", () => {
     expect(compose.path).toBe("docker-compose.yml");
     expect(ci.path).toBe(".github/workflows/ci.yml");
     expect(release.path).toBe(".github/workflows/release.yml");
-    expect(ci.content).toContain("make ship");
+    // POLISH: CI runs install/lint/test/build/audit directly; the docker-heavy
+    // `make ship` step was redundant (and re-ran the whole release pipeline).
+    expect(ci.content).toContain("actions/checkout@v4");
+    expect(ci.content).not.toContain("make ship");
     expect(release.content).toContain("workflow_dispatch");
   });
 

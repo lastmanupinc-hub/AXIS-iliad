@@ -86,7 +86,7 @@ function defaultBranding(ctx: ContextMap): BrandingConfig {
   const projectName = (ctx.project_identity.name || "Project").trim();
   return {
     product_name: projectName,
-    tagline: `Production-grade ${projectName} packaging and release kit`,
+    tagline: `Packaging and release kit for ${projectName}`,
     target_marketplaces: [...TARGET_MARKETPLACES],
   };
 }
@@ -138,14 +138,14 @@ function detectProjectSignals(ctx: ContextMap, profile: RepoProfile, files?: Sou
   const allText = files?.map(f => `${f.path}\n${f.content}`).join("\n") ?? "";
 
   const monetization_hints: string[] = [];
-  if (/pricing|subscription|plan|checkout|invoice|billing|license/i.test(allText)) {
+  if (/pricing|subscription|paywall|checkout|invoice|billing/i.test(allText)) {
     monetization_hints.push("Monetization intent detected in source files");
   }
   if (/enterprise|saas|marketplace|plugin|extension/i.test(allText)) {
     monetization_hints.push("Marketplace distribution language detected");
   }
   if (ctx.routes.length > 0) {
-    monetization_hints.push("API surface detected — package supports commercial integration");
+    monetization_hints.push("API surface detected");
   }
 
   const hasInternalOnly = /internal use only|confidential|proprietary|all rights reserved/i.test(allText);
@@ -202,7 +202,7 @@ function renderLicense(license: ProjectSignals["selected_license"], holder: stri
       "",
       "This software is licensed, not sold. Unauthorized reproduction, modification, or redistribution of this package or any derived work is prohibited unless explicitly permitted in a separate written commercial agreement.",
       "",
-      "For commercial licensing inquiries: legal@company.example",
+      "For commercial licensing inquiries: <add your legal contact>",
     ].join("\n");
   }
 
@@ -283,7 +283,7 @@ function buildMerkleBundle(
 }
 
 function readinessScore(signals: ProjectSignals, marketplaces: number): number {
-  let score = 72;
+  let score = 50;
   if (signals.uses_docker) score += 5;
   if (signals.has_ci) score += 5;
   if (signals.has_makefile) score += 4;
@@ -317,7 +317,7 @@ export function generatePackagingReadme(
     "```bash",
     "git clone <repo-url>",
     "cd <project>",
-    "make ship",
+    "make install && make start",
     "```",
     "",
     `## Screenshots`,
@@ -335,8 +335,8 @@ export function generatePackagingReadme(
     "",
     `## Monetization`,
     "",
-    `- Recommended pricing: $99-$499 depending on support tier and hosting footprint.`,
-    `- Suggested SKUs: Starter (self-serve), Team (SLA + onboarding), Enterprise (private deployment).`,
+    `- Pricing: set to your own support tier and hosting footprint.`,
+    `- Example SKU structure: Starter (self-serve), Team (SLA + onboarding), Enterprise (private deployment).`,
     `- Distribution targets: ${branding.target_marketplaces.join(", ")}.`,
     "",
     `## Compatibility`,
@@ -712,14 +712,12 @@ export function generateCloserCiWorkflow(
     runScript("typecheck"),
     ...(signals.has_tests ? [
       "      - name: Test",
-      `        run: ${runner} ${runner === "npm" ? "test" : "test"} --if-present`,
+      `        run: ${runner} test --if-present`,
     ] : []),
     "      - name: Build",
     runScript("build"),
     "      - name: Audit",
     `        run: ${runner === "npm" ? "npm audit --omit=dev --audit-level=high" : runner === "pnpm" ? "pnpm audit --prod --audit-level high" : runner === "yarn" ? "yarn npm audit --severity high --recursive" : "bun audit"} || true`,
-    "      - name: Package audit",
-    "        run: make ship",
   ].join("\n");
 
   return {
@@ -732,49 +730,13 @@ export function generateCloserCiWorkflow(
 }
 
 export function generateCloserReleaseWorkflow(
-  _ctx: ContextMap,
+  ctx: ContextMap,
   _profile: RepoProfile,
   files?: SourceFile[],
 ): GeneratedFile {
-  const config = readBrandingConfig(files, {
-    version: "1.0.0",
-    snapshot_id: "",
-    project_id: "",
-    generated_at: "",
-    project_identity: {
-      name: "project",
-      type: "unknown",
-      primary_language: "unknown",
-      description: null,
-      repo_url: null,
-      go_module: null,
-    },
-    structure: {
-      total_files: 0,
-      total_directories: 0,
-      total_loc: 0,
-      file_tree_summary: [],
-      top_level_layout: [],
-    },
-    detection: {
-      languages: [],
-      frameworks: [],
-      build_tools: [],
-      test_frameworks: [],
-      package_managers: [],
-      ci_platform: null,
-      deployment_target: null,
-    },
-    dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
-    entry_points: [],
-    routes: [],
-    domain_models: [],
-    sql_schema: [],
-    architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0 },
-    ai_context: { project_summary: "", key_abstractions: [], conventions: [], warnings: [] },
-  });
+  const config = readBrandingConfig(files, ctx);
 
-  const signals = detectProjectSignals(_ctx, _profile, files);
+  const signals = detectProjectSignals(ctx, _profile, files);
   const lang = signals.primary_language;
   const pm = signals.package_manager;
   const targets = config.target_marketplaces;
@@ -1101,7 +1063,7 @@ export function generateCloserManifestGitHubMarketplace(
     "```bash",
     `git clone ${mdCode(ctx.project_identity.repo_url ?? "<repo-url>")}`,
     "cd " + branding.product_name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-    "make ship",
+    "make install && make start",
     "```",
     "",
     "## Verification",
