@@ -524,7 +524,10 @@ export function generateAgentPurchasingPlaybook(
   const signals = detectCommerceSignals(files);
 
   const providerList = signals.detected_providers.length > 0
-    ? signals.detected_providers.map(p => `- **${p}** detected in ${signals.total_payment_files} file(s)`).join("\n")
+    ? signals.detected_providers.map(p => {
+      const n = detectProviderEvidence(p, files).files; // per-provider count, not the global total
+      return `- **${p}** detected in ${n} file${n === 1 ? "" : "s"}`;
+    }).join("\n")
     : "- No payment providers detected — repo may not yet be payment-enabled";
 
   const ap2ProviderRows = signals.detected_providers.length > 0
@@ -1182,7 +1185,10 @@ export function generateCommerceRegistry(
       methodology: "Keyword-signal scan of repository files — a checklist starting point, not a certification, audit, or legal/compliance advice.",
       readiness_score: ap2ReadyScore,
       max_score: 100,
-      interpretation: ap2ReadyScore >= 70 ? "production-ready" : ap2ReadyScore >= 40 ? "partially-ready" : "needs-work",
+      // Signal-coverage language, not a readiness/certification claim — a keyword scan
+      // that merely finds payment TERMS must not be reported as "production-ready".
+      // Mirrors buildAP2ComplianceScoring's "signal coverage" wording.
+      interpretation: ap2ReadyScore >= 70 ? "strong-signal-coverage" : ap2ReadyScore >= 40 ? "partial-signal-coverage" : "minimal-signal-coverage",
       gaps: [
         ...(!signals.detected_providers.length ? ["No payment provider integration detected"] : []),
         ...(!signals.has_checkout ? ["No checkout flow implementation detected"] : []),

@@ -695,17 +695,18 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
     expect(registry.ap2_compliance_assessment.readiness_score).toBe(0);
   });
 
-  it("ap2 interpretation is production-ready for fully-instrumented repo", () => {
+  it("ap2 interpretation is strong-signal-coverage for fully-instrumented repo", () => {
     const file = generateCommerceRegistry(stripeCtx, stripeProfile, stripeFiles);
     const registry = JSON.parse(file.content);
     // stripeFiles has: providers(20) + checkout(15) + recurring(10) + sca(15) + dispute(10) + webhooks(10) = 80
-    // No TAP(8)/tokenization(7)/mandate(5) files → score 80 → production-ready
+    // No TAP(8)/tokenization(7)/mandate(5) files → score 80 → strong-signal-coverage
+    // (honest wording: a keyword scan reports signal coverage, never "production-ready")
     expect(registry.ap2_compliance_assessment.readiness_score).toBe(80);
-    expect(registry.ap2_compliance_assessment.interpretation).toBe("production-ready");
+    expect(registry.ap2_compliance_assessment.interpretation).toBe("strong-signal-coverage");
   });
 
-  it("ap2 interpretation is partially-ready for score 40-69", () => {
-    // stripe(20) + checkout(15) + recurring(10) = 45 → partially-ready
+  it("ap2 interpretation is partial-signal-coverage for score 40-69", () => {
+    // stripe(20) + checkout(15) + recurring(10) = 45 → partial-signal-coverage
     const partialFiles: FileEntry[] = [
       { path: "src/checkout.ts", content: "stripe.checkout.sessions.create({})", size: 40 },
       { path: "src/subs.ts", content: "// recurring mandate billing_cycle_anchor", size: 45 },
@@ -715,7 +716,7 @@ describe("generateCommerceRegistry — repo_commerce_signals and ap2_assessment"
     const profile = buildRepoProfile(snap);
     const file = generateCommerceRegistry(ctx, profile, partialFiles);
     const registry = JSON.parse(file.content);
-    expect(registry.ap2_compliance_assessment.interpretation).toBe("partially-ready");
+    expect(registry.ap2_compliance_assessment.interpretation).toBe("partial-signal-coverage");
   });
 
   it("ap2 gaps includes missing SCA message when no 3ds files", () => {
