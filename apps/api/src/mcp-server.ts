@@ -36,7 +36,6 @@ import {
   inbandSettlementEnabled,
   previewMcpToolOverage,
   markInbandSettled,
-  type MeteredMcpTool,
   type RpcSuccess,
   type RpcError,
 } from "./mcp-runtime.js";
@@ -71,7 +70,9 @@ import {
   runCloser,
   runDeploy,
   runPreparePurchasing,
+  decideInbandGate,
 } from "./mcp-tool-impls.js";
+import { resolveAgentMode } from "./mpp.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
 
@@ -380,17 +381,12 @@ export async function dispatch(
 // â”€â”€â”€ HTTP handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** POST /mcp â€” MCP Streamable HTTP transport (2025-03-26) */
-/** Phase-1 scope: the always-metered MCP tools whose price is known up front. */
-const INBAND_METERED_TOOLS = new Set<MeteredMcpTool>([
-  "analyze_files",
-  "analyze_repo",
-  "prepare_agentic_purchasing",
-]);
 
 /**
- * H1: in-band settlement gate. For the always-metered MCP tools, when the flag is on
- * and the call would incur a cash overage, collect it in-band on the JSON-RPC POST
- * (the surface an agent already lives on) instead of only metering-and-rejecting:
+ * H1: in-band settlement gate. For every MCP tool decideInbandGate certifies as
+ * guaranteed-billable (WO-02: 13 of 17 metered tools, up from the 3 in WO-01), when the
+ * flag is on and the call would incur a cash overage, collect it in-band on the JSON-RPC
+ * POST (the surface an agent already lives on) instead of only metering-and-rejecting:
  *   - overage + valid X-Payment  -> settle, mark the request paid, let dispatch run the tool
  *   - overage + no payment        -> write the x402 challenge and stop (agent retries w/ X-Payment)
  *   - no overage / not applicable -> passthrough (dispatch meters via plan credits as today)
@@ -407,8 +403,13 @@ async function settleMcpCallInband(
   const p = msg.params as Record<string, unknown> | null;
   const rawName = p?.name;
   if (typeof rawName !== "string" || !rawName) return false;
-  const tool = normalizeToolName(rawName) as MeteredMcpTool;
-  if (!INBAND_METERED_TOOLS.has(tool)) return false;
+  const decision = await decideInbandGate(
+    normalizeToolName(rawName),
+    (p?.arguments as Record<string, unknown>) ?? {},
+    resolveAgentMode(req),
+  );
+  if (!decision.settle) return false;   // free / not_provisioned / runtime / out-of-scope -> dispatch handles normally
+  const tool = decision.tool;
 
   const auth = await resolveAuth(req);
   if (!auth.account) return false;              // anonymous -> dispatch's normal free/limit path

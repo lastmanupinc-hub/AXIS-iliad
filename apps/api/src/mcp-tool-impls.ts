@@ -99,7 +99,7 @@ import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate
 import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
-import { parseAgentBudget, resolveAgentMode } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
@@ -113,6 +113,7 @@ import {
   captureMcpToolCredits,
   meterMcpToolCredits,
   buildMcpPaymentRequiredError,
+  type MeteredMcpTool,
 } from "./mcp-runtime.js";
 
 /**
@@ -2970,4 +2971,107 @@ export async function runPreparePurchasing(
     null,
     2,
   );
+}
+
+// ─── H1 Phase-2 — decideInbandGate: the sole in-band-settlement gate-scope authority ──
+//
+// Widens in-band cash settlement (WO-01 gave it to exactly 3 tools) to every metered
+// MCP tool whose billability is knowable BEFORE the tool runs — i.e. without running it.
+// Co-located with the runX handlers + the config helpers they consult (readR2ConfigFromEnv,
+// readEmbeddingsConfigFromEnv, readEmailConfigFromEnv, isLlmConfigured, isFirecrawlConfigured)
+// so the gate can never silently drift from the handlers' own not-configured / free-op logic.
+//
+// settle:true is returned ONLY when the call is guaranteed to reach an authorize/capture
+// point: a billable operation/mode AND (for config-gated backends) a provisioned backend.
+// Four tools (document_parsing, code_sandbox, speech_to_text, text_to_speech) meter on a
+// POST-run runtime probe (unreachable URL, unsupported mime, docker daemon, piper/whisper
+// availability) that cannot be known pre-dispatch — those always resolve "runtime_metered"
+// and continue to meter via plan credits post-run, same as before this WO.
+//
+// NOTE: like the Phase-1 gate, this does not replicate full arg-shape validation — a
+// malformed-but-billable call can still be settled-then-error (pre-existing property).
+
+export type InbandGateDecision =
+  | { settle: true; tool: MeteredMcpTool }
+  | { settle: false; reason: "free_op" | "not_provisioned" | "runtime_metered" | "not_in_scope" };
+
+/**
+ * Decide whether the MCP POST gate may PRE-SETTLE a tool call's cash overage.
+ * settle:true iff the call is guaranteed to reach an authorize/capture point
+ * (billable op + provisioned backend), decidable from (args, mode, env-config)
+ * WITHOUT running the tool. Async only for isLlmConfigured()'s fs probe.
+ *   free_op          -> a non-billable operation/mode (web_search!=search, hygiene scan, invalid op)
+ *   not_provisioned  -> backend env absent; runX would return _not_configured w/o charging
+ *   runtime_metered  -> billability decided only by a post-run probe (see residual caveat)
+ *   not_in_scope     -> free/discovery tool or unknown name
+ */
+export async function decideInbandGate(
+  tool: string,
+  args: Record<string, unknown>,
+  mode: AgentMode,
+): Promise<InbandGateDecision> {
+  switch (tool) {
+    // Phase-1 (WO-01): always-metered, price known up front regardless of args.
+    case "analyze_files":
+    case "analyze_repo":
+    case "prepare_agentic_purchasing":
+      return { settle: true, tool };
+
+    // Config-gated backends: billable iff the operator has provisioned the SAME
+    // backend env the runX handler consults. No op/mode branching — every valid
+    // call to a provisioned backend reaches authorize/capture.
+    case "iliad_object_storage":
+      return readR2ConfigFromEnv() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+    case "iliad_embeddings":
+      return readEmbeddingsConfigFromEnv() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+    case "iliad_web_research":
+      return isFirecrawlConfigured() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+    case "iliad_web_research_crawl":
+      return isFirecrawlConfigured() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+    case "iliad_llm_inference":
+      return (await isLlmConfigured()) ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+
+    // Config-gated WITH a free bypass: engineer mode + `domain` is the pure-generation
+    // Deliverability kit (no ESP call, no RESEND_* needed) — mirrors runTransactionalEmail's
+    // engineer branch, which meters unconditionally on that path.
+    case "iliad_transactional_email":
+      if (mode === "engineer" && typeof args.domain === "string") return { settle: true, tool };
+      return readEmailConfigFromEnv() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+
+    // Always-local, no config gate — but the `operation` arg decides billability
+    // (mirrors the runX's own op switch exactly).
+    case "iliad_vector_database":
+      return args.operation === "upsert" || args.operation === "query"
+        ? { settle: true, tool }
+        : { settle: false, reason: "free_op" };
+    case "iliad_analytics":
+      return args.operation === "capture" || args.operation === "query"
+        ? { settle: true, tool }
+        : { settle: false, reason: "free_op" };
+
+    // Per-op gated: only `search` bills (index/delete/delete_namespace/count are free —
+    // they don't consume the BM25-ranking CPU the search op pays for).
+    case "iliad_web_search":
+      return args.operation === "search" ? { settle: true, tool } : { settle: false, reason: "free_op" };
+
+    // Per-mode gated: `fix` bills (engineer forces fix); `scan` is free.
+    case "iliad_hygiene":
+      return mode === "engineer" || args.mode === "fix"
+        ? { settle: true, tool }
+        : { settle: false, reason: "free_op" };
+
+    // Metering decision is a POST-run runtime probe (unreachable URL, unsupported
+    // mime, docker daemon, piper/whisper availability) — unknowable at the
+    // pre-dispatch gate. These stay on plan-credit metering (see WO-02 doc impact).
+    case "iliad_document_parsing":
+    case "iliad_code_sandbox":
+    case "iliad_speech_to_text":
+    case "iliad_text_to_speech":
+      return { settle: false, reason: "runtime_metered" };
+
+    // Free/discovery tools (list_programs, search_and_discover_tools, ...) and
+    // unknown/unrecognized names.
+    default:
+      return { settle: false, reason: "not_in_scope" };
+  }
 }
