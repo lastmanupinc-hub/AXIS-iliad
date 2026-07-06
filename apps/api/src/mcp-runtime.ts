@@ -130,6 +130,47 @@ export type MeteredMcpTool =
 interface AuthorizedCharge {
   tool: MeteredMcpTool;
   amountCents: number;
+  /** True when the overage was paid in-band with cash (H1); capture must NOT debit plan credits. */
+  settled?: boolean;
+}
+
+// ── H1: in-band settlement on the MCP tool-call surface (flag-gated, default OFF) ──
+
+/** Feature flag: collect payment in-band on the MCP surface instead of only metering. */
+export function inbandSettlementEnabled(): boolean {
+  const v = process.env.AXIS_MCP_INBAND_SETTLEMENT;
+  return v === "true" || v === "1";
+}
+
+/**
+ * Requests whose cash overage was already settled in-band at the MCP POST gate.
+ * The gate marks the request here; authorize/capture read it to (a) not reject the
+ * call with a 402 and (b) not debit plan credits (the overage was paid with cash).
+ * A WeakSet keyed by the request object — no signature changes thread through runX.
+ */
+const inbandSettledRequests = new WeakSet<IncomingMessage>();
+export function markInbandSettled(req: IncomingMessage): void {
+  inbandSettledRequests.add(req);
+}
+export function isInbandSettled(req: IncomingMessage): boolean {
+  return inbandSettledRequests.has(req);
+}
+
+/**
+ * Preview the cash overage (cents) a metered tool would incur for this account,
+ * without charging or throwing. The in-band gate uses this to decide whether to
+ * collect before dispatch. Mirrors the price math in authorizeMcpToolCredits.
+ */
+export async function previewMcpToolOverage(
+  req: IncomingMessage,
+  account: { account_id: string; tier: "free" | "paid" | "suite" },
+  tool: MeteredMcpTool,
+): Promise<{ amountCents: number; overageCents: number }> {
+  const mode = resolveAgentMode(req);
+  const pricing = getPricingTier(tool);
+  const amountCents = priceForMode(pricing, mode);
+  const charge = await previewUsageCredits(account.account_id, account.tier, tool, amountCents);
+  return { amountCents, overageCents: charge.effective_overage_cents };
 }
 
 /**
@@ -151,6 +192,11 @@ export async function authorizeMcpToolCredits(
   const amountCents = priceForMode(pricing, mode);
   const charge = await previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
+    // H1: if the overage was already collected as cash by the in-band MCP gate, do not
+    // reject; return a settled charge so capture skips the plan-credit debit.
+    if (isInbandSettled(req)) {
+      return { tool, amountCents, settled: true };
+    }
     throw new Error(await buildMcpPaymentRequiredError(
       tool,
       account.account_id,
@@ -175,6 +221,8 @@ export async function captureMcpToolCredits(
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   charge: AuthorizedCharge,
 ): Promise<void> {
+  // H1: overage paid in-band with cash -> no plan-credit debit.
+  if (charge.settled) return;
   await consumeUsageCredits(account.account_id, account.tier, charge.tool, charge.amountCents);
 }
 

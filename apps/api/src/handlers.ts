@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { chargeMpp, parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
+import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
 import { classifyProbe, captureIntent } from "./intent.js";
 import {
@@ -36,8 +37,6 @@ import {
   recordReferralConversion,
   createReferralCode,
   getReferralCredits,
-  consumeFreeCall,
-  recordPaidCall,
   consumeUsageCredits,
   getCachedScrape,
   putCachedScrape,
@@ -78,12 +77,9 @@ async function chargeWithDiscounts(
   // Plan credits covered this call fully â€” no overage payment required.
   if (overageCents <= 0) return { status: 200 };
 
-  if (await consumeFreeCall(accountId)) return { status: 200 };
-  const result = await chargeMpp(req, res, { ...opts, amount: String(overageCents) });
-  if (result && result.status === 200) {
-    await recordPaidCall(accountId);
-  }
-  return result;
+  // Collection (5th-call-free -> cash rail -> paid-call record) is delegated to the
+  // shared cashier -- the same tail the MCP in-band settlement gate uses (H1).
+  return settleOverageCash(req, res, accountId, overageCents, opts);
 }
 
 async function buildPaymentRequiredPayload(

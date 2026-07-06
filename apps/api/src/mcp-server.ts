@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
+import { settleOverageCash } from "./cashier.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
 import {
   getPersistenceBalance,
@@ -32,6 +33,10 @@ import {
   categorizeError,
   readIdempotencyKey,
   hashToolRequest,
+  inbandSettlementEnabled,
+  previewMcpToolOverage,
+  markInbandSettled,
+  type MeteredMcpTool,
   type RpcSuccess,
   type RpcError,
 } from "./mcp-runtime.js";
@@ -375,6 +380,53 @@ export async function dispatch(
 // â”€â”€â”€ HTTP handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** POST /mcp â€” MCP Streamable HTTP transport (2025-03-26) */
+/** Phase-1 scope: the always-metered MCP tools whose price is known up front. */
+const INBAND_METERED_TOOLS = new Set<MeteredMcpTool>([
+  "analyze_files",
+  "analyze_repo",
+  "prepare_agentic_purchasing",
+]);
+
+/**
+ * H1: in-band settlement gate. For the always-metered MCP tools, when the flag is on
+ * and the call would incur a cash overage, collect it in-band on the JSON-RPC POST
+ * (the surface an agent already lives on) instead of only metering-and-rejecting:
+ *   - overage + valid X-Payment  -> settle, mark the request paid, let dispatch run the tool
+ *   - overage + no payment        -> write the x402 challenge and stop (agent retries w/ X-Payment)
+ *   - no overage / not applicable -> passthrough (dispatch meters via plan credits as today)
+ * Charges before the tool runs, matching the REST cashier's existing semantics.
+ * Returns true iff it already wrote the response (a 402 challenge) — caller must stop.
+ */
+async function settleMcpCallInband(
+  req: IncomingMessage,
+  res: ServerResponse,
+  msg: JsonRpcRequest,
+): Promise<boolean> {
+  if (!inbandSettlementEnabled()) return false;
+  if (msg.method !== "tools/call") return false;
+  const p = msg.params as Record<string, unknown> | null;
+  const rawName = p?.name;
+  if (typeof rawName !== "string" || !rawName) return false;
+  const tool = normalizeToolName(rawName) as MeteredMcpTool;
+  if (!INBAND_METERED_TOOLS.has(tool)) return false;
+
+  const auth = await resolveAuth(req);
+  if (!auth.account) return false;              // anonymous -> dispatch's normal free/limit path
+  const { overageCents } = await previewMcpToolOverage(req, auth.account, tool);
+  if (overageCents <= 0) return false;          // covered by plan credits -> dispatch meters normally
+
+  const result = await settleOverageCash(req, res, auth.account.account_id, overageCents, {
+    currency: "usd",
+    decimals: 2,
+    description: `AXIS MCP ${tool}`,
+    meta: { tool, tier: auth.account.tier },
+  });
+  if (result === null) return false;            // MPP not configured -> dispatch throws the normal 402-negotiation
+  if (result.status === 402) return true;       // x402 challenge written to res — stop; agent will retry
+  markInbandSettled(req);                        // paid in-band -> authorize/capture honor it during dispatch
+  return false;                                  // proceed to dispatch, which returns the tool result
+}
+
 export async function handleMcpPost(
   req: IncomingMessage,
   res: ServerResponse,
@@ -432,6 +484,10 @@ export async function handleMcpPost(
     res.end();
     return;
   }
+
+  // H1: in-band settlement gate (flag-gated, default OFF). If it wrote a 402 payment
+  // challenge, the response is already sent -- stop here.
+  if (await settleMcpCallInband(req, res, msg)) return;
 
   const id = msg.id ?? null;
   let response: RpcResponse;

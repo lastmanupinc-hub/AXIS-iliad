@@ -28,6 +28,12 @@ services:
       # disabled in production — upgrades must go through POST /v1/checkout.
       - key: AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS
         value: "false"
+      # H1: collect payment in-band on the MCP tool-call surface (turn the 402 an
+      # over-quota agent hits into a completed purchase via X-Payment retry).
+      # Degrades gracefully to the existing 402-negotiation error if the payment
+      # rail (STRIPE_SECRET_KEY / MPP) is not configured.
+      - key: AXIS_MCP_INBAND_SETTLEMENT
+        value: "true"
       # PostgreSQL (Neon). Set the connection string in the Render dashboard.
       - key: DATABASE_URL
         sync: false
