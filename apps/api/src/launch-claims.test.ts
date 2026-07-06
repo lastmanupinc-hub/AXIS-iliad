@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, ENDPOINT_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
-import { PLAN_CATALOG } from "@axis/snapshots";
+import { PLAN_CATALOG, MARKETED_TIERS } from "@axis/snapshots";
 
 // apps/api/src -> repo root
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -155,6 +155,25 @@ describe("LAUNCH_CLAIMS.yaml registry vs live constants", () => {
     expect(pricing.starter_cents).toBe(byId("starter").price_monthly_cents);
     expect(pricing.pro_cents).toBe(byId("pro").price_monthly_cents);
     expect(pricing.growth_cents).toBe(byId("growth").price_monthly_cents);
+  });
+
+  it("the billing_tiers entry equals MARKETED_TIERS' live monthly credit grants", () => {
+    const claims = loadClaims();
+    const b = claimById(claims, "billing_tiers").value as {
+      free_credits: number;
+      starter_credits: number;
+      pro_credits: number;
+      growth_credits: number;
+    };
+    const byId = (id: string) => MARKETED_TIERS.find((t) => t.plan_id === id)!;
+    expect(b.free_credits).toBe(10000);
+    expect(b.starter_credits).toBe(75000);
+    expect(b.pro_credits).toBe(300000);
+    expect(b.growth_credits).toBe(1200000);
+    expect(b.free_credits).toBe(byId("free").monthly_credits);
+    expect(b.starter_credits).toBe(byId("starter").monthly_credits);
+    expect(b.pro_credits).toBe(byId("pro").monthly_credits);
+    expect(b.growth_credits).toBe(byId("growth").monthly_credits);
   });
 
   it("the open_source claim stays forbidden until the registry itself is flipped by the owner", () => {

@@ -1,5 +1,6 @@
 import { randomUUID, randomBytes } from "node:crypto";
 import { sql } from "./pg.js";
+import { REFERRAL_MAX_REDUCTION_RATE } from "./pricing-constants.js";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ export async function getReferralCredits(account_id: string): Promise<ReferralCr
 export async function getReferralTokenUsageModifier(account_id: string, monthKey?: string): Promise<ReferralTokenUsageModifier> {
   const credits = await getReferralCredits(account_id);
   const month_key = monthKey ?? getMonthKey();
-  const reduction_rate = Math.min(credits.earned_credits_millicents / 100_000, 0.0002);
+  const reduction_rate = Math.min(credits.earned_credits_millicents / 100_000, REFERRAL_MAX_REDUCTION_RATE);
   return {
     reduction_rate,
     month_key,
@@ -235,7 +236,7 @@ export async function buildIncentivesSummary(account_id?: string): Promise<Recor
       referral_code: codes.length > 0 ? codes[0].code : null,
       earned_credits_millicents: credits.earned_credits_millicents,
       earned_discount: `$${(credits.earned_credits_millicents / 100_000).toFixed(6)}`,
-      token_usage_reduction_rate: Math.min(credits.earned_credits_millicents / 100_000, 0.0002),
+      token_usage_reduction_rate: Math.min(credits.earned_credits_millicents / 100_000, REFERRAL_MAX_REDUCTION_RATE),
       lifetime_referrals: credits.lifetime_referrals,
       free_calls_remaining: credits.free_calls_remaining,
     },

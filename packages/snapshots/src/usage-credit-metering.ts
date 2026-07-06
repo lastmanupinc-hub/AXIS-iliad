@@ -3,6 +3,7 @@ import { sql, pgPlaceholders } from "./pg.js";
 import type { BillingTier } from "./billing-types.js";
 import { getActiveSubscriptionByAccount, priceToPlanId } from "./stripe-store.js";
 import { getReferralTokenUsageModifier } from "./referral-store.js";
+import { MARKETED_TIERS, OVERAGE_CENTS_PER_CREDIT } from "./pricing-constants.js";
 
 export type UsageCreditPlanId = "free" | "starter" | "pro" | "growth" | "enterprise";
 
@@ -24,12 +25,9 @@ export interface UsageCreditChargeResult extends UsageCreditSummary {
 }
 
 const PLAN_MONTHLY_CREDITS: Record<UsageCreditPlanId, number> = {
-  free: 10_000,
-  starter: 75_000,
-  pro: 300_000,
-  growth: 1_200_000,
+  ...Object.fromEntries(MARKETED_TIERS.map((t) => [t.plan_id, t.monthly_credits])),
   enterprise: 0,
-};
+} as Record<UsageCreditPlanId, number>;
 
 function getMonthKey(isoDate = new Date().toISOString()): string {
   return isoDate.slice(0, 7);
@@ -48,8 +46,8 @@ async function resolvePlanForAccount(account_id: string, tier: BillingTier): Pro
 
 export function creditsFromUsdCents(amountCents: number): number {
   if (!Number.isFinite(amountCents) || amountCents <= 0) return 0;
-  // Overage is advertised as $0.0018 per credit = 0.18 cents per credit.
-  return Math.max(1, Math.ceil((amountCents * 100) / 18));
+  // Overage is advertised as $0.0018 per credit = OVERAGE_CENTS_PER_CREDIT (0.18) cents per credit.
+  return Math.max(1, Math.ceil(amountCents / OVERAGE_CENTS_PER_CREDIT));
 }
 
 async function getMonthlyRows(account_id: string, month_key: string): Promise<{
@@ -138,7 +136,7 @@ function splitFromUsed(
   const overage_credits = Math.max(0, credits_required - included_credits_applied);
   const nextIncludedUsed = included_credits_used + included_credits_applied;
   const nextIncludedRemaining = Math.max(0, summary.monthly_allowance - nextIncludedUsed);
-  const effective_overage_cents = overage_credits > 0 ? Math.ceil((overage_credits * 18) / 100) : 0;
+  const effective_overage_cents = overage_credits > 0 ? Math.ceil(overage_credits * OVERAGE_CENTS_PER_CREDIT) : 0;
   return {
     month_key,
     summary,

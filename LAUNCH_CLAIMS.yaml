@@ -110,3 +110,10 @@ claims:
     value: "regenerate"
     source: "continuation.yaml session ledger (latest session_result_N) — refresh before publish; the count only grows."
     status: needs_regeneration_before_publish
+
+  - id: billing_tiers
+    text: "Free $0/10k, Starter $29/75k, Pro $99/300k, Growth $299/1.2M; overage $0.0018/credit; referral up to 0.02%/call"
+    value: { free_credits: 10000, starter_credits: 75000, pro_credits: 300000, growth_credits: 1200000 }
+    source: "packages/snapshots/src/pricing-constants.ts MARKETED_TIERS"
+    status: verified
+    verified_at: "2026-07-06"
