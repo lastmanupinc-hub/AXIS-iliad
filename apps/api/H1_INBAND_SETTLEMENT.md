@@ -18,10 +18,23 @@ shared function so both surfaces collect through the same rail:
 settleOverageCash(req, res, accountId, overageCents, opts)   // apps/api/src/cashier.ts
   overage <= 0      -> { status: 200 }   nothing owed
   5th-call-free      -> { status: 200 }   referral free call
+  PAID_WALLET_MODE=enforce (WO-04, default off) and PAI'D configured:
+    wallet debit 200 -> { status: 200 }   paid via PAI'D's Fabric-Credit wallet; mppx skipped
+    wallet 402        -> { status: 402 }   PAI'D top-up challenge written to res; mppx skipped
   chargeMpp 402      -> { status: 402 }   x402 challenge written to res
   chargeMpp 200      -> { status: 200 }   paid; Payment-Receipt on res; paid call recorded
   MPP not configured -> null             (no STRIPE_SECRET_KEY)
 ```
+
+**WO-04 note:** with `PAID_WALLET_MODE=enforce`, the per-call overage on both surfaces
+(REST and MCP) routes THROUGH PAI'D's Fabric-Credit wallet (`debitPaidWallet` in
+`paid-client.ts`) instead of mppx-direct — see `docs/MCP_PAID_ACCESS_DESIGN.md` for the
+full design and the residual honesty caveats (FC integer rounding overcharges sub-dollar
+overages; PAI'D-side Stripe Connect settlement to the founder's own account is not
+provable by this code; the enforce-success path does not yet emit a `Payment-Receipt`
+header the way the mppx-200 path does — an agent relying on that header sees different
+behaviour in enforce than off/read/shadow). `enforce` ships dark (default `off`) until
+PAI'D's live wallet endpoints and Stripe-Connect settlement are confirmed.
 
 - **REST** (`handlers.ts`): `chargeWithDiscounts` computes the credit overage, then calls
   `settleOverageCash`.

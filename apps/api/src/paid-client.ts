@@ -51,11 +51,17 @@ export type {
 };
 
 /**
- * Rollout gate for the PAI'D Fabric-Credit wallet integration (MCP tokens-out).
- * - off     (default): no wallet calls; behaviour unchanged.
- * - read   : read wallet balance in the authorize phase, surface it; no debits.
- * - shadow : compute + LOG what would be debited; still no real debit.
- * - enforce: debit the wallet on paid tool calls; 402 → top-up challenge.
+ * Rollout gate for the PAI'D Fabric-Credit wallet integration on the per-call
+ * agentic settlement rail (WO-04). Wired into `settleOverageCash` (cashier.ts) —
+ * the single cash-collection tail shared by BOTH the REST cashier and the MCP
+ * in-band settlement gate — NOT into `captureMcpToolCredits` as originally
+ * sketched in docs/MCP_PAID_ACCESS_DESIGN.md's Phase 0 draft.
+ * - off     (default): no wallet calls; behaviour unchanged (mppx-direct).
+ * - read   : read the FC wallet balance and log it; still falls through to mppx.
+ * - shadow : compute + LOG what would be debited (FC amount, cents drift); still
+ *            falls through to mppx — behaviour identical, drift observable.
+ * - enforce: debit the wallet as the collection rail; success -> paid, mppx
+ *            skipped; 402 insufficient_credits -> top-up challenge, mppx skipped.
  * Ship dark (off), then advance per the phased plan after dogfooding live PAI'D.
  */
 export type PaidWalletMode = "off" | "read" | "shadow" | "enforce";
