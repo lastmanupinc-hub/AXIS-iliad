@@ -2,6 +2,8 @@
 
 **Claim it makes true:** ONE_PAGER/ACCELERATOR: "PAI’D -> the founder’s own Stripe" as Iliad’s settlement rail; "MTL-safe first-party".
 
+**STRATEGIC CONTEXT (owner-clarified 2026-07-06 -- read before implementing; see memory `payment-architecture-mtl`):** PAI'D is *deliberately unlicensed* -- no MTL, no bank charter, no Stripe/Plaid/Circle merchant agreement of its own. Iliad and Foundry are each their **own licensed merchant entity** (each has its own EIN). The strategic design is to route Iliad's *and* Foundry's real production payments through PAI'D using **each merchant's own licensed Stripe + Plaid + Circle accounts** -- proving PAI'D's orchestration quality across all three rails in real traffic is the evidence base for PAI'D's own future bank-sponsorship or white-label licensing/sale. This makes "MTL-safe" demonstrable, not just a legal hedge: PAI'D never holds a license or custody -- each merchant supplies its own licensed rail; PAI'D is orchestration middleware only. **Scope implication: this WO's ambition is multi-rail (Stripe + Plaid + Circle), not Stripe-only.** Before assuming Plaid/Circle need new Iliad-side client code, INVESTIGATE whether PAI'D's own API (the Go backend, `paid-pr34/go-backend` if locally reachable) already exposes a rail/provider selector on the wallet-debit or account-config surface (recall: PAI'D's own Render env already carries Circle + Plaid credentials, `PLAID_ENV=sandbox`, per prior verification) -- if PAI'D already orchestrates multi-rail internally, Iliad's job is only to configure/select it and prove it via receipts, not reimplement Plaid/Circle clients. If no such selector exists on PAI'D's side, say so explicitly as a newly-discovered external gate (a PAI'D-side gap, not an Iliad-code gap) rather than building speculative Plaid/Circle SDK calls inside this repo. Foundry (a separate Python service) needs the equivalent wiring later via its own `paid_client.py` -- out of scope for this WO but note it as the direct follow-on.
+
 **Tier:** B_client_external_gated · **Effort:** M · **Package:** apps/api (@axis/api)
 
 **Verify verdict:** implementable_by_sonnet5=`True` · fully_closes_claim=`False` · confidence=`high`
@@ -92,6 +94,8 @@ Reuses existing types verbatim: `CreditWallet`, `DebitResult`, `DebitWalletInput
 - PAI'D account configured to settle merchant funds to the founder's OWN Stripe via Stripe Connect -- the 'MTL-safe first-party' guarantee, lives on the PAI'D side, not in Iliad code.
 - Confirmation that Iliad account_id maps to PAI'D developer_id so the debit hits the right wallet.
 - Circle and Arc: no code, no account, no SDK in-repo -- that leg needs new runtime deps + a partnership; out of scope for this work order.
+- **Multi-rail (Stripe+Plaid+Circle) selection on PAI'D's own API** -- per the strategic-context note above, confirm whether PAI'D already exposes a rail selector before treating Plaid/Circle as unbuildable; if it doesn't, that is now a tracked PAI'D-side gap (report it explicitly, do not silently drop it).
+- Foundry's own Python `paid_client.py` equivalent (separate service, separate follow-on WO) -- needed before Foundry can be the second multi-rail proof point alongside Iliad.
 
 ## New runtime deps (project forbids w/o discussion)
 _none_
