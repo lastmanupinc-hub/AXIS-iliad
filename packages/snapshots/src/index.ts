@@ -84,6 +84,10 @@ export {
 export type { GrowthSnapshot } from "./growth-store.js";
 export { getGrowthSnapshot } from "./growth-store.js";
 
+// Payment receipts — settled H1 cash payments (WO-19 revenue-mrr-tracker)
+export type { PaymentReceipt, PaymentProvider, SettledRevenue } from "./payment-receipts-store.js";
+export { recordSettledPayment, getSettledRevenue } from "./payment-receipts-store.js";
+
 // Webhooks
 export type { WebhookEventType, Webhook, WebhookDelivery, RetryCandidate } from "./webhook-store.js";
 export { VALID_WEBHOOK_EVENTS, MAX_RETRY_ATTEMPTS, RETRY_BACKOFF_BASE_MS } from "./webhook-store.js";

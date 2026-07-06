@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { Receipt } from "mppx";
 import { chargeMpp } from "./mpp.js";
-import { consumeFreeCall, recordPaidCall } from "@axis/snapshots";
+import { consumeFreeCall, recordPaidCall, recordSettledPayment } from "@axis/snapshots";
+import type { PaymentProvider } from "@axis/snapshots";
 import { log } from "./logger.js";
 import {
   paidWalletMode,
@@ -116,6 +118,32 @@ export async function settleOverageViaPaidWallet(
 }
 
 /**
+ * Decode the `Payment-Receipt` header mppx set on `res` (via `chargeMpp`) into the
+ * fields `recordSettledPayment` needs. Node's `writeHead(status, headers)` populates
+ * the same header store `getHeader` reads, so this works even though the response
+ * has already been sent by the time `chargeMpp` returns. Defensive by design — a
+ * missing/malformed header (e.g. an older mppx build, or a test double `res`) must
+ * never block the settlement record from landing; it just falls back to "stripe"
+ * with no external reference rather than throwing.
+ */
+function parsePaymentReceipt(res: ServerResponse): { provider: PaymentProvider; external_receipt?: string } {
+  try {
+    const header = res.getHeader?.("Payment-Receipt");
+    const value = Array.isArray(header) ? header[0] : header;
+    if (typeof value === "string" && value.length > 0) {
+      const receipt = Receipt.deserialize(value);
+      return {
+        provider: receipt.method === "tempo" ? "tempo" : "stripe",
+        external_receipt: receipt.reference,
+      };
+    }
+  } catch {
+    // Malformed/absent header — fall through to the default below.
+  }
+  return { provider: "stripe" };
+}
+
+/**
  * Settle a cash overage on the shared payment rail (Stripe SPT / Tempo USDC via mppx,
  * or — when `PAID_WALLET_MODE=enforce` — PAI'D's Fabric-Credit wallet).
  *
@@ -132,7 +160,10 @@ export async function settleOverageViaPaidWallet(
  *     wallet 402            -> { status: 402 }   PAI'D top-up challenge; mppx NOT called
  *   (read/shadow, or enforce w/ PAI'D not configured, fall through below)
  *   chargeMpp 402          -> { status: 402 }   x402 challenge written to `res` (res ended)
- *   chargeMpp 200          -> { status: 200 }   paid; Payment-Receipt on `res`; paid call recorded
+ *   chargeMpp 200          -> { status: 200 }   paid; Payment-Receipt on `res`; paid call recorded;
+ *                                                a row is persisted to `payment_receipts` (WO-19) so
+ *                                                this real cash settlement is captured distinctly
+ *                                                from plan-credit overage metering.
  *   MPP not configured     -> null             no STRIPE_SECRET_KEY — caller falls back
  */
 export async function settleOverageCash(
@@ -158,6 +189,15 @@ export async function settleOverageCash(
   const result = await chargeMpp(req, res, { ...opts, amount: String(overageCents) });
   if (result && result.status === 200) {
     await recordPaidCall(accountId);
+    const { provider, external_receipt } = parsePaymentReceipt(res);
+    await recordSettledPayment({
+      account_id: accountId,
+      tool: opts.meta?.tool ?? "default",
+      amount_cents: overageCents,
+      currency: opts.currency,
+      provider,
+      external_receipt,
+    });
   }
   return result;
 }

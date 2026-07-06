@@ -95,8 +95,16 @@ export function AdminPage() {
           </h3>
           <div className="grid grid-3">
             <div>
-              <div className="stat-label">Est. MRR</div>
+              <div className="stat-label">Settled MRR (live)</div>
+              <div>${(revenue.revenue.settled_mrr_cents / 100).toLocaleString()}/mo</div>
+            </div>
+            <div>
+              <div className="stat-label">Estimated MRR</div>
               <div>${(revenue.revenue.estimated_mrr_cents / 100).toLocaleString()}/mo</div>
+            </div>
+            <div>
+              <div className="stat-label">Settled revenue (all-time)</div>
+              <div>${(revenue.revenue.settled_revenue_cents_all_time / 100).toLocaleString()}</div>
             </div>
             <div>
               <div className="stat-label">Paid accounts</div>
@@ -115,14 +123,21 @@ export function AdminPage() {
               <div>{revenue.accounts.new_7d} / {revenue.accounts.new_30d}</div>
             </div>
             <div>
-              <div className="stat-label">Free → paid conversion</div>
+              <div className="stat-label">Free → paid conversion (tier)</div>
               <div>{(revenue.funnel.conversion_rate * 100).toFixed(1)}%</div>
+            </div>
+            <div>
+              <div className="stat-label">Free → paid conversion (settled payment)</div>
+              <div>{(revenue.revenue.payment_conversion_rate * 100).toFixed(1)}%</div>
             </div>
           </div>
           <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 8 }}>
-            Concrete: paid accounts, subscriptions, metered overage, account growth, conversion. MRR is an
-            estimate (paid×${revenue.revenue.mrr_basis_cents.paid / 100} + suite×$
-            {revenue.revenue.mrr_basis_cents.suite / 100}).
+            "Settled MRR (live)" and "Settled revenue (all-time)" are derived from actual settled
+            payments (metered overage collection + card/USDC receipts) — a true $0 until the first
+            dollar settles, then it rises on its own
+            {revenue.revenue.first_paid_call_at ? ` (first settled: ${new Date(revenue.revenue.first_paid_call_at).toLocaleDateString()})` : ""}.
+            "Estimated MRR" is a separate, transparent tier-count estimate (paid×$
+            {revenue.revenue.mrr_basis_cents.paid / 100} + suite×${revenue.revenue.mrr_basis_cents.suite / 100}) — never conflate the two.
           </p>
         </div>
       )}

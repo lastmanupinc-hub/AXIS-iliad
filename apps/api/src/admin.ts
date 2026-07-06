@@ -114,6 +114,11 @@ export async function handleAdminMcpUsage(
  * for the ME-01 monetization-execution score: concrete account growth + metered
  * overage + active subscriptions, a transparent MRR estimate, and the funnel's
  * conversion/activation rates — all from local data, no external dashboards.
+ *
+ * `revenue.estimated_mrr_cents` and `revenue.settled_mrr_cents` are DISTINCT keys
+ * (WO-19, revenue-mrr-tracker) — the former is a tier-count estimate, the latter
+ * is derived from settled payments (usage_credit_ledger overage + payment_receipts)
+ * and reads a true $0 until real money moves. Never conflate the two.
  */
 export async function handleAdminRevenue(
   req: IncomingMessage,

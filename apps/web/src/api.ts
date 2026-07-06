@@ -754,10 +754,18 @@ export interface AdminRevenue {
   generated_at: string;
   accounts: { total: number; free: number; paid: number; suite: number; new_24h: number; new_7d: number; new_30d: number };
   revenue: {
+    /** Tier-count ESTIMATE — never conflate with settled_mrr_cents below. */
     estimated_mrr_cents: number;
     mrr_basis_cents: { paid: number; suite: number };
     metered_overage_cents_this_month: number;
     active_subscriptions: number;
+    /** SETTLED (WO-19): real money, trailing 30 days. Reads $0 until a payment actually settles. */
+    settled_mrr_cents: number;
+    settled_revenue_cents_all_time: number;
+    revenue_by_tool: Array<{ tool: string; cents: number; calls: number }>;
+    first_paid_call_at: string | null;
+    paying_account_count: number;
+    payment_conversion_rate: number;
   };
   funnel: { conversion_rate: number; activation_rate: number; by_stage: Record<string, number> };
   mcp_engagement: { window_days: number; total_calls: number; unique_accounts: number };

@@ -549,6 +549,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_google_id ON accounts(google_id) 
 CREATE INDEX IF NOT EXISTS idx_project_memory_project
   ON project_memory(project_id, created_at);`,
   },
+  {
+    // WO-19 (revenue-mrr-tracker): persisted H1 cash settlements (Stripe SPT /
+    // Tempo USDC via mppx, collected through settleOverageCash) so real
+    // card/USDC revenue is captured distinctly from plan-credit overage
+    // metering (usage_credit_ledger). This is the table that lets settled MRR
+    // rise above a true $0 the instant the first dollar actually settles.
+    version: 31,
+    name: "payment_receipts",
+    sql: `CREATE TABLE IF NOT EXISTS payment_receipts (
+  id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  tool TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'usd',
+  provider TEXT NOT NULL CHECK (provider IN ('stripe','tempo')),
+  external_receipt TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_account ON payment_receipts(account_id);
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_created ON payment_receipts(created_at);
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_tool ON payment_receipts(tool);`,
+  },
 ];
 
 /**

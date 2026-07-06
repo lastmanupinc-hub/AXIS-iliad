@@ -2,7 +2,9 @@
 // monetization-execution score (ME-01), so it moves on real numbers instead of
 // estimate. Concrete figures (account counts, new-account growth windows,
 // metered overage billed this month, active subscriptions) plus a transparent,
-// clearly-labelled MRR ESTIMATE derived from paid-tier counts.
+// clearly-labelled MRR ESTIMATE derived from paid-tier counts — and, since
+// WO-19 (revenue-mrr-tracker), a SETTLED-payment-derived counterpart that
+// reads a true $0 until real money moves, then rises on its own.
 
 import { sql } from "./pg.js";
 
@@ -18,7 +20,10 @@ export interface GrowthSnapshot {
     new_30d: number;
   };
   revenue: {
-    /** Rough MRR = paid-tier counts × the documented per-tier monthly price. An ESTIMATE. */
+    /**
+     * Rough MRR = paid-tier counts × the documented per-tier monthly price. An
+     * ESTIMATE — never conflate with `settled_mrr_cents`, the code-derived figure.
+     */
     estimated_mrr_cents: number;
     /** Per-tier monthly price (cents) used for the estimate — exposed so the number is auditable. */
     mrr_basis_cents: { paid: number; suite: number };
@@ -26,6 +31,23 @@ export interface GrowthSnapshot {
     metered_overage_cents_this_month: number;
     /** Concrete: active or trialing subscriptions on record. */
     active_subscriptions: number;
+    /**
+     * SETTLED (not estimated) revenue over the trailing 30 days: usage_credit_ledger
+     * overage rows (amount_cents WHERE overage_credits > 0 — the metered cash owed)
+     * plus payment_receipts (the H1 cash rail's actual Stripe/Tempo settlements).
+     * A true $0 until a real payment settles — see WO-19.
+     */
+    settled_mrr_cents: number;
+    /** All-time equivalent of `settled_mrr_cents` (no trailing-30d window). */
+    settled_revenue_cents_all_time: number;
+    /** Settled revenue broken out per tool, merging both settlement sources. */
+    revenue_by_tool: Array<{ tool: string; cents: number; calls: number }>;
+    /** MIN(created_at) across settled sources; null until the first dollar settles. */
+    first_paid_call_at: string | null;
+    /** DISTINCT accounts with >= 1 settled overage row or payment receipt. */
+    paying_account_count: number;
+    /** paying_account_count / accounts.total (0 when there are no accounts at all). */
+    payment_conversion_rate: number;
   };
 }
 
@@ -70,10 +92,57 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
     "SELECT COUNT(*) as n FROM stripe_subscriptions WHERE status IN ('active', 'trialing')",
   ))?.n ?? 0);
 
+  // ── Settled revenue (WO-19) ───────────────────────────────────────
+  // Real, settled money — as opposed to the tier-count ESTIMATE above — drawn
+  // from two sources UNIONed into one row set: usage_credit_ledger overage
+  // rows (amount_cents WHERE overage_credits > 0 — the metered cash actually
+  // owed once an account exceeds its plan's included credits) and
+  // payment_receipts (the H1 cash rail's real Stripe/Tempo settlements,
+  // captured distinctly from plan-credit overage — see settleOverageCash in
+  // apps/api/src/cashier.ts). Both are $0 rows until real money moves, so this
+  // reads a true $0 until the first dollar actually settles.
+  //
+  // KNOWN IMPRECISION: a ledger row's amount_cents is the call's full nominal
+  // price, not just the incremental overage slice — a call that straddles the
+  // plan-allowance boundary (partly covered, partly overage) counts its FULL
+  // price here once overage_credits > 0, not only the overage portion. This
+  // is still strictly more honest than the tier-count MRR estimate (it only
+  // ever counts calls that actually incurred billable overage), but it is not
+  // penny-exact against what settleOverageCash actually collected in cash for
+  // that call — payment_receipts (recorded by settleOverageCash itself) is the
+  // penny-exact source for cash actually settled.
+  const since30d = new Date(now.getTime() - 30 * DAY).toISOString();
+  const SETTLED_CTE = `
+    WITH settled AS (
+      SELECT account_id, tool, amount_cents, created_at
+        FROM usage_credit_ledger WHERE overage_credits > 0
+      UNION ALL
+      SELECT account_id, tool, amount_cents, created_at
+        FROM payment_receipts
+    )
+  `;
+  const settledTotals = await sql.one<{ total: string | number; first_at: string | null; payers: string | number }>(
+    `${SETTLED_CTE} SELECT COALESCE(SUM(amount_cents), 0) as total,
+                           MIN(created_at) as first_at,
+                           COUNT(DISTINCT account_id) as payers
+                    FROM settled`,
+  );
+  const settledTrailing = await sql.one<{ total: string | number }>(
+    `${SETTLED_CTE} SELECT COALESCE(SUM(amount_cents), 0) as total FROM settled WHERE created_at >= ?`,
+    [since30d],
+  );
+  const settledByTool = await sql.many<{ tool: string; cents: string | number; calls: string | number }>(
+    `${SETTLED_CTE} SELECT tool, COALESCE(SUM(amount_cents), 0) as cents, COUNT(*) as calls
+                    FROM settled GROUP BY tool ORDER BY tool`,
+  );
+
+  const totalAccounts = Number(tiers.total ?? 0);
+  const payingAccountCount = Number(settledTotals?.payers ?? 0);
+
   return {
     generated_at: now.toISOString(),
     accounts: {
-      total: Number(tiers.total ?? 0),
+      total: totalAccounts,
       free: Number(tiers.free ?? 0),
       paid,
       suite,
@@ -86,6 +155,16 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
       mrr_basis_cents: { paid: TIER_MONTHLY_CENTS.paid, suite: TIER_MONTHLY_CENTS.suite },
       metered_overage_cents_this_month: Math.ceil((overage * 18) / 100),
       active_subscriptions: activeSubs,
+      settled_mrr_cents: Number(settledTrailing?.total ?? 0),
+      settled_revenue_cents_all_time: Number(settledTotals?.total ?? 0),
+      revenue_by_tool: settledByTool.map((r) => ({
+        tool: r.tool,
+        cents: Number(r.cents),
+        calls: Number(r.calls),
+      })),
+      first_paid_call_at: settledTotals?.first_at ?? null,
+      paying_account_count: payingAccountCount,
+      payment_conversion_rate: totalAccounts > 0 ? payingAccountCount / totalAccounts : 0,
     },
   };
 }

@@ -25,6 +25,10 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
     consumeUsageCredits: vi.fn(async () => ({ effective_overage_cents: 0 })),
     consumeFreeCall: vi.fn(async () => false),
     recordPaidCall: vi.fn(async () => undefined),
+    // WO-19: settleOverageCash persists a payment_receipts row on a chargeMpp 200 —
+    // stub it out here (the real DB-backed behaviour is covered by
+    // cashier-settled-payment.test.ts and payment-receipts-store.test.ts).
+    recordSettledPayment: vi.fn(async () => undefined),
     createReferralCode: vi.fn(async () => ({ code: "ref-test" })),
   };
 });
