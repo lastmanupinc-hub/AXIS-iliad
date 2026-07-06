@@ -9,7 +9,15 @@
 import { sql, closePool } from "./pg.js";
 import { runPgMigrations } from "./pg-schema.js";
 
-let schemaReady = false;
+// A pending/settled migration promise, not a boolean: the first caller starts
+// runPgMigrations() and stores the promise SYNCHRONOUSLY (no await between the
+// check and the assignment), so any resetTestDb() call arriving before it
+// resolves awaits the SAME promise instead of re-triggering migrations. A plain
+// boolean flag set *after* an await has a race window — two beforeEach hooks
+// firing close together both see `!schemaReady`, both run CREATE TABLE
+// concurrently, and race a third test's concurrent TRUNCATE in a different lock
+// order, deadlocking Postgres. This pattern closes that window.
+let schemaReadyPromise: Promise<unknown> | null = null;
 
 function assertTestEnv(): void {
   if (process.env.VITEST !== "true" && process.env.NODE_ENV !== "test") {
@@ -23,17 +31,11 @@ function assertTestEnv(): void {
   }
 }
 
-/**
- * Provision the schema once per worker, then truncate all tables (except the
- * migration ledger) so the next test starts from empty. Sequences restart so
- * IDENTITY columns are deterministic per test.
- */
-export async function resetTestDb(): Promise<void> {
-  assertTestEnv();
-  if (!schemaReady) {
-    await runPgMigrations();
-    schemaReady = true;
+async function resetTestDbUnserialized(): Promise<void> {
+  if (!schemaReadyPromise) {
+    schemaReadyPromise = runPgMigrations();
   }
+  await schemaReadyPromise;
   await sql.exec(`DO $$
     DECLARE r RECORD;
     BEGIN
@@ -46,8 +48,31 @@ export async function resetTestDb(): Promise<void> {
     END $$;`);
 }
 
+// Serializes resetTestDb() calls one at a time (migration AND truncate), so
+// overlapping beforeEach hooks can never run concurrent DDL/TRUNCATE against
+// the same connection pool. Chained off the previous call's SETTLEMENT (not
+// just success) so one test's failure never wedges every test after it.
+let resetChain: Promise<void> = Promise.resolve();
+
+/**
+ * Provision the schema once per worker, then truncate all tables (except the
+ * migration ledger) so the next test starts from empty. Sequences restart so
+ * IDENTITY columns are deterministic per test. Safe to call from concurrent
+ * beforeEach hooks — calls are serialized internally (see resetChain above).
+ */
+export function resetTestDb(): Promise<void> {
+  assertTestEnv();
+  const run = resetChain.then(resetTestDbUnserialized, resetTestDbUnserialized);
+  resetChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 /** Close the pool (registered as a global afterAll in vitest.setup.ts). */
 export async function closeTestDb(): Promise<void> {
-  schemaReady = false;
+  schemaReadyPromise = null;
+  resetChain = Promise.resolve();
   await closePool();
 }
