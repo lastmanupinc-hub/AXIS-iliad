@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import type { Server } from "node:http";
 import { resetTestDb } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleHealthCheck } from "./handlers.js";
-import { handleLiveness, handleReadiness, handleMetrics } from "./metrics.js";
+import { handleLiveness, handleReadiness, handleMetrics, paymentRailStatus } from "./metrics.js";
 
 let server: Server;
 let testPort = 0;
@@ -67,6 +67,84 @@ describe("GET /v1/health/ready", () => {
     expect(data.status).toBe("ready");
     expect(data.checks.shutting_down).toBe(false);
     expect(data.checks.database).toBe("ok");
+  });
+});
+
+// ─── payment_rail diagnostic (WO-03: presence-only, never gates readiness) ──
+
+describe("paymentRailStatus()", () => {
+  const original = process.env.STRIPE_SECRET_KEY;
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = original;
+  });
+
+  it("is 'absent' when STRIPE_SECRET_KEY is unset", () => {
+    delete process.env.STRIPE_SECRET_KEY;
+    expect(paymentRailStatus()).toBe("absent");
+  });
+
+  it("is 'test' for a sk_test_ key", () => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    expect(paymentRailStatus()).toBe("test");
+  });
+
+  it("is 'live' for a sk_live_ key", () => {
+    process.env.STRIPE_SECRET_KEY = "sk_live_x";
+    expect(paymentRailStatus()).toBe("live");
+  });
+
+  it("is 'live' for a rk_live_ restricted key", () => {
+    process.env.STRIPE_SECRET_KEY = "rk_live_x";
+    expect(paymentRailStatus()).toBe("live");
+  });
+
+  it("always returns one of the three literals and never the key substring", () => {
+    for (const key of [undefined, "sk_test_supersecret123", "sk_live_supersecret456", "rk_test_x", "garbage"]) {
+      if (key === undefined) delete process.env.STRIPE_SECRET_KEY;
+      else process.env.STRIPE_SECRET_KEY = key;
+      const status = paymentRailStatus();
+      expect(["absent", "test", "live"]).toContain(status);
+      if (key) expect(status).not.toContain(key);
+    }
+  });
+});
+
+describe("GET /v1/health/ready -- payment_rail diagnostic", () => {
+  const original = process.env.STRIPE_SECRET_KEY;
+
+  afterEach(() => {
+    if (original === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = original;
+  });
+
+  it("reports payment_rail 'absent' and stays 200 (rail absence does not gate readiness)", async () => {
+    delete process.env.STRIPE_SECRET_KEY;
+    const res = await rawReq("GET", "/v1/health/ready");
+    expect(res.status).toBe(200);
+    const data = JSON.parse(res.body);
+    expect(data.status).toBe("ready");
+    expect(data.checks.payment_rail).toBe("absent");
+    expect(res.body).not.toContain("STRIPE_SECRET_KEY=");
+  });
+
+  it("reports payment_rail 'test' for a sk_test_ key and stays 200", async () => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_fake";
+    const res = await rawReq("GET", "/v1/health/ready");
+    expect(res.status).toBe(200);
+    const data = JSON.parse(res.body);
+    expect(data.checks.payment_rail).toBe("test");
+    expect(res.body).not.toContain("sk_test_fake");
+  });
+
+  it("reports payment_rail 'live' for a sk_live_ key and stays 200", async () => {
+    process.env.STRIPE_SECRET_KEY = "sk_live_fake";
+    const res = await rawReq("GET", "/v1/health/ready");
+    expect(res.status).toBe(200);
+    const data = JSON.parse(res.body);
+    expect(data.checks.payment_rail).toBe("live");
+    expect(res.body).not.toContain("sk_live_fake");
   });
 });
 

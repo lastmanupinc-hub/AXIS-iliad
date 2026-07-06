@@ -108,7 +108,12 @@ export async function chargeMpp(
   options: ChargeOptions,
 ): Promise<MppResult | null> {
   const inst = getMppx();
-  if (!inst) return null;
+  if (!inst) {
+    if (shouldEmitRuntimeLogs()) {
+      console.warn(`[MPP] not configured (STRIPE_SECRET_KEY absent) - ${options.description ?? "AXIS API credit"}`);
+    }
+    return null;
+  }
 
   // Sanitise all string fields — mppx embeds these into HTTP headers
   // which require ASCII-only ByteString values.

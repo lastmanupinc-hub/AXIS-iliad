@@ -72,6 +72,22 @@ export function resetLatencyStats(): void {
   routeHistograms.clear();
 }
 
+// ─── Payment rail diagnostic (presence-only, NEVER the secret value) ────
+
+export type PaymentRailStatus = "absent" | "test" | "live";
+
+/**
+ * Presence-only diagnostic for whether the Stripe payment rail is wired and
+ * in which mode. Never returns (or logs) the actual secret value -- only a
+ * derived literal based on the well-known Stripe key prefix.
+ */
+export function paymentRailStatus(): PaymentRailStatus {
+  const k = process.env.STRIPE_SECRET_KEY;
+  if (!k) return "absent";
+  if (k.startsWith("sk_live_") || k.startsWith("rk_live_")) return "live";
+  return "test"; // sk_test_/rk_test_ or any other non-empty value treated as non-live
+}
+
 // ─── Readiness / Liveness ───────────────────────────────────────
 
 export async function handleLiveness(
@@ -88,6 +104,8 @@ export async function handleReadiness(
   res: ServerResponse,
 ): Promise<void> {
   // Readiness: is the service ready to accept traffic?
+  // payment_rail is diagnostic-only -- absence degrades to a 429 on paid calls,
+  // it is NOT an outage, so it must never gate `ready`.
   const shutting = isShuttingDown();
   const dbCheck = await pgIntegrityCheck();
   const ready = !shutting && dbCheck.success;
@@ -99,6 +117,7 @@ export async function handleReadiness(
       checks: {
         shutting_down: shutting,
         database: dbCheck.success ? "ok" : "error",
+        payment_rail: paymentRailStatus(),
       },
     }),
   );

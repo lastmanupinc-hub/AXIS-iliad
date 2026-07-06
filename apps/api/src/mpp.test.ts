@@ -1,7 +1,7 @@
 /**
  * Tests for mpp.ts — mppx Machine Payments Protocol integration
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import http from "node:http";
 import { chargeMpp, resetMppxCache } from "./mpp.js";
 import { resolveAgentMode, priceForMode, getPricingTier, build402NegotiationBody, PRICING_TIERS } from "./mpp.js";
@@ -94,6 +94,31 @@ describe("chargeMpp -- no STRIPE_SECRET_KEY", () => {
       meta: {},
     });
     expect(result).toBeNull();
+  });
+
+  // WO-03: the previously-silent "not configured" path (mpp.ts's null-instance
+  // branch) must now be observable in logs.
+  it("emits a '[MPP] not configured' warn (path (a) is now observable)", async () => {
+    const originalTestLogs = process.env.AXIS_ENABLE_TEST_LOGS;
+    process.env.AXIS_ENABLE_TEST_LOGS = "1";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const req = { headers: {}, method: "POST" } as unknown as http.IncomingMessage;
+      const res = { writeHead: () => {}, end: () => {} } as unknown as http.ServerResponse;
+      const result = await chargeMpp(req, res, {
+        amount: "1.00",
+        currency: "usd",
+        decimals: 2,
+        description: "test",
+        meta: {},
+      });
+      expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/\[MPP\] not configured/));
+    } finally {
+      warnSpy.mockRestore();
+      if (originalTestLogs === undefined) delete process.env.AXIS_ENABLE_TEST_LOGS;
+      else process.env.AXIS_ENABLE_TEST_LOGS = originalTestLogs;
+    }
   });
 });
 
