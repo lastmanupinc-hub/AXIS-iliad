@@ -241,11 +241,13 @@ describe("GET /.well-known/skills/index.json", () => {
     expect(skills.some(s => s.name === "axis-mcp")).toBe(true);
   });
 
-  it("axis-mcp skill lists 14 tools", async () => {
+  it("axis-mcp skill lists the 21 highlighted tools (incl. WO-14 network tokenization)", async () => {
+    // Was pinned at a stale 14 (pre-WO-13) — red at HEAD before WO-14 touched it.
     const skills = data.skills as Array<{ name: string; tools?: string[] }>;
     const mcp = skills.find(s => s.name === "axis-mcp");
     expect(mcp?.tools).toBeDefined();
-      expect(mcp!.tools!.length).toBe(14);
+    expect(mcp!.tools!.length).toBe(21);
+    expect(mcp!.tools).toContain("iliad_network_tokenization");
   });
 
   it("axis-analyze has tags array", async () => {

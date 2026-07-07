@@ -51,7 +51,7 @@ export function ForAgentsPage() {
         <span className="badge badge-accent">For Agents</span>
         <h1>Iliad is an agent-first MCP platform.</h1>
         <p>
-          One endpoint. 35 MCP tools. Intelligence across 20 programs. Native x402 payments.
+          One endpoint. 36 MCP tools. Intelligence across 20 programs. Native x402 payments.
         </p>
       </div>
 
@@ -148,7 +148,7 @@ export function ForAgentsPage() {
       </div>
 
       <div className="card">
-        <h2>Your 35 MCP Tools (all available at /mcp)</h2>
+        <h2>Your 36 MCP Tools (all available at /mcp)</h2>
         <ul>
           <li>analyze_repo, analyze_files</li>
           <li>list_programs, get_snapshot, get_artifact</li>
@@ -164,6 +164,7 @@ export function ForAgentsPage() {
           <li>iliad_llm_inference, iliad_code_sandbox, iliad_document_parsing</li>
           <li>iliad_text_to_speech, iliad_speech_to_text</li>
           <li>iliad_transactional_email, iliad_analytics, iliad_hygiene</li>
+          <li>iliad_network_tokenization (free — executable token lifecycle + live Stripe network-token read; direct VTS/MDES capability-gated)</li>
         </ul>
       </div>
 

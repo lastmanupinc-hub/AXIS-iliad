@@ -294,7 +294,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration, $250): also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score). Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration, $250): also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -1735,6 +1735,60 @@ export const MCP_TOOLS = [
         name: "Assemble (no submit) with CE 3.0 history",
         input: { dispute_id: "dp_123", disputed_txn: { email: "a@b.com", device_id: "d1" }, transaction_history: [{ id: "t1", amount_minor: 900, currency: "usd", created_at: "2025-10-01T00:00:00Z", disputed: false, email: "a@b.com", device_id: "d1" }], evidence_inputs: { customerEmail: "a@b.com", productDescription: "Pro plan" } },
         output: '{"dispute":{"id":"dp_123","state":"evidence_assembling"},"evidence":{"uncategorized_text":"Compelling Evidence 3.0...","customer_email_address":"a@b.com"},"ce3_eligible":false,"submitted":false,"disclaimer":"..."}',
+      },
+    ],
+  },
+  // ─── iliad_network_tokenization (WO-14 — owned capability, free) ─
+  // Backs the "VTS/MDES network tokenization" claim honestly: an executable
+  // lifecycle state machine + a LIVE Stripe network-token read adapter, with
+  // direct VTS/MDES behind a Token-Requestor-ID capability gate that returns
+  // a structured _not_configured envelope until network onboarding exists.
+  {
+    name: "iliad_network_tokenization",
+    description:
+      "Network-tokenization capability with three honest parts. (1) `lifecycle`: an EXECUTABLE TAP-style token-lifecycle state machine (provision → activate → suspend → resume → delete; deleted is terminal; illegal transitions are rejected with an error, not silently accepted). (2) `read` — the LIVE default: reads a Stripe PaymentMethod (GET /v1/payment_methods/{id} with the operator's STRIPE_SECRET_KEY) and maps it to a provider-agnostic NetworkToken; `is_network_token` is true ONLY when Stripe reports a provisioned network token (card.network_token.used) — a bare card PM honestly reads false, and co-badging metadata (card.networks.available) is never treated as a tokenization signal. (3) `provision` with provider vts|mdes: capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID); returns a structured `_not_configured: true` envelope naming the exact missing gate until Visa/Mastercard onboarding exists — it NEVER fakes a token (provider stripe delegates to `read`). `capabilities` reports which providers are configured. Raw PANs are never accepted (pan_source is an opaque reference), keeping PCI-DSS scope out of this service. Free (unmetered); requires Authorization: Bearer <api_key>.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        operation: { type: "string", description: "read (default) | provision | lifecycle | capabilities.", enum: ["read", "provision", "lifecycle", "capabilities"] },
+        payment_method_id: { type: "string", description: "read: the Stripe PaymentMethod id (pm_…) to read the network-token status of." },
+        provider: { type: "string", description: "provision: stripe | vts | mdes. stripe delegates to read (Stripe provisions tokens itself); vts/mdes are capability-gated.", enum: ["stripe", "vts", "mdes"] },
+        pan_source: { type: "string", description: "provision: an OPAQUE payment-credential reference (e.g. a Stripe pm_… id). NEVER a raw PAN — raw card numbers are rejected by policy." },
+        events: { type: "array", description: "lifecycle: ordered TokenEvent list (provision|activate|suspend|resume|delete), max 100. Must start from provision; illegal transitions throw." },
+        event: { type: "string", description: "lifecycle: single-event shorthand for `events: [event]`." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      properties: {
+        tool: { type: "string", description: "Always 'iliad_network_tokenization'." },
+        operation: { type: "string", description: "The operation that ran." },
+        token: { type: "object", description: "read/provision success: { token_ref, provider, is_network_token, network, last4, token_state }. token_ref is opaque — never a PAN." },
+        lifecycle: { type: "object", description: "lifecycle: { state, history: [{from, event, to}] } after applying every event." },
+        capabilities: { type: "object", description: "{ stripe, vts, mdes } — which providers are configured (env-derived)." },
+        honesty: { type: "string", description: "The stripe-live / VTS-MDES-gated honesty statement (always present on success)." },
+        _not_configured: { type: "boolean", description: "True when the targeted provider is not configured (or, for vts/mdes, network onboarding is incomplete)." },
+        provider_checked: { type: "string", description: "Which provider the _not_configured envelope refers to (only when _not_configured=true)." },
+        reason: { type: "string", description: "Why the call returned _not_configured (only when true)." },
+        remediation: { type: "string", description: "The exact env var / onboarding step required (names AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID / STRIPE_SECRET_KEY)." },
+      },
+    },
+    annotations: toolAnnotations("Network Tokenization", true, true),
+    examples: [
+      {
+        name: "Run the executable token lifecycle",
+        input: { operation: "lifecycle", events: ["provision", "activate", "suspend", "resume", "delete"] },
+        output: '{"tool":"iliad_network_tokenization","operation":"lifecycle","lifecycle":{"state":"deleted","history":[{"from":null,"event":"provision","to":"provisioned"},{"from":"provisioned","event":"activate","to":"active"},{"from":"active","event":"suspend","to":"suspended"},{"from":"suspended","event":"resume","to":"active"},{"from":"active","event":"delete","to":"deleted"}]}}',
+      },
+      {
+        name: "Read a Stripe PaymentMethod's network-token status",
+        input: { operation: "read", payment_method_id: "pm_1NXYZ" },
+        output: '{"tool":"iliad_network_tokenization","operation":"read","token":{"token_ref":"pm_1NXYZ","provider":"stripe","is_network_token":true,"network":"visa","last4":"4242","token_state":"active"},"honesty":"Stripe read adapter is live..."}',
+      },
+      {
+        name: "Probe direct VTS before onboarding",
+        input: { operation: "provision", provider: "vts", pan_source: "pm_1NXYZ" },
+        output: '{"_not_configured":true,"tool":"iliad_network_tokenization","provider_checked":"vts","reason":"Direct VTS (Visa Token Service) provisioning requires a Visa-issued Token Requestor ID, and AXIS_VTS_TOKEN_REQUESTOR_ID is not set.","remediation":"Complete Visa network onboarding to obtain a Token Requestor ID, then set AXIS_VTS_TOKEN_REQUESTOR_ID..."}',
       },
     ],
   },

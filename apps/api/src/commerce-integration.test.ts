@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildX402Endpoint, buildX402EndpointTest, detectFramework, buildCe3Evidence, buildDisputeReadiness, buildCommerceIntegrationBundle } from "./commerce-integration.js";
+import { buildX402Endpoint, buildX402EndpointTest, detectFramework, buildCe3Evidence, buildDisputeReadiness, buildCommerceIntegrationBundle, emitStripeNetworkTokenAdapter } from "./commerce-integration.js";
 import type { ContextMap } from "@axis/context-engine";
 import type { CommerceSignals } from "@axis/generator-core";
 
@@ -123,17 +123,57 @@ describe("buildDisputeReadiness", () => {
   });
 });
 
+// ─── WO-14: Stripe network-token adapter (E9 deployable artifact) ───
+
+describe("emitStripeNetworkTokenAdapter", () => {
+  it("returns a .ts adapter that reads card.network_token when a stripe signal is present", () => {
+    const artifact = emitStripeNetworkTokenAdapter(ctxWith(["Express"]), signals);
+    expect(artifact).not.toBeNull();
+    expect(artifact!.path.endsWith(".ts")).toBe(true);
+    expect(artifact!.content).toContain("card.network_token");
+    expect(artifact!.content).toContain("readStripeNetworkToken");
+    // Wired to the CUSTOMER's own account — env by NAME, never a value.
+    expect(artifact!.content).toContain("process.env.STRIPE_SECRET_KEY");
+    expect(artifact!.content).not.toMatch(/STRIPE_SECRET_KEY\s*=\s*["'][^"']/);
+  });
+
+  it("bakes the honest mapping in: co-badging networks metadata is NOT a tokenization signal", () => {
+    const artifact = emitStripeNetworkTokenAdapter(ctxWith(["Express"]), signals)!;
+    expect(artifact.content).toContain("network_token?.used === true");
+    expect(artifact.content).toContain("co-badging");
+  });
+
+  it("returns null when no stripe signal is present", () => {
+    expect(emitStripeNetworkTokenAdapter(ctxWith(["Express"]), poorSignals)).toBeNull();
+    expect(
+      emitStripeNetworkTokenAdapter(ctxWith(["Express"]), { ...signals, detected_providers: ["paypal"] }),
+    ).toBeNull();
+  });
+
+  it("is deterministic", () => {
+    expect(emitStripeNetworkTokenAdapter(ctxWith(["Express"]), signals)).toEqual(
+      emitStripeNetworkTokenAdapter(ctxWith(["Express"]), signals),
+    );
+  });
+});
+
 describe("buildCommerceIntegrationBundle", () => {
-  it("assembles the 5 engineer artifacts with the expected paths", () => {
+  it("assembles the 5 core engineer artifacts + the Stripe network-token adapter (stripe signal present)", () => {
     const bundle = buildCommerceIntegrationBundle(ctxWith(["Express"]), signals, 100);
     expect(bundle.map((a) => a.path).sort()).toEqual([
       "ce3-evidence.json",
       "ce3-evidence.schema.json",
       "dispute-readiness.md",
+      "stripe-network-token-adapter.ts",
       "x402-endpoint.test.ts",
       "x402-paid-endpoint.ts",
     ]);
     expect(bundle.every((a) => a.content.length > 0)).toBe(true);
+  });
+  it("omits the network-token adapter when no stripe signal is present (5 core artifacts)", () => {
+    const bundle = buildCommerceIntegrationBundle(ctxWith(["Express"]), poorSignals, 100);
+    expect(bundle.map((a) => a.path)).not.toContain("stripe-network-token-adapter.ts");
+    expect(bundle).toHaveLength(5);
   });
   it("is deterministic", () => {
     expect(buildCommerceIntegrationBundle(ctxWith(["Express"]), signals, 100)).toEqual(

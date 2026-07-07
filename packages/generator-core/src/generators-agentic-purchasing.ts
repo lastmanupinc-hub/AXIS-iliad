@@ -520,6 +520,14 @@ function buildTapInteropSection(signals: CommerceSignals): string {
     `| resume | After review clear → status ACTIVE, resume transactions |`,
     `| delete | On card expiry/replacement → de-provision token |`,
     ``,
+    `> AXIS network-tokenization capability (honest scope): the token lifecycle above is an`,
+    `> EXECUTABLE state machine (illegal transitions rejected) plus a live Stripe network-token`,
+    `> READ adapter — \`is_network_token\` is true only when Stripe reports a provisioned network`,
+    `> token, never inferred from co-badging metadata. Direct VTS/MDES provisioning is`,
+    `> capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID /`,
+    `> AXIS_MDES_TOKEN_REQUESTOR_ID) and returns a structured \`_not_configured\` envelope until`,
+    `> Visa/Mastercard onboarding exists — NOT unconditional live VTS+MDES.`,
+    ``,
     `### SCA Exemption Decision Matrix`,
     ``,
     renderScaExemptionMatrix(),
@@ -1423,8 +1431,8 @@ export function generateProductSchema(
         mandate_data_format: "AP2 standardized mandate object with payment_method, amount, currency, mandate_type, sca_exemption_reason",
         mandate_lifecycle: "CREATE → AUTHORIZE (SCA) → ACTIVE → COLLECT → AMEND → CANCEL",
         ucp_settlement_path: "UCP settlement instruction with clearing_system, settlement_currency, value_date, settlement_finality",
-        visa_intelligent_commerce: "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding",
-        tap_interop: "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens",
+        visa_intelligent_commerce: "Visa IC — network tokenization via VTS, DPAN provisioning, cryptogram generation, device binding (protocol reference; AXIS's direct VTS/MDES provisioning is capability-gated behind a network-issued Token Requestor ID — its live path is the Stripe network-token read adapter)",
+        tap_interop: "Token Action Protocol — provision/activate/suspend/resume/delete lifecycle for network tokens (executable state machine in AXIS; illegal transitions rejected)",
         // Require ACTUAL payment-integration evidence (provider + checkout + a
         // compliance signal), not an incidental keyword — a code-analysis tool that
         // merely MENTIONS Stripe was declared "ready for autonomous purchase".
@@ -1695,6 +1703,11 @@ When network tokenization is available, include in payment request:
 \`\`\`
 
 Network tokenization status: ${signals.has_network_tokenization ? "✅ Detected — DPAN flow available" : "⚠️ Not detected — fall back to PAN-based flow"}
+
+> Honest scope: AXIS ships an executable token-lifecycle state machine and a live Stripe
+> network-token READ adapter. Direct VTS/MDES provisioning is capability-gated behind a
+> network-issued Token Requestor ID and returns a structured \`_not_configured\` envelope
+> until Visa/Mastercard onboarding exists — not unconditional live VTS+MDES.
 
 ${buildLighterScaSection(signals)}
 

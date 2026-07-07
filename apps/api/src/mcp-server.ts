@@ -75,6 +75,7 @@ import {
   runAssembleCe3Evidence,
   runBuildAp2Mandate,
   runScoreDisputeReadiness,
+  runNetworkTokenization,
   decideInbandGate,
 } from "./mcp-tool-impls.js";
 import { runAssembleRepresentment } from "./disputes.js";
@@ -358,6 +359,10 @@ export async function dispatch(
           // Dispute lifecycle (WO-08) — metered representment assembly.
           case "assemble_representment":
             text = await runAssembleRepresentment(toolArgs, req);
+            break;
+          // Network tokenization (WO-14) — owned capability, free, auth-required.
+          case "iliad_network_tokenization":
+            text = await runNetworkTokenization(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

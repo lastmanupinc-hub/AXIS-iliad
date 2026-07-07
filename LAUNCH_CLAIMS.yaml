@@ -32,8 +32,8 @@ claims:
     verified_at: "2026-07-02"
 
   - id: mcp_tool_count
-    text: "35 MCP tools"
-    value: 35
+    text: "36 MCP tools"
+    value: 36
     source: "apps/api/src/counts.ts MCP_TOOL_COUNT"
     status: verified
     verified_at: "2026-07-07"

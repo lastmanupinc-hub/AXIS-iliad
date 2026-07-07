@@ -37,6 +37,19 @@ import {
   type SandboxOptions,
 } from "./code-sandbox.js";
 import {
+  tokenizationCapabilities,
+  readStripeNetworkToken,
+  provisionNetworkToken,
+  isNetworkTokenNotConfigured,
+  newLifecycle,
+  transition,
+  applyTokenEvent,
+  TOKEN_EVENTS,
+  type TokenEvent,
+  type TokenLifecycle,
+  type TokenProvider,
+} from "./network-token.js";
+import {
   runTranscription,
   type TranscriptionOptions,
 } from "./speech-to-text.js";
@@ -771,6 +784,131 @@ export async function runLlmInference(args: Record<string, unknown>, req: Incomi
     );
   }
   return JSON.stringify(result, null, 2);
+}
+
+// ─── iliad_network_tokenization (WO-14 — owned capability, free) ─
+//
+// Exposes the network-token module: `read` (live Stripe network-token read
+// adapter), `provision` (stripe delegates to read; vts/mdes capability-gated),
+// `lifecycle` (pure executable state machine), `capabilities` (config probe).
+// Auth-required but UNMETERED: the lifecycle machine is pure compute and the
+// Stripe read is a single lightweight API call — not listed in MeteredMcpTool,
+// so decideInbandGate resolves it not_in_scope by design.
+
+const NETWORK_TOKENIZATION_HONESTY =
+  "Stripe read adapter is live (is_network_token is true only when Stripe reports a provisioned network token — a bare card PaymentMethod is false). " +
+  "Direct VTS/MDES provisioning is capability-gated behind a network-issued Token Requestor ID (AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID) " +
+  "plus network onboarding, and returns a structured _not_configured envelope until then — it never fakes a token.";
+
+function isTokenEvent(v: unknown): v is TokenEvent {
+  return typeof v === "string" && (TOKEN_EVENTS as readonly string[]).includes(v);
+}
+
+export async function runNetworkTokenization(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
+  const auth = await resolveAuth(req);
+  if (!auth.account) {
+    throw new Error("Authentication required: iliad_network_tokenization needs Authorization: Bearer <api_key>.");
+  }
+
+  const operation = typeof args.operation === "string" ? args.operation : "read";
+  const caps = tokenizationCapabilities();
+
+  if (operation === "capabilities") {
+    return JSON.stringify({
+      tool: "iliad_network_tokenization",
+      operation,
+      capabilities: caps,
+      honesty: NETWORK_TOKENIZATION_HONESTY,
+    }, null, 2);
+  }
+
+  if (operation === "lifecycle") {
+    // Pure state machine — no provider config needed, no I/O.
+    const rawEvents = Array.isArray(args.events)
+      ? args.events
+      : args.event !== undefined
+        ? [args.event]
+        : null;
+    if (!rawEvents || rawEvents.length === 0) {
+      throw new Error("iliad_network_tokenization: lifecycle requires `events` (array of provision|activate|suspend|resume|delete).");
+    }
+    if (rawEvents.length > 100) {
+      throw new Error("iliad_network_tokenization: lifecycle accepts at most 100 events per call.");
+    }
+    let lc: TokenLifecycle | null = null;
+    for (let i = 0; i < rawEvents.length; i++) {
+      const ev = rawEvents[i];
+      if (!isTokenEvent(ev)) {
+        throw new Error(`iliad_network_tokenization: events[${i}] must be one of provision|activate|suspend|resume|delete`);
+      }
+      if (lc === null) {
+        // applyTokenEvent(null, ev) throws the canonical illegal-transition
+        // error for anything but 'provision'.
+        applyTokenEvent(null, ev);
+        lc = newLifecycle();
+      } else {
+        lc = transition(lc, ev);
+      }
+    }
+    return JSON.stringify({
+      tool: "iliad_network_tokenization",
+      operation,
+      lifecycle: lc,
+    }, null, 2);
+  }
+
+  if (operation === "read") {
+    if (!caps.stripe) {
+      // Structured envelope mirrors runLlmInference: agents branch on
+      // `_not_configured === true` without parsing free text.
+      return JSON.stringify({
+        _not_configured: true,
+        tool: "iliad_network_tokenization",
+        provider_checked: "stripe" as const,
+        reason: "No tokenization provider is configured (STRIPE_SECRET_KEY is unset — the live read path is the Stripe adapter).",
+        remediation:
+          "Operator must set STRIPE_SECRET_KEY for the live Stripe network-token read adapter. " +
+          "Direct VTS/MDES additionally require AXIS_VTS_TOKEN_REQUESTOR_ID / AXIS_MDES_TOKEN_REQUESTOR_ID (network-issued Token Requestor IDs).",
+        capabilities: caps,
+      }, null, 2);
+    }
+    if (typeof args.payment_method_id !== "string" || args.payment_method_id.trim().length === 0) {
+      throw new Error("iliad_network_tokenization: read requires `payment_method_id` (a Stripe pm_… id).");
+    }
+    const result = await readStripeNetworkToken(args.payment_method_id);
+    if (isNetworkTokenNotConfigured(result)) {
+      return JSON.stringify({ ...result, tool: "iliad_network_tokenization" }, null, 2);
+    }
+    return JSON.stringify({
+      tool: "iliad_network_tokenization",
+      operation,
+      token: result,
+      honesty: NETWORK_TOKENIZATION_HONESTY,
+    }, null, 2);
+  }
+
+  if (operation === "provision") {
+    const provider = args.provider;
+    if (provider !== "stripe" && provider !== "vts" && provider !== "mdes") {
+      throw new Error("iliad_network_tokenization: provision requires `provider` (stripe | vts | mdes).");
+    }
+    const panSource = typeof args.pan_source === "string" ? args.pan_source : typeof args.payment_method_id === "string" ? args.payment_method_id : "";
+    if (panSource.trim().length === 0) {
+      throw new Error("iliad_network_tokenization: provision requires `pan_source` — an opaque reference such as a Stripe pm_… id (NEVER a raw PAN).");
+    }
+    const result = await provisionNetworkToken({ pan_source: panSource, provider: provider as TokenProvider });
+    if (isNetworkTokenNotConfigured(result)) {
+      return JSON.stringify({ ...result, tool: "iliad_network_tokenization", capabilities: caps }, null, 2);
+    }
+    return JSON.stringify({
+      tool: "iliad_network_tokenization",
+      operation,
+      token: result,
+      honesty: NETWORK_TOKENIZATION_HONESTY,
+    }, null, 2);
+  }
+
+  throw new Error("iliad_network_tokenization: `operation` must be one of read | provision | lifecycle | capabilities.");
 }
 
 export async function runDocumentParsingDispatch(args: Record<string, unknown>, req: IncomingMessage): Promise<string> {
@@ -1825,6 +1963,8 @@ const FREE_TOOL_NAMES = new Set([
   "assemble_ce3_evidence",
   "build_ap2_mandate",
   "score_dispute_readiness",
+  // Network tokenization (WO-14) — unmetered (auth-required, like the referral tools).
+  "iliad_network_tokenization",
 ]);
 
 const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
@@ -1996,7 +2136,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       endpoint: AXIS_MCP_ENDPOINT,
       transport: "streamable-http",
       tools: MCP_TOOLS.length,
-      free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits", "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence", "build_ap2_mandate", "score_dispute_readiness"],
+      free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits", "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence", "build_ap2_mandate", "score_dispute_readiness", "iliad_network_tokenization"],
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },

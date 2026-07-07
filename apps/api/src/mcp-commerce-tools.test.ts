@@ -55,8 +55,8 @@ describe("WO-13 registration", () => {
     expect(rep.annotations.readOnlyHint).toBe(false);
   });
 
-  it("MCP_TOOL_COUNT === MCP_TOOLS.length === 35 (one consistent bump for WO-13 + WO-08)", () => {
-    expect(MCP_TOOLS.length).toBe(35);
+  it("MCP_TOOL_COUNT === MCP_TOOLS.length === 36 (WO-13 + WO-08 + WO-14 network tokenization)", () => {
+    expect(MCP_TOOLS.length).toBe(36);
     expect(MCP_TOOL_COUNT).toBe(MCP_TOOLS.length);
   });
 
@@ -325,6 +325,6 @@ describe("discovery surfaces advertise the new free tools", () => {
       expect(entry.auth_required).toBe(false);
     }
     expect(parsed.shareable_manifest.free_tools).toContain("sca_exemption_decision");
-    expect(parsed.shareable_manifest.tools).toBe(35);
+    expect(parsed.shareable_manifest.tools).toBe(36);
   });
 });
