@@ -144,7 +144,7 @@ describe("generateProductSchema", () => {
     const ap = schema.programs.find((p: { slug: string }) => p.slug === "agentic-purchasing");
     expect(ap).toBeTruthy();
     expect(ap.tier).toBe("pro");
-    expect(ap.outputs).toBe(5);
+    expect(ap.outputs).toBe(6); // +1: ap2-interop-samples.json (WO-07)
   });
 });
 

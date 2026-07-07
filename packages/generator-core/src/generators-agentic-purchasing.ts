@@ -10,6 +10,23 @@ import {
   CE3_QUALIFIED_DATA_ELEMENTS,
   CE3_TARGET_REASON_CODES,
 } from "@axis/agentic-compliance";
+import {
+  demoKeyPair,
+  signMandate,
+  encodeMandate,
+  verifyMandate,
+  signTapMessage,
+  encodeTapMessage,
+  verifyTapMessage,
+  signUcpMessage,
+  encodeUcpMessage,
+  verifyUcpMessage,
+  type IntentMandate,
+  type CartMandate,
+  type PaymentMandate,
+  type TapTokenMessage,
+  type UcpSettlementMessage,
+} from "@axis/ap2";
 
 /**
  * Canonical counts — must equal `listAvailableGenerators().length` and the
@@ -17,14 +34,121 @@ import {
  * pins these to TOTAL_GENERATORS / TOTAL_PROGRAMS from ./generate.js so any
  * drift fails CI.
  */
-const ARTIFACT_COUNT = 140; // +3: verify.sh, verify-full.sh, .githooks/pre-push (verify-gate)
+const ARTIFACT_COUNT = 141; // +3 verify-gate (verify.sh, verify-full.sh, .githooks/pre-push); +1 ap2-interop-samples.json (WO-07)
 const PROGRAM_COUNT = 20;
 
 /**
  * Program: agentic-purchasing
- * Generates 5 artifacts that enable AI agents to autonomously discover, evaluate,
+ * Generates 6 artifacts that enable AI agents to autonomously discover, evaluate,
  * and purchase AXIS analysis programs for any codebase.
  */
+
+// ─── AP2 / TAP / UCP real signed samples (WO-07) ───────────────────
+//
+// Fixed IDs + a fixed clock (NOT ctx.generated_at, NOT Date.now()) plus the
+// @axis/ap2 deterministic demo keypair (see @axis/ap2's jws.ts) — so the same
+// analysis input always renders BYTE-IDENTICAL output for this section,
+// independent of the repository being analyzed (a determinism gate; see
+// ap2-interop.test.ts). This is a demo identity only — real integrations
+// MUST use generateEd25519() (or an equivalent real keypair) plus a real
+// secret store, never this fixed seed.
+
+const AP2_DEMO_INTENT: IntentMandate = {
+  kind: "intent",
+  version: "ap2/1",
+  id: "intent_axis_demo_001",
+  user_id: "agent_demo_001",
+  description: "Autonomous purchase of an AXIS analysis program",
+  constraints: { max_amount: { currency: "USD", value: "5.00" } },
+  created_at: "2026-01-01T00:00:00.000Z",
+  expires_at: "2026-01-08T00:00:00.000Z",
+};
+
+const AP2_DEMO_CART: CartMandate = {
+  kind: "cart",
+  version: "ap2/1",
+  id: "cart_axis_demo_001",
+  intent_ref: AP2_DEMO_INTENT.id,
+  merchant_id: "AXIS_ILIAD",
+  items: [
+    {
+      sku: "program-agentic-purchasing",
+      name: "AXIS agentic-purchasing program",
+      quantity: 1,
+      unit_price: { currency: "USD", value: "0.50" },
+    },
+  ],
+  total: { currency: "USD", value: "0.50" },
+  created_at: "2026-01-01T00:01:00.000Z",
+};
+
+const AP2_DEMO_PAYMENT: PaymentMandate = {
+  kind: "payment",
+  version: "ap2/1",
+  id: "payment_axis_demo_001",
+  cart_ref: AP2_DEMO_CART.id,
+  method: { type: "token", token_ref: "tok_axis_demo_001" },
+  amount: { currency: "USD", value: "0.50" },
+  created_at: "2026-01-01T00:02:00.000Z",
+};
+
+const TAP_DEMO_TOKEN: TapTokenMessage = {
+  kind: "tap.token",
+  version: "tap/1",
+  token_id: "token_axis_demo_001",
+  event: "provision",
+  token_requestor_id: "trid_axis_demo_001",
+  dpan_last4: "4242",
+  mandate_ref: AP2_DEMO_CART.id,
+  occurred_at: "2026-01-01T00:03:00.000Z",
+};
+
+const UCP_DEMO_SETTLEMENT: UcpSettlementMessage = {
+  kind: "ucp.settlement",
+  version: "ucp/1",
+  settlement_id: "settlement_axis_demo_001",
+  payment_ref: AP2_DEMO_PAYMENT.id,
+  clearing_system: "VISA_NET",
+  amount: { currency: "USD", value: "0.50" },
+  value_date: "2026-01-02",
+  settlement_finality: "final",
+};
+
+// Residual honesty caveat — MUST stay in both the rendered artifact and the
+// ap2-interop-samples.json generator output (guarded by ap2-interop.test.ts).
+// "Interoperability" here means "produces and verifies well-formed,
+// cryptographically-signed messages matching the modeled schemas" — NOT
+// certified network interoperability.
+const AP2_SCOPE_CAVEAT =
+  "Scope: these samples are produced and verified by @axis/ap2's real encode/sign/verify codecs — " +
+  "conformant to AXIS's TypeScript encoding of the public AP2 mandate schema, and to TAP/UCP message " +
+  "shapes modeled from public documentation (neither protocol has a public wire schema to conform " +
+  "against). Verified only against self-authored, frozen golden-vector fixtures — NOT certified " +
+  "against an official AP2/TAP/UCP conformance suite, nor exercised against a live Visa/Mastercard " +
+  "network or counterparty.";
+
+interface Ap2Samples {
+  signedIntent: ReturnType<typeof signMandate<IntentMandate>>;
+  signedCart: ReturnType<typeof signMandate<CartMandate>>;
+  signedPayment: ReturnType<typeof signMandate<PaymentMandate>>;
+  signedTap: ReturnType<typeof signTapMessage>;
+  signedUcp: ReturnType<typeof signUcpMessage>;
+  publicKey: string;
+}
+
+/** Build (and sign) the fixed demo sample set once — every caller gets the
+ *  same deterministic bytes since the keypair, IDs, and timestamps are fixed. */
+function buildAp2Samples(): Ap2Samples {
+  const kp = demoKeyPair();
+  return {
+    signedIntent: signMandate(AP2_DEMO_INTENT, kp.privateKey, kp.publicKeySpkiB64),
+    signedCart: signMandate(AP2_DEMO_CART, kp.privateKey, kp.publicKeySpkiB64),
+    signedPayment: signMandate(AP2_DEMO_PAYMENT, kp.privateKey, kp.publicKeySpkiB64),
+    signedTap: signTapMessage(TAP_DEMO_TOKEN, kp.privateKey, kp.publicKeySpkiB64),
+    signedUcp: signUcpMessage(UCP_DEMO_SETTLEMENT, kp.privateKey, kp.publicKeySpkiB64),
+    publicKey: kp.publicKeySpkiB64,
+  };
+}
 
 // ─── Commerce Signal Detection ────────────────────────────────────
 
@@ -349,30 +473,51 @@ function buildLighterScaSection(signals: CommerceSignals): string {
 }
 
 function buildTapInteropSection(signals: CommerceSignals): string {
+  // (The static scaExemptionRows table that used to live here was replaced by
+  // WO-06's engine-rendered renderScaExemptionMatrix() in the return body.)
+
+  // Real, signed samples — built + verified by @axis/ap2, NOT static literals.
+  // encodeMandate/encodeTapMessage/encodeUcpMessage produce the exact canonical
+  // wire bytes embedded below; ap2-interop.test.ts re-parses each ```json block
+  // from the RENDERED artifact and re-validates it with validateMandate /
+  // validateTapMessage / validateUcpMessage.
+  const samples = buildAp2Samples();
+  const intentValid = verifyMandate(samples.signedIntent).valid;
+  const cartValid = verifyMandate(samples.signedCart).valid;
+  const paymentValid = verifyMandate(samples.signedPayment).valid;
+  const tapValid = verifyTapMessage(samples.signedTap).valid;
+  const ucpValid = verifyUcpMessage(samples.signedUcp).valid;
+
+  const sigLine = (jws: { protected: string; signature: string }, publicKey: string, valid: boolean) =>
+    `Signature (detached JWS, alg=EdDSA): \`protected=${jws.protected}\` \`signature=${jws.signature.slice(0, 24)}…\` \`public_key=${publicKey.slice(0, 24)}…\` — verify() valid: ${valid ? "✅ true" : "❌ false"}`;
+
   return [
     `## TAP / AP2 / UCP Interoperability`,
+    ``,
+    `Every JSON block below is the REAL output of \`@axis/ap2\`'s \`encode*\` functions for a fixed`,
+    `demo sample — not a hand-typed literal. Each one round-trips through \`decode*\`/\`validate*\``,
+    `and is signed with a detached JWS (EdDSA/Ed25519) that \`verify*\` confirms. ${AP2_SCOPE_CAVEAT}`,
     ``,
     `### Token Action Protocol (TAP) Integration`,
     ``,
     `TAP status: ${signals.has_tap_protocol ? "✅ TAP protocol references detected" : "⚠️ No TAP integration — implement token lifecycle management"}`,
     `Network tokenization: ${signals.has_network_tokenization ? "✅ Detected" : "❌ Not detected — verify availability with your PSP if you plan to use network tokens"}`,
     ``,
-    `\`\`\`json`,
-    `{`,
-    `  "tap_token_lifecycle": {`,
-    `    "provision": "POST /tokens — request DPAN from TSP (Visa VTS or Mastercard MDES)",`,
-    `    "activate": "Token status ACTIVE after device binding verification",`,
-    `    "suspend": "On fraud signal → status SUSPENDED, pending review",`,
-    `    "resume": "After review clear → status ACTIVE, resume transactions",`,
-    `    "delete": "On card expiry/replacement → de-provision token"`,
-    `  },`,
-    `  "interop_mapping": {`,
-    `    "visa_vts_token": "DPAN → cryptogram → authorization",`,
-    `    "mastercard_mdes": "DPAN → CVC3/DSRP → authorization",`,
-    `    "ap2_mandate_ref": "mandate_id links to token_requestor_id for recurring"`,
-    `  }`,
-    `}`,
-    `\`\`\``,
+    `Signed sample TAP token-lifecycle message (\`encodeTapMessage\` output):`,
+    ``,
+    "```json",
+    encodeTapMessage(TAP_DEMO_TOKEN),
+    "```",
+    ``,
+    sigLine(samples.signedTap.jws, samples.publicKey, tapValid),
+    ``,
+    `| TAP Event | Meaning |`,
+    `|-----------|---------|`,
+    `| provision | POST /tokens — request DPAN from TSP (Visa VTS or Mastercard MDES) |`,
+    `| activate | Token status ACTIVE after device binding verification |`,
+    `| suspend | On fraud signal → status SUSPENDED, pending review |`,
+    `| resume | After review clear → status ACTIVE, resume transactions |`,
+    `| delete | On card expiry/replacement → de-provision token |`,
     ``,
     `### SCA Exemption Decision Matrix`,
     ``,
@@ -382,30 +527,102 @@ function buildTapInteropSection(signals: CommerceSignals): string {
     ``,
     `### AP2 Mandate Lifecycle`,
     ``,
-    `\`\`\``,
+    "```",
     `CREATE → mandate_id assigned, status=pending_authorization`,
     `  └─ SCA CHALLENGE → cardholder authenticates`,
     `       └─ AUTHORIZE → status=active, first_collection_date set`,
     `            └─ COLLECT → settlement via configured clearing path`,
     `                 └─ AMEND → amount/schedule change, re-SCA if material`,
     `                      └─ CANCEL → status=cancelled, no further collections`,
-    `\`\`\``,
+    "```",
+    ``,
+    `Signed sample Intent mandate (\`encodeMandate\` output):`,
+    ``,
+    "```json",
+    encodeMandate(AP2_DEMO_INTENT),
+    "```",
+    ``,
+    sigLine(samples.signedIntent.jws, samples.publicKey, intentValid),
+    ``,
+    `Signed sample Cart mandate, referencing the Intent above (\`encodeMandate\` output):`,
+    ``,
+    "```json",
+    encodeMandate(AP2_DEMO_CART),
+    "```",
+    ``,
+    sigLine(samples.signedCart.jws, samples.publicKey, cartValid),
+    ``,
+    `Signed sample Payment mandate, referencing the Cart above (\`encodeMandate\` output):`,
+    ``,
+    "```json",
+    encodeMandate(AP2_DEMO_PAYMENT),
+    "```",
+    ``,
+    sigLine(samples.signedPayment.jws, samples.publicKey, paymentValid),
     ``,
     `### UCP Settlement Path`,
     ``,
-    `\`\`\`json`,
-    `{`,
-    `  "ucp_settlement": {`,
-    `    "clearing_system": "VISA_NET | MASTERCARD_CLEARING | ACH | SEPA_SCT",`,
-    `    "settlement_currency": "USD | EUR | GBP",`,
-    `    "value_date_rule": "T+1 for domestic, T+2 for cross-border",`,
-    `    "settlement_finality": "irrevocable after clearing_cutoff",`,
-    `    "dispute_window": "120 days from settlement for Visa, 120 days for MC",`,
-    `    "representment_deadline": "45 days from dispute notification"`,
-    `  }`,
-    `}`,
-    `\`\`\``,
+    `Signed sample UCP settlement message (\`encodeUcpMessage\` output):`,
+    ``,
+    "```json",
+    encodeUcpMessage(UCP_DEMO_SETTLEMENT),
+    "```",
+    ``,
+    sigLine(samples.signedUcp.jws, samples.publicKey, ucpValid),
+    ``,
+    `| Field | Meaning |`,
+    `|-------|---------|`,
+    `| clearing_system | VISA_NET \\| MASTERCARD_CLEARING \\| ACH \\| SEPA_SCT |`,
+    `| value_date | Calendar date settlement is expected to post (T+1 domestic, T+2 cross-border is typical, but varies by rail) |`,
+    `| settlement_finality | "final" once irrevocable after the clearing cutoff; "pending" before that |`,
+    ``,
+    `> Dispute windows (120 days from settlement is typical for Visa/Mastercard) and representment deadlines (45 days is typical) are network-published policy, not fields this message type carries — verify current values with your acquirer.`,
   ].join("\n");
+}
+
+/**
+ * ap2-interop-samples.json — real, signed AP2/TAP/UCP message samples produced
+ * and verified by @axis/ap2, proving the codec end-to-end (not static literals).
+ */
+export function generateAp2InteropSamples(
+  ctx: ContextMap,
+  _profile: RepoProfile,
+  files?: SourceFile[],
+): GeneratedFile {
+  const signals = detectCommerceSignals(files);
+  const samples = buildAp2Samples();
+
+  const payload = {
+    schema_version: "1.0",
+    product: "Axis' Iliad",
+    generated_for: ctx.project_identity.name,
+    generated_at: ctx.generated_at.split("T")[0],
+    codec_package: "@axis/ap2",
+    scope_caveat: AP2_SCOPE_CAVEAT,
+    determinism_note:
+      "Samples below use a FIXED demo keypair + fixed IDs/timestamps — byte-identical across every run of this generator, independent of the analyzed repository. Real integrations MUST use generateEd25519() (or an equivalent real keypair) plus a real secret store, never this demo keypair.",
+    repo_commerce_signals: {
+      has_tap_protocol: signals.has_tap_protocol,
+      has_network_tokenization: signals.has_network_tokenization,
+      has_mandate_management: signals.has_mandate_management,
+    },
+    public_key: samples.publicKey,
+    ap2_mandates: {
+      intent: { mandate: samples.signedIntent.mandate, jws: samples.signedIntent.jws, verified: verifyMandate(samples.signedIntent).valid },
+      cart: { mandate: samples.signedCart.mandate, jws: samples.signedCart.jws, verified: verifyMandate(samples.signedCart).valid },
+      payment: { mandate: samples.signedPayment.mandate, jws: samples.signedPayment.jws, verified: verifyMandate(samples.signedPayment).valid },
+    },
+    tap_token: { message: samples.signedTap.message, jws: samples.signedTap.jws, verified: verifyTapMessage(samples.signedTap).valid },
+    ucp_settlement: { message: samples.signedUcp.message, jws: samples.signedUcp.jws, verified: verifyUcpMessage(samples.signedUcp).valid },
+  };
+
+  return {
+    path: "ap2-interop-samples.json",
+    content: JSON.stringify(payload, null, 2),
+    content_type: "application/json",
+    program: "agentic-purchasing",
+    description: "Real, signed AP2/TAP/UCP message samples produced and verified by @axis/ap2 — proves the codec end-to-end, not static literals",
+  };
 }
 
 function buildDisputeFlowSection(signals: CommerceSignals): string {

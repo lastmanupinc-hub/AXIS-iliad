@@ -41,7 +41,7 @@ curl https://axis-api-6c7z.onrender.com/v1/projects/PROJECT_ID/export \
 
 ## What you get
 
-One scan → 140 artifacts across 20 programs, ready in seconds:
+One scan → 141 artifacts across 20 programs, ready in seconds:
 
 | What you need | Program | Key outputs |
 |---------------|---------|-------------|
@@ -114,7 +114,7 @@ AXIS exposes a **Streamable HTTP MCP server** at `https://axis-api-6c7z.onrender
 | Tier | Price | Programs |
 |------|-------|----------|
 | **Free** | $0 | Search, Skills, Debug |
-| **Pro** | $0.50 / run | All 20 programs, 140 artifacts |
+| **Pro** | $0.50 / run | All 20 programs, 141 artifacts |
 | **Lite mode** | $0.15–$0.25 / run | Top-gap summary, reduced output |
 
 Budget negotiation: send `X-Agent-Budget: {"budget_per_run_cents": 25}` + `X-Agent-Mode: lite` on any paid call.
@@ -174,7 +174,7 @@ axis-iliad/
 │   ├── snapshots/    → Snapshot intake, Postgres (Neon) persistence, billing, funnel
 │   ├── repo-parser/  → Language detection (60+), framework detection (10), import graph
 │   ├── context-engine/ → Context map builder, repo profile, route/architecture analysis
-│   └── generator-core/ → 140 generators across 20 programs
+│   └── generator-core/ → 141 generators across 20 programs
 └── vitest.config.ts  → Shared test config
 ```
 
@@ -309,7 +309,7 @@ axis-iliad/
 - **Backend**: Zero-dependency custom HTTP router, Neon Postgres (`pg`, async pooled)
 - **Frontend**: Vite 6 + React 19, CSS design system (dark theme)
 - **Testing**: Vitest 4 — ~4,900 tests across ~190 files, run against Postgres 16
-- **Benchmarks**: Vitest bench — parseRepo 200 files in ~21ms; deterministic 140-artifact generation in ~300ms
+- **Benchmarks**: Vitest bench — parseRepo 200 files in ~21ms; deterministic 141-artifact generation in ~300ms
 - **Build**: pnpm workspaces, tsc per package
 - **CI**: GitHub Actions (Node 20/22 matrix, coverage, dep audit, Docker build)
 

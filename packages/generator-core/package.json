@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@axis/agentic-compliance": "workspace:*",
+    "@axis/ap2": "workspace:*",
     "@axis/snapshots": "workspace:*",
     "@axis/repo-parser": "workspace:*",
     "@axis/context-engine": "workspace:*"

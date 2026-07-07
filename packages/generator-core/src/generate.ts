@@ -19,7 +19,7 @@ import { generateComponent, generateDashboardWidget, generateEmbedSnippet, gener
 import { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 import { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 import { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
-import { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry } from "./generators-agentic-purchasing.js";
+import { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, generateAp2InteropSamples } from "./generators-agentic-purchasing.js";
 import {
   generatePackagingReadme,
   generatePackagingLicense,
@@ -170,6 +170,7 @@ const REGISTRY: Record<string, GeneratorFn> = {
   "checkout-flow.md":             (ctx, profile, files) => generateCheckoutFlow(ctx, profile, files),
   "negotiation-rules.md":         (ctx, profile, files) => generateNegotiationRules(ctx, profile, files),
   "commerce-registry.json":       (ctx, profile, files) => generateCommerceRegistry(ctx, profile, files),
+  "ap2-interop-samples.json":     (ctx, profile, files) => generateAp2InteropSamples(ctx, profile, files),
   // ─── closer generators ─────────────────────────────────────
   "packaging/README.md": (ctx, profile, files) => generatePackagingReadme(ctx, profile, files),
   "packaging/LICENSE": (ctx, profile, files) => generatePackagingLicense(ctx, profile, files),

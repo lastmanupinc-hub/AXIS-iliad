@@ -152,6 +152,15 @@ importers:
         specifier: ^5.7.0
         version: 5.7.3
 
+  packages/ap2:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.7.0
+        version: 5.7.3
+
   packages/context-engine:
     dependencies:
       '@axis/repo-parser':
@@ -173,6 +182,9 @@ importers:
       '@axis/agentic-compliance':
         specifier: workspace:*
         version: link:../agentic-compliance
+      '@axis/ap2':
+        specifier: workspace:*
+        version: link:../ap2
       '@axis/context-engine':
         specifier: workspace:*
         version: link:../context-engine

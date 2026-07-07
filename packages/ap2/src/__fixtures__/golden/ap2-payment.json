@@ -1,0 +1,23 @@
+{
+  "mandate": {
+    "kind": "payment",
+    "version": "ap2/1",
+    "id": "payment_golden_001",
+    "cart_ref": "cart_golden_001",
+    "method": {
+      "type": "card",
+      "token_ref": "tok_golden_001"
+    },
+    "amount": {
+      "currency": "USD",
+      "value": "26.00"
+    },
+    "created_at": "2026-01-01T00:06:00.000Z"
+  },
+  "jws": {
+    "protected": "eyJhbGciOiJFZERTQSJ9",
+    "signature": "Ym_3DAl9Ykc-MyMQMdCdrfn7V6bnKyVBs1teiZl9fOmoOEuON-6J8EYGUp6v6ZowH4qy81UHyCl1GY9ypDXjDw"
+  },
+  "public_key": "MCowBQYDK2VwAyEAlwlnemiDewSPFgpxCXanLx1bZFCDASsoHbuf3eHjCac=",
+  "canonical": "{\"amount\":{\"currency\":\"USD\",\"value\":\"26.00\"},\"cart_ref\":\"cart_golden_001\",\"created_at\":\"2026-01-01T00:06:00.000Z\",\"id\":\"payment_golden_001\",\"kind\":\"payment\",\"method\":{\"token_ref\":\"tok_golden_001\",\"type\":\"card\"},\"version\":\"ap2/1\"}"
+}

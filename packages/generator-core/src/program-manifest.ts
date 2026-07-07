@@ -122,6 +122,7 @@ export const GENERATOR_PROGRAMS: Record<string, string> = {
   "checkout-flow.md":             "agentic-purchasing",
   "negotiation-rules.md":         "agentic-purchasing",
   "commerce-registry.json":       "agentic-purchasing",
+  "ap2-interop-samples.json":     "agentic-purchasing",
   "packaging/README.md": "closer",
   "packaging/LICENSE": "closer",
   "Dockerfile": "closer",
