@@ -1,0 +1,38 @@
+{
+  "name": "@axis/agentic-compliance",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rail-agnostic dispute lifecycle (Stripe live, VROL/RDR/CDRN integration-ready) + CE-3.0 representment assembly for Axis' Iliad",
+  "keywords": [
+    "dispute",
+    "chargeback",
+    "representment",
+    "ce3",
+    "visa-compliance",
+    "vrol",
+    "rdr",
+    "cdrn",
+    "agentic-commerce"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lastmanupinc-hub/axis-iliad.git",
+    "directory": "packages/agentic-compliance"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo skipped — run vitest from root"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
