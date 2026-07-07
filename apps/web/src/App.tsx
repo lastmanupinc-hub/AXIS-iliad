@@ -1,21 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo, Component, type ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
-import { PlansPage } from "./pages/PlansPage.tsx";
-import { AccountPage } from "./pages/AccountPage.tsx";
-import { DocsPage } from "./pages/DocsPage.tsx";
-import { HelpPage } from "./pages/HelpPage.tsx";
-import { QAPage } from "./pages/QAPage.tsx";
-import { ProgramsPage } from "./pages/ProgramsPage.tsx";
-import { TermsPage } from "./pages/TermsPage.tsx";
-import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
-import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
-import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
-import { AdminPage } from "./pages/AdminPage.tsx";
-import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
-import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { useState, useCallback, useEffect, useRef, useMemo, Fragment, Component, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -23,6 +6,25 @@ import { SignUpModal } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
 import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
+import {
+  ROUTES,
+  NAV_GROUPS,
+  AUTH_ONLY_PAGES,
+  routeForPage,
+  isRouteVisible,
+  navLabelFor,
+  tabLabelFor,
+  ownsShortcut,
+  routeForShortcut,
+  visibleRailRoutes,
+  visibleGroupRoutes,
+  type NavContext,
+  type PageId,
+  type RouteContext,
+  type RouteDef,
+  type RouteParams,
+} from "./routes.tsx";
+import { useHashRoute, isOAuthCallback } from "./useHashRoute.ts";
 
 // ─── Error Boundary ─────────────────────────────────────────────
 // React requires a class for getDerivedStateFromError; this thin wrapper
@@ -54,102 +56,13 @@ function ErrorBoundary({ children }: { children: ReactNode }) {
   );
 }
 
-type Page =
-  | "upload"
-  | "dashboard"
-  | "plans"
-  | "account"
-  | "docs"
-  | "help"
-  | "qa"
-  | "programs"
-  | "terms"
-  | "for-agents"
-  | "examples"
-  | "install"
-  | "paid-checkout"
-  | "admin"
-  | "myanalytics"
-  | "tools"
-  // Sub-tool pages — each click-driven console for a single backend capability.
-  // Hash format: "#tools/web-research" → "tool-web-research".
-  | "tool-web-research";
-
-// Pages reachable only after login. admin/myanalytics additionally require
-// admin (privateAccess). A logged-out hit opens the sign-in popup instead of
-// showing a signed-out form.
-const AUTH_ONLY_PAGES = new Set<Page>(["admin", "myanalytics", "account", "plans", "paid-checkout"]);
-
-/** True while an OAuth provider is redirecting back with a one-time ?code= to
- *  exchange for the session cookie. The gate must let /account render so the
- *  handoff completes — never bounce this to the login popup. */
-function isOAuthCallback(): boolean {
-  return typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code");
-}
-
-// IDE-shell tab-strip metadata: which "system" a page belongs to (the mission
-// breadcrumb) and its editor-tab label. Partial — missing keys fall back via ??.
-const SECTION_OF: Partial<Record<Page, string>> = {
-  upload: "MISSION", dashboard: "MISSION", tools: "MISSION", "tool-web-research": "MISSION", programs: "MISSION",
-  plans: "ACCOUNT", account: "ACCOUNT", "paid-checkout": "ACCOUNT",
-  docs: "REFERENCE", help: "REFERENCE", qa: "REFERENCE", terms: "REFERENCE",
-  myanalytics: "OPS", admin: "OPS",
-  "for-agents": "AGENTS", examples: "AGENTS", install: "AGENTS",
-};
-const LABEL_OF: Partial<Record<Page, string>> = {
-  upload: "Analyze", dashboard: "dashboard.json", tools: "Tools", "tool-web-research": "web-research.tool", programs: "Programs",
-  plans: "Plans", account: "Account", "paid-checkout": "Checkout",
-  docs: "Docs", help: "Help", qa: "Q&A", terms: "Terms",
-  myanalytics: "MyAnalytics", admin: "Admin",
-  "for-agents": "For Agents", examples: "Examples", install: "Install",
-};
+// ─── Shell ──────────────────────────────────────────────────────
+// All navigation metadata (pages, hash patterns, labels, sections, sidebar
+// groups, shortcuts, auth flags) lives in routes.tsx — the shell below only
+// derives from it. Adding a page = one entry in ROUTES.
 
 function hasApiKey(): boolean {
   return !!localStorage.getItem("axis_api_key");
-}
-
-function pageFromPathname(pathname: string): Page | null {
-  const normalized = pathname.replace(/\/+$/, "") || "/";
-  if (normalized === "/for-agents") return "for-agents";
-  if (normalized === "/mcp") return "for-agents";
-  if (normalized === "/pricing") return "plans";
-  if (normalized === "/docs") return "docs";
-  if (normalized === "/install") return "install";
-  if (normalized === "/programs") return "programs";
-  if (normalized === "/tools") return "tools";
-  if (normalized === "/tools/web-research") return "tool-web-research";
-  if (normalized === "/account") return "account";
-  if (normalized === "/plans") return "plans";
-  if (normalized === "/paid-checkout") return "paid-checkout";
-  return null;
-}
-
-/** Parse a sub-tool hash like "tools/web-research" into a Page enum value. */
-function pageFromHash(hash: string): Page | null {
-  const h = hash.replace(/^#/, "");
-  if (!h) return null;
-  if (h === "tools") return "tools";
-  if (h === "tools/web-research") return "tool-web-research";
-  // Future tool subpages: extend this match block in lockstep with the Page union above.
-  return null;
-}
-
-function getInitialPage(): Page {
-  // An OAuth provider redirects back to /account?code=...; route there so the
-  // AccountPage handoff runs even though the landing has no hash.
-  if (isOAuthCallback()) return "account";
-
-  const pathPage = pageFromPathname(location.pathname);
-  if (pathPage) return pathPage;
-
-  const subPage = pageFromHash(location.hash);
-  if (subPage) return subPage;
-
-  const h = location.hash.replace("#", "");
-  if (h === "admin" || h === "myanalytics") return hasApiKey() ? (h as Page) : "account";
-  if (h === "plans" || h === "account" || h === "docs" || h === "help" || h === "qa" || h === "programs" || h === "terms" || h === "for-agents" || h === "examples" || h === "install" || h === "paid-checkout") return h as Page;
-  if (h === "dashboard" && localStorage.getItem("axis_last_result")) return "dashboard";
-  return "upload";
 }
 
 function loadPersistedResult(): SnapshotResponse | null {
@@ -161,12 +74,9 @@ function loadPersistedResult(): SnapshotResponse | null {
 }
 
 export function App() {
-  const [page, setPage] = useState<Page>(getInitialPage);
+  const { route, navigate } = useHashRoute();
   const [result, setResult] = useState<SnapshotResponse | null>(loadPersistedResult);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
-  const resultRef = useRef(result);
-  resultRef.current = result;
-  const [pageKey, setPageKey] = useState(0);
   const [showSignUp, setShowSignUp] = useState(false);
   const pendingResultRef = useRef<SnapshotResponse | null>(null);
   const [navOpen, setNavOpen] = useState(false);
@@ -211,79 +121,17 @@ export function App() {
     setTheme((t) => (t === "light" ? "dark" : "light"));
   }
 
-  useEffect(() => {
-    const onHash = () => {
-      const pathPage = pageFromPathname(location.pathname);
-      if (pathPage) {
-        setPage(pathPage);
-        return;
-      }
-
-      const subPage = pageFromHash(location.hash);
-      if (subPage) {
-        setPage(subPage);
-        return;
-      }
-
-      const h = location.hash.replace("#", "");
-      const isLoggedIn = hasApiKey();
-      if (h === "plans") setPage("plans");
-      else if (h === "account") setPage("account");
-      else if (h === "docs") setPage("docs");
-      else if (h === "help") setPage("help");
-      else if (h === "qa") setPage("qa");
-      else if (h === "programs") setPage("programs");
-      else if (h === "terms") setPage("terms");
-      else if (h === "for-agents") setPage("for-agents");
-      else if (h === "examples") setPage("examples");
-      else if (h === "install") setPage("install");
-      else if (h === "paid-checkout") setPage("paid-checkout");
-      else if (h === "admin") {
-        if (isLoggedIn) setPage("admin");
-        else {
-          setPage("account");
-          location.hash = "account";
-        }
-      }
-      else if (h === "myanalytics") {
-        if (isLoggedIn) setPage("myanalytics");
-        else {
-          setPage("account");
-          location.hash = "account";
-        }
-      }
-      else if (h === "dashboard" && resultRef.current) setPage("dashboard");
-      else if (h === "dashboard" && !resultRef.current) {
-        const restored = loadPersistedResult();
-        if (restored) { setResult(restored); setPage("dashboard"); }
-        else setPage("upload");
-      }
-      else setPage("upload");
-    };
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
-
-  /** Map a Page enum to the hash it should set in the URL. Sub-tool pages
-   *  use a sub-path style (#tools/web-research) for readability. */
-  const hashForPage = useCallback((p: Page): string => {
-    if (p === "upload") return "";
-    if (p === "tool-web-research") return "tools/web-research";
-    return p;
-  }, []);
-
-  const nav = useCallback((p: Page) => {
-    // Login-gated page while signed out → open the sign-in popup, stay put.
+  /** Navigate with the login gate applied: a login-gated page while signed out
+   *  opens the sign-in popup and stays put. */
+  const nav = useCallback((p: PageId, params?: RouteParams) => {
     if (AUTH_ONLY_PAGES.has(p) && !hasApiKey()) {
       setShowSignUp(true);
       setNavOpen(false);
       return;
     }
-    setPage(p);
-    setPageKey((k) => k + 1);
+    navigate(p, params);
     setNavOpen(false);
-    location.hash = hashForPage(p);
-  }, [hashForPage]);
+  }, [navigate]);
 
   const handleUploadComplete = useCallback((data: SnapshotResponse) => {
     const isLoggedIn = !!localStorage.getItem("axis_api_key");
@@ -295,10 +143,8 @@ export function App() {
     setResult(data);
     try { localStorage.setItem("axis_last_result", JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
     setGeneratedFileCount(data.generated_files.length);
-    setPage("dashboard");
-    setPageKey((k) => k + 1);
-    location.hash = "dashboard";
-  }, []);
+    navigate("dashboard");
+  }, [navigate]);
 
   const handleReset = useCallback(() => {
     setResult(null);
@@ -353,28 +199,34 @@ export function App() {
     };
   }, [loggedIn]);
 
-  // Login gate: a signed-out user on any login-gated page (account / plans /
-  // paid-checkout / admin / myanalytics) gets the sign-in popup and is bounced
-  // to a public page — EXCEPT during the OAuth callback, which must reach
-  // /account to complete the handoff.
+  // Dashboard needs a result: restore the persisted one on deep link, else
+  // fall back to Analyze (a known route with nothing to show is not a 404).
   useEffect(() => {
-    if (AUTH_ONLY_PAGES.has(page) && !loggedIn && !isOAuthCallback()) {
-      setShowSignUp(true);
-      setPage("upload");
-      setPageKey((k) => k + 1);
-      if (location.hash) location.hash = "";
-    }
-  }, [page, loggedIn]);
+    if (route.page !== "dashboard" || result) return;
+    const restored = loadPersistedResult();
+    if (restored) setResult(restored);
+    else navigate("upload");
+  }, [route.page, result, navigate]);
 
-  // Admin gate: a signed-in but non-admin user on admin/myanalytics falls back
-  // to their account page (accessible once logged in). Signed-out users are
-  // handled by the login gate above.
+  // Login gate: a signed-out user on any login-gated page (`authOnly` in the
+  // route table) gets the sign-in popup and is bounced to a public page —
+  // EXCEPT during the OAuth callback, which must reach /account to complete
+  // the handoff.
   useEffect(() => {
-    if ((page === "admin" || page === "myanalytics") && loggedIn && !privateAccess) {
-      setPage("account");
-      location.hash = "account";
+    if (AUTH_ONLY_PAGES.has(route.page) && !loggedIn && !isOAuthCallback()) {
+      setShowSignUp(true);
+      navigate("upload");
     }
-  }, [page, privateAccess, loggedIn]);
+  }, [route.page, loggedIn, navigate]);
+
+  // Admin gate: a signed-in but non-admin user on an `adminOnly` page falls
+  // back to their account page (accessible once logged in). Signed-out users
+  // are handled by the login gate above.
+  useEffect(() => {
+    if (routeForPage(route.page).adminOnly && loggedIn && !privateAccess) {
+      navigate("account");
+    }
+  }, [route.page, privateAccess, loggedIn, navigate]);
 
   const handleSignUpSuccess = useCallback(() => {
     setShowSignUp(false);
@@ -385,81 +237,98 @@ export function App() {
       setResult(data);
       try { localStorage.setItem("axis_last_result", JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
       setGeneratedFileCount(data.generated_files.length);
-      setPage("dashboard");
-      setPageKey((k) => k + 1);
-      location.hash = "dashboard";
+      navigate("dashboard");
     }
-  }, []);
+  }, [navigate]);
 
   // Track generated file count from DashboardPage
   const handleGeneratedCountChange = useCallback((count: number) => {
     setGeneratedFileCount(count);
   }, []);
 
-  // Command palette actions
+  // Runtime context the route-table derivations depend on.
+  const navCtx = useMemo<NavContext>(
+    () => ({ loggedIn, privateAccess, hasResult: !!result }),
+    [loggedIn, privateAccess, result],
+  );
+
+  // Command palette actions — every visible nav route, with the live Ctrl+N
+  // hint on the route that currently owns each digit.
   const paletteActions = useMemo<PaletteAction[]>(() => {
-    // Ctrl+2 belongs to Dashboard when a result exists (matches the keyboard
-    // handler below and the HelpPage shortcut table); Programs holds it otherwise.
-    const actions: PaletteAction[] = [
-      { id: "nav-analyze", label: "Go to Analyze", icon: "", shortcut: "Ctrl+1", section: "Navigation", onSelect: () => nav("upload") },
-      ...(result
-        ? [{ id: "nav-dashboard", label: "Go to Dashboard", icon: "", shortcut: "Ctrl+2", section: "Navigation", onSelect: () => nav("dashboard") }]
-        : []),
-      { id: "nav-programs", label: "Go to Programs", icon: "", ...(result ? {} : { shortcut: "Ctrl+2" }), section: "Navigation", onSelect: () => nav("programs") },
-      { id: "nav-plans", label: "Go to Plans", icon: "", shortcut: "Ctrl+3", section: "Navigation", onSelect: () => nav("plans") },
-      { id: "nav-account", label: "Go to Account", icon: "", shortcut: "Ctrl+4", section: "Navigation", onSelect: () => nav("account") },
-      { id: "nav-docs", label: "Go to Docs", icon: "", shortcut: "Ctrl+5", section: "Navigation", onSelect: () => nav("docs") },
-      { id: "nav-help", label: "Go to Help", icon: "", shortcut: "Ctrl+6", section: "Navigation", onSelect: () => nav("help") },
-      { id: "nav-qa", label: "Go to Q&A", icon: "", shortcut: "Ctrl+7", section: "Navigation", onSelect: () => nav("qa") },
-    ];
-    if (privateAccess) {
-      actions.push(
-        { id: "nav-admin", label: "Go to Admin", icon: "", shortcut: "Ctrl+8", section: "Navigation", onSelect: () => nav("admin") },
-        { id: "nav-myanalytics", label: "Go to MyAnalytics", icon: "", shortcut: "Ctrl+9", section: "Navigation", onSelect: () => nav("myanalytics") },
-      );
-    }
+    const actions: PaletteAction[] = ROUTES
+      .filter((r) => r.nav !== undefined && isRouteVisible(r, navCtx))
+      .map((r) => ({
+        id: `nav-${r.page}`,
+        label: `Go to ${navLabelFor(r, navCtx)}`,
+        icon: "",
+        ...(ownsShortcut(r, navCtx) ? { shortcut: `Ctrl+${r.shortcut}` } : {}),
+        section: "Navigation",
+        onSelect: () => nav(r.page),
+      }));
     if (loggedIn) {
       actions.push({ id: "logout", label: "Log out", icon: "", section: "Account", onSelect: handleLogout });
     }
     return actions;
-  }, [result, nav, privateAccess, loggedIn, handleLogout]);
+  }, [navCtx, nav, loggedIn, handleLogout]);
 
-  // Keyboard shortcuts for nav
+  // Ctrl+1–9 shortcuts — resolved from the route table (first visible claimant
+  // of each digit wins, so Ctrl+2 is Dashboard with a result, Programs without).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
-      const key = e.key;
-      if (key === "1") { e.preventDefault(); nav("upload"); }
-      // Ctrl+2 → Dashboard when a result exists (per HelpPage shortcut table),
-      // Programs otherwise so the key is never dead.
-      else if (key === "2" && result) { e.preventDefault(); nav("dashboard"); }
-      else if (key === "2") { e.preventDefault(); nav("programs"); }
-      else if (key === "3") { e.preventDefault(); nav("plans"); }
-      else if (key === "4") { e.preventDefault(); nav("account"); }
-      else if (key === "5") { e.preventDefault(); nav("docs"); }
-      else if (key === "6") { e.preventDefault(); nav("help"); }
-      else if (key === "7") { e.preventDefault(); nav("qa"); }
-      else if (key === "8" && privateAccess) { e.preventDefault(); nav("admin"); }
-      else if (key === "9" && privateAccess) { e.preventDefault(); nav("myanalytics"); }
+      if (!/^[1-9]$/.test(e.key)) return;
+      const target = routeForShortcut(Number(e.key), navCtx);
+      if (target) {
+        e.preventDefault();
+        nav(target.page);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [nav, result, privateAccess]);
+  }, [nav, navCtx]);
 
-  const isLanding = page === "upload";
+  const activeDef = routeForPage(route.page);
+  const isLanding = route.page === "upload";
+
+  /** A nav item is active for its own page and for its child pages
+   *  (e.g. Tools stays lit on #tools/web-research). */
+  const isActive = useCallback(
+    (r: RouteDef) => route.page === r.page || routeForPage(route.page).parent === r.page,
+    [route.page],
+  );
+
+  // Everything a route's render function may need from the shell.
+  const routeCtx = useMemo<RouteContext>(() => ({
+    ...navCtx,
+    params: route.params,
+    hash: route.hash,
+    result,
+    navigate: nav,
+    requireLogin: () => setShowSignUp(true),
+    onUploadComplete: handleUploadComplete,
+    onGeneratedCountChange: handleGeneratedCountChange,
+    onAuthChange: handleAuthChange,
+  }), [navCtx, route.params, route.hash, result, nav, handleUploadComplete, handleGeneratedCountChange, handleAuthChange]);
 
   return (
     <ToastProvider>
-      <div className={`ide-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isLanding ? "is-landing" : ""}`} data-shell-page={page}>
+      <div className={`ide-shell ${sidebarCollapsed ? "sidebar-collapsed" : ""} ${isLanding ? "is-landing" : ""}`} data-shell-page={route.page}>
 
-        {/* COLUMN 1 — activity rail */}
+        {/* COLUMN 1 — activity rail (route-table derived) */}
         <nav className="ide-rail" aria-label="Primary">
           <button className="ide-rail-btn" aria-label="Toggle Explorer sidebar" title="Toggle Explorer" aria-pressed={!sidebarCollapsed} onClick={() => setSidebarCollapsed((c) => !c)}><Icon name="panel-left" /></button>
-          <button className={`ide-rail-btn ${page === "upload" ? "active" : ""}`} aria-label="Analyze" aria-current={page === "upload" ? "page" : undefined} title="Analyze" onClick={() => nav("upload")}><Icon name="scan" /></button>
-          {result && <button className={`ide-rail-btn ${page === "dashboard" ? "active" : ""}`} aria-label="Dashboard" aria-current={page === "dashboard" ? "page" : undefined} title="Dashboard" onClick={() => nav("dashboard")}><Icon name="dashboard" /></button>}
-          <button className={`ide-rail-btn ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} aria-label="Tools" aria-current={page === "tools" || page.startsWith("tool-") ? "page" : undefined} title="Tools" onClick={() => nav("tools")}><Icon name="wrench" /></button>
-          <button className={`ide-rail-btn ${page === "programs" ? "active" : ""}`} aria-label="Programs" aria-current={page === "programs" ? "page" : undefined} title="Programs" onClick={() => nav("programs")}><Icon name="layers" /></button>
-          <button className={`ide-rail-btn ${page === "account" ? "active" : ""}`} aria-label={loggedIn ? "Account" : "Sign Up"} aria-current={page === "account" ? "page" : undefined} title={loggedIn ? "Account" : "Sign Up"} onClick={() => nav("account")}><Icon name="user" /></button>
+          {visibleRailRoutes(navCtx).map((r) => (
+            <button
+              key={r.page}
+              className={`ide-rail-btn ${isActive(r) ? "active" : ""}`}
+              aria-label={navLabelFor(r, navCtx)}
+              aria-current={isActive(r) ? "page" : undefined}
+              title={navLabelFor(r, navCtx)}
+              onClick={() => nav(r.page)}
+            >
+              <Icon name={r.nav.icon} />
+            </button>
+          ))}
           <button className="ide-rail-btn" aria-label="Open command palette" title="Command Palette (Ctrl+K)" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }))}><Icon name="command" /></button>
           <div className="ide-rail-spacer" />
           <button className="ide-rail-btn" aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"} onClick={toggleTheme}><Icon name={theme === "light" ? "moon" : "sun"} /></button>
@@ -467,32 +336,26 @@ export function App() {
           <button className="ide-rail-btn ide-rail-hamburger" aria-label={navOpen ? "Close menu" : "Open menu"} aria-expanded={navOpen} onClick={() => setNavOpen((o) => !o)}><Icon name={navOpen ? "x" : "menu"} /></button>
         </nav>
 
-        {/* COLUMN 2 — file-tree sidebar */}
+        {/* COLUMN 2 — file-tree sidebar (route-table derived) */}
         <aside className="ide-sidebar" aria-label="Navigation">
           <div className="ide-sidebar-brand" onClick={handleReset} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleReset(); } }} role="button" tabIndex={0} title="Reset to Analyze">
             <span className="ide-sidebar-brand-name">Axis&apos; Iliad</span>
             <span className="badge badge-accent">v{APP_VERSION}</span>
           </div>
           <div className="ide-tree">
-            <div className="ide-tree-group">WORKSPACE</div>
-            <button className={`ide-tree-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}><span className="ide-tree-ico"><Icon name="scan" /></span>Analyze</button>
-            {result && <button className={`ide-tree-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}><span className="ide-tree-ico"><Icon name="dashboard" /></span>Dashboard</button>}
-            <button className={`ide-tree-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}><span className="ide-tree-ico"><Icon name="wrench" /></span>Tools</button>
-            <div className="ide-tree-group">LIBRARY</div>
-            <button className={`ide-tree-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}><span className="ide-tree-ico"><Icon name="layers" /></span>Programs</button>
-            <button className={`ide-tree-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}><span className="ide-tree-ico"><Icon name="grid" /></span>Examples</button>
-            <button className={`ide-tree-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}><span className="ide-tree-ico"><Icon name="credit-card" /></span>Plans</button>
-            <div className="ide-tree-group">ACCOUNT</div>
-            <button className={`ide-tree-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}><span className="ide-tree-ico"><Icon name="user" /></span>{loggedIn ? "Account" : "Sign Up"}</button>
-            {privateAccess && <button className={`ide-tree-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}><span className="ide-tree-ico"><Icon name="bar-chart" /></span>MyAnalytics</button>}
-            {privateAccess && <button className={`ide-tree-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}><span className="ide-tree-ico"><Icon name="settings" /></span>Admin</button>}
-            {loggedIn && <button className="ide-tree-item" onClick={handleLogout}><span className="ide-tree-ico"><Icon name="log-out" /></span>Log Out</button>}
-            <div className="ide-tree-group">HELP</div>
-            <button className={`ide-tree-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}><span className="ide-tree-ico"><Icon name="book" /></span>Docs</button>
-            <button className={`ide-tree-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}><span className="ide-tree-ico"><Icon name="help" /></span>Help</button>
-            <button className={`ide-tree-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}><span className="ide-tree-ico"><Icon name="message" /></span>Q&amp;A</button>
-            <button className={`ide-tree-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}><span className="ide-tree-ico"><Icon name="bot" /></span>For Agents</button>
-            <button className={`ide-tree-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}><span className="ide-tree-ico"><Icon name="download" /></span>Install</button>
+            {NAV_GROUPS.map((group) => (
+              <Fragment key={group}>
+                <div className="ide-tree-group">{group}</div>
+                {visibleGroupRoutes(group, navCtx).map((r) => (
+                  <button key={r.page} className={`ide-tree-item ${isActive(r) ? "active" : ""}`} onClick={() => nav(r.page)}>
+                    <span className="ide-tree-ico"><Icon name={r.nav.icon} /></span>{navLabelFor(r, navCtx)}
+                  </button>
+                ))}
+                {group === "ACCOUNT" && loggedIn && (
+                  <button className="ide-tree-item" onClick={handleLogout}><span className="ide-tree-ico"><Icon name="log-out" /></span>Log Out</button>
+                )}
+              </Fragment>
+            ))}
           </div>
         </aside>
 
@@ -500,12 +363,12 @@ export function App() {
         <div className="ide-tabstrip">
           <div className="ide-tab active">
             <span className="ide-tab-ico">●</span>
-            <span className="ide-tab-label">{page === "account" ? (loggedIn ? "Account" : "Sign Up") : (LABEL_OF[page] ?? page)}</span>
+            <span className="ide-tab-label">{tabLabelFor(activeDef, navCtx)}</span>
           </div>
           <div className="ide-locator mono" aria-hidden>
-            <span className="loc-sys">{SECTION_OF[page] ?? "SYSTEM"}</span>
+            <span className="loc-sys">{activeDef.section}</span>
             <span className="loc-sep">▸</span>
-            <span className="loc-page">{(LABEL_OF[page] ?? page).toUpperCase()}</span>
+            <span className="loc-page">{tabLabelFor(activeDef, navCtx).toUpperCase()}</span>
           </div>
           <span className="ide-tel-dot" aria-hidden />
         </div>
@@ -523,35 +386,8 @@ export function App() {
           )}
 
           <ErrorBoundary>
-            <div key={pageKey} className="page-enter">
-              {page === "upload" && <UploadPage onComplete={handleUploadComplete} />}
-              {page === "dashboard" && result && (
-                <DashboardPage result={result} onGeneratedCountChange={handleGeneratedCountChange} />
-              )}
-              {page === "plans" && <PlansPage onSelectPlan={() => nav("account")} onRequireLogin={() => setShowSignUp(true)} />}
-              {page === "account" && <AccountPage onAuthChange={handleAuthChange} />}
-              {page === "docs" && <DocsPage />}
-              {page === "help" && <HelpPage />}
-              {page === "qa" && <QAPage />}
-              {page === "myanalytics" && privateAccess && <MyAnalyticsPage />}
-              {page === "admin" && privateAccess && <AdminPage />}
-              {page === "programs" && <ProgramsPage onAnalyze={() => nav("upload")} />}
-              {page === "terms" && <TermsPage />}
-              {page === "for-agents" && <ForAgentsPage />}
-              {page === "examples" && <ExamplesPage />}
-              {page === "install" && <InstallPage />}
-              {page === "paid-checkout" && <PaidCheckoutPage />}
-              {page === "tools" && (
-                <ToolsIndexPage
-                  onSelectTool={(toolId) => {
-                    if (toolId === "tools/web-research") nav("tool-web-research");
-                    else if (toolId === "tools/analyze") nav("upload");
-                    else if (toolId === "tools/list-programs") nav("programs");
-                    // Future tools: add cases here as their ToolPage instances ship.
-                  }}
-                />
-              )}
-              {page === "tool-web-research" && <WebResearchPage onBack={() => nav("tools")} />}
+            <div key={route.key} className="page-enter">
+              {activeDef.render(routeCtx)}
             </div>
           </ErrorBoundary>
 
@@ -565,26 +401,21 @@ export function App() {
           </footer>
         </main>
 
-        {/* Mobile off-canvas drawer — reuses existing classes + state */}
+        {/* Mobile off-canvas drawer — same route-table groups, flattened */}
         {navOpen && (
           <nav className="nav-mobile-drawer" onClick={() => setNavOpen(false)}>
-            <button className={`nav-drawer-item ${page === "upload" ? "active" : ""}`} onClick={() => nav("upload")}>Analyze</button>
-            {result && (
-              <button className={`nav-drawer-item ${page === "dashboard" ? "active" : ""}`} onClick={() => nav("dashboard")}>Dashboard</button>
-            )}
-            <button className={`nav-drawer-item ${page === "tools" || page.startsWith("tool-") ? "active" : ""}`} onClick={() => nav("tools")}>Tools</button>
-            <button className={`nav-drawer-item ${page === "programs" ? "active" : ""}`} onClick={() => nav("programs")}>Programs</button>
-            <button className={`nav-drawer-item ${page === "plans" ? "active" : ""}`} onClick={() => nav("plans")}>Plans</button>
-            <button className={`nav-drawer-item ${page === "account" ? "active" : ""}`} onClick={() => nav("account")}>{loggedIn ? "Account" : "Sign Up"}</button>
-            {loggedIn && <button className="nav-drawer-item" onClick={handleLogout}>Log Out</button>}
-            <button className={`nav-drawer-item ${page === "docs" ? "active" : ""}`} onClick={() => nav("docs")}>Docs</button>
-            <button className={`nav-drawer-item ${page === "help" ? "active" : ""}`} onClick={() => nav("help")}>Help</button>
-            <button className={`nav-drawer-item ${page === "qa" ? "active" : ""}`} onClick={() => nav("qa")}>Q&amp;A</button>
-            {privateAccess && <button className={`nav-drawer-item ${page === "myanalytics" ? "active" : ""}`} onClick={() => nav("myanalytics")}>MyAnalytics</button>}
-            {privateAccess && <button className={`nav-drawer-item ${page === "admin" ? "active" : ""}`} onClick={() => nav("admin")}>Admin</button>}
-            <button className={`nav-drawer-item ${page === "for-agents" ? "active" : ""}`} onClick={() => nav("for-agents")}>For Agents</button>
-            <button className={`nav-drawer-item ${page === "examples" ? "active" : ""}`} onClick={() => nav("examples")}>Examples</button>
-            <button className={`nav-drawer-item ${page === "install" ? "active" : ""}`} onClick={() => nav("install")}>Install</button>
+            {NAV_GROUPS.map((group) => (
+              <Fragment key={group}>
+                {visibleGroupRoutes(group, navCtx).map((r) => (
+                  <button key={r.page} className={`nav-drawer-item ${isActive(r) ? "active" : ""}`} onClick={() => nav(r.page)}>
+                    {navLabelFor(r, navCtx)}
+                  </button>
+                ))}
+                {group === "ACCOUNT" && loggedIn && (
+                  <button className="nav-drawer-item" onClick={handleLogout}>Log Out</button>
+                )}
+              </Fragment>
+            ))}
           </nav>
         )}
       </div>

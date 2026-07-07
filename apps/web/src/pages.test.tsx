@@ -151,6 +151,40 @@ describe("Page smoke tests — pages with required props", () => {
   });
 });
 
+// ─── 404 page (WO-F2) ───────────────────────────────────────────
+
+import { NotFoundPage } from "./pages/NotFoundPage";
+
+describe("NotFoundPage", () => {
+  const destinations = [
+    { page: "docs" as const, label: "Docs", hash: "docs" },
+    { page: "plans" as const, label: "Plans", hash: "plans" },
+  ];
+
+  it("reports the bad hash", () => {
+    render(<NotFoundPage badHash="bogus/route" destinations={destinations} onNavigate={() => {}} />);
+    expect(screen.getByText("404")).toBeTruthy();
+    expect(screen.getByText(/bogus\/route/)).toBeTruthy();
+  });
+
+  it("offers Analyze / Docs / Help quick links", () => {
+    const seen: string[] = [];
+    render(<NotFoundPage badHash="x" destinations={destinations} onNavigate={(p) => seen.push(p)} />);
+    fireEvent.click(screen.getByRole("button", { name: "Analyze" }));
+    fireEvent.click(screen.getByRole("button", { name: "Docs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Help" }));
+    expect(seen).toEqual(["upload", "docs", "help"]);
+  });
+
+  it("search filters destinations and navigates on click", () => {
+    const seen: string[] = [];
+    render(<NotFoundPage badHash="x" destinations={destinations} onNavigate={(p) => seen.push(p)} />);
+    fireEvent.change(screen.getByLabelText("Search pages"), { target: { value: "pla" } });
+    fireEvent.click(screen.getByRole("button", { name: "Go to Plans" }));
+    expect(seen).toEqual(["plans"]);
+  });
+});
+
 // ─── PAI'D checkout flow ────────────────────────────────────────
 
 import { PaidCheckoutPage } from "./pages/PaidCheckoutPage";
