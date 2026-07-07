@@ -57,6 +57,7 @@ import {
   healthLive,
   healthReady,
   ApiError,
+  apiErrorDetails,
   type SnapshotPayload,
 } from "./api.ts";
 
@@ -214,24 +215,67 @@ describe("session cookie cutover (H1 C2)", () => {
   });
 });
 
-describe("fetchJSON error handling", () => {
+describe("fetchJSON error handling (WO-F4 hardened)", () => {
+  /** Await the rejection and hand back the ApiError for inspection. */
+  async function rejectionOf(p: Promise<unknown>): Promise<ApiError> {
+    const err = await p.then(
+      () => { throw new Error("expected rejection"); },
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(ApiError);
+    return err as ApiError;
+  }
+
   it("throws on non-OK response with JSON error", async () => {
     vi.stubGlobal("fetch", mockFetch({ error: "Not found" }, 404));
 
     await expect(healthCheck()).rejects.toThrow("Not found");
   });
 
-  it("throws with status code on non-JSON error", async () => {
+  it("never surfaces a raw non-JSON body as the message — human copy + extra.details", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
       json: () => Promise.reject(new Error("parse err")),
-      text: () => Promise.resolve("Internal Server Error"),
+      text: () => Promise.resolve("<html><body>Internal Server Error at upstream</body></html>"),
       headers: { get: () => null },
     });
     vi.stubGlobal("fetch", fetchFn);
 
-    await expect(healthCheck()).rejects.toThrow("Internal Server Error");
+    const err = await rejectionOf(healthCheck());
+    expect(err.message).toBe("The server hit an unexpected error — try again shortly.");
+    expect(err.message).not.toContain("Internal Server Error");
+    expect(apiErrorDetails(err)).toContain("Internal Server Error at upstream");
+  });
+
+  it("maps a JSON body without an error field to human copy by status, keeping extras", async () => {
+    vi.stubGlobal("fetch", mockFetch({ hint: "nope" }, 403));
+
+    const err = await rejectionOf(healthCheck());
+    expect(err.message).toBe("You don't have access to that.");
+    expect(err.extra["hint"]).toBe("nope");
+    expect(apiErrorDetails(err)).toBeNull();
+  });
+
+  it("caps preserved raw details at 500 chars", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: () => Promise.reject(new Error("parse err")),
+      text: () => Promise.resolve("x".repeat(2000)),
+      headers: { get: () => null },
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const err = await rejectionOf(healthCheck());
+    expect(apiErrorDetails(err)).toHaveLength(500);
+  });
+
+  it("keeps the structured error slug intact for guards (persistence_credits_required)", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "persistence_credits_required", credits_needed: 1 }, 402));
+
+    const err = await rejectionOf(healthCheck());
+    expect(isPersistenceCreditsError(err)).toBe(true);
   });
 
   it("throws 'Request timed out' on abort", async () => {
@@ -483,7 +527,7 @@ describe("getGeneratedFile", () => {
     expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/proj1/generated-files/src%2Findex.ts");
   });
 
-  it("throws on non-OK response", async () => {
+  it("throws human copy (never the raw body) on non-OK response", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
@@ -492,7 +536,13 @@ describe("getGeneratedFile", () => {
     });
     vi.stubGlobal("fetch", fetchFn);
 
-    await expect(getGeneratedFile("proj1", "missing.ts")).rejects.toThrow("404: Not found");
+    const err = await getGeneratedFile("proj1", "missing.ts").then(
+      () => { throw new Error("expected rejection"); },
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).message).toBe("Not found — it may have been moved or deleted.");
+    expect(apiErrorDetails(err)).toBe("Not found");
   });
 });
 

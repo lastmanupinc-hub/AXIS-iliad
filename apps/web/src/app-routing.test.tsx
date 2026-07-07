@@ -160,6 +160,47 @@ describe("App routing (WO-F2)", () => {
   });
 });
 
+// ─── Shared primitives shell integration (WO-F4) ─────────────────
+
+describe("PageFooter in the shell (WO-F4)", () => {
+  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#install", "#for-agents", "#tools", "#__kitchen-sink", "#definitely/not/a/page"];
+
+  it("is rendered by the shell on every page, including 404 and the kitchen sink", () => {
+    for (const hash of PUBLIC_HASHES) {
+      window.location.hash = hash;
+      const { container, unmount } = render(<App />);
+      const footer = container.querySelector(".ide-footer");
+      expect(footer, `footer missing at "${hash || "(home)"}"`).toBeTruthy();
+      expect(within(footer as HTMLElement).getByRole("button", { name: "Terms" })).toBeTruthy();
+      expect(within(footer as HTMLElement).getByRole("link", { name: "Status" })).toBeTruthy();
+      unmount();
+    }
+  });
+
+  it("footer links navigate through the route table", () => {
+    const { container } = render(<App />);
+    const footer = container.querySelector(".ide-footer") as HTMLElement;
+    fireEvent.click(within(footer).getByRole("button", { name: "Docs" }));
+    expect(shellPage(container)).toBe("docs");
+    expect(window.location.hash).toBe("#docs");
+  });
+});
+
+describe("kitchen-sink route in the shell (WO-F4)", () => {
+  it("renders the hidden primitives gallery at #__kitchen-sink", () => {
+    window.location.hash = "#__kitchen-sink";
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("kitchen-sink");
+    expect(screen.getByRole("heading", { name: "Kitchen Sink" })).toBeTruthy();
+  });
+
+  it("never appears in the sidebar", () => {
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    expect(sidebar.queryByRole("button", { name: "Kitchen Sink" })).toBeNull();
+  });
+});
+
 // ─── Multi-project state (WO-F3) ─────────────────────────────────
 // localStorage keeps only `axis_last_project_id` (server restores the rest)
 // plus a client-side anon-results cache; the pre-WO-F3 `axis_last_result`

@@ -16,6 +16,7 @@ import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
 import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
 import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
+import { KitchenSinkPage } from "./pages/KitchenSinkPage.tsx";
 import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
@@ -55,6 +56,8 @@ export type PageId =
   // Sub-tool pages — each a click-driven console for a single backend capability.
   // Hash format: "#tools/web-research".
   | "tool-web-research"
+  // Hidden dev aid (WO-F4): primitives gallery at #__kitchen-sink.
+  | "kitchen-sink"
   | "not-found";
 
 export type RouteParams = Record<string, string>;
@@ -321,6 +324,17 @@ export const ROUTES: RouteDef[] = [
     authOnly: true,
     aliases: ["/paid-checkout"],
     render: () => <PaidCheckoutPage />,
+  },
+  {
+    page: "kitchen-sink",
+    pattern: "__kitchen-sink",
+    label: "Kitchen Sink",
+    tabLabel: "kitchen-sink.dev",
+    section: "SYSTEM",
+    // Dev aid (WO-F4): a Storybook-style gallery of the shared primitives.
+    // Hidden — no `nav` entry, shortcut, or alias, so it never appears in the
+    // sidebar/rail/drawer/palette/404 search; reachable only by typing the hash.
+    render: (ctx) => <KitchenSinkPage onNavigate={ctx.navigate} />,
   },
   {
     page: "not-found",

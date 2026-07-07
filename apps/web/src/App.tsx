@@ -4,6 +4,7 @@ import { CommandPalette, type PaletteAction } from "./components/CommandPalette.
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
+import { PageFooter } from "./components/primitives/PageFooter.tsx";
 import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 import {
@@ -495,14 +496,8 @@ export function App() {
             </div>
           </ErrorBoundary>
 
-          <footer className="ide-footer">
-            <p>
-              © {new Date().getFullYear()} Last Man Up Inc. ·{" "}
-              <button className="btn" style={{ padding: "0 4px", fontSize: "0.8rem", display: "inline" }} onClick={() => nav("terms")}>Terms of Service</button>
-              {" "} · {" "}
-              <a href="mailto:support@jonathanarvay.com">support@jonathanarvay.com</a>
-            </p>
-          </footer>
+          {/* WO-F4: shell-owned footer on every page, above the StatusBar. */}
+          <PageFooter onNavigate={nav} />
         </main>
 
         {/* Mobile off-canvas drawer — same route-table groups, flattened */}

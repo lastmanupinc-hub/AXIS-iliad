@@ -15,6 +15,7 @@ import {
   routeForPage,
   routeForShortcut,
   routeFromPathname,
+  visibleNavRoutes,
   type NavContext,
 } from "./routes.tsx";
 
@@ -160,5 +161,27 @@ describe("derived route metadata", () => {
     expect(routeForShortcut(9, base)).toBeNull();
     expect(routeForShortcut(8, { ...base, privateAccess: true })!.page).toBe("admin");
     expect(routeForShortcut(9, { ...base, privateAccess: true })!.page).toBe("myanalytics");
+  });
+});
+
+// ─── Kitchen sink (WO-F4 dev aid) ────────────────────────────────
+
+describe("kitchen-sink route (WO-F4)", () => {
+  it("resolves at #__kitchen-sink", () => {
+    expect(matchHash("__kitchen-sink")!.route.page).toBe("kitchen-sink");
+    expect(hashForPage("kitchen-sink")).toBe("__kitchen-sink");
+  });
+
+  it("stays hidden: no nav entry, shortcut, or alias — absent from every nav surface", () => {
+    const def = routeForPage("kitchen-sink");
+    expect(def.nav).toBeUndefined();
+    expect(def.shortcut).toBeUndefined();
+    expect(def.aliases).toBeUndefined();
+    const everything: NavContext = { loggedIn: true, privateAccess: true, hasResult: true };
+    expect(visibleNavRoutes(everything).some((r) => r.page === "kitchen-sink")).toBe(false);
+  });
+
+  it("is not login-gated (a dev aid, not an account page)", () => {
+    expect(AUTH_ONLY_PAGES.has("kitchen-sink")).toBe(false);
   });
 });

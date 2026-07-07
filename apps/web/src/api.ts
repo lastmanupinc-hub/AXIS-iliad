@@ -388,6 +388,36 @@ interface FetchOptions extends RequestInit {
   allowStatuses?: number[];
 }
 
+/** Human fallback copy per HTTP status — the ApiError message whenever the
+ *  server's response carries no structured `{error}` field (WO-F4 hardening:
+ *  raw server bodies never headline; see apiErrorDetails for the disclosure). */
+function humanMessage(status: number): string {
+  switch (status) {
+    case 400: return "That request was invalid — adjust the input and try again.";
+    case 401: return "Sign in to continue.";
+    case 402: return "This action needs a plan upgrade or credits.";
+    case 403: return "You don't have access to that.";
+    case 404: return "Not found — it may have been moved or deleted.";
+    case 408: return "The server took too long to respond — try again.";
+    case 409: return "That conflicts with the current state — refresh and retry.";
+    case 413: return "That upload is too large for the current plan.";
+    case 422: return "The server couldn't process that input.";
+    case 429: return "Rate limit reached — wait a moment and try again.";
+    default:
+      if (status >= 500) return "The server hit an unexpected error — try again shortly.";
+      return `The request failed (HTTP ${status}).`;
+  }
+}
+
+/** Raw server response preserved by the error mapper for a collapsed
+ *  "details" disclosure (e.g. <Callout details={apiErrorDetails(err)}>).
+ *  Never rendered as the headline message. */
+export function apiErrorDetails(err: unknown): string | null {
+  if (!(err instanceof ApiError)) return null;
+  const d = err.extra["details"];
+  return typeof d === "string" && d.length > 0 ? d : null;
+}
+
 async function fetchResponse(url: string, init?: FetchOptions): Promise<Response> {
   const controller = new AbortController();
   const { timeoutMs: customTimeout, allowStatuses, ...fetchInit } = init ?? {};
@@ -402,7 +432,13 @@ async function fetchResponse(url: string, init?: FetchOptions): Promise<Response
       signal: controller.signal,
     });
     if (!res.ok && !allowStatuses?.includes(res.status)) {
-      let msg = `${res.status}`;
+      // WO-F4 hardening: the ApiError message is either the API's structured
+      // `error` field (the designed contract — UpsellModal, credit guards, and
+      // 402 payload rendering key off it) or human copy mapped from the status.
+      // A raw, unstructured server body (HTML error page, proxy text, stack
+      // trace) NEVER becomes the message — it is preserved in extra.details
+      // for an optional collapsed disclosure (apiErrorDetails + Callout).
+      let msg = humanMessage(res.status);
       let errorCode = "";
       let extra: Record<string, unknown> = {};
       try {
@@ -416,7 +452,7 @@ async function fetchResponse(url: string, init?: FetchOptions): Promise<Response
           extra = rest;
         } catch {
           /* v8 ignore next */
-          if (body) msg = body.slice(0, 200);
+          if (body) extra = { details: body.slice(0, 500) };
         }
       } catch { /* empty body */ }
       throw new ApiError(msg, res.status, errorCode, extra);
@@ -488,12 +524,9 @@ export async function getGeneratedFiles(projectId: string): Promise<GeneratedFil
 }
 
 export async function getGeneratedFile(projectId: string, filePath: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/v1/projects/${projectId}/generated-files/${encodeURIComponent(filePath)}`, {
-    headers: authHeaders(),
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
-  return res.text();
+  // Routed through fetchText so failures get the hardened ApiError mapping
+  // (human copy + extra.details) instead of throwing the raw body (WO-F4).
+  return fetchText(`/v1/projects/${projectId}/generated-files/${encodeURIComponent(filePath)}`);
 }
 
 export async function runProgram(
