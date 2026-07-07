@@ -390,7 +390,7 @@ describe("API integration", () => {
     expect(data.program).toBe("agentic-purchasing");
     const files = data.files as Array<{ path: string; program: string }>;
     expect(files.every(f => f.program === "agentic-purchasing")).toBe(true);
-    expect(files.length).toBe(5);
+    expect(files.length).toBe(6); // +1: ap2-interop-samples.json (WO-07)
   });
 
   it("returns 404 for unknown route", async () => {

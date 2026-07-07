@@ -1,0 +1,21 @@
+{
+  "message": {
+    "kind": "ucp.settlement",
+    "version": "ucp/1",
+    "settlement_id": "settlement_golden_001",
+    "payment_ref": "payment_golden_001",
+    "clearing_system": "VISA_NET",
+    "amount": {
+      "currency": "USD",
+      "value": "26.00"
+    },
+    "value_date": "2026-01-02",
+    "settlement_finality": "final"
+  },
+  "jws": {
+    "protected": "eyJhbGciOiJFZERTQSJ9",
+    "signature": "wqOOrl52nkEUVGsvdIMnmK15whxKWUKdhfwmZBna6pKs_dmn0bZAKEahVOv96UQgphY_6cPiZsIh5jJhdpyCAg"
+  },
+  "public_key": "MCowBQYDK2VwAyEAlwlnemiDewSPFgpxCXanLx1bZFCDASsoHbuf3eHjCac=",
+  "canonical": "{\"amount\":{\"currency\":\"USD\",\"value\":\"26.00\"},\"clearing_system\":\"VISA_NET\",\"kind\":\"ucp.settlement\",\"payment_ref\":\"payment_golden_001\",\"settlement_finality\":\"final\",\"settlement_id\":\"settlement_golden_001\",\"value_date\":\"2026-01-02\",\"version\":\"ucp/1\"}"
+}

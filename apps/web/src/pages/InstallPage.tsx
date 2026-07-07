@@ -116,7 +116,7 @@ export function InstallPage() {
           Install Axis' Iliad
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: 20 }}>
-          Add AXIS as an MCP server in your AI tool. One config block — your assistant gets 29 public tools, 20 programs, and 140 generators for any codebase.
+          Add AXIS as an MCP server in your AI tool. One config block — your assistant gets 29 public tools, 20 programs, and 141 generators for any codebase.
         </p>
 
         {/* Platform tabs */}
@@ -166,7 +166,7 @@ export function InstallPage() {
           {[
             { label: "29 MCP Tools", desc: "analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing_preview, prepare_agentic_purchasing, closer, deploy, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits, iliad_web_research, iliad_web_research_crawl, iliad_object_storage, iliad_vector_database, iliad_embeddings, iliad_transactional_email, iliad_llm_inference, iliad_code_sandbox, iliad_document_parsing, iliad_web_search, iliad_text_to_speech, iliad_speech_to_text, iliad_analytics, iliad_hygiene" },
             { label: "20 Programs", desc: "search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer, deploy" },
-            { label: "140 Generators", desc: "AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and 131 more" },
+            { label: "141 Generators", desc: "AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and 131 more" },
             { label: "Autonomous Payment", desc: "HTTP 402 → MPP challenge → Stripe payment → retry. Blended credits with $0.0018 overage per credit. No human needed." },
             { label: "Referral Program (Opt-In)", desc: "Paid calls return a referral_token. Unique conversions earn usage credits (up to 0.02% per call). Resets each billing cycle." },
           ].map(item => (

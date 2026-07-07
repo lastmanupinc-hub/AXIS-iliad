@@ -1,0 +1,40 @@
+{
+  "mandate": {
+    "kind": "cart",
+    "version": "ap2/1",
+    "id": "cart_golden_001",
+    "intent_ref": "intent_golden_001",
+    "merchant_id": "merchant_golden_001",
+    "items": [
+      {
+        "sku": "sku-pen-001",
+        "name": "Box of pens",
+        "quantity": 3,
+        "unit_price": {
+          "currency": "USD",
+          "value": "4.50"
+        }
+      },
+      {
+        "sku": "sku-paper-001",
+        "name": "Ream of paper",
+        "quantity": 2,
+        "unit_price": {
+          "currency": "USD",
+          "value": "6.25"
+        }
+      }
+    ],
+    "total": {
+      "currency": "USD",
+      "value": "26.00"
+    },
+    "created_at": "2026-01-01T00:05:00.000Z"
+  },
+  "jws": {
+    "protected": "eyJhbGciOiJFZERTQSJ9",
+    "signature": "eg9Bw4x1pkfigNApeLHON_NSVESNAZaZCdRHWFp4bLivqblY4fWa90Vvirf6-L4o7ofCrkn7ng6BHBXHzaugBg"
+  },
+  "public_key": "MCowBQYDK2VwAyEAlwlnemiDewSPFgpxCXanLx1bZFCDASsoHbuf3eHjCac=",
+  "canonical": "{\"created_at\":\"2026-01-01T00:05:00.000Z\",\"id\":\"cart_golden_001\",\"intent_ref\":\"intent_golden_001\",\"items\":[{\"name\":\"Box of pens\",\"quantity\":3,\"sku\":\"sku-pen-001\",\"unit_price\":{\"currency\":\"USD\",\"value\":\"4.50\"}},{\"name\":\"Ream of paper\",\"quantity\":2,\"sku\":\"sku-paper-001\",\"unit_price\":{\"currency\":\"USD\",\"value\":\"6.25\"}}],\"kind\":\"cart\",\"merchant_id\":\"merchant_golden_001\",\"total\":{\"currency\":\"USD\",\"value\":\"26.00\"},\"version\":\"ap2/1\"}"
+}

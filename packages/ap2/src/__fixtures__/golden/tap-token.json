@@ -1,0 +1,18 @@
+{
+  "message": {
+    "kind": "tap.token",
+    "version": "tap/1",
+    "token_id": "token_golden_001",
+    "event": "provision",
+    "token_requestor_id": "trid_golden_001",
+    "dpan_last4": "4242",
+    "mandate_ref": "cart_golden_001",
+    "occurred_at": "2026-01-01T00:07:00.000Z"
+  },
+  "jws": {
+    "protected": "eyJhbGciOiJFZERTQSJ9",
+    "signature": "iKnnhMp3mT27kb7burdu85cBjTW16EdcoDregLFPXswMYGe8fqv6srLgJ1XgDQtggb9G3PKg799KBTH6CvchDw"
+  },
+  "public_key": "MCowBQYDK2VwAyEAlwlnemiDewSPFgpxCXanLx1bZFCDASsoHbuf3eHjCac=",
+  "canonical": "{\"dpan_last4\":\"4242\",\"event\":\"provision\",\"kind\":\"tap.token\",\"mandate_ref\":\"cart_golden_001\",\"occurred_at\":\"2026-01-01T00:07:00.000Z\",\"token_id\":\"token_golden_001\",\"token_requestor_id\":\"trid_golden_001\",\"version\":\"tap/1\"}"
+}
