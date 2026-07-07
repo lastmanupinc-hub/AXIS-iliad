@@ -18,9 +18,9 @@ import type { PageId, RouteParams } from "../routes.tsx";
 // ─── AccountDashboardPage (WO-P3) ────────────────────────────────────────────
 // Account-level overview: recent-projects cards, usage stat tiles + quota bar
 // + 14-day sparkline, quick actions, and the zero-project onboarding state.
-// Distinct from the per-project view still living at #dashboard (DashboardPage —
-// see the routing note in routes.tsx for why this page is parked at its own
-// hash rather than "#dashboard" today).
+// Lives at the real "#dashboard" hash (WO-P5 completed the handoff — see the
+// "dashboard" route's comment in routes.tsx). Distinct from the per-project
+// view, which is ID-addressable at "#projects/:id" (ProjectPage.tsx).
 
 interface Props {
   onOpenProject: (projectId: string) => void;

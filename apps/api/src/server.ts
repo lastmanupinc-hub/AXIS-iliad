@@ -107,7 +107,7 @@ import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleTog
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
 import { handleGetFleet } from "./fleet-handlers.js";
-import { handleListProjects } from "./projects-handlers.js";
+import { handleListProjects, handleListProjectSnapshots } from "./projects-handlers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
@@ -182,6 +182,7 @@ router.get("/v1/snapshots/:snapshot_id/diff", handleDiffVersions);
 router.get("/v1/projects", handleListProjects);
 
 // Project context endpoints
+router.get("/v1/projects/:project_id/snapshots", handleListProjectSnapshots);
 router.get("/v1/projects/:project_id/context", handleGetContext);
 router.get("/v1/projects/:project_id/generated-files", handleGetGeneratedFiles);
 router.get("/v1/projects/:project_id/generated-files/:file_path*", handleGetGeneratedFile);

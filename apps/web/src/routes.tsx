@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
-import { DashboardPage } from "./pages/DashboardPage.tsx";
+import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { PlansPage } from "./pages/PlansPage.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
@@ -20,7 +20,7 @@ import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
 import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { KitchenSinkPage } from "./pages/KitchenSinkPage.tsx";
 import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx";
-import { Callout } from "./components/primitives/index.ts";
+import { Callout, EmptyState } from "./components/primitives/index.ts";
 import { PRO_PROGRAM_COUNT } from "./config.ts";
 import type { SignUpTrigger } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
@@ -46,12 +46,24 @@ import type { SnapshotResponse } from "./api.ts";
 // and "analyze" (pattern "analyze") is the functional form (AnalyzePage.tsx,
 // the WORKSPACE sidebar item, owns the Ctrl+1 shortcut per HelpPage's table).
 // These replace the former combined "upload" page.
+//
+// WO-P5: the per-project detail view (formerly the single-result "dashboard"
+// page, gated on `hasResult`) moved to the ID-addressable "project"/
+// "project-versions" routes below — the build plan's IA (§1.2) reserves the
+// literal hash "#dashboard" for the account-level overview (WO-P3's former
+// "account-dashboard" page, promoted here to the real "dashboard" id now
+// that the handoff has happened).
 
 export type PageId =
   | "home"
   | "analyze"
   | "dashboard"
-  | "account-dashboard"
+  // Project/Snapshot Detail (WO-P5) — ID-addressable at "#projects/:id";
+  // "project-versions" is the same page with the Versions tab deep-linked
+  // (a second RouteDef because a pattern segment can't be optional AND
+  // extend the segment count — see matchPattern's exact-segment-count rule).
+  | "project"
+  | "project-versions"
   | "plans"
   | "account"
   | "docs"
@@ -79,6 +91,9 @@ export type RouteParams = Record<string, string>;
 export interface NavContext {
   loggedIn: boolean;
   privateAccess: boolean;
+  /** A project result is currently loaded (any project, not just the account
+   *  overview's list) — informational; no route's `visible` gates on it since
+   *  WO-P5 moved the per-project view off the shared "#dashboard" hash. */
   hasResult: boolean;
 }
 
@@ -88,12 +103,18 @@ export interface RouteContext extends NavContext {
   params: RouteParams;
   /** Raw hash (without "#") that produced the current route — 404 reporting. */
   hash: string;
+  /** The project currently loaded — WO-P5: for the "project"/"project-versions"
+   *  routes this is fetched (or read from the anon cache) for `params.id`
+   *  specifically; `result.project_id === params.id` before it's safe to render. */
   result: SnapshotResponse | null;
   /** Active project id (multi-project state, WO-F3) — survives reloads via
    *  localStorage `axis_last_project_id`; the server restores the rest. */
   currentProjectId: string | null;
-  /** True while the dashboard result is being rebuilt from the server. */
+  /** True while a project result is being rebuilt from the server. */
   restoring: boolean;
+  /** Set when the last restore attempt (for `params.id`) failed — human copy,
+   *  never a raw server body (WO-F4 hardening). Cleared on the next attempt. */
+  restoreError: string | null;
   navigate: (page: PageId, params?: RouteParams) => void;
   /** Open the sign-in popup without navigating (WO-P2: remembers the current
    *  page so a successful sign-in returns here; `trigger` picks the popup's
@@ -106,9 +127,15 @@ export interface RouteContext extends NavContext {
   onAuthChange: () => void;
   /** WO-P3: open a project from a project card (Account Dashboard) — clears
    *  any stale in-memory result, points multi-project state at `projectId`,
-   *  and navigates to the "dashboard" route, which restores it from the
+   *  and navigates to "#projects/:id" (WO-P5), which restores it from the
    *  server (the same seam WO-F3 built for the last-project deep-link). */
   onOpenProject: (projectId: string) => void;
+  /** WO-P5: a snapshot belonging to the open project was deleted — re-fetch
+   *  the project (a different snapshot may now be latest, or none remain). */
+  onSnapshotDeleted: () => void;
+  /** WO-P5: the open project itself was deleted — clear multi-project state
+   *  and leave the now-gone project's page. */
+  onProjectDeleted: () => void;
 }
 
 export type NavGroup = "WORKSPACE" | "LIBRARY" | "ACCOUNT" | "HELP";
@@ -149,8 +176,10 @@ export interface RouteDef {
   /**
    * Ctrl+N shortcut digit. Two routes may claim the same digit when their
    * `visible` conditions are mutually exclusive in priority order — the first
-   * visible claimant in table order owns the key (Ctrl+2 = Dashboard when a
-   * result exists, Programs otherwise, per the HelpPage shortcut table).
+   * visible claimant in table order owns the key. Most digits (per the
+   * HelpPage shortcut table) have exactly one static owner, gated at fire
+   * time by `nav()`'s auth check rather than a `visible` condition here
+   * (e.g. Ctrl+2 = Dashboard, Ctrl+3 = Plans — both auth-only).
    */
   shortcut?: number;
   /** Pathname aliases kept for marketing/SEO URLs (e.g. "/pricing"). */
@@ -183,67 +212,50 @@ export const ROUTES: RouteDef[] = [
     render: (ctx) => <AnalyzePage onComplete={ctx.onAnalyzeComplete} loggedIn={ctx.loggedIn} />,
   },
   {
+    // WO-P3 (account-level overview) — promoted to the real "#dashboard" hash
+    // by WO-P5, which relocated the per-project view that used to live here
+    // to the ID-addressable "project"/"project-versions" routes below (a
+    // generic nav/shortcut target can't carry a per-project `:id` param
+    // without WO-F2's "one entry = one page" invariant growing a special
+    // case). Ctrl+2 is this page's alone now — no `visible` gate needed since
+    // nothing else contests the digit (unlike the pre-WO-P5 hasResult dance).
     page: "dashboard",
     pattern: "dashboard",
     label: "Dashboard",
     tabLabel: "dashboard.json",
     section: "MISSION",
     shortcut: 2,
-    visible: (ctx) => ctx.hasResult,
+    authOnly: true,
     nav: { group: "WORKSPACE", icon: "dashboard", rail: true },
-    render: (ctx) => {
-      if (ctx.result) {
-        return (
-          <>
-            {!ctx.loggedIn && (
-              // H9 (WO-P1): anonymous analyses complete and display results —
-              // the SignUpModal no longer intercepts them. The nudge moves to
-              // this point-of-value banner instead of a blind gate.
-              <div className="mb-4">
-                <Callout tone="info" title="You're browsing as a guest">
-                  This project lives in your browser only. Sign up to unlock {PRO_PROGRAM_COUNT} more paid
-                  programs and keep every future analysis as a saved project.{" "}
-                  <button type="button" className="btn btn-primary" style={{ marginLeft: 8 }} onClick={() => ctx.requireLogin("save-project")}>
-                    Sign up free
-                  </button>
-                </Callout>
-              </div>
-            )}
-            <DashboardPage result={ctx.result} onGeneratedCountChange={ctx.onGeneratedCountChange} />
-          </>
-        );
-      }
-      if (ctx.restoring) {
-        return (
-          <div className="card" style={{ margin: 40, textAlign: "center", padding: 32 }} role="status" aria-live="polite">
-            Restoring project…
-          </div>
-        );
-      }
-      return null;
-    },
+    render: (ctx) => <AccountDashboardPage onOpenProject={ctx.onOpenProject} onNavigate={ctx.navigate} />,
   },
   {
-    // WO-P3: account-level overview (recent projects, usage, quick actions).
-    // Target IA (build plan §1.2) reserves the literal hash "#dashboard" for
-    // this page once WO-P5 relocates the per-project view below to
-    // "#projects/:id" — reassigning "#dashboard" now would require that
-    // relocation (a generic nav/shortcut target can't carry a per-project
-    // `:id` param without WO-F2's "one entry = one page" invariant growing a
-    // special case) and would orphan the "Dashboard" entry above (the
-    // just-shipped WO-P1 H9 immediate-results funnel navigates there right
-    // after every analysis). Parked at its own hash + a distinct label
-    // ("Overview", not "Dashboard" — the entry above already owns that name
-    // while it's visible) until WO-P5 does the real handoff; both PageId and
-    // pattern are one-line renames at that point.
-    page: "account-dashboard",
-    pattern: "account-dashboard",
-    label: "Overview",
-    tabLabel: "overview.json",
+    // WO-P5: Project/Snapshot Detail — the former single-result "#dashboard"
+    // page (hasResult-gated, no id of its own), now ID-addressable so any
+    // historical project can be opened by URL. `renderProjectDetail` (below
+    // the table) is shared with "project-versions"; App.tsx's restore effect
+    // fetches (or reads the anon cache for) whichever `params.id` is current.
+    page: "project",
+    pattern: "projects/:id",
+    label: "Project",
+    tabLabel: "project.json",
     section: "MISSION",
-    authOnly: true,
-    nav: { group: "WORKSPACE", icon: "grid", rail: true },
-    render: (ctx) => <AccountDashboardPage onOpenProject={ctx.onOpenProject} onNavigate={ctx.navigate} />,
+    render: (ctx) => renderProjectDetail(ctx),
+  },
+  {
+    // Same page as "project", with the Versions tab deep-linked (build plan
+    // §1.2: "#projects/:id/versions → Version history + diff viewer
+    // (deep-linkable tab)"). A separate RouteDef rather than an optional
+    // trailing segment on "project" — matchPattern requires an exact segment
+    // count per pattern, so "projects/:id" and "projects/:id/versions" are
+    // two patterns, not one with an optional tail.
+    page: "project-versions",
+    pattern: "projects/:id/versions",
+    label: "Project Versions",
+    tabLabel: "project-versions.json",
+    section: "MISSION",
+    parent: "project",
+    render: (ctx) => renderProjectDetail(ctx, "Versions"),
   },
   {
     page: "tools",
@@ -278,7 +290,6 @@ export const ROUTES: RouteDef[] = [
     pattern: "programs",
     label: "Programs",
     section: "MISSION",
-    shortcut: 2, // fallback owner of Ctrl+2 while Dashboard is hidden (no result)
     aliases: ["/programs"],
     nav: { group: "LIBRARY", icon: "layers", rail: true },
     render: (ctx) => <ProgramsPage onAnalyze={() => ctx.navigate("analyze")} />,
@@ -420,6 +431,62 @@ export const ROUTES: RouteDef[] = [
     render: (ctx) => <NotFoundPage badHash={ctx.hash} destinations={notFoundDestinations()} onNavigate={ctx.navigate} />,
   },
 ];
+
+// ─── Project Detail render (WO-P5) ────────────────────────────────────────────
+// Shared by the "project" and "project-versions" routes — the only difference
+// between them is which tab opens first. `ctx.result`/`restoring`/`restoreError`
+// are populated by App.tsx's restore effect, keyed on `ctx.params.id` (not the
+// app-wide "current project" — a deep link to a DIFFERENT project than the one
+// already open must still fetch the right one).
+
+function renderProjectDetail(ctx: RouteContext, initialTab?: ProjectTab): ReactNode {
+  if (ctx.result && ctx.result.project_id === ctx.params.id) {
+    return (
+      <>
+        {!ctx.loggedIn && (
+          // H9 (WO-P1): anonymous analyses complete and display results — the
+          // SignUpModal no longer intercepts them. The nudge moves to this
+          // point-of-value banner instead of a blind gate.
+          <div className="mb-4">
+            <Callout tone="info" title="You're browsing as a guest">
+              This project lives in your browser only. Sign up to unlock {PRO_PROGRAM_COUNT} more paid
+              programs and keep every future analysis as a saved project.{" "}
+              <button type="button" className="btn btn-primary" style={{ marginLeft: 8 }} onClick={() => ctx.requireLogin("save-project")}>
+                Sign up free
+              </button>
+            </Callout>
+          </div>
+        )}
+        <ProjectPage
+          result={ctx.result}
+          loggedIn={ctx.loggedIn}
+          initialTab={initialTab}
+          onGeneratedCountChange={ctx.onGeneratedCountChange}
+          onSnapshotDeleted={ctx.onSnapshotDeleted}
+          onProjectDeleted={ctx.onProjectDeleted}
+          onNeedCredits={() => ctx.navigate("account")}
+        />
+      </>
+    );
+  }
+  if (ctx.restoring) {
+    return (
+      <div className="card" style={{ margin: 40, textAlign: "center", padding: 32 }} role="status" aria-live="polite">
+        Restoring project…
+      </div>
+    );
+  }
+  return (
+    <div className="card">
+      <EmptyState
+        icon="scan"
+        title="Project not found"
+        message={ctx.restoreError ?? "This project doesn't exist, or you don't have access to it."}
+        cta={{ label: "Analyze a repo", onClick: () => ctx.navigate("analyze") }}
+      />
+    </div>
+  );
+}
 
 // ─── Derived lookups ─────────────────────────────────────────────────────────
 

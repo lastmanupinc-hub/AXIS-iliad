@@ -1,0 +1,296 @@
+/**
+ * @vitest-environment happy-dom
+ */
+
+// WO-P5 — VersionsTab: snapshot history, generation-version diff, project
+// memory, and snapshot/project deletion, all inside the Project Detail
+// page's Versions tab.
+
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { VersionsTab } from "./VersionsTab.tsx";
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+const PROJECT_ID = "proj_1";
+const CURRENT_SNAPSHOT_ID = "snap_1";
+const OLDER_SNAPSHOT_ID = "snap_0";
+
+const SNAPSHOTS_RESPONSE = {
+  project_id: PROJECT_ID,
+  count: 2,
+  snapshots: [
+    { snapshot_id: CURRENT_SNAPSHOT_ID, status: "ready", created_at: "2026-07-06T00:00:00Z", file_count: 12, compliance_grade: { grade: "A", checks_passed: 8, checks_total: 8 } },
+    { snapshot_id: OLDER_SNAPSHOT_ID, status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 10, compliance_grade: { grade: "B", checks_passed: 6, checks_total: 8 } },
+  ],
+};
+
+const VERSIONS_RESPONSE = {
+  snapshot_id: CURRENT_SNAPSHOT_ID,
+  count: 2,
+  versions: [
+    { version_id: "v2", snapshot_id: CURRENT_SNAPSHOT_ID, version_number: 2, program: "theme", file_count: 3, created_at: "2026-07-06T01:00:00Z" },
+    { version_id: "v1", snapshot_id: CURRENT_SNAPSHOT_ID, version_number: 1, program: "skills", file_count: 2, created_at: "2026-07-06T00:00:00Z" },
+  ],
+};
+
+const DIFF_RESPONSE = {
+  diff: {
+    old_version: 1,
+    new_version: 2,
+    snapshot_id: CURRENT_SNAPSHOT_ID,
+    files: [
+      { path: "theme.css", status: "added", old_content: null, new_content: "body { color: red; }" },
+      { path: "AGENTS.md", status: "modified", old_content: "line one\nline two", new_content: "line one\nline TWO" },
+    ],
+    summary: { added: 1, removed: 0, modified: 1, unchanged: 0 },
+  },
+};
+
+interface Route {
+  method: string;
+  match: (url: string) => boolean;
+  status?: number;
+  body: unknown;
+}
+
+function routeFetch(routes: Route[]) {
+  return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+    const hit = routes.find((r) => r.method === method && r.match(url));
+    const status = hit?.status ?? (hit ? 200 : 404);
+    const body = hit ? hit.body : { error: "unhandled in test" };
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+      headers: { get: () => null },
+    } as unknown as Response;
+  });
+}
+
+function baseRoutes(overrides: Partial<Record<"snapshots" | "versions" | "diff" | "memory", Route>> = {}): Route[] {
+  return [
+    { method: "GET", match: (u) => u.includes(`/v1/projects/${PROJECT_ID}/snapshots`), body: SNAPSHOTS_RESPONSE, ...overrides.snapshots },
+    { method: "GET", match: (u) => u.includes(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}/versions`) && !u.includes("diff"), body: VERSIONS_RESPONSE, ...overrides.versions },
+    { method: "GET", match: (u) => u.includes(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}/diff`), body: DIFF_RESPONSE, ...overrides.diff },
+    { method: "GET", match: (u) => u.includes(`/v1/projects/${PROJECT_ID}/memory`), body: { project_id: PROJECT_ID, entries: [], count: 0, total: 0 }, ...overrides.memory },
+  ];
+}
+
+function renderTab(opts?: { loggedIn?: boolean; routes?: Route[] }) {
+  const onSnapshotDeleted = vi.fn();
+  const onProjectDeleted = vi.fn();
+  const onNeedCredits = vi.fn();
+  vi.stubGlobal("fetch", routeFetch(opts?.routes ?? baseRoutes()));
+  const utils = render(
+    <VersionsTab
+      projectId={PROJECT_ID}
+      currentSnapshotId={CURRENT_SNAPSHOT_ID}
+      loggedIn={opts?.loggedIn ?? false}
+      onSnapshotDeleted={onSnapshotDeleted}
+      onProjectDeleted={onProjectDeleted}
+      onNeedCredits={onNeedCredits}
+    />,
+  );
+  return { ...utils, onSnapshotDeleted, onProjectDeleted, onNeedCredits };
+}
+
+describe("VersionsTab — snapshot history", () => {
+  it("lists every snapshot with status/grade, marking the current one", async () => {
+    renderTab();
+    await screen.findAllByText("ready");
+    expect(screen.getAllByText("ready").length).toBe(2);
+    expect(screen.getByText("A")).toBeTruthy();
+    expect(screen.getByText("B")).toBeTruthy();
+    expect(screen.getByText("latest")).toBeTruthy();
+  });
+
+  it("a load failure shows a retryable Callout, not a crash", async () => {
+    renderTab({ routes: baseRoutes({ snapshots: { method: "GET", match: (u) => u.includes(`/v1/projects/${PROJECT_ID}/snapshots`), status: 500, body: { error: "boom" } } }) });
+    await screen.findByText("boom");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+});
+
+describe("VersionsTab — compare versions + diff", () => {
+  it("defaults the picker to the two most recent versions and renders a diff on Compare", async () => {
+    renderTab();
+    const compareBtn = await screen.findByRole("button", { name: "Compare" }); // waits for versions to load
+    fireEvent.click(compareBtn);
+
+    await screen.findByText("1 added");
+    expect(screen.getByText("1 modified")).toBeTruthy();
+    expect(screen.getByText("theme.css")).toBeTruthy();
+    expect(screen.getByText("AGENTS.md")).toBeTruthy();
+  });
+
+  it("fewer than 2 versions shows an explanatory empty state instead of the picker", async () => {
+    renderTab({
+      routes: baseRoutes({
+        versions: { method: "GET", match: (u) => u.includes("/versions") && !u.includes("diff"), body: { snapshot_id: CURRENT_SNAPSHOT_ID, count: 1, versions: [VERSIONS_RESPONSE.versions[0]] } },
+      }),
+    });
+    await screen.findByText("Not enough versions yet");
+    expect(screen.queryByRole("button", { name: "Compare" })).toBeNull();
+  });
+
+  it("a 402 persistence-credits response renders the upgrade CTA and wires onNeedCredits", async () => {
+    const { onNeedCredits } = renderTab({
+      routes: baseRoutes({
+        diff: { method: "GET", match: (u) => u.includes("/diff"), status: 402, body: { error: "persistence_credits_required", reason: "balance_exhausted" } },
+      }),
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Compare" }));
+
+    const creditsBtn = await screen.findByRole("button", { name: "Get persistence credits" });
+    fireEvent.click(creditsBtn);
+    expect(onNeedCredits).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("VersionsTab — snapshot deletion", () => {
+  it("requires a second confirming click before deleting, then refreshes the list", async () => {
+    let deleteCalled = false;
+    const routes = baseRoutes();
+    routes.push({ method: "DELETE", match: (u) => u.endsWith(`/v1/snapshots/${OLDER_SNAPSHOT_ID}`), body: { deleted: true, snapshot_id: OLDER_SNAPSHOT_ID } });
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (method === "DELETE" && url.endsWith(`/v1/snapshots/${OLDER_SNAPSHOT_ID}`)) deleteCalled = true;
+      const hit = routes.find((r) => r.method === method && r.match(url));
+      const status = hit?.status ?? (hit ? 200 : 404);
+      const body = hit ? hit.body : { error: "unhandled" };
+      return { ok: status >= 200 && status < 300, status, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+
+    render(
+      <VersionsTab projectId={PROJECT_ID} currentSnapshotId={CURRENT_SNAPSHOT_ID} loggedIn={false} onSnapshotDeleted={() => {}} onProjectDeleted={() => {}} onNeedCredits={() => {}} />,
+    );
+
+    await screen.findAllByText("ready");
+    const rows = screen.getAllByRole("row");
+    const olderRow = rows.find((r) => within(r).queryByText("10") !== null)!; // file_count column distinguishes the older snapshot
+    const deleteBtn = within(olderRow).getByRole("button", { name: "Delete" });
+
+    fireEvent.click(deleteBtn); // arm
+    expect(deleteCalled).toBe(false); // not deleted yet — requires confirmation
+    const confirmBtn = within(olderRow).getByRole("button", { name: "Yes, delete" });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => expect(deleteCalled).toBe(true));
+  });
+
+  it("deleting the CURRENT snapshot calls onSnapshotDeleted", async () => {
+    const routes = baseRoutes();
+    routes.push({ method: "DELETE", match: (u) => u.endsWith(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}`), body: { deleted: true, snapshot_id: CURRENT_SNAPSHOT_ID } });
+    const { onSnapshotDeleted } = renderTab({ routes });
+
+    await screen.findAllByText("ready");
+    const rows = screen.getAllByRole("row");
+    const currentRow = rows.find((r) => within(r).queryByText("latest") !== null)!;
+    fireEvent.click(within(currentRow).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(currentRow).getByRole("button", { name: "Yes, delete" }));
+
+    await waitFor(() => expect(onSnapshotDeleted).toHaveBeenCalledTimes(1));
+  });
+
+  it("deleting the SELECTED (but not current/latest) snapshot resets the version picker back to the current snapshot", async () => {
+    // Selecting snap_0 and then deleting IT (not the latest) must not leave
+    // the version picker pointed at a now-gone snapshot id.
+    const olderVersions = {
+      snapshot_id: OLDER_SNAPSHOT_ID,
+      count: 2,
+      versions: [
+        { version_id: "ov2", snapshot_id: OLDER_SNAPSHOT_ID, version_number: 2, program: "debug", file_count: 1, created_at: "" },
+        { version_id: "ov1", snapshot_id: OLDER_SNAPSHOT_ID, version_number: 1, program: "search", file_count: 1, created_at: "" },
+      ],
+    };
+    const routes: Route[] = [
+      { method: "GET", match: (u) => u.includes(`/v1/projects/${PROJECT_ID}/snapshots`), body: SNAPSHOTS_RESPONSE },
+      { method: "GET", match: (u) => u.includes(`/v1/snapshots/${CURRENT_SNAPSHOT_ID}/versions`) && !u.includes("diff"), body: VERSIONS_RESPONSE },
+      { method: "GET", match: (u) => u.includes(`/v1/snapshots/${OLDER_SNAPSHOT_ID}/versions`) && !u.includes("diff"), body: olderVersions },
+      { method: "GET", match: (u) => u.includes(`/v1/projects/${PROJECT_ID}/memory`), body: { project_id: PROJECT_ID, entries: [], count: 0, total: 0 } },
+      { method: "DELETE", match: (u) => u.endsWith(`/v1/snapshots/${OLDER_SNAPSHOT_ID}`), body: { deleted: true, snapshot_id: OLDER_SNAPSHOT_ID } },
+    ];
+    const { onSnapshotDeleted } = renderTab({ routes });
+
+    await screen.findAllByText("ready");
+    const rows = screen.getAllByRole("row");
+    const olderRow = rows.find((r) => within(r).queryByText("10") !== null)!;
+    fireEvent.click(within(olderRow).getByRole("button", { name: "View" }));
+    // Older snapshot's versions loaded — its program name ("debug") appears in
+    // both the Old and New <option> lists.
+    await waitFor(() => expect(screen.getAllByText("debug", { exact: false }).length).toBe(2));
+
+    fireEvent.click(within(olderRow).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(olderRow).getByRole("button", { name: "Yes, delete" }));
+
+    // Falls back to the current snapshot's versions (v2/theme, v1/skills) — not left on the deleted one.
+    await waitFor(() => expect(screen.getAllByText("theme", { exact: false }).length).toBe(2));
+    expect(screen.queryAllByText("debug", { exact: false }).length).toBe(0);
+    expect(onSnapshotDeleted).not.toHaveBeenCalled(); // it wasn't the CURRENT snapshot that was deleted
+  });
+});
+
+describe("VersionsTab — project memory", () => {
+  it("signed out: shows a sign-in nudge, never calls the memory endpoint", async () => {
+    const fetchFn = routeFetch(baseRoutes());
+    vi.stubGlobal("fetch", fetchFn);
+    render(
+      <VersionsTab projectId={PROJECT_ID} currentSnapshotId={CURRENT_SNAPSHOT_ID} loggedIn={false} onSnapshotDeleted={() => {}} onProjectDeleted={() => {}} onNeedCredits={() => {}} />,
+    );
+
+    await screen.findByText("Sign in to use project memory");
+    const calls = fetchFn.mock.calls.map((c) => String(c[0]));
+    expect(calls.some((u) => u.includes("/memory"))).toBe(false);
+  });
+
+  it("signed in + anonymous (no-owner) project: shows the claim-ownership explanation", async () => {
+    renderTab({
+      loggedIn: true,
+      routes: baseRoutes({ memory: { method: "GET", match: (u) => u.includes("/memory"), status: 403, body: { error: "Memory requires an account-owned project" } } }),
+    });
+    await screen.findByText("This project has no owner");
+  });
+
+  it("signed in + owned project: lists entries and can add a new one", async () => {
+    const routes = baseRoutes({
+      memory: {
+        method: "GET",
+        match: (u) => u.includes("/memory"),
+        body: { project_id: PROJECT_ID, entries: [{ id: "m1", project_id: PROJECT_ID, account_id: "a1", kind: "decision", content: "Use Postgres", source: "", created_at: "2026-07-01T00:00:00Z" }], count: 1, total: 1 },
+      },
+    });
+    routes.push({ method: "POST", match: (u) => u.endsWith(`/v1/projects/${PROJECT_ID}/memory`), status: 201, body: { entry: { id: "m2", project_id: PROJECT_ID, account_id: "a1", kind: "goal", content: "Ship WO-P5", source: "", created_at: "2026-07-07T00:00:00Z" }, total: 2 } });
+    renderTab({ loggedIn: true, routes });
+
+    await screen.findByText("Use Postgres");
+
+    fireEvent.change(screen.getByPlaceholderText("What should future work on this project remember?"), { target: { value: "Ship WO-P5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add memory entry" }));
+
+    await waitFor(() => expect((screen.getByPlaceholderText("What should future work on this project remember?") as HTMLTextAreaElement).value).toBe(""));
+  });
+});
+
+describe("VersionsTab — danger zone", () => {
+  it("deleting the project requires confirmation, then calls onProjectDeleted", async () => {
+    const routes = baseRoutes();
+    routes.push({ method: "DELETE", match: (u) => u.endsWith(`/v1/projects/${PROJECT_ID}`), body: { deleted: true, project_id: PROJECT_ID, deleted_snapshots: 2 } });
+    const { onProjectDeleted } = renderTab({ routes });
+
+    await screen.findByText("Delete this project");
+    fireEvent.click(screen.getByRole("button", { name: "Delete project" }));
+    fireEvent.click(screen.getByRole("button", { name: "Yes, delete" }));
+
+    await waitFor(() => expect(onProjectDeleted).toHaveBeenCalledTimes(1));
+  });
+});

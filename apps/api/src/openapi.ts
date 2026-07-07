@@ -181,6 +181,19 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/projects/{project_id}/snapshots": {
+        get: {
+          summary: "List every snapshot (analysis run) for a project, newest-first",
+          operationId: "listProjectSnapshots",
+          tags: ["Projects"],
+          parameters: [pathParam("project_id", "Project identifier")],
+          responses: {
+            200: { description: "Snapshot list", content: jsonContent(ref("ProjectSnapshotsResponse")) },
+            401: { description: "Authentication required (project has an owning account)" },
+            404: { description: "Project not found" },
+          },
+        },
+      },
       "/v1/projects/{project_id}/context": {
         get: {
           summary: "Get context map and repo profile for latest project snapshot",
@@ -1529,6 +1542,26 @@ export function buildOpenApiSpec(): OpenApiSpec {
               },
             },
             total: { type: "integer" },
+          },
+        },
+        ProjectSnapshotsResponse: {
+          type: "object",
+          properties: {
+            project_id: { type: "string" },
+            snapshots: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  snapshot_id: { type: "string" },
+                  status: { type: "string", enum: ["processing", "ready", "failed"] },
+                  created_at: { type: "string", format: "date-time" },
+                  file_count: { type: "integer" },
+                  compliance_grade: { type: "object" },
+                },
+              },
+            },
+            count: { type: "integer" },
           },
         },
         GitHubAnalyzeRequest: {

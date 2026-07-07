@@ -7,16 +7,39 @@ import { GraphTab } from "../components/GraphTab.tsx";
 import { GeneratedTab } from "../components/GeneratedTab.tsx";
 import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
 import { SearchTab } from "../components/SearchTab.tsx";
+import { VersionsTab } from "../components/VersionsTab.tsx";
 import { UpsellModal } from "../components/UpsellModal.tsx";
 import { useToast } from "../components/Toast.tsx";
 
+// ─── ProjectPage (WO-P5) ──────────────────────────────────────────────────
+// Project/Snapshot Detail — formerly DashboardPage, the single-result view
+// bound to whatever the app currently had loaded. Now addressed at
+// "#projects/:id" (routes.tsx renderProjectDetail resolves `result` for the
+// requested id before this ever mounts) so any historical project opens by
+// URL. Overview/Structure/Dependencies/Generated Files/Programs/Search are
+// unchanged; Versions is new (snapshot history, generation-version diff,
+// project memory, and snapshot/project deletion all live there — see
+// components/VersionsTab.tsx).
+
 interface Props {
   result: SnapshotResponse;
+  /** Gates the project-memory read/write UI inside VersionsTab (the API
+   *  401s while signed out regardless of project ownership). */
+  loggedIn: boolean;
+  /** Which tab opens first — set by the "project-versions" deep link. */
+  initialTab?: ProjectTab;
   onGeneratedCountChange?: (count: number) => void;
+  /** A snapshot belonging to this project was deleted — the caller re-fetches
+   *  (a different snapshot may now be latest, or none remain). */
+  onSnapshotDeleted: () => void;
+  /** This project itself was deleted — the caller clears app state and navigates away. */
+  onProjectDeleted: () => void;
+  /** The diff viewer hit a 402 persistence-credits wall — jump to the credit-purchase flow. */
+  onNeedCredits: () => void;
 }
 
-const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search"] as const;
-type Tab = (typeof TABS)[number];
+const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search", "Versions"] as const;
+export type ProjectTab = (typeof TABS)[number];
 
 function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: number; onDownload: () => void; downloading: boolean }) {
   const [dismissed, setDismissed] = useState(false);
@@ -38,8 +61,8 @@ function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: numb
   );
 }
 
-export function DashboardPage({ result, onGeneratedCountChange }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("Overview");
+export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChange, onSnapshotDeleted, onProjectDeleted, onNeedCredits }: Props) {
+  const [activeTab, setActiveTab] = useState<ProjectTab>(() => initialTab ?? "Overview");
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [tierBlock, setTierBlock] = useState<{ blocked: string[]; allowed: string[] } | null>(null);
@@ -58,7 +81,7 @@ export function DashboardPage({ result, onGeneratedCountChange }: Props) {
     onGeneratedCountChange?.(generatedFiles.length);
   }, [generatedFiles.length, onGeneratedCountChange]);
 
-  // Keyboard shortcuts: Ctrl+1–5 for tabs (only on dashboard)
+  // Keyboard shortcuts: Alt+1–7 for tabs (only on the project page)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Only capture Alt+number to avoid conflict with Ctrl+number page nav
@@ -180,6 +203,16 @@ export function DashboardPage({ result, onGeneratedCountChange }: Props) {
         )}
         {activeTab === "Search" && (
           <SearchTab snapshotId={result.snapshot_id} />
+        )}
+        {activeTab === "Versions" && (
+          <VersionsTab
+            projectId={result.project_id}
+            currentSnapshotId={result.snapshot_id}
+            loggedIn={loggedIn}
+            onSnapshotDeleted={onSnapshotDeleted}
+            onProjectDeleted={onProjectDeleted}
+            onNeedCredits={onNeedCredits}
+          />
         )}
       </div>
 

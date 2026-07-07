@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import { resetTestDb, createSnapshot, createAccount, createApiKey, updateSnapshotStatus } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { handleListProjects } from "./projects-handlers.js";
+import { handleListProjects, handleListProjectSnapshots } from "./projects-handlers.js";
 
 let server: Server;
 let testPort = 0;
@@ -59,6 +59,7 @@ beforeAll(async () => {
   await resetTestDb();
   const router = new Router();
   router.get("/v1/projects", handleListProjects);
+  router.get("/v1/projects/:project_id/snapshots", handleListProjectSnapshots);
   const ts = await startTestServer(router);
   server = ts.server;
   testPort = ts.port;
@@ -204,5 +205,87 @@ describe("GET /v1/projects (WO-A1)", () => {
     const res = await req("GET", "/v1/projects", owner.headers);
     const names = (res.data.projects as Array<{ name: string }>).map((p) => p.name);
     expect(names).toEqual(["isolated-mine"]);
+  });
+});
+
+describe("GET /v1/projects/:project_id/snapshots (WO-A2)", () => {
+  it("404 for a project id that was never created", async () => {
+    const res = await req("GET", "/v1/projects/00000000-0000-0000-0000-000000000000/snapshots");
+    expect(res.status).toBe(404);
+  });
+
+  it("200 with full shape for a single-snapshot project (owner authenticated)", async () => {
+    const owner = await authHeaders("snaps-shape");
+    const { project_id, snapshot_id } = await makeSnapshot(owner, { project_name: "snaps-shape-proj" });
+
+    const res = await req("GET", `/v1/projects/${project_id}/snapshots`, owner.headers);
+    expect(res.status).toBe(200);
+    expect(res.data.project_id).toBe(project_id);
+    expect(res.data.count).toBe(1);
+    const snapshots = res.data.snapshots as Array<Record<string, unknown>>;
+    expect(snapshots).toHaveLength(1);
+    const s = snapshots[0];
+    expect(s.snapshot_id).toBe(snapshot_id);
+    expect(s.status).toBe("processing"); // createSnapshot's default status
+    expect(typeof s.created_at).toBe("string");
+    expect(s.file_count).toBe(1);
+    const grade = s.compliance_grade as Record<string, unknown>;
+    expect(typeof grade.grade).toBe("string");
+    expect(grade.checks_total).toBe(8);
+  });
+
+  it("reflects an updated snapshot status", async () => {
+    const owner = await authHeaders("snaps-status");
+    const { project_id, snapshot_id } = await makeSnapshot(owner, { project_name: "snaps-status-proj" });
+    await updateSnapshotStatus(snapshot_id, "ready");
+
+    const res = await req("GET", `/v1/projects/${project_id}/snapshots`, owner.headers);
+    const snapshots = res.data.snapshots as Array<Record<string, unknown>>;
+    expect(snapshots[0].status).toBe("ready");
+  });
+
+  it("orders snapshots newest-first (opposite of the store's ASC order)", async () => {
+    const owner = await authHeaders("snaps-order");
+    const first = await makeSnapshot(owner, { project_name: "snaps-order-proj", files: [{ path: "a.ts", content: "x", size: 1 }] });
+    await sleep(10);
+    const second = await makeSnapshot(owner, { project_name: "snaps-order-proj", files: [{ path: "a.ts", content: "x", size: 1 }, { path: "b.ts", content: "y", size: 1 }] });
+    await sleep(10);
+    const third = await makeSnapshot(owner, { project_name: "snaps-order-proj", files: [{ path: "a.ts", content: "x", size: 1 }] });
+
+    const res = await req("GET", `/v1/projects/${first.project_id}/snapshots`, owner.headers);
+    expect(res.data.count).toBe(3);
+    const ids = (res.data.snapshots as Array<{ snapshot_id: string }>).map((s) => s.snapshot_id);
+    expect(ids).toEqual([third.snapshot_id, second.snapshot_id, first.snapshot_id]);
+  });
+
+  it("401 unauthenticated for an owned project", async () => {
+    const owner = await authHeaders("snaps-401");
+    const { project_id } = await makeSnapshot(owner, { project_name: "snaps-401-proj" });
+
+    const res = await req("GET", `/v1/projects/${project_id}/snapshots`);
+    expect(res.status).toBe(401);
+  });
+
+  it("404 (not 403 — no existence leak) when a different account requests it", async () => {
+    const owner = await authHeaders("snaps-owner");
+    const { project_id } = await makeSnapshot(owner, { project_name: "snaps-owner-proj" });
+
+    const stranger = await authHeaders("snaps-stranger");
+    const res = await req("GET", `/v1/projects/${project_id}/snapshots`, stranger.headers);
+    expect(res.status).toBe(404);
+  });
+
+  it("200 for an anonymous (no-owner) project without any auth", async () => {
+    const snap = await createSnapshot({
+      input_method: "api_submission",
+      manifest: { project_name: "snaps-anon-proj", project_type: "web", frameworks: [], goals: [], requested_outputs: [] },
+      files: [{ path: "a.ts", content: "x", size: 1 }],
+    }); // no account_id — anonymous
+
+    const res = await req("GET", `/v1/projects/${snap.project_id}/snapshots`);
+    expect(res.status).toBe(200);
+    expect(res.data.count).toBe(1);
+    const snapshots = res.data.snapshots as Array<{ snapshot_id: string }>;
+    expect(snapshots[0].snapshot_id).toBe(snap.snapshot_id);
   });
 });

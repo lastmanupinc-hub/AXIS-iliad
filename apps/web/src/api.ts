@@ -823,6 +823,85 @@ export async function getProjectContext(projectId: string): Promise<ProjectConte
   return fetchJSON(`/v1/projects/${encodeURIComponent(projectId)}/context`);
 }
 
+export interface SnapshotDetail {
+  snapshot_id: string;
+  project_id: string;
+  created_at: string;
+  input_method: string;
+  manifest: SnapshotPayload["manifest"];
+  file_count: number;
+  total_size_bytes: number;
+  status: string;
+  compliance_grade?: ComplianceGrade | null;
+}
+
+/** GET /v1/snapshots/:id — one snapshot's own metadata (as opposed to
+ *  getProjectContext, which always resolves the project's LATEST snapshot). */
+export async function getSnapshot(snapshotId: string): Promise<SnapshotDetail> {
+  return fetchJSON(`/v1/snapshots/${encodeURIComponent(snapshotId)}`);
+}
+
+// ─── Snapshot & project deletion (WO-P5) ─────────────────────────
+
+/** DELETE /v1/snapshots/:id — removes the snapshot and its generated-file
+ *  versions/search index; the owning project and any sibling snapshots are
+ *  untouched. Anonymous (no-owner) snapshots are deletable by anyone who
+ *  knows the id, matching the read-side access rule (assertSnapshotAccess). */
+export async function deleteSnapshot(snapshotId: string): Promise<{ deleted: boolean; snapshot_id: string }> {
+  return fetchJSON(`/v1/snapshots/${encodeURIComponent(snapshotId)}`, { method: "DELETE" });
+}
+
+/** DELETE /v1/projects/:id — cascades every snapshot the project owns. */
+export async function deleteProject(projectId: string): Promise<{ deleted: boolean; project_id: string; deleted_snapshots: number }> {
+  return fetchJSON(`/v1/projects/${encodeURIComponent(projectId)}`, { method: "DELETE" });
+}
+
+// ─── Project memory API (WO-P5) ──────────────────────────────────
+// Per-project, server-side notes (decisions/conventions/evidence/goals).
+// Requires an account-owned project: reading OR writing 401s while signed
+// out, and 403s on an anonymous (no-owner) project even when signed in
+// (re-analyze while authenticated to claim it) — see memory-handlers.ts.
+
+export type MemoryKind = "decision" | "convention" | "evidence" | "goal";
+export const MEMORY_KINDS: readonly MemoryKind[] = ["decision", "convention", "evidence", "goal"];
+
+export interface MemoryEntry {
+  id: string;
+  project_id: string;
+  account_id: string;
+  kind: MemoryKind;
+  content: string;
+  source: string;
+  created_at: string;
+}
+
+export interface MemoryListResponse {
+  project_id: string;
+  entries: MemoryEntry[];
+  count: number;
+  total: number;
+}
+
+/** GET /v1/projects/:id/memory?kind=&limit= */
+export async function listProjectMemory(projectId: string, opts?: { kind?: MemoryKind; limit?: number }): Promise<MemoryListResponse> {
+  const params = new URLSearchParams();
+  if (opts?.kind) params.set("kind", opts.kind);
+  if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  return fetchJSON(`/v1/projects/${encodeURIComponent(projectId)}/memory${qs ? `?${qs}` : ""}`);
+}
+
+/** POST /v1/projects/:id/memory {kind, content, source?} — append-only. */
+export async function addProjectMemory(
+  projectId: string,
+  entry: { kind: MemoryKind; content: string; source?: string },
+): Promise<{ entry: MemoryEntry; total: number }> {
+  return fetchJSON(`/v1/projects/${encodeURIComponent(projectId)}/memory`, {
+    method: "POST",
+    body: JSON.stringify(entry),
+  });
+}
+
 // ─── Version history & diff API ─────────────────────────────────
 
 export interface GenerationVersionSummary {

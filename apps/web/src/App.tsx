@@ -130,6 +130,9 @@ export function App() {
   const [result, setResult] = useState<SnapshotResponse | null>(initialState.result);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(initialState.projectId);
   const [restoring, setRestoring] = useState(false);
+  // WO-P5: set when the last restore attempt (for the "project"/"project-versions"
+  // route's params.id) failed — human copy only, rendered by renderProjectDetail.
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
   const [showSignUp, setShowSignUp] = useState(false);
   const [signUpTrigger, setSignUpTrigger] = useState<SignUpTrigger>("generic");
@@ -221,15 +224,17 @@ export function App() {
       // No account owns an anonymous snapshot — it lives client-side only.
       try { localStorage.setItem(ANON_RESULT_KEY, JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
     }
-    navigate("dashboard");
+    // WO-P5: the project page is ID-addressable ("#projects/:id") — land
+    // there directly rather than the app-wide (now account-overview) "#dashboard".
+    navigate("project", { id: data.project_id });
   }, [navigate]);
 
-  // WO-P3: open a project from the Account Dashboard's recent-projects cards.
-  // Clears any stale in-memory result and points multi-project state at the
-  // requested project, then lands on "dashboard" — its existing deep-link
-  // restore effect below (built for the last-project pointer, WO-F3) already
-  // re-fetches from the server whenever `result` is falsy, so it fires again
-  // here for free with no changes to that effect's own logic.
+  // WO-P3/WO-P5: open a project from the Account Dashboard's recent-projects
+  // cards. Clears any stale in-memory result and points multi-project state
+  // at the requested project, then lands on its own "#projects/:id" — the
+  // restore effect below (built for the last-project pointer, WO-F3; keyed
+  // on the route param since WO-P5) already re-fetches from the server
+  // whenever `result` doesn't match that id, so it fires again here for free.
   const handleOpenProject = useCallback((projectId: string) => {
     setResult(null);
     setCurrentProjectId(projectId);
@@ -237,7 +242,7 @@ export function App() {
       try { localStorage.setItem(LAST_PROJECT_KEY, projectId); } catch { /* quota exceeded, non-fatal */ }
     }
     localStorage.removeItem(ANON_RESULT_KEY); // opening a named project supersedes any anon cache
-    navigate("dashboard");
+    navigate("project", { id: projectId });
   }, [navigate]);
 
   const handleReset = useCallback(() => {
@@ -265,6 +270,27 @@ export function App() {
     setPrivateAccess(false);
     nav("home");
   }, [nav]);
+
+  // WO-P5: a snapshot belonging to the open project was deleted (VersionsTab)
+  // — clear the in-memory result so the restore effect below re-fetches the
+  // project (a different snapshot may now be latest, or none remain, in
+  // which case renderProjectDetail shows the not-found state).
+  const handleSnapshotDeleted = useCallback(() => {
+    setResult(null);
+  }, []);
+
+  // WO-P5: the open project itself was deleted — clear every trace of it
+  // from app state (in-memory result, active-project pointer, both
+  // localStorage caches) and leave its now-gone page: back to the account
+  // overview when signed in (it lists what's left), else Analyze.
+  const handleProjectDeleted = useCallback(() => {
+    setResult(null);
+    setCurrentProjectId(null);
+    setGeneratedFileCount(0);
+    localStorage.removeItem(LAST_PROJECT_KEY);
+    localStorage.removeItem(ANON_RESULT_KEY);
+    nav(loggedIn ? "dashboard" : "analyze");
+  }, [nav, loggedIn]);
 
   // One-time migration (H1 C2): a pre-cutover raw key in localStorage is exchanged for the
   // HttpOnly axis_session cookie and replaced by a non-sensitive marker, so the key stops
@@ -297,29 +323,37 @@ export function App() {
     };
   }, [loggedIn]);
 
-  // Dashboard needs a result: rebuild it on deep link — anon cache first
-  // (client-only by design), else from the server via the last-project pointer
-  // (GET /v1/projects/:id/context + /generated-files), else fall back to
-  // Analyze (a known route with nothing to show is not a 404).
+  // WO-P5: the "project"/"project-versions" routes are ID-addressable — the
+  // result they need is keyed on `route.params.id`, not "whatever the app
+  // currently has loaded" (a deep link to a DIFFERENT project than the one
+  // already open must still fetch the right one). Anon cache first
+  // (client-only by design, and only if it matches THIS id), else from the
+  // server (GET /v1/projects/:id/context + /generated-files — anonymous
+  // projects are readable by id with no auth). Failure renders an inline
+  // not-found/sign-in state (renderProjectDetail) rather than bouncing away,
+  // so the bad/foreign URL the user landed on stays visible and explained.
   useEffect(() => {
-    if (route.page !== "dashboard" || result) return;
+    if (route.page !== "project" && route.page !== "project-versions") return;
+    const projectId = route.params.id;
+    if (!projectId) return; // the pattern always captures :id — defensive only
+    if (result && result.project_id === projectId) return; // already showing it
 
     try {
       const anon = localStorage.getItem(ANON_RESULT_KEY);
       if (anon) {
-        setResult(JSON.parse(anon) as SnapshotResponse);
-        return;
+        const parsed = JSON.parse(anon) as SnapshotResponse;
+        if (parsed.project_id === projectId) {
+          setResult(parsed);
+          setCurrentProjectId(projectId);
+          setRestoreError(null);
+          return;
+        }
       }
     } catch { localStorage.removeItem(ANON_RESULT_KEY); /* corrupt blob */ }
 
-    const projectId = currentProjectId ?? localStorage.getItem(LAST_PROJECT_KEY);
-    if (!projectId || !hasApiKey()) {
-      navigate("analyze");
-      return;
-    }
-
     let cancelled = false;
     setRestoring(true);
+    setRestoreError(null);
     void (async () => {
       try {
         const [ctx, generated] = await Promise.all([
@@ -337,21 +371,34 @@ export function App() {
         });
         setCurrentProjectId(projectId);
         setGeneratedFileCount(generated.files.length);
+        if (hasApiKey()) {
+          try { localStorage.setItem(LAST_PROJECT_KEY, projectId); } catch { /* quota exceeded, non-fatal */ }
+        }
       } catch (err) {
         if (cancelled) return;
-        // Drop the pointer only when the server said no (gone/unauthorized);
-        // keep it through transient network failures.
-        if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
+        const status = err instanceof ApiError ? err.status : 0;
+        setRestoreError(
+          status === 401
+            ? "Sign in to view this project."
+            : status === 404
+              ? "This project doesn't exist, or you don't have access to it."
+              : "Couldn't load this project — try again.",
+        );
+        // Drop the pointer only when the server said no (gone/unauthorized)
+        // AND it was actually pointing at this failing id — never clobber a
+        // different, still-valid pointer over an unrelated bad deep link.
+        // State (currentProjectId) is deliberately left untouched here: this
+        // effect doesn't navigate away on failure, so mutating a dep it reads
+        // would re-trigger it against the same still-failing id.
+        if ([401, 403, 404].includes(status) && localStorage.getItem(LAST_PROJECT_KEY) === projectId) {
           localStorage.removeItem(LAST_PROJECT_KEY);
-          setCurrentProjectId(null);
         }
-        navigate("analyze");
       } finally {
         if (!cancelled) setRestoring(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [route.page, result, currentProjectId, navigate]);
+  }, [route.page, route.params.id, result]);
 
   // Login gate: a signed-out user on any login-gated page (`authOnly` in the
   // route table) gets the sign-in popup and is bounced to a public page —
@@ -390,7 +437,7 @@ export function App() {
     if (match) navigate(match.route.page, match.params);
   }, [navigate]);
 
-  // Track generated file count from DashboardPage
+  // Track generated file count from ProjectPage
   const handleGeneratedCountChange = useCallback((count: number) => {
     setGeneratedFileCount(count);
   }, []);
@@ -421,7 +468,8 @@ export function App() {
   }, [navCtx, nav, loggedIn, handleLogout]);
 
   // Ctrl+1–9 shortcuts — resolved from the route table (first visible claimant
-  // of each digit wins, so Ctrl+2 is Dashboard with a result, Programs without).
+  // of each digit wins; the nav() wrapper applies the login gate at fire time,
+  // e.g. Ctrl+2/Dashboard while signed out opens the sign-in popup in place).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
@@ -454,6 +502,7 @@ export function App() {
     result,
     currentProjectId,
     restoring,
+    restoreError,
     navigate: nav,
     // Page-agnostic nudge (e.g. the guest-project banner): no specific
     // destination, so it returns to wherever this was called from.
@@ -462,7 +511,13 @@ export function App() {
     onGeneratedCountChange: handleGeneratedCountChange,
     onAuthChange: handleAuthChange,
     onOpenProject: handleOpenProject,
-  }), [navCtx, route.page, route.params, route.hash, result, currentProjectId, restoring, nav, openSignUp, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange, handleOpenProject]);
+    onSnapshotDeleted: handleSnapshotDeleted,
+    onProjectDeleted: handleProjectDeleted,
+  }), [
+    navCtx, route.page, route.params, route.hash, result, currentProjectId, restoring, restoreError,
+    nav, openSignUp, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange, handleOpenProject,
+    handleSnapshotDeleted, handleProjectDeleted,
+  ]);
 
   return (
     <ToastProvider>

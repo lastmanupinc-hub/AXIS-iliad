@@ -20,7 +20,7 @@ interface TroubleshootItem {
 const GETTING_STARTED_STEPS: Step[] = [
   { number: 1, title: "Sign In", description: "Open the Account page and continue with GitHub or Google — one click, no password. Your session is a secure HttpOnly cookie; you never handle a key to log in.", icon: "user" },
   { number: 2, title: "Upload Your Project", description: "Head to the Analyze page. Drag and drop a folder, upload a ZIP file, or paste a GitHub repository URL. Axis will scan all source files.", icon: "upload" },
-  { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the Dashboard. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
+  { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the project page. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
   { number: 4, title: "Run Programs", description: "Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get 3 programs; upgrade for all 20.", icon: "programs" },
   { number: 5, title: "Download or Search", description: "Use the Generated Files tab to view and copy output, or export everything as a ZIP. The Search tab lets you query your indexed snapshot.", icon: "download" },
 ];
@@ -55,7 +55,7 @@ export function HelpPage() {
     { id: "getting-started", label: "Getting Started", icon: "rocket" },
     { id: "upload", label: "Upload Guide", icon: "upload" },
     { id: "programs", label: "Using Programs", icon: "programs" },
-    { id: "dashboard", label: "Dashboard Guide", icon: "dashboard" },
+    { id: "dashboard", label: "Project Page Guide", icon: "dashboard" },
     { id: "account", label: "Account & Billing", icon: "credit-card" },
     { id: "troubleshooting", label: "Troubleshooting", icon: "wrench" },
   ];
@@ -149,7 +149,7 @@ function GettingStartedSection() {
           </thead>
           <tbody>
             <tr><td><kbd>Ctrl+1</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Analyze page</td></tr>
-            <tr><td><kbd>Ctrl+2</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Dashboard (when available)</td></tr>
+            <tr><td><kbd>Ctrl+2</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Dashboard (sign in required)</td></tr>
             <tr><td><kbd>Ctrl+3</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Plans page</td></tr>
             <tr><td><kbd>Ctrl+4</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Account page</td></tr>
             <tr><td><kbd>Ctrl+5</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Documentation page</td></tr>
@@ -169,7 +169,7 @@ function GettingStartedSection() {
         <div className="grid grid-2" style={{ gap: 10 }}>
           {[
             { page: "Analyze", key: "Ctrl+1", desc: "Upload projects via folder, ZIP, or GitHub URL" },
-            { page: "Dashboard", key: "Ctrl+2", desc: "View analysis results across 6 tabs" },
+            { page: "Dashboard", key: "Ctrl+2", desc: "Your projects, usage, and quick actions" },
             { page: "Plans", key: "Ctrl+3", desc: "Compare Free, Starter, Pro, and Growth tiers" },
             { page: "Account", key: "Ctrl+4", desc: "Manage API keys, team seats, and usage" },
             { page: "Docs", key: "Ctrl+5", desc: "Full documentation, API reference, CLI guide" },
@@ -267,7 +267,7 @@ function ProgramsGuideSection() {
         <h3 style={{ marginBottom: 12 }}>Running Programs</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
           After uploading and analyzing your project, switch to the <strong>Programs</strong> tab
-          on the Dashboard. Each card represents a program that generates specialized output files.
+          on the project page. Each card represents a program that generates specialized output files.
         </p>
         <div className="grid grid-3">
           <div className="card" style={{ padding: 16, marginBottom: 0, textAlign: "center" }}>
@@ -399,10 +399,11 @@ function DashboardGuideSection() {
   return (
     <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Dashboard Overview</h3>
+        <h3 style={{ marginBottom: 12 }}>Project Page Overview</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
-          After uploading and analyzing a project, the Dashboard shows your analysis results
-          across 6 tabs. Use <kbd>Alt+1</kbd> through <kbd>Alt+6</kbd> to switch between them.
+          After uploading and analyzing a project, its page (addressable at its own URL —
+          open it again anytime from a project card on the Dashboard) shows your analysis
+          results across 7 tabs. Use <kbd>Alt+1</kbd> through <kbd>Alt+7</kbd> to switch between them.
         </p>
         <div className="grid grid-2" style={{ gap: 10 }}>
           {[
@@ -412,6 +413,7 @@ function DashboardGuideSection() {
             { tab: "Generated Files", key: "Alt+4", icon: "file-doc", desc: "Browse all output files from programs you've run. Click any file to preview, copy to clipboard, or download individually." },
             { tab: "Programs", key: "Alt+5", icon: "programs", desc: "Program launcher — 17 cards organized by tier (Free / Pro). Click a card to generate output. Shows which programs have already been run." },
             { tab: "Search", key: "Alt+6", icon: "search", desc: "Full-text search across your snapshot. Build the index first, then search by keyword, function name, or content pattern." },
+            { tab: "Versions", key: "Alt+7", icon: "analyze", desc: "Snapshot history, generation-version diffs, project memory, and snapshot/project deletion." },
           ].map((t) => (
             <div key={t.tab} className="card" style={{ padding: 14, marginBottom: 0 }}>
               <div className="flex" style={{ gap: 8, marginBottom: 6 }}>

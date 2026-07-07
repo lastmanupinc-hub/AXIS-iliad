@@ -125,10 +125,15 @@ describe("routeFromPathname — marketing/SEO aliases", () => {
 });
 
 describe("derived route metadata", () => {
-  it("AUTH_ONLY_PAGES preserves the pre-refactor gating set exactly, plus WO-P3's account-dashboard", () => {
+  it("AUTH_ONLY_PAGES preserves the pre-refactor gating set exactly (WO-P3's account-dashboard is now the real 'dashboard')", () => {
     expect([...AUTH_ONLY_PAGES].sort()).toEqual(
-      ["account", "account-dashboard", "admin", "myanalytics", "paid-checkout", "plans"].sort(),
+      ["account", "dashboard", "admin", "myanalytics", "paid-checkout", "plans"].sort(),
     );
+  });
+
+  it("the project/project-versions routes (WO-P5) are NOT auth-only — anonymous projects stay viewable by id", () => {
+    expect(AUTH_ONLY_PAGES.has("project")).toBe(false);
+    expect(AUTH_ONLY_PAGES.has("project-versions")).toBe(false);
   });
 
   it("page ids and non-null patterns are unique", () => {
@@ -149,10 +154,14 @@ describe("derived route metadata", () => {
     expect(def.label).toBe("404");
   });
 
-  it("Ctrl+2 goes to Dashboard with a result and Programs without (HelpPage table)", () => {
+  it("Ctrl+2 always resolves to Dashboard (auth-only — nav() gates it at fire time, like Ctrl+3/Plans)", () => {
     const base: NavContext = { loggedIn: false, privateAccess: false, hasResult: false };
-    expect(routeForShortcut(2, base)!.page).toBe("programs");
-    expect(routeForShortcut(2, { ...base, hasResult: true })!.page).toBe("dashboard");
+    expect(routeForShortcut(2, base)!.page).toBe("dashboard");
+    expect(routeForShortcut(2, { ...base, loggedIn: true })!.page).toBe("dashboard");
+  });
+
+  it("Programs (WO-P5) no longer claims a Ctrl+2 fallback — Dashboard is its sole owner", () => {
+    expect(routeForPage("programs").shortcut).toBeUndefined();
   });
 
   it("admin shortcuts resolve only with privateAccess", () => {
@@ -210,5 +219,41 @@ describe("home/analyze split (WO-P1)", () => {
   it("neither home nor analyze is login-gated", () => {
     expect(AUTH_ONLY_PAGES.has("home")).toBe(false);
     expect(AUTH_ONLY_PAGES.has("analyze")).toBe(false);
+  });
+});
+
+// ─── Project/Snapshot Detail (WO-P5) ──────────────────────────────
+
+describe("project detail routes (WO-P5)", () => {
+  it("#projects/:id resolves to the 'project' page with the id captured", () => {
+    const match = matchHash("projects/abc123");
+    expect(match!.route.page).toBe("project");
+    expect(match!.params).toEqual({ id: "abc123" });
+  });
+
+  it("#projects/:id/versions resolves to the 'project-versions' page with the id captured", () => {
+    const match = matchHash("projects/abc123/versions");
+    expect(match!.route.page).toBe("project-versions");
+    expect(match!.params).toEqual({ id: "abc123" });
+  });
+
+  it("hashForPage round-trips both project routes with an id", () => {
+    expect(hashForPage("project", { id: "abc123" })).toBe("projects/abc123");
+    expect(hashForPage("project-versions", { id: "abc123" })).toBe("projects/abc123/versions");
+    expect(matchHash(hashForPage("project", { id: "p 1" }))!.params).toEqual({ id: "p 1" });
+  });
+
+  it("neither project route has a nav entry, shortcut, or alias (parameterized — no static rail slot)", () => {
+    for (const page of ["project", "project-versions"] as const) {
+      const def = routeForPage(page);
+      expect(def.nav).toBeUndefined();
+      expect(def.shortcut).toBeUndefined();
+      expect(def.aliases).toBeUndefined();
+    }
+  });
+
+  it("'project-versions' is not resolvable at 'projects/:id' — the two patterns are distinct, exact-segment-count matches", () => {
+    expect(matchHash("projects/abc123")!.route.page).toBe("project");
+    expect(matchHash("projects/abc123/versions")!.route.page).toBe("project-versions");
   });
 });

@@ -51,6 +51,12 @@ import {
   getDiff,
   isPersistenceCreditsError,
   complianceGradeLetter,
+  // WO-P5 — project/snapshot detail, version history, diff, memory, delete
+  getSnapshot,
+  deleteSnapshot,
+  deleteProject,
+  listProjectMemory,
+  addProjectMemory,
   getUsageTimeseries,
   getChangelog,
   patchAccount,
@@ -1227,6 +1233,104 @@ describe("getProjectContext", () => {
 
     expect(result.snapshot_id).toBe("snap_9");
     expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/proj_9/context");
+  });
+});
+
+// ─── Snapshot detail, deletion, and project memory (WO-P5) ───────
+
+describe("getSnapshot", () => {
+  it("GETs /v1/snapshots/:id (id encoded)", async () => {
+    const response = { snapshot_id: "snap 1", project_id: "proj_1", created_at: "", input_method: "api_submission", manifest: {}, file_count: 2, total_size_bytes: 10, status: "ready" };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getSnapshot("snap 1");
+
+    expect(result.status).toBe("ready");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/snapshots/snap%201");
+  });
+});
+
+describe("deleteSnapshot", () => {
+  it("DELETEs /v1/snapshots/:id", async () => {
+    const fetchFn = mockFetch({ deleted: true, snapshot_id: "snap_1" });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await deleteSnapshot("snap_1");
+
+    expect(result.deleted).toBe(true);
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/snapshots/snap_1");
+    expect(fetchFn.mock.calls[0][1]?.method).toBe("DELETE");
+  });
+});
+
+describe("deleteProject", () => {
+  it("DELETEs /v1/projects/:id", async () => {
+    const fetchFn = mockFetch({ deleted: true, project_id: "proj_1", deleted_snapshots: 3 });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await deleteProject("proj_1");
+
+    expect(result.deleted_snapshots).toBe(3);
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/proj_1");
+    expect(fetchFn.mock.calls[0][1]?.method).toBe("DELETE");
+  });
+});
+
+describe("listProjectMemory", () => {
+  it("GETs /v1/projects/:id/memory with no query params by default", async () => {
+    const response = { project_id: "proj_1", entries: [], count: 0, total: 0 };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    await listProjectMemory("proj_1");
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/proj_1/memory");
+  });
+
+  it("appends kind and limit as query params when given", async () => {
+    const fetchFn = mockFetch({ project_id: "proj_1", entries: [], count: 0, total: 0 });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await listProjectMemory("proj_1", { kind: "decision", limit: 10 });
+
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain("/v1/projects/proj_1/memory?");
+    expect(url).toContain("kind=decision");
+    expect(url).toContain("limit=10");
+  });
+
+  it("401s when signed out — surfaces as an ApiError", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "Authentication required" }, 401));
+
+    const err = await listProjectMemory("proj_1").catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(401);
+  });
+});
+
+describe("addProjectMemory", () => {
+  it("POSTs {kind, content, source?} and returns the created entry", async () => {
+    const entry = { id: "m1", project_id: "proj_1", account_id: "acct_1", kind: "decision" as const, content: "Use Postgres", source: "", created_at: "" };
+    const fetchFn = mockFetch({ entry, total: 1 });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await addProjectMemory("proj_1", { kind: "decision", content: "Use Postgres" });
+
+    expect(result.entry.content).toBe("Use Postgres");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/proj_1/memory");
+    const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
+    expect(body).toEqual({ kind: "decision", content: "Use Postgres" });
+  });
+
+  it("409s when the project memory cap is reached", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "Project memory is capped at 500 entries" }, 409));
+
+    const err = await addProjectMemory("proj_1", { kind: "goal", content: "x" }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(409);
   });
 });
 

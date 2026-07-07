@@ -134,10 +134,19 @@ describe("App routing (WO-F2)", () => {
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
   });
 
-  it("#dashboard without a stored result falls back to Analyze (known route, nothing to show)", async () => {
-    window.location.hash = "#dashboard";
+  it("#projects/:id for an id nothing knows about shows an inline not-found state (not a crash, not a bounce)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: "Project not found" }),
+      text: async () => JSON.stringify({ error: "Project not found" }),
+      headers: { get: () => null },
+    }) as unknown as Response));
+    window.location.hash = "#projects/never-analyzed";
     const { container } = render(<App />);
-    await waitFor(() => expect(shellPage(container)).toBe("analyze"));
+    expect(shellPage(container)).toBe("project"); // stays put — no silent bounce
+    const main = within(container.querySelector(".ide-main") as HTMLElement);
+    await main.findByText("Project not found");
   });
 
   it("Ctrl+5 shortcut derives from the table (Docs)", () => {
@@ -146,10 +155,11 @@ describe("App routing (WO-F2)", () => {
     expect(shellPage(container)).toBe("docs");
   });
 
-  it("Ctrl+2 falls back to Programs when no analysis result exists", () => {
+  it("Ctrl+2 (Dashboard, auth-only) while signed out opens the sign-in popup and stays put", () => {
     const { container } = render(<App />);
     fireEvent.keyDown(window, { key: "2", ctrlKey: true });
-    expect(shellPage(container)).toBe("programs");
+    expect(shellPage(container)).toBe("home");
+    expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
   });
 
   it("Ctrl+3 (Plans, auth-only) while signed out opens the sign-in popup and stays put", () => {
@@ -206,7 +216,7 @@ describe("kitchen-sink route in the shell (WO-F4)", () => {
 // plus a client-side anon-results cache; the pre-WO-F3 `axis_last_result`
 // blob migrates on first load.
 
-/** Type-complete SnapshotResponse fixture (DashboardPage renders all of it). */
+/** Type-complete SnapshotResponse fixture (ProjectPage renders all of it). */
 function makeSnapshotResponse(): SnapshotResponse {
   return {
     snapshot_id: "snap_fx",
@@ -282,67 +292,86 @@ describe("Multi-project state (WO-F3)", () => {
     expect(localStorage.getItem("axis_last_project_id")).toBeNull();
   });
 
-  it("#dashboard restores from the anon-results cache without a context round-trip", async () => {
+  it("#projects/:id restores from the anon-results cache (matching id) without a context round-trip", async () => {
     localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
     stubApiFetch([
       ["/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: [], skipped: [] }],
     ]);
-    window.location.hash = "#dashboard";
+    window.location.hash = "#projects/proj_fx";
 
     const { container } = render(<App />);
 
-    expect(shellPage(container)).toBe("dashboard");
+    expect(shellPage(container)).toBe("project");
     await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
     const urls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.includes("/context"))).toBe(false);
   });
 
-  it("#dashboard with a last-project pointer (signed in) rebuilds the result from the server", async () => {
+  it("#projects/:id for a DIFFERENT id than the cached anon result ignores the cache and fetches the server instead", async () => {
+    localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse())); // cached: proj_fx
+    const other = makeSnapshotResponse();
+    other.project_id = "proj_other";
+    other.context_map.project_identity.name = "other-repo";
+    stubApiFetch([
+      ["/v1/projects/proj_other/context", { snapshot_id: "snap_other", context_map: other.context_map, repo_profile: other.repo_profile }],
+      ["/v1/projects/proj_other/generated-files", { snapshot_id: "snap_other", project_id: "proj_other", generated_at: "", files: [], skipped: [] }],
+    ]);
+    window.location.hash = "#projects/proj_other";
+
+    const { container } = render(<App />);
+
+    expect(shellPage(container)).toBe("project");
+    await waitFor(() => expect(screen.getByText("other-repo")).toBeTruthy());
+    expect(screen.queryByText("fixture-repo")).toBeNull();
+  });
+
+  it("#projects/:id (signed in) rebuilds the result from the server and stores the last-project pointer", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
-    localStorage.setItem("axis_last_project_id", "proj_fx");
     const fx = makeSnapshotResponse();
     stubApiFetch([
       ["/v1/projects/proj_fx/context", { snapshot_id: "snap_fx", context_map: fx.context_map, repo_profile: fx.repo_profile }],
       ["/v1/projects/proj_fx/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: fx.generated_files.map((f) => ({ ...f, content: "x", content_type: "text/markdown" })), skipped: [] }],
     ]);
-    window.location.hash = "#dashboard";
+    window.location.hash = "#projects/proj_fx";
 
     const { container } = render(<App />);
 
-    expect(shellPage(container)).toBe("dashboard");
+    expect(shellPage(container)).toBe("project");
     await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+    expect(localStorage.getItem("axis_last_project_id")).toBe("proj_fx");
   });
 
-  it("#dashboard drops the pointer and bounces to Analyze when the server says 404", async () => {
+  it("#projects/:id shows an inline not-found state (not a bounce) on a 404, and drops a matching stored pointer", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
     localStorage.setItem("axis_last_project_id", "proj_gone");
     stubApiFetch([
       ["/v1/projects/proj_gone/context", { error: "Project not found" }, 404],
       ["/v1/projects/proj_gone/generated-files", { error: "Project not found" }, 404],
     ]);
-    window.location.hash = "#dashboard";
+    window.location.hash = "#projects/proj_gone";
 
     const { container } = render(<App />);
 
-    await waitFor(() => expect(shellPage(container)).toBe("analyze"));
+    expect(shellPage(container)).toBe("project"); // stays put — no silent bounce
+    await screen.findByText("Project not found");
     expect(localStorage.getItem("axis_last_project_id")).toBeNull();
   });
 });
 
-// ─── Account Dashboard → open a project (WO-P3) ──────────────────
-// #account-dashboard is login-gated (like #account/#plans); its project
-// cards hand off to the existing #dashboard server-restore path (WO-F3)
-// via App.tsx's handleOpenProject — no changes to that restore effect itself.
+// ─── Account Dashboard → open a project (WO-P3, hash promoted by WO-P5) ──
+// #dashboard is login-gated (like #account/#plans); its project cards hand
+// off to the ID-addressable "#projects/:id" server-restore path (WO-F3's
+// mechanism, keyed on the route param since WO-P5) via App.tsx's handleOpenProject.
 
-describe("Account Dashboard (WO-P3)", () => {
-  it("auth-only deep link (#account-dashboard) bounces to the landing page with the sign-in popup", async () => {
-    window.location.hash = "#account-dashboard";
+describe("Account Dashboard (WO-P3/WO-P5)", () => {
+  it("auth-only deep link (#dashboard) bounces to the landing page with the sign-in popup", async () => {
+    window.location.hash = "#dashboard";
     const { container } = render(<App />);
     await waitFor(() => expect(shellPage(container)).toBe("home"));
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
   });
 
-  it("clicking a recent-project card opens it on #dashboard via the server restore path", async () => {
+  it("clicking a recent-project card opens it on #projects/:id via the server restore path", async () => {
     localStorage.setItem("axis_api_key", "__cookie_session__");
     const fx = makeSnapshotResponse();
     stubApiFetch([
@@ -361,16 +390,16 @@ describe("Account Dashboard (WO-P3)", () => {
       }],
       ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 1, max_snapshots_per_month: 200, project_count: 1, max_projects: -1, max_files_per_snapshot: 500 } }],
     ]);
-    window.location.hash = "#account-dashboard";
+    window.location.hash = "#dashboard";
 
     const { container } = render(<App />);
-    expect(shellPage(container)).toBe("account-dashboard");
+    expect(shellPage(container)).toBe("dashboard");
     await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
 
     fireEvent.click(screen.getByText("fixture-repo").closest("button")!);
 
-    await waitFor(() => expect(shellPage(container)).toBe("dashboard"));
-    expect(window.location.hash).toBe("#dashboard");
+    await waitFor(() => expect(shellPage(container)).toBe("project"));
+    expect(window.location.hash).toBe("#projects/proj_fx");
     await waitFor(() => expect(screen.getAllByText("fixture-repo").length).toBeGreaterThan(0));
   });
 });
@@ -395,7 +424,8 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Analyze GitHub Repo" }));
 
-    await waitFor(() => expect(shellPage(container)).toBe("dashboard"));
+    await waitFor(() => expect(shellPage(container)).toBe("project"));
+    expect(window.location.hash).toBe("#projects/proj_fx");
 
     // The real result is shown — not gated behind a signup popup.
     expect(screen.getByText("fixture-repo")).toBeTruthy();
@@ -420,7 +450,7 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
     stubApiFetch([
       ["/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: [], skipped: [] }],
     ]);
-    window.location.hash = "#dashboard";
+    window.location.hash = "#projects/proj_fx";
 
     render(<App />);
     await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
@@ -443,7 +473,7 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Analyze GitHub Repo" }));
 
-    await waitFor(() => expect(shellPage(container)).toBe("dashboard"));
+    await waitFor(() => expect(shellPage(container)).toBe("project"));
 
     expect(screen.queryByText(/browsing as a guest/i)).toBeNull();
     expect(localStorage.getItem("axis_last_project_id")).toBe("proj_fx");
@@ -513,7 +543,7 @@ describe("Sign-up return-to (WO-P2)", () => {
   it("a page-agnostic requireLogin nudge (guest-project banner) returns to the SAME page, not #account", async () => {
     localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
     stubSignupFetch();
-    window.location.hash = "#dashboard";
+    window.location.hash = "#projects/proj_fx";
 
     const { container } = render(<App />);
     await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
@@ -523,7 +553,7 @@ describe("Sign-up return-to (WO-P2)", () => {
 
     completeEmailSignup();
 
-    await waitFor(() => expect(window.location.hash).toBe("#dashboard"));
-    expect(shellPage(container)).toBe("dashboard");
+    await waitFor(() => expect(window.location.hash).toBe("#projects/proj_fx"));
+    expect(shellPage(container)).toBe("project");
   });
 });

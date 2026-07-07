@@ -114,7 +114,7 @@ export async function assertSnapshotAccess(req: IncomingMessage, res: ServerResp
 }
 
 /** Check if the current user can access a project. Returns true if allowed. */
-async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolean> {
+export async function assertProjectAccess(req: IncomingMessage, res: ServerResponse, project_id: string): Promise<boolean> {
   const owner = await getProjectOwner(project_id);
   if (!owner) return true; // anonymous project
   const auth = await resolveAuth(req);
