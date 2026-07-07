@@ -1591,6 +1591,23 @@ export async function handleAnalyze(
         return;
       }
     }
+  } else {
+    // Anonymous callers must still obey free-tier file count/size limits before the
+    // expensive createSnapshot/generateFiles work runs — same fix as the sibling
+    // handleCreateSnapshot anonymous branch (see its comment): without this an anonymous
+    // caller can point /v1/analyze at an arbitrarily large repo (any file count/size) and
+    // still reach full generation on free programs, an unbounded-cost DoS/abuse vector.
+    const anonLimits = TIER_LIMITS.free;
+    if (files.length > anonLimits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${anonLimits.max_files_per_snapshot} for anonymous)`);
+      return;
+    }
+    for (const file of files) {
+      if (file.size > anonLimits.max_file_size_bytes) {
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${anonLimits.max_file_size_bytes} for anonymous)`);
+        return;
+      }
+    }
   }
 
   const projectName = detectProjectName(files) ?? (githubMeta ? `${githubMeta.owner}/${githubMeta.repo}` : "unnamed-project");

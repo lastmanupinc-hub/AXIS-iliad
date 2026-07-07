@@ -300,6 +300,39 @@ describe("POST /v1/analyze â€” validation", () => {
     expect(data.error_code).toBe("AUTH_REQUIRED");
   });
 
+  it("rejects an oversized anonymous request (file count) BEFORE generation runs", async () => {
+    // Free-tier limit is 1000 files/snapshot (TIER_LIMITS.free.max_files_per_snapshot).
+    // Request only free programs so this reaches the size gate instead of the 401
+    // paid-program check above — proving the gate fires for the exact anonymous +
+    // free-program path the live demo (WO-P1) actually uses.
+    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+      path: `src/file${i}.ts`,
+      content: "export const x = 1;",
+    }));
+    const r = await req("POST", "/v1/analyze", { files: manyFiles, programs: ["skills"] });
+    expect(r.status).toBe(413);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("FILE_COUNT_EXCEEDED");
+  });
+
+  it("rejects an oversized anonymous request (single file size) BEFORE generation runs", async () => {
+    // Free-tier limit is 5MB/file (TIER_LIMITS.free.max_file_size_bytes).
+    const r = await req("POST", "/v1/analyze", {
+      files: [{ path: "big.bin", content: "x", size: 6 * 1024 * 1024 }],
+      programs: ["skills"],
+    });
+    expect(r.status).toBe(413);
+    const data = r.data as Record<string, unknown>;
+    expect(data.error_code).toBe("FILE_TOO_LARGE");
+  });
+
+  it("still allows an anonymous request within free-tier limits (no regression)", async () => {
+    // Guards the WO-P1 live-demo path: small anonymous + free-program requests must
+    // keep working exactly as before this fix.
+    const r = await req("POST", "/v1/analyze", { files: minFiles, programs: ["skills"] });
+    expect(r.status).toBe(201);
+  });
+
   it("returns 402 for free-tier callers requesting the full bundle", async () => {
     const r = await req("POST", "/v1/analyze", { files: minFiles }, freeApiKey);
     expect(r.status).toBe(402);
