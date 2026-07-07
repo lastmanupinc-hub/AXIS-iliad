@@ -145,7 +145,7 @@ export function KitchenSinkPage({ onNavigate }: Props) {
             icon="scan"
             title="No projects yet"
             message="Analyze your first repository to see it here."
-            cta={{ label: "Analyze a repo", onClick: () => onNavigate("upload") }}
+            cta={{ label: "Analyze a repo", onClick: () => onNavigate("analyze") }}
           />
         </div>
       </Section>

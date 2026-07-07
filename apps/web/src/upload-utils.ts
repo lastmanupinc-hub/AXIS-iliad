@@ -1,4 +1,4 @@
-// Pure utility functions extracted from UploadPage for testability
+// Pure utility functions extracted from AnalyzePage (formerly UploadPage) for testability
 import JSZip from "jszip";
 
 export const IGNORED_PATTERNS = [

@@ -66,8 +66,8 @@ describe("matchHash — table resolution", () => {
   });
 
   it("resolves the empty hash to the landing page", () => {
-    expect(matchHash("")!.route.page).toBe("upload");
-    expect(matchHash("#")!.route.page).toBe("upload");
+    expect(matchHash("")!.route.page).toBe("home");
+    expect(matchHash("#")!.route.page).toBe("home");
   });
 
   it("resolves sub-tool hashes (#tools/web-research)", () => {
@@ -85,7 +85,7 @@ describe("matchHash — table resolution", () => {
 
 describe("hashForPage — hash building", () => {
   it("builds the home hash as empty", () => {
-    expect(hashForPage("upload")).toBe("");
+    expect(hashForPage("home")).toBe("");
   });
 
   it("builds static and sub-path hashes", () => {
@@ -183,5 +183,32 @@ describe("kitchen-sink route (WO-F4)", () => {
 
   it("is not login-gated (a dev aid, not an account page)", () => {
     expect(AUTH_ONLY_PAGES.has("kitchen-sink")).toBe(false);
+  });
+});
+
+// ─── Home / Analyze split (WO-P1) ─────────────────────────────────
+
+describe("home/analyze split (WO-P1)", () => {
+  it("home owns the empty pattern and has no nav entry, shortcut, or alias", () => {
+    const def = routeForPage("home");
+    expect(def.pattern).toBe("");
+    expect(def.nav).toBeUndefined();
+    expect(def.shortcut).toBeUndefined();
+    const everything: NavContext = { loggedIn: true, privateAccess: true, hasResult: true };
+    expect(visibleNavRoutes(everything).some((r) => r.page === "home")).toBe(false);
+  });
+
+  it("analyze resolves at #analyze, is in the WORKSPACE nav, and owns Ctrl+1", () => {
+    expect(matchHash("analyze")!.route.page).toBe("analyze");
+    expect(hashForPage("analyze")).toBe("analyze");
+    const def = routeForPage("analyze");
+    expect(def.nav?.group).toBe("WORKSPACE");
+    const base: NavContext = { loggedIn: false, privateAccess: false, hasResult: false };
+    expect(routeForShortcut(1, base)!.page).toBe("analyze");
+  });
+
+  it("neither home nor analyze is login-gated", () => {
+    expect(AUTH_ONLY_PAGES.has("home")).toBe(false);
+    expect(AUTH_ONLY_PAGES.has("analyze")).toBe(false);
   });
 });

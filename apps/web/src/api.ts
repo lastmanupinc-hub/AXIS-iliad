@@ -543,6 +543,70 @@ export async function analyzeGitHubUrl(githubUrl: string): Promise<SnapshotRespo
   });
 }
 
+// ─── Unified analyze endpoint (WO-P1 live demo / anon-safe quick analysis) ──
+// Lighter-weight than createSnapshot/analyzeGitHubUrl: a summary `analysis`
+// block + enriched `files[]` (path/program/description/placement/adoption_hint
+// + inline content), no full context_map/repo_profile. Anonymous callers MUST
+// restrict `programs` to the free set (config.ts FREE_PROGRAM_NAMES) or the
+// server 401s (AUTH_REQUIRED) instead of defaulting to the full paid bundle.
+
+export interface AnalyzeQuickRequest {
+  github_url?: string;
+  files?: Array<{ path: string; content: string; size?: number }>;
+  programs?: string[];
+  token?: string;
+  /** Default true (server side) — set false to omit file content from the response. */
+  inline_content?: boolean;
+}
+
+export interface AnalyzeQuickFile {
+  path: string;
+  program: string;
+  description: string;
+  placement: string;
+  adoption_hint: string;
+  content?: string;
+}
+
+export interface AnalyzeQuickResponse {
+  snapshot_id: string;
+  project_id: string;
+  status: string;
+  snapshot_summary: { pro_unlock: string };
+  analysis: {
+    project_name: string;
+    language: string;
+    frameworks: string[];
+    file_count: number;
+    routes_detected: number;
+    domain_models_detected: number;
+    separation_score: number;
+  };
+  files: AnalyzeQuickFile[];
+  programs_run: number;
+  total_files: number;
+  next_steps: string[];
+  github?: {
+    url: string;
+    owner: string;
+    repo: string;
+    ref: string;
+    files_fetched: number;
+    files_skipped: number;
+    total_bytes: number;
+  };
+}
+
+/** POST /v1/analyze — the unified one-call endpoint. Works anonymously as
+ *  long as `programs` is restricted to the free set (otherwise 401/402). */
+export async function analyzeQuick(req: AnalyzeQuickRequest): Promise<AnalyzeQuickResponse> {
+  return fetchJSON<AnalyzeQuickResponse>("/v1/analyze", {
+    method: "POST",
+    body: JSON.stringify(req),
+    timeoutMs: 120_000, // GitHub clone + analysis takes time
+  });
+}
+
 export async function healthCheck(): Promise<{ status: string; version: string }> {
   return fetchJSON("/v1/health");
 }

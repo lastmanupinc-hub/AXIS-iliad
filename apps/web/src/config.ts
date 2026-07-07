@@ -46,6 +46,14 @@ export const PROGRAM_COUNT = 20;
 /** Always-free programs: Search, Skills, Debug. */
 export const FREE_PROGRAM_COUNT = 3;
 
+/**
+ * Program ids in the always-free tier — mirrors `TIER_LIMITS.free.programs`
+ * in `@axis/snapshots`. Anonymous `POST /v1/analyze` calls must restrict
+ * `programs` to (a subset of) this list or the server 401s (AUTH_REQUIRED)
+ * rather than silently defaulting to the full paid bundle.
+ */
+export const FREE_PROGRAM_NAMES = ["search", "skills", "debug"] as const;
+
 /** Paid programs (derived — never pin separately). */
 export const PRO_PROGRAM_COUNT = PROGRAM_COUNT - FREE_PROGRAM_COUNT;
 

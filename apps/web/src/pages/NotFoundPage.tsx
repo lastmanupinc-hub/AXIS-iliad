@@ -23,7 +23,7 @@ interface Props {
 }
 
 const QUICK_LINKS: { page: PageId; label: string }[] = [
-  { page: "upload", label: "Analyze" },
+  { page: "analyze", label: "Analyze" },
   { page: "docs", label: "Docs" },
   { page: "help", label: "Help" },
 ];

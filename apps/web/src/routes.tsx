@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { UploadPage } from "./pages/UploadPage.tsx";
+import { HomePage } from "./pages/HomePage.tsx";
+import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
 import { PlansPage } from "./pages/PlansPage.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
@@ -18,6 +19,8 @@ import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
 import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { KitchenSinkPage } from "./pages/KitchenSinkPage.tsx";
 import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx";
+import { Callout } from "./components/primitives/index.ts";
+import { PRO_PROGRAM_COUNT } from "./config.ts";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── routes.tsx — the single source of truth for navigation (WO-F2) ─────────
@@ -35,9 +38,16 @@ import type { SnapshotResponse } from "./api.ts";
 // optional — e.g. "run/:program?". "" is the home pattern. An unknown hash
 // matches nothing and renders the not-found route (404) — never a silent
 // fallback to the landing page.
+//
+// WO-P1: "home" (pattern "") is the marketing landing page (HomePage.tsx,
+// no nav entry — reached via "/", the bare hash, or the sidebar brand/logo)
+// and "analyze" (pattern "analyze") is the functional form (AnalyzePage.tsx,
+// the WORKSPACE sidebar item, owns the Ctrl+1 shortcut per HelpPage's table).
+// These replace the former combined "upload" page.
 
 export type PageId =
-  | "upload"
+  | "home"
+  | "analyze"
   | "dashboard"
   | "plans"
   | "account"
@@ -84,7 +94,9 @@ export interface RouteContext extends NavContext {
   navigate: (page: PageId, params?: RouteParams) => void;
   /** Open the sign-in popup without navigating. */
   requireLogin: () => void;
-  onUploadComplete: (data: SnapshotResponse) => void;
+  /** Fires once an analysis completes — H9: anonymous results are shown
+   *  immediately (never gated behind signup); see App.tsx handleAnalyzeComplete. */
+  onAnalyzeComplete: (data: SnapshotResponse) => void;
   onGeneratedCountChange: (count: number) => void;
   onAuthChange: () => void;
 }
@@ -140,13 +152,25 @@ export interface RouteDef {
 
 export const ROUTES: RouteDef[] = [
   {
-    page: "upload",
+    page: "home",
     pattern: "",
+    label: "Home",
+    section: "MISSION",
+    // Deliberately no `nav` entry (not in the sidebar/rail/drawer/palette/404
+    // search per the build plan's sidebar tree — WORKSPACE starts at Analyze)
+    // and no `shortcut`. Reached via "/", the bare hash, or the sidebar
+    // brand/logo... except the brand click resets to Analyze (see App.tsx
+    // handleReset) — Home is a pure entry point, not a mid-session waypoint.
+    render: (ctx) => <HomePage onAnalyze={() => ctx.navigate("analyze")} onRequireLogin={ctx.requireLogin} />,
+  },
+  {
+    page: "analyze",
+    pattern: "analyze",
     label: "Analyze",
     section: "MISSION",
     shortcut: 1,
     nav: { group: "WORKSPACE", icon: "scan", rail: true },
-    render: (ctx) => <UploadPage onComplete={ctx.onUploadComplete} />,
+    render: (ctx) => <AnalyzePage onComplete={ctx.onAnalyzeComplete} />,
   },
   {
     page: "dashboard",
@@ -158,7 +182,27 @@ export const ROUTES: RouteDef[] = [
     visible: (ctx) => ctx.hasResult,
     nav: { group: "WORKSPACE", icon: "dashboard", rail: true },
     render: (ctx) => {
-      if (ctx.result) return <DashboardPage result={ctx.result} onGeneratedCountChange={ctx.onGeneratedCountChange} />;
+      if (ctx.result) {
+        return (
+          <>
+            {!ctx.loggedIn && (
+              // H9 (WO-P1): anonymous analyses complete and display results —
+              // the SignUpModal no longer intercepts them. The nudge moves to
+              // this point-of-value banner instead of a blind gate.
+              <div className="mb-4">
+                <Callout tone="info" title="You're browsing as a guest">
+                  This project lives in your browser only. Sign up to unlock {PRO_PROGRAM_COUNT} more paid
+                  programs and keep every future analysis as a saved project.{" "}
+                  <button type="button" className="btn btn-primary" style={{ marginLeft: 8 }} onClick={ctx.requireLogin}>
+                    Sign up free
+                  </button>
+                </Callout>
+              </div>
+            )}
+            <DashboardPage result={ctx.result} onGeneratedCountChange={ctx.onGeneratedCountChange} />
+          </>
+        );
+      }
       if (ctx.restoring) {
         return (
           <div className="card" style={{ margin: 40, textAlign: "center", padding: 32 }} role="status" aria-live="polite">
@@ -180,7 +224,7 @@ export const ROUTES: RouteDef[] = [
       <ToolsIndexPage
         onSelectTool={(toolId) => {
           if (toolId === "tools/web-research") ctx.navigate("tool-web-research");
-          else if (toolId === "tools/analyze") ctx.navigate("upload");
+          else if (toolId === "tools/analyze") ctx.navigate("analyze");
           else if (toolId === "tools/list-programs") ctx.navigate("programs");
           // Future tools: add cases here as their ToolPage instances ship.
         }}
@@ -205,7 +249,7 @@ export const ROUTES: RouteDef[] = [
     shortcut: 2, // fallback owner of Ctrl+2 while Dashboard is hidden (no result)
     aliases: ["/programs"],
     nav: { group: "LIBRARY", icon: "layers", rail: true },
-    render: (ctx) => <ProgramsPage onAnalyze={() => ctx.navigate("upload")} />,
+    render: (ctx) => <ProgramsPage onAnalyze={() => ctx.navigate("analyze")} />,
   },
   {
     page: "examples",

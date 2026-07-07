@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo, Fragment, Component, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useMemo, Fragment, Component, type ReactNode } from "react";
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
@@ -123,7 +123,6 @@ export function App() {
   const [restoring, setRestoring] = useState(false);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
   const [showSignUp, setShowSignUp] = useState(false);
-  const pendingResultRef = useRef<SnapshotResponse | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -178,20 +177,27 @@ export function App() {
     setNavOpen(false);
   }, [navigate]);
 
-  const handleUploadComplete = useCallback((data: SnapshotResponse) => {
+  // H9 (WO-P1, build plan §3 WO-P1 "Login-gate change"): anonymous analyses
+  // complete and display their free-program results immediately — the
+  // backend already allows this (POST /v1/analyze, /v1/github/analyze, and
+  // /v1/snapshots all run anon requests to completion). The SignUpModal no
+  // longer intercepts a successful result; the signup nudge instead lives at
+  // the point of value (the "You're browsing as a guest" banner routes.tsx
+  // renders on the dashboard route for anon results).
+  const handleAnalyzeComplete = useCallback((data: SnapshotResponse) => {
     const isLoggedIn = !!localStorage.getItem("axis_api_key");
-    if (!isLoggedIn) {
-      pendingResultRef.current = data;
-      setShowSignUp(true);
-      return;
-    }
     setResult(data);
     setCurrentProjectId(data.project_id);
-    // Server is the source of truth for signed-in analyses: persist only the
-    // project id. A fresh owned analysis supersedes any cached anon result.
-    try { localStorage.setItem(LAST_PROJECT_KEY, data.project_id); } catch { /* quota exceeded, non-fatal */ }
-    localStorage.removeItem(ANON_RESULT_KEY);
     setGeneratedFileCount(data.generated_files.length);
+    if (isLoggedIn) {
+      // Server is the source of truth for signed-in analyses: persist only the
+      // project id. A fresh owned analysis supersedes any cached anon result.
+      try { localStorage.setItem(LAST_PROJECT_KEY, data.project_id); } catch { /* quota exceeded, non-fatal */ }
+      localStorage.removeItem(ANON_RESULT_KEY);
+    } else {
+      // No account owns an anonymous snapshot — it lives client-side only.
+      try { localStorage.setItem(ANON_RESULT_KEY, JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
+    }
     navigate("dashboard");
   }, [navigate]);
 
@@ -202,7 +208,7 @@ export function App() {
     localStorage.removeItem(LAST_PROJECT_KEY);
     localStorage.removeItem(ANON_RESULT_KEY);
     localStorage.removeItem(LEGACY_RESULT_KEY);
-    nav("upload");
+    nav("analyze");
   }, [nav]);
 
   const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem("axis_api_key"));
@@ -218,7 +224,7 @@ export function App() {
     localStorage.removeItem(LAST_PROJECT_KEY); // account-scoped pointer — useless without the session
     setLoggedIn(false);
     setPrivateAccess(false);
-    nav("upload");
+    nav("home");
   }, [nav]);
 
   // One-time migration (H1 C2): a pre-cutover raw key in localStorage is exchanged for the
@@ -269,7 +275,7 @@ export function App() {
 
     const projectId = currentProjectId ?? localStorage.getItem(LAST_PROJECT_KEY);
     if (!projectId || !hasApiKey()) {
-      navigate("upload");
+      navigate("analyze");
       return;
     }
 
@@ -300,7 +306,7 @@ export function App() {
           localStorage.removeItem(LAST_PROJECT_KEY);
           setCurrentProjectId(null);
         }
-        navigate("upload");
+        navigate("analyze");
       } finally {
         if (!cancelled) setRestoring(false);
       }
@@ -315,7 +321,7 @@ export function App() {
   useEffect(() => {
     if (AUTH_ONLY_PAGES.has(route.page) && !loggedIn && !isOAuthCallback()) {
       setShowSignUp(true);
-      navigate("upload");
+      navigate("home");
     }
   }, [route.page, loggedIn, navigate]);
 
@@ -328,21 +334,16 @@ export function App() {
     }
   }, [route.page, privateAccess, loggedIn, navigate]);
 
+  // H9: signup no longer has a pending analysis to reconcile — a completed
+  // analysis is already shown (handleAnalyzeComplete runs regardless of login
+  // state). Signing up from the guest banner just closes the popup; it does
+  // NOT retroactively attach the current anon snapshot to the new account
+  // (no such API exists) — the banner's copy promises future saved projects,
+  // not that this one becomes owned.
   const handleSignUpSuccess = useCallback(() => {
     setShowSignUp(false);
     setLoggedIn(true);
-    if (pendingResultRef.current) {
-      const data = pendingResultRef.current;
-      pendingResultRef.current = null;
-      setResult(data);
-      setCurrentProjectId(data.project_id);
-      // The pending analysis ran anonymously — no account owns that snapshot,
-      // so it lives in the client-side anon cache, not behind the server pointer.
-      try { localStorage.setItem(ANON_RESULT_KEY, JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
-      setGeneratedFileCount(data.generated_files.length);
-      navigate("dashboard");
-    }
-  }, [navigate]);
+  }, []);
 
   // Track generated file count from DashboardPage
   const handleGeneratedCountChange = useCallback((count: number) => {
@@ -391,7 +392,7 @@ export function App() {
   }, [nav, navCtx]);
 
   const activeDef = routeForPage(route.page);
-  const isLanding = route.page === "upload";
+  const isLanding = route.page === "home" || route.page === "analyze";
 
   /** A nav item is active for its own page and for its child pages
    *  (e.g. Tools stays lit on #tools/web-research). */
@@ -410,10 +411,10 @@ export function App() {
     restoring,
     navigate: nav,
     requireLogin: () => setShowSignUp(true),
-    onUploadComplete: handleUploadComplete,
+    onAnalyzeComplete: handleAnalyzeComplete,
     onGeneratedCountChange: handleGeneratedCountChange,
     onAuthChange: handleAuthChange,
-  }), [navCtx, route.params, route.hash, result, currentProjectId, restoring, nav, handleUploadComplete, handleGeneratedCountChange, handleAuthChange]);
+  }), [navCtx, route.params, route.hash, result, currentProjectId, restoring, nav, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange]);
 
   return (
     <ToastProvider>

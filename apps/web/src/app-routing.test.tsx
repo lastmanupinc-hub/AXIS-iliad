@@ -64,7 +64,7 @@ function fireHash(hash: string) {
 describe("App routing (WO-F2)", () => {
   it("renders the landing page at the empty hash", () => {
     const { container } = render(<App />);
-    expect(shellPage(container)).toBe("upload");
+    expect(shellPage(container)).toBe("home");
   });
 
   it("deep link: #docs renders the Docs page on first load", () => {
@@ -89,7 +89,7 @@ describe("App routing (WO-F2)", () => {
     fireHash("#qa");
     expect(shellPage(container)).toBe("qa");
     fireHash(""); // browser Back to the landing
-    expect(shellPage(container)).toBe("upload");
+    expect(shellPage(container)).toBe("home");
   });
 
   it("hashchange to an unknown hash lands on 404, and Back recovers", () => {
@@ -113,7 +113,7 @@ describe("App routing (WO-F2)", () => {
     const { container } = render(<App />);
     const main = within(container.querySelector(".ide-main") as HTMLElement);
     fireEvent.click(main.getByRole("button", { name: "Analyze" }));
-    expect(shellPage(container)).toBe("upload");
+    expect(shellPage(container)).toBe("analyze");
   });
 
   it("404 search finds pages by label and navigates", () => {
@@ -129,7 +129,7 @@ describe("App routing (WO-F2)", () => {
   it("auth-only deep link (#account) bounces to the landing page with the sign-in popup", async () => {
     window.location.hash = "#account";
     const { container } = render(<App />);
-    await waitFor(() => expect(shellPage(container)).toBe("upload"));
+    await waitFor(() => expect(shellPage(container)).toBe("home"));
     // SignUpModal is open — OAuth is the login.
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
   });
@@ -137,7 +137,7 @@ describe("App routing (WO-F2)", () => {
   it("#dashboard without a stored result falls back to Analyze (known route, nothing to show)", async () => {
     window.location.hash = "#dashboard";
     const { container } = render(<App />);
-    await waitFor(() => expect(shellPage(container)).toBe("upload"));
+    await waitFor(() => expect(shellPage(container)).toBe("analyze"));
   });
 
   it("Ctrl+5 shortcut derives from the table (Docs)", () => {
@@ -155,7 +155,7 @@ describe("App routing (WO-F2)", () => {
   it("Ctrl+3 (Plans, auth-only) while signed out opens the sign-in popup and stays put", () => {
     const { container } = render(<App />);
     fireEvent.keyDown(window, { key: "3", ctrlKey: true });
-    expect(shellPage(container)).toBe("upload");
+    expect(shellPage(container)).toBe("home");
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
   });
 });
@@ -324,7 +324,83 @@ describe("Multi-project state (WO-F3)", () => {
 
     const { container } = render(<App />);
 
-    await waitFor(() => expect(shellPage(container)).toBe("upload"));
+    await waitFor(() => expect(shellPage(container)).toBe("analyze"));
     expect(localStorage.getItem("axis_last_project_id")).toBeNull();
+  });
+});
+
+// ─── Anonymous analyze results — no signup gate (WO-P1 H9) ───────
+// The build plan's single biggest funnel change: a successful anonymous
+// analysis used to be intercepted by the SignUpModal (pendingResultRef) and
+// never shown. It must now complete and display immediately, with a
+// non-blocking "guest" nudge instead of a gate.
+
+describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
+  it("shows the real result immediately — no SignUpModal — with a guest nudge banner", async () => {
+    const fx = makeSnapshotResponse();
+    const fetchFn = stubApiFetch([["/v1/github/analyze", fx]]);
+    window.location.hash = "#analyze";
+
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("analyze");
+
+    fireEvent.change(screen.getByPlaceholderText("https://github.com/owner/repo"), {
+      target: { value: "https://github.com/octocat/Hello-World" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analyze GitHub Repo" }));
+
+    await waitFor(() => expect(shellPage(container)).toBe("dashboard"));
+
+    // The real result is shown — not gated behind a signup popup.
+    expect(screen.getByText("fixture-repo")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /GitHub/i })).toBeNull();
+
+    // The nudge is a point-of-value banner, not a blocking modal.
+    expect(screen.getByText(/browsing as a guest/i)).toBeTruthy();
+    const signUpButton = screen.getByRole("button", { name: "Sign up free" });
+    expect(signUpButton).toBeTruthy();
+
+    // The anon result is cached client-side (no account owns this snapshot).
+    const cached = JSON.parse(localStorage.getItem("axis_anon_result") ?? "null");
+    expect(cached?.project_id).toBe("proj_fx");
+    expect(localStorage.getItem("axis_last_project_id")).toBeNull();
+
+    const urls = fetchFn.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.includes("/v1/github/analyze"))).toBe(true);
+  });
+
+  it("the guest banner's CTA opens the sign-in popup (nudge, not gate)", async () => {
+    localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
+    stubApiFetch([
+      ["/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: [], skipped: [] }],
+    ]);
+    window.location.hash = "#dashboard";
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign up free" }));
+
+    expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+
+  it("a logged-in analysis is still owned (persists the project id, no guest banner)", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    const fx = makeSnapshotResponse();
+    stubApiFetch([["/v1/github/analyze", fx]]);
+    window.location.hash = "#analyze";
+
+    const { container } = render(<App />);
+
+    fireEvent.change(screen.getByPlaceholderText("https://github.com/owner/repo"), {
+      target: { value: "https://github.com/octocat/Hello-World" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analyze GitHub Repo" }));
+
+    await waitFor(() => expect(shellPage(container)).toBe("dashboard"));
+
+    expect(screen.queryByText(/browsing as a guest/i)).toBeNull();
+    expect(localStorage.getItem("axis_last_project_id")).toBe("proj_fx");
+    expect(localStorage.getItem("axis_anon_result")).toBeNull();
   });
 });

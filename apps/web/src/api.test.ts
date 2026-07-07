@@ -9,6 +9,8 @@ import {
   getGeneratedFile,
   runProgram,
   analyzeGitHubUrl,
+  // WO-P1 — live demo / anon-safe quick analysis
+  analyzeQuick,
   healthCheck,
   getExportUrl,
   downloadExport,
@@ -351,6 +353,60 @@ describe("analyzeGitHubUrl", () => {
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe("/v1/github/analyze");
     expect(JSON.parse(init.body)).toEqual({ github_url: "https://github.com/foo/bar" });
+  });
+});
+
+// ─── analyzeQuick (WO-P1 — POST /v1/analyze, anon-safe live demo) ───
+
+describe("analyzeQuick", () => {
+  it("POSTs to /v1/analyze with the given request body", async () => {
+    const response = {
+      snapshot_id: "s2",
+      project_id: "p2",
+      status: "ready",
+      snapshot_summary: { pro_unlock: "Pro unlock: 15 more programs." },
+      analysis: {
+        project_name: "demo-repo",
+        language: "TypeScript",
+        frameworks: ["react"],
+        file_count: 3,
+        routes_detected: 0,
+        domain_models_detected: 0,
+        separation_score: 0.5,
+      },
+      files: [{ path: "AGENTS.md", program: "skills", description: "agent guide", placement: "repo root", adoption_hint: "drop at repo root", content: "# AGENTS.md" }],
+      programs_run: 3,
+      total_files: 12,
+      next_steps: ["Adopt AGENTS.md"],
+    };
+    const fetchFn = mockFetch(response, 201);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await analyzeQuick({
+      github_url: "https://github.com/octocat/Hello-World",
+      programs: ["search", "skills", "debug"],
+    });
+
+    expect(result.analysis.project_name).toBe("demo-repo");
+    expect(result.files[0].content).toBe("# AGENTS.md");
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/v1/analyze");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      github_url: "https://github.com/octocat/Hello-World",
+      programs: ["search", "skills", "debug"],
+    });
+  });
+
+  it("surfaces a structured ApiError on 401 (anon caller requesting the full bundle)", async () => {
+    const fetchFn = mockFetch({ error: "Full AXIS analysis requires authentication.", error_code: "AUTH_REQUIRED" }, 401);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const err = await analyzeQuick({ github_url: "https://github.com/foo/bar" }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(401);
+    expect((err as ApiError).errorCode).toBe("AUTH_REQUIRED");
   });
 });
 
