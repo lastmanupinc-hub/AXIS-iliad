@@ -23,3 +23,8 @@ export function niceCeil(v: number): number {
   }
   return 10 * mag;
 }
+
+/** Integer cents → "$X.YZ" (e.g. MPP pricing tiers, WO-P4). */
+export function formatUsdCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}

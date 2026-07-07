@@ -180,7 +180,7 @@ export const ROUTES: RouteDef[] = [
     section: "MISSION",
     shortcut: 1,
     nav: { group: "WORKSPACE", icon: "scan", rail: true },
-    render: (ctx) => <AnalyzePage onComplete={ctx.onAnalyzeComplete} />,
+    render: (ctx) => <AnalyzePage onComplete={ctx.onAnalyzeComplete} loggedIn={ctx.loggedIn} />,
   },
   {
     page: "dashboard",

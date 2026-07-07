@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { shouldIgnore, detectFrameworks, IGNORED_PATTERNS } from "./upload-utils.ts";
+import { shouldIgnore, detectFrameworks, IGNORED_PATTERNS, buildGitHubUrl, titleCaseProgram } from "./upload-utils.ts";
 
 // ─── shouldIgnore ───────────────────────────────────────────────
 
@@ -165,5 +165,74 @@ describe("detectFrameworks", () => {
       { path: "readme.md", content: "from flask import Flask" },
     ];
     expect(detectFrameworks(files)).not.toContain("flask");
+  });
+});
+
+// ─── buildGitHubUrl (WO-P4 — explicit branch field) ──────────────
+
+describe("buildGitHubUrl", () => {
+  it("leaves the URL untouched when branch is blank", () => {
+    expect(buildGitHubUrl("https://github.com/owner/repo", "")).toBe("https://github.com/owner/repo");
+    expect(buildGitHubUrl("https://github.com/owner/repo", "   ")).toBe("https://github.com/owner/repo");
+  });
+
+  it("appends /tree/<branch> for a non-default branch", () => {
+    expect(buildGitHubUrl("https://github.com/owner/repo", "feature-x")).toBe(
+      "https://github.com/owner/repo/tree/feature-x",
+    );
+  });
+
+  it("strips a trailing slash before appending", () => {
+    expect(buildGitHubUrl("https://github.com/owner/repo/", "main")).toBe(
+      "https://github.com/owner/repo/tree/main",
+    );
+  });
+
+  it("trims whitespace from both the URL and the branch", () => {
+    expect(buildGitHubUrl("  https://github.com/owner/repo  ", "  main  ")).toBe(
+      "https://github.com/owner/repo/tree/main",
+    );
+  });
+
+  it("an explicit branch replaces an existing /tree/<ref> segment already in the URL", () => {
+    expect(buildGitHubUrl("https://github.com/owner/repo/tree/old-branch", "new-branch")).toBe(
+      "https://github.com/owner/repo/tree/new-branch",
+    );
+  });
+
+  it("keeps an existing /tree/<ref> segment when no branch is given", () => {
+    expect(buildGitHubUrl("https://github.com/owner/repo/tree/release", "")).toBe(
+      "https://github.com/owner/repo/tree/release",
+    );
+  });
+
+  it("supports branch names containing slashes (e.g. release/1.0)", () => {
+    expect(buildGitHubUrl("https://github.com/owner/repo", "release/1.0")).toBe(
+      "https://github.com/owner/repo/tree/release/1.0",
+    );
+  });
+
+  it("returns an empty URL unchanged even with a branch given", () => {
+    expect(buildGitHubUrl("", "main")).toBe("");
+    expect(buildGitHubUrl("   ", "main")).toBe("");
+  });
+});
+
+// ─── titleCaseProgram (WO-P4 — live program-list labels) ─────────
+
+describe("titleCaseProgram", () => {
+  it("title-cases simple program names", () => {
+    expect(titleCaseProgram("search")).toBe("Search");
+    expect(titleCaseProgram("skills")).toBe("Skills");
+    expect(titleCaseProgram("closer")).toBe("Closer");
+  });
+
+  it("title-cases each hyphenated word", () => {
+    expect(titleCaseProgram("agentic-purchasing")).toBe("Agentic Purchasing");
+  });
+
+  it("special-cases known acronyms", () => {
+    expect(titleCaseProgram("seo")).toBe("SEO");
+    expect(titleCaseProgram("mcp")).toBe("MCP");
   });
 });

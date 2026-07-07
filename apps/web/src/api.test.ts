@@ -63,6 +63,11 @@ import {
   healthReady,
   ApiError,
   apiErrorDetails,
+  // WO-P4 — Analyze Repo advanced options
+  getPrograms,
+  listGitHubTokens,
+  mppPricing,
+  mppPricePerCall,
   type SnapshotPayload,
 } from "./api.ts";
 
@@ -344,6 +349,37 @@ describe("createSnapshot", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual(payload);
   });
+
+  // WO-P4 — lite mode toggle
+  it("sends no X-Agent-Mode header by default", async () => {
+    const fetchFn = mockFetch({ snapshot_id: "s1", project_id: "p1", status: "complete", context_map: {}, repo_profile: {}, generated_files: [] });
+    vi.stubGlobal("fetch", fetchFn);
+    const payload: SnapshotPayload = {
+      input_method: "manual_file_upload",
+      manifest: { project_name: "test", project_type: "web_application", frameworks: [], goals: ["test"], requested_outputs: [] },
+      files: [{ path: "index.ts", content: "export {}", size: 10 }],
+    };
+
+    await createSnapshot(payload);
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.headers["X-Agent-Mode"]).toBeUndefined();
+  });
+
+  it("sends X-Agent-Mode: lite when opts.lite is true", async () => {
+    const fetchFn = mockFetch({ snapshot_id: "s1", project_id: "p1", status: "complete", context_map: {}, repo_profile: {}, generated_files: [] });
+    vi.stubGlobal("fetch", fetchFn);
+    const payload: SnapshotPayload = {
+      input_method: "manual_file_upload",
+      manifest: { project_name: "test", project_type: "web_application", frameworks: [], goals: ["test"], requested_outputs: [] },
+      files: [{ path: "index.ts", content: "export {}", size: 10 }],
+    };
+
+    await createSnapshot(payload, undefined, { lite: true });
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.headers["X-Agent-Mode"]).toBe("lite");
+  });
 });
 
 describe("getGeneratedFiles", () => {
@@ -385,6 +421,116 @@ describe("analyzeGitHubUrl", () => {
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe("/v1/github/analyze");
     expect(JSON.parse(init.body)).toEqual({ github_url: "https://github.com/foo/bar" });
+    expect(init.headers["X-Agent-Mode"]).toBeUndefined();
+  });
+
+  // WO-P4 — private-repo token + lite mode
+  it("sends a one-off token in the body when provided (never persisted)", async () => {
+    const response = { snapshot_id: "s1", project_id: "p1", status: "complete", context_map: {}, repo_profile: {}, generated_files: [] };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    await analyzeGitHubUrl("https://github.com/foo/bar", { token: "ghp_secret123" });
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ github_url: "https://github.com/foo/bar", token: "ghp_secret123" });
+    expect(mockStorage["axis_api_key"]).toBeUndefined(); // no key was ever established in this test
+    expect(JSON.stringify(mockStorage)).not.toContain("ghp_secret123");
+  });
+
+  it("sends X-Agent-Mode: lite when opts.lite is true", async () => {
+    const response = { snapshot_id: "s1", project_id: "p1", status: "complete", context_map: {}, repo_profile: {}, generated_files: [] };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    await analyzeGitHubUrl("https://github.com/foo/bar", { lite: true });
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.headers["X-Agent-Mode"]).toBe("lite");
+  });
+});
+
+// ─── Programs catalog (WO-P4) ────────────────────────────────────
+
+describe("getPrograms", () => {
+  it("GETs /v1/programs and returns the catalog", async () => {
+    const response = {
+      programs: [
+        { name: "search", outputs: ["context-map.json"], generator_count: 1 },
+        { name: "deploy", outputs: ["deploy/Dockerfile"], generator_count: 1 },
+      ],
+      total_generators: 2,
+    };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getPrograms();
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/programs");
+    expect(result.programs).toHaveLength(2);
+    expect(result.programs[1].name).toBe("deploy");
+  });
+});
+
+// ─── GitHub token listing (WO-P4) ─────────────────────────────────
+
+describe("listGitHubTokens", () => {
+  it("GETs the masked token list", async () => {
+    const response = {
+      tokens: [
+        { token_id: "t1", label: "laptop", token_prefix: "ghp_ab", scopes: [], created_at: "2026-01-01", expires_at: null, last_used_at: null, valid: true },
+      ],
+    };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await listGitHubTokens();
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/account/github-token");
+    expect(result.tokens[0].token_prefix).toBe("ghp_ab");
+  });
+});
+
+// ─── MPP 402 pricing disclosure (WO-P4) ───────────────────────────
+
+describe("mppPricing / mppPricePerCall", () => {
+  it("reads the pricing block from a 402 payload", async () => {
+    vi.stubGlobal("fetch", mockFetch({
+      error: "Free tier includes 3 programs",
+      error_code: "TIER_REQUIRED",
+      price_per_call: "$0.50",
+      pricing: {
+        standard: { amount_cents: 50, currency: "usd", description: "Full run" },
+        lite: { amount_cents: 15, currency: "usd", description: "Lite run" },
+      },
+    }, 402));
+
+    const err = await healthCheck().then(
+      () => { throw new Error("expected rejection"); },
+      (e: unknown) => e,
+    );
+
+    const pricing = mppPricing(err);
+    expect(pricing?.standard.amount_cents).toBe(50);
+    expect(pricing?.lite.amount_cents).toBe(15);
+    expect(mppPricePerCall(err)).toBe("$0.50");
+  });
+
+  it("returns null when the error isn't an ApiError", () => {
+    expect(mppPricing(new Error("plain"))).toBeNull();
+    expect(mppPricePerCall(new Error("plain"))).toBeNull();
+  });
+
+  it("returns null when pricing is absent (e.g. a plain 429)", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "Quota exceeded", error_code: "QUOTA_EXCEEDED" }, 429));
+
+    const err = await healthCheck().then(
+      () => { throw new Error("expected rejection"); },
+      (e: unknown) => e,
+    );
+
+    expect(mppPricing(err)).toBeNull();
+    expect(mppPricePerCall(err)).toBeNull();
   });
 });
 

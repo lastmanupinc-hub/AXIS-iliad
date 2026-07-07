@@ -1,15 +1,28 @@
 import { AuthButtons } from "./AuthButtons.tsx";
+import { formatUsdCents } from "./primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "../config.ts";
+
+interface UpsellPricing {
+  standardCents: number;
+  liteCents: number;
+}
 
 interface Props {
   blocked: string[];
   allowed: string[];
   onGoFree: () => void;
   onClose: () => void;
+  /** WO-P4: live pricing from the 402 payload (api.ts's mppPricing) — when
+   *  present, shows both tiers so a lite-mode toggle demonstrably changes
+   *  the number the caller would be charged. */
+  pricing?: UpsellPricing;
+  /** Which tier the caller actually requested — highlighted in the pricing
+   *  line. Defaults to "standard" (no lite-mode toggle upstream). */
+  mode?: "standard" | "lite";
 }
 
-export function UpsellModal({ blocked, allowed, onGoFree, onClose }: Props) {
+export function UpsellModal({ blocked, allowed, onGoFree, onClose, pricing, mode = "standard" }: Props) {
   const isAnonymous = !localStorage.getItem("axis_api_key");
   const isQuotaExceeded = blocked.length === 0;
 
@@ -31,6 +44,21 @@ export function UpsellModal({ blocked, allowed, onGoFree, onClose }: Props) {
               <span key={p} className="badge badge-accent" style={{ fontSize: "0.82rem", padding: "4px 10px" }}>{p}</span>
             ))}
           </div>
+        )}
+
+        {pricing && (
+          <p className="text-center text-sm text-muted mb-3">
+            Per-run price:{" "}
+            {mode === "lite" ? (
+              <>
+                <strong>{formatUsdCents(pricing.liteCents)}</strong> (lite mode) · standard {formatUsdCents(pricing.standardCents)}
+              </>
+            ) : (
+              <>
+                <strong>{formatUsdCents(pricing.standardCents)}</strong> · lite mode {formatUsdCents(pricing.liteCents)}
+              </>
+            )}
+          </p>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>

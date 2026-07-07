@@ -446,6 +446,43 @@ export function apiErrorDetails(err: unknown): string | null {
   return typeof d === "string" && d.length > 0 ? d : null;
 }
 
+// ─── MPP 402 pricing disclosure (WO-P4) ──────────────────────────
+// Every buildPaymentRequiredPayload() response (packages/mpp) carries a
+// `pricing` block with BOTH tiers regardless of the caller's X-Agent-Mode,
+// plus (on the pro-program-block paths) a `price_per_call` string that DOES
+// reflect the mode actually sent. Reading both off an ApiError lets a
+// lite-mode toggle visibly change the price the UI shows.
+
+export interface MppPricingOption {
+  amount_cents: number;
+  currency: string;
+  description: string;
+}
+
+export interface MppPricing {
+  standard: MppPricingOption;
+  lite: MppPricingOption;
+}
+
+/** Both pricing tiers from a 402/429 payload's `pricing` block, or null if
+ *  absent/malformed (e.g. the error didn't come from a payment-required path). */
+export function mppPricing(err: unknown): MppPricing | null {
+  if (!(err instanceof ApiError)) return null;
+  const p = err.extra["pricing"] as { standard?: Partial<MppPricingOption>; lite?: Partial<MppPricingOption> } | undefined;
+  if (typeof p?.standard?.amount_cents !== "number" || typeof p?.lite?.amount_cents !== "number") return null;
+  return { standard: p.standard as MppPricingOption, lite: p.lite as MppPricingOption };
+}
+
+/** The `price_per_call` field from a pro-program-block 402 — the price THIS
+ *  request would actually be charged, reflecting the X-Agent-Mode header it
+ *  sent (unlike `pricing`, which always lists both tiers). Absent on plain
+ *  quota-exceeded 429s, which carry no per-call price. */
+export function mppPricePerCall(err: unknown): string | null {
+  if (!(err instanceof ApiError)) return null;
+  const v = err.extra["price_per_call"];
+  return typeof v === "string" ? v : null;
+}
+
 async function fetchResponse(url: string, init?: FetchOptions): Promise<Response> {
   const controller = new AbortController();
   const { timeoutMs: customTimeout, allowStatuses, ...fetchInit } = init ?? {};
@@ -522,7 +559,11 @@ async function fetchText(url: string, init?: FetchOptions): Promise<string> {
 
 // ─── Snapshot API ───────────────────────────────────────────────
 
-export async function createSnapshot(payload: SnapshotPayload, preSerializedBody?: string): Promise<SnapshotResponse> {
+export async function createSnapshot(
+  payload: SnapshotPayload,
+  preSerializedBody?: string,
+  opts?: { lite?: boolean },
+): Promise<SnapshotResponse> {
   const json = preSerializedBody ?? JSON.stringify(payload);
 
   // Compress large payloads with gzip to stay under proxy body-size limits.
@@ -530,6 +571,10 @@ export async function createSnapshot(payload: SnapshotPayload, preSerializedBody
   // returning an error without CORS headers → browser shows "Failed to fetch".
   let body: BodyInit = json;
   const extraHeaders: Record<string, string> = {};
+  // WO-P4: "lite mode" toggle — X-Agent-Mode: lite demonstrably lowers the
+  // price_per_call a blocked pro-program request is quoted (handlers.ts
+  // resolveAgentMode()); requests that don't hit a paid gate are unaffected.
+  if (opts?.lite) extraHeaders["X-Agent-Mode"] = "lite";
   if (json.length > 1_000_000 && typeof CompressionStream !== "undefined") {
     const compressed = await new Response(
       new Blob([json]).stream().pipeThrough(new CompressionStream("gzip")),
@@ -567,12 +612,45 @@ export async function runProgram(
   });
 }
 
-export async function analyzeGitHubUrl(githubUrl: string): Promise<SnapshotResponse> {
+/**
+ * WO-P4: `opts.token` is a one-off GitHub PAT for THIS request only — the
+ * caller never persists it client-side (component state, not storage).
+ * Omitting it lets the server fall back to the caller's stored token
+ * automatically (GET /v1/account/github-token lists what's saved). See
+ * createSnapshot for the `opts.lite` pricing note.
+ */
+export async function analyzeGitHubUrl(
+  githubUrl: string,
+  opts?: { token?: string; lite?: boolean },
+): Promise<SnapshotResponse> {
   return fetchJSON<SnapshotResponse>("/v1/github/analyze", {
     method: "POST",
-    body: JSON.stringify({ github_url: githubUrl }),
+    body: JSON.stringify({ github_url: githubUrl, token: opts?.token }),
+    ...(opts?.lite ? { headers: { "X-Agent-Mode": "lite" } } : {}),
     timeoutMs: 120_000,  // 2 min — GitHub clone + analysis takes time
   });
+}
+
+// ─── Programs catalog (WO-P4) ────────────────────────────────────
+// GET /v1/programs — the live program → outputs map. AnalyzePage's output
+// picker is driven by this instead of a hand-maintained list, so it can't
+// drift from the generator registry the way the old hardcoded 45-output
+// list did (it undercounted the real 20-program catalog and included two
+// renamed outputs — see docs/web-plan/AUDIT-pages.md item 4).
+
+export interface ProgramCatalogEntry {
+  name: string;
+  outputs: string[];
+  generator_count: number;
+}
+
+export interface ProgramCatalogResponse {
+  programs: ProgramCatalogEntry[];
+  total_generators: number;
+}
+
+export async function getPrograms(): Promise<ProgramCatalogResponse> {
+  return fetchJSON("/v1/programs");
 }
 
 // ─── Unified analyze endpoint (WO-P1 live demo / anon-safe quick analysis) ──
@@ -1016,6 +1094,27 @@ export async function listApiKeys(): Promise<{ keys: ApiKeyInfo[] }> {
 
 export async function revokeApiKey(keyId: string): Promise<void> {
   await fetchJSON(`/v1/account/keys/${keyId}/revoke`, { method: "POST" });
+}
+
+// ─── GitHub token listing (WO-P4 read path) ──────────────────────
+// GET /v1/account/github-token — masked listing only (token_prefix, never
+// the raw secret). AnalyzePage uses this to tell the user which saved token
+// (the most recently created valid one) will be applied automatically for
+// private repos. Full CRUD (save/delete a token) is Settings' job (WO-P12).
+
+export interface GitHubTokenSummary {
+  token_id: string;
+  label: string;
+  token_prefix: string;
+  scopes: string[];
+  created_at: string;
+  expires_at: string | null;
+  last_used_at: string | null;
+  valid: boolean;
+}
+
+export async function listGitHubTokens(): Promise<{ tokens: GitHubTokenSummary[] }> {
+  return fetchJSON("/v1/account/github-token");
 }
 
 export async function getUsage(): Promise<{ tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] }> {

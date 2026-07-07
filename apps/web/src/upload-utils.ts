@@ -90,6 +90,45 @@ export function shouldIgnore(path: string): boolean {
   return IGNORED_PATTERNS.some((p) => path.includes(p));
 }
 
+// ─── GitHub URL + branch composition (WO-P4) ────────────────────
+// The API has no separate branch field — @axis/snapshots' parseGitHubUrl only
+// ever reads a ref from a "/tree/<branch>" segment already in the URL — so
+// the Analyze page's explicit Branch field folds its value into the URL
+// client-side rather than sending it separately.
+
+/**
+ * Compose the URL sent to the analyze endpoints from a base repo URL and an
+ * optional branch. An empty branch leaves the URL untouched (including any
+ * "/tree/..." ref the user already pasted in). A non-empty branch is
+ * authoritative: it replaces any existing "/tree/..." segment, so filling in
+ * the field always wins over a stale or accidental ref left in the URL.
+ */
+export function buildGitHubUrl(rawUrl: string, branch: string): string {
+  const url = rawUrl.trim().replace(/\/+$/, "");
+  const trimmedBranch = branch.trim();
+  if (!url || !trimmedBranch) return url;
+  const withoutRef = url.replace(/\/tree\/.+$/, "");
+  return `${withoutRef}/tree/${trimmedBranch}`;
+}
+
+// ─── Program label formatting (WO-P4) ────────────────────────────
+
+/** Program names the registry spells as acronyms — everything else is
+ *  plain title-case, derived (never a hand-maintained full label list, so
+ *  it can't go stale the way the old 45-output picker did). */
+const PROGRAM_LABEL_OVERRIDES: Record<string, string> = { seo: "SEO", mcp: "MCP" };
+
+/** Human-readable label for a program slug from GET /v1/programs (e.g.
+ *  "agentic-purchasing" → "Agentic Purchasing", "seo" → "SEO"). */
+export function titleCaseProgram(name: string): string {
+  const override = PROGRAM_LABEL_OVERRIDES[name];
+  if (override) return override;
+  return name
+    .split("-")
+    .map((word) => (word.length > 0 ? word[0].toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}
+
 export function detectFrameworks(
   files: Array<{ path: string; content: string }>,
 ): string[] {

@@ -1,20 +1,44 @@
-import { useState, useRef, type FormEvent, type DragEvent } from "react";
-import { createSnapshot, analyzeGitHubUrl, ApiError, type SnapshotPayload, type SnapshotResponse } from "../api.ts";
+import { useState, useRef, useEffect, useMemo, useCallback, type FormEvent, type DragEvent } from "react";
+import {
+  createSnapshot,
+  analyzeGitHubUrl,
+  getPrograms,
+  listGitHubTokens,
+  mppPricing,
+  mppPricePerCall,
+  apiErrorDetails,
+  ApiError,
+  type SnapshotPayload,
+  type SnapshotResponse,
+  type ProgramCatalogEntry,
+  type GitHubTokenSummary,
+  type MppPricing,
+} from "../api.ts";
 import { useToast } from "../components/Toast.tsx";
 import { UpsellModal } from "../components/UpsellModal.tsx";
-import { shouldIgnore, detectFrameworks, extractZip } from "../upload-utils.ts";
+import { Callout, Skeleton, formatUsdCents } from "../components/primitives/index.ts";
+import { shouldIgnore, detectFrameworks, extractZip, buildGitHubUrl, titleCaseProgram } from "../upload-utils.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { FREE_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
+import { FREE_PROGRAM_COUNT, PROGRAM_COUNT, FREE_PROGRAM_NAMES } from "../config.ts";
 
-// ─── AnalyzePage (WO-P1) ─────────────────────────────────────────────────────
+// ─── AnalyzePage (WO-P1 split; advanced options — WO-P4) ─────────────────────
 // The form half of the former UploadPage, split from the marketing hero (now
-// pages/HomePage.tsx at #home). Same analyze logic, unchanged: GitHub URL or
-// folder/.zip upload, output selector, tier pre-check, gzip for big payloads.
-// What happens to a successful anonymous result (shown vs. gated) is decided
-// by the caller via `onComplete` — see App.tsx's handleAnalyzeComplete (H9).
+// pages/HomePage.tsx at #home). GitHub URL or folder/.zip upload, tier
+// pre-check, gzip for big payloads, UpsellModal on 402/429 — all unchanged.
+// WO-P4 adds: an explicit branch field (folded into the URL — the backend has
+// no separate branch param), a private-repo token picker (stored-token
+// awareness + a one-off paste field, never persisted client-side), a "lite
+// mode" budget toggle (X-Agent-Mode: lite), and a program/output picker
+// driven by the live GET /v1/programs catalog instead of a hand-maintained
+// list. What happens to a successful anonymous result (shown vs. gated) is
+// decided by the caller via `onComplete` — see App.tsx's handleAnalyzeComplete (H9).
 
 interface Props {
   onComplete: (data: SnapshotResponse) => void;
+  /** Gates the stored-GitHub-token lookup (account-scoped — GET
+   *  /v1/account/github-token 401s for anonymous callers). Omit/false for
+   *  logged-out renders; the paste-a-token field still works either way. */
+  loggedIn?: boolean;
 }
 
 const PROJECT_TYPES = [
@@ -28,92 +52,116 @@ const PROJECT_TYPES = [
   "static_site",
 ];
 
-const OUTPUT_OPTIONS = [
-  // Search (free)
-  { value: "context-map.json", label: "Context Map", group: "Search" },
-  { value: "AGENTS.md", label: "AGENTS.md", group: "Search" },
-  { value: "CLAUDE.md", label: "CLAUDE.md", group: "Search" },
-  { value: ".cursorrules", label: ".cursorrules", group: "Search" },
-  { value: "architecture-summary.md", label: "Architecture Summary", group: "Search" },
-  // Skills (free)
-  { value: "copilot-instructions.md", label: "Copilot Instructions", group: "Skills" },
-  { value: "cursor-rules.md", label: "Cursor Rules", group: "Skills" },
-  { value: "windsurf-rules.md", label: "Windsurf Rules", group: "Skills" },
-  // Debug (free)
-  { value: ".ai/debug-playbook.md", label: "Debug Playbook", group: "Debug" },
-  { value: "incident-template.md", label: "Incident Template", group: "Debug" },
-  { value: "tracing-rules.md", label: "Tracing Rules", group: "Debug" },
-  { value: "root-cause-checklist.md", label: "Root Cause Checklist", group: "Debug" },
-  // Frontend (pro)
-  { value: ".ai/frontend-rules.md", label: "Frontend Rules", group: "Frontend" },
-  { value: "component-guidelines.md", label: "Component Guidelines", group: "Frontend" },
-  { value: "layout-patterns.md", label: "Layout Patterns", group: "Frontend" },
-  // SEO (pro)
-  { value: ".ai/seo-rules.md", label: "SEO Rules", group: "SEO" },
-  { value: "schema-recommendations.json", label: "Schema Recommendations", group: "SEO" },
-  { value: "route-priority-map.md", label: "Route Priority Map", group: "SEO" },
-  // Optimization (pro)
-  { value: ".ai/optimization-rules.md", label: "Optimization Rules", group: "Optimization" },
-  { value: "prompt-diff-report.md", label: "Prompt Diff Report", group: "Optimization" },
-  { value: "token-budget-plan.md", label: "Token Budget Plan", group: "Optimization" },
-  // Theme (pro)
-  { value: "theme.css", label: "Theme CSS", group: "Theme" },
-  { value: ".ai/design-tokens.json", label: "Design Tokens", group: "Theme" },
-  // Brand (pro)
-  { value: "brand-guidelines.md", label: "Brand Guidelines", group: "Brand" },
-  { value: "messaging-system.yaml", label: "Messaging System", group: "Brand" },
-  { value: "channel-rulebook.md", label: "Channel Rulebook", group: "Brand" },
-  // Marketing (pro)
-  { value: "campaign-brief.md", label: "Campaign Brief", group: "Marketing" },
-  { value: "funnel-map.md", label: "Funnel Map", group: "Marketing" },
-  { value: "cro-playbook.md", label: "CRO Playbook", group: "Marketing" },
-  // MCP (pro)
-  { value: "mcp-config.json", label: "MCP Config", group: "MCP" },
-  { value: "connector-map.yaml", label: "Connector Map", group: "MCP" },
-  // Superpowers (pro)
-  { value: "superpower-pack.md", label: "Superpower Pack", group: "Superpowers" },
-  { value: "test-generation-rules.md", label: "Test Generation Rules", group: "Superpowers" },
-  { value: "refactor-checklist.md", label: "Refactor Checklist", group: "Superpowers" },
-  // Notebook (pro)
-  { value: "notebook-summary.md", label: "Notebook Summary", group: "Notebook" },
-  { value: "study-brief.md", label: "Study Brief", group: "Notebook" },
-  { value: "research-threads.md", label: "Research Threads", group: "Notebook" },
-  // Obsidian (pro)
-  { value: "obsidian-skill-pack.md", label: "Obsidian Skill Pack", group: "Obsidian" },
-  { value: "vault-rules.md", label: "Vault Rules", group: "Obsidian" },
-  // Remotion (pro)
-  { value: "remotion-script.ts", label: "Remotion Script", group: "Remotion" },
-  { value: "scene-plan.md", label: "Scene Plan", group: "Remotion" },
-  { value: "render-config.json", label: "Render Config", group: "Remotion" },
-  // Artifacts (pro)
-  { value: "generated-component.tsx", label: "Component", group: "Artifacts" },
-  { value: "dashboard-widget.tsx", label: "Dashboard Widget", group: "Artifacts" },
-  // Canvas (pro)
-  { value: "canvas-spec.json", label: "Canvas Spec", group: "Canvas" },
-  // Algorithmic (pro)
-  { value: "generative-sketch.ts", label: "Generative Sketch", group: "Algorithmic" },
-  { value: "parameter-pack.json", label: "Parameter Pack", group: "Algorithmic" },
-];
+/** Preferred default selection — used only if present in the live catalog
+ *  (outputOptions); if the catalog hasn't loaded yet or these were renamed
+ *  upstream, the run still proceeds (generateFiles always includes the core
+ *  search outputs regardless of what's requested). */
+const ESSENTIAL_CANDIDATES = ["context-map.json", "AGENTS.md", "CLAUDE.md", ".cursorrules"];
 
-const ESSENTIALS = ["context-map.json", "AGENTS.md", "CLAUDE.md", ".cursorrules", "copilot-instructions.md"];
+/** Always-free programs, as a Set for O(1) checks against the live catalog's
+ *  `program.name` (WO-P4 — replaces a hand-maintained capitalized-group Set
+ *  that only matched the old hardcoded output list). */
+const FREE_PROGRAM_SET = new Set<string>(FREE_PROGRAM_NAMES);
 
-export function AnalyzePage({ onComplete }: Props) {
+interface OutputOption {
+  value: string;
+  program: string;
+}
+
+interface TierBlockState {
+  blocked: string[];
+  allowed: string[];
+  /** Both pricing tiers from the 402 payload (mode-invariant) — null when
+   *  the block happened client-side before any request was sent (no live
+   *  price to show without guessing). */
+  pricing: MppPricing | null;
+  /** The price THIS request would actually be charged, reflecting the
+   *  X-Agent-Mode header it sent — null when not applicable. */
+  pricePerCall: string | null;
+  /** Whether X-Agent-Mode: lite was actually sent on the request that
+   *  produced this block — captured at request time (not read live off the
+   *  lite-mode checkbox) so toggling the checkbox afterward can't relabel a
+   *  price that was already quoted under the other mode. */
+  requestedLite: boolean;
+}
+
+export function AnalyzePage({ onComplete, loggedIn }: Props) {
   const [mode, setMode] = useState<"upload" | "github">("github");
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("web_application");
   const [goals, setGoals] = useState("Generate AI context files");
-  const [selectedOutputs, setSelectedOutputs] = useState<string[]>(ESSENTIALS);
+  const [selectedOutputs, setSelectedOutputs] = useState<string[]>(ESSENTIAL_CANDIDATES);
   const [files, setFiles] = useState<Array<{ path: string; content: string; size: number }>>([]);
   const [githubUrl, setGithubUrl] = useState("");
+  const [branch, setBranch] = useState("");
+  const [pastedToken, setPastedToken] = useState("");
+  const [storedTokens, setStoredTokens] = useState<GitHubTokenSummary[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
+  const [liteMode, setLiteMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [tierBlock, setTierBlock] = useState<{ blocked: string[]; allowed: string[] } | null>(null);
+  const [tierBlock, setTierBlock] = useState<TierBlockState | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
   const [skippedCount, setSkippedCount] = useState(0);
+  const [catalog, setCatalog] = useState<ProgramCatalogEntry[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<{ message: string; details: string | null } | null>(null);
   const { toast } = useToast();
+
+  // WO-P4: the output picker is driven by the live program registry instead
+  // of a hand-maintained list (the old 45-output list undercounted the real
+  // 20-program catalog and included outputs under their pre-alias names —
+  // see docs/web-plan/AUDIT-pages.md item 4).
+  const loadCatalog = useCallback(() => {
+    setCatalogLoading(true);
+    setCatalogError(null);
+    return getPrograms()
+      .then((res) => setCatalog(res.programs ?? []))
+      .catch((err) =>
+        setCatalogError({
+          message: err instanceof Error ? err.message : "Failed to load the program catalog",
+          details: apiErrorDetails(err),
+        }),
+      )
+      .finally(() => setCatalogLoading(false));
+  }, []);
+
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
+
+  const outputOptions = useMemo<OutputOption[]>(
+    () => catalog.flatMap((p) => p.outputs.map((value) => ({ value, program: p.name }))),
+    [catalog],
+  );
+
+  // WO-P4: stored GitHub tokens are account-scoped (GET /v1/account/github-token,
+  // masked — token_prefix only, never the raw secret). Anonymous visitors skip
+  // the lookup; they can still paste a one-off token below.
+  useEffect(() => {
+    if (!loggedIn) {
+      setStoredTokens([]);
+      return;
+    }
+    let cancelled = false;
+    setTokensLoading(true);
+    listGitHubTokens()
+      .then((res) => {
+        if (!cancelled) setStoredTokens((res.tokens ?? []).filter((t) => t.valid));
+      })
+      .catch(() => {
+        if (!cancelled) setStoredTokens([]); // non-critical — paste-a-token still works
+      })
+      .finally(() => {
+        if (!cancelled) setTokensLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedIn]);
 
   async function readFiles(fileList: FileList) {
     const results: Array<{ path: string; content: string; size: number }> = [];
@@ -198,24 +246,76 @@ export function AnalyzePage({ onComplete }: Props) {
     );
   }
 
+  /** Shared 402/429 handling for both analyze paths. WO-P4: also extracts the
+   *  live pricing block so toggling lite mode and retrying demonstrably
+   *  changes the price shown (mppPricing/mppPricePerCall — api.ts). */
+  function applyAnalyzeError(err: unknown, fallbackMessage: string) {
+    setLoadingStep("");
+    if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
+      setTierBlock({
+        blocked: (err.extra.blocked_programs as string[] | undefined) ?? [],
+        allowed: (err.extra.allowed_programs as string[] | undefined) ?? [...FREE_PROGRAM_NAMES],
+        pricing: mppPricing(err),
+        pricePerCall: mppPricePerCall(err),
+        requestedLite: liteMode,
+      });
+      setError(err.message);
+    } else if (err instanceof ApiError && (err.errorCode === "QUOTA_EXCEEDED" || err.status === 429)) {
+      setTierBlock({
+        blocked: [],
+        allowed: [...FREE_PROGRAM_NAMES],
+        pricing: mppPricing(err),
+        pricePerCall: mppPricePerCall(err),
+        requestedLite: liteMode,
+      });
+      setError(err.message);
+    } else {
+      setTierBlock(null);
+      const msg = err instanceof Error ? err.message : fallbackMessage;
+      setError(msg);
+      toast("error", msg);
+    }
+  }
+
+  /** Narrow the current selection to free-tier outputs only — shared by the
+   *  inline tier-block card and UpsellModal's "Use Free Programs Only". */
+  function applyFreeOnly() {
+    if (!tierBlock) return;
+    const freePrograms = new Set(tierBlock.allowed);
+    const freeOutputs = selectedOutputs.filter((o) => {
+      const opt = outputOptions.find((x) => x.value === o);
+      return opt ? freePrograms.has(opt.program) : false;
+    });
+    setSelectedOutputs(freeOutputs.length > 0 ? freeOutputs : ESSENTIAL_CANDIDATES);
+    setError(null);
+    setTierBlock(null);
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    // Client-side pre-check: catch pro program selection before the network round-trip
-    const FREE_GROUPS = new Set(["Search", "Skills", "Debug"]);
+    // Client-side pre-check: catch pro program selection before the network
+    // round-trip. Program names come from the live catalog (outputOptions),
+    // so this can't drift from GET /v1/programs.
     const proSelected = selectedOutputs
-      .map((v) => OUTPUT_OPTIONS.find((o) => o.value === v))
-      .filter((o) => o && !FREE_GROUPS.has(o.group))
-      .map((o) => o!.group.toLowerCase());
+      .map((v) => outputOptions.find((o) => o.value === v))
+      .filter((o) => o && !FREE_PROGRAM_SET.has(o.program))
+      .map((o) => o!.program);
     const uniqueProPrograms = [...new Set(proSelected)].sort();
 
     if (uniqueProPrograms.length > 0 && !localStorage.getItem("axis_api_key")) {
-      // Anonymous user trying pro programs — show upsell immediately
+      // Anonymous user trying pro programs — show upsell immediately. No
+      // request was sent, so there's no live price to show (pricing stays
+      // null rather than guessing a number that could drift from the
+      // server's actual pricing tiers).
       setTierBlock({
         blocked: uniqueProPrograms,
-        allowed: ["search", "skills", "debug"],
+        allowed: [...FREE_PROGRAM_NAMES],
+        pricing: null,
+        pricePerCall: null,
+        requestedLite: liteMode,
       });
-      setError(`Free tier includes 3 programs (search, skills, debug). Sign up or upgrade to Starter, Pro, or Growth to unlock: ${uniqueProPrograms.join(", ")}.`);
+      setError(`Free tier includes ${FREE_PROGRAM_COUNT} programs (${FREE_PROGRAM_NAMES.join(", ")}). Sign up or upgrade to Starter, Pro, or Growth to unlock: ${uniqueProPrograms.join(", ")}.`);
       toast("error", "Upgrade your tier to unlock those programs");
       return;
     }
@@ -228,30 +328,20 @@ export function AnalyzePage({ onComplete }: Props) {
       setLoading(true);
       setError(null);
 
+      const finalUrl = buildGitHubUrl(githubUrl, branch);
+      const token = pastedToken.trim() || undefined;
+
       setLoadingStep("Cloning repository...");
       try {
         const stepTimer = setTimeout(() => setLoadingStep("Analyzing & generating artifacts..."), 4000);
-        const result = await analyzeGitHubUrl(githubUrl.trim());
+        const result = await analyzeGitHubUrl(finalUrl, { token, lite: liteMode });
         clearTimeout(stepTimer);
         setLoadingStep("");
+        setPastedToken(""); // one-off token — never held longer than the request that used it
         toast("success", `Analyzed ${result.context_map.project_identity.name} — ${result.context_map.structure.total_files} files`);
         onComplete(result);
       } catch (err) {
-        setLoadingStep("");
-        if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
-          const blocked = (err.extra.blocked_programs as string[] | undefined) ?? [];
-          const allowed = (err.extra.allowed_programs as string[] | undefined) ?? ["search", "skills", "debug"];
-          setTierBlock({ blocked, allowed });
-          setError(err.message);
-        } else if (err instanceof ApiError && (err.errorCode === "QUOTA_EXCEEDED" || err.status === 429)) {
-          setTierBlock({ blocked: [], allowed: ["search", "skills", "debug"] });
-          setError(err.message);
-        } else {
-          setTierBlock(null);
-          const msg = err instanceof Error ? err.message : "GitHub analysis failed";
-          setError(msg);
-          toast("error", msg);
-        }
+        applyAnalyzeError(err, "GitHub analysis failed");
       } finally {
         setLoading(false);
       }
@@ -303,27 +393,13 @@ export function AnalyzePage({ onComplete }: Props) {
     try {
       setLoadingStep("Uploading & building context map...");
       const stepTimer = setTimeout(() => setLoadingStep("Generating artifacts..."), 3000);
-      const result = await createSnapshot(payload, jsonBody);
+      const result = await createSnapshot(payload, jsonBody, { lite: liteMode });
       clearTimeout(stepTimer);
       setLoadingStep("");
       toast("success", `Snapshot created — ${result.generated_files.length} files generated`);
       onComplete(result);
     } catch (err) {
-      setLoadingStep("");
-      if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
-        const blocked = (err.extra.blocked_programs as string[] | undefined) ?? [];
-        const allowed = (err.extra.allowed_programs as string[] | undefined) ?? ["search", "skills", "debug"];
-        setTierBlock({ blocked, allowed });
-        setError(err.message);
-      } else if (err instanceof ApiError && (err.errorCode === "QUOTA_EXCEEDED" || err.status === 429)) {
-        setTierBlock({ blocked: [], allowed: ["search", "skills", "debug"] });
-        setError(err.message);
-      } else {
-        setTierBlock(null);
-        const msg = err instanceof Error ? err.message : "Upload failed";
-        setError(msg);
-        toast("error", msg);
-      }
+      applyAnalyzeError(err, "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -367,9 +443,46 @@ export function AnalyzePage({ onComplete }: Props) {
               placeholder="https://github.com/owner/repo"
               style={{ marginBottom: 12 }}
             />
+
+            <label>Branch <span className="text-muted text-xs">(optional — defaults to the repo's default branch)</span></label>
+            <input
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              placeholder="main"
+              style={{ marginBottom: 12 }}
+            />
+
             <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", margin: 0 }}>
-              Supports public repositories. Examples: https://github.com/vercel/next.js or https://github.com/owner/repo/tree/branch
+              Supports public repositories, plus private ones you have a token for. Paste a plain repo
+              URL and use Branch for a non-default one, or paste a URL that already ends in /tree/branch.
             </p>
+
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+              <label>Private repository token <span className="text-muted text-xs">(optional)</span></label>
+              {loggedIn && tokensLoading && (
+                <p className="text-muted text-sm">Checking your saved GitHub tokens…</p>
+              )}
+              {loggedIn && !tokensLoading && storedTokens.length > 0 && !pastedToken.trim() && (
+                <p className="text-muted text-sm mb-2">
+                  Your saved token <code>{storedTokens[0].label}</code> ({storedTokens[0].token_prefix}••••) will be used automatically for private repos.
+                </p>
+              )}
+              <input
+                type="password"
+                value={pastedToken}
+                onChange={(e) => setPastedToken(e.target.value)}
+                placeholder={
+                  loggedIn && storedTokens.length > 0
+                    ? "Paste a token to use instead of your saved one for this run"
+                    : "ghp_... (used once for this request, never stored in your browser)"
+                }
+              />
+              {!loggedIn && (
+                <p className="text-muted text-xs mt-1">
+                  Sign in to reuse a saved token across analyses — this one is used only for this request.
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <>
@@ -488,32 +601,45 @@ export function AnalyzePage({ onComplete }: Props) {
         <div className="card" style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <label style={{ margin: 0 }}>Requested Outputs <span style={{ color: "var(--text-muted)", fontWeight: "normal", fontSize: "0.8rem" }}>({selectedOutputs.length} selected)</span></label>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button type="button" className="badge badge-green" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs(ESSENTIALS)}>Essentials</button>
-              <button type="button" className="badge" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs(OUTPUT_OPTIONS.map(o => o.value))}>Select all</button>
-              <button type="button" className="badge" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs(OUTPUT_OPTIONS.filter(o => ["Search","Skills","Debug"].includes(o.group)).map(o => o.value))}>Free only</button>
-              <button type="button" className="badge" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs([])}>Clear</button>
-            </div>
-          </div>
-          {Array.from(new Set(OUTPUT_OPTIONS.map(o => o.group))).map((group) => (
-            <div key={group} style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{group}</div>
-              <div className="flex flex-wrap" style={{ gap: 4 }}>
-                {OUTPUT_OPTIONS.filter(o => o.group === group).map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`badge ${selectedOutputs.includes(opt.value) ? "badge-accent" : ""}`}
-                    style={{ cursor: "pointer", padding: "3px 9px", fontSize: "0.78rem" }}
-                    onClick={() => toggleOutput(opt.value)}
-                  >
-                    {selectedOutputs.includes(opt.value) ? "✓ " : ""}
-                    {opt.label}
-                  </button>
-                ))}
+            {!catalogLoading && !catalogError && (
+              <div style={{ display: "flex", gap: 6 }}>
+                <button type="button" className="badge badge-green" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs(ESSENTIAL_CANDIDATES)}>Essentials</button>
+                <button type="button" className="badge" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs(outputOptions.map((o) => o.value))}>Select all</button>
+                <button type="button" className="badge" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs(outputOptions.filter((o) => FREE_PROGRAM_SET.has(o.program)).map((o) => o.value))}>Free only</button>
+                <button type="button" className="badge" style={{ cursor: "pointer" }} onClick={() => setSelectedOutputs([])}>Clear</button>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+          {catalogLoading ? (
+            <Skeleton lines={4} />
+          ) : catalogError ? (
+            <Callout tone="warning" title="Couldn't load the live program list" details={catalogError.details}>
+              {catalogError.message}{" "}
+              <button type="button" className="btn" onClick={() => void loadCatalog()}>Retry</button>
+            </Callout>
+          ) : (
+            catalog.map((program) => (
+              <div key={program.name} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>
+                  {titleCaseProgram(program.name)}{!FREE_PROGRAM_SET.has(program.name) ? " · pro" : ""}
+                </div>
+                <div className="flex flex-wrap" style={{ gap: 4 }}>
+                  {program.outputs.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`badge ${selectedOutputs.includes(value) ? "badge-accent" : ""}`}
+                      style={{ cursor: "pointer", padding: "3px 9px", fontSize: "0.78rem" }}
+                      onClick={() => toggleOutput(value)}
+                    >
+                      {selectedOutputs.includes(value) ? "✓ " : ""}
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </div>
           </>
         )}
@@ -529,18 +655,21 @@ export function AnalyzePage({ onComplete }: Props) {
                 <span key={p} className="badge badge-accent" style={{ fontSize: "0.78rem" }}>{p}</span>
               ))}
             </div>
+            {(tierBlock.pricePerCall || tierBlock.pricing) && (
+              <p className="text-sm text-muted mb-3">
+                {tierBlock.pricePerCall ? (
+                  <>This run would cost <strong>{tierBlock.pricePerCall}</strong>{tierBlock.requestedLite ? " (lite mode)" : ""}.</>
+                ) : (
+                  tierBlock.pricing && (
+                    <>Per-run price: standard <strong>{formatUsdCents(tierBlock.pricing.standard.amount_cents)}</strong> · lite <strong>{formatUsdCents(tierBlock.pricing.lite.amount_cents)}</strong>.</>
+                  )
+                )}
+              </p>
+            )}
             <button type="button" className="btn btn-primary" style={{ marginRight: 8 }} onClick={() => { window.location.hash = "plans"; }}>
               Go Pro — Unlock All {PROGRAM_COUNT} Programs
             </button>
-            <button type="button" className="btn" onClick={() => {
-              const freeOutputs = selectedOutputs.filter((o) => {
-                const freeProgs = new Set(tierBlock.allowed);
-                return OUTPUT_OPTIONS.some((opt) => opt.value === o && freeProgs.has(opt.group.toLowerCase()));
-              });
-              setSelectedOutputs(freeOutputs.length > 0 ? freeOutputs : ESSENTIALS);
-              setError(null);
-              setTierBlock(null);
-            }}>
+            <button type="button" className="btn" onClick={applyFreeOnly}>
               Use Free Programs Only
             </button>
           </div>
@@ -549,6 +678,19 @@ export function AnalyzePage({ onComplete }: Props) {
             <p style={{ color: "var(--red)" }}>{error}</p>
           </div>
         ) : null}
+
+        <label className="flex" style={{ gap: 8, alignItems: "flex-start", marginBottom: 12, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={liteMode}
+            onChange={(e) => setLiteMode(e.target.checked)}
+            style={{ width: "auto", marginTop: 3 }}
+          />
+          <span className="text-sm text-muted">
+            Lite mode — if this run needs a paid program, ask for reduced-price processing (fewer
+            artifacts, lower price) instead of the full bundle. Free-tier runs are unaffected.
+          </span>
+        </label>
 
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: "100%", justifyContent: "center", padding: 12 }}>
           {loading ? (
@@ -572,15 +714,9 @@ export function AnalyzePage({ onComplete }: Props) {
         <UpsellModal
           blocked={tierBlock.blocked}
           allowed={tierBlock.allowed}
-          onGoFree={() => {
-            const freeOutputs = selectedOutputs.filter((o) => {
-              const freeProgs = new Set(tierBlock.allowed);
-              return OUTPUT_OPTIONS.some((opt) => opt.value === o && freeProgs.has(opt.group.toLowerCase()));
-            });
-            setSelectedOutputs(freeOutputs.length > 0 ? freeOutputs : ESSENTIALS);
-            setError(null);
-            setTierBlock(null);
-          }}
+          pricing={tierBlock.pricing ? { standardCents: tierBlock.pricing.standard.amount_cents, liteCents: tierBlock.pricing.lite.amount_cents } : undefined}
+          mode={tierBlock.requestedLite ? "lite" : "standard"}
+          onGoFree={applyFreeOnly}
           onClose={() => {
             setError(null);
             setTierBlock(null);

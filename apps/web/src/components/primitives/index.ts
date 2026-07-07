@@ -14,4 +14,4 @@ export { EmptyState, type EmptyStateProps } from "./EmptyState.tsx";
 export { Sparkline, type SparklineProps } from "./Sparkline.tsx";
 export { BarChart, type BarChartProps, type BarChartDatum } from "./BarChart.tsx";
 export { PageFooter, type PageFooterProps } from "./PageFooter.tsx";
-export { formatCompact, niceCeil } from "./format.ts";
+export { formatCompact, niceCeil, formatUsdCents } from "./format.ts";
