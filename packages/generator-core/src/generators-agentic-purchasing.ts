@@ -483,34 +483,283 @@ function buildDisputeFlowSection(signals: CommerceSignals): string {
 // ─── 1. Agent Purchasing Playbook ────────────────────────────────
 
 // ─── Public API: Compliance Grade ────────────────────────────────
+//
+// gradeCompliance() runs 8 distinct MULTI-SIGNAL validators over the submitted
+// source files. Each validator requires >=2 co-occurring signals to "pass" —
+// a single incidental keyword can, at most, earn "warn" — and every check
+// carries a weight, an evidence trail, and actionable remediation. This is
+// deterministic STATIC source-signal analysis of submitted files; it is NOT a
+// certification, audit, PCI assessment, or live card-network certification,
+// and it cannot verify runtime behavior, real network-token enrollment, or
+// cryptographically-signed mandates. See `methodology` on the result.
 
+export type CheckStatus = "pass" | "warn" | "fail";
+
+export interface ComplianceCheck {
+  name:
+    | "sca_readiness"
+    | "ap2_mandate_validity"
+    | "tokenization_posture"
+    | "ce3_readiness"
+    | "dispute_rail_wiring"
+    | "idempotency_receipt"
+    | "budget_negotiation"
+    | "refund_cancel_path";
+  title: string;
+  status: CheckStatus;
+  weight: number;
+  score: number;
+  evidence: string[];
+  remediation: string;
+}
+
+// Superset of the OLD shape — old {grade, checks_passed, checks_total} keys
+// are preserved so existing readers of computeComplianceGrade()'s return
+// value keep working unmodified.
 export interface ComplianceGradeResult {
   grade: "A" | "B" | "C" | "D";
   checks_passed: number;
   checks_total: 8;
+  score: number;
+  checks: ComplianceCheck[];
+  methodology: string;
+}
+
+const COMPLIANCE_METHODOLOGY =
+  "Deterministic static source-signal analysis of the submitted files — a checklist " +
+  "starting point, not a live compliance audit, PCI assessment, or card-network " +
+  "certification. This is NOT a certification. It cannot verify runtime behavior, " +
+  "real network-token enrollment, or cryptographically-signed mandates.";
+
+function checkScore(status: CheckStatus, weight: number): number {
+  return status === "pass" ? weight : status === "warn" ? Math.round(weight / 2) : 0;
+}
+
+// Generic "primary AND secondary" validator: pass requires both regex groups
+// to match somewhere in the combined file blob; warn requires exactly one;
+// fail requires neither. Covers 4 of the 8 checks whose rule is a plain
+// two-signal AND (sca_readiness, idempotency_receipt, budget_negotiation,
+// refund_cancel_path) — the other 4 need bespoke logic (mandate generic/
+// specific split, tokenization antipattern, CE 3.0 four-way count, dispute
+// three-way AND) and are implemented as their own functions below.
+function twoSignalCheck(
+  name: ComplianceCheck["name"],
+  title: string,
+  weight: number,
+  blob: string,
+  primary: RegExp,
+  secondary: RegExp,
+  remediationFail: string,
+  remediationWarn: string,
+  remediationPass: string,
+): ComplianceCheck {
+  const p = primary.exec(blob);
+  const s = secondary.exec(blob);
+  let status: CheckStatus;
+  let evidence: string[];
+  let remediation: string;
+  if (p && s) {
+    status = "pass";
+    evidence = [p[0], s[0]];
+    remediation = remediationPass;
+  } else if (p || s) {
+    status = "warn";
+    evidence = [(p ?? s)![0]];
+    remediation = remediationWarn;
+  } else {
+    status = "fail";
+    evidence = [];
+    remediation = remediationFail;
+  }
+  return { name, title, status, weight, score: checkScore(status, weight), evidence, remediation };
+}
+
+// AP2 mandate validity: pass needs a SPECIFIC mandate identifier (mandate_id
+// / mandate_type) plus a bounding field (max_amount/spending_limit/expires/
+// valid_until/scope). Any mandate keyword alone (specific or generic) without
+// a bound is "warn" — a mandate with no spend/time limit is a real risk, not
+// a pass. No mandate keyword at all is "fail".
+function ap2MandateValidityCheck(blob: string): ComplianceCheck {
+  const weight = 16;
+  const specific = /mandate[_\s-]?id|mandate[_\s-]?type/i.exec(blob);
+  const bound = /max_amount|spending_limit|\bexpires\b|valid_until|\bscope\b/i.exec(blob);
+  const generic = /\bmandate\b/i.exec(blob);
+  let status: CheckStatus;
+  let evidence: string[];
+  let remediation: string;
+  if (specific && bound) {
+    status = "pass";
+    evidence = [specific[0], bound[0]];
+    remediation = "Mandate has an identifier and a spend/time bound — keep enforcing max_amount/expiry on every mandate.";
+  } else if (specific || generic) {
+    status = "warn";
+    evidence = [(specific ?? generic)![0]];
+    remediation = "Mandate keyword found but no bounding field (max_amount/spending_limit/expires/valid_until/scope) detected — add an explicit spend or time bound to every mandate object.";
+  } else {
+    status = "fail";
+    evidence = [];
+    remediation = "No AP2 mandate object detected — add a mandate_id/mandate_type with max_amount and expires/valid_until fields before enabling autonomous purchase.";
+  }
+  return { name: "ap2_mandate_validity", title: "AP2 Mandate Validity", status, weight, score: checkScore(status, weight), evidence, remediation };
+}
+
+// Tokenization posture: a raw-PAN storage antipattern is an automatic FAIL —
+// it overrides any network-token keyword found elsewhere in the same repo
+// (a repo that both vaults raw PAN and namedrops "network_token" is not
+// posture-compliant). Absent the antipattern, an actual network-token
+// signal (VTS/MDES/DPAN) is a pass; a generic/provider-vaulted "token"
+// mention alone is a weaker warn signal; no signal at all is a fail.
+function tokenizationPostureCheck(blob: string): ComplianceCheck {
+  const weight = 16;
+  const antipattern = /card_number\s*[:=]|raw_pan\b|store[sd]?[_\s-]?pan\b/i.exec(blob);
+  const networkToken = /network[_\s-]?token|\bdpan\b|\bmdes\b|\bvts\b/i.exec(blob);
+  const genericToken = /\btoken\b|\bvault(ed)?\b/i.exec(blob);
+  let status: CheckStatus;
+  let evidence: string[];
+  let remediation: string;
+  if (antipattern) {
+    status = "fail";
+    evidence = [];
+    remediation = "Raw PAN storage antipattern detected — remove raw card-number persistence and replace with network-tokenized (VTS/MDES/DPAN) references immediately.";
+  } else if (networkToken) {
+    status = "pass";
+    evidence = [networkToken[0]];
+    remediation = "Network tokenization detected with no raw-PAN storage antipattern — maintain the current posture.";
+  } else if (genericToken) {
+    status = "warn";
+    evidence = [genericToken[0]];
+    remediation = "Only a provider-vaulted token reference detected — migrate to network tokenization (VTS/MDES/DPAN) for stronger portability and lower liability.";
+  } else {
+    status = "fail";
+    evidence = [];
+    remediation = "No tokenization posture detected — integrate network tokenization (VTS/MDES/DPAN) or, at minimum, provider-side vaulting; never store raw PAN.";
+  }
+  return { name: "tokenization_posture", title: "Tokenization Posture", status, weight, score: checkScore(status, weight), evidence, remediation };
+}
+
+// CE 3.0 readiness: count how many of the 4 required evidence dimensions are
+// present (prior transactions, device/IP fingerprint, AVS/delivery proof,
+// an explicit compelling-evidence/CE3 reference). >=2 is a pass (matches CE
+// 3.0's own "2+ matching data elements" rule), exactly 1 is warn, 0 is fail.
+function ce3ReadinessCheck(blob: string): ComplianceCheck {
+  const weight = 10;
+  const signals: RegExp[] = [
+    /prior_transaction|prior_undisputed|prior_txn/i,
+    /device_fingerprint|device_id|ip_address/i,
+    /\bavs\b|address_verification|delivery_proof|proof_of_delivery/i,
+    /compelling_evidence|\bce3\b|\bce.?3\.0\b/i,
+  ];
+  const matches = signals.map((re) => re.exec(blob)).filter((m): m is RegExpExecArray => m !== null);
+  let status: CheckStatus;
+  let remediation: string;
+  if (matches.length >= 2) {
+    status = "pass";
+    remediation = "CE 3.0 readiness signals present across 2+ dimensions — keep collecting prior-transaction and device/IP evidence for every order.";
+  } else if (matches.length === 1) {
+    status = "warn";
+    remediation = "Only one CE 3.0 signal detected — add at least one more of {prior-transaction history, device/IP fingerprint, AVS/delivery confirmation, compelling-evidence assembly} to qualify for CE 3.0 remediation.";
+  } else {
+    status = "fail";
+    remediation = "No CE 3.0 readiness signals detected — implement prior-transaction tracking, device/IP fingerprinting, and delivery confirmation to support future fraud-dispute remediation.";
+  }
+  const evidence = status === "fail" ? [] : matches.map((m) => m[0]);
+  return { name: "ce3_readiness", title: "Compelling Evidence 3.0 Readiness", status, weight, score: checkScore(status, weight), evidence, remediation };
+}
+
+// Dispute rail wiring: pass needs THREE co-signals — dispute/chargeback
+// detection, an actual network rail (webhook/RDR/CDRN/VROL), and an
+// evidence-submission path. Dispute detection alone (no rail, no evidence
+// path) is a fail, not a warn — a repo that only mentions "refund" isn't
+// "partway wired". Dispute detection PLUS exactly one of the other two is warn.
+function disputeRailWiringCheck(blob: string): ComplianceCheck {
+  const weight = 14;
+  const disputeM = /\bdispute\b|chargeback/i.exec(blob);
+  const railM = /\bwebhook\b|\brdr\b|\bcdrn\b|\bvrol\b/i.exec(blob);
+  const evidenceM = /evidence_submission|submit_evidence|representment|evidence_package/i.exec(blob);
+  let status: CheckStatus;
+  let evidence: string[];
+  let remediation: string;
+  if (disputeM && railM && evidenceM) {
+    status = "pass";
+    evidence = [disputeM[0], railM[0], evidenceM[0]];
+    remediation = "Dispute rail fully wired (dispute detection + network rail + evidence submission) — keep SLA timers current with card-network deadlines.";
+  } else if (disputeM && (railM || evidenceM)) {
+    status = "warn";
+    evidence = [disputeM[0], (railM ?? evidenceM)![0]];
+    remediation = "Dispute handling detected but missing a network rail (webhook/RDR/CDRN/VROL) or an evidence-submission path — wire the missing half before relying on this for chargeback response.";
+  } else {
+    status = "fail";
+    evidence = [];
+    remediation = "No dispute/chargeback handling wired to a network rail and evidence path — add dispute intake plus a rail (webhook/RDR/CDRN/VROL) and an evidence-submission path.";
+  }
+  return { name: "dispute_rail_wiring", title: "Dispute Rail Wiring", status, weight, score: checkScore(status, weight), evidence, remediation };
 }
 
 /**
- * Compute the AP2/Visa compliance grade for a set of source files.
- * Returns a { grade, checks_passed, checks_total } summary.
- * Safe to call with undefined/empty — returns grade "D" with 0 checks passed.
+ * Run all 8 AP2/Visa compliance validators over a set of source files.
+ * Each validator is a pure, deterministic multi-signal check — see the
+ * individual check functions and the per-check comments above for the
+ * pass/warn/fail rule. Safe to call with undefined/empty — returns grade
+ * "D", score 0, and all 8 checks "fail" with empty evidence.
+ */
+export function gradeCompliance(files: SourceFile[] | undefined): ComplianceGradeResult {
+  const blob = (files ?? []).map((f) => `${f.path}\n${f.content}`).join("\n---\n");
+
+  const checks: ComplianceCheck[] = [
+    twoSignalCheck(
+      "sca_readiness", "SCA / 3DS2 Readiness", 18, blob,
+      /\b3ds2?\b|threeds|\bpsd2\b/i,
+      /frictionless|\bchallenge\b|\bexemption\b|\btra\b/i,
+      "No SCA/3DS2 readiness signals detected — implement 3DS2/PSD2 authentication plus an exemption path (frictionless, challenge, TRA) before processing EU/UK transactions.",
+      "Only one SCA signal (a 3DS2/PSD2 reference OR an exemption/frictionless/challenge path) detected — wire the missing half so exemptions are actually evaluated against a real 3DS2/PSD2 flow.",
+      "3DS2/PSD2 authentication with a working exemption/frictionless path detected — keep exemption thresholds current with your acquirer.",
+    ),
+    ap2MandateValidityCheck(blob),
+    tokenizationPostureCheck(blob),
+    ce3ReadinessCheck(blob),
+    disputeRailWiringCheck(blob),
+    twoSignalCheck(
+      "idempotency_receipt", "Idempotency & Receipt Hygiene", 12, blob,
+      /idempotency[_\s-]?key/i,
+      /\breceipt\b|\btxn_id\b|\btransaction_id\b/i,
+      "No idempotency-key or receipt/txn_id emission detected — add an idempotency_key on every charge call and emit a receipt/txn_id on success.",
+      "Only one of {idempotency_key, receipt/txn_id emission} detected — add the missing half so retried purchase calls can't double-charge and every charge has a traceable receipt.",
+      "Idempotency-key usage and receipt/txn_id emission both detected — keep enforcing idempotency on every charge path.",
+    ),
+    twoSignalCheck(
+      "budget_negotiation", "Budget Negotiation Conformance", 6, blob,
+      /x-agent-budget|budget_per_run|budget_cents/i,
+      /x-agent-mode|\blite\b|budget_aware/i,
+      "No budget-negotiation signals detected — accept X-Agent-Budget / budget_per_run_cents and X-Agent-Mode: lite to support budget-aware agents.",
+      "Only one of {budget header/field, mode/lite negotiation} detected — wire the missing half so agents can actually negotiate a reduced-price run.",
+      "Budget header and lite/mode negotiation both detected — keep the reduced-price path in sync with pricing changes.",
+    ),
+    twoSignalCheck(
+      "refund_cancel_path", "Refund / Cancel Path", 8, blob,
+      /\brefund\b|\breversal\b/i,
+      /\bcancel\w*|\bvoid\b|revoke_mandate/i,
+      "No refund/reversal or cancel/void path detected — implement both before enabling autonomous purchase.",
+      "Only one of {refund/reversal, cancel/void/revoke_mandate} detected — implement the missing half so a mandate can be both cancelled and refunded.",
+      "Refund/reversal and cancel/void paths both detected — keep both in sync with your mandate lifecycle.",
+    ),
+  ];
+
+  const score = checks.reduce((sum, c) => sum + c.score, 0);
+  const grade: "A" | "B" | "C" | "D" = score >= 85 ? "A" : score >= 65 ? "B" : score >= 40 ? "C" : "D";
+  const checks_passed = checks.filter((c) => c.status === "pass").length;
+
+  return { grade, checks_passed, checks_total: 8, score, checks, methodology: COMPLIANCE_METHODOLOGY };
+}
+
+/**
+ * Back-compat alias for gradeCompliance(). The return value is a strict
+ * superset of the old { grade, checks_passed, checks_total } shape, so
+ * existing readers of computeComplianceGrade() keep working unmodified.
+ * Prefer gradeCompliance() in new code — it makes the checks[] and score
+ * fields explicit at the call site.
  */
 export function computeComplianceGrade(files: SourceFile[] | undefined): ComplianceGradeResult {
-  const signals = detectCommerceSignals(files);
-  const checks = [
-    signals.detected_providers.length > 0,
-    signals.has_checkout,
-    signals.has_sca,
-    signals.has_dispute_handling,
-    signals.has_webhooks,
-    signals.has_network_tokenization,
-    signals.has_mandate_management,
-    signals.has_tap_protocol,
-  ];
-  const checks_passed = checks.filter(Boolean).length;
-  const grade: "A" | "B" | "C" | "D" =
-    checks_passed >= 6 ? "A" : checks_passed >= 4 ? "B" : checks_passed >= 2 ? "C" : "D";
-  return { grade, checks_passed, checks_total: 8 };
+  return gradeCompliance(files);
 }
 
 export function generateAgentPurchasingPlaybook(

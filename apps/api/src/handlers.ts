@@ -46,7 +46,7 @@ import {
 import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
-import { generateFiles, listAvailableGenerators, computeComplianceGrade } from "@axis/generator-core";
+import { generateFiles, listAvailableGenerators, gradeCompliance } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
@@ -584,7 +584,7 @@ export async function handleCreateSnapshot(
       context_map: contextMap,
       repo_profile: repoProfile,
       generated_files: generated.files.map(f => ({ path: f.path, program: f.program, description: f.description })),
-      compliance_grade: computeComplianceGrade(snapshot.files),
+      compliance_grade: gradeCompliance(snapshot.files),
     });
   /* v8 ignore start  -  requires internal processing function to throw */
   } catch (err) {
@@ -624,7 +624,7 @@ export async function handleGetSnapshot(
     file_count: snapshot.file_count,
     total_size_bytes: snapshot.total_size_bytes,
     status: snapshot.status,
-    compliance_grade: computeComplianceGrade(snapshot.files),
+    compliance_grade: gradeCompliance(snapshot.files),
   });
 }
 
