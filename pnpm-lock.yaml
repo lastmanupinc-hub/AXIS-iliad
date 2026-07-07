@@ -143,6 +143,15 @@ importers:
         specifier: ^6.4.3
         version: 6.4.3(@types/node@22.19.17)(lightningcss@1.32.0)(yaml@2.8.3)
 
+  packages/agentic-compliance:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      typescript:
+        specifier: ^5.7.0
+        version: 5.7.3
+
   packages/context-engine:
     dependencies:
       '@axis/repo-parser':
@@ -161,6 +170,9 @@ importers:
 
   packages/generator-core:
     dependencies:
+      '@axis/agentic-compliance':
+        specifier: workspace:*
+        version: link:../agentic-compliance
       '@axis/context-engine':
         specifier: workspace:*
         version: link:../context-engine
