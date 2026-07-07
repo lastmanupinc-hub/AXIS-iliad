@@ -36,3 +36,11 @@ vitest-api-src-output.txt
 repo-run-stats.json
 mcp/fintech-mcp-surface-package.md
 mcp/fintech-domain-schema.yaml
+
+# WO-15: machine-specific perf measurement, rewritten by every vitest run
+# (regenerate via `pnpm bench:compliance` or the perf-compliance test suite)
+packages/generator-core/perf-results.json
+
+# WO-16: transient tsc stage of the axis-iliad self-contained bundle
+# (build.mjs removes it on success; ignore leftovers from failed builds)
+apps/cli/.tsc-out/

@@ -103,7 +103,7 @@ importers:
         version: 5.9.3
 
   apps/cli:
-    dependencies:
+    devDependencies:
       '@axis/context-engine':
         specifier: workspace:*
         version: link:../../packages/context-engine
@@ -116,7 +116,6 @@ importers:
       '@axis/snapshots':
         specifier: workspace:*
         version: link:../../packages/snapshots
-    devDependencies:
       typescript:
         specifier: ^5.7.0
         version: 5.7.3

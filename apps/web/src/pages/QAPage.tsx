@@ -56,7 +56,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "programs",
     question: "Can I run multiple programs at once?",
-    answer: "In the web UI, run programs one at a time by clicking their cards — each takes 2–30 seconds. Via CLI, use the --programs flag with comma-separated names: `npx axis-iliad analyze . --programs search,skills,debug`. Via API, send separate POST requests per program endpoint.",
+    answer: "In the web UI, run programs one at a time by clicking their cards — each takes 2–30 seconds. Via CLI, use the --programs flag with comma-separated names: `axis-iliad analyze . --programs search,skills,debug`. Via API, send separate POST requests per program endpoint.",
   },
   {
     category: "programs",
@@ -199,12 +199,12 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "integration",
     question: "Can I use Axis in a CI/CD pipeline?",
-    answer: "Yes. Install the CLI (`npm install -g axis-iliad`) and run it in your pipeline. Set AXIS_API_KEY as a secret environment variable. Example GitHub Action: `npx axis-iliad analyze . --programs search,skills,debug --output ./axis-output`. Then upload the output as a build artifact.",
+    answer: "Yes. Install the CLI (from a repo checkout until the npm package is published — see Docs → CLI) and run it in your pipeline. Set AXIS_API_KEY as a secret environment variable. Example step: `axis-iliad analyze . --programs search,skills,debug --output ./axis-output`. Then upload the output as a build artifact.",
   },
   {
     category: "integration",
     question: "Does Axis support GitHub Actions?",
-    answer: "Yes. Add a workflow step that runs `npx axis-iliad analyze .` with your desired programs. Use `actions/upload-artifact` to save the output. See the CLI tab in the Docs page for a complete .github/workflows/axis.yml example with environment variables and artifact uploads.",
+    answer: "Yes. Add a workflow step that runs `axis-iliad analyze .` with your desired programs. Use `actions/upload-artifact` to save the output. See the CLI tab in the Docs page for a complete .github/workflows/axis.yml example with environment variables and artifact uploads.",
   },
   {
     category: "integration",

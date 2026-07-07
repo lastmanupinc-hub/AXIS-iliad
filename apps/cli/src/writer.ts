@@ -2,6 +2,10 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import type { GeneratedFile } from "@axis/generator-core";
 
+// ZIP output lives in zip.ts (implementation) — re-exported here so writer.ts
+// stays the single import site for "write generated output to disk".
+export { writeZip } from "./zip.js";
+
 export interface WriteResult {
   files_written: number;
   total_bytes: number;

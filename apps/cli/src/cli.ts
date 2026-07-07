@@ -1,19 +1,44 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scanDirectory } from "./scanner.js";
-import { run } from "./runner.js";
+import { scanDirectory, type ScanResult } from "./scanner.js";
+import { run, type RunResult } from "./runner.js";
 import { writeGeneratedFiles } from "./writer.js";
+import { writeZip } from "./zip.js";
+import { fetchAccountStatus, DEFAULT_API_URL } from "./status.js";
 import { fetchGitHubRepo } from "@axis/snapshots";
 import { listAvailableGenerators } from "@axis/generator-core";
 import { loadConfig, saveConfig, getConfigFile, type AxisConfig } from "./credential-store.js";
 
+/** Every subcommand main() dispatches on — kept in sync with DocsPage by cli-docs-parity.test.ts. */
+export const CLI_COMMANDS = [
+  "analyze",
+  "export",
+  "github",
+  "programs",
+  "list-programs",
+  "status",
+  "auth",
+  "help",
+  "version",
+] as const;
+
 interface CliArgs {
   command: string;
   target: string;
+  /** Raw -o/--output value; "" = not given (per-command defaults apply). */
   output: string;
   programs: string[];
+  /** Raw --format value; "" = not given (export infers zip from a .zip -o). */
+  format: string;
+  /** --key / --api-key value (auth save + status override). */
+  apiKey?: string;
   quiet: boolean;
+  verbose: boolean;
+}
+
+function envIsTrue(v: string | undefined): boolean {
+  return v === "1" || v?.toLowerCase() === "true";
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -21,32 +46,44 @@ function parseArgs(argv: string[]): CliArgs {
   const result: CliArgs = {
     command: "analyze",
     target: ".",
-    output: ".ai-output",
+    output: "",
     programs: [],
+    format: "",
     quiet: false,
+    verbose: envIsTrue(process.env.AXIS_VERBOSE),
   };
 
   let i = 0;
   // First positional: command
-  if (args[i] && !args[i].startsWith("--")) {
+  if (args[i] && !args[i].startsWith("-")) {
     result.command = args[i];
     i++;
   }
 
   // Second positional: target path
-  if (args[i] && !args[i].startsWith("--")) {
+  if (args[i] && !args[i].startsWith("-")) {
     result.target = args[i];
     i++;
   }
 
   // Named flags
   for (; i < args.length; i++) {
-    if (args[i] === "--output" && args[i + 1]) {
+    if ((args[i] === "--output" || args[i] === "-o") && args[i + 1]) {
       result.output = args[++i];
     } else if (args[i] === "--program" && args[i + 1]) {
+      // Legacy singular, repeatable form
       result.programs.push(args[++i]);
+    } else if ((args[i] === "--programs" || args[i] === "-p") && args[i + 1]) {
+      // Documented comma-separated form: --programs search,skills,debug
+      result.programs.push(...args[++i].split(",").map((p) => p.trim()).filter(Boolean));
+    } else if ((args[i] === "--format" || args[i] === "-f") && args[i + 1]) {
+      result.format = args[++i];
+    } else if ((args[i] === "--key" || args[i] === "--api-key") && args[i + 1]) {
+      result.apiKey = args[++i];
     } else if (args[i] === "--quiet") {
       result.quiet = true;
+    } else if (args[i] === "--verbose") {
+      result.verbose = true;
     } else if (args[i] === "--help" || args[i] === "-h") {
       result.command = "help";
     } else if (args[i] === "--version" || args[i] === "-v") {
@@ -59,30 +96,47 @@ function parseArgs(argv: string[]): CliArgs {
 
 function printHelp(): void {
   console.log(`
-axis — Axis' Iliad CLI
+axis-iliad — Axis' Iliad CLI (offline codebase → AI-agent artifacts)
 
 Usage:
-  axis analyze [path] [options]
-  axis github <url> [options]
-  axis programs                   List all available programs and generators
-  axis auth login <api_key>       Save API key to ~/.axis/config.json
-  axis auth status                Show current auth and account info
-  axis auth logout                Remove saved API key
+  axis-iliad analyze [path] [options]        Scan a directory and generate artifacts
+  axis-iliad export [path] [options]         Same pipeline, written as a file tree or ZIP
+  axis-iliad github <url> [options]          Fetch a public GitHub repo and generate
+  axis-iliad list-programs                   List all programs with tier and category
+  axis-iliad status                          Show account plan, usage, and API health
+  axis-iliad auth --key <api_key>            Save an API key to ~/.axis/config.json
+  axis-iliad auth login <api_key>            (legacy form of the same)
+  axis-iliad auth status                     Show current auth config
+  axis-iliad auth logout                     Remove the saved API key
 
 Commands:
-  analyze    Scan a local repository and generate config files (default)
-  github     Fetch a public GitHub repo by URL and generate config files
-  programs   List all available programs with generator counts
-  auth       Manage API key authentication
-  help       Show this help message
-  version    Show version
+  analyze        Scan a local repository and generate config files (default)
+  export         Export generated files to a directory or ZIP archive
+  github         Fetch a public GitHub repo by URL and generate config files
+  list-programs  List all available programs with tier, category, and generators
+  programs       Alias of list-programs
+  status         Check API reachability, auth, plan, and usage
+  auth           Manage API key authentication
+  help           Show this help message
+  version        Show version
 
 Options:
-  --output <dir>    Output directory (default: .ai-output)
-  --program <name>  Filter to specific program (repeatable)
-  --quiet           Suppress progress output
-  -h, --help        Show help
-  -v, --version     Show version
+  -o, --output <path>    Output directory (analyze: .ai-output, export: output)
+                         or ZIP file path for export --format zip
+  -p, --programs <a,b>   Comma-separated list of programs to run
+      --program <name>   Single program filter (repeatable, legacy)
+  -f, --format <fmt>     Export format: dir (default) or zip
+      --key <api_key>    API key for auth; --api-key also works everywhere
+      --quiet            Suppress progress output
+      --verbose          Verbose logging (per-file paths, timing)
+  -h, --help             Show help
+  -v, --version          Show version
+
+Environment:
+  AXIS_API_KEY      API key (used if --api-key not set)
+  AXIS_API_URL      Custom API server URL for status
+  AXIS_OUTPUT_DIR   Default output directory
+  AXIS_VERBOSE      Set to "1" or "true" for verbose mode
 `);
 }
 
@@ -95,6 +149,34 @@ function printVersion(): void {
   console.log(`axis v${pkg.version}`);
 }
 
+// Program → category taxonomy for list-programs. Grouped by what the
+// program's artifacts are FOR — no category metadata exists in generator-core,
+// so this map is the CLI's own labelling (fallback: "general").
+const PROGRAM_CATEGORIES: Record<string, string> = {
+  search: "analysis",
+  debug: "analysis",
+  algorithmic: "analysis",
+  skills: "agent-config",
+  superpowers: "agent-config",
+  mcp: "agent-config",
+  frontend: "code-quality",
+  optimization: "code-quality",
+  theme: "design",
+  brand: "design",
+  canvas: "design",
+  artifacts: "media",
+  remotion: "media",
+  notebook: "knowledge",
+  obsidian: "knowledge",
+  seo: "growth",
+  marketing: "growth",
+  "agentic-purchasing": "commerce",
+  closer: "operations",
+  deploy: "operations",
+};
+
+const FREE_PROGRAMS = new Set(["search", "skills", "debug"]);
+
 function printPrograms(): void {
   const generators = listAvailableGenerators();
   const byProgram = new Map<string, string[]>();
@@ -106,11 +188,13 @@ function printPrograms(): void {
 
   console.log(`\nAxis' Iliad — ${generators.length} generators across ${byProgram.size} programs\n`);
 
-  const FREE_PROGRAMS = new Set(["search", "skills", "debug"]);
-
   for (const [program, paths] of [...byProgram.entries()].sort()) {
     const tier = FREE_PROGRAMS.has(program) ? "FREE" : "PRO";
-    console.log(`  ${program.padEnd(14)} [${tier}]  ${paths.length} generator${paths.length > 1 ? "s" : ""}`);
+    const category = PROGRAM_CATEGORIES[program] ?? "general";
+    console.log(
+      `  ${program.padEnd(20)} [${tier}]`.padEnd(30) +
+      `${category.padEnd(14)} ${paths.length} generator${paths.length > 1 ? "s" : ""}`,
+    );
     for (const p of paths) {
       console.log(`    └─ ${p}`);
     }
@@ -118,12 +202,32 @@ function printPrograms(): void {
   console.log("");
 }
 
+function saveApiKey(config: AxisConfig, key: string): boolean {
+  if (!key.startsWith("axis_")) {
+    console.error("Usage: axis auth login <api_key>");
+    console.error("  The API key should start with 'axis_'");
+    process.exitCode = 1;
+    return false;
+  }
+  config.api_key = key;
+  saveConfig(config);
+  console.log("API key encrypted and saved to ~/.axis/config.json");
+  console.log(`Key prefix: ${key.slice(0, 10)}...`);
+  return true;
+}
+
 function handleAuth(args: CliArgs): void {
   const subcommand = args.target;  // "login", "status", or "logout"
   const config = loadConfig();
 
+  // Documented form: axis-iliad auth --key axis_... (also --api-key)
+  if (args.apiKey !== undefined) {
+    saveApiKey(config, args.apiKey);
+    return;
+  }
+
   if (subcommand === "login") {
-    // The API key is the next arg after "login"
+    // Legacy form — the API key is the next arg after "login"
     const keyArg = process.argv.find(a => a.startsWith("axis_"));
     if (!keyArg) {
       console.error("Usage: axis auth login <api_key>");
@@ -131,10 +235,7 @@ function handleAuth(args: CliArgs): void {
       process.exitCode = 1;
       return;
     }
-    config.api_key = keyArg;
-    saveConfig(config);
-    console.log("API key encrypted and saved to ~/.axis/config.json");
-    console.log(`Key prefix: ${keyArg.slice(0, 10)}...`);
+    saveApiKey(config, keyArg);
     return;
   }
 
@@ -166,7 +267,7 @@ export function main(): void {
     printVersion();
     return;
   }
-  if (args.command === "programs") {
+  if (args.command === "programs" || args.command === "list-programs") {
     printPrograms();
     return;
   }
@@ -174,8 +275,15 @@ export function main(): void {
     handleAuth(args);
     return;
   }
+  if (args.command === "status") {
+    runStatus(args).catch((err: Error) => {
+      console.error(`Error: ${err.message}`);
+      process.exitCode = 1;
+    });
+    return;
+  }
 
-  if (args.command !== "analyze" && args.command !== "github") {
+  if (args.command !== "analyze" && args.command !== "github" && args.command !== "export") {
     console.error(`Unknown command: ${args.command}`);
     console.error('Run "axis help" for usage.');
     process.exitCode = 1;
@@ -190,8 +298,14 @@ export function main(): void {
     return;
   }
 
+  if (args.command === "export") {
+    runExport(args);
+    return;
+  }
+
+  // ── analyze (default) ─────────────────────────────────────────
   const targetDir = resolve(args.target);
-  const outputDir = resolve(args.output);
+  const outputDir = resolve(args.output || process.env.AXIS_OUTPUT_DIR || ".ai-output");
 
   if (!args.quiet) {
     console.log(`Scanning ${targetDir} ...`);
@@ -240,6 +354,13 @@ export function main(): void {
     for (const [prog, count] of [...byProgram.entries()].sort()) {
       console.log(`  [${prog}] ${count} file${count > 1 ? "s" : ""}`);
     }
+
+    if (args.verbose) {
+      console.log("");
+      for (const f of generated) {
+        console.log(`  ${f.path}`);
+      }
+    }
   }
   /* v8 ignore stop */
 }
@@ -250,6 +371,138 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Run the local scan → generate pipeline (shared by export). */
+function runLocalPipeline(args: CliArgs): { scan: ScanResult; result: RunResult } | null {
+  const targetDir = resolve(args.target);
+
+  if (!args.quiet) {
+    console.log(`Scanning ${targetDir} ...`);
+  }
+
+  const scan = scanDirectory(targetDir);
+
+  if (scan.files.length === 0) {
+    console.error("No source files found in target directory.");
+    process.exitCode = 1;
+    return null;
+  }
+
+  /* v8 ignore next 4 — tests run with --quiet */
+  if (!args.quiet) {
+    console.log(`Found ${scan.files.length} files (${formatBytes(scan.total_bytes)}), ${scan.skipped_count} skipped`);
+    console.log("Running analysis pipeline ...");
+  }
+
+  const result = run(scan, targetDir, args.programs.length > 0 ? args.programs : undefined);
+
+  if (result.generator_result.files.length === 0) {
+    console.error("No files were generated.");
+    process.exitCode = 1;
+    return null;
+  }
+
+  return { scan, result };
+}
+
+/**
+ * export — same pipeline as analyze, written as a plain file tree (default)
+ * or a single ZIP archive (--format zip, or a -o path ending in .zip).
+ */
+function runExport(args: CliArgs): void {
+  // Resolve format: explicit --format wins; otherwise infer zip from -o *.zip
+  let format: "dir" | "zip";
+  if (args.format) {
+    if (args.format !== "dir" && args.format !== "zip") {
+      console.error(`Unknown export format: ${args.format} (expected "dir" or "zip")`);
+      process.exitCode = 1;
+      return;
+    }
+    format = args.format;
+  } else {
+    format = args.output.toLowerCase().endsWith(".zip") ? "zip" : "dir";
+  }
+
+  const pipeline = runLocalPipeline(args);
+  if (!pipeline) return;
+  const { result } = pipeline;
+  const generated = result.generator_result.files;
+
+  const envDir = process.env.AXIS_OUTPUT_DIR;
+
+  if (format === "zip") {
+    const zipPath = resolve(
+      args.output || (envDir ? join(envDir, "axis-export.zip") : "axis-export.zip"),
+    );
+    const zipResult = writeZip(generated, zipPath);
+
+    /* v8 ignore start — tests run with --quiet */
+    if (!args.quiet) {
+      console.log("");
+      console.log(`Done in ${result.elapsed_ms}ms`);
+      console.log(`  Project:   ${result.project_name}`);
+      console.log(`  Exported:  ${zipResult.entries} entries → ${zipPath} (${formatBytes(zipResult.bytes)})`);
+      if (args.verbose) {
+        console.log("");
+        for (const f of generated) console.log(`  ${f.path}`);
+      }
+    }
+    /* v8 ignore stop */
+    return;
+  }
+
+  const outputDir = resolve(args.output || envDir || "output");
+  const writeResult = writeGeneratedFiles(generated, outputDir);
+
+  /* v8 ignore start — tests run with --quiet */
+  if (!args.quiet) {
+    console.log("");
+    console.log(`Done in ${result.elapsed_ms}ms`);
+    console.log(`  Project:   ${result.project_name}`);
+    console.log(`  Exported:  ${writeResult.files_written} files (${formatBytes(writeResult.total_bytes)}) → ${outputDir}`);
+    if (args.verbose) {
+      console.log("");
+      for (const f of generated) console.log(`  ${f.path}`);
+    }
+  }
+  /* v8 ignore stop */
+}
+
+/**
+ * status — reachability + auth + plan + usage against the live API.
+ * Degrades honestly (and still exits 0) when offline or unauthenticated.
+ */
+async function runStatus(args: CliArgs): Promise<void> {
+  const config = loadConfig();
+  const apiKey = args.apiKey ?? process.env.AXIS_API_KEY ?? config.api_key;
+  const configuredUrl = process.env.AXIS_API_URL ?? config.api_url;
+  const apiUrl = configuredUrl ?? DEFAULT_API_URL;
+
+  const status = await fetchAccountStatus(apiUrl, apiKey);
+
+  console.log(`API URL:    ${status.api_url}${configuredUrl ? "" : " (default — set AXIS_API_URL or auth to override)"}`);
+  console.log(`Reachable:  ${status.reachable ? "yes" : `no — ${status.error ?? "unreachable"}`}`);
+
+  if (!apiKey) {
+    console.log("Auth:       no API key configured — run: axis-iliad auth --key <api_key>");
+  } else if (status.authenticated) {
+    console.log(`Auth:       authenticated (${apiKey.slice(0, 10)}...)`);
+  } else {
+    console.log(`Auth:       not authenticated${status.reachable && status.error ? ` — ${status.error}` : ""}`);
+  }
+
+  if (status.plan) {
+    console.log(`Plan:       ${status.plan}`);
+  }
+  if (status.usage && status.usage.calls !== undefined) {
+    console.log(`Usage:      ${status.usage.calls} credits used${status.usage.period ? ` (${status.usage.period})` : ""}`);
+  }
+  /* v8 ignore next 3 — cosmetic hint, exercised implicitly */
+  if (args.verbose) {
+    console.log(`Config:     ${getConfigFile()}`);
+  }
+  // Honest degradation is not an error: status always exits 0.
+}
+
 async function runGitHub(args: CliArgs): Promise<void> {
   const url = args.target;
   if (!url || url === ".") {
@@ -258,7 +511,7 @@ async function runGitHub(args: CliArgs): Promise<void> {
     return;
   }
 
-  const outputDir = resolve(args.output);
+  const outputDir = resolve(args.output || process.env.AXIS_OUTPUT_DIR || ".ai-output");
 
   /* v8 ignore next 3 — tests run with --quiet */
   if (!args.quiet) {
@@ -321,6 +574,13 @@ async function runGitHub(args: CliArgs): Promise<void> {
     }
     for (const [prog, count] of [...byProgram.entries()].sort()) {
       console.log(`  [${prog}] ${count} file${count > 1 ? "s" : ""}`);
+    }
+
+    if (args.verbose) {
+      console.log("");
+      for (const f of generated) {
+        console.log(`  ${f.path}`);
+      }
     }
   }
   /* v8 ignore stop */

@@ -1,22 +1,50 @@
 {
-  "name": "@axis/cli",
-  "version": "0.5.3",
-  "private": true,
+  "name": "axis-iliad",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Axis' Iliad CLI — fully-offline codebase analysis that turns any repository into deterministic AI-agent-ready artifacts (AGENTS.md, CLAUDE.md, .cursorrules, debug playbooks, and 100+ more)",
+  "keywords": [
+    "ai",
+    "agents",
+    "cli",
+    "codebase-analysis",
+    "agents-md",
+    "claude-md",
+    "cursorrules",
+    "llm-context",
+    "artifact-generation"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lastmanupinc-hub/axis-iliad.git",
+    "directory": "apps/cli"
+  },
   "bin": {
+    "axis-iliad": "./bin/axis.js",
     "axis": "./bin/axis.js"
   },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "node build.mjs",
+    "prepublishOnly": "node build.mjs",
     "start": "node dist/cli.js"
   },
-  "dependencies": {
+  "devDependencies": {
     "@axis/snapshots": "workspace:*",
     "@axis/repo-parser": "workspace:*",
     "@axis/context-engine": "workspace:*",
-    "@axis/generator-core": "workspace:*"
-  },
-  "devDependencies": {
+    "@axis/generator-core": "workspace:*",
     "typescript": "^5.7.0"
   }
 }

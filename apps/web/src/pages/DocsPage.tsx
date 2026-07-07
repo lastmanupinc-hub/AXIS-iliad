@@ -1066,22 +1066,43 @@ function OutputsSection() {
   );
 }
 
+// ─── CLI install gating ───────────────────────────────────────────
+// npm publish of axis-iliad is owner-gated. Until it has actually run, the
+// registry install lines stay dark and every example uses the locally
+// installed binary. Flip to true ONLY after `npm publish` has succeeded —
+// cli-docs-parity.test.ts (apps/cli) checks this stays honest.
+const CLI_PUBLISHED = false;
+const CLI = CLI_PUBLISHED ? "npx axis-iliad" : "axis-iliad";
+
 function CliSection() {
   return (
     <div className="stagger">
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>CLI Overview</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
-          Axis' Iliad includes a CLI for running analysis directly from your terminal.
-          Point it at any directory to generate a snapshot and run programs. Install globally
-          or run via <code className="mono">npx</code>.
+          Axis' Iliad includes a fully-offline CLI for running analysis directly from your
+          terminal. Point it at any directory to generate a snapshot and run programs.
+          {CLI_PUBLISHED
+            ? <> Install globally or run via <code className="mono">npx</code>.</>
+            : <> The npm package is not published yet — install it from a repo checkout.</>}
         </p>
-        <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
-          <div><span style={{ color: "var(--text-muted)" }}># Install globally</span></div>
-          <div>npm install -g axis-iliad</div>
-          <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Or run without installing</span></div>
-          <div>npx axis-iliad --help</div>
-        </div>
+        {CLI_PUBLISHED ? (
+          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
+            <div><span style={{ color: "var(--text-muted)" }}># Install globally</span></div>
+            <div>npm install -g axis-iliad</div>
+            <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Or run without installing</span></div>
+            <div>npx axis-iliad --help</div>
+          </div>
+        ) : (
+          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
+            <div><span style={{ color: "var(--text-muted)" }}># From a checkout of the axis-iliad repo (npm publish pending):</span></div>
+            <div>pnpm install</div>
+            <div>pnpm --filter axis-iliad build</div>
+            <div>npm install -g ./apps/cli</div>
+            <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Then:</span></div>
+            <div>axis-iliad --help</div>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -1135,23 +1156,23 @@ function CliSection() {
           }}
         >
           <div><span style={{ color: "var(--text-muted)" }}># Analyze the current directory</span></div>
-          <div>npx axis-iliad analyze .</div>
+          <div>{CLI} analyze .</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Analyze and run specific programs</span></div>
-          <div>npx axis-iliad analyze ./my-project --programs search,skills,debug</div>
+          <div>{CLI} analyze ./my-project --programs search,skills,debug</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Run all free programs with verbose logging</span></div>
-          <div>npx axis-iliad analyze . --programs search,skills,debug -v</div>
+          <div>{CLI} analyze . --programs search,skills,debug --verbose</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Analyze a GitHub repo</span></div>
-          <div>npx axis-iliad github https://github.com/user/repo --programs search</div>
+          <div>{CLI} github https://github.com/user/repo --programs search</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Export generated files to disk</span></div>
-          <div>npx axis-iliad export ./my-project --output ./output</div>
+          <div>{CLI} export ./my-project --output ./output</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Export as ZIP</span></div>
-          <div>npx axis-iliad export ./my-project --format zip -o ./my-project-output.zip</div>
+          <div>{CLI} export ./my-project --format zip -o ./my-project-output.zip</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Check account status and usage</span></div>
-          <div>npx axis-iliad status</div>
+          <div>{CLI} status</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># Store your API key locally</span></div>
-          <div>npx axis-iliad auth --key axis_your_key_here</div>
+          <div>{CLI} auth --key axis_your_key_here</div>
           <div style={{ marginTop: 8 }}><span style={{ color: "var(--text-muted)" }}># List all available programs</span></div>
-          <div>npx axis-iliad list-programs</div>
+          <div>{CLI} list-programs</div>
         </div>
       </div>
 
@@ -1184,27 +1205,17 @@ function CliSection() {
             <tr>
               <td className="mono" style={{ fontSize: "0.8125rem" }}>--format</td>
               <td className="mono" style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>-f</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Output format: json, markdown, zip, or tar</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Export format: dir (default) or zip</td>
             </tr>
             <tr>
               <td className="mono" style={{ fontSize: "0.8125rem" }}>--verbose</td>
-              <td className="mono" style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>-v</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Enable verbose logging with timing info</td>
+              <td className="mono" style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>—</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Enable verbose logging with timing info (-v is version)</td>
             </tr>
             <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>--name</td>
+              <td className="mono" style={{ fontSize: "0.8125rem" }}>--quiet</td>
               <td className="mono" style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>—</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Set project name (default: directory name)</td>
-            </tr>
-            <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>--type</td>
-              <td className="mono" style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>—</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Project type: web_app, api, cli, library, monorepo</td>
-            </tr>
-            <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>--dry-run</td>
-              <td className="mono" style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>—</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Show what would happen without running programs</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Suppress progress output</td>
             </tr>
           </tbody>
         </table>
@@ -1252,6 +1263,7 @@ function CliSection() {
         <h3 style={{ marginBottom: 12 }}>CI/CD Integration</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 16 }}>
           Run Axis in your CI pipeline to generate fresh artifacts on every push. Here's a GitHub Actions example:
+          {!CLI_PUBLISHED && <> <strong>(requires the npm package — publish is pending, so this example only works once <code className="mono">axis-iliad</code> is on the registry)</strong></>}
         </p>
         <div
           style={{
