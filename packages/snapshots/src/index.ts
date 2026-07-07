@@ -202,6 +202,18 @@ export {
   sendApiKeyNotification,
 } from "./email-store.js";
 
+// Disputes (WO-08 dispute-lifecycle) — webhook-ingested DisputeRecords +
+// append-only transition ledger. Structural types; the strongly-typed state
+// machine lives in @axis/agentic-compliance.
+export type { StoredDisputeRecord, StoredDisputeTransition } from "./dispute-store.js";
+export {
+  upsertDispute,
+  getDispute,
+  listDisputesByAccount,
+  logDisputeTransition,
+  listDisputeTransitions,
+} from "./dispute-store.js";
+
 // Stripe Payments
 export type { StripeSubscriptionStatus, StripeSubscription } from "./stripe-store.js";
 export {

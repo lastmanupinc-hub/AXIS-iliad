@@ -114,6 +114,17 @@ decide, assemble, or transact. This spec makes them decide/assemble/transact.
 - **✅ Pragmatic real path:** Stripe surfaces dispute/early-fraud-warning webhooks + the
   dispute-evidence API today — wire WO-C2/C3 into **Stripe's dispute API** first (live now),
   and keep the raw VROL/RDR/CDRN client behind a flag for when direct access lands.
+- **✅ STATUS (2026-07-07, WO-08 complete):** engines (state machine + representment +
+  Stripe/Verifi clients) live in `@axis/agentic-compliance`; the API half is wired:
+  `charge.dispute.created/updated/closed` + `radar.early_fraud_warning.created` webhook
+  branches (`apps/api/src/stripe.ts` → `apps/api/src/disputes.ts`), a `disputes` +
+  `dispute_transitions` store in `@axis/snapshots` (PG migration v32), and the metered
+  `assemble_representment` MCP tool. HONEST READING of the manifest claim: **dispute
+  lifecycle live via Stripe; VROL/RDR/CDRN integration-ready, gated on acquirer
+  (Verifi/Ethoca) access behind `AXIS_ENABLE_VROL`** — the raw Verifi/Ethoca client never
+  fakes a submission (it returns `configured:false` or throws NotImplemented). Live Stripe
+  operation still requires `STRIPE_WEBHOOK_SECRET` + subscribing the four events in the
+  Stripe dashboard (configuration, not code).
 
 ### WO-C8 · Wire engines into the product
 - Call Tier-A engines from `generateCommerceRegistry` / `prepare_agentic_purchasing` so the
@@ -122,6 +133,15 @@ decide, assemble, or transact. This spec makes them decide/assemble/transact.
   `score_dispute_win`, `grade_compliance`, `build_ap2_mandate` — each metered (new revenue).
 - Bump `MCP_TOOL_COUNT`, add the tools to `MCP_TOOLS`, keep `PLANNED_CAPABILITIES` honest
   (Tier-B live operation stays "planned/integration-ready" until credentials land).
+- **✅ STATUS (2026-07-07, WO-13 complete — two deliberate deviations from the line above):**
+  (1) the five engine tools shipped **free** (no auth, read-only, deterministic pure
+  compute — no billable resource is consumed; the metered surface is
+  `assemble_representment`, which does the actual dispute work), and (2) `score_dispute_win`
+  was deliberately **renamed `score_dispute_readiness`** — its description and JSON response
+  both state it scores evidence-capture readiness and is NOT a dispute-win prediction; AXIS
+  does not publish win-rate estimates. `MCP_TOOL_COUNT` 29 → 35;
+  `generateCommerceRegistry` now embeds an engine-derived `verified_decisions` block with a
+  sha256 reproducibility proof (`proofDigest` in `@axis/generator-core`).
 
 ---
 

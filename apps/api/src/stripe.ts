@@ -22,6 +22,12 @@ import {
   sendUpgradeConfirmation,
   type StripeSubscriptionStatus,
 } from "@axis/snapshots";
+import {
+  handleDisputeCreated,
+  handleDisputeUpdated,
+  handleDisputeClosed,
+  handleEarlyFraudWarning,
+} from "./disputes.js";
 
 type CheckoutPlanId = "starter" | "pro" | "growth";
 
@@ -120,6 +126,11 @@ const HANDLED_EVENTS = new Set([
   "customer.subscription.updated",
   "customer.subscription.deleted",
   "invoice.payment_failed",
+  // Dispute lifecycle (WO-08) — handlers live in disputes.ts.
+  "charge.dispute.created",
+  "charge.dispute.updated",
+  "charge.dispute.closed",
+  "radar.early_fraud_warning.created",
 ]);
 
 // ─── Convert Unix timestamp to ISO string ──────────────────────
@@ -365,6 +376,14 @@ export async function handleStripeWebhook(
   } else if (eventType === "customer.subscription.deleted") {
     handled = await handleSubscriptionEvent(obj, true);
     subscriptionId = obj.id as string;
+  } else if (eventType === "charge.dispute.created") {
+    await handleDisputeCreated(obj);
+  } else if (eventType === "charge.dispute.updated") {
+    await handleDisputeUpdated(obj);
+  } else if (eventType === "charge.dispute.closed") {
+    await handleDisputeClosed(obj);
+  } else if (eventType === "radar.early_fraud_warning.created") {
+    await handleEarlyFraudWarning(obj);
   /* v8 ignore next */
   } else {
     // invoice.payment_failed (only remaining HANDLED_EVENT after the above checks)

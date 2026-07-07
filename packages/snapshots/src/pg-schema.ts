@@ -571,6 +571,43 @@ CREATE INDEX IF NOT EXISTS idx_payment_receipts_account ON payment_receipts(acco
 CREATE INDEX IF NOT EXISTS idx_payment_receipts_created ON payment_receipts(created_at);
 CREATE INDEX IF NOT EXISTS idx_payment_receipts_tool ON payment_receipts(tool);`,
   },
+  {
+    // WO-08 (dispute-lifecycle): persisted DisputeRecords ingested from the
+    // charge.dispute.* / radar.early_fraud_warning.created Stripe webhooks,
+    // plus an append-only transition ledger written through the
+    // @axis/agentic-compliance dispute state machine. account_id is nullable
+    // (a webhook dispute may arrive before it can be attributed) and has NO
+    // FK for the same reason the mcp_usage table doesn't: ingestion must
+    // never bounce on referential timing.
+    version: 32,
+    name: "disputes",
+    sql: `CREATE TABLE IF NOT EXISTS disputes (
+  id TEXT PRIMARY KEY,
+  rail TEXT NOT NULL DEFAULT 'stripe',
+  charge_id TEXT,
+  account_id TEXT,
+  reason_code TEXT NOT NULL DEFAULT 'unknown',
+  amount_minor INTEGER NOT NULL DEFAULT 0,
+  currency TEXT NOT NULL DEFAULT 'usd',
+  state TEXT NOT NULL DEFAULT 'needs_response',
+  due_by TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  representment_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_disputes_account ON disputes(account_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_state ON disputes(state);
+CREATE INDEX IF NOT EXISTS idx_disputes_created ON disputes(created_at);
+CREATE TABLE IF NOT EXISTS dispute_transitions (
+  seq BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  dispute_id TEXT NOT NULL,
+  from_state TEXT NOT NULL,
+  to_state TEXT NOT NULL,
+  event TEXT NOT NULL,
+  at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_dispute_transitions_dispute ON dispute_transitions(dispute_id, seq);`,
+  },
 ];
 
 /**

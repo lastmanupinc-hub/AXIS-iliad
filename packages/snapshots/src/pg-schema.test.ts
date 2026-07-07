@@ -23,13 +23,13 @@ d("Postgres schema + async sql helper (real Postgres)", () => {
     if (pg) await pg.closePool();
   });
 
-  it("stands up the schema at v31 with all core tables", async () => {
-    expect(await schema.getPgSchemaVersion()).toBe(31);
+  it("stands up the schema at v32 with all core tables", async () => {
+    expect(await schema.getPgSchemaVersion()).toBe(32);
     const rows = await pg.sql.many<{ tablename: string }>(
       "SELECT tablename FROM pg_tables WHERE schemaname = current_schema()",
     );
     const names = rows.map((r) => r.tablename);
-    for (const t of ["accounts", "api_keys", "snapshots", "mcp_usage", "stripe_subscriptions", "search_index", "project_memory", "payment_receipts"]) {
+    for (const t of ["accounts", "api_keys", "snapshots", "mcp_usage", "stripe_subscriptions", "search_index", "project_memory", "payment_receipts", "disputes", "dispute_transitions"]) {
       expect(names).toContain(t);
     }
   });

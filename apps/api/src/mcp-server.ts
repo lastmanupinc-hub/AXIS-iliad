@@ -70,8 +70,14 @@ import {
   runCloser,
   runDeploy,
   runPreparePurchasing,
+  runScaExemptionDecision,
+  runGradeCompliance,
+  runAssembleCe3Evidence,
+  runBuildAp2Mandate,
+  runScoreDisputeReadiness,
   decideInbandGate,
 } from "./mcp-tool-impls.js";
+import { runAssembleRepresentment } from "./disputes.js";
 import { resolveAgentMode } from "./mpp.js";
 // Re-exported for callers that import these tool entrypoints from mcp-server.
 export { runSearchTools, runPreparePurchasingPreview };
@@ -332,6 +338,26 @@ export async function dispatch(
             break;
           case "iliad_web_research_crawl":
             text = await runWebResearchCrawl(toolArgs, req);
+            break;
+          // Commerce engines as tools (WO-13) — free, no auth, deterministic.
+          case "sca_exemption_decision":
+            text = runScaExemptionDecision(toolArgs);
+            break;
+          case "grade_compliance":
+            text = runGradeCompliance(toolArgs);
+            break;
+          case "assemble_ce3_evidence":
+            text = runAssembleCe3Evidence(toolArgs);
+            break;
+          case "build_ap2_mandate":
+            text = runBuildAp2Mandate(toolArgs);
+            break;
+          case "score_dispute_readiness":
+            text = runScoreDisputeReadiness(toolArgs);
+            break;
+          // Dispute lifecycle (WO-08) — metered representment assembly.
+          case "assemble_representment":
+            text = await runAssembleRepresentment(toolArgs, req);
             break;
           default: {
             // Planned-capability stubs: discovery-only tools whose AXIS-owned

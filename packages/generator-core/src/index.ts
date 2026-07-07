@@ -63,6 +63,10 @@ export { generateRemotionScript, generateScenePlan, generateRenderConfig, genera
 export { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 export { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
 export { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, generateAp2InteropSamples, computeComplianceGrade, gradeCompliance, detectCommerceSignals, decideScaExemption, traCapEur, renderScaExemptionMatrix, SCA_EXEMPTION_ORDER } from "./generators-agentic-purchasing.js";
+// Reproducibility proofs for the commerce engines (WO-13) — canonical-JSON
+// sha256 receipts attached to verified_decisions + the commerce MCP tools.
+export { proofDigest } from "./commerce-engines.js";
+export type { ReproProof } from "./commerce-engines.js";
 export type { ComplianceGradeResult, ComplianceCheck, CheckStatus, CommerceSignals, ScaExemptionContext, ScaExemptionName, ScaExemptionRule, ScaDecision } from "./generators-agentic-purchasing.js";
 export {
 	generatePackagingReadme,

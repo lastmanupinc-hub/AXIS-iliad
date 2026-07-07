@@ -1493,4 +1493,249 @@ export const MCP_TOOLS = [
       },
     ],
   },
+  // ─── Commerce engines as tools (WO-13) ──────────────────────────
+  // The compliance kit's decision engines, exposed as callable capabilities
+  // instead of generated documents. All five are FREE, no-auth, read-only,
+  // and deterministic — pure functions over the caller's inputs (no snapshot,
+  // no charge, no side effects). Each response carries a sha256 reproducibility
+  // proof over canonical inputs+outputs so identical calls are verifiably
+  // identical decisions.
+  {
+    name: "sca_exemption_decision",
+    description:
+      "Decide the lighter-SCA path for a single transaction using AXIS's published 7-priority PSD2 exemption matrix (the same decideScaExemption engine that renders the SCA Exemption Decision Matrix in generated artifacts). Input: amount_eur (required, PSD2 thresholds are EUR-denominated — convert before calling) plus optional context flags (secure corporate program, MIT, fixed recurring + prior SCA, trusted beneficiary + prior SCA, one-leg-out, acquirer TRA fraud rate in basis points). Returns the chosen exemption, its priority, sca_required, rationale, fallback path, all applicable candidates, the rendered priority matrix, and a sha256 reproducibility proof. Free, no auth, deterministic, no side effects. HONESTY: decision-support only, NOT an authorization oracle — final exemption eligibility is decided by the acquirer/issuer; TRA caps use published EBA RTS Art. 15 bands, not your acquirer's live fraud rate.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["amount_eur"],
+      properties: {
+        amount_eur: { type: "number", description: "Transaction amount in EUR (PSD2 thresholds are EUR-denominated)." },
+        is_secure_corporate: { type: "boolean", description: "Dedicated/lodged corporate card program (RTS Art. 16)." },
+        is_merchant_initiated: { type: "boolean", description: "MIT with stored credential + original SCA reference (out of SCA scope)." },
+        is_recurring_fixed: { type: "boolean", description: "Fixed-amount subsequent collection (RTS Art. 13). Requires has_prior_sca." },
+        is_trusted_beneficiary: { type: "boolean", description: "Merchant on the cardholder's trusted list (RTS Art. 12). Requires has_prior_sca." },
+        is_one_leg_out: { type: "boolean", description: "Payer or payee outside the EEA (territorial scope, not a formal exemption)." },
+        has_prior_sca: { type: "boolean", description: "A prior SCA exists — gates recurring_fixed and trusted_beneficiary." },
+        tra_acquirer_fraud_bps: { type: "number", description: "Acquirer reference fraud rate in basis points (EBA RTS Art. 15 bands: <=1 → €500 cap, <=6 → €250, <=13 → €100)." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["decision", "matrix", "caveat", "proof"],
+      properties: {
+        decision: { type: "object", description: "{exemption, priority, sca_required, rationale, fallback, candidates, tra_cap_eur?}." },
+        matrix: { type: "string", description: "The rendered 7-priority SCA Exemption Decision Matrix (markdown) this decision was taken from." },
+        caveat: { type: "string", description: "Decision-support-only honesty caveat." },
+        proof: { type: "object", description: "{algo:'sha256', digest, over[]} — reproducibility proof over canonical input+decision." },
+      },
+    },
+    annotations: toolAnnotations("SCA Exemption Decision", true, true),
+    examples: [
+      {
+        name: "Low-value exemption",
+        input: { amount_eur: 20 },
+        output: '{"decision":{"exemption":"low_value","priority":1,"sca_required":false,"fallback":"3ds2_challenge","candidates":["low_value"]},"proof":{"algo":"sha256","digest":"..."}}',
+      },
+      {
+        name: "No lighter path → 3DS2 challenge",
+        input: { amount_eur: 1000 },
+        output: '{"decision":{"exemption":"3ds2_challenge","priority":8,"sca_required":true,"candidates":[]},"proof":{"algo":"sha256","digest":"..."}}',
+      },
+    ],
+  },
+  {
+    name: "grade_compliance",
+    description:
+      "Run the real 8-check AP2/Visa compliance grading engine (gradeCompliance — the same engine behind computeComplianceGrade and the commerce registry's verified_decisions block) over an inline file set. Each of the 8 validators (SCA/3DS2 readiness, AP2 mandate validity, tokenization posture, CE 3.0 readiness, dispute rail wiring, idempotency/receipt hygiene, budget negotiation, refund/cancel path) is a multi-signal check with weight, evidence trail, and remediation. Returns grade A-D, score, checks_passed/8, the full checks[] detail, detected commerce signals, and a sha256 reproducibility proof. Free, no auth, deterministic, no snapshot persisted. Hard caps: 25 files / 50KB per file / 1MB total. HONESTY: deterministic static source-signal analysis — a checklist starting point, NOT a certification, audit, PCI assessment, or card-network certification.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["files"],
+      properties: {
+        files: {
+          type: "array",
+          description: "Source files to grade (max 25 files, 50KB each, 1MB total)",
+          items: {
+            type: "object",
+            required: ["path", "content"],
+            properties: {
+              path: { type: "string" },
+              content: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["grade", "score", "checks_passed", "checks_total", "checks", "methodology", "signals", "proof"],
+      properties: {
+        grade: { type: "string", description: "A | B | C | D (score >= 85 / 65 / 40 / below)." },
+        score: { type: "number", description: "Weighted 0-100 score across the 8 checks." },
+        checks_passed: { type: "number" },
+        checks_total: { type: "number", description: "Always 8." },
+        checks: { type: "array", description: "Per-check {name, title, status, weight, score, evidence[], remediation}." },
+        methodology: { type: "string", description: "The engine's own honesty statement (static analysis, not a certification)." },
+        signals: { type: "object", description: "detectCommerceSignals(files) — providers + capability booleans the grade was derived from." },
+        proof: { type: "object", description: "{algo:'sha256', digest, over[]} reproducibility proof." },
+      },
+    },
+    annotations: toolAnnotations("Grade Compliance (8-Check)", true, true),
+    examples: [
+      {
+        name: "Grade a payment-enabled repo",
+        input: { files: [{ path: "src/checkout.ts", content: "stripe 3ds2 exemption mandate_id max_amount network_token dispute webhook submit_evidence idempotency_key receipt refund cancel" }] },
+        output: '{"grade":"A","score":92,"checks_passed":7,"checks_total":8,"checks":[...],"proof":{"algo":"sha256","digest":"..."}}',
+      },
+    ],
+  },
+  {
+    name: "assemble_ce3_evidence",
+    description:
+      "Assemble a Visa Compelling Evidence 3.0 packet + eligibility verdict for a disputed card-absent-fraud (reason code 10.4) transaction using the real assembleCe3 engine: finds prior undisputed transactions in the caller-supplied history that share >=2 qualified data elements (device_id / ip_address / email / shipping_address / login_id) and fall 120-365 days before the disputed transaction, per CE 3.0 rules. Returns {eligible, qualifying_priors, matched_element_union, rejection_reason?, evidence_packet, caveat} plus a sha256 reproducibility proof. Free, no auth, deterministic, no side effects. HONESTY: CE 3.0 applies to reason code 10.4 ONLY (10.2/10.3 are card-present conditions), and this is ASSEMBLY ONLY — not a submission to VROL/Verifi (use assemble_representment for the Stripe representment path). AXIS does not publish win-rate estimates.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["dispute"],
+      properties: {
+        dispute: {
+          type: "object",
+          description: "{txn: {id, amount_minor, currency, created_at, disputed, device_id?, ip_address?, email?, shipping_address?, login_id?}, reason_code: string (CE 3.0 requires '10.4'), disputed_at: ISO timestamp}",
+        },
+        transaction_history: {
+          type: "array",
+          description: "Candidate prior transactions (same Txn shape, max 500). Undisputed priors sharing >=2 qualified elements qualify.",
+        },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["eligible", "reason_code", "qualifying_priors", "matched_element_union", "evidence_packet", "caveat", "proof"],
+      properties: {
+        eligible: { type: "boolean", description: "True when >=2 qualifying priors were found under the CE 3.0 rules." },
+        reason_code: { type: "string", description: "Always '10.4' — the only CE 3.0 reason code." },
+        qualifying_priors: { type: "array", description: "[{txn_id, matched_elements[], age_days}] most-matching first, deterministic order." },
+        matched_element_union: { type: "array", description: "Union of matched qualified data elements across priors, canonical order." },
+        rejection_reason: { type: "string", description: "Present iff eligible=false — why the packet did not qualify." },
+        evidence_packet: { type: "object", description: "The structured, submission-ready CE 3.0 packet (assembly only)." },
+        caveat: { type: "string", description: "'assembly only; not a submission to VROL/Verifi'." },
+        proof: { type: "object", description: "{algo:'sha256', digest, over[]} reproducibility proof." },
+      },
+    },
+    annotations: toolAnnotations("Assemble CE 3.0 Evidence", true, true),
+    examples: [
+      {
+        name: "Qualify two priors for a 10.4 dispute",
+        input: { dispute: { txn: { id: "t9", amount_minor: 5000, currency: "usd", created_at: "2026-06-01T00:00:00Z", disputed: true, email: "a@b.com", device_id: "d1" }, reason_code: "10.4", disputed_at: "2026-06-10T00:00:00Z" }, transaction_history: [{ id: "t1", amount_minor: 900, currency: "usd", created_at: "2025-10-01T00:00:00Z", disputed: false, email: "a@b.com", device_id: "d1" }, { id: "t2", amount_minor: 700, currency: "usd", created_at: "2025-12-01T00:00:00Z", disputed: false, email: "a@b.com", device_id: "d1" }] },
+        output: '{"eligible":true,"reason_code":"10.4","qualifying_priors":[{"txn_id":"t1","matched_elements":["device_id","email"],"age_days":243},{"txn_id":"t2","matched_elements":["device_id","email"],"age_days":182}],"caveat":"assembly only; not a submission to VROL/Verifi","proof":{"algo":"sha256","digest":"..."}}',
+      },
+    ],
+  },
+  {
+    name: "build_ap2_mandate",
+    description:
+      "Validate, canonically encode, and optionally Ed25519-sign an AP2 mandate (Intent / Cart / Payment) using the real @axis/ap2 codecs — schema validation (including cart-total arithmetic and intent cross-references), RFC 8785 JCS-style canonical JSON encoding, and detached-JWS EdDSA signing over node:crypto. Pass seed_hex (64 hex chars = 32 bytes) to sign deterministically client-side-supplied key material — AXIS stores no keys; omit it for an unsigned template with encoding only. The signed envelope round-trips through verifyMandate before it is returned. Free, no auth, deterministic (Ed25519 signatures are deterministic per RFC 8032), no side effects. SCOPE HONESTY: conformant to AXIS's TypeScript encoding of the public AP2 mandate schema, verified against self-authored golden vectors — NOT certified against an official AP2 conformance suite or a live network counterparty.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["mandate"],
+      properties: {
+        mandate: {
+          type: "object",
+          description: "An AP2 mandate object: {kind: 'intent'|'cart'|'payment', version: 'ap2/1', id, created_at, ...kind-specific fields (intent: user_id/description/constraints.max_amount/expires_at; cart: intent_ref/merchant_id/items[]/total; payment: cart_ref/method/amount)}.",
+        },
+        seed_hex: { type: "string", description: "Optional 64-char hex (32-byte) Ed25519 seed to sign with. Caller-supplied key material — AXIS stores no keys. Omit for an unsigned template." },
+        intent_context: { type: "object", description: "Optional IntentMandate to cross-reference a cart's intent_ref against." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["valid", "issues", "encoded", "note", "proof"],
+      properties: {
+        valid: { type: "boolean", description: "Structural validation verdict (validateMandate)." },
+        issues: { type: "array", description: "[{path, message}] validation issues (empty when valid)." },
+        mandate: { type: "object", description: "Echo of the validated mandate." },
+        encoded: { type: "string", description: "Canonical (JCS-style) JSON wire encoding — null when invalid." },
+        signed: { type: "object", description: "When seed_hex supplied: {jws: {protected, signature}, public_key} — a SignedMandate envelope, verified before return." },
+        verified: { type: "boolean", description: "verifyMandate result for the signed envelope (null when unsigned)." },
+        note: { type: "string", description: "Signed vs 'unsigned template — sign client-side' + trust-model caveat." },
+        proof: { type: "object", description: "{algo:'sha256', digest, over[]} reproducibility proof." },
+      },
+    },
+    annotations: toolAnnotations("Build AP2 Mandate", true, true),
+    examples: [
+      {
+        name: "Unsigned intent-mandate template",
+        input: { mandate: { kind: "intent", version: "ap2/1", id: "intent_1", user_id: "agent_1", description: "buy analysis", constraints: { max_amount: { currency: "USD", value: "5.00" } }, created_at: "2026-07-01T00:00:00Z", expires_at: "2026-08-01T00:00:00Z" } },
+        output: '{"valid":true,"issues":[],"encoded":"{\\"constraints\\":...}","signed":null,"verified":null,"note":"unsigned template — sign client-side...","proof":{"algo":"sha256","digest":"..."}}',
+      },
+    ],
+  },
+  {
+    name: "score_dispute_readiness",
+    description:
+      "Score how ready a disputed transaction's EVIDENCE FILE is for representment, per Visa reason-code family, using the transparent scoreWinProbability heuristic (win-prob-v0: hand-set, documented logistic coefficients — exported, inspectable, monotonic in evidence). Input: reason_code + the evidence on file (CE 3.0 eligibility, matching data elements, prior undisputed transactions, delivery proof, AVS/CVV, 3DS, signed mandate, customer communication). Returns the heuristic score, band, top missing evidence (what to capture next), recommended action, rationale, model version, and a sha256 reproducibility proof. Free, no auth, deterministic. HONESTY (read this): this scores evidence-capture readiness and is NOT a dispute-win prediction — the v0 heuristic is NOT empirically calibrated against real network outcomes, is NOT a Visa-published or Visa-endorsed win rate, and AXIS does not publish win-rate estimates. Treat it as a prioritization signal for evidence gathering only; always follow your operator's dispute policy.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["reason_code"],
+      properties: {
+        reason_code: { type: "string", description: "Visa dispute reason code (e.g. '10.4', '13.1', '12.5'). Unknown codes fall back to a documented default family." },
+        evidence: {
+          type: "object",
+          description: "Evidence on file: {ce3Eligible?, matchingDataElements? (0-5), priorUndisputedTransactions? (0-10), hasDeliveryProof?, hasAvsMatch?, hasCvvMatch?, has3dsAuthenticated?, hasSignedMandate?, hasCustomerCommunication?}. Omitted fields default to false/0.",
+        },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["readiness", "disclaimer", "proof"],
+      properties: {
+        readiness: { type: "object", description: "{reasonCode, probability (0-1 heuristic score), band, topMissingEvidence[], recommendedAction, rationale[], modelVersion}." },
+        disclaimer: { type: "string", description: "The NOT-a-win-prediction honesty disclaimer (always present)." },
+        proof: { type: "object", description: "{algo:'sha256', digest, over[]} reproducibility proof." },
+      },
+    },
+    annotations: toolAnnotations("Score Dispute Evidence Readiness", true, true),
+    examples: [
+      {
+        name: "10.4 with CE 3.0 + 3DS on file",
+        input: { reason_code: "10.4", evidence: { ce3Eligible: true, matchingDataElements: 3, has3dsAuthenticated: true } },
+        output: '{"readiness":{"reasonCode":"10.4","band":"high","recommendedAction":"represent","modelVersion":"win-prob-v0"},"disclaimer":"Scores evidence-capture readiness... NOT a dispute-win prediction...","proof":{"algo":"sha256","digest":"..."}}',
+      },
+    ],
+  },
+  // ─── assemble_representment (WO-08 — metered) ────────────────────
+  {
+    name: "assemble_representment",
+    description:
+      "Turn a webhook-ingested dispute (charge.dispute.* events persist DisputeRecords server-side) into a Stripe representment: qualifies CE 3.0 priors from your supplied transaction history (assembleCe3), builds the Stripe `evidence` hash (buildStripeRepresentment), walks the dispute state machine (needs_response → evidence_assembling → evidence_submitted) with a full transition ledger, and — when submit=true and Stripe is configured — submits the evidence through the live Stripe disputes API. Requires Authorization: Bearer <api_key>; metered ($0.50 standard, $0.25 lite) through the standard authorize/capture path — a failed assembly never charges. Returns {dispute, evidence, ce3, ce3_eligible, submitted, disclaimer}. HONESTY: the dispute lifecycle is LIVE on the Stripe rail only; VROL/RDR/CDRN (Verifi/Ethoca) is integration-ready code gated on acquirer provisioning (AXIS_ENABLE_VROL) and never fakes a submission. AXIS does not publish win-rate estimates.",
+    inputSchema: {
+      type: "object" as const,
+      required: ["dispute_id"],
+      properties: {
+        dispute_id: { type: "string", description: "Provider dispute id (Stripe dp_...) previously ingested by the charge.dispute.created webhook." },
+        disputed_txn: { type: "object", description: "Optional CE 3.0 data elements of the disputed transaction: {device_id?, ip_address?, email?, shipping_address?, login_id?}." },
+        transaction_history: { type: "array", description: "Candidate prior transactions for CE 3.0 qualification (Txn shape, max 500)." },
+        evidence_inputs: { type: "object", description: "{customerEmail?, shippingAddress?, billingAddress?, serviceDate?, productDescription?, deliveryTracking?, threeDsAuthenticated?} — merchant-supplied evidence fields." },
+        submit: { type: "boolean", description: "true → submit the built evidence to the Stripe disputes API (requires STRIPE_SECRET_KEY server-side). Default false (assemble only)." },
+      },
+    },
+    outputSchema: {
+      type: "object" as const,
+      required: ["dispute", "evidence", "ce3", "ce3_eligible", "submitted", "disclaimer"],
+      properties: {
+        dispute: { type: "object", description: "The DisputeRecord after state-machine bookkeeping (state, dueBy, representmentId, ...)." },
+        evidence: { type: "object", description: "Stripe `evidence` hash: uncategorized_text (CE 3.0 narrative) + customer_email_address/shipping_address/... from evidence_inputs." },
+        ce3: { type: "object", description: "Full assembleCe3 result (eligible, qualifying_priors, evidence_packet, caveat)." },
+        ce3_eligible: { type: "boolean" },
+        submitted: { type: "boolean", description: "True only when the evidence was actually submitted through the dispute client." },
+        submit_note: { type: "string", description: "Present when submit was requested but skipped (e.g. Stripe not configured)." },
+        disclaimer: { type: "string", description: "Stripe-rail-live / VROL-gated honesty split + no-win-rate stance." },
+      },
+    },
+    annotations: toolAnnotations("Assemble Representment", false, false),
+    examples: [
+      {
+        name: "Assemble (no submit) with CE 3.0 history",
+        input: { dispute_id: "dp_123", disputed_txn: { email: "a@b.com", device_id: "d1" }, transaction_history: [{ id: "t1", amount_minor: 900, currency: "usd", created_at: "2025-10-01T00:00:00Z", disputed: false, email: "a@b.com", device_id: "d1" }], evidence_inputs: { customerEmail: "a@b.com", productDescription: "Pro plan" } },
+        output: '{"dispute":{"id":"dp_123","state":"evidence_assembling"},"evidence":{"uncategorized_text":"Compelling Evidence 3.0...","customer_email_address":"a@b.com"},"ce3_eligible":false,"submitted":false,"disclaimer":"..."}',
+      },
+    ],
+  },
 ];

@@ -41,7 +41,11 @@ export type FunnelEventType =
   | "watchtower_delta"
   | "memory_written"
   | "memory_woven"
-  | "fleet_viewed";
+  | "fleet_viewed"
+  // Dispute lifecycle (WO-08): Stripe charge.dispute.* / radar EFW webhooks.
+  | "dispute_opened"
+  | "dispute_closed"
+  | "early_fraud_warning";
 
 export interface FunnelEvent {
   event_id: string;

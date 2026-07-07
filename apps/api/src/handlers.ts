@@ -2301,6 +2301,8 @@ export async function handleCapabilities(
         "list_programs", "prepare_agentic_purchasing", "search_and_discover_tools",
         "discover_commerce_tools", "improve_my_agent_with_axis",
         "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits",
+        "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence",
+        "build_ap2_mandate", "score_dispute_readiness", "assemble_representment",
       ],
     },
     security_txt: "https://axis-api-6c7z.onrender.com/.well-known/security.txt",
@@ -2334,7 +2336,7 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits
+- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits, sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness, assemble_representment
 - No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
 
 ## Programs (${PROGRAM_COUNT} total)
@@ -2566,7 +2568,7 @@ export async function handleSkillsIndex(
         tags: ["mcp", "ai-agents", "protocol", "integration"],
         endpoint: "POST /mcp",
         auth_required: false,
-        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits"],
+        tools: ["analyze_repo", "analyze_files", "list_programs", "get_snapshot", "get_artifact", "prepare_agentic_purchasing", "search_and_discover_tools", "discover_commerce_tools", "improve_my_agent_with_axis", "discover_agentic_purchasing_needs", "iliad_web_research", "iliad_web_research_crawl", "get_referral_code", "get_referral_credits", "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence", "build_ap2_mandate", "score_dispute_readiness", "assemble_representment"],
       },
     ],
   });
@@ -2647,7 +2649,7 @@ List all programs with generator counts and output paths. No auth required.
 
 - \`POST /mcp\`  -  Streamable HTTP transport (2025-03-26 spec)
 - \`GET /mcp\`  -  SSE stream for long-running operations
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits
+- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits, sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness, assemble_representment
 
 ## Search & Indexing
 
@@ -2866,22 +2868,28 @@ export async function handleForAgents(
           "Agents B-D call get_artifact with snapshot_id to read specific artifacts",
           "Agent E calls prepare_agentic_purchasing for commerce hardening",
         ],
-        manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: 6 },
+        manifest: { name: "axis-iliad", endpoint: `${AXIS_API_BASE}/mcp`, transport: "streamable-http", tools: MCP_TOOL_COUNT, free_tools: 11 },
       },
     },
     pricing_table: {
-      overview: "6 free tools, 6 paid tools. Budget negotiation available via X-Agent-Budget header.",
+      overview: "11 free tools (discovery + the WO-13 commerce decision engines), plus metered analysis/commerce tools. Budget negotiation available via X-Agent-Budget header.",
       tiers: [
         { tool: "analyze_repo",                    price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "analyze_files",                   price: "$0.50/run",  lite: "$0.15/run", auth: true  },
         { tool: "prepare_agentic_purchasing",   price: "$0.50/run",  lite: "$0.25/run", auth: true  },
         { tool: "improve_my_agent_with_axis",       price: "$0.50/run",  lite: "$0.15/run", auth: true  },
+        { tool: "assemble_representment",           price: "$0.50/run",  lite: "$0.25/run", auth: true  },
         { tool: "list_programs",                    price: "free",       lite: null,         auth: false },
         { tool: "get_snapshot",                     price: "free",       lite: null,         auth: false },
         { tool: "get_artifact",                     price: "free",       lite: null,         auth: false },
         { tool: "search_and_discover_tools",        price: "free",       lite: null,         auth: false },
         { tool: "discover_commerce_tools",  price: "free",       lite: null,         auth: false },
         { tool: "discover_agentic_purchasing_needs",price: "free",       lite: null,         auth: false },
+        { tool: "sca_exemption_decision",           price: "free",       lite: null,         auth: false },
+        { tool: "grade_compliance",                 price: "free",       lite: null,         auth: false },
+        { tool: "assemble_ce3_evidence",            price: "free",       lite: null,         auth: false },
+        { tool: "build_ap2_mandate",                price: "free",       lite: null,         auth: false },
+        { tool: "score_dispute_readiness",          price: "free",       lite: null,         auth: false },
         { tool: "get_referral_code",                price: "free",       lite: null,         auth: true  },
         { tool: "get_referral_credits",           price: "free",       lite: null,         auth: true  },
       ],

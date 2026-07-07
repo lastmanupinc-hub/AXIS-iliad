@@ -470,8 +470,8 @@ describe("MCP_TOOLS — prepare_agentic_purchasing", () => {
     expect(tool!.description).toContain("dispute");
   });
 
-  it("MCP_TOOLS array contains the full 29-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
-    expect(MCP_TOOLS.length).toBe(29);
+  it("MCP_TOOLS array contains the full 35-tool advertised catalog (build-not-redact; image_generation delegated to AXIS Foundry sibling)", async () => {
+    expect(MCP_TOOLS.length).toBe(35);
   });
 });
 

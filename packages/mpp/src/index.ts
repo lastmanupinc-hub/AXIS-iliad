@@ -103,6 +103,16 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     lite_cents: 20,
     lite_description: "Lite mode: improvement plan only (no full artifact generation)",
   },
+  // WO-08 dispute lifecycle: CE 3.0 qualification over the caller's supplied
+  // transaction history + Stripe representment-evidence assembly + state-machine
+  // bookkeeping. Priced like the other high-value commerce calls; assembly is
+  // pure compute, the optional Stripe submission is the caller's own account.
+  assemble_representment: {
+    tool: "assemble_representment",
+    standard_cents: 50,
+    lite_cents: 25,
+    lite_description: "Lite mode: CE 3.0 qualification + evidence hash only (no auto-submit to the Stripe disputes API)",
+  },
   // Strategy 1: x402/MCP Gateway (agent-to-agent commerce infrastructure)
   mcp_gateway_snapshot: {
     tool: "mcp_gateway_snapshot",

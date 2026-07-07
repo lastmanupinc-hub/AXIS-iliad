@@ -1,6 +1,7 @@
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { mdText, mdInline } from "./md-sanitize.js";
+import { proofDigest } from "./commerce-engines.js";
 import { PROGRAM_ORDER, PROGRAM_OUTPUT_COUNTS, bundleOutputs } from "./program-manifest.js";
 import {
   CE3_MIN_PRIOR_TRANSACTIONS,
@@ -1965,6 +1966,35 @@ export function generateCommerceRegistry(
         })(),
       },
     },
+    // WO-13: engine-derived decisions with a reproducibility proof. Every
+    // number in this block is CALLED from the real engines (gradeCompliance /
+    // decideScaExemption / renderScaExemptionMatrix — the same functions the
+    // grade_compliance / sca_exemption_decision MCP tools expose) rather than
+    // recomputed inline, and the sha256 proof over canonical inputs+outputs
+    // makes identical inputs verifiably yield identical decisions.
+    verified_decisions: (() => {
+      const compliance = gradeCompliance(files);
+      const scaSamples = [
+        { input: { amount_eur: 20 }, decision: decideScaExemption({ amount_eur: 20 }) },
+        { input: { amount_eur: 400, tra_acquirer_fraud_bps: 1 }, decision: decideScaExemption({ amount_eur: 400, tra_acquirer_fraud_bps: 1 }) },
+        { input: { amount_eur: 1000 }, decision: decideScaExemption({ amount_eur: 1000 }) },
+      ];
+      const scaMatrixMd = renderScaExemptionMatrix();
+      return {
+        compliance,
+        sca_samples: scaSamples,
+        sca_matrix_digest: proofDigest(["renderScaExemptionMatrix() markdown"], scaMatrixMd),
+        engines: {
+          compliance: "@axis/generator-core gradeCompliance(files) — also exposed as the grade_compliance MCP tool",
+          sca: "@axis/generator-core decideScaExemption(ctx) — also exposed as the sca_exemption_decision MCP tool",
+          matrix: "@axis/generator-core renderScaExemptionMatrix() — single source for every SCA matrix table",
+        },
+        proof: proofDigest(
+          ["repo_commerce_signals", "compliance_grade", "sca_samples"],
+          { signals, compliance, sca_samples: scaSamples },
+        ),
+      };
+    })(),
     // Each bundle's `outputs` is derived from its `programs` via the shared
     // registry (bundleOutputs), and pro-all enumerates PROGRAM_ORDER — so the
     // catalog can never claim a program count or output total the API can't back.

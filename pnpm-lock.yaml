@@ -34,6 +34,12 @@ importers:
 
   apps/api:
     dependencies:
+      '@axis/agentic-compliance':
+        specifier: workspace:*
+        version: link:../../packages/agentic-compliance
+      '@axis/ap2':
+        specifier: workspace:*
+        version: link:../../packages/ap2
       '@axis/context-engine':
         specifier: workspace:*
         version: link:../../packages/context-engine

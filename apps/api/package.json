@@ -10,6 +10,8 @@
     "test": "echo skipped â€” run vitest from root"
   },
   "dependencies": {
+    "@axis/agentic-compliance": "workspace:*",
+    "@axis/ap2": "workspace:*",
     "@axis/context-engine": "workspace:*",
     "@axis/generator-core": "workspace:*",
     "@axis/mpp": "workspace:*",

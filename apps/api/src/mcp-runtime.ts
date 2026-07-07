@@ -111,6 +111,7 @@ export type MeteredMcpTool =
   | "analyze_files"
   | "analyze_repo"
   | "prepare_agentic_purchasing"
+  | "assemble_representment"
   | "iliad_object_storage"
   | "iliad_vector_database"
   | "iliad_embeddings"

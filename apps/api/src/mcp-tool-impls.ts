@@ -91,6 +91,32 @@ import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, detectCommerceSignals } from "@axis/generator-core";
 import type { GeneratorResult } from "@axis/generator-core";
+// Commerce engines exposed as free MCP tools (WO-13) — the SAME functions the
+// generators call, not re-implementations.
+import {
+  gradeCompliance,
+  decideScaExemption,
+  renderScaExemptionMatrix,
+  proofDigest,
+  type ScaExemptionContext,
+} from "@axis/generator-core";
+import {
+  assembleCe3,
+  scoreWinProbability,
+  type DisputeCtx,
+  type Txn,
+  type EvidenceState,
+} from "@axis/agentic-compliance";
+import {
+  validateMandate,
+  encodeMandate,
+  signMandate,
+  verifyMandate,
+  keyPairFromSeed,
+  type Mandate,
+  type IntentMandate,
+  type MandateValidationContext,
+} from "@axis/ap2";
 import { runSpecificityPass } from "./living-architecture.js";
 import { appendQualityArtifacts, appendAutonomyLoop, appendProgramFunnel, appendMemoryWeave, MEMORY_WEAVE_LIMIT, type WovenMemoryEntry } from "@axis/generator-core";
 import { llmDesignVerdict } from "./design-judge.js";
@@ -1793,6 +1819,12 @@ const FREE_TOOL_NAMES = new Set([
   "get_referral_code",
   "get_referral_credits",
   "check_referral_credits",
+  // Commerce engines as free tools (WO-13) — deterministic, no auth, no charge.
+  "sca_exemption_decision",
+  "grade_compliance",
+  "assemble_ce3_evidence",
+  "build_ap2_mandate",
+  "score_dispute_readiness",
 ]);
 
 const PROGRAM_CAPABILITY_TAGS: Record<string, string[]> = {
@@ -1964,7 +1996,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       endpoint: AXIS_MCP_ENDPOINT,
       transport: "streamable-http",
       tools: MCP_TOOLS.length,
-      free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits"],
+      free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits", "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence", "build_ap2_mandate", "score_dispute_readiness"],
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },
@@ -3053,6 +3085,201 @@ export type InbandGateDecision =
  *   runtime_metered  -> billability decided only by a post-run probe (see residual caveat)
  *   not_in_scope     -> free/discovery tool or unknown name
  */
+// ─── Commerce engines as free tools (WO-13) ─────────────────────────
+//
+// Five free, no-auth, read-only, deterministic tools wired to the REAL
+// engines (@axis/generator-core gradeCompliance / decideScaExemption /
+// renderScaExemptionMatrix; @axis/agentic-compliance assembleCe3 /
+// scoreWinProbability; @axis/ap2 mandate codecs). No metering — they never
+// touch authorize/capture — and every response carries a sha256
+// reproducibility proof over canonical inputs+outputs.
+
+const SCA_DECISION_CAVEAT =
+  "Decision-support only, NOT an authorization oracle: exemption eligibility is ultimately decided by the " +
+  "acquirer + issuer, TRA caps use published EBA RTS Art. 15 bands (not your acquirer's live fraud rate), " +
+  "and the priority order is AXIS's agent-optimized preference, not a regulatory mandate.";
+
+const DISPUTE_READINESS_DISCLAIMER =
+  "Scores evidence-capture readiness for representment prioritization. This is NOT a dispute-win prediction: " +
+  "the underlying win-prob-v0 heuristic is hand-set and transparent, NOT empirically calibrated against real " +
+  "network outcomes, and NOT a Visa-published or Visa-endorsed win rate. AXIS does not publish win-rate " +
+  "estimates — treat the score as a prioritization signal for evidence gathering only, and always follow your " +
+  "operator's dispute policy.";
+
+/** Coerce + cap inline {path, content} files (free-tool caps mirror the preview). */
+function coerceEngineFiles(args: Record<string, unknown>): Array<{ path: string; content: string; size: number }> {
+  const rawFiles = args.files;
+  if (!Array.isArray(rawFiles) || rawFiles.length === 0) throw new Error("files must be a non-empty array");
+  if (rawFiles.length > PREVIEW_MAX_FILES) {
+    throw new Error(`grade_compliance accepts max ${PREVIEW_MAX_FILES} files (received ${rawFiles.length}). Use prepare_agentic_purchasing for full analysis of larger codebases.`);
+  }
+  let totalBytes = 0;
+  const files: Array<{ path: string; content: string; size: number }> = [];
+  for (const f of rawFiles) {
+    const file = f as Record<string, unknown>;
+    if (typeof file.path !== "string" || typeof file.content !== "string") {
+      throw new Error("Each file must have path (string) and content (string)");
+    }
+    const size = Buffer.byteLength(file.content, "utf-8");
+    if (size > PREVIEW_MAX_FILE_CONTENT_BYTES) {
+      throw new Error(`File ${file.path} exceeds cap (${PREVIEW_MAX_FILE_CONTENT_BYTES / 1024} KB per file).`);
+    }
+    totalBytes += size;
+    if (totalBytes > PREVIEW_MAX_TOTAL_BYTES) {
+      throw new Error(`Total payload exceeds cap (${PREVIEW_MAX_TOTAL_BYTES / 1024 / 1024} MB).`);
+    }
+    files.push({ path: file.path, content: file.content, size });
+  }
+  return files;
+}
+
+/** Tool: sca_exemption_decision — decideScaExemption + renderScaExemptionMatrix. */
+export function runScaExemptionDecision(args: Record<string, unknown>): string {
+  if (typeof args.amount_eur !== "number" || !Number.isFinite(args.amount_eur) || args.amount_eur < 0) {
+    throw new Error("amount_eur is required and must be a non-negative number (PSD2 thresholds are EUR-denominated — convert before calling)");
+  }
+  const ctx: ScaExemptionContext = { amount_eur: args.amount_eur };
+  if (typeof args.is_secure_corporate === "boolean") ctx.is_secure_corporate = args.is_secure_corporate;
+  if (typeof args.is_merchant_initiated === "boolean") ctx.is_merchant_initiated = args.is_merchant_initiated;
+  if (typeof args.is_recurring_fixed === "boolean") ctx.is_recurring_fixed = args.is_recurring_fixed;
+  if (typeof args.is_trusted_beneficiary === "boolean") ctx.is_trusted_beneficiary = args.is_trusted_beneficiary;
+  if (typeof args.is_one_leg_out === "boolean") ctx.is_one_leg_out = args.is_one_leg_out;
+  if (typeof args.has_prior_sca === "boolean") ctx.has_prior_sca = args.has_prior_sca;
+  if (typeof args.tra_acquirer_fraud_bps === "number") ctx.tra_acquirer_fraud_bps = args.tra_acquirer_fraud_bps;
+
+  const decision = decideScaExemption(ctx);
+  return JSON.stringify({
+    decision,
+    matrix: renderScaExemptionMatrix(),
+    caveat: SCA_DECISION_CAVEAT,
+    proof: proofDigest(["ScaExemptionContext", "ScaDecision"], { input: ctx, decision }),
+    cost: "free — no auth required, no side effects",
+  }, null, 2);
+}
+
+/** Tool: grade_compliance — the real 8-check gradeCompliance engine. */
+export function runGradeCompliance(args: Record<string, unknown>): string {
+  const files = coerceEngineFiles(args);
+  const result = gradeCompliance(files);
+  const signals = detectCommerceSignals(files);
+  return JSON.stringify({
+    ...result,
+    signals,
+    proof: proofDigest(["files[]", "ComplianceGradeResult", "CommerceSignals"], { files, result, signals }),
+    cost: "free — no auth required, no snapshot persisted",
+  }, null, 2);
+}
+
+const CE3_MAX_HISTORY = 500;
+
+/** Tool: assemble_ce3_evidence — the real assembleCe3 engine. */
+export function runAssembleCe3Evidence(args: Record<string, unknown>): string {
+  const dispute = args.dispute as DisputeCtx | undefined;
+  if (!dispute || typeof dispute !== "object" || Array.isArray(dispute)) {
+    throw new Error("dispute is required: {txn, reason_code, disputed_at}");
+  }
+  if (!dispute.txn || typeof dispute.txn !== "object" || typeof dispute.txn.id !== "string") {
+    throw new Error("dispute.txn is required: {id, amount_minor, currency, created_at, disputed, ...data elements}");
+  }
+  if (typeof dispute.reason_code !== "string" || typeof dispute.disputed_at !== "string") {
+    throw new Error("dispute.reason_code and dispute.disputed_at are required strings");
+  }
+  const rawHistory = args.transaction_history;
+  if (rawHistory !== undefined && !Array.isArray(rawHistory)) {
+    throw new Error("transaction_history must be an array of Txn when present");
+  }
+  const history = ((rawHistory as Txn[] | undefined) ?? []).slice(0, CE3_MAX_HISTORY);
+
+  const result = assembleCe3(dispute, history);
+  return JSON.stringify({
+    ...result,
+    proof: proofDigest(["DisputeCtx", "Txn[]", "Ce3Result"], { dispute, history, result }),
+    cost: "free — no auth required, no side effects",
+  }, null, 2);
+}
+
+const AP2_UNSIGNED_NOTE =
+  "unsigned template — sign client-side (signMandate from @axis/ap2, or resubmit with seed_hex). " +
+  "Trust-model caveat: verification without a pinned public key only proves internal consistency, " +
+  "not any particular signer's identity.";
+const AP2_SIGNED_NOTE =
+  "signed with the caller-supplied seed (deterministic Ed25519, RFC 8032) and verified before return. " +
+  "AXIS stores no keys. Trust-model caveat: pin the public key out of band to trust a signer's identity.";
+
+/** Tool: build_ap2_mandate — the real @axis/ap2 mandate codecs. */
+export function runBuildAp2Mandate(args: Record<string, unknown>): string {
+  const mandate = args.mandate;
+  if (!mandate || typeof mandate !== "object" || Array.isArray(mandate)) {
+    throw new Error("mandate is required: an AP2 mandate object {kind, version: 'ap2/1', id, created_at, ...}");
+  }
+  const vctx: MandateValidationContext | undefined =
+    args.intent_context && typeof args.intent_context === "object" && !Array.isArray(args.intent_context)
+      ? { intent: args.intent_context as IntentMandate }
+      : undefined;
+
+  const validation = validateMandate(mandate, vctx);
+  if (!validation.valid) {
+    return JSON.stringify({
+      valid: false,
+      issues: validation.issues,
+      mandate,
+      encoded: null,
+      signed: null,
+      verified: null,
+      note: "mandate failed structural validation — fix the issues and resubmit",
+      proof: proofDigest(["mandate", "ValidationResult"], { mandate, validation }),
+      cost: "free — no auth required, no side effects",
+    }, null, 2);
+  }
+
+  const typed = mandate as Mandate;
+  const encoded = encodeMandate(typed);
+
+  let signed: { jws: { protected: string; signature: string }; public_key: string } | null = null;
+  let verified: boolean | null = null;
+  if (args.seed_hex !== undefined) {
+    if (typeof args.seed_hex !== "string" || !/^[0-9a-fA-F]{64}$/.test(args.seed_hex)) {
+      throw new Error("seed_hex must be exactly 64 hex characters (a 32-byte Ed25519 seed)");
+    }
+    const pair = keyPairFromSeed(Buffer.from(args.seed_hex, "hex"));
+    const envelope = signMandate(typed, pair.privateKey, pair.publicKeySpkiB64);
+    signed = { jws: envelope.jws, public_key: envelope.public_key };
+    verified = verifyMandate(envelope, vctx).valid;
+  }
+
+  return JSON.stringify({
+    valid: true,
+    issues: [],
+    mandate: typed,
+    encoded,
+    signed,
+    verified,
+    note: signed ? AP2_SIGNED_NOTE : AP2_UNSIGNED_NOTE,
+    proof: proofDigest(["mandate", "encoded", "signed"], { mandate: typed, encoded, signed }),
+    cost: "free — no auth required, no side effects",
+  }, null, 2);
+}
+
+/** Tool: score_dispute_readiness — the transparent scoreWinProbability heuristic,
+ *  surfaced under its honest job description (evidence-capture readiness). */
+export function runScoreDisputeReadiness(args: Record<string, unknown>): string {
+  if (typeof args.reason_code !== "string" || !args.reason_code.trim()) {
+    throw new Error("reason_code is required (a Visa dispute reason code, e.g. '10.4')");
+  }
+  const rawEvidence = args.evidence;
+  if (rawEvidence !== undefined && (typeof rawEvidence !== "object" || rawEvidence === null || Array.isArray(rawEvidence))) {
+    throw new Error("evidence must be an object when present");
+  }
+  const evidence = (rawEvidence ?? {}) as Partial<EvidenceState>;
+  const readiness = scoreWinProbability(args.reason_code, evidence);
+  return JSON.stringify({
+    readiness,
+    disclaimer: DISPUTE_READINESS_DISCLAIMER,
+    proof: proofDigest(["reason_code", "EvidenceState", "WinScore"], { reason_code: args.reason_code, evidence, readiness }),
+    cost: "free — no auth required, no side effects",
+  }, null, 2);
+}
+
 export async function decideInbandGate(
   tool: string,
   args: Record<string, unknown>,
@@ -3063,6 +3290,9 @@ export async function decideInbandGate(
     case "analyze_files":
     case "analyze_repo":
     case "prepare_agentic_purchasing":
+    // WO-08: representment assembly is always metered when it runs (auth +
+    // authorize/capture inside runAssembleRepresentment); price known up front.
+    case "assemble_representment":
       return { settle: true, tool };
 
     // Config-gated backends: billable iff the operator has provisioned the SAME
