@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import type { GeneratedFile, BillingTier } from "../api.ts";
 import { downloadExport, getAccount, ApiError } from "../api.ts";
+// Single-source counts (WO-F5) — never inline these numbers.
+import { PROGRAM_COUNT } from "../config.ts";
 
 interface Props {
   snapshotId: string;
@@ -60,7 +62,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
       await onRun(program.endpoint);
     } catch (err) {
       if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
-        setError("This program requires a Pro plan. Upgrade to unlock all 20 programs.");
+        setError(`This program requires a Pro plan. Upgrade to unlock all ${PROGRAM_COUNT} programs.`);
       } else {
         setError(err instanceof Error ? err.message : "Failed");
       }

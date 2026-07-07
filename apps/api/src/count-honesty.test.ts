@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { TOTAL_GENERATORS, TOTAL_PROGRAMS } from "@axis/generator-core";
+import { TIER_LIMITS } from "@axis/snapshots";
 import { MCP_TOOL_COUNT, ENDPOINT_COUNT } from "./counts.js";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -113,5 +114,89 @@ describe("count honesty — docs/UI match the code (A4)", () => {
       for (const n of programClaims(visible(text))) if (n !== TOTAL_PROGRAMS) bad.push(`${name}: ${n} (expected ${TOTAL_PROGRAMS})`);
     }
     expect(bad).toEqual([]);
+  });
+});
+
+// ─── WO-F5: web single-source config + pinned package copy ──────────────────
+// apps/web/src/config.ts is the ONE module web pages may take catalog counts
+// and API origins from. Its counts are pinned (importing the API package would
+// drag the generator registry into the browser bundle), so this suite reads the
+// file and fails CI when a pin drifts from the live value — the same
+// pin-plus-guard pattern counts.ts uses for MCP_TOOL_COUNT/ENDPOINT_COUNT.
+// It also guards the pinned program totals in leaf packages that cannot import
+// @axis/generator-core (@axis/snapshots plan copy, @axis/mpp lite copy).
+
+const WEB_SRC = join(ROOT, "apps", "web", "src");
+
+function webFiles(): Array<{ rel: string; text: string }> {
+  const out: Array<{ rel: string; text: string }> = [];
+  for (const rel of readdirSync(WEB_SRC, { recursive: true }) as unknown as string[]) {
+    if (typeof rel !== "string") continue;
+    const abs = join(WEB_SRC, rel);
+    if (!statSync(abs).isFile()) continue;
+    out.push({ rel: rel.replace(/\\/g, "/"), text: readFileSync(abs, "utf8") });
+  }
+  return out;
+}
+
+function webConfigConst(name: string): number {
+  const src = readFileSync(join(WEB_SRC, "config.ts"), "utf8");
+  const m = src.match(new RegExp(`export const ${name} = (\\d+);`));
+  if (!m) throw new Error(`apps/web/src/config.ts: missing pinned const ${name}`);
+  return Number(m[1]);
+}
+
+describe("web config.ts is the single source and matches the code (WO-F5)", () => {
+  it("web PROGRAM_COUNT equals TOTAL_PROGRAMS", () => {
+    expect(webConfigConst("PROGRAM_COUNT")).toBe(TOTAL_PROGRAMS);
+  });
+
+  it("web ARTIFACT_COUNT equals TOTAL_GENERATORS", () => {
+    expect(webConfigConst("ARTIFACT_COUNT")).toBe(TOTAL_GENERATORS);
+  });
+
+  it("web TOOL_COUNT equals MCP_TOOL_COUNT", () => {
+    expect(webConfigConst("TOOL_COUNT")).toBe(MCP_TOOL_COUNT);
+  });
+
+  it("web ENDPOINT_COUNT equals ENDPOINT_COUNT", () => {
+    expect(webConfigConst("ENDPOINT_COUNT")).toBe(ENDPOINT_COUNT);
+  });
+
+  it("web FREE_PROGRAM_COUNT equals the free tier's program list", () => {
+    expect(webConfigConst("FREE_PROGRAM_COUNT")).toBe(TIER_LIMITS.free.programs.length);
+  });
+
+  it("the legacy onrender API host appears nowhere in apps/web/src", () => {
+    const bad = webFiles()
+      .filter((f) => f.text.includes("axis-api-6c7z.onrender.com"))
+      .map((f) => f.rel);
+    expect(bad).toEqual([]);
+  });
+
+  it("the canonical API origin is hardcoded only in config.ts", () => {
+    const bad = webFiles()
+      .filter((f) => f.rel !== "config.ts" && f.text.includes("api.iliad.trustfabric.ai"))
+      .map((f) => f.rel);
+    expect(bad).toEqual([]);
+  });
+});
+
+describe("pinned program totals in leaf packages match TOTAL_PROGRAMS (WO-F5)", () => {
+  it("@axis/snapshots plan copy (\"All N programs\" / \"All N\") is current", () => {
+    const src = readFileSync(join(ROOT, "packages", "snapshots", "src", "funnel-types.ts"), "utf8");
+    const ns = [...src.matchAll(/\bAll (\d+)\b/g)].map((m) => Number(m[1]));
+    expect(ns.length).toBeGreaterThan(0);
+    for (const n of ns) expect(n).toBe(TOTAL_PROGRAMS);
+  });
+
+  it("@axis/mpp lite copy (\"N of M programs\") is current", () => {
+    const src = readFileSync(join(ROOT, "packages", "mpp", "src", "index.ts"), "utf8");
+    const rows = [...src.matchAll(/\((\d+) of (\d+) programs\)/g)];
+    expect(rows.length).toBeGreaterThan(0);
+    for (const m of rows) {
+      expect(Number(m[1])).toBe(TIER_LIMITS.free.programs.length);
+      expect(Number(m[2])).toBe(TOTAL_PROGRAMS);
+    }
   });
 });

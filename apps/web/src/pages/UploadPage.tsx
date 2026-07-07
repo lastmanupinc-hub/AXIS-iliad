@@ -3,6 +3,8 @@ import { createSnapshot, analyzeGitHubUrl, ApiError, type SnapshotPayload, type 
 import { useToast } from "../components/Toast.tsx";
 import { UpsellModal } from "../components/UpsellModal.tsx";
 import { shouldIgnore, detectFrameworks, extractZip } from "../upload-utils.ts";
+// Single-source counts (WO-F5) — never inline these numbers.
+import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
 interface Props {
   onComplete: (data: SnapshotResponse) => void;
@@ -327,11 +329,11 @@ export function UploadPage({ onComplete }: Props) {
       {/* ── Hero value prop ────────────────────────────────────── */}
       <section className="upload-hero">
         <h1 className="upload-hero-title">
-          Turn any codebase into 141 structured AI artifacts.
+          Turn any codebase into {ARTIFACT_COUNT} structured AI artifacts.
         </h1>
         <p className="upload-hero-sub">
           Upload a repo and instantly generate AGENTS.md, CLAUDE.md, .cursorrules, MCP configs,
-          SEO rules, brand guidelines, debug playbooks, and 130 more files — one scan across 20 programs.
+          SEO rules, brand guidelines, debug playbooks, and more — one scan across {PROGRAM_COUNT} programs.
         </p>
         <div className="upload-hero-pills">
           {["AGENTS.md", "CLAUDE.md", ".cursorrules", "MCP Config", "SEO Rules", "Brand Guidelines", "Debug Playbook", "Design Tokens", "Obsidian Vault", "Remotion Script"].map((label) => (
@@ -340,9 +342,9 @@ export function UploadPage({ onComplete }: Props) {
         </div>
       </section>
 
-      {/* ── 20 Programs listing ──────────────────────────────────── */}
+      {/* ── Programs listing ──────────────────────────────────── */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>20 Programs — 3 free · 16 pro</p>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 10 }}>{PROGRAM_COUNT} Programs — {FREE_PROGRAM_COUNT} free · {PRO_PROGRAM_COUNT} pro</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
           {[
             { name: "Search", free: true }, { name: "Skills", free: true }, { name: "Debug", free: true },
@@ -351,7 +353,7 @@ export function UploadPage({ onComplete }: Props) {
             { name: "Marketing", free: false }, { name: "Notebook", free: false }, { name: "Obsidian", free: false },
             { name: "MCP", free: false }, { name: "Artifacts", free: false }, { name: "Remotion", free: false },
             { name: "Canvas", free: false }, { name: "Algorithmic", free: false },
-            { name: "Agentic Purchasing", free: false }, { name: "Closer", free: false },
+            { name: "Agentic Purchasing", free: false }, { name: "Closer", free: false }, { name: "Deploy", free: false },
           ].map(({ name, free }) => (
             <span key={name} className={`badge ${free ? "badge-green" : "badge-accent"}`} style={{ fontSize: "0.78rem" }}>
               {name}
@@ -369,7 +371,7 @@ export function UploadPage({ onComplete }: Props) {
 
 ## Project Context
 Web application built with TypeScript + React 19.
-Upload or point at any codebase — get 141 generated artifacts.
+Upload or point at any codebase — get ${ARTIFACT_COUNT} generated artifacts.
 
 ### Stack
 - React ^19.1.0
@@ -399,7 +401,7 @@ Upload or point at any codebase — get 141 generated artifacts.
         <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Analyze Your Project</h2>
         <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto", marginBottom: 16 }}>
           Upload a project folder or paste a GitHub URL to generate AI context maps, governance files,
-          debug playbooks, and more across 20 programs.
+          debug playbooks, and more across {PROGRAM_COUNT} programs.
         </p>
         <div className="flex" style={{ gap: 8, justifyContent: "center" }}>
           <button
@@ -592,7 +594,7 @@ Upload or point at any codebase — get 141 generated artifacts.
               ))}
             </div>
             <button type="button" className="btn btn-primary" style={{ marginRight: 8 }} onClick={() => { window.location.hash = "plans"; }}>
-              Go Pro — Unlock All 20 Programs
+              Go Pro — Unlock All {PROGRAM_COUNT} Programs
             </button>
             <button type="button" className="btn" onClick={() => {
               const freeOutputs = selectedOutputs.filter((o) => {

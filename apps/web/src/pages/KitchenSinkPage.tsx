@@ -12,6 +12,8 @@ import {
   TableWrap,
 } from "../components/primitives/index.ts";
 import type { PageId } from "../routes.tsx";
+// Single-source counts (WO-F5) — sample copy must not hardcode catalog numbers.
+import { ARTIFACT_COUNT, PROGRAM_COUNT } from "../config.ts";
 
 // ─── Kitchen sink (WO-F4, dev aid) ──────────────────────────────────────────
 // Storybook-style gallery of the shared primitives on the hidden
@@ -84,7 +86,7 @@ export function KitchenSinkPage({ onNavigate }: Props) {
       <Section title="Callout" sub="four tones; `details` holds raw/technical text behind a disclosure (the API-error pattern)">
         <div className="stack">
           <Callout tone="info" title="Heads up">Snapshots are retained and power re-runs and exports.</Callout>
-          <Callout tone="success" title="Analysis complete">141 artifacts generated across 20 programs.</Callout>
+          <Callout tone="success" title="Analysis complete">{ARTIFACT_COUNT} artifacts generated across {PROGRAM_COUNT} programs.</Callout>
           <Callout tone="warning" title="Quota low">3 runs left this window — resets in 2 hours.</Callout>
           <Callout
             tone="danger"
@@ -107,7 +109,7 @@ export function KitchenSinkPage({ onNavigate }: Props) {
           <Pill tone="accent">visa-ready</Pill>
           <Pill tone="outline">typescript</Pill>
           <Pill tone="accent" mono>skills</Pill>
-          <Pill mono>141 artifacts</Pill>
+          <Pill mono>{ARTIFACT_COUNT} artifacts</Pill>
         </div>
       </Section>
 

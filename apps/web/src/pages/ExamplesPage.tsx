@@ -1,4 +1,6 @@
 import { useState } from "react";
+// Single-source counts (WO-F5) — never inline these numbers.
+import { ARTIFACT_COUNT, PROGRAM_COUNT } from "../config.ts";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -628,7 +630,7 @@ export function ExamplesPage() {
           <div>
             <p style={{ fontSize: "0.73rem", fontWeight: 600, marginBottom: 6 }}>How it works</p>
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Upload your repo (zip, folder, or GitHub URL). AXIS detects 60+ languages and 10+ frameworks, builds a context graph, then fires 141 generators across 20 programs.
+              Upload your repo (zip, folder, or GitHub URL). AXIS detects 60+ languages and 10+ frameworks, builds a context graph, then fires {ARTIFACT_COUNT} generators across {PROGRAM_COUNT} programs.
             </div>
           </div>
         </div>
@@ -657,7 +659,7 @@ export function ExamplesPage() {
         </h2>
         <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.7 }}>
           Upload a ZIP, select a folder, or paste a GitHub URL.
-          One scan generates 141 artifacts across 20 programs. Takes under 60 seconds.
+          One scan generates {ARTIFACT_COUNT} artifacts across {PROGRAM_COUNT} programs. Takes under 60 seconds.
         </p>
         <a
           href="#upload"

@@ -25,6 +25,8 @@ import {
   type SubscriptionInfo,
   type CreditsInfo,
 } from "../api.ts";
+// Single-source counts (WO-F5) — never inline these numbers.
+import { PROGRAM_COUNT } from "../config.ts";
 
 export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [account, setAccount] = useState<Account | null>(null);
@@ -221,9 +223,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
         <div className="card" style={{ borderColor: "var(--accent)", marginTop: 0 }}>
           <div className="flex-between">
             <div>
-              <h3 style={{ color: "var(--accent)" }}>Unlock All 20 Programs</h3>
+              <h3 style={{ color: "var(--accent)" }}>Unlock All {PROGRAM_COUNT} Programs</h3>
               <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Upgrade to Starter for $29/month and 75,000 monthly credits across all 20 programs.
+                Upgrade to Starter for $29/month and 75,000 monthly credits across all {PROGRAM_COUNT} programs.
               </p>
             </div>
             <button className="btn btn-primary" onClick={() => handleUpgrade("starter")}>

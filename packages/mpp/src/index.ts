@@ -72,6 +72,10 @@ export interface Build402Options {
 
 // ─── Pricing Registry ─────────────────────────────────────────────
 
+// Program totals in lite_description copy ("N of M programs") are pinned — this
+// package is dependency-free by design, so it must not import
+// @axis/generator-core. apps/api's count-honesty.test.ts parses this file and
+// fails CI if they drift from TOTAL_PROGRAMS.
 export const PRICING_TIERS: Record<string, PricingTier> = {
   prepare_agentic_purchasing: {
     tool: "prepare_agentic_purchasing",
@@ -85,7 +89,7 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     tool: "analyze_repo",
     standard_cents: 50,
     lite_cents: 15,
-    lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    lite_description: "Lite mode: search/skills/debug programs only (3 of 20 programs)",
     engineer_cents: 2500,
     engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },
@@ -93,7 +97,7 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     tool: "analyze_files",
     standard_cents: 50,
     lite_cents: 15,
-    lite_description: "Lite mode: search/skills/debug programs only (3 of 19 programs)",
+    lite_description: "Lite mode: search/skills/debug programs only (3 of 20 programs)",
     engineer_cents: 2500,
     engineer_description: "Engineer mode (Living Architecture): a verified LLM specificity pass — every architectural claim is grounded in the repo's extracted facts or dropped (analyze_repo additionally gets push-triggered PR drift mode).",
   },

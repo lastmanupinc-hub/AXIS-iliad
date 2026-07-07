@@ -1,6 +1,8 @@
-// Same endpoint convention as InstallPage/api.ts: env override, prod fallback.
-const API_BASE = import.meta.env.VITE_API_URL || "https://axis-api-6c7z.onrender.com";
-const mcpUrl = `${API_BASE}/mcp`;
+// Single-source base + counts (WO-F5): DOCS_API_BASE is the absolute origin for
+// copyable snippets — same canonical base as api.ts, never "".
+import { DOCS_API_BASE, PROGRAM_COUNT, TOOL_COUNT } from "../config.ts";
+
+const mcpUrl = `${DOCS_API_BASE}/mcp`;
 
 const bestFirstCall = `{
   "tool": "prepare_agentic_purchasing",
@@ -51,7 +53,7 @@ export function ForAgentsPage() {
         <span className="badge badge-accent">For Agents</span>
         <h1>Iliad is an agent-first MCP platform.</h1>
         <p>
-          One endpoint. 36 MCP tools. Intelligence across 20 programs. Native x402 payments.
+          One endpoint. {TOOL_COUNT} MCP tools. Intelligence across {PROGRAM_COUNT} programs. Native x402 payments.
         </p>
       </div>
 
@@ -148,7 +150,7 @@ export function ForAgentsPage() {
       </div>
 
       <div className="card">
-        <h2>Your 36 MCP Tools (all available at /mcp)</h2>
+        <h2>Your {TOOL_COUNT} MCP Tools (all available at /mcp)</h2>
         <ul>
           <li>analyze_repo, analyze_files</li>
           <li>list_programs, get_snapshot, get_artifact</li>

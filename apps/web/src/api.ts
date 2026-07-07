@@ -1,12 +1,8 @@
-// Same-site with the web origin (iliad.trustfabric.ai) so the HttpOnly axis_session
-// cookie rides on API calls (SameSite=Lax). Points at the same Render service as
-// axis-api-6c7z.onrender.com via a Render custom domain.
-const PROD_API_BASE = "https://api.iliad.trustfabric.ai";
-const isLocalHost =
-  typeof window === "undefined" ||
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1";
-export const API_BASE = import.meta.env.VITE_API_URL ?? (isLocalHost ? "" : PROD_API_BASE);
+// Base-URL resolution lives in config.ts — the single source for API origins
+// and public-surface counts (WO-F5). Re-exported here so existing imports keep
+// working.
+import { API_BASE } from "./config.ts";
+export { API_BASE };
 
 // ─── Snapshot types ─────────────────────────────────────────────
 

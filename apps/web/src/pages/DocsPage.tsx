@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../components/AxisIcons";
+// Single-source counts (WO-F5) — never inline these numbers.
+import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
 type DocSection = "overview" | "programs" | "api" | "outputs" | "cli";
 
@@ -270,7 +272,7 @@ function OverviewSection() {
           Axis is the umbrella platform for AI-native development — a multi-program system
           that turns project snapshots into diagnostics, governed outputs, and build-integrated
           tooling. It provides shared identity, snapshot intake, project context, and a unified
-          design system across 20 separately billable programs organized into 7 categories:
+          design system across {PROGRAM_COUNT} separately billable programs organized into 7 categories:
           Repo Intelligence, Governance, Engineering Delivery, Growth &amp; Content,
           Knowledge &amp; Context, Design System, and Creative Generation.
         </p>
@@ -302,7 +304,7 @@ function OverviewSection() {
             <div style={{ fontSize: "2rem", marginBottom: 8 }}><Icon name="programs" /></div>
             <h4 style={{ marginBottom: 4 }}>3. Generate</h4>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>
-              Run any of 20 programs to produce specialized output files — rules, configs, docs, and more.
+              Run any of {PROGRAM_COUNT} programs to produce specialized output files — rules, configs, docs, and more.
             </p>
           </div>
         </div>
@@ -312,16 +314,16 @@ function OverviewSection() {
         <h3 style={{ marginBottom: 12 }}>Quick Stats</h3>
         <div className="grid grid-4">
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">20</div>
+            <div className="stat-value">{PROGRAM_COUNT}</div>
             <div className="stat-label">Programs</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">141</div>
+            <div className="stat-value">{ARTIFACT_COUNT}</div>
             <div className="stat-label">Generators</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div className="stat-value">3 Free</div>
-            <div className="stat-label">16 Pro</div>
+            <div className="stat-value">{FREE_PROGRAM_COUNT} Free</div>
+            <div className="stat-label">{PRO_PROGRAM_COUNT} Pro</div>
           </div>
           <div style={{ textAlign: "center" }}>
             <div className="stat-value">7</div>
@@ -401,7 +403,7 @@ function OverviewSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Program Categories</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
-          The 20 programs are organized into 7 functional categories. Each category addresses
+          The {PROGRAM_COUNT} programs are organized into 7 functional categories. Each category addresses
           a different dimension of the development lifecycle.
         </p>
         <div className="grid grid-3" style={{ gap: 12 }}>
@@ -927,7 +929,7 @@ function OutputsSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Output Files Per Program</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Each program produces 6–7 files. Here is the full inventory across all 20 programs (141 generators total).
+          Each program produces 6–7 files. Here is the full inventory across all {PROGRAM_COUNT} programs ({ARTIFACT_COUNT} generators total).
         </p>
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <table>
@@ -1125,7 +1127,7 @@ function CliSection() {
             </tr>
             <tr>
               <td className="mono" style={{ fontSize: "0.8125rem" }}>list-programs</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Show all 20 programs with tier and category</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Show all {PROGRAM_COUNT} programs with tier and category</td>
             </tr>
             <tr>
               <td className="mono" style={{ fontSize: "0.8125rem" }}>auth</td>

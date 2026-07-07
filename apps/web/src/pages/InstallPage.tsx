@@ -1,7 +1,10 @@
 // InstallPage — one-click MCP install configs for every platform
 import { useState } from "react";
+// Single-source base + counts (WO-F5): DOCS_API_BASE is the absolute origin for
+// copyable snippets — same canonical base as api.ts, never "".
+import { ARTIFACT_COUNT, DOCS_API_BASE, PROGRAM_COUNT, TOOL_COUNT } from "../config.ts";
 
-const API_BASE = import.meta.env.VITE_API_URL || "https://axis-api-6c7z.onrender.com";
+const API_BASE = DOCS_API_BASE;
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -116,7 +119,7 @@ export function InstallPage() {
           Install Axis' Iliad
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: 20 }}>
-          Add AXIS as an MCP server in your AI tool. One config block — your assistant gets 36 public tools, 20 programs, and 141 generators for any codebase.
+          Add AXIS as an MCP server in your AI tool. One config block — your assistant gets {TOOL_COUNT} public tools, {PROGRAM_COUNT} programs, and {ARTIFACT_COUNT} generators for any codebase.
         </p>
 
         {/* Platform tabs */}
@@ -164,9 +167,9 @@ export function InstallPage() {
         <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 12 }}>What Your Agent Gets</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {[
-            { label: "36 MCP Tools", desc: "analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing_preview, prepare_agentic_purchasing, closer, deploy, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits, sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness, assemble_representment, iliad_network_tokenization, iliad_web_research, iliad_web_research_crawl, iliad_object_storage, iliad_vector_database, iliad_embeddings, iliad_transactional_email, iliad_llm_inference, iliad_code_sandbox, iliad_document_parsing, iliad_web_search, iliad_text_to_speech, iliad_speech_to_text, iliad_analytics, iliad_hygiene" },
-            { label: "20 Programs", desc: "search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer, deploy" },
-            { label: "141 Generators", desc: "AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and 135 more" },
+            { label: `${TOOL_COUNT} MCP Tools`, desc: "analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing_preview, prepare_agentic_purchasing, closer, deploy, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, get_referral_code, get_referral_credits, sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness, assemble_representment, iliad_network_tokenization, iliad_web_research, iliad_web_research_crawl, iliad_object_storage, iliad_vector_database, iliad_embeddings, iliad_transactional_email, iliad_llm_inference, iliad_code_sandbox, iliad_document_parsing, iliad_web_search, iliad_text_to_speech, iliad_speech_to_text, iliad_analytics, iliad_hygiene" },
+            { label: `${PROGRAM_COUNT} Programs`, desc: "search, skills, debug, frontend, seo, optimization, theme, brand, superpowers, marketing, notebook, obsidian, mcp, artifacts, remotion, canvas, algorithmic, agentic-purchasing, closer, deploy" },
+            { label: `${ARTIFACT_COUNT} Generators`, desc: `AGENTS.md, CLAUDE.md, .cursorrules, mcp-config.json, debug-playbook.md, design-tokens.json, and ${ARTIFACT_COUNT - 6} more` },
             { label: "Autonomous Payment", desc: "HTTP 402 → MPP challenge → Stripe payment → retry, in-band on the same call. Blended credits with $0.0018 overage per credit. Stripe test-mode verified end-to-end; live-mode collection is enabled once the account's Stripe SPT capability is active (see /v1/health/ready)." },
             { label: "Referral Program (Opt-In)", desc: "Paid calls return a referral_token. Unique conversions earn usage credits (up to 0.02% per call). Resets each billing cycle." },
           ].map(item => (

@@ -1,4 +1,6 @@
 // ProgramsPage — keyword-rich landing for all 20 AXIS programs
+// Single-source counts (WO-F5) — never inline these numbers.
+import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
 
 interface ProgramDef {
   id: string;
@@ -228,22 +230,22 @@ export function ProgramsPage({ onAnalyze }: Props) {
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="programs-hero">
         <div className="programs-hero-inner">
-          <span className="badge badge-accent" style={{ marginBottom: 12, display: "inline-block" }}>20 Programs · 141 Artifacts</span>
+          <span className="badge badge-accent" style={{ marginBottom: 12, display: "inline-block" }}>{PROGRAM_COUNT} Programs · {ARTIFACT_COUNT} Artifacts</span>
           <h1 className="programs-hero-title">
             Every AI artifact your codebase needs. Generated in seconds.
           </h1>
           <p className="programs-hero-sub">
             Axis' Iliad analyzes your repo across 60+ languages and generates structured governance files
             for every AI coding tool — GitHub Copilot, Claude Code, Cursor, Windsurf, Aider, and more.
-            One scan. 141 outputs. Zero manual work.
+            One scan. {ARTIFACT_COUNT} outputs. Zero manual work.
           </p>
           <div className="programs-hero-stats">
             <div className="programs-stat">
-              <span className="programs-stat-value">141</span>
+              <span className="programs-stat-value">{ARTIFACT_COUNT}</span>
               <span className="programs-stat-label">Generated Artifacts</span>
             </div>
             <div className="programs-stat">
-              <span className="programs-stat-value">20</span>
+              <span className="programs-stat-value">{PROGRAM_COUNT}</span>
               <span className="programs-stat-label">Specialized Programs</span>
             </div>
             <div className="programs-stat">
@@ -251,7 +253,7 @@ export function ProgramsPage({ onAnalyze }: Props) {
               <span className="programs-stat-label">Languages Detected</span>
             </div>
             <div className="programs-stat">
-              <span className="programs-stat-value">3</span>
+              <span className="programs-stat-value">{FREE_PROGRAM_COUNT}</span>
               <span className="programs-stat-label">Free Programs</span>
             </div>
           </div>
