@@ -8,6 +8,8 @@ import {
   generateCheckoutFlow,
   generateNegotiationRules,
   generateCommerceRegistry,
+  renderScaExemptionMatrix,
+  SCA_EXEMPTION_ORDER,
 } from "./generators-agentic-purchasing.js";
 
 function makeSnapshot(overrides: Partial<SnapshotRecord> = {}): SnapshotRecord {
@@ -1207,5 +1209,65 @@ describe("deepened compliance content", () => {
     expect(file.content).toContain("Network Token Payload");
     expect(file.content).toContain("dpan");
     expect(file.content).toContain("token_service_provider");
+  });
+});
+
+// ─── WO-06: SCA Exemption Decision Engine rendering integration ──────
+
+describe("SCA Exemption Decision Matrix — engine-rendered (WO-06)", () => {
+  const stripeSnap = makeStripeSnapshot();
+  const ctx = buildContextMap(stripeSnap);
+  const profile = buildRepoProfile(stripeSnap);
+  const exemptionNames = SCA_EXEMPTION_ORDER.map(r => r.name);
+  const matrix = renderScaExemptionMatrix();
+
+  it("generateCheckoutFlow contains all 7 exemption names and the byte-equal rendered matrix", () => {
+    const file = generateCheckoutFlow(ctx, profile, stripeFiles);
+    for (const name of exemptionNames) {
+      expect(file.content).toContain(name);
+    }
+    expect(file.content).toContain(matrix);
+  });
+
+  it("generateAgentPurchasingPlaybook contains all 7 exemption names and the byte-equal rendered matrix", () => {
+    const file = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
+    for (const name of exemptionNames) {
+      expect(file.content).toContain(name);
+    }
+    expect(file.content).toContain(matrix);
+  });
+
+  it("both docs' embedded priority table is identical (single source of truth, no drift)", () => {
+    const checkout = generateCheckoutFlow(ctx, profile, stripeFiles);
+    const playbook = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
+    expect(checkout.content).toContain(matrix);
+    expect(playbook.content).toContain(matrix);
+  });
+
+  it("regression guard: the acquirer-verification honesty caveats survive in both rendered docs", () => {
+    const checkout = generateCheckoutFlow(ctx, profile, stripeFiles);
+    const playbook = generateAgentPurchasingPlaybook(ctx, profile, stripeFiles);
+    // buildLighterScaSection's caveat (present in both docs via generateCheckoutFlow/
+    // generateAgentPurchasingPlaybook, since both call buildLighterScaSection).
+    expect(checkout.content).toContain("verify current values with your acquirer");
+    expect(playbook.content).toContain("verify current values with your acquirer");
+    // buildTapInteropSection's caveat (only reachable from the playbook).
+    expect(playbook.content).toContain("verify current rules with your acquirer");
+    // The load-bearing honesty caveat: priority order is AXIS preference, not a
+    // regulatory mandate — must not be silently dropped by a future refactor.
+    expect(checkout.content).toContain("AXIS's recommended agent-optimized preference");
+    expect(playbook.content).toContain("AXIS's recommended agent-optimized preference");
+  });
+
+  it("regression guard: merchant_initiated and one_leg_out are labeled as non-RTS-exemption categories", () => {
+    // Guards against silently upgrading these PSD2 "out of scope" categories into
+    // claimed formal RTS exemptions in the rendered matrix.
+    expect(matrix).toContain("not a formal RTS exemption");
+  });
+
+  it("SCA_EXEMPTION_ORDER powers the JSON product-schema priority list too (no separate drifted copy)", () => {
+    const file = generateProductSchema(ctx, profile, stripeFiles);
+    const schema = JSON.parse(file.content);
+    expect(schema.repo_commerce_profile.agent_sca_optimization.exemption_priority).toEqual(exemptionNames);
   });
 });

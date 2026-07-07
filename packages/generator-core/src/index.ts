@@ -62,8 +62,8 @@ export { generateComponent, generateDashboardWidget, generateEmbedSnippet, gener
 export { generateRemotionScript, generateScenePlan, generateRenderConfig, generateAssetChecklist, generateStoryboard } from "./generators-remotion.js";
 export { generateCanvasSpec, generateSocialPack, generatePosterLayouts, generateCanvasAssetGuidelines, generateBrandBoard } from "./generators-canvas.js";
 export { generateGenerativeSketch, generateParameterPack, generateCollectionMap, generateExportManifest, generateVariationMatrix } from "./generators-algorithmic.js";
-export { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, computeComplianceGrade, gradeCompliance, detectCommerceSignals } from "./generators-agentic-purchasing.js";
-export type { ComplianceGradeResult, ComplianceCheck, CheckStatus, CommerceSignals } from "./generators-agentic-purchasing.js";
+export { generateAgentPurchasingPlaybook, generateProductSchema, generateCheckoutFlow, generateNegotiationRules, generateCommerceRegistry, computeComplianceGrade, gradeCompliance, detectCommerceSignals, decideScaExemption, traCapEur, renderScaExemptionMatrix, SCA_EXEMPTION_ORDER } from "./generators-agentic-purchasing.js";
+export type { ComplianceGradeResult, ComplianceCheck, CheckStatus, CommerceSignals, ScaExemptionContext, ScaExemptionName, ScaExemptionRule, ScaDecision } from "./generators-agentic-purchasing.js";
 export {
 	generatePackagingReadme,
 	generatePackagingLicense,
