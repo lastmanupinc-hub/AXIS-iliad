@@ -1,26 +1,40 @@
-// ─── iliad_embeddings — OpenAI /v1/embeddings proxy ─────────────
+// ─── iliad_embeddings — AXIS-owned in-process embeddings ────────
 //
-// AXIS-branded wrapper around OpenAI's embeddings endpoint. Same
-// pattern as iliad_web_research → Firecrawl: a single MCP-native
-// surface that handles auth, error normalization, and billing, while
-// the actual inference stays at the upstream provider for now.
+// Default backend is SOVEREIGN: in-process inference via node-llama-cpp
+// (local-embeddings.ts) with an embedding-capable GGUF at
+// AXIS_EMBEDDING_MODEL_PATH — same owned pattern as iliad_llm_inference.
+// On the local path NO upstream HTTP call is ever made.
 //
-// Future module swap (per capability-map.yaml replication_plan):
-// run fastembed-ONNX in-process so we own the inference layer. The
-// computeEmbeddings() signature stays stable across that swap so
-// the dispatcher case in mcp-server.ts doesn't change.
+// The legacy OpenAI /v1/embeddings proxy is retained as an OPTIONAL
+// backend behind AXIS_EMBEDDING_BACKEND=openai (still requires
+// OPENAI_API_KEY). computeEmbeddings() keeps a stable outward contract
+// across both backends so the dispatcher case in mcp-server.ts doesn't
+// change.
+//
+// RESIDUAL HONESTY: the local backend is a structured `_not_configured`
+// no-op until the operator provisions the GGUF, and quality is bounded
+// by the chosen local model (bge-small = 384 dims vs OpenAI
+// text-embedding-3-large = 3072). "AXIS-owned in-process by default,
+// OpenAI optional" — not "never uses OpenAI."
+
+import {
+  computeLocalEmbeddings,
+  normalizeEmbeddingsInput,
+  resolveEmbeddingModelPath,
+} from "./local-embeddings.js";
 
 export type EmbeddingsInput = string | string[];
 
-export interface EmbeddingsConfig {
-  api_key: string;
-  model: string;
-}
+export type EmbeddingsBackend = "local" | "openai";
+
+export type EmbeddingsConfig =
+  | { backend: "openai"; api_key: string; model: string }
+  | { backend: "local"; model_path: string };
 
 export interface EmbeddingsResult {
   vectors: number[][];
   model_used: string;
-  /** Token usage as reported by the upstream provider (when available). */
+  /** Token usage as reported by the upstream provider (openai backend only; omitted for local). */
   usage?: { prompt_tokens: number; total_tokens: number };
   /** Echo of how many inputs were submitted (matches vectors.length). */
   input_count: number;
@@ -28,14 +42,33 @@ export interface EmbeddingsResult {
 
 export type EmbeddingsConfigFromEnv = EmbeddingsConfig | null;
 
-/** Read embeddings config from env. Returns null if OPENAI_API_KEY is missing. */
+/**
+ * Read embeddings config from env.
+ *
+ * Resolution order:
+ *   backend := AXIS_EMBEDDING_BACKEND ?? "local"
+ *   local   -> { backend:"local", model_path: resolveEmbeddingModelPath(env) }
+ *              (always non-null; whether the GGUF actually exists is checked
+ *               separately via isLocalEmbeddingsConfigured())
+ *   openai  -> { backend:"openai", api_key, model } when OPENAI_API_KEY is
+ *              set, else null (openai explicitly selected but not provisioned)
+ *   other   -> null (unrecognized backend value)
+ */
 export function readEmbeddingsConfigFromEnv(env: NodeJS.ProcessEnv = process.env): EmbeddingsConfigFromEnv {
-  const api_key = env.OPENAI_API_KEY;
-  if (!api_key) return null;
-  return {
-    api_key,
-    model: env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
-  };
+  const backend = env.AXIS_EMBEDDING_BACKEND ?? "local";
+  if (backend === "local") {
+    return { backend: "local", model_path: resolveEmbeddingModelPath(env) };
+  }
+  if (backend === "openai") {
+    const api_key = env.OPENAI_API_KEY;
+    if (!api_key) return null;
+    return {
+      backend: "openai",
+      api_key,
+      model: env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
+    };
+  }
+  return null;
 }
 
 /** Default OpenAI base URL — override in tests via the second parameter. */
@@ -56,9 +89,16 @@ interface OpenAIErrorResponse {
 const EMBEDDINGS_TIMEOUT_MS = 30_000;
 
 /**
- * Call OpenAI's /v1/embeddings endpoint. Pure function over `fetch` so
- * tests can pass a stub. Throws Error with a descriptive message on
- * non-2xx responses; the dispatcher maps that to an MCP error envelope.
+ * Compute embeddings via the configured backend.
+ *
+ * - `backend:"local"` → delegates to computeLocalEmbeddings() (in-process
+ *   node-llama-cpp). NEVER touches `fetchImpl` — the sovereign path makes
+ *   no upstream HTTP call. `usage` is omitted (no provider token report).
+ * - `backend:"openai"` → the legacy /v1/embeddings proxy. Pure function
+ *   over `fetch` so tests can pass a stub.
+ *
+ * Throws Error with a descriptive message on failure; the dispatcher maps
+ * that to an MCP error envelope.
  */
 export async function computeEmbeddings(
   input: EmbeddingsInput,
@@ -66,6 +106,11 @@ export async function computeEmbeddings(
   fetchImpl: typeof fetch = fetch,
   baseUrl: string = DEFAULT_OPENAI_BASE_URL,
 ): Promise<EmbeddingsResult> {
+  if (config.backend === "local") {
+    const r = await computeLocalEmbeddings(input, config.model_path);
+    return { vectors: r.vectors, model_used: r.model_used, input_count: r.input_count };
+  }
+
   if (!config.api_key) throw new Error("computeEmbeddings: missing api_key");
   if (!config.model) throw new Error("computeEmbeddings: missing model");
 
@@ -73,19 +118,8 @@ export async function computeEmbeddings(
   // we can return a vectors[][] response regardless of how the caller
   // structured the input. Empty / non-string entries are rejected early
   // because the upstream silently returns confusing 400s for them.
-  const inputs = Array.isArray(input) ? input : [input];
-  if (inputs.length === 0) throw new Error("computeEmbeddings: input is empty");
-  if (inputs.length > 2048) throw new Error("computeEmbeddings: input batch exceeds 2048 items");
-  for (let i = 0; i < inputs.length; i++) {
-    const s = inputs[i];
-    if (typeof s !== "string" || s.length === 0) {
-      throw new Error(`computeEmbeddings: input[${i}] must be a non-empty string`);
-    }
-    if (s.length > 32_000) {
-      // Roughly 8k tokens of safety margin — agents that need more should chunk.
-      throw new Error(`computeEmbeddings: input[${i}] exceeds 32000 chars (chunk before calling)`);
-    }
-  }
+  // (Identical validation rules as the local backend — shared helper.)
+  const inputs = normalizeEmbeddingsInput(input, "computeEmbeddings");
 
   const url = `${baseUrl}/embeddings`;
   // Bound the provider call so a stalled upstream can't hang the request forever.

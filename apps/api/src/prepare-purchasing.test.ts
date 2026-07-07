@@ -318,7 +318,9 @@ describe("POST /v1/prepare-for-agentic-purchasing — success", () => {
 
   it("returns upgrade_offer with readiness conversion messaging", async () => {
     const offer = result.upgrade_offer as Record<string, unknown>;
-    expect(String(offer.agent_conversion_message)).toContain("ready for autonomous spending");
+    // Honest framing (c03feee): the REST message sells artifact COVERAGE, never
+    // "ready for autonomous spending" — code readiness is a separate content-based block.
+    expect(String(offer.agent_conversion_message)).toContain("artifact coverage");
     expect(String(offer.plan)).toContain("$29/month");
   });
 

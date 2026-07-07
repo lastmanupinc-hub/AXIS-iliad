@@ -1,9 +1,19 @@
-// AXIS web research via the Firecrawl proxy. Shared core for the MCP tools
-// iliad_web_research (single-page scrape) and iliad_web_research_crawl
-// (multi-page crawl). Returns a _not_configured envelope when FIRECRAWL_API_KEY
-// is unset, matching the other owned-tool conventions. The fetch target is the
-// fixed public host api.firecrawl.dev — Firecrawl itself fetches the caller's
-// URL, so SSRF is its concern, not ours.
+// AXIS web research — shared core for the MCP tools iliad_web_research
+// (single-page scrape) and iliad_web_research_crawl (multi-page crawl).
+//
+// The DEFAULT backend is AXIS's owned crawler (web-research-sovereign.ts):
+// SSRF-guarded fetch + robots.txt + per-host politeness + zero-dep readability
+// over node built-ins — no third-party key required. Honest scope: the owned
+// path fetches STATIC HTML only (no JavaScript rendering, so client-rendered
+// SPA pages may extract thin content), its readability pass is a text-density
+// heuristic (lower fidelity than Mozilla Readability on adversarial layouts),
+// and its SSRF guard resolves-then-fetches (a theoretical DNS-rebinding TOCTOU
+// window — not a hardened security boundary).
+//
+// The Firecrawl proxy below is retained ONLY behind an explicit
+// AXIS_WEB_RESEARCH_BACKEND=firecrawl selection (e.g. for JS-rendered pages).
+// The _not_configured envelope is reachable ONLY when that backend is
+// explicitly selected without FIRECRAWL_API_KEY.
 
 const SCRAPE_URL = "https://api.firecrawl.dev/v0/scrape";
 const CRAWL_URL = "https://api.firecrawl.dev/v0/crawl";
@@ -45,13 +55,27 @@ export function isFirecrawlConfigured(): boolean {
   return Boolean(process.env.FIRECRAWL_API_KEY);
 }
 
+/**
+ * Backend selector: "firecrawl" iff the operator explicitly opted in via
+ * AXIS_WEB_RESEARCH_BACKEND=firecrawl AND the key is present; otherwise the
+ * AXIS-owned sovereign backend (the default — no third-party dependency).
+ * An explicit firecrawl selection WITHOUT a key is surfaced by the handlers as
+ * a _not_configured envelope rather than silently falling back.
+ */
+export function webResearchBackend(): "sovereign" | "firecrawl" {
+  return process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && isFirecrawlConfigured()
+    ? "firecrawl"
+    : "sovereign";
+}
+
 export function webResearchNotConfigured(tool: string): WebResearchNotConfigured {
   return {
     _not_configured: true,
     tool,
     reason: "firecrawl_not_configured",
-    detail: "FIRECRAWL_API_KEY is not set on this deployment.",
-    remediation: "Set FIRECRAWL_API_KEY (https://firecrawl.dev) to enable web research.",
+    detail: "AXIS_WEB_RESEARCH_BACKEND=firecrawl is selected but FIRECRAWL_API_KEY is not set on this deployment.",
+    remediation:
+      "Set FIRECRAWL_API_KEY (https://firecrawl.dev), or unset AXIS_WEB_RESEARCH_BACKEND to use the default AXIS-owned crawler (no key required).",
   };
 }
 

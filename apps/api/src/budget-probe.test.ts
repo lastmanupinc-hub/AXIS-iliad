@@ -173,7 +173,7 @@ describe("getPricingTier", () => {
     expect(tier.lite_description).toMatch(/top_k|namespace|free/i);
   });
 
-  it("returns markup-over-OpenAI tier for iliad_embeddings (proxy, real provider cost upstream)", async () => {
+  it("returns the iliad_embeddings tier (AXIS-owned in-process by default; OpenAI optional behind a flag)", async () => {
     const tier = getPricingTier("iliad_embeddings");
     expect(tier.tool).toBe("iliad_embeddings");
     expect(tier.standard_cents).toBe(5);

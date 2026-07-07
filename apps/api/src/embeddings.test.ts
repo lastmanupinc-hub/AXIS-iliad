@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
+import path from "node:path";
 import {
   computeEmbeddings,
   readEmbeddingsConfigFromEnv,
   DEFAULT_OPENAI_BASE_URL,
   type EmbeddingsConfig,
 } from "./embeddings.js";
+import { resolveEmbeddingModelPath } from "./local-embeddings.js";
 
-const config: EmbeddingsConfig = { api_key: "sk-test-xxx", model: "text-embedding-3-small" };
+const config: EmbeddingsConfig = { backend: "openai", api_key: "sk-test-xxx", model: "text-embedding-3-small" };
 
 /** Build a typed mock fetch that returns a canned Response. */
 function mockFetch(opts: { ok?: boolean; status?: number; body: unknown; isJson?: boolean }): typeof fetch {
@@ -27,22 +29,92 @@ function mockFetch(opts: { ok?: boolean; status?: number; body: unknown; isJson?
 // ─── readEmbeddingsConfigFromEnv ────────────────────────────────
 
 describe("readEmbeddingsConfigFromEnv", () => {
-  it("returns null when OPENAI_API_KEY is missing", () => {
-    expect(readEmbeddingsConfigFromEnv({})).toBeNull();
+  it("defaults to the sovereign local backend when AXIS_EMBEDDING_BACKEND is unset", () => {
+    expect(readEmbeddingsConfigFromEnv({})).toEqual({
+      backend: "local",
+      model_path: resolveEmbeddingModelPath({}),
+    });
   });
 
-  it("returns a config with the default model when API_KEY is set", () => {
+  it("local default is non-null even when OPENAI_API_KEY is set (key alone doesn't flip the backend)", () => {
     expect(readEmbeddingsConfigFromEnv({ OPENAI_API_KEY: "sk-x" })).toEqual({
+      backend: "local",
+      model_path: resolveEmbeddingModelPath({}),
+    });
+  });
+
+  it("honors AXIS_EMBEDDING_MODEL_PATH on the local backend", () => {
+    expect(readEmbeddingsConfigFromEnv({ AXIS_EMBEDDING_MODEL_PATH: "/models/custom-embed.gguf" })).toEqual({
+      backend: "local",
+      model_path: "/models/custom-embed.gguf",
+    });
+  });
+
+  it("backend=openai + key returns an openai config with the default model", () => {
+    expect(readEmbeddingsConfigFromEnv({ AXIS_EMBEDDING_BACKEND: "openai", OPENAI_API_KEY: "sk-x" })).toEqual({
+      backend: "openai",
       api_key: "sk-x",
       model: "text-embedding-3-small",
     });
   });
 
-  it("honors OPENAI_EMBEDDING_MODEL override", () => {
+  it("backend=openai WITHOUT OPENAI_API_KEY returns null (explicitly selected but not provisioned)", () => {
+    expect(readEmbeddingsConfigFromEnv({ AXIS_EMBEDDING_BACKEND: "openai" })).toBeNull();
+  });
+
+  it("honors OPENAI_EMBEDDING_MODEL override on the openai backend", () => {
     expect(readEmbeddingsConfigFromEnv({
+      AXIS_EMBEDDING_BACKEND: "openai",
       OPENAI_API_KEY: "sk-x",
       OPENAI_EMBEDDING_MODEL: "text-embedding-3-large",
-    })).toEqual({ api_key: "sk-x", model: "text-embedding-3-large" });
+    })).toEqual({ backend: "openai", api_key: "sk-x", model: "text-embedding-3-large" });
+  });
+
+  it("returns null for an unrecognized backend value", () => {
+    expect(readEmbeddingsConfigFromEnv({ AXIS_EMBEDDING_BACKEND: "bogus", OPENAI_API_KEY: "sk-x" })).toBeNull();
+  });
+});
+
+// ─── Backend dispatch — sovereignty proof ───────────────────────
+
+describe("computeEmbeddings backend dispatch (local never touches fetch)", () => {
+  it("local backend with a missing model rejects with a local-model error and fetch is called 0 times", async () => {
+    let fetchCalls = 0;
+    const fetchSpy = (async () => {
+      fetchCalls++;
+      return { ok: true, status: 200, async json() { return {}; } } as Response;
+    }) as unknown as typeof fetch;
+
+    const localConfig: EmbeddingsConfig = {
+      backend: "local",
+      model_path: path.join("definitely", "not", "a-real-model.gguf"),
+    };
+    await expect(computeEmbeddings("hi", localConfig, fetchSpy)).rejects.toThrow(
+      /Local embeddings model not found/,
+    );
+    expect(fetchCalls).toBe(0);
+  });
+
+  it("openai backend with a stub fetch still hits the stub", async () => {
+    let fetchCalls = 0;
+    const fetchSpy = (async () => {
+      fetchCalls++;
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return {
+            object: "list",
+            model: "text-embedding-3-small",
+            data: [{ index: 0, embedding: [0.1], object: "embedding" }],
+          };
+        },
+      } as Response;
+    }) as unknown as typeof fetch;
+
+    const r = await computeEmbeddings("hi", config, fetchSpy);
+    expect(fetchCalls).toBe(1);
+    expect(r.vectors).toEqual([[0.1]]);
   });
 });
 
@@ -187,9 +259,9 @@ describe("computeEmbeddings error handling", () => {
   });
 
   it("throws when api_key or model is missing", async () => {
-    const bad = { api_key: "", model: "m" } as EmbeddingsConfig;
+    const bad = { backend: "openai", api_key: "", model: "m" } as EmbeddingsConfig;
     await expect(computeEmbeddings("x", bad, mockFetch({ body: {} }))).rejects.toThrow(/api_key/);
-    const noModel = { api_key: "k", model: "" } as EmbeddingsConfig;
+    const noModel = { backend: "openai", api_key: "k", model: "" } as EmbeddingsConfig;
     await expect(computeEmbeddings("x", noModel, mockFetch({ body: {} }))).rejects.toThrow(/model/);
   });
 });

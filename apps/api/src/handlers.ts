@@ -53,6 +53,7 @@ import { resolveAuth, requireAuth } from "./billing.js";
 import { requireAdmin } from "./admin.js";
 import { ErrorCode, log, getRequestId } from "./logger.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
+import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 
 // â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -2025,6 +2026,9 @@ export async function handlePreparePurchasing(
     const artifactPaths = generated.files.map(f => f.path);
     const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
     const { evidence, category_scores } = computePurchasingReadinessEvidence(artifactPaths);
+    // WO-10: content-based readiness of the INPUT repo (snapshot.files) — independent
+    // of the artifact-coverage score computed from generated artifact paths above.
+    const codeReadiness = buildCodeReadinessBlock(snapshot.files);
     const purchasingFiles = generated.files.filter(f => f.program === "agentic-purchasing");
 
     const budget = parseAgentBudget(req);
@@ -2074,6 +2078,7 @@ export async function handlePreparePurchasing(
         lite_from: "$0.15/run",
       },
       purchasing_readiness_score: score,
+      code_readiness: codeReadiness,
       score_breakdown: {
         strengths,
         gaps,
@@ -2218,7 +2223,7 @@ export async function handleWellKnown(
       intent_probe: "POST /probe-intent  -  lightweight intent matching. Send {intent: 'your need'} and get ranked AXIS tool recommendations. Free, no auth, no API key needed.",
       registry_metadata: "GET /v1/mcp/server.json  -  MCP registry metadata for mcp-publisher CLI and registry crawlers (Glama.ai, Smithery.ai).",
       openapi: "GET /v1/docs  -  full OpenAPI 3.1 spec",
-      examples: "https://github.com/lastmanupinc-hub/axis-iliad-examples  -  5 real repos hardened 0/100 to 100/100. Live before/after artifacts.",
+      examples: "https://github.com/lastmanupinc-hub/axis-iliad-examples  -  before/after examples of AXIS artifact-coverage runs (coverage score measures AXIS artifact presence, 0-100). Coverage is not a code-readiness or production-readiness claim; see the code_readiness block for the content-based verdict.",
     },
   });
 }

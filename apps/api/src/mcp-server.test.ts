@@ -2427,15 +2427,35 @@ describe("POST /mcp — owned-tool dispatcher coverage", () => {
     expect(usage.tool).toBe("iliad_vector_database");
   });
 
-  it("iliad_embeddings dispatches correctly (returns _not_configured in CI)", async () => {
-    const r = await post("/mcp", {
-      jsonrpc: "2.0", id: 302, method: "tools/call",
-      params: { name: "iliad_embeddings", arguments: { input: "axis test" } },
-    }, apiKey);
-    const { isError, parsed, usage } = parseToolResult(r);
-    expect(isError).toBe(false);
-    expect(parsed._not_configured).toBe(true);
-    expect(usage.tool).toBe("iliad_embeddings");
+  it("iliad_embeddings dispatches correctly (returns backend-aware _not_configured in CI)", async () => {
+    // WO-11: pin the sovereign default backend at a definitely-absent GGUF so
+    // the assertion can't pass/fail for the wrong reason on a dev machine.
+    const origBackend = process.env.AXIS_EMBEDDING_BACKEND;
+    const origModelPath = process.env.AXIS_EMBEDDING_MODEL_PATH;
+    delete process.env.AXIS_EMBEDDING_BACKEND;
+    process.env.AXIS_EMBEDDING_MODEL_PATH = "/definitely/not/a-real-embedding-model.gguf";
+    try {
+      const r = await post("/mcp", {
+        jsonrpc: "2.0", id: 302, method: "tools/call",
+        params: { name: "iliad_embeddings", arguments: { input: "axis test" } },
+      }, apiKey);
+      const { isError, parsed, usage } = parseToolResult(r);
+      expect(isError).toBe(false);
+      expect(parsed._not_configured).toBe(true);
+      // Backend-aware envelope: the DEFAULT backend is the sovereign local one.
+      expect(parsed.backend).toBe("local");
+      expect(parsed.model_path).toBe("/definitely/not/a-real-embedding-model.gguf");
+      // Remediation must NOT present OPENAI_API_KEY as the only option — the
+      // primary path is provisioning the local GGUF.
+      expect(String(parsed.remediation)).toMatch(/AXIS_EMBEDDING_MODEL_PATH/);
+      expect(String(parsed.remediation)).toMatch(/GGUF/i);
+      expect(usage.tool).toBe("iliad_embeddings");
+    } finally {
+      if (origBackend === undefined) delete process.env.AXIS_EMBEDDING_BACKEND;
+      else process.env.AXIS_EMBEDDING_BACKEND = origBackend;
+      if (origModelPath === undefined) delete process.env.AXIS_EMBEDDING_MODEL_PATH;
+      else process.env.AXIS_EMBEDDING_MODEL_PATH = origModelPath;
+    }
   });
 
   it("iliad_transactional_email dispatches correctly (returns _not_configured in CI)", async () => {

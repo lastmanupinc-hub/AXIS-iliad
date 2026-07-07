@@ -178,6 +178,30 @@ export function InstallPage() {
         </div>
       </div>
 
+      {/* Self-hosted sovereign backends */}
+      <div className="card" style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 12 }}>Self-Hosting: Sovereign Embeddings + LLM</h2>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: 14 }}>
+          <code style={{ fontFamily: "var(--mono)" }}>iliad_embeddings</code> and <code style={{ fontFamily: "var(--mono)" }}>iliad_llm_inference</code> run
+          AXIS-owned, in-process (node-llama-cpp) by default — no upstream provider call. Each returns a
+          structured <code style={{ fontFamily: "var(--mono)" }}>_not_configured</code> envelope until the operator provisions a GGUF model file:
+        </p>
+        <ConfigBlock
+          code={`# Embeddings (default backend: local, in-process)
+AXIS_EMBEDDING_MODEL_PATH=/path/to/bge-small-en-v1.5-q4_k_m.gguf   # embedding-capable GGUF (~130MB, MIT)
+# Optional: legacy OpenAI proxy instead of the local backend
+AXIS_EMBEDDING_BACKEND=openai   # + OPENAI_API_KEY (and optionally OPENAI_EMBEDDING_MODEL)
+
+# LLM completions (in-process)
+AXIS_LLM_MODEL_PATH=/path/to/Llama-3.2-1B-Instruct-Q4_K_M.gguf`}
+          label="env"
+        />
+        <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0 }}>
+          Retrieval quality is bounded by the model you provision (bge-small is 384-dim). On the hosted instance these are
+          provisioned by the AXIS operator.
+        </p>
+      </div>
+
       {/* Programmatic fetch */}
       <div className="card" style={{ marginBottom: 8 }}>
         <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: 12 }}>Programmatic Install</h2>

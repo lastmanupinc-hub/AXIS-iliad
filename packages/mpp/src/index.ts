@@ -162,19 +162,22 @@ export const PRICING_TIERS: Record<string, PricingTier> = {
     engineer_cents: 5,
     engineer_description: "Engineer mode (Managed Memory): pgvector/HNSW ANN + recency-decay reranking (managed forgetting) + RRF hybrid fusion + semantic-dedup on upsert.",
   },
-  // ─── AXIS-branded proxies (real provider cost upstream) ─────
-  // OpenAI embeddings: $0.02 per 1M tokens for text-embedding-3-small.
-  // Typical agent batch (10-100 short strings ≈ 1k tokens) → real
-  // cost ~$0.00002/call. AXIS markup absorbs the auth + rate-limit
-  // surface so customers don't manage OPENAI_API_KEY directly.
+  // AXIS-owned embeddings (WO-11): in-process inference via
+  // node-llama-cpp + an embedding-capable GGUF (default backend) — no
+  // upstream per-token API fee on the local path; real marginal cost is
+  // CPU milliseconds per input. The optional OpenAI backend
+  // (AXIS_EMBEDDING_BACKEND=openai) costs ~$0.00002/call upstream
+  // (text-embedding-3-small, typical 1k-token batch). Standard price
+  // covers compute amortization + the batch surface either way.
   iliad_embeddings: {
     tool: "iliad_embeddings",
     standard_cents: 5,
     lite_cents: 2,
     lite_description: "Lite mode: single-string input only (standard allows batches up to 2048).",
     engineer_cents: 8,
-    engineer_description: "Engineer mode (Domain Embeddings): Matryoshka dimension truncation (cheaper/smaller vectors) + a per-corpus mean-centering adapter that sharpens retrieval on the caller's own data — returns the fitted mean for query alignment. Engineer vectors are L2-normalized (standard returns raw provider vectors).",
+    engineer_description: "Engineer mode (Domain Embeddings): Matryoshka dimension truncation (cheaper/smaller vectors) + a per-corpus mean-centering adapter that sharpens retrieval on the caller's own data — returns the fitted mean for query alignment. Engineer vectors are L2-normalized (standard returns raw backend vectors).",
   },
+  // ─── AXIS-branded proxies (real provider cost upstream) ─────
   // Resend transactional: $0.0004/email beyond free 3k/mo tier.
   // AXIS markup covers DKIM/SPF setup + suppression-list management
   // + the From-address verification cycle.

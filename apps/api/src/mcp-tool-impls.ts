@@ -13,6 +13,7 @@ import {
 } from "./vector-db.js";
 import { applyRecencyDecay, reciprocalRankFusion, semanticDedup } from "./vector-engineer.js";
 import { computeEmbeddings, readEmbeddingsConfigFromEnv } from "./embeddings.js";
+import { isLocalEmbeddingsConfigured, getEmbeddingModelPath } from "./local-embeddings.js";
 import { buildEngineerEmbeddings } from "./embeddings-engineer.js";
 import { derivePersonaFromBrand, diarizeSegments } from "./voice.js";
 import { sendTransactionalEmail, readEmailConfigFromEnv } from "./email.js";
@@ -99,12 +100,14 @@ import { isUsableSchema, validateStructuredOutput } from "./json-schema-validate
 import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
+import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 import { parseAgentBudget, resolveAgentMode, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
 import { runHygieneScan, buildRemediationPlan, buildHygienePatch, buildHygieneSarif, type HygieneFile } from "./hygiene.js";
-import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchNotConfigured } from "./web-research.js";
+import { firecrawlScrape, firecrawlCrawl, isFirecrawlConfigured, webResearchBackend, webResearchNotConfigured } from "./web-research.js";
+import { sovereignScrape, sovereignCrawl } from "./web-research-sovereign.js";
 import {
   REGISTRY_DISPLAY_NAME,
   SERVER_SLUG,
@@ -326,12 +329,27 @@ export async function runEmbeddings(args: Record<string, unknown>, req: Incoming
   }
   const config = readEmbeddingsConfigFromEnv();
   if (!config) {
+    // Only reachable when AXIS_EMBEDDING_BACKEND=openai was explicitly
+    // selected without OPENAI_API_KEY (or set to an unrecognized value) —
+    // the default local backend always resolves a config.
     return JSON.stringify({
       _not_configured: true,
       tool: "iliad_embeddings",
-      message: "Embeddings backend is not provisioned on this AXIS instance. Operator must set OPENAI_API_KEY (and optionally OPENAI_EMBEDDING_MODEL).",
+      backend: "openai",
+      message: "AXIS_EMBEDDING_BACKEND=openai is selected but OPENAI_API_KEY is not set (or the backend value is unrecognized). Set OPENAI_API_KEY (and optionally OPENAI_EMBEDDING_MODEL), or unset AXIS_EMBEDDING_BACKEND to use the default AXIS-owned in-process backend with a GGUF at AXIS_EMBEDDING_MODEL_PATH.",
       required_env: ["OPENAI_API_KEY"],
       optional_env: ["OPENAI_EMBEDDING_MODEL"],
+      capability_map_reference: ".ai/capability-map.yaml",
+    }, null, 2);
+  }
+  if (config.backend === "local" && !(await isLocalEmbeddingsConfigured())) {
+    return JSON.stringify({
+      _not_configured: true,
+      tool: "iliad_embeddings",
+      backend: "local",
+      model_path: getEmbeddingModelPath(),
+      reason: "Embedding GGUF model file is not present at AXIS_EMBEDDING_MODEL_PATH.",
+      remediation: "Operator must download an embedding GGUF (e.g. bge-small-en-v1.5 Q4_K_M ~130MB MIT) and set AXIS_EMBEDDING_MODEL_PATH, or set AXIS_EMBEDDING_BACKEND=openai + OPENAI_API_KEY.",
       capability_map_reference: ".ai/capability-map.yaml",
     }, null, 2);
   }
@@ -1084,14 +1102,21 @@ export async function runWebResearch(args: Record<string, unknown>, req: Incomin
   if (args.only_main_content !== undefined && typeof args.only_main_content !== "boolean") {
     throw new Error("iliad_web_research: `only_main_content` must be a boolean when provided.");
   }
-  // _not_configured takes precedence and never charges.
-  if (!isFirecrawlConfigured()) {
+  // Backend selection (WO-12): the AXIS-owned sovereign crawler is the DEFAULT
+  // and needs no third-party key. The _not_configured envelope is reachable
+  // ONLY when the operator explicitly selected the firecrawl backend without
+  // provisioning its key — it takes precedence and never charges.
+  const backend = webResearchBackend();
+  if (process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()) {
     return JSON.stringify(webResearchNotConfigured("iliad_web_research"), null, 2);
   }
-  // Authorize (gate over-budget) BEFORE the paid Firecrawl call; capture only on
+  // Authorize (gate over-budget) BEFORE the fetch work; capture only on
   // success — so a call at the credit ceiling can't get free external work.
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_research");
-  const result = await firecrawlScrape(url, args.only_main_content !== false);
+  const result =
+    backend === "firecrawl"
+      ? await firecrawlScrape(url, args.only_main_content !== false)
+      : await sovereignScrape(url, args.only_main_content !== false);
   await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
@@ -1112,11 +1137,17 @@ export async function runWebResearchCrawl(args: Record<string, unknown>, req: In
   if (!Number.isFinite(limit) || limit < 1 || limit > 100) {
     throw new Error("iliad_web_research_crawl: `limit` must be between 1 and 100.");
   }
-  if (!isFirecrawlConfigured()) {
+  // Same backend rule as runWebResearch: sovereign by default, firecrawl only
+  // on explicit opt-in, envelope only on an unprovisioned explicit opt-in.
+  const backend = webResearchBackend();
+  if (process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()) {
     return JSON.stringify(webResearchNotConfigured("iliad_web_research_crawl"), null, 2);
   }
   const charge = await authorizeMcpToolCredits(req, auth.account, "iliad_web_research_crawl");
-  const result = await firecrawlCrawl(url, limit, args.only_main_content !== false);
+  const result =
+    backend === "firecrawl"
+      ? await firecrawlCrawl(url, limit, args.only_main_content !== false)
+      : await sovereignCrawl(url, limit, args.only_main_content !== false);
   await captureMcpToolCredits(auth.account, charge);
   return JSON.stringify(result, null, 2);
 }
@@ -1166,7 +1197,7 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
 
   let totalBytes = 0;
   const filePaths: string[] = [];
-  const fileContents: { path: string; content: string }[] = [];
+  const fileContents: FileEntry[] = [];
   for (const f of rawFiles) {
     const file = f as Record<string, unknown>;
     if (typeof file.path !== "string" || typeof file.content !== "string") {
@@ -1184,7 +1215,7 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
     if (totalBytes > PREVIEW_MAX_TOTAL_BYTES)
       throw new Error(`Total payload exceeds preview cap (${PREVIEW_MAX_TOTAL_BYTES / 1024 / 1024} MB). Use prepare_agentic_purchasing for full analysis.`);
     filePaths.push(path);
-    fileContents.push({ path, content: file.content });
+    fileContents.push({ path, content: file.content, size });
   }
 
   // Score the codebase's CURRENT readiness (what artifacts they already have).
@@ -1236,14 +1267,26 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
     }
   }
 
-  const projectedScoreAfter = 100; // all gaps are AXIS-closable
+  // WO-10: content-based readiness of the SUBMITTED files — independent of the
+  // artifact-coverage score above; generated artifacts never change this verdict.
+  const codeReadiness = buildCodeReadinessBlock(fileContents);
+
+  // WO-10: real computed ARTIFACT-COVERAGE projection (coverage score once the
+  // missing AXIS artifacts exist) — replaces the previous hardcoded 100. This is
+  // a coverage projection ONLY, never a code-readiness claim: running AXIS emits
+  // artifact files; it does not add integration code to the repo.
+  const projectedCoverageAfter = computePurchasingReadinessScore([...filePaths, ...whatAxisWouldAdd]).score;
+
   // Intent capture for telemetry (no PII, no auth required).
   captureIntent("prepare_agentic_purchasing_preview", project_name, "anonymous");
   const projectTypeStr = typeof project_type === "string" ? project_type : "unspecified";
 
   return JSON.stringify({
     score: currentScore,
-    projected_score_after_axis: projectedScoreAfter,
+    score_meaning: "AXIS artifact coverage of the submitted files (which AXIS artifact categories already exist) — NOT code readiness. See code_readiness for the content-based verdict.",
+    code_readiness: codeReadiness,
+    projected_artifact_coverage_after_axis: projectedCoverageAfter,
+    projected_meaning: "Artifact-coverage projection only: running AXIS adds artifact files, which closes coverage gaps. It does NOT change code_readiness — that moves only when real integration code exists in your repo.",
     risk_level: riskLevel,
     interpretation,
     project_name,
@@ -1259,7 +1302,7 @@ export function runPreparePurchasingPreview(args: Record<string, unknown>): stri
       price_standard_usd: "0.50",
       price_lite_usd: "0.25",
       gap_closure: `Pay $0.50 to close ${gaps.length} readiness gap${gaps.length === 1 ? "" : "s"} and unlock the full ${ARTIFACT_COUNT}-artifact hardening bundle (CE 3.0 dispute evidence, SCA exemption matrix, TAP interop, VROL/RDR/CDRN dispute flows).`,
-      projected_score_after: `${projectedScoreAfter}/100`,
+      projected_score_after: `${projectedCoverageAfter}/100 artifact coverage (not code readiness — see code_readiness)`,
       retry_with: {
         method: "tools/call",
         name: "prepare_agentic_purchasing",
@@ -2799,6 +2842,9 @@ export async function runPreparePurchasing(
   }
   const artifactPaths = generated.files.map(f => f.path);
   const { score, gaps, strengths } = computePurchasingReadinessScore(artifactPaths);
+  // WO-10: content-based readiness of the INPUT repo (snapshot.files) — independent
+  // of the artifact-coverage score computed from generated artifact paths above.
+  const codeReadiness = buildCodeReadinessBlock(snapshot.files);
 
   // â”€â”€ Budget-aware compliance depth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const budget = parseAgentBudget(req);
@@ -2933,6 +2979,7 @@ export async function runPreparePurchasing(
         ...(budget ? { agent_budget_acknowledged: budget } : {}),
         ...(effectiveBudgetCents !== undefined ? { effective_budget_cents: effectiveBudgetCents } : {}),
       },
+      code_readiness: codeReadiness,
       scope_note: "This hardening package covers standard purchasing workflows (research, negotiation, compliance, checkout, fulfillment). Artifacts are generated from a keyword-signal scan of your repository — a starting point for your own compliance review, not a certification or guarantee of completeness.",
       snapshot_reference: {
         note: "Cache this snapshot id so future sessions can retrieve artifacts without re-hardening:",
@@ -2999,7 +3046,8 @@ export type InbandGateDecision =
  * Decide whether the MCP POST gate may PRE-SETTLE a tool call's cash overage.
  * settle:true iff the call is guaranteed to reach an authorize/capture point
  * (billable op + provisioned backend), decidable from (args, mode, env-config)
- * WITHOUT running the tool. Async only for isLlmConfigured()'s fs probe.
+ * WITHOUT running the tool. Async only for the isLlmConfigured() /
+ * isLocalEmbeddingsConfigured() fs probes.
  *   free_op          -> a non-billable operation/mode (web_search!=search, hygiene scan, invalid op)
  *   not_provisioned  -> backend env absent; runX would return _not_configured w/o charging
  *   runtime_metered  -> billability decided only by a post-run probe (see residual caveat)
@@ -3022,12 +3070,29 @@ export async function decideInbandGate(
     // call to a provisioned backend reaches authorize/capture.
     case "iliad_object_storage":
       return readR2ConfigFromEnv() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
-    case "iliad_embeddings":
-      return readEmbeddingsConfigFromEnv() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+    case "iliad_embeddings": {
+      // Backend-aware (WO-11): mirrors runEmbeddings exactly. Default local
+      // backend is provisioned only when the embedding GGUF is present;
+      // the optional openai backend is provisioned when config resolves.
+      const embCfg = readEmbeddingsConfigFromEnv();
+      if (!embCfg) return { settle: false, reason: "not_provisioned" };
+      if (embCfg.backend === "local") {
+        return (await isLocalEmbeddingsConfigured()) ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+      }
+      return { settle: true, tool };
+    }
+    // Backend-aware (WO-12): mirrors runWebResearch/runWebResearchCrawl exactly.
+    // The sovereign default is always provisioned (owned fetch+extract, no key);
+    // only an explicit AXIS_WEB_RESEARCH_BACKEND=firecrawl selection without its
+    // key returns _not_configured without charging.
     case "iliad_web_research":
-      return isFirecrawlConfigured() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+      return process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()
+        ? { settle: false, reason: "not_provisioned" }
+        : { settle: true, tool };
     case "iliad_web_research_crawl":
-      return isFirecrawlConfigured() ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
+      return process.env.AXIS_WEB_RESEARCH_BACKEND === "firecrawl" && !isFirecrawlConfigured()
+        ? { settle: false, reason: "not_provisioned" }
+        : { settle: true, tool };
     case "iliad_llm_inference":
       return (await isLlmConfigured()) ? { settle: true, tool } : { settle: false, reason: "not_provisioned" };
 

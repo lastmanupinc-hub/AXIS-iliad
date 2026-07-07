@@ -270,7 +270,10 @@ describe("decideInbandGate — config gate (env-driven)", () => {
     "R2_SECRET_ACCESS_KEY",
     "R2_BUCKET",
     "OPENAI_API_KEY",
+    "AXIS_EMBEDDING_BACKEND",
+    "AXIS_EMBEDDING_MODEL_PATH",
     "FIRECRAWL_API_KEY",
+    "AXIS_WEB_RESEARCH_BACKEND",
     "RESEND_API_KEY",
     "RESEND_FROM_ADDRESS",
     "AXIS_LLM_MODEL_PATH",
@@ -292,9 +295,10 @@ describe("decideInbandGate — config gate (env-driven)", () => {
     await fs.writeFile(realModelPath, "fake gguf content");
     // Ensure the default model path (models/<...>.gguf at cwd) can't accidentally make
     // an "unset" assertion pass for the wrong reason on a dev machine that happens to
-    // have one — pin AXIS_LLM_MODEL_PATH at a definitely-absent file instead of merely
-    // deleting the env var.
+    // have one — pin AXIS_LLM_MODEL_PATH / AXIS_EMBEDDING_MODEL_PATH at definitely-absent
+    // files instead of merely deleting the env vars.
     process.env.AXIS_LLM_MODEL_PATH = missingModelPath;
+    process.env.AXIS_EMBEDDING_MODEL_PATH = missingModelPath;
   });
 
   afterEach(async () => {
@@ -319,19 +323,49 @@ describe("decideInbandGate — config gate (env-driven)", () => {
     });
   });
 
-  it("iliad_embeddings: not_provisioned unset, settle:true set", async () => {
+  it("iliad_embeddings (default local backend): not_provisioned when the GGUF is absent, settle:true when present", async () => {
+    // AXIS_EMBEDDING_MODEL_PATH points at missingModelPath from beforeEach.
     expect(await decideInbandGate("iliad_embeddings", { input: "hi" }, "standard")).toEqual({
       settle: false,
       reason: "not_provisioned",
     });
-    process.env.OPENAI_API_KEY = "sk-test";
+    process.env.AXIS_EMBEDDING_MODEL_PATH = realModelPath;
     expect(await decideInbandGate("iliad_embeddings", { input: "hi" }, "standard")).toEqual({
       settle: true,
       tool: "iliad_embeddings",
     });
   });
 
-  it("iliad_web_research: not_provisioned unset, settle:true set", async () => {
+  it("iliad_embeddings (openai backend): OPENAI_API_KEY alone doesn't provision the default local backend; backend=openai needs the key", async () => {
+    // Key set but backend still local (default) with no GGUF → not provisioned.
+    process.env.OPENAI_API_KEY = "sk-test";
+    expect(await decideInbandGate("iliad_embeddings", { input: "hi" }, "standard")).toEqual({
+      settle: false,
+      reason: "not_provisioned",
+    });
+    // Explicit openai backend + key → provisioned.
+    process.env.AXIS_EMBEDDING_BACKEND = "openai";
+    expect(await decideInbandGate("iliad_embeddings", { input: "hi" }, "standard")).toEqual({
+      settle: true,
+      tool: "iliad_embeddings",
+    });
+    // Explicit openai backend WITHOUT the key → not provisioned.
+    delete process.env.OPENAI_API_KEY;
+    expect(await decideInbandGate("iliad_embeddings", { input: "hi" }, "standard")).toEqual({
+      settle: false,
+      reason: "not_provisioned",
+    });
+  });
+
+  it("iliad_web_research: sovereign default settles with NO key; explicit firecrawl w/o key is not_provisioned", async () => {
+    // WO-12: the owned sovereign backend is the default and needs no third-party key.
+    expect(await decideInbandGate("iliad_web_research", { url: "https://example.com" }, "standard")).toEqual({
+      settle: true,
+      tool: "iliad_web_research",
+    });
+    // Operator explicitly selects firecrawl without its key → runX returns
+    // _not_configured without charging, so the gate must not pre-settle.
+    process.env.AXIS_WEB_RESEARCH_BACKEND = "firecrawl";
     expect(await decideInbandGate("iliad_web_research", { url: "https://example.com" }, "standard")).toEqual({
       settle: false,
       reason: "not_provisioned",
@@ -343,7 +377,12 @@ describe("decideInbandGate — config gate (env-driven)", () => {
     });
   });
 
-  it("iliad_web_research_crawl: not_provisioned unset, settle:true set", async () => {
+  it("iliad_web_research_crawl: sovereign default settles with NO key; explicit firecrawl w/o key is not_provisioned", async () => {
+    expect(await decideInbandGate("iliad_web_research_crawl", { url: "https://example.com" }, "standard")).toEqual({
+      settle: true,
+      tool: "iliad_web_research_crawl",
+    });
+    process.env.AXIS_WEB_RESEARCH_BACKEND = "firecrawl";
     expect(await decideInbandGate("iliad_web_research_crawl", { url: "https://example.com" }, "standard")).toEqual({
       settle: false,
       reason: "not_provisioned",
@@ -506,7 +545,10 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
     "R2_SECRET_ACCESS_KEY",
     "R2_BUCKET",
     "OPENAI_API_KEY",
+    "AXIS_EMBEDDING_BACKEND",
+    "AXIS_EMBEDDING_MODEL_PATH",
     "FIRECRAWL_API_KEY",
+    "AXIS_WEB_RESEARCH_BACKEND",
     "RESEND_API_KEY",
     "RESEND_FROM_ADDRESS",
     "AXIS_LLM_MODEL_PATH",
@@ -519,6 +561,8 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
       const v = process.env[k];
       if (v !== undefined) original[k] = v;
     }
+    delete process.env.AXIS_EMBEDDING_BACKEND; // default (sovereign local) backend
+    delete process.env.AXIS_WEB_RESEARCH_BACKEND; // default (sovereign) backend (WO-12)
     process.env.R2_ACCOUNT_ID = "acct";
     process.env.R2_ACCESS_KEY_ID = "key";
     process.env.R2_SECRET_ACCESS_KEY = "secret";
@@ -531,6 +575,9 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
     const modelPath = path.join(tmpDir, "fake.gguf");
     await fs.writeFile(modelPath, "fake gguf content");
     process.env.AXIS_LLM_MODEL_PATH = modelPath;
+    // WO-11: iliad_embeddings defaults to the sovereign local backend — provision
+    // it the same way as iliad_llm_inference (a present GGUF file).
+    process.env.AXIS_EMBEDDING_MODEL_PATH = modelPath;
   });
 
   afterEach(async () => {

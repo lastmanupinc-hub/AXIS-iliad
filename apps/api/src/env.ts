@@ -39,7 +39,18 @@ export const ENV_SPEC: EnvSpec[] = [
   { key: "STRIPE_PRICE_ID_PAID_ANNUAL", required: false, type: "string", description: "Legacy Stripe price ID alias for Starter annual" },
   { key: "STRIPE_PRICE_ID_SUITE", required: false, type: "string", description: "Legacy Stripe price ID alias for Growth" },
   // Proxied tool integrations
-  { key: "FIRECRAWL_API_KEY", required: false, type: "string", description: "API key for Firecrawl web scraping service (https://firecrawl.dev)" },
+  { key: "FIRECRAWL_API_KEY", required: false, type: "string", description: "API key for the OPTIONAL Firecrawl web-research proxy backend (https://firecrawl.dev). Only consulted when AXIS_WEB_RESEARCH_BACKEND=firecrawl — the default AXIS-owned sovereign backend needs no key." },
+  // Web research (iliad_web_research / iliad_web_research_crawl — AXIS-owned
+  // sovereign crawler by DEFAULT: SSRF-guarded fetch + robots.txt + per-host
+  // politeness + zero-dep readability over node built-ins. Static HTML only —
+  // no JavaScript rendering. Firecrawl retained ONLY behind the explicit
+  // AXIS_WEB_RESEARCH_BACKEND=firecrawl flag.)
+  { key: "AXIS_WEB_RESEARCH_BACKEND", required: false, type: "string", default: "sovereign", description: "Web research backend selector: `sovereign` (default — AXIS-owned fetch+extract+crawl, no third-party key) or `firecrawl` (optional legacy proxy; requires FIRECRAWL_API_KEY, without which the tools return a structured `_not_configured` envelope)." },
+  { key: "AXIS_WEB_RESEARCH_USER_AGENT", required: false, type: "string", description: "User-Agent the sovereign crawler presents on every fetch (also matched against robots.txt User-agent groups). Defaults to the AxisIliadBot UA." },
+  { key: "AXIS_WEB_RESEARCH_MAX_BYTES", required: false, type: "number", default: "5242880", description: "Per-document byte cap for the sovereign fetcher (default 5 MiB). Larger bodies are truncated and flagged truncated:true in metadata." },
+  { key: "AXIS_WEB_RESEARCH_TIMEOUT_MS", required: false, type: "number", default: "30000", description: "Total timeout in ms for one sovereign fetch including all redirect hops and body read (default 30000)." },
+  { key: "AXIS_WEB_RESEARCH_POLITENESS_MS", required: false, type: "number", default: "1000", description: "Minimum delay in ms between successive sovereign fetches to the same host (default 1000). A larger robots.txt Crawl-delay is honored over this floor." },
+  { key: "AXIS_WEB_RESEARCH_ALLOW_PRIVATE_HOSTS", required: false, type: "boolean", description: "Dev/test escape hatch ONLY: 1/true disables the sovereign fetcher's SSRF address+port checks so hermetic tests can fetch 127.0.0.1 fixtures. The http/https scheme allowlist still applies. NEVER set in production." },
   { key: "REPLICATE_API_TOKEN", required: false, type: "string", description: "API token for Replicate image/video generation (https://replicate.com)" },
   { key: "FASTIO_API_KEY", required: false, type: "string", description: "API key for Fastio persistent storage and RAG (https://fast.io)" },
   { key: "RESEND_API_KEY", required: false, type: "string", description: "API key for Resend email delivery (https://resend.com). Used by the internal welcome/upgrade/usage-alert pipeline in @axis/snapshots and by the agent-facing iliad_transactional_email MCP tool (proxy mode)." },
@@ -57,10 +68,13 @@ export const ENV_SPEC: EnvSpec[] = [
   // GitHub App webhook (push / pull_request → background snapshot)
   { key: "GITHUB_WEBHOOK_SECRET", required: false, type: "string", description: "Shared secret from the GitHub App settings. Verifies X-Hub-Signature-256 on POST /v1/github/webhook. If unset, the endpoint returns 503 so the App retries until ops finishes the deploy." },
   { key: "GITHUB_TOKEN", required: false, type: "string", description: "Personal-access token fallback used when fetching tarballs for webhook-triggered snapshots and the /v1/github/analyze handler when no per-account token is stored." },
-  // Embeddings proxy (iliad_embeddings — AXIS-branded wrapper over OpenAI /v1/embeddings today;
-  // future module swap to fastembed-ONNX is documented in capability-map.yaml).
-  { key: "OPENAI_API_KEY", required: false, type: "string", description: "OpenAI API key. Currently used as the backend for iliad_embeddings (proxy mode). When unset, the tool returns a structured `_not_configured: true` envelope listing the missing env var so callers can branch without parsing free text." },
-  { key: "OPENAI_EMBEDDING_MODEL", required: false, type: "string", default: "text-embedding-3-small", description: "OpenAI embedding model used by iliad_embeddings. Defaults to text-embedding-3-small. Override to text-embedding-3-large or any compatible model on a per-deploy basis." },
+  // Embeddings (iliad_embeddings — AXIS-owned in-process backend via node-llama-cpp
+  // by default, same sovereign pattern as iliad_llm_inference. The OpenAI proxy is
+  // OPTIONAL, behind AXIS_EMBEDDING_BACKEND=openai.)
+  { key: "AXIS_EMBEDDING_BACKEND", required: false, type: "string", default: "local", description: "Embeddings backend selector for iliad_embeddings: `local` (default — AXIS-owned in-process inference via node-llama-cpp with an embedding-capable GGUF; no upstream HTTP call) or `openai` (optional legacy proxy; requires OPENAI_API_KEY)." },
+  { key: "AXIS_EMBEDDING_MODEL_PATH", required: false, type: "string", description: "Path to an embedding-capable GGUF model (e.g. bge-small-en-v1.5 Q4_K_M, ~130MB, MIT) for the local backend. Defaults to models/bge-small-en-v1.5-q4_k_m.gguf at process.cwd(). Until the file is present, iliad_embeddings returns a structured `_not_configured: true` envelope (backend: local) — same operator gate as AXIS_LLM_MODEL_PATH for iliad_llm_inference." },
+  { key: "OPENAI_API_KEY", required: false, type: "string", description: "OpenAI API key. Optional: only consulted when AXIS_EMBEDDING_BACKEND=openai selects the legacy embeddings proxy. When that backend is selected and this is unset, iliad_embeddings returns a structured `_not_configured: true` envelope listing the missing env var so callers can branch without parsing free text." },
+  { key: "OPENAI_EMBEDDING_MODEL", required: false, type: "string", default: "text-embedding-3-small", description: "OpenAI embedding model used by iliad_embeddings when AXIS_EMBEDDING_BACKEND=openai. Defaults to text-embedding-3-small. Override to text-embedding-3-large or any compatible model on a per-deploy basis. Ignored on the default local backend." },
   // Object storage (iliad_object_storage — AXIS-owned via Cloudflare R2)
   { key: "R2_ACCOUNT_ID", required: false, type: "string", description: "Cloudflare account ID; forms part of the R2 host (<account>.r2.cloudflarestorage.com). All four R2_* vars must be set for iliad_object_storage to issue signed URLs; otherwise the tool returns a structured `not_configured` envelope." },
   { key: "R2_ACCESS_KEY_ID", required: false, type: "string", description: "R2 API token access key. Use the 'Object Read & Write' template scoped to a single bucket so a compromised key cannot escalate." },

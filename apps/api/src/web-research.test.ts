@@ -72,9 +72,14 @@ describe("web-research MCP dispatch wiring", () => {
     await resetTestDb();
     const acct = await createAccount("WR", "wr@example.com", "paid");
     rawKey = (await createApiKey(acct.account_id)).rawKey;
-    delete process.env.FIRECRAWL_API_KEY; // exercise the _not_configured path — no network
+    // WO-12: the sovereign backend is the default and needs no key, so the
+    // _not_configured path now requires an EXPLICIT firecrawl selection
+    // without a key — still zero network.
+    process.env.AXIS_WEB_RESEARCH_BACKEND = "firecrawl";
+    delete process.env.FIRECRAWL_API_KEY;
   });
   afterEach(() => {
+    delete process.env.AXIS_WEB_RESEARCH_BACKEND;
     restoreKey();
   });
 
@@ -89,7 +94,7 @@ describe("web-research MCP dispatch wiring", () => {
     return rpc.result.content[0].text;
   }
 
-  it("dispatches iliad_web_research (was 'Unknown tool') → _not_configured without a key", async () => {
+  it("dispatches iliad_web_research (was 'Unknown tool') → _not_configured on explicit firecrawl w/o key", async () => {
     const text = await callText("iliad_web_research", { url: "https://example.com" }, 1);
     expect(text).not.toContain("Unknown tool");
     expect(text).toContain("firecrawl_not_configured");

@@ -697,7 +697,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research",
     description:
-      "Scrape a single URL using Firecrawl and return markdown-formatted content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. Use iliad_web_research_crawl for crawling multiple pages or link following.",
+      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. Use iliad_web_research_crawl for crawling multiple pages or link following.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -741,7 +741,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research_crawl",
     description:
-      "Crawl a domain and scrape multiple pages using Firecrawl. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per page crawled (up to 100 pages per request). Use iliad_web_research for single-page scrapes.",
+      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per page crawled (up to 100 pages per request). Use iliad_web_research for single-page scrapes.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -897,16 +897,17 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── iliad_embeddings (live_proxy → OpenAI; planned fastembed-ONNX swap) ─
+  // ─── iliad_embeddings (owned — in-process node-llama-cpp; OpenAI optional) ─
   // Natural pair to iliad_vector_database. Returns dense vectors that feed
-  // directly into vector_database's upsert/query operations. Until the
-  // fastembed-ONNX module-swap ships, the inference happens at OpenAI with
-  // an operator-managed API key; AXIS provides the MCP surface, billing,
-  // and error normalization.
+  // directly into vector_database's upsert/query operations. Default backend
+  // is AXIS-owned in-process inference (node-llama-cpp + an embedding-capable
+  // GGUF at AXIS_EMBEDDING_MODEL_PATH — same sovereign pattern as
+  // iliad_llm_inference; no upstream provider call). The legacy OpenAI proxy
+  // remains available behind AXIS_EMBEDDING_BACKEND=openai.
   {
     name: "iliad_embeddings",
     description:
-      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input plus token usage. Currently proxies OpenAI /v1/embeddings (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL). Requires Authorization: Bearer <api_key> to call. When OPENAI_API_KEY is not provisioned, returns a structured `_not_configured: true` envelope. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
+      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input. AXIS-owned in-process inference by default (node-llama-cpp + an embedding-capable GGUF at AXIS_EMBEDDING_MODEL_PATH — no upstream provider call); an optional OpenAI /v1/embeddings backend is available behind AXIS_EMBEDDING_BACKEND=openai (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL; reports token usage). Requires Authorization: Bearer <api_key> to call. When the selected backend is not provisioned (local: GGUF file absent; openai: OPENAI_API_KEY unset), returns a structured `_not_configured: true` envelope naming the backend and remediation. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
     inputSchema: {
       type: "object" as const,
       required: ["input"],
@@ -921,23 +922,23 @@ export const MCP_TOOLS = [
       required: ["vectors", "model_used", "input_count"],
       properties: {
         vectors: { type: "array", description: "Array of dense vectors. vectors[i] corresponds to input[i] (order preserved)." },
-        model_used: { type: "string", description: "Concrete embedding model name returned by the provider." },
+        model_used: { type: "string", description: "Concrete embedding model used: the GGUF filename on the local backend, or the provider model name on the openai backend." },
         input_count: { type: "number", description: "Number of inputs submitted (matches vectors.length)." },
-        usage: { type: "object", description: "{prompt_tokens, total_tokens} when reported by the provider." },
+        usage: { type: "object", description: "{prompt_tokens, total_tokens} — openai backend only (the local in-process backend has no provider token report)." },
         engineer: { type: "object", description: "Engineer mode only: { dimensions, truncated, adapter_applied, adapter_mean? } — the post-processing applied + the fitted corpus mean." },
       },
     },
     annotations: toolAnnotations("Vector Embeddings", false, true),
     examples: [
       {
-        name: "Embed a single string",
+        name: "Embed a single string (default local backend)",
         input: { input: "hello world" },
-        output: '{"vectors":[[0.012,-0.034,...]],"model_used":"text-embedding-3-small","input_count":1,"usage":{"prompt_tokens":2,"total_tokens":2}}',
+        output: '{"vectors":[[0.012,-0.034,...]],"model_used":"bge-small-en-v1.5-q4_k_m.gguf","input_count":1}',
       },
       {
         name: "Embed a batch for RAG indexing",
         input: { input: ["chunk 1 text", "chunk 2 text", "chunk 3 text"] },
-        output: '{"vectors":[[...],[...],[...]],"model_used":"text-embedding-3-small","input_count":3}',
+        output: '{"vectors":[[...],[...],[...]],"model_used":"bge-small-en-v1.5-q4_k_m.gguf","input_count":3}',
       },
     ],
   },

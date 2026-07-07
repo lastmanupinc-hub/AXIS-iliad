@@ -158,7 +158,7 @@ export function ForAgentsPage() {
           <li>improve_my_agent_with_axis</li>
           <li>get_referral_code, get_referral_credits</li>
           <li>iliad_web_research, iliad_web_research_crawl, iliad_web_search</li>
-          <li>iliad_object_storage, iliad_vector_database, iliad_embeddings</li>
+          <li>iliad_object_storage, iliad_vector_database, iliad_embeddings (AXIS-owned in-process by default; OpenAI optional)</li>
           <li>iliad_llm_inference, iliad_code_sandbox, iliad_document_parsing</li>
           <li>iliad_text_to_speech, iliad_speech_to_text</li>
           <li>iliad_transactional_email, iliad_analytics, iliad_hygiene</li>

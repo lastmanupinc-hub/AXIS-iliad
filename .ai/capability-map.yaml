@@ -178,15 +178,18 @@ capabilities:
 
   - id: embeddings
     name: "Vector embeddings for semantic search and RAG"
-    status: live_proxy
+    status: owned
     axis_brand_tool: "iliad_embeddings"
-    pricing_tier: null
-    summary: "AXIS-branded wrapper around OpenAI /v1/embeddings (configurable model via OPENAI_EMBEDDING_MODEL). Pairs natively with iliad_vector_database — same auth + billing surface, no juggling third-party SDKs. Future swap to fastembed-ONNX is a module-internal change."
+    pricing_tier: "$0.05 standard / $0.02 lite per call (in-process inference on the default local backend; no upstream per-token API fee). Requires operator-configured embedding GGUF at AXIS_EMBEDDING_MODEL_PATH."
+    summary: "AXIS-owned in-process embeddings via node-llama-cpp (the already-shipped iliad_llm_inference runtime satisfies the sovereign requirement — no new dependency) with an embedding-capable GGUF at AXIS_EMBEDDING_MODEL_PATH (default bge-small-en-v1.5 Q4_K_M). Structured _not_configured until the operator provisions the GGUF; quality is bounded by the chosen local model (bge-small = 384 dims). The OpenAI /v1/embeddings proxy remains an OPTIONAL backend behind AXIS_EMBEDDING_BACKEND=openai (configurable model via OPENAI_EMBEDDING_MODEL). Pairs natively with iliad_vector_database — same auth + billing surface, no juggling third-party SDKs."
     detected_in_repo: true
     detection_evidence:
-      - "apps/api/src/env.ts references OPENAI_API_KEY"
-      - "source references //v1/embeddings/ (e.g. apps/api/src/embeddings.ts)"
+      - "apps/api/src/local-embeddings.ts — in-process node-llama-cpp embedding backend (default)"
+      - "apps/api/src/env.ts references AXIS_EMBEDDING_BACKEND / AXIS_EMBEDDING_MODEL_PATH"
+      - "source references //v1/embeddings/ (e.g. apps/api/src/embeddings.ts, optional openai backend)"
     third_party_providers:
+      # Optional providers — only used when AXIS_EMBEDDING_BACKEND=openai
+      # (or a future provider flag) is explicitly selected by the operator.
       - name: "OpenAI"
         url: "https://openai.com"
       - name: "Cohere"
@@ -210,17 +213,21 @@ capabilities:
         type: "string"
         description: "Concrete embedding model used."
     replication_plan:
-      runtime: "fastembed (ONNX) on Cloudflare Workers for the small tier; vLLM serving BAAI/bge-large on RunPod for the high-recall tier"
-      persistence: "Embedding cache keyed by SHA-256(input + model). Hits are free."
-      estimated_effort: medium
+      # SHIPPED (WO-11): the sovereign runtime is node-llama-cpp in-process
+      # with an operator-provisioned GGUF — the items below are OPTIONAL
+      # future optimizations, not the current state.
+      runtime: "Shipped: node-llama-cpp in-process (GGUF at AXIS_EMBEDDING_MODEL_PATH). Future optimization only: fastembed (ONNX) on Cloudflare Workers for the small tier; vLLM serving BAAI/bge-large on RunPod for the high-recall tier"
+      persistence: "Future: embedding cache keyed by SHA-256(input + model). Hits are free."
+      estimated_effort: shipped_core__optimizations_remain
       key_dependencies:
-        - "fastembed"
-        - "onnxruntime-web"
-        - "bge-large-en-v1.5"
+        - "node-llama-cpp (shipped, shared with iliad_llm_inference)"
+        - "fastembed (future optimization)"
+        - "onnxruntime-web (future optimization)"
+        - "bge-large-en-v1.5 (future high-recall tier)"
       differentiators:
-        - "Sub-50ms p95 on cached inputs"
-        - "Single endpoint serves all dimensions via Matryoshka truncation"
-        - "Free tier: 1M tokens/month — most projects never pay"
+        - "In-process by default — no provider key, no upstream HTTP call, no per-token API fee"
+        - "Single endpoint serves all dimensions via Matryoshka truncation (engineer mode, shipped)"
+        - "Future targets (NOT shipped): sub-50ms p95 on cached inputs; free 1M tokens/month tier"
 
   - id: image_generation
     name: "Generative visual asset creation (2D images + 3D models)"
@@ -708,7 +715,7 @@ capabilities:
 
 summary:
   by_status:
-    live_proxy: 4
-    owned: 9
+    live_proxy: 3
+    owned: 10
     sibling_owned: 1
   recommended_next_owned:
