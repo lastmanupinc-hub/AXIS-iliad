@@ -10,6 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { App } from "./App";
+import type { SnapshotResponse } from "./api";
 
 function stubMatchMedia() {
   vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
@@ -156,5 +157,133 @@ describe("App routing (WO-F2)", () => {
     fireEvent.keyDown(window, { key: "3", ctrlKey: true });
     expect(shellPage(container)).toBe("upload");
     expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+});
+
+// ─── Multi-project state (WO-F3) ─────────────────────────────────
+// localStorage keeps only `axis_last_project_id` (server restores the rest)
+// plus a client-side anon-results cache; the pre-WO-F3 `axis_last_result`
+// blob migrates on first load.
+
+/** Type-complete SnapshotResponse fixture (DashboardPage renders all of it). */
+function makeSnapshotResponse(): SnapshotResponse {
+  return {
+    snapshot_id: "snap_fx",
+    project_id: "proj_fx",
+    status: "complete",
+    context_map: {
+      version: "1",
+      snapshot_id: "snap_fx",
+      project_id: "proj_fx",
+      generated_at: "2026-07-07T00:00:00Z",
+      project_identity: { name: "fixture-repo", type: "web_application", primary_language: "TypeScript", description: null },
+      structure: { total_files: 1, total_directories: 1, total_loc: 10, file_tree_summary: [], top_level_layout: [] },
+      detection: { languages: [], frameworks: [], build_tools: [], test_frameworks: [], package_managers: [], ci_platform: null, deployment_target: null },
+      dependency_graph: { external_dependencies: [], internal_imports: [], hotspots: [] },
+      entry_points: [],
+      routes: [],
+      architecture_signals: { patterns_detected: [], layer_boundaries: [], separation_score: 0.5 },
+      ai_context: { project_summary: "A fixture.", key_abstractions: [], conventions: [], warnings: [] },
+    },
+    repo_profile: {
+      version: "1",
+      project: { name: "fixture-repo", type: "web_application", primary_language: "TypeScript" },
+      structure_summary: { total_files: 1, total_directories: 1, total_loc: 10, top_level_dirs: [] },
+      health: {
+        has_readme: true, has_tests: false, test_file_count: 0, has_ci: false, has_lockfile: true,
+        has_typescript: true, has_linter: false, has_formatter: false, dependency_count: 0,
+        dev_dependency_count: 0, architecture_patterns: [], separation_score: 0.5,
+      },
+      goals: null,
+    },
+    generated_files: [{ path: "AGENTS.md", program: "skills", description: "agent guide" }],
+  };
+}
+
+/** Fetch stub routed by URL substring: [match, body, status?][] (first hit wins). */
+function stubApiFetch(handlers: Array<[match: string, body: unknown, status?: number]>) {
+  const fn = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    const hit = handlers.find(([m]) => url.includes(m));
+    const body = hit ? hit[1] : {};
+    const status = hit?.[2] ?? 200;
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+      headers: { get: () => null },
+    } as unknown as Response;
+  });
+  vi.stubGlobal("fetch", fn);
+  return fn;
+}
+
+describe("Multi-project state (WO-F3)", () => {
+  it("migrates the legacy result blob to the last-project pointer when signed in", () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    localStorage.setItem("axis_last_result", JSON.stringify(makeSnapshotResponse()));
+
+    render(<App />);
+
+    expect(localStorage.getItem("axis_last_project_id")).toBe("proj_fx");
+    expect(localStorage.getItem("axis_last_result")).toBeNull();
+    expect(localStorage.getItem("axis_anon_result")).toBeNull();
+  });
+
+  it("migrates the legacy result blob to the anon cache when signed out", () => {
+    localStorage.setItem("axis_last_result", JSON.stringify(makeSnapshotResponse()));
+
+    render(<App />);
+
+    expect(localStorage.getItem("axis_anon_result")).toBeTruthy();
+    expect(localStorage.getItem("axis_last_result")).toBeNull();
+    expect(localStorage.getItem("axis_last_project_id")).toBeNull();
+  });
+
+  it("#dashboard restores from the anon-results cache without a context round-trip", async () => {
+    localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
+    stubApiFetch([
+      ["/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: [], skipped: [] }],
+    ]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+
+    expect(shellPage(container)).toBe("dashboard");
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+    const urls = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.includes("/context"))).toBe(false);
+  });
+
+  it("#dashboard with a last-project pointer (signed in) rebuilds the result from the server", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    localStorage.setItem("axis_last_project_id", "proj_fx");
+    const fx = makeSnapshotResponse();
+    stubApiFetch([
+      ["/v1/projects/proj_fx/context", { snapshot_id: "snap_fx", context_map: fx.context_map, repo_profile: fx.repo_profile }],
+      ["/v1/projects/proj_fx/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: fx.generated_files.map((f) => ({ ...f, content: "x", content_type: "text/markdown" })), skipped: [] }],
+    ]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+
+    expect(shellPage(container)).toBe("dashboard");
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+  });
+
+  it("#dashboard drops the pointer and bounces to Analyze when the server says 404", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    localStorage.setItem("axis_last_project_id", "proj_gone");
+    stubApiFetch([
+      ["/v1/projects/proj_gone/context", { error: "Project not found" }, 404],
+      ["/v1/projects/proj_gone/generated-files", { error: "Project not found" }, 404],
+    ]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+
+    await waitFor(() => expect(shellPage(container)).toBe("upload"));
+    expect(localStorage.getItem("axis_last_project_id")).toBeNull();
   });
 });

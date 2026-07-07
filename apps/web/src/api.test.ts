@@ -37,6 +37,25 @@ import {
   establishSession,
   markAuthed,
   migrateLegacyKey,
+  // WO-F3 — API client expansion
+  listProjects,
+  listProjectSnapshots,
+  getProjectContext,
+  getSnapshotVersions,
+  getVersion,
+  getDiff,
+  isPersistenceCreditsError,
+  complianceGradeLetter,
+  getUsageTimeseries,
+  getChangelog,
+  patchAccount,
+  deleteAccount,
+  getMcpManifest,
+  searchMcpTools,
+  getOpenApiSpec,
+  getStats,
+  healthLive,
+  healthReady,
   ApiError,
   type SnapshotPayload,
 } from "./api.ts";
@@ -831,5 +850,364 @@ describe("cancelSubscription", () => {
     const [url, init] = fetchFn.mock.calls[0];
     expect(url).toBe("/v1/account/subscription/cancel");
     expect(init.method).toBe("POST");
+  });
+});
+
+// ═══ WO-F3 — API client expansion ═══════════════════════════════
+
+// ─── listProjects (WO-A1 mini-spec) ──────────────────────────────
+
+describe("listProjects", () => {
+  it("GETs /v1/projects with no params by default", async () => {
+    const response = { projects: [], total: 0 };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await listProjects();
+
+    expect(result.total).toBe(0);
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects");
+  });
+
+  it("passes limit and offset as query params", async () => {
+    const fetchFn = mockFetch({ projects: [], total: 42 });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await listProjects({ limit: 10, offset: 20 });
+
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain("/v1/projects?");
+    expect(url).toContain("limit=10");
+    expect(url).toContain("offset=20");
+  });
+
+  it("returns the typed project list", async () => {
+    const response = {
+      projects: [{
+        project_id: "proj_1",
+        name: "my-repo",
+        github_url: "https://github.com/a/b",
+        created_at: "2026-07-01T00:00:00Z",
+        latest_snapshot: { snapshot_id: "snap_1", status: "complete", created_at: "2026-07-01T00:00:00Z", file_count: 12, compliance_grade: "B" },
+        snapshot_count: 3,
+      }],
+      total: 1,
+    };
+    vi.stubGlobal("fetch", mockFetch(response));
+
+    const result = await listProjects();
+    expect(result.projects[0].latest_snapshot?.snapshot_id).toBe("snap_1");
+    expect(result.projects[0].snapshot_count).toBe(3);
+  });
+});
+
+// ─── listProjectSnapshots (WO-A2 mini-spec) ──────────────────────
+
+describe("listProjectSnapshots", () => {
+  it("GETs /v1/projects/:id/snapshots (id encoded)", async () => {
+    const fetchFn = mockFetch({ project_id: "p 1", snapshots: [], count: 0 });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await listProjectSnapshots("p 1");
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/p%201/snapshots");
+  });
+});
+
+// ─── complianceGradeLetter ───────────────────────────────────────
+
+describe("complianceGradeLetter", () => {
+  it("passes a bare letter grade through", () => {
+    expect(complianceGradeLetter("A+")).toBe("A+");
+  });
+
+  it("extracts the letter from the full engine result", () => {
+    expect(complianceGradeLetter({ grade: "C", score: 41 })).toBe("C");
+  });
+
+  it("returns null for null/undefined", () => {
+    expect(complianceGradeLetter(null)).toBeNull();
+    expect(complianceGradeLetter(undefined)).toBeNull();
+  });
+});
+
+// ─── getProjectContext ───────────────────────────────────────────
+
+describe("getProjectContext", () => {
+  it("GETs /v1/projects/:id/context", async () => {
+    const response = { snapshot_id: "snap_9", context_map: {}, repo_profile: {} };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getProjectContext("proj_9");
+
+    expect(result.snapshot_id).toBe("snap_9");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/projects/proj_9/context");
+  });
+});
+
+// ─── Version history & diff ──────────────────────────────────────
+
+describe("getSnapshotVersions", () => {
+  it("GETs /v1/snapshots/:id/versions", async () => {
+    const response = { snapshot_id: "snap_1", versions: [{ version_id: "v1", snapshot_id: "snap_1", version_number: 1, program: null, file_count: 5, created_at: "" }], count: 1 };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getSnapshotVersions("snap_1");
+
+    expect(result.count).toBe(1);
+    expect(result.versions[0].version_number).toBe(1);
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/snapshots/snap_1/versions");
+  });
+});
+
+describe("getVersion", () => {
+  it("GETs /v1/snapshots/:id/versions/:n", async () => {
+    const response = { version: { version_id: "v2", snapshot_id: "snap_1", version_number: 2, program: "theme", file_count: 1, created_at: "", files: [{ path: "a.md", content: "hi" }] } };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getVersion("snap_1", 2);
+
+    expect(result.version.files[0].path).toBe("a.md");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/snapshots/snap_1/versions/2");
+  });
+});
+
+describe("getDiff", () => {
+  it("GETs /v1/snapshots/:id/diff?old=N&new=M", async () => {
+    const response = { diff: { old_version: 1, new_version: 2, snapshot_id: "snap_1", files: [], summary: { added: 0, removed: 0, modified: 0, unchanged: 0 } } };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getDiff("snap_1", 1, 2);
+
+    expect(result.diff.new_version).toBe(2);
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain("/v1/snapshots/snap_1/diff?");
+    expect(url).toContain("old=1");
+    expect(url).toContain("new=2");
+  });
+
+  it("maps the 402 persistence-credit payload to a recognizable ApiError", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "persistence_credits_required", reason: "balance_exhausted" }, 402));
+
+    const err = await getDiff("snap_1", 1, 2).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(402);
+    expect((err as ApiError).extra.reason).toBe("balance_exhausted");
+    expect(isPersistenceCreditsError(err)).toBe(true);
+  });
+});
+
+describe("isPersistenceCreditsError", () => {
+  it("rejects non-402 ApiErrors and non-ApiErrors", () => {
+    expect(isPersistenceCreditsError(new ApiError("persistence_credits_required", 404, ""))).toBe(false);
+    expect(isPersistenceCreditsError(new ApiError("quota exceeded", 402, "QUOTA"))).toBe(false);
+    expect(isPersistenceCreditsError(new Error("persistence_credits_required"))).toBe(false);
+  });
+
+  it("accepts a 402 flagged via error_code as well", () => {
+    expect(isPersistenceCreditsError(new ApiError("Payment required", 402, "persistence_credits_required"))).toBe(true);
+  });
+});
+
+// ─── getUsageTimeseries (WO-A3 mini-spec) ────────────────────────
+
+describe("getUsageTimeseries", () => {
+  it("defaults to bucket=day&since_days=30", async () => {
+    const fetchFn = mockFetch({ buckets: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await getUsageTimeseries();
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/account/usage/timeseries?bucket=day&since_days=30");
+  });
+
+  it("passes a custom window and clamps it to 365", async () => {
+    const fetchFn = mockFetch({ buckets: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await getUsageTimeseries({ sinceDays: 14 });
+    expect(fetchFn.mock.calls[0][0]).toContain("since_days=14");
+
+    await getUsageTimeseries({ sinceDays: 9999 });
+    expect(fetchFn.mock.calls[1][0]).toContain("since_days=365");
+  });
+
+  it("returns typed buckets", async () => {
+    const response = { buckets: [{ date: "2026-07-01", runs: 4, by_program: { theme: 2 }, credits_spent: 1 }] };
+    vi.stubGlobal("fetch", mockFetch(response));
+
+    const result = await getUsageTimeseries();
+    expect(result.buckets[0].by_program.theme).toBe(2);
+  });
+});
+
+// ─── getChangelog (WO-A4 mini-spec) ──────────────────────────────
+
+describe("getChangelog", () => {
+  it("GETs /v1/changelog and returns raw markdown text", async () => {
+    const fetchFn = mockFetch("## 0.5.3\n- fixed things");
+    vi.stubGlobal("fetch", fetchFn);
+
+    const md = await getChangelog();
+
+    expect(md).toBe("## 0.5.3\n- fixed things");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/changelog");
+  });
+
+  it("throws a structured ApiError on failure", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "Not found" }, 404));
+
+    const err = await getChangelog().catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(404);
+  });
+});
+
+// ─── patchAccount / deleteAccount (WO-A5 mini-spec) ──────────────
+
+describe("patchAccount", () => {
+  it("PATCHes /v1/account with the update body", async () => {
+    const response = { account: { account_id: "a1", name: "New Name", email: "n@x.com", tier: "free", created_at: "" } };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await patchAccount({ name: "New Name" });
+
+    expect(result.account.name).toBe("New Name");
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/v1/account");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({ name: "New Name" });
+  });
+});
+
+describe("deleteAccount", () => {
+  it("DELETEs /v1/account", async () => {
+    const fetchFn = mockFetch({ deleted: true });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await deleteAccount();
+
+    expect(result.deleted).toBe(true);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/v1/account");
+    expect(init.method).toBe("DELETE");
+  });
+});
+
+// ─── MCP discovery ───────────────────────────────────────────────
+
+describe("getMcpManifest", () => {
+  it("GETs /v1/mcp/server.json", async () => {
+    const response = { server: { name: "axis", slug: "axis-iliad", version: "0.5.3", endpoint: "https://x/mcp" }, tools: [{ name: "list_programs", description: "d" }] };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getMcpManifest();
+
+    expect(result.server.slug).toBe("axis-iliad");
+    expect(result.tools).toHaveLength(1);
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/mcp/server.json");
+  });
+});
+
+describe("searchMcpTools", () => {
+  it("GETs /v1/mcp/tools with no params when unfiltered", async () => {
+    const fetchFn = mockFetch({ query: null, program_filter: null, total_matches: 0, results: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await searchMcpTools();
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/mcp/tools");
+  });
+
+  it("encodes q and program filters", async () => {
+    const fetchFn = mockFetch({ query: "docker deploy", program_filter: "deploy", total_matches: 1, results: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await searchMcpTools("docker deploy", "deploy");
+
+    const url = fetchFn.mock.calls[0][0] as string;
+    expect(url).toContain("/v1/mcp/tools?");
+    expect(url).toContain("q=docker+deploy");
+    expect(url).toContain("program=deploy");
+  });
+});
+
+// ─── OpenAPI spec ────────────────────────────────────────────────
+
+describe("getOpenApiSpec", () => {
+  it("GETs /openapi.json", async () => {
+    const response = { openapi: "3.0.3", info: { title: "AXIS", version: "0.5.3" }, paths: { "/v1/health": {} } };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getOpenApiSpec();
+
+    expect(result.openapi).toBe("3.0.3");
+    expect(result.paths["/v1/health"]).toBeDefined();
+    expect(fetchFn.mock.calls[0][0]).toBe("/openapi.json");
+  });
+});
+
+// ─── Stats + health probes ───────────────────────────────────────
+
+describe("getStats", () => {
+  it("GETs /v1/stats and returns the counters", async () => {
+    const response = { mcp_calls_today: 7, mcp_calls_total: 1234, top_tools: [{ tool: "analyze_repo", count: 5 }], process_started_at: "", date: "2026-07-07" };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getStats();
+
+    expect(result.mcp_calls_today).toBe(7);
+    expect(result.top_tools[0].tool).toBe("analyze_repo");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/stats");
+  });
+});
+
+describe("healthLive", () => {
+  it("GETs /v1/health/live", async () => {
+    const fetchFn = mockFetch({ status: "alive" });
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await healthLive();
+
+    expect(result.status).toBe("alive");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/health/live");
+  });
+});
+
+describe("healthReady", () => {
+  it("returns the ready body on 200", async () => {
+    const response = { status: "ready", checks: { shutting_down: false, database: "ok", payment_rail: "ok" } };
+    vi.stubGlobal("fetch", mockFetch(response));
+
+    const result = await healthReady();
+    expect(result.status).toBe("ready");
+    expect(result.checks?.database).toBe("ok");
+  });
+
+  it("returns (does not throw) the not_ready body on 503 — status page needs it", async () => {
+    const response = { status: "not_ready", checks: { shutting_down: false, database: "error", payment_rail: "ok" } };
+    vi.stubGlobal("fetch", mockFetch(response, 503));
+
+    const result = await healthReady();
+    expect(result.status).toBe("not_ready");
+    expect(result.checks?.database).toBe("error");
+  });
+
+  it("still throws a structured ApiError on other failures", async () => {
+    vi.stubGlobal("fetch", mockFetch({ error: "boom" }, 500));
+
+    const err = await healthReady().catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).status).toBe(500);
   });
 });

@@ -378,9 +378,19 @@ export async function logoutSession(): Promise<void> {
   }
 }
 
-async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: number }): Promise<T> {
+interface FetchOptions extends RequestInit {
+  timeoutMs?: number;
+  /**
+   * Non-2xx statuses whose body is still the documented success shape —
+   * parsed and returned instead of thrown (e.g. /v1/health/ready answers 503
+   * with the same JSON body when not ready; a status page needs that body).
+   */
+  allowStatuses?: number[];
+}
+
+async function fetchResponse(url: string, init?: FetchOptions): Promise<Response> {
   const controller = new AbortController();
-  const { timeoutMs: customTimeout, ...fetchInit } = init ?? {};
+  const { timeoutMs: customTimeout, allowStatuses, ...fetchInit } = init ?? {};
   const timeoutMs = customTimeout ?? 30_000;
   // v8 ignore next
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -391,7 +401,7 @@ async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: numb
       credentials: "include", // send the HttpOnly axis_session cookie (bearer header kept as fallback)
       signal: controller.signal,
     });
-    if (!res.ok) {
+    if (!res.ok && !allowStatuses?.includes(res.status)) {
       let msg = `${res.status}`;
       let errorCode = "";
       let extra: Record<string, unknown> = {};
@@ -411,7 +421,7 @@ async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: numb
       } catch { /* empty body */ }
       throw new ApiError(msg, res.status, errorCode, extra);
     }
-    return res.json() as Promise<T>;
+    return res;
   } catch (err) {
     /* v8 ignore next 2 — V8 quirk: AbortError tested but V8 won't credit */
     if (err instanceof DOMException && err.name === "AbortError") {
@@ -433,6 +443,17 @@ async function fetchJSON<T>(url: string, init?: RequestInit & { timeoutMs?: numb
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchJSON<T>(url: string, init?: FetchOptions): Promise<T> {
+  const res = await fetchResponse(url, init);
+  return res.json() as Promise<T>;
+}
+
+/** Same error mapping as fetchJSON for endpoints that answer text (e.g. markdown). */
+async function fetchText(url: string, init?: FetchOptions): Promise<string> {
+  const res = await fetchResponse(url, init);
+  return res.text();
 }
 
 // ─── Snapshot API ───────────────────────────────────────────────
@@ -495,6 +516,273 @@ export async function analyzeGitHubUrl(githubUrl: string): Promise<SnapshotRespo
 
 export async function healthCheck(): Promise<{ status: string; version: string }> {
   return fetchJSON("/v1/health");
+}
+
+/** Liveness probe — is the API process responsive? */
+export async function healthLive(): Promise<{ status: string }> {
+  return fetchJSON("/v1/health/live");
+}
+
+export interface ReadinessResponse {
+  status: "ready" | "not_ready" | string;
+  checks?: {
+    shutting_down: boolean;
+    database: string;
+    payment_rail: string;
+  };
+}
+
+/** Readiness probe. The API answers 503 with the same JSON body when not
+ *  ready — that body is returned (not thrown) so a status page can render it. */
+export async function healthReady(): Promise<ReadinessResponse> {
+  return fetchJSON("/v1/health/ready", { allowStatuses: [503] });
+}
+
+// ─── Public stats (social proof) ────────────────────────────────
+
+export interface ApiStats {
+  mcp_calls_today: number;
+  mcp_calls_total: number;
+  top_tools: Array<{ tool: string; count: number }>;
+  process_started_at: string;
+  date: string;
+}
+
+export async function getStats(): Promise<ApiStats> {
+  return fetchJSON("/v1/stats");
+}
+
+// ─── Projects API (multi-project state, WO-F3) ──────────────────
+// listProjects/listProjectSnapshots are typed against the WO-A1/WO-A2
+// mini-specs (docs/web-plan/BUILD-PLAN.md §4) and become callable when those
+// API work-orders land; getProjectContext is live today.
+
+/** Compliance grade as WO-A1/WO-A2 may ship it: the bare letter ("A+".."D")
+ *  or the full 8-check engine result. `complianceGradeLetter` normalizes. */
+export type ComplianceGrade = string | { grade: string; score?: number };
+
+export function complianceGradeLetter(grade: ComplianceGrade | null | undefined): string | null {
+  if (grade == null) return null;
+  return typeof grade === "string" ? grade : grade.grade;
+}
+
+export interface ProjectSnapshotSummary {
+  snapshot_id: string;
+  status: string;
+  created_at: string;
+  file_count: number;
+  compliance_grade?: ComplianceGrade | null;
+}
+
+export interface ProjectSummary {
+  project_id: string;
+  name: string;
+  github_url: string | null;
+  created_at: string;
+  latest_snapshot: ProjectSnapshotSummary | null;
+  snapshot_count: number;
+}
+
+export interface ProjectsListResponse {
+  projects: ProjectSummary[];
+  total: number;
+}
+
+/** GET /v1/projects — the account's analyzed repos, newest first (WO-A1). */
+export async function listProjects(opts?: { limit?: number; offset?: number }): Promise<ProjectsListResponse> {
+  const params = new URLSearchParams();
+  if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
+  if (opts?.offset !== undefined) params.set("offset", String(opts.offset));
+  const qs = params.toString();
+  return fetchJSON(`/v1/projects${qs ? `?${qs}` : ""}`);
+}
+
+export interface ProjectSnapshotsResponse {
+  project_id: string;
+  snapshots: ProjectSnapshotSummary[];
+  count: number;
+}
+
+/** GET /v1/projects/:id/snapshots — snapshot list, newest first (WO-A2). */
+export async function listProjectSnapshots(projectId: string): Promise<ProjectSnapshotsResponse> {
+  return fetchJSON(`/v1/projects/${encodeURIComponent(projectId)}/snapshots`);
+}
+
+export interface ProjectContextResponse {
+  snapshot_id: string;
+  context_map: ContextMap;
+  repo_profile: RepoProfile;
+}
+
+/** GET /v1/projects/:id/context — latest snapshot's context map + repo
+ *  profile. Server-side source of truth for restoring a project view. */
+export async function getProjectContext(projectId: string): Promise<ProjectContextResponse> {
+  return fetchJSON(`/v1/projects/${encodeURIComponent(projectId)}/context`);
+}
+
+// ─── Version history & diff API ─────────────────────────────────
+
+export interface GenerationVersionSummary {
+  version_id: string;
+  snapshot_id: string;
+  version_number: number;
+  program: string | null;
+  file_count: number;
+  created_at: string;
+}
+
+export interface GenerationVersion extends GenerationVersionSummary {
+  files: Array<{ path: string; content: string }>;
+}
+
+export async function getSnapshotVersions(
+  snapshotId: string,
+): Promise<{ snapshot_id: string; versions: GenerationVersionSummary[]; count: number }> {
+  return fetchJSON(`/v1/snapshots/${encodeURIComponent(snapshotId)}/versions`);
+}
+
+export async function getVersion(snapshotId: string, versionNumber: number): Promise<{ version: GenerationVersion }> {
+  return fetchJSON(`/v1/snapshots/${encodeURIComponent(snapshotId)}/versions/${encodeURIComponent(String(versionNumber))}`);
+}
+
+export interface FileDiff {
+  path: string;
+  status: "added" | "removed" | "modified" | "unchanged";
+  old_content: string | null;
+  new_content: string | null;
+}
+
+export interface VersionDiff {
+  old_version: number;
+  new_version: number;
+  snapshot_id: string;
+  files: FileDiff[];
+  summary: { added: number; removed: number; modified: number; unchanged: number };
+}
+
+/** GET /v1/snapshots/:id/diff?old=N&new=M — diffing consumes a persistence
+ *  credit on paid/suite tiers; a depleted balance throws an ApiError that
+ *  `isPersistenceCreditsError` recognizes (render the credit-purchase CTA). */
+export async function getDiff(snapshotId: string, oldVersion: number, newVersion: number): Promise<{ diff: VersionDiff }> {
+  const params = new URLSearchParams({ old: String(oldVersion), new: String(newVersion) });
+  return fetchJSON(`/v1/snapshots/${encodeURIComponent(snapshotId)}/diff?${params.toString()}`);
+}
+
+/** The 402 `persistence_credits_required` payload (`{error, reason}`) maps to
+ *  ApiError message/extra — this guard is the stable check for the credit CTA. */
+export function isPersistenceCreditsError(err: unknown): err is ApiError {
+  return (
+    err instanceof ApiError &&
+    err.status === 402 &&
+    (err.message === "persistence_credits_required" || err.errorCode === "persistence_credits_required")
+  );
+}
+
+// ─── Usage timeseries (WO-A3 mini-spec) ─────────────────────────
+
+export interface UsageBucket {
+  date: string;
+  runs: number;
+  by_program: Record<string, number>;
+  credits_spent: number;
+}
+
+export interface UsageTimeseriesResponse {
+  buckets: UsageBucket[];
+}
+
+/** GET /v1/account/usage/timeseries?bucket=day&since_days=30 — per-account
+ *  time-bucketed usage for graphs (ships behind WO-A3). */
+export async function getUsageTimeseries(opts?: { bucket?: "day"; sinceDays?: number }): Promise<UsageTimeseriesResponse> {
+  const bucket = opts?.bucket ?? "day";
+  const sinceDays = Math.min(Math.max(opts?.sinceDays ?? 30, 1), 365);
+  return fetchJSON(`/v1/account/usage/timeseries?bucket=${encodeURIComponent(bucket)}&since_days=${encodeURIComponent(String(sinceDays))}`);
+}
+
+// ─── Changelog (WO-A4 mini-spec) ────────────────────────────────
+
+/** GET /v1/changelog — repo CHANGELOG.md as raw markdown (ships behind WO-A4). */
+export async function getChangelog(): Promise<string> {
+  return fetchText("/v1/changelog");
+}
+
+// ─── Account mutation (WO-A5 mini-spec) ─────────────────────────
+
+export interface AccountUpdate {
+  name?: string;
+  email?: string;
+}
+
+/** PATCH /v1/account {name?, email?} — profile edit (ships behind WO-A5).
+ *  Email changes are accepted with an audit-log entry (no verification yet);
+ *  the server may attach a `note` saying so. */
+export async function patchAccount(update: AccountUpdate): Promise<{ account: Account; note?: string }> {
+  return fetchJSON("/v1/account", {
+    method: "PATCH",
+    body: JSON.stringify(update),
+  });
+}
+
+/** DELETE /v1/account — cascades keys/webhooks/tokens/seats (ships behind WO-A5). */
+export async function deleteAccount(): Promise<{ deleted: boolean }> {
+  return fetchJSON("/v1/account", { method: "DELETE" });
+}
+
+// ─── MCP discovery API ──────────────────────────────────────────
+
+export interface McpManifest {
+  server: { name: string; slug: string; version: string; endpoint: string };
+  tools: Array<{ name: string; description: string }>;
+  _meta?: Record<string, unknown>;
+}
+
+/** GET /v1/mcp/server.json — the live MCP server manifest. */
+export async function getMcpManifest(): Promise<McpManifest> {
+  return fetchJSON("/v1/mcp/server.json");
+}
+
+export interface McpToolMatch {
+  program: string;
+  tier: string;
+  score: number;
+  capability_tags: string[];
+  matching_artifacts: string[];
+  all_artifacts: string[];
+  example_call: string;
+}
+
+export interface McpToolSearchResponse {
+  query: string | null;
+  program_filter: string | null;
+  total_matches: number;
+  results: McpToolMatch[];
+}
+
+/** GET /v1/mcp/tools?q=&program= — searchable tool/program registry. */
+export async function searchMcpTools(q?: string, program?: string): Promise<McpToolSearchResponse> {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (program) params.set("program", program);
+  const qs = params.toString();
+  return fetchJSON(`/v1/mcp/tools${qs ? `?${qs}` : ""}`);
+}
+
+// ─── OpenAPI spec ───────────────────────────────────────────────
+
+export interface OpenApiSpec {
+  openapi: string;
+  info: { title: string; version: string; description?: string };
+  servers?: Array<{ url: string; description?: string }>;
+  paths: Record<string, unknown>;
+  components?: {
+    securitySchemes?: Record<string, unknown>;
+    schemas?: Record<string, unknown>;
+  };
+}
+
+/** GET /openapi.json — the live API spec (drives the Docs explorer). */
+export async function getOpenApiSpec(): Promise<OpenApiSpec> {
+  return fetchJSON("/openapi.json");
 }
 
 // ─── Search API ─────────────────────────────────────────────────

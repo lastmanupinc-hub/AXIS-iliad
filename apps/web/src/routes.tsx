@@ -73,6 +73,11 @@ export interface RouteContext extends NavContext {
   /** Raw hash (without "#") that produced the current route — 404 reporting. */
   hash: string;
   result: SnapshotResponse | null;
+  /** Active project id (multi-project state, WO-F3) — survives reloads via
+   *  localStorage `axis_last_project_id`; the server restores the rest. */
+  currentProjectId: string | null;
+  /** True while the dashboard result is being rebuilt from the server. */
+  restoring: boolean;
   navigate: (page: PageId, params?: RouteParams) => void;
   /** Open the sign-in popup without navigating. */
   requireLogin: () => void;
@@ -149,8 +154,17 @@ export const ROUTES: RouteDef[] = [
     shortcut: 2,
     visible: (ctx) => ctx.hasResult,
     nav: { group: "WORKSPACE", icon: "dashboard", rail: true },
-    render: (ctx) =>
-      ctx.result ? <DashboardPage result={ctx.result} onGeneratedCountChange={ctx.onGeneratedCountChange} /> : null,
+    render: (ctx) => {
+      if (ctx.result) return <DashboardPage result={ctx.result} onGeneratedCountChange={ctx.onGeneratedCountChange} />;
+      if (ctx.restoring) {
+        return (
+          <div className="card" style={{ margin: 40, textAlign: "center", padding: 32 }} role="status" aria-live="polite">
+            Restoring project…
+          </div>
+        );
+      }
+      return null;
+    },
   },
   {
     page: "tools",

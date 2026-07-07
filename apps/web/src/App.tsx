@@ -4,7 +4,7 @@ import { CommandPalette, type PaletteAction } from "./components/CommandPalette.
 import { StatusBar } from "./components/StatusBar.tsx";
 import { SignUpModal } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
-import { getAdminStats, migrateLegacyKey, logoutSession, type SnapshotResponse } from "./api.ts";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 import {
   ROUTES,
@@ -65,17 +65,61 @@ function hasApiKey(): boolean {
   return !!localStorage.getItem("axis_api_key");
 }
 
-function loadPersistedResult(): SnapshotResponse | null {
+// ─── Multi-project state (WO-F3) ────────────────────────────────
+// The server is the source of truth for signed-in users: localStorage keeps
+// only the last project id (`axis_last_project_id`) and the dashboard is
+// rebuilt from GET /v1/projects/:id/context + /generated-files. Anonymous
+// analyses have no account to restore from, so they keep a client-side blob
+// in the anon-results cache (`axis_anon_result`). The pre-WO-F3 single blob
+// (`axis_last_result`) is migrated on first load.
+
+const LAST_PROJECT_KEY = "axis_last_project_id";
+const ANON_RESULT_KEY = "axis_anon_result";
+const LEGACY_RESULT_KEY = "axis_last_result";
+
+interface PersistedState {
+  result: SnapshotResponse | null;
+  projectId: string | null;
+}
+
+function loadPersistedState(): PersistedState {
+  // One-time migration of the legacy single-result blob: signed-in users keep
+  // only the project id (server restores the rest); signed-out blobs were
+  // anon-created and move to the anon cache.
   try {
-    const raw = localStorage.getItem("axis_last_result");
-    if (raw) return JSON.parse(raw) as SnapshotResponse;
-  } catch { /* corrupt data, ignore */ }
-  return null;
+    const legacy = localStorage.getItem(LEGACY_RESULT_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy) as SnapshotResponse;
+      localStorage.removeItem(LEGACY_RESULT_KEY);
+      if (hasApiKey() && parsed.project_id) {
+        localStorage.setItem(LAST_PROJECT_KEY, parsed.project_id);
+      } else {
+        localStorage.setItem(ANON_RESULT_KEY, legacy);
+      }
+      return { result: parsed, projectId: parsed.project_id ?? null };
+    }
+  } catch { localStorage.removeItem(LEGACY_RESULT_KEY); /* corrupt blob */ }
+
+  // Steady state: the anon cache blob wins (it is always the most recent anon
+  // analysis — a signed-in analysis clears it), else the last-project pointer.
+  try {
+    const anon = localStorage.getItem(ANON_RESULT_KEY);
+    if (anon) {
+      const parsed = JSON.parse(anon) as SnapshotResponse;
+      return { result: parsed, projectId: parsed.project_id ?? null };
+    }
+  } catch { localStorage.removeItem(ANON_RESULT_KEY); /* corrupt blob */ }
+
+  return { result: null, projectId: localStorage.getItem(LAST_PROJECT_KEY) };
 }
 
 export function App() {
   const { route, navigate } = useHashRoute();
-  const [result, setResult] = useState<SnapshotResponse | null>(loadPersistedResult);
+  // Single lazy read so the legacy migration runs exactly once per mount.
+  const [initialState] = useState(loadPersistedState);
+  const [result, setResult] = useState<SnapshotResponse | null>(initialState.result);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(initialState.projectId);
+  const [restoring, setRestoring] = useState(false);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
   const [showSignUp, setShowSignUp] = useState(false);
   const pendingResultRef = useRef<SnapshotResponse | null>(null);
@@ -141,15 +185,22 @@ export function App() {
       return;
     }
     setResult(data);
-    try { localStorage.setItem("axis_last_result", JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
+    setCurrentProjectId(data.project_id);
+    // Server is the source of truth for signed-in analyses: persist only the
+    // project id. A fresh owned analysis supersedes any cached anon result.
+    try { localStorage.setItem(LAST_PROJECT_KEY, data.project_id); } catch { /* quota exceeded, non-fatal */ }
+    localStorage.removeItem(ANON_RESULT_KEY);
     setGeneratedFileCount(data.generated_files.length);
     navigate("dashboard");
   }, [navigate]);
 
   const handleReset = useCallback(() => {
     setResult(null);
+    setCurrentProjectId(null);
     setGeneratedFileCount(0);
-    localStorage.removeItem("axis_last_result");
+    localStorage.removeItem(LAST_PROJECT_KEY);
+    localStorage.removeItem(ANON_RESULT_KEY);
+    localStorage.removeItem(LEGACY_RESULT_KEY);
     nav("upload");
   }, [nav]);
 
@@ -163,6 +214,7 @@ export function App() {
   const handleLogout = useCallback(() => {
     void logoutSession();                    // clear the HttpOnly axis_session cookie server-side
     localStorage.removeItem("axis_api_key"); // clear the session marker (and any legacy raw key)
+    localStorage.removeItem(LAST_PROJECT_KEY); // account-scoped pointer — useless without the session
     setLoggedIn(false);
     setPrivateAccess(false);
     nav("upload");
@@ -199,14 +251,61 @@ export function App() {
     };
   }, [loggedIn]);
 
-  // Dashboard needs a result: restore the persisted one on deep link, else
-  // fall back to Analyze (a known route with nothing to show is not a 404).
+  // Dashboard needs a result: rebuild it on deep link — anon cache first
+  // (client-only by design), else from the server via the last-project pointer
+  // (GET /v1/projects/:id/context + /generated-files), else fall back to
+  // Analyze (a known route with nothing to show is not a 404).
   useEffect(() => {
     if (route.page !== "dashboard" || result) return;
-    const restored = loadPersistedResult();
-    if (restored) setResult(restored);
-    else navigate("upload");
-  }, [route.page, result, navigate]);
+
+    try {
+      const anon = localStorage.getItem(ANON_RESULT_KEY);
+      if (anon) {
+        setResult(JSON.parse(anon) as SnapshotResponse);
+        return;
+      }
+    } catch { localStorage.removeItem(ANON_RESULT_KEY); /* corrupt blob */ }
+
+    const projectId = currentProjectId ?? localStorage.getItem(LAST_PROJECT_KEY);
+    if (!projectId || !hasApiKey()) {
+      navigate("upload");
+      return;
+    }
+
+    let cancelled = false;
+    setRestoring(true);
+    void (async () => {
+      try {
+        const [ctx, generated] = await Promise.all([
+          getProjectContext(projectId),
+          getGeneratedFiles(projectId),
+        ]);
+        if (cancelled) return;
+        setResult({
+          snapshot_id: ctx.snapshot_id,
+          project_id: projectId,
+          status: "complete",
+          context_map: ctx.context_map,
+          repo_profile: ctx.repo_profile,
+          generated_files: generated.files,
+        });
+        setCurrentProjectId(projectId);
+        setGeneratedFileCount(generated.files.length);
+      } catch (err) {
+        if (cancelled) return;
+        // Drop the pointer only when the server said no (gone/unauthorized);
+        // keep it through transient network failures.
+        if (err instanceof ApiError && [401, 403, 404].includes(err.status)) {
+          localStorage.removeItem(LAST_PROJECT_KEY);
+          setCurrentProjectId(null);
+        }
+        navigate("upload");
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [route.page, result, currentProjectId, navigate]);
 
   // Login gate: a signed-out user on any login-gated page (`authOnly` in the
   // route table) gets the sign-in popup and is bounced to a public page —
@@ -235,7 +334,10 @@ export function App() {
       const data = pendingResultRef.current;
       pendingResultRef.current = null;
       setResult(data);
-      try { localStorage.setItem("axis_last_result", JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
+      setCurrentProjectId(data.project_id);
+      // The pending analysis ran anonymously — no account owns that snapshot,
+      // so it lives in the client-side anon cache, not behind the server pointer.
+      try { localStorage.setItem(ANON_RESULT_KEY, JSON.stringify(data)); } catch { /* quota exceeded, non-fatal */ }
       setGeneratedFileCount(data.generated_files.length);
       navigate("dashboard");
     }
@@ -303,12 +405,14 @@ export function App() {
     params: route.params,
     hash: route.hash,
     result,
+    currentProjectId,
+    restoring,
     navigate: nav,
     requireLogin: () => setShowSignUp(true),
     onUploadComplete: handleUploadComplete,
     onGeneratedCountChange: handleGeneratedCountChange,
     onAuthChange: handleAuthChange,
-  }), [navCtx, route.params, route.hash, result, nav, handleUploadComplete, handleGeneratedCountChange, handleAuthChange]);
+  }), [navCtx, route.params, route.hash, result, currentProjectId, restoring, nav, handleUploadComplete, handleGeneratedCountChange, handleAuthChange]);
 
   return (
     <ToastProvider>
