@@ -307,12 +307,7 @@ function buildLighterScaSection(signals: CommerceSignals): string {
     ``,
     `\`\`\``,
     `Transaction arrives:`,
-    `  ├─ Amount < €30? → LOW_VALUE exemption (no SCA)`,
-    `  ├─ Merchant in trusted list? → TRUSTED_BENEFICIARY (no SCA)`,
-    `  ├─ Fixed recurring + prior SCA? → RECURRING_FIXED (no SCA)`,
-    `  ├─ Merchant-initiated (MIT)? → MIT exemption (no SCA)`,
-    `  ├─ Corporate card (secure_corporate)? → EXEMPT (no SCA)`,
-    `  ├─ TRA score < threshold? → TRA exemption (no SCA, up to €500)`,
+    renderScaDecisionTreeBranches(),
     `  └─ None apply? → Request frictionless 3DS2 first`,
     `       ├─ Issuer approves frictionless? → PROCEED (no redirect)`,
     `       └─ Issuer requires challenge? → ABORT agent flow, escalate to operator`,
@@ -320,15 +315,9 @@ function buildLighterScaSection(signals: CommerceSignals): string {
     ``,
     `### Exemption Priority for Agents (prefer top → bottom)`,
     ``,
-    `| Priority | Exemption | Max Amount | Agent Action | Fallback |`,
-    `|----------|-----------|-----------|--------------|----------|`,
-    `| 1 | low_value | €30 | Auto-apply | Next rule |`,
-    `| 2 | trusted_beneficiary | Unlimited | Check trusted list | Next rule |`,
-    `| 3 | recurring_fixed | Per mandate | Verify mandate active | Next rule |`,
-    `| 4 | merchant_initiated | Per agreement | Verify MIT flag | Next rule |`,
-    `| 5 | secure_corporate | Unlimited | Verify card program | Next rule |`,
-    `| 6 | transaction_risk_analysis | €500 | Check TRA eligibility | 3DS2 frictionless |`,
-    `| 7 | 3ds2_frictionless | Unlimited | Request frictionless | Escalate to human |`,
+    `> Priority order below is AXIS's recommended agent-optimized preference — PSD2/EBA RTS defines these paths but assigns no priority ordering of its own; issuers/acquirers may apply their own order.`,
+    ``,
+    renderScaExemptionMatrix(),
     ``,
     `### Provider-Specific SCA Thresholds`,
     ``,
@@ -352,15 +341,6 @@ function buildLighterScaSection(signals: CommerceSignals): string {
 }
 
 function buildTapInteropSection(signals: CommerceSignals): string {
-  const scaExemptionRows = [
-    `| low_value | Transaction < 30 EUR | Issuer-tracked cumulative limits apply | Auto-apply when amount qualifies |`,
-    `| trusted_beneficiary | Merchant in trusted list | Cardholder must opt in after a prior SCA | Requires prior SCA + opt-in |`,
-    `| recurring_fixed | Fixed-amount subscription | Subsequent collections exempt after first SCA | SCA on first, exempt subsequent |`,
-    `| merchant_initiated | MIT with stored credential | Out of SCA scope; original SCA reference needed | No SCA; requires original SCA ref |`,
-    `| secure_corporate | Dedicated corporate card | Secure corporate processes are exempt | Exempt from SCA entirely |`,
-    `| transaction_risk_analysis | TRA via acquirer | Cap depends on acquirer fraud rate | Exempt up to threshold (€500 max) |`,
-  ].join("\n");
-
   return [
     `## TAP / AP2 / UCP Interoperability`,
     ``,
@@ -388,11 +368,9 @@ function buildTapInteropSection(signals: CommerceSignals): string {
     ``,
     `### SCA Exemption Decision Matrix`,
     ``,
-    `| Exemption | Condition | Notes | Agent Action |`,
-    `|-----------|-----------|-------|-------------|`,
-    scaExemptionRows,
+    renderScaExemptionMatrix(),
     ``,
-    `> Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer.`,
+    `> Exemption definitions and thresholds come from PSD2 and its regulatory technical standards — verify current rules with your acquirer. Priority order is AXIS's recommended agent-optimized preference, not a regulatory mandate.`,
     ``,
     `### AP2 Mandate Lifecycle`,
     ``,
@@ -511,6 +489,252 @@ export function computeComplianceGrade(files: SourceFile[] | undefined): Complia
   const grade: "A" | "B" | "C" | "D" =
     checks_passed >= 6 ? "A" : checks_passed >= 4 ? "B" : checks_passed >= 2 ? "C" : "D";
   return { grade, checks_passed, checks_total: 8 };
+}
+
+// ─── Public API: SCA Exemption Decision Engine (WO-06) ───────────────
+//
+// Decision-support only, NOT an authorization oracle:
+//  1. The priority ORDER below is AXIS's recommended agent-optimized preference,
+//     not a regulatory mandate — issuers/acquirers may apply their own order.
+//  2. TRA caps reflect published EBA RTS Art. 15 fraud-rate bands, but real
+//     eligibility depends on the acquirer's LIVE reference fraud rate.
+//  3. Final exemption eligibility is decided by the acquirer/issuer — always
+//     verify current values/rules with your acquirer before relying on a path.
+//  4. `merchant_initiated` and `one_leg_out` are PSD2 "out of scope" categories,
+//     not formal PSD2-RTS exemptions — they are included here because they are
+//     additional lighter-than-3DS2 paths an agent can prefer, not because the
+//     regulation labels them "exemptions". See each rule's `label`/`condition`.
+
+/** Context an agent (or the checkout flow) supplies for a single transaction. */
+export interface ScaExemptionContext {
+  amount_eur: number;                 // transaction amount in EUR (required)
+  is_secure_corporate?: boolean;      // dedicated/lodged corporate card program (RTS Art 16)
+  is_merchant_initiated?: boolean;    // MIT w/ stored credential + original SCA reference (out of SCA scope)
+  is_recurring_fixed?: boolean;       // fixed-amount subsequent collection (RTS Art 13)
+  is_trusted_beneficiary?: boolean;   // merchant on cardholder trusted list (RTS Art 12)
+  is_one_leg_out?: boolean;           // payer or payee outside the EEA (SCA not mandated territorially)
+  has_prior_sca?: boolean;            // a prior SCA exists; REQUIRED for recurring_fixed & trusted_beneficiary
+  tra_acquirer_fraud_bps?: number;    // acquirer reference fraud rate in basis points (RTS Art 15 bands)
+}
+
+export type ScaExemptionName =
+  | "low_value"
+  | "secure_corporate"
+  | "merchant_initiated"
+  | "recurring_fixed"
+  | "trusted_beneficiary"
+  | "transaction_risk_analysis"
+  | "one_leg_out"
+  | "3ds2_challenge"; // terminal fallback -- SCA required
+
+export interface ScaExemptionRule {
+  name: ScaExemptionName;
+  priority: number;                   // 1..7
+  label: string;
+  condition: string;                  // human-readable predicate description
+  max_amount_eur: number | null;      // null = unlimited / N/A
+}
+
+export interface ScaDecision {
+  exemption: ScaExemptionName;        // chosen path (or "3ds2_challenge")
+  priority: number;                   // rank of chosen path; 8 for the challenge fallback
+  sca_required: boolean;              // true only for the "3ds2_challenge" fallback
+  rationale: string;                  // why this path was chosen
+  fallback: ScaExemptionName;         // next path if this exemption is refused ("3ds2_challenge" when none apply)
+  tra_cap_eur?: number;                // present when the TRA path was chosen or considered (fraud rate supplied)
+  candidates: ScaExemptionName[];     // all applicable exemptions, in priority order
+}
+
+/**
+ * Canonical, deterministic 7-priority ordering (AXIS's recommended agent-optimized
+ * order — NOT a regulatory mandate; PSD2/EBA RTS defines exemptions but assigns no
+ * priority ordering of its own). Every static SCA table in this file is rendered
+ * from this single constant via `renderScaExemptionMatrix` so the three tables
+ * cannot drift out of sync with each other.
+ */
+export const SCA_EXEMPTION_ORDER: readonly ScaExemptionRule[] = [
+  {
+    name: "low_value",
+    priority: 1,
+    label: "Low-value transaction",
+    condition: "Transaction amount is at or below €30 (PSD2 RTS Art. 11)",
+    max_amount_eur: 30,
+  },
+  {
+    name: "secure_corporate",
+    priority: 2,
+    label: "Secure corporate payment",
+    condition: "Payment made through a dedicated/lodged corporate card program (PSD2 RTS Art. 16)",
+    max_amount_eur: null,
+  },
+  {
+    name: "merchant_initiated",
+    priority: 3,
+    label: "Merchant-initiated transaction (out of SCA scope, not a formal RTS exemption)",
+    condition: "Merchant-initiated transaction (MIT) using a stored credential with an original SCA reference",
+    max_amount_eur: null,
+  },
+  {
+    name: "recurring_fixed",
+    priority: 4,
+    label: "Recurring fixed-amount collection",
+    condition: "Fixed-amount subsequent collection under a mandate, with a prior SCA on file (PSD2 RTS Art. 13)",
+    max_amount_eur: null,
+  },
+  {
+    name: "trusted_beneficiary",
+    priority: 5,
+    label: "Trusted beneficiary",
+    condition: "Merchant is on the cardholder's trusted-beneficiary list, added after a prior SCA (PSD2 RTS Art. 12)",
+    max_amount_eur: null,
+  },
+  {
+    name: "transaction_risk_analysis",
+    priority: 6,
+    label: "Transaction risk analysis (TRA)",
+    condition: "Acquirer's reference fraud rate qualifies the transaction for an EBA RTS Art. 15 fraud-rate-band cap",
+    max_amount_eur: 500,
+  },
+  {
+    name: "one_leg_out",
+    priority: 7,
+    label: "One-leg-out transaction (territorial scope, not a formal RTS exemption)",
+    condition: "Payer or payee is located outside the EEA, so SCA is not territorially mandated for this leg",
+    max_amount_eur: null,
+  },
+];
+
+/**
+ * EBA RTS Art. 15 fraud-rate bands, mapped to the TRA exemption's amount cap.
+ * Returns 500 | 250 | 100 | 0 (0 = not TRA-eligible at that fraud rate, or no
+ * fraud rate supplied). These are the PUBLISHED thresholds — real eligibility
+ * still depends on the acquirer's live reference fraud rate; verify with your
+ * acquirer before relying on this cap.
+ */
+export function traCapEur(acquirerFraudBps: number | undefined): number {
+  if (acquirerFraudBps === undefined) return 0;
+  if (acquirerFraudBps <= 1) return 500;
+  if (acquirerFraudBps <= 6) return 250;
+  if (acquirerFraudBps <= 13) return 100;
+  return 0;
+}
+
+function scaRuleApplies(rule: ScaExemptionRule, ctx: ScaExemptionContext): boolean {
+  switch (rule.name) {
+    case "low_value":
+      return ctx.amount_eur <= (rule.max_amount_eur ?? Number.POSITIVE_INFINITY);
+    case "secure_corporate":
+      return ctx.is_secure_corporate === true;
+    case "merchant_initiated":
+      return ctx.is_merchant_initiated === true;
+    case "recurring_fixed":
+      return ctx.is_recurring_fixed === true && ctx.has_prior_sca === true;
+    case "trusted_beneficiary":
+      return ctx.is_trusted_beneficiary === true && ctx.has_prior_sca === true;
+    case "transaction_risk_analysis": {
+      const cap = traCapEur(ctx.tra_acquirer_fraud_bps);
+      return cap > 0 && ctx.amount_eur <= cap;
+    }
+    case "one_leg_out":
+      return ctx.is_one_leg_out === true;
+    default:
+      return false;
+  }
+}
+
+function scaRationale(name: ScaExemptionName, ctx: ScaExemptionContext, traCap?: number): string {
+  switch (name) {
+    case "low_value":
+      return `Transaction amount (€${ctx.amount_eur}) is at or below the €30 low-value exemption threshold (PSD2 RTS Art. 11); SCA not required.`;
+    case "secure_corporate":
+      return `Payment is routed through a dedicated/lodged secure corporate card program (PSD2 RTS Art. 16); SCA not required.`;
+    case "merchant_initiated":
+      return `Merchant-initiated transaction (MIT) using a stored credential with an original SCA reference is out of SCA scope; SCA not required.`;
+    case "recurring_fixed":
+      return `Fixed-amount recurring collection with a prior SCA on file (PSD2 RTS Art. 13); this subsequent collection is exempt.`;
+    case "trusted_beneficiary":
+      return `Merchant is on the cardholder's trusted-beneficiary list, added after a prior SCA (PSD2 RTS Art. 12); SCA not required.`;
+    case "transaction_risk_analysis":
+      return `Acquirer transaction-risk analysis qualifies this €${ctx.amount_eur} transaction under the €${traCap ?? traCapEur(ctx.tra_acquirer_fraud_bps)} EBA RTS Art. 15 fraud-band cap; SCA not required.`;
+    case "one_leg_out":
+      return `Transaction has one leg outside the EEA (payer or payee); SCA is not territorially mandated for this leg. This is a territorial-scope condition, not a formal RTS exemption — verify with your acquirer.`;
+    case "3ds2_challenge":
+      return `No lighter SCA path applies to this transaction; a 3DS2 SCA challenge is required.`;
+  }
+}
+
+/**
+ * Pure, deterministic SCA exemption decision. Evaluates every rule in
+ * SCA_EXEMPTION_ORDER (priority 1 → 7) and returns the highest-priority
+ * applicable path, its full candidate list (priority-ascending), and a
+ * fallback. Falls back to a mandatory "3ds2_challenge" (sca_required: true)
+ * when no lighter path applies.
+ *
+ * Decision-support only — see the file-level honesty caveats above.
+ */
+export function decideScaExemption(ctx: ScaExemptionContext): ScaDecision {
+  const candidates: ScaExemptionName[] = [];
+  for (const rule of SCA_EXEMPTION_ORDER) {
+    if (scaRuleApplies(rule, ctx)) candidates.push(rule.name);
+  }
+
+  const traConsidered = ctx.tra_acquirer_fraud_bps !== undefined;
+  const traCapValue = traConsidered ? traCapEur(ctx.tra_acquirer_fraud_bps) : undefined;
+
+  if (candidates.length === 0) {
+    return {
+      exemption: "3ds2_challenge",
+      priority: 8,
+      sca_required: true,
+      rationale: scaRationale("3ds2_challenge", ctx),
+      fallback: "3ds2_challenge",
+      candidates,
+      ...(traCapValue !== undefined ? { tra_cap_eur: traCapValue } : {}),
+    };
+  }
+
+  const chosenName = candidates[0]!;
+  const chosenRule = SCA_EXEMPTION_ORDER.find(r => r.name === chosenName)!;
+  const fallback: ScaExemptionName = candidates[1] ?? "3ds2_challenge";
+
+  return {
+    exemption: chosenName,
+    priority: chosenRule.priority,
+    sca_required: false,
+    rationale: scaRationale(chosenName, ctx, traCapValue),
+    fallback,
+    candidates,
+    ...(traCapValue !== undefined ? { tra_cap_eur: traCapValue } : {}),
+  };
+}
+
+/**
+ * Renders the priority matrix (markdown table) from SCA_EXEMPTION_ORDER —
+ * the single source for every "SCA Exemption Decision Matrix" / "Exemption
+ * Priority" table in this file's rendered artifacts (checkout-flow.md and
+ * agent-purchasing-playbook.md). Columns map 1:1 to ScaExemptionRule fields
+ * (no invented "agent action" / "fallback" columns not modeled on the rule).
+ */
+export function renderScaExemptionMatrix(): string {
+  const header = [
+    `| Priority | Exemption | Label | Condition | Max Amount (EUR) |`,
+    `|----------|-----------|-------|-----------|-------------------|`,
+  ];
+  const rows = SCA_EXEMPTION_ORDER.map(r =>
+    `| ${r.priority} | \`${r.name}\` | ${r.label} | ${r.condition} | ${r.max_amount_eur === null ? "Unlimited" : `€${r.max_amount_eur}`} |`,
+  );
+  return [...header, ...rows].join("\n");
+}
+
+/**
+ * Ascii decision-tree branches for the "Agent SCA Decision Tree" section,
+ * generated from SCA_EXEMPTION_ORDER so it cannot fall out of sync with the
+ * priority table produced by renderScaExemptionMatrix.
+ */
+function renderScaDecisionTreeBranches(): string {
+  return SCA_EXEMPTION_ORDER
+    .map(r => `  ├─ ${r.label}? → ${r.name.toUpperCase()} (no SCA)`)
+    .join("\n");
 }
 
 export function generateAgentPurchasingPlaybook(
@@ -758,7 +982,9 @@ export function generateProductSchema(
         },
       },
       agent_sca_optimization: {
-        exemption_priority: ["low_value", "trusted_beneficiary", "recurring_fixed", "merchant_initiated", "secure_corporate", "transaction_risk_analysis"],
+        // Sourced from SCA_EXEMPTION_ORDER (single source of truth, WO-06) so
+        // this list can't drift from the rendered SCA Exemption Decision Matrix.
+        exemption_priority: SCA_EXEMPTION_ORDER.map(r => r.name),
         frictionless_first: true,
         challenge_escalation: "abort_agent_flow_escalate_to_operator",
       },
@@ -831,6 +1057,12 @@ export function generateCheckoutFlow(
     ? `Detected providers: ${signals.detected_providers.join(", ")}.`
     : "No payment providers detected — implement provider integration before production.";
 
+  // NOTE: the "Scenario | Action | AP2 Field" table below (in the "SCA / 3DS2
+  // Handling" section) is intentionally NOT rendered from SCA_EXEMPTION_ORDER.
+  // It maps request/response scenarios (including 3DS2 challenge/frictionless
+  // outcomes that are not lighter-SCA paths at all) to AP2 wire fields — a
+  // different concern from the 7-priority exemption matrix rendered by
+  // renderScaExemptionMatrix() further down via buildLighterScaSection().
   const content = `# Autonomous Checkout Flow — ${mdText(name)}
 
 > Specification for how AI agents complete AXIS program purchases without human intervention.
