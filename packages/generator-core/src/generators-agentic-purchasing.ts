@@ -2,6 +2,14 @@ import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import type { GeneratedFile, SourceFile } from "./types.js";
 import { mdText, mdInline } from "./md-sanitize.js";
 import { PROGRAM_ORDER, PROGRAM_OUTPUT_COUNTS, bundleOutputs } from "./program-manifest.js";
+import {
+  CE3_MIN_PRIOR_TRANSACTIONS,
+  CE3_MIN_PRIOR_TRANSACTION_AGE_DAYS,
+  CE3_LOOKBACK_DAYS,
+  CE3_MIN_MATCHING_DATA_ELEMENTS,
+  CE3_QUALIFIED_DATA_ELEMENTS,
+  CE3_TARGET_REASON_CODES,
+} from "@axis/agentic-compliance";
 
 /**
  * Canonical counts — must equal `listAvailableGenerators().length` and the
@@ -230,12 +238,12 @@ function buildCompellingEvidence3Section(signals: CommerceSignals): string {
     `      }`,
     `    ],`,
     `    "match_criteria": {`,
-    `      "ip_address_match": "2+ prior transactions from same IP within 365 days",`,
-    `      "device_fingerprint_match": "2+ prior transactions from same device",`,
+    `      "ip_address_match": "${CE3_MIN_MATCHING_DATA_ELEMENTS}+ prior transactions from same IP within ${CE3_LOOKBACK_DAYS} days",`,
+    `      "device_fingerprint_match": "${CE3_MIN_MATCHING_DATA_ELEMENTS}+ prior transactions from same device",`,
     `      "shipping_address_match": "Delivery to same address as prior undisputed orders",`,
-    `      "minimum_prior_transactions": 2,`,
-    `      "minimum_prior_transaction_age_days": 120,`,
-    `      "lookback_window_days": 365`,
+    `      "minimum_prior_transactions": ${CE3_MIN_PRIOR_TRANSACTIONS},`,
+    `      "minimum_prior_transaction_age_days": ${CE3_MIN_PRIOR_TRANSACTION_AGE_DAYS},`,
+    `      "lookback_window_days": ${CE3_LOOKBACK_DAYS}`,
     `    },`,
     `    "agent_automation": {`,
     `      "auto_collect_ip": ${signals.has_checkout},`,
@@ -995,14 +1003,14 @@ export function generateProductSchema(
         arbitration: { filing_fee_usd: 500, finality: "binding" },
         compelling_evidence_3: {
           version: "3.0",
-          qualified_data_elements: ["device_id", "ip_address", "email", "shipping_address", "login_id"],
-          min_matching_data_elements: 2,
-          min_prior_transactions: 2,
-          min_prior_transaction_age_days: 120,
-          lookback_days: 365,
+          qualified_data_elements: CE3_QUALIFIED_DATA_ELEMENTS,
+          min_matching_data_elements: CE3_MIN_MATCHING_DATA_ELEMENTS,
+          min_prior_transactions: CE3_MIN_PRIOR_TRANSACTIONS,
+          min_prior_transaction_age_days: CE3_MIN_PRIOR_TRANSACTION_AGE_DAYS,
+          lookback_days: CE3_LOOKBACK_DAYS,
           // CE 3.0 applies to card-absent fraud (10.4) only; 10.2/10.3 are
           // card-present conditions outside its scope.
-          target_reason_codes: ["10.4"],
+          target_reason_codes: CE3_TARGET_REASON_CODES,
           auto_assembly_ready: signals.has_dispute_handling && signals.has_webhooks,
         },
       },
@@ -1012,11 +1020,11 @@ export function generateProductSchema(
         challenge_escalation: "abort_agent_flow_escalate_to_operator",
       },
       dispute_evidence_requirements: {
-        ce3_min_prior_undisputed_transactions: 2,
-        ce3_min_prior_transaction_age_days: 120,
-        ce3_lookback_window_days: 365,
-        ce3_min_matching_data_elements: 2,
-        ce3_qualified_data_elements: ["device_id", "ip_address", "email", "shipping_address", "login_id"],
+        ce3_min_prior_undisputed_transactions: CE3_MIN_PRIOR_TRANSACTIONS,
+        ce3_min_prior_transaction_age_days: CE3_MIN_PRIOR_TRANSACTION_AGE_DAYS,
+        ce3_lookback_window_days: CE3_LOOKBACK_DAYS,
+        ce3_min_matching_data_elements: CE3_MIN_MATCHING_DATA_ELEMENTS,
+        ce3_qualified_data_elements: CE3_QUALIFIED_DATA_ELEMENTS,
         represent_vs_refund: "Business decision — follow your operator's dispute policy. AXIS does not publish win-rate estimates.",
       },
     },
@@ -1480,13 +1488,13 @@ export function generateCommerceRegistry(
           auto_assembly_ready: signals.has_dispute_handling && signals.has_webhooks,
           // CE 3.0 applies to the card-absent fraud condition 10.4 ONLY — 10.2/10.3
           // are card-present conditions outside CE 3.0 scope.
-          target_reason_codes: ["10.4"],
+          target_reason_codes: CE3_TARGET_REASON_CODES,
           evidence_requirements: {
-            min_prior_undisputed_transactions: 2,
-            min_prior_transaction_age_days: 120,
-            lookback_window_days: 365,
-            min_matching_data_elements: 2,
-            qualified_data_elements: ["device_id", "ip_address", "email", "shipping_address", "login_id"],
+            min_prior_undisputed_transactions: CE3_MIN_PRIOR_TRANSACTIONS,
+            min_prior_transaction_age_days: CE3_MIN_PRIOR_TRANSACTION_AGE_DAYS,
+            lookback_window_days: CE3_LOOKBACK_DAYS,
+            min_matching_data_elements: CE3_MIN_MATCHING_DATA_ELEMENTS,
+            qualified_data_elements: CE3_QUALIFIED_DATA_ELEMENTS,
           },
         },
         represent_vs_refund: "Business decision — follow your operator's dispute policy. AXIS does not publish win-rate estimates.",

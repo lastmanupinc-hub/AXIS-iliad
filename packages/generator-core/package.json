@@ -23,6 +23,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@axis/agentic-compliance": "workspace:*",
     "@axis/snapshots": "workspace:*",
     "@axis/repo-parser": "workspace:*",
     "@axis/context-engine": "workspace:*"
