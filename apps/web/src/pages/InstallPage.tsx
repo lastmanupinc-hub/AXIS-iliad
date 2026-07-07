@@ -17,7 +17,7 @@ function CopyButton({ text }: { text: string }) {
       style={{
         position: "absolute", top: 8, right: 8,
         background: copied ? "var(--green)" : "var(--bg-hover)",
-        color: copied ? "#fff" : "var(--text-muted)",
+        color: copied ? "var(--accent-ink)" : "var(--text-muted)",
         border: "1px solid var(--border)", borderRadius: "var(--radius)",
         fontSize: "0.7rem", padding: "3px 8px", cursor: "pointer",
         fontFamily: "var(--font)", transition: "background 0.15s, color 0.15s",

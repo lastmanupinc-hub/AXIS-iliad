@@ -93,15 +93,17 @@ export function SearchTab({ snapshotId }: Props) {
     if (e.key === "Enter") handleSearch();
   };
 
+  // Theme-aware symbol palette: semantic vars swap automatically between the
+  // light (AA-deepened) and dark (bright HUD) palettes — no hardcoded hex.
   const typeColors: Record<string, string> = {
-    function: "#61afef",
-    class: "#e5c07b",
-    interface: "#56b6c2",
-    type: "#c678dd",
-    enum: "#e06c75",
-    method: "#98c379",
-    struct: "#e5c07b",
-    const: "#abb2bf",
+    function: "var(--blue)",
+    class: "var(--amber)",
+    interface: "var(--accent)",
+    type: "var(--accent)",
+    enum: "var(--red)",
+    method: "var(--green)",
+    struct: "var(--amber)",
+    const: "var(--text-muted)",
   };
 
   return (
@@ -280,8 +282,8 @@ export function SearchTab({ snapshotId }: Props) {
                     fontSize: "0.7rem",
                     padding: "1px 6px",
                     borderRadius: 3,
-                    background: typeColors[s.symbol_type] ?? "var(--border)",
-                    color: "#1a1a2e",
+                    background: `color-mix(in srgb, ${typeColors[s.symbol_type] ?? "var(--text-muted)"} 12%, transparent)`,
+                    color: typeColors[s.symbol_type] ?? "var(--text-muted)",
                     fontWeight: 600,
                     minWidth: 64,
                     textAlign: "center",

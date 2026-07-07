@@ -172,17 +172,42 @@ export function App() {
   const [navOpen, setNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Theme: default light, persist to localStorage
+  // Theme: OS preference by default (theme.css media query); the toggle sets an
+  // explicit data-theme override, persisted to localStorage. `theme` always holds
+  // the EFFECTIVE theme so the rail icon/label stay accurate either way.
+  const [themeOverride, setThemeOverride] = useState<boolean>(() => {
+    const stored = localStorage.getItem("axis_theme");
+    return stored === "light" || stored === "dark";
+  });
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    return (localStorage.getItem("axis_theme") as "light" | "dark") ?? "light";
+    const stored = localStorage.getItem("axis_theme");
+    if (stored === "light" || stored === "dark") return stored;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("axis_theme", theme);
-  }, [theme]);
+    if (themeOverride) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("axis_theme", theme);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.removeItem("axis_theme");
+    }
+  }, [theme, themeOverride]);
+
+  // While following the OS, track live preference changes.
+  useEffect(() => {
+    if (themeOverride) return;
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (!mq) return;
+    const sync = () => setTheme(mq.matches ? "dark" : "light");
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [themeOverride]);
 
   function toggleTheme() {
+    setThemeOverride(true);
     setTheme((t) => (t === "light" ? "dark" : "light"));
   }
 

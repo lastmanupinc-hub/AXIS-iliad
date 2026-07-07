@@ -427,7 +427,7 @@ function ThankYouSection() {
             </a>
             <a
               href={`${RELEASE_BASE}/${r.zip}.zip`}
-              style={{ marginTop: 2, padding: "5px 10px", background: "var(--accent)", color: "#fff", borderRadius: "var(--radius)", fontSize: "0.72rem", fontWeight: 700, textDecoration: "none", textAlign: "center" }}
+              style={{ marginTop: 2, padding: "5px 10px", background: "var(--accent)", color: "var(--accent-ink)", borderRadius: "var(--radius)", fontSize: "0.72rem", fontWeight: 700, textDecoration: "none", textAlign: "center" }}
             >
               Download package
             </a>
@@ -529,7 +529,7 @@ function ExampleCard({ ex, expanded, onToggle }: { ex: Example; expanded: boolea
               rel="noopener noreferrer"
               style={{
                 display: "inline-block", padding: "6px 14px",
-                background: "var(--accent)", color: "#fff",
+                background: "var(--accent)", color: "var(--accent-ink)",
                 borderRadius: "var(--radius)", fontSize: "0.73rem",
                 fontWeight: 600, textDecoration: "none",
               }}
@@ -588,7 +588,7 @@ export function ExamplesPage() {
             rel="noopener noreferrer"
             style={{
               display: "inline-block", padding: "8px 16px",
-              background: "var(--accent)", color: "#fff",
+              background: "var(--accent)", color: "var(--accent-ink)",
               borderRadius: "var(--radius)", fontSize: "0.8rem", fontWeight: 700,
               textDecoration: "none",
             }}
@@ -663,7 +663,7 @@ export function ExamplesPage() {
           href="#upload"
           style={{
             display: "inline-block", padding: "10px 22px",
-            background: "var(--accent)", color: "#fff", borderRadius: "var(--radius)",
+            background: "var(--accent)", color: "var(--accent-ink)", borderRadius: "var(--radius)",
             fontSize: "0.85rem", fontWeight: 700, textDecoration: "none",
           }}
         >

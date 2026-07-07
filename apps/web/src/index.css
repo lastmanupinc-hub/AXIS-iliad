@@ -2,73 +2,104 @@
    AVERIONICS theme pack — Axis' Iliad
    A cockpit/instrument design system: HUD cyan accent, amber caution, precise
    panel borders, glow focus, monospace instrument labels. Full light + dark.
-   :root = "daylight instrument" · [data-theme="dark"] = "night cockpit".
+   :root = "daylight instrument" · dark = "night cockpit".
+
+   Token bridge (WO-F1): canonical values live in theme.css — the app copy of
+   the generated design-system contract (.ai/theme.css), imported before this
+   file. The short names below are aliases onto that contract; add or change
+   tokens there, not here. Dark mode comes from the contract too: OS
+   preference via its media query, or an explicit data-theme override set by
+   the in-app toggle.
    ========================================================================== */
 
 :root {
-  /* Surfaces — daylight instrument */
-  --bg: #eceff3;
-  --bg-card: #ffffff;
-  --bg-hover: #e2e7ee;
-  --bg-inset: #f4f6f9;
-  --bg-tertiary: #e8edf3;
+  /* Surfaces */
+  --bg: var(--surface-page);
+  --bg-card: var(--surface-card);
+  --bg-hover: var(--color-neutral-100);
+  --bg-inset: var(--surface-inset);
+  --bg-tertiary: var(--color-neutral-100);
+  --bg-elev: var(--surface-elevated);
+  --bg-code: var(--surface-inset);
+  --bg-subtle: var(--surface-inset);
+  --surface: var(--surface-card);
   /* Edges */
-  --border: #ccd5e0;
-  --border-strong: #b3bfce;
+  --border: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
   /* Ink */
-  --text: #0c1118;
-  --text-muted: #5b6878;
-  /* Instrument cyan — deepened so text-on-tint (badges, active nav rows) and button
-     labels all clear WCAG AA (>=4.5:1) on light surfaces. Dark keeps the bright HUD cyan. */
-  --accent: #0a5a6b;
-  --accent-hover: #084754;
+  --text: var(--color-neutral-900);
+  --text-muted: var(--color-neutral-500);
+  /* Instrument cyan — light value is AA-deepened in theme.css so text-on-tint
+     (badges, active nav rows) and button labels clear WCAG AA (>=4.5:1). */
+  --accent: var(--color-accent);
+  --accent-hover: #084754; /* no hover token in the contract yet; dark maps to --color-primary-600 below */
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
-  --accent-ink: #ffffff;
-  /* Status / caution (AA on light) */
-  --amber: #7a4900;
-  --green: #0a6638;
-  --yellow: #7a4900;
-  --red: #b01f1f;
-  --blue: #1b46c2;
-  /* System */
-  --radius: 7px;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --mono: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-  --shadow: 0 1px 2px rgba(13,22,32,0.06), 0 1px 3px rgba(13,22,32,0.05);
-  --glow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  --accent-ink: var(--color-accent-ink);
+  /* Status / caution (AA-deepened light values come from theme.css) */
+  --amber: var(--color-amber);
+  --green: var(--color-success);
+  --yellow: var(--color-warning);
+  --red: var(--color-error);
+  --blue: #1b46c2; /* no blue token in the contract yet */
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --warning-bg: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  --danger: var(--color-error);
+  --orange: var(--color-amber);
+  /* System (--glow comes straight from theme.css) */
+  --radius: var(--radius-lg);
+  --font: var(--font-sans);
+  --mono: var(--font-mono);
+  --shadow: var(--shadow-base);
 }
 
-[data-theme="dark"] {
-  /* Surfaces — night cockpit (deep blue-black instrument panels) */
-  --bg: #070b11;
-  --bg-card: #0d141d;
-  --bg-hover: #141e29;
-  --bg-inset: #0a0f16;
-  --bg-tertiary: #121a24;
-  /* Edges */
-  --border: #1b2733;
-  --border-strong: #29384a;
-  /* Ink */
-  --text: #d6e2ee;
-  --text-muted: #6e8093;
-  /* HUD cyan */
-  --accent: #22d3ee;
-  --accent-hover: #67e8f9;
-  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
-  --accent-ink: #04131a;
-  /* Status / caution (instrument greens/ambers/reds) */
-  --amber: #ffb020;
-  --green: #2ee6a6;
-  --yellow: #ffc53d;
-  --red: #ff5d6c;
-  --blue: #4d8dff;
-  /* System — dark shadows + cyan HUD glow */
-  --shadow: 0 1px 2px rgba(0,0,0,0.5), 0 2px 10px rgba(0,0,0,0.35);
-  --glow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
-          0 0 18px color-mix(in srgb, var(--accent) 28%, transparent);
+/* Night cockpit: every alias above auto-inverts through the theme.css dark
+   tokens. Only values with no 1:1 token — or whose dark equivalent sits one
+   neutral step off the light mapping — live here, duplicated for both dark
+   contexts exactly like theme.css (OS preference + explicit toggle). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-hover: var(--color-neutral-200);
+    --bg-tertiary: var(--color-neutral-200);
+    --border: var(--color-neutral-300);
+    --border-strong: var(--color-neutral-400);
+    --accent-hover: var(--color-primary-600);
+    --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+    --blue: #4d8dff;
+  }
 }
+[data-theme="dark"] {
+  --bg-hover: var(--color-neutral-200);
+  --bg-tertiary: var(--color-neutral-200);
+  --border: var(--color-neutral-300);
+  --border-strong: var(--color-neutral-400);
+  --accent-hover: var(--color-primary-600);
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --blue: #4d8dff;
+}
+
+/* Native form controls + scrollbars follow the explicit override (theme.css
+   already sets color-scheme: light dark for the OS-preference case). */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Base-reset reconciliation ──────────────────────────────────────────
+   theme.css ships an opinionated element reset; this app's pages predate it
+   and style these elements themselves (classes or inline). Pin the app's
+   baseline where the two disagree so the bridge lands zero-regression —
+   later work-orders may adopt the contract's element defaults deliberately. */
+p { max-width: none; }                    /* contract caps paragraphs at 70ch */
+h1, h2, h3, h4 { line-height: 1.6; }      /* headings inherited body leading pre-bridge */
+h4 { font-size: 1em; font-weight: 700; }
+button { padding: 0; border-radius: 0; }  /* app buttons bring their own chrome */
+code, samp { background: none; border-radius: 0; padding: 0; }
+img, picture, video, canvas, svg {        /* icons flow inline with text here */
+  display: revert;
+  max-width: revert;
+  height: revert;
+}
 
 body {
   font-family: var(--font);
@@ -809,12 +840,21 @@ kbd {
    Instrument character layered over the existing components — no class
    renames, so every page inherits the cockpit look automatically. */
 
-/* Subtle HUD ambiance: faint cyan glow bleeding from the top in dark mode */
+/* Subtle HUD ambiance: faint cyan glow bleeding from the top in dark mode
+   (both dark contexts, mirroring theme.css: OS preference + explicit toggle) */
 [data-theme="dark"] body {
   background:
     radial-gradient(1100px 520px at 50% -8%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 62%),
     var(--bg);
   background-attachment: fixed;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background:
+      radial-gradient(1100px 520px at 50% -8%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 62%),
+      var(--bg);
+    background-attachment: fixed;
+  }
 }
 
 /* Instrument panels: soft depth + a firmer edge on hover */
