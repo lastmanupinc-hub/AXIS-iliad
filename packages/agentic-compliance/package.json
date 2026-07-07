@@ -1,9 +1,20 @@
 {
   "name": "@axis/agentic-compliance",
   "version": "0.5.3",
+  "private": true,
   "type": "module",
-  "description": "Deterministic Visa-grade agentic compliance engines (CE 3.0 evidence assembly and friends) — pure functions, no runtime deps",
-  "keywords": ["compliance", "visa", "ce3", "compelling-evidence", "dispute", "agentic-commerce", "mcp"],
+  "description": "Deterministic, transparent engines backing the visa_compliance_kit claims (CE 3.0 evidence assembly, dispute win-probability scoring, and future SCA/AP2 engines) — pure functions, no external calls, no black-box scores, no runtime deps.",
+  "keywords": [
+    "compliance",
+    "visa",
+    "ce3",
+    "compelling-evidence",
+    "dispute-win-probability",
+    "ap2",
+    "dispute",
+    "agentic-commerce",
+    "mcp"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -24,7 +35,7 @@
     "test": "echo skipped — run vitest from root"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   }
 }
