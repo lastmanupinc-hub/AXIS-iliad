@@ -3,7 +3,7 @@
   "version": "0.5.3",
   "private": true,
   "type": "module",
-  "description": "Deterministic, transparent engines backing the visa_compliance_kit claims (CE 3.0 evidence assembly, dispute win-probability scoring, and future SCA/AP2 engines) — pure functions, no external calls, no black-box scores, no runtime deps.",
+  "description": "Deterministic, transparent engines backing the visa_compliance_kit claims (CE 3.0 evidence assembly, dispute win-probability scoring, and the rail-agnostic dispute lifecycle: state machine, representment builder, Stripe dispute client live today, VROL/RDR/CDRN integration-ready behind AXIS_ENABLE_VROL) — pure engines plus injectable-fetch clients, no black-box scores, no runtime deps.",
   "keywords": [
     "compliance",
     "visa",
@@ -12,6 +12,12 @@
     "dispute-win-probability",
     "ap2",
     "dispute",
+    "chargeback",
+    "representment",
+    "visa-compliance",
+    "vrol",
+    "rdr",
+    "cdrn",
     "agentic-commerce",
     "mcp"
   ],
