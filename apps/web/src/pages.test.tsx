@@ -488,3 +488,107 @@ describe("Component smoke tests", () => {
     expect(screen.queryByRole("button", { name: /^Sign In$/i })).toBeNull();
   });
 });
+
+// ─── SignUpModal contextual copy (WO-P2) ─────────────────────────
+// The header/subhead varies by why the gate fired; the providers offered
+// never do — every trigger must still surface GitHub + Google.
+
+describe("SignUpModal contextual copy (WO-P2)", () => {
+  it("defaults to generic sign-in copy when no trigger is given", () => {
+    render(<SignUpModal onSuccess={() => {}} onClose={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Sign in to Iliad" })).toBeTruthy();
+  });
+
+  it("save-project trigger explains what signing in saves", () => {
+    render(<SignUpModal onSuccess={() => {}} onClose={() => {}} trigger="save-project" />);
+    expect(screen.getByRole("heading", { name: "Save this project" })).toBeTruthy();
+  });
+
+  it("paid-program trigger frames sign-in as the first step to upgrading", () => {
+    render(<SignUpModal onSuccess={() => {}} onClose={() => {}} trigger="paid-program" />);
+    expect(screen.getByRole("heading", { name: "Sign in to upgrade" })).toBeTruthy();
+  });
+
+  it("quota trigger explains the free usage limit", () => {
+    render(<SignUpModal onSuccess={() => {}} onClose={() => {}} trigger="quota" />);
+    expect(screen.getByText(/hit the free usage limit/i)).toBeTruthy();
+  });
+
+  it("every trigger still offers GitHub + Google OAuth — copy never hides the providers", () => {
+    const triggers = ["generic", "save-project", "paid-program", "quota"] as const;
+    for (const trigger of triggers) {
+      const { unmount } = render(<SignUpModal onSuccess={() => {}} onClose={() => {}} trigger={trigger} />);
+      expect(screen.getByRole("link", { name: /GitHub/i }).getAttribute("href")).toContain("/v1/auth/github");
+      expect(screen.getByRole("link", { name: /Google/i }).getAttribute("href")).toContain("/v1/auth/google");
+      unmount();
+    }
+  });
+});
+
+// ─── AccountPage OAuth callback — return-to (WO-P2) ──────────────
+// The provider redirect always lands on /account?code=…, but sign-in should
+// hand the user back to whatever page's gate sent them there. AccountPage's
+// finishAuthAndReload restores the remembered hash before the hard reload
+// the OAuth handoff requires (a fresh mount re-reads the session cookie).
+
+describe("AccountPage OAuth callback — return-to (WO-P2)", () => {
+  function mockLocationForOAuthCallback() {
+    const reload = vi.fn();
+    const fakeLocation = { search: "?code=abc123&login=github", pathname: "/account", hash: "", reload };
+    const original = window.location;
+    Object.defineProperty(window, "location", { configurable: true, writable: true, value: fakeLocation });
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState").mockImplementation(() => {});
+    return {
+      fakeLocation,
+      reload,
+      restore: () => {
+        Object.defineProperty(window, "location", { configurable: true, writable: true, value: original });
+        replaceStateSpy.mockRestore();
+      },
+    };
+  }
+
+  function stubExchangeFetch() {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/v1/auth/exchange")) {
+        return { ok: true, status: 200, json: async () => ({ api_key: "axis_new" }) } satisfies Partial<Response> as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({}) } satisfies Partial<Response> as Response;
+    }));
+  }
+
+  afterEach(() => {
+    localStorage.removeItem("axis_api_key");
+    sessionStorage.clear();
+  });
+
+  it("restores the pending return hash before reloading after a successful exchange", async () => {
+    sessionStorage.setItem("axis_return_to", "dashboard"); // as App.tsx's openSignUp would record it
+    const { fakeLocation, reload, restore } = mockLocationForOAuthCallback();
+    stubExchangeFetch();
+
+    try {
+      render(<AccountPage />);
+      await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+      expect(fakeLocation.hash).toBe("dashboard");
+      // One-time use: consumed, not left behind for the next login.
+      expect(sessionStorage.getItem("axis_return_to")).toBeNull();
+    } finally {
+      restore();
+    }
+  });
+
+  it("falls back to the default /account landing when nothing was pending", async () => {
+    const { fakeLocation, reload, restore } = mockLocationForOAuthCallback();
+    stubExchangeFetch();
+
+    try {
+      render(<AccountPage />);
+      await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+      expect(fakeLocation.hash).toBe(""); // untouched — plain reload of /account
+    } finally {
+      restore();
+    }
+  });
+});

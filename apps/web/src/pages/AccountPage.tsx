@@ -17,6 +17,7 @@ import {
   exchangeOAuthCode,
   logoutSession,
   markAuthed,
+  consumeReturnTo,
   type Account,
   type ApiKeyInfo,
   type UsageSummary,
@@ -27,6 +28,20 @@ import {
 } from "../api.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { PROGRAM_COUNT } from "../config.ts";
+
+/** Land back on whatever page the login gate remembered (WO-P2) instead of
+ *  always the default /account landing — a deep-linked auth-only page or a
+ *  point-of-value nudge (App.tsx's openSignUp) records its own hash before
+ *  bouncing here. The reload is a hard requirement of the OAuth handoff (a
+ *  fresh mount re-reads the now-set session cookie/marker); setting the hash
+ *  first means the fresh mount resolves straight to the right route instead
+ *  of landing on Account and needing a second navigation. No-op fallback
+ *  (plain reload, current /account URL) when nothing was recorded. */
+function finishAuthAndReload(): void {
+  const pending = consumeReturnTo();
+  if (pending) window.location.hash = pending;
+  window.location.reload();
+}
 
 export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [account, setAccount] = useState<Account | null>(null);
@@ -63,7 +78,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
         .then(() => {
           markAuthed(); // the exchange already set the HttpOnly cookie; just record the session
           onAuthChange?.();
-          window.location.reload();
+          finishAuthAndReload(); // WO-P2: back to whatever page triggered sign-in, not always here
         })
         .catch((e) => setError(`${provider} login failed: ${e instanceof Error ? e.message : "exchange error"}`));
     }
@@ -188,7 +203,7 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
           {signingIn ? (
             <div className="empty-state"><span className="spinner" /> Completing sign-in…</div>
           ) : (
-            <AuthButtons onEmailSuccess={() => { onAuthChange?.(); window.location.reload(); }} />
+            <AuthButtons onEmailSuccess={() => { onAuthChange?.(); finishAuthAndReload(); }} />
           )}
         </div>
       </div>

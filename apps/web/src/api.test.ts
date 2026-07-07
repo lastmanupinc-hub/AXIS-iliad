@@ -39,6 +39,9 @@ import {
   establishSession,
   markAuthed,
   migrateLegacyKey,
+  // WO-P2 — auth polish (post-auth return-to)
+  rememberReturnTo,
+  consumeReturnTo,
   // WO-F3 — API client expansion
   listProjects,
   listProjectSnapshots,
@@ -214,6 +217,35 @@ describe("session cookie cutover (H1 C2)", () => {
     vi.stubGlobal("fetch", mockFetch({ error: "nope" }, 500));
     await migrateLegacyKey(); // must not throw
     expect(mockStorage["axis_api_key"]).toBe("axis_legacy");
+  });
+});
+
+describe("post-auth return-to (WO-P2)", () => {
+  // Deliberately real sessionStorage (not the localStorage mock above) — this
+  // is what survives the OAuth provider round trip; localStorage would too,
+  // but would also leak the "where to go back to" hint across tabs/sessions.
+  beforeEach(() => sessionStorage.clear());
+  afterEach(() => sessionStorage.clear());
+
+  it("round-trips the remembered hash", () => {
+    rememberReturnTo("dashboard");
+    expect(consumeReturnTo()).toBe("dashboard");
+  });
+
+  it("is one-time use — a second read returns null", () => {
+    rememberReturnTo("plans");
+    expect(consumeReturnTo()).toBe("plans");
+    expect(consumeReturnTo()).toBeNull();
+  });
+
+  it("returns null when nothing was recorded", () => {
+    expect(consumeReturnTo()).toBeNull();
+  });
+
+  it("a later rememberReturnTo overwrites an earlier, unconsumed one", () => {
+    rememberReturnTo("account");
+    rememberReturnTo("projects");
+    expect(consumeReturnTo()).toBe("projects");
   });
 });
 

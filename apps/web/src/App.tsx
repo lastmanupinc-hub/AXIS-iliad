@@ -2,10 +2,10 @@ import { useState, useCallback, useEffect, useMemo, Fragment, Component, type Re
 import { ToastProvider } from "./components/Toast.tsx";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.tsx";
 import { StatusBar } from "./components/StatusBar.tsx";
-import { SignUpModal } from "./components/SignUpModal.tsx";
+import { SignUpModal, type SignUpTrigger } from "./components/SignUpModal.tsx";
 import { Icon } from "./components/Icon.tsx";
 import { PageFooter } from "./components/primitives/PageFooter.tsx";
-import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, ApiError, type SnapshotResponse } from "./api.ts";
+import { getAdminStats, migrateLegacyKey, logoutSession, getProjectContext, getGeneratedFiles, rememberReturnTo, consumeReturnTo, ApiError, type SnapshotResponse } from "./api.ts";
 import { APP_VERSION } from "./version.ts";
 import {
   ROUTES,
@@ -19,6 +19,8 @@ import {
   routeForShortcut,
   visibleRailRoutes,
   visibleGroupRoutes,
+  hashForPage,
+  matchHash,
   type NavContext,
   type PageId,
   type RouteContext,
@@ -64,6 +66,13 @@ function ErrorBoundary({ children }: { children: ReactNode }) {
 
 function hasApiKey(): boolean {
   return !!localStorage.getItem("axis_api_key");
+}
+
+/** Which contextual copy the sign-in popup should show for a given auth-only
+ *  destination (WO-P2) — plan/checkout pages get the upgrade framing,
+ *  everything else gets the generic sign-in framing. */
+function triggerForPage(page: PageId): SignUpTrigger {
+  return page === "plans" || page === "paid-checkout" ? "paid-program" : "generic";
 }
 
 // ─── Multi-project state (WO-F3) ────────────────────────────────
@@ -123,6 +132,7 @@ export function App() {
   const [restoring, setRestoring] = useState(false);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [signUpTrigger, setSignUpTrigger] = useState<SignUpTrigger>("generic");
   const [navOpen, setNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -165,17 +175,30 @@ export function App() {
     setTheme((t) => (t === "light" ? "dark" : "light"));
   }
 
+  /** Open the sign-in popup and remember the hash to return to once it
+   *  succeeds (WO-P2) — "Sign in" isn't always headed to Account; the popup
+   *  should hand the user back whatever they were doing: a specific
+   *  auth-only destination for a nav click/deep link, or wherever they
+   *  already were for a page-agnostic nudge (e.g. the guest-project banner).
+   *  Survives the OAuth round trip via sessionStorage (api.ts) since that
+   *  flow leaves the SPA entirely — see AccountPage.tsx's finishAuthAndReload. */
+  const openSignUp = useCallback((page: PageId, params: RouteParams, trigger: SignUpTrigger) => {
+    rememberReturnTo(hashForPage(page, params));
+    setSignUpTrigger(trigger);
+    setShowSignUp(true);
+  }, []);
+
   /** Navigate with the login gate applied: a login-gated page while signed out
-   *  opens the sign-in popup and stays put. */
+   *  opens the sign-in popup (remembering that destination) and stays put. */
   const nav = useCallback((p: PageId, params?: RouteParams) => {
     if (AUTH_ONLY_PAGES.has(p) && !hasApiKey()) {
-      setShowSignUp(true);
+      openSignUp(p, params ?? {}, triggerForPage(p));
       setNavOpen(false);
       return;
     }
     navigate(p, params);
     setNavOpen(false);
-  }, [navigate]);
+  }, [navigate, openSignUp]);
 
   // H9 (WO-P1, build plan §3 WO-P1 "Login-gate change"): anonymous analyses
   // complete and display their free-program results immediately — the
@@ -320,10 +343,10 @@ export function App() {
   // the handoff.
   useEffect(() => {
     if (AUTH_ONLY_PAGES.has(route.page) && !loggedIn && !isOAuthCallback()) {
-      setShowSignUp(true);
+      openSignUp(route.page, route.params, triggerForPage(route.page));
       navigate("home");
     }
-  }, [route.page, loggedIn, navigate]);
+  }, [route.page, route.params, loggedIn, navigate, openSignUp]);
 
   // Admin gate: a signed-in but non-admin user on an `adminOnly` page falls
   // back to their account page (accessible once logged in). Signed-out users
@@ -343,7 +366,13 @@ export function App() {
   const handleSignUpSuccess = useCallback(() => {
     setShowSignUp(false);
     setLoggedIn(true);
-  }, []);
+    // WO-P2: hand the user back to whatever triggered sign-in — never a
+    // blind default to Account. (The OAuth round trip resolves the same
+    // recorded hash one layer down — see AccountPage.tsx's finishAuthAndReload.)
+    const pending = consumeReturnTo();
+    const match = pending ? matchHash(pending) : null;
+    if (match) navigate(match.route.page, match.params);
+  }, [navigate]);
 
   // Track generated file count from DashboardPage
   const handleGeneratedCountChange = useCallback((count: number) => {
@@ -410,11 +439,13 @@ export function App() {
     currentProjectId,
     restoring,
     navigate: nav,
-    requireLogin: () => setShowSignUp(true),
+    // Page-agnostic nudge (e.g. the guest-project banner): no specific
+    // destination, so it returns to wherever this was called from.
+    requireLogin: (trigger) => openSignUp(route.page, route.params, trigger ?? "generic"),
     onAnalyzeComplete: handleAnalyzeComplete,
     onGeneratedCountChange: handleGeneratedCountChange,
     onAuthChange: handleAuthChange,
-  }), [navCtx, route.params, route.hash, result, currentProjectId, restoring, nav, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange]);
+  }), [navCtx, route.page, route.params, route.hash, result, currentProjectId, restoring, nav, openSignUp, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange]);
 
   return (
     <ToastProvider>
@@ -524,6 +555,7 @@ export function App() {
       <StatusBar snapshot={result} fileCount={generatedFileCount} />
       {showSignUp && (
         <SignUpModal
+          trigger={signUpTrigger}
           onSuccess={handleSignUpSuccess}
           onClose={() => setShowSignUp(false)}
           allowClose={true}

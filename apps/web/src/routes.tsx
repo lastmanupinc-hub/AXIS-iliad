@@ -21,6 +21,7 @@ import { KitchenSinkPage } from "./pages/KitchenSinkPage.tsx";
 import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx";
 import { Callout } from "./components/primitives/index.ts";
 import { PRO_PROGRAM_COUNT } from "./config.ts";
+import type { SignUpTrigger } from "./components/SignUpModal.tsx";
 import type { SnapshotResponse } from "./api.ts";
 
 // ─── routes.tsx — the single source of truth for navigation (WO-F2) ─────────
@@ -92,8 +93,10 @@ export interface RouteContext extends NavContext {
   /** True while the dashboard result is being rebuilt from the server. */
   restoring: boolean;
   navigate: (page: PageId, params?: RouteParams) => void;
-  /** Open the sign-in popup without navigating. */
-  requireLogin: () => void;
+  /** Open the sign-in popup without navigating (WO-P2: remembers the current
+   *  page so a successful sign-in returns here; `trigger` picks the popup's
+   *  contextual copy — default "generic"). */
+  requireLogin: (trigger?: SignUpTrigger) => void;
   /** Fires once an analysis completes — H9: anonymous results are shown
    *  immediately (never gated behind signup); see App.tsx handleAnalyzeComplete. */
   onAnalyzeComplete: (data: SnapshotResponse) => void;
@@ -161,7 +164,7 @@ export const ROUTES: RouteDef[] = [
     // and no `shortcut`. Reached via "/", the bare hash, or the sidebar
     // brand/logo... except the brand click resets to Analyze (see App.tsx
     // handleReset) — Home is a pure entry point, not a mid-session waypoint.
-    render: (ctx) => <HomePage onAnalyze={() => ctx.navigate("analyze")} onRequireLogin={ctx.requireLogin} />,
+    render: (ctx) => <HomePage onAnalyze={() => ctx.navigate("analyze")} onRequireLogin={() => ctx.requireLogin("save-project")} />,
   },
   {
     page: "analyze",
@@ -193,7 +196,7 @@ export const ROUTES: RouteDef[] = [
                 <Callout tone="info" title="You're browsing as a guest">
                   This project lives in your browser only. Sign up to unlock {PRO_PROGRAM_COUNT} more paid
                   programs and keep every future analysis as a saved project.{" "}
-                  <button type="button" className="btn btn-primary" style={{ marginLeft: 8 }} onClick={ctx.requireLogin}>
+                  <button type="button" className="btn btn-primary" style={{ marginLeft: 8 }} onClick={() => ctx.requireLogin("save-project")}>
                     Sign up free
                   </button>
                 </Callout>
@@ -268,7 +271,7 @@ export const ROUTES: RouteDef[] = [
     authOnly: true,
     aliases: ["/pricing", "/plans"],
     nav: { group: "LIBRARY", icon: "credit-card" },
-    render: (ctx) => <PlansPage onSelectPlan={() => ctx.navigate("account")} onRequireLogin={ctx.requireLogin} />,
+    render: (ctx) => <PlansPage onSelectPlan={() => ctx.navigate("account")} onRequireLogin={() => ctx.requireLogin("paid-program")} />,
   },
   {
     page: "account",

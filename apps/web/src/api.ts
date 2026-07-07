@@ -374,6 +374,38 @@ export async function logoutSession(): Promise<void> {
   }
 }
 
+// ─── Post-auth return-to (WO-P2) ─────────────────────────────────
+// A login gate — an auth-only page hit directly, an auth-only nav click while
+// signed out, or a page-agnostic "sign up" nudge — records the hash it fired
+// on so sign-in can hand the user back to what they were doing instead of
+// always landing on Account. GitHub/Google OAuth is a full top-level round
+// trip through the provider and back (plus a hard reload on return — see
+// AccountPage.tsx's finishAuthAndReload), so in-memory state isn't enough;
+// sessionStorage survives that round trip for the life of the tab without
+// leaking across tabs/sessions the way localStorage would.
+const RETURN_TO_KEY = "axis_return_to";
+
+/** Remember the hash (no leading "#") to return to once sign-in completes. */
+export function rememberReturnTo(hash: string): void {
+  try {
+    sessionStorage.setItem(RETURN_TO_KEY, hash);
+  } catch {
+    // Storage unavailable (private mode, quota) — sign-in falls back to its
+    // default landing page instead; not fatal.
+  }
+}
+
+/** Read and clear the pending return-to hash (one-time use). Null if none was recorded. */
+export function consumeReturnTo(): string | null {
+  try {
+    const hash = sessionStorage.getItem(RETURN_TO_KEY);
+    sessionStorage.removeItem(RETURN_TO_KEY);
+    return hash;
+  } catch {
+    return null;
+  }
+}
+
 interface FetchOptions extends RequestInit {
   timeoutMs?: number;
   /**

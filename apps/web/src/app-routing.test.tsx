@@ -404,3 +404,80 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
     expect(localStorage.getItem("axis_anon_result")).toBeNull();
   });
 });
+
+// ─── Sign-up return-to (WO-P2) ────────────────────────────────────
+// A login gate — a nav click on an auth-only item, a deep link straight to
+// one, or a page-agnostic "sign up" nudge — must hand the user back to what
+// they were doing once sign-in succeeds, not always #account. The in-SPA
+// email-signup path (no page reload) exercises the App.tsx/routes.tsx half
+// of this end to end; the OAuth-round-trip half (AccountPage's
+// finishAuthAndReload) is covered separately in pages.test.tsx.
+
+describe("Sign-up return-to (WO-P2)", () => {
+  function stubSignupFetch() {
+    return stubApiFetch([
+      ["/v1/plans", { plans: [], features: [] }],
+      ["/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: [], skipped: [] }],
+      ["/v1/accounts", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free" }, api_key: { key_id: "k1", raw_key: "axis_newkey", label: "default" } }],
+      ["/v1/auth/session", { ok: true }],
+    ]);
+  }
+
+  function completeEmailSignup() {
+    fireEvent.click(screen.getByText("or sign up with email"));
+    fireEvent.change(screen.getByPlaceholderText("Your name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByPlaceholderText("you@example.com"), { target: { value: "ada@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create account with email" }));
+  }
+
+  afterEach(() => {
+    sessionStorage.clear();
+    localStorage.removeItem("axis_api_key");
+  });
+
+  it("a nav click on an auth-only item remembers the target and lands there after signup — not #account", async () => {
+    stubSignupFetch();
+    const { container } = render(<App />);
+
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    fireEvent.click(sidebar.getByRole("button", { name: "Plans" }));
+    // nav()'s gate keeps the user put and opens the popup with upgrade-flavored copy.
+    expect(shellPage(container)).toBe("home");
+    expect(screen.getByRole("heading", { name: "Sign in to upgrade" })).toBeTruthy();
+
+    completeEmailSignup();
+
+    await waitFor(() => expect(shellPage(container)).toBe("plans"));
+    expect(window.location.hash).toBe("#plans");
+  });
+
+  it("a deep link straight to an auth-only page remembers it and lands there after signup", async () => {
+    stubSignupFetch();
+    window.location.hash = "#plans";
+
+    const { container } = render(<App />);
+    await waitFor(() => expect(shellPage(container)).toBe("home"));
+
+    completeEmailSignup();
+
+    await waitFor(() => expect(shellPage(container)).toBe("plans"));
+    expect(window.location.hash).toBe("#plans");
+  });
+
+  it("a page-agnostic requireLogin nudge (guest-project banner) returns to the SAME page, not #account", async () => {
+    localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
+    stubSignupFetch();
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign up free" }));
+    expect(screen.getByRole("heading", { name: "Save this project" })).toBeTruthy();
+
+    completeEmailSignup();
+
+    await waitFor(() => expect(window.location.hash).toBe("#dashboard"));
+    expect(shellPage(container)).toBe("dashboard");
+  });
+});
