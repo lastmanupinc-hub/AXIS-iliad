@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["packages/*/src/**/*.test.ts", "apps/*/src/**/*.test.{ts,tsx}"],
+    setupFiles: ["./vitest.setup.ts"],
     environment: "node",
     pool: "threads",
     // The Postgres-backed suite (Phase 6 of the Neon migration) shares one test
