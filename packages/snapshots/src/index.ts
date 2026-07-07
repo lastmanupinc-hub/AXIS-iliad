@@ -1,4 +1,5 @@
 export type { SnapshotInput, SnapshotRecord, SnapshotManifest, FileEntry, InputMethod, SnapshotStatus } from "./types.js";
+export type { ProjectListEntry } from "./store.js";
 export {
   createSnapshot,
   getSnapshot,
@@ -6,6 +7,7 @@ export {
   getProjectSnapshots,
   getProjectOwner,
   listProjectsByAccount,
+  listProjectsWithLatestSnapshot,
   deleteSnapshot,
   deleteProject,
   saveContextMap,
@@ -30,7 +32,7 @@ export { parseGitHubUrl, fetchGitHubRepo } from "./github.js";
 
 // Billing
 export type { Account, ApiKey, BillingTier, ProgramEntitlement, UsageRecord, UsageSummary, TierLimits, ProgramName, PersistenceOp, PersistenceCreditRecord, PersistencePackId } from "./billing-types.js";
-export type { QuotaCheck, SystemStats, AccountSummary, RecentActivity, ApiEndpointUsage, ApiStatusUsage, AccountApiAnalyticsSummary } from "./billing-store.js";
+export type { QuotaCheck, SystemStats, AccountSummary, RecentActivity, ApiEndpointUsage, ApiStatusUsage, AccountApiAnalyticsSummary, UsageDayBucket } from "./billing-store.js";
 export { TIER_LIMITS, ALL_PROGRAMS, PERSISTENCE_CREDIT_COSTS, PERSISTENCE_CREDIT_PACKS, PERSISTENCE_MIN_TIER, SUITE_MONTHLY_PERSISTENCE_CREDITS } from "./billing-types.js";
 export {
   createAccount,
@@ -48,6 +50,7 @@ export {
   isProgramEnabled,
   recordUsage,
   getUsageSummary,
+  getUsageByDay,
   getMonthlySnapshotCount,
   getProjectCount,
   checkQuota,
@@ -140,7 +143,7 @@ export {
 } from "./tier-audit.js";
 
 // Persistence metering (add-on, metered on top of paid/suite)
-export type { MeterResult } from "./persistence-metering.js";
+export type { MeterResult, PersistenceSpendDayBucket } from "./persistence-metering.js";
 export {
   getPersistenceBalance,
   canUsePersistence,
@@ -148,6 +151,7 @@ export {
   applySuiteMonthlyGrant,
   meterPersistenceOp,
   getPersistenceLedger,
+  getPersistenceSpendByDay,
 } from "./persistence-metering.js";
 
 // Project memory

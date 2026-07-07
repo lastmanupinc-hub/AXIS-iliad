@@ -329,6 +329,52 @@ describe("Multi-project state (WO-F3)", () => {
   });
 });
 
+// ─── Account Dashboard → open a project (WO-P3) ──────────────────
+// #account-dashboard is login-gated (like #account/#plans); its project
+// cards hand off to the existing #dashboard server-restore path (WO-F3)
+// via App.tsx's handleOpenProject — no changes to that restore effect itself.
+
+describe("Account Dashboard (WO-P3)", () => {
+  it("auth-only deep link (#account-dashboard) bounces to the landing page with the sign-in popup", async () => {
+    window.location.hash = "#account-dashboard";
+    const { container } = render(<App />);
+    await waitFor(() => expect(shellPage(container)).toBe("home"));
+    expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+
+  it("clicking a recent-project card opens it on #dashboard via the server restore path", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    const fx = makeSnapshotResponse();
+    stubApiFetch([
+      ["/v1/projects/proj_fx/context", { snapshot_id: "snap_fx", context_map: fx.context_map, repo_profile: fx.repo_profile }],
+      ["/v1/projects/proj_fx/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: fx.generated_files.map((f) => ({ ...f, content: "x", content_type: "text/markdown" })), skipped: [] }],
+      ["/v1/projects", {
+        projects: [{
+          project_id: "proj_fx",
+          name: "fixture-repo",
+          github_url: null,
+          created_at: "2026-07-01T00:00:00Z",
+          latest_snapshot: { snapshot_id: "snap_fx", status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 1, compliance_grade: { grade: "B" } },
+          snapshot_count: 1,
+        }],
+        total: 1,
+      }],
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 1, max_snapshots_per_month: 200, project_count: 1, max_projects: -1, max_files_per_snapshot: 500 } }],
+    ]);
+    window.location.hash = "#account-dashboard";
+
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("account-dashboard");
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("fixture-repo").closest("button")!);
+
+    await waitFor(() => expect(shellPage(container)).toBe("dashboard"));
+    expect(window.location.hash).toBe("#dashboard");
+    await waitFor(() => expect(screen.getAllByText("fixture-repo").length).toBeGreaterThan(0));
+  });
+});
+
 // ─── Anonymous analyze results — no signup gate (WO-P1 H9) ───────
 // The build plan's single biggest funnel change: a successful anonymous
 // analysis used to be intercepted by the SignUpModal (pendingResultRef) and

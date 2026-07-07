@@ -1028,6 +1028,29 @@ export async function getUsage(): Promise<{ tier: BillingTier; monthly_snapshots
   };
 }
 
+export interface ResourceQuota {
+  tier: BillingTier;
+  snapshots_this_month: number;
+  /** -1 = unlimited. */
+  max_snapshots_per_month: number;
+  project_count: number;
+  /** -1 = unlimited. */
+  max_projects: number;
+  max_files_per_snapshot: number;
+}
+
+export interface QuotaResponse {
+  rate_limit: { limit: number; remaining: number; count: number; reset_in_seconds: number; window_ms: number };
+  authenticated: boolean;
+  /** Present only for authenticated callers. */
+  resource_quota?: ResourceQuota;
+}
+
+/** GET /v1/account/quota — rate-limit + resource quota (snapshots/projects this month vs. tier caps). */
+export async function getQuota(): Promise<QuotaResponse> {
+  return fetchJSON("/v1/account/quota");
+}
+
 export async function getMyAnalyticsSummary(sinceDays = 30, limit = 200): Promise<MyAnalyticsSummary> {
   const safeSince = Math.min(Math.max(sinceDays, 1), 365);
   const safeLimit = Math.min(Math.max(limit, 1), 500);

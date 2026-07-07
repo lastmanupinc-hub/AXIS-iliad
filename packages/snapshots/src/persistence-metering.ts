@@ -164,3 +164,33 @@ export async function getPersistenceLedger(
     [account_id, limit],
   );
 }
+
+/** One day's worth of persistence-credit spend — `GET /v1/account/usage/timeseries` (WO-A3). */
+export interface PersistenceSpendDayBucket {
+  /** UTC calendar date, "YYYY-MM-DD". */
+  date: string;
+  /** Positive number of credits consumed that day (debits only — grants are excluded). */
+  credits_spent: number;
+}
+
+/**
+ * Per-day persistence-credit spend since `since` (inclusive, ISO timestamp).
+ * Only debit rows (`credits_delta < 0`, e.g. a diff view) count as "spend" —
+ * grants/purchases (`credits_delta > 0`) are the balance-over-time story the
+ * ledger UI already shows, not a per-day usage-graph metric. Sparse; the
+ * caller zero-fills the full requested window.
+ */
+export async function getPersistenceSpendByDay(account_id: string, since: string): Promise<PersistenceSpendDayBucket[]> {
+  const rows = await sql.many<{ credits_delta: number | string; created_at: string }>(
+    "SELECT credits_delta, created_at FROM persistence_credits WHERE account_id = ? AND created_at >= ? AND credits_delta < 0",
+    [account_id, since],
+  );
+  const spendByDate = new Map<string, number>();
+  for (const row of rows) {
+    const date = row.created_at.slice(0, 10);
+    spendByDate.set(date, (spendByDate.get(date) ?? 0) + -Number(row.credits_delta));
+  }
+  return [...spendByDate.entries()]
+    .map(([date, credits_spent]) => ({ date, credits_spent }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}

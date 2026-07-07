@@ -276,6 +276,41 @@ export async function getUsageSummary(account_id: string, since?: string): Promi
   }));
 }
 
+/** One day's worth of program-run usage — `GET /v1/account/usage/timeseries` (WO-A3). */
+export interface UsageDayBucket {
+  /** UTC calendar date, "YYYY-MM-DD". */
+  date: string;
+  runs: number;
+  by_program: Record<string, number>;
+}
+
+/**
+ * Per-day run counts (+ per-program breakdown) since `since` (inclusive, ISO
+ * timestamp). Sparse — only dates with at least one run are returned; the
+ * caller zero-fills the full requested window so charts get a contiguous
+ * series. Bucketing happens in JS (a `usage_records(account_id)` index-backed
+ * scan is already narrow at typical per-account volumes) rather than a SQL
+ * date_trunc, mirroring the count_by_bucket approach in analytics.ts.
+ */
+export async function getUsageByDay(account_id: string, since: string): Promise<UsageDayBucket[]> {
+  const rows = await sql.many<{ program: string; created_at: string }>(
+    "SELECT program, created_at FROM usage_records WHERE account_id = ? AND created_at >= ? ORDER BY created_at ASC",
+    [account_id, since],
+  );
+  const buckets = new Map<string, UsageDayBucket>();
+  for (const row of rows) {
+    const date = row.created_at.slice(0, 10);
+    let bucket = buckets.get(date);
+    if (!bucket) {
+      bucket = { date, runs: 0, by_program: {} };
+      buckets.set(date, bucket);
+    }
+    bucket.runs += 1;
+    bucket.by_program[row.program] = (bucket.by_program[row.program] ?? 0) + 1;
+  }
+  return [...buckets.values()].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
 export async function getMonthlySnapshotCount(account_id: string): Promise<number> {
   const firstOfMonth = new Date();
   firstOfMonth.setDate(1);

@@ -125,9 +125,9 @@ describe("routeFromPathname — marketing/SEO aliases", () => {
 });
 
 describe("derived route metadata", () => {
-  it("AUTH_ONLY_PAGES preserves the pre-refactor gating set exactly", () => {
+  it("AUTH_ONLY_PAGES preserves the pre-refactor gating set exactly, plus WO-P3's account-dashboard", () => {
     expect([...AUTH_ONLY_PAGES].sort()).toEqual(
-      ["account", "admin", "myanalytics", "paid-checkout", "plans"].sort(),
+      ["account", "account-dashboard", "admin", "myanalytics", "paid-checkout", "plans"].sort(),
     );
   });
 

@@ -17,6 +17,7 @@ import {
   getEntitlements,
   checkQuota,
   getUsageSummary,
+  getUsageByDay,
   getApiCallSummary,
   recordUsage,
   isProgramEnabled,
@@ -31,6 +32,7 @@ import {
   sendWelcomeEmail,
   getPersistenceBalance,
   getPersistenceLedger,
+  getPersistenceSpendByDay,
   addPersistenceCredits,
   applySuiteMonthlyGrant,
   getUsageCreditSummary,
@@ -415,6 +417,59 @@ export async function handleGetUsage(
       input_bytes: summary.reduce((s, p) => s + p.total_input_bytes, 0),
     },
   });
+}
+
+const USAGE_TIMESERIES_DEFAULT_DAYS = 30;
+const USAGE_TIMESERIES_MAX_DAYS = 365;
+
+/** GET /v1/account/usage/timeseries?bucket=day&since_days=N — per-account
+ *  day-bucketed usage for graphs (WO-A3; self-scoped, no admin gate — unlike
+ *  /v1/account/analytics/summary this was built as a dedicated endpoint per
+ *  the build plan's own "owner's call" rather than un-gating that one). */
+export async function handleGetUsageTimeseries(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = await requireAuth(req, res);
+  if (!ctx) return;
+
+  /* v8 ignore next */
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+  const bucket = url.searchParams.get("bucket") ?? "day";
+  if (bucket !== "day") {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "bucket must be 'day' — the only supported granularity");
+    return;
+  }
+  const sinceDaysRaw = parseInt(url.searchParams.get("since_days") ?? String(USAGE_TIMESERIES_DEFAULT_DAYS), 10);
+  const sinceDays = Math.min(Math.max(Number.isFinite(sinceDaysRaw) ? sinceDaysRaw : USAGE_TIMESERIES_DEFAULT_DAYS, 1), USAGE_TIMESERIES_MAX_DAYS);
+
+  // Window start, normalized to UTC midnight so the zero-fill loop below and
+  // the SQL lower bound agree on exactly which calendar days are in range.
+  const rawStart = new Date(Date.now() - (sinceDays - 1) * 86_400_000);
+  const windowStart = new Date(Date.UTC(rawStart.getUTCFullYear(), rawStart.getUTCMonth(), rawStart.getUTCDate()));
+
+  const [usageDays, creditDays] = await Promise.all([
+    getUsageByDay(ctx.account!.account_id, windowStart.toISOString()),
+    getPersistenceSpendByDay(ctx.account!.account_id, windowStart.toISOString()),
+  ]);
+  const usageByDate = new Map(usageDays.map((d) => [d.date, d]));
+  const creditsByDate = new Map(creditDays.map((d) => [d.date, d.credits_spent]));
+
+  // Zero-fill every day in the window (sparse store rows → a dense series a
+  // chart can plot directly, no client-side gap-filling needed).
+  const buckets: Array<{ date: string; runs: number; by_program: Record<string, number>; credits_spent: number }> = [];
+  for (let i = 0; i < sinceDays; i++) {
+    const date = new Date(windowStart.getTime() + i * 86_400_000).toISOString().slice(0, 10);
+    const usage = usageByDate.get(date);
+    buckets.push({
+      date,
+      runs: usage?.runs ?? 0,
+      by_program: usage?.by_program ?? {},
+      credits_spent: creditsByDate.get(date) ?? 0,
+    });
+  }
+
+  sendJSON(res, 200, { buckets });
 }
 
 /** GET /v1/account/analytics/summary — per-account API + program analytics (requires auth) */

@@ -165,6 +165,22 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
 
       // â”€â”€ Projects â”€â”€
+      "/v1/projects": {
+        get: {
+          summary: "List the account's analyzed projects, newest-analyzed-first",
+          operationId: "listProjects",
+          tags: ["Projects"],
+          security: [{ apiKey: [] }],
+          parameters: [
+            queryParam("limit", "Max projects to return (default 20, capped at 100)"),
+            queryParam("offset", "Pagination offset (default 0)"),
+          ],
+          responses: {
+            200: { description: "Project list", content: jsonContent(ref("ProjectsListResponse")) },
+            401: { description: "Authentication required" },
+          },
+        },
+      },
       "/v1/projects/{project_id}/context": {
         get: {
           summary: "Get context map and repo profile for latest project snapshot",
@@ -757,6 +773,23 @@ export function buildOpenApiSpec(): OpenApiSpec {
       },
       "/v1/account/usage": {
         get: { summary: "Get account usage summary", operationId: "getUsage", tags: ["Billing"], responses: { 200: { description: "Usage data" } } },
+      },
+      "/v1/account/usage/timeseries": {
+        get: {
+          summary: "Get day-bucketed usage (runs, per-program breakdown, credits spent) for usage graphs",
+          operationId: "getUsageTimeseries",
+          tags: ["Billing"],
+          security: [{ apiKey: [] }],
+          parameters: [
+            queryParam("bucket", "Bucket granularity — only 'day' is supported (default day)"),
+            queryParam("since_days", "Window size in days (default 30, capped at 365)"),
+          ],
+          responses: {
+            200: { description: "Day-bucketed usage", content: jsonContent(ref("UsageTimeseriesResponse")) },
+            400: { description: "Unsupported bucket granularity" },
+            401: { description: "Authentication required" },
+          },
+        },
       },
       "/v1/account/quota": {
         get: {
@@ -1468,6 +1501,36 @@ export function buildOpenApiSpec(): OpenApiSpec {
             status: { type: "string" },
           },
         },
+        ProjectsListResponse: {
+          type: "object",
+          properties: {
+            projects: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  project_id: { type: "string" },
+                  name: { type: "string" },
+                  github_url: { type: "string", nullable: true },
+                  created_at: { type: "string", format: "date-time" },
+                  latest_snapshot: {
+                    type: "object",
+                    nullable: true,
+                    properties: {
+                      snapshot_id: { type: "string" },
+                      status: { type: "string", enum: ["processing", "ready", "failed"] },
+                      created_at: { type: "string", format: "date-time" },
+                      file_count: { type: "integer" },
+                      compliance_grade: { type: "object" },
+                    },
+                  },
+                  snapshot_count: { type: "integer" },
+                },
+              },
+            },
+            total: { type: "integer" },
+          },
+        },
         GitHubAnalyzeRequest: {
           type: "object",
           required: ["github_url"],
@@ -1655,6 +1718,23 @@ export function buildOpenApiSpec(): OpenApiSpec {
             rate_limit: { type: "object", properties: { limit: { type: "integer" }, remaining: { type: "integer" }, count: { type: "integer" }, reset_in_seconds: { type: "number" }, window_ms: { type: "integer" } } },
             authenticated: { type: "boolean" },
             resource_quota: { type: "object", properties: { tier: { type: "string" }, snapshots_this_month: { type: "integer" }, max_snapshots_per_month: { type: "integer" }, project_count: { type: "integer" }, max_projects: { type: "integer" }, max_files_per_snapshot: { type: "integer" } } },
+          },
+        },
+        UsageTimeseriesResponse: {
+          type: "object",
+          properties: {
+            buckets: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  date: { type: "string", format: "date", description: "UTC calendar date, YYYY-MM-DD" },
+                  runs: { type: "integer" },
+                  by_program: { type: "object", additionalProperties: { type: "integer" } },
+                  credits_spent: { type: "integer" },
+                },
+              },
+            },
           },
         },
         AdminStatsResponse: {

@@ -119,6 +119,7 @@ import { PlansPage } from "./pages/PlansPage";
 import { ProgramsPage } from "./pages/ProgramsPage";
 import { HomePage } from "./pages/HomePage";
 import { AnalyzePage } from "./pages/AnalyzePage";
+import { AccountDashboardPage } from "./pages/AccountDashboardPage";
 
 describe("Page smoke tests — pages with required props", () => {
   it("AccountPage renders with minimal props", () => {
@@ -153,6 +154,11 @@ describe("Page smoke tests — pages with required props", () => {
 
   it("AnalyzePage renders with noop callback (WO-P1)", () => {
     const { container } = render(<AnalyzePage onComplete={() => {}} />);
+    expect(container.innerHTML.length).toBeGreaterThan(0);
+  });
+
+  it("AccountDashboardPage renders with noop callbacks (WO-P3)", () => {
+    const { container } = render(<AccountDashboardPage onOpenProject={() => {}} onNavigate={() => {}} />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 });
@@ -265,6 +271,92 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
     // Give the effect a tick to resolve; the stats grid must never mount.
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(container.querySelector('[aria-label="Live platform activity"]')).toBeNull();
+  });
+});
+
+// ─── AccountDashboardPage (WO-P3) ────────────────────────────────
+
+function mockFetchByPath(handlers: Record<string, unknown>): void {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    for (const [suffix, body] of Object.entries(handlers)) {
+      if (url.includes(suffix)) {
+        return { ok: true, status: 200, json: async () => body, text: async () => JSON.stringify(body), headers: { get: () => null } };
+      }
+    }
+    return { ok: true, status: 200, json: async () => ({}), text: async () => "{}", headers: { get: () => null } };
+  }) as unknown as typeof fetch);
+}
+
+describe("AccountDashboardPage (WO-P3)", () => {
+  it("empty-project state onboards to first analysis", async () => {
+    mockFetchByPath({
+      "/v1/projects": { projects: [], total: 0 },
+      "/v1/account/quota": { rate_limit: {}, authenticated: true, resource_quota: { tier: "free", snapshots_this_month: 0, max_snapshots_per_month: 10, project_count: 0, max_projects: 3, max_files_per_snapshot: 100 } },
+      "/v1/account/usage/timeseries": { buckets: [] },
+      "/v1/account/upgrade-prompt": { prompt: null },
+    });
+    const onNavigate = vi.fn();
+
+    render(<AccountDashboardPage onOpenProject={() => {}} onNavigate={onNavigate} />);
+
+    await screen.findByText("No projects yet");
+    fireEvent.click(screen.getByRole("button", { name: "Analyze a repo" }));
+    expect(onNavigate).toHaveBeenCalledWith("analyze");
+  });
+
+  it("renders recent-project cards with real data and opens one on click", async () => {
+    mockFetchByPath({
+      "/v1/projects": {
+        projects: [
+          {
+            project_id: "proj_acme",
+            name: "acme/widgets",
+            github_url: "https://github.com/acme/widgets",
+            created_at: "2026-06-01T00:00:00.000Z",
+            latest_snapshot: {
+              snapshot_id: "snap_1",
+              status: "ready",
+              created_at: "2026-07-01T00:00:00.000Z",
+              file_count: 42,
+              compliance_grade: { grade: "A", checks_passed: 7, checks_total: 8, score: 90 },
+            },
+            snapshot_count: 3,
+          },
+        ],
+        total: 1,
+      },
+      "/v1/account/quota": { rate_limit: {}, authenticated: true, resource_quota: { tier: "paid", snapshots_this_month: 5, max_snapshots_per_month: 200, project_count: 1, max_projects: -1, max_files_per_snapshot: 500 } },
+      "/v1/account/usage/timeseries": { buckets: [{ date: "2026-07-06", runs: 2, by_program: { skills: 2 }, credits_spent: 0 }, { date: "2026-07-07", runs: 1, by_program: { debug: 1 }, credits_spent: 1 }] },
+      "/v1/account/upgrade-prompt": { prompt: null },
+    });
+    const onOpenProject = vi.fn();
+
+    render(<AccountDashboardPage onOpenProject={onOpenProject} onNavigate={() => {}} />);
+
+    await screen.findByText("acme/widgets");
+    expect(screen.getByText("https://github.com/acme/widgets")).toBeTruthy();
+    expect(screen.getByText("Grade A")).toBeTruthy();
+    expect(screen.getByText("ready")).toBeTruthy();
+    expect(screen.getByText("3 snapshots")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("acme/widgets").closest("button")!);
+    expect(onOpenProject).toHaveBeenCalledWith("proj_acme");
+  });
+
+  it("a load failure shows a Callout with retry — not a raw error or a crash", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "boom" }),
+      text: async () => JSON.stringify({ error: "boom" }),
+      headers: { get: () => null },
+    })) as unknown as typeof fetch);
+
+    render(<AccountDashboardPage onOpenProject={() => {}} onNavigate={() => {}} />);
+
+    await screen.findByText("boom");
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
   });
 });
 

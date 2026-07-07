@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { DashboardPage } from "./pages/DashboardPage.tsx";
+import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { PlansPage } from "./pages/PlansPage.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
 import { DocsPage } from "./pages/DocsPage.tsx";
@@ -50,6 +51,7 @@ export type PageId =
   | "home"
   | "analyze"
   | "dashboard"
+  | "account-dashboard"
   | "plans"
   | "account"
   | "docs"
@@ -102,6 +104,11 @@ export interface RouteContext extends NavContext {
   onAnalyzeComplete: (data: SnapshotResponse) => void;
   onGeneratedCountChange: (count: number) => void;
   onAuthChange: () => void;
+  /** WO-P3: open a project from a project card (Account Dashboard) — clears
+   *  any stale in-memory result, points multi-project state at `projectId`,
+   *  and navigates to the "dashboard" route, which restores it from the
+   *  server (the same seam WO-F3 built for the last-project deep-link). */
+  onOpenProject: (projectId: string) => void;
 }
 
 export type NavGroup = "WORKSPACE" | "LIBRARY" | "ACCOUNT" | "HELP";
@@ -215,6 +222,28 @@ export const ROUTES: RouteDef[] = [
       }
       return null;
     },
+  },
+  {
+    // WO-P3: account-level overview (recent projects, usage, quick actions).
+    // Target IA (build plan §1.2) reserves the literal hash "#dashboard" for
+    // this page once WO-P5 relocates the per-project view below to
+    // "#projects/:id" — reassigning "#dashboard" now would require that
+    // relocation (a generic nav/shortcut target can't carry a per-project
+    // `:id` param without WO-F2's "one entry = one page" invariant growing a
+    // special case) and would orphan the "Dashboard" entry above (the
+    // just-shipped WO-P1 H9 immediate-results funnel navigates there right
+    // after every analysis). Parked at its own hash + a distinct label
+    // ("Overview", not "Dashboard" — the entry above already owns that name
+    // while it's visible) until WO-P5 does the real handoff; both PageId and
+    // pattern are one-line renames at that point.
+    page: "account-dashboard",
+    pattern: "account-dashboard",
+    label: "Overview",
+    tabLabel: "overview.json",
+    section: "MISSION",
+    authOnly: true,
+    nav: { group: "WORKSPACE", icon: "grid", rail: true },
+    render: (ctx) => <AccountDashboardPage onOpenProject={ctx.onOpenProject} onNavigate={ctx.navigate} />,
   },
   {
     page: "tools",

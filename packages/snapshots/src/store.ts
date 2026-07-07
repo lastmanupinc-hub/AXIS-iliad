@@ -3,6 +3,8 @@ import type {
   SnapshotInput,
   SnapshotRecord,
   SnapshotStatus,
+  InputMethod,
+  FileEntry,
 } from "./types.js";
 import { sql, pgPlaceholders } from "./pg.js";
 
@@ -102,6 +104,113 @@ export async function listProjectsByAccount(account_id: string): Promise<Array<{
     "SELECT project_id, project_name FROM projects WHERE account_id = ? ORDER BY project_name",
     [account_id],
   );
+}
+
+/** One project row as `GET /v1/projects` (WO-A1) needs it: identity + earliest
+ *  snapshot timestamp (proxy for "project created") + total snapshot count +
+ *  the full latest-snapshot record (so the caller can grade compliance without
+ *  a second round trip). `latest_snapshot` is null only if a project row exists
+ *  with zero snapshots, which the current write path never produces. */
+export interface ProjectListEntry {
+  project_id: string;
+  project_name: string;
+  /** Earliest snapshot's created_at ("" if the project somehow has none). */
+  first_created_at: string;
+  snapshot_count: number;
+  /** input_method of the EARLIEST snapshot — github-sourced projects have a
+   *  stable owner/repo project_name the caller can reconstruct a URL from. */
+  input_method: InputMethod | null;
+  latest_snapshot: {
+    snapshot_id: string;
+    created_at: string;
+    status: SnapshotStatus;
+    file_count: number;
+    files: FileEntry[];
+  } | null;
+}
+
+/**
+ * Paginated project list for one account, newest-analyzed-first (by the
+ * latest snapshot's created_at). Two queries: (1) the page of project rows
+ * with cheap correlated-subquery aggregates (first/last snapshot time, count),
+ * (2) one `DISTINCT ON` pass over just that page's projects to pull the full
+ * latest-snapshot row (incl. `files`, for compliance grading by the caller) —
+ * avoids an N+1 fetch per project. The ORDER BY's correlated MAX(...) subquery
+ * runs once per project row scanned; fine at today's account sizes, revisit
+ * (e.g. a materialized "last_analyzed_at" column) if it becomes a hot path.
+ */
+export async function listProjectsWithLatestSnapshot(
+  account_id: string,
+  opts: { limit: number; offset: number },
+): Promise<{ items: ProjectListEntry[]; total: number }> {
+  const totalRow = await sql.one<{ c: string | number }>(
+    "SELECT COUNT(*) AS c FROM projects WHERE account_id = ?",
+    [account_id],
+  );
+  const total = Number(totalRow?.c ?? 0);
+  if (total === 0) return { items: [], total: 0 };
+
+  const projectRows = await sql.many<{
+    project_id: string;
+    project_name: string;
+    first_created_at: string | null;
+    snapshot_count: string | number;
+    input_method: string | null;
+  }>(
+    `SELECT
+       p.project_id,
+       p.project_name,
+       (SELECT MIN(s.created_at) FROM snapshots s WHERE s.project_id = p.project_id) AS first_created_at,
+       (SELECT COUNT(*) FROM snapshots s WHERE s.project_id = p.project_id) AS snapshot_count,
+       (SELECT s.input_method FROM snapshots s WHERE s.project_id = p.project_id ORDER BY s.created_at ASC LIMIT 1) AS input_method
+     FROM projects p
+     WHERE p.account_id = ?
+     ORDER BY (SELECT MAX(s2.created_at) FROM snapshots s2 WHERE s2.project_id = p.project_id) DESC NULLS LAST, p.project_name ASC
+     LIMIT ? OFFSET ?`,
+    [account_id, opts.limit, opts.offset],
+  );
+
+  // SELECT * (not a narrower column list): rowToSnapshot unconditionally
+  // JSON.parses `manifest`, so a projection missing it would throw inside the
+  // helper's try/catch and silently hydrate every row to undefined.
+  const projectIds = projectRows.map((r) => r.project_id);
+  const latestRows = projectIds.length
+    ? await sql.many<Record<string, unknown>>(
+        `SELECT DISTINCT ON (project_id) *
+         FROM snapshots
+         WHERE project_id = ANY(?)
+         ORDER BY project_id, created_at DESC`,
+        [projectIds],
+      )
+    : [];
+
+  const latestByProject = new Map<string, SnapshotRecord>();
+  for (const row of latestRows) {
+    const snap = rowToSnapshot(row);
+    if (snap) latestByProject.set(snap.project_id, snap);
+  }
+
+  const items: ProjectListEntry[] = projectRows.map((r) => {
+    const latest = latestByProject.get(r.project_id) ?? null;
+    return {
+      project_id: r.project_id,
+      project_name: r.project_name,
+      first_created_at: r.first_created_at ?? "",
+      snapshot_count: Number(r.snapshot_count ?? 0),
+      input_method: (r.input_method as InputMethod | null) ?? null,
+      latest_snapshot: latest
+        ? {
+            snapshot_id: latest.snapshot_id,
+            created_at: latest.created_at,
+            status: latest.status,
+            file_count: latest.file_count,
+            files: latest.files,
+          }
+        : null,
+    };
+  });
+
+  return { items, total };
 }
 
 /** Delete a snapshot and all associated data (context map, repo profile, generator results, search index). */

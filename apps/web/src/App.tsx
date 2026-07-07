@@ -224,6 +224,22 @@ export function App() {
     navigate("dashboard");
   }, [navigate]);
 
+  // WO-P3: open a project from the Account Dashboard's recent-projects cards.
+  // Clears any stale in-memory result and points multi-project state at the
+  // requested project, then lands on "dashboard" — its existing deep-link
+  // restore effect below (built for the last-project pointer, WO-F3) already
+  // re-fetches from the server whenever `result` is falsy, so it fires again
+  // here for free with no changes to that effect's own logic.
+  const handleOpenProject = useCallback((projectId: string) => {
+    setResult(null);
+    setCurrentProjectId(projectId);
+    if (hasApiKey()) {
+      try { localStorage.setItem(LAST_PROJECT_KEY, projectId); } catch { /* quota exceeded, non-fatal */ }
+    }
+    localStorage.removeItem(ANON_RESULT_KEY); // opening a named project supersedes any anon cache
+    navigate("dashboard");
+  }, [navigate]);
+
   const handleReset = useCallback(() => {
     setResult(null);
     setCurrentProjectId(null);
@@ -445,7 +461,8 @@ export function App() {
     onAnalyzeComplete: handleAnalyzeComplete,
     onGeneratedCountChange: handleGeneratedCountChange,
     onAuthChange: handleAuthChange,
-  }), [navCtx, route.page, route.params, route.hash, result, currentProjectId, restoring, nav, openSignUp, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange]);
+    onOpenProject: handleOpenProject,
+  }), [navCtx, route.page, route.params, route.hash, result, currentProjectId, restoring, nav, openSignUp, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange, handleOpenProject]);
 
   return (
     <ToastProvider>

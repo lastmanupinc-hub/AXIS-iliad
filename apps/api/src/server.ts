@@ -73,6 +73,7 @@ import {
   handleListApiKeys,
   handleRevokeApiKey,
   handleGetUsage,
+  handleGetUsageTimeseries,
   handleGetAnalyticsSummary,
   handleUpdateTier,
   handleUpdatePrograms,
@@ -106,6 +107,7 @@ import { handleCreateWebhook, handleListWebhooks, handleDeleteWebhook, handleTog
 import { handleListVersions, handleGetVersion, handleDiffVersions } from "./versions.js";
 import { handleListMemory, handleAddMemory } from "./memory-handlers.js";
 import { handleGetFleet } from "./fleet-handlers.js";
+import { handleListProjects } from "./projects-handlers.js";
 import { handleGitHubOAuthStart, handleGitHubOAuthCallback, handleGoogleOAuthStart, handleGoogleOAuthCallback, handleOAuthExchange, handleOAuthLogout, handleCreateSession } from "./oauth.js";
 import { handleOAuthAuthorize, handleOAuthToken, handleOAuthJwks, handleOAuthIntrospect } from "./oauth-server.js";
 import { handleStripeWebhook, handleCreateCheckout, handleGetSubscription, handleCancelSubscription } from "./stripe.js";
@@ -175,6 +177,9 @@ router.delete("/v1/snapshots/:snapshot_id", handleDeleteSnapshot);
 router.get("/v1/snapshots/:snapshot_id/versions", handleListVersions);
 router.get("/v1/snapshots/:snapshot_id/versions/:version_number", handleGetVersion);
 router.get("/v1/snapshots/:snapshot_id/diff", handleDiffVersions);
+
+// Projects list (WO-A1 — CRITICAL PATH for the web Dashboard/Projects pages)
+router.get("/v1/projects", handleListProjects);
 
 // Project context endpoints
 router.get("/v1/projects/:project_id/context", handleGetContext);
@@ -408,6 +413,7 @@ router.post("/v1/account/keys", handleCreateApiKey);
 router.get("/v1/account/keys", handleListApiKeys);
 router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);
 router.get("/v1/account/usage", handleGetUsage);
+router.get("/v1/account/usage/timeseries", handleGetUsageTimeseries);
 router.get("/v1/account/analytics/summary", handleGetAnalyticsSummary);
 router.get("/v1/account/quota", handleGetQuota);
 router.post("/v1/account/tier", handleUpdateTier);

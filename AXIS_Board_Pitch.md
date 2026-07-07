@@ -351,7 +351,7 @@ These programs are permanently free. They solve universal developer problems and
 │                  └──────────────┘    └───────────────┘  │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤
-│  REST API (148 endpoints) · Web UI · CLI · OAuth        │
+│  REST API (150 endpoints) · Web UI · CLI · OAuth        │
 │  Neon PG · Webhooks · Email · Rate Limits · Metering    │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -362,7 +362,7 @@ These programs are permanently free. They solve universal developer problems and
 |--------|-------|
 | Total Programs | 20 |
 | Total Generators | 141 |
-| API Endpoints | 148 |
+| API Endpoints | 150 |
 | Test Count | 4,900+ |
 | Test Files | 205 |
 | Code Coverage | 91.5% statements |
