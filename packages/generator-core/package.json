@@ -27,7 +27,8 @@
     "@axis/ap2": "workspace:*",
     "@axis/snapshots": "workspace:*",
     "@axis/repo-parser": "workspace:*",
-    "@axis/context-engine": "workspace:*"
+    "@axis/context-engine": "workspace:*",
+    "yaml": "^2.8.3"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

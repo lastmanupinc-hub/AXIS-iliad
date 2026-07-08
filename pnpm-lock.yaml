@@ -199,6 +199,9 @@ importers:
       '@axis/snapshots':
         specifier: workspace:*
         version: link:../snapshots
+      yaml:
+        specifier: ^2.8.3
+        version: 2.8.3
     devDependencies:
       typescript:
         specifier: ^5.7.0
