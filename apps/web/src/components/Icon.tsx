@@ -30,6 +30,8 @@ const PATHS: Record<string, ReactNode> = {
   x: <><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></>,
   search: <><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.2" y2="16.2" /></>,
   list: <><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>,
+  // WO-P7 — Program Runner nav icon.
+  play: <polygon points="6 3 20 12 6 21 6 3" />,
 };
 
 export function Icon({ name, size = 16 }: { name: string; size?: number }) {

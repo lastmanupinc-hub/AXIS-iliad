@@ -173,7 +173,7 @@ describe("App routing (WO-F2)", () => {
 // ─── Shared primitives shell integration (WO-F4) ─────────────────
 
 describe("PageFooter in the shell (WO-F4)", () => {
-  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#install", "#for-agents", "#tools", "#__kitchen-sink", "#definitely/not/a/page"];
+  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#install", "#for-agents", "#tools", "#run", "#__kitchen-sink", "#definitely/not/a/page"];
 
   it("is rendered by the shell on every page, including 404 and the kitchen sink", () => {
     for (const hash of PUBLIC_HASHES) {
@@ -441,6 +441,51 @@ describe("Account Dashboard (WO-P3/WO-P5)", () => {
     await waitFor(() => expect(shellPage(container)).toBe("project"));
     expect(window.location.hash).toBe("#projects/proj_fx");
     await waitFor(() => expect(screen.getAllByText("fixture-repo").length).toBeGreaterThan(0));
+  });
+});
+
+// ─── Program Runner (WO-P7) ───────────────────────────────────────
+// "#run"/"#run/:program" is NOT auth-only (anonymous visitors can run free
+// programs against their guest project) — deep link, sidebar entry, and the
+// Account Dashboard's "Run a program" quick action all land here. Per-page
+// behavior (catalog, project picker, options, 402 gating) is covered in
+// pages/RunnerPage.test.tsx; this proves the App-level wiring: route table,
+// sidebar nav, and the cross-page navigation callback.
+
+describe("Program Runner (WO-P7)", () => {
+  it("#run deep-link renders the Program Runner page (not auth-gated)", () => {
+    window.location.hash = "#run";
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("runner");
+  });
+
+  it("sidebar 'Program Runner' item navigates to #run", () => {
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    fireEvent.click(sidebar.getByRole("button", { name: "Program Runner" }));
+    expect(shellPage(container)).toBe("runner");
+    expect(window.location.hash).toBe("#run");
+  });
+
+  it("the Account Dashboard's 'Run a program' quick action opens the Runner", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubApiFetch([
+      ["/v1/programs", { programs: [{ name: "search", outputs: ["context-map.json"], generator_count: 1 }], total_generators: 1 }],
+      ["/v1/projects", { projects: [], total: 0 }],
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "free", snapshots_this_month: 0, max_snapshots_per_month: 10, project_count: 0, max_projects: 3, max_files_per_snapshot: 100 } }],
+      ["/v1/account/usage/timeseries", { buckets: [] }],
+      ["/v1/account/upgrade-prompt", { prompt: null }],
+    ]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("dashboard");
+    await waitFor(() => expect(screen.getByText("Run a program")).toBeTruthy());
+
+    fireEvent.click(screen.getByText("Run a program").closest("button")!);
+
+    expect(shellPage(container)).toBe("runner");
+    expect(window.location.hash).toBe("#run");
   });
 });
 

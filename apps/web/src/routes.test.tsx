@@ -223,6 +223,34 @@ describe("home/analyze split (WO-P1)", () => {
   });
 });
 
+// ─── Program Runner (WO-P7) ────────────────────────────────────────
+
+describe("Program Runner route (WO-P7)", () => {
+  it("#run resolves to the 'runner' page with no program captured", () => {
+    const match = matchHash("run");
+    expect(match!.route.page).toBe("runner");
+    expect(match!.params).toEqual({});
+  });
+
+  it("#run/:program resolves to the 'runner' page with the program captured", () => {
+    const match = matchHash("run/theme");
+    expect(match!.route.page).toBe("runner");
+    expect(match!.params).toEqual({ program: "theme" });
+  });
+
+  it("hashForPage round-trips both the bare and program-preselected forms", () => {
+    expect(hashForPage("runner")).toBe("run");
+    expect(hashForPage("runner", { program: "theme" })).toBe("run/theme");
+    expect(matchHash(hashForPage("runner", { program: "theme" }))!.params).toEqual({ program: "theme" });
+  });
+
+  it("is in the WORKSPACE nav and is NOT login-gated (anonymous visitors can run free programs against their guest project)", () => {
+    const def = routeForPage("runner");
+    expect(def.nav?.group).toBe("WORKSPACE");
+    expect(AUTH_ONLY_PAGES.has("runner")).toBe(false);
+  });
+});
+
 // ─── Project/Snapshot Detail (WO-P5/WO-P6) ────────────────────────
 
 describe("project detail routes (WO-P5/WO-P6)", () => {

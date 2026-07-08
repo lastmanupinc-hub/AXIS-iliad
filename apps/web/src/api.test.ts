@@ -415,6 +415,39 @@ describe("runProgram", () => {
     expect(url).toBe("/v1/search/export");
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toEqual({ snapshot_id: "snap123" });
+    expect(init.headers?.["X-Agent-Mode"]).toBeUndefined();
+  });
+
+  // WO-P7 — Program Runner options panel (lite mode + the documented
+  // ProgramRequest `outputs` override).
+  it("sends X-Agent-Mode: lite when opts.lite is true", async () => {
+    const fetchFn = mockFetch({ program: "theme", files: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await runProgram("theme/generate", "snap123", { lite: true });
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(init.headers["X-Agent-Mode"]).toBe("lite");
+  });
+
+  it("includes outputs in the body only when provided", async () => {
+    const fetchFn = mockFetch({ program: "theme", files: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await runProgram("theme/generate", "snap123", { outputs: ["theme.css"] });
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ snapshot_id: "snap123", outputs: ["theme.css"] });
+  });
+
+  it("omits outputs from the body when opts.outputs is not provided", async () => {
+    const fetchFn = mockFetch({ program: "theme", files: [] });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await runProgram("theme/generate", "snap123", { lite: true });
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ snapshot_id: "snap123" });
   });
 });
 

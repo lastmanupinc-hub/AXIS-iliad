@@ -602,13 +602,26 @@ export async function getGeneratedFile(projectId: string, filePath: string): Pro
   return fetchText(`/v1/projects/${projectId}/generated-files/${encodeURIComponent(filePath)}`);
 }
 
+/**
+ * WO-P7: `opts.outputs` maps straight onto the documented `ProgramRequest`
+ * body shape every program endpoint accepts (`{snapshot_id, outputs?}` —
+ * see openapi.ts) — omit it to let the server use that program's own
+ * default output list. `opts.lite` mirrors createSnapshot/analyzeGitHubUrl's
+ * X-Agent-Mode: lite pricing lever (only changes anything for paid
+ * programs on a metered request; free-program runs are unaffected).
+ */
 export async function runProgram(
   endpoint: string,
   snapshotId: string,
+  opts?: { lite?: boolean; outputs?: string[] },
 ): Promise<{ program: string; files: GeneratedFile[]; skipped?: Array<{ path: string; reason: string }> }> {
   return fetchJSON(`/v1/${endpoint}`, {
     method: "POST",
-    body: JSON.stringify({ snapshot_id: snapshotId }),
+    body: JSON.stringify({
+      snapshot_id: snapshotId,
+      ...(opts?.outputs !== undefined ? { outputs: opts.outputs } : {}),
+    }),
+    ...(opts?.lite ? { headers: { "X-Agent-Mode": "lite" } } : {}),
   });
 }
 

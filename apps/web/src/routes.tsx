@@ -3,6 +3,7 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
+import { RunnerPage } from "./pages/RunnerPage.tsx";
 import { PlansPage } from "./pages/PlansPage.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
 import { DocsPage } from "./pages/DocsPage.tsx";
@@ -68,6 +69,11 @@ export type PageId =
   | "project"
   | "project-versions"
   | "project-artifacts"
+  // Program Runner (WO-P7) — "#run" or "#run/:program" (the optional segment
+  // preselects a program; ProgramLauncher's "Advanced options"/"Open Program
+  // Runner" links and the Account Dashboard's "Run a program" quick action
+  // all land here).
+  | "runner"
   | "plans"
   | "account"
   | "docs"
@@ -234,6 +240,32 @@ export const ROUTES: RouteDef[] = [
     authOnly: true,
     nav: { group: "WORKSPACE", icon: "dashboard", rail: true },
     render: (ctx) => <AccountDashboardPage onOpenProject={ctx.onOpenProject} onNavigate={ctx.navigate} />,
+  },
+  {
+    // WO-P7: Program Runner — program picker -> target-project picker ->
+    // options (lite mode, per-output selection) -> run -> honest staged
+    // status -> results panel with a jump-link into the Artifact Explorer.
+    // The optional trailing segment preselects a program (deep-linked from
+    // ProgramLauncher's "Advanced options"/"Open Program Runner" and the
+    // Account Dashboard's "Run a program" quick action). Not auth-only —
+    // anonymous visitors can run free programs against their guest project,
+    // same access rule as the "project" routes above.
+    page: "runner",
+    pattern: "run/:program?",
+    label: "Program Runner",
+    tabLabel: "runner.json",
+    section: "MISSION",
+    nav: { group: "WORKSPACE", icon: "play" },
+    render: (ctx) => (
+      <RunnerPage
+        initialProgram={ctx.params.program}
+        loggedIn={ctx.loggedIn}
+        currentProjectId={ctx.currentProjectId}
+        anonResult={ctx.result}
+        onNavigate={ctx.navigate}
+        onRequireLogin={() => ctx.requireLogin("paid-program")}
+      />
+    ),
   },
   {
     // WO-P5: Project/Snapshot Detail — the former single-result "#dashboard"
@@ -487,6 +519,7 @@ function renderProjectDetail(ctx: RouteContext, initialTab?: ProjectTab): ReactN
           onSnapshotDeleted={ctx.onSnapshotDeleted}
           onProjectDeleted={ctx.onProjectDeleted}
           onNeedCredits={() => ctx.navigate("account")}
+          onOpenRunner={(program) => ctx.navigate("runner", { program })}
         />
       </>
     );

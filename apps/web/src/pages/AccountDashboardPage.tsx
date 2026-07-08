@@ -14,6 +14,8 @@ import {
 } from "../api.ts";
 import { StatTile, SectionHeader, Callout, EmptyState, Skeleton, Sparkline, Pill } from "../components/primitives/index.ts";
 import type { PageId, RouteParams } from "../routes.tsx";
+// Single-source counts (WO-F5) — never inline these numbers.
+import { PROGRAM_COUNT } from "../config.ts";
 
 // ─── AccountDashboardPage (WO-P3) ────────────────────────────────────────────
 // Account-level overview: recent-projects cards, usage stat tiles + quota bar
@@ -129,7 +131,6 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
   const rq = quota.resource_quota;
   const runsInWindow = buckets.reduce((s, b) => s + b.runs, 0);
   const creditsInWindow = buckets.reduce((s, b) => s + b.credits_spent, 0);
-  const mostRecentProjectId = projects[0]?.project_id;
 
   return (
     <div>
@@ -252,12 +253,10 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
           <strong>Analyze new repo</strong>
           <p className="text-muted text-sm mt-1">Run a fresh analysis on any GitHub repo or upload.</p>
         </button>
-        {mostRecentProjectId && (
-          <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onOpenProject(mostRecentProjectId)}>
-            <strong>Run a program</strong>
-            <p className="text-muted text-sm mt-1">Open your most recent project and launch a program.</p>
-          </button>
-        )}
+        <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onNavigate("runner")}>
+          <strong>Run a program</strong>
+          <p className="text-muted text-sm mt-1">Pick a project and launch any of the {PROGRAM_COUNT} programs.</p>
+        </button>
         <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onNavigate("install")}>
           <strong>Open MCP config</strong>
           <p className="text-muted text-sm mt-1">Copy a working config for Claude, Cursor, or VS Code.</p>

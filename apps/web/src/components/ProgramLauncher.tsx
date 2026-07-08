@@ -7,10 +7,16 @@ import { PROGRAM_COUNT } from "../config.ts";
 interface Props {
   snapshotId: string;
   generatedFiles: GeneratedFile[];
-  onRun: (endpoint: string) => Promise<void>;
+  /** WO-P7: `opts.lite` forwards to runProgram's X-Agent-Mode: lite pricing
+   *  lever — see the "Lite mode" toggle below. */
+  onRun: (endpoint: string, opts?: { lite?: boolean }) => Promise<void>;
+  /** WO-P7: deep-link into the full Program Runner (`#run/:program`) for
+   *  cases this embedded launcher doesn't cover — a target-project picker
+   *  and per-output selection. Omit to hide the link. */
+  onOpenRunner?: (program: string) => void;
 }
 
-interface ProgramDef {
+export interface ProgramDef {
   name: string;
   label: string;
   description: string;
@@ -18,7 +24,10 @@ interface ProgramDef {
   tier: "free" | "pro" | "suite";
 }
 
-const PROGRAMS: ProgramDef[] = [
+/** Canonical program metadata (label/description/endpoint/tier) — the WO-P7
+ *  Program Runner (pages/RunnerPage.tsx) reuses this exact list so the two
+ *  entry points into "run a program" can never drift on copy or endpoints. */
+export const PROGRAMS: ProgramDef[] = [
   { name: "search", label: "Search Context", description: "Context map, project summary, key abstractions for AI search", endpoint: "search/export", tier: "free" },
   { name: "skills", label: "Skills & Agents", description: "AGENTS.md, CLAUDE.md, .cursorrules, workflow & policy packs", endpoint: "skills/generate", tier: "free" },
   { name: "debug", label: "Debug Playbook", description: "Debug playbook, incident template, tracing rules, root-cause checklist", endpoint: "debug/analyze", tier: "free" },
@@ -41,10 +50,13 @@ const PROGRAMS: ProgramDef[] = [
   { name: "deploy", label: "Deploy", description: "Dockerfile, render.yaml, deploy scripts, Cloudflare worker config", endpoint: "deploy/generate", tier: "pro" },
 ];
 
-export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
+export function ProgramLauncher({ snapshotId, generatedFiles, onRun, onOpenRunner }: Props) {
   const [running, setRunning] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tier, setTier] = useState<BillingTier>("free");
+  // WO-P7: the one real option this quick-launch surface offers — the full
+  // per-project/per-output picker lives in the Program Runner (onOpenRunner).
+  const [liteMode, setLiteMode] = useState(false);
 
   useEffect(() => {
     getAccount().then(a => setTier(a.tier)).catch(() => {});
@@ -59,7 +71,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
     setRunning(program.name);
     setError(null);
     try {
-      await onRun(program.endpoint);
+      await onRun(program.endpoint, { lite: liteMode });
     } catch (err) {
       if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
         setError(`This program requires a Pro plan. Upgrade to unlock all ${PROGRAM_COUNT} programs.`);
@@ -82,6 +94,25 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
         </div>
       )}
 
+      <div className="flex-between flex-wrap gap-2 mb-4">
+        <label className="flex" style={{ gap: 8, cursor: "pointer", marginBottom: 0 }}>
+          <input
+            type="checkbox"
+            checked={liteMode}
+            onChange={(e) => setLiteMode(e.target.checked)}
+            style={{ width: "auto" }}
+          />
+          <span className="text-sm text-muted">
+            Lite mode — if the clicked program requires payment, ask for reduced-price processing.
+          </span>
+        </label>
+        {onOpenRunner && (
+          <button type="button" className="btn" style={{ fontSize: "0.8125rem" }} onClick={() => onOpenRunner("search")}>
+            Open Program Runner →
+          </button>
+        )}
+      </div>
+
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="flex-between" style={{ marginBottom: 12 }}>
           <h3>Free Programs</h3>
@@ -95,6 +126,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
               fileCount={filesPerProgram.get(p.name) ?? 0}
               running={running === p.name}
               onRun={() => handleRun(p)}
+              onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
             />
           ))}
         </div>
@@ -114,6 +146,7 @@ export function ProgramLauncher({ snapshotId, generatedFiles, onRun }: Props) {
               running={running === p.name}
               locked={tier === "free"}
               onRun={() => handleRun(p)}
+              onOpenRunner={onOpenRunner ? () => onOpenRunner(p.name) : undefined}
             />
           ))}
         </div>
@@ -128,12 +161,14 @@ function ProgramCard({
   running,
   locked = false,
   onRun,
+  onOpenRunner,
 }: {
   program: ProgramDef;
   fileCount: number;
   running: boolean;
   locked?: boolean;
   onRun: () => void;
+  onOpenRunner?: () => void;
 }) {
   return (
     <div
@@ -161,6 +196,16 @@ function ProgramCard({
       <p style={{ color: "var(--text-muted)", fontSize: "0.75rem", lineHeight: 1.4 }}>
         {program.description}
       </p>
+      {onOpenRunner && (
+        <button
+          type="button"
+          className="btn"
+          style={{ marginTop: 8, fontSize: "0.6875rem", padding: "2px 8px" }}
+          onClick={(e) => { e.stopPropagation(); onOpenRunner(); }}
+        >
+          Advanced options →
+        </button>
+      )}
       {running && (
         <div className="flex" style={{ marginTop: 8, gap: 6 }}>
           <span className="spinner" />

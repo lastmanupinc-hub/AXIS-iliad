@@ -40,6 +40,9 @@ interface Props {
   onProjectDeleted: () => void;
   /** The diff viewer hit a 402 persistence-credits wall — jump to the credit-purchase flow. */
   onNeedCredits: () => void;
+  /** WO-P7: open the full Program Runner (`#run/:program`) for a target-project
+   *  picker and per-output selection this embedded launcher doesn't offer. */
+  onOpenRunner?: (program: string) => void;
 }
 
 const TABS = ["Overview", "Structure", "Dependencies", "Artifacts", "Programs", "Search", "Versions"] as const;
@@ -65,7 +68,7 @@ function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: numb
   );
 }
 
-export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChange, onSnapshotDeleted, onProjectDeleted, onNeedCredits }: Props) {
+export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChange, onSnapshotDeleted, onProjectDeleted, onNeedCredits, onOpenRunner }: Props) {
   const [activeTab, setActiveTab] = useState<ProjectTab>(() => initialTab ?? "Overview");
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [downloading, setDownloading] = useState(false);
@@ -100,9 +103,9 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  async function handleRunProgram(endpoint: string) {
+  async function handleRunProgram(endpoint: string, opts?: { lite?: boolean }) {
     try {
-      const res = await runProgram(endpoint, result.snapshot_id);
+      const res = await runProgram(endpoint, result.snapshot_id, opts);
       // Merge new files into the list (replace existing by path)
       setGeneratedFiles((prev) => {
         const existing = new Map(prev.map((f) => [f.path, f]));
@@ -203,6 +206,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
             snapshotId={result.snapshot_id}
             generatedFiles={generatedFiles}
             onRun={handleRunProgram}
+            onOpenRunner={onOpenRunner}
           />
         )}
         {activeTab === "Search" && (
