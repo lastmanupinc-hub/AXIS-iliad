@@ -52,6 +52,53 @@ build program has worked (Stripe, Resend, Cloudflare Pages).
   Agreement** — all owner-only.
 - Submission review is manual, no published SLA (community reports: 1–6 weeks typical).
 
+### Precisely verified, 2026-07-07: the account-type wall (new, changes paid-path sequencing)
+
+Checked directly against the live GitHub API (`gh api graphql`, introspection + a real query against
+this repo's actual owner) rather than assumed from docs. Three findings, all confirmed:
+
+1. **`lastmanupinc-hub` is a personal User account, not an Organization** —
+   `repositoryOwner(login: "lastmanupinc-hub") { __typename }` returns `"User"`, node ID prefix
+   `U_…`. Every requirement below hinges on this.
+2. **Personal accounts cannot sell on Marketplace at all, full stop** — confirmed via GitHub's own
+   "Requirements for listing an app" + "Applying for publisher verification" docs: *"If you want to
+   sell an app that's owned by your personal account, first you'll need to transfer the app to an
+   organization."* Free listings have no such restriction. This means the paid path's real first
+   step isn't 2FA or domain verification — it's **deciding whether to create a GitHub Organization**
+   (e.g. for "Last Man Up INC") **and transfer the App to it**. That decision doesn't exist yet and
+   is squarely the owner's to make (name, who else gets ownership/billing visibility, whether it's
+   worth doing before 100 installs are even in hand).
+3. **Both gating settings are Organization-only, and neither is API-settable, for different
+   reasons — confirmed by direct schema introspection, not inference:**
+   - **Org-wide 2FA requirement:** `PATCH /orgs/{org}` (REST) does not accept a 2FA field at all —
+     `two_factor_requirement_enabled` is response-only. On the GraphQL side, the *only* mutation
+     that sets a 2FA requirement is `updateEnterpriseTwoFactorAuthenticationRequiredSetting` — scoped
+     to `Enterprise`, not the plain `Organization` type a Marketplace publisher would have. There is
+     no API path for a regular org, and none for a personal account either (a personal account's 2FA
+     is just that one person's own security-settings toggle — enrollment itself, e.g. registering a
+     TOTP app or security key, has never been API-exposed by GitHub for any account type, which is
+     the correct call security-wise).
+   - **Verified domain:** the mutations genuinely exist and are real
+     (`addVerifiableDomain(ownerId, domain)` → returns a `verificationToken` + `dnsHostName` to place
+     as a DNS TXT record → `verifyVerifiableDomain(id)` checks it and flips `isVerified`). I already
+     have the DNS-side capability this needs (Cloudflare API access to the `trustfabric.ai` zone,
+     same mechanism used for Resend's records earlier). **But** `AddVerifiableDomainInput.ownerId`
+     is typed against a `VerifiableDomainOwner` union whose only members are `Organization` and
+     `Enterprise` — introspection confirms `User` is not a possible type. There is no `ownerId` I
+     could pass for a personal account; it's not a permissions gap, the mutation doesn't apply.
+   - **Organization creation itself is also web-UI-only** — no public `POST` endpoint creates a new
+     GitHub.com organization (only GitHub Enterprise *Server's* admin API has that, irrelevant here).
+     So even the unlock step for the two settings above can't be scripted.
+
+**Net effect on sequencing:** none of this blocks or changes WO-G1–G5, G7, G8 — the **free listing
+path needs no organization and nothing above applies to it**, so it proceeds exactly as planned once
+Web Wave 2 clears. It *does* mean WO-G6's "activate at 100 installs" framing was slightly optimistic:
+the real gate before any paid submission is an owner decision (create an org? transfer the App to
+it?) that has to happen first, and — like App creation — that first click has to be yours; I can't
+shortcut it by finding a broader token scope, because the operation itself has no API surface at any
+scope. I'll flag this as a decision point once free-tier install numbers make the paid path worth
+discussing, not before.
+
 ---
 
 ## Work-orders
