@@ -82,7 +82,7 @@ export function NotFoundPage({ badHash, destinations, onNavigate }: Props) {
         <input
           type="search"
           aria-label="Search pages"
-          placeholder="Search pages — try “docs”, “plans”, “tools”…"
+          placeholder="Search pages — try “docs”, “plans”, “mcp”…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           style={{

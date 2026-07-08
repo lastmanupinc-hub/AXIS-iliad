@@ -65,6 +65,10 @@ import {
   deleteAccount,
   getMcpManifest,
   searchMcpTools,
+  // WO-P8 — MCP Configuration page
+  listMcpTools,
+  getInstallConfig,
+  probeIntent,
   getOpenApiSpec,
   getStats,
   healthLive,
@@ -1623,6 +1627,115 @@ describe("searchMcpTools", () => {
     expect(url).toContain("/v1/mcp/tools?");
     expect(url).toContain("q=docker+deploy");
     expect(url).toContain("program=deploy");
+  });
+});
+
+describe("listMcpTools (WO-P8)", () => {
+  it("POSTs a tools/list JSON-RPC request to /mcp and returns the tool array", async () => {
+    const response = {
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        tools: [
+          { name: "list_programs", description: "d", inputSchema: { type: "object", properties: {} } },
+          {
+            name: "analyze_repo",
+            description: "d2",
+            inputSchema: { type: "object", required: ["github_url"], properties: { github_url: { type: "string" } } },
+          },
+        ],
+      },
+    };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await listMcpTools();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe("list_programs");
+    expect(result[1].inputSchema?.required).toEqual(["github_url"]);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/mcp");
+    expect(init.method).toBe("POST");
+    const body = JSON.parse(init.body);
+    expect(body.jsonrpc).toBe("2.0");
+    expect(body.method).toBe("tools/list");
+  });
+
+  it("throws an ApiError carrying the JSON-RPC error message", async () => {
+    const fetchFn = mockFetch({ jsonrpc: "2.0", id: 1, error: { code: -32601, message: "boom" } });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await expect(listMcpTools()).rejects.toThrow("boom");
+  });
+
+  it("returns an empty array when result.tools is missing", async () => {
+    const fetchFn = mockFetch({ jsonrpc: "2.0", id: 1, result: {} });
+    vi.stubGlobal("fetch", fetchFn);
+
+    expect(await listMcpTools()).toEqual([]);
+  });
+});
+
+describe("getInstallConfig (WO-P8)", () => {
+  it("GETs /v1/install/:platform", async () => {
+    const response = {
+      platform: "claude-code",
+      file: "claude-code CLI",
+      description: "d",
+      config: { command: "claude mcp add axis-iliad ..." },
+      get_api_key: "POST .../v1/accounts",
+      mcp_endpoint: "https://x/mcp",
+    };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await getInstallConfig("claude-code");
+
+    expect(result.platform).toBe("claude-code");
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/install/claude-code");
+  });
+
+  it("encodes the platform id", async () => {
+    const fetchFn = mockFetch({ platform: "x", file: "f", description: "d", config: {}, get_api_key: "k", mcp_endpoint: "m" });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await getInstallConfig("vs code");
+
+    expect(fetchFn.mock.calls[0][0]).toBe("/v1/install/vs%20code");
+  });
+});
+
+describe("probeIntent (WO-P8)", () => {
+  it("POSTs /probe-intent with just the intent when no focus areas are given", async () => {
+    const response = {
+      intent: "checkout compliance",
+      recommendations: [{ tool: "prepare_agentic_purchasing", reason: "r", auth: true, pricing: "$0.50/call" }],
+      call_next: "prepare_agentic_purchasing",
+      mcp_endpoint: "https://x/mcp",
+      install: "https://x/v1/install",
+      for_agents: "https://x/for-agents",
+    };
+    const fetchFn = mockFetch(response);
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await probeIntent("checkout compliance");
+
+    expect(result.call_next).toBe("prepare_agentic_purchasing");
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url).toBe("/probe-intent");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ intent: "checkout compliance" });
+  });
+
+  it("includes focus_areas only when provided", async () => {
+    const fetchFn = mockFetch({ intent: "x", recommendations: [], call_next: "search_and_discover_tools", mcp_endpoint: "m", install: "i", for_agents: "f" });
+    vi.stubGlobal("fetch", fetchFn);
+
+    await probeIntent("x", ["sca", "dispute"]);
+
+    const [, init] = fetchFn.mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ intent: "x", focus_areas: ["sca", "dispute"] });
   });
 });
 

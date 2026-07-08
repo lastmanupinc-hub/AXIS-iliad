@@ -496,7 +496,7 @@ export function App() {
   const isLanding = route.page === "home" || route.page === "analyze";
 
   /** A nav item is active for its own page and for its child pages
-   *  (e.g. Tools stays lit on #tools/web-research). */
+   *  (e.g. MCP stays lit on #tools/web-research). */
   const isActive = useCallback(
     (r: RouteDef) => route.page === r.page || routeForPage(route.page).parent === r.page,
     [route.page],

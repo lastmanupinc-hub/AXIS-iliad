@@ -72,7 +72,6 @@ describe("matchHash — table resolution", () => {
 
   it("resolves sub-tool hashes (#tools/web-research)", () => {
     expect(matchHash("tools/web-research")!.route.page).toBe("tool-web-research");
-    expect(matchHash("tools")!.route.page).toBe("tools");
   });
 
   it("returns null for unknown hashes (404, never a silent landing fallback)", () => {
@@ -80,6 +79,11 @@ describe("matchHash — table resolution", () => {
     expect(matchHash("docs/extra")).toBeNull();
     expect(matchHash("tools/unknown-tool")).toBeNull();
     expect(matchHash("Docs")).toBeNull(); // case-sensitive
+    // WO-P8: "tools" (the ToolsIndexPage catalog) and "install" (the old
+    // InstallPage) were merged into "mcp" — their bare hashes no longer
+    // resolve to anything (404, not a silent fallback to either page).
+    expect(matchHash("tools")).toBeNull();
+    expect(matchHash("install")).toBeNull();
   });
 });
 
@@ -106,12 +110,15 @@ describe("routeFromPathname — marketing/SEO aliases", () => {
   it("maps the existing marketing pathnames", () => {
     expect(routeFromPathname("/pricing")!.page).toBe("plans");
     expect(routeFromPathname("/plans")!.page).toBe("plans");
-    expect(routeFromPathname("/mcp")!.page).toBe("for-agents");
+    // WO-P8: "/mcp" now points at the real MCP Configuration page (moved off
+    // "for-agents"); "/install" and "/tools" are kept as aliases into the
+    // same merged page for continuity with the pages it absorbed.
+    expect(routeFromPathname("/mcp")!.page).toBe("mcp");
+    expect(routeFromPathname("/install")!.page).toBe("mcp");
+    expect(routeFromPathname("/tools")!.page).toBe("mcp");
     expect(routeFromPathname("/for-agents")!.page).toBe("for-agents");
     expect(routeFromPathname("/docs")!.page).toBe("docs");
-    expect(routeFromPathname("/install")!.page).toBe("install");
     expect(routeFromPathname("/programs")!.page).toBe("programs");
-    expect(routeFromPathname("/tools")!.page).toBe("tools");
     expect(routeFromPathname("/tools/web-research")!.page).toBe("tool-web-research");
     expect(routeFromPathname("/account")!.page).toBe("account");
     expect(routeFromPathname("/paid-checkout")!.page).toBe("paid-checkout");

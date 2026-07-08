@@ -13,11 +13,10 @@ import { ProgramsPage } from "./pages/ProgramsPage.tsx";
 import { TermsPage } from "./pages/TermsPage.tsx";
 import { ForAgentsPage } from "./pages/ForAgentsPage.tsx";
 import { ExamplesPage } from "./pages/ExamplesPage.tsx";
-import { InstallPage } from "./pages/InstallPage.tsx";
+import { McpPage } from "./pages/McpPage.tsx";
 import { PaidCheckoutPage } from "./pages/PaidCheckoutPage.tsx";
 import { AdminPage } from "./pages/AdminPage.tsx";
 import { MyAnalyticsPage } from "./pages/MyAnalyticsPage.tsx";
-import { ToolsIndexPage } from "./pages/ToolsIndexPage.tsx";
 import { WebResearchPage } from "./pages/tools/WebResearchPage.tsx";
 import { KitchenSinkPage } from "./pages/KitchenSinkPage.tsx";
 import { NotFoundPage, type NotFoundDestination } from "./pages/NotFoundPage.tsx";
@@ -56,6 +55,18 @@ import type { SnapshotResponse } from "./api.ts";
 // that the handoff has happened). WO-P6 added a third ID-addressable
 // variant, "project-artifacts" ("#projects/:id/artifacts"), deep-linking the
 // same page straight into its new Artifacts tab (ArtifactExplorer).
+//
+// WO-P8: "mcp" (pattern "mcp") is the merged MCP Configuration page — the
+// former "install" (per-platform config snippets) and "tools" (a hand-
+// maintained catalog mapping 9 click-console entries to MCP tool names, 6 of
+// them permanently "coming soon") pages both retired into it; the manifest,
+// the full tool registry, and the platform configs are now fetched live from
+// the API instead of hand-maintained lists. It claims the "/mcp" pathname
+// alias (moved off "for-agents", which keeps only its own canonical alias)
+// plus "/install" and "/tools" for continuity with the pages it absorbed.
+// "tool-web-research" — the one ToolsIndexPage destination with an actual
+// built console page — survives at its own hash/alias with "mcp" as its new
+// parent (McpPage's tool registry links back into it for iliad_web_research).
 
 export type PageId =
   | "home"
@@ -83,13 +94,13 @@ export type PageId =
   | "terms"
   | "for-agents"
   | "examples"
-  | "install"
+  | "mcp"
   | "paid-checkout"
   | "admin"
   | "myanalytics"
-  | "tools"
   // Sub-tool pages — each a click-driven console for a single backend capability.
-  // Hash format: "#tools/web-research".
+  // Hash format: "#tools/web-research". (WO-P8: the "tools" index page that
+  // used to list these was merged into "mcp" — this is the one live console.)
   | "tool-web-research"
   // Hidden dev aid (WO-F4): primitives gallery at #__kitchen-sink.
   | "kitchen-sink"
@@ -312,32 +323,18 @@ export const ROUTES: RouteDef[] = [
     render: (ctx) => renderProjectDetail(ctx, "Versions"),
   },
   {
-    page: "tools",
-    pattern: "tools",
-    label: "Tools",
-    section: "MISSION",
-    aliases: ["/tools"],
-    nav: { group: "WORKSPACE", icon: "wrench", rail: true },
-    render: (ctx) => (
-      <ToolsIndexPage
-        onSelectTool={(toolId) => {
-          if (toolId === "tools/web-research") ctx.navigate("tool-web-research");
-          else if (toolId === "tools/analyze") ctx.navigate("analyze");
-          else if (toolId === "tools/list-programs") ctx.navigate("programs");
-          // Future tools: add cases here as their ToolPage instances ship.
-        }}
-      />
-    ),
-  },
-  {
+    // WO-P8: the "tools" index page that used to own this pattern's parent
+    // slot was merged into "mcp" (below) — this is the one ToolsIndexPage
+    // destination that was a real, built console rather than a catalog card,
+    // so it keeps its own hash and alias.
     page: "tool-web-research",
     pattern: "tools/web-research",
     label: "Web Research",
     tabLabel: "web-research.tool",
     section: "MISSION",
-    parent: "tools",
+    parent: "mcp",
     aliases: ["/tools/web-research"],
-    render: (ctx) => <WebResearchPage onBack={() => ctx.navigate("tools")} />,
+    render: (ctx) => <WebResearchPage onBack={() => ctx.navigate("mcp")} />,
   },
   {
     page: "programs",
@@ -347,6 +344,18 @@ export const ROUTES: RouteDef[] = [
     aliases: ["/programs"],
     nav: { group: "LIBRARY", icon: "layers", rail: true },
     render: (ctx) => <ProgramsPage onAnalyze={() => ctx.navigate("analyze")} />,
+  },
+  {
+    // WO-P8: MCP Configuration — merges the old "install" (per-platform
+    // config snippets) and "tools" (ToolsIndexPage's hand-maintained catalog)
+    // pages; see the doc comment above PageId for the full rationale.
+    page: "mcp",
+    pattern: "mcp",
+    label: "MCP",
+    section: "AGENTS",
+    aliases: ["/mcp", "/install", "/tools"],
+    nav: { group: "LIBRARY", icon: "plug", rail: true },
+    render: (ctx) => <McpPage onNavigate={ctx.navigate} />,
   },
   {
     page: "examples",
@@ -436,18 +445,11 @@ export const ROUTES: RouteDef[] = [
     pattern: "for-agents",
     label: "For Agents",
     section: "AGENTS",
-    aliases: ["/for-agents", "/mcp"],
+    // WO-P8: "/mcp" now belongs to the "mcp" route (MCP Configuration) — this
+    // page keeps only its own canonical alias.
+    aliases: ["/for-agents"],
     nav: { group: "HELP", icon: "bot" },
     render: () => <ForAgentsPage />,
-  },
-  {
-    page: "install",
-    pattern: "install",
-    label: "Install",
-    section: "AGENTS",
-    aliases: ["/install"],
-    nav: { group: "HELP", icon: "download" },
-    render: () => <InstallPage />,
   },
   {
     page: "terms",

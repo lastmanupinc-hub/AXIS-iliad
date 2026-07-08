@@ -12,7 +12,6 @@ import { DocsPage } from "./pages/DocsPage";
 import { ExamplesPage } from "./pages/ExamplesPage";
 import { ForAgentsPage } from "./pages/ForAgentsPage";
 import { HelpPage } from "./pages/HelpPage";
-import { InstallPage } from "./pages/InstallPage";
 import { QAPage } from "./pages/QAPage";
 import { TermsPage } from "./pages/TermsPage";
 
@@ -70,11 +69,6 @@ describe("Page smoke tests — zero-prop pages", () => {
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 
-  it("InstallPage renders without crashing", () => {
-    const { container } = render(<InstallPage />);
-    expect(container.innerHTML.length).toBeGreaterThan(0);
-  });
-
   it("QAPage renders without crashing", () => {
     const { container } = render(<QAPage />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
@@ -94,13 +88,6 @@ describe("Referral copy stays factual — no growth-pitch framing", () => {
     expect(html).not.toContain("you can share");
     expect(html).toContain("Referral Program (Opt-In)");
     expect(html).toContain("get_referral_credits");
-  });
-
-  it("InstallPage describes the referral program neutrally", () => {
-    const { container } = render(<InstallPage />);
-    const html = container.innerHTML;
-    expect(html).not.toContain("The more agents you refer");
-    expect(html).toContain("Referral Program (Opt-In)");
   });
 
   it("QAPage billing answer avoids referral growth-pitch framing", () => {

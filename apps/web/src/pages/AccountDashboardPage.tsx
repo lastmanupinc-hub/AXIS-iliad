@@ -257,7 +257,7 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
           <strong>Run a program</strong>
           <p className="text-muted text-sm mt-1">Pick a project and launch any of the {PROGRAM_COUNT} programs.</p>
         </button>
-        <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onNavigate("install")}>
+        <button type="button" className="card" style={{ textAlign: "left", width: "100%", cursor: "pointer" }} onClick={() => onNavigate("mcp")}>
           <strong>Open MCP config</strong>
           <p className="text-muted text-sm mt-1">Copy a working config for Claude, Cursor, or VS Code.</p>
         </button>

@@ -32,6 +32,8 @@ const PATHS: Record<string, ReactNode> = {
   list: <><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>,
   // WO-P7 — Program Runner nav icon.
   play: <polygon points="6 3 20 12 6 21 6 3" />,
+  // WO-P8 — MCP Configuration nav icon.
+  plug: <><path d="M9 2v6M15 2v6" /><path d="M7 8h10a1 1 0 0 1 1 1v3a6 6 0 0 1-6 6v0a6 6 0 0 1-6-6V9a1 1 0 0 1 1-1z" /><path d="M12 19v3" /></>,
 };
 
 export function Icon({ name, size = 16 }: { name: string; size?: number }) {

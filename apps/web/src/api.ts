@@ -1062,6 +1062,112 @@ export async function searchMcpTools(q?: string, program?: string): Promise<McpT
   return fetchJSON(`/v1/mcp/tools${qs ? `?${qs}` : ""}`);
 }
 
+// ─── Full MCP tool catalog (WO-P8) ───────────────────────────────
+// The live per-tool registry — name, description, JSON-Schema args, output
+// schema, annotations, and examples. Distinct from `searchMcpTools` above
+// (which answers a different question: capability search across the 20
+// *programs*, not the 36 individual MCP tools) and from `getMcpManifest`'s
+// `tools[]` (deliberately name+description only — the external
+// mcp-publisher registry format; see mcp-server.test.ts "each tool entry has
+// name and description only"). Sourced from `POST /mcp {method:"tools/list"}`
+// — the same fully-public JSON-RPC method any MCP client calls to discover
+// tools — rather than a new REST endpoint, since it is already the
+// canonical, tested source of this exact shape.
+
+export interface McpToolSchemaProperty {
+  type?: string;
+  description?: string;
+  enum?: string[];
+  items?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface McpToolSchema {
+  type?: string;
+  properties?: Record<string, McpToolSchemaProperty>;
+  required?: string[];
+  [key: string]: unknown;
+}
+
+export interface McpToolAnnotations {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+}
+
+export interface McpToolExample {
+  name: string;
+  input?: unknown;
+  output?: string;
+}
+
+export interface McpToolDefinition {
+  name: string;
+  description: string;
+  inputSchema?: McpToolSchema;
+  outputSchema?: Record<string, unknown>;
+  annotations?: McpToolAnnotations;
+  examples?: McpToolExample[];
+}
+
+let mcpRpcId = 0;
+
+/** POST /mcp {method:"tools/list"} — the full, live tool catalog (WO-P8). */
+export async function listMcpTools(): Promise<McpToolDefinition[]> {
+  const res = await fetchJSON<{
+    result?: { tools?: McpToolDefinition[] };
+    error?: { code: number; message: string };
+  }>("/mcp", {
+    method: "POST",
+    body: JSON.stringify({ jsonrpc: "2.0", id: ++mcpRpcId, method: "tools/list" }),
+  });
+  if (res.error) throw new ApiError(res.error.message, 200, "MCP_RPC_ERROR");
+  return res.result?.tools ?? [];
+}
+
+// ─── Install configs + intent probe (WO-P8) ──────────────────────
+
+export interface InstallConfigResponse {
+  platform: string;
+  file: string;
+  description: string;
+  config: Record<string, unknown>;
+  get_api_key: string;
+  mcp_endpoint: string;
+}
+
+/** GET /v1/install/:platform — live per-platform MCP config snippet. */
+export async function getInstallConfig(platform: string): Promise<InstallConfigResponse> {
+  return fetchJSON(`/v1/install/${encodeURIComponent(platform)}`);
+}
+
+export interface ProbeIntentRecommendation {
+  tool: string;
+  reason: string;
+  auth: boolean;
+  pricing: string;
+}
+
+export interface ProbeIntentResponse {
+  intent: string;
+  probe_class?: string;
+  recommendations: ProbeIntentRecommendation[];
+  call_next: string;
+  mcp_endpoint: string;
+  install: string;
+  for_agents: string;
+}
+
+/** POST /probe-intent {intent, focus_areas?} — public, no auth. The
+ *  "describe your need -> tool suggestion" capability explorer. */
+export async function probeIntent(intent: string, focusAreas?: string[]): Promise<ProbeIntentResponse> {
+  return fetchJSON("/probe-intent", {
+    method: "POST",
+    body: JSON.stringify({ intent, ...(focusAreas?.length ? { focus_areas: focusAreas } : {}) }),
+  });
+}
+
 // ─── OpenAPI spec ───────────────────────────────────────────────
 
 export interface OpenApiSpec {

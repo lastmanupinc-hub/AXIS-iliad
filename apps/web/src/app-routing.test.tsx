@@ -173,7 +173,7 @@ describe("App routing (WO-F2)", () => {
 // ─── Shared primitives shell integration (WO-F4) ─────────────────
 
 describe("PageFooter in the shell (WO-F4)", () => {
-  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#install", "#for-agents", "#tools", "#run", "#__kitchen-sink", "#definitely/not/a/page"];
+  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#mcp", "#for-agents", "#tools/web-research", "#run", "#__kitchen-sink", "#definitely/not/a/page"];
 
   it("is rendered by the shell on every page, including 404 and the kitchen sink", () => {
     for (const hash of PUBLIC_HASHES) {
