@@ -13,6 +13,7 @@ import {
   Callout,
   CodeBlock,
   EmptyState,
+  MarkdownLite,
   PageFooter,
   Pill,
   SectionHeader,
@@ -162,6 +163,77 @@ describe("EmptyState", () => {
     expect(screen.getByText("Analyze a repo first.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Analyze" }));
     expect(onClick).toHaveBeenCalledOnce();
+  });
+});
+
+describe("MarkdownLite (WO-P6)", () => {
+  it("renders headings offset into h3..h6, paragraphs, and a horizontal rule", () => {
+    render(<MarkdownLite text={"# Title\n\nA paragraph.\n\n---\n\n###### Deep heading"} />);
+    expect(screen.getByRole("heading", { level: 3, name: "Title" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 6, name: "Deep heading" })).toBeTruthy();
+    expect(screen.getByText("A paragraph.")).toBeTruthy();
+  });
+
+  it("renders bold, italic, and inline code as real elements", () => {
+    render(<MarkdownLite text={"Some **bold**, *italic*, __also bold__, _also italic_, and `code`."} />);
+    expect(screen.getByText("bold").tagName).toBe("STRONG");
+    expect(screen.getByText("italic").tagName).toBe("EM");
+    expect(screen.getByText("also bold").tagName).toBe("STRONG");
+    expect(screen.getByText("also italic").tagName).toBe("EM");
+    expect(screen.getByText("code").tagName).toBe("CODE");
+  });
+
+  it("renders a safe http(s)/mailto link with target=_blank and rel=noopener", () => {
+    render(<MarkdownLite text="See [the docs](https://example.test/docs) for more." />);
+    const link = screen.getByRole("link", { name: "the docs" });
+    expect(link.getAttribute("href")).toBe("https://example.test/docs");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("never creates an anchor for an unsafe link scheme — label renders as plain text", () => {
+    const { container } = render(<MarkdownLite text="[go](javascript:alert(1))" />);
+    const dangerous = [...container.querySelectorAll("a")].find((a) => (a.getAttribute("href") ?? "").toLowerCase().startsWith("javascript:"));
+    expect(dangerous).toBeUndefined();
+  });
+
+  it("never injects raw HTML from source text — tags render as literal, escaped text", () => {
+    const { container } = render(<MarkdownLite text={"See <img src=x onerror=alert(1)> and <script>alert(2)</script> here."} />);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.textContent).toContain("<img src=x onerror=alert(1)>");
+    expect(container.textContent).toContain("<script>alert(2)</script>");
+  });
+
+  it("renders fenced code blocks verbatim, ignoring inline-markdown-looking content inside them", () => {
+    const { container } = render(<MarkdownLite text={"```ts\nconst x = 1; // *not* italic\n```"} />);
+    const code = container.querySelector("pre.md-lite-code code")!;
+    expect(code.textContent).toBe("const x = 1; // *not* italic");
+    expect(code.querySelector("em")).toBeNull();
+  });
+
+  it("renders unordered and ordered lists", () => {
+    render(<MarkdownLite text={"- one\n- two\n\n1. first\n2. second"} />);
+    expect(screen.getByText("one").closest("ul")).toBeTruthy();
+    expect(screen.getByText("two").closest("ul")).toBeTruthy();
+    expect(screen.getByText("first").closest("ol")).toBeTruthy();
+    expect(screen.getByText("second").closest("ol")).toBeTruthy();
+  });
+
+  it("renders a block quote", () => {
+    render(<MarkdownLite text="> Quoted wisdom." />);
+    expect(screen.getByText("Quoted wisdom.").closest("blockquote")).toBeTruthy();
+  });
+
+  it("does not treat two separate, unpaired asterisks (e.g. glob patterns) as one long italic run", () => {
+    const { container } = render(<MarkdownLite text="Exclude *.test.ts and *.spec.ts files." />);
+    expect(container.querySelector("em")).toBeNull();
+    expect(container.querySelector(".md-lite-p")?.textContent).toBe("Exclude *.test.ts and *.spec.ts files.");
+  });
+
+  it("returns null for empty input", () => {
+    const { container } = render(<MarkdownLite text="" />);
+    expect(container.firstChild).toBeNull();
   });
 });
 

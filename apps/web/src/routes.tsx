@@ -52,18 +52,22 @@ import type { SnapshotResponse } from "./api.ts";
 // "project-versions" routes below — the build plan's IA (§1.2) reserves the
 // literal hash "#dashboard" for the account-level overview (WO-P3's former
 // "account-dashboard" page, promoted here to the real "dashboard" id now
-// that the handoff has happened).
+// that the handoff has happened). WO-P6 added a third ID-addressable
+// variant, "project-artifacts" ("#projects/:id/artifacts"), deep-linking the
+// same page straight into its new Artifacts tab (ArtifactExplorer).
 
 export type PageId =
   | "home"
   | "analyze"
   | "dashboard"
   // Project/Snapshot Detail (WO-P5) — ID-addressable at "#projects/:id";
-  // "project-versions" is the same page with the Versions tab deep-linked
-  // (a second RouteDef because a pattern segment can't be optional AND
-  // extend the segment count — see matchPattern's exact-segment-count rule).
+  // "project-versions" and "project-artifacts" (WO-P6) are the same page
+  // with a different tab deep-linked (separate RouteDefs because a pattern
+  // segment can't be optional AND extend the segment count — see
+  // matchPattern's exact-segment-count rule).
   | "project"
   | "project-versions"
+  | "project-artifacts"
   | "plans"
   | "account"
   | "docs"
@@ -103,9 +107,10 @@ export interface RouteContext extends NavContext {
   params: RouteParams;
   /** Raw hash (without "#") that produced the current route — 404 reporting. */
   hash: string;
-  /** The project currently loaded — WO-P5: for the "project"/"project-versions"
-   *  routes this is fetched (or read from the anon cache) for `params.id`
-   *  specifically; `result.project_id === params.id` before it's safe to render. */
+  /** The project currently loaded — WO-P5/P6: for the "project"/
+   *  "project-versions"/"project-artifacts" routes this is fetched (or read
+   *  from the anon cache) for `params.id` specifically; `result.project_id
+   *  === params.id` before it's safe to render. */
   result: SnapshotResponse | null;
   /** Active project id (multi-project state, WO-F3) — survives reloads via
    *  localStorage `axis_last_project_id`; the server restores the rest. */
@@ -214,11 +219,12 @@ export const ROUTES: RouteDef[] = [
   {
     // WO-P3 (account-level overview) — promoted to the real "#dashboard" hash
     // by WO-P5, which relocated the per-project view that used to live here
-    // to the ID-addressable "project"/"project-versions" routes below (a
-    // generic nav/shortcut target can't carry a per-project `:id` param
-    // without WO-F2's "one entry = one page" invariant growing a special
-    // case). Ctrl+2 is this page's alone now — no `visible` gate needed since
-    // nothing else contests the digit (unlike the pre-WO-P5 hasResult dance).
+    // to the ID-addressable "project"/"project-versions"/"project-artifacts"
+    // routes below (a generic nav/shortcut target can't carry a per-project
+    // `:id` param without WO-F2's "one entry = one page" invariant growing a
+    // special case). Ctrl+2 is this page's alone now — no `visible` gate
+    // needed since nothing else contests the digit (unlike the pre-WO-P5
+    // hasResult dance).
     page: "dashboard",
     pattern: "dashboard",
     label: "Dashboard",
@@ -233,14 +239,30 @@ export const ROUTES: RouteDef[] = [
     // WO-P5: Project/Snapshot Detail — the former single-result "#dashboard"
     // page (hasResult-gated, no id of its own), now ID-addressable so any
     // historical project can be opened by URL. `renderProjectDetail` (below
-    // the table) is shared with "project-versions"; App.tsx's restore effect
-    // fetches (or reads the anon cache for) whichever `params.id` is current.
+    // the table) is shared with "project-versions"/"project-artifacts";
+    // App.tsx's restore effect fetches (or reads the anon cache for)
+    // whichever `params.id` is current.
     page: "project",
     pattern: "projects/:id",
     label: "Project",
     tabLabel: "project.json",
     section: "MISSION",
     render: (ctx) => renderProjectDetail(ctx),
+  },
+  {
+    // Same page as "project", with the Artifacts tab deep-linked (WO-P6,
+    // build plan §1.2: "#projects/:id/artifacts → Artifact Explorer
+    // (deep-linkable tab)"). A separate RouteDef rather than an optional
+    // trailing segment on "project" — matchPattern requires an exact segment
+    // count per pattern, so "projects/:id" and "projects/:id/artifacts" are
+    // two patterns, not one with an optional tail.
+    page: "project-artifacts",
+    pattern: "projects/:id/artifacts",
+    label: "Project Artifacts",
+    tabLabel: "project-artifacts.json",
+    section: "MISSION",
+    parent: "project",
+    render: (ctx) => renderProjectDetail(ctx, "Artifacts"),
   },
   {
     // Same page as "project", with the Versions tab deep-linked (build plan
@@ -432,12 +454,12 @@ export const ROUTES: RouteDef[] = [
   },
 ];
 
-// ─── Project Detail render (WO-P5) ────────────────────────────────────────────
-// Shared by the "project" and "project-versions" routes — the only difference
-// between them is which tab opens first. `ctx.result`/`restoring`/`restoreError`
-// are populated by App.tsx's restore effect, keyed on `ctx.params.id` (not the
-// app-wide "current project" — a deep link to a DIFFERENT project than the one
-// already open must still fetch the right one).
+// ─── Project Detail render (WO-P5/WO-P6) ──────────────────────────────────────
+// Shared by the "project", "project-versions", and "project-artifacts" routes
+// — the only difference between them is which tab opens first. `ctx.result`/
+// `restoring`/`restoreError` are populated by App.tsx's restore effect, keyed
+// on `ctx.params.id` (not the app-wide "current project" — a deep link to a
+// DIFFERENT project than the one already open must still fetch the right one).
 
 function renderProjectDetail(ctx: RouteContext, initialTab?: ProjectTab): ReactNode {
   if (ctx.result && ctx.result.project_id === ctx.params.id) {

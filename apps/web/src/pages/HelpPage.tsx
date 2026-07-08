@@ -22,7 +22,7 @@ const GETTING_STARTED_STEPS: Step[] = [
   { number: 2, title: "Upload Your Project", description: "Head to the Analyze page. Drag and drop a folder, upload a ZIP file, or paste a GitHub repository URL. Axis will scan all source files.", icon: "upload" },
   { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the project page. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
   { number: 4, title: "Run Programs", description: "Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get 3 programs; upgrade for all 20.", icon: "programs" },
-  { number: 5, title: "Download or Search", description: "Use the Generated Files tab to view and copy output, or export everything as a ZIP. The Search tab lets you query your indexed snapshot.", icon: "download" },
+  { number: 5, title: "Download or Search", description: "Use the Artifacts tab to search, preview, copy, and download output, or export everything as a ZIP. The Search tab lets you query your indexed snapshot.", icon: "download" },
 ];
 
 const UPLOAD_TIPS = [
@@ -283,7 +283,7 @@ function ProgramsGuideSection() {
           <div className="card" style={{ padding: 16, marginBottom: 0, textAlign: "center" }}>
             <div style={{ fontSize: "1.5rem", marginBottom: 8 }}><Icon name="step-3" /></div>
             <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 4 }}>View Results</strong>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Switch to Generated Files tab — browse, copy, or download output</p>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Switch to the Artifacts tab — search, preview, copy, or download output</p>
           </div>
         </div>
       </div>
@@ -410,7 +410,7 @@ function DashboardGuideSection() {
             { tab: "Overview", key: "Alt+1", icon: "clipboard", desc: "Project summary — languages, frameworks, file count, overall health score, and detected patterns. This is your starting point." },
             { tab: "Structure", key: "Alt+2", icon: "folder", desc: "File tree visualization showing directory layout, file sizes, and language distribution. Identifies large files and deep nesting." },
             { tab: "Dependencies", key: "Alt+3", icon: "api-link", desc: "Dependency graph with package counts, version ranges, and outdated/vulnerable package warnings from your manifest files." },
-            { tab: "Generated Files", key: "Alt+4", icon: "file-doc", desc: "Browse all output files from programs you've run. Click any file to preview, copy to clipboard, or download individually." },
+            { tab: "Artifacts", key: "Alt+4", icon: "file-doc", desc: "Search and filter every output file from programs you've run, by name, content, program, or file type. Preview (with rendered markdown), copy path/content, or download a file individually." },
             { tab: "Programs", key: "Alt+5", icon: "programs", desc: "Program launcher — 17 cards organized by tier (Free / Pro). Click a card to generate output. Shows which programs have already been run." },
             { tab: "Search", key: "Alt+6", icon: "search", desc: "Full-text search across your snapshot. Build the index first, then search by keyword, function name, or content pattern." },
             { tab: "Versions", key: "Alt+7", icon: "analyze", desc: "Snapshot history, generation-version diffs, project memory, and snapshot/project deletion." },
@@ -477,17 +477,19 @@ function DashboardGuideSection() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Working with Generated Files</h3>
+        <h3 style={{ marginBottom: 12 }}>Working with Artifacts</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          The Generated Files tab (Alt+4) shows all output organized by program. Here's how to use them:
+          The Artifacts tab (Alt+4) shows all generated output organized by program. Here's how to use it:
         </p>
         <ul style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.8, paddingLeft: 20 }}>
-          <li><strong>Preview:</strong> Click any file to view its full content in a syntax-highlighted viewer</li>
-          <li><strong>Copy:</strong> Click the copy icon to copy file content to your clipboard — paste directly into your project</li>
-          <li><strong>Download:</strong> Click the download icon to save a single file to disk</li>
-          <li><strong>Export ZIP:</strong> Use the "Export" button to download all generated files as a ZIP archive</li>
-          <li><strong>Filter by program:</strong> Click a program name in the sidebar to show only that program's files</li>
-          <li><strong>Re-generate:</strong> Go back to Programs tab and re-run — new files replace the old ones</li>
+          <li><strong>Search:</strong> Type in the search box to match a filename or file content substring, live</li>
+          <li><strong>Filter:</strong> Narrow by program or by file type with the two dropdowns</li>
+          <li><strong>Tree / Grid:</strong> Toggle between a program-grouped list and a flat card grid</li>
+          <li><strong>Preview:</strong> Click any file — Markdown files render with headings/lists/links; other types show as plain text (a "Raw" toggle is available for Markdown too)</li>
+          <li><strong>Copy:</strong> "Copy path" or "Copy content" puts either on your clipboard — paste directly into your project</li>
+          <li><strong>Download:</strong> "Download" saves just the selected file; the download button on each program group saves that program's files as a ZIP</li>
+          <li><strong>Export everything:</strong> Use "Download All" at the top of the page for a full-project ZIP</li>
+          <li><strong>Re-generate:</strong> Go back to the Programs tab and re-run — new files replace the old ones</li>
         </ul>
       </div>
 

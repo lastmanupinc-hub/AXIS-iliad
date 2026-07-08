@@ -6,6 +6,7 @@
 export { StatTile, type StatTileProps, type StatDelta } from "./StatTile.tsx";
 export { SectionHeader, type SectionHeaderProps } from "./SectionHeader.tsx";
 export { CodeBlock, type CodeBlockProps } from "./CodeBlock.tsx";
+export { MarkdownLite, type MarkdownLiteProps } from "./Markdown.tsx";
 export { TableWrap, type TableWrapProps } from "./TableWrap.tsx";
 export { Callout, type CalloutProps, type CalloutTone } from "./Callout.tsx";
 export { Pill, type PillProps, type PillTone } from "./Pill.tsx";

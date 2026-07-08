@@ -1146,6 +1146,23 @@ export async function downloadExport(projectId: string, program?: string): Promi
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
 }
 
+/**
+ * WO-P6: download ONE already-loaded generated file as its own file, with no
+ * network round trip — `getGeneratedFiles` already returned `content` inline,
+ * so re-fetching it via `GET .../generated-files/:path` (the raw-download
+ * endpoint the API also exposes for direct/external use) would just refetch
+ * bytes the caller already has. Mirrors downloadExport's anchor-click idiom.
+ */
+export function downloadGeneratedFile(file: Pick<GeneratedFile, "path" | "content" | "content_type">): void {
+  const blob = new Blob([file.content], { type: file.content_type || "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = file.path.split("/").pop() || file.path;
+  a.click();
+  // v8 ignore next
+  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+}
+
 // ─── Billing API ────────────────────────────────────────────────
 
 export async function createAccount(name: string, email: string): Promise<{ account: Account; api_key: { key_id: string; raw_key: string; label: string } }> {

@@ -1602,4 +1602,76 @@ kbd {
 
 /* ── Kitchen sink (dev gallery) ── */
 .sink-page { max-width: 880px; margin: 0 auto; }
+
+/* ==========================================================================
+   WO-P6 — Artifact Explorer + MarkdownLite
+   ========================================================================== */
+
+/* ── File rows / cards (real <button>s — free keyboard + AT semantics) ── */
+.artifact-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.artifact-row:hover { background: var(--bg-hover); }
+.artifact-row.active { background: var(--bg-hover); border-left-color: var(--accent); }
+.artifact-row:focus-visible { outline: none; box-shadow: var(--glow); }
+
+.artifact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.artifact-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.artifact-card:hover { border-color: var(--accent); }
+.artifact-card.active { border-color: var(--accent); box-shadow: var(--glow); }
+.artifact-card:focus-visible { outline: none; box-shadow: var(--glow); }
+
+/* ── MarkdownLite ── */
+.md-lite { font-size: 0.875rem; line-height: 1.65; color: var(--text); }
+.md-lite-heading { margin: var(--space-4) 0 var(--space-2); }
+.md-lite-heading:first-child { margin-top: 0; }
+.md-lite h3.md-lite-heading { font-size: 1rem; }
+.md-lite h4.md-lite-heading { font-size: 0.9375rem; }
+.md-lite h5.md-lite-heading, .md-lite h6.md-lite-heading {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.md-lite-p { margin: 0 0 var(--space-3); }
+.md-lite-list { margin: 0 0 var(--space-3); padding-left: 22px; }
+.md-lite-list li { margin-bottom: 4px; }
+.md-lite-quote {
+  margin: 0 0 var(--space-3);
+  padding: 2px 12px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-muted);
+}
+.md-lite-quote p { margin: 0 0 4px; }
+.md-lite-code { margin: 0 0 var(--space-3); }
+.md-lite-hr { border: none; border-top: 1px solid var(--border); margin: var(--space-4) 0; }
+.md-lite-inline-code {
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
 .sink-section { margin-bottom: var(--space-8); }

@@ -87,6 +87,14 @@ const LAST_PROJECT_KEY = "axis_last_project_id";
 const ANON_RESULT_KEY = "axis_anon_result";
 const LEGACY_RESULT_KEY = "axis_last_result";
 
+// WO-P5/WO-P6: every route that renders the per-project detail view
+// (ProjectPage, just with a different tab deep-linked) shares one
+// `:id`-keyed restore effect below. A page added here without also being
+// added to that effect's condition would silently never restore on a fresh
+// deep link — this Set is the single place that has to grow when a new
+// deep-linkable tab is added, instead of a scattered inline `||` chain.
+const PROJECT_DETAIL_PAGES: ReadonlySet<PageId> = new Set(["project", "project-versions", "project-artifacts"]);
+
 interface PersistedState {
   result: SnapshotResponse | null;
   projectId: string | null;
@@ -130,7 +138,7 @@ export function App() {
   const [result, setResult] = useState<SnapshotResponse | null>(initialState.result);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(initialState.projectId);
   const [restoring, setRestoring] = useState(false);
-  // WO-P5: set when the last restore attempt (for the "project"/"project-versions"
+  // WO-P5: set when the last restore attempt (for the current PROJECT_DETAIL_PAGES
   // route's params.id) failed — human copy only, rendered by renderProjectDetail.
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [generatedFileCount, setGeneratedFileCount] = useState(0);
@@ -323,7 +331,7 @@ export function App() {
     };
   }, [loggedIn]);
 
-  // WO-P5: the "project"/"project-versions" routes are ID-addressable — the
+  // WO-P5/WO-P6: the PROJECT_DETAIL_PAGES routes are ID-addressable — the
   // result they need is keyed on `route.params.id`, not "whatever the app
   // currently has loaded" (a deep link to a DIFFERENT project than the one
   // already open must still fetch the right one). Anon cache first
@@ -333,7 +341,7 @@ export function App() {
   // not-found/sign-in state (renderProjectDetail) rather than bouncing away,
   // so the bad/foreign URL the user landed on stays visible and explained.
   useEffect(() => {
-    if (route.page !== "project" && route.page !== "project-versions") return;
+    if (!PROJECT_DETAIL_PAGES.has(route.page)) return;
     const projectId = route.params.id;
     if (!projectId) return; // the pattern always captures :id — defensive only
     if (result && result.project_id === projectId) return; // already showing it

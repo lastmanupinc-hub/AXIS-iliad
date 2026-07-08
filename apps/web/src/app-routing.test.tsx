@@ -358,6 +358,46 @@ describe("Multi-project state (WO-F3)", () => {
   });
 });
 
+// ─── Artifact Explorer deep link (WO-P6) ──────────────────────────
+// "#projects/:id/artifacts" is a THIRD id-addressable variant of the same
+// restore effect "#projects/:id/versions" already used (WO-P5) — the easy
+// bug here is adding the route to routes.tsx but forgetting to add its page
+// id to App.tsx's restore-effect condition, which would silently leave a
+// fresh deep link stuck on "Restoring…" forever. This proves the whole path:
+// hash -> restore -> ProjectPage mounts with the Artifacts tab active.
+
+describe("Artifact Explorer deep link (WO-P6)", () => {
+  it("#projects/:id/artifacts restores the project and opens the Artifacts tab", async () => {
+    const fx = makeSnapshotResponse();
+    stubApiFetch([
+      ["/v1/projects/proj_fx/context", { snapshot_id: "snap_fx", context_map: fx.context_map, repo_profile: fx.repo_profile }],
+      ["/v1/projects/proj_fx/generated-files", {
+        snapshot_id: "snap_fx",
+        project_id: "proj_fx",
+        generated_at: "",
+        files: [{ path: "Dockerfile", program: "deploy", description: "container image", content: "FROM node:20", content_type: "text/x-dockerfile" }],
+        skipped: [],
+      }],
+    ]);
+    window.location.hash = "#projects/proj_fx/artifacts";
+
+    const { container } = render(<App />);
+
+    expect(shellPage(container)).toBe("project-artifacts");
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    // The Artifacts tab (not Overview, the default) is the one showing active content.
+    const activeTab = container.querySelector(".tab.active");
+    expect(activeTab?.textContent).toContain("Artifacts");
+
+    // ProjectPage fetches its OWN (content-bearing) generated-files list in a
+    // separate effect after mounting — a second async step behind the one
+    // "fixture-repo" just proved, so these need an async find, not a sync get.
+    expect(await screen.findByLabelText("Search artifacts")).toBeTruthy();
+    expect(await screen.findByText("container image")).toBeTruthy(); // the Dockerfile row's description — proves ArtifactExplorer got `files`
+  });
+});
+
 // ─── Account Dashboard → open a project (WO-P3, hash promoted by WO-P5) ──
 // #dashboard is login-gated (like #account/#plans); its project cards hand
 // off to the ID-addressable "#projects/:id" server-restore path (WO-F3's

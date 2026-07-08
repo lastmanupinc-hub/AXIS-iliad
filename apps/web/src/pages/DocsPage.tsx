@@ -1058,7 +1058,7 @@ function OutputsSection() {
             </tr>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>UI copy</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Click the copy icon in Generated Files tab</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Click "Copy content" in the Artifacts tab</td>
               <td className="mono" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>clipboard</td>
             </tr>
           </tbody>

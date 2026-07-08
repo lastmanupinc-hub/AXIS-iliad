@@ -14,6 +14,8 @@ import {
   healthCheck,
   getExportUrl,
   downloadExport,
+  // WO-P6 — Artifact Explorer (single already-loaded file download)
+  downloadGeneratedFile,
   createAccount,
   getAccount,
   createApiKey,
@@ -887,6 +889,69 @@ describe("downloadExport", () => {
     vi.stubGlobal("fetch", fetchFn);
 
     await expect(downloadExport("proj1")).rejects.toThrow("Export failed: 500");
+  });
+});
+
+// ─── downloadGeneratedFile (WO-P6) ───────────────────────────────
+// Unlike downloadExport, this never touches the network — the caller already
+// has `content` from getGeneratedFiles. Stubbing document/URL wholesale here
+// is safe because (unlike a component test) nothing in this file renders
+// through the real DOM.
+
+describe("downloadGeneratedFile", () => {
+  it("downloads using the basename as the filename and the file's content_type", () => {
+    const blobUrl = "blob:http://localhost/one-file";
+    const fakeAnchor = { href: "", download: "", click: vi.fn() };
+    vi.stubGlobal("document", { createElement: () => fakeAnchor });
+    const createObjectURL = vi.fn(() => blobUrl);
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+    vi.stubGlobal("Blob", class {
+      parts: unknown[];
+      type: string;
+      constructor(parts: unknown[], opts?: { type?: string }) { this.parts = parts; this.type = opts?.type ?? ""; }
+    });
+
+    downloadGeneratedFile({ path: ".ai/AGENTS.md", content: "# hi", content_type: "text/markdown" });
+
+    expect(fakeAnchor.click).toHaveBeenCalledOnce();
+    expect(fakeAnchor.href).toBe(blobUrl);
+    expect(fakeAnchor.download).toBe("AGENTS.md");
+    const blobArg = createObjectURL.mock.calls[0][0] as { parts: unknown[]; type: string };
+    expect(blobArg.type).toBe("text/markdown");
+    expect(blobArg.parts).toEqual(["# hi"]);
+  });
+
+  it("falls back to the full path when there's no '/' and to text/plain when content_type is empty", () => {
+    const fakeAnchor = { href: "", download: "", click: vi.fn() };
+    vi.stubGlobal("document", { createElement: () => fakeAnchor });
+    const createObjectURL = vi.fn(() => "blob:x");
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL: vi.fn() });
+    vi.stubGlobal("Blob", class {
+      type: string;
+      constructor(_parts: unknown[], opts?: { type?: string }) { this.type = opts?.type ?? ""; }
+    });
+
+    downloadGeneratedFile({ path: "README.md", content: "hi", content_type: "" });
+
+    expect(fakeAnchor.download).toBe("README.md");
+    const blobArg = createObjectURL.mock.calls[0][0] as { type: string };
+    expect(blobArg.type).toBe("text/plain");
+  });
+
+  it("revokes the object URL after a delay", () => {
+    vi.useFakeTimers();
+    const fakeAnchor = { href: "", download: "", click: vi.fn() };
+    vi.stubGlobal("document", { createElement: () => fakeAnchor });
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL: () => "blob:y", revokeObjectURL });
+    vi.stubGlobal("Blob", class { constructor(_parts: unknown[], _opts?: { type?: string }) {} });
+
+    downloadGeneratedFile({ path: "a.txt", content: "x", content_type: "text/plain" });
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:y");
+    vi.useRealTimers();
   });
 });
 

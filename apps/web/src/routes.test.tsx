@@ -131,9 +131,10 @@ describe("derived route metadata", () => {
     );
   });
 
-  it("the project/project-versions routes (WO-P5) are NOT auth-only — anonymous projects stay viewable by id", () => {
+  it("the project/project-versions/project-artifacts routes (WO-P5/P6) are NOT auth-only — anonymous projects stay viewable by id", () => {
     expect(AUTH_ONLY_PAGES.has("project")).toBe(false);
     expect(AUTH_ONLY_PAGES.has("project-versions")).toBe(false);
+    expect(AUTH_ONLY_PAGES.has("project-artifacts")).toBe(false);
   });
 
   it("page ids and non-null patterns are unique", () => {
@@ -222,9 +223,9 @@ describe("home/analyze split (WO-P1)", () => {
   });
 });
 
-// ─── Project/Snapshot Detail (WO-P5) ──────────────────────────────
+// ─── Project/Snapshot Detail (WO-P5/WO-P6) ────────────────────────
 
-describe("project detail routes (WO-P5)", () => {
+describe("project detail routes (WO-P5/WO-P6)", () => {
   it("#projects/:id resolves to the 'project' page with the id captured", () => {
     const match = matchHash("projects/abc123");
     expect(match!.route.page).toBe("project");
@@ -237,14 +238,21 @@ describe("project detail routes (WO-P5)", () => {
     expect(match!.params).toEqual({ id: "abc123" });
   });
 
-  it("hashForPage round-trips both project routes with an id", () => {
+  it("#projects/:id/artifacts resolves to the 'project-artifacts' page with the id captured (WO-P6)", () => {
+    const match = matchHash("projects/abc123/artifacts");
+    expect(match!.route.page).toBe("project-artifacts");
+    expect(match!.params).toEqual({ id: "abc123" });
+  });
+
+  it("hashForPage round-trips all three project routes with an id", () => {
     expect(hashForPage("project", { id: "abc123" })).toBe("projects/abc123");
     expect(hashForPage("project-versions", { id: "abc123" })).toBe("projects/abc123/versions");
+    expect(hashForPage("project-artifacts", { id: "abc123" })).toBe("projects/abc123/artifacts");
     expect(matchHash(hashForPage("project", { id: "p 1" }))!.params).toEqual({ id: "p 1" });
   });
 
-  it("neither project route has a nav entry, shortcut, or alias (parameterized — no static rail slot)", () => {
-    for (const page of ["project", "project-versions"] as const) {
+  it("no project route has a nav entry, shortcut, or alias (parameterized — no static rail slot)", () => {
+    for (const page of ["project", "project-versions", "project-artifacts"] as const) {
       const def = routeForPage(page);
       expect(def.nav).toBeUndefined();
       expect(def.shortcut).toBeUndefined();
@@ -252,8 +260,14 @@ describe("project detail routes (WO-P5)", () => {
     }
   });
 
-  it("'project-versions' is not resolvable at 'projects/:id' — the two patterns are distinct, exact-segment-count matches", () => {
+  it("'project-versions'/'project-artifacts' are not resolvable at 'projects/:id' — distinct, exact-segment-count matches", () => {
     expect(matchHash("projects/abc123")!.route.page).toBe("project");
     expect(matchHash("projects/abc123/versions")!.route.page).toBe("project-versions");
+    expect(matchHash("projects/abc123/artifacts")!.route.page).toBe("project-artifacts");
+  });
+
+  it("'project-versions' and 'project-artifacts' both point back at 'project' as their parent", () => {
+    expect(routeForPage("project-versions").parent).toBe("project");
+    expect(routeForPage("project-artifacts").parent).toBe("project");
   });
 });

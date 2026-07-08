@@ -68,7 +68,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "programs",
     question: "What output files are generated?",
-    answer: "Each program generates 4–5 files in formats appropriate to the output: Markdown (.md) for documentation and rules, JSON (.json) for configs and tokens, CSS (.css) for themes, TypeScript/JS (.tsx/.ts) for components and scripts, and YAML (.yaml) for pipelines and manifests. The Generated Files tab shows all outputs grouped by program, with preview, copy, and download options.",
+    answer: "Each program generates 4–5 files in formats appropriate to the output: Markdown (.md) for documentation and rules, JSON (.json) for configs and tokens, CSS (.css) for themes, TypeScript/JS (.tsx/.ts) for components and scripts, and YAML (.yaml) for pipelines and manifests. The Artifacts tab shows all outputs grouped by program, with search, program/file-type filters, preview (rendered Markdown), copy, and download options.",
   },
   {
     category: "programs",

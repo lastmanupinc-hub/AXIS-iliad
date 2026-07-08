@@ -4,7 +4,7 @@ import { getGeneratedFiles, runProgram, downloadExport, ApiError } from "../api.
 import { OverviewTab } from "../components/OverviewTab.tsx";
 import { FilesTab } from "../components/FilesTab.tsx";
 import { GraphTab } from "../components/GraphTab.tsx";
-import { GeneratedTab } from "../components/GeneratedTab.tsx";
+import { ArtifactExplorer } from "../components/ArtifactExplorer.tsx";
 import { ProgramLauncher } from "../components/ProgramLauncher.tsx";
 import { SearchTab } from "../components/SearchTab.tsx";
 import { VersionsTab } from "../components/VersionsTab.tsx";
@@ -16,17 +16,21 @@ import { useToast } from "../components/Toast.tsx";
 // bound to whatever the app currently had loaded. Now addressed at
 // "#projects/:id" (routes.tsx renderProjectDetail resolves `result` for the
 // requested id before this ever mounts) so any historical project opens by
-// URL. Overview/Structure/Dependencies/Generated Files/Programs/Search are
-// unchanged; Versions is new (snapshot history, generation-version diff,
-// project memory, and snapshot/project deletion all live there — see
-// components/VersionsTab.tsx).
+// URL. Overview/Structure/Dependencies/Programs/Search are unchanged.
+// Versions is new (snapshot history, generation-version diff, project
+// memory, and snapshot/project deletion all live there — see
+// components/VersionsTab.tsx). WO-P6 renamed "Generated Files" to
+// "Artifacts" and replaced its component (GeneratedTab -> ArtifactExplorer:
+// search, program/type filters, tree/grid toggle, markdown preview,
+// per-file download) — deep-linkable at "#projects/:id/artifacts" like
+// Versions is at "#projects/:id/versions" (see routes.tsx).
 
 interface Props {
   result: SnapshotResponse;
   /** Gates the project-memory read/write UI inside VersionsTab (the API
    *  401s while signed out regardless of project ownership). */
   loggedIn: boolean;
-  /** Which tab opens first — set by the "project-versions" deep link. */
+  /** Which tab opens first — set by the "project-versions"/"project-artifacts" deep links. */
   initialTab?: ProjectTab;
   onGeneratedCountChange?: (count: number) => void;
   /** A snapshot belonging to this project was deleted — the caller re-fetches
@@ -38,7 +42,7 @@ interface Props {
   onNeedCredits: () => void;
 }
 
-const TABS = ["Overview", "Structure", "Dependencies", "Generated Files", "Programs", "Search", "Versions"] as const;
+const TABS = ["Overview", "Structure", "Dependencies", "Artifacts", "Programs", "Search", "Versions"] as const;
 export type ProjectTab = (typeof TABS)[number];
 
 function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: number; onDownload: () => void; downloading: boolean }) {
@@ -105,7 +109,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
         for (const f of res.files) existing.set(f.path, f);
         return [...existing.values()];
       });
-      setActiveTab("Generated Files");
+      setActiveTab("Artifacts");
       toast("success", `Generated ${res.files.length} files from ${endpoint.split("/")[0]}`);
     } catch (err) {
       if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
@@ -178,7 +182,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
             title={`Alt+${idx + 1}`}
           >
             {tab}
-            {tab === "Generated Files" && generatedFiles.length > 0 && (
+            {tab === "Artifacts" && generatedFiles.length > 0 && (
               <span className="badge badge-accent" style={{ marginLeft: 6, fontSize: "0.6875rem" }}>
                 {generatedFiles.length}
               </span>
@@ -191,8 +195,8 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
         {activeTab === "Overview" && <OverviewTab ctx={ctx} profile={profile} />}
         {activeTab === "Structure" && <FilesTab ctx={ctx} />}
         {activeTab === "Dependencies" && <GraphTab ctx={ctx} />}
-        {activeTab === "Generated Files" && (
-          <GeneratedTab files={generatedFiles} projectId={result.project_id} />
+        {activeTab === "Artifacts" && (
+          <ArtifactExplorer files={generatedFiles} projectId={result.project_id} />
         )}
         {activeTab === "Programs" && (
           <ProgramLauncher
