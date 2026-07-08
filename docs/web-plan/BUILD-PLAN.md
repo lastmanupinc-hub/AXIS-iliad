@@ -1,5 +1,19 @@
 # Iliad Web App — Build Plan to the 17-Page Spec
 
+## Status (as of 2026-07-07)
+
+**Foundation (Wave 0): all 5 landed.** WO-F1 `6d1fd88` · WO-F2 `c5fd02c` · WO-F3 `b1696cc` · WO-F4 `f22d4a7` · WO-F5 `9f6e959`.
+
+**Pages: 8 of 17 landed (WO-P1–P8).** WO-P1 `5cf826c` · WO-P2 `2d1a327` · WO-P3 `b6969ba` · WO-P4 `f6b1cf1` · WO-P5 `1236b11` · WO-P6 `a187f41` · WO-P7 `5f7249b` · WO-P8 `2a60c10`. **Not started: WO-P9–P17** (commerce hub, usage/billing, projects list, settings, docs hub, 404 sweep, playground/changelog/status bonus pages) — plan below is unchanged for these, still accurate as written.
+
+**API: WO-A1, A2, A3 landed** (`GET /v1/projects`, `GET /v1/projects/:id/snapshots`, `GET /v1/account/usage/timeseries` all live in `server.ts`). **Not started: WO-A4** (changelog endpoint, blocks WO-P16), **WO-A5** (`PATCH`/`DELETE /v1/account`, blocks WO-P12's account-deletion acceptance criterion — only `GET /v1/account` exists today). **WO-A6 correctly still deferred** per its own spec. **WO-A7 correctly still optional/backlog.**
+
+**Known test-suite caveat, unrelated to this plan's work:** `apps/api/src/production-startup.test.ts` and `apps/api/src/rate-limiter.test.ts` fail intermittently under heavy machine load (both spin up real HTTP servers on ephemeral ports with a hard 5000ms per-test timeout; the file's own code comment notes it was already rewritten once to fix this exact class of flakiness — work order A11). Confirmed via isolated re-run that failures are load-sensitive timeouts, not logic errors, and neither file has been touched by any WO-P/WO-F/WO-A work. If you hit red here, re-run alone before assuming a regression.
+
+**Actual execution order diverged from Section 5's Wave 1/2/3/4 grouping below** — work ran WO-P1→P8 roughly in numeric order rather than the doc's original cross-page grouping (e.g. P2 and P8 shipped before P11). Section 5 is kept as-is below since it's still a reasonable guide for what's left (P9 onward), not a record of what happened.
+
+---
+
 **Scope discipline:** No new npm dependencies (routing = hand-rolled hash routing, graphs = hand-rolled SVG). No class components (except existing `ErrorCatcher`). Cookie-session auth only (`establishSession`/`markAuthed`, never raw keys in storage). PAI'D is the only checkout path (`POST /portal/api/subscribe`), never `POST /v1/checkout`. TypeScript strict. All paths relative to `apps/web/src/` unless noted; API work in `apps/api/src/`.
 
 ---
@@ -54,28 +68,33 @@ Replace the single `axis_last_result` localStorage blob with: server as source o
 
 ## 2. Foundation Work-Orders (Wave 0)
 
-### WO-F1 — Design-token dogfood bridge — **S**
+### WO-F1 — Design-token dogfood bridge — **S**  
+**Status: DONE** (6d1fd88)
 - **Files:** new `apps/web/src/theme.css` (copy of `.ai/theme.css` with two corrections: fonts → Inter/JetBrains Mono, light accent → `#0a5a6b` per `index.css:21-23`); `main.tsx` (import before index.css); `index.css` (replace `:root` var definitions with an alias block per Audit 3's mapping table: `--bg→--surface-page`, `--text→--color-neutral-900`, `--green→--color-success`, etc. — zero JSX churn); add the bug-fix aliases `--success`, `--danger`, `--orange`, `--surface`, `--warning`, `--warning-bg`, `--bg-elev`.
 - Also fix hardcoded hex: `SearchTab.tsx:97-104,284` (theme-aware symbol palette via vars), `ExamplesPage.tsx:430,532,591,666` + `InstallPage.tsx:20` (`#fff` → `var(--accent-ink)`).
 - Adopt theme.css's OS-preference dark mode; `App.tsx:177-182` toggle becomes explicit override.
 - **Acceptance:** the 6 undefined-var bugs render correctly in both themes; OS dark preference respected on first visit; no visual regression on existing pages; the app imports the generated design-system contract (dogfood loop closed on the consume side).
 
-### WO-F2 — Route table + 404 — **M**
+### WO-F2 — Route table + 404 — **M**  
+**Status: DONE** (c5fd02c)
 - **Files:** new `routes.ts` (route defs: `pattern`, `page` id, `label`, `section`, `authOnly`, `params` parser), new `useHashRoute.ts` hook (hashchange listener, pattern match incl. `:id` segments, back/forward safe); rewrite `App.tsx` nav plumbing (`pageFromHash`, `SECTION_OF`, `LABEL_OF`, sidebar tree, mobile drawer, palette actions all derive from the table); new `pages/NotFoundPage.tsx` (on-brand: search box, links to Docs/Analyze/Help, reports the bad hash).
 - Preserve: `AUTH_ONLY_PAGES` gating semantics, OAuth-callback guard (`App.tsx:86-88`), Ctrl+1–9 shortcuts, `pages.test.tsx` must pass (update as needed).
 - **Acceptance:** adding a page = one entry in `routes.ts`; `#projects/abc123` parses params; unknown hash renders 404 (not upload); deep links + browser back/forward work; all existing pages still reachable at old URLs.
 
-### WO-F3 — API client expansion + multi-project state — **M**
+### WO-F3 — API client expansion + multi-project state — **M**  
+**Status: DONE** (b1696cc)
 - **Files:** `api.ts` — add typed clients: `listProjects()`, `listProjectSnapshots(id)`, `getSnapshotVersions/getVersion/getDiff` (handle 402 `persistence_credits_required`), `getUsageTimeseries()`, `getChangelog()`, `patchAccount()`, `deleteAccount()`, `getMcpManifest()` (`/v1/mcp/server.json`), `searchMcpTools(q)`, `getOpenApiSpec()` (`/openapi.json`), `getStats()`, health probes. `App.tsx` — replace single-result state with `currentProjectId` + anon-result cache. Update `api.test.ts`.
 - **Depends:** WO-A1, WO-A2, WO-A3, WO-A4, WO-A5 (stub against mini-specs; ship behind the API merges).
 - **Acceptance:** all new endpoints callable with typed results and structured `ApiError`s; existing anon analyze flow unaffected.
 
-### WO-F4 — Shared primitives + footer + error/empty patterns — **M**
+### WO-F4 — Shared primitives + footer + error/empty patterns — **M**  
+**Status: DONE** (f22d4a7)
 - **Files:** new `components/primitives/`: `StatTile`, `SectionHeader`, `CodeBlock` (copy button, mono, wraps existing hand-rolled trio in InstallPage/ExamplesPage/DocsPage), `TableWrap`, `Callout`, `Pill`, `Skeleton` (use theme.css `shimmer`), `EmptyState` (icon + message + CTA prop, replaces per-page hand-rolls), `Sparkline` + `BarChart` (hand-rolled SVG, no dep — consult dataviz conventions), `PageFooter` (legal/Terms · Status · v`version.ts` · Support/Help · Docs — rendered by the shell on every page above the StatusBar). Add ~12 utility classes to `index.css` (`.text-muted`, `.text-sm`, `.mb-*` on `--space-*`, `.stack`, `.gap-*`).
 - Error-handling hardening: `api.ts:409` — never surface raw server body >0 chars to UI; map to human copy + "details" disclosure.
 - **Acceptance:** primitives Storybook-style demo section on a hidden `#__kitchen-sink` route (dev aid); footer visible on every page in desktop + mobile; raw server error text no longer reaches users.
 
-### WO-F5 — Single source for counts/URLs — **S**
+### WO-F5 — Single source for counts/URLs — **S**  
+**Status: DONE** (9f6e959)
 - **Files:** new `apps/web/src/config.ts` exporting `API_BASE`, `PROGRAM_COUNT`, `ARTIFACT_COUNT`, `TOOL_COUNT` (ideally generated from `apps/api/src/counts.ts` at build or fetched from `GET /`); replace the duplicated `141/20/35` literals and the divergent bases in `ForAgentsPage.tsx:2`, `InstallPage.tsx:4` (both must use `api.ts:4` base).
 - **Acceptance:** grep for `axis-api-6c7z.onrender.com` in `apps/web/src` returns 0 hits; counts sourced from one module; extend the count-honesty test to cover web.
 
@@ -83,52 +102,60 @@ Replace the single `axis_last_result` localStorage blob with: server as source o
 
 ## 3. Page / Feature Work-Orders
 
-### WO-P1 — Landing/Hero + Live Demo — **M**
+### WO-P1 — Landing/Hero + Live Demo — **M**  
+**Status: DONE** (5cf826c)
 - **Extends:** `pages/UploadPage.tsx` (split: marketing half → `pages/HomePage.tsx`; form half → `pages/AnalyzePage.tsx`).
 - **API:** `GET /` (live counts), `GET /v1/stats` (social proof: calls today, top tools), anon `POST /v1/analyze`.
 - **Content:** "Analyze any repo in seconds" headline; free-tier CTA → `#analyze`; live demo = embedded playground teaser (see WO-P15) showing a real anon analysis of a sample repo; program badges + example output kept.
 - **Login-gate change:** anonymous analyses **complete and display free-program results** (backend already allows this); the SignUpModal (`App.tsx:263-269` `pendingResultRef` intercept) moves to point-of-value: "Sign up to save this project / unlock 17 paid programs." This is the single biggest funnel change — confirm with owner before shipping.
 - **Acceptance:** logged-out visitor lands, reads the value prop, runs a real free analysis, and sees real results without an account; stats are live, not hardcoded.
 
-### WO-P2 — Auth & API-key polish — **S**
+### WO-P2 — Auth & API-key polish — **S**  
+**Status: DONE** (2d1a327)
 - **Extends:** `components/SignUpModal.tsx`, `components/AuthButtons.tsx`, key management stays (moves to Settings in WO-P12).
 - **API:** existing OAuth + `/v1/auth/exchange` + `/v1/account/keys*`. **No email/password build** (backend has none — see Honesty H1).
 - **Work:** contextual signup copy per trigger (save project / paid program / quota); post-OAuth redirect returns to the page that triggered login, not always `#account`.
 - **Acceptance:** signup from any gate returns the user to what they were doing; key create/reveal-once/revoke unchanged and passing tests.
 
-### WO-P3 — Dashboard Overview (account-level) — **M**
+### WO-P3 — Dashboard Overview (account-level) — **M**  
+**Status: DONE** (b6969ba)
 - **New:** `pages/AccountDashboardPage.tsx` at `#dashboard`. (Existing `DashboardPage.tsx` is renamed/repurposed as project detail — WO-P5.)
 - **API:** `GET /v1/projects` (**WO-A1**), `GET /v1/account/usage`, `GET /v1/account/quota`, `GET /v1/account/upgrade-prompt`, `GET /v1/account/usage/timeseries` (**WO-A3**, for the sparkline).
 - **Content:** recent-projects cards (name, repo URL, last-analyzed, status, compliance grade; click → `#projects/:id`), usage StatTiles + quota bar + 14-day sparkline, quick actions (Analyze new repo · Run a program · Open MCP config · Invite teammate), `NextStepsCard` onboarding retained for zero-project state.
 - **Acceptance:** a logged-in user with 3 projects sees all 3, one click opens any of them, usage numbers match `#usage` page; empty state onboards to first analysis.
 
-### WO-P4 — Analyze Repo (advanced options) — **M**
+### WO-P4 — Analyze Repo (advanced options) — **M**  
+**Status: DONE** (f6b1cf1)
 - **Extends:** `pages/AnalyzePage.tsx` (from WO-P1 split), `upload-utils.ts`.
 - **API:** existing `POST /v1/analyze` / `POST /v1/github/analyze` (accepts `token`), `GET /v1/programs` (drive the selector from API instead of the hardcoded 45-output list at `UploadPage.tsx:22-87`), `GET /v1/account/github-token` (offer stored tokens for private repos).
 - **Work:** explicit branch field (backend already parses `/tree/branch` URLs — surface it); private-repo path: pick a stored GitHub token or paste one (send as `token`, never persist client-side); budget controls surfaced as "lite mode" toggle (`X-Agent-Mode: lite` header, honest pricing copy); keep tier pre-check + gzip + UpsellModal flows intact.
 - **Not built:** depth/exclude server controls (no API — Honesty H7); ZIP multipart (client-side unzip stays — Honesty H6).
 - **Acceptance:** user analyzes a private repo on a non-default branch using a stored token; program selector reflects live `GET /v1/programs`; lite mode demonstrably changes the 402 pricing payload.
 
-### WO-P5 — Project/Snapshot Detail + Version History + Diff Viewer — **L**
+### WO-P5 — Project/Snapshot Detail + Version History + Diff Viewer — **L**  
+**Status: DONE** (1236b11)
 - **Extends:** `pages/DashboardPage.tsx` → `pages/ProjectPage.tsx` (route `#projects/:id`); keeps Overview/Structure/Dependencies/Programs/Search tabs and Alt+1–6 shortcuts; **new tabs:** Versions, Artifacts (WO-P6).
 - **New:** `components/VersionsTab.tsx`, `components/DiffViewer.tsx` (hand-rolled side-by-side/unified diff render — no dep; the API returns the computed diff).
 - **API:** `GET /v1/projects/:id/context`, `GET /v1/snapshots/:id`, `GET /v1/projects/:id/snapshots` (**WO-A2**), `GET /v1/snapshots/:id/versions`, `.../versions/:n`, `GET /v1/snapshots/:id/diff?old=&new=` — **must handle 402 `persistence_credits_required`** with a credit-purchase CTA into the existing credits flow, `GET/POST /v1/projects/:id/memory`, `DELETE /v1/snapshots/:id` and `DELETE /v1/projects/:id` (with confirm).
 - **Acceptance:** user opens any historical project by URL, browses snapshot list, selects two versions, views a rendered diff (or a clear "1 credit required" prompt on paid tier), reads/writes project memory, deletes a snapshot.
 
-### WO-P6 — Artifact Explorer — **L**
+### WO-P6 — Artifact Explorer — **L**  
+**Status: DONE** (a187f41)
 - **Extends:** `components/GeneratedTab.tsx` → `components/ArtifactExplorer.tsx` (tab of ProjectPage + deep link `#projects/:id/artifacts`).
 - **API:** existing only — `GET /v1/projects/:id/generated-files` (content is inline → all search/filter is client-side), `GET .../generated-files/:path` (raw download), `GET /v1/projects/:id/export?program=` (ZIPs).
 - **Work:** search box (name + content substring), program + file-type filters, tree/grid toggle, preview pane with lightweight hand-rolled highlighting (markdown rendered via a small internal md-to-HTML util or `<pre>` with heading styling — no dep; flag if a highlighter dep is wanted), per-file download button, per-program ZIP + full ZIP kept, copy-path/copy-content.
 - **Acceptance:** in a 141-artifact project, user types "docker", sees matching files across programs in <1s, previews one, downloads it alone, then downloads the deploy-program ZIP.
 
-### WO-P7 — Program Runner — **M**
+### WO-P7 — Program Runner — **M**  
+**Status: DONE** (5f7249b)
 - **Extends:** `components/ProgramLauncher.tsx` + new `pages/RunnerPage.tsx` (`#run/:program?`; launcher stays embedded in ProjectPage too).
 - **API:** existing 20 program endpoints via `makeProgramHandler` shape; `GET /v1/programs` for the catalog; search endpoints (`/v1/search/index|query`) for the search program.
 - **Work:** program picker → target project picker (from `GET /v1/projects`) → options panel (the only real parameters today: lite/budget headers, program-specific body fields where handlers accept them — derive from OpenAPI spec, don't invent) → run → **honest progress** (staged status: "request sent → server processing (sync, may take up to Ns) → done"), results panel listing produced files with jump-links into the Artifact Explorer; 402 MPP payload rendered as the negotiation/upgrade card (existing UpsellModal pattern).
 - **No fake streaming** — live token-by-token output is blocked on WO-A6 (Honesty H2); the UI is designed with a slot for it.
 - **Acceptance:** user runs "theme" against project X from the Runner page, watches honest status, and lands on the new artifacts; a free user hitting a paid program sees the 402 payload rendered with price + lite-mode option, not an error dump.
 
-### WO-P8 — MCP Configuration — **M**
+### WO-P8 — MCP Configuration — **M**  
+**Status: DONE** (2a60c10)
 - **Extends:** merge `pages/InstallPage.tsx` + `pages/ToolsIndexPage.tsx` → `pages/McpPage.tsx` (`#mcp`); `ForAgentsPage` stays as the agent-facing marketing page.
 - **API:** all existing + now **fetched live instead of hardcoded**: `GET /v1/mcp/server.json` (manifest viewer), `GET /v1/mcp/tools?q=&program=` (searchable tool registry — kills the hardcoded 35-tool list drift), `GET /v1/install/:platform` (config snippets), `POST /probe-intent` (interactive "describe your need → tool suggestion" capability explorer).
 - **Work:** manifest panel, searchable/filterable tool registry with per-tool detail (args schema, auth, price), platform tabs (Claude Desktop/Code, Cursor, VS Code) with copy buttons fed by the install endpoint, integration guide, live probe-intent demo box (public, no auth).
@@ -191,13 +218,16 @@ Replace the single `axis_last_result` localStorage blob with: server as source o
 
 ## 4. API Work-Orders (apps/api — each is its own PR with tests)
 
-### WO-A1 — `GET /v1/projects` — **S** (CRITICAL PATH)
+### WO-A1 — `GET /v1/projects` — **S** (CRITICAL PATH)  
+**Status: DONE** (handleListProjects, live)
 - Auth: Key. Returns `{projects: [{project_id, name, github_url, created_at, latest_snapshot: {snapshot_id, status, created_at, file_count, compliance_grade}, snapshot_count}], total}`. Backing query `listProjectsByAccount` already exists in `@axis/snapshots` (wired only to fleet today). Pagination `?limit=&offset=`, newest first. Blocks WO-P3, WO-P7, WO-P11.
 
-### WO-A2 — `GET /v1/projects/:id/snapshots` — **S**
+### WO-A2 — `GET /v1/projects/:id/snapshots` — **S**  
+**Status: DONE** (handleListProjectSnapshots, live)
 - Auth: owner. Returns snapshot list (id, status, created_at, file_count, compliance_grade), newest first. Unblocks cross-snapshot version history in WO-P5 (current reads hardcode "latest").
 
-### WO-A3 — `GET /v1/account/usage/timeseries?bucket=day&since_days=30` — **S**
+### WO-A3 — `GET /v1/account/usage/timeseries?bucket=day&since_days=30` — **S**  
+**Status: DONE** (handleGetUsageTimeseries, live)
 - Auth: Key, self-scoped. Returns `{buckets: [{date, runs, by_program: {...}, credits_spent}]}`. Alternative (owner's call): drop the `isAdminCaller` 403 on `GET /v1/account/analytics/summary` — it already scopes to caller's own account_id. Blocks usage graphs (WO-P3, WO-P10).
 
 ### WO-A4 — `GET /v1/changelog` — **S**

@@ -1,5 +1,15 @@
 # Code -> Docs Build Strategy
 
+## Status (as of 2026-07-07)
+
+**18 of 19 work-orders landed** (WO-01 through WO-16, WO-18, WO-19 — all have real `feat(...)` implementation commits, confirmed against git history, not just planning docs).
+
+**WO-17 (`assetforge-prove`) is the only one not built** — deliberately deferred (flakiest external surface, correctly ranked last in Phase 4). Its credential-sourcing method is already resolved and recorded: reuse AXIS 3D Foundry's Render-hosted `HF_TOKEN` (fine-grained, named "foundry") rather than provisioning a new one — see `docs/build-plan/WO-17-assetforge-prove.md`. Pick this up when assetforge work resumes.
+
+This master plan and the individual WO specs in `docs/build-plan/` are otherwise unchanged below — they remain accurate as the historical spec for what was built and why.
+
+---
+
 **Doctrine:** where the docs claim more than the code delivers, close the gap by **building the code up**, not by dialing the docs down. This plan turns every overstated/aspirational documentation claim (from the full doc-vs-code audit) into a **Sonnet-5-executable work-order** whose acceptance test, when green, makes the claim literally true. Where a claim can *never* be made true by code (legal conclusions, unfalsifiable superlatives), it is reworded up front — not built.
 
 **Deliverables:** this file (the master plan) + **19 work-order specs** in [`docs/build-plan/`](docs/build-plan/). Each spec is self-contained: current state (file:line), target state, files to create/edit, real interfaces, and pass/fail acceptance tests where **DONE == the claim is true**. 17 were designed + adversarially verified by a multi-agent workflow; 2 (`WO-18 ce3`, `WO-19 revenue-mrr-tracker`) were recovered by hand from the same grounding.
@@ -66,7 +76,7 @@ Everything whose headline is blocked on a credential / partnership / flaky third
 | 14 | `network-tokenization` | [WO-14](docs/build-plan/WO-14-network-tokenization.md) | Stripe-adapter path only; direct VTS/MDES needs a Token Requestor ID (uncodeable) |
 | 15 | `perf-benchmark` | [WO-15](docs/build-plan/WO-15-perf-benchmark.md) | measures the Phase-2 engines' latency to source the "no round-trip" claim |
 | 16 | `axis-iliad-cli` | [WO-16](docs/build-plan/WO-16-axis-iliad-cli.md) | npm publish credential; keep the install doc dark until published |
-| 17 | `assetforge-prove` | [WO-17](docs/build-plan/WO-17-assetforge-prove.md) | `HF_TOKEN` + live HF Spaces (flakiest surface; last) |
+| 17 | `assetforge-prove` | [WO-17](docs/build-plan/WO-17-assetforge-prove.md) | **NOT BUILT — deferred.** `HF_TOKEN` + live HF Spaces (flakiest surface; last). Credential method resolved (reuse Foundry's Render `HF_TOKEN`), not yet executed. |
 
 ---
 
