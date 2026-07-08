@@ -14,6 +14,21 @@
 
 ---
 
+## AXIS Ecosystem
+
+Iliad is the **x402 showcase** in the Trust Fabric stack. Full registry: [`ecosystem.registry.yaml`](ecosystem.registry.yaml).
+
+| Project | Role | x402 |
+|---------|------|------|
+| **Axis' Iliad** (this repo) | Agent artifacts + MCP gateway | **Wired** — [`@axis/mpp`](packages/mpp/README.md) |
+| **[PAI'D](https://paid.trustfabric.ai)** | Multi-rail payments + settlement | Settlement layer (planned Go x402) |
+| **[AXIS Foundry](https://github.com/lastmanupinc-hub/AXIS-Foundry)** | 3D pipeline + MCP | Partial |
+| **[Trust Fabric](https://tf.jonathanarvay.com)** | Certification marketplace | Planned |
+
+x402 contract: [`docs/x402/CONTRACT.md`](docs/x402/CONTRACT.md)
+
+---
+
 ## Try it in 30 seconds — no signup required
 
 Three programs are **completely free** with no API key:
