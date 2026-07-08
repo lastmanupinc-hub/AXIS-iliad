@@ -142,8 +142,9 @@ export function TermsPage() {
 
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.2 Payment Processing</h4>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              Payments are processed by <strong>Stripe, Inc.</strong> We do not store your card
-              details. By subscribing you also agree to{" "}
+              Payments are handled by <strong>PAI'D Payments Intelligence</strong>, which settles
+              transactions via Stripe, Inc. We do not store your card details. By subscribing you
+              also agree to{" "}
               <a href="https://stripe.com/legal/ssa" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>
                 Stripe's Services Agreement
               </a>. All amounts are in USD.
@@ -209,8 +210,9 @@ export function TermsPage() {
 
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.4 Third-Party Services</h4>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              We use Stripe for payment processing and GitHub (via public tarball API) for repository
-              fetching. Their respective privacy policies apply to data they process on our behalf.
+              We use PAI'D Payments Intelligence for payment processing (which settles transactions
+              via Stripe) and GitHub (via public tarball API) for repository fetching. Their
+              respective privacy policies apply to data they process on our behalf.
             </p>
 
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>5.5 Data Deletion</h4>

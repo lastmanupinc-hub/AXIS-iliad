@@ -215,7 +215,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
               <p style={{ color: "var(--text-muted)", fontSize: "0.72rem", textAlign: "center", margin: "8px 0 0", lineHeight: 1.5 }}>
                 By subscribing you agree to our{" "}
                 <a href="#terms" style={{ color: "var(--accent)" }}>Terms of Service</a>.
-                Payments processed by Stripe. Cancel any time.
+                Payments processed securely by PAI'D. Cancel any time.
               </p>
             )}          </div>
         ))}

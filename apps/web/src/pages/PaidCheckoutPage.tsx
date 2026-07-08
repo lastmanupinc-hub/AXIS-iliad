@@ -72,7 +72,7 @@ export function PaidCheckoutPage() {
       setStep("form");
       if (err instanceof ApiError) {
         if (err.status === 503) {
-          setError("Subscription billing isn't configured on the server right now. No charge was made. Try the standard checkout from the Plans page instead.");
+          setError("Subscription billing isn't configured on the server right now. No charge was made. Please try again shortly.");
         } else if (err.status === 404) {
           setError("No AXIS account exists for that email. Create a free account first (Sign Up in the header), then come back here.");
         } else if (err.status === 502) {
@@ -100,7 +100,7 @@ export function PaidCheckoutPage() {
         <h2 style={{ marginBottom: 8 }}>Subscription checkout isn't available</h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: 16 }}>
           This server doesn't have PAI'D billing configured, so checkout can't run right now.
-          The standard Stripe checkout on the Plans page may still be available.
+          Please try again shortly.
         </p>
         <a className="btn btn-primary" href="#plans" style={{ display: "inline-flex", justifyContent: "center" }}>
           Back to Plans
