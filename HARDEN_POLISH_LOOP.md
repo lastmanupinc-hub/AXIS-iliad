@@ -74,6 +74,18 @@ July build program. They are not suggestions.
     sonnet-class for implementation and review, frontier only when a unit has failed twice
     at the current tier (escalate ONE tier, attach the two failure transcripts as context).
     Verification of a unit runs at-or-above the tier that implemented it, never below.
+14. **Process guards (anti-rabbit-hole):** WIP = 1 — exactly one unit in progress at a
+    time. **Stop-loss:** a unit that ends a work session without its acceptance test
+    passing gets HALTED, its findings written to the FAILURES ledger (append a section at
+    the bottom of this file), and is either re-scoped or escalated per rule 13 — never
+    silently ground on. Every fixed defect ships its regression test **in the same
+    commit**. Irreversible or cross-cutting decisions get a one-page ADR
+    (`docs/adr/NNN-title.md`: context / decision / consequences) before the code lands.
+15. **Public-API compatibility law:** `/v1` REST routes, MCP tool names/argument shapes,
+    and `error_code` strings are all API surface that live agents depend on. Changes are
+    additive-only; a rename or removal requires a deprecation entry (changelog, once
+    WO-A4 lands) and a stated compat window. Breaking silently is a HIGH-severity
+    self-finding in the next audit cycle.
 
 ---
 
@@ -89,6 +101,7 @@ July build program. They are not suggestions.
 | H5.1–H5.3 | Human UX | pending | |
 | H6.1–H6.3 | Ops/security | pending | |
 | H7.1–H7.4 | Model-cascade productization | pending | |
+| H8.1–H8.12 | Foundation engineering | pending | |
 | A (audit) | Re-audit cycle | pending — cycle 0 | dry-count: 0 |
 | T.1–T.3 | Tree + ROI | pending | |
 
@@ -278,15 +291,97 @@ produced by one.
   workflow artifact gains a short "Model cascade" section pointing at `model-cascade.md`
   (one cross-reference, not duplicated doctrine). Update its tests.
 
-## Phase A · Re-audit cycle (after H0–H7, and again after every subsequent fix batch)
+## Phase H8 · Foundation engineering (known-technique hardening of the safety net itself)
+
+Everything above proves the code works. This phase proves the **safety net** works — the
+canon techniques (mutation testing, property-based invariants, contract tests, fitness
+functions, data-safety drills, synthetic monitoring, rollback rehearsal) applied within
+this repo's no-new-runtime-deps law. Where a real tool would be better than the hand-rolled
+version, it is named as a dep-gated ROI candidate — do not add the dep yourself.
+
+- **H8.1 — Unhappy-path completeness audit.** Enumerate every external call site in
+  `apps/api/src` (grep `fetch(` excluding tests). Each must have three tests: timeout,
+  transport error, malformed/unexpected-shape response — or a one-line documented waiver.
+  Write the missing ones. Acceptance: the enumeration table (call site → 3 tests or
+  waiver) in the commit body; zero unwaived gaps.
+- **H8.2 — Money-math invariants (property-style, hand-rolled seeded PRNG — no new dep).**
+  New test over `packages/snapshots/src/usage-credit-metering.ts`: ~1,000 seeded cases
+  asserting, for every (allowance, used, amountCents): `included_credits_applied +
+  overage_credits === credits_required`; both terms ≥ 0; `included_credits_applied ≤
+  remaining allowance`; sequential consumes accumulate exactly (no lost updates
+  single-threaded). Acceptance: suite green; a deliberately mis-split local mutation is
+  caught (verify locally, never commit the mutant). Dep-gated upgrade: fast-check.
+- **H8.3 — Mutation-lite pass on the money path.** For `cashier.ts`, `mcp-runtime.ts`,
+  `usage-credit-metering.ts`, `growth-store.ts`, `stripe.ts`: flip each boundary operator
+  / negate each early-return guard ONE at a time locally; run the scoped suites; any
+  surviving mutant gets a killing test. Acceptance: mutant → killing-test table in the
+  commit body, survivors driven to zero. NEVER commit a mutant (verify
+  `git status`/`git diff` clean of mutations before commit). Dep-gated upgrade: Stryker.
+- **H8.4 — PAI'D contract fixtures.** Golden request/response fixtures for every PAI'D
+  endpoint Iliad calls (`apps/api/src/paid-client.ts` + `packages/paid-client/`), asserted
+  in unit tests; plus an env-gated live contract canary (pattern:
+  `live-settlement.e2e.test.ts`) validating fixtures against `api.trustfabric.ai` —
+  includes finally verifying whether PAI'D honors `Idempotency-Key` (the client's own
+  comment says unverified). Acceptance: fixture drift breaks tests; canary green when run
+  with creds; the idempotency answer documented in the client comment.
+- **H8.5 — OpenAPI ↔ router bijection test.** Every route registered in
+  `apps/api/src/server.ts` appears in `openapi.ts` and vice versa (explicit waiver list
+  for non-REST surfaces like `/mcp` JSON-RPC). Acceptance: bijection test green; any
+  drift found is fixed, not waived.
+- **H8.6 — Architecture-boundary fitness tests (hand-rolled fs walk, no dep).**
+  Lock the dependency rule: `apps/web` and `apps/api` never import each other's `src`;
+  `packages/*` never import from `apps/*`; no cycles in the `@axis/*` workspace-dependency
+  graph (walk the package.json files). Acceptance: test green; violations fixed or
+  waived with an in-test comment. Dep-gated upgrade: knip/madge for dead-export + cycle
+  depth.
+- **H8.7 — Neon data-safety drill.** Confirm PITR/branching on the live Neon project;
+  document the restore procedure in `docs/RUNBOOK_ROLLBACK.md`; perform ONE drill:
+  create a branch at T-minus-15-minutes, verify row counts on 3 core tables, delete the
+  branch. Escalate if no Neon credential label exists. Acceptance: runbook section +
+  drill evidence (timestamps, counts) committed.
+- **H8.8 — Deploy rollback runbook + rehearsal.** Document in the same runbook: API
+  rollback via Render (redeploy previous deploy id), web rollback via Cloudflare Pages
+  previous deployment, git-revert-and-push as the default path; make explicit the
+  standing rule **CI red after your push = priority zero, nothing else proceeds**.
+  Rehearse one rollback of a no-op commit off-peak, or record why not + add to
+  PENDING-OWNER. Acceptance: runbook complete; rehearsal evidence or explicit deferral.
+- **H8.9 — Synthetic monitor (dead-man's switch).** Promote `scripts/live-probe.mjs`
+  (H6.3) into `.github/workflows/synthetic.yml`: scheduled every 30 min, non-gating,
+  opens/updates a single GitHub issue on failure and closes it on recovery (native
+  GITHUB_TOKEN, no new secrets). Acceptance: scheduled run green; one forced-failure test
+  run demonstrably opens the issue (then reverted).
+- **H8.10 — Web security headers.** Cloudflare Pages `_headers` file: CSP (self + the two
+  API origins), HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
+  `frame-ancestors 'none'`. Must not break hash routing, OAuth callback, or the PAI'D
+  checkout redirect — verify all three live after deploy. Acceptance: headers visible via
+  `curl -I` on prod; routing/auth/checkout spot-checks pass.
+- **H8.11 — CI secret-scan + webhook replay audit.** (a) A CI step greping each push's
+  diff for credential shapes (`sk_live_`, `rk_live_`, `whsec_`, `re_[A-Za-z0-9]{20,}`,
+  `hf_[A-Za-z0-9]{30,}`, `rnd_`) with an allowlist for the known fake fixtures; prove it
+  with a scratch branch containing a fake key (must fail), then delete the branch.
+  (b) Audit replay protection on every webhook handler (Stripe has 5-min tolerance —
+  verify the PAI'D and GitHub handlers reject stale/replayed deliveries; fix gaps).
+  Acceptance: CI step live + proven; replay matrix documented with fixes landed.
+- **H8.12 — Dependabot config (config file only — not a runtime dep).** Weekly, grouped
+  minor/patch, majors labeled `deps-discussion` per repo law (never auto-merge).
+  Acceptance: valid `dependabot.yml` on main; first batch triaged per law.
+
+## Phase A · Re-audit cycle (after H0–H8, and again after every subsequent fix batch)
 
 1. Run the full CI suite + live-probe battery + `pnpm run build`.
 2. Spawn up to 3 read-only review subagents with the July checklists (payments/PAI'D
    coherence; web routes/auth/counts/dead-UI; engines/MCP honesty+determinism+gating), each
    returning findings with file:line + severity + regression-vs-pre-existing. Verify every
    HIGH/MED yourself by reading the code before acting.
-3. Confirmed findings become new units (append to STATE, tag cycle number). Fix them.
-4. A cycle with **zero new confirmed findings** increments the dry-count; any finding
+3. **Recurring foundation checks** (each cycle, cheap, mechanical-tier work):
+   (a) idempotency classification sweep — every state-mutating endpoint added since the
+   last cycle is classified idempotent-by-key / naturally-idempotent / at-most-once-risky,
+   and risky ones get a unit; (b) unhappy-path re-grep — new `fetch(` sites since last
+   cycle get the H8.1 three-test treatment; (c) mutation-lite rotation — ONE money-path
+   module per cycle gets the H8.3 flip-and-verify treatment; (d) the H8.5/H8.6 fitness
+   tests and H8.9 synthetic monitor are green.
+4. Confirmed findings become new units (append to STATE, tag cycle number). Fix them.
+5. A cycle with **zero new confirmed findings** increments the dry-count; any finding
    resets it. **dry-count = 2 → CONVERGED** → Phase T.
 
 ## Phase T · Terminal deliverables (the tree + the ROI list)
@@ -307,7 +402,12 @@ produced by one.
   cutover (owner decision, account exists); PAI'D embedded "Complete verification" button
   (different repo); PAI'D sanctions-restricted events investigation (read-only, different
   repo); distribution/activation items from repo-root `ACTIVATION_TRACKER.md`; assetforge
-  LOCAL-backend GPU vertical; new verticals discovered during the loop.
+  LOCAL-backend GPU vertical; test-tooling upgrades gated on dep discussion (Stryker
+  mutation testing, fast-check property testing, knip dead-export analysis, Playwright
+  browser e2e — each replaces a hand-rolled H8 technique with the industrial version);
+  branch protection with required status checks on `main` (owner decision — changes the
+  push-equals-deploy workflow this loop and the operator both rely on); new verticals
+  discovered during the loop.
 - **T.3 — Confidence report + PENDING-OWNER table:** one honest page — what is verified
   solid, what is monitored, every owner-only item accumulated by rule 12, and the loop's
   final dry-count evidence. This is the "ready for new verticals" attestation; it may not
@@ -325,3 +425,11 @@ produced by one.
   weakening a guard test) — present both, wait.
 
 Everything else: decide, disclose in the commit body, keep moving.
+
+---
+
+## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
+
+| Date | Unit | What was attempted | Why halted | Disposition (re-scoped / escalated / owner) |
+|---|---|---|---|---|
+| — | — | — | — | — |
