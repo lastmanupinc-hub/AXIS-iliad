@@ -66,6 +66,14 @@ July build program. They are not suggestions.
     — created and logged, cutover is an owner decision).
 12. **When blocked on an owner-only item:** never wait. Append it to the PENDING-OWNER
     table (Phase T file), pick the next unit, move on.
+13. **Model-cascade law (how this loop itself spends tokens):** every tier maximizes the
+    tier below it. The frontier model wrote this strategy; the executor (Sonnet) implements
+    units against their acceptance criteria; when the executor spawns subagents, it picks
+    the LOWEST-token-cost model that still clears the unit's quality bar — haiku-class for
+    mechanical work (greps, sweeps, count syncs, checklist audits with a tight rubric),
+    sonnet-class for implementation and review, frontier only when a unit has failed twice
+    at the current tier (escalate ONE tier, attach the two failure transcripts as context).
+    Verification of a unit runs at-or-above the tier that implemented it, never below.
 
 ---
 
@@ -80,6 +88,7 @@ July build program. They are not suggestions.
 | H4.1–H4.6 | AI-agent UX | pending | |
 | H5.1–H5.3 | Human UX | pending | |
 | H6.1–H6.3 | Ops/security | pending | |
+| H7.1–H7.4 | Model-cascade productization | pending | |
 | A (audit) | Re-audit cycle | pending — cycle 0 | dry-count: 0 |
 | T.1–T.3 | Tree + ROI | pending | |
 
@@ -229,7 +238,47 @@ criteria are the definition of done, update the BUILD-PLAN status table as each 
   MCP tools count, PAI'D config, anon 413 gate, web bundle marker — one command the loop
   (and CI, non-gating) can run. The July systems check did this by hand; make it repeatable.
 
-## Phase A · Re-audit cycle (after H0–H6, and again after every subsequent fix batch)
+## Phase H7 · Productize the model-cascade doctrine (owner directive, 2026-07-11)
+
+The strategy pattern this very document embodies — a higher-capability model writing
+acceptance-criteria-complete execution guides for the cheapest adequate lower tier —
+becomes a customer-facing artifact emitted by the generator suite. It must be generic
+(any customer repo), deterministic, and derived from real repo signals like every other
+generator. No LLM calls at generation time — the artifact TEACHES the cascade; it is not
+produced by one.
+
+- **H7.1 — New generator: `model-cascade.md` under the `skills` program**
+  (`packages/generator-core/` — follow the existing skills-generator conventions and
+  register in the REGISTRY; `ARTIFACT_COUNT` derives from the registry and will bump
+  automatically). Content, derived from the context map / repo profile:
+  (a) a three-tier table — planner (frontier-class) / executor (mid-class) /
+  mechanical (small-class) — with task-type assignments mapped from detected repo signals
+  (has CI → "CI triage: mechanical"; has tests → "test-backed implementation: executor";
+  monorepo/multi-service → "cross-cutting design + adversarial verification: planner";
+  etc. — deterministic mapping, no invented facts);
+  (b) the delegation contract: each tier writes work orders with acceptance criteria for
+  the tier below; verification runs at-or-above implementation tier;
+  (c) the cost rule: "run every unit on the lowest-token-cost model that clears its
+  quality bar; escalate one tier after two failures, carrying the failure context";
+  (d) an honest limits note: tier names are capability CLASSES, not vendor SKUs — no
+  pricing claims, no benchmark claims.
+- **H7.2 — Wiring + count sweep:** add the output to the skills entry in
+  `PROGRAM_OUTPUTS`; re-run the pinned-literal sweep on the docs that pin the artifact
+  count (the same set the last count bump touched: `README.md`, `LAUNCH_CLAIMS.yaml`,
+  `AXIS_Board_Pitch.md`, `launch-content.md`, web `config.ts` if pinned) and let
+  `count-honesty`/`counts-consistency`/`launch-claims` enforce. The skills program is on
+  the FREE tier — this artifact ships free (deliberate: it is the self-propagating
+  explainer for how to consume the rest of the platform). No MCP tool-count change (no new
+  tool; it rides the existing skills/analyze surface).
+- **H7.3 — Tests per program-loop conventions:** determinism (byte-identical on identical
+  input), injection/escaper suite parity with sibling skills generators, and a
+  content-contract test (tier table present, delegation contract present, no vendor-SKU or
+  pricing strings).
+- **H7.4 — Cascade section in `workflow-pack.md`:** the skills program's existing
+  workflow artifact gains a short "Model cascade" section pointing at `model-cascade.md`
+  (one cross-reference, not duplicated doctrine). Update its tests.
+
+## Phase A · Re-audit cycle (after H0–H7, and again after every subsequent fix batch)
 
 1. Run the full CI suite + live-probe battery + `pnpm run build`.
 2. Spawn up to 3 read-only review subagents with the July checklists (payments/PAI'D
