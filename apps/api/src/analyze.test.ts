@@ -342,6 +342,21 @@ describe("POST /v1/analyze â€” validation", () => {
     expect(data.price).toBe("0.50");
     expect(data.referral_token).toBeTruthy();
   });
+
+  it("rejects an oversized authed request BEFORE any charge — a doomed request costs $0 (validate-first)", async () => {
+    // Same free-tier + full-bundle shape as the 402 test above, but oversized.
+    // The old ordering ran chargeWithDiscounts (402 challenge / credit
+    // consumption) BEFORE the file caps — money could move for work that could
+    // never run, and the caller saw a payment demand for a request that was
+    // doomed to 413. Deterministic validation must win: 413, never 402.
+    const manyFiles = Array.from({ length: 1001 }, (_, i) => ({
+      path: `src/file${i}.ts`,
+      content: "export const x = 1;",
+    }));
+    const r = await req("POST", "/v1/analyze", { files: manyFiles }, freeApiKey);
+    expect(r.status).toBe(413);
+    expect((r.data as Record<string, unknown>).error_code).toBe("FILE_COUNT_EXCEEDED");
+  });
 });
 
 // â”€â”€â”€ POST /v1/analyze â€” success (files mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

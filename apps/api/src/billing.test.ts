@@ -118,7 +118,9 @@ describe("POST /v1/accounts — deny-by-default paid-tier creation", () => {
     const r = await req("POST", "/v1/accounts", { name, email, tier: "suite" });
     expect(r.status).toBe(402);
     expect(r.data.error_code).toBe("PAYMENT_REQUIRED");
-    expect(r.data.checkout_endpoint).toBe("POST /v1/checkout");
+    // PAI'D is the only checkout path — the 402 must point at the PAI'D plans
+    // page, never the legacy Stripe-direct /v1/checkout (unconfigured in prod).
+    expect(r.data.checkout_endpoint).toBe("https://iliad.trustfabric.ai/#plans");
     expect(String(r.data.plans_url)).toContain("plans");
     expect(r.data.requested_tier).toBe("suite");
 
@@ -185,7 +187,9 @@ describe("POST /v1/account/tier — deny-by-default upgrades", () => {
     const r = await req("POST", "/v1/account/tier", { tier: "paid" }, key);
     expect(r.status).toBe(402);
     expect(r.data.error_code).toBe("PAYMENT_REQUIRED");
-    expect(r.data.checkout_endpoint).toBe("POST /v1/checkout");
+    // PAI'D is the only checkout path — the 402 must point at the PAI'D plans
+    // page, never the legacy Stripe-direct /v1/checkout (unconfigured in prod).
+    expect(r.data.checkout_endpoint).toBe("https://iliad.trustfabric.ai/#plans");
     expect(String(r.data.plans_url)).toContain("plans");
     expect(r.data.current_tier).toBe("free");
     expect(r.data.requested_tier).toBe("paid");
@@ -260,7 +264,9 @@ describe("POST /v1/account/credits — deny-by-default minting", () => {
     const r = await req("POST", "/v1/account/credits", { credits: 100, operation: "purchase" }, key);
     expect(r.status).toBe(402);
     expect(r.data.error_code).toBe("PAYMENT_REQUIRED");
-    expect(r.data.checkout_endpoint).toBe("POST /v1/checkout");
+    // PAI'D is the only checkout path — the 402 must point at the PAI'D plans
+    // page, never the legacy Stripe-direct /v1/checkout (unconfigured in prod).
+    expect(r.data.checkout_endpoint).toBe("https://iliad.trustfabric.ai/#plans");
     expect(String(r.data.plans_url)).toContain("plans");
 
     // Balance must be unchanged

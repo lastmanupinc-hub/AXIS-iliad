@@ -398,6 +398,23 @@ export async function handleCreateSnapshot(
   }
   // Check quota if authenticated
   if (auth.account) {
+    // VALIDATE-FIRST (charge-integrity hybrid, phase 1): every deterministic
+    // rejection — file count/size caps — runs BEFORE any money movement. The
+    // old ordering charged (chargeWithDiscounts consumes credits and can
+    // settle cash) and THEN 413'd oversized requests, keeping money for work
+    // that never ran. A doomed request must cost $0.
+    const preLimits = TIER_LIMITS[auth.account.tier];
+    if (files.length > preLimits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${preLimits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
+      return;
+    }
+    for (const file of files) {
+      if (file.size > preLimits.max_file_size_bytes) {
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${preLimits.max_file_size_bytes} for ${auth.account.tier} tier)`);
+        return;
+      }
+    }
+
     const quota = await checkQuota(auth.account.account_id);
     /* v8 ignore start  -  quota exceeded path tested but V8 won't credit compound ternary */
     if (!quota.allowed) {
@@ -439,18 +456,8 @@ export async function handleCreateSnapshot(
     }
     /* v8 ignore stop */
 
-    // Enforce per-snapshot file count and size limits
-    const limits = TIER_LIMITS[auth.account.tier];
-    if (files.length > limits.max_files_per_snapshot) {
-      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
-      return;
-    }
-    for (const file of files) {
-      if (file.size > limits.max_file_size_bytes) {
-        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`);
-        return;
-      }
-    }
+    // File count/size caps already enforced ABOVE the charge (validate-first).
+    const limits = preLimits;
 
     // Enforce program entitlements â€” reject if free-tier user requests pro outputs
     const allowedPrograms = new Set(limits.programs.length > 0 ? limits.programs : ALL_PROGRAMS as unknown as string[]);
@@ -1522,7 +1529,23 @@ export async function handleAnalyze(
   }
 
   if (auth.account) {
-    // Enforce program-level billing FIRST: check which paid programs the user lacks access to.
+    // VALIDATE-FIRST (charge-integrity hybrid, phase 1): deterministic caps run
+    // BEFORE any money movement — the old ordering charged via
+    // chargeWithDiscounts and then 413'd oversized requests, keeping money for
+    // work that never ran. A doomed request must cost $0.
+    const limits = TIER_LIMITS[auth.account.tier];
+    if (files.length > limits.max_files_per_snapshot) {
+      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
+      return;
+    }
+    for (const file of files) {
+      if (file.size > limits.max_file_size_bytes) {
+        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`);
+        return;
+      }
+    }
+
+    // Enforce program-level billing next: check which paid programs the user lacks access to.
     if (requestedPaidPrograms.length > 0) {
       const requestedPaidProgramsEnabled = await Promise.all(
         requestedPaidPrograms.map(p => isProgramEnabled(auth.account!.account_id, p)),
@@ -1579,18 +1602,7 @@ export async function handleAnalyze(
       if (mppResult === null || mppResult.status === 402) return;
     }
     /* v8 ignore stop */
-
-    const limits = TIER_LIMITS[auth.account.tier];
-    if (files.length > limits.max_files_per_snapshot) {
-      sendError(res, 413, ErrorCode.FILE_COUNT_EXCEEDED, `File limit exceeded: ${files.length} files (max ${limits.max_files_per_snapshot} for ${auth.account.tier} tier)`);
-      return;
-    }
-    for (const file of files) {
-      if (file.size > limits.max_file_size_bytes) {
-        sendError(res, 413, ErrorCode.FILE_TOO_LARGE, `File too large: ${file.path} is ${file.size} bytes (max ${limits.max_file_size_bytes} for ${auth.account.tier} tier)`);
-        return;
-      }
-    }
+    // File count/size caps already enforced ABOVE the charges (validate-first).
   } else {
     // Anonymous callers must still obey free-tier file count/size limits before the
     // expensive createSnapshot/generateFiles work runs — same fix as the sibling

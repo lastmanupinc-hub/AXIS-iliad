@@ -245,9 +245,11 @@ export async function handleCreateAccount(
   if (tier !== "free" && !isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
     sendError(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
-      `Creating an account at the ${tier} tier requires payment. Create a free account, then start a checkout via POST /v1/checkout.`,
+      `Creating an account at the ${tier} tier requires payment. Create a free account, then pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).`,
       {
-        checkout_endpoint: "POST /v1/checkout",
+        // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
+        // endpoint is unconfigured in prod (503) and must not be advertised.
+        checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
         requested_tier: tier,
       },
@@ -544,9 +546,11 @@ export async function handleUpdateTier(
   if (isPaidUpgrade && !isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
     sendError(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
-      `Upgrading to the ${tier} tier requires payment. Start a checkout via POST /v1/checkout or pick a plan on the plans page.`,
+      `Upgrading to the ${tier} tier requires payment. Pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).`,
       {
-        checkout_endpoint: "POST /v1/checkout",
+        // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
+        // endpoint is unconfigured in prod (503) and must not be advertised.
+        checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
         current_tier: previousTier,
         requested_tier: tier,
@@ -888,9 +892,11 @@ export async function handleAddCredits(
   if (!isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
     sendError(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
-      "Purchasing persistence credits requires payment. Start a checkout via POST /v1/checkout or pick a plan on the plans page.",
+      "Purchasing persistence credits requires payment. Pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).",
       {
-        checkout_endpoint: "POST /v1/checkout",
+        // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
+        // endpoint is unconfigured in prod (503) and must not be advertised.
+        checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
         requested_credits: credits,
       },
