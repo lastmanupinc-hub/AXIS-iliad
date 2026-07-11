@@ -4,12 +4,12 @@ import { chargeMpp } from "./mpp.js";
 import { consumeFreeCall, recordPaidCall, recordSettledPayment } from "@axis/snapshots";
 import type { PaymentProvider } from "@axis/snapshots";
 import { log } from "./logger.js";
+import { randomUUID } from "node:crypto";
 import {
   paidWalletMode,
   debitPaidWallet,
   getPaidWallet,
   isPaidConfigured,
-  checkoutIdempotencyKey,
   PaidError,
   type PaidWalletMode,
   type InsufficientCreditsBody,
@@ -83,7 +83,12 @@ export async function settleOverageViaPaidWallet(
   }
 
   // mode === "enforce"
-  const idempotencyKey = checkoutIdempotencyKey(accountId, `fc-debit:${tool}`);
+  // Per-INVOCATION key: every distinct billable call is a distinct charge, so a
+  // deduping rail must never collapse two of them. (checkoutIdempotencyKey's
+  // 120s bucket is for human checkout double-submits — on this metered rail it
+  // both dropped the second call in a window AND re-keyed late retries; H0.1.)
+  // Any client-internal retry of THIS one invocation reuses the key it's handed.
+  const idempotencyKey = randomUUID();
   try {
     await debitPaidWallet(accountId, {
       amountFc,

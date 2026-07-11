@@ -135,7 +135,7 @@ July build program. They are not suggestions.
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
-| H0.1–H0.10 | Hygiene | pending | |
+| H0.1–H0.10 | Hygiene | H0.1 DONE (red-green demonstrated); H0.2 waits on H2.1; rest pending | H0.1: see PROGRESS |
 | H1.1–H1.4 | Reliability | H1.2 DONE (Fable, `fdfddd5`); H1.3 partial (source-guard 30s, `317095b`); rest pending | |
 | H2.1–H2.5 | Money path | pending | |
 | ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
@@ -502,6 +502,7 @@ every diff. Newest at the bottom.
 | Date | Unit | One-line outcome | Commit |
 |---|---|---|---|
 | 2026-07-11 | H1.2 | ProjectPage crash on malformed generated-files response fixed (defensive coerce + findBy); CI-flake root cause closed | `fdfddd5` |
+| 2026-07-11 | H0.1 | FC-debit idempotency: per-invocation UUID replaces 120s-bucket key (bucketing dropped 2nd call in window / re-keyed late retries); red demonstrated first | see commit |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 
