@@ -512,8 +512,9 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
     await waitFor(() => expect(shellPage(container)).toBe("project"));
     expect(window.location.hash).toBe("#projects/proj_fx");
 
-    // The real result is shown — not gated behind a signup popup.
-    expect(screen.getByText("fixture-repo")).toBeTruthy();
+    // The real result is shown — not gated behind a signup popup. findBy (retrying):
+    // the shell flips to "project" before the page's inner content paints under load.
+    expect(await screen.findByText("fixture-repo")).toBeTruthy();
     expect(screen.queryByRole("link", { name: /GitHub/i })).toBeNull();
 
     // The nudge is a point-of-value banner, not a blocking modal.

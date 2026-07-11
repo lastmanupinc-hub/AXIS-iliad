@@ -89,7 +89,11 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
   useEffect(() => {
     getGeneratedFiles(result.project_id)
       .then((data) => {
-        setGeneratedFiles(data.files);
+        // A malformed/unexpected response shape must degrade to "no files",
+        // never crash the page: storing undefined here made the next render
+        // throw on generatedFiles.length and the error boundary ate the whole
+        // project page (hit as a load-order race in CI).
+        setGeneratedFiles(Array.isArray(data.files) ? data.files : []);
       })
       .catch(() => {});
   }, [result.project_id]);
@@ -117,14 +121,15 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
   async function handleRunProgram(endpoint: string, opts?: { lite?: boolean }) {
     try {
       const res = await runProgram(endpoint, result.snapshot_id, opts);
+      const newFiles = Array.isArray(res.files) ? res.files : [];
       // Merge new files into the list (replace existing by path)
       setGeneratedFiles((prev) => {
         const existing = new Map(prev.map((f) => [f.path, f]));
-        for (const f of res.files) existing.set(f.path, f);
+        for (const f of newFiles) existing.set(f.path, f);
         return [...existing.values()];
       });
       setActiveTab("Artifacts");
-      toast("success", `Generated ${res.files.length} files from ${endpoint.split("/")[0]}`);
+      toast("success", `Generated ${newFiles.length} files from ${endpoint.split("/")[0]}`);
     } catch (err) {
       if (err instanceof ApiError && (err.errorCode === "TIER_REQUIRED" || err.status === 402)) {
         const blocked = (err.extra.blocked_programs as string[] | undefined) ?? [endpoint.split("/")[0]];
