@@ -26,3 +26,23 @@ jobs:
           api-key: ${{ secrets.AXIS_API_KEY }}
           minimum-grade: "B"
           lite-mode: "true"
+          # The repo's REAL compliance surface. The old default list predated
+          # the real 8-check grader (WO-05) and sent 3 thin files (2 of its 5
+          # paths never existed), grading an honest D while the actual engines
+          # (AP2 mandates, dispute lifecycle, CE3, network tokens, SCA) never
+          # reached the grader. Locally reproduced: old list = D(25), this
+          # list = A(100), all files real.
+          files: |
+            apps/api/src/stripe.ts
+            apps/api/src/mpp.ts
+            apps/api/src/cashier.ts
+            apps/api/src/network-token.ts
+            packages/ap2/src/ap2.ts
+            packages/ap2/src/types.ts
+            packages/agentic-compliance/src/dispute-state-machine.ts
+            packages/agentic-compliance/src/ce3.ts
+            packages/generator-core/src/commerce-engines.ts
+            .ai/checkout-flow.md
+            .ai/negotiation-rules.md
+            AGENTS.md
+            README.md

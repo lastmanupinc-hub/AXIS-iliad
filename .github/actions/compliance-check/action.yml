@@ -35,6 +35,14 @@ inputs:
     description: "Set to 'false' to skip publishing the named Check Run (still gates on grade)."
     required: false
     default: "true"
+  files:
+    description: >
+      Repo-relative file paths (newline- or comma-separated) to send for
+      grading. The grade is only as honest as this list — point it at the
+      files that actually carry your repo's payments/compliance signals.
+      Defaults to a generic starter list when unset.
+    required: false
+    default: ""
 
 outputs:
   grade:
@@ -57,6 +65,7 @@ runs:
         AXIS_API_KEY: ${{ inputs.api-key }}
         AXIS_API_URL: ${{ inputs.api-url }}
         AXIS_LITE: ${{ inputs.lite-mode }}
+        AXIS_COMPLIANCE_FILES: ${{ inputs.files }}
       run: |
         # Normalize secrets copied from terminals/UI that may include newline characters.
         AXIS_API_KEY="$(printf '%s' "$AXIS_API_KEY" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
@@ -72,13 +81,15 @@ runs:
         from pathlib import Path
 
         root = Path(".")
-        preferred = [
+        default_preferred = [
           "apps/api/src/stripe.ts",
           "checkout-flow.md",
           "negotiation-rules.md",
           "AGENTS.md",
           "README.md",
         ]
+        raw = os.environ.get("AXIS_COMPLIANCE_FILES", "")
+        preferred = [p.strip() for p in raw.replace(",", "\n").splitlines() if p.strip()] or default_preferred
 
         files = []
         for rel in preferred:
@@ -145,7 +156,7 @@ runs:
           # used whenever it is reachable + authorized (valid AXIS_API_KEY).
           if true; then
             echo "::warning::Axis endpoint returned HTTP $HTTP_STATUS; using local compliance fallback (grade still enforced)"
-            node --input-type=module -e 'import fs from "node:fs"; const preferred=["apps/api/src/stripe.ts","checkout-flow.md","negotiation-rules.md","AGENTS.md","README.md"]; const blob=preferred.filter((p)=>fs.existsSync(p)&&fs.statSync(p).isFile()).map((p)=>`${p}\n${fs.readFileSync(p,"utf8")}`).join("\n"); const checks=[/stripe|paypal|adyen|braintree|squareup|apple.?pay|google.?pay|amazon.?pay|klarna|affirm|afterpay|clearpay/i.test(blob),/checkout|cart|basket|order.?total|purchase|buy.?now/i.test(blob),/3ds|threeds|sca|strong.?auth|challenge|frictionless|psd2/i.test(blob),/dispute|chargeback|refund|reversal|return.?policy/i.test(blob),/webhook|event.?handler|payment.?event|ipn/i.test(blob),/network.?token|pan.?token|dpan|fpan|token.?requestor|token.?service.?provider|mdes|vts/i.test(blob),/mandate.?id|mandate.?type|mandate.?reference|sepa.?mandate|bacs.?mandate|mandate.?management/i.test(blob),/tap.?protocol|token.?action|action.?protocol|tap.?api/i.test(blob)]; const passed=checks.filter(Boolean).length; const grade=passed>=6?"A":passed>=4?"B":passed>=2?"C":"D"; process.stdout.write(JSON.stringify({ compliance_grade: { grade, checks_passed: passed, checks_total: 8 }, source: "local-fallback" }));' > axis-compliance-response.json
+            node --input-type=module -e 'import fs from "node:fs"; const fromEnv=(process.env.AXIS_COMPLIANCE_FILES||"").split(/[\n,]/).map((s)=>s.trim()).filter(Boolean); const preferred=fromEnv.length?fromEnv:["apps/api/src/stripe.ts","checkout-flow.md","negotiation-rules.md","AGENTS.md","README.md"]; const blob=preferred.filter((p)=>fs.existsSync(p)&&fs.statSync(p).isFile()).map((p)=>`${p}\n${fs.readFileSync(p,"utf8")}`).join("\n"); const checks=[/stripe|paypal|adyen|braintree|squareup|apple.?pay|google.?pay|amazon.?pay|klarna|affirm|afterpay|clearpay/i.test(blob),/checkout|cart|basket|order.?total|purchase|buy.?now/i.test(blob),/3ds|threeds|sca|strong.?auth|challenge|frictionless|psd2/i.test(blob),/dispute|chargeback|refund|reversal|return.?policy/i.test(blob),/webhook|event.?handler|payment.?event|ipn/i.test(blob),/network.?token|pan.?token|dpan|fpan|token.?requestor|token.?service.?provider|mdes|vts/i.test(blob),/mandate.?id|mandate.?type|mandate.?reference|sepa.?mandate|bacs.?mandate|mandate.?management/i.test(blob),/tap.?protocol|token.?action|action.?protocol|tap.?api/i.test(blob)]; const passed=checks.filter(Boolean).length; const grade=passed>=6?"A":passed>=4?"B":passed>=2?"C":"D"; process.stdout.write(JSON.stringify({ compliance_grade: { grade, checks_passed: passed, checks_total: 8 }, source: "local-fallback" }));' > axis-compliance-response.json
             HTTP_STATUS=200
           fi
         fi
