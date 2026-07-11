@@ -185,7 +185,21 @@ export async function settleOverageCash(
   if (wm !== "off" && isPaidConfigured()) {
     const w = await settleOverageViaPaidWallet(res, accountId, overageCents, opts, wm);
     if (wm === "enforce" && w) {
-      if (w.status === 200) await recordPaidCall(accountId);
+      if (w.status === 200) {
+        await recordPaidCall(accountId);
+        // H0.3: a wallet debit IS settled cash (PAI'D -> its Stripe -> founder
+        // settlement) — record the receipt so WO-19's settled-revenue tracker
+        // sees the wallet rail. No external reference is available from the
+        // debit response today; the per-call idempotency key stays internal.
+        await recordSettledPayment({
+          account_id: accountId,
+          tool: opts.meta?.tool ?? "default",
+          amount_cents: overageCents,
+          currency: opts.currency,
+          provider: "paid_fc",
+          external_receipt: undefined,
+        });
+      }
       return w;
     }
     // read/shadow (or enforce w/ wallet call falling back) fall through to chargeMpp.

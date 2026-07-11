@@ -108,6 +108,25 @@ describe("getGrowthSnapshot", () => {
     expect(s.revenue.revenue_by_tool).toEqual([{ tool: "analyze_repo", cents: 250, calls: 1 }]);
   });
 
+  it("counts wallet-rail (paid_fc) receipts in settled revenue (H0.3)", async () => {
+    // The FC-wallet enforce rail is real settled cash (PAI'D -> its Stripe ->
+    // founder settlement); the provider CHECK constraint and TS union must
+    // admit it, and the totals must include it.
+    const acct = await createAccount("Wallet", "wallet@x.com", "paid");
+    await recordSettledPayment({
+      account_id: acct.account_id,
+      tool: "analyze_repo",
+      amount_cents: 150,
+      currency: "usd",
+      provider: "paid_fc",
+    });
+
+    const s = await getGrowthSnapshot();
+    expect(s.revenue.settled_revenue_cents_all_time).toBe(150);
+    expect(s.revenue.settled_mrr_cents).toBe(150);
+    expect(s.revenue.paying_account_count).toBe(1);
+  });
+
   it("excludes settled figures from the trailing-30d window once they age out, but keeps the all-time total", async () => {
     const acct = await createAccount("Old", "old@x.com", "free");
     await recordSettledPayment({

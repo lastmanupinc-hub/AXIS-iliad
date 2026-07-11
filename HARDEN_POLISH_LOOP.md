@@ -135,7 +135,7 @@ July build program. They are not suggestions.
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
-| H0.1–H0.10 | Hygiene | H0.1 DONE (red-green demonstrated); H0.2 waits on H2.1; rest pending | H0.1: see PROGRESS |
+| H0.1–H0.10 | Hygiene | H0.1 + H0.3 DONE (both red-green demonstrated); H0.2 waits on H2.1; rest pending | see PROGRESS |
 | H1.1–H1.4 | Reliability | H1.2 DONE (Fable, `fdfddd5`); H1.3 partial (source-guard 30s, `317095b`); rest pending | |
 | H2.1–H2.5 | Money path | pending | |
 | ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
@@ -239,9 +239,10 @@ Each unit is small, self-contained, and carries its acceptance test. Order is pr
 ## Phase H2 · Money-path completion (WO-20 phases 2-3 — spec in
 `docs/build-plan/WO-20-charge-integrity-hybrid.md`, read it first)
 
-- **H2.1 — `compensation_ledger` migration (v33) in `@axis/snapshots`** per the WO-20
-  schema. Acceptance: migration idempotent test (mirror memory-store.test.ts, use the
-  CURRENT version number — the July bug was a hardcoded stale version).
+- **H2.1 — `compensation_ledger` migration in `@axis/snapshots`** per the WO-20 schema,
+  at the NEXT free PG_MIGRATIONS version (v34 — H0.3 took v33 for the provider-CHECK
+  widening). Acceptance: migration idempotent test (memory-store.test.ts pins the current
+  version — update it in the same commit; the July bug was a hardcoded stale version).
 - **H2.2 — Producer: settled-then-error.** MCP dispatch catch-path writes an `owed` row
   when `isInbandSettled(req)` and the tool threw (today it only apologizes in text —
   `mcp-tool-impls.ts` "settled-then-error"). Acceptance: mocked settled+throwing tool →
@@ -502,7 +503,8 @@ every diff. Newest at the bottom.
 | Date | Unit | One-line outcome | Commit |
 |---|---|---|---|
 | 2026-07-11 | H1.2 | ProjectPage crash on malformed generated-files response fixed (defensive coerce + findBy); CI-flake root cause closed | `fdfddd5` |
-| 2026-07-11 | H0.1 | FC-debit idempotency: per-invocation UUID replaces 120s-bucket key (bucketing dropped 2nd call in window / re-keyed late retries); red demonstrated first | see commit |
+| 2026-07-11 | H0.1 | FC-debit idempotency: per-invocation UUID replaces 120s-bucket key (bucketing dropped 2nd call in window / re-keyed late retries); red demonstrated first | `e5558fb` |
+| 2026-07-11 | H0.3 | Wallet-rail revenue now settled-visible: migration v33 widens provider CHECK to paid_fc, TS union extended, enforce-success records the receipt; 3 reds demonstrated first | see commit |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 

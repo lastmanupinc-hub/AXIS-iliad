@@ -34,7 +34,7 @@ describe("project_memory migration", () => {
 
   it("running the migration a second time is idempotent (applied: 0)", async () => {
     const result = await runPgMigrations();
-    expect(result).toEqual({ current_version: 32, applied: 0 });
+    expect(result).toEqual({ current_version: 33, applied: 0 });
   });
 });
 

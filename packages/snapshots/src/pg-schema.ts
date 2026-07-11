@@ -608,6 +608,20 @@ CREATE TABLE IF NOT EXISTS dispute_transitions (
 );
 CREATE INDEX IF NOT EXISTS idx_dispute_transitions_dispute ON dispute_transitions(dispute_id, seq);`,
   },
+  {
+    // H0.3 (harden-polish loop): admit the PAI'D FC-wallet rail into settled
+    // revenue. A successful enforce-mode wallet debit is real settled cash
+    // (PAI'D -> its Stripe -> founder settlement), but v31's provider CHECK
+    // only allowed the two mppx rails, so the wallet rail could never write a
+    // receipt and WO-19's settled-revenue tracker was blind to it. Constraint
+    // WIDENING only — no rows change, nothing destructive. Postgres auto-names
+    // an inline column CHECK <table>_<column>_check, which is what v31's
+    // CREATE produced.
+    version: 33,
+    name: "payment_receipts_paid_fc_provider",
+    sql: `ALTER TABLE payment_receipts DROP CONSTRAINT IF EXISTS payment_receipts_provider_check;
+ALTER TABLE payment_receipts ADD CONSTRAINT payment_receipts_provider_check CHECK (provider IN ('stripe','tempo','paid_fc'));`,
+  },
 ];
 
 /**

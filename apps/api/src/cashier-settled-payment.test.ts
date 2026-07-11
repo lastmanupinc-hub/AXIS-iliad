@@ -7,7 +7,7 @@
  * `Payment-Receipt` header format (not a stand-in). Everything else (mppx itself,
  * `@axis/snapshots`) is mocked/offline — no live Stripe/Tempo, no DB.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Receipt } from "mppx";
 
@@ -20,6 +20,19 @@ vi.mock("@axis/snapshots", () => ({
 vi.mock("./mpp.js", () => ({
   chargeMpp: vi.fn(async () => null),
 }));
+
+// H0.3: the wallet-rail tests below drive the enforce path — mock only the two
+// paid-client functions that would read live config / hit the network.
+// paidWalletMode stays REAL (env-driven), so the pre-existing mppx-path tests
+// (no PAID_WALLET_MODE set -> "off") are untouched.
+vi.mock("./paid-client.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./paid-client.js")>();
+  return {
+    ...actual,
+    isPaidConfigured: vi.fn(() => true),
+    debitPaidWallet: vi.fn(async () => ({ balance_fc: 100 })),
+  };
+});
 
 import { settleOverageCash, type SettleOptions } from "./cashier.js";
 import * as snapshots from "@axis/snapshots";
@@ -173,5 +186,56 @@ describe("settleOverageCash -> recordSettledPayment (H1 cash settlement persiste
     expect(result).toEqual({ status: 200 });
     expect(mpp.chargeMpp).not.toHaveBeenCalled();
     expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
+  });
+});
+
+// ─── H0.3: enforce-mode wallet revenue must reach payment_receipts ──────────────
+//
+// A successful FC-wallet debit IS settled cash (PAI'D -> its Stripe -> founder
+// settlement), but the enforce branch previously recorded only recordPaidCall —
+// WO-19's settled-revenue tracker was blind to the entire wallet rail.
+describe("settleOverageCash: enforce-mode wallet success records a paid_fc receipt (H0.3)", () => {
+  beforeEach(() => {
+    process.env.PAID_WALLET_MODE = "enforce";
+  });
+  afterEach(() => {
+    delete process.env.PAID_WALLET_MODE;
+  });
+
+  it("wallet debit success persists a settled payment with provider 'paid_fc'", async () => {
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-9", 150, OPTS);
+
+    expect(result).toEqual({ status: 200 });
+    expect(mpp.chargeMpp).not.toHaveBeenCalled(); // wallet settled it — mppx never ran
+    expect(snapshots.recordPaidCall).toHaveBeenCalledWith("acc-9");
+    expect(snapshots.recordSettledPayment).toHaveBeenCalledTimes(1);
+    expect(snapshots.recordSettledPayment).toHaveBeenCalledWith({
+      account_id: "acc-9",
+      tool: "analyze_repo",
+      amount_cents: 150,
+      currency: "usd",
+      provider: "paid_fc",
+      external_receipt: undefined,
+    });
+  });
+
+  it("wallet 402 (insufficient credits) does NOT record a settled payment", async () => {
+    const paidClient = await import("./paid-client.js");
+    vi.mocked(paidClient.debitPaidWallet).mockRejectedValueOnce(
+      new paidClient.PaidError(
+        "insufficient credits",
+        402,
+        JSON.stringify({ error: "insufficient_credits", balance_fc: 0, required_fc: 2, shortfall_fc: 2 }),
+      ),
+    );
+    const { res } = makeRes();
+
+    const result = await settleOverageCash(fakeReq(), res, "acc-10", 150, OPTS);
+
+    expect(result).toEqual({ status: 402 });
+    expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
+    expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
   });
 });

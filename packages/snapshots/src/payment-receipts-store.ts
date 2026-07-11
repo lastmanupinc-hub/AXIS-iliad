@@ -9,7 +9,10 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "./pg.js";
 
-export type PaymentProvider = "stripe" | "tempo";
+// "paid_fc" = the PAI'D Fabric-Credit wallet rail (enforce mode): a successful
+// FC debit is settled cash (PAI'D -> its Stripe -> founder settlement), kept
+// distinct from the two mppx rails so revenue-by-rail stays auditable (H0.3).
+export type PaymentProvider = "stripe" | "tempo" | "paid_fc";
 
 export interface PaymentReceipt {
   id: string;
