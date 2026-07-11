@@ -15,6 +15,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 vi.mock("@axis/snapshots", () => ({
   consumeFreeCall: vi.fn(async () => false),
   recordPaidCall: vi.fn(async () => undefined),
+  recordSettledPayment: vi.fn(async () => undefined),
 }));
 
 // ./mpp.js: stand in for the mppx-direct rail — asserted on directly (called /
@@ -252,6 +253,10 @@ describe("enforce mode — sufficient balance", () => {
 
     expect(mpp.chargeMpp).not.toHaveBeenCalled();
     expect(snapshots.recordPaidCall).toHaveBeenCalledWith("acc-1");
+    // H0.3: a wallet debit IS settled cash — the receipt lands on the paid_fc rail.
+    expect(snapshots.recordSettledPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ account_id: "acc-1", amount_cents: 150, provider: "paid_fc" }),
+    );
   });
 });
 
@@ -273,6 +278,7 @@ describe("enforce mode — insufficient balance", () => {
 
     expect(mpp.chargeMpp).not.toHaveBeenCalled();
     expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
+    expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
   });
 });
 

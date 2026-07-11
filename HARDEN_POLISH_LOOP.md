@@ -57,6 +57,11 @@ July build program. They are not suggestions.
    any doc/copy/count changed) → `pnpm run build` (full monorepo) → push.
    Postgres-backed tests need `docker start axis-test-pg` and
    `DATABASE_URL=postgres://postgres:postgres@localhost:5433/axis_test`.
+   **Scope = grep, not memory:** "suites for what you touched" means every test file that
+   references any FUNCTION or export you changed — find them by grepping the changed
+   symbol names across `*.test.ts`, not by recalling which files you think cover it. (A
+   changed `settleOverageCash` behavior once shipped past a locally-green run because the
+   dedicated wallet suite referenced it under names the author didn't grep; CI caught it.)
 4. **Push = deploy.** Pushing `main` auto-deploys the API (Render) and, via CI's deploy-web
    job, the web app (Cloudflare Pages) — **web only ships if CI is green** (a red CI once
    silently froze web deploys for 4 days). After every push: confirm both workflows green
