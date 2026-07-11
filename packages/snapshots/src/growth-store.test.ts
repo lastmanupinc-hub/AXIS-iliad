@@ -48,28 +48,28 @@ describe("getGrowthSnapshot", () => {
     expect(s.revenue.metered_overage_cents_this_month).toBeGreaterThan(0);
   });
 
-  // ─── WO-19: settled revenue (usage_credit_ledger overage + payment_receipts) ──
+  // ─── WO-19: settled revenue (payment_receipts ONLY — cash actually collected) ──
 
-  it("derives settled revenue from usage_credit_ledger overage rows across tools", async () => {
+  it("does NOT count unpaid ledger overage as settled revenue (billed != collected)", async () => {
     const a1 = await createAccount("A1", "a1@x.com", "free");
     const a2 = await createAccount("A2", "a2@x.com", "free");
-    // Free allowance is 10k credits; a large per-call charge forces the whole
-    // amount into overage_credits so amount_cents lands entirely in "settled".
+    // Free allowance is 10k credits; a large per-call charge forces overage onto
+    // the ledger — but nobody has PAID anything (an abandoned 402 leaves exactly
+    // this state). Settled revenue must stay a true $0.
     const r1 = await consumeUsageCredits(a1.account_id, "free", "analyze_repo", 5000);
     const r2 = await consumeUsageCredits(a2.account_id, "free", "iliad_web_research", 3000);
     expect(r1.overage_credits).toBeGreaterThan(0);
     expect(r2.overage_credits).toBeGreaterThan(0);
 
     const s = await getGrowthSnapshot();
-    expect(s.revenue.settled_revenue_cents_all_time).toBe(5000 + 3000);
-    expect(s.revenue.settled_mrr_cents).toBe(5000 + 3000); // both calls just happened -> within trailing 30d
-    expect(s.revenue.paying_account_count).toBe(2);
-    expect(s.revenue.payment_conversion_rate).toBe(1); // both accounts are paying accounts
-    expect(s.revenue.first_paid_call_at).toEqual(expect.any(String));
-
-    const byTool = Object.fromEntries(s.revenue.revenue_by_tool.map((t) => [t.tool, t]));
-    expect(byTool.analyze_repo).toMatchObject({ cents: 5000, calls: 1 });
-    expect(byTool.iliad_web_research).toMatchObject({ cents: 3000, calls: 1 });
+    expect(s.revenue.settled_revenue_cents_all_time).toBe(0);
+    expect(s.revenue.settled_mrr_cents).toBe(0);
+    expect(s.revenue.paying_account_count).toBe(0);
+    expect(s.revenue.payment_conversion_rate).toBe(0);
+    expect(s.revenue.first_paid_call_at).toBeNull();
+    expect(s.revenue.revenue_by_tool).toEqual([]);
+    // The billed-but-uncollected amount stays visible via the separate estimate.
+    expect(s.revenue.metered_overage_cents_this_month).toBeGreaterThan(0);
   });
 
   it("ignores usage_credit_ledger rows fully covered by the plan allowance (no overage)", async () => {
@@ -83,8 +83,14 @@ describe("getGrowthSnapshot", () => {
     expect(s.revenue.paying_account_count).toBe(0);
   });
 
-  it("adds payment_receipts (H1 cash settlements) distinctly from ledger overage", async () => {
+  it("counts payment_receipts exactly once, even when the same call also wrote a ledger overage row", async () => {
     const acct = await createAccount("Payer", "payer@x.com", "free");
+    // A real paid call produces BOTH rows: the usage ledger row (recorded by
+    // consumeUsageCredits at capture) AND the cash receipt (recorded by
+    // settleOverageCash when the money cleared). Settled revenue must count
+    // the receipt only — the old UNION double-counted this exact case.
+    const r = await consumeUsageCredits(acct.account_id, "free", "analyze_repo", 5000);
+    expect(r.overage_credits).toBeGreaterThan(0);
     await recordSettledPayment({
       account_id: acct.account_id,
       tool: "analyze_repo",

@@ -444,6 +444,19 @@ async function settleMcpCallInband(
 
   const auth = await resolveAuth(req);
   if (!auth.account) return false;              // anonymous -> dispatch's normal free/limit path
+
+  // A retry carrying an Idempotency-Key with a stored result must REPLAY, never
+  // re-charge. Dispatch's replay lookup (tools/call case) returns the cached
+  // response without consuming credits — but this gate runs BEFORE dispatch, and
+  // a settled call's credits were never consumed, so its re-preview still shows
+  // overage > 0. Without this check, the retry of an already-paid call would be
+  // challenged (or charged) a second time for work that already ran.
+  const idempotencyKey = readIdempotencyKey(req);
+  if (idempotencyKey) {
+    const cached = await getIdempotentResult(auth.account.account_id, idempotencyKey);
+    if (cached) return false;                   // dispatch replays (or rejects a hash mismatch) without charging
+  }
+
   const { overageCents } = await previewMcpToolOverage(req, auth.account, tool);
   if (overageCents <= 0) return false;          // covered by plan credits -> dispatch meters normally
 

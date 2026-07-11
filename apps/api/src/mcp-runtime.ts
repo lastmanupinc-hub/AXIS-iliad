@@ -194,7 +194,10 @@ export async function authorizeMcpToolCredits(
   const charge = await previewUsageCredits(account.account_id, account.tier, tool, amountCents);
   if (charge.effective_overage_cents > 0) {
     // H1: if the overage was already collected as cash by the in-band MCP gate, do not
-    // reject; return a settled charge so capture skips the plan-credit debit.
+    // reject — return a settled charge. Capture still records the call through
+    // consumeUsageCredits (drawing down the included-credit portion and writing the
+    // usage ledger row); "settled" only means the overage slice must not be treated
+    // as unpaid. The cash itself is recorded in payment_receipts by the gate.
     if (isInbandSettled(req)) {
       return { tool, amountCents, settled: true };
     }
@@ -222,8 +225,14 @@ export async function captureMcpToolCredits(
   account: { account_id: string; tier: "free" | "paid" | "suite" },
   charge: AuthorizedCharge,
 ): Promise<void> {
-  // H1: overage paid in-band with cash -> no plan-credit debit.
-  if (charge.settled) return;
+  // H1: a settled charge (overage collected as cash by the in-band gate) is STILL
+  // consumed here. consumeUsageCredits never collects money — it draws down the
+  // included-credit portion and writes the usage ledger row. Skipping it (the old
+  // behavior) meant a partially-covered call never depleted its included credits
+  // (the same allowance re-applied on every subsequent call all month — a
+  // persistent undercharge) and the call was invisible to usage analytics. The
+  // cash side lives exclusively in payment_receipts, written by the gate, so
+  // recording usage here cannot double-charge anyone.
   await consumeUsageCredits(account.account_id, account.tier, charge.tool, charge.amountCents);
 }
 

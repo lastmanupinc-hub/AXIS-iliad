@@ -93,30 +93,21 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
   ))?.n ?? 0);
 
   // ── Settled revenue (WO-19) ───────────────────────────────────────
-  // Real, settled money — as opposed to the tier-count ESTIMATE above — drawn
-  // from two sources UNIONed into one row set: usage_credit_ledger overage
-  // rows (amount_cents WHERE overage_credits > 0 — the metered cash actually
-  // owed once an account exceeds its plan's included credits) and
-  // payment_receipts (the H1 cash rail's real Stripe/Tempo settlements,
-  // captured distinctly from plan-credit overage — see settleOverageCash in
-  // apps/api/src/cashier.ts). Both are $0 rows until real money moves, so this
-  // reads a true $0 until the first dollar actually settles.
-  //
-  // KNOWN IMPRECISION: a ledger row's amount_cents is the call's full nominal
-  // price, not just the incremental overage slice — a call that straddles the
-  // plan-allowance boundary (partly covered, partly overage) counts its FULL
-  // price here once overage_credits > 0, not only the overage portion. This
-  // is still strictly more honest than the tier-count MRR estimate (it only
-  // ever counts calls that actually incurred billable overage), but it is not
-  // penny-exact against what settleOverageCash actually collected in cash for
-  // that call — payment_receipts (recorded by settleOverageCash itself) is the
-  // penny-exact source for cash actually settled.
+  // Real, settled money ONLY — payment_receipts rows, written by
+  // settleOverageCash (apps/api/src/cashier.ts) at the moment cash actually
+  // clears on the live rail, one row per collected charge. This deliberately
+  // EXCLUDES usage_credit_ledger overage rows: a ledger row records usage and
+  // the amount BILLED, not money collected — an abandoned 402 challenge leaves
+  // an overage ledger row with zero dollars moved, and a call that DOES pay
+  // produces BOTH a ledger row and a receipt, so unioning the two counted
+  // unpaid overage as revenue and double-counted paid overage. Receipts are
+  // the penny-exact record of what was actually collected, which is the whole
+  // point of "settled": this reads a true $0 until the first dollar clears.
+  // (Billed-but-uncollected overage remains visible separately as
+  // metered_overage_cents_this_month above.)
   const since30d = new Date(now.getTime() - 30 * DAY).toISOString();
   const SETTLED_CTE = `
     WITH settled AS (
-      SELECT account_id, tool, amount_cents, created_at
-        FROM usage_credit_ledger WHERE overage_credits > 0
-      UNION ALL
       SELECT account_id, tool, amount_cents, created_at
         FROM payment_receipts
     )

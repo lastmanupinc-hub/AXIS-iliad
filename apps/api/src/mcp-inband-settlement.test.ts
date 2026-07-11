@@ -30,6 +30,12 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
     // cashier-settled-payment.test.ts and payment-receipts-store.test.ts).
     recordSettledPayment: vi.fn(async () => undefined),
     createReferralCode: vi.fn(async () => ({ code: "ref-test" })),
+    // Idempotency-replay seam (the gate + dispatch both consult it) — default: no
+    // cached result. The replay response also reads balance/summary; stub both so
+    // the handleMcpPost tests below never touch a real DB.
+    getIdempotentResult: vi.fn(async () => null),
+    getPersistenceBalance: vi.fn(async () => 0),
+    getUsageCreditSummary: vi.fn(async () => ({ plan_id: "free", monthly_allowance: 0 })),
   };
 });
 vi.mock("./mpp.js", () => ({
@@ -75,8 +81,10 @@ import {
   isInbandSettled,
   authorizeMcpToolCredits,
   captureMcpToolCredits,
+  hashToolRequest,
   type MeteredMcpTool,
 } from "./mcp-runtime.js";
+import { handleMcpPost } from "./mcp-server.js";
 import { settleOverageCash } from "./cashier.js";
 import { decideInbandGate, runWebSearch } from "./mcp-tool-impls.js";
 import * as snapshots from "@axis/snapshots";
@@ -159,12 +167,18 @@ describe("authorizeMcpToolCredits honors the in-band marker", () => {
   });
 });
 
-describe("captureMcpToolCredits never double-charges a settled call", () => {
-  it("settled charge -> plan credits are NOT debited", async () => {
+describe("captureMcpToolCredits records usage for settled AND normal charges", () => {
+  // consumeUsageCredits never collects money — it draws down included credits and
+  // writes the usage ledger row. The old behavior (skip on settled) meant a
+  // partially-covered call never depleted its included credits (the same allowance
+  // re-applied every call all month) and stayed invisible to usage analytics. The
+  // cash itself is recorded once, in payment_receipts, by the gate — so consuming
+  // here cannot double-charge.
+  it("settled charge -> usage is still recorded (included credits draw down)", async () => {
     await captureMcpToolCredits(account, { tool: "analyze_repo", amountCents: 50, settled: true });
-    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledOnce();
   });
-  it("normal charge -> plan credits ARE debited", async () => {
+  it("normal charge -> usage recorded exactly the same way", async () => {
     await captureMcpToolCredits(account, { tool: "analyze_repo", amountCents: 50 });
     expect(snapshots.consumeUsageCredits).toHaveBeenCalledOnce();
   });
@@ -609,28 +623,99 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
 });
 
 describe("No-double-charge, real dispatch — the REAL runWebSearch honors the settled marker", () => {
-  it("settled request: search settles (consumeUsageCredits NOT called) and index stays free either way", async () => {
+  it("settled request: search records usage once (no 402) and index stays free either way", async () => {
     const req = { headers: {} } as unknown as IncomingMessage;
     markInbandSettled(req); // gate already collected the cash for this request
     vi.mocked(snapshots.previewUsageCredits).mockResolvedValue(overagePreview as never);
 
-    // search is the billable op — authorize/capture run, but the settled marker means
-    // captureMcpToolCredits must NOT debit plan credits (no double charge).
+    // search is the billable op — the settled marker means authorize does NOT throw
+    // the 402, and capture records the usage (included-credit drawdown + ledger row)
+    // exactly once. Recording usage is not a second charge: the cash lives solely
+    // in payment_receipts, written by the gate.
     const searchResult = await runWebSearch({ operation: "search", query: "x" }, req);
     expect(typeof searchResult).toBe("string");
-    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledOnce();
 
     // index is a free op — runWebSearch never calls authorizeMcpToolCredits for it, so
     // it must stay free even on the SAME settled request (the marker isn't a blanket
-    // "charge nothing" flag; it only suppresses the plan-credit debit at an actual charge).
+    // flag; it only affects behavior at an actual charge site).
     const indexResult = await runWebSearch({ operation: "index", document: { doc_id: "d1", content: "hello world" } }, req);
     expect(typeof indexResult).toBe("string");
+    expect(snapshots.consumeUsageCredits).toHaveBeenCalledOnce(); // unchanged — still just the one search call
+  });
+});
+
+// ─── Idempotent retries must REPLAY, never re-charge (the gate runs pre-dispatch) ──
+//
+// The in-band gate fires BEFORE dispatch's replay lookup, and a settled call's
+// credits are consumed at capture — but its cash lives in payment_receipts, so the
+// gate's re-preview on a retry may still show overage > 0. Without consulting the
+// idempotency cache, the gate would challenge (or charge) the SAME logical call a
+// second time for work that already ran. These drive the REAL handleMcpPost.
+describe("in-band gate + Idempotency-Key: retry of a settled call never re-charges", () => {
+  function fakeRes() {
+    const res = {
+      statusCode: 0,
+      body: "",
+      writeHead: vi.fn(function (this: { statusCode: number }, code: number) { (res as { statusCode: number }).statusCode = code; }),
+      end: vi.fn(function (chunk?: string) { res.body = chunk ?? ""; }),
+    };
+    return res as unknown as ServerResponse & { statusCode: number; body: string };
+  }
+  // Empty args = full-suite request -> decideInbandGate classifies analyze_files
+  // settle:true (mirrors BILLABLE_ARGS below; args naming only free programs would
+  // classify free_op and the gate would never fire, vacuously passing these tests).
+  const toolArgs = {};
+  const msg = {
+    jsonrpc: "2.0" as const,
+    id: 1,
+    method: "tools/call",
+    params: { name: "analyze_files", arguments: toolArgs },
+  };
+
+  beforeEach(() => {
+    process.env.AXIS_MCP_INBAND_SETTLEMENT = "1";
+    vi.mocked(snapshots.previewUsageCredits).mockResolvedValue(overagePreview as never);
+  });
+
+  it("retry with a cached Idempotency-Key result: gate passes through, dispatch replays, zero rail contact", async () => {
+    const req = { headers: { "idempotency-key": "K-1" }, socket: {} } as unknown as IncomingMessage;
+    vi.mocked(snapshots.getIdempotentResult).mockResolvedValue({
+      response: "cached result",
+      request_hash: hashToolRequest("analyze_files", toolArgs),
+    } as never);
+    const res = fakeRes();
+
+    await handleMcpPost(req, res, undefined, msg);
+
+    const parsed = JSON.parse(res.body) as { result?: { _idempotent_replay?: boolean } };
+    expect(parsed.result?._idempotent_replay).toBe(true);
+    expect(res.statusCode).not.toBe(402);      // no fresh payment challenge
+    expect(mpp.chargeMpp).not.toHaveBeenCalled();          // rail never touched
+    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled(); // no second debit
+  });
+
+  it("first call (no cached result): the gate still fires and halts dispatch", async () => {
+    const req = { headers: { "idempotency-key": "K-2" }, socket: {} } as unknown as IncomingMessage;
+    vi.mocked(snapshots.getIdempotentResult).mockResolvedValue(null as never);
+    vi.mocked(mpp.chargeMpp).mockResolvedValue({ status: 402 } as never);
+    const res = fakeRes();
+
+    await handleMcpPost(req, res, undefined, msg);
+
+    // The rail was engaged (the real chargeMpp writes the x402 challenge itself —
+    // the mock only returns the status), and the gate stopped the request: no
+    // JSON-RPC tool result was dispatched and no plan credits were consumed.
+    expect(mpp.chargeMpp).toHaveBeenCalledOnce();
+    expect(res.body).toBe("");
     expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled();
   });
 });
 
 describe("Source guard — INBAND_METERED_TOOLS has zero remaining references", () => {
-  it("decideInbandGate is the sole gate-scope authority (grep-clean apps/api/src)", async () => {
+  // Reads every .ts in apps/api/src — a filesystem scan, not a behavior test; on a
+  // loaded Windows checkout it can brush past the 5s default (observed 5022ms).
+  it("decideInbandGate is the sole gate-scope authority (grep-clean apps/api/src)", { timeout: 30_000 }, async () => {
     const dir = path.dirname(fileURLToPath(import.meta.url)); // apps/api/src
     const needle = "INBAND_METERED_TOOLS";
     const entries = await fs.readdir(dir);
