@@ -70,6 +70,17 @@ function NextStepsCard({ fileCount, onDownload, downloading }: { fileCount: numb
 
 export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChange, onSnapshotDeleted, onProjectDeleted, onNeedCredits, onOpenRunner }: Props) {
   const [activeTab, setActiveTab] = useState<ProjectTab>(() => initialTab ?? "Overview");
+
+  // Keep the active tab in sync with the URL when the route changes WITHOUT a
+  // remount: in-app navigate() bumps the route key (remounting this page), but
+  // browser Back/Forward fires hashchange with the key preserved — so moving
+  // between #projects/:id, .../versions and .../artifacts must re-derive the
+  // tab from the new initialTab prop or the visible tab desyncs from the URL.
+  // In-page tab clicks only touch local state (initialTab unchanged), so this
+  // effect never fights them.
+  useEffect(() => {
+    setActiveTab(initialTab ?? "Overview");
+  }, [initialTab]);
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [downloading, setDownloading] = useState(false);
   const [tierBlock, setTierBlock] = useState<{ blocked: string[]; allowed: string[] } | null>(null);

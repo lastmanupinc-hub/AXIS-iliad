@@ -598,7 +598,7 @@ export function ExamplesPage() {
             View all examples on GitHub →
           </a>
           <a
-            href="#upload"
+            href="#analyze"
             style={{
               display: "inline-block", padding: "8px 16px",
               border: "1px solid var(--border)", color: "var(--text)",
@@ -662,7 +662,7 @@ export function ExamplesPage() {
           One scan generates {ARTIFACT_COUNT} artifacts across {PROGRAM_COUNT} programs. Takes under 60 seconds.
         </p>
         <a
-          href="#upload"
+          href="#analyze"
           style={{
             display: "inline-block", padding: "10px 22px",
             background: "var(--accent)", color: "var(--accent-ink)", borderRadius: "var(--radius)",
