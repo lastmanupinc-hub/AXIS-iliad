@@ -1,10 +1,8 @@
 # Code -> Docs Build Strategy
 
-## Status (as of 2026-07-07)
+## Status (as of 2026-07-11)
 
-**18 of 19 work-orders landed** (WO-01 through WO-16, WO-18, WO-19 — all have real `feat(...)` implementation commits, confirmed against git history, not just planning docs).
-
-**WO-17 (`assetforge-prove`) is the only one not built** — deliberately deferred (flakiest external surface, correctly ranked last in Phase 4). Its credential-sourcing method is already resolved and recorded: reuse AXIS 3D Foundry's Render-hosted `HF_TOKEN` (fine-grained, named "foundry") rather than provisioning a new one — see `docs/build-plan/WO-17-assetforge-prove.md`. Pick this up when assetforge work resumes.
+**19 of 19 work-orders landed.** WO-01 through WO-16, WO-18, WO-19 all have real `feat(...)` implementation commits in this repo, confirmed against git history. WO-17 (`assetforge-prove`) shipped 2026-07-11 as `lastmanupinc-hub/assetforge@2e80ab1` (separate Python repo, per its spec): live-resolved Gradio endpoints replace every guessed signature, text→mesh proven end-to-end against real Spaces (46s prompt→2MB TRELLIS GLB, committed as a provenance-hash-pinned test fixture), texture wired into the CLI and proven live, animation honestly gated (every known public text-to-motion Space 404s — the code raises with that context rather than fabricating). Offline suite 15/15 + live suite 3/3 green; CI unit gate + non-gating live canary added. Residual owner step: set `HF_TOKEN` as a GitHub Actions secret on the assetforge repo for the scheduled canary.
 
 This master plan and the individual WO specs in `docs/build-plan/` are otherwise unchanged below — they remain accurate as the historical spec for what was built and why.
 
@@ -76,7 +74,7 @@ Everything whose headline is blocked on a credential / partnership / flaky third
 | 14 | `network-tokenization` | [WO-14](docs/build-plan/WO-14-network-tokenization.md) | Stripe-adapter path only; direct VTS/MDES needs a Token Requestor ID (uncodeable) |
 | 15 | `perf-benchmark` | [WO-15](docs/build-plan/WO-15-perf-benchmark.md) | measures the Phase-2 engines' latency to source the "no round-trip" claim |
 | 16 | `axis-iliad-cli` | [WO-16](docs/build-plan/WO-16-axis-iliad-cli.md) | npm publish credential; keep the install doc dark until published |
-| 17 | `assetforge-prove` | [WO-17](docs/build-plan/WO-17-assetforge-prove.md) | **NOT BUILT — deferred.** `HF_TOKEN` + live HF Spaces (flakiest surface; last). Credential method resolved (reuse Foundry's Render `HF_TOKEN`), not yet executed. |
+| 17 | `assetforge-prove` | [WO-17](docs/build-plan/WO-17-assetforge-prove.md) | **DONE 2026-07-11** — `assetforge@2e80ab1`. Mesh+texture proven against live Spaces (real TRELLIS fixture committed, hash-pinned); anim honestly gated (no live public Space exists). Owner step remaining: `HF_TOKEN` secret on the assetforge repo for the CI canary. |
 
 ---
 
