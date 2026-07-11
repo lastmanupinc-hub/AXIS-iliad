@@ -34,6 +34,8 @@ describe("makeStripeDisputeClient", () => {
     expect(init.method).toBe("POST");
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer sk_test_123");
+    // H0.4: every outbound Stripe call pins the API version.
+    expect(headers["Stripe-Version"]).toBe("2026-06-24.dahlia");
     expect(String(init.body)).toContain("submit=true");
     expect(String(init.body)).toContain("evidence%5Bcustomer_email_address%5D=buyer%40example.com");
     expect(result).toEqual({ ok: true, state: "evidence_submitted" });

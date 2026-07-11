@@ -27,6 +27,9 @@ export interface NotConfigured {
 }
 
 const STRIPE_API_BASE = "https://api.stripe.com/v1";
+// H0.4: every outbound Stripe call pins the API version — unpinned calls float
+// on the account default and change response shape when that default moves.
+const STRIPE_API_VERSION = "2026-06-24.dahlia";
 
 function mapStripeStatusToState(status: string | undefined): DisputeState {
   switch (status) {
@@ -93,7 +96,7 @@ export function makeStripeDisputeClient(deps: {
     async fetchDispute(disputeId: string): Promise<DisputeRecord> {
       const res = await fetchImpl(`${STRIPE_API_BASE}/disputes/${disputeId}`, {
         method: "GET",
-        headers: { Authorization: `Bearer ${deps.apiKey}` },
+        headers: { Authorization: `Bearer ${deps.apiKey}`, "Stripe-Version": STRIPE_API_VERSION },
       });
       if (!res.ok) {
         throw new Error(`Stripe fetchDispute(${disputeId}) failed: ${res.status}`);
@@ -112,6 +115,7 @@ export function makeStripeDisputeClient(deps: {
         headers: {
           Authorization: `Bearer ${deps.apiKey}`,
           "Content-Type": "application/x-www-form-urlencoded",
+          "Stripe-Version": STRIPE_API_VERSION,
         },
         body: toFormBody(evidence, submit),
       });

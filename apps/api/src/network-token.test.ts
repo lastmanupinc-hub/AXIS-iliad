@@ -151,6 +151,8 @@ describe("readStripeNetworkToken", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("https://api.stripe.com/v1/payment_methods/pm_1");
     expect((calls[0].init?.headers as Record<string, string>).Authorization).toBe("Bearer sk_test_x");
+    // H0.4: every outbound Stripe call pins the API version.
+    expect((calls[0].init?.headers as Record<string, string>)["Stripe-Version"]).toBe("2026-06-24.dahlia");
   });
 
   it("returns is_network_token:false for a bare card PM (no network_token/networks) — honest", async () => {

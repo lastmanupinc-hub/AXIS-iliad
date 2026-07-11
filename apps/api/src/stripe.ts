@@ -4,6 +4,15 @@
 // and subscription status/cancel endpoints.
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+
+// H0.4: every outbound Stripe call pins the API version. Unpinned calls float
+// on the ACCOUNT default and silently change shape when that default moves;
+// this module reads dahlia-era payload shapes (item-level subscription
+// periods, invoice parent.subscription_details), so the pin and the reads
+// must move together. Webhook payloads are NOT governed by this header (they
+// follow the webhook endpoint's configured version) — the webhook handlers
+// therefore dual-read new-then-legacy shapes.
+const STRIPE_API_VERSION = "2026-06-24.dahlia";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { sendJSON, readBody, sendError } from "./router.js";
 import { ErrorCode, log } from "./logger.js";
@@ -284,7 +293,7 @@ async function handleSubscriptionEvent(
   const customerId = sub.customer as string;
   const status = (isDeleted ? "canceled" : sub.status) as StripeSubscriptionStatus;
 
-  const items = sub.items as { data: Array<{ price: { id: string } }> } | undefined;
+  const items = sub.items as { data: Array<{ price: { id: string }; current_period_start?: number; current_period_end?: number }> } | undefined;
   const priceId = items?.data?.[0]?.price?.id ?? "";
 
   // Resolve account_id: 1) from existing DB record, 2) from subscription metadata
@@ -304,8 +313,11 @@ async function handleSubscriptionEvent(
     account_id: accountId,
     price_id: priceId,
     status,
-    current_period_start: tsToISO(sub.current_period_start),
-    current_period_end: tsToISO(sub.current_period_end),
+    // Basil+ (2025-03-31 onward) moved the period bounds onto the subscription
+    // ITEMS; older webhook-endpoint versions still send them top-level. Webhook
+    // shape follows the ENDPOINT's configured version, so dual-read new-first.
+    current_period_start: tsToISO(items?.data?.[0]?.current_period_start ?? sub.current_period_start),
+    current_period_end: tsToISO(items?.data?.[0]?.current_period_end ?? sub.current_period_end),
     card_brand: null,
     card_last_four: null,
     cancel_at: tsToISO(sub.cancel_at),
@@ -320,7 +332,11 @@ async function handleSubscriptionEvent(
 // ─── Handle invoice.payment_failed ─────────────────────────────
 
 async function handleInvoicePaymentFailed(invoice: Record<string, unknown>): Promise<void> {
-  const subscriptionId = invoice.subscription as string | undefined;
+  // Basil+ moved the invoice's subscription reference under
+  // parent.subscription_details; legacy webhook-endpoint versions still send
+  // it top-level. Dual-read new-first (same rationale as the period bounds).
+  const parent = invoice.parent as { subscription_details?: { subscription?: string } } | undefined;
+  const subscriptionId = (parent?.subscription_details?.subscription ?? invoice.subscription) as string | undefined;
   if (!subscriptionId) return;
   // Mark as past_due — Stripe will retry, we don't downgrade yet
   await updateSubscriptionStatus(subscriptionId, "past_due");
@@ -483,6 +499,7 @@ export async function handleCreateCheckout(
       headers: {
         "Authorization": `Bearer ${stripeKey}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        "Stripe-Version": STRIPE_API_VERSION,
       },
       body: params.toString(),
     });
@@ -618,6 +635,7 @@ export async function handleCancelSubscription(
         headers: {
           "Authorization": `Bearer ${stripeKey}`,
           "Content-Type": "application/x-www-form-urlencoded",
+          "Stripe-Version": STRIPE_API_VERSION,
         },
         body: params.toString(),
       },

@@ -195,6 +195,11 @@ describe("handleCreateCheckout branches", () => {
     expect(r.data.checkout_url).toBe("https://checkout.stripe.com/test-url");
     expect(r.data.tier).toBe("paid");
     expect(r.data.session_id).toBe("cs_test_123");
+
+    // H0.4: every outbound Stripe call pins the API version — unpinned calls
+    // float on the account default, and this code reads dahlia-era shapes.
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["Stripe-Version"]).toBe("2026-06-24.dahlia");
   });
 
   it("returns 201 for suite tier checkout", async () => {
@@ -346,6 +351,10 @@ describe("handleCancelSubscription branches", () => {
     expect(r.data.subscription_id).toBe("sub_cancel_ok_171");
     expect(r.data.status).toBe("cancellation_requested");
     expect(r.data.message).toContain("end of the current billing period");
+
+    // H0.4: the subscription-update call pins the API version too.
+    const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((init.headers as Record<string, string>)["Stripe-Version"]).toBe("2026-06-24.dahlia");
   });
 
   it("returns 502 when Stripe API returns non-ok for cancel", async () => {

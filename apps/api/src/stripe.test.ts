@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { resetTestDb } from "@axis/snapshots";
+import { resetTestDb, getSubscription } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -202,6 +202,80 @@ describe("Stripe webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     expect(r.data.event).toBe("customer.subscription.updated");
+  });
+
+  // ─── H0.4: Basil+ (2025-03-31 onward) payload shapes ──────────────────────
+  // Stripe relocated two fields this handler reads: subscription period bounds
+  // moved from the subscription's top level onto its ITEMS, and an invoice's
+  // subscription reference moved under parent.subscription_details. Webhook
+  // payload shape follows the ENDPOINT's configured API version (dashboard-
+  // controlled), so the handlers must dual-read: new shape first, legacy
+  // fallback — these fixtures carry ONLY the new shape.
+
+  it("reads item-level current_period_* from a Basil/dahlia-shaped subscription event (H0.4)", async () => {
+    const { account } = await createTestAccount("dahlia-sub", "dahlia-sub@test.com");
+    const accountId = account.account_id as string;
+    const checkoutPayload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_dahlia_1"));
+    await req("POST", "/v1/webhooks/stripe", checkoutPayload, {
+      "stripe-signature": signStripePayload(checkoutPayload),
+    });
+
+    const payload = JSON.stringify({
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          id: "sub_dahlia_1",
+          customer: "cus_sub_dahlia_1",
+          status: "active",
+          // dahlia: period bounds live on the item; NOTHING at the top level.
+          items: {
+            data: [{
+              price: { id: "price_paid_123" },
+              current_period_start: 1735689600, // 2025-01-01
+              current_period_end: 1738368000,   // 2025-02-01
+            }],
+          },
+          cancel_at: null,
+          metadata: { account_id: accountId },
+        },
+      },
+    });
+    const r = await req("POST", "/v1/webhooks/stripe", payload, {
+      "stripe-signature": signStripePayload(payload),
+    });
+
+    expect(r.status).toBe(200);
+    expect(r.data.handled).toBe(true);
+    const stored = await getSubscription("sub_dahlia_1");
+    expect(stored?.current_period_start).toBe("2025-01-01T00:00:00.000Z");
+    expect(stored?.current_period_end).toBe("2025-02-01T00:00:00.000Z");
+  });
+
+  it("resolves the subscription from a Basil/dahlia-shaped invoice.payment_failed via parent.subscription_details (H0.4)", async () => {
+    const { account } = await createTestAccount("dahlia-inv", "dahlia-inv@test.com");
+    const accountId = account.account_id as string;
+    const checkoutPayload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_dahlia_2"));
+    await req("POST", "/v1/webhooks/stripe", checkoutPayload, {
+      "stripe-signature": signStripePayload(checkoutPayload),
+    });
+
+    const payload = JSON.stringify({
+      type: "invoice.payment_failed",
+      data: {
+        object: {
+          id: "in_dahlia_2",
+          // dahlia: no top-level `subscription` — the reference lives here:
+          parent: { type: "subscription_details", subscription_details: { subscription: "sub_dahlia_2" } },
+        },
+      },
+    });
+    const r = await req("POST", "/v1/webhooks/stripe", payload, {
+      "stripe-signature": signStripePayload(payload),
+    });
+
+    expect(r.status).toBe(200);
+    const stored = await getSubscription("sub_dahlia_2");
+    expect(stored?.status).toBe("past_due");
   });
 
   it("returns handled:false for subscription event with no account in DB or metadata", async () => {
