@@ -19,6 +19,26 @@ probe). Executor: Sonnet 5.
 
 ---
 
+## Resume protocol (context resets are normal — plan for them, don't fight them)
+
+A single session cannot hold this whole plan's context. The STATE table + PROGRESS ledger
+in THIS file are the resume state; work is resumable at any commit boundary.
+
+- **On every session start / `continue`:** read this file → reconcile STATE against
+  `git log`/`git status`/CI (reality wins) → find the top `in-progress` unit (or, if none,
+  the top `pending` unit not behind a gate) → resume there. Never re-plan from scratch;
+  never redo a unit whose commit exists.
+- **Checkpoint discipline:** commit + STATE update + one PROGRESS line at EVERY green
+  acceptance — a checkpoint is the unit of survivable progress. Never hold >1 unit of
+  uncommitted work.
+- **When context is getting heavy** (you notice re-reading files you already read,
+  summarized history, or degraded recall): finish the smallest verifiable step of the
+  current unit, checkpoint it, mark the unit `in-progress (checkpointed at <what>)` in
+  STATE, and END the session cleanly. A deliberate checkpoint beats a degraded push —
+  quality of the last commit is worth more than one more unit.
+- **End-of-session report:** before stopping, output a short summary — units completed
+  (with hashes), the unit in progress and its exact resume point, and any BLOCKED items.
+
 ## 0 · Operating rules (the constitution — read every session, violations get reverted)
 
 These encode this repo's standing law plus the exact failure modes observed during the
@@ -49,7 +69,13 @@ July build program. They are not suggestions.
 7. **Money-path law:** PAI'D is the ONLY checkout (never resurrect `POST /v1/checkout`);
    customer-facing payment copy says PAI'D Payments Intelligence; validate-first ordering
    (caps before charges) must never regress; consumeUsageCredits records usage, never money;
-   cash truth lives only in `payment_receipts`.
+   cash truth lives only in `payment_receipts`. **Red before green, demonstrated:** for
+   every money-path defect fix (all of H0.1–H0.6, H2.*), write the reproducing test FIRST
+   and prove it fails against the pre-fix code (temporary local revert or pre-fix run —
+   never committed), then fix; the commit body states how red was demonstrated.
+   **Kill-switch proof:** any flag-gated or dark-launched behavior ships a test proving
+   the flag-OFF path still produces the exact previous behavior — "kill-switchable" is a
+   demonstrated property, not a design intention.
 8. **Web law:** HttpOnly `axis_session` cookie auth only (localStorage holds only the
    `__cookie_session__` marker); counts route through `apps/web/src/config.ts` or live API;
    no new npm deps; no class components; every `href="#..."`/hash assignment must match a
@@ -75,17 +101,33 @@ July build program. They are not suggestions.
     at the current tier (escalate ONE tier, attach the two failure transcripts as context).
     Verification of a unit runs at-or-above the tier that implemented it, never below.
 14. **Process guards (anti-rabbit-hole):** WIP = 1 — exactly one unit in progress at a
-    time. **Stop-loss:** a unit that ends a work session without its acceptance test
-    passing gets HALTED, its findings written to the FAILURES ledger (append a section at
-    the bottom of this file), and is either re-scoped or escalated per rule 13 — never
-    silently ground on. Every fixed defect ships its regression test **in the same
-    commit**. Irreversible or cross-cutting decisions get a one-page ADR
-    (`docs/adr/NNN-title.md`: context / decision / consequences) before the code lands.
+    time. **Stuck rule — move on, never loop:** after **2 honest attempts** at a unit's
+    gate (or one full session, whichever comes first), mark it `BLOCKED(<specific
+    blocker>)` in STATE, write the FAILURES ledger row, and move to the next unit; blocked
+    items are re-attempted at most once more later (fresh context or one tier up per rule
+    13) and are always listed in the end-of-session report. Grinding a third consecutive
+    attempt on the same blocker is a constitution violation. Every fixed defect ships its
+    regression test **in the same commit**. Irreversible or cross-cutting decisions get a
+    one-page ADR (`docs/adr/NNN-title.md`: context / decision / consequences) before the
+    code lands.
 15. **Public-API compatibility law:** `/v1` REST routes, MCP tool names/argument shapes,
     and `error_code` strings are all API surface that live agents depend on. Changes are
     additive-only; a rename or removal requires a deprecation entry (changelog, once
     WO-A4 lands) and a stated compat window. Breaking silently is a HIGH-severity
     self-finding in the next audit cycle.
+16. **State + staging safety:** any locally-run server or test uses SCRATCH data only —
+    OS temp dirs / the session scratchpad / the dockerized `axis_test` database — never a
+    live store, never a real data directory, never live credentials beyond read-only
+    probes. Stage commits by EXPLICIT path (`git add <file> <file>`), never `git add .` /
+    `-A`; review `git status` before every commit; anything credential-shaped in the diff
+    = stop. (Operator has flagged equivalent hazards in the PAI'D repo — an un-gitignored
+    smtp/email file and `PORTAL_DATA_DIR` handling; those belong to the PAI'D track:
+    record in PENDING-OWNER, do not fix cross-repo from this loop.)
+17. **Anti-gold-plating — what "quality" means here:** correctness + coherence + the
+    unit's acceptance gate, WITHIN the unit's spec. No bonus features, no unrequested
+    capabilities, no speculative abstraction. A drive-by improvement bigger than ~5 lines
+    becomes a new pending STATE unit instead of riding along. Polish means the specified
+    thing done excellently, not more things.
 
 ---
 
@@ -93,10 +135,11 @@ July build program. They are not suggestions.
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
-| H0.1–H0.9 | Hygiene | pending | |
-| H1.1–H1.4 | Reliability | pending | |
+| H0.1–H0.10 | Hygiene | pending | |
+| H1.1–H1.4 | Reliability | H1.2 DONE (Fable, `fdfddd5`); H1.3 partial (source-guard 30s, `317095b`); rest pending | |
 | H2.1–H2.5 | Money path | pending | |
-| H3.1–H3.11 | Web completion | pending | |
+| ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
+| H3.1–H3.11 | Web completion | pending (behind MONEY GATE) | |
 | H4.1–H4.6 | AI-agent UX | pending | |
 | H5.1–H5.3 | Human UX | pending | |
 | H6.1–H6.3 | Ops/security | pending | |
@@ -161,6 +204,18 @@ Each unit is small, self-contained, and carries its acceptance test. Order is pr
   Fix: when `getPlans()` fails, show the fallback with an honest "showing standard pricing —
   live plans unavailable" note (Callout pattern). Acceptance: test asserts the notice
   renders only on fetch failure.
+- **H0.10 — Root-debris sweep (committed output logs in a PUBLIC repo).** Nine tracked
+  test/coverage output files sit at the repo root (`coverage-full.txt`,
+  `coverage-output.txt`, `docker-ci-run3.txt`, `ls-coverage.txt`, `stalling fix.txt`,
+  `test_output.txt`, `vitest-full.txt`, `vitest-output.txt`, `vitest_requested_output.txt`
+  — verified via `git ls-files`, April–May vintage). Output logs are a classic
+  secret-leak vector. Fix: scan each for credential shapes FIRST (report any hit as a
+  HIGH finding + escalate for rotation); then `git rm` all nine and add root-level
+  `*-output.txt` / `coverage-*.txt`-style patterns to `.gitignore`. Also sweep for any
+  other tracked root artifact that is plainly a run log. Acceptance: `git ls-files` clean
+  of run logs; scan results stated in the commit body. (History rewrite is NOT in scope —
+  if the scan finds a real secret, that becomes an owner escalation, not a filter-repo
+  adventure.)
 
 ## Phase H1 · Reliability / deflake (make green mean green)
 
@@ -200,6 +255,17 @@ Each unit is small, self-contained, and carries its acceptance test. Order is pr
   usage_credits present everywhere applicable. Write the shape as a type, add a
   contract test that walks every `sendError(..., 402/429, ...)` call site. (Several July
   fixes touched these one at a time; this closes the class.)
+
+### ⛔ MONEY GATE — mandatory operator checkpoint (the loop's ONE planned stop)
+
+When the last unit of **Wave 0 = H0 + H1 + H2** is green and pushed: **HALT.** Do not
+start H3 or any later phase. Output a **review packet**: every Wave-0 commit (hash +
+one-line what/why), the files touched per commit, which units were red-green demonstrated
+(rule 7), and anything BLOCKED. The operator reviews the money diffs before more is built
+on top of freshly-changed billing; their next `continue` AFTER the packet unlocks H3+.
+Mark the gate row in STATE `PASSED (operator, <date>)` when it happens. This checkpoint
+is deliberate risk-tolerance policy, not an escalation — cheap insurance exactly where a
+human look matters most.
 
 ## Phase H3 · Web completion (the remaining product surface)
 
@@ -427,6 +493,15 @@ version, it is named as a dep-gated ROI candidate — do not add the dep yoursel
 Everything else: decide, disclose in the commit body, keep moving.
 
 ---
+
+## PROGRESS ledger
+
+Append-only — one line per completed unit; the operator scans this instead of reading
+every diff. Newest at the bottom.
+
+| Date | Unit | One-line outcome | Commit |
+|---|---|---|---|
+| 2026-07-11 | H1.2 | ProjectPage crash on malformed generated-files response fixed (defensive coerce + findBy); CI-flake root cause closed | `fdfddd5` |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 
