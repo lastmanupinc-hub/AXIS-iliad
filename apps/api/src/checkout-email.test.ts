@@ -269,6 +269,18 @@ describe("Subscription endpoints", () => {
 
 describe("Webhook upgrade email notification", () => {
   it("sends upgrade confirmation email when tier changes via webhook", async () => {
+    // H0.5's truth-fetch (fetchSubscriptionPriceId) fires on
+    // checkout.session.completed whenever STRIPE_SECRET_KEY is set — and an
+    // earlier test in this file restores it set. Stub fetch so this test never
+    // touches the real network (a live api.stripe.com round-trip timed this
+    // test out on a slow CI runner). The req() helper uses node:http directly,
+    // so the stub only intercepts the outbound Stripe call.
+    const realFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ items: { data: [{ price: { id: "price_starter_169" } }] } }),
+    })));
+
     const emails: EmailMessage[] = [];
     setEmailProvider(async (msg) => {
       emails.push(msg);
@@ -314,5 +326,6 @@ describe("Webhook upgrade email notification", () => {
     expect(upgradeMsg!.variables.tier_name).toBe("Starter");
 
     setEmailProvider(null as unknown as import("@axis/snapshots").EmailProvider);
+    vi.stubGlobal("fetch", realFetch);
   });
 });
