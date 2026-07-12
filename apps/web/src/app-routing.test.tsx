@@ -444,6 +444,93 @@ describe("Account Dashboard (WO-P3/WO-P5)", () => {
   });
 });
 
+// ─── Projects/History (WO-P11) ────────────────────────────────────
+// "#projects" is auth-only (GET /v1/projects has no anonymous result — an
+// anon analysis lives client-side only, never server-listed) — same gate
+// pattern as "#dashboard". Deep page behavior (search/sort/row actions) is
+// covered in pages/ProjectsPage.test.tsx; this proves the App-level wiring:
+// route table, auth gate, sidebar entry, and the Open/Re-analyze handoffs
+// into App.tsx's own navigation state.
+
+describe("Projects/History (WO-P11)", () => {
+  it("auth-only deep link (#projects) bounces to the landing page with the sign-in popup", async () => {
+    window.location.hash = "#projects";
+    const { container } = render(<App />);
+    await waitFor(() => expect(shellPage(container)).toBe("home"));
+    expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+
+  it("sidebar 'Projects' item navigates to #projects when signed in", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubApiFetch([["/v1/projects", { projects: [], total: 0 }]]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    fireEvent.click(sidebar.getByRole("button", { name: "Projects" }));
+
+    expect(shellPage(container)).toBe("projects");
+    expect(window.location.hash).toBe("#projects");
+  });
+
+  it("Open on a project row lands on #projects/:id via the same server-restore path as the dashboard cards", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    const fx = makeSnapshotResponse();
+    stubApiFetch([
+      ["/v1/projects/proj_fx/context", { snapshot_id: "snap_fx", context_map: fx.context_map, repo_profile: fx.repo_profile }],
+      ["/v1/projects/proj_fx/generated-files", { snapshot_id: "snap_fx", project_id: "proj_fx", generated_at: "", files: fx.generated_files.map((f) => ({ ...f, content: "x", content_type: "text/markdown" })), skipped: [] }],
+      ["/v1/projects", {
+        projects: [{
+          project_id: "proj_fx",
+          name: "fixture-repo",
+          github_url: "https://github.com/octocat/fixture-repo",
+          created_at: "2026-07-01T00:00:00Z",
+          latest_snapshot: { snapshot_id: "snap_fx", status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 1, compliance_grade: { grade: "B" } },
+          snapshot_count: 1,
+        }],
+        total: 1,
+      }],
+    ]);
+    window.location.hash = "#projects";
+
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("projects");
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
+
+    await waitFor(() => expect(shellPage(container)).toBe("project"));
+    expect(window.location.hash).toBe("#projects/proj_fx");
+  });
+
+  it("Re-analyze navigates to #analyze with the GitHub URL field pre-filled", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubApiFetch([
+      ["/v1/projects", {
+        projects: [{
+          project_id: "proj_fx",
+          name: "fixture-repo",
+          github_url: "https://github.com/octocat/fixture-repo",
+          created_at: "2026-07-01T00:00:00Z",
+          latest_snapshot: { snapshot_id: "snap_fx", status: "ready", created_at: "2026-07-01T00:00:00Z", file_count: 1, compliance_grade: { grade: "B" } },
+          snapshot_count: 1,
+        }],
+        total: 1,
+      }],
+    ]);
+    window.location.hash = "#projects";
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Re-analyze" }));
+
+    await waitFor(() => expect(window.location.hash).toBe("#analyze"));
+    const urlField = screen.getByPlaceholderText("https://github.com/owner/repo") as HTMLInputElement;
+    expect(urlField.value).toBe("https://github.com/octocat/fixture-repo");
+  });
+});
+
 // ─── Program Runner (WO-P7) ───────────────────────────────────────
 // "#run"/"#run/:program" is NOT auth-only (anonymous visitors can run free
 // programs against their guest project) — deep link, sidebar entry, and the

@@ -137,6 +137,10 @@ export function App() {
   const [initialState] = useState(loadPersistedState);
   const [result, setResult] = useState<SnapshotResponse | null>(initialState.result);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(initialState.projectId);
+  // WO-P11: "Re-analyze" from the Projects list — one-shot handoff to the
+  // Analyze form's initial githubUrl value (see routes.tsx's RouteContext
+  // doc comment for why a stale value can't leak into a later visit).
+  const [prefillRepoUrl, setPrefillRepoUrl] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
   // WO-P5: set when the last restore attempt (for the current PROJECT_DETAIL_PAGES
   // route's params.id) failed — human copy only, rendered by renderProjectDetail.
@@ -251,6 +255,14 @@ export function App() {
     }
     localStorage.removeItem(ANON_RESULT_KEY); // opening a named project supersedes any anon cache
     navigate("project", { id: projectId });
+  }, [navigate]);
+
+  // WO-P11: "Re-analyze" from the Projects list — pre-fills the Analyze
+  // form's GitHub URL field rather than re-running the prior snapshot
+  // silently, so the user can still adjust branch/token/lite-mode first.
+  const handleReanalyze = useCallback((githubUrl: string) => {
+    setPrefillRepoUrl(githubUrl);
+    navigate("analyze");
   }, [navigate]);
 
   const handleReset = useCallback(() => {
@@ -521,10 +533,12 @@ export function App() {
     onOpenProject: handleOpenProject,
     onSnapshotDeleted: handleSnapshotDeleted,
     onProjectDeleted: handleProjectDeleted,
+    onReanalyze: handleReanalyze,
+    prefillRepoUrl,
   }), [
     navCtx, route.page, route.params, route.hash, result, currentProjectId, restoring, restoreError,
     nav, openSignUp, handleAnalyzeComplete, handleGeneratedCountChange, handleAuthChange, handleOpenProject,
-    handleSnapshotDeleted, handleProjectDeleted,
+    handleSnapshotDeleted, handleProjectDeleted, handleReanalyze, prefillRepoUrl,
   ]);
 
   return (

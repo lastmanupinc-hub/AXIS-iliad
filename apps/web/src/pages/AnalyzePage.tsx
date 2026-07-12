@@ -39,6 +39,12 @@ interface Props {
    *  /v1/account/github-token 401s for anonymous callers). Omit/false for
    *  logged-out renders; the paste-a-token field still works either way. */
   loggedIn?: boolean;
+  /** WO-P11: pre-fills the GitHub URL field (the Projects list's
+   *  "Re-analyze" action) — read once as the githubUrl state's initial
+   *  value. Safe to read only-at-mount because every navigation to this
+   *  page gets a fresh `route.key` (App.tsx), remounting AnalyzePage rather
+   *  than reusing a stale instance with a now-outdated prop. */
+  initialUrl?: string;
 }
 
 const PROJECT_TYPES = [
@@ -85,14 +91,14 @@ interface TierBlockState {
   requestedLite: boolean;
 }
 
-export function AnalyzePage({ onComplete, loggedIn }: Props) {
+export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
   const [mode, setMode] = useState<"upload" | "github">("github");
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState("web_application");
   const [goals, setGoals] = useState("Generate AI context files");
   const [selectedOutputs, setSelectedOutputs] = useState<string[]>(ESSENTIAL_CANDIDATES);
   const [files, setFiles] = useState<Array<{ path: string; content: string; size: number }>>([]);
-  const [githubUrl, setGithubUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState(initialUrl ?? "");
   const [branch, setBranch] = useState("");
   const [pastedToken, setPastedToken] = useState("");
   const [storedTokens, setStoredTokens] = useState<GitHubTokenSummary[]>([]);

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
+import { ProjectsPage } from "./pages/ProjectsPage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
@@ -72,6 +73,9 @@ export type PageId =
   | "home"
   | "analyze"
   | "dashboard"
+  // Projects/History (WO-P11) — "#projects", the full searchable/sortable
+  // list (the Account Dashboard only teases the most recent 20 as cards).
+  | "projects"
   // Project/Snapshot Detail (WO-P5) — ID-addressable at "#projects/:id";
   // "project-versions" and "project-artifacts" (WO-P6) are the same page
   // with a different tab deep-linked (separate RouteDefs because a pattern
@@ -158,6 +162,15 @@ export interface RouteContext extends NavContext {
   /** WO-P5: the open project itself was deleted — clear multi-project state
    *  and leave the now-gone project's page. */
   onProjectDeleted: () => void;
+  /** WO-P11: "Re-analyze" from the Projects list — stashes `githubUrl` into
+   *  `prefillRepoUrl` and navigates to "#analyze" with the form pre-filled. */
+  onReanalyze: (githubUrl: string) => void;
+  /** WO-P11: set by onReanalyze, read once by the "analyze" route's render
+   *  and cleared the same way every other one-shot handoff in this table is
+   *  (a fresh `route.key` remounts AnalyzePage per navigation — see
+   *  useHashRoute.ts's `navigate` — so a stale value can't leak into a later,
+   *  unrelated visit to #analyze). */
+  prefillRepoUrl: string | null;
 }
 
 export type NavGroup = "WORKSPACE" | "LIBRARY" | "ACCOUNT" | "HELP";
@@ -231,7 +244,7 @@ export const ROUTES: RouteDef[] = [
     section: "MISSION",
     shortcut: 1,
     nav: { group: "WORKSPACE", icon: "scan", rail: true },
-    render: (ctx) => <AnalyzePage onComplete={ctx.onAnalyzeComplete} loggedIn={ctx.loggedIn} />,
+    render: (ctx) => <AnalyzePage onComplete={ctx.onAnalyzeComplete} loggedIn={ctx.loggedIn} initialUrl={ctx.prefillRepoUrl ?? undefined} />,
   },
   {
     // WO-P3 (account-level overview) — promoted to the real "#dashboard" hash
@@ -275,6 +288,27 @@ export const ROUTES: RouteDef[] = [
         anonResult={ctx.result}
         onNavigate={ctx.navigate}
         onRequireLogin={() => ctx.requireLogin("paid-program")}
+      />
+    ),
+  },
+  {
+    // WO-P11: Projects/History — the complete, searchable/sortable list of
+    // every repo the account has analyzed (the Account Dashboard's own
+    // "Recent projects" cards, WO-P3, only tease the most recent 20). Auth-
+    // only: GET /v1/projects has no meaningful anonymous result (an anon
+    // analysis lives client-side only, never server-listed).
+    page: "projects",
+    pattern: "projects",
+    label: "Projects",
+    tabLabel: "projects.json",
+    section: "MISSION",
+    authOnly: true,
+    nav: { group: "WORKSPACE", icon: "list", rail: true },
+    render: (ctx) => (
+      <ProjectsPage
+        onOpenProject={ctx.onOpenProject}
+        onReanalyze={ctx.onReanalyze}
+        onAnalyze={() => ctx.navigate("analyze")}
       />
     ),
   },
