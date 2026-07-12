@@ -38,6 +38,7 @@ import {
   handleRobotsTxt,
   handleSkillsIndex,
   handleDocsMd,
+  handleChangelog,
   handleForAgents,
   handleInstall,
   handleProbeIntent,
@@ -263,6 +264,9 @@ router.get("/.well-known/skills/index.json", handleSkillsIndex);
 
 // Plain-text API docs (Stripe-style .md suffix)
 router.get("/v1/docs.md", handleDocsMd);
+
+// Repo changelog, verbatim (WO-A4)
+router.get("/v1/changelog", handleChangelog);
 
 // Agent onboarding â€” machine-readable manifest + install configs
 router.get("/for-agents", handleForAgents);

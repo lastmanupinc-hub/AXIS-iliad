@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { readFileSync } from "node:fs";
 import { parseAgentBudget, resolveAgentMode, negotiatePrice, build402NegotiationBody, getPricingTier } from "./mpp.js";
 import { settleOverageCash } from "./cashier.js";
 import type { AgentBudget } from "./mpp.js";
@@ -2730,6 +2731,24 @@ List all programs with generator counts and output paths. No auth required.
 | agentic-purchasing | pro | commerce-registry.json, agent-purchasing-playbook.md |
 `;
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end(body);
+}
+
+// â”€â”€â”€ GET /v1/changelog  -  repo CHANGELOG.md, verbatim (WO-A4) â”€â”€â”€â”€â”€
+
+export async function handleChangelog(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  let body: string;
+  try {
+    body = readFileSync(new URL("../../../CHANGELOG.md", import.meta.url), "utf-8");
+  } catch (err) {
+    log("error", "changelog_read_failed", { error: err instanceof Error ? err.message : String(err) });
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Changelog temporarily unavailable");
+    return;
+  }
+  res.writeHead(200, { "Content-Type": "text/markdown; charset=utf-8" });
   res.end(body);
 }
 

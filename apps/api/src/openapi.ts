@@ -499,6 +499,16 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/changelog": {
+        get: {
+          summary: "Repo CHANGELOG.md, verbatim",
+          operationId: "getChangelog",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "The project's CHANGELOG.md, unmodified", content: { "text/markdown": { schema: { type: "string" } } } },
+          },
+        },
+      },
       "/.well-known/axis.json": {
         get: {
           summary: "Agent discovery manifest â€” describes how to use AXIS programmatically",

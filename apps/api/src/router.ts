@@ -208,6 +208,7 @@ const CACHE_CONTROL: Record<string, string> = {
   "/v1/plans": "public, max-age=3600",
   "/v1/docs": "public, max-age=3600",
   "/v1/docs.md": "public, max-age=3600",
+  "/v1/changelog": "public, max-age=3600",
   "/.well-known/skills/index.json": "public, max-age=3600",
   "/v1/install": "public, max-age=3600",
   "/for-agents": "public, max-age=3600",

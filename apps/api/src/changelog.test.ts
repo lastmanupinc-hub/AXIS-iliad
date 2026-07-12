@@ -1,0 +1,78 @@
+/**
+ * WO-A4 — GET /v1/changelog: serves the repo-root CHANGELOG.md verbatim
+ * (blocks WO-P16's Changelog page). Public, no auth.
+ */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { createServer, type Server } from "node:http";
+import { readFileSync } from "node:fs";
+import { Router } from "./router.js";
+import { handleChangelog } from "./handlers.js";
+
+async function req(
+  path: string,
+): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: string }> {
+  return new Promise((resolve, reject) => {
+    const r = require("node:http").request(
+      { hostname: "127.0.0.1", port: TEST_PORT, path, method: "GET" },
+      (res: import("node:http").IncomingMessage) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (c: Buffer) => chunks.push(c));
+        res.on("end", () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers as Record<string, string | string[] | undefined>,
+            body: Buffer.concat(chunks).toString("utf-8"),
+          });
+        });
+      },
+    );
+    r.on("error", reject);
+    r.end();
+  });
+}
+
+const TEST_PORT = 44519;
+let server: Server;
+
+beforeAll(async () => {
+  const router = new Router();
+  router.get("/v1/changelog", handleChangelog);
+  server = createServer((r, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    router.handle(r, res);
+  });
+  await new Promise<void>((resolve) => server.listen(TEST_PORT, resolve));
+});
+
+afterAll(async () => {
+  await new Promise<void>((resolve, reject) =>
+    server.close((err) => (err ? reject(err) : resolve())),
+  );
+});
+
+describe("GET /v1/changelog", () => {
+  let status: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let body: string;
+
+  beforeAll(async () => {
+    const r = await req("/v1/changelog");
+    status = r.status;
+    headers = r.headers;
+    body = r.body;
+  });
+
+  it("returns 200", () => {
+    expect(status).toBe(200);
+  });
+
+  it("returns text/markdown content-type", () => {
+    expect(String(headers["content-type"])).toContain("text/markdown");
+  });
+
+  it("body is exactly the repo-root CHANGELOG.md — no duplicated/hand-typed copy to drift", () => {
+    const onDisk = readFileSync(new URL("../../../CHANGELOG.md", import.meta.url), "utf-8");
+    expect(body).toBe(onDisk);
+    expect(body).toContain("# Changelog");
+  });
+});
