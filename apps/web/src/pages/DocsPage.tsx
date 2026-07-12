@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Icon } from "../components/AxisIcons";
+import type { PageId } from "../routes.tsx";
+import { getOpenApiSpec, getMcpManifest, apiErrorDetails, type OpenApiSpec, type McpManifest } from "../api.ts";
+import { Callout, CodeBlock, Skeleton, TableWrap } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
-import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
+import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT, DOCS_API_BASE } from "../config.ts";
 
-type DocSection = "overview" | "programs" | "api" | "outputs" | "cli";
+type DocSection = "overview" | "programs" | "api" | "outputs" | "cli" | "mcp" | "examples";
 
 interface ProgramDoc {
   name: string;
@@ -197,29 +200,44 @@ const PROGRAM_DOCS: ProgramDoc[] = [
     freeFeatures: ["Single sketch generation", "Preview output"],
     paidFeatures: ["Batch generation", "Collection management", "Export manifests", "High-res output", "API access"],
   },
+  {
+    name: "agentic-purchasing", label: "Agentic Purchasing", icon: "credit-card", category: "Agentic Commerce",
+    promise: "Make the codebase ready for autonomous purchasing agents",
+    description: "Generate AP2/UCP-aligned purchasing playbooks, product schemas, checkout-flow documentation, and negotiation rules from the project's commerce signals.",
+    tier: "pro", generatorCount: 6,
+    endpoints: ["POST /v1/agentic-purchasing/generate"],
+    outputFiles: ["agent-purchasing-playbook.md", "product-schema.json", "checkout-flow.md", "negotiation-rules.md", "commerce-registry.json", "ap2-interop-samples.json"],
+    freeFeatures: ["Compliance-grade readiness signal (via the Commerce hub)"],
+    paidFeatures: ["Purchasing playbook", "Product schema", "Checkout-flow documentation", "Negotiation rules", "Commerce registry", "AP2 interop samples", "API access"],
+    notes: "Run this program in-app from the Commerce hub (#commerce)",
+  },
+  {
+    name: "closer", label: "Closer / Packaging", icon: "package", category: "Engineering Delivery",
+    promise: "Package the project for real-world distribution",
+    description: "Generate packaging manifests, Dockerfiles, CI/release workflows, and distributable-format templates (npm, VS Code, Docker Hub, GitHub Marketplace, Unreal).",
+    tier: "pro", generatorCount: 16,
+    endpoints: ["POST /v1/closer/generate"],
+    outputFiles: ["packaging/README.md", "packaging/LICENSE", "Dockerfile", "docker-compose.yml", ".github/workflows/ci.yml", ".github/workflows/release.yml", "packaging/manifests/npm-package.json", "packaging/manifests/unreal.uplugin", "packaging/manifests/vscode-extension.json", "packaging/manifests/dockerhub-repository.md", "packaging/manifests/github-marketplace-listing.md", "packaging/trust-fabric/attestation.json", "packaging/trust-fabric/merkle-proof.json", "packaging-report.md", "DISTRIBUTABLE.md", "Makefile"],
+    freeFeatures: ["None — requires Pro or Suite tier with this program enabled"],
+    paidFeatures: ["Packaging manifests", "CI/release workflows", "Multi-format distributable templates", "Trust Fabric attestation", "API access"],
+  },
+  {
+    name: "deploy", label: "Axis Deploy", icon: "rocket", category: "Engineering Delivery",
+    promise: "Ship the project to production infrastructure",
+    description: "Generate Dockerfiles, docker-compose configs, Render blueprints, deploy scripts, and Cloudflare Worker/Pages configuration tailored to the project's stack.",
+    tier: "pro", generatorCount: 13,
+    endpoints: ["POST /v1/deploy/generate"],
+    outputFiles: ["deploy/Dockerfile", "deploy/Dockerfile.dockerignore", "deploy/docker-compose.dev.yml", "deploy/render.yaml", "deploy/deploy.sh", "deploy/deploy.ps1", "deploy/vscode-launch.json.template", "deploy/wrangler.pages.toml", "deploy/wrangler.containers.toml", "deploy/worker.ts", "deploy/deploy-cloudflare.sh", "deploy/deploy-cloudflare.ps1", "deploy/deploy-qualification-report.md"],
+    freeFeatures: ["None — requires Pro or Suite tier with this program enabled"],
+    paidFeatures: ["Dockerfiles and compose configs", "Render blueprint", "Deploy scripts (bash + PowerShell)", "Cloudflare Worker/Pages config", "API access"],
+  },
 ];
 
-const API_ENDPOINTS = [
-  { method: "POST", path: "/v1/snapshots", description: "Create a new snapshot from uploaded source files", auth: true },
-  { method: "GET", path: "/v1/projects/:id/generated-files", description: "List all generated files for a project", auth: true },
-  { method: "GET", path: "/v1/projects/:id/generated-files/:path", description: "Get contents of a specific generated file", auth: true },
-  { method: "POST", path: "/v1/{program}/endpoint", description: "Run a specific program against a snapshot", auth: true },
-  { method: "GET", path: "/v1/projects/:id/export", description: "Export all generated files as ZIP", auth: true },
-  { method: "GET", path: "/v1/health", description: "Health check — returns status and version", auth: false },
-  { method: "POST", path: "/v1/search/index", description: "Build full-text search index for a snapshot", auth: true },
-  { method: "POST", path: "/v1/search/query", description: "Full-text search across indexed snapshot", auth: true },
-  { method: "POST", path: "/v1/accounts", description: "Create a new account", auth: false },
-  { method: "GET", path: "/v1/account", description: "Get current account details", auth: true },
-  { method: "POST", path: "/v1/account/keys", description: "Create a new API key", auth: true },
-  { method: "GET", path: "/v1/account/keys", description: "List all API keys", auth: true },
-  { method: "GET", path: "/v1/account/usage", description: "Get usage statistics", auth: true },
-  { method: "GET", path: "/v1/plans", description: "List available plans and features", auth: false },
-  { method: "GET", path: "/v1/account/funnel", description: "Get funnel/onboarding status", auth: true },
-  { method: "POST", path: "/v1/account/seats", description: "Invite a team member", auth: true },
-  { method: "GET", path: "/v1/account/seats", description: "List team seats", auth: true },
-];
+interface Props {
+  onNavigate: (page: PageId) => void;
+}
 
-export function DocsPage() {
+export function DocsPage({ onNavigate }: Props) {
   const [section, setSection] = useState<DocSection>("overview");
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
 
@@ -227,7 +245,9 @@ export function DocsPage() {
     { id: "overview", label: "Overview", icon: "docs-overview" },
     { id: "programs", label: "Programs", icon: "programs" },
     { id: "api", label: "API Reference", icon: "api-link" },
+    { id: "mcp", label: "MCP Protocol", icon: "mcp" },
     { id: "outputs", label: "Output Formats", icon: "file-doc" },
+    { id: "examples", label: "Example Artifacts", icon: "folder" },
     { id: "cli", label: "CLI Usage", icon: "terminal" },
   ];
 
@@ -257,7 +277,9 @@ export function DocsPage() {
         <ProgramsSection expanded={expandedProgram} onToggle={setExpandedProgram} />
       )}
       {section === "api" && <ApiSection />}
+      {section === "mcp" && <McpProtocolSection onNavigate={onNavigate} />}
       {section === "outputs" && <OutputsSection />}
+      {section === "examples" && <ExampleArtifactsSection onNavigate={onNavigate} />}
       {section === "cli" && <CliSection />}
     </div>
   );
@@ -272,9 +294,9 @@ function OverviewSection() {
           Axis is the umbrella platform for AI-native development — a multi-program system
           that turns project snapshots into diagnostics, governed outputs, and build-integrated
           tooling. It provides shared identity, snapshot intake, project context, and a unified
-          design system across {PROGRAM_COUNT} separately billable programs organized into 7 categories:
+          design system across {PROGRAM_COUNT} separately billable programs organized into 8 categories:
           Repo Intelligence, Governance, Engineering Delivery, Growth &amp; Content,
-          Knowledge &amp; Context, Design System, and Creative Generation.
+          Knowledge &amp; Context, Design System, Creative Generation, and Agentic Commerce.
         </p>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginTop: 12 }}>
           <strong style={{ color: "var(--accent)" }}>Positioning:</strong>{" "}
@@ -403,18 +425,19 @@ function OverviewSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Program Categories</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
-          The {PROGRAM_COUNT} programs are organized into 7 functional categories. Each category addresses
+          The {PROGRAM_COUNT} programs are organized into 8 functional categories. Each category addresses
           a different dimension of the development lifecycle.
         </p>
         <div className="grid grid-3" style={{ gap: 12 }}>
           {[
             { cat: "Repo Intelligence", icon: "search", programs: ["Search", "Debug", "Optimization"], desc: "Understand, diagnose, and improve your codebase" },
             { cat: "Governance", icon: "skills", programs: ["Skills"], desc: "Generate AI control files and workflow policies" },
-            { cat: "Engineering Delivery", icon: "frontend", programs: ["Frontend", "Superpowers", "MCP", "Artifacts"], desc: "Audit UI, automate workflows, connect services" },
+            { cat: "Engineering Delivery", icon: "frontend", programs: ["Frontend", "Superpowers", "MCP", "Artifacts", "Closer / Packaging", "Deploy"], desc: "Audit UI, automate workflows, connect services, package and ship" },
             { cat: "Growth & Content", icon: "seo", programs: ["SEO", "Brand", "Marketing"], desc: "Improve discoverability, content systems, and growth" },
             { cat: "Knowledge & Context", icon: "notebook", programs: ["Notebook", "Obsidian"], desc: "Structure research and vault-based knowledge" },
+            { cat: "Design System", icon: "theme", programs: ["Theme"], desc: "Design tokens and theme implementation rules" },
             { cat: "Creative Generation", icon: "remotion", programs: ["Remotion", "Canvas", "Algorithmic"], desc: "Video workflows, visual assets, and generative outputs" },
-            { cat: "Agentic Commerce", icon: "credit-card", programs: ["Agentic Purchasing", "Closer"], desc: "Purchasing readiness, compliance, and launch packaging" },
+            { cat: "Agentic Commerce", icon: "credit-card", programs: ["Agentic Purchasing"], desc: "Purchasing readiness and AP2/UCP compliance packaging" },
           ].map((c) => (
             <div key={c.cat} className="card" style={{ padding: 14, marginBottom: 0 }}>
               <div className="flex" style={{ gap: 8, marginBottom: 6 }}>
@@ -635,246 +658,482 @@ function ProgramDocCard({
   );
 }
 
-function ApiSection() {
-  return (
-    <div className="stagger">
-      <div className="card">
-        <h3 style={{ marginBottom: 8 }}>Base URL</h3>
-        <div
-          className="mono"
-          style={{
-            background: "var(--bg)",
-            padding: 12,
-            borderRadius: "var(--radius)",
-            fontSize: "0.875rem",
-          }}
-        >
-          http://localhost:4000/v1
-        </div>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 8 }}>
-          All endpoints are prefixed with <code className="mono">/v1</code>.
-          Authenticated endpoints require a valid <code className="mono">axis_*</code> Bearer token.
-        </p>
-      </div>
+// ─── API Reference — live OpenAPI explorer (WO-P13) ──────────────
+// Hand-rolled from GET /openapi.json — tag-grouped, expandable, copy-curl.
+// No swagger-ui dependency. Every endpoint below is read live from the spec,
+// so drift between this page and the real API surface is impossible by
+// construction (the acceptance bar this work order sets).
 
-      <div className="card">
-        <h3 style={{ marginBottom: 16 }}>Endpoints</h3>
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: "10%" }}>Method</th>
-              <th style={{ width: "40%" }}>Path</th>
-              <th style={{ width: "40%" }}>Description</th>
-              <th style={{ width: "10%", textAlign: "center" }}>Auth</th>
-            </tr>
-          </thead>
-          <tbody>
-            {API_ENDPOINTS.map((ep) => (
-              <tr key={`${ep.method}-${ep.path}`}>
-                <td>
-                  <span
-                    className="badge"
-                    style={{
-                      fontSize: "0.6875rem",
-                      background: ep.method === "GET" ? "var(--green)" : "var(--accent)",
-                      color: "white",
-                    }}
-                  >
-                    {ep.method}
-                  </span>
+interface OpenApiParam {
+  name: string;
+  in: string;
+  required?: boolean;
+  description?: string;
+}
+
+interface OpenApiOperation {
+  summary?: string;
+  operationId?: string;
+  tags?: string[];
+  parameters?: OpenApiParam[];
+  requestBody?: { required?: boolean; content?: Record<string, { schema?: unknown }> };
+  responses?: Record<string, { description?: string }>;
+  security?: Array<Record<string, unknown>>;
+}
+
+interface EndpointEntry {
+  method: string;
+  path: string;
+  op: OpenApiOperation;
+}
+
+function resolveSchema(schema: unknown, schemas: Record<string, unknown> | undefined): Record<string, unknown> | null {
+  if (!schema || typeof schema !== "object") return null;
+  const s = schema as Record<string, unknown>;
+  if (typeof s.$ref === "string") {
+    const name = s.$ref.split("/").pop();
+    const target = name ? schemas?.[name] : undefined;
+    return (target as Record<string, unknown>) ?? null;
+  }
+  return s;
+}
+
+/** Recursive JSON-Schema renderer — resolves $refs against components.schemas.
+ *  Depth-capped defensively against a self-referential or very deep schema. */
+function SchemaView({ schema, schemas, depth = 0 }: { schema: unknown; schemas: Record<string, unknown> | undefined; depth?: number }) {
+  const resolved = resolveSchema(schema, schemas);
+  if (!resolved) return <span className="text-muted text-xs">—</span>;
+
+  if (resolved.type === "array") {
+    return (
+      <span>
+        <span className="mono text-xs text-muted">array of </span>
+        <SchemaView schema={resolved.items} schemas={schemas} depth={depth} />
+      </span>
+    );
+  }
+
+  const properties = resolved.properties as Record<string, unknown> | undefined;
+  if (resolved.type === "object" || properties) {
+    const entries = Object.entries(properties ?? {});
+    if (entries.length === 0) return <span className="mono text-xs text-muted">object</span>;
+    if (depth > 3) return <span className="mono text-xs text-muted">{"object { ... }"}</span>;
+    const required = new Set((resolved.required as string[]) ?? []);
+    return (
+      <table style={{ marginLeft: depth > 0 ? 12 : 0 }}>
+        <tbody>
+          {entries.map(([name, propSchema]) => {
+            const prop = resolveSchema(propSchema, schemas) ?? {};
+            const isNested = prop.type === "object" || prop.type === "array" || Boolean(prop.properties);
+            return (
+              <tr key={name}>
+                <td className="mono" style={{ fontSize: "0.75rem", verticalAlign: "top", paddingRight: 8 }}>
+                  {name}{required.has(name) && <span style={{ color: "var(--red)" }}>*</span>}
                 </td>
-                <td className="mono" style={{ fontSize: "0.8125rem" }}>{ep.path}</td>
-                <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>{ep.description}</td>
-                <td style={{ textAlign: "center" }}>
-                  {ep.auth ? (
-                    <span style={{ color: "var(--yellow)" }}><Icon name="key" /></span>
+                <td style={{ verticalAlign: "top", paddingBottom: 2 }}>
+                  {isNested ? (
+                    <SchemaView schema={propSchema} schemas={schemas} depth={depth + 1} />
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>—</span>
+                    <span className="mono text-xs text-muted">
+                      {(prop.type as string) ?? "any"}
+                      {Array.isArray(prop.enum) ? ` (${(prop.enum as string[]).join(" | ")})` : ""}
+                    </span>
+                  )}
+                  {typeof prop.description === "string" && (
+                    <div className="text-muted text-xs">{prop.description}</div>
                   )}
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  }
+
+  return (
+    <span className="mono text-xs text-muted">
+      {(resolved.type as string) ?? "any"}
+      {Array.isArray(resolved.enum) ? ` (${(resolved.enum as string[]).join(" | ")})` : ""}
+    </span>
+  );
+}
+
+/** Shallow placeholder value per JSON-Schema type — enough for a curl skeleton
+ *  the user edits, not a semantic mock. Objects/arrays stay empty at this
+ *  depth so the example body doesn't balloon into a full recursive fixture. */
+function exampleValue(prop: Record<string, unknown> | null): unknown {
+  if (!prop) return null;
+  if (Array.isArray(prop.enum) && prop.enum.length > 0) return prop.enum[0];
+  switch (prop.type) {
+    case "string": return prop.format === "date-time" ? "2026-01-01T00:00:00Z" : "string";
+    case "integer":
+    case "number": return 0;
+    case "boolean": return true;
+    case "array": return [];
+    case "object": return {};
+    default: return prop.properties ? {} : null;
+  }
+}
+
+function exampleBody(schema: unknown, schemas: Record<string, unknown> | undefined): Record<string, unknown> {
+  const resolved = resolveSchema(schema, schemas);
+  const properties = resolved?.properties as Record<string, unknown> | undefined;
+  if (!properties) return {};
+  const required = new Set((resolved?.required as string[]) ?? []);
+  const wanted = required.size > 0 ? Object.entries(properties).filter(([name]) => required.has(name)) : Object.entries(properties);
+  const out: Record<string, unknown> = {};
+  for (const [name, propSchema] of wanted) out[name] = exampleValue(resolveSchema(propSchema, schemas));
+  return out;
+}
+
+function buildCurl(method: string, path: string, op: OpenApiOperation, schemas: Record<string, unknown> | undefined): string {
+  const examplePath = path.replace(/\{([^}]+)\}/g, (_m, name: string) => `<${name}>`);
+  const url = `${DOCS_API_BASE}${examplePath}`;
+  const needsAuth = Boolean(op.security?.length);
+  const bodySchema = op.requestBody?.content ? Object.values(op.requestBody.content)[0]?.schema : null;
+
+  const lines = [`curl -X ${method.toUpperCase()} ${url}`];
+  if (needsAuth) lines.push(`  -H "Authorization: Bearer axis_your_api_key"`);
+  if (bodySchema) {
+    lines.push(`  -H "Content-Type: application/json"`);
+    lines.push(`  -d '${JSON.stringify(exampleBody(bodySchema, schemas))}'`);
+  }
+  return lines.map((l, i) => (i < lines.length - 1 ? `${l} \\` : l)).join("\n");
+}
+
+const HTTP_METHODS = ["get", "post", "put", "patch", "delete"] as const;
+
+function ApiSection() {
+  const [spec, setSpec] = useState<OpenApiSpec | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
+  const [openTag, setOpenTag] = useState<string | null>(null);
+  const [openEndpoint, setOpenEndpoint] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return getOpenApiSpec()
+      .then(setSpec)
+      .catch((err) => setError({ message: err instanceof Error ? err.message : "Failed to load the API spec", details: apiErrorDetails(err) }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  if (loading) return <div className="card"><Skeleton lines={8} /></div>;
+
+  if (error || !spec) {
+    return (
+      <div className="card">
+        <Callout tone="warning" title="Couldn't load the live API spec" details={error?.details ?? null}>
+          {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={() => void load()}>Retry</button>
+        </Callout>
+      </div>
+    );
+  }
+
+  const schemas = spec.components?.schemas;
+  const byTag = new Map<string, EndpointEntry[]>();
+  let totalEndpoints = 0;
+  for (const [path, methods] of Object.entries(spec.paths)) {
+    for (const [method, op] of Object.entries(methods as Record<string, OpenApiOperation>)) {
+      if (!(HTTP_METHODS as readonly string[]).includes(method)) continue;
+      totalEndpoints++;
+      const tags = op.tags?.length ? op.tags : ["Other"];
+      for (const tag of tags) {
+        if (!byTag.has(tag)) byTag.set(tag, []);
+        byTag.get(tag)!.push({ method, path, op });
+      }
+    }
+  }
+  const tagNames = [...byTag.keys()].sort();
+
+  return (
+    <div className="stagger">
+      <div className="card">
+        <div className="flex-between" style={{ flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <h3 style={{ marginBottom: 4 }}>{spec.info.title}</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", margin: 0 }}>
+              v{spec.info.version} · {totalEndpoints} endpoints · {tagNames.length} tags
+            </p>
+          </div>
+          <span className="badge badge-green">Live · GET /openapi.json</span>
+        </div>
+        <div className="mono" style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontSize: "0.875rem", marginTop: 12 }}>
+          {DOCS_API_BASE}
+        </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 8 }}>
+          Every endpoint below is read directly from the live spec — nothing here can drift
+          from what the API actually serves. Authenticated endpoints (marked <Icon name="key" />)
+          need a Bearer <code className="mono">axis_*</code> API key.
+        </p>
       </div>
 
+      {tagNames.map((tag) => {
+        const endpoints = byTag.get(tag)!;
+        const tagOpen = openTag === tag;
+        return (
+          <div key={tag} className="card">
+            <button
+              type="button"
+              className="flex-between"
+              style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit", padding: 0 }}
+              onClick={() => setOpenTag(tagOpen ? null : tag)}
+              aria-expanded={tagOpen}
+            >
+              <strong>{tag}</strong>
+              <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
+                {endpoints.length} endpoint{endpoints.length === 1 ? "" : "s"} {tagOpen ? "▲" : "▼"}
+              </span>
+            </button>
+
+            {tagOpen && (
+              <div className="stagger" style={{ marginTop: 12 }}>
+                {endpoints.map((e) => {
+                  const key = `${e.method}-${e.path}`;
+                  const expanded = openEndpoint === key;
+                  const bodySchema = e.op.requestBody?.content ? Object.values(e.op.requestBody.content)[0]?.schema : null;
+                  const needsAuth = Boolean(e.op.security?.length);
+                  return (
+                    <div key={key} style={{ borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                      <button
+                        type="button"
+                        className="flex-between"
+                        style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit", padding: 0, textAlign: "left", gap: 8 }}
+                        onClick={() => setOpenEndpoint(expanded ? null : key)}
+                        aria-expanded={expanded}
+                      >
+                        <span className="flex" style={{ gap: 8, alignItems: "baseline" }}>
+                          <span
+                            className="badge"
+                            style={{ fontSize: "0.6875rem", background: e.method === "get" ? "var(--green)" : "var(--accent)", color: "white", textTransform: "uppercase" }}
+                          >
+                            {e.method}
+                          </span>
+                          <span className="mono" style={{ fontSize: "0.8125rem" }}>{e.path}</span>
+                          {needsAuth && <Icon name="key" />}
+                        </span>
+                        <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{expanded ? "▲" : "▼"}</span>
+                      </button>
+
+                      {!expanded && e.op.summary && (
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", margin: "4px 0 0" }}>{e.op.summary}</p>
+                      )}
+
+                      {expanded && (
+                        <div style={{ marginTop: 10, paddingLeft: 4 }} className="animate-fade-in">
+                          {e.op.summary && <p style={{ fontSize: "0.8125rem", marginBottom: 10 }}>{e.op.summary}</p>}
+
+                          {e.op.parameters && e.op.parameters.length > 0 && (
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>
+                                Parameters
+                              </div>
+                              <TableWrap label={`${e.path} parameters`}>
+                                <table>
+                                  <thead><tr><th>Name</th><th>In</th><th>Required</th><th>Description</th></tr></thead>
+                                  <tbody>
+                                    {e.op.parameters.map((p) => (
+                                      <tr key={p.name}>
+                                        <td className="mono" style={{ fontSize: "0.75rem" }}>{p.name}</td>
+                                        <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{p.in}</td>
+                                        <td style={{ fontSize: "0.75rem" }}>{p.required ? "Yes" : "—"}</td>
+                                        <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{p.description ?? "—"}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </TableWrap>
+                            </div>
+                          )}
+
+                          {Boolean(bodySchema) && (
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>
+                                Request body
+                              </div>
+                              <SchemaView schema={bodySchema} schemas={schemas} />
+                            </div>
+                          )}
+
+                          {e.op.responses && (
+                            <div style={{ marginBottom: 12 }}>
+                              <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>
+                                Responses
+                              </div>
+                              <div className="flex-wrap" style={{ gap: 6 }}>
+                                {Object.entries(e.op.responses).map(([code, r]) => (
+                                  <span key={code} className="badge" style={{ fontSize: "0.6875rem", background: "var(--bg)" }} title={r.description}>
+                                    {code}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <CodeBlock
+                            label="curl"
+                            code={buildCurl(e.method, e.path, e.op, schemas)}
+                            copyLabel={`Copy curl for ${e.method.toUpperCase()} ${e.path}`}
+                            wrap
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── MCP Protocol — live manifest summary (WO-P13) ───────────────
+// Deliberately NOT a second copy of McpPage's full tool registry (that would
+// duplicate live-fetched UI two ways and drift-risk itself) — this is a
+// concise summary plus a cross-link to the full, already-shipped MCP page.
+
+function McpProtocolSection({ onNavigate }: { onNavigate: (page: PageId) => void }) {
+  const [manifest, setManifest] = useState<McpManifest | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return getMcpManifest()
+      .then(setManifest)
+      .catch((err) => setError({ message: err instanceof Error ? err.message : "Failed to load the MCP manifest", details: apiErrorDetails(err) }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const meta = (manifest?._meta ?? {}) as Record<string, unknown>;
+  const transport = typeof meta.transport === "string" ? meta.transport : "http";
+  const protocol = typeof meta.protocol === "string" ? meta.protocol : null;
+  const authentication = meta.authentication as { type?: string; description?: string } | undefined;
+
+  return (
+    <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Request &amp; Response Examples</h3>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 16 }}>
-          All request bodies are JSON. Responses include a top-level <code className="mono">ok</code> boolean
-          and a <code className="mono">data</code> object (or <code className="mono">error</code> string on failure).
+        <div className="flex-between" style={{ flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>Model Context Protocol</h3>
+          <span className="badge badge-green">Live · GET /v1/mcp/server.json</span>
+        </div>
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
+          Every program is also exposed as an MCP tool over JSON-RPC 2.0 — one endpoint,
+          no per-tool integration work. This is a live summary; the full searchable tool
+          registry (arguments, JSON schemas, examples) lives on the dedicated MCP page.
         </p>
 
-        {/* Example 1: Create Snapshot */}
-        <div style={{ marginBottom: 20 }}>
-          <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>
-            <span className="badge badge-accent" style={{ fontSize: "0.625rem", marginRight: 6 }}>POST</span>
-            Create Snapshot
-          </strong>
-          <div style={{ background: "var(--bg)", padding: 16, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, overflowX: "auto" }}>
-            <div><span style={{ color: "var(--text-muted)" }}>curl</span> -X POST http://localhost:4000/v1/snapshots \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Authorization: Bearer axis_your_key"</span> \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Content-Type: application/json"</span> \</div>
-            <div>&nbsp; -d <span style={{ color: "var(--yellow)" }}>'{`{`}</span></div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "var(--yellow)" }}>{`"project_name": "my-app",`}</span></div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "var(--yellow)" }}>{`"project_type": "web_app",`}</span></div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "var(--yellow)" }}>{`"goals": "Improve test coverage",`}</span></div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "var(--yellow)" }}>{`"files": [{"path": "src/app.ts", "content": "..."}]`}</span></div>
-            <div>&nbsp;&nbsp;&nbsp;<span style={{ color: "var(--yellow)" }}>{`}`}</span>'</div>
-          </div>
-          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, marginTop: 6, overflowX: "auto" }}>
-            <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>// Response 200</div>
-            <div>{`{ "ok": true, "data": { "project_id": "prj_abc123", "snapshot_id": "snap_def456",`}</div>
-            <div>&nbsp;&nbsp;{`"file_count": 42, "languages": ["typescript","css"], "frameworks": ["react","vite"] } }`}</div>
-          </div>
-        </div>
+        {loading ? (
+          <Skeleton lines={4} />
+        ) : error || !manifest ? (
+          <Callout tone="warning" title="Couldn't load the live MCP manifest" details={error?.details ?? null}>
+            {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={() => void load()}>Retry</button>
+          </Callout>
+        ) : (
+          <>
+            <div className="grid grid-4" style={{ marginBottom: 12 }}>
+              <div style={{ textAlign: "center" }}>
+                <div className="stat-value">{manifest.tools.length}</div>
+                <div className="stat-label">Tools</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div className="stat-value" style={{ fontSize: "1.1rem" }}>{transport}</div>
+                <div className="stat-label">Transport</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div className="stat-value" style={{ fontSize: "1.1rem" }}>{authentication?.type ?? "bearer"}</div>
+                <div className="stat-label">Auth</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div className="stat-value" style={{ fontSize: "0.9rem" }}>{protocol ?? "mcp"}</div>
+                <div className="stat-label">Protocol version</div>
+              </div>
+            </div>
+            <div className="mono" style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontSize: "0.8125rem", marginBottom: 12 }}>
+              {manifest.server.endpoint}
+            </div>
+            {authentication?.description && (
+              <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: 12 }}>{authentication.description}</p>
+            )}
+          </>
+        )}
 
-        {/* Example 2: Run Program */}
-        <div style={{ marginBottom: 20 }}>
-          <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>
-            <span className="badge badge-accent" style={{ fontSize: "0.625rem", marginRight: 6 }}>POST</span>
-            Run a Program
-          </strong>
-          <div style={{ background: "var(--bg)", padding: 16, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, overflowX: "auto" }}>
-            <div><span style={{ color: "var(--text-muted)" }}>curl</span> -X POST http://localhost:4000/v1/search/analyze \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Authorization: Bearer axis_your_key"</span> \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Content-Type: application/json"</span> \</div>
-            <div>&nbsp; -d <span style={{ color: "var(--yellow)" }}>{`'{"project_id": "prj_abc123"}'`}</span></div>
-          </div>
-          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, marginTop: 6, overflowX: "auto" }}>
-            <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>// Response 200</div>
-            <div>{`{ "ok": true, "data": { "program": "search", "files_generated": 4,`}</div>
-            <div>&nbsp;&nbsp;{`"files": [".ai/context-map.json", ".ai/repo-profile.yaml",`}</div>
-            <div>&nbsp;&nbsp;&nbsp;{`"architecture-summary.md", "dependency-hotspots.md"] } }`}</div>
-          </div>
-        </div>
-
-        {/* Example 3: Get Generated Files */}
-        <div style={{ marginBottom: 20 }}>
-          <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>
-            <span className="badge" style={{ fontSize: "0.625rem", marginRight: 6, background: "var(--green)", color: "white" }}>GET</span>
-            List Generated Files
-          </strong>
-          <div style={{ background: "var(--bg)", padding: 16, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, overflowX: "auto" }}>
-            <div><span style={{ color: "var(--text-muted)" }}>curl</span> http://localhost:4000/v1/projects/prj_abc123/generated-files \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Authorization: Bearer axis_your_key"</span></div>
-          </div>
-          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, marginTop: 6, overflowX: "auto" }}>
-            <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>// Response 200</div>
-            <div>{`{ "ok": true, "data": { "files": [`}</div>
-            <div>&nbsp;&nbsp;{`{ "path": ".ai/context-map.json", "program": "search", "size": 4210,`}</div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;{`"created_at": "2025-01-15T10:30:00Z" },`}</div>
-            <div>&nbsp;&nbsp;{`{ "path": "AGENTS.md", "program": "skills", "size": 2048,`}</div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;{`"created_at": "2025-01-15T10:31:00Z" }`}</div>
-            <div>&nbsp;&nbsp;{`] } }`}</div>
-          </div>
-        </div>
-
-        {/* Example 4: Search Query */}
-        <div style={{ marginBottom: 20 }}>
-          <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>
-            <span className="badge badge-accent" style={{ fontSize: "0.625rem", marginRight: 6 }}>POST</span>
-            Search Snapshot
-          </strong>
-          <div style={{ background: "var(--bg)", padding: 16, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, overflowX: "auto" }}>
-            <div><span style={{ color: "var(--text-muted)" }}>curl</span> -X POST http://localhost:4000/v1/search/query \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Authorization: Bearer axis_your_key"</span> \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Content-Type: application/json"</span> \</div>
-            <div>&nbsp; -d <span style={{ color: "var(--yellow)" }}>{`'{"project_id": "prj_abc123", "query": "handleSubmit", "limit": 10}'`}</span></div>
-          </div>
-          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, marginTop: 6, overflowX: "auto" }}>
-            <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>// Response 200</div>
-            <div>{`{ "ok": true, "data": { "results": [`}</div>
-            <div>&nbsp;&nbsp;{`{ "file": "src/components/Form.tsx", "line": 45,`}</div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;{`"snippet": "async function handleSubmit(data: FormData) {",`}</div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;{`"score": 0.95 }`}</div>
-            <div>&nbsp;&nbsp;{`], "total": 1 } }`}</div>
-          </div>
-        </div>
-
-        {/* Example 5: Create Account */}
-        <div>
-          <strong style={{ fontSize: "0.8125rem", display: "block", marginBottom: 8 }}>
-            <span className="badge badge-accent" style={{ fontSize: "0.625rem", marginRight: 6 }}>POST</span>
-            Create Account
-          </strong>
-          <div style={{ background: "var(--bg)", padding: 16, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, overflowX: "auto" }}>
-            <div><span style={{ color: "var(--text-muted)" }}>curl</span> -X POST http://localhost:4000/v1/accounts \</div>
-            <div>&nbsp; -H <span style={{ color: "var(--green)" }}>"Content-Type: application/json"</span> \</div>
-            <div>&nbsp; -d <span style={{ color: "var(--yellow)" }}>{`'{"name": "Jane Doe", "email": "jane@example.com"}'`}</span></div>
-          </div>
-          <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.75rem", lineHeight: 1.6, marginTop: 6, overflowX: "auto" }}>
-            <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>// Response 200</div>
-            <div>{`{ "ok": true, "data": { "account_id": "acc_xyz789",`}</div>
-            <div>&nbsp;&nbsp;{`"api_key": "axis_a1b2c3...(64 chars)", "plan": "free",`}</div>
-            <div>&nbsp;&nbsp;{`"limits": { "snapshots_per_month": 10, "programs": 3, "seats": 1 } } }`}</div>
-          </div>
-        </div>
+        <button type="button" className="btn btn-primary" onClick={() => onNavigate("mcp")}>
+          Open the full MCP tool registry →
+        </button>
       </div>
+    </div>
+  );
+}
 
+// ─── Example Artifacts (WO-P13) ──────────────────────────────────
+// WO-A7 (a public demo-project endpoint) hasn't landed, so these are static
+// samples, labeled honestly as such — cross-linking to ExamplesPage's real
+// case studies and to the Runner for generating real artifacts.
+
+const ARTIFACT_SAMPLES: Array<{ file: string; program: string; format: string; excerpt: string }> = [
+  {
+    file: "AGENTS.md", program: "skills", format: "Markdown",
+    excerpt: "# AGENTS.md — <project>\n\n## Project Context\nThis is a **web_application** built with **React, TypeScript**.\n\n## Key Conventions\n- Strict TypeScript, no `any`\n- Functional components only\n\n## Do NOT\n- Do not bypass the auth middleware\n- Do not add dependencies without discussion",
+  },
+  {
+    file: "checkout-flow.md", program: "agentic-purchasing", format: "Markdown",
+    excerpt: "## Flow Overview\n\nAgent discovers product → validates AP2 mandate → requests SCA exemption → submits payment → receives receipt\n\n## SCA / 3DS2 Handling\nLow-risk, low-value transactions may qualify for an exemption path — see the priority table below.",
+  },
+  {
+    file: "theme.css", program: "theme", format: "CSS",
+    excerpt: ":root {\n  --accent: #6366f1;\n  --bg: #0b0b0f;\n  --text: #e5e5ea;\n  --radius: 8px;\n}",
+  },
+  {
+    file: "debug-playbook.md", program: "debug", format: "Markdown",
+    excerpt: "## Common Failure: Provider timeout\n\n**Symptom:** 504 from `/v1/providers/:name/connect`\n**Root cause:** adapter retry budget exhausted\n**Fix:** check `provider_timeout_ms` in config, inspect the retry counter",
+  },
+];
+
+function ExampleArtifactsSection({ onNavigate }: { onNavigate: (page: PageId) => void }) {
+  return (
+    <div className="stagger">
       <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Pagination &amp; Filtering</h3>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          List endpoints accept optional query parameters for pagination and filtering.
+        <h3 style={{ marginBottom: 8 }}>What generated files look like</h3>
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
+          The snippets below are illustrative samples, not live output from a real analysis —
+          they show the shape and tone of what each program produces. For full, real case
+          studies from actual repositories, see Examples; to generate real artifacts from
+          your own project, run a program from the Runner.
         </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Parameter</th>
-              <th>Type</th>
-              <th>Default</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>limit</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>number</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>50</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Max items per page (1–200)</td>
-            </tr>
-            <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>offset</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>number</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>0</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Number of items to skip</td>
-            </tr>
-            <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>program</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>string</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>—</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Filter generated files by program name</td>
-            </tr>
-            <tr>
-              <td className="mono" style={{ fontSize: "0.8125rem" }}>sort</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>string</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>created_at</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Sort field: created_at, name, size</td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="flex" style={{ gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="btn btn-primary" onClick={() => onNavigate("examples")}>
+            View real case studies →
+          </button>
+          <button type="button" className="btn" onClick={() => onNavigate("runner")}>
+            Generate your own →
+          </button>
+        </div>
       </div>
 
-      <div className="card">
-        <h3 style={{ marginBottom: 12 }}>Error Responses</h3>
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: "15%" }}>Code</th>
-              <th style={{ width: "30%" }}>Status</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td><span className="badge badge-yellow">400</span></td><td>Bad Request</td><td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Invalid or missing parameters</td></tr>
-            <tr><td><span className="badge badge-yellow">401</span></td><td>Unauthorized</td><td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Missing or invalid API key</td></tr>
-            <tr><td><span className="badge badge-yellow">403</span></td><td>Forbidden</td><td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Insufficient tier for this program</td></tr>
-            <tr><td><span className="badge badge-red">404</span></td><td>Not Found</td><td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Resource does not exist</td></tr>
-            <tr><td><span className="badge badge-red">429</span></td><td>Rate Limit</td><td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Too many requests — retry after cooldown</td></tr>
-            <tr><td><span className="badge badge-red">500</span></td><td>Server Error</td><td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Internal error — check server logs</td></tr>
-          </tbody>
-        </table>
-      </div>
+      {ARTIFACT_SAMPLES.map((s) => (
+        <div key={s.file} className="card">
+          <div className="flex-between" style={{ marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <strong className="mono" style={{ fontSize: "0.875rem" }}>{s.file}</strong>
+              <span style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginLeft: 8 }}>from the "{s.program}" program</span>
+            </div>
+            <span className="badge" style={{ fontSize: "0.6875rem", background: "var(--bg)" }}>{s.format}</span>
+          </div>
+          <CodeBlock code={s.excerpt} wrap copyLabel={`Copy ${s.file} sample`} />
+          <p style={{ color: "var(--text-muted)", fontSize: "0.6875rem", marginTop: 6, marginBottom: 0 }}>Sample — not from a live analysis.</p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -922,14 +1181,15 @@ function OutputsSection() {
           <div>&nbsp;&nbsp;&nbsp; theme-guidelines.md</div>
           <div>&nbsp;&nbsp;&nbsp; component-theme-map.json</div>
           <div>&nbsp;&nbsp;&nbsp; dark-mode-tokens.json</div>
-          <div>&nbsp; <span style={{ color: "var(--text-muted)" }}>... (13 more programs)</span></div>
+          <div>&nbsp; <span style={{ color: "var(--text-muted)" }}>... ({PROGRAM_COUNT - 4} more programs)</span></div>
         </div>
       </div>
 
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Output Files Per Program</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Each program produces 6–7 files. Here is the full inventory across all {PROGRAM_COUNT} programs ({ARTIFACT_COUNT} generators total).
+          Output count varies by program (most produce 4–6 files; a few packaging-heavy programs produce more).
+          Here is the full inventory across all {PROGRAM_COUNT} programs ({ARTIFACT_COUNT} generators total).
         </p>
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
           <table>

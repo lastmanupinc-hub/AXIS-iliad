@@ -1168,7 +1168,7 @@ export function buildOpenApiSpec(): OpenApiSpec {
         post: { summary: "GitHub push webhook that opens a living-architecture drift PR", operationId: "githubArchitectureDrift", tags: ["GitHub"], responses: { 202: { description: "Accepted for processing" }, 401: { description: "Invalid signature" } } },
       },
       "/v1/deploy/generate": {
-        post: { summary: "Generate deployment configuration artifacts", operationId: "generateDeploy", tags: ["Programs"], responses: { 200: { description: "Deployment artifacts" } } },
+        post: { summary: "Generate deployment configuration artifacts", operationId: "generateDeploy", tags: ["Programs"], security: [{ apiKey: [] }], responses: { 200: { description: "Deployment artifacts" } } },
       },
 
       // â”€â”€ PAI'D Payment Processor â”€â”€
@@ -2110,6 +2110,7 @@ function programEndpoints(): Record<string, unknown> {
         summary: p.summary,
         operationId: p.name,
         tags: ["Programs"],
+        security: [{ apiKey: [] }],
         requestBody: jsonBody(ref("ProgramRequest")),
         responses: {
           200: { description: "Program output files" },

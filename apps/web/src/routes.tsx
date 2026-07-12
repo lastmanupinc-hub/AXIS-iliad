@@ -525,7 +525,7 @@ export const ROUTES: RouteDef[] = [
     shortcut: 5,
     aliases: ["/docs"],
     nav: { group: "HELP", icon: "book" },
-    render: () => <DocsPage />,
+    render: (ctx) => <DocsPage onNavigate={ctx.navigate} />,
   },
   {
     page: "help",
