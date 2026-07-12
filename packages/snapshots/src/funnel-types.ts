@@ -45,7 +45,10 @@ export type FunnelEventType =
   // Dispute lifecycle (WO-08): Stripe charge.dispute.* / radar EFW webhooks.
   | "dispute_opened"
   | "dispute_closed"
-  | "early_fraud_warning";
+  | "early_fraud_warning"
+  // Account lifecycle (WO-A5): PATCH/DELETE /v1/account audit trail.
+  | "account_profile_updated"
+  | "account_deleted";
 
 export interface FunnelEvent {
   event_id: string;

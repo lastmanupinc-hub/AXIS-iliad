@@ -34,6 +34,10 @@ export class Router {
     this.addRoute("DELETE", path, handler);
   }
 
+  patch(path: string, handler: RouteHandler) {
+    this.addRoute("PATCH", path, handler);
+  }
+
   private addRoute(method: string, path: string, handler: RouteHandler) {
     const paramNames: string[] = [];
     const pattern = path.replace(/:(\w+)(\*)?/g, (_, name, wildcard) => {
@@ -300,7 +304,7 @@ export function createApp(router: Router, port: number): Server {
     const corsOrigin = process.env.CORS_ORIGIN
       ?? (process.env.NODE_ENV === "production" ? "https://iliad.trustfabric.ai" : "*");
     res.setHeader("Access-Control-Allow-Origin", corsOrigin);
-    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, POST, PATCH, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Content-Encoding, Authorization, X-Agent-Budget, X-Agent-Mode, X-Axis-Key");
     res.setHeader("Access-Control-Expose-Headers", "X-Axis-Tier, X-Axis-Quota-Remaining, X-Axis-Quota-Limit, X-Axis-Credits-Balance, X-Axis-Request-Cost, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After, X-Request-Id");
     res.setHeader("Access-Control-Max-Age", "86400"); // cache preflight for 24h

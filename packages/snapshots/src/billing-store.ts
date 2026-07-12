@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from "node:crypto";
-import { sql } from "./pg.js";
+import { sql, pgPlaceholders } from "./pg.js";
 import type {
   Account,
   ApiKey,
@@ -72,6 +72,130 @@ export async function getAccountByEmail(email: string): Promise<Account | undefi
     "SELECT * FROM accounts WHERE lower(email) = ?",
     [normalizeEmail(email)],
   );
+}
+
+/**
+ * PATCH /v1/account (WO-A5). Returns the updated account, or "email_taken"
+ * if another account already owns the normalized target email (the UNIQUE
+ * constraint would otherwise surface as a raw DB error). No email-verification
+ * step exists in this system (Honesty H1 — no password/verification infra),
+ * so a change takes effect immediately; the caller (handlePatchAccount)
+ * is expected to write an audit funnel_events row.
+ */
+export async function updateAccountProfile(
+  account_id: string,
+  updates: { name?: string; email?: string },
+): Promise<{ account: Account; nameChanged: boolean; emailChanged: boolean } | "email_taken" | "not_found"> {
+  const existing = await getAccount(account_id);
+  if (!existing) return "not_found";
+
+  const nextName = updates.name !== undefined ? updates.name : existing.name;
+  const nextEmail = updates.email !== undefined ? normalizeEmail(updates.email) : existing.email;
+  const nameChanged = nextName !== existing.name;
+  const emailChanged = nextEmail !== existing.email;
+
+  if (emailChanged) {
+    const owner = await getAccountByEmail(nextEmail);
+    if (owner && owner.account_id !== account_id) return "email_taken";
+  }
+
+  if (nameChanged || emailChanged) {
+    await sql.run("UPDATE accounts SET name = ?, email = ? WHERE account_id = ?", [nextName, nextEmail, account_id]);
+  }
+
+  return { account: { ...existing, name: nextName, email: nextEmail }, nameChanged, emailChanged };
+}
+
+/**
+ * DELETE /v1/account (WO-A5) — retention policy (documented here since this
+ * is the one place it can never silently drift from what actually runs):
+ *
+ * HARD-DELETED (access surfaces + user-generated content — no legal/financial
+ * retention need): API keys, OAuth sessions (auth codes/refresh/access
+ * tokens), GitHub tokens, seats, program entitlements, webhooks + their
+ * delivery logs, the account's free-scrape quota counter, and every project/
+ * snapshot the account owns (+ all snapshot-derived data: context maps, repo
+ * profiles, generator results, generation versions, project memory, search
+ * index, code symbols) — mirrors deleteProject/deleteSnapshot's existing
+ * per-table list so this can't drift from those independently-reviewed
+ * cascades.
+ *
+ * DELIBERATELY RETAINED, untouched (financial/audit records — a paying
+ * customer's billing history, ledger entries, and dispute evidence must
+ * survive account deletion for accounting/tax/chargeback-defense purposes;
+ * none of this is exposed by any authenticated read once the account itself
+ * is anonymized below): usage_records, tier_changes, persistence_credits,
+ * lemon_squeezy_subscriptions, stripe_subscriptions, referral_codes/
+ * referral_conversions/referral_credits, account_api_calls,
+ * usage_credit_monthly/usage_credit_ledger, credit_pack_purchases,
+ * payment_receipts, disputes, compensation_ledger, mcp_usage,
+ * idempotency_keys, funnel_events (the pre-existing history, plus this
+ * deletion's own audit entry, written by the caller after this resolves).
+ *
+ * The `accounts` row itself is NEVER deleted (all of the above RETAINED
+ * tables carry a real FK to it) — it is anonymized in place (name + email
+ * scrubbed to a tombstone value) so it can no longer authenticate or be
+ * found by the former owner's email, while remaining a valid FK anchor.
+ * This is a v1, no-grace-period policy: everything hard-deleted above is
+ * gone the instant this call returns, matching the plan's own
+ * recommendation (hard-delete, 0-day grace) for projects/snapshots,
+ * extended here to the rest of the access-surface list on the same
+ * reasoning — none of it has a retention requirement, so a grace/undo
+ * window would only be product polish, not a data-safety necessity.
+ */
+export async function deleteAccount(account_id: string): Promise<{ deleted: boolean; projects_deleted: number }> {
+  const existing = await getAccount(account_id);
+  if (!existing) return { deleted: false, projects_deleted: 0 };
+
+  const projects = await sql.many<{ project_id: string }>(
+    "SELECT project_id FROM projects WHERE account_id = ?",
+    [account_id],
+  );
+  const snapshots = await sql.many<{ snapshot_id: string }>(
+    "SELECT snapshot_id FROM snapshots WHERE account_id = ?",
+    [account_id],
+  );
+
+  await sql.tx(async (client) => {
+    for (const { snapshot_id } of snapshots) {
+      await client.query(pgPlaceholders("DELETE FROM search_index WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM code_symbols WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM generator_results WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM repo_profiles WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM context_maps WHERE snapshot_id = ?"), [snapshot_id]);
+      await client.query(pgPlaceholders("DELETE FROM generation_versions WHERE snapshot_id = ?"), [snapshot_id]);
+      // persistence_credits is a monetary audit trail — never delete the ledger row,
+      // only null out the snapshot it references (mirrors deleteSnapshot).
+      await client.query(pgPlaceholders("UPDATE persistence_credits SET snapshot_id = NULL WHERE snapshot_id = ?"), [snapshot_id]);
+    }
+    await client.query(pgPlaceholders("DELETE FROM snapshots WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM project_memory WHERE account_id = ?"), [account_id]);
+    for (const { project_id } of projects) {
+      await client.query(pgPlaceholders("DELETE FROM projects WHERE project_id = ?"), [project_id]);
+    }
+
+    await client.query(pgPlaceholders("DELETE FROM webhook_deliveries WHERE webhook_id IN (SELECT webhook_id FROM webhooks WHERE account_id = ?)"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM webhooks WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM github_tokens WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM seats WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM program_entitlements WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM account_free_scrape_pool WHERE account_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM oauth_authorization_codes WHERE user_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM oauth_access_tokens WHERE user_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM oauth_refresh_tokens WHERE user_id = ?"), [account_id]);
+    await client.query(pgPlaceholders("DELETE FROM api_keys WHERE account_id = ?"), [account_id]);
+
+    // Tombstone, never a row delete — every RETAINED table above still holds
+    // a live FK to this account_id. A per-account_id value (not a fixed
+    // literal) keeps the accounts.email UNIQUE constraint satisfiable even
+    // if this account is deleted more than once (idempotent retry-safe).
+    await client.query(
+      pgPlaceholders("UPDATE accounts SET name = ?, email = ? WHERE account_id = ?"),
+      ["[deleted account]", `deleted-${account_id}@deleted.invalid`, account_id],
+    );
+  });
+
+  return { deleted: true, projects_deleted: projects.length };
 }
 
 export async function updateAccountTier(account_id: string, tier: BillingTier): Promise<boolean> {

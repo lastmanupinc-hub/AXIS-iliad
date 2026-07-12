@@ -38,6 +38,8 @@ export {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
   updateAccountTierIfCurrent,
   createApiKey,

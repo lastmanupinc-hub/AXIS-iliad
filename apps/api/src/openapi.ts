@@ -780,6 +780,25 @@ export function buildOpenApiSpec(): OpenApiSpec {
           security: [{ apiKey: [] }],
           responses: { 200: { description: "Account details" }, 401: { description: "Invalid API key" } },
         },
+        patch: {
+          summary: "Update account name and/or email (WO-A5)",
+          operationId: "patchAccount",
+          tags: ["Billing"],
+          security: [{ apiKey: [] }],
+          responses: {
+            200: { description: "Account updated" },
+            400: { description: "Missing or invalid name/email" },
+            401: { description: "Invalid API key" },
+            409: { description: "Another account already owns this email" },
+          },
+        },
+        delete: {
+          summary: "Delete the authenticated account (WO-A5) — hard-deletes access surfaces and generated content, retains financial/audit records against an anonymized account shell",
+          operationId: "deleteAccount",
+          tags: ["Billing"],
+          security: [{ apiKey: [] }],
+          responses: { 200: { description: "Account deleted" }, 401: { description: "Invalid API key" } },
+        },
       },
       "/v1/account/keys": {
         post: { summary: "Create a new API key", operationId: "createApiKey", tags: ["Billing"], responses: { 201: { description: "Key created" } } },

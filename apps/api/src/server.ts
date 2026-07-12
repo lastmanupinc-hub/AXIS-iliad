@@ -70,6 +70,8 @@ import {
 import {
   handleCreateAccount,
   handleGetAccount,
+  handlePatchAccount,
+  handleDeleteAccount,
   handleCreateApiKey,
   handleListApiKeys,
   handleRevokeApiKey,
@@ -414,6 +416,8 @@ router.get("/v1/accounts/", handleAccountsMethodHint);
 router.get("/accounts", handleAccountsMethodHint);
 router.get("/accounts/", handleAccountsMethodHint);
 router.get("/v1/account", handleGetAccount);
+router.patch("/v1/account", handlePatchAccount);
+router.delete("/v1/account", handleDeleteAccount);
 router.post("/v1/account/keys", handleCreateApiKey);
 router.get("/v1/account/keys", handleListApiKeys);
 router.post("/v1/account/keys/:key_id/revoke", handleRevokeApiKey);

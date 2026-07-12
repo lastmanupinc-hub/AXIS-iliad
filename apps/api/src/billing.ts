@@ -8,6 +8,8 @@ import {
   createAccount,
   getAccount,
   getAccountByEmail,
+  updateAccountProfile,
+  deleteAccount,
   updateAccountTier,
   createApiKey,
   revokeApiKey,
@@ -310,6 +312,115 @@ export async function handleGetAccount(
       max_projects: quota.limits.max_projects,
       max_files_per_snapshot: quota.limits.max_files_per_snapshot,
     },
+  });
+}
+
+/** PATCH /v1/account — update name and/or email (requires auth, WO-A5) */
+export async function handlePatchAccount(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = await requireAuth(req, res);
+  if (!ctx) return;
+
+  const raw = await readBody(req);
+  let body: Record<string, unknown>;
+  try {
+    body = raw ? JSON.parse(raw) : {};
+  } catch {
+    sendError(res, 400, ErrorCode.INVALID_JSON, "Invalid JSON body");
+    return;
+  }
+
+  const name = body.name;
+  const email = body.email;
+  if (name === undefined && email === undefined) {
+    sendError(res, 400, ErrorCode.MISSING_FIELD, "Provide at least one of: name, email");
+    return;
+  }
+  if (name !== undefined && (typeof name !== "string" || name.length === 0)) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "name must be a non-empty string");
+    return;
+  }
+  if (name !== undefined && (name as string).length > 200) {
+    sendError(res, 400, ErrorCode.INVALID_FORMAT, "Name must be 200 characters or fewer");
+    return;
+  }
+  if (email !== undefined) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (typeof email !== "string" || !emailRegex.test(email) || email.length > 254) {
+      sendError(res, 400, ErrorCode.INVALID_FORMAT, "Invalid email address");
+      return;
+    }
+  }
+
+  const result = await updateAccountProfile(ctx.account!.account_id, {
+    name: name as string | undefined,
+    email: email as string | undefined,
+  });
+  if (result === "not_found") {
+    /* v8 ignore next 2 — unreachable: requireAuth already confirmed this account_id exists */
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Account not found");
+    return;
+  }
+  if (result === "email_taken") {
+    sendError(res, 409, ErrorCode.CONFLICT, "An account with this email already exists");
+    return;
+  }
+
+  if (result.nameChanged || result.emailChanged) {
+    await trackEvent(ctx.account!.account_id, "account_profile_updated", "engagement", {
+      name_changed: result.nameChanged,
+      email_changed: result.emailChanged,
+    });
+  }
+
+  sendJSON(res, 200, {
+    account: result.account,
+    name_changed: result.nameChanged,
+    email_changed: result.emailChanged,
+    // No email-verification flow exists in this system (Honesty H1) — an
+    // email change is live immediately. This note is the disclosure the
+    // plan asks for in place of a verification step.
+    note: result.emailChanged
+      ? "Email updated immediately — no verification step exists yet for this account type."
+      : undefined,
+  });
+}
+
+/**
+ * DELETE /v1/account (WO-A5) — see deleteAccount's doc comment in
+ * @axis/snapshots (billing-store.ts) for the full retention policy this
+ * enforces: access surfaces + generated content are hard-deleted, financial/
+ * audit records are retained against an anonymized account shell. No
+ * server-side confirmation token — matches the existing DELETE
+ * /v1/projects/:id and /v1/snapshots/:id endpoints, where "confirm" is a
+ * client-side (UI) affordance, not an API contract.
+ */
+export async function handleDeleteAccount(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const ctx = await requireAuth(req, res);
+  if (!ctx) return;
+
+  const account_id = ctx.account!.account_id;
+  const result = await deleteAccount(account_id);
+  /* v8 ignore next 3 — unreachable: requireAuth already confirmed this account_id exists */
+  if (!result.deleted) {
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Account not found");
+    return;
+  }
+
+  // Written against the now-anonymized account row, which still exists —
+  // this is why funnel_events is on the RETAINED list, not hard-deleted.
+  await trackEvent(account_id, "account_deleted", "churned", {
+    projects_deleted: result.projects_deleted,
+  });
+
+  sendJSON(res, 200, {
+    deleted: true,
+    projects_deleted: result.projects_deleted,
   });
 }
 
