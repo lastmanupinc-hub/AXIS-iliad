@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { SnapshotResponse, GeneratedFile } from "../api.ts";
 import { getGeneratedFiles, runProgram, downloadExport, ApiError } from "../api.ts";
 import { OverviewTab } from "../components/OverviewTab.tsx";
@@ -10,6 +10,7 @@ import { SearchTab } from "../components/SearchTab.tsx";
 import { VersionsTab } from "../components/VersionsTab.tsx";
 import { UpsellModal } from "../components/UpsellModal.tsx";
 import { useToast } from "../components/Toast.tsx";
+import { Callout } from "../components/primitives/index.ts";
 
 // ─── ProjectPage (WO-P5) ──────────────────────────────────────────────────
 // Project/Snapshot Detail — formerly DashboardPage, the single-result view
@@ -82,21 +83,38 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
     setActiveTab(initialTab ?? "Overview");
   }, [initialTab]);
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
+  const [filesLoadFailed, setFilesLoadFailed] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [tierBlock, setTierBlock] = useState<{ blocked: string[]; allowed: string[] } | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
+  // H2.6 (red-team fix, WAVE-0 finding #8): a malformed response or a fetch
+  // failure must still degrade to a non-crashing render (H1.2's fix, kept —
+  // storing undefined here threw on the next generatedFiles.length read) —
+  // but degrading SILENTLY to "0 files" is indistinguishable from the
+  // account genuinely having none, hiding artifacts the customer already
+  // paid for behind what looks like an empty project. filesLoadFailed tracks
+  // that distinction so the page can say so instead of staying silent.
+  const loadGeneratedFiles = useCallback(() => {
+    setFilesLoadFailed(false);
     getGeneratedFiles(result.project_id)
       .then((data) => {
-        // A malformed/unexpected response shape must degrade to "no files",
-        // never crash the page: storing undefined here made the next render
-        // throw on generatedFiles.length and the error boundary ate the whole
-        // project page (hit as a load-order race in CI).
-        setGeneratedFiles(Array.isArray(data.files) ? data.files : []);
+        if (Array.isArray(data.files)) {
+          setGeneratedFiles(data.files);
+        } else {
+          setGeneratedFiles([]);
+          setFilesLoadFailed(true);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        setGeneratedFiles([]);
+        setFilesLoadFailed(true);
+      });
   }, [result.project_id]);
+
+  useEffect(() => {
+    loadGeneratedFiles();
+  }, [loadGeneratedFiles]);
 
   // Sync generated file count to parent without triggering setState-in-render
   useEffect(() => {
@@ -189,6 +207,20 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
           </p>
         )}
       </div>
+
+      {filesLoadFailed && (
+        <Callout tone="danger" title="Couldn't load your generated artifacts">
+          This may be a temporary connection issue — your artifacts are not lost.{" "}
+          <button
+            type="button"
+            className="btn"
+            style={{ fontSize: "0.8125rem", padding: "2px 10px", marginLeft: 4 }}
+            onClick={loadGeneratedFiles}
+          >
+            Retry
+          </button>
+        </Callout>
+      )}
 
       <NextStepsCard fileCount={generatedFiles.length} onDownload={handleDownloadAll} downloading={downloading} />
 

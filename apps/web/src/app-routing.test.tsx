@@ -567,6 +567,71 @@ describe("Anonymous analyze completes without a signup gate (WO-P1 H9)", () => {
   });
 });
 
+// ─── ProjectPage honest error state on generated-files failure ───
+// (H2.6 red-team fix, WAVE-0 finding #8) — a failed or malformed
+// generated-files load must never silently render as "this project has
+// zero artifacts": that is indistinguishable from a customer's paid-for
+// output actually being empty. Covers both the thrown/HTTP-error path and
+// recovery via Retry; ProjectPage.tsx's Array.isArray(data.files) branch
+// (a 200 with a malformed body) is the same filesLoadFailed mechanism,
+// exercised here through its more common real-world trigger (a failed
+// request) rather than duplicating coverage for a second body shape.
+
+describe("ProjectPage honest error state on generated-files load failure (H2.6, WAVE-0 finding #8)", () => {
+  it("a failed generated-files fetch shows an honest error Callout, not a silent zero-files render", async () => {
+    localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
+    stubApiFetch([["/generated-files", { error: "internal error" }, 500]]);
+    window.location.hash = "#projects/proj_fx";
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+
+    expect(await screen.findByText("Couldn't load your generated artifacts")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("Retry re-fetches and clears the error once the endpoint recovers", async () => {
+    localStorage.setItem("axis_anon_result", JSON.stringify(makeSnapshotResponse()));
+    let calls = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (!url.includes("/generated-files")) {
+        return { ok: true, status: 200, json: async () => ({}), text: async () => "", headers: { get: () => null } } as unknown as Response;
+      }
+      calls++;
+      const recovered = calls > 1;
+      const body = recovered
+        ? {
+            snapshot_id: "snap_fx",
+            project_id: "proj_fx",
+            generated_at: "2026-07-07T00:00:00Z",
+            files: [{ path: "AGENTS.md", content: "# guide", content_type: "text/markdown", program: "skills", description: "agent guide" }],
+            skipped: [],
+          }
+        : { error: "internal error" };
+      const status = recovered ? 200 : 500;
+      return {
+        ok: status >= 200 && status < 300,
+        status,
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+        headers: { get: () => null },
+      } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchFn);
+    window.location.hash = "#projects/proj_fx";
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("fixture-repo")).toBeTruthy());
+    expect(await screen.findByText("Couldn't load your generated artifacts")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await waitFor(() => expect(screen.queryByText("Couldn't load your generated artifacts")).toBeNull());
+    expect(calls).toBe(2);
+  });
+});
+
 // ─── Sign-up return-to (WO-P2) ────────────────────────────────────
 // A login gate — a nav click on an auth-only item, a deep link straight to
 // one, or a page-agnostic "sign up" nudge — must hand the user back to what
