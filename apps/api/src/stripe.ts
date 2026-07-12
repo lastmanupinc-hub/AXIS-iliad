@@ -252,27 +252,40 @@ async function syncTierFromStripeSubscription(
 /**
  * H0.5: the price the customer ACTUALLY bought lives on their Stripe
  * subscription — fetch it (pinned API version) instead of trusting what the
- * env maps the plan to at webhook time. Returns null on ANY failure (no key,
- * network, non-2xx, unexpected shape): the webhook must never bounce on this,
- * it just degrades to the env-derived resolution.
+ * env maps the plan to at webhook time. Returns null when every attempt
+ * fails (no key, network, non-2xx, unexpected shape): the webhook must never
+ * bounce on this, it just degrades to the caller's fallback.
+ *
+ * H2.6 (red-team fix, WAVE-0 finding #6): a SINGLE attempt meant any
+ * transient hiccup (the exact moment this fetch races a network blip) fell
+ * back to the env-derived price — silently reintroducing the precise bug
+ * H0.5 exists to close, if a price rotation happened to coincide with that
+ * hiccup. 2 retries with a short backoff absorb the common transient case;
+ * the caller (handleCheckoutCompleted) additionally never trusts env over a
+ * KNOWN existing value when every attempt here still fails.
  */
-async function fetchSubscriptionPriceId(subscriptionId: string): Promise<string | null> {
+async function fetchSubscriptionPriceId(subscriptionId: string, attempts = 3): Promise<string | null> {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return null;
-  try {
-    const response = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${stripeKey}`,
-        "Stripe-Version": STRIPE_API_VERSION,
-      },
-    });
-    if (!response.ok) return null;
-    const sub = (await response.json()) as { items?: { data?: Array<{ price?: { id?: string } }> } };
-    return sub.items?.data?.[0]?.price?.id ?? null;
-  } catch {
-    return null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const response = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${stripeKey}`,
+          "Stripe-Version": STRIPE_API_VERSION,
+        },
+      });
+      if (response.ok) {
+        const sub = (await response.json()) as { items?: { data?: Array<{ price?: { id?: string } }> } };
+        return sub.items?.data?.[0]?.price?.id ?? null;
+      }
+    } catch {
+      // fall through to retry/give-up below
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
   }
+  return null;
 }
 
 async function handleCheckoutCompleted(session: Record<string, unknown>): Promise<void> {
@@ -287,13 +300,29 @@ async function handleCheckoutCompleted(session: Record<string, unknown>): Promis
   const billingCycle = meta?.billing_cycle === "annual" ? "annual" : "monthly";
   const planId = normalizeCheckoutPlanId(meta?.plan_id ?? meta?.tier);
   const envPriceId = planId ? (resolveCheckoutPriceId(planId, billingCycle) ?? "") : "";
-  // Truth first (what they bought), env second (what the plan maps to today) —
-  // a price rotation between checkout and webhook must not rewrite history.
-  const truePriceId = await fetchSubscriptionPriceId(subscriptionId);
-  const priceId = truePriceId ?? envPriceId;
-
   const now = new Date().toISOString();
   const existing = await getSubscription(subscriptionId);
+  // Truth first (what they bought — now retried, see fetchSubscriptionPriceId).
+  const truePriceId = await fetchSubscriptionPriceId(subscriptionId);
+  let priceId: string;
+  if (truePriceId) {
+    priceId = truePriceId;
+  } else if (existing?.price_id) {
+    // H2.6 (red-team fix, WAVE-0 finding #6): every truth-fetch attempt
+    // failed — do NOT silently trust env over a price we've already
+    // CONFIRMED for this exact subscription on a prior event. A price
+    // rotation coinciding with this exact fetch failing would otherwise
+    // silently rewrite a known-correct value with an unconfirmed guess.
+    priceId = existing.price_id;
+    log("warn", "checkout_price_truth_fetch_failed_kept_existing", { subscriptionId, existingPriceId: existing.price_id });
+  } else {
+    // First time seeing this subscription AND every truth-fetch attempt
+    // failed — no historical value to fall back to. The env-derived price is
+    // the best available signal, but this is now UNCONFIRMED, not silent:
+    // logged loudly so it can be reconciled against Stripe directly.
+    priceId = envPriceId;
+    log("error", "checkout_price_unconfirmed", { subscriptionId, accountId, envPriceId });
+  }
   await upsertSubscription({
     subscription_id: subscriptionId,
     customer_id: customerId,
@@ -307,6 +336,10 @@ async function handleCheckoutCompleted(session: Record<string, unknown>): Promis
     cancel_at: null,
     created_at: existing?.created_at ?? now,
     updated_at: now,
+    // H2.6: checkout.session.completed doesn't track event ordering — null
+    // here means upsertSubscription's COALESCE preserves whatever a
+    // subscription.* event already recorded, rather than wiping it out.
+    last_event_created_at: existing?.last_event_created_at ?? null,
   });
 
   if (priceId) {
@@ -323,6 +356,7 @@ async function handleCheckoutCompleted(session: Record<string, unknown>): Promis
 async function handleSubscriptionEvent(
   sub: Record<string, unknown>,
   isDeleted: boolean,
+  eventCreated?: number,
 ): Promise<boolean> {
   const subscriptionId = sub.id as string;
   const customerId = sub.customer as string;
@@ -341,6 +375,21 @@ async function handleSubscriptionEvent(
   }
   if (!accountId) return false;
 
+  // H2.6 (red-team fix, WAVE-0 finding #7): Stripe does not guarantee webhook
+  // delivery order. A stale event (e.g. an old cancellation redelivered late)
+  // arriving after a newer one (e.g. a reactivation) must not overwrite the
+  // newer state — <= (not <) so an exact replay of an already-applied event
+  // is also correctly a no-op, not a re-application.
+  if (eventCreated !== undefined && existing?.last_event_created_at != null && eventCreated <= existing.last_event_created_at) {
+    log("warn", "stripe_stale_subscription_event_ignored", {
+      subscriptionId,
+      eventCreated,
+      lastProcessed: existing.last_event_created_at,
+      isDeleted,
+    });
+    return true; // acknowledge the webhook (200) so Stripe stops retrying — just don't apply stale state
+  }
+
   const now = new Date().toISOString();
   await upsertSubscription({
     subscription_id: subscriptionId,
@@ -358,6 +407,7 @@ async function handleSubscriptionEvent(
     cancel_at: tsToISO(sub.cancel_at),
     created_at: existing?.created_at ?? now,
     updated_at: now,
+    last_event_created_at: eventCreated ?? existing?.last_event_created_at ?? null,
   });
 
   await syncTierFromStripeSubscription(accountId, priceId, status);
@@ -397,7 +447,7 @@ export async function handleStripeWebhook(
     return;
   }
 
-  let event: { type: string; data: { object: Record<string, unknown> } };
+  let event: { type: string; created?: number; data: { object: Record<string, unknown> } };
   try {
     event = JSON.parse(rawBody);
   } catch {
@@ -422,10 +472,10 @@ export async function handleStripeWebhook(
     eventType === "customer.subscription.created" ||
     eventType === "customer.subscription.updated"
   ) {
-    handled = await handleSubscriptionEvent(obj, false);
+    handled = await handleSubscriptionEvent(obj, false, event.created);
     subscriptionId = obj.id as string;
   } else if (eventType === "customer.subscription.deleted") {
-    handled = await handleSubscriptionEvent(obj, true);
+    handled = await handleSubscriptionEvent(obj, true, event.created);
     subscriptionId = obj.id as string;
   } else if (eventType === "charge.dispute.created") {
     await handleDisputeCreated(obj);

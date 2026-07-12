@@ -686,6 +686,20 @@ ALTER TABLE idempotency_keys ADD CONSTRAINT idempotency_keys_status_check CHECK 
     name: "project_memory_monotonic_seq",
     sql: `ALTER TABLE project_memory ADD COLUMN IF NOT EXISTS seq BIGINT GENERATED ALWAYS AS IDENTITY;`,
   },
+  {
+    // H2.6 (red-team fix, WAVE-0 finding #7): Stripe does not guarantee
+    // webhook delivery order. A stale customer.subscription.deleted event
+    // (e.g. an old cancellation, redelivered late) arriving AFTER a newer
+    // customer.subscription.updated (e.g. the customer reactivated) used to
+    // silently overwrite the newer state — downgrading an actively-paying
+    // customer. last_event_created_at tracks the Stripe Event object's own
+    // `created` (Unix seconds) for the last subscription.* webhook actually
+    // applied, so handleSubscriptionEvent can reject an event older than
+    // what it already processed for that subscription.
+    version: 37,
+    name: "stripe_subscriptions_last_event",
+    sql: `ALTER TABLE stripe_subscriptions ADD COLUMN IF NOT EXISTS last_event_created_at BIGINT;`,
+  },
 ];
 
 /**

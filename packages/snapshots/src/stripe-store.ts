@@ -33,6 +33,15 @@ export interface StripeSubscription {
   cancel_at: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * H2.6 (red-team fix, WAVE-0 finding #7): the Stripe Event object's own
+   * `created` (Unix seconds) for the last customer.subscription.* webhook
+   * actually APPLIED to this row. Stripe does not guarantee webhook delivery
+   * order — a stale event (e.g. an old cancellation) arriving after a newer
+   * one (e.g. a reactivation) must not overwrite the newer state. null for
+   * rows that predate this column, or written only via checkout.session.completed.
+   */
+  last_event_created_at: number | null;
 }
 
 // ─── Price → Tier mapping ──────────────────────────────────────
@@ -82,8 +91,8 @@ export async function upsertSubscription(sub: StripeSubscription): Promise<Strip
     INSERT INTO stripe_subscriptions
       (subscription_id, customer_id, account_id, price_id, status,
        current_period_start, current_period_end, card_brand, card_last_four,
-       cancel_at, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       cancel_at, created_at, updated_at, last_event_created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(subscription_id) DO UPDATE SET
       customer_id = excluded.customer_id,
       price_id = excluded.price_id,
@@ -93,7 +102,11 @@ export async function upsertSubscription(sub: StripeSubscription): Promise<Strip
       card_brand = excluded.card_brand,
       card_last_four = excluded.card_last_four,
       cancel_at = excluded.cancel_at,
-      updated_at = excluded.updated_at
+      updated_at = excluded.updated_at,
+      -- H2.6: a caller that doesn't track event ordering (checkout.session.completed)
+      -- passes null here — COALESCE preserves whatever a subscription.* event
+      -- already recorded instead of wiping it out.
+      last_event_created_at = COALESCE(excluded.last_event_created_at, stripe_subscriptions.last_event_created_at)
   `,
     [
       sub.subscription_id,
@@ -108,6 +121,7 @@ export async function upsertSubscription(sub: StripeSubscription): Promise<Strip
       sub.cancel_at,
       sub.created_at,
       sub.updated_at,
+      sub.last_event_created_at,
     ],
   );
   return sub;

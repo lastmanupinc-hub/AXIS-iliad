@@ -246,6 +246,156 @@ describe("Stripe webhook", () => {
     }
   });
 
+  // ─── H2.6 (red-team fix, WAVE-0 finding #6): the truth-fetch failure path ──
+  // itself used to silently reintroduce H0.5's exact bug — a single failed
+  // attempt fell straight back to env, so a price rotation coinciding with
+  // any hiccup at that exact fetch mis-recorded what the customer bought.
+
+  it("recovers from a transient truth-fetch failure via retry — does NOT fall back to env after just one failed attempt", async () => {
+    const { account } = await createTestAccount("retry-ok", "retry-ok@test.com");
+    const accountId = account.account_id as string;
+    process.env.STRIPE_SECRET_KEY = "sk_test_retry";
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    const fetchSpy = vi.fn(async () => {
+      calls++;
+      if (calls === 1) throw new Error("ECONNRESET (transient)");
+      return { ok: true, json: async () => ({ items: { data: [{ price: { id: "price_true_after_retry" } }] } }) };
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const payload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_retry_ok", "paid"));
+      const r = await req("POST", "/v1/webhooks/stripe", payload, { "stripe-signature": signStripePayload(payload) });
+      expect(r.status).toBe(200);
+
+      const stored = await getSubscription("sub_retry_ok");
+      expect(stored?.price_id).toBe("price_true_after_retry"); // NOT price_paid_123 (env) — the retry recovered the truth
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.stubGlobal("fetch", realFetch);
+      delete process.env.STRIPE_SECRET_KEY;
+    }
+  });
+
+  it("keeps a PREVIOUSLY-CONFIRMED price over env when every retry fails on a later event for the same subscription", async () => {
+    const { account } = await createTestAccount("keep-confirmed", "keep-confirmed@test.com");
+    const accountId = account.account_id as string;
+    process.env.STRIPE_SECRET_KEY = "sk_test_keep";
+    const realFetch = globalThis.fetch;
+    try {
+      // First event: the truth-fetch succeeds and CONFIRMS the real price.
+      vi.stubGlobal("fetch", vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ items: { data: [{ price: { id: "price_confirmed_999" } }] } }),
+      })));
+      const firstPayload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_keep_confirmed", "paid"));
+      await req("POST", "/v1/webhooks/stripe", firstPayload, { "stripe-signature": signStripePayload(firstPayload) });
+      expect((await getSubscription("sub_keep_confirmed"))?.price_id).toBe("price_confirmed_999");
+
+      // Env rotates AND the truth-fetch now fails on every attempt (a hiccup
+      // at the worst possible moment). The old bug: this silently overwrote
+      // the confirmed price with the (now-rotated, wrong) env guess.
+      process.env.STRIPE_PRICE_ID_PAID = "price_rotated_after_confirm";
+      vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("down"); }));
+      const secondPayload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_keep_confirmed", "paid"));
+      const r = await req("POST", "/v1/webhooks/stripe", secondPayload, { "stripe-signature": signStripePayload(secondPayload) });
+      expect(r.status).toBe(200);
+
+      const stored = await getSubscription("sub_keep_confirmed");
+      expect(stored?.price_id).toBe("price_confirmed_999"); // unchanged — never trusted the rotated env guess
+    } finally {
+      vi.stubGlobal("fetch", realFetch);
+      delete process.env.STRIPE_SECRET_KEY;
+      process.env.STRIPE_PRICE_ID_PAID = "price_paid_123";
+    }
+  });
+
+  it("falls back to env ONLY when there is no prior confirmed price at all (first-ever event, every retry fails) — logged as unconfirmed, not silent", async () => {
+    const { account } = await createTestAccount("no-history", "no-history@test.com");
+    const accountId = account.account_id as string;
+    process.env.STRIPE_SECRET_KEY = "sk_test_nohistory";
+    const realFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("down"); }));
+    try {
+      const payload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_no_history", "paid"));
+      const r = await req("POST", "/v1/webhooks/stripe", payload, { "stripe-signature": signStripePayload(payload) });
+      expect(r.status).toBe(200);
+
+      const stored = await getSubscription("sub_no_history");
+      expect(stored?.price_id).toBe("price_paid_123"); // env is the only available signal — unchanged pre-fix behavior for THIS case
+    } finally {
+      vi.stubGlobal("fetch", realFetch);
+      delete process.env.STRIPE_SECRET_KEY;
+    }
+  });
+
+  // ─── H2.6 (red-team fix, WAVE-0 finding #7): webhook event-ordering ───────
+  // Stripe does not guarantee webhook delivery order. A stale event (e.g. an
+  // old cancellation, redelivered late) must not overwrite state a NEWER
+  // event already applied (e.g. a reactivation).
+
+  function subscriptionEventPayload(eventType: string, subscriptionId: string, accountId: string, created: number, overrides: Record<string, unknown> = {}) {
+    return {
+      type: eventType,
+      created,
+      data: {
+        object: {
+          id: subscriptionId,
+          customer: `cus_${subscriptionId}`,
+          status: "active",
+          items: { data: [{ price: { id: "price_paid_123" } }] },
+          current_period_start: 1735689600,
+          current_period_end: 1738368000,
+          cancel_at: null,
+          metadata: { account_id: accountId },
+          ...overrides,
+        },
+      },
+    };
+  }
+
+  it("a stale customer.subscription.deleted (older event) does NOT downgrade a subscription a NEWER update already reactivated", async () => {
+    const { account } = await createTestAccount("stale-delete", "stale-delete@test.com");
+    const accountId = account.account_id as string;
+    const subId = "sub_stale_order";
+    const baseTime = Math.floor(Date.now() / 1000);
+
+    // Establish the subscription (event created at baseTime).
+    const createPayload = JSON.stringify(subscriptionEventPayload("customer.subscription.created", subId, accountId, baseTime));
+    await req("POST", "/v1/webhooks/stripe", createPayload, { "stripe-signature": signStripePayload(createPayload) });
+
+    // A NEWER reactivation event (baseTime + 100) arrives and is applied normally.
+    const reactivatePayload = JSON.stringify(subscriptionEventPayload("customer.subscription.updated", subId, accountId, baseTime + 100, { status: "active" }));
+    await req("POST", "/v1/webhooks/stripe", reactivatePayload, { "stripe-signature": signStripePayload(reactivatePayload) });
+    expect((await getSubscription(subId))?.status).toBe("active");
+
+    // A STALE deletion (baseTime + 50 — OLDER than the reactivation at +100,
+    // but arriving LAST over the wire) must be ignored, not applied.
+    const staleDeletePayload = JSON.stringify(subscriptionEventPayload("customer.subscription.deleted", subId, accountId, baseTime + 50));
+    const r = await req("POST", "/v1/webhooks/stripe", staleDeletePayload, { "stripe-signature": signStripePayload(staleDeletePayload) });
+    expect(r.status).toBe(200); // still acknowledged — Stripe must not retry it forever
+
+    const stored = await getSubscription(subId);
+    expect(stored?.status).toBe("active"); // NOT "canceled" — the stale event never applied
+    const acct = await getAccount(accountId);
+    expect(acct?.tier).not.toBe("free"); // the paying customer was never downgraded
+  });
+
+  it("a genuinely NEWER event still applies normally (the guard only rejects the past, not everything)", async () => {
+    const { account } = await createTestAccount("newer-ok", "newer-ok@test.com");
+    const accountId = account.account_id as string;
+    const subId = "sub_newer_ok";
+    const baseTime = Math.floor(Date.now() / 1000);
+
+    const createPayload = JSON.stringify(subscriptionEventPayload("customer.subscription.created", subId, accountId, baseTime));
+    await req("POST", "/v1/webhooks/stripe", createPayload, { "stripe-signature": signStripePayload(createPayload) });
+
+    const deletePayload = JSON.stringify(subscriptionEventPayload("customer.subscription.deleted", subId, accountId, baseTime + 100));
+    await req("POST", "/v1/webhooks/stripe", deletePayload, { "stripe-signature": signStripePayload(deletePayload) });
+
+    expect((await getSubscription(subId))?.status).toBe("canceled");
+  });
+
   // ─── H0.4: Basil+ (2025-03-31 onward) payload shapes ──────────────────────
   // Stripe relocated two fields this handler reads: subscription period bounds
   // moved from the subscription's top level onto its ITEMS, and an invoice's

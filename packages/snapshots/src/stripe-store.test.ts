@@ -38,6 +38,7 @@ function makeSub(accountId: string, overrides: Record<string, unknown> = {}) {
     cancel_at: null,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
+    last_event_created_at: null,
     ...overrides,
   };
 }
