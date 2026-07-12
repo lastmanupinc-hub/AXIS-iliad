@@ -7,7 +7,6 @@ import type { PageId } from "../../routes.tsx";
 // StatusBar: legal/Terms · Status · v<version> · Support · Help · Docs.
 // - "Status" points at the live API health endpoint for now; WO-P17 repoints
 //   it to the #status page when that ships (no dead in-app link until then).
-// - The version badge is plain text for now; WO-P16 links it to #changelog.
 
 export interface PageFooterProps {
   onNavigate: (page: PageId) => void;
@@ -27,7 +26,9 @@ export function PageFooter({ onNavigate }: PageFooterProps) {
         <Sep />
         <a className="footer-link" href={`${API_BASE}/v1/health`} target="_blank" rel="noreferrer">Status</a>
         <Sep />
-        <span title="Web app version">v{APP_VERSION}</span>
+        <button type="button" className="footer-link" title="Web app version" onClick={() => onNavigate("changelog")}>
+          v{APP_VERSION}
+        </button>
         <Sep />
         <a className="footer-link" href="mailto:support@jonathanarvay.com">Support</a>
         <Sep />

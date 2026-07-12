@@ -173,8 +173,15 @@ describe("App routing (WO-F2)", () => {
 // ─── Shared primitives shell integration (WO-F4) ─────────────────
 
 describe("PageFooter in the shell (WO-F4)", () => {
-  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#mcp", "#for-agents", "#tools/web-research", "#run", "#playground", "#__kitchen-sink", "#definitely/not/a/page"];
+  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#mcp", "#for-agents", "#tools/web-research", "#run", "#playground", "#changelog", "#__kitchen-sink", "#definitely/not/a/page"];
 
+  // This mounts+unmounts the full App for every public page in one test —
+  // vitest's default 5000ms budget covered the list fine at first, but each
+  // page added since (WO-P15's "#playground", WO-P16's "#changelog") pushed
+  // real wall-clock time past it (~6.1s measured for 14 hashes, even fully
+  // isolated — not resource contention). Same growth will keep happening as
+  // more public pages ship, so this gets real headroom rather than another
+  // bare-minimum bump.
   it("is rendered by the shell on every page, including 404 and the kitchen sink", () => {
     for (const hash of PUBLIC_HASHES) {
       window.location.hash = hash;
@@ -185,7 +192,7 @@ describe("PageFooter in the shell (WO-F4)", () => {
       expect(within(footer as HTMLElement).getByRole("link", { name: "Status" })).toBeTruthy();
       unmount();
     }
-  });
+  }, 20_000);
 
   it("footer links navigate through the route table", () => {
     const { container } = render(<App />);

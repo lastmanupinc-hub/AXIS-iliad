@@ -5,6 +5,7 @@ import { ProjectsPage } from "./pages/ProjectsPage.tsx";
 import { UsagePage } from "./pages/UsagePage.tsx";
 import { CommercePage } from "./pages/CommercePage.tsx";
 import { PlaygroundPage } from "./pages/PlaygroundPage.tsx";
+import { ChangelogPage } from "./pages/ChangelogPage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
@@ -115,6 +116,9 @@ export type PageId =
   // Live Demo / Playground (WO-P15) — "#playground", public. A fuller
   // standalone version of HomePage's LiveDemoTeaser.
   | "playground"
+  // Changelog (WO-P16) — "#changelog", public. The footer's version badge
+  // links here.
+  | "changelog"
   | "paid-checkout"
   | "admin"
   | "myanalytics"
@@ -442,6 +446,15 @@ export const ROUTES: RouteDef[] = [
     render: (ctx) => (
       <PlaygroundPage loggedIn={ctx.loggedIn} onRequireLogin={() => ctx.requireLogin("save-project")} />
     ),
+  },
+  {
+    // WO-P16: Changelog — public, footer-only (matches "terms"'s pattern:
+    // deliberately absent from the sidebar/drawer/rail).
+    page: "changelog",
+    pattern: "changelog",
+    label: "Changelog",
+    section: "REFERENCE",
+    render: () => <ChangelogPage />,
   },
   {
     page: "examples",
