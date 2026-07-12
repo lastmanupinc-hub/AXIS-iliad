@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Receipt } from "mppx";
 import { chargeMpp } from "./mpp.js";
-import { consumeFreeCall, recordPaidCall, recordSettledPayment } from "@axis/snapshots";
+import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensationOwed } from "@axis/snapshots";
 import type { PaymentProvider } from "@axis/snapshots";
 import { log } from "./logger.js";
 import { randomUUID } from "node:crypto";
@@ -46,11 +46,14 @@ export function centsToFabricCredits(cents: number): number {
  *                success            -> { status: 200 } (mppx is NOT called)
  *                402 insufficient   -> writes a top-up challenge to `res`,
  *                                      returns { status: 402 } (mppx is NOT called)
- *                PAI'D unreachable/ -> returns null so the caller falls back to
- *                errored               mppx rather than failing the whole request
- *                                      (PAI'D liveness is an external gate, not
- *                                      something this code can guarantee — see
- *                                      docs/MCP_PAID_ACCESS_DESIGN.md).
+ *                any OTHER error    -> AMBIGUOUS (H2.3/H0.2): a timeout or network
+ *                (incl. timeout)       error can surface after PAI'D already
+ *                                      committed the debit, so this does NOT fall
+ *                                      back to mppx (that would risk charging a
+ *                                      second rail for one call). Instead: record a
+ *                                      `compensation_ledger` row (wallet_rail_ambiguous)
+ *                                      and write a 402 to `res`; returns { status: 402 }
+ *                                      (mppx is NOT called, no work runs on this call).
  */
 export async function settleOverageViaPaidWallet(
   res: ServerResponse,
@@ -111,14 +114,33 @@ export async function settleOverageViaPaidWallet(
       res.end(JSON.stringify({ ...body, error: "insufficient_credits", topup_url: "/v1/credits/topup" }));
       return { status: 402 };
     }
-    // PAI'D unreachable or an unexpected error (not an economic 402) — fall back to
-    // mppx rather than hard-failing a request PAI'D happened to be down for.
-    log("warn", "paid_wallet_enforce_failed", {
+    // H2.3 (closes H0.2): every OTHER failure is AMBIGUOUS, not "PAI'D is down."
+    // A 504 (our own 15s abort) or a network error can surface AFTER PAI'D has
+    // already committed the debit — we just never saw the response. Falling
+    // through to chargeMpp here would then charge a SECOND rail for the same
+    // call. Per WO-20 doctrine, ambiguous outcomes do NOT fall through: record
+    // the full amount as owed (worst case the debit never landed and the
+    // customer is made whole for nothing — cheap; the alternative is a real
+    // double charge) and fail the call closed. No work runs on this call.
+    log("warn", "paid_wallet_enforce_ambiguous", {
       accountId,
       tool,
       error: err instanceof Error ? err.message : String(err),
     });
-    return null;
+    const entry = await recordCompensationOwed({
+      account_id: accountId,
+      tool,
+      amount_cents: overageCents,
+      reason: "wallet_rail_ambiguous",
+    });
+    res.writeHead(402, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      error: "wallet_settlement_unconfirmed",
+      message: "Payment status for this call could not be confirmed on the Fabric-Credit rail. To avoid a duplicate charge, this call was not completed and no work was performed — retrying may incur a separate charge if the original debit landed. A compensation entry was recorded and will be credited automatically once reconciled.",
+      compensation_entry_id: entry.entry_id,
+      topup_url: "/v1/credits/topup",
+    }));
+    return { status: 402 };
   }
 }
 
@@ -163,6 +185,10 @@ function parsePaymentReceipt(res: ServerResponse): { provider: PaymentProvider; 
  *   PAID_WALLET_MODE=enforce and PAI'D configured:
  *     wallet debit 200      -> { status: 200 }   paid via PAI'D; mppx NOT called
  *     wallet 402            -> { status: 402 }   PAI'D top-up challenge; mppx NOT called
+ *     wallet ambiguous err  -> { status: 402 }   H2.3: compensation_ledger row written
+ *                                                (wallet_rail_ambiguous); mppx NOT called —
+ *                                                never fall through to a second rail on an
+ *                                                unconfirmed debit.
  *   (read/shadow, or enforce w/ PAI'D not configured, fall through below)
  *   chargeMpp 402          -> { status: 402 }   x402 challenge written to `res` (res ended)
  *   chargeMpp 200          -> { status: 200 }   paid; Payment-Receipt on `res`; paid call recorded;

@@ -16,6 +16,16 @@ vi.mock("@axis/snapshots", () => ({
   consumeFreeCall: vi.fn(async () => false),
   recordPaidCall: vi.fn(async () => undefined),
   recordSettledPayment: vi.fn(async () => undefined),
+  recordCompensationOwed: vi.fn(async (input: Record<string, unknown>) => ({
+    entry_id: "comp-test-1",
+    status: "owed",
+    attempts: 0,
+    currency: "usd",
+    receipt_ref: null,
+    created_at: new Date().toISOString(),
+    resolved_at: null,
+    ...input,
+  })),
 }));
 
 // ./mpp.js: stand in for the mppx-direct rail — asserted on directly (called /
@@ -282,25 +292,59 @@ describe("enforce mode — insufficient balance", () => {
   });
 });
 
-describe("enforce mode — PAI'D errors that are NOT an economic 402", () => {
-  it("falls back to chargeMpp instead of failing the whole request", async () => {
+describe("enforce mode — ambiguous PAI'D errors (H0.2/H2.3): never fall through to a second rail", () => {
+  it("a non-402 wallet error (e.g. a 500) does NOT call chargeMpp — it fails closed with one compensation row", async () => {
     Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce" });
     fetchSpy.mockResolvedValueOnce({ ok: false, status: 500, text: async () => "boom" } as unknown as Response);
 
-    const { res } = makeRes();
-    await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
+    const { res, getStatus, getBody } = makeRes();
+    const result = await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
 
-    expect(mpp.chargeMpp).toHaveBeenCalledTimes(1);
+    // The old bug: this fell through to chargeMpp, so a wallet debit that may
+    // have actually landed on PAI'D's side got charged a SECOND time via mppx.
+    expect(mpp.chargeMpp).not.toHaveBeenCalled();
     expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
+    expect(snapshots.recordSettledPayment).not.toHaveBeenCalled();
+
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledTimes(1);
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledWith({
+      account_id: "acc-1",
+      tool: "analyze_repo",
+      amount_cents: 150,
+      reason: "wallet_rail_ambiguous",
+    });
+
+    expect(result).toEqual({ status: 402 });
+    expect(getStatus()).toBe(402);
+    const body = getBody();
+    expect(body?.error).toBe("wallet_settlement_unconfirmed");
+    expect(body?.compensation_entry_id).toBe("comp-test-1");
+    expect(body?.topup_url).toBe("/v1/credits/topup");
   });
 
-  it("falls back to chargeMpp when PAI'D is not configured (wallet mode enforce, no PAID_* env)", async () => {
+  it("a timed-out debit (PaidError 504) is the same ambiguous case — zero mpp charges, one ledger row", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce" });
+    fetchSpy.mockRejectedValueOnce(Object.assign(new Error("aborted"), { name: "AbortError" }));
+
+    const { res } = makeRes();
+    const result = await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
+
+    expect(mpp.chargeMpp).not.toHaveBeenCalled();
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledTimes(1);
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "wallet_rail_ambiguous", amount_cents: 150 }),
+    );
+    expect(result).toEqual({ status: 402 });
+  });
+
+  it("falls back to chargeMpp when PAI'D is not configured at all (wallet mode enforce, no PAID_* env) — no debit was ever attempted, so nothing is ambiguous", async () => {
     process.env.PAID_WALLET_MODE = "enforce"; // no PAID_API_BASE_URL/MERCHANT_ID/API_KEY set
     const { res } = makeRes();
     await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
 
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(mpp.chargeMpp).toHaveBeenCalledTimes(1);
+    expect(snapshots.recordCompensationOwed).not.toHaveBeenCalled();
   });
 });
 
