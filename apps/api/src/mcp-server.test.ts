@@ -9,8 +9,8 @@ import {
 } from "./billing.js";
 import { resetRateLimits } from "./rate-limiter.js";
 
-const TEST_PORT = 44515;
 let server: Server;
+let TEST_PORT: number;
 let apiKey = "";
 let freeApiKey = "";
 let snapshotId = "";
@@ -112,7 +112,10 @@ beforeAll(async () => {
   server = createServer((req, res) => {
     router.handle(req, res);
   });
-  await new Promise<void>(resolve => server.listen(TEST_PORT, resolve));
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+  const addr = server.address();
+  if (!addr || typeof addr === "string") throw new Error("no address");
+  TEST_PORT = addr.port;
 
   const suite = await createAccount("MCP Suite", "mcp-suite@test.com", "suite");
   apiKey = (await createApiKey(suite.account_id, "suite-key")).rawKey;

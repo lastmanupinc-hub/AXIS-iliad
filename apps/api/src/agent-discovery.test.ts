@@ -82,8 +82,8 @@ async function postReq(
   });
 }
 
-const TEST_PORT = 44517;
 let server: Server;
+let TEST_PORT: number;
 
 beforeAll(async () => {
   await resetTestDb();
@@ -100,7 +100,10 @@ beforeAll(async () => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
   });
-  await new Promise<void>((resolve) => server.listen(TEST_PORT, resolve));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const addr = server.address();
+  if (!addr || typeof addr === "string") throw new Error("no address");
+  TEST_PORT = addr.port;
 });
 
 afterAll(async () => {
