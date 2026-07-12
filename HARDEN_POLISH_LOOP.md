@@ -142,7 +142,7 @@ July build program. They are not suggestions.
 |---|---|---|---|
 | H0.1–H0.10 | Hygiene | ALL DONE except H0.2 (pairs with H2.1) | see PROGRESS |
 | H1.1–H1.4 | Reliability | ALL DONE (H1.1 deflake, H1.2 `fdfddd5`, H1.3 source-guard 30s `317095b`, H1.4 ci-mirror) | see PROGRESS |
-| H2.1–H2.5 | Money path | pending | |
+| H2.1–H2.5 | Money path | H2.1 + H2.2 DONE; H2.3 (+H0.2), H2.4, H2.5 pending | see PROGRESS |
 | ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
 | H3.1–H3.11 | Web completion | pending (behind MONEY GATE) | |
 | H4.1–H4.6 | AI-agent UX | pending | |
@@ -518,7 +518,9 @@ every diff. Newest at the bottom.
 | 2026-07-11 | H0.9 | PlansPage fallback pricing now DISCLOSES itself (warning Callout, only on failure); malformed-200 payloads treated as failure instead of storing junk (H1.2 class); red demonstrated first (2 red + control green) | `2ca1762` |
 | 2026-07-11 | H0.10 | TEN tracked root run-logs (incl. oauth-fail.log, found beyond the doc's nine) secret-scanned (all clean — valid ERE scan after a first invalid-regex attempt), untracked via git rm --cached (kept on disk), class gitignored; only curated llms.txt remains | `cb8366f` |
 | 2026-07-11 | H1.1 | production-startup + rate-limiter deflaked: 30s per-file ceilings + every fixed sleep replaced with event-driven waits (close callbacks, once("error")); 43/43 isolated | see commit |
-| 2026-07-11 | H1.4 | scripts/test-ci-mirror.mjs + pnpm run test:ci-mirror — CI=true (4-worker cap) + the exact ci.yml coverage flags, DATABASE_URL defaulted to the local container | see commit |
+| 2026-07-11 | H1.4 | scripts/test-ci-mirror.mjs + pnpm run test:ci-mirror — CI=true (4-worker cap) + the exact ci.yml coverage flags, DATABASE_URL defaulted to the local container | `b162cc3` |
+| 2026-07-11 | H2.1 | compensation_ledger migration v34 + store: at-most-once claim proven incl. 8-way concurrent race; per-account + platform summaries; producer idempotency lifecycle-borne | `daf6091` |
+| 2026-07-11 | H2.2 | settled-then-error producer live: dispatch catch records the owed entry (amount rides the settled marker, now a WeakMap) + agent sees _compensation in the error envelope; red demonstrated first | see commit |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 

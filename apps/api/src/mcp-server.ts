@@ -10,6 +10,7 @@ import {
   saveIdempotentResult,
   getUsageCreditSummary,
   recordMcpUsage,
+  recordCompensationOwed,
 } from "@axis/snapshots";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, API_VERSION } from "./counts.js";
 import { classifyProbe, captureIntent, detectMcpSource } from "./intent.js";
@@ -36,6 +37,7 @@ import {
   inbandSettlementEnabled,
   previewMcpToolOverage,
   markInbandSettled,
+  getInbandSettledAmount,
   type RpcSuccess,
   type RpcError,
 } from "./mcp-runtime.js";
@@ -394,11 +396,38 @@ export async function dispatch(
         const msg = err instanceof Error ? err.message : String(err);
         const { code, retryable } = categorizeError(msg);
         const text = msg.trim().startsWith("{") ? msg : `Error: ${msg}`;
+
+        // H2.2 (WO-20 phase 3): the in-band gate collected cash for THIS call
+        // before dispatch, and the tool then failed — the customer paid for
+        // work that never happened. Record the make-whole obligation durably
+        // and tell the agent. The compensation write must never mask the
+        // original tool error, so it is fully fenced.
+        let compensation: { entry_id: string; amount_cents: number; status: string } | undefined;
+        const settledCents = getInbandSettledAmount(req);
+        if (settledCents && settledCents > 0 && auth.account) {
+          try {
+            const entry = await recordCompensationOwed({
+              account_id: auth.account.account_id,
+              tool: canonicalToolName,
+              amount_cents: settledCents,
+              reason: "settled_then_error",
+            });
+            compensation = { entry_id: entry.entry_id, amount_cents: settledCents, status: entry.status };
+          } catch (compErr) {
+            log("error", "compensation_record_failed", {
+              tool: canonicalToolName,
+              amount_cents: settledCents,
+              error: compErr instanceof Error ? compErr.message : String(compErr),
+            });
+          }
+        }
+
         return rpcOk(
           id,
           {
             ...toolErr(text),
             _error: { code, retryable },
+            ...(compensation ? { _compensation: compensation } : {}),
           },
         );
       }
@@ -468,7 +497,7 @@ async function settleMcpCallInband(
   });
   if (result === null) return false;            // MPP not configured -> dispatch throws the normal 402-negotiation
   if (result.status === 402) return true;       // x402 challenge written to res — stop; agent will retry
-  markInbandSettled(req);                        // paid in-band -> authorize/capture honor it during dispatch
+  markInbandSettled(req, overageCents);          // paid in-band -> authorize/capture honor it; the amount rides along for the settled-then-error producer (H2.2)
   return false;                                  // proceed to dispatch, which returns the tool result
 }
 

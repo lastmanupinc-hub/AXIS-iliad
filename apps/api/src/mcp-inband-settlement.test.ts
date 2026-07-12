@@ -36,6 +36,28 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
     getIdempotentResult: vi.fn(async () => null),
     getPersistenceBalance: vi.fn(async () => 0),
     getUsageCreditSummary: vi.fn(async () => ({ plan_id: "free", monthly_allowance: 0 })),
+    // H2.2: the settled-then-error producer writes here — spy, no real DB.
+    recordCompensationOwed: vi.fn(async (input: Record<string, unknown>) => ({
+      ...input,
+      entry_id: "ce_test_1",
+      status: "owed",
+      attempts: 0,
+      created_at: "2026-01-01T00:00:00.000Z",
+      resolved_at: null,
+    })),
+  };
+});
+
+// H2.2: a dispatchable settle:true tool that FAILS after the gate collected cash —
+// the real runAnalyzeFiles would hit the DB; every handleMcpPost test in this suite
+// either replays from cache or is halted by the gate, so a throwing default is safe.
+vi.mock("./mcp-tool-impls.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./mcp-tool-impls.js")>();
+  return {
+    ...actual,
+    runAnalyzeFiles: vi.fn(async () => {
+      throw new Error("boom: synthetic tool failure after settlement");
+    }),
   };
 });
 vi.mock("./mpp.js", () => ({
@@ -140,7 +162,7 @@ describe("H1 settled marker (per-request, no signature threading)", () => {
     const a = fakeReq();
     const b = fakeReq();
     expect(isInbandSettled(a)).toBe(false);
-    markInbandSettled(a);
+    markInbandSettled(a, 50);
     expect(isInbandSettled(a)).toBe(true);
     expect(isInbandSettled(b)).toBe(false); // a different request is untouched
   });
@@ -153,7 +175,7 @@ describe("authorizeMcpToolCredits honors the in-band marker", () => {
 
   it("overage + settled request -> returns a settled charge, does NOT throw", async () => {
     const req = fakeReq();
-    markInbandSettled(req); // gate already collected the cash
+    markInbandSettled(req, 50); // gate already collected the cash
     const charge = await authorizeMcpToolCredits(req, account, "analyze_repo");
     expect(charge.tool).toBe("analyze_repo");
     expect(charge.settled).toBe(true);
@@ -625,7 +647,7 @@ describe("decideInbandGate — total-classification invariant (all 17 MeteredMcp
 describe("No-double-charge, real dispatch — the REAL runWebSearch honors the settled marker", () => {
   it("settled request: search records usage once (no 402) and index stays free either way", async () => {
     const req = { headers: {} } as unknown as IncomingMessage;
-    markInbandSettled(req); // gate already collected the cash for this request
+    markInbandSettled(req, 50); // gate already collected the cash for this request
     vi.mocked(snapshots.previewUsageCredits).mockResolvedValue(overagePreview as never);
 
     // search is the billable op — the settled marker means authorize does NOT throw
@@ -693,6 +715,49 @@ describe("in-band gate + Idempotency-Key: retry of a settled call never re-charg
     expect(res.statusCode).not.toBe(402);      // no fresh payment challenge
     expect(mpp.chargeMpp).not.toHaveBeenCalled();          // rail never touched
     expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled(); // no second debit
+  });
+
+  it("settled-then-error: a cash-settled call whose tool throws records an owed compensation entry (H2.2)", async () => {
+    const req = { headers: {}, socket: {} } as unknown as IncomingMessage;
+    // The gate settles the 50c overage in-band (chargeMpp 200 = cash collected)…
+    vi.mocked(mpp.chargeMpp).mockResolvedValueOnce({ status: 200 } as never);
+    const res = fakeRes();
+
+    await handleMcpPost(req, res, undefined, msg);
+
+    // …the tool then failed (throwing runAnalyzeFiles mock): the customer paid
+    // for work that never happened — the make-whole obligation must be durable.
+    expect(snapshots.recordSettledPayment).toHaveBeenCalledTimes(1); // the receipt row (cash truth)
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledTimes(1);
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account_id: "acc-1",
+        tool: "analyze_files",
+        amount_cents: 50,
+        reason: "settled_then_error",
+      }),
+    );
+    expect(snapshots.consumeUsageCredits).not.toHaveBeenCalled(); // capture never reached
+
+    // The agent SEES the make-good in the error envelope.
+    const parsed = JSON.parse(res.body) as { result?: { isError?: boolean; _compensation?: { entry_id: string; status: string } } };
+    expect(parsed.result?.isError).toBe(true);
+    expect(parsed.result?._compensation).toMatchObject({ entry_id: "ce_test_1", status: "owed" });
+  });
+
+  it("an UNSETTLED failure records no compensation (nothing was collected)", async () => {
+    const req = { headers: {}, socket: {} } as unknown as IncomingMessage;
+    // Default previews in the outer beforeEach show zero overage -> gate passthrough,
+    // no cash moves; override the inner beforeEach's overage preview back to zero.
+    vi.mocked(snapshots.previewUsageCredits).mockResolvedValue({ effective_overage_cents: 0 } as never);
+    const res = fakeRes();
+
+    await handleMcpPost(req, res, undefined, msg);
+
+    expect(snapshots.recordCompensationOwed).not.toHaveBeenCalled();
+    const parsed = JSON.parse(res.body) as { result?: { isError?: boolean; _compensation?: unknown } };
+    expect(parsed.result?.isError).toBe(true);
+    expect(parsed.result?._compensation).toBeUndefined();
   });
 
   it("first call (no cached result): the gate still fires and halts dispatch", async () => {

@@ -149,12 +149,19 @@ export function inbandSettlementEnabled(): boolean {
  * call with a 402 and (b) not debit plan credits (the overage was paid with cash).
  * A WeakSet keyed by the request object — no signature changes thread through runX.
  */
-const inbandSettledRequests = new WeakSet<IncomingMessage>();
-export function markInbandSettled(req: IncomingMessage): void {
-  inbandSettledRequests.add(req);
+// H2.2: a WeakMap (was a WeakSet) so the SETTLED AMOUNT travels with the
+// marker — the dispatch catch needs it to record the exact make-whole
+// obligation when a cash-settled call's tool then fails.
+const inbandSettledRequests = new WeakMap<IncomingMessage, number>();
+export function markInbandSettled(req: IncomingMessage, amountCents: number): void {
+  inbandSettledRequests.set(req, amountCents);
 }
 export function isInbandSettled(req: IncomingMessage): boolean {
   return inbandSettledRequests.has(req);
+}
+/** The cash amount the in-band gate collected for THIS request, if any. */
+export function getInbandSettledAmount(req: IncomingMessage): number | null {
+  return inbandSettledRequests.get(req) ?? null;
 }
 
 /**
