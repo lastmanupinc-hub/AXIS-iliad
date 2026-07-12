@@ -44,3 +44,15 @@ packages/generator-core/perf-results.json
 # WO-16: transient tsc stage of the axis-iliad self-contained bundle
 # (build.mjs removes it on success; ignore leftovers from failed builds)
 apps/cli/.tsc-out/
+
+# Root-level run logs / tool output (H0.10): never track run artifacts in a
+# public repo — output logs are a classic secret-leak vector. llms.txt is a
+# deliberate, curated file and stays tracked.
+/coverage-*.txt
+/vitest*.txt
+/*-output.txt
+/test_output.txt
+/docker-ci-*.txt
+/ls-coverage.txt
+/stalling fix.txt
+/*.log
