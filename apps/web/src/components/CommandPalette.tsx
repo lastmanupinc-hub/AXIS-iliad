@@ -117,6 +117,11 @@ export function CommandPalette({ actions }: Props) {
             onChange={(e) => { setQuery(e.target.value); setSelected(0); }}
             onKeyDown={handleKeyDown}
             placeholder="Type a command..."
+            role="combobox"
+            aria-expanded={filtered.length > 0}
+            aria-controls="command-palette-listbox"
+            aria-autocomplete="list"
+            aria-activedescendant={filtered[selected] ? `cmdk-${filtered[selected].id}` : undefined}
             style={{
               background: "transparent",
               border: "none",
@@ -128,7 +133,7 @@ export function CommandPalette({ actions }: Props) {
           />
         </div>
 
-        <div style={{ maxHeight: 320, overflowY: "auto" }}>
+        <div id="command-palette-listbox" role="listbox" aria-label="Commands" style={{ maxHeight: 320, overflowY: "auto" }}>
           {filtered.length === 0 ? (
             <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: "0.875rem" }}>
               No matching commands
@@ -138,6 +143,7 @@ export function CommandPalette({ actions }: Props) {
               <div key={section}>
                 {section && (
                   <div
+                    role="presentation"
                     style={{
                       padding: "8px 16px 4px",
                       fontSize: "0.6875rem",
@@ -155,6 +161,9 @@ export function CommandPalette({ actions }: Props) {
                   return (
                     <div
                       key={a.id}
+                      id={`cmdk-${a.id}`}
+                      role="option"
+                      aria-selected={thisIdx === selected}
                       onClick={() => handleSelect(a)}
                       style={{
                         padding: "8px 16px",

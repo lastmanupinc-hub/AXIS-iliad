@@ -142,12 +142,12 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "billing",
     question: "How do team seats work?",
-    answer: "Starter, Pro, and Growth include team seats with increasing limits by plan. Invite team members by email from the Account page. Admins can manage seats, keys, and billing. Members can run programs, view results, and generate files.",
+    answer: "Starter, Pro, and Growth include team seats with increasing limits by plan. Invite team members by email from the Settings page. Admins can manage seats, keys, and billing. Members can run programs, view results, and generate files.",
   },
   {
     category: "billing",
     question: "Can I cancel or downgrade?",
-    answer: "Yes. Change your plan at any time from the Account page. Downgrading takes effect at the end of your current billing period — you keep Pro access until then. Your generated files and project history remain accessible on the new plan (within its project limits).",
+    answer: "Yes. Change your plan at any time from the Usage page. Downgrading takes effect at the end of your current billing period — you keep Pro access until then. Your generated files and project history remain accessible on the new plan (within its project limits).",
   },
   {
     category: "billing",
@@ -238,7 +238,7 @@ const QA_ITEMS: QAItem[] = [
   {
     category: "security",
     question: "Can I rotate my API key?",
-    answer: "Yes. Go to the Account page and create a new API key. You can have multiple active keys simultaneously. Update your scripts, CI configs, and environment variables with the new key, then revoke the old one. Rotation doesn't affect existing sessions until the old key is revoked.",
+    answer: "Yes. Go to the Settings page and create a new API key. You can have multiple active keys simultaneously. Update your scripts, CI configs, and environment variables with the new key, then revoke the old one. Rotation doesn't affect existing sessions until the old key is revoked.",
   },
   {
     category: "security",
@@ -345,9 +345,11 @@ export function QAPage() {
                   padding: "14px 0",
                 }}
               >
-                <div
+                <button
+                  type="button"
                   className="flex-between"
-                  style={{ cursor: "pointer" }}
+                  style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit", padding: 0, textAlign: "left" }}
+                  aria-expanded={expanded === globalIndex}
                   onClick={() => setExpanded(expanded === globalIndex ? null : globalIndex)}
                 >
                   <div className="flex" style={{ gap: 10 }}>
@@ -365,7 +367,7 @@ export function QAPage() {
                       {expanded === globalIndex ? "▲" : "▼"}
                     </span>
                   </div>
-                </div>
+                </button>
                 {expanded === globalIndex && (
                   <div
                     className="animate-fade-in"

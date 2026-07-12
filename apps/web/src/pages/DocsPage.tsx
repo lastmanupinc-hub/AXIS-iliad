@@ -459,8 +459,7 @@ function OverviewSection() {
         <h3 style={{ marginBottom: 12 }}>Authentication</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
           All authenticated endpoints require a Bearer token in the <code className="mono">Authorization</code> header.
-          API keys use the <code className="mono">axis_</code> prefix. Keys are created during account signup
-          and can be rotated from the Account page.
+          API keys use the <code className="mono">axis_</code> prefix. Create and rotate keys from the Settings page.
         </p>
         <div style={{ background: "var(--bg)", padding: 12, borderRadius: "var(--radius)", fontFamily: "var(--mono)", fontSize: "0.8125rem" }}>
           <span style={{ color: "var(--text-muted)" }}>Authorization:</span>{" "}
@@ -553,9 +552,11 @@ function ProgramDocCard({
         padding: "12px 0",
       }}
     >
-      <div
+      <button
+        type="button"
         className="flex-between"
-        style={{ cursor: "pointer" }}
+        style={{ width: "100%", background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit", padding: 0, textAlign: "left" }}
+        aria-expanded={expanded}
         onClick={onToggle}
       >
         <div className="flex" style={{ gap: 10 }}>
@@ -579,7 +580,7 @@ function ProgramDocCard({
         <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>
           {expanded ? "▲" : "▼"}
         </span>
-      </div>
+      </button>
 
       {expanded && (
         <div style={{ marginTop: 12, paddingLeft: 32 }} className="animate-fade-in">

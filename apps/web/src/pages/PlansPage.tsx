@@ -5,6 +5,7 @@ import { Callout } from "../components/primitives/index.ts";
 import { PROGRAM_COUNT } from "../config.ts";
 
 interface Props {
+  loggedIn: boolean;
   onSelectPlan: () => void;
   onRequireLogin?: () => void;
 }
@@ -15,7 +16,7 @@ function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(0)}`;
 }
 
-export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
+export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
   const [plans, setPlans] = useState<PlanDefinition[]>([]);
   const [features, setFeatures] = useState<PlanFeature[]>([]);
   const [annual, setAnnual] = useState(false);
@@ -24,11 +25,9 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [fallbackPricing, setFallbackPricing] = useState(false);
 
-  const isLoggedIn = !!localStorage.getItem("axis_api_key");
-
   async function handlePlanSelect(planId: string) {
     if (planId === "free") {
-      onSelectPlan(); // Navigate to account page for free signup
+      onSelectPlan(); // Signed-in users land on Settings (account redirects there); signed-out users hit the login gate first.
       return;
     }
     if (planId === "enterprise") {
@@ -36,7 +35,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
       window.location.href = "mailto:sales@lastmanup.com?subject=Axis%27%20Iliad%20Enterprise";
       return;
     }
-    if (!isLoggedIn) {
+    if (!loggedIn) {
       if (onRequireLogin) {
         onRequireLogin();
       } else {
@@ -222,7 +221,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
                   ? "Get Started Free"
                   : plan.price_monthly_cents < 0
                     ? "Contact Sales"
-                    : isLoggedIn
+                    : loggedIn
                       ? `Choose ${plan.name}`
                       : `Sign Up for ${plan.name}`}
             </button>            {plan.price_monthly_cents > 0 && (

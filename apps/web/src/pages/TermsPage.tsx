@@ -159,7 +159,7 @@ export function TermsPage() {
 
             <h4 style={{ marginBottom: 8, marginTop: 16 }}>4.4 Cancellation</h4>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.7 }}>
-              You may cancel your subscription at any time from the Account page. Cancellation takes
+              You may cancel your subscription at any time from the Usage page. Cancellation takes
               effect at the end of the current billing period; you retain access to paid features
               until that date. We do not provide pro-rated refunds for partial billing periods unless
               required by applicable law.

@@ -24,8 +24,8 @@ import { PROGRAM_COUNT } from "../config.ts";
 
 // ─── UsagePage (WO-P10) ───────────────────────────────────────────────────
 // Billing/usage half of the former AccountPage (split per the build plan;
-// the profile/keys/seats half stays there for now, pending WO-P12's move to
-// Settings). New here: usage graphs (runs/day + credits-spent/day, 30d,
+// the profile/keys/seats half moved to Settings in WO-P12). New here: usage
+// graphs (runs/day + credits-spent/day, 30d,
 // GET /v1/account/usage/timeseries — WO-A3) and a tier-change proration
 // preview (GET /v1/billing/proration). PAI'D remains the only checkout path
 // for both the tier-upgrade banner and credit top-ups.

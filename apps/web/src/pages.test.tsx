@@ -125,7 +125,7 @@ describe("Page smoke tests — pages with required props", () => {
   });
 
   it("PlansPage renders with noop callbacks", () => {
-    const { container } = render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+    const { container } = render(<PlansPage loggedIn={false} onSelectPlan={() => {}} onRequireLogin={() => {}} />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 
@@ -487,19 +487,12 @@ describe("PaidCheckoutPage", () => {
 describe("PlansPage honest pricing fallback (H0.9)", () => {
   const starterPlan = { id: "starter", name: "Starter", tagline: "t", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: [] };
 
-  beforeEach(() => {
-    localStorage.setItem("axis_api_key", "__cookie_session__");
-  });
-  afterEach(() => {
-    localStorage.removeItem("axis_api_key");
-  });
-
   it("shows the standard-pricing notice when live plans can't be fetched", async () => {
     vi.stubGlobal("fetch", paidFetchStub({
       "/v1/plans": { status: 500, body: { error: "down" } },
     }));
 
-    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+    render(<PlansPage loggedIn onSelectPlan={() => {}} onRequireLogin={() => {}} />);
 
     // The static fallback still renders the plans…
     expect(await screen.findByRole("button", { name: "Choose Starter" })).toBeTruthy();
@@ -512,7 +505,7 @@ describe("PlansPage honest pricing fallback (H0.9)", () => {
       "/v1/plans": { body: { nope: true } },
     }));
 
-    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+    render(<PlansPage loggedIn onSelectPlan={() => {}} onRequireLogin={() => {}} />);
 
     expect(await screen.findByRole("button", { name: "Choose Starter" })).toBeTruthy();
     expect(screen.getByText(/live plan data is unavailable/i)).toBeTruthy();
@@ -523,7 +516,7 @@ describe("PlansPage honest pricing fallback (H0.9)", () => {
       "/v1/plans": { body: { plans: [starterPlan], features: [] } },
     }));
 
-    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+    render(<PlansPage loggedIn onSelectPlan={() => {}} onRequireLogin={() => {}} />);
 
     expect(await screen.findByRole("button", { name: "Choose Starter" })).toBeTruthy();
     expect(screen.queryByText(/live plan data is unavailable/i)).toBeNull();
@@ -534,18 +527,16 @@ describe("PlansPage PAI'D routing", () => {
   const starterPlan = { id: "starter", name: "Starter", tagline: "t", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: [] };
 
   afterEach(() => {
-    localStorage.removeItem("axis_api_key");
     window.location.hash = "";
   });
 
   it("routes Starter to #paid-checkout when PAI'D is configured", async () => {
-    localStorage.setItem("axis_api_key", "axis_test_key");
     vi.stubGlobal("fetch", paidFetchStub({
       "/v1/plans": { body: { plans: [starterPlan], features: [] } },
       "/portal/api/paid/config": { body: PAID_CONFIG_OK },
     }));
 
-    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+    render(<PlansPage loggedIn onSelectPlan={() => {}} onRequireLogin={() => {}} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Choose Starter" }));
 
@@ -553,7 +544,6 @@ describe("PlansPage PAI'D routing", () => {
   });
 
   it("never falls back to direct Stripe when PAI'D is not configured (PAI'D is the only money path)", async () => {
-    localStorage.setItem("axis_api_key", "axis_test_key");
     const fetchFn = paidFetchStub({
       "/v1/plans": { body: { plans: [starterPlan], features: [] } },
       "/portal/api/paid/config": { body: PAID_CONFIG_OFF },
@@ -561,7 +551,7 @@ describe("PlansPage PAI'D routing", () => {
     });
     vi.stubGlobal("fetch", fetchFn);
 
-    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+    render(<PlansPage loggedIn onSelectPlan={() => {}} onRequireLogin={() => {}} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Choose Starter" }));
 
@@ -569,6 +559,32 @@ describe("PlansPage PAI'D routing", () => {
     await screen.findByText(/temporarily unavailable/i);
     const urls = fetchFn.mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.endsWith("/v1/checkout"))).toBe(false);
+    expect(window.location.hash).not.toBe("#paid-checkout");
+  });
+});
+
+describe("PlansPage login gate (WO-P14 regression)", () => {
+  // Real auth is an HttpOnly session cookie, invisible to JS by design — this
+  // page previously derived its own "logged in" state from
+  // localStorage.getItem("axis_api_key"), which the app has not written to
+  // since the H1 cookie-auth migration. Every real user therefore saw the
+  // signed-OUT button label ("Sign Up for X") and hit the login gate on
+  // click even when already authenticated. `loggedIn` must come from the
+  // route's real auth state (ctx.loggedIn), not a page-local guess.
+  const starterPlan = { id: "starter", name: "Starter", tagline: "t", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: [] };
+
+  it("a signed-out user sees the signup label and hits the login gate, not checkout", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/v1/plans": { body: { plans: [starterPlan], features: [] } },
+      "/portal/api/paid/config": { body: PAID_CONFIG_OK },
+    }));
+    const onRequireLogin = vi.fn();
+
+    render(<PlansPage loggedIn={false} onSelectPlan={() => {}} onRequireLogin={onRequireLogin} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign Up for Starter" }));
+
+    expect(onRequireLogin).toHaveBeenCalledTimes(1);
     expect(window.location.hash).not.toBe("#paid-checkout");
   });
 });

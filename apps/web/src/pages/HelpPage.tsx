@@ -18,10 +18,10 @@ interface TroubleshootItem {
 }
 
 const GETTING_STARTED_STEPS: Step[] = [
-  { number: 1, title: "Sign In", description: "Open the Account page and continue with GitHub or Google — one click, no password. Your session is a secure HttpOnly cookie; you never handle a key to log in.", icon: "user" },
+  { number: 1, title: "Sign In", description: "Click Sign In and continue with GitHub or Google — one click, no password. Your session is a secure HttpOnly cookie; you never handle a key to log in.", icon: "user" },
   { number: 2, title: "Upload Your Project", description: "Head to the Analyze page. Drag and drop a folder, upload a ZIP file, or paste a GitHub repository URL. Axis will scan all source files.", icon: "upload" },
   { number: 3, title: "Review the Snapshot", description: "Once analysis completes, you'll land on the project page. Explore the Overview, Structure, Dependencies, and other tabs to understand your codebase.", icon: "dashboard" },
-  { number: 4, title: "Run Programs", description: "Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get 3 programs; upgrade for all 20.", icon: "programs" },
+  { number: 4, title: "Run Programs", description: `Switch to the Programs tab and click any program card to generate tailored output files. Free-tier users get ${FREE_PROGRAM_COUNT} programs; upgrade for all ${PROGRAM_COUNT}.`, icon: "programs" },
   { number: 5, title: "Download or Search", description: "Use the Artifacts tab to search, preview, copy, and download output, or export everything as a ZIP. The Search tab lets you query your indexed snapshot.", icon: "download" },
 ];
 
@@ -34,7 +34,7 @@ const UPLOAD_TIPS = [
 
 const TROUBLESHOOTING: TroubleshootItem[] = [
   { problem: "API shows red dot in the status bar", solution: "The API server isn't running. Start it with `pnpm dev` in the apps/api directory. Make sure port 4000 is available." },
-  { problem: "\"Unauthorized\" error on program run", solution: "Your API key may be missing or invalid. Go to Account, check your key, or create a new one. Keys must start with axis_." },
+  { problem: "\"Unauthorized\" error on program run", solution: "Your API key may be missing or invalid. Go to Settings, check your key, or create a new one. Keys must start with axis_." },
   { problem: "Dashboard won't load after upload", solution: "The upload may have failed silently. Check the browser console for errors. Try re-uploading with a smaller project first." },
   { problem: "Programs show as locked", solution: `You're on the Free tier which includes ${FREE_PROGRAM_COUNT} programs. Upgrade to Starter, Pro, or Growth to unlock all ${PROGRAM_COUNT} programs.` },
   { problem: "ZIP upload fails", solution: "Ensure the ZIP file isn't corrupted and contains source files. Maximum recommended size is 50MB. Very large repos should use GitHub URL instead." },
@@ -531,23 +531,23 @@ function AccountGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Account Management</h3>
         <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 16 }}>
-          Your Axis' Iliad account is managed through API keys. There are no passwords — your
-          API key is your identity.
+          You sign in to the web app with GitHub or Google — there are no passwords. API keys are
+          a separate, optional credential for programmatic access (CLI, MCP, CI).
         </p>
         <div className="grid grid-2">
           <div className="card" style={{ padding: 16, marginBottom: 0 }}>
-            <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Creating an Account</h4>
+            <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Signing In</h4>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
-              Go to the Account page, enter your name and email, and click Sign Up.
-              You'll get an API key immediately — store it safely as it cannot be retrieved later.
+              Click Sign In and continue with GitHub or Google — no separate signup step. Your
+              session rides a secure HttpOnly cookie; there's nothing to store or lose.
             </p>
           </div>
           <div className="card" style={{ padding: 16, marginBottom: 0 }}>
             <h4 style={{ fontSize: "0.875rem", marginBottom: 8 }}>Web login vs. API keys</h4>
             <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.6 }}>
-              You sign in to the web app with GitHub or Google — no key required; the session
-              rides a secure HttpOnly cookie. API keys are for programmatic use: create one in
-              Account settings and pass it as a Bearer token from your CLI, MCP client, or CI.
+              Web login (GitHub/Google) is for using the app in a browser. API keys are for
+              programmatic use: create one from the Settings page and pass it as a Bearer token
+              from your CLI, MCP client, or CI.
             </p>
           </div>
         </div>
@@ -556,8 +556,8 @@ function AccountGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Team Management</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Starter, Pro, and Growth plans include team seats. Invite team members by email and assign
-          roles (admin or member). Revoke access at any time.
+          Starter, Pro, and Growth plans include team seats. Invite team members by email from the
+          Settings page and assign roles (admin or member). Revoke access at any time.
         </p>
         <table>
           <thead>
@@ -639,14 +639,14 @@ function AccountGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>API Key Lifecycle</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Your API key is your authentication method. There are no passwords. Manage keys carefully:
+          API keys authenticate programmatic access. Manage them from the Settings page's API Keys section:
         </p>
         <div className="grid grid-2" style={{ gap: 10 }}>
           {[
-            { action: "Create", desc: "Sign in (GitHub/Google), then create a key in Account settings. It's shown once — copy and store it safely. Keys always start with axis_." },
+            { action: "Create", desc: "Sign in (GitHub/Google), then create a key from Settings. It's shown once — copy and store it safely. Keys always start with axis_." },
             { action: "Use", desc: "For API/CLI/MCP, pass as a Bearer token or set the AXIS_API_KEY env var. (Web login uses GitHub/Google — no key needed.)" },
-            { action: "Rotate", desc: "Create a new key from Account page. Update all scripts and CI configs. Old key continues working until revoked." },
-            { action: "Revoke", desc: "Delete a key from Account page. It becomes invalid immediately. Create a new one before revoking the last active key." },
+            { action: "Rotate", desc: "Create a new key from Settings. Update all scripts and CI configs. Old key continues working until revoked." },
+            { action: "Revoke", desc: "Click Revoke next to a key in Settings. It becomes invalid immediately. Create a new one before revoking the last active key." },
           ].map((k) => (
             <div key={k.action} style={{ padding: "8px 12px", background: "var(--bg)", borderRadius: "var(--radius)" }}>
               <strong style={{ fontSize: "0.8125rem", color: "var(--accent)" }}>{k.action}</strong>
@@ -659,7 +659,7 @@ function AccountGuideSection() {
       <div className="card">
         <h3 style={{ marginBottom: 12 }}>Usage Meters</h3>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
-          Track your usage on the Account page. Each meter resets at the start of your billing cycle.
+          Track your usage on the Usage page. Each meter resets at the start of your billing cycle.
         </p>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
           Referral rewards lower your effective dollars per call as referrals grow (up to 0.02% benefit),
@@ -677,17 +677,17 @@ function AccountGuideSection() {
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Snapshots</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Number of analysis runs this month</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Account page, API /account/usage</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Usage page, API /account/usage</td>
             </tr>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Programs run</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Individual program executions</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Account page, API /account/usage</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Usage page, API /account/usage</td>
             </tr>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>Files generated</td>
               <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Total output files produced</td>
-              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Account page</td>
+              <td style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Usage page</td>
             </tr>
             <tr>
               <td style={{ fontSize: "0.8125rem" }}>API calls</td>

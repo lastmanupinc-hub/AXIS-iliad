@@ -226,8 +226,9 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
 
       <div className="tabs">
         {TABS.map((tab, idx) => (
-          <div
+          <button
             key={tab}
+            type="button"
             className={`tab ${activeTab === tab ? "active" : ""}`}
             onClick={() => setActiveTab(tab)}
             title={`Alt+${idx + 1}`}
@@ -238,7 +239,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
                 {generatedFiles.length}
               </span>
             )}
-          </div>
+          </button>
         ))}
       </div>
 

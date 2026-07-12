@@ -443,7 +443,7 @@ export const ROUTES: RouteDef[] = [
     authOnly: true,
     aliases: ["/pricing", "/plans"],
     nav: { group: "LIBRARY", icon: "credit-card" },
-    render: (ctx) => <PlansPage onSelectPlan={() => ctx.navigate("account")} onRequireLogin={() => ctx.requireLogin("paid-program")} />,
+    render: (ctx) => <PlansPage loggedIn={ctx.loggedIn} onSelectPlan={() => ctx.navigate("account")} onRequireLogin={() => ctx.requireLogin("paid-program")} />,
   },
   {
     // WO-P10: Usage & Billing — split off AccountPage's former billing/usage

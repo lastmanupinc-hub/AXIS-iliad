@@ -5,7 +5,7 @@ import { API_BASE, createAccount, establishSession } from "../api.ts";
 // top-level navigations — no client-side secret handling). A subtle collapsible
 // "email" fallback remains for users without a GitHub/Google account. There is
 // deliberately NO "paste your API key" login here — programmatic keys are for
-// CLI/MCP/agents (managed in Account settings once signed in), not web login.
+// CLI/MCP/agents (managed in Settings once signed in), not web login.
 
 const GitHubIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -41,7 +41,7 @@ export function AuthButtons({ onEmailSuccess }: { onEmailSuccess?: () => void })
       const result = await createAccount(name.trim(), email.trim());
       // Exchange the freshly-minted key for the HttpOnly cookie, then discard it —
       // the raw key is never shown or persisted in the web UI (create one in
-      // Account settings if you need a key for CLI/MCP).
+      // Settings if you need a key for CLI/MCP).
       await establishSession(result.api_key.raw_key);
       onEmailSuccess?.();
     } catch (err) {
