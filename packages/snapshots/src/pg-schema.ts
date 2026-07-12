@@ -672,6 +672,20 @@ ALTER TABLE idempotency_keys ALTER COLUMN response DROP NOT NULL;
 ALTER TABLE idempotency_keys DROP CONSTRAINT IF EXISTS idempotency_keys_status_check;
 ALTER TABLE idempotency_keys ADD CONSTRAINT idempotency_keys_status_check CHECK (status IN ('pending','completed'));`,
   },
+  {
+    // CI-fix (discovered while shipping RT.1, unrelated to the red-team
+    // findings): project_memory's documented "newest-first, created_at DESC,
+    // id DESC deterministic tiebreak" is NOT actually deterministic —
+    // created_at is millisecond-precision (new Date().toISOString()), so two
+    // entries inserted in the same millisecond (routine under CI load, or
+    // even locally) tie, and the id DESC tiebreak then sorts by random UUID
+    // string, which has zero relationship to insertion order. `seq` is a
+    // real monotonic identity column: ties on created_at now break on
+    // genuine insertion order, always.
+    version: 36,
+    name: "project_memory_monotonic_seq",
+    sql: `ALTER TABLE project_memory ADD COLUMN IF NOT EXISTS seq BIGINT GENERATED ALWAYS AS IDENTITY;`,
+  },
 ];
 
 /**

@@ -48,7 +48,14 @@ export async function addMemoryEntry(
   return entry;
 }
 
-/** Newest-first: created_at DESC, id DESC (deterministic tiebreak). */
+/**
+ * Newest-first: created_at DESC, seq DESC (deterministic tiebreak).
+ * CI-fix: created_at is millisecond-precision, so two entries inserted in the
+ * same millisecond (routine under load) tie — `seq` (a real monotonic
+ * IDENTITY column, migration v36) breaks that tie on genuine insertion
+ * order; the old `id DESC` tiebreak sorted by random UUID, unrelated to
+ * insertion order.
+ */
 export async function listMemoryEntries(
   project_id: string,
   opts: { kind?: MemoryKind; limit?: number } = {},
@@ -56,12 +63,12 @@ export async function listMemoryEntries(
   const { kind, limit = 50 } = opts;
   if (kind) {
     return await sql.many<MemoryEntry>(
-      "SELECT * FROM project_memory WHERE project_id = ? AND kind = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+      "SELECT * FROM project_memory WHERE project_id = ? AND kind = ? ORDER BY created_at DESC, seq DESC LIMIT ?",
       [project_id, kind, limit],
     );
   }
   return await sql.many<MemoryEntry>(
-    "SELECT * FROM project_memory WHERE project_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+    "SELECT * FROM project_memory WHERE project_id = ? ORDER BY created_at DESC, seq DESC LIMIT ?",
     [project_id, limit],
   );
 }

@@ -34,12 +34,12 @@ describe("project_memory migration", () => {
 
   it("running the migration a second time is idempotent (applied: 0)", async () => {
     const result = await runPgMigrations();
-    expect(result).toEqual({ current_version: 35, applied: 0 });
+    expect(result).toEqual({ current_version: 36, applied: 0 });
   });
 });
 
 describe("addMemoryEntry / listMemoryEntries", () => {
-  it("round-trips entries newest-first (created_at DESC, id DESC tiebreak)", async () => {
+  it("round-trips entries newest-first (created_at DESC, seq DESC tiebreak)", async () => {
     const acct = await createAccount("Mem User", "mem-roundtrip@test.com", "paid");
     const snap = await createSnapshot(
       { input_method: "api_submission", manifest: { project_name: "mem-roundtrip-proj", project_type: "web", frameworks: [], goals: [], requested_outputs: [] }, files: [{ path: "a.ts", content: "x", size: 1 }] },
@@ -53,6 +53,32 @@ describe("addMemoryEntry / listMemoryEntries", () => {
     expect(entries.map((e) => e.id)).toEqual([e2.id, e1.id]); // newest first
     expect(entries[0].kind).toBe("convention");
     expect(entries[0].content).toBe("snake_case for SQL columns");
+  });
+
+  // CI-fix (discovered shipping RT.1, unrelated to the red-team findings):
+  // created_at is millisecond-precision — two entries created in the SAME
+  // millisecond (routine under CI load) used to tie-break on `id DESC`,
+  // sorting by random UUID with zero relationship to insertion order. This
+  // forces the exact tie and proves `seq DESC` (migration v36) resolves it
+  // by genuine insertion order every time, deterministically.
+  it("resolves a genuine created_at TIE by insertion order (seq), not random UUID comparison", async () => {
+    const acct = await createAccount("Mem Tie", "mem-tie@test.com", "paid");
+    const snap = await createSnapshot(
+      { input_method: "api_submission", manifest: { project_name: "mem-tie-proj", project_type: "web", frameworks: [], goals: [], requested_outputs: [] }, files: [{ path: "a.ts", content: "x", size: 1 }] },
+      acct.account_id,
+    );
+
+    const e1 = await addMemoryEntry(snap.project_id, acct.account_id, "decision", "first");
+    const e2 = await addMemoryEntry(snap.project_id, acct.account_id, "decision", "second");
+    // Force the exact collision: both rows now share one timestamp, so the
+    // ORDER BY can ONLY resolve via seq — if it fell back to id (random
+    // UUID), this would flip roughly half the time depending on the two
+    // random ids drawn.
+    const tiedAt = new Date().toISOString();
+    await sql.run("UPDATE project_memory SET created_at = ? WHERE id IN (?, ?)", [tiedAt, e1.id, e2.id]);
+
+    const entries = await listMemoryEntries(snap.project_id);
+    expect(entries.map((e) => e.id)).toEqual([e2.id, e1.id]); // e2 inserted after e1 -> higher seq -> sorts first
   });
 
   it("filters by kind and honors the limit", async () => {
