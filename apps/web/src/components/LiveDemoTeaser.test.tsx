@@ -50,7 +50,7 @@ const DEMO_RESPONSE = {
 
 describe("LiveDemoTeaser", () => {
   it("idle state: shows the run button and no results", () => {
-    render(<LiveDemoTeaser onRequireLogin={() => {}} />);
+    render(<LiveDemoTeaser onRequireLogin={() => {}} onOpenPlayground={() => {}} />);
     expect(screen.getByRole("button", { name: "▶ Run live demo" })).toBeTruthy();
     expect(screen.queryByText("Hello-World")).toBeNull();
   });
@@ -59,7 +59,7 @@ describe("LiveDemoTeaser", () => {
     const fetchFn = mockFetch(DEMO_RESPONSE, 201);
     vi.stubGlobal("fetch", fetchFn);
 
-    render(<LiveDemoTeaser onRequireLogin={() => {}} />);
+    render(<LiveDemoTeaser onRequireLogin={() => {}} onOpenPlayground={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Run live demo" }));
 
     await waitFor(() => expect(screen.getByText("Hello-World")).toBeTruthy());
@@ -75,7 +75,7 @@ describe("LiveDemoTeaser", () => {
     vi.stubGlobal("fetch", mockFetch(DEMO_RESPONSE, 201));
     const onRequireLogin = vi.fn();
 
-    render(<LiveDemoTeaser onRequireLogin={onRequireLogin} />);
+    render(<LiveDemoTeaser onRequireLogin={onRequireLogin} onOpenPlayground={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Run live demo" }));
     await waitFor(() => expect(screen.getByText("Hello-World")).toBeTruthy());
 
@@ -83,10 +83,18 @@ describe("LiveDemoTeaser", () => {
     expect(onRequireLogin).toHaveBeenCalledTimes(1);
   });
 
+  it("links to the full Playground (WO-P15) from the idle state", () => {
+    const onOpenPlayground = vi.fn();
+    render(<LiveDemoTeaser onRequireLogin={() => {}} onOpenPlayground={onOpenPlayground} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Try your own repo in the Playground/ }));
+    expect(onOpenPlayground).toHaveBeenCalledTimes(1);
+  });
+
   it("network failure: shows api.ts's human-readable message and lets the user retry", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("network down"); }) as unknown as typeof fetch);
 
-    render(<LiveDemoTeaser onRequireLogin={() => {}} />);
+    render(<LiveDemoTeaser onRequireLogin={() => {}} onOpenPlayground={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Run live demo" }));
 
     // api.ts maps a fetch-level TypeError to a NETWORK_ERROR ApiError with a
@@ -103,7 +111,7 @@ describe("LiveDemoTeaser", () => {
       return { ok: true, status: 201, json: async () => DEMO_RESPONSE, text: async () => JSON.stringify(DEMO_RESPONSE), headers: { get: () => null } };
     }) as unknown as typeof fetch);
 
-    render(<LiveDemoTeaser onRequireLogin={() => {}} />);
+    render(<LiveDemoTeaser onRequireLogin={() => {}} onOpenPlayground={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Run live demo" }));
     await screen.findByText("boom");
 

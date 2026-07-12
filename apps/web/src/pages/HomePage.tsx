@@ -4,6 +4,7 @@ import { LiveDemoTeaser } from "../components/LiveDemoTeaser.tsx";
 import { StatTile, formatCompact } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
+import type { PageId } from "../routes.tsx";
 
 // ─── HomePage (WO-P1) ────────────────────────────────────────────────────────
 // Landing/Hero — the marketing half of the former UploadPage, split from the
@@ -14,6 +15,8 @@ interface Props {
   onAnalyze: () => void;
   /** Opens the sign-in popup (passed through to the live demo's signup nudge). */
   onRequireLogin: () => void;
+  /** Lets the live demo teaser link out to the full Playground (WO-P15). */
+  onNavigate: (page: PageId) => void;
 }
 
 const PROGRAM_BADGES = [
@@ -56,7 +59,7 @@ function LiveStatsStrip() {
   );
 }
 
-export function HomePage({ onAnalyze, onRequireLogin }: Props) {
+export function HomePage({ onAnalyze, onRequireLogin, onNavigate }: Props) {
   return (
     <div>
       {/* ── Hero value prop ────────────────────────────────────── */}
@@ -80,7 +83,7 @@ export function HomePage({ onAnalyze, onRequireLogin }: Props) {
       </section>
 
       {/* ── Live demo teaser ──────────────────────────────────── */}
-      <LiveDemoTeaser onRequireLogin={onRequireLogin} />
+      <LiveDemoTeaser onRequireLogin={onRequireLogin} onOpenPlayground={() => onNavigate("playground")} />
 
       {/* ── Live social proof (GET /v1/stats) ─────────────────── */}
       <LiveStatsStrip />

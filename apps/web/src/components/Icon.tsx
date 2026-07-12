@@ -36,6 +36,8 @@ const PATHS: Record<string, ReactNode> = {
   plug: <><path d="M9 2v6M15 2v6" /><path d="M7 8h10a1 1 0 0 1 1 1v3a6 6 0 0 1-6 6v0a6 6 0 0 1-6-6V9a1 1 0 0 1 1-1z" /><path d="M12 19v3" /></>,
   // WO-P9 — Agentic Commerce nav icon.
   "shopping-bag": <><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></>,
+  // WO-P15 — Playground nav icon.
+  flask: <><path d="M9 3h6" /><path d="M10 3v6.5L4.5 19a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 9.5V3" /><path d="M7.5 15h9" /></>,
 };
 
 export function Icon({ name, size = 16 }: { name: string; size?: number }) {

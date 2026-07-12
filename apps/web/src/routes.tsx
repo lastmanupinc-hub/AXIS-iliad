@@ -4,6 +4,7 @@ import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { ProjectsPage } from "./pages/ProjectsPage.tsx";
 import { UsagePage } from "./pages/UsagePage.tsx";
 import { CommercePage } from "./pages/CommercePage.tsx";
+import { PlaygroundPage } from "./pages/PlaygroundPage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
@@ -80,8 +81,7 @@ export type PageId =
   // list (the Account Dashboard only teases the most recent 20 as cards).
   | "projects"
   // Usage & Billing (WO-P10) — "#usage", split off AccountPage's former
-  // billing/usage half (profile/keys/seats stay at "account" for now,
-  // pending WO-P12's move to Settings).
+  // billing/usage half (profile/keys/seats moved to Settings in WO-P12).
   | "usage"
   // Settings (WO-P12) — "#settings", the profile/keys/seats half of the
   // former AccountPage plus GitHub tokens, webhooks, program toggles, and
@@ -112,6 +112,9 @@ export type PageId =
   | "mcp"
   // Agentic Purchasing / Commerce Hub (WO-P9) — "#commerce".
   | "commerce"
+  // Live Demo / Playground (WO-P15) — "#playground", public. A fuller
+  // standalone version of HomePage's LiveDemoTeaser.
+  | "playground"
   | "paid-checkout"
   | "admin"
   | "myanalytics"
@@ -248,7 +251,7 @@ export const ROUTES: RouteDef[] = [
     // and no `shortcut`. Reached via "/", the bare hash, or the sidebar
     // brand/logo... except the brand click resets to Analyze (see App.tsx
     // handleReset) — Home is a pure entry point, not a mid-session waypoint.
-    render: (ctx) => <HomePage onAnalyze={() => ctx.navigate("analyze")} onRequireLogin={() => ctx.requireLogin("save-project")} />,
+    render: (ctx) => <HomePage onAnalyze={() => ctx.navigate("analyze")} onRequireLogin={() => ctx.requireLogin("save-project")} onNavigate={ctx.navigate} />,
   },
   {
     page: "analyze",
@@ -424,6 +427,20 @@ export const ROUTES: RouteDef[] = [
         onNavigate={ctx.navigate}
         onRequireLogin={() => ctx.requireLogin("paid-program")}
       />
+    ),
+  },
+  {
+    // WO-P15: Live Demo / Playground — a fuller standalone version of
+    // HomePage's LiveDemoTeaser. Public: anyone can run a real, free-program
+    // analysis with no account; onRequireLogin only nudges after a result
+    // shows, it never gates the page itself.
+    page: "playground",
+    pattern: "playground",
+    label: "Playground",
+    section: "AGENTS",
+    nav: { group: "LIBRARY", icon: "flask" },
+    render: (ctx) => (
+      <PlaygroundPage loggedIn={ctx.loggedIn} onRequireLogin={() => ctx.requireLogin("save-project")} />
     ),
   },
   {

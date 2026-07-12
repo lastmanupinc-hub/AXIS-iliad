@@ -135,7 +135,7 @@ describe("Page smoke tests — pages with required props", () => {
   });
 
   it("HomePage renders with noop callbacks (WO-P1)", () => {
-    const { container } = render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} />);
+    const { container } = render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 
@@ -155,7 +155,7 @@ describe("Page smoke tests — pages with required props", () => {
 describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
   it("renders the value prop, the live demo CTA, and a free-tier CTA to #analyze", () => {
     const onAnalyze = vi.fn();
-    render(<HomePage onAnalyze={onAnalyze} onRequireLogin={() => {}} />);
+    render(<HomePage onAnalyze={onAnalyze} onRequireLogin={() => {}} onNavigate={() => {}} />);
 
     expect(screen.getByText(/Analyze any repo in seconds/i)).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: /Analyze your repo/i })[0]);
@@ -192,7 +192,7 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
     }));
     vi.stubGlobal("fetch", fetchFn as unknown as typeof fetch);
 
-    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} />);
+    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Run live demo" }));
 
     await waitFor(() => expect(screen.getByText("Hello-World")).toBeTruthy());
@@ -220,7 +220,7 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
       headers: { get: () => null },
     })) as unknown as typeof fetch);
 
-    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} />);
+    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "▶ Run live demo" }));
 
     await screen.findByText("boom");
@@ -241,7 +241,7 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
       return { ok: true, status: 200, json: async () => ({}), text: async () => "{}", headers: { get: () => null } };
     }) as unknown as typeof fetch);
 
-    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} />);
+    render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
 
     await screen.findByText("42");
     expect(screen.getByText("9K")).toBeTruthy(); // formatCompact(9001) → "9K"
@@ -253,7 +253,7 @@ describe("HomePage — live demo teaser + live stats (WO-P1)", () => {
       ok: true, status: 200, json: async () => ({}), text: async () => "{}", headers: { get: () => null },
     })) as unknown as typeof fetch);
 
-    const { container } = render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} />);
+    const { container } = render(<HomePage onAnalyze={() => {}} onRequireLogin={() => {}} onNavigate={() => {}} />);
 
     // Give the effect a tick to resolve; the stats grid must never mount.
     await waitFor(() => expect(fetch).toHaveBeenCalled());

@@ -20,9 +20,12 @@ type DemoState = "idle" | "loading" | "done" | "error";
 interface Props {
   /** Opens the sign-in popup (point-of-value nudge after a real result). */
   onRequireLogin: () => void;
+  /** Opens the full standalone Playground (WO-P15) — more sample repos,
+   *  a paste-your-own-URL box, and the anon rate-limit meter. */
+  onOpenPlayground: () => void;
 }
 
-export function LiveDemoTeaser({ onRequireLogin }: Props) {
+export function LiveDemoTeaser({ onRequireLogin, onOpenPlayground }: Props) {
   const [state, setState] = useState<DemoState>("idle");
   const [result, setResult] = useState<AnalyzeQuickResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +56,14 @@ export function LiveDemoTeaser({ onRequireLogin }: Props) {
       />
 
       {state === "idle" && (
-        <button type="button" className="btn btn-primary" onClick={() => void run()}>
-          ▶ Run live demo
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button type="button" className="btn btn-primary" onClick={() => void run()}>
+            ▶ Run live demo
+          </button>
+          <button type="button" className="btn" onClick={onOpenPlayground}>
+            Try your own repo in the Playground →
+          </button>
+        </div>
       )}
 
       {state === "loading" && (
