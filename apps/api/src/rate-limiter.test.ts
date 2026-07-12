@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+// H1.1: the persistence tests do real Postgres round-trips (resetTestDb +
+// bind/flush) — 5s default was exceeded under load (observed 11-41s in the
+// July full-suite run). Ceiling, not pace: the tests themselves are awaited
+// DB calls with no sleeps.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
 import {

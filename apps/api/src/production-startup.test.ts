@@ -1,4 +1,10 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+
+// H1.1: these tests spin REAL HTTP servers + Postgres resets — on a loaded
+// machine they brush past the 5s default (observed: 5.0-41s in the July
+// full-suite run). Generous per-file headroom; the tests remain event-driven
+// (no fixed sleeps), so the timeout is a ceiling, not a pace.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { resetTestDb } from "@axis/snapshots";
@@ -46,10 +52,9 @@ describe("CORS origin configuration", () => {
   let server: Server;
 
   afterEach(async () => {
-    if (server) {
-      server.close();
-      await new Promise((r) => setTimeout(r, 100));
-    }
+    // Event-driven close (H1.1): resolve when the server actually finished
+    // closing instead of hoping 100ms was enough under load.
+    if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     delete process.env.CORS_ORIGIN;
   });
 
@@ -112,9 +117,10 @@ describe("EADDRINUSE error handling", () => {
   let server2: Server;
 
   afterEach(async () => {
-    if (server1) server1.close();
-    if (server2) server2.close();
-    await new Promise((r) => setTimeout(r, 100));
+    // H1.1: close both event-driven; server2 may never have started listening
+    // (EADDRINUSE), where close() errors — swallow, we only care it's gone.
+    if (server1) await new Promise<void>((resolve) => server1.close(() => resolve()));
+    if (server2) await new Promise<void>((resolve) => server2.close(() => resolve()));
   });
 
   it("logs error when port is already in use", async () => {
@@ -136,8 +142,8 @@ describe("EADDRINUSE error handling", () => {
     router2.get("/v1/health", handleHealthCheck);
     server2 = createApp(router2, port);
 
-    // Wait for the error event to fire (the port is known-occupied).
-    await new Promise((r) => setTimeout(r, 300));
+    // H1.1: wait for the ACTUAL error event, not a fixed 300ms guess.
+    await new Promise((resolve) => server2.once("error", resolve));
 
     // First server should still work
     const res2 = await rawReq("GET", "/v1/health", port);
@@ -163,8 +169,7 @@ describe("non-EADDRINUSE server error", () => {
     const res = await rawReq("GET", "/v1/health", port);
     expect(res.status).toBe(200);
 
-    server.close();
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 });
 
