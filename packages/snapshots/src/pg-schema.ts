@@ -651,6 +651,27 @@ CREATE INDEX IF NOT EXISTS idx_compensation_account ON compensation_ledger(accou
 CREATE INDEX IF NOT EXISTS idx_compensation_status ON compensation_ledger(status);
 CREATE INDEX IF NOT EXISTS idx_compensation_created ON compensation_ledger(created_at);`,
   },
+  {
+    // H2.6 (red-team fix, WAVE-0 finding #1, CRITICAL): idempotency_keys only
+    // ever recorded a COMPLETED result (response TEXT NOT NULL), written after
+    // the billable work finished. There was no way to represent "a request
+    // with this key is being processed RIGHT NOW" — so two concurrent requests
+    // sharing one Idempotency-Key both read "nothing yet" and both charged +
+    // ran the billable tool. `status` adds a claim state: a request first
+    // claims the key ('pending', response NULL) BEFORE any charge or work;
+    // only the request that wins the atomic claim proceeds. A 'pending' claim
+    // older than the staleness window (60s — see idempotency-store.ts) is
+    // presumed abandoned (a crashed request) and may be reclaimed, so one dead
+    // request can never permanently lock out that key. Existing rows are
+    // implicitly 'completed' (the default) — the old code path only ever
+    // wrote finished results, so backfilling the default is correct as-is.
+    version: 35,
+    name: "idempotency_keys_claim_status",
+    sql: `ALTER TABLE idempotency_keys ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed';
+ALTER TABLE idempotency_keys ALTER COLUMN response DROP NOT NULL;
+ALTER TABLE idempotency_keys DROP CONSTRAINT IF EXISTS idempotency_keys_status_check;
+ALTER TABLE idempotency_keys ADD CONSTRAINT idempotency_keys_status_check CHECK (status IN ('pending','completed'));`,
+  },
 ];
 
 /**

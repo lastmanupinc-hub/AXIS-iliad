@@ -7,8 +7,6 @@ import { compensateAndSummarize } from "./compensator.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
 import {
   getPersistenceBalance,
-  getIdempotentResult,
-  saveIdempotentResult,
   getUsageCreditSummary,
   recordMcpUsage,
   recordCompensationOwed,
@@ -39,6 +37,9 @@ import {
   previewMcpToolOverage,
   markInbandSettled,
   getInbandSettledAmount,
+  gateIdempotency,
+  resolveIdempotencyClaim,
+  releaseIdempotencyClaim,
   type RpcSuccess,
   type RpcError,
 } from "./mcp-runtime.js";
@@ -232,16 +233,24 @@ export async function dispatch(
       // Idempotency: a retry carrying the same Idempotency-Key returns the
       // original result and never re-charges. Only successful results are stored
       // (a failed call doesn't charge, so it stays retryable).
+      //
+      // H2.6 (red-team fix, WAVE-0 finding #1, CRITICAL): gateIdempotency
+      // ATOMICALLY claims the key before any charge or work — the old plain
+      // read here left a window where two concurrent requests sharing one key
+      // both saw "nothing yet" and both charged + ran the billable tool. If
+      // the in-band settlement gate (settleMcpCallInband) already claimed this
+      // request's key, this call is a no-op read of that same claim (no
+      // redundant DB round-trip, and never a self-conflict).
       const idempotencyKey = readIdempotencyKey(req);
       const requestHash = idempotencyKey ? hashToolRequest(canonicalToolName, toolArgs) : "";
       if (idempotencyKey && auth.account) {
-        const cached = await getIdempotentResult(auth.account.account_id, idempotencyKey);
-        if (cached) {
-          if (cached.request_hash !== requestHash) {
-            return rpcErr(id, RPC_INVALID_PARAMS, "Idempotency-Key already used with different arguments");
-          }
+        const gate = await gateIdempotency(req, auth.account.account_id, idempotencyKey, requestHash);
+        if (gate.outcome === "hash_mismatch") {
+          return rpcErr(id, RPC_INVALID_PARAMS, "Idempotency-Key already used with different arguments");
+        }
+        if (gate.outcome === "replay") {
           return rpcOk(id, {
-            ...toolOk(cached.response),
+            ...toolOk(gate.response),
             _usage: {
               tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
               credits_remaining: await getPersistenceBalance(auth.account.account_id),
@@ -254,6 +263,13 @@ export async function dispatch(
             _idempotent_replay: true,
           });
         }
+        if (gate.outcome === "in_progress") {
+          return rpcOk(id, {
+            ...toolErr("This Idempotency-Key is already being processed by another in-flight request. Retry in a moment — do not change the request body."),
+            _error: { code: "quota", retryable: true },
+          });
+        }
+        // "claimed" — this request now atomically owns the key; proceed.
       }
 
       try {
@@ -382,10 +398,10 @@ export async function dispatch(
             return rpcErr(id, RPC_INVALID_PARAMS, `Unknown tool: ${toolName}`);
           }
         }
-        // Store the successful result so a same-key retry replays it instead of
+        // Complete the claim so a same-key retry replays it instead of
         // re-running and re-charging. (Reached only when the switch didn't throw.)
         if (idempotencyKey && auth.account) {
-          await saveIdempotentResult(auth.account.account_id, idempotencyKey, requestHash, text);
+          await resolveIdempotencyClaim(req, text);
         }
         return rpcOk(id, {
           ...toolOk(text),
@@ -403,6 +419,14 @@ export async function dispatch(
         const msg = err instanceof Error ? err.message : String(err);
         const { code, retryable } = categorizeError(msg);
         const text = msg.trim().startsWith("{") ? msg : `Error: ${msg}`;
+
+        // H2.6: the tool failed — release the claim (delete the pending row)
+        // so the SAME logical retry can claim it again immediately instead of
+        // waiting out the stale-claim reclaim window. Charge-on-success
+        // discipline is unaffected: nothing was ever marked completed.
+        if (idempotencyKey && auth.account) {
+          await releaseIdempotencyClaim(req);
+        }
 
         // H2.2 (WO-20 phase 3): the in-band gate collected cash for THIS call
         // before dispatch, and the tool then failed — the customer paid for
@@ -487,14 +511,33 @@ async function settleMcpCallInband(
   // a settled call's credits were never consumed, so its re-preview still shows
   // overage > 0. Without this check, the retry of an already-paid call would be
   // challenged (or charged) a second time for work that already ran.
+  //
+  // H2.6 (red-team fix, WAVE-0 finding #1, CRITICAL): gateIdempotency ATOMICALLY
+  // claims the key here, before settleOverageCash can charge anything — the old
+  // plain read left a window where two concurrent requests sharing one key both
+  // saw "nothing yet" and both charged real cash. The claim (if won) is held on
+  // `req` and completed/released later by dispatch, whichever way this call ends.
   const idempotencyKey = readIdempotencyKey(req);
+  let requestHash = "";
   if (idempotencyKey) {
-    const cached = await getIdempotentResult(auth.account.account_id, idempotencyKey);
-    if (cached) return false;                   // dispatch replays (or rejects a hash mismatch) without charging
+    requestHash = hashToolRequest(normalizeToolName(rawName), (p?.arguments as Record<string, unknown>) ?? {});
+    const gate = await gateIdempotency(req, auth.account.account_id, idempotencyKey, requestHash);
+    if (gate.outcome === "replay" || gate.outcome === "hash_mismatch") {
+      return false;                             // dispatch replays (or rejects the hash mismatch) without charging
+    }
+    if (gate.outcome === "in_progress") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(rpcOk(msg.id ?? null, {
+        ...toolErr("This Idempotency-Key is already being processed by another in-flight request. Retry in a moment — do not change the request body."),
+        _error: { code: "quota", retryable: true },
+      })));
+      return true;                              // response already written — stop
+    }
+    // "claimed" — held on `req`; dispatch completes/releases it based on the outcome below.
   }
 
   const { overageCents } = await previewMcpToolOverage(req, auth.account, tool);
-  if (overageCents <= 0) return false;          // covered by plan credits -> dispatch meters normally
+  if (overageCents <= 0) return false;          // covered by plan credits -> dispatch meters (and resolves the claim) normally
 
   const result = await settleOverageCash(req, res, auth.account.account_id, overageCents, {
     currency: "usd",
@@ -503,7 +546,13 @@ async function settleMcpCallInband(
     meta: { tool, tier: auth.account.tier },
   });
   if (result === null) return false;            // MPP not configured -> dispatch throws the normal 402-negotiation
-  if (result.status === 402) return true;       // x402 challenge written to res — stop; agent will retry
+  if (result.status === 402) {
+    // Dispatch will NEVER run for this request — release the claim so the
+    // customer can retry (e.g. after topping up) without waiting out the
+    // stale-claim reclaim window.
+    if (idempotencyKey) await releaseIdempotencyClaim(req);
+    return true;                                 // x402 challenge written to res — stop; agent will retry
+  }
   markInbandSettled(req, overageCents);          // paid in-band -> authorize/capture honor it; the amount rides along for the settled-then-error producer (H2.2)
   return false;                                  // proceed to dispatch, which returns the tool result
 }

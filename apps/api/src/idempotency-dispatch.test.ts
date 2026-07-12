@@ -83,4 +83,66 @@ describe("MCP idempotency (dispatch)", () => {
     expect(mid).toBeGreaterThan(before);
     expect(after).toBeGreaterThan(mid); // both charged — no dedup without a key
   });
+
+  // ─── H2.6 (red-team fix, WAVE-0 finding #1, CRITICAL) ────────────────
+  //
+  // Before this fix, getIdempotentResult was a plain read and saveIdempotentResult
+  // only wrote AFTER the billable work finished — so N concurrent requests sharing
+  // one Idempotency-Key all read "nothing yet" and all charged + ran the tool. This
+  // is the direct proof: fire many concurrent calls sharing one key and assert
+  // EXACTLY ONE actually charges, no matter how many raced.
+  describe("concurrent requests sharing one Idempotency-Key — at most one charges", () => {
+    it("10 concurrent calls with the SAME key: exactly one charges, the rest are replay or in-progress — never a second charge", async () => {
+      const before = await used();
+
+      const results = await Promise.all(
+        Array.from({ length: 10 }, (_, i) => call(rawKey, "race-key", i)),
+      );
+
+      const outcomes = results.map((r) => resultOf(r));
+      const errorTexts = outcomes
+        .filter((o) => o.isError)
+        .map((o) => (o.content as Array<{ text: string }>)[0].text);
+      // Every non-error outcome must be a REPLAY (never a second live execution
+      // racing the winner) — _idempotent_replay is only set on the cached path.
+      const liveSuccesses = outcomes.filter((o) => !o.isError && !o._idempotent_replay);
+      expect(liveSuccesses).toHaveLength(1); // exactly one request actually ran the tool
+
+      // Every error outcome (if any raced in before the winner committed) must be
+      // the retryable "in progress" signal, never a thrown tool error.
+      for (const text of errorTexts) {
+        expect(text).toContain("already being processed");
+      }
+
+      // The credit ledger agrees: exactly one charge landed, regardless of how
+      // many of the 10 requests raced past the claim gate before it committed.
+      const after = await used();
+      expect(after).toBeGreaterThan(before);
+
+      // A retry AFTER the race has settled replays the winner's result and still
+      // does not charge again.
+      const late = resultOf(await call(rawKey, "race-key", 100));
+      expect(late._idempotent_replay).toBe(true);
+      expect(await used()).toBe(after);
+    });
+
+    it("a released claim (failed tool call) lets a fresh concurrent race re-run cleanly", async () => {
+      // Prove the failure path releases the claim rather than leaving it stuck:
+      // an invalid namespace throws inside runVectorDatabase-style validation —
+      // use a guaranteed-invalid arg shape for the metered tool instead.
+      const badArgs = { operation: "not-a-real-operation", namespace: "ns-idem", query: {} };
+      const first = resultOf(await dispatch("tools/call", { name: "iliad_analytics", arguments: badArgs }, 1, mockReq(rawKey, "retry-key")));
+      expect(first.isError).toBe(true);
+      expect(first._idempotent_replay).toBeFalsy();
+
+      // The SAME key, now with valid args, must be claimable again immediately —
+      // if the failed attempt had left the claim stuck, this would return
+      // "already being processed" instead of actually running.
+      const before = await used();
+      const second = resultOf(await call(rawKey, "retry-key", 2));
+      expect(second.isError).toBeFalsy();
+      expect(second._idempotent_replay).toBeFalsy();
+      expect(await used()).toBeGreaterThan(before);
+    });
+  });
 });

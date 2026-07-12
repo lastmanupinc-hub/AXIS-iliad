@@ -4,6 +4,10 @@ import {
   createReferralCode,
   previewUsageCredits,
   consumeUsageCredits,
+  getIdempotentResult,
+  claimIdempotencyKey,
+  completeIdempotencyKey,
+  releaseIdempotencyKey,
 } from "@axis/snapshots";
 import { build402NegotiationBody, getPricingTier, parseAgentBudget, resolveAgentMode, priceForMode } from "./mpp.js";
 
@@ -272,4 +276,72 @@ export function readIdempotencyKey(req: IncomingMessage): string | null {
 /** Stable hash of a tool call's identity — detects an Idempotency-Key reused with different arguments. */
 export function hashToolRequest(tool: string, args: Record<string, unknown>): string {
   return createHash("sha256").update(`${tool}\n${JSON.stringify(args)}`).digest("hex");
+}
+
+// ─── H2.6: idempotency claim gate (WAVE-0 finding #1, CRITICAL) ──────
+//
+// Before this fix, both the in-band settlement gate (settleMcpCallInband) and
+// dispatch's own tools/call case independently READ getIdempotentResult, and
+// neither wrote anything until AFTER the billable work finished — so two
+// concurrent requests sharing one Idempotency-Key both saw "nothing yet" and
+// both charged + executed. gateIdempotency is now the single chokepoint: it
+// claims the key atomically BEFORE any charge or work, and is safe to call
+// from both settleMcpCallInband and dispatch for the SAME incoming request —
+// the second call sees the first's claim (via a per-request WeakMap, mirroring
+// markInbandSettled) and treats it as "you already hold this, proceed".
+
+interface IdempotencyClaim {
+  accountId: string;
+  key: string;
+}
+
+const idempotencyClaims = new WeakMap<IncomingMessage, IdempotencyClaim>();
+
+export type IdempotencyGateResult =
+  | { outcome: "replay"; response: string }
+  | { outcome: "hash_mismatch" }
+  | { outcome: "claimed" }
+  | { outcome: "in_progress" };
+
+/**
+ * The single idempotency chokepoint for a tools/call carrying an
+ * Idempotency-Key. At most one concurrent caller per (account, key) gets
+ * "claimed"; every other concurrent caller gets "in_progress" and MUST NOT
+ * charge or dispatch. Idempotent per request: calling this twice for the SAME
+ * `req` (once from the in-band gate, once from dispatch) returns "claimed"
+ * immediately on the second call without a redundant DB round-trip.
+ */
+export async function gateIdempotency(
+  req: IncomingMessage,
+  accountId: string,
+  key: string,
+  requestHash: string,
+): Promise<IdempotencyGateResult> {
+  if (idempotencyClaims.has(req)) return { outcome: "claimed" }; // this request already holds the claim
+  const cached = await getIdempotentResult(accountId, key);
+  if (cached) {
+    return cached.request_hash === requestHash
+      ? { outcome: "replay", response: cached.response }
+      : { outcome: "hash_mismatch" };
+  }
+  const claimed = await claimIdempotencyKey(accountId, key, requestHash);
+  if (!claimed) return { outcome: "in_progress" };
+  idempotencyClaims.set(req, { accountId, key });
+  return { outcome: "claimed" };
+}
+
+/** Complete this request's claim (if it holds one) with the final response. Call ONLY on success. */
+export async function resolveIdempotencyClaim(req: IncomingMessage, response: string): Promise<void> {
+  const claim = idempotencyClaims.get(req);
+  if (!claim) return;
+  await completeIdempotencyKey(claim.accountId, claim.key, response);
+  idempotencyClaims.delete(req);
+}
+
+/** Release this request's claim (if it holds one) without completing it — keeps the key retryable. */
+export async function releaseIdempotencyClaim(req: IncomingMessage): Promise<void> {
+  const claim = idempotencyClaims.get(req);
+  if (!claim) return;
+  await releaseIdempotencyKey(claim.accountId, claim.key);
+  idempotencyClaims.delete(req);
 }

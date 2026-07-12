@@ -260,7 +260,9 @@ export type { MarketedTier, MarketedPlanId } from "./pricing-constants.js";
 export { MARKETED_TIERS, OVERAGE_USD_PER_CREDIT, OVERAGE_CENTS_PER_CREDIT, REFERRAL_MAX_REDUCTION_RATE } from "./pricing-constants.js";
 export {
   getIdempotentResult,
-  saveIdempotentResult,
+  claimIdempotencyKey,
+  completeIdempotencyKey,
+  releaseIdempotencyKey,
   pruneIdempotencyKeys,
 } from "./idempotency-store.js";
 export type { IdempotentRecord } from "./idempotency-store.js";

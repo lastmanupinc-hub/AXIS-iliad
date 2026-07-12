@@ -34,6 +34,13 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
     // cached result. The replay response also reads balance/summary; stub both so
     // the handleMcpPost tests below never touch a real DB.
     getIdempotentResult: vi.fn(async () => null),
+    // H2.6: gateIdempotency's claim step, exercised whenever a test's req
+    // carries an Idempotency-Key and getIdempotentResult finds nothing cached.
+    // Default: claim always wins (no concurrent racer in these single-request
+    // tests) so existing behavior is unchanged unless a test overrides it.
+    claimIdempotencyKey: vi.fn(async () => true),
+    completeIdempotencyKey: vi.fn(async () => undefined),
+    releaseIdempotencyKey: vi.fn(async () => undefined),
     getPersistenceBalance: vi.fn(async () => 0),
     getUsageCreditSummary: vi.fn(async () => ({ plan_id: "free", monthly_allowance: 0 })),
     // H2.2: the settled-then-error producer writes here — spy, no real DB.
