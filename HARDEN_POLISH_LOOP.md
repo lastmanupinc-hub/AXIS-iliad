@@ -143,8 +143,8 @@ July build program. They are not suggestions.
 | H0.1–H0.10 | Hygiene | ALL DONE (H0.2 closed by H2.3) | see PROGRESS |
 | H1.1–H1.4 | Reliability | ALL DONE (H1.1 deflake, H1.2 `fdfddd5`, H1.3 source-guard 30s `317095b`, H1.4 ci-mirror) | see PROGRESS |
 | H2.1–H2.5 | Money path | ALL DONE | see PROGRESS |
-| RT.1–RT.9 | Wave-0 red-team remediation (operator-commissioned, 7-lens adversarial workflow: 2 critical + 3 high + 4 medium confirmed, 3 refuted) | RT.1-RT.5 DONE (findings #1,#2,#5,#3,#6,#7); RT.6-RT.9 in progress (findings #4,#8,#9 + funnel.ts H2.5 gap) | see PROGRESS |
-| ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | Wave 0 code complete; HALTED again for red-team remediation (RT.1–RT.9) before passing — operator directive: fix all confirmed findings, then close | |
+| RT.1–RT.8 | Wave-0 red-team remediation (operator-commissioned, 7-lens adversarial workflow: 12 raw findings, 9 confirmed [2 critical + 3 high + 4 medium], 3 refuted by majority skeptic vote) | ALL DONE — all 9 confirmed findings fixed/verified (RT.8 was verification-only, no code defect) | see PROGRESS |
+| ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | **PASSED (operator directive, 2026-07-12)** — Wave 0 + full red-team remediation (RT.1–RT.8) complete; review packet below | |
 | H3.1–H3.11 | Web completion | pending (behind MONEY GATE) | |
 | H4.1–H4.6 | AI-agent UX | pending | |
 | H5.1–H5.3 | Human UX | pending | |
@@ -273,6 +273,50 @@ on top of freshly-changed billing; their next `continue` AFTER the packet unlock
 Mark the gate row in STATE `PASSED (operator, <date>)` when it happens. This checkpoint
 is deliberate risk-tolerance policy, not an escalation — cheap insurance exactly where a
 human look matters most.
+
+#### Review packet (closed 2026-07-12)
+
+Wave 0 (H0.1–H2.5) commits and outcomes are the PROGRESS ledger rows dated 2026-07-11 and
+the first 2026-07-12 row (`H2.5`, `9b767d0`) — that commit's push is what originally
+triggered this halt. Per operator instruction, the halt was extended to commission an
+adversarial review before approval rather than a manual diff read:
+
+- **Red-team**: operator-commissioned 7-lens adversarial workflow (double-charge,
+  compensation-ledger, h25-regression, wallet-paid, stripe-webhook, deflake-collateral,
+  hygiene-secrets), each finding independently verified by 3 skeptics
+  (majority-must-not-refute to survive). 12 raw findings → 9 confirmed, 3 refuted.
+- **3 refuted (reviewed, not fixed — majority skeptic vote found them not real)**:
+  REST cashier path (`chargeWithDiscounts`) idempotency claim (handlers.ts:62,
+  double-charge lens) — overlaps H0.6's Stripe-side Idempotency-Key coverage; a
+  near-duplicate framing of the H2.3 catch-all issue (cashier.ts:105, wallet-paid lens) —
+  the confirmed version of this (finding #3) is fixed below; a ProjectPage program-run
+  success-toast claim (ProjectPage.tsx:121, deflake-collateral lens) — distinct code path
+  from the confirmed generated-files finding (#8), found not to reproduce.
+- **9 confirmed, all fixed and red-green demonstrated** (temporary local revert, proven
+  red, restored, never committed as-reverted — the established pattern for every unit in
+  this loop):
+
+  | # | Severity | What | Commit |
+  |---|---|---|---|
+  | 1 | CRITICAL | Concurrent same-Idempotency-Key MCP requests both charged + both ran (no claim/reservation) | `51a65bc` |
+  | 2 | CRITICAL | Wallet-debit key was randomUUID() every call — client retry became a real second debit | `9a292cc` |
+  | 5 | MEDIUM | (same root cause as #2, same commit) | `9a292cc` |
+  | 3 | HIGH | H2.3 catch-all recorded compensation for definite (non-ambiguous) 4xx debit rejections | `9a292cc` |
+  | 6 | HIGH | Stripe price truth-fetch had no retry — one transient hiccup reintroduced H0.5's bug | `54303a5` |
+  | 7 | HIGH | No event-ordering guard on subscription webhooks — a stale event could downgrade an active payer | `54303a5` |
+  | 4 | MEDIUM | funnel.ts SEAT_LIMIT response missing the canonical `message` field | `6bd9e06` |
+  | 8 | MEDIUM | ProjectPage silently discarded a malformed/failed generated-files load as "0 files" | `eabce68` |
+  | 9 | MEDIUM | H0.10's secret-scan claim unverified for 3 UTF-16LE files (encoding blind spot) | verification-only, see RT.8 ledger row |
+
+- **Files touched across RT.1–RT.8**: `packages/snapshots/src/{idempotency-store,index,pg-schema,memory-store,stripe-store}.ts` (+ their tests), `apps/api/src/{mcp-runtime,mcp-server,cashier,paid-client,stripe,funnel}.ts` (+ their tests), `apps/web/src/pages/ProjectPage.tsx`, `apps/web/src/app-routing.test.tsx`.
+- **BLOCKED**: none. **Escalated**: none — all 9 confirmed findings were fixable within
+  the existing architecture; no owner-only blocker was hit.
+- **CI**: every RT commit confirmed green (CI + Compliance Check) before the next unit
+  started, per rule 5 (WIP=1); RT.6–RT.8 confirmed green before this gate closure.
+
+Per the operator's standing instruction ("when it completes make fix the negative
+findings... close wave 0 and continue"), this constitutes the operator's review and
+approval — the gate is marked PASSED above without a further halt.
 
 ## Phase H3 · Web completion (the remaining product surface)
 
@@ -528,7 +572,10 @@ every diff. Newest at the bottom.
 | 2026-07-12 | RT.1 [CRITICAL] | Idempotency claim/reservation: idempotency_keys gains a 'pending'/'completed' status (migration v35) — a request now atomically CLAIMS the key BEFORE any charge or dispatch (INSERT...ON CONFLICT, with a 60s stale-claim reclaim so one crashed request can't permanently lock a key); the old plain read-then-later-write let two concurrent requests sharing one Idempotency-Key both see "nothing yet" and both charge + execute. gateIdempotency is the single chokepoint shared by the in-band settlement gate and dispatch (per-request WeakMap so the second caller sees the first's claim, never re-attempts). Proven via a genuine 10-way concurrent Postgres race (exactly one winner) at the store level — deterministic, not timing-dependent, since Postgres's own conflict resolution serializes the racing INSERTs. Red demonstrated by temporarily neutering the atomic claim locally (never committed) | `51a65bc` |
 | 2026-07-12 | CI-fix | project_memory newest-first ordering was non-deterministic (created_at DESC, id DESC tiebreak on random UUID) — migration v36 adds a real monotonic seq column; found because it broke CI on the RT.1 push, unrelated to the red-team findings | `0993354` |
 | 2026-07-12 | RT.2+RT.3 [CRITICAL+HIGH] | (#2+#5) Wallet-debit idempotency key was randomUUID() every invocation — a client retry (after our own 15s abort, or the ambiguous-402 that abort itself produces) minted a fresh key and became a genuine second debit on the SAME rail; now derived stably via HMAC(accountId, tool, callerIdempotencyKey) when the caller supplies one, so PAI'D can dedupe a real retry — no caller key still falls back to a fresh UUID (unchanged). (#3) The H2.3 catch-all treated EVERY non-402 error as ambiguous, including definite 4xx rejections (bad request, auth, unknown developer_id) that PROVABLY never touched the wallet — minting a real, spendable compensation credit for a call that cost nothing (a free-credit farming vector); now a real 4xx (not 402) falls through to mppx exactly as pre-H2.3 (zero double-charge risk, nothing was debited), and only genuine ambiguity (5xx/504/network) still records compensation. Both red-demonstrated by temporary local reverts (never committed) | `9a292cc` |
-| 2026-07-12 | RT.4+RT.5 [HIGH+HIGH] | (#6) fetchSubscriptionPriceId made a single attempt and silently fell back to env on ANY failure — reintroducing H0.5's exact bug if a price rotation coincided with a transient hiccup; now retries (2 attempts, short backoff) and, if every attempt still fails, prefers a KNOWN existing price over env (only falls back to env when there's no history at all, now logged loudly as unconfirmed instead of silent). (#7) Subscription webhooks had no ordering guard — Stripe doesn't guarantee delivery order, so a stale customer.subscription.deleted (an old cancellation redelivered late) could downgrade an actively-paying customer AFTER a newer reactivation event; migration v37 adds last_event_created_at (Stripe's own event timestamp) so a stale event is now detected and ignored (still 200-acked so Stripe stops retrying). Both red-demonstrated by temporary local reverts (never committed) | see commit |
+| 2026-07-12 | RT.4+RT.5 [HIGH+HIGH] | (#6) fetchSubscriptionPriceId made a single attempt and silently fell back to env on ANY failure — reintroducing H0.5's exact bug if a price rotation coincided with a transient hiccup; now retries (2 attempts, short backoff) and, if every attempt still fails, prefers a KNOWN existing price over env (only falls back to env when there's no history at all, now logged loudly as unconfirmed instead of silent). (#7) Subscription webhooks had no ordering guard — Stripe doesn't guarantee delivery order, so a stale customer.subscription.deleted (an old cancellation redelivered late) could downgrade an actively-paying customer AFTER a newer reactivation event; migration v37 adds last_event_created_at (Stripe's own event timestamp) so a stale event is now detected and ignored (still 200-acked so Stripe stops retrying). Both red-demonstrated by temporary local reverts (never committed) | `54303a5` |
+| 2026-07-12 | RT.6 [MEDIUM] | (#4) funnel.ts's SEAT_LIMIT (429) site was the one H2.5 call site that shipped without the canonical `message` field alongside `error` — added; contract test + a direct funnel-api.test.ts assertion both updated | `6bd9e06` |
+| 2026-07-12 | RT.7 [MEDIUM] | (#8) ProjectPage's generated-files load had a bare `.catch(() => {})` — any fetch failure or malformed 200 body silently left generatedFiles at [], indistinguishable from a project that genuinely has zero artifacts; loadGeneratedFiles is now a reusable useCallback tracking a distinct filesLoadFailed flag, rendering an honest Callout + real `<button>` Retry (no fake hash href) instead of staying silent. 2 new tests red-green proven via temporary local revert (never committed) | `eabce68` |
+| 2026-07-12 | RT.8 [MEDIUM] | (#9) H0.10's "credential-shape scanned, all clean" claim was unverified for 3 of the 10 untracked files (docker-ci-run3.txt, test_output.txt, vitest_requested_output.txt) because they are UTF-16LE-encoded — a POSIX-ERE/grep-style scan silently reports no match on UTF-16LE content regardless of what it contains, and git's own diff independently confirms these 3 (and only these 3) were binary at untrack time. Re-scanned by decoding to UTF-8 (`iconv -f UTF-16LE -t UTF-8`) then running the credential-shape pattern set (Stripe/Resend/HF/Render/AWS/GitHub/Slack/Google/OpenAI-style key prefixes, JWT shape, credentialed DB URLs, PEM key blocks) plus a broader env-var/oauth-term pass — both passes clean on all 3 files. The garbled box-drawing/ANSI runs visible in the decode are a pre-existing PowerShell OEM-codepage capture artifact (unrelated to this fix) that only corrupts non-ASCII bytes; every credential shape checked is pure ASCII, so the mojibake cannot hide one. No code change — a verification-only finding; this ledger row is the disclosure | n/a (verification-only) |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 
