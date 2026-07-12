@@ -248,6 +248,32 @@ async function syncTierFromStripeSubscription(
 
 // ─── Handle checkout.session.completed ─────────────────────────
 
+/**
+ * H0.5: the price the customer ACTUALLY bought lives on their Stripe
+ * subscription — fetch it (pinned API version) instead of trusting what the
+ * env maps the plan to at webhook time. Returns null on ANY failure (no key,
+ * network, non-2xx, unexpected shape): the webhook must never bounce on this,
+ * it just degrades to the env-derived resolution.
+ */
+async function fetchSubscriptionPriceId(subscriptionId: string): Promise<string | null> {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return null;
+  try {
+    const response = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${stripeKey}`,
+        "Stripe-Version": STRIPE_API_VERSION,
+      },
+    });
+    if (!response.ok) return null;
+    const sub = (await response.json()) as { items?: { data?: Array<{ price?: { id?: string } }> } };
+    return sub.items?.data?.[0]?.price?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function handleCheckoutCompleted(session: Record<string, unknown>): Promise<void> {
   const meta = session.metadata as Record<string, unknown> | null;
   const accountId = (session.client_reference_id ?? meta?.account_id) as string | undefined;
@@ -259,7 +285,11 @@ async function handleCheckoutCompleted(session: Record<string, unknown>): Promis
 
   const billingCycle = meta?.billing_cycle === "annual" ? "annual" : "monthly";
   const planId = normalizeCheckoutPlanId(meta?.plan_id ?? meta?.tier);
-  const priceId = planId ? (resolveCheckoutPriceId(planId, billingCycle) ?? "") : "";
+  const envPriceId = planId ? (resolveCheckoutPriceId(planId, billingCycle) ?? "") : "";
+  // Truth first (what they bought), env second (what the plan maps to today) —
+  // a price rotation between checkout and webhook must not rewrite history.
+  const truePriceId = await fetchSubscriptionPriceId(subscriptionId);
+  const priceId = truePriceId ?? envPriceId;
 
   const now = new Date().toISOString();
   const existing = await getSubscription(subscriptionId);
@@ -279,7 +309,11 @@ async function handleCheckoutCompleted(session: Record<string, unknown>): Promis
   });
 
   if (priceId) {
-    await syncTierFromStripeSubscription(accountId, priceId, "active");
+    // Tier maps by env comparison (priceToTier) — if the TRUE price rotated
+    // out of the env map, fall back to the plan-intent env price so a paying
+    // customer is never left un-upgraded. The record above still holds truth.
+    const tierPriceId = priceToTier(priceId) ? priceId : envPriceId;
+    if (tierPriceId) await syncTierFromStripeSubscription(accountId, tierPriceId, "active");
   }
 }
 

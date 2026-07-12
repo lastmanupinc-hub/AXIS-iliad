@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import type { Server } from "node:http";
-import { resetTestDb, getSubscription } from "@axis/snapshots";
+import { resetTestDb, getSubscription, getAccount } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
 import { handleCreateAccount } from "./billing.js";
@@ -202,6 +202,48 @@ describe("Stripe webhook", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
     expect(r.data.event).toBe("customer.subscription.updated");
+  });
+
+  it("stores the price the customer ACTUALLY bought when env prices rotated between checkout and webhook (H0.5)", async () => {
+    const { account } = await createTestAccount("rotate", "rotate@test.com");
+    const accountId = account.account_id as string;
+
+    // The customer checked out on price_original_2900. By webhook time the
+    // operator rotated the env: the plan now maps to price_paid_123 (the test
+    // env's current STRIPE_PRICE_ID_PAID). The truth lives on the Stripe
+    // subscription itself — the handler must fetch and store THAT price, and
+    // still upgrade the tier via the plan-intent fallback (the original price
+    // is no longer in the env map, so priceToTier can't map it).
+    process.env.STRIPE_SECRET_KEY = "sk_test_h05";
+    const realFetch = globalThis.fetch;
+    const fetchSpy = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ items: { data: [{ price: { id: "price_original_2900" } }] } }),
+    }));
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      const payload = JSON.stringify(buildCheckoutSessionPayload(accountId, "sub_rotated_1", "paid"));
+      const r = await req("POST", "/v1/webhooks/stripe", payload, {
+        "stripe-signature": signStripePayload(payload),
+      });
+      expect(r.status).toBe(200);
+
+      // The subscription record carries the TRUE price, not today's env mapping.
+      const stored = await getSubscription("sub_rotated_1");
+      expect(stored?.price_id).toBe("price_original_2900");
+
+      // The paying customer is still upgraded (plan-intent fallback for tier).
+      const acct = await getAccount(accountId);
+      expect(acct?.tier).toBe("paid");
+
+      // The truth-fetch hit the subscription with the pinned API version.
+      const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit];
+      expect(url).toBe("https://api.stripe.com/v1/subscriptions/sub_rotated_1");
+      expect((init.headers as Record<string, string>)["Stripe-Version"]).toBe("2026-06-24.dahlia");
+    } finally {
+      vi.stubGlobal("fetch", realFetch);
+      delete process.env.STRIPE_SECRET_KEY;
+    }
   });
 
   // ─── H0.4: Basil+ (2025-03-31 onward) payload shapes ──────────────────────
