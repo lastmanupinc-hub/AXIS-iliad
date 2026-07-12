@@ -59,6 +59,23 @@ function signStripePayload(payload: string, ts: number = Math.floor(Date.now() /
   return `t=${ts},v1=${hmac}`;
 }
 
+/** Polls getEmailDeliveries until at least `minCount` deliveries exist for
+ *  the recipient, or `timeoutMs` elapses — replaces a fixed-delay guess
+ *  ("await 50ms, then check"), which flaked under CI load whenever the
+ *  async email pipeline took longer than the guessed delay. */
+async function waitForDeliveries(
+  email: string,
+  minCount = 1,
+  timeoutMs = 2000,
+): Promise<Awaited<ReturnType<typeof getEmailDeliveries>>> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const deliveries = await getEmailDeliveries(email);
+    if (deliveries.length >= minCount || Date.now() >= deadline) return deliveries;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}
+
 // ─── Server setup ───────────────────────────────────────────────
 
 beforeAll(async () => {
@@ -121,10 +138,7 @@ describe("Email notification wiring", () => {
     const r = await req("POST", "/v1/accounts", { name: "Welcome Test", email: "welcome-test@example.com" });
     expect(r.status).toBe(201);
 
-    // Allow async email send to complete
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const deliveries = await getEmailDeliveries("welcome-test@example.com");
+    const deliveries = await waitForDeliveries("welcome-test@example.com");
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("welcome");
     expect(deliveries[0].status).toBe("sent");
@@ -152,10 +166,7 @@ describe("Email notification wiring", () => {
     );
     expect(r.status).toBe(201);
 
-    // Allow async email send to complete
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const deliveries = await getEmailDeliveries("invitee-169@example.com");
+    const deliveries = await waitForDeliveries("invitee-169@example.com");
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("seat_invitation");
     expect(deliveries[0].status).toBe("sent");
@@ -170,9 +181,7 @@ describe("Email notification wiring", () => {
     const r = await req("POST", "/v1/accounts", { name: "NoProvider User", email: "noprovider@example.com" });
     expect(r.status).toBe(201);
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const deliveries = await getEmailDeliveries("noprovider@example.com");
+    const deliveries = await waitForDeliveries("noprovider@example.com");
     expect(deliveries.length).toBeGreaterThanOrEqual(1);
     expect(deliveries[0].template).toBe("welcome");
     expect(deliveries[0].status).toBe("pending");
@@ -312,10 +321,7 @@ describe("Webhook upgrade email notification", () => {
     expect(r.status).toBe(200);
     expect(r.data.handled).toBe(true);
 
-    // Allow async email send to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const deliveries = await getEmailDeliveries("webhook-upgrade-169@example.com");
+    const deliveries = await waitForDeliveries("webhook-upgrade-169@example.com");
     const upgradeEmail = deliveries.find((d) => d.template === "upgrade_confirmation");
     expect(upgradeEmail).toBeDefined();
     expect(upgradeEmail!.status).toBe("sent");
