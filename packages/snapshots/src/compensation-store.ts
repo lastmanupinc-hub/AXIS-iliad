@@ -139,3 +139,19 @@ export async function listOwedCompensation(limit = 50): Promise<CompensationEntr
     [limit],
   );
 }
+
+/**
+ * H2.4 — oldest-first owed entries for ONE account, so the compensator can be
+ * triggered lazily (on that account's next `_usage` envelope) instead of
+ * needing a standalone sweep process.
+ */
+export async function listOwedCompensationForAccount(
+  account_id: string,
+  limit = 10,
+): Promise<CompensationEntry[]> {
+  return sql.many<CompensationEntry>(
+    `SELECT * FROM compensation_ledger WHERE account_id = ? AND status = 'owed'
+     ORDER BY created_at ASC LIMIT ?`,
+    [account_id, limit],
+  );
+}

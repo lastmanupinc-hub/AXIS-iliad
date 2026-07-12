@@ -7,6 +7,7 @@ import {
   previewUsageCredits,
   consumeUsageCredits,
   getUsageCreditSummary,
+  grantUsageCredits,
 } from "./usage-credit-metering.js";
 import { getReferralCredits, getReferralTokenUsageModifier } from "./referral-store.js";
 
@@ -148,4 +149,61 @@ describe("previewUsageCredits — read-only authorization gate", () => {
     expect(results).toHaveLength(N);
     expect(results.every((r) => r.credits_required > 0)).toBe(true);
   }, 45_000);
+});
+
+// ─── grantUsageCredits (H2.4 — the compensator's make-good primitive) ────
+
+describe("grantUsageCredits", () => {
+  beforeEach(async () => {
+    await resetTestDb();
+  });
+
+  it("reduces included_credits_used, growing remaining by the same credit count", async () => {
+    const account = await createAccount("Grant", "grant@example.com", "paid");
+    const charge = await consumeUsageCredits(account.account_id, "paid", "analyze_repo", 1000);
+    const before = await getUsageCreditSummary(account.account_id, "paid");
+    expect(before.included_credits_used).toBe(charge.included_credits_applied);
+
+    const granted = await grantUsageCredits(account.account_id, "paid", 500);
+    expect(granted).toBe(creditsFromUsdCents(500));
+
+    const after = await getUsageCreditSummary(account.account_id, "paid");
+    expect(after.included_credits_used).toBe(before.included_credits_used - granted);
+    expect(after.included_credits_remaining).toBe(before.included_credits_remaining + granted);
+  });
+
+  it("seeds a fresh month row when the account has no usage yet, banking negative headroom", async () => {
+    const account = await createAccount("FreshGrant", "fresh-grant@example.com", "paid");
+    const granted = await grantUsageCredits(account.account_id, "paid", 200);
+    expect(granted).toBeGreaterThan(0);
+
+    const summary = await getUsageCreditSummary(account.account_id, "paid");
+    // Nothing was ever consumed, yet remaining exceeds the base allowance —
+    // proof the grant banked as negative included_credits_used, not a no-op.
+    expect(summary.included_credits_remaining).toBe(summary.monthly_allowance + granted);
+  });
+
+  it("amountCents <= 0 is a no-op — no row written, nothing granted", async () => {
+    const account = await createAccount("NoGrant", "no-grant@example.com", "paid");
+    expect(await grantUsageCredits(account.account_id, "paid", 0)).toBe(0);
+    expect(await grantUsageCredits(account.account_id, "paid", -50)).toBe(0);
+
+    const row = await sql.one<{ n: string | number }>(
+      "SELECT COUNT(*) as n FROM usage_credit_monthly WHERE account_id = ?",
+      [account.account_id],
+    );
+    expect(Number(row?.n ?? 0)).toBe(0);
+  });
+
+  it("a grant is real spendable headroom — a later consume draws it down before creating overage", async () => {
+    const account = await createAccount("SpendGrant", "spend-grant@example.com", "paid");
+    const granted = await grantUsageCredits(account.account_id, "paid", 1000); // banks `granted` credits of headroom
+
+    // Consume exactly `granted` credits worth of cents — should land entirely
+    // within the included allowance (the banked headroom), zero overage.
+    const centsForGrantedCredits = Math.floor((granted * 18) / 100) || 1;
+    const charge = await consumeUsageCredits(account.account_id, "paid", "analyze_repo", centsForGrantedCredits);
+    expect(charge.overage_credits).toBe(0);
+    expect(charge.effective_overage_cents).toBe(0);
+  });
 });

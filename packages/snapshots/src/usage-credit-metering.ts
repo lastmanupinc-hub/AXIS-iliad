@@ -256,3 +256,51 @@ export async function consumeUsageCredits(
     return toChargeResult(c, tool);
   });
 }
+
+/**
+ * H2.4 — grant usage-credit headroom to make an account whole for a
+ * `compensation_ledger` entry (a cash-settled call whose tool then failed, or
+ * an ambiguous wallet debit). Unlike `consumeUsageCredits`, nothing was
+ * necessarily drawn down for the call being compensated (a settled-then-error
+ * call never reaches `captureMcpToolCredits`), so this is an ADDITIVE grant:
+ * `included_credits_used` is reduced by the credit-equivalent of `amountCents`
+ * — deliberately allowed to go negative, which is "banked" headroom that
+ * `splitFromUsed`'s `Math.max(0, allowance - used)` turns into extra
+ * `included_credits_remaining` for the rest of this month_key. Serialized on
+ * the same per-account advisory lock as `consumeUsageCredits` to avoid a lost
+ * update if a grant races a real consume. Returns the credits granted (0 if
+ * amountCents rounds to nothing).
+ */
+export async function grantUsageCredits(
+  account_id: string,
+  tier: BillingTier,
+  amountCents: number,
+): Promise<number> {
+  const creditsToGrant = creditsFromUsdCents(amountCents);
+  if (creditsToGrant <= 0) return 0;
+  const month_key = getMonthKey();
+  const plan_id = await resolvePlanForAccount(account_id, tier);
+  const monthly_allowance = PLAN_MONTHLY_CREDITS[plan_id] ?? 0;
+
+  await sql.tx(async (client) => {
+    await client.query("SELECT pg_advisory_xact_lock(2, hashtext($1))", [account_id]);
+    const cur = await client.query<{ included_credits_used: string | number | null }>(
+      "SELECT included_credits_used FROM usage_credit_monthly WHERE account_id = $1 AND month_key = $2",
+      [account_id, month_key],
+    );
+    const includedUsed = Number(cur.rows[0]?.included_credits_used ?? 0);
+    const nextUsed = includedUsed - creditsToGrant;
+    await client.query(
+      pgPlaceholders(
+        `INSERT INTO usage_credit_monthly
+          (account_id, month_key, plan_id, monthly_allowance, included_credits_used, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(account_id, month_key) DO UPDATE SET
+           included_credits_used = excluded.included_credits_used,
+           updated_at = excluded.updated_at`,
+      ),
+      [account_id, month_key, plan_id, monthly_allowance, nextUsed, new Date().toISOString()],
+    );
+  });
+  return creditsToGrant;
+}

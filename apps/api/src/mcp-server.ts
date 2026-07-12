@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { readBody } from "./router.js";
 import { resolveAuth } from "./billing.js";
 import { settleOverageCash } from "./cashier.js";
+import { compensateAndSummarize } from "./compensator.js";
 import { log, shouldEmitRuntimeLogs } from "./logger.js";
 import {
   getPersistenceBalance,
@@ -245,6 +246,9 @@ export async function dispatch(
               tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
               credits_remaining: await getPersistenceBalance(auth.account.account_id),
               usage_credits: await getUsageCreditSummary(auth.account.account_id, auth.account.tier),
+              // H2.4: lazy compensator — claims + grants any owed compensation
+              // for this account, then reports the running totals.
+              compensation: await compensateAndSummarize(auth.account.account_id),
               tool: canonicalToolName,
             },
             _idempotent_replay: true,
@@ -389,6 +393,9 @@ export async function dispatch(
             tier: auth.anonymous ? "anonymous" : (auth.account?.tier ?? "unknown"),
             credits_remaining: auth.account ? await getPersistenceBalance(auth.account.account_id) : null,
             usage_credits: auth.account ? await getUsageCreditSummary(auth.account.account_id, auth.account.tier) : null,
+            // H2.4: lazy compensator — claims + grants any owed compensation
+            // for this account, then reports the running totals.
+            compensation: auth.account ? await compensateAndSummarize(auth.account.account_id) : null,
             tool: canonicalToolName,
           },
         });

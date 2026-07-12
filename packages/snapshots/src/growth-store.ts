@@ -7,6 +7,7 @@
 // reads a true $0 until real money moves, then rises on its own.
 
 import { sql } from "./pg.js";
+import { getTotalCompensationOwed } from "./compensation-store.js";
 
 export interface GrowthSnapshot {
   generated_at: string;
@@ -40,6 +41,16 @@ export interface GrowthSnapshot {
     settled_mrr_cents: number;
     /** All-time equivalent of `settled_mrr_cents` (no trailing-30d window). */
     settled_revenue_cents_all_time: number;
+    /**
+     * H2.4: money recorded in `compensation_ledger` as 'owed' right now — cash
+     * settled for calls that then failed or an ambiguous wallet debit, not yet
+     * made whole. This does NOT change `settled_revenue_cents_all_time` (that
+     * stays the exact receipts sum); it is surfaced separately so the raw
+     * receipts figure never silently drifts from its own documented definition.
+     */
+    compensation_owed_cents_all_time: number;
+    /** `settled_revenue_cents_all_time` minus `compensation_owed_cents_all_time` — can go negative if owed exceeds settled. */
+    settled_revenue_cents_all_time_net_of_compensation: number;
     /** Settled revenue broken out per tool, merging both settlement sources. */
     revenue_by_tool: Array<{ tool: string; cents: number; calls: number }>;
     /** MIN(created_at) across settled sources; null until the first dollar settles. */
@@ -129,6 +140,8 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
 
   const totalAccounts = Number(tiers.total ?? 0);
   const payingAccountCount = Number(settledTotals?.payers ?? 0);
+  const settledAllTime = Number(settledTotals?.total ?? 0);
+  const compensationOwed = await getTotalCompensationOwed();
 
   return {
     generated_at: now.toISOString(),
@@ -147,7 +160,9 @@ export async function getGrowthSnapshot(now: Date = new Date()): Promise<GrowthS
       metered_overage_cents_this_month: Math.ceil((overage * 18) / 100),
       active_subscriptions: activeSubs,
       settled_mrr_cents: Number(settledTrailing?.total ?? 0),
-      settled_revenue_cents_all_time: Number(settledTotals?.total ?? 0),
+      settled_revenue_cents_all_time: settledAllTime,
+      compensation_owed_cents_all_time: compensationOwed,
+      settled_revenue_cents_all_time_net_of_compensation: settledAllTime - compensationOwed,
       revenue_by_tool: settledByTool.map((r) => ({
         tool: r.tool,
         cents: Number(r.cents),

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql } from "@axis/snapshots";
+import { resetTestDb, createSnapshot, createAccount, createApiKey, getUsageCreditSummary, consumeUsageCredits, sql, recordCompensationOwed, getCompensationSummary } from "@axis/snapshots";
 import { Router, createApp, sendJSON } from "./router.js";
 import { handleMcpPost, handleMcpGet, handleMcpDocs, handleMcpServerJson, getMcpServerMeta, MCP_TOOLS, MCP_PROTOCOL_VERSION, runSearchTools, getMcpCallCounters, logMcpCall } from "./mcp-server.js";
 import {
@@ -2087,6 +2087,64 @@ describe("tools/call responses include _usage field", () => {
     const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
     const usage = result._usage as Record<string, unknown>;
     expect(usage.tool).toBe("search_and_discover_tools");
+  });
+});
+
+// ─── H2.4: the compensator runs lazily on every _usage build ─────
+
+describe("_usage.compensation — the lazy compensator (H2.4)", () => {
+  it("an owed compensation entry is claimed and credited on the account's very next call, and reported", async () => {
+    const acct = await createAccount("Comp E2E", "comp-e2e@test.com", "free");
+    const rawKey = (await createApiKey(acct.account_id, "comp-e2e-key")).rawKey;
+    await recordCompensationOwed({
+      account_id: acct.account_id,
+      tool: "analyze_repo",
+      amount_cents: 120,
+      reason: "settled_then_error",
+    });
+    expect((await getCompensationSummary(acct.account_id)).owed_cents).toBe(120);
+
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 133,
+      method: "tools/call",
+      params: { name: "list_programs", arguments: {} },
+    }, rawKey);
+
+    expect(r.status).toBe(200);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.compensation).toEqual({ owed_cents: 0, credited_cents: 120 });
+
+    // The ledger itself agrees — this call's lazy sweep is what claimed it.
+    expect(await getCompensationSummary(acct.account_id)).toEqual({ owed_cents: 0, credited_cents: 120 });
+  });
+
+  it("an account with nothing owed reports a zeroed compensation block", async () => {
+    const acct = await createAccount("Comp Quiet", "comp-quiet@test.com", "free");
+    const rawKey = (await createApiKey(acct.account_id, "comp-quiet-key")).rawKey;
+
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 134,
+      method: "tools/call",
+      params: { name: "list_programs", arguments: {} },
+    }, rawKey);
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.compensation).toEqual({ owed_cents: 0, credited_cents: 0 });
+  });
+
+  it("an anonymous call has no account to compensate — compensation is null, same as the other per-account fields", async () => {
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 135,
+      method: "tools/call",
+      params: { name: "list_programs", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const usage = result._usage as Record<string, unknown>;
+    expect(usage.compensation).toBeNull();
   });
 });
 

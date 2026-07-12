@@ -45,6 +45,14 @@ vi.mock("@axis/snapshots", async (importOriginal) => {
       created_at: "2026-01-01T00:00:00.000Z",
       resolved_at: null,
     })),
+    // H2.4: the compensator runs on EVERY successful _usage build (both
+    // dispatch success paths) — stub its whole call graph so this suite's
+    // handleMcpPost tests stay DB-free. Default: nothing owed, nothing to do.
+    getAccount: vi.fn(async () => ({ account_id: "acc-1", name: "t", email: "t@x.com", tier: "paid", created_at: "2026-01-01T00:00:00.000Z" })),
+    listOwedCompensationForAccount: vi.fn(async () => []),
+    claimCompensationForCredit: vi.fn(async () => null),
+    grantUsageCredits: vi.fn(async () => 0),
+    getCompensationSummary: vi.fn(async () => ({ owed_cents: 0, credited_cents: 0 })),
   };
 });
 

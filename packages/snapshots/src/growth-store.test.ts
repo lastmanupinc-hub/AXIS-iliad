@@ -3,6 +3,7 @@ import { resetTestDb } from "./pg-test.js";
 import { createAccount } from "./billing-store.js";
 import { consumeUsageCredits } from "./usage-credit-metering.js";
 import { recordSettledPayment } from "./payment-receipts-store.js";
+import { recordCompensationOwed, claimCompensationForCredit } from "./compensation-store.js";
 import { getGrowthSnapshot } from "./growth-store.js";
 
 describe("getGrowthSnapshot", () => {
@@ -152,5 +153,75 @@ describe("getGrowthSnapshot", () => {
     const s1 = await getGrowthSnapshot(fixedNow);
     const s2 = await getGrowthSnapshot(fixedNow);
     expect(s1).toEqual(s2);
+  });
+});
+
+describe("getGrowthSnapshot — compensation owed (H2.4)", () => {
+  beforeEach(async () => {
+    await resetTestDb();
+  });
+
+  it("is zero on an empty database", async () => {
+    const s = await getGrowthSnapshot();
+    expect(s.revenue.compensation_owed_cents_all_time).toBe(0);
+    expect(s.revenue.settled_revenue_cents_all_time_net_of_compensation).toBe(0);
+  });
+
+  it("subtracts owed compensation from the NET figure WITHOUT altering the raw receipts sum", async () => {
+    const acct = await createAccount("Payer", "comp-payer@x.com", "paid");
+    await recordSettledPayment({
+      account_id: acct.account_id,
+      tool: "analyze_repo",
+      amount_cents: 500,
+      currency: "usd",
+      provider: "stripe",
+      external_receipt: "rcpt_comp_1",
+    });
+    await recordCompensationOwed({
+      account_id: acct.account_id,
+      tool: "analyze_repo",
+      amount_cents: 150,
+      reason: "settled_then_error",
+    });
+
+    const s = await getGrowthSnapshot();
+    // The raw receipts sum is untouched — its own documented definition
+    // ("the penny-exact record of what was actually collected") must never
+    // silently drift because of an unrelated compensation obligation.
+    expect(s.revenue.settled_revenue_cents_all_time).toBe(500);
+    expect(s.revenue.compensation_owed_cents_all_time).toBe(150);
+    expect(s.revenue.settled_revenue_cents_all_time_net_of_compensation).toBe(350);
+  });
+
+  it("a credited (made-whole) entry no longer counts as owed", async () => {
+    const acct = await createAccount("Made Whole", "made-whole@x.com", "paid");
+    const entry = await recordCompensationOwed({
+      account_id: acct.account_id,
+      tool: "analyze_repo",
+      amount_cents: 80,
+      reason: "wallet_rail_ambiguous",
+    });
+    await claimCompensationForCredit(entry.entry_id);
+
+    const s = await getGrowthSnapshot();
+    expect(s.revenue.compensation_owed_cents_all_time).toBe(0);
+    expect(s.revenue.settled_revenue_cents_all_time_net_of_compensation).toBe(
+      s.revenue.settled_revenue_cents_all_time,
+    );
+  });
+
+  it("net can go negative when owed compensation exceeds settled revenue — a real risk signal, not floored away", async () => {
+    const acct = await createAccount("Underwater", "underwater@x.com", "paid");
+    await recordCompensationOwed({
+      account_id: acct.account_id,
+      tool: "analyze_repo",
+      amount_cents: 1000,
+      reason: "wallet_rail_ambiguous",
+    });
+
+    const s = await getGrowthSnapshot();
+    expect(s.revenue.settled_revenue_cents_all_time).toBe(0);
+    expect(s.revenue.compensation_owed_cents_all_time).toBe(1000);
+    expect(s.revenue.settled_revenue_cents_all_time_net_of_compensation).toBe(-1000);
   });
 });

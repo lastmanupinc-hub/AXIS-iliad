@@ -100,6 +100,7 @@ export {
   getCompensationSummary,
   getTotalCompensationOwed,
   listOwedCompensation,
+  listOwedCompensationForAccount,
 } from "./compensation-store.js";
 
 // Webhooks
@@ -251,6 +252,7 @@ export {
   getUsageCreditSummary,
   previewUsageCredits,
   consumeUsageCredits,
+  grantUsageCredits,
 } from "./usage-credit-metering.js";
 
 // Marketed pricing constants (single source of truth — WO-01 billing-tiers-4)
