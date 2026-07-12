@@ -388,10 +388,14 @@ export function build402NegotiationBody(
     action: "Upgrade or add credits to continue",
     accepted_payment_schemes: acceptedPaymentSchemes,
     referral_token: options.referral_token ?? null,
-    // Direct links for agents to surface to the user or use autonomously
+    // Direct links for agents to surface to the user or use autonomously.
+    // H2.5: `upgrade_url` is the CANONICAL pointer name — every payment/quota
+    // surface across REST and MCP includes it (some also keep older sibling
+    // names below for back-compat; none of those are removed or renamed).
     payment_url: `${process.env.WEB_BASE_URL ?? "https://iliad.trustfabric.ai"}/billing`,
     checkout_url: `${process.env.WEB_BASE_URL ?? "https://iliad.trustfabric.ai"}/billing#checkout-paid`,
     go_pro_url: "https://iliad.trustfabric.ai/billing",
+    upgrade_url: `${process.env.WEB_BASE_URL ?? "https://iliad.trustfabric.ai"}/billing`,
     retry_after_payment: "After payment completes, re-send the original request with your API key in Authorization: Bearer <key>. No additional steps required — the server processes it immediately.",
     x402: {
       amount: String(tier.standard_cents * 10_000),

@@ -3,7 +3,7 @@ import { Receipt } from "mppx";
 import { chargeMpp } from "./mpp.js";
 import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensationOwed } from "@axis/snapshots";
 import type { PaymentProvider } from "@axis/snapshots";
-import { log } from "./logger.js";
+import { log, getRequestId, ErrorCode } from "./logger.js";
 import { randomUUID } from "node:crypto";
 import {
   paidWalletMode,
@@ -111,7 +111,19 @@ export async function settleOverageViaPaidWallet(
         body = { error: "insufficient_credits", balance_fc: 0, required_fc: amountFc, shortfall_fc: amountFc };
       }
       res.writeHead(402, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ...body, error: "insufficient_credits", topup_url: "/v1/credits/topup" }));
+      res.end(JSON.stringify({
+        ...body,
+        error: "insufficient_credits",
+        // H2.5: additive canonical fields — topup_url is kept as-is (an
+        // existing, distinct API surface), error_code/message/upgrade_url/
+        // request_id are NEW so this response carries the same envelope
+        // every other payment-required surface does.
+        error_code: ErrorCode.INSUFFICIENT_CREDITS,
+        message: "Insufficient Fabric-Credit balance for this call.",
+        topup_url: "/v1/credits/topup",
+        upgrade_url: "https://iliad.trustfabric.ai/billing",
+        request_id: getRequestId(res),
+      }));
       return { status: 402 };
     }
     // H2.3 (closes H0.2): every OTHER failure is AMBIGUOUS, not "PAI'D is down."
@@ -136,9 +148,12 @@ export async function settleOverageViaPaidWallet(
     res.writeHead(402, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       error: "wallet_settlement_unconfirmed",
+      error_code: ErrorCode.SETTLEMENT_UNCONFIRMED,
       message: "Payment status for this call could not be confirmed on the Fabric-Credit rail. To avoid a duplicate charge, this call was not completed and no work was performed — retrying may incur a separate charge if the original debit landed. A compensation entry was recorded and will be credited automatically once reconciled.",
       compensation_entry_id: entry.entry_id,
       topup_url: "/v1/credits/topup",
+      upgrade_url: "https://iliad.trustfabric.ai/billing",
+      request_id: getRequestId(res),
     }));
     return { status: 402 };
   }

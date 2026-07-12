@@ -133,9 +133,14 @@ export async function handleInviteSeat(
       const limit = SEAT_LIMITS[ctx.account!.tier];
       sendError(res, 429, ErrorCode.SEAT_LIMIT, message, {
         limit,
-        /* v8 ignore next 3 — dead code: free tier blocked at line 49 before reaching */
+        /* v8 ignore next 7 — dead code: free tier blocked at line 49 before reaching */
         upgrade_hint: ctx.account!.tier === "paid"
           ? "Upgrade to Enterprise Suite for unlimited seats"
+          : undefined,
+        // H2.5: additive canonical pointer, present exactly when upgrade_hint
+        // is (there is no further tier to upgrade to beyond suite).
+        upgrade_url: ctx.account!.tier === "paid"
+          ? "https://iliad.trustfabric.ai/#plans"
           : undefined,
       });
     } else {

@@ -123,7 +123,13 @@ export function sendError(
   message: string,
   extra?: Record<string, unknown>,
 ) {
-  sendJSON(res, status, { error: message, error_code: errorCode, ...extra });
+  // H2.5: `extra` spreads FIRST so it can only ADD fields — the caller's
+  // explicit message/errorCode always win. Several call sites spread a
+  // reusable negotiation-body builder into `extra` (build402NegotiationBody),
+  // whose own hardcoded `error: "Payment Required"` key used to silently
+  // clobber the caller's specific message (even on 429 quota responses,
+  // where "Payment Required" is simply wrong).
+  sendJSON(res, status, { ...extra, error: message, error_code: errorCode });
 }
 
 export async function readBody(req: IncomingMessage): Promise<string> {

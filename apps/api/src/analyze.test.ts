@@ -338,9 +338,15 @@ describe("POST /v1/analyze â€” validation", () => {
     expect(r.status).toBe(402);
     const data = r.data as Record<string, unknown>;
     expect(data.error_code).toBe("TIER_REQUIRED");
-    expect(data.error).toBe("Payment Required");
+    // H2.5: `error` is the call-specific message (sendError's caller-supplied
+    // message always wins over the negotiation body's generic "Payment
+    // Required" constant — the old clobbering bug this test used to encode
+    // as "correct"). `message` carries the same text as an explicit alias.
+    expect(data.error).toBe(`analyze_repo requires $0.50 MPP credit (or Pro tier). This returns the full ${ARTIFACT_COUNT}-artifact AXIS bundle. Upgrade at iliad.trustfabric.ai/billing.`);
+    expect(data.message).toBe(data.error);
     expect(data.price).toBe("0.50");
     expect(data.referral_token).toBeTruthy();
+    expect(typeof data.upgrade_url).toBe("string");
   });
 
   it("rejects an oversized authed request BEFORE any charge — a doomed request costs $0 (validate-first)", async () => {

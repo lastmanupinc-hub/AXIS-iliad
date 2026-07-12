@@ -42,8 +42,9 @@ import {
   putCachedScrape,
   consumeFreeScrapes,
   getFreeScrapePoolStatus,
+  getUsageCreditSummary,
 } from "@axis/snapshots";
-import type { SnapshotInput, SnapshotManifest, FileEntry } from "@axis/snapshots";
+import type { SnapshotInput, SnapshotManifest, FileEntry, BillingTier } from "@axis/snapshots";
 import { buildContextMap, buildRepoProfile } from "@axis/context-engine";
 import type { ContextMap, RepoProfile } from "@axis/context-engine";
 import { generateFiles, listAvailableGenerators, gradeCompliance } from "@axis/generator-core";
@@ -88,12 +89,19 @@ async function buildPaymentRequiredPayload(
   message: string,
   budget?: AgentBudget,
   accountId?: string,
+  tier?: BillingTier,
 ): Promise<Record<string, unknown>> {
   const referralToken = accountId ? (await createReferralCode(accountId)).code : null;
-  return build402NegotiationBody(tool, budget, {
-    message,
-    referral_token: referralToken,
-  });
+  return {
+    ...build402NegotiationBody(tool, budget, {
+      message,
+      referral_token: referralToken,
+    }),
+    // H2.5: usage_credits present everywhere an authenticated account's
+    // credit standing is meaningful — absent (not fabricated) for anonymous
+    // callers, who have no credit concept at all.
+    usage_credits: accountId && tier ? await getUsageCreditSummary(accountId, tier) : null,
+  };
 }
 
 // â”€â”€â”€ Ownership helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -274,7 +282,7 @@ export function makeProgramHandler(program: string, defaultOutputs: string[]) {
           program,
           tier: auth.account.tier,
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-          ...(await buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id)),
+          ...(await buildPaymentRequiredPayload(program, paymentMessage, budget, auth.account.account_id, auth.account.tier)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -448,7 +456,7 @@ export async function handleCreateSnapshot(
           sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
             tier: quota.tier,
             usage: quota.usage,
-            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
+            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
@@ -495,7 +503,7 @@ export async function handleCreateSnapshot(
             upgrade_url: "https://iliad.trustfabric.ai/#plans",
             tier: auth.account.tier,
             price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
+            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
           },
         );
       }
@@ -1022,7 +1030,7 @@ export async function handleGitHubAnalyze(
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
           tier: quota.tier,
           usage: quota.usage,
-          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
+          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1570,7 +1578,7 @@ export async function handleAnalyze(
             blocked_programs: blockedPrograms,
             tier: auth.account.tier,
             price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
+            ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
           });
         }
         if (mppResult === null || mppResult.status === 402) return;
@@ -1596,7 +1604,7 @@ export async function handleAnalyze(
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
           tier: quota.tier,
           usage: quota.usage,
-          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id)),
+          ...(await buildPaymentRequiredPayload("analyze_repo", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1952,7 +1960,7 @@ export async function handlePreparePurchasing(
           blocked_programs: blockedPrograms,
           tier: auth.account.tier,
           price_per_call: `$${(amountCents / 100).toFixed(2)}`,
-          ...(await buildPaymentRequiredPayload("prepare_agentic_purchasing", paymentMessage, budget, auth.account.account_id)),
+          ...(await buildPaymentRequiredPayload("prepare_agentic_purchasing", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -1978,7 +1986,7 @@ export async function handlePreparePurchasing(
         sendError(res, 429, ErrorCode.QUOTA_EXCEEDED, quota.reason ?? "Quota exceeded", {
           tier: quota.tier,
           usage: quota.usage,
-          ...(await buildPaymentRequiredPayload("prepare_agentic_purchasing", quota.reason ?? "Quota exceeded", budget, auth.account.account_id)),
+          ...(await buildPaymentRequiredPayload("prepare_agentic_purchasing", quota.reason ?? "Quota exceeded", budget, auth.account.account_id, auth.account.tier)),
         });
       }
       if (mppResult === null || mppResult.status === 402) return;
@@ -3616,7 +3624,7 @@ export async function handleFirecrawlScrape(
     if (mppResult === null) {
       const paymentMessage = `Web research requires $${(amountCents / 100).toFixed(2)} per page. Upgrade at iliad.trustfabric.ai/billing.`;
       sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
-        ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id)),
+        ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
       });
     }
     if (mppResult === null || mppResult.status === 402) return;
@@ -3669,7 +3677,10 @@ export async function handleFirecrawlScrape(
       });
 
       if (chargeResult === null) {
-        sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after scrape complete");
+        const paymentMessage = "Payment required after scrape complete";
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+          ...(await buildPaymentRequiredPayload("iliad_web_research", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
+        });
         return;
       }
 
@@ -3761,8 +3772,9 @@ export async function handleFirecrawlCrawl(
       meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", limit: String(limit) },
     });
     if (mppResult === null) {
-      sendError(res, 402, ErrorCode.TIER_REQUIRED, `Web crawl requires up to $${(estimatedAmountCents / 100).toFixed(2)} for ${limit} requested pages`, {
-        ...(await buildPaymentRequiredPayload("iliad_web_research_crawl", "Web crawl requires payment", budget, auth.account.account_id)),
+      const paymentMessage = `Web crawl requires up to $${(estimatedAmountCents / 100).toFixed(2)} for ${limit} requested pages`;
+      sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+        ...(await buildPaymentRequiredPayload("iliad_web_research_crawl", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
       });
     }
     if (mppResult === null || mppResult.status === 402) return;
@@ -3823,7 +3835,10 @@ export async function handleFirecrawlCrawl(
         meta: { account_id: auth.account.account_id, tier: auth.account.tier, mode, tool: "iliad_web_research_crawl", url, limit: String(limit), pages_crawled: String(pagesCrawled), paid_pages: String(poolDraw.unfunded) },
       });
       if (chargeResult === null) {
-        sendError(res, 402, ErrorCode.TIER_REQUIRED, "Payment required after crawl complete");
+        const paymentMessage = "Payment required after crawl complete";
+        sendError(res, 402, ErrorCode.TIER_REQUIRED, paymentMessage, {
+          ...(await buildPaymentRequiredPayload("iliad_web_research_crawl", paymentMessage, budget, auth.account.account_id, auth.account.tier)),
+        });
         return;
       }
     }

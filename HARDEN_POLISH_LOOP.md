@@ -142,8 +142,8 @@ July build program. They are not suggestions.
 |---|---|---|---|
 | H0.1–H0.10 | Hygiene | ALL DONE (H0.2 closed by H2.3) | see PROGRESS |
 | H1.1–H1.4 | Reliability | ALL DONE (H1.1 deflake, H1.2 `fdfddd5`, H1.3 source-guard 30s `317095b`, H1.4 ci-mirror) | see PROGRESS |
-| H2.1–H2.5 | Money path | H2.1 + H2.2 + H2.3 + H2.4 DONE; H2.5 pending | see PROGRESS |
-| ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
+| H2.1–H2.5 | Money path | ALL DONE | see PROGRESS |
+| ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | Wave 0 complete — review packet issued below, awaiting operator `continue` | |
 | H3.1–H3.11 | Web completion | pending (behind MONEY GATE) | |
 | H4.1–H4.6 | AI-agent UX | pending | |
 | H5.1–H5.3 | Human UX | pending | |
@@ -520,9 +520,10 @@ every diff. Newest at the bottom.
 | 2026-07-11 | H1.1 | production-startup + rate-limiter deflaked: 30s per-file ceilings + every fixed sleep replaced with event-driven waits (close callbacks, once("error")); 43/43 isolated | see commit |
 | 2026-07-11 | H1.4 | scripts/test-ci-mirror.mjs + pnpm run test:ci-mirror — CI=true (4-worker cap) + the exact ci.yml coverage flags, DATABASE_URL defaulted to the local container | `b162cc3` |
 | 2026-07-11 | H2.1 | compensation_ledger migration v34 + store: at-most-once claim proven incl. 8-way concurrent race; per-account + platform summaries; producer idempotency lifecycle-borne | `daf6091` |
-| 2026-07-11 | H2.2 | settled-then-error producer live: dispatch catch records the owed entry (amount rides the settled marker, now a WeakMap) + agent sees _compensation in the error envelope; red demonstrated first | see commit |
+| 2026-07-11 | H2.2 | settled-then-error producer live: dispatch catch records the owed entry (amount rides the settled marker, now a WeakMap) + agent sees _compensation in the error envelope; red demonstrated first | `a4eb146` (CI fix `41e19db`) |
 | 2026-07-12 | H2.3 (+H0.2) | Enforce-mode wallet ambiguity closed: any non-402 debit error (timeout, network, 5xx) no longer falls through to chargeMpp — records a wallet_rail_ambiguous ledger row and fails the call closed (402, no work, no second-rail charge); existing test that had encoded the bug as "correct" flipped and proven red first | `28932bc` |
-| 2026-07-12 | H2.4 | Compensator live: grantUsageCredits (new additive primitive — banks negative included_credits_used as spendable headroom) + claim-then-grant orchestration (apps/api/src/compensator.ts), triggered lazily on every _usage build (no new background infra) so an account is made whole on its very next call; _usage gains compensation:{owed_cents,credited_cents}; admin revenue gains compensation_owed_cents_all_time + a net-of-compensation figure WITHOUT altering the existing settled_revenue_cents_all_time definition | see commit |
+| 2026-07-12 | H2.4 | Compensator live: grantUsageCredits (new additive primitive — banks negative included_credits_used as spendable headroom) + claim-then-grant orchestration (apps/api/src/compensator.ts), triggered lazily on every _usage build (no new background infra) so an account is made whole on its very next call; _usage gains compensation:{owed_cents,credited_cents}; admin revenue gains compensation_owed_cents_all_time + a net-of-compensation figure WITHOUT altering the existing settled_revenue_cents_all_time definition | `5c755f5` |
+| 2026-07-12 | H2.5 | 402/429 payload unification: fixed a real bug (sendError's extra-spread clobbered the caller's real message with build402NegotiationBody's generic "Payment Required" constant, incl. on 429s); added upgrade_url once at the shared builder (propagates to ~15 sites for free); closed 2 REST sites (post-scrape/post-crawl) that sent bare messages; gave versions.ts + cashier.ts's 2 raw sites error_code/request_id for the first time; new contract test walks every sendError(402\|429) site + a builder-level test on build402NegotiationBody; 1 pre-existing test had encoded the clobbering bug as correct and was fixed to assert the real message. Closes Wave 0 (H0+H1+H2) — MONEY GATE review packet below | see commit |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 

@@ -38,6 +38,33 @@ export {
 } from "@axis/mpp";
 import type { ChargeOptions, MppResult } from "@axis/mpp";
 
+/**
+ * H2.5 — the canonical field set every payment/quota-required response
+ * carries, across REST (`sendError`) and MCP (`buildMcpPaymentRequiredError`).
+ * This does NOT replace older sibling field names already on the wire
+ * (`payment_url`, `checkout_url`, `go_pro_url`, `checkout_endpoint`,
+ * `plans_url`, `topup_url`) — `error_code` and response shapes are stable API
+ * surface (this repo's public-API compatibility law), so nothing already
+ * shipped is removed or renamed. New call sites, and the contract test in
+ * `payment-required-contract.test.ts`, measure against this canonical set;
+ * older field names keep working for whatever already reads them.
+ */
+export interface PaymentRequiredCanonicalFields {
+  /** Machine-checkable error identity — an ErrorCode value (logger.ts). */
+  error_code: string;
+  /** Human-readable, call-specific explanation. Never a generic constant. */
+  message: string;
+  /** Where to go to pay/upgrade. Always PAI'D-hosted — never the dead legacy /v1/checkout. */
+  upgrade_url: string;
+  /**
+   * Present when an authenticated account's credit standing is meaningful to
+   * this response (a UsageCreditSummary); null/absent for anonymous callers
+   * and for gates that aren't about credit balance (e.g. tier eligibility,
+   * external rate limits).
+   */
+  usage_credits?: unknown;
+}
+
 // USDC on Tempo network
 const TEMPO_USDC_MAINNET = "0x20c000000000000000000000b9537d11c60e8b50";
 const TEMPO_USDC_TESTNET = "0x20c0000000000000000000000000000000000000";

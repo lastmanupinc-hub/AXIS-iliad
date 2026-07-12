@@ -57,6 +57,12 @@ export const ErrorCode = {
 
   // 402
   PAYMENT_REQUIRED: "PAYMENT_REQUIRED",
+  // H2.5: previously-uncatalogued 402 slugs already live on the wire as the
+  // `error` string (cashier.ts, versions.ts) — these give them a matching,
+  // stable `error_code` without changing the human-readable `error` value.
+  INSUFFICIENT_CREDITS: "INSUFFICIENT_CREDITS",
+  SETTLEMENT_UNCONFIRMED: "SETTLEMENT_UNCONFIRMED",
+  PERSISTENCE_CREDITS_REQUIRED: "PERSISTENCE_CREDITS_REQUIRED",
 
   // 429
   RATE_LIMITED: "RATE_LIMITED",

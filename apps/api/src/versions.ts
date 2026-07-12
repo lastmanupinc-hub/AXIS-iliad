@@ -95,7 +95,15 @@ export async function handleDiffVersions(
   if (auth.account) {
     const meterResult = await meterPersistenceOp(auth.account.account_id, auth.account.tier, "diff_versions", snapshot_id);
     if (!meterResult.ok) {
-      sendJSON(res, 402, { error: "persistence_credits_required", reason: meterResult.reason });
+      // H2.5: error stays the pre-existing "persistence_credits_required" slug
+      // (do not rename established API surface) — error_code, message, and
+      // upgrade_url are NEW additive fields matching every other
+      // payment-required response.
+      sendError(res, 402, ErrorCode.PERSISTENCE_CREDITS_REQUIRED, "persistence_credits_required", {
+        reason: meterResult.reason,
+        message: meterResult.reason,
+        upgrade_url: "https://iliad.trustfabric.ai/billing",
+      });
       return;
     }
     try {

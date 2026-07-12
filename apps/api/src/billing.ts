@@ -243,14 +243,18 @@ export async function handleCreateAccount(
   // accounts without payment; everyone else starts free and upgrades through
   // checkout.
   if (tier !== "free" && !isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
+    const paymentMessage = `Creating an account at the ${tier} tier requires payment. Create a free account, then pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).`;
     sendError(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
-      `Creating an account at the ${tier} tier requires payment. Create a free account, then pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).`,
+      paymentMessage,
       {
         // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
         // endpoint is unconfigured in prod (503) and must not be advertised.
         checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
+        // H2.5: additive canonical fields alongside the pair above.
+        message: paymentMessage,
+        upgrade_url: "https://iliad.trustfabric.ai/#plans",
         requested_tier: tier,
       },
     );
@@ -544,14 +548,18 @@ export async function handleUpdateTier(
   // grant a higher tier directly. Downgrades remain self-serve.
   const isPaidUpgrade = TIER_RANK[tier] > TIER_RANK[previousTier];
   if (isPaidUpgrade && !isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
+    const paymentMessage = `Upgrading to the ${tier} tier requires payment. Pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).`;
     sendError(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
-      `Upgrading to the ${tier} tier requires payment. Pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).`,
+      paymentMessage,
       {
         // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
         // endpoint is unconfigured in prod (503) and must not be advertised.
         checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
+        // H2.5: additive canonical fields alongside the pair above.
+        message: paymentMessage,
+        upgrade_url: "https://iliad.trustfabric.ai/#plans",
         current_tier: previousTier,
         requested_tier: tier,
       },
@@ -890,14 +898,18 @@ export async function handleAddCredits(
   // to the admin key or an explicit AXIS_ALLOW_SELF_SERVE_ENTITLEMENTS=true
   // opt-in. (The suite monthly grant is auto-applied via GET /v1/account/credits.)
   if (!isAdminCaller(req) && !selfServeEntitlementsAllowed()) {
+    const paymentMessage = "Purchasing persistence credits requires payment. Pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).";
     sendError(
       res, 402, ErrorCode.PAYMENT_REQUIRED,
-      "Purchasing persistence credits requires payment. Pick a plan at https://iliad.trustfabric.ai/#plans (PAI'D hosted checkout).",
+      paymentMessage,
       {
         // PAI'D is the only checkout path — the legacy Stripe-direct /v1/checkout
         // endpoint is unconfigured in prod (503) and must not be advertised.
         checkout_endpoint: "https://iliad.trustfabric.ai/#plans",
         plans_url: "https://iliad.trustfabric.ai/#plans",
+        // H2.5: additive canonical fields alongside the pair above.
+        message: paymentMessage,
+        upgrade_url: "https://iliad.trustfabric.ai/#plans",
         requested_credits: credits,
       },
     );

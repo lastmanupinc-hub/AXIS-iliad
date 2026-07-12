@@ -110,6 +110,19 @@ beforeAll(async () => {
     sendError(res, 422, "CUSTOM_CODE", "Custom error message", { detail: "extra" });
   });
 
+  // H2.5: sendError test route where `extra` carries its OWN competing
+  // `error`/`error_code` keys (exactly what build402NegotiationBody's spread
+  // does at every 402/429 call site) — the caller's explicit message/code
+  // must win, never get silently overwritten by whatever `extra` happens to
+  // contain.
+  router.get("/error-shape-clobber", async (_req, res) => {
+    sendError(res, 402, "TIER_REQUIRED", "Specific, useful message for this call", {
+      error: "Payment Required",
+      error_code: "SOME_OTHER_CODE",
+      price: "0.50",
+    });
+  });
+
   const ts = await startTestServer(router);
   server = ts.server;
   testPort = ts.port;
@@ -231,6 +244,15 @@ describe("Router — sendJSON and sendError", () => {
     expect(data.error_code).toBe("CUSTOM_CODE");
     expect(data.error).toBe("Custom error message");
     expect(data.detail).toBe("extra");
+  });
+
+  it("H2.5: the caller's explicit message/errorCode win over anything of the same name inside `extra` — extra can add fields, never silently override the two the caller deliberately chose", async () => {
+    const res = await req("GET", "/error-shape-clobber");
+    expect(res.status).toBe(402);
+    const data = res.data as Record<string, unknown>;
+    expect(data.error).toBe("Specific, useful message for this call");
+    expect(data.error_code).toBe("TIER_REQUIRED");
+    expect(data.price).toBe("0.50"); // extra's non-colliding fields still pass through untouched
   });
 
   it("error responses include request_id", async () => {

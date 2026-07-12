@@ -348,3 +348,19 @@ describe("X-Agent-Mode: engineer tier", () => {
     ]);
   });
 });
+
+describe("build402NegotiationBody — canonical fields (H2.5)", () => {
+  it("always includes upgrade_url, pointing at the same PAI'D destination as payment_url/checkout_url — never the dead legacy /v1/checkout", () => {
+    const body = build402NegotiationBody("analyze_repo");
+    expect(typeof body.upgrade_url).toBe("string");
+    expect(body.upgrade_url).toBe(body.payment_url);
+    expect(String(body.upgrade_url)).not.toContain("/v1/checkout");
+  });
+
+  it("includes upgrade_url regardless of budget/options — the ~20 REST + MCP call sites that spread this shape all inherit it for free", () => {
+    const withBudget = build402NegotiationBody("iliad_web_search", { budget_per_run_cents: 25, spending_window: "per_call" });
+    const withOptions = build402NegotiationBody("iliad_web_search", undefined, { message: "custom", referral_token: "ref-1" });
+    expect(typeof withBudget.upgrade_url).toBe("string");
+    expect(typeof withOptions.upgrade_url).toBe("string");
+  });
+});
