@@ -3420,7 +3420,7 @@ export async function handlePerformance(
     return;
   }
   const { getMcpCallCounters } = mcpMod;
-  const { getLatencyStats } = metricsMod;
+  const { getLatencyStats, getMetricsSnapshot } = metricsMod;
 
   // Get uptime from process start
   const uptimeSeconds = Math.floor(process.uptime());
@@ -3430,29 +3430,26 @@ export async function handlePerformance(
   const mcpCallsTotal = mcpCounters.total;
   const mcpCallsToday = mcpCounters.today;
 
-  // Calculate MCP success rate (we don't track failures separately, so estimate)
-  const mcpSuccessRate = mcpCallsTotal > 0 ? 99.87 : 100; // High success rate based on system reliability
-
   // Get latency stats for average response time
   const latencyStats = getLatencyStats();
   let totalLatency = 0;
-  let totalRequests = 0;
+  let totalLatencySamples = 0;
 
   for (const [, entry] of latencyStats.routes) {
     totalLatency += entry.sum;
-    totalRequests += entry.count;
+    totalLatencySamples += entry.count;
   }
 
-  const averageResponseTimeMs = totalRequests > 0 ? Math.round((totalLatency / totalRequests) * 100) / 100 : 0;
+  const averageResponseTimeMs = totalLatencySamples > 0 ? Math.round((totalLatency / totalLatencySamples) * 100) / 100 : 0;
 
-  // Estimate total requests (we don't have a global counter, so use MCP calls as proxy)
-  const totalRequestsEstimate = Math.max(mcpCallsTotal * 3, 1000); // Rough estimate
-
-  // Estimate error rate (very low for this system)
-  const errorRate = 0.13;
-
-  // Count active probes (simplified - we don't track this in detail)
-  const activeProbes = 3; // Estimate based on typical agent activity
+  // Real, measured counters (recordRequest() fires on every request) — these
+  // replace a hardcoded 99.87% success rate, a fixed 0.13 error rate, and a
+  // "mcpCallsTotal * 3, floor 1000" request-count guess that were never
+  // grounded in actual data (one of them discarded the real totalRequests
+  // this same function already computed from the latency histogram, in
+  // favor of the fabricated number).
+  const { requestCount, errorCount } = getMetricsSnapshot();
+  const errorRate = requestCount > 0 ? Math.round((errorCount / requestCount) * 10000) / 100 : 0;
 
   sendJSON(res, 200, {
     status: "ok",
@@ -3460,12 +3457,18 @@ export async function handlePerformance(
     timestamp: new Date().toISOString(),
     metrics: {
       uptime_seconds: uptimeSeconds,
-      total_requests: totalRequestsEstimate,
+      total_requests: requestCount,
       average_response_time_ms: averageResponseTimeMs,
       mcp_calls_total: mcpCallsTotal,
-      mcp_calls_success_rate: mcpSuccessRate,
+      mcp_calls_today: mcpCallsToday,
+      // No per-category MCP failure tracking exists anywhere in this codebase
+      // (McpCallCounters only counts volume, not outcomes) — null rather than
+      // a fabricated precise-looking percentage. Same for active_probes:
+      // nothing tracks "active probes" as a concept, so there is no honest
+      // value to report yet.
+      mcp_calls_success_rate: null,
       error_rate: errorRate,
-      active_probes: activeProbes,
+      active_probes: null,
     },
     endpoints: {
       reputation: "/performance/reputation",

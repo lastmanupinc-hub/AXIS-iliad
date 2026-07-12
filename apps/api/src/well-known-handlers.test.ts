@@ -528,6 +528,34 @@ describe("GET /performance", () => {
     expect(json.endpoints).toBeDefined();
     expect(typeof json.endpoints).toBe("object");
   });
+
+  // Regression lock: this endpoint used to report a hardcoded 99.87% MCP
+  // success rate, a fixed 0.13 error rate, and a "mcpCallsTotal * 3, floor
+  // 1000" total_requests guess — none grounded in real data (one of them
+  // discarded the real, already-computed total in favor of the fabricated
+  // number). Fixed to source total_requests/error_rate from metrics.ts's
+  // real recordRequest() counters, and to report null (not an invented
+  // number) for the two fields nothing in this codebase actually tracks.
+  it("never fabricates mcp_calls_success_rate or active_probes", async () => {
+    const metrics = json.metrics as Record<string, unknown>;
+    expect(metrics.mcp_calls_success_rate).toBeNull();
+    expect(metrics.active_probes).toBeNull();
+  });
+
+  it("total_requests and error_rate are real counters, not the old hardcoded guesses", async () => {
+    const metrics = json.metrics as Record<string, unknown>;
+    expect(typeof metrics.total_requests).toBe("number");
+    expect(metrics.total_requests as number).toBeGreaterThanOrEqual(0);
+    // The old estimate floored at 1000 regardless of real traffic — a fresh
+    // test server has made far fewer requests than that by this point.
+    expect(metrics.total_requests as number).toBeLessThan(1000);
+    expect(metrics.error_rate).not.toBe(0.13);
+  });
+
+  it("reports the real mcp_calls_today counter (previously computed but silently dropped)", async () => {
+    const metrics = json.metrics as Record<string, unknown>;
+    expect(typeof metrics.mcp_calls_today).toBe("number");
+  });
 });
 
 // â”€â”€â”€ GET /performance/reputation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

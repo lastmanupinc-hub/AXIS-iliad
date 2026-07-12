@@ -646,7 +646,7 @@ export function App() {
       </div>
 
       <CommandPalette actions={paletteActions} />
-      <StatusBar snapshot={result} fileCount={generatedFileCount} />
+      <StatusBar snapshot={result} fileCount={generatedFileCount} onOpenStatus={() => navigate("status")} />
       {showSignUp && (
         <SignUpModal
           trigger={signUpTrigger}

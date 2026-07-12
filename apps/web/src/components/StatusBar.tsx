@@ -5,9 +5,12 @@ import { APP_VERSION } from "../version.ts";
 interface Props {
   snapshot: SnapshotResponse | null;
   fileCount: number;
+  /** Opens the full Status page (WO-P17) — omitted in the kitchen-sink
+   *  gallery and other contexts with no router, where the dot is decorative. */
+  onOpenStatus?: () => void;
 }
 
-export function StatusBar({ snapshot, fileCount }: Props) {
+export function StatusBar({ snapshot, fileCount, onOpenStatus }: Props) {
   const [online, setOnline] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -43,19 +46,8 @@ export function StatusBar({ snapshot, fileCount }: Props) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* Connection indicator */}
-        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: online === null ? "var(--text-muted)" : online ? "var(--green)" : "var(--red)",
-              display: "inline-block",
-            }}
-          />
-          {online === null ? "Checking..." : online ? "API Connected" : "API Offline"}
-        </span>
+        {/* Connection indicator — links to the full Status page (WO-P17) when a router is present. */}
+        <ConnectionIndicator online={online} onOpenStatus={onOpenStatus} />
 
         {/* Snapshot stats */}
         {snapshot && (
@@ -72,5 +64,51 @@ export function StatusBar({ snapshot, fileCount }: Props) {
         <span>Axis' Iliad v{APP_VERSION}</span>
       </div>
     </footer>
+  );
+}
+
+function ConnectionIndicator({ online, onOpenStatus }: { online: boolean | null; onOpenStatus?: () => void }) {
+  const dot = (
+    <span
+      style={{
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        background: online === null ? "var(--text-muted)" : online ? "var(--green)" : "var(--red)",
+        display: "inline-block",
+      }}
+    />
+  );
+  const label = online === null ? "Checking..." : online ? "API Connected" : "API Offline";
+
+  if (!onOpenStatus) {
+    return (
+      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        {dot}
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenStatus}
+      title="View full system status"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        background: "none",
+        border: "none",
+        padding: 0,
+        font: "inherit",
+        color: "inherit",
+        cursor: "pointer",
+      }}
+    >
+      {dot}
+      {label}
+    </button>
   );
 }

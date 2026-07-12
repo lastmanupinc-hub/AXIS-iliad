@@ -173,7 +173,7 @@ describe("App routing (WO-F2)", () => {
 // ─── Shared primitives shell integration (WO-F4) ─────────────────
 
 describe("PageFooter in the shell (WO-F4)", () => {
-  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#mcp", "#for-agents", "#tools/web-research", "#run", "#playground", "#changelog", "#__kitchen-sink", "#definitely/not/a/page"];
+  const PUBLIC_HASHES = ["", "#docs", "#help", "#programs", "#examples", "#qa", "#terms", "#mcp", "#for-agents", "#tools/web-research", "#run", "#playground", "#changelog", "#status", "#__kitchen-sink", "#definitely/not/a/page"];
 
   // This mounts+unmounts the full App for every public page in one test —
   // vitest's default 5000ms budget covered the list fine at first, but each
@@ -189,7 +189,7 @@ describe("PageFooter in the shell (WO-F4)", () => {
       const footer = container.querySelector(".ide-footer");
       expect(footer, `footer missing at "${hash || "(home)"}"`).toBeTruthy();
       expect(within(footer as HTMLElement).getByRole("button", { name: "Terms" })).toBeTruthy();
-      expect(within(footer as HTMLElement).getByRole("link", { name: "Status" })).toBeTruthy();
+      expect(within(footer as HTMLElement).getByRole("button", { name: "Status" })).toBeTruthy();
       unmount();
     }
   }, 20_000);

@@ -1,12 +1,9 @@
 import { APP_VERSION } from "../../version.ts";
-import { API_BASE } from "../../api.ts";
 import type { PageId } from "../../routes.tsx";
 
 // ─── PageFooter (WO-F4) ─────────────────────────────────────────────────────
 // Rendered by the shell at the bottom of every page, above the fixed
 // StatusBar: legal/Terms · Status · v<version> · Support · Help · Docs.
-// - "Status" points at the live API health endpoint for now; WO-P17 repoints
-//   it to the #status page when that ships (no dead in-app link until then).
 
 export interface PageFooterProps {
   onNavigate: (page: PageId) => void;
@@ -24,7 +21,7 @@ export function PageFooter({ onNavigate }: PageFooterProps) {
         <Sep />
         <button type="button" className="footer-link" onClick={() => onNavigate("terms")}>Terms</button>
         <Sep />
-        <a className="footer-link" href={`${API_BASE}/v1/health`} target="_blank" rel="noreferrer">Status</a>
+        <button type="button" className="footer-link" onClick={() => onNavigate("status")}>Status</button>
         <Sep />
         <button type="button" className="footer-link" title="Web app version" onClick={() => onNavigate("changelog")}>
           v{APP_VERSION}

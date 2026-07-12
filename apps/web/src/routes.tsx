@@ -6,6 +6,7 @@ import { UsagePage } from "./pages/UsagePage.tsx";
 import { CommercePage } from "./pages/CommercePage.tsx";
 import { PlaygroundPage } from "./pages/PlaygroundPage.tsx";
 import { ChangelogPage } from "./pages/ChangelogPage.tsx";
+import { StatusPage } from "./pages/StatusPage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
@@ -119,6 +120,9 @@ export type PageId =
   // Changelog (WO-P16) — "#changelog", public. The footer's version badge
   // links here.
   | "changelog"
+  // Status (WO-P17) — "#status", public. The footer's "Status" link and the
+  // StatusBar's connection dot both link here.
+  | "status"
   | "paid-checkout"
   | "admin"
   | "myanalytics"
@@ -455,6 +459,14 @@ export const ROUTES: RouteDef[] = [
     label: "Changelog",
     section: "REFERENCE",
     render: () => <ChangelogPage />,
+  },
+  {
+    // WO-P17: Status — public, footer-only (same pattern as "changelog").
+    page: "status",
+    pattern: "status",
+    label: "Status",
+    section: "REFERENCE",
+    render: () => <StatusPage />,
   },
   {
     page: "examples",

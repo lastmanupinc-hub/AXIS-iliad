@@ -369,14 +369,14 @@ describe("PageFooter", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Terms" }));
     expect(onNavigate).toHaveBeenCalledWith("terms");
+    fireEvent.click(screen.getByRole("button", { name: "Status" }));
+    expect(onNavigate).toHaveBeenCalledWith("status");
     fireEvent.click(screen.getByRole("button", { name: "Help" }));
     expect(onNavigate).toHaveBeenCalledWith("help");
     fireEvent.click(screen.getByRole("button", { name: "Docs" }));
     expect(onNavigate).toHaveBeenCalledWith("docs");
-
-    // Status: a real live destination (health endpoint) until WO-P17's #status page.
-    const status = screen.getByRole("link", { name: "Status" });
-    expect(status.getAttribute("href")).toContain("/v1/health");
+    fireEvent.click(screen.getByRole("button", { name: /^v\d+\.\d+\.\d+$/ }));
+    expect(onNavigate).toHaveBeenCalledWith("changelog");
 
     const support = screen.getByRole("link", { name: "Support" });
     expect(support.getAttribute("href")).toBe("mailto:support@jonathanarvay.com");
