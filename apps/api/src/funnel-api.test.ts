@@ -427,6 +427,11 @@ describe("POST /v1/account/seats (invite)", () => {
       "Upgrade to Enterprise Suite for unlimited seats",
     );
     expect((res.data as Record<string, unknown>).limit).toBe(SEAT_LIMITS.paid);
+    // H2.6 (red-team fix, WAVE-0 finding #4): message + upgrade_url are the
+    // canonical H2.5 fields — this was the one site that shipped without them.
+    expect(typeof (res.data as Record<string, unknown>).message).toBe("string");
+    expect((res.data as Record<string, unknown>).message).toBe((res.data as Record<string, unknown>).error);
+    expect((res.data as Record<string, unknown>).upgrade_url).toBe("https://iliad.trustfabric.ai/#plans");
   });
 });
 

@@ -150,11 +150,12 @@ describe("payment-required contract (H2.5) — every 402/429 site is canonical-s
     expect(siteHasText(VERSIONS, sites[0], "message:", "sendError(")).toBe(true);
   });
 
-  it("funnel.ts: the 1 SEAT_LIMIT (429) site carries a literal upgrade_url (paired with the existing upgrade_hint)", () => {
+  it("funnel.ts: the 1 SEAT_LIMIT (429) site carries a literal upgrade_url AND message (WAVE-0 finding #4 — message was missing here, the only H2.5 site without it)", () => {
     const sites = findSendErrorSites(FUNNEL, 429);
     expect(sites).toHaveLength(1);
     expect(sites[0].code).toBe("SEAT_LIMIT");
     expect(siteHasText(FUNNEL, sites[0], "upgrade_url", "sendError(")).toBe(true);
+    expect(siteHasText(FUNNEL, sites[0], "message,", "sendError(")).toBe(true);
   });
 
   it("rate-limiter.ts: the 1 RATE_LIMITED (429) site is the explicit waiver — pure IP-based anti-abuse throttle, no account/tier/money concept", () => {

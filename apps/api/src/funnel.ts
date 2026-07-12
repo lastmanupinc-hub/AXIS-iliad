@@ -133,6 +133,11 @@ export async function handleInviteSeat(
       const limit = SEAT_LIMITS[ctx.account!.tier];
       sendError(res, 429, ErrorCode.SEAT_LIMIT, message, {
         limit,
+        // H2.6 (red-team fix, WAVE-0 finding #4): every other H2.5 site
+        // carries an explicit `message` field alongside `error` — this one
+        // relied solely on sendError's own error field. Added for
+        // consistency; agents can always read .message regardless of site.
+        message,
         /* v8 ignore next 7 — dead code: free tier blocked at line 49 before reaching */
         upgrade_hint: ctx.account!.tier === "paid"
           ? "Upgrade to Enterprise Suite for unlimited seats"
