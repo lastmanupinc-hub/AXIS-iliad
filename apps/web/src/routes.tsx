@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { ProjectsPage } from "./pages/ProjectsPage.tsx";
+import { UsagePage } from "./pages/UsagePage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
@@ -76,6 +77,10 @@ export type PageId =
   // Projects/History (WO-P11) — "#projects", the full searchable/sortable
   // list (the Account Dashboard only teases the most recent 20 as cards).
   | "projects"
+  // Usage & Billing (WO-P10) — "#usage", split off AccountPage's former
+  // billing/usage half (profile/keys/seats stay at "account" for now,
+  // pending WO-P12's move to Settings).
+  | "usage"
   // Project/Snapshot Detail (WO-P5) — ID-addressable at "#projects/:id";
   // "project-versions" and "project-artifacts" (WO-P6) are the same page
   // with a different tab deep-linked (separate RouteDefs because a pattern
@@ -409,6 +414,21 @@ export const ROUTES: RouteDef[] = [
     aliases: ["/pricing", "/plans"],
     nav: { group: "LIBRARY", icon: "credit-card" },
     render: (ctx) => <PlansPage onSelectPlan={() => ctx.navigate("account")} onRequireLogin={() => ctx.requireLogin("paid-program")} />,
+  },
+  {
+    // WO-P10: Usage & Billing — split off AccountPage's former billing/usage
+    // half (subscription, credits, per-program usage, plus new usage graphs
+    // and a tier-change proration preview — none of which existed as a
+    // standalone page before). "account" (profile/keys/seats) stays put for
+    // now pending WO-P12's move to Settings.
+    page: "usage",
+    pattern: "usage",
+    label: "Usage & Billing",
+    tabLabel: "usage.json",
+    section: "ACCOUNT",
+    authOnly: true,
+    nav: { group: "ACCOUNT", icon: "bar-chart" },
+    render: () => <UsagePage />,
   },
   {
     page: "account",

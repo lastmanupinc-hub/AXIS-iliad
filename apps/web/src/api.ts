@@ -1579,6 +1579,23 @@ export async function cancelSubscription(): Promise<{ subscription_id: string; s
   return fetchJSON("/v1/account/subscription/cancel", { method: "POST" });
 }
 
+export interface ProrationPreview {
+  current_tier: BillingTier;
+  target_tier: BillingTier;
+  from_tier: BillingTier;
+  to_tier: BillingTier;
+  days_remaining_in_period: number;
+  days_in_period: number;
+  proration_amount: number;
+  direction: "upgrade" | "downgrade";
+}
+
+/** GET /v1/billing/proration — preview the credit/charge for a tier change
+ *  before committing to it (WO-P10). Read-only; does not change the tier. */
+export async function getProrationPreview(targetTier: BillingTier): Promise<ProrationPreview> {
+  return fetchJSON(`/v1/billing/proration?tier=${encodeURIComponent(targetTier)}`);
+}
+
 // ─── PAI'D Checkout API ─────────────────────────────────────────
 
 export interface PaidConfig {

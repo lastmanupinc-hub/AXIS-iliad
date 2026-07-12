@@ -5,12 +5,6 @@ import {
   createApiKey,
   listApiKeys,
   revokeApiKey,
-  getUsage,
-  getCredits,
-  createCreditTopup,
-  getPaidConfig,
-  getSubscription,
-  cancelSubscription,
   listSeats,
   inviteSeat,
   revokeSeat,
@@ -20,14 +14,9 @@ import {
   consumeReturnTo,
   type Account,
   type ApiKeyInfo,
-  type UsageSummary,
   type BillingTier,
   type Seat,
-  type SubscriptionInfo,
-  type CreditsInfo,
 } from "../api.ts";
-// Single-source counts (WO-F5) — never inline these numbers.
-import { PROGRAM_COUNT } from "../config.ts";
 
 /** Land back on whatever page the login gate remembered (WO-P2) instead of
  *  always the default /account landing — a deep-linked auth-only page or a
@@ -46,11 +35,7 @@ function finishAuthAndReload(): void {
 export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
-  const [usage, setUsage] = useState<{ tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] } | null>(null);
   const [seats, setSeats] = useState<{ seats: Seat[]; count: number; limit: number; remaining: number } | null>(null);
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
-  const [credits, setCredits] = useState<CreditsInfo | null>(null);
-  const [topupBusy, setTopupBusy] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,20 +75,14 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
       return;
     }
     try {
-      const [acct, keysData, usageData, seatsData, subData, creditsData] = await Promise.all([
+      const [acct, keysData, seatsData] = await Promise.all([
         getAccount(),
         listApiKeys(),
-        getUsage(),
         listSeats(),
-        getSubscription().catch(() => null),
-        getCredits().catch(() => null),
       ]);
       setAccount(acct);
       setKeys(keysData.keys);
-      setUsage(usageData);
       setSeats(seatsData);
-      setSubscription(subData);
-      setCredits(creditsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load account");
     } finally {
@@ -144,37 +123,9 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
     localStorage.removeItem("axis_api_key");
     setAccount(null);
     setKeys([]);
-    setUsage(null);
     setRevealedKey(null);
-    setCredits(null);
     setLoading(false);
     onAuthChange?.();
-  }
-
-  async function handleUpgrade(planId: "starter" | "pro" | "growth") {
-    setError(null);
-    // PAI'D is the only checkout path — route to the PAI'D checkout page; never charge Stripe directly.
-    try {
-      const cfg = await getPaidConfig();
-      if (cfg.configured) {
-        sessionStorage.setItem("axis_paid_plan", planId);
-        window.location.hash = "paid-checkout";
-        return;
-      }
-      setError("Checkout is temporarily unavailable — please try again shortly.");
-    } catch {
-      setError("Checkout is temporarily unavailable — please try again shortly.");
-    }
-  }
-
-  async function handleCancelSubscription() {
-    setError(null);
-    try {
-      await cancelSubscription();
-      await loadAccount();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Cancellation failed");
-    }
   }
 
   if (loading) {
@@ -233,78 +184,6 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
         </div>
       </div>
 
-      {/* Upgrade Banner */}
-      {account && account.tier === "free" && (
-        <div className="card" style={{ borderColor: "var(--accent)", marginTop: 0 }}>
-          <div className="flex-between">
-            <div>
-              <h3 style={{ color: "var(--accent)" }}>Unlock All {PROGRAM_COUNT} Programs</h3>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Upgrade to Starter for $29/month and 75,000 monthly credits across all {PROGRAM_COUNT} programs.
-              </p>
-            </div>
-            <button className="btn btn-primary" onClick={() => handleUpgrade("starter")}>
-              Upgrade to Starter — $29/mo
-            </button>
-          </div>
-        </div>
-      )}
-      {account && account.tier === "paid" && (
-        <div className="card" style={{ borderColor: "var(--yellow)", marginTop: 0 }}>
-          <div className="flex-between">
-            <div>
-              <h3 style={{ color: "var(--yellow)" }}>Need More?</h3>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginTop: 4 }}>
-                Move to Growth for $299/month and 1,200,000 monthly credits. Pro ($99/month) includes 300,000 monthly credits.
-              </p>
-            </div>
-            <button className="btn" onClick={() => handleUpgrade("growth")}>
-              View Growth Plan
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Subscription Info */}
-      {subscription?.has_active_subscription && subscription.active_subscription && (
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginBottom: 12 }}>Subscription</h3>
-          <div className="grid grid-3" style={{ marginBottom: 12 }}>
-            <div>
-              <div className="stat-label">Status</div>
-              <span className={`badge ${subscription.active_subscription.status === "active" ? "badge-green" : "badge-yellow"}`}>
-                {subscription.active_subscription.status}
-              </span>
-            </div>
-            {subscription.active_subscription.current_period_end && (
-              <div>
-                <div className="stat-label">Renews</div>
-                <div style={{ fontSize: "0.875rem" }}>
-                  {new Date(subscription.active_subscription.current_period_end).toLocaleDateString()}
-                </div>
-              </div>
-            )}
-            {subscription.active_subscription.card_brand && (
-              <div>
-                <div className="stat-label">Payment</div>
-                <div style={{ fontSize: "0.875rem" }}>
-                  {subscription.active_subscription.card_brand} ····{subscription.active_subscription.card_last_four}
-                </div>
-              </div>
-            )}
-          </div>
-          {subscription.active_subscription.cancel_at ? (
-            <p style={{ color: "var(--yellow)", fontSize: "0.8125rem" }}>
-              Cancels on {new Date(subscription.active_subscription.cancel_at).toLocaleDateString()}
-            </p>
-          ) : (
-            <button className="btn" style={{ fontSize: "0.8125rem" }} onClick={handleCancelSubscription}>
-              Cancel Subscription
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Revealed key banner */}
       {revealedKey && (
         <div className="card" style={{ borderColor: "var(--yellow)", marginTop: 0 }}>
@@ -324,141 +203,6 @@ export function AccountPage({ onAuthChange }: { onAuthChange?: () => void }) {
               Copy
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Usage Overview */}
-      {usage && (
-        <div className="grid grid-4" style={{ marginTop: 0 }}>
-          <div className="card" style={{ textAlign: "center" }}>
-            <div className="stat-value">{usage.monthly_snapshots}</div>
-            <div className="stat-label">Snapshots This Month</div>
-            <div className="progress-bar" style={{ marginTop: 8 }}>
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${Math.min(100, (usage.monthly_snapshots / (account?.tier === "free" ? 10 : account?.tier === "paid" ? 200 : 999)) * 100)}%`,
-                  background: "var(--accent)",
-                }}
-              />
-            </div>
-          </div>
-          <div className="card" style={{ textAlign: "center" }}>
-            <div className="stat-value">{usage.project_count}</div>
-            <div className="stat-label">Active Projects</div>
-          </div>
-          <div className="card" style={{ textAlign: "center" }}>
-            <div className="stat-value">{usage.by_program.length}</div>
-            <div className="stat-label">Programs Used</div>
-          </div>
-          <div className="card" style={{ textAlign: "center" }}>
-            <div className="stat-value">
-              {usage.by_program.reduce((s, p) => s + p.total_generators, 0)}
-            </div>
-            <div className="stat-label">Files Generated</div>
-          </div>
-        </div>
-      )}
-
-      {/* Credits Balance */}
-      {credits && (
-        <div className="card" style={{ marginTop: 0 }}>
-          <h3 style={{ marginBottom: 12 }}>Persistence Credits</h3>
-          <div className="grid grid-3">
-            <div style={{ textAlign: "center" }}>
-              <div className="stat-value">{credits.balance}</div>
-              <div className="stat-label">Credits Remaining</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div className="stat-value">{credits.ledger.length}</div>
-              <div className="stat-label">Transactions</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div className="stat-value" style={{ fontSize: "0.9rem" }}>{credits.tier}</div>
-              <div className="stat-label">Tier</div>
-            </div>
-          </div>
-          {credits.credit_packs.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: 8 }}>
-                Buy more credits — secure checkout via PAI'D
-              </div>
-              <div className="grid grid-3">
-                {credits.credit_packs.map((p) => (
-                  <button
-                    key={p.pack_id}
-                    type="button"
-                    className="btn"
-                    disabled={topupBusy !== null}
-                    onClick={async () => {
-                      setTopupBusy(p.pack_id);
-                      try {
-                        const session = await createCreditTopup(p.pack_id);
-                        window.location.href = session.checkout_url;
-                      } catch (e) {
-                        setError(e instanceof Error ? e.message : "Top-up failed");
-                        setTopupBusy(null);
-                      }
-                    }}
-                  >
-                    {topupBusy === p.pack_id
-                      ? "Redirecting…"
-                      : `${p.credits.toLocaleString()} credits — $${(p.price_cents / 100).toFixed(0)}`}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {credits.ledger.length > 0 && (
-            <details style={{ marginTop: 12 }}>
-              <summary style={{ cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem" }}>Recent transactions</summary>
-              <table style={{ marginTop: 8 }}>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th style={{ textAlign: "right" }}>Amount</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {credits.ledger.slice(0, 10).map((e) => (
-                    <tr key={e.entry_id}>
-                      <td style={{ fontSize: "0.8rem" }}>{new Date(e.created_at).toLocaleDateString()}</td>
-                      <td style={{ textAlign: "right", color: e.delta >= 0 ? "var(--success)" : "var(--danger)" }}>{e.delta >= 0 ? "+" : ""}{e.delta}</td>
-                      <td style={{ fontSize: "0.85rem" }}>{e.reason}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </details>
-          )}
-        </div>
-      )}
-
-      {/* Per-program usage */}
-      {usage && usage.by_program.length > 0 && (
-        <div className="card">
-          <h3 style={{ marginBottom: 12 }}>Program Usage</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Program</th>
-                <th style={{ textAlign: "right" }}>Runs</th>
-                <th style={{ textAlign: "right" }}>Generators</th>
-                <th style={{ textAlign: "right" }}>Input Files</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usage.by_program.map((p) => (
-                <tr key={p.program}>
-                  <td><span className="badge">{p.program}</span></td>
-                  <td style={{ textAlign: "right" }}>{p.total_runs}</td>
-                  <td style={{ textAlign: "right" }}>{p.total_generators}</td>
-                  <td style={{ textAlign: "right" }}>{p.total_input_files}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
 

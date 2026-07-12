@@ -1,0 +1,342 @@
+import { useCallback, useEffect, useState } from "react";
+import {
+  getAccount,
+  getQuota,
+  getUsage,
+  getUsageTimeseries,
+  getSubscription,
+  cancelSubscription,
+  getCredits,
+  createCreditTopup,
+  getPaidConfig,
+  getProrationPreview,
+  apiErrorDetails,
+  type Account,
+  type UsageSummary,
+  type BillingTier,
+  type SubscriptionInfo,
+  type CreditsInfo,
+  type UsageBucket,
+  type ProrationPreview,
+} from "../api.ts";
+import { SectionHeader, StatTile, Sparkline, BarChart, Callout, Skeleton, Pill, TableWrap } from "../components/primitives/index.ts";
+import { PROGRAM_COUNT } from "../config.ts";
+
+// ─── UsagePage (WO-P10) ───────────────────────────────────────────────────
+// Billing/usage half of the former AccountPage (split per the build plan;
+// the profile/keys/seats half stays there for now, pending WO-P12's move to
+// Settings). New here: usage graphs (runs/day + credits-spent/day, 30d,
+// GET /v1/account/usage/timeseries — WO-A3) and a tier-change proration
+// preview (GET /v1/billing/proration). PAI'D remains the only checkout path
+// for both the tier-upgrade banner and credit top-ups.
+
+const TIMESERIES_DAYS = 30;
+const TIER_LABELS: Record<BillingTier, string> = { free: "Free", paid: "Starter", suite: "Growth" };
+const TIER_ORDER: BillingTier[] = ["free", "paid", "suite"];
+
+function tierBadgeClass(tier: BillingTier): string {
+  if (tier === "free") return "badge badge-green";
+  if (tier === "paid") return "badge badge-accent";
+  return "badge badge-yellow";
+}
+
+interface Data {
+  account: Account;
+  quota: Awaited<ReturnType<typeof getQuota>>;
+  usage: { tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] };
+  buckets: UsageBucket[];
+  subscription: SubscriptionInfo | null;
+  credits: CreditsInfo | null;
+}
+
+export function UsagePage() {
+  const [data, setData] = useState<Data | null>(null);
+  const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
+  const [topupBusy, setTopupBusy] = useState<string | null>(null);
+  const [previewTier, setPreviewTier] = useState<BillingTier | "">("");
+  const [preview, setPreview] = useState<ProrationPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const [account, quota, usage, timeseries, subscription, credits] = await Promise.all([
+        getAccount(),
+        getQuota(),
+        getUsage(),
+        getUsageTimeseries({ sinceDays: TIMESERIES_DAYS }),
+        getSubscription().catch(() => null),
+        getCredits().catch(() => null),
+      ]);
+      setData({ account, quota, usage, buckets: timeseries.buckets, subscription, credits });
+    } catch (err) {
+      setError({ message: err instanceof Error ? err.message : "Failed to load usage & billing", details: apiErrorDetails(err) });
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!previewTier) { setPreview(null); return; }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreview(null);
+    getProrationPreview(previewTier)
+      .then((p) => { if (!cancelled) setPreview(p); })
+      .catch((err) => { if (!cancelled) setError({ message: err instanceof Error ? err.message : "Failed to preview proration", details: apiErrorDetails(err) }); })
+      .finally(() => { if (!cancelled) setPreviewLoading(false); });
+    return () => { cancelled = true; };
+  }, [previewTier]);
+
+  async function handleUpgrade(planId: "starter" | "pro" | "growth") {
+    setError(null);
+    try {
+      const cfg = await getPaidConfig();
+      if (cfg.configured) {
+        sessionStorage.setItem("axis_paid_plan", planId);
+        window.location.hash = "paid-checkout";
+        return;
+      }
+      setError({ message: "Checkout is temporarily unavailable — please try again shortly.", details: null });
+    } catch {
+      setError({ message: "Checkout is temporarily unavailable — please try again shortly.", details: null });
+    }
+  }
+
+  async function handleCancelSubscription() {
+    setError(null);
+    try {
+      await cancelSubscription();
+      await load();
+    } catch (err) {
+      setError({ message: err instanceof Error ? err.message : "Cancellation failed", details: apiErrorDetails(err) });
+    }
+  }
+
+  async function handleTopup(packId: string) {
+    setTopupBusy(packId);
+    try {
+      const session = await createCreditTopup(packId);
+      window.location.href = session.checkout_url;
+    } catch (err) {
+      setError({ message: err instanceof Error ? err.message : "Top-up failed", details: apiErrorDetails(err) });
+      setTopupBusy(null);
+    }
+  }
+
+  if (error && !data) {
+    return (
+      <div>
+        <SectionHeader title="Usage & Billing" />
+        <Callout tone="danger" title="Couldn't load your usage & billing" details={error.details}>{error.message}</Callout>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div>
+        <SectionHeader title="Usage & Billing" />
+        <Skeleton lines={6} height={60} />
+      </div>
+    );
+  }
+
+  const { account, quota, usage, buckets, subscription, credits } = data;
+  const maxSnapshots = quota.resource_quota?.max_snapshots_per_month ?? 0;
+  const runsInWindow = buckets.reduce((s, b) => s + b.runs, 0);
+  const creditsInWindow = buckets.reduce((s, b) => s + b.credits_spent, 0);
+
+  return (
+    <div>
+      <SectionHeader title="Usage & Billing" sub="Your current plan, usage over time, and credit balance." />
+
+      {error && (
+        <div className="mb-4">
+          <Callout tone="danger" title="Something went wrong" details={error.details}>{error.message}</Callout>
+        </div>
+      )}
+
+      {/* Tier + proration preview */}
+      <div className="card">
+        <div className="flex-between mb-2">
+          <div>
+            <h3>Current plan</h3>
+            <p className="text-muted text-sm">You're on the <strong>{TIER_LABELS[account.tier]}</strong> tier.</p>
+          </div>
+          <span className={tierBadgeClass(account.tier)}>{TIER_LABELS[account.tier]}</span>
+        </div>
+
+        {account.tier === "free" && (
+          <div className="card" style={{ borderColor: "var(--accent)" }}>
+            <div className="flex-between">
+              <div>
+                <h3 style={{ color: "var(--accent)" }}>Unlock all {PROGRAM_COUNT} programs</h3>
+                <p className="text-muted text-sm mt-1">Upgrade to Starter for $29/month and 75,000 monthly credits.</p>
+              </div>
+              <button type="button" className="btn btn-primary" onClick={() => void handleUpgrade("starter")}>Upgrade to Starter</button>
+            </div>
+          </div>
+        )}
+        {account.tier === "paid" && (
+          <div className="card" style={{ borderColor: "var(--yellow)" }}>
+            <div className="flex-between">
+              <div>
+                <h3 style={{ color: "var(--yellow)" }}>Need more?</h3>
+                <p className="text-muted text-sm mt-1">Move to Growth for $299/month and 1,200,000 monthly credits.</p>
+              </div>
+              <button type="button" className="btn" onClick={() => void handleUpgrade("growth")}>View Growth plan</button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4">
+          <label className="text-sm text-muted" htmlFor="proration-target">Preview a plan change</label>
+          <div className="flex gap-2 mt-1" style={{ flexWrap: "wrap", alignItems: "center" }}>
+            <select id="proration-target" value={previewTier} onChange={(e) => setPreviewTier(e.target.value as BillingTier | "")} style={{ maxWidth: 200 }}>
+              <option value="">Select a tier…</option>
+              {TIER_ORDER.filter((t) => t !== account.tier).map((t) => <option key={t} value={t}>{TIER_LABELS[t]}</option>)}
+            </select>
+            {previewLoading && <span className="text-muted text-sm">Calculating…</span>}
+            {preview && !previewLoading && (
+              <Pill tone={preview.direction === "upgrade" ? "accent" : "muted"}>
+                {preview.direction === "upgrade" ? "Additional charge" : "Credit"}: ${(Math.abs(preview.proration_amount) / 100).toFixed(2)}
+                {" "}({preview.days_remaining_in_period} of {preview.days_in_period} days left in period)
+              </Pill>
+            )}
+          </div>
+          <p className="text-muted text-xs mt-1">Preview only — nothing changes until you complete checkout on the Plans page.</p>
+        </div>
+      </div>
+
+      {/* Subscription */}
+      {subscription?.has_active_subscription && subscription.active_subscription && (
+        <div className="card">
+          <h3 className="mb-2">Subscription</h3>
+          <div className="grid grid-3 mb-2">
+            <div>
+              <div className="stat-label">Status</div>
+              <span className={`badge ${subscription.active_subscription.status === "active" ? "badge-green" : "badge-yellow"}`}>
+                {subscription.active_subscription.status}
+              </span>
+            </div>
+            {subscription.active_subscription.current_period_end && (
+              <div>
+                <div className="stat-label">Renews</div>
+                <div className="text-sm">{new Date(subscription.active_subscription.current_period_end).toLocaleDateString()}</div>
+              </div>
+            )}
+            {subscription.active_subscription.card_brand && (
+              <div>
+                <div className="stat-label">Payment</div>
+                <div className="text-sm">{subscription.active_subscription.card_brand} ····{subscription.active_subscription.card_last_four}</div>
+              </div>
+            )}
+          </div>
+          {subscription.active_subscription.cancel_at ? (
+            <p className="text-sm" style={{ color: "var(--yellow)" }}>
+              Cancels on {new Date(subscription.active_subscription.cancel_at).toLocaleDateString()}
+            </p>
+          ) : (
+            <button type="button" className="btn text-sm" onClick={() => void handleCancelSubscription()}>Cancel Subscription</button>
+          )}
+        </div>
+      )}
+
+      {/* Usage graphs */}
+      <div className="grid grid-4 mb-4">
+        <StatTile
+          label={`Snapshots this month`}
+          value={usage.monthly_snapshots}
+          hint={maxSnapshots > 0 ? `of ${maxSnapshots.toLocaleString()} limit` : "unlimited"}
+        />
+        <StatTile label="Active projects" value={usage.project_count} />
+        <StatTile
+          label={`Runs (${TIMESERIES_DAYS}d)`}
+          value={runsInWindow}
+          trend={<Sparkline data={buckets.map((b) => b.runs)} pointLabels={buckets.map((b) => b.date)} label={`Runs per day, last ${TIMESERIES_DAYS} days`} width={120} height={28} />}
+        />
+        <StatTile label={`Credits spent (${TIMESERIES_DAYS}d)`} value={creditsInWindow} />
+      </div>
+
+      {buckets.length > 0 && (
+        <div className="card">
+          <h3 className="mb-2">Runs per day ({TIMESERIES_DAYS}d)</h3>
+          <BarChart
+            data={buckets.map((b) => ({ label: new Date(b.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: b.runs }))}
+            label={`Runs per day, last ${TIMESERIES_DAYS} days`}
+          />
+        </div>
+      )}
+
+      {/* Credits */}
+      {credits && (
+        <div className="card">
+          <h3 className="mb-2">Persistence Credits</h3>
+          <div className="grid grid-3">
+            <StatTile label="Credits remaining" value={credits.balance} />
+            <StatTile label="Transactions" value={credits.ledger.length} />
+            <StatTile label="Tier" value={credits.tier} />
+          </div>
+          {credits.credit_packs.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm text-muted mb-2">Buy more credits — secure checkout via PAI&apos;D</p>
+              <div className="grid grid-3">
+                {credits.credit_packs.map((p) => (
+                  <button key={p.pack_id} type="button" className="btn" disabled={topupBusy !== null} onClick={() => void handleTopup(p.pack_id)}>
+                    {topupBusy === p.pack_id ? "Redirecting…" : `${p.credits.toLocaleString()} credits — $${(p.price_cents / 100).toFixed(0)}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {credits.ledger.length > 0 && (
+            <details className="mt-4">
+              <summary className="text-sm text-muted" style={{ cursor: "pointer" }}>Recent transactions</summary>
+              <TableWrap label="Recent credit transactions">
+                <table className="mt-2">
+                  <thead>
+                    <tr><th>Date</th><th style={{ textAlign: "right" }}>Amount</th><th>Reason</th></tr>
+                  </thead>
+                  <tbody>
+                    {credits.ledger.slice(0, 10).map((e) => (
+                      <tr key={e.entry_id}>
+                        <td className="text-xs">{new Date(e.created_at).toLocaleDateString()}</td>
+                        <td style={{ textAlign: "right", color: e.delta >= 0 ? "var(--success)" : "var(--danger)" }}>{e.delta >= 0 ? "+" : ""}{e.delta}</td>
+                        <td className="text-sm">{e.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </details>
+          )}
+        </div>
+      )}
+
+      {/* Per-program usage */}
+      {usage.by_program.length > 0 && (
+        <div className="card">
+          <h3 className="mb-2">Program Usage</h3>
+          <TableWrap label="Program usage">
+            <table>
+              <thead>
+                <tr><th>Program</th><th style={{ textAlign: "right" }}>Runs</th><th style={{ textAlign: "right" }}>Generators</th><th style={{ textAlign: "right" }}>Input Files</th></tr>
+              </thead>
+              <tbody>
+                {usage.by_program.map((p) => (
+                  <tr key={p.program}>
+                    <td><span className="badge">{p.program}</span></td>
+                    <td style={{ textAlign: "right" }}>{p.total_runs}</td>
+                    <td style={{ textAlign: "right" }}>{p.total_generators}</td>
+                    <td style={{ textAlign: "right" }}>{p.total_input_files}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrap>
+        </div>
+      )}
+    </div>
+  );
+}

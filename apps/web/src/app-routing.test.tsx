@@ -531,6 +531,41 @@ describe("Projects/History (WO-P11)", () => {
   });
 });
 
+// ─── Usage & Billing (WO-P10) ──────────────────────────────────────
+// "#usage" is auth-only (billing/subscription/credits have no anonymous
+// concept) — same gate pattern as "#dashboard"/"#projects". Deep page
+// behavior (graphs, proration preview, credits, subscription) is covered in
+// pages/UsagePage.test.tsx; this proves the App-level wiring only.
+
+describe("Usage & Billing (WO-P10)", () => {
+  it("auth-only deep link (#usage) bounces to the landing page with the sign-in popup", async () => {
+    window.location.hash = "#usage";
+    const { container } = render(<App />);
+    await waitFor(() => expect(shellPage(container)).toBe("home"));
+    expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+
+  it("sidebar 'Usage & Billing' item navigates to #usage when signed in", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubApiFetch([
+      ["/v1/account", { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }],
+      ["/v1/account/usage/timeseries", { buckets: [] }],
+      ["/v1/account/subscription", {}, 404],
+      ["/v1/account/credits", {}, 404],
+      ["/v1/account/quota", { rate_limit: {}, authenticated: true, resource_quota: { tier: "free", snapshots_this_month: 0, max_snapshots_per_month: 10, project_count: 0, max_projects: 3, max_files_per_snapshot: 100 } }],
+      ["/v1/account/usage", { tier: "free", totals: { runs: 0 }, programs: [] }],
+    ]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    fireEvent.click(sidebar.getByRole("button", { name: "Usage & Billing" }));
+
+    expect(shellPage(container)).toBe("usage");
+    expect(window.location.hash).toBe("#usage");
+  });
+});
+
 // ─── Program Runner (WO-P7) ───────────────────────────────────────
 // "#run"/"#run/:program" is NOT auth-only (anonymous visitors can run free
 // programs against their guest project) — deep link, sidebar entry, and the
