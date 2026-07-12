@@ -348,6 +348,38 @@ describe("enforce mode — ambiguous PAI'D errors (H0.2/H2.3): never fall throug
   });
 });
 
+describe("enforce mode — DEFINITE non-debit rejections (H2.6, WAVE-0 finding #3): never mint free compensation credit", () => {
+  it.each([400, 401, 403, 404, 422, 429])(
+    "a real %i from PAI'D falls through to chargeMpp — no compensation row, because zero debit could have happened",
+    async (status) => {
+      Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce" });
+      fetchSpy.mockResolvedValueOnce({ ok: false, status, text: async () => "rejected" } as unknown as Response);
+
+      const { res } = makeRes();
+      await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
+
+      // The bug this closes: treating this identically to a timeout minted a
+      // real compensation credit for a call that provably never cost the
+      // customer anything — free-credit farming via malformed requests.
+      expect(snapshots.recordCompensationOwed).not.toHaveBeenCalled();
+      expect(mpp.chargeMpp).toHaveBeenCalledTimes(1); // safe: nothing was debited
+      expect(snapshots.recordPaidCall).not.toHaveBeenCalled();
+    },
+  );
+
+  it("a real 5xx from PAI'D (distinct from a definite 4xx) stays genuinely ambiguous — still records compensation, still refuses to fall through", async () => {
+    Object.assign(process.env, PAID_ENV, { PAID_WALLET_MODE: "enforce" });
+    fetchSpy.mockResolvedValueOnce({ ok: false, status: 503, text: async () => "PAI'D internal error" } as unknown as Response);
+
+    const { res } = makeRes();
+    const result = await settleOverageCash(fakeReq(), res, "acc-1", 150, OPTS);
+
+    expect(mpp.chargeMpp).not.toHaveBeenCalled();
+    expect(snapshots.recordCompensationOwed).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ status: 402 });
+  });
+});
+
 // ─── Ordering: free-call / no-overage short-circuits precede the wallet branch ──
 
 describe("existing short-circuits still run BEFORE the wallet branch, even in enforce mode", () => {
@@ -376,7 +408,7 @@ describe("settleOverageViaPaidWallet — direct", () => {
     Object.assign(process.env, PAID_ENV);
     fetchSpy.mockResolvedValueOnce(walletResponse());
     const { res } = makeRes();
-    await expect(settleOverageViaPaidWallet(res, "acc-1", 150, OPTS, "read")).resolves.toBeNull();
-    await expect(settleOverageViaPaidWallet(res, "acc-1", 150, OPTS, "shadow")).resolves.toBeNull();
+    await expect(settleOverageViaPaidWallet(fakeReq(), res, "acc-1", 150, OPTS, "read")).resolves.toBeNull();
+    await expect(settleOverageViaPaidWallet(fakeReq(), res, "acc-1", 150, OPTS, "shadow")).resolves.toBeNull();
   });
 });

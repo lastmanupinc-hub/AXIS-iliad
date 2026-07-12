@@ -82,6 +82,24 @@ export function checkoutIdempotencyKey(accountSeed: string, scope: string, windo
   return createHmac("sha256", accountSeed).update(`${scope}:${bucket}`).digest("hex").slice(0, 32);
 }
 
+/**
+ * H2.6 (red-team fix, WAVE-0 findings #2+#5) — a STABLE idempotency key for
+ * the FC-wallet debit rail, derived from the caller's OWN Idempotency-Key.
+ * Unlike checkoutIdempotencyKey, this has NO time bucket: the same
+ * (accountId, tool, callerKey) always derives the SAME wallet-debit key, so a
+ * genuine client retry of the exact same logical call — after our own 15s
+ * abort, or after the ambiguous-failure 402 that abort produces — reuses the
+ * key and lets PAI'D's own idempotency handling dedupe it, instead of every
+ * retry minting a fresh key and becoming a second real debit. A DIFFERENT
+ * call (different tool, or no shared caller key) derives a different key —
+ * this is per-logical-call identity, not H0.1's 120s-bucket mistake (which
+ * collapsed genuinely distinct calls together). The account id is HMAC'd,
+ * never sent to PAI'D raw.
+ */
+export function walletDebitIdempotencyKey(accountSeed: string, tool: string, callerKey: string): string {
+  return createHmac("sha256", accountSeed).update(`wallet-debit:${tool}:${callerKey}`).digest("hex").slice(0, 32);
+}
+
 /** AXIS plan tiers that route through PAI'D (free/enterprise do not). */
 export type CheckoutPlanId = "starter" | "pro" | "growth";
 

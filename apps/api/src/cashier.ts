@@ -5,12 +5,14 @@ import { consumeFreeCall, recordPaidCall, recordSettledPayment, recordCompensati
 import type { PaymentProvider } from "@axis/snapshots";
 import { log, getRequestId, ErrorCode } from "./logger.js";
 import { randomUUID } from "node:crypto";
+import { readIdempotencyKey } from "./mcp-runtime.js";
 import {
   paidWalletMode,
   debitPaidWallet,
   getPaidWallet,
   isPaidConfigured,
   PaidError,
+  walletDebitIdempotencyKey,
   type PaidWalletMode,
   type InsufficientCreditsBody,
 } from "./paid-client.js";
@@ -43,19 +45,26 @@ export function centsToFabricCredits(cents: number): number {
  *   shadow  -> compute + log the FC debit that WOULD run; never debits; returns
  *              null (caller falls through to chargeMpp — behaviour unchanged).
  *   enforce -> debits the wallet.
- *                success            -> { status: 200 } (mppx is NOT called)
- *                402 insufficient   -> writes a top-up challenge to `res`,
- *                                      returns { status: 402 } (mppx is NOT called)
- *                any OTHER error    -> AMBIGUOUS (H2.3/H0.2): a timeout or network
- *                (incl. timeout)       error can surface after PAI'D already
- *                                      committed the debit, so this does NOT fall
- *                                      back to mppx (that would risk charging a
- *                                      second rail for one call). Instead: record a
- *                                      `compensation_ledger` row (wallet_rail_ambiguous)
- *                                      and write a 402 to `res`; returns { status: 402 }
- *                                      (mppx is NOT called, no work runs on this call).
+ *                success              -> { status: 200 } (mppx is NOT called)
+ *                402 insufficient     -> writes a top-up challenge to `res`,
+ *                                        returns { status: 402 } (mppx is NOT called)
+ *                a real 4xx (not 402) -> DEFINITE non-debit rejection (H2.6): PAI'D
+ *                                        validated and rejected the request before any
+ *                                        wallet mutation — zero chance the debit landed.
+ *                                        Falls through to mppx exactly as pre-H2.3
+ *                                        (no double-charge risk, nothing was debited).
+ *                                        Returns null.
+ *                anything else         -> AMBIGUOUS (H2.3/H0.2): a timeout, network
+ *                (5xx, 504, network)     failure, or PAI'D 5xx can surface after PAI'D
+ *                                        already committed the debit, so this does NOT
+ *                                        fall back to mppx (that would risk charging a
+ *                                        second rail for one call). Instead: record a
+ *                                        `compensation_ledger` row (wallet_rail_ambiguous)
+ *                                        and write a 402 to `res`; returns { status: 402 }
+ *                                        (mppx is NOT called, no work runs on this call).
  */
 export async function settleOverageViaPaidWallet(
+  req: IncomingMessage,
   res: ServerResponse,
   accountId: string,
   overageCents: number,
@@ -90,8 +99,22 @@ export async function settleOverageViaPaidWallet(
   // deduping rail must never collapse two of them. (checkoutIdempotencyKey's
   // 120s bucket is for human checkout double-submits — on this metered rail it
   // both dropped the second call in a window AND re-keyed late retries; H0.1.)
-  // Any client-internal retry of THIS one invocation reuses the key it's handed.
-  const idempotencyKey = randomUUID();
+  //
+  // H2.6 (red-team fix, WAVE-0 findings #2+#5): a bare randomUUID() per
+  // invocation means a CLIENT RETRY of the exact same logical call — after our
+  // own 15s abort, or after the ambiguous-failure 402 that abort produces —
+  // mints a brand-new key and becomes a genuine SECOND debit on this same
+  // rail (H2.3 only stops the debit from ALSO falling through to a different
+  // rail; it does nothing about a retry hitting this same code path again).
+  // When the caller supplied their own Idempotency-Key, derive a STABLE debit
+  // key from it (same caller key -> same debit key, every time) so PAI'D's own
+  // idempotency handling can dedupe a genuine retry. No caller key -> no
+  // stable identity to key off; fall back to a fresh key (the residual retry
+  // risk is inherent to a call that never opted into idempotent semantics).
+  const callerIdempotencyKey = readIdempotencyKey(req);
+  const idempotencyKey = callerIdempotencyKey
+    ? walletDebitIdempotencyKey(accountId, tool, callerIdempotencyKey)
+    : randomUUID();
   try {
     await debitPaidWallet(accountId, {
       amountFc,
@@ -125,6 +148,27 @@ export async function settleOverageViaPaidWallet(
         request_id: getRequestId(res),
       }));
       return { status: 402 };
+    }
+    // H2.6 (red-team fix, WAVE-0 finding #3): a real 4xx from PAI'D (NOT 402)
+    // means PAI'D validated the request and rejected it BEFORE any wallet
+    // mutation could occur — a malformed request, an auth/config problem, an
+    // unknown developer_id. There is ZERO possibility this debit landed.
+    // Recording it as "ambiguous" would mint a genuine, spendable
+    // compensation credit for a call that provably cost the customer
+    // nothing — a free-credit farming vector (send malformed requests,
+    // collect compensation). Safe to fall through to the mppx rail exactly
+    // as the pre-H2.3 code did for this subset: no debit happened, so no
+    // double-charge risk. Distinct from a 5xx (PAI'D's OWN processing may
+    // have failed AFTER committing the debit) or a 504/network failure (we
+    // never learned what happened at all) — those stay genuinely ambiguous below.
+    if (err instanceof PaidError && err.status >= 400 && err.status < 500) {
+      log("warn", "paid_wallet_enforce_rejected", {
+        accountId,
+        tool,
+        status: err.status,
+        error: err.message,
+      });
+      return null;
     }
     // H2.3 (closes H0.2): every OTHER failure is AMBIGUOUS, not "PAI'D is down."
     // A 504 (our own 15s abort) or a network error can surface AFTER PAI'D has
@@ -224,7 +268,7 @@ export async function settleOverageCash(
 
   const wm = paidWalletMode();
   if (wm !== "off" && isPaidConfigured()) {
-    const w = await settleOverageViaPaidWallet(res, accountId, overageCents, opts, wm);
+    const w = await settleOverageViaPaidWallet(req, res, accountId, overageCents, opts, wm);
     if (wm === "enforce" && w) {
       if (w.status === 200) {
         await recordPaidCall(accountId);
