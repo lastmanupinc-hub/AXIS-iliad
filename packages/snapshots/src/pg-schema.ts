@@ -622,6 +622,35 @@ CREATE INDEX IF NOT EXISTS idx_dispute_transitions_dispute ON dispute_transition
     sql: `ALTER TABLE payment_receipts DROP CONSTRAINT IF EXISTS payment_receipts_provider_check;
 ALTER TABLE payment_receipts ADD CONSTRAINT payment_receipts_provider_check CHECK (provider IN ('stripe','tempo','paid_fc'));`,
   },
+  {
+    // H2.1 (WO-20 phase 3, charge-integrity hybrid): the compensation ledger —
+    // the durable record that money moved but the work (or the rail's answer)
+    // didn't. Producers: a cash-settled MCP call whose tool then threw
+    // ("settled_then_error"), and an enforce-mode wallet call whose outcome is
+    // unknowable ("wallet_rail_ambiguous" — e.g. a timeout after the debit may
+    // have landed). The compensator claims 'owed' rows exactly once
+    // (conditional UPDATE) and makes the customer whole; every state is
+    // auditable, nothing is silently absorbed. FK on account_id mirrors
+    // payment_receipts: producers only run for resolved, authed accounts.
+    version: 34,
+    name: "compensation_ledger",
+    sql: `CREATE TABLE IF NOT EXISTS compensation_ledger (
+  entry_id TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL REFERENCES accounts(account_id),
+  tool TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'usd',
+  receipt_ref TEXT,
+  reason TEXT NOT NULL CHECK (reason IN ('settled_then_error','wallet_rail_ambiguous','manual')),
+  status TEXT NOT NULL DEFAULT 'owed' CHECK (status IN ('owed','credited','cash_refunded','waived')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_compensation_account ON compensation_ledger(account_id);
+CREATE INDEX IF NOT EXISTS idx_compensation_status ON compensation_ledger(status);
+CREATE INDEX IF NOT EXISTS idx_compensation_created ON compensation_ledger(created_at);`,
+  },
 ];
 
 /**

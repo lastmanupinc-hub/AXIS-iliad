@@ -91,6 +91,17 @@ export { getGrowthSnapshot } from "./growth-store.js";
 export type { PaymentReceipt, PaymentProvider, SettledRevenue } from "./payment-receipts-store.js";
 export { recordSettledPayment, getSettledRevenue } from "./payment-receipts-store.js";
 
+// Compensation ledger — WO-20 phase 3 (H2): money moved, work didn't.
+export type { CompensationEntry, CompensationReason, CompensationStatus, RecordCompensationInput } from "./compensation-store.js";
+export {
+  recordCompensationOwed,
+  claimCompensationForCredit,
+  resolveCompensation,
+  getCompensationSummary,
+  getTotalCompensationOwed,
+  listOwedCompensation,
+} from "./compensation-store.js";
+
 // Webhooks
 export type { WebhookEventType, Webhook, WebhookDelivery, RetryCandidate } from "./webhook-store.js";
 export { VALID_WEBHOOK_EVENTS, MAX_RETRY_ATTEMPTS, RETRY_BACKOFF_BASE_MS } from "./webhook-store.js";
