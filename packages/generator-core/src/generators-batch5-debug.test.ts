@@ -84,4 +84,53 @@ describe("deploy — correct package manager + install", () => {
     const out = generateDeployDockerfile(mkCtx({ detection: { ...mkCtx().detection, package_managers: [] } }), profile, [f("index.js", "x")]).content;
     if (out.includes("npm ci")) expect(out).toContain("if [ -f package-lock.json ]");
   });
+
+  // ─── H0.7: the three 1261357 fixes that shipped WITHOUT their claimed locks ──
+
+  it("reads packageManager from the ROOT package.json, not the first nested walk match", () => {
+    // No lockfiles; the NESTED manifest comes FIRST in the walk order and has
+    // no packageManager field; the ROOT one declares yarn. Pre-fix, .find()
+    // took the nested file and the Dockerfile fell back to npm.
+    const files = [
+      f("apps/api/package.json", JSON.stringify({ name: "api" })),
+      f("package.json", JSON.stringify({ name: "acme", packageManager: "yarn@4.1.0" })),
+    ];
+    const out = generateDeployDockerfile(
+      mkCtx({ detection: { ...mkCtx().detection, package_managers: [] } }),
+      profile,
+      files,
+    ).content;
+    expect(out).toContain("yarn install --frozen-lockfile");
+    expect(out).not.toContain("npm install");
+  });
+
+  it("Go builds the root main package (-o /out/app .), never ./... (multi-package modules)", () => {
+    // `-o <file> ./...` fails with "cannot write multiple packages to
+    // non-directory" on the common cmd/ + internal/ layout.
+    const ctx = mkCtx({
+      project_identity: { ...mkCtx().project_identity, go_module: "github.com/acme/svc" },
+    });
+    const out = generateDeployDockerfile(ctx, profile, [f("go.mod", "module github.com/acme/svc")]).content;
+    expect(out).not.toContain("-o /out/app ./...");
+    expect(out).toMatch(/-o \/out\/app \.$/m);
+  });
+
+  it("Python CMD is framework-aware: gunicorn for Flask/Django (WSGI), uvicorn for FastAPI (ASGI)", () => {
+    // Flask/Django containers crashed with "uvicorn: not found" — they're WSGI
+    // apps that usually don't depend on uvicorn.
+    const withFw = (name: string) =>
+      mkCtx({ detection: { ...mkCtx().detection, frameworks: [{ name, version: "1.0.0", confidence: 0.9 }] } });
+
+    const flask = generateDeployDockerfile(withFw("Flask"), profile, [f("requirements.txt", "flask")]).content;
+    expect(flask).toContain("gunicorn app:app");
+    expect(flask).not.toContain("uvicorn app.main:app");
+
+    const django = generateDeployDockerfile(withFw("Django"), profile, [f("requirements.txt", "django")]).content;
+    expect(django).toContain("gunicorn wsgi:application");
+    expect(django).not.toContain("uvicorn app.main:app");
+
+    const fastapi = generateDeployDockerfile(withFw("FastAPI"), profile, [f("requirements.txt", "fastapi")]).content;
+    expect(fastapi).toContain("uvicorn app.main:app");
+    expect(fastapi).not.toContain("gunicorn");
+  });
 });
