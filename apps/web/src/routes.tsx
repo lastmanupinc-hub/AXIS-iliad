@@ -3,6 +3,7 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { AnalyzePage } from "./pages/AnalyzePage.tsx";
 import { ProjectsPage } from "./pages/ProjectsPage.tsx";
 import { UsagePage } from "./pages/UsagePage.tsx";
+import { CommercePage } from "./pages/CommercePage.tsx";
 import { ProjectPage, type ProjectTab } from "./pages/ProjectPage.tsx";
 import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
@@ -109,6 +110,8 @@ export type PageId =
   | "for-agents"
   | "examples"
   | "mcp"
+  // Agentic Purchasing / Commerce Hub (WO-P9) — "#commerce".
+  | "commerce"
   | "paid-checkout"
   | "admin"
   | "myanalytics"
@@ -400,6 +403,28 @@ export const ROUTES: RouteDef[] = [
     aliases: ["/mcp", "/install", "/tools"],
     nav: { group: "LIBRARY", icon: "plug", rail: true },
     render: (ctx) => <McpPage onNavigate={ctx.navigate} />,
+  },
+  {
+    // WO-P9: Agentic Purchasing / Commerce Hub — generates and renders the
+    // "agentic-purchasing" program's artifacts in-app. Not authOnly: the
+    // explainer and a project's existing compliance-grade signal are visible
+    // to anyone with a loaded project (anon guest included); only the
+    // generate action itself is paid/gated (same pattern as "runner").
+    page: "commerce",
+    pattern: "commerce",
+    label: "Commerce",
+    tabLabel: "commerce.json",
+    section: "AGENTS",
+    nav: { group: "LIBRARY", icon: "shopping-bag" },
+    render: (ctx) => (
+      <CommercePage
+        loggedIn={ctx.loggedIn}
+        currentProjectId={ctx.currentProjectId}
+        anonResult={ctx.result}
+        onNavigate={ctx.navigate}
+        onRequireLogin={() => ctx.requireLogin("paid-program")}
+      />
+    ),
   },
   {
     page: "examples",

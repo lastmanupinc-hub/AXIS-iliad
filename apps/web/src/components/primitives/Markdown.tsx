@@ -30,6 +30,7 @@ type Block =
   | { type: "quote"; lines: string[] }
   | { type: "hr" }
   | { type: "list"; ordered: boolean; items: string[] }
+  | { type: "table"; header: string[]; rows: string[][] }
   | { type: "paragraph"; text: string };
 
 const FENCE_RE = /^```\s*(\S*)\s*$/;
@@ -38,6 +39,12 @@ const HR_RE = /^([-*_])\1{2,}\s*$/;
 const QUOTE_RE = /^>\s?(.*)$/;
 const UL_RE = /^[-*+]\s+(.*)$/;
 const OL_RE = /^\d+\.\s+(.*)$/;
+// GFM pipe tables: a row line has at least one "|", and the very next line is
+// a separator of only "-", ":", "|", and whitespace (the header/body divider
+// — its presence, not its column alignment, is what identifies a table; this
+// renderer doesn't support per-column alignment, just left-aligned cells).
+const TABLE_ROW_RE = /\|/;
+const TABLE_SEP_RE = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
 
 function isSpecialLine(line: string): boolean {
   return (
@@ -47,8 +54,24 @@ function isSpecialLine(line: string): boolean {
     HR_RE.test(line.trim()) ||
     QUOTE_RE.test(line) ||
     UL_RE.test(line) ||
-    OL_RE.test(line)
+    OL_RE.test(line) ||
+    TABLE_ROW_RE.test(line)
   );
+}
+
+/** Splits a pipe-table row into cells, stripping one leading/trailing "|" if
+ *  present (GFM's optional outer pipes) and un-escaping "\|" within a cell. */
+function splitTableRow(line: string): string[] {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  const cells: string[] = [];
+  let current = "";
+  for (let i = 0; i < trimmed.length; i++) {
+    if (trimmed[i] === "\\" && trimmed[i + 1] === "|") { current += "|"; i++; continue; }
+    if (trimmed[i] === "|") { cells.push(current.trim()); current = ""; continue; }
+    current += trimmed[i];
+  }
+  cells.push(current.trim());
+  return cells;
 }
 
 function parseBlocks(text: string): Block[] {
@@ -124,6 +147,21 @@ function parseBlocks(text: string): Block[] {
         i++;
       }
       blocks.push({ type: "list", ordered: true, items });
+      continue;
+    }
+
+    // Table: a "|"-bearing row immediately followed by a "---"-style
+    // separator row identifies a GFM pipe table (checked before the generic
+    // paragraph fallback, which would otherwise swallow both lines verbatim).
+    if (TABLE_ROW_RE.test(line) && i + 1 < lines.length && TABLE_SEP_RE.test(lines[i + 1])) {
+      const header = splitTableRow(line);
+      i += 2; // header + separator
+      const rows: string[][] = [];
+      while (i < lines.length && TABLE_ROW_RE.test(lines[i]) && lines[i].trim() !== "") {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      blocks.push({ type: "table", header, rows });
       continue;
     }
 
@@ -222,6 +260,21 @@ function renderBlock(block: Block, key: number): ReactNode {
     }
     case "paragraph":
       return <p key={key} className="md-lite-p">{renderInline(block.text, `p${key}`)}</p>;
+    case "table":
+      return (
+        <div key={key} className="md-lite-table-wrap">
+          <table className="md-lite-table">
+            <thead>
+              <tr>{block.header.map((cell, i) => <th key={i}>{renderInline(cell, `th${key}-${i}`)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, r) => (
+                <tr key={r}>{row.map((cell, c) => <td key={c}>{renderInline(cell, `td${key}-${r}-${c}`)}</td>)}</tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
     default: {
       const exhaustive: never = block;
       return exhaustive;

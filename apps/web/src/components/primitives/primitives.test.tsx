@@ -7,7 +7,7 @@
 // home), chart mark/label generation, and the PageFooter link set.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   BarChart,
   Callout,
@@ -229,6 +229,35 @@ describe("MarkdownLite (WO-P6)", () => {
     const { container } = render(<MarkdownLite text="Exclude *.test.ts and *.spec.ts files." />);
     expect(container.querySelector("em")).toBeNull();
     expect(container.querySelector(".md-lite-p")?.textContent).toBe("Exclude *.test.ts and *.spec.ts files.");
+  });
+
+  it("renders a GFM pipe table (WO-P9 — the agentic-purchasing generators emit these heavily)", () => {
+    const { container } = render(<MarkdownLite text={"| Field | Value |\n|-------|-------|\n| Project | fixture-repo |\n| Language | TypeScript |"} />);
+    const table = container.querySelector("table.md-lite-table")!;
+    expect(table).toBeTruthy();
+    const headers = [...table.querySelectorAll("th")].map((th) => th.textContent);
+    expect(headers).toEqual(["Field", "Value"]);
+    const rows = [...table.querySelectorAll("tbody tr")].map((tr) => [...tr.querySelectorAll("td")].map((td) => td.textContent));
+    expect(rows).toEqual([["Project", "fixture-repo"], ["Language", "TypeScript"]]);
+  });
+
+  it("renders inline spans (bold, code) inside table cells", () => {
+    render(<MarkdownLite text={"| Provider | Status |\n|---|---|\n| Stripe | **detected** in `payments.ts` |"} />);
+    const cell = screen.getByText("Stripe").closest("tr")!;
+    expect(within(cell).getByText("detected").tagName).toBe("STRONG");
+    expect(within(cell).getByText("payments.ts").tagName).toBe("CODE");
+  });
+
+  it("a table with no outer pipes on its rows still parses (GFM allows omitting them)", () => {
+    const { container } = render(<MarkdownLite text={"Field | Value\n---|---\nName | fixture"} />);
+    const table = container.querySelector("table.md-lite-table")!;
+    expect([...table.querySelectorAll("th")].map((th) => th.textContent)).toEqual(["Field", "Value"]);
+  });
+
+  it("a lone '|'-bearing line with no following separator is NOT mistaken for a table (falls through to a paragraph)", () => {
+    const { container } = render(<MarkdownLite text="This sentence uses a pipe | character but isn't a table." />);
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.querySelector(".md-lite-p")).toBeTruthy();
   });
 
   it("returns null for empty input", () => {

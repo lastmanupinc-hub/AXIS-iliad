@@ -620,6 +620,29 @@ describe("Settings (WO-P12)", () => {
   });
 });
 
+// ─── Agentic Commerce (WO-P9) ──────────────────────────────────────
+// "#commerce" is NOT auth-only — like "#run", the explainer and a project's
+// existing compliance signal are visible to anyone with a loaded project
+// (anon guest included); only the generate action itself is paid-gated.
+// Deep page behavior lives in pages/CommercePage.test.tsx; this proves the
+// App-level wiring only.
+
+describe("Agentic Commerce (WO-P9)", () => {
+  it("#commerce deep-link renders the Commerce page (not auth-gated)", () => {
+    window.location.hash = "#commerce";
+    const { container } = render(<App />);
+    expect(shellPage(container)).toBe("commerce");
+  });
+
+  it("sidebar 'Commerce' item navigates to #commerce", () => {
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    fireEvent.click(sidebar.getByRole("button", { name: "Commerce" }));
+    expect(shellPage(container)).toBe("commerce");
+    expect(window.location.hash).toBe("#commerce");
+  });
+});
+
 // ─── Program Runner (WO-P7) ───────────────────────────────────────
 // "#run"/"#run/:program" is NOT auth-only (anonymous visitors can run free
 // programs against their guest project) — deep link, sidebar entry, and the
