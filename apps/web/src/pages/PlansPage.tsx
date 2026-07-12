@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getPlans, getPaidConfig, type PlanDefinition, type PlanFeature } from "../api.ts";
+import { Callout } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { PROGRAM_COUNT } from "../config.ts";
 
@@ -21,6 +22,7 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [fallbackPricing, setFallbackPricing] = useState(false);
 
   const isLoggedIn = !!localStorage.getItem("axis_api_key");
 
@@ -65,11 +67,15 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
   useEffect(() => {
     getPlans()
       .then((data) => {
+        // A malformed 200 is a failure too — never store junk (H1.2 class),
+        // never present non-live data as live (H0.9).
+        if (!Array.isArray(data.plans)) throw new Error("malformed plans payload");
         setPlans(data.plans);
-        setFeatures(data.features);
+        setFeatures(Array.isArray(data.features) ? data.features : []);
       })
       .catch(() => {
-        // Fallback if API not running — show static data
+        // Fallback if API not running — show static data, DISCLOSED as such.
+        setFallbackPricing(true);
         setPlans([
           { id: "free", name: "Free", tagline: "Core files and evaluation tier", price_monthly_cents: 0, price_annual_cents: 0, highlights: ["10,000 monthly credits", "Core outputs stay free", "Best for evaluation"] },
           { id: "starter", name: "Starter", tagline: "Best for solo builders and small agents", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: ["75,000 monthly credits", `All ${PROGRAM_COUNT} programs`, "Overage at $0.0018/credit"] },
@@ -102,6 +108,14 @@ export function PlansPage({ onSelectPlan, onRequireLogin }: Props) {
       {checkoutError && (
         <div className="card" style={{ borderColor: "var(--red)", marginBottom: 16 }}>
           <p style={{ color: "var(--red)", fontSize: "0.875rem", margin: 0 }}>{checkoutError}</p>
+        </div>
+      )}
+      {fallbackPricing && (
+        <div style={{ maxWidth: 640, margin: "0 auto 16px" }}>
+          <Callout tone="warning" title="Showing standard pricing">
+            Live plan data is unavailable right now — these are our standard published prices.
+            Refresh to retry live pricing.
+          </Callout>
         </div>
       )}
       <div style={{ textAlign: "center", marginBottom: 32 }}>

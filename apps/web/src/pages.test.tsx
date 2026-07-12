@@ -484,6 +484,52 @@ describe("PaidCheckoutPage", () => {
   });
 });
 
+describe("PlansPage honest pricing fallback (H0.9)", () => {
+  const starterPlan = { id: "starter", name: "Starter", tagline: "t", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: [] };
+
+  beforeEach(() => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+  });
+  afterEach(() => {
+    localStorage.removeItem("axis_api_key");
+  });
+
+  it("shows the standard-pricing notice when live plans can't be fetched", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/v1/plans": { status: 500, body: { error: "down" } },
+    }));
+
+    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+
+    // The static fallback still renders the plans…
+    expect(await screen.findByRole("button", { name: "Choose Starter" })).toBeTruthy();
+    // …but discloses it isn't live data.
+    expect(screen.getByText(/live plan data is unavailable/i)).toBeTruthy();
+  });
+
+  it("shows the notice when the API answers 200 with a malformed plans payload", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/v1/plans": { body: { nope: true } },
+    }));
+
+    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+
+    expect(await screen.findByRole("button", { name: "Choose Starter" })).toBeTruthy();
+    expect(screen.getByText(/live plan data is unavailable/i)).toBeTruthy();
+  });
+
+  it("no notice when live plans load", async () => {
+    vi.stubGlobal("fetch", paidFetchStub({
+      "/v1/plans": { body: { plans: [starterPlan], features: [] } },
+    }));
+
+    render(<PlansPage onSelectPlan={() => {}} onRequireLogin={() => {}} />);
+
+    expect(await screen.findByRole("button", { name: "Choose Starter" })).toBeTruthy();
+    expect(screen.queryByText(/live plan data is unavailable/i)).toBeNull();
+  });
+});
+
 describe("PlansPage PAI'D routing", () => {
   const starterPlan = { id: "starter", name: "Starter", tagline: "t", price_monthly_cents: 2900, price_annual_cents: 27840, highlights: [] };
 

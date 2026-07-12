@@ -140,7 +140,7 @@ July build program. They are not suggestions.
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
-| H0.1–H0.10 | Hygiene | H0.1 + H0.3–H0.8 DONE; H0.2 waits on H2.1; H0.9–H0.10 pending | see PROGRESS |
+| H0.1–H0.10 | Hygiene | H0.1 + H0.3–H0.9 DONE; H0.2 waits on H2.1; H0.10 pending | see PROGRESS |
 | H1.1–H1.4 | Reliability | H1.2 DONE (Fable, `fdfddd5`); H1.3 partial (source-guard 30s, `317095b`); rest pending | |
 | H2.1–H2.5 | Money path | pending | |
 | ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
@@ -514,7 +514,8 @@ every diff. Newest at the bottom.
 | 2026-07-11 | H0.5 | checkout-completed now stores the price the customer ACTUALLY bought (fetched from the subscription, pinned version, fail-to-env-fallback) with plan-intent tier fallback so env rotation can't strand or rewrite a paying customer; red demonstrated first | `493d986` |
 | 2026-07-11 | H0.6 | Idempotency-Key on both Stripe POSTs: checkout create keyed by checkoutIdempotencyKey (its designed double-submit purpose), cancel keyed per subscription; red demonstrated first | `653d773` |
 | 2026-07-11 | H0.7 | The three unlocked 1261357 deploy fixes now have regression tests (root-vs-nested packageManager, Go -o /out/app ., framework-aware Python CMD); red proven via temporary local revert (5/5 deploy locks fail pre-fix), revert never committed | `df86b2c` |
-| 2026-07-11 | H0.8 | runEmbeddings gains its first direct tests (5): both _not_configured honesty envelopes never charge or fabricate, happy path captures credits exactly once, input validation clean | see commit |
+| 2026-07-11 | H0.8 | runEmbeddings gains its first direct tests (5): both _not_configured honesty envelopes never charge or fabricate, happy path captures credits exactly once, input validation clean | `3466f99` |
+| 2026-07-11 | H0.9 | PlansPage fallback pricing now DISCLOSES itself (warning Callout, only on failure); malformed-200 payloads treated as failure instead of storing junk (H1.2 class); red demonstrated first (2 red + control green) | see commit |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 
