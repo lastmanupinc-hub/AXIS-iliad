@@ -151,7 +151,7 @@ function GettingStartedSection() {
             <tr><td><kbd>Ctrl+1</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Analyze page</td></tr>
             <tr><td><kbd>Ctrl+2</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Dashboard (sign in required)</td></tr>
             <tr><td><kbd>Ctrl+3</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Plans page</td></tr>
-            <tr><td><kbd>Ctrl+4</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Account page</td></tr>
+            <tr><td><kbd>Ctrl+4</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Settings page</td></tr>
             <tr><td><kbd>Ctrl+5</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Documentation page</td></tr>
             <tr><td><kbd>Ctrl+6</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Help Center</td></tr>
             <tr><td><kbd>Ctrl+7</kbd></td><td style={{ color: "var(--text-muted)" }}>Go to Q&amp;A page</td></tr>
@@ -171,7 +171,7 @@ function GettingStartedSection() {
             { page: "Analyze", key: "Ctrl+1", desc: "Upload projects via folder, ZIP, or GitHub URL" },
             { page: "Dashboard", key: "Ctrl+2", desc: "Your projects, usage, and quick actions" },
             { page: "Plans", key: "Ctrl+3", desc: "Compare Free, Starter, Pro, and Growth tiers" },
-            { page: "Account", key: "Ctrl+4", desc: "Manage API keys, team seats, and usage" },
+            { page: "Settings", key: "Ctrl+4", desc: "Manage API keys, team seats, GitHub tokens, and webhooks" },
             { page: "Docs", key: "Ctrl+5", desc: "Full documentation, API reference, CLI guide" },
             { page: "Help", key: "Ctrl+6", desc: "Step-by-step guides and troubleshooting" },
             { page: "Q&A", key: "Ctrl+7", desc: "Searchable questions and answers" },

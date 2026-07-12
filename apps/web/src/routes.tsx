@@ -8,6 +8,7 @@ import { AccountDashboardPage } from "./pages/AccountDashboardPage.tsx";
 import { RunnerPage } from "./pages/RunnerPage.tsx";
 import { PlansPage } from "./pages/PlansPage.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
+import { SettingsPage } from "./pages/SettingsPage.tsx";
 import { DocsPage } from "./pages/DocsPage.tsx";
 import { HelpPage } from "./pages/HelpPage.tsx";
 import { QAPage } from "./pages/QAPage.tsx";
@@ -81,6 +82,10 @@ export type PageId =
   // billing/usage half (profile/keys/seats stay at "account" for now,
   // pending WO-P12's move to Settings).
   | "usage"
+  // Settings (WO-P12) — "#settings", the profile/keys/seats half of the
+  // former AccountPage plus GitHub tokens, webhooks, program toggles, and
+  // the Danger Zone. "account" survives only as the OAuth redirect target.
+  | "settings"
   // Project/Snapshot Detail (WO-P5) — ID-addressable at "#projects/:id";
   // "project-versions" and "project-artifacts" (WO-P6) are the same page
   // with a different tab deep-linked (separate RouteDefs because a pattern
@@ -431,16 +436,37 @@ export const ROUTES: RouteDef[] = [
     render: () => <UsagePage />,
   },
   {
+    // WO-P12: no longer a sidebar/rail/shortcut destination — "settings"
+    // (below) took over that slot. Kept addressable (pattern + alias) ONLY
+    // because the OAuth provider's redirect_uri is a fixed server-side value
+    // pointing at "#account" — changing that is an infra change this unit
+    // deliberately does not risk. An authenticated visit here redirects
+    // straight to Settings (see AccountPage.tsx's own comment).
     page: "account",
     pattern: "account",
     label: "Account",
     labelLoggedOut: "Sign Up",
     section: "ACCOUNT",
-    shortcut: 4,
     authOnly: true,
     aliases: ["/account"],
-    nav: { group: "ACCOUNT", icon: "user", rail: true },
-    render: (ctx) => <AccountPage onAuthChange={ctx.onAuthChange} />,
+    render: (ctx) => <AccountPage onAuthChange={ctx.onAuthChange} onNavigate={ctx.navigate} />,
+  },
+  {
+    // WO-P12: Settings — profile (PATCH /v1/account), API keys, GitHub
+    // tokens, webhooks + delivery log, team seats, program entitlement
+    // toggles, and the Danger Zone (DELETE /v1/account). Claims "account"'s
+    // former shortcut/rail/sidebar slot per the build plan's sidebar tree
+    // ("ACCOUNT: Usage & Billing · Settings · Plans" — no separate "Account"
+    // entry). HelpPage's Ctrl+4 documentation already says "Settings".
+    page: "settings",
+    pattern: "settings",
+    label: "Settings",
+    tabLabel: "settings.json",
+    section: "ACCOUNT",
+    shortcut: 4,
+    authOnly: true,
+    nav: { group: "ACCOUNT", icon: "settings", rail: true },
+    render: (ctx) => <SettingsPage onAuthChange={ctx.onAuthChange} />,
   },
   {
     page: "myanalytics",

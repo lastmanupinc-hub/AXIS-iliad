@@ -1296,6 +1296,16 @@ export async function getAccount(): Promise<Account> {
   return data.account ?? (data as unknown as Account);
 }
 
+/** Currently-enabled program names for this account (Settings' program
+ *  toggles, WO-P12) — GET /v1/account also returns this, but getAccount()
+ *  only surfaces the Account shape; this reads the same endpoint for the
+ *  entitlements list instead of widening Account with a field that isn't
+ *  really part of the account row. */
+export async function getAccountEntitlements(): Promise<string[]> {
+  const data = await fetchJSON("/v1/account") as { entitlements?: string[] };
+  return data.entitlements ?? [];
+}
+
 export async function createApiKey(label: string): Promise<{ key_id: string; raw_key: string; label: string }> {
   return fetchJSON("/v1/account/keys", {
     method: "POST",
@@ -1330,6 +1340,89 @@ export interface GitHubTokenSummary {
 
 export async function listGitHubTokens(): Promise<{ tokens: GitHubTokenSummary[] }> {
   return fetchJSON("/v1/account/github-token");
+}
+
+// ─── GitHub token CRUD (Settings, WO-P12) ───────────────────────
+
+export async function saveGitHubToken(
+  token: string,
+  label?: string,
+  scopes?: string[],
+): Promise<{ token_id: string; label: string; token_prefix: string; scopes: string[]; created_at: string; message: string }> {
+  return fetchJSON("/v1/account/github-token", {
+    method: "POST",
+    body: JSON.stringify({ token, label, scopes }),
+  });
+}
+
+export async function deleteGitHubToken(tokenId: string): Promise<{ token_id: string; deleted: boolean }> {
+  return fetchJSON(`/v1/account/github-token/${encodeURIComponent(tokenId)}`, { method: "DELETE" });
+}
+
+// ─── Webhooks (Settings, WO-P12) ─────────────────────────────────
+
+export type WebhookEventType = "snapshot.created" | "snapshot.deleted" | "project.deleted" | "generation.completed";
+export const VALID_WEBHOOK_EVENTS: readonly WebhookEventType[] = ["snapshot.created", "snapshot.deleted", "project.deleted", "generation.completed"];
+
+export interface Webhook {
+  webhook_id: string;
+  account_id: string;
+  url: string;
+  events: WebhookEventType[];
+  /** Redacted to "***" (or null) by the list endpoint — never the real secret. */
+  secret: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookDelivery {
+  delivery_id: string;
+  webhook_id: string;
+  event_type: string;
+  payload: string;
+  status_code: number | null;
+  response_body: string | null;
+  success: boolean;
+  attempted_at: string;
+  attempt_number: number;
+  next_retry_at: string | null;
+  dead_lettered: boolean;
+}
+
+export async function createWebhook(url: string, events: WebhookEventType[], secret?: string): Promise<{ webhook: Webhook }> {
+  return fetchJSON("/v1/account/webhooks", {
+    method: "POST",
+    body: JSON.stringify({ url, events, secret }),
+  });
+}
+
+export async function listWebhooks(): Promise<{ webhooks: Webhook[]; count: number }> {
+  return fetchJSON("/v1/account/webhooks");
+}
+
+export async function deleteWebhook(webhookId: string): Promise<{ deleted: boolean; webhook_id: string }> {
+  return fetchJSON(`/v1/account/webhooks/${encodeURIComponent(webhookId)}`, { method: "DELETE" });
+}
+
+export async function toggleWebhook(webhookId: string, active: boolean): Promise<{ webhook_id: string; active: boolean }> {
+  return fetchJSON(`/v1/account/webhooks/${encodeURIComponent(webhookId)}/toggle`, {
+    method: "POST",
+    body: JSON.stringify({ active }),
+  });
+}
+
+export async function getWebhookDeliveries(webhookId: string, limit = 20): Promise<{ deliveries: WebhookDelivery[]; count: number }> {
+  return fetchJSON(`/v1/account/webhooks/${encodeURIComponent(webhookId)}/deliveries?limit=${limit}`);
+}
+
+// ─── Program entitlement toggles (Settings, WO-P12; paid/suite only) ──
+
+export async function updateProgramEntitlements(opts: { enable?: string[]; disable?: string[] }): Promise<{ programs: string[] }> {
+  return fetchJSON("/v1/account/programs", {
+    method: "POST",
+    body: JSON.stringify(opts),
+  });
 }
 
 export async function getUsage(): Promise<{ tier: BillingTier; monthly_snapshots: number; project_count: number; by_program: UsageSummary[] }> {

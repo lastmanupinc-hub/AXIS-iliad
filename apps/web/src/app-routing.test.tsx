@@ -566,6 +566,60 @@ describe("Usage & Billing (WO-P10)", () => {
   });
 });
 
+// ─── Settings (WO-P12) ─────────────────────────────────────────────
+// "#settings" claimed "account"'s former sidebar/rail/Ctrl+4 slot (see
+// routes.tsx's comment on both RouteDefs). "#account" itself survives ONLY
+// as the OAuth redirect target — an already-authenticated visit there
+// redirects straight to Settings. Deep page behavior (all 7 sections) is
+// covered in pages/SettingsPage.test.tsx; this proves the App-level wiring.
+
+describe("Settings (WO-P12)", () => {
+  it("auth-only deep link (#settings) bounces to the landing page with the sign-in popup", async () => {
+    window.location.hash = "#settings";
+    const { container } = render(<App />);
+    await waitFor(() => expect(shellPage(container)).toBe("home"));
+    expect(screen.getByRole("link", { name: /GitHub/i })).toBeTruthy();
+  });
+
+  it("sidebar 'Settings' item navigates to #settings when signed in", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubApiFetch([
+      ["/v1/account", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }, entitlements: [] }],
+      ["/v1/account/keys", { keys: [] }],
+      ["/v1/account/seats", { seats: [], count: 0, limit: 0, remaining: 0 }],
+      ["/v1/account/github-token", { tokens: [] }],
+      ["/v1/account/webhooks", { webhooks: [], count: 0 }],
+      ["/v1/programs", { programs: [], total_generators: 0 }],
+    ]);
+    window.location.hash = "#dashboard";
+
+    const { container } = render(<App />);
+    const sidebar = within(container.querySelector(".ide-sidebar") as HTMLElement);
+    fireEvent.click(sidebar.getByRole("button", { name: "Settings" }));
+
+    expect(shellPage(container)).toBe("settings");
+    expect(window.location.hash).toBe("#settings");
+  });
+
+  it("an already-authenticated visit to #account redirects straight to Settings", async () => {
+    localStorage.setItem("axis_api_key", "__cookie_session__");
+    stubApiFetch([
+      ["/v1/account", { account: { account_id: "a1", name: "Ada", email: "ada@example.com", tier: "free", created_at: "2026-01-01T00:00:00Z" }, entitlements: [] }],
+      ["/v1/account/keys", { keys: [] }],
+      ["/v1/account/seats", { seats: [], count: 0, limit: 0, remaining: 0 }],
+      ["/v1/account/github-token", { tokens: [] }],
+      ["/v1/account/webhooks", { webhooks: [], count: 0 }],
+      ["/v1/programs", { programs: [], total_generators: 0 }],
+    ]);
+    window.location.hash = "#account";
+
+    const { container } = render(<App />);
+
+    await waitFor(() => expect(shellPage(container)).toBe("settings"));
+    expect(window.location.hash).toBe("#settings");
+  });
+});
+
 // ─── Program Runner (WO-P7) ───────────────────────────────────────
 // "#run"/"#run/:program" is NOT auth-only (anonymous visitors can run free
 // programs against their guest project) — deep link, sidebar entry, and the
