@@ -200,6 +200,9 @@ describe("handleCreateCheckout branches", () => {
     // float on the account default, and this code reads dahlia-era shapes.
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect((init.headers as Record<string, string>)["Stripe-Version"]).toBe("2026-06-24.dahlia");
+    // H0.6: money-moving Stripe POSTs carry an Idempotency-Key so a network
+    // retry can never create a second checkout session.
+    expect((init.headers as Record<string, string>)["Idempotency-Key"]).toMatch(/\S/);
   });
 
   it("returns 201 for suite tier checkout", async () => {
@@ -355,6 +358,8 @@ describe("handleCancelSubscription branches", () => {
     // H0.4: the subscription-update call pins the API version too.
     const [, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect((init.headers as Record<string, string>)["Stripe-Version"]).toBe("2026-06-24.dahlia");
+    // H0.6: idempotent cancel — a retried request reuses the same key.
+    expect((init.headers as Record<string, string>)["Idempotency-Key"]).toMatch(/\S/);
   });
 
   it("returns 502 when Stripe API returns non-ok for cancel", async () => {

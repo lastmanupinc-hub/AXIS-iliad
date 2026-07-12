@@ -140,7 +140,7 @@ July build program. They are not suggestions.
 
 | Unit | Phase | Status | Commit / evidence |
 |---|---|---|---|
-| H0.1–H0.10 | Hygiene | H0.1 + H0.3 + H0.4 + H0.5 DONE (all red-green demonstrated); H0.2 waits on H2.1; rest pending | see PROGRESS |
+| H0.1–H0.10 | Hygiene | H0.1 + H0.3–H0.6 DONE (all red-green demonstrated); H0.2 waits on H2.1; H0.7–H0.10 pending | see PROGRESS |
 | H1.1–H1.4 | Reliability | H1.2 DONE (Fable, `fdfddd5`); H1.3 partial (source-guard 30s, `317095b`); rest pending | |
 | H2.1–H2.5 | Money path | pending | |
 | ⛔ MONEY GATE | Operator checkpoint after H0+H1+H2 | NOT PASSED — blocks H3+ | |
@@ -511,7 +511,8 @@ every diff. Newest at the bottom.
 | 2026-07-11 | H0.1 | FC-debit idempotency: per-invocation UUID replaces 120s-bucket key (bucketing dropped 2nd call in window / re-keyed late retries); red demonstrated first | `e5558fb` |
 | 2026-07-11 | H0.3 | Wallet-rail revenue now settled-visible: migration v33 widens provider CHECK to paid_fc, TS union extended, enforce-success records the receipt; 3 reds demonstrated first | `5c8e120` |
 | 2026-07-11 | H0.4 | Stripe-Version 2026-06-24.dahlia pinned on all 4 outbound call sites (stripe.ts x2, network-token, dispute-clients); webhook handlers dual-read Basil+ shapes (item-level periods, invoice parent.subscription_details) with legacy fallback; 6 reds demonstrated first | `24f827a` |
-| 2026-07-11 | H0.5 | checkout-completed now stores the price the customer ACTUALLY bought (fetched from the subscription, pinned version, fail-to-env-fallback) with plan-intent tier fallback so env rotation can't strand or rewrite a paying customer; red demonstrated first | see commit |
+| 2026-07-11 | H0.5 | checkout-completed now stores the price the customer ACTUALLY bought (fetched from the subscription, pinned version, fail-to-env-fallback) with plan-intent tier fallback so env rotation can't strand or rewrite a paying customer; red demonstrated first | `493d986` |
+| 2026-07-11 | H0.6 | Idempotency-Key on both Stripe POSTs: checkout create keyed by checkoutIdempotencyKey (its designed double-submit purpose), cancel keyed per subscription; red demonstrated first | see commit |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 

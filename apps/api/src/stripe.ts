@@ -31,6 +31,7 @@ import {
   sendUpgradeConfirmation,
   type StripeSubscriptionStatus,
 } from "@axis/snapshots";
+import { checkoutIdempotencyKey } from "./paid-client.js";
 import {
   handleDisputeCreated,
   handleDisputeUpdated,
@@ -528,12 +529,17 @@ export async function handleCreateCheckout(
   params.append("subscription_data[metadata][billing_cycle]", billingCycle);
 
   try {
+    // H0.6: a network retry / double-submit inside the key window reuses the
+    // SAME checkout session instead of creating a second charge surface —
+    // exactly checkoutIdempotencyKey's designed purpose (human checkout dedupe).
+    const idempotencyKey = checkoutIdempotencyKey(ctx.account!.account_id, `stripe-checkout:${planId}:${billingCycle}`);
     const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${stripeKey}`,
         "Content-Type": "application/x-www-form-urlencoded",
         "Stripe-Version": STRIPE_API_VERSION,
+        "Idempotency-Key": idempotencyKey,
       },
       body: params.toString(),
     });
@@ -670,6 +676,9 @@ export async function handleCancelSubscription(
           "Authorization": `Bearer ${stripeKey}`,
           "Content-Type": "application/x-www-form-urlencoded",
           "Stripe-Version": STRIPE_API_VERSION,
+          // H0.6: cancel is semantically idempotent (cancel_at_period_end=true);
+          // the key makes a transport retry provably so on Stripe's side too.
+          "Idempotency-Key": checkoutIdempotencyKey(ctx.account!.account_id, `stripe-cancel:${active.subscription_id}`),
         },
         body: params.toString(),
       },
