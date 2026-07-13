@@ -33,6 +33,45 @@ Start with prepare_agentic_purchasing on new repositories.
 Respect x402 responses for autonomous payment.
 MCP Endpoint: ${mcpUrl}`;
 
+const usageExampleSuccess = `{
+  "result": {
+    "content": [{ "type": "text", "text": "..." }],
+    "isError": false,
+    "_usage": {
+      "tier": "pro",
+      "credits_remaining": 42,
+      "usage_credits": {
+        "plan_id": "pro",
+        "month_key": "2026-07",
+        "monthly_allowance": 300000,
+        "included_credits_used": 18400,
+        "included_credits_remaining": 281600,
+        "overage_credits_this_month": 0
+      },
+      "compensation": { "owed_cents": 0, "credited_cents": 0 },
+      "tool": "prepare_agentic_purchasing"
+    }
+  }
+}`;
+
+const usageExampleReplay = `{
+  "result": {
+    "content": [{ "type": "text", "text": "<the original response, unchanged>" }],
+    "isError": false,
+    "_usage": { "...": "same shape as above" },
+    "_idempotent_replay": true
+  }
+}`;
+
+const usageExampleError = `{
+  "result": {
+    "content": [{ "type": "text", "text": "Error: ..." }],
+    "isError": true,
+    "_error": { "code": "external", "retryable": true },
+    "_compensation": { "entry_id": "comp_...", "amount_cents": 50, "status": "owed" }
+  }
+}`;
+
 const liveDemoCurl = `# Demo: list every program and its generators (free tool, no auth required)
 curl -X POST ${mcpUrl} \\
   -H "Content-Type: application/json" \\
@@ -178,6 +217,50 @@ export function ForAgentsPage() {
           <li>Reward state resets each billing cycle.</li>
           <li>Query status with the free <code>get_referral_code</code> / <code>get_referral_credits</code> tools.</li>
         </ul>
+      </div>
+
+      <div className="card">
+        <h2>Every Tool Response Carries Usage Metadata</h2>
+        <p>
+          Every successful <code>tools/call</code> result — free or paid, authenticated or anonymous — includes a{" "}
+          <code>_usage</code> object next to <code>content</code>. Read it instead of tracking spend yourself:
+        </p>
+        <pre className="mono">{usageExampleSuccess}</pre>
+        <table>
+          <thead>
+            <tr><th>Field</th><th>Meaning</th></tr>
+          </thead>
+          <tbody>
+            <tr><td className="mono">tier</td><td>Account tier, or <code>"anonymous"</code> for unauthenticated calls.</td></tr>
+            <tr><td className="mono">credits_remaining</td><td>Persistence-credit balance (a separate pool from usage_credits, spent on version-diffing operations). <code>null</code> when anonymous.</td></tr>
+            <tr><td className="mono">usage_credits</td><td>This month's blended-credit-pool standing: <code>plan_id</code>, <code>month_key</code>, <code>monthly_allowance</code>, <code>included_credits_used</code>, <code>included_credits_remaining</code>, <code>overage_credits_this_month</code>. <code>null</code> when anonymous.</td></tr>
+            <tr><td className="mono">compensation</td><td>Running lifetime totals — <code>owed_cents</code> / <code>credited_cents</code> — for any past call that collected payment and then failed (see below). Any owed amount is automatically credited on your very next call; you never have to claim it. <code>null</code> when anonymous.</td></tr>
+            <tr><td className="mono">tool</td><td>Echo of the tool name that ran (after legacy-alias normalization).</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Idempotent replay</h3>
+        <p>
+          Retry a call with the same <code>Idempotency-Key</code> header and unchanged arguments, and you get the
+          original result back — never a second charge or a second run. A top-level <code>_idempotent_replay: true</code>{" "}
+          marks that this response is a replay, not a fresh execution:
+        </p>
+        <pre className="mono">{usageExampleReplay}</pre>
+
+        <h3>When a paid call fails after collecting payment</h3>
+        <p>
+          A failed call never carries <code>_usage</code> — instead it carries <code>_error</code> (a coarse{" "}
+          <code>{"{ code, retryable }"}</code> classification — see the Error Codes reference for the full category
+          list) and, only when this specific call had already collected an in-band cash payment before the tool
+          threw, a one-off <code>_compensation</code> record for exactly that call:
+        </p>
+        <pre className="mono">{usageExampleError}</pre>
+        <p>
+          <code>_compensation</code> (singular, on an error response) is a receipt for one incident. The{" "}
+          <code>compensation</code> field inside <code>_usage</code> (on a success response) is the running total
+          across every incident — it goes back to zero once credited, so a nonzero <code>owed_cents</code> there
+          means a credit is about to land, not that anything is currently broken.
+        </p>
       </div>
 
       <div className="card">

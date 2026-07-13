@@ -97,6 +97,31 @@ describe("Referral copy stays factual — no growth-pitch framing", () => {
   });
 });
 
+describe("ForAgentsPage — _usage envelope documentation (H4.3)", () => {
+  it("documents the success envelope's fields", () => {
+    const { container } = render(<ForAgentsPage />);
+    const html = container.innerHTML;
+    expect(html).toContain("_usage");
+    expect(html).toContain("credits_remaining");
+    expect(html).toContain("usage_credits");
+    expect(html).toContain("included_credits_remaining");
+  });
+
+  it("documents _idempotent_replay", () => {
+    const { container } = render(<ForAgentsPage />);
+    expect(container.innerHTML).toContain("_idempotent_replay");
+  });
+
+  it("distinguishes the running compensation total (_usage.compensation) from the one-off _compensation receipt", () => {
+    const { container } = render(<ForAgentsPage />);
+    const html = container.innerHTML;
+    expect(html).toContain("owed_cents");
+    expect(html).toContain("credited_cents");
+    expect(html).toContain("_compensation");
+    expect(html).toContain("entry_id");
+  });
+});
+
 // ─── Prop-taking page smoke tests ───────────────────────────────
 
 import { AccountPage } from "./pages/AccountPage";

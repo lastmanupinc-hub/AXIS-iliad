@@ -2431,6 +2431,14 @@ When integrating with Axis' Iliad as an LLM agent:
 - Use POST /probe-intent with {intent: "your need"} for lightweight intent matching (free, no auth).
 - Always check the adoption_hint field on returned artifacts to know where to place each file.
 
+## MCP Response Envelope
+
+Every successful tools/call result (free or paid, authenticated or anonymous) carries a _usage object next to content: {tier, credits_remaining, usage_credits, compensation, tool}. credits_remaining is the persistence-credit balance (spent on version-diffing, a separate pool from usage_credits). usage_credits is this month's blended-credit-pool standing: {plan_id, month_key, monthly_allowance, included_credits_used, included_credits_remaining, overage_credits_this_month}. compensation is a running lifetime total ({owed_cents, credited_cents}) for any past call that collected payment and then failed — any owed amount is auto-credited on your next call, you never claim it manually. All four are null when anonymous.
+
+Retry a call with the same Idempotency-Key header and unchanged arguments and you get the original result back, never a second charge or run — the response carries a top-level _idempotent_replay: true instead of a fresh _usage snapshot's absence (the replayed _usage is still present, just echoing the original call's values).
+
+A failed call never carries _usage — instead it carries _error: {code, retryable} (see MCP tool-call error categories below) and, only when that specific call had already collected an in-band cash payment before the tool threw, a one-off _compensation: {entry_id, amount_cents, status} record for exactly that incident. _compensation (singular, error-only) is a receipt for one incident; the compensation field inside _usage (success-only) is the running total across every incident.
+
 ## Error Codes
 
 Every REST error response carries error_code alongside error (human message) and request_id. Structured JSON (same data as below, machine-readable): GET /v1/error-codes

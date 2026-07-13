@@ -185,6 +185,16 @@ describe("GET /llms.txt", () => {
     expect(body).not.toContain("Share-to-Earn");
   });
 
+  it("H4.3: documents the MCP response envelope (_usage, _idempotent_replay, compensation)", async () => {
+    expect(body).toContain("## MCP Response Envelope");
+    expect(body).toContain("_usage");
+    expect(body).toContain("credits_remaining");
+    expect(body).toContain("usage_credits");
+    expect(body).toContain("_idempotent_replay");
+    expect(body).toContain("_error");
+    expect(body).toContain("_compensation");
+  });
+
   it("H4.2: contains a generated Error Codes section covering every ErrorCode value", async () => {
     expect(body).toContain("## Error Codes");
     expect(body).toContain("GET /v1/error-codes");
