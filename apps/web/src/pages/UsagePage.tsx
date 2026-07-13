@@ -91,6 +91,18 @@ export function UsagePage() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
   const [topupBusy, setTopupBusy] = useState<string | null>(null);
+  // One busy flag disables N per-pack buttons, so useFocusRetention's
+  // single-button shape doesn't fit — track each pack's element in a
+  // registry and refocus whichever one was actually busy once it clears
+  // (only reachable on the error-retry path; success navigates away).
+  const topupButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const lastBusyTopup = useRef<string | null>(null);
+  useEffect(() => {
+    if (topupBusy === null && lastBusyTopup.current) {
+      topupButtonRefs.current.get(lastBusyTopup.current)?.focus();
+    }
+    lastBusyTopup.current = topupBusy;
+  }, [topupBusy]);
   const [previewTier, setPreviewTier] = useState<BillingTier | "">("");
   const [preview, setPreview] = useState<ProrationPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -332,7 +344,14 @@ export function UsagePage() {
               <p className="text-sm text-muted mb-2">Buy more credits — secure checkout via PAI&apos;D</p>
               <div className="grid grid-3">
                 {credits.credit_packs.map((p) => (
-                  <button key={p.pack_id} type="button" className="btn" disabled={topupBusy !== null} onClick={() => void handleTopup(p.pack_id)}>
+                  <button
+                    key={p.pack_id}
+                    ref={(el) => { if (el) topupButtonRefs.current.set(p.pack_id, el); else topupButtonRefs.current.delete(p.pack_id); }}
+                    type="button"
+                    className="btn"
+                    disabled={topupBusy !== null}
+                    onClick={() => void handleTopup(p.pack_id)}
+                  >
                     {topupBusy === p.pack_id ? "Redirecting…" : `${p.credits.toLocaleString()} credits — $${(p.price_cents / 100).toFixed(0)}`}
                   </button>
                 ))}

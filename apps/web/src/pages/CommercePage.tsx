@@ -12,6 +12,7 @@ import {
 } from "../api.ts";
 import { UpsellModal } from "../components/UpsellModal.tsx";
 import { useToast } from "../components/Toast.tsx";
+import { useFocusRetention } from "../useFocusRetention.ts";
 import { SectionHeader, Callout, EmptyState, Skeleton, MarkdownLite, CodeBlock, Pill } from "../components/primitives/index.ts";
 import type { SignUpTrigger } from "../components/SignUpModal.tsx";
 import type { PageId } from "../routes.tsx";
@@ -97,6 +98,9 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
   const [files, setFiles] = useState<GeneratedFile[] | null>(null);
   const [checkingExisting, setCheckingExisting] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // "Generate" and "Regenerate" are mutually exclusive on `files` — never
+  // both mounted at once — so one ref safely covers whichever renders.
+  const generateButtonRef = useFocusRetention<HTMLButtonElement>(generating);
   const [genError, setGenError] = useState<{ message: string; details: string | null } | null>(null);
   const [tierBlock, setTierBlock] = useState<TierBlockState | null>(null);
   const { toast } = useToast();
@@ -262,7 +266,7 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
           {!checkingExisting && !files && (
             <div className="card mt-4">
               <EmptyState icon="scan" title="No purchasing kit yet" message="No purchasing kit generated yet for this project.">
-                <button type="button" className="btn btn-primary" disabled={generating || !target.snapshot_id} onClick={() => void handleGenerate()}>
+                <button ref={generateButtonRef} type="button" className="btn btn-primary" disabled={generating || !target.snapshot_id} onClick={() => void handleGenerate()}>
                   {generating ? "Generating..." : "Generate Purchasing Kit"}
                 </button>
               </EmptyState>
@@ -273,7 +277,7 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
             <>
               <div className="flex-between mt-4 mb-2" style={{ flexWrap: "wrap", gap: 8 }}>
                 <p className="text-muted text-sm">{files.length} artifact{files.length === 1 ? "" : "s"} generated.</p>
-                <button type="button" className="btn text-sm" disabled={generating} onClick={() => void handleGenerate()}>
+                <button ref={generateButtonRef} type="button" className="btn text-sm" disabled={generating} onClick={() => void handleGenerate()}>
                   {generating ? "Regenerating..." : "Regenerate"}
                 </button>
               </div>

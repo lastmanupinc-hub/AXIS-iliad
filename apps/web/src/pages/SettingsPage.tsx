@@ -33,6 +33,7 @@ import {
   type ProgramCatalogEntry,
 } from "../api.ts";
 import { SectionHeader, Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
+import { useFocusRetention } from "../useFocusRetention.ts";
 
 // ─── SettingsPage (WO-P12) ────────────────────────────────────────────────
 // Replaces the profile/keys/seats half of the former AccountPage (the
@@ -128,6 +129,7 @@ export function SettingsPage({ onAuthChange }: Props) {
   const [profileEmail, setProfileEmail] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileNote, setProfileNote] = useState<string | null>(null);
+  const saveProfileRef = useFocusRetention<HTMLButtonElement>(profileSaving);
 
   useEffect(() => {
     if (account) {
@@ -296,6 +298,17 @@ export function SettingsPage({ onAuthChange }: Props) {
 
   // ─── Programs ────────────────────────────────────────────────
   const [programBusy, setProgramBusy] = useState<string | null>(null);
+  // One busy flag drives N per-row toggle buttons, so useFocusRetention's
+  // single-button shape doesn't fit — track each row's element in a
+  // registry and refocus whichever one was actually busy once it clears.
+  const programButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const lastBusyProgram = useRef<string | null>(null);
+  useEffect(() => {
+    if (programBusy === null && lastBusyProgram.current) {
+      programButtonRefs.current.get(lastBusyProgram.current)?.focus();
+    }
+    lastBusyProgram.current = programBusy;
+  }, [programBusy]);
 
   async function handleToggleProgram(program: string, enabled: boolean) {
     setProgramBusy(program);
@@ -372,7 +385,7 @@ export function SettingsPage({ onAuthChange }: Props) {
           <input id="settings-name" value={profileName} onChange={(e) => setProfileName(e.target.value)} />
           <label className="text-sm text-muted" htmlFor="settings-email">Email</label>
           <input id="settings-email" type="email" value={profileEmail} onChange={(e) => setProfileEmail(e.target.value)} />
-          <button type="submit" className="btn btn-primary" disabled={profileSaving} style={{ alignSelf: "flex-start" }}>
+          <button ref={saveProfileRef} type="submit" className="btn btn-primary" disabled={profileSaving} style={{ alignSelf: "flex-start" }}>
             {profileSaving ? "Saving..." : "Save changes"}
           </button>
         </form>
@@ -618,6 +631,7 @@ export function SettingsPage({ onAuthChange }: Props) {
                       <td className="text-xs text-muted">{p.outputs.length} outputs</td>
                       <td>
                         <button
+                          ref={(el) => { if (el) programButtonRefs.current.set(p.name, el); else programButtonRefs.current.delete(p.name); }}
                           type="button"
                           className={`btn text-xs ${enabled ? "" : "btn-primary"}`}
                           disabled={programBusy === p.name}

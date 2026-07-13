@@ -9,6 +9,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { getPaidConfig, paidSubscribe, getAccount, ApiError } from "../api.ts";
 import { Callout } from "../components/primitives/index.ts";
+import { useFocusRetention } from "../useFocusRetention.ts";
 
 type Step =
   | "loading"      // fetching /portal/api/paid/config
@@ -29,6 +30,7 @@ export function PaidCheckoutPage() {
   const planLabel = planId.charAt(0).toUpperCase() + planId.slice(1);
 
   const isLoggedIn = !!localStorage.getItem("axis_api_key");
+  const submitButtonRef = useFocusRetention<HTMLButtonElement>(step === "redirecting");
 
   // Load PAI'D config on mount.
   useEffect(() => {
@@ -162,6 +164,7 @@ export function PaidCheckoutPage() {
         />
 
         <button
+          ref={submitButtonRef}
           type="submit"
           className="btn btn-primary"
           disabled={submitting}
