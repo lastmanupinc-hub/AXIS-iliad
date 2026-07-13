@@ -2791,6 +2791,43 @@ export async function handleChangelog(
   res.end(body);
 }
 
+// --- GET /begin.yaml, GET /continuation.yaml -- H4.4: AXIS dogfoods the
+// begin-loop it generates for every analysis. These serve AXIS's own root-level
+// files verbatim, so an agent crawling this repo/API discovers the same loop
+// (and can `begin` on axis-iliad itself) without cloning the repo first. -----
+
+export async function handleBeginYaml(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  let body: string;
+  try {
+    body = readFileSync(new URL("../../../begin.yaml", import.meta.url), "utf-8");
+  } catch (err) {
+    log("error", "begin_yaml_read_failed", { error: err instanceof Error ? err.message : String(err) });
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "begin.yaml temporarily unavailable");
+    return;
+  }
+  res.writeHead(200, { "Content-Type": "application/yaml; charset=utf-8" });
+  res.end(body);
+}
+
+export async function handleContinuationYaml(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  let body: string;
+  try {
+    body = readFileSync(new URL("../../../continuation.yaml", import.meta.url), "utf-8");
+  } catch (err) {
+    log("error", "continuation_yaml_read_failed", { error: err instanceof Error ? err.message : String(err) });
+    sendError(res, 500, ErrorCode.INTERNAL_ERROR, "continuation.yaml temporarily unavailable");
+    return;
+  }
+  res.writeHead(200, { "Content-Type": "application/yaml; charset=utf-8" });
+  res.end(body);
+}
+
 // --- GET /for-agents ï¿½ agent-first onboarding manifest ----------
 
 const AXIS_API_BASE = "https://axis-api-6c7z.onrender.com";

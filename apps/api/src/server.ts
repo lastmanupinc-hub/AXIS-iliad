@@ -40,6 +40,8 @@ import {
   handleSkillsIndex,
   handleDocsMd,
   handleChangelog,
+  handleBeginYaml,
+  handleContinuationYaml,
   handleForAgents,
   handleInstall,
   handleProbeIntent,
@@ -273,6 +275,10 @@ router.get("/v1/error-codes", handleErrorCodes);
 
 // Repo changelog, verbatim (WO-A4)
 router.get("/v1/changelog", handleChangelog);
+
+// AXIS's own begin-loop files, verbatim (H4.4) — root-level, alongside llms.txt/robots.txt
+router.get("/begin.yaml", handleBeginYaml);
+router.get("/continuation.yaml", handleContinuationYaml);
 
 // Agent onboarding â€” machine-readable manifest + install configs
 router.get("/for-agents", handleForAgents);

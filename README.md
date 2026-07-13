@@ -89,6 +89,8 @@ Every analysis also weaves in a **self-driving control loop** so an AI coding ag
 
 Download the pack (CLI, MCP, or the full-pack export), hand it to an agent, say **`begin`** — it works the queue, verifies each step, and **stops when the queue is empty** (convergent, never a runaway). No coding required on the owner's end.
 
+AXIS dogfoods this on itself: this repo's own root [`begin.yaml`](begin.yaml) / [`continuation.yaml`](continuation.yaml) are the live loop we work from, also served verbatim over REST at `GET /begin.yaml` / `GET /continuation.yaml` — so an agent crawling this API discovers the same convention without cloning the repo.
+
 ---
 
 ## For AI agents — MCP integration
@@ -182,7 +184,7 @@ Requires: Docker 20.10+ or Docker Desktop
 ```
 axis-iliad/
 ├── apps/
-│   ├── api/          → Zero-dependency HTTP server (port 4000, 155 endpoints)
+│   ├── api/          → Zero-dependency HTTP server (port 4000, 157 endpoints)
 │   ├── cli/          → CLI tool: axis analyze <dir> | axis github <url>
 │   └── web/          → Vite + React 19 SPA (dark theme, toast, command palette)
 ├── packages/

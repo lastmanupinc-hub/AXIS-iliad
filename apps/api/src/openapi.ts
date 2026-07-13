@@ -519,6 +519,26 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/begin.yaml": {
+        get: {
+          summary: "AXIS's own begin-loop head, verbatim (H4.4 — AXIS dogfoods the loop it generates)",
+          operationId: "getBeginYaml",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "AXIS's root begin.yaml, unmodified", content: { "application/yaml": { schema: { type: "string" } } } },
+          },
+        },
+      },
+      "/continuation.yaml": {
+        get: {
+          summary: "AXIS's own begin-loop state, verbatim (H4.4 — AXIS dogfoods the loop it generates)",
+          operationId: "getContinuationYaml",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "AXIS's root continuation.yaml, unmodified", content: { "application/yaml": { schema: { type: "string" } } } },
+          },
+        },
+      },
       "/.well-known/axis.json": {
         get: {
           summary: "Agent discovery manifest â€” describes how to use AXIS programmatically",
