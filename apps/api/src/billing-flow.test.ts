@@ -222,6 +222,10 @@ describe("myanalytics summary", () => {
 
     // Generate at least one billable/program event and one tracked API request.
     await req("POST", "/v1/snapshots", SNAPSHOT_BODY, key);
+    // recordApiCall is written from a fire-and-forget res.on("finish", ...) handler
+    // (router.ts) that runs after the response already returned — give it a beat to land,
+    // same as the "usage is recorded after snapshot" test above.
+    await new Promise<void>((r) => setTimeout(r, 200));
     const analytics = await req("GET", "/v1/account/analytics/summary?since_days=30&limit=100", undefined, key);
 
     expect(analytics.status).toBe(200);
