@@ -333,10 +333,17 @@ describe("POST /mcp — tools/list", () => {
     }
   });
 
-  it("every tool outputSchema has top-level object type", async () => {
+  it("every tool outputSchema has top-level object type, except get_artifact (raw file content, not JSON)", async () => {
     for (const tool of MCP_TOOLS as Array<Record<string, unknown>>) {
       const outputSchema = tool.outputSchema as Record<string, unknown>;
       expect(outputSchema).toBeDefined();
+      if (tool.name === "get_artifact") {
+        // get_artifact returns the artifact's raw bytes directly as the tool result
+        // text — never a JSON-encoded object (H4.1 finding: it used to advertise a
+        // fake {content: string} wrapper solely to satisfy this same object-type rule).
+        expect(outputSchema.type).toBe("string");
+        continue;
+      }
       expect(outputSchema.type, `${String(tool.name)} outputSchema.type must be object`).toBe("object");
     }
   });
@@ -1623,6 +1630,50 @@ describe("POST /mcp — tools/call discover_commerce_tools", () => {
     expect(parsed.shareable_manifest.tools).toBe(36);
     expect(parsed.shareable_manifest.name).toBe("Axis' Iliad");
     expect(parsed.shareable_manifest.version).toBe("0.5.0");
+  });
+
+  it("shareable_manifest.free_tools never drifts from the top-level free_tools list", async () => {
+    // Regression: shareable_manifest.free_tools was a hand-typed literal that fell out of
+    // sync with the derived top-level free_tools (missing prepare_agentic_purchasing_preview).
+    // Both now compute from the same array — this pins that invariant going forward.
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 64,
+      method: "tools/call",
+      params: { name: "discover_commerce_tools", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    expect(parsed.shareable_manifest.free_tools).toEqual(parsed.free_tools);
+    expect(parsed.shareable_manifest.free_tools).toContain("prepare_agentic_purchasing_preview");
+  });
+
+  it("H4.1: every genuinely per-call-metered tool's description states its price", async () => {
+    // Uses discover_commerce_tools's own (now-accurate) per-tool pricing as the oracle for
+    // "is this tool metered" — pricing !== "free" and !== "included in plan" (the honest
+    // label for plan-gated/never-charged tools like closer, deploy, get_snapshot). Any tool
+    // that IS metered must state a $ price in its catalog description, or an agent reading
+    // mcp-tools.ts alone (without calling discover_commerce_tools first) has no way to know
+    // it costs money before calling it.
+    const r = await post("/mcp", {
+      jsonrpc: "2.0",
+      id: 65,
+      method: "tools/call",
+      params: { name: "discover_commerce_tools", arguments: {} },
+    });
+    const result = (r.data as Record<string, unknown>).result as Record<string, unknown>;
+    const content = result.content as Array<{ type: string; text: string }>;
+    const parsed = JSON.parse(content[0].text);
+    const meteredNames = (parsed.tools as Array<{ name: string; pricing: string }>)
+      .filter(t => t.pricing !== "free" && t.pricing !== "included in plan")
+      .map(t => t.name);
+    expect(meteredNames.length).toBeGreaterThan(10);
+    for (const name of meteredNames) {
+      const tool = MCP_TOOLS.find(t => t.name === name);
+      expect(tool, `metered tool "${name}" not found in MCP_TOOLS`).toBeDefined();
+      expect(tool!.description, `metered tool "${name}"'s description should state a $ price`).toMatch(/\$\d/);
+    }
   });
 
   it("tool name appears in MCP_TOOLS", async () => {

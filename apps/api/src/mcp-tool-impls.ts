@@ -140,7 +140,7 @@ import { chunkMarkdown, extractToSchema } from "./document-engineer.js";
 import { isImageMime, ocrImage } from "./document-ocr.js";
 import { computePurchasingReadinessScore, interpretReadiness, PURCHASING_PROGRAMS, PROGRAM_OUTPUTS } from "./handlers.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
-import { parseAgentBudget, resolveAgentMode, type AgentMode } from "./mpp.js";
+import { parseAgentBudget, resolveAgentMode, PRICING_TIERS, type AgentMode } from "./mpp.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "./counts.js";
 import { captureIntent } from "./intent.js";
 import { MCP_TOOLS, type PlannedCapability } from "./mcp-tools.js";
@@ -155,6 +155,7 @@ import {
   captureMcpToolCredits,
   meterMcpToolCredits,
   buildMcpPaymentRequiredError,
+  METERED_MCP_TOOLS,
   type MeteredMcpTool,
 } from "./mcp-runtime.js";
 
@@ -2086,14 +2087,28 @@ export function runDiscoverAgenticCommerceTools(): string {
   // planned-capability stub gets converted to an owned implementation
   // over the v1 push; the name set stays stable so external integrations
   // don't need to refresh their schemas.
-  const tools = MCP_TOOLS.map(t => ({
-    name: t.name,
-    description: t.description.slice(0, 200),
-    auth_required: !FREE_TOOL_NAMES.has(t.name),
-    pricing: FREE_TOOL_NAMES.has(t.name)
-      ? "free"
-      : "$0.50/call or included in plan",
-  }));
+  const tools = MCP_TOOLS.map(t => {
+    const free = FREE_TOOL_NAMES.has(t.name);
+    // Real per-tool price for tools METERED_MCP_TOOLS confirms are actually
+    // charged at runtime — NOT just "has a PRICING_TIERS row" (that object also
+    // carries a dead entry for improve_my_agent_with_axis, which no runX handler
+    // ever reads). Tools that are neither free nor genuinely metered are
+    // plan-gated (closer, deploy) or never charge (get_snapshot, get_artifact,
+    // improve_my_agent_with_axis) — say so honestly instead of guessing a figure.
+    const metered = !free && (METERED_MCP_TOOLS as readonly string[]).includes(t.name);
+    const tier = metered ? PRICING_TIERS[t.name] : null;
+    return {
+      name: t.name,
+      description: t.description.slice(0, 200),
+      auth_required: !free,
+      pricing: free
+        ? "free"
+        : tier
+          ? `$${(tier.standard_cents / 100).toFixed(2)}/call`
+          : "included in plan",
+    };
+  });
+  const freeTools = tools.filter(t => t.pricing === "free").map(t => t.name);
 
   return JSON.stringify({
     axis_iliad: {
@@ -2107,7 +2122,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       ],
     },
     tools,
-    free_tools: tools.filter(t => t.pricing === "free").map(t => t.name),
+    free_tools: freeTools,
     conversion_triggers: {
       first_paid_call: "prepare_agentic_purchasing returns a Purchasing Readiness Score (0-100) and the full commerce hardening bundle in one call.",
       first_paid_call_cta: `This codebase is one paid call away from the full ${ARTIFACT_COUNT}-artifact hardening bundle. Standard runs are $0.50, lite mode starts at $0.15, and Pro is $29/month.`,
@@ -2136,7 +2151,7 @@ export function runDiscoverAgenticCommerceTools(): string {
       endpoint: AXIS_MCP_ENDPOINT,
       transport: "streamable-http",
       tools: MCP_TOOLS.length,
-      free_tools: ["list_programs", "search_and_discover_tools", "discover_commerce_tools", "discover_agentic_purchasing_needs", "get_referral_code", "get_referral_credits", "sca_exemption_decision", "grade_compliance", "assemble_ce3_evidence", "build_ap2_mandate", "score_dispute_readiness", "iliad_network_tokenization"],
+      free_tools: freeTools,
       for_agents: `${AXIS_API_BASE_MCP}/for-agents`,
       install: `${AXIS_API_BASE_MCP}/v1/install`,
     },

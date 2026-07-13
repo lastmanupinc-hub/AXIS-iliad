@@ -131,6 +131,33 @@ export type MeteredMcpTool =
   | "iliad_web_research"
   | "iliad_web_research_crawl";
 
+// Runtime companion to the type above — TS unions erase at compile time, so any
+// code that needs to ask "is this tool name genuinely metered" (e.g. computing an
+// honest per-tool price for discover_commerce_tools) needs an actual array. Kept
+// literally adjacent to the type so the two can't silently drift apart; a missing
+// entry here would make an actually-metered tool look free (or vice versa) in any
+// consumer that trusts this list.
+export const METERED_MCP_TOOLS: readonly MeteredMcpTool[] = [
+  "analyze_files",
+  "analyze_repo",
+  "prepare_agentic_purchasing",
+  "assemble_representment",
+  "iliad_object_storage",
+  "iliad_vector_database",
+  "iliad_embeddings",
+  "iliad_transactional_email",
+  "iliad_analytics",
+  "iliad_llm_inference",
+  "iliad_code_sandbox",
+  "iliad_speech_to_text",
+  "iliad_text_to_speech",
+  "iliad_web_search",
+  "iliad_document_parsing",
+  "iliad_hygiene",
+  "iliad_web_research",
+  "iliad_web_research_crawl",
+];
+
 /** A pre-authorized charge — the tool + resolved price, ready to commit on success. */
 interface AuthorizedCharge {
   tool: MeteredMcpTool;

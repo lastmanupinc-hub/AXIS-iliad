@@ -69,13 +69,13 @@ const TOOL_MATCH_SCHEMA = {
   properties: {
     program: { type: "string" },
     tier: { type: "string" },
-    relevance: { type: "number" },
+    score: { type: "number" },
     capability_tags: { type: "array", items: { type: "string" } },
     matching_artifacts: { type: "array", items: { type: "string" } },
     all_artifacts: { type: "array", items: { type: "string" } },
-    example_call: { type: "object" },
+    example_call: { type: "string" },
   },
-  required: ["program", "tier", "relevance", "capability_tags", "matching_artifacts", "all_artifacts", "example_call"],
+  required: ["program", "tier", "score", "capability_tags", "matching_artifacts", "all_artifacts", "example_call"],
 };
 
 export const MCP_TOOLS = [
@@ -94,7 +94,7 @@ export const MCP_TOOLS = [
       },
     },
     outputSchema: SNAPSHOT_RESULT_SCHEMA,
-    annotations: toolAnnotations("Analyze Repo", false, true),
+    annotations: toolAnnotations("Analyze Repo", false, false),
     examples: [
       {
         name: "Analyze a GitHub repo",
@@ -106,7 +106,7 @@ export const MCP_TOOLS = [
   {
     name: "analyze_files",
     description:
-      `Analyze source files directly and generate the full ${ARTIFACT_COUNT}-artifact AXIS bundle without using GitHub. Returns snapshot_id plus artifact listing; use this for local, generated, or unsaved code. Requires Authorization: Bearer <api_key>. Use analyze_repo for GitHub URLs or improve_my_agent_with_axis for recommendation-first agent hardening.`,
+      `Analyze source files directly and generate the full ${ARTIFACT_COUNT}-artifact AXIS bundle without using GitHub. Returns snapshot_id plus artifact listing; use this for local, generated, or unsaved code. Requires Authorization: Bearer <api_key>. Pricing: $0.50 standard, $0.15 lite budget mode, $25 engineer per run (same tiers as analyze_repo). Can return authentication, quota, payment-required, file-limit, or validation errors. Use analyze_repo for GitHub URLs or improve_my_agent_with_axis for recommendation-first agent hardening.`,
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -141,7 +141,7 @@ export const MCP_TOOLS = [
       },
     },
     outputSchema: SNAPSHOT_RESULT_SCHEMA,
-    annotations: toolAnnotations("Analyze Files", false, true),
+    annotations: toolAnnotations("Analyze Files", false, false),
     examples: [
       {
         name: "Analyze a Node.js project",
@@ -187,7 +187,7 @@ export const MCP_TOOLS = [
   {
     name: "get_snapshot",
     description:
-      "Retrieve status and the full artifact listing for a prior analysis by snapshot_id. Use this to re-enumerate artifact paths without re-running analysis. Snapshots persist and can be shared between agents to avoid duplicate analysis costs.",
+      "Retrieve status and the full artifact listing for a prior analysis by snapshot_id. Use this to re-enumerate artifact paths without re-running analysis. Snapshots created with an API key are scoped to that same account — pass the same Authorization: Bearer <api_key> used to create it, or retrieval fails with a not-found error. Only anonymous (never-authenticated) snapshots are freely retrievable by any caller.",
     inputSchema: {
       type: "object",
       required: ["snapshot_id"],
@@ -224,21 +224,15 @@ export const MCP_TOOLS = [
       },
     },
     outputSchema: {
-      type: "object",
-      properties: {
-        content: {
-          type: "string",
-          description: "UTF-8 artifact content",
-        },
-      },
-      required: ["content"],
+      type: "string",
+      description: "Raw UTF-8 artifact content — the exact bytes of the file at path, returned directly as the tool result text, not JSON-wrapped.",
     },
     annotations: toolAnnotations("Get Artifact", true, true),
     examples: [
       {
         name: "Get an AGENTS.md artifact",
         input: { snapshot_id: "abc-123", path: "AGENTS.md" },
-        output: '{"content":"# AGENTS.md â€” my-project\\n\\n## Project Context\\n..."}',
+        output: "# AGENTS.md — my-project\n\n## Project Context\n...",
       },
     ],
   },
@@ -294,7 +288,7 @@ export const MCP_TOOLS = [
   {
     name: "prepare_agentic_purchasing",
     description:
-      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Example: submit checkout files with focus_areas=[\"sca\",\"dispute\"]. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration, $250): also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
+      "Prepare a codebase for agentic purchasing and return a readiness score plus commerce artifacts. Requires Authorization: Bearer <api_key>; paid analysis records a new snapshot and may return auth, quota, payment, file-limit, or validation errors. Pricing: $0.50 standard, $0.25 lite budget mode, $250 engineer per run. Every call returns the same full purchasing bundle — focus_areas is recorded and echoed back in the response for the caller's own bookkeeping; it does not filter which artifacts are generated. Use this when you need AP2/UCP/Visa, CE 3.0 dispute evidence, checkout, dispute, and negotiation hardening. Engineer mode (X-Agent-Mode: engineer — Commerce Integration) also emits a deployable x402/AP2/PAI'D endpoint + a runnable sandbox test + a schema-validatable CE 3.0 pack + a transparent dispute-readiness score (a working integration, not just a score), plus a deployable Stripe network-token read adapter when a stripe signal is detected. Use discover_agentic_purchasing_needs instead when you only need workflow triage.",
     inputSchema: {
       type: "object",
       required: ["project_name", "project_type", "frameworks", "goals", "files"],
@@ -324,7 +318,7 @@ export const MCP_TOOLS = [
         focus_areas: {
           type: "array",
           items: { type: "string", enum: ["sca", "dispute", "mandate", "tap", "tokenization"] },
-          description: "Compliance focus areas",
+          description: "Compliance focus areas, recorded and echoed back in the response for the caller's own reference — does not filter which artifacts are generated.",
         },
         budget_per_run_cents: {
           type: "number",
@@ -372,7 +366,7 @@ export const MCP_TOOLS = [
         output: '{"snapshot_id":"snap_...","score":62,"risk_level":"medium","artifact_count":99,"artifacts":{"AGENTS.md":"...","commerce-registry.json":"..."}}',
       },
       {
-        name: "Focused SCA + dispute analysis with budget",
+        name: "SCA + dispute compliance run with a budget cap",
         input: { project_name: "payments-api", project_type: "api_service", frameworks: ["express"], goals: ["PSD2 SCA compliance"], files: [{ path: "api.ts", content: "..." }], focus_areas: ["sca", "dispute"], budget_per_run_cents: 25 },
         output: '{"snapshot_id":"snap_...","score":45,"compliance_depth":"standard","risk_level":"high","recommended_next_action":"harden_codebase_before_commerce"}',
       },
@@ -381,9 +375,10 @@ export const MCP_TOOLS = [
   {
     name: "closer",
     description:
-      "Take a 70-80% complete project directory and generate complete professional packaging + marketplace certification artifacts so it is ready to ship and sell.",
+      "Package an existing AXIS snapshot (create one first via analyze_repo, analyze_files, or prepare_agentic_purchasing) into complete professional packaging + marketplace certification artifacts so a 70-80%-complete project is ready to ship and sell.",
     inputSchema: {
       type: "object",
+      required: ["snapshot_id"],
       properties: {
         snapshot_id: {
           type: "string",
@@ -505,12 +500,12 @@ export const MCP_TOOLS = [
       {
         name: "Search for debug tools",
         input: { q: "debug playbook" },
-        output: '{"matches":[{"program":"debug","generators":[".ai/debug-playbook.md",".ai/incident-template.md",".ai/tracing-rules.md"],"tier":"free"}]}',
+        output: '{"query":"debug playbook","program_filter":null,"total_matches":1,"results":[{"program":"debug","tier":"free","score":8,"capability_tags":["debug","error","troubleshoot","breakpoints","logs","postmortem"],"matching_artifacts":[".ai/debug-playbook.md"],"all_artifacts":[".ai/debug-playbook.md",".ai/incident-template.md",".ai/tracing-rules.md"],"example_call":"POST /v1/debug/generate"}]}',
       },
       {
-        name: "List all programs",
-        input: {},
-        output: '{"programs":["search","skills","debug","theme","frontend","seo","optimization","brand","superpowers","marketing","notebook","obsidian","mcp","artifacts","remotion","canvas","algorithmic","agentic-purchasing","closer"]}',
+        name: "Filter results to one program",
+        input: { program: "closer" },
+        output: '{"query":null,"program_filter":"closer","total_matches":1,"results":[{"program":"closer","tier":"pro","score":0,"capability_tags":["closer","packaging","certification","marketplace"],"matching_artifacts":[],"all_artifacts":["packaging/README.md","packaging/LICENSE","Dockerfile"],"example_call":"POST /v1/closer/generate"}]}',
       },
     ],
   },
@@ -538,7 +533,7 @@ export const MCP_TOOLS = [
       {
         name: "Discover all commerce tools",
         input: {},
-        output: '{"tools":[{"name":"analyze_repo","tier":"paid"},{"name":"search_and_discover_tools","tier":"free"}],"install_links":{...}}',
+        output: '{"axis_iliad":{"tagline":"The operating system for AI-native development"},"tools":[{"name":"analyze_repo","auth_required":true,"pricing":"$0.50/call or included in plan"},{"name":"search_and_discover_tools","auth_required":false,"pricing":"free"}],"free_tools":["search_and_discover_tools","list_programs"],"install":{"mcp_endpoint":"https://axis-api-6c7z.onrender.com/mcp"},"shareable_manifest":{"name":"Axis\' Iliad","tools":36}}',
       },
     ],
   },
@@ -685,7 +680,7 @@ export const MCP_TOOLS = [
       },
       required: ["referral_token", "earned_credits_millicents", "earned_discount", "lifetime_referrals", "free_calls_remaining", "paid_call_count", "persistence_credits_remaining", "tier", "discount_active", "next_milestone", "cost"],
     },
-    annotations: toolAnnotations("Get Referral Credits", true, true),
+    annotations: toolAnnotations("Get Referral Credits", false, true),
     examples: [
       {
         name: "Check referral credits",
@@ -697,7 +692,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research",
     description:
-      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. Use iliad_web_research_crawl for crawling multiple pages or link following.",
+      "Scrape a single URL with AXIS's owned crawler (SSRF-guarded fetch, robots.txt-aware, readability extraction — no third-party key) and return markdown-formatted content. Honest scope: fetches static HTML only, no JavaScript rendering, so client-rendered SPA pages may extract thin content. Returns markdown body, extracted metadata, and title. Best for research, documentation reading, or SEO analysis. Requires Authorization: Bearer <api_key>. Pricing: $0.10 standard, $0.05 lite per page. If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of scraping, and is not billed. Use iliad_web_research_crawl for crawling multiple pages or link following.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -741,7 +736,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_web_research_crawl",
     description:
-      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.25 standard, $0.12 lite per page crawled (up to 100 pages per request). Use iliad_web_research for single-page scrapes.",
+      "Crawl a domain with AXIS's owned crawler — a same-origin BFS frontier with robots.txt compliance and per-host politeness, no third-party key — and scrape multiple pages. Honest scope: static HTML only, no JavaScript rendering. Returns array of scraped pages with markdown content. Best for site mapping, content audits, or bulk research. Requires Authorization: Bearer <api_key>. Pricing: $0.01 flat per call (standard and lite), regardless of how many pages are crawled (up to limit). If the operator's backend configuration is incomplete, this call returns {_not_configured:true} instead of crawling, and is not billed. Use iliad_web_research for single-page scrapes.",
     inputSchema: {
       type: "object",
       required: ["url"],
@@ -803,7 +798,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_object_storage",
     description:
-      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets). TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces).",
+      "AXIS-owned signed-URL minter backed by Cloudflare R2. Returns a pre-signed PUT or GET URL scoped to the calling account (keys are prefixed with `accounts/<account_id>/` server-side, so accounts can't reach each other's objects). Requires Authorization: Bearer <api_key>. Returns the URL plus expires_at (ISO 8601), bucket, and scoped_key. Returns `{_not_configured: true, ...}` when the operator has not provisioned R2_* env vars (no crash, no leaked secrets); not billed when not configured. Pricing: $0.01 standard, free in lite mode. TTL is capped at 86400 seconds (24h). Engineer mode (X-Agent-Mode: engineer — Managed Bucket, $0.05): adds delete + list + copy (server-side, no bytes through the agent) operations, content-addressed dedup keys (content_sha256), and mint-time PUT policy (pin content_type / exact content_length as signed headers R2 enforces).",
     inputSchema: {
       type: "object" as const,
       required: ["key", "operation"],
@@ -847,7 +842,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_vector_database",
     description:
-      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via Postgres. Requires Authorization: Bearer <api_key>. Best for RAG retrievers, deduplication, and similarity search. Engineer mode (X-Agent-Mode: engineer — Managed Memory, $0.05): query runs a pgvector/HNSW ANN candidate pool with optional recency-decay reranking (recency_half_life_days — managed forgetting), RRF hybrid fusion (sparse_ids), and metadata filter; upsert applies intra-batch semantic-dedup (dedup_threshold).",
+      "AXIS-owned vector store. Two operations: `upsert` (insert or replace vectors) and `query` (cosine top-k nearest neighbors). Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`), so tenants cannot read each other's vectors. Persistent across restarts via Postgres. Requires Authorization: Bearer <api_key>. Pricing: $0.01 standard, free in lite mode. Best for RAG retrievers, deduplication, and similarity search. Engineer mode (X-Agent-Mode: engineer — Managed Memory, $0.05): query runs a pgvector/HNSW ANN candidate pool with optional recency-decay reranking (recency_half_life_days — managed forgetting), RRF hybrid fusion (sparse_ids), and metadata filter; upsert applies intra-batch semantic-dedup (dedup_threshold).",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -880,7 +875,8 @@ export const MCP_TOOLS = [
           },
         },
         backend: { type: "string", description: "Engineer query: 'pgvector' or 'js' — which ANN path served the query." },
-        engineer: { type: "object", description: "Engineer flags { ann, recency_decay, hybrid_fusion } (query), or { dropped: [...] } (upsert semantic-dedup)." },
+        engineer: { type: "object", description: "Engineer query only: { ann, recency_decay, hybrid_fusion } flags." },
+        semantic_dedup: { type: "object", description: "Engineer upsert only: { dropped: [{id, duplicate_of, similarity}] } — vectors dropped as intra-batch duplicates." },
       },
     },
     annotations: toolAnnotations("Vector Database", false, false),
@@ -907,7 +903,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_embeddings",
     description:
-      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input. AXIS-owned in-process inference by default (node-llama-cpp + an embedding-capable GGUF at AXIS_EMBEDDING_MODEL_PATH — no upstream provider call); an optional OpenAI /v1/embeddings backend is available behind AXIS_EMBEDDING_BACKEND=openai (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL; reports token usage). Requires Authorization: Bearer <api_key> to call. When the selected backend is not provisioned (local: GGUF file absent; openai: OPENAI_API_KEY unset), returns a structured `_not_configured: true` envelope naming the backend and remediation. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
+      "Convert text into dense vectors. Accepts a single string or a batch (max 2048). Returns one vector per input. AXIS-owned in-process inference by default (node-llama-cpp + an embedding-capable GGUF at AXIS_EMBEDDING_MODEL_PATH — no upstream provider call); an optional OpenAI /v1/embeddings backend is available behind AXIS_EMBEDDING_BACKEND=openai (model: text-embedding-3-small by default, overridable via OPENAI_EMBEDDING_MODEL; reports token usage). Requires Authorization: Bearer <api_key> to call. Pricing: $0.05 standard, $0.02 lite. When the selected backend is not provisioned (local: GGUF file absent; openai: OPENAI_API_KEY unset), returns a structured `_not_configured: true` envelope naming the backend and remediation, and is not billed. Pairs natively with iliad_vector_database — feed `vectors` from this tool's output into `vector` of the vector_database upsert/query calls. Engineer mode (X-Agent-Mode: engineer — Domain Embeddings, $0.08): pass `dimensions` (Matryoshka truncation → smaller vectors) and/or `corpus_adapter: true` (mean-center the batch to sharpen retrieval on your data); returns an `engineer` block with the fitted adapter_mean for query alignment.",
     inputSchema: {
       type: "object" as const,
       required: ["input"],
@@ -950,7 +946,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_transactional_email",
     description:
-      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB. Engineer mode (X-Agent-Mode: engineer — Deliverability, $0.50): instead of sending, pass a `domain` and get a full SPF/DKIM/DMARC setup (fresh DKIM keypair) + sender warmup schedule + verification checklist — no email sent, no ESP key needed.",
+      "Send a single transactional email. Requires Authorization: Bearer <api_key>. Provide either body_html, body_text, or both (Resend will pick the best variant per recipient). All emails ship from RESEND_FROM_ADDRESS — operator must verify that domain in Resend before sending. Returns the provider-assigned message_id plus the accepted recipient list. Pricing: $0.02 standard, $0.01 lite. Returns a structured _not_configured envelope when RESEND_API_KEY or RESEND_FROM_ADDRESS is missing, and is not billed. Recipients capped at 50 per call; subject capped at 998 chars; bodies capped at 1 MB. Engineer mode (X-Agent-Mode: engineer — Deliverability, $0.50): instead of sending, pass a `domain` and get a full SPF/DKIM/DMARC setup (fresh DKIM keypair) + sender warmup schedule + verification checklist — no email sent, no ESP key needed.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1004,7 +1000,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_llm_inference",
     description:
-      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference is fully in-process — no upstream provider, no per-call API fee. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
+      "AXIS-hosted LLM chat-completion via node-llama-cpp + a small GGUF model loaded in-process. Two input shapes accepted: `prompt` (single string) or `messages` (chat-style array of {role, content}). Sampling controls: `max_tokens` (≤2048), `temperature` (0-2), `top_k`, `top_p`, `seed` (for reproducibility), `stop` (string[]). Inference runs in-process — no upstream LLM provider call — but this AXIS tool call is still billed: $0.02 standard, $0.01 lite. Operator sets AXIS_LLM_MODEL_PATH to point at a Phi-3-mini / TinyLlama / Llama-3.2-1B GGUF; if missing, the tool returns a `_not_configured: true` envelope and is not billed. Engineer mode (X-Agent-Mode: engineer — Constrained Inference, $0.10): pass a `json_schema` and decoding is grammar-constrained to it AND the output is validated against it (returns a `structured` block with valid + parsed + schema_errors) — guaranteed-valid structured output. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1069,7 +1065,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_code_sandbox",
     description:
-      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. When no Docker daemon is reachable (Render standard services don't expose /var/run/docker.sock), returns a structured `_not_configured: true` envelope with remediation. Engineer mode (X-Agent-Mode: engineer — Verified Exec, $0.25): the result includes an Ed25519-signed attestation binding code-hash → output-hash + a per-account hash-chain entry, so another agent that pins AXIS's published key can verify the run without re-executing it. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned secure code execution. Each call spawns a fresh ephemeral Docker container with hardened isolation: no network, read-only root filesystem, all Linux capabilities dropped, no-new-privileges, PID/memory/CPU limits, tmpfs /tmp only, runs as nobody:nobody. Container is force-removed after each call. Supports python | node | bash via the multi-runtime image `nikolaik/python-nodejs:python3.12-nodejs22-slim` (operator can override via AXIS_CODE_SANDBOX_IMAGE). Returns stdout/stderr/exit_code/timed_out/duration_ms/image. Wall-clock timeout enforced via SIGKILL + force-remove. Source is fed via stdin (no fs write to the read-only root). Code body capped at 256 KiB; stdin at 1 MiB; timeout 1-600 seconds (default 30); stdout/stderr each capped at 1 MiB output. Pricing: $0.05 standard, $0.02 lite — billed whenever a container actually ran, including a timeout or non-zero exit code. Not billed when the call instead returns `_not_configured: true`: no Docker daemon reachable (Render standard services don't expose /var/run/docker.sock), the operator has set AXIS_CODE_SANDBOX_DISABLED=1, or more than AXIS_SANDBOX_MAX_CONCURRENT (default 4) runs are already in flight (reason sandbox_busy — transient, retry shortly). Engineer mode (X-Agent-Mode: engineer — Verified Exec, $0.25): the result includes an Ed25519-signed attestation binding code-hash → output-hash + a per-account hash-chain entry, so another agent that pins AXIS's published key can verify the run without re-executing it. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["language", "code"],
@@ -1089,9 +1085,10 @@ export const MCP_TOOLS = [
         timed_out: { type: "boolean", description: "True if the wall-clock timeout fired." },
         duration_ms: { type: "number", description: "End-to-end wall time including container spawn + teardown." },
         image: { type: "string", description: "Container image actually used." },
-        _not_configured: { type: "boolean", description: "True when no Docker daemon is reachable." },
-        reason: { type: "string", description: "docker_daemon_unreachable | dockerode_import_failed (only when _not_configured=true)." },
-        remediation: { type: "string", description: "How the operator should fix the unreachable-daemon condition." },
+        attestation: { type: "object", description: "Engineer mode only: Ed25519-signed attestation binding code-hash to output-hash, plus a per-account hash-chain entry." },
+        _not_configured: { type: "boolean", description: "True when the call didn't run (unreachable daemon, disabled, or at concurrency limit)." },
+        reason: { type: "string", description: "docker_daemon_unreachable | dockerode_import_failed | disabled | sandbox_busy (only when _not_configured=true)." },
+        remediation: { type: "string", description: "How the operator (or, for sandbox_busy, the caller by retrying) should resolve the condition." },
       },
     },
     annotations: toolAnnotations("Code Sandbox", false, false),
@@ -1129,7 +1126,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_document_parsing",
     description:
-      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64) — typed data, not just markdown. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned document → Markdown extractor. Accepts either `document_url` (https fetch + 50 MiB cap + 60s timeout) or `document_base64` (inline bytes, 50 MiB decoded cap) — exactly one. Optional `mime_type` hint (application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/html, text/markdown, text/plain); we sniff from magic bytes + URL extension when omitted. Format dispatch: PDF → pdfjs-dist text extraction (one block per page with `--- page N ---` separators); DOCX → mammoth → markdown (tables preserved); HTML → tag-strip with heading + list + entity handling (NOT a full HTML→MD converter — bring turndown if you need fancier); plain text + markdown → passthrough. Returns `{markdown, format_detected, byte_size, page_count, table_count, truncated}`. Output capped at 1 MiB markdown with a truncation marker. Pricing: $0.02 standard, $0.01 lite. Engineer mode (X-Agent-Mode: engineer — Document Intelligence, $0.10): adds an `engineer` block with retrieval chunks (heading-aware, overlapping) + extract-to-caller-schema (pass `json_schema` → a grammar-constrained, validated typed object) + image OCR (image/* via document_base64, capped at 10 MiB — smaller than the 50 MiB document cap; an OCR failure or oversized image returns a descriptive `reason` that may not match the standard-mode enum) — typed data, not just markdown. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1144,7 +1141,7 @@ export const MCP_TOOLS = [
       properties: {
         markdown: { type: "string", description: "Extracted text, formatted as Markdown when the source had structure." },
         engineer: { type: "object", description: "Engineer mode only: { chunk_count, chunks, extracted? } — retrieval chunks + optional schema-validated extraction." },
-        format_detected: { type: "string", description: "pdf | docx | html | markdown | text | unknown." },
+        format_detected: { type: "string", description: "pdf | docx | html | markdown | text | unknown | image (engineer-mode OCR path only)." },
         byte_size: { type: "number", description: "Raw byte size of the source document." },
         page_count: { type: ["number", "null"] as unknown as string, description: "Page count for PDFs; null otherwise." },
         table_count: { type: "number", description: "Number of tables detected in the rendered markdown (DOCX only; 0 elsewhere)." },
@@ -1184,12 +1181,12 @@ export const MCP_TOOLS = [
   // first call iliad_web_search with operation='index' (or
   // 'index' a batch of documents fetched via iliad_web_research),
   // then later operation='search' to retrieve. Persistent across
-  // restarts via SQLite. Same account-scoped namespacing pattern
+  // restarts via Postgres. Same account-scoped namespacing pattern
   // as iliad_vector_database / iliad_analytics.
   {
     name: "iliad_web_search",
     description:
-      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via SQLite. Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Engineer mode (X-Agent-Mode: engineer — Answer Engine, $0.25): search also returns a grounded extractive answer with [n] citation spans over your corpus, reranked, refusing on weak evidence. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned BM25 search engine over the corpus YOUR account has indexed. NOT a Google/Bing scraper — agents build their own searchable index by first calling operation='index' with documents (often pages fetched via iliad_web_research), then querying with operation='search'. Five operations: `index` (insert one or many documents), `search` (BM25 top-k ranked hits with snippet + score + metadata), `delete` (drop one doc), `delete_namespace` (drop all), `count`. Namespaces are account-scoped server-side (`acct:<id>:<namespace>`). Persistent across restarts via Postgres (the shared @axis/snapshots database). Search supports `max_results` (default 10, max 100) and `site` (restrict to a single URL host, case-insensitive). Only operation='search' is billed ($0.01 standard, free in lite mode) — index, delete, delete_namespace, and count are always free. Engineer mode (X-Agent-Mode: engineer — Answer Engine, $0.25): search also returns a grounded extractive answer with [n] citation spans over your corpus, reranked, refusing on weak evidence. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -1253,7 +1250,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_text_to_speech",
     description:
-      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference is fully in-process — no upstream provider, no per-character fee. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}`. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): pass `brand_text` (a brand / voice-and-tone artifact) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned voice synthesis via Piper (rhasspy/piper) + ffmpeg-static. Accepts `text` (1-5000 chars), optional `voice` slug (filename without extension; defaults to AXIS_PIPER_DEFAULT_VOICE or the first available voice), optional `format` (wav | mp3 | opus; defaults wav), optional `sentence_silence` (0-5 seconds, default 0.2). Returns `{audio_base64, format, voice_used, sample_rate, duration_seconds, byte_size}`. Inference runs in-process — no upstream provider call — but this AXIS tool call is still billed: $0.02 standard, $0.01 lite. When operator hasn't installed piper or placed voice .onnx + .onnx.json files in AXIS_PIPER_VOICE_DIR (default models/piper/), returns `{_not_configured: true, reason, detail, remediation}` and is not billed. format=mp3/opus additionally requires ffmpeg-static. Engineer mode (X-Agent-Mode: engineer — Brand Voice, $0.10): requires `brand_text` (a brand / voice-and-tone artifact — the call throws without it in engineer mode) and AXIS auto-derives the voice persona (Piper voice slug + sentence pacing) and synthesizes in it; the persona is echoed in the response. Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["text"],
@@ -1262,7 +1259,7 @@ export const MCP_TOOLS = [
         voice: { type: "string", description: "Voice slug (filename without extension, e.g. 'en_US-amy-medium'). Defaults to first available voice or AXIS_PIPER_DEFAULT_VOICE." },
         format: { type: "string", description: "Audio codec.", enum: ["wav", "mp3", "opus"] },
         sentence_silence: { type: "number", description: "Per-sentence silence in seconds (0-5). Defaults 0.2." },
-        brand_text: { type: "string", description: "Engineer mode: brand / voice-and-tone artifact. AXIS derives a voice persona from it and synthesizes in that voice (overrides voice/sentence_silence)." },
+        brand_text: { type: "string", description: "Required when X-Agent-Mode: engineer is set (the call throws without it); ignored otherwise. Brand / voice-and-tone artifact — AXIS derives a voice persona from it and synthesizes in that voice (overrides voice/sentence_silence)." },
         locale: { type: "string", description: "Engineer mode: persona locale override.", enum: ["us", "gb"] },
         gender: { type: "string", description: "Engineer mode: persona gender override.", enum: ["female", "male"] },
       },
@@ -1276,6 +1273,7 @@ export const MCP_TOOLS = [
         sample_rate: { type: "number", description: "WAV sample rate parsed from the RIFF header (typically 22050 for Piper)." },
         duration_seconds: { type: "number", description: "Audio duration in seconds, computed from the WAV header." },
         byte_size: { type: "number", description: "Byte length of the encoded audio (post-transcode for mp3/opus)." },
+        persona: { type: "object", description: "Engineer mode only: the derived voice persona (voice slug, sentence_silence, locale, gender, tone_tags) used for this synthesis." },
         _not_configured: { type: "boolean", description: "True when a prerequisite is missing." },
         reason: { type: "string", description: "piper_cli_not_found | voice_dir_missing | no_voices_available | voice_model_not_found | voice_config_not_found | ffmpeg_static_missing | synthesis_failed (only when _not_configured=true)." },
         remediation: { type: "string", description: "Operator-actionable fix for the unconfigured prerequisite." },
@@ -1313,7 +1311,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_speech_to_text",
     description:
-      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}`. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned audio transcription via whisper.cpp + ffmpeg-static. Accepts either `audio_url` (https URL we fetch, max 100 MiB, 60s download timeout) or `audio_base64` (inline bytes, max 100 MiB decoded) — exactly one. Accepts any audio format ffmpeg can decode (mp3, wav, m4a, opus, ogg, flac); we resample to 16 kHz mono WAV internally. Optional `language` (ISO-639-1 like \"en\" / \"fr\" / \"ja\", or \"auto\" — default). Optional `initial_prompt` (≤512 chars; biases spelling of rare names). Optional `word_timestamps` boolean. Returns `{text, segments: [{start, end, text}], language_detected, duration_seconds, model_used}`. Pricing: $0.03 standard, $0.01 lite. When operator hasn't installed whisper-cli or placed the GGML model file at AXIS_WHISPER_MODEL_PATH (default `models/ggml-base.en.bin`), returns `{_not_configured: true, reason, detail, remediation}` and is not billed. Engineer mode (X-Agent-Mode: engineer — Diarization, $0.10): the response adds `diarization` — speaker turns grouped from the segments by inter-segment pause gaps (tune with diarization_gap_seconds / max_speakers; this is pause-based turn segmentation, not acoustic speaker ID). Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -1334,6 +1332,7 @@ export const MCP_TOOLS = [
         language_detected: { type: "string", description: "Language code whisper detected (or echoed from input language)." },
         duration_seconds: { type: "number", description: "Audio duration as inferred from the last segment end timestamp." },
         model_used: { type: "string", description: "Basename of the GGML model file used." },
+        diarization: { type: "array", description: "Engineer mode only: speaker turns [{speaker, start, end, text}] grouped from segments by inter-segment pause gaps." },
         _not_configured: { type: "boolean", description: "True when a prerequisite is missing." },
         reason: { type: "string", description: "model_file_not_found | whisper_cli_not_found | ffmpeg_static_missing | audio_download_failed | audio_decode_failed (only when _not_configured=true)." },
         remediation: { type: "string", description: "Operator-actionable fix for the unconfigured prerequisite." },
@@ -1358,7 +1357,7 @@ export const MCP_TOOLS = [
       },
     ],
   },
-  // ─── iliad_analytics (AXIS-owned, SQLite-backed events + aggregations) ─
+  // ─── iliad_analytics (AXIS-owned, Postgres-backed events + aggregations) ─
   // Third member of the owned tier. Capture is one or many events;
   // query is one of four aggregation kinds (count, count_by_event,
   // distinct_users, count_by_bucket). Namespaces are account-scoped
@@ -1368,7 +1367,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_analytics",
     description:
-      "AXIS-owned product analytics. Two operations: `capture` (insert events) and `query` (aggregations). Capture accepts a single `event` or a batch via `events[]` (max 500). Query kinds: `count` (total events), `count_by_event` (top events by frequency), `distinct_users` (unique user_id count), `count_by_bucket` (time-series with minute/hour/day buckets). All queries support optional `event`, `from_ts`, `to_ts`, and `property_filter` filters. Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`). Persistent across restarts via SQLite. Requires Authorization: Bearer <api_key>. Best for funnels, cohorts, and retention on workloads up to ~1M events per account.",
+      "AXIS-owned product analytics. Two operations: `capture` (insert events) and `query` (aggregations). Capture accepts a single `event` or a batch via `events[]` (max 500). Query kinds: `count` (total events), `count_by_event` (top events by frequency), `distinct_users` (unique user_id count), `count_by_bucket` (time-series with minute/hour/day buckets). All queries support optional `event`, `from_ts`, `to_ts`, and `property_filter` filters. Namespaces are account-scoped server-side (`acct:<account_id>:<namespace>`). Persistent across restarts via Postgres (the shared @axis/snapshots database). Pricing: $0.01 standard, free in lite mode. Requires Authorization: Bearer <api_key>. Best for funnels, cohorts, and retention on workloads up to ~1M events per account.",
     inputSchema: {
       type: "object" as const,
       required: ["operation"],
@@ -1454,7 +1453,7 @@ export const MCP_TOOLS = [
   {
     name: "iliad_hygiene",
     description:
-      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, paid) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, route-registration dup-handler analysis) are reported as repo_only_rules, not run. Engineer mode (X-Agent-Mode: engineer — Security Engineer, $5): the fix arrives as a git-applyable unified-diff patch + a SARIF 2.1.0 log for CI code-scanning. Requires Authorization: Bearer <api_key>.",
+      "AXIS-owned workspace hygiene grader. Analyzes an inline file set [{path,content}] and returns a letter grade (A-F) across a closed set of dimensions plus structured findings. Two modes: mode='scan' (DEFAULT, FREE) returns grade + findings (committed-secret scan, .env/secret-file detection, .gitignore gaps for build/scratch artifacts, oversized blobs, stub/placeholder markers, byte-identical duplicate files, source test-peer coverage, TODO/FIXME debt); mode='fix' (METERED, $0.05 standard / $0.02 lite) adds a prioritized remediation plan with ready-to-apply .gitignore additions and per-finding actions. Sending X-Agent-Mode: engineer always bills the fix-mode price, even if mode is 'scan' or omitted. Deterministic, dependency-free, never mutates your repo (fix returns a PLAN). Rules needing a live git checkout/toolchain (worktree pruning, build/vet, governance-source-of-truth checks, route-registration dup-handler analysis, ROI-queue coherence) are reported as repo_only_rules, not run. Engineer mode (X-Agent-Mode: engineer — Security Engineer, $5): the fix arrives as a git-applyable unified-diff patch (`patch`) + a SARIF 2.1.0 log for CI code-scanning (`sarif`). Requires Authorization: Bearer <api_key>.",
     inputSchema: {
       type: "object" as const,
       required: ["files"],
@@ -1477,6 +1476,8 @@ export const MCP_TOOLS = [
         scanned: { type: "object", description: "{files, bytes} actually analyzed." },
         paid_fix_hint: { type: "string", description: "scan mode only: how to obtain the metered remediation plan." },
         repo_only_rules: { type: "array", description: "Rules that need a live repo and were not run." },
+        patch: { type: "string", description: "Engineer mode only: git-apply-able unified diff of the safe auto-fixes (currently .gitignore additions only); empty string when nothing is safely auto-fixable." },
+        sarif: { type: "object", description: "Engineer mode only: SARIF 2.1.0 log of all open findings for CI code-scanning." },
       },
     },
     annotations: toolAnnotations("Workspace Hygiene", true, true),
