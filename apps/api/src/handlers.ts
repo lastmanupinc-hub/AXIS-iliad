@@ -56,6 +56,7 @@ import { requireAdmin } from "./admin.js";
 import { ErrorCode, ERROR_CODE_CATALOG, log, getRequestId } from "./logger.js";
 import { MCP_ERROR_CATEGORY_CATALOG } from "./mcp-runtime.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
+import { MCP_TOOLS } from "./mcp-tools.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 
 // â”€â”€â”€ Referral discount wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -2395,7 +2396,7 @@ Axis' Iliad is an API that accepts source files (or a GitHub URL) and returns st
 Connect directly via Model Context Protocol (Streamable HTTP, 2025-03-26 spec):
 
 - Endpoint: POST /mcp
-- ${MCP_TOOL_COUNT} tools: analyze_repo, analyze_files, list_programs, get_snapshot, get_artifact, prepare_agentic_purchasing, search_and_discover_tools, discover_commerce_tools, improve_my_agent_with_axis, discover_agentic_purchasing_needs, iliad_web_research, iliad_web_research_crawl, get_referral_code, get_referral_credits, sca_exemption_decision, grade_compliance, assemble_ce3_evidence, build_ap2_mandate, score_dispute_readiness, assemble_representment
+- ${MCP_TOOL_COUNT} tools: ${MCP_TOOLS.map(t => t.name).join(", ")}
 - No installation required  -  connect any MCP-compatible agent to https://axis-api-6c7z.onrender.com/mcp
 
 ## Programs (${PROGRAM_COUNT} total)
@@ -2407,14 +2408,14 @@ Pro tier: frontend, seo, optimization, theme, brand, superpowers, marketing, not
 
 For autonomous purchasing agents:
 
-- POST /v1/prepare-for-agentic-purchasing  -  one-call hardener. Chains 8 programs, computes Purchasing Readiness Score (0-100), returns AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow, dispute handling, and self-onboarding kit.
+- POST /v1/prepare-for-agentic-purchasing  -  one-call hardener. Chains ${PURCHASING_PROGRAMS.length} programs, computes Purchasing Readiness Score (0-100), returns AP2/UCP/Visa compliance checklist, negotiation playbook, product schema, checkout flow, dispute handling, and self-onboarding kit.
 - The Purchasing Readiness Score measures: commerce_artifacts (20pts), mcp_configs (20pts), compliance_checklist (15pts), negotiation_playbook (15pts), debug_playbook (10pts), optimization_rules (10pts), onboarding_docs (10pts).
 
 ## Authentication
 
 - Bearer token: Authorization: Bearer <api_key>
 - Obtain key: POST /v1/accounts with {email, name, tier: "free"}
-- Free tier: unlimited on search/skills/debug programs, 3 snapshots/day on pro programs
+- Free tier: unlimited on ${TIER_LIMITS.free.programs.join("/")} programs, ${TIER_LIMITS.free.max_snapshots_per_month} snapshots/month total (pro programs need a paid tier)
 
 ## Instructions for LLM Agents
 

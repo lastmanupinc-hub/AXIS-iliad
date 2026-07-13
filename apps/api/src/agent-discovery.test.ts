@@ -8,9 +8,10 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { createServer, type Server } from "node:http";
-import { resetTestDb } from "@axis/snapshots";
+import { resetTestDb, TIER_LIMITS } from "@axis/snapshots";
 import { Router } from "./router.js";
 import { MCP_TOOL_COUNT } from "./counts.js";
+import { MCP_TOOLS } from "./mcp-tools.js";
 import {
   handleLlmsTxt,
   handleSkillsIndex,
@@ -20,6 +21,7 @@ import {
   handleInstall,
   handleProbeIntent,
   handleErrorCodes,
+  PURCHASING_PROGRAMS,
 } from "./handlers.js";
 import { ErrorCode } from "./logger.js";
 
@@ -204,6 +206,35 @@ describe("GET /llms.txt", () => {
     // MCP error categories should also be present, not just the REST codes.
     expect(body).toContain("tier_limit");
     expect(body).toContain("_error:{code,retryable}");
+  });
+
+  // H4.6: llms.txt freshness — every count/enumeration below is asserted against its
+  // canonical source, not a hand-copied number. Ground truth for why this matters: this
+  // exact audit found the MCP tool list only enumerated 20 of 36 real tools (16 iliad_*
+  // platform tools were silently missing), "Chains 8 programs" when PURCHASING_PROGRAMS
+  // has 10 entries, and "3 snapshots/day on pro programs" when the real free-tier limit
+  // is 10/month and pro programs aren't quota-limited, they're entitlement-blocked.
+  it("H4.6: the MCP tool list names every tool in MCP_TOOLS, not a stale subset", async () => {
+    for (const tool of MCP_TOOLS) {
+      expect(body, `llms.txt's tool list is missing ${tool.name}`).toContain(tool.name);
+    }
+  });
+
+  it("H4.6: the purchasing-hardener program count matches PURCHASING_PROGRAMS.length", async () => {
+    expect(body).toContain(`Chains ${PURCHASING_PROGRAMS.length} programs`);
+  });
+
+  it("H4.6: the free-tier snapshot quota matches TIER_LIMITS.free, not a stale hardcoded number", async () => {
+    expect(body).toContain(`${TIER_LIMITS.free.max_snapshots_per_month} snapshots/month`);
+    for (const program of TIER_LIMITS.free.programs) {
+      expect(body, `llms.txt's free-tier line is missing ${program}`).toContain(program);
+    }
+  });
+
+  it("H4.6: MCP_TOOL_COUNT/PROGRAM_COUNT numerals in the body match the live constants", async () => {
+    expect(body).toContain(`${MCP_TOOL_COUNT} tools`);
+    // ARTIFACT_COUNT/PROGRAM_COUNT are asserted in the pre-existing "canonical MCP tools
+    // count" / "20 programs" tests above â€” this test only adds the two H4.6 introduced.
   });
 });
 
