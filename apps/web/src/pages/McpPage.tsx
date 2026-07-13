@@ -16,6 +16,7 @@ import {
 import { SectionHeader, StatTile, Callout, EmptyState, Skeleton, CodeBlock, Pill, TableWrap, formatUsdCents } from "../components/primitives/index.ts";
 import { ProbeIntentDemo } from "../components/ProbeIntentDemo.tsx";
 import { DOCS_API_BASE, TOOL_COUNT, PROGRAM_COUNT } from "../config.ts";
+import { useTabList } from "../useTabList.ts";
 
 // ─── McpPage (WO-P8) ────────────────────────────────────────────────────────
 // Merges the old InstallPage (per-platform install configs) and ToolsIndexPage
@@ -455,6 +456,8 @@ function PlatformTabs() {
   const current = cache[active];
   const error = errors[active];
   const codeText = current ? (isCommandConfig(current.config) ? current.config.command : JSON.stringify(current.config, null, 2)) : "";
+  const platformIds = PLATFORMS.map((p) => p.id);
+  const { tabListProps, getTabProps, getPanelProps } = useTabList(platformIds, active, setActive);
 
   return (
     <div className="card mb-4">
@@ -466,37 +469,38 @@ function PlatformTabs() {
         code={`curl -X POST ${DOCS_API_BASE}/v1/accounts \\\n  -H "Content-Type: application/json" \\\n  -d '{"email":"you@example.com","name":"My Agent","tier":"free"}'\n\n# Response: { "api_key": { "raw_key": "axis_..." } }`}
       />
 
-      <div className="tabs" role="tablist" aria-label="MCP client platform">
+      <div className="tabs" aria-label="MCP client platform" {...tabListProps}>
         {PLATFORMS.map((p) => (
           <button
             key={p.id}
             type="button"
-            role="tab"
-            aria-selected={active === p.id}
             className={`tab ${active === p.id ? "active" : ""}`}
             onClick={() => setActive(p.id)}
+            {...getTabProps(p.id)}
           >
             {p.name}
           </button>
         ))}
       </div>
 
-      {loading[active] && !current ? (
-        <div role="status" aria-live="polite"><Skeleton lines={4} /></div>
-      ) : error && !current ? (
-        <ErrorRetry error={error} onRetry={() => load(active)} />
-      ) : current ? (
-        <div>
-          <p className="text-sm mb-1">
-            <strong>File:</strong> <code className="mono">{current.file}</code>
-          </p>
-          <p className="text-muted text-sm mb-3">{current.description}</p>
-          <CodeBlock label={isCommandConfig(current.config) ? "Command" : "Config"} code={codeText} wrap />
-          <p className="text-muted text-xs" style={{ margin: 0 }}>
-            Replace <code className="mono">$&#123;AXIS_API_KEY&#125;</code> with your <code className="mono">raw_key</code> from above.
-          </p>
-        </div>
-      ) : null}
+      <div {...getPanelProps(active)}>
+        {loading[active] && !current ? (
+          <div role="status" aria-live="polite"><Skeleton lines={4} /></div>
+        ) : error && !current ? (
+          <ErrorRetry error={error} onRetry={() => load(active)} />
+        ) : current ? (
+          <div>
+            <p className="text-sm mb-1">
+              <strong>File:</strong> <code className="mono">{current.file}</code>
+            </p>
+            <p className="text-muted text-sm mb-3">{current.description}</p>
+            <CodeBlock label={isCommandConfig(current.config) ? "Command" : "Config"} code={codeText} wrap />
+            <p className="text-muted text-xs" style={{ margin: 0 }}>
+              Replace <code className="mono">$&#123;AXIS_API_KEY&#125;</code> with your <code className="mono">raw_key</code> from above.
+            </p>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

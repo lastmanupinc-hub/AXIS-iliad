@@ -3,6 +3,7 @@ import { Icon } from "../components/AxisIcons";
 import type { PageId } from "../routes.tsx";
 import { getOpenApiSpec, getMcpManifest, getErrorCodes, apiErrorDetails, type OpenApiSpec, type McpManifest, type ErrorCodeCatalogResponse } from "../api.ts";
 import { Callout, CodeBlock, Skeleton, TableWrap } from "../components/primitives/index.ts";
+import { useTabList } from "../useTabList.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT, DOCS_API_BASE } from "../config.ts";
 
@@ -251,6 +252,8 @@ export function DocsPage({ onNavigate }: Props) {
     { id: "examples", label: "Example Artifacts", icon: "folder" },
     { id: "cli", label: "CLI Usage", icon: "terminal" },
   ];
+  const sectionIds = sections.map((s) => s.id);
+  const { tabListProps, getTabProps, getPanelProps } = useTabList(sectionIds, section, setSection);
 
   return (
     <div>
@@ -261,28 +264,31 @@ export function DocsPage({ onNavigate }: Props) {
         </p>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 24 }}>
+      <div className="tabs" style={{ marginBottom: 24 }} {...tabListProps} aria-label="Documentation sections">
         {sections.map((s) => (
           <button
             key={s.id}
             className={`tab ${section === s.id ? "active" : ""}`}
             onClick={() => setSection(s.id)}
+            {...getTabProps(s.id)}
           >
             <Icon name={s.icon} /> {s.label}
           </button>
         ))}
       </div>
 
-      {section === "overview" && <OverviewSection />}
-      {section === "programs" && (
-        <ProgramsSection expanded={expandedProgram} onToggle={setExpandedProgram} />
-      )}
-      {section === "api" && <ApiSection />}
-      {section === "mcp" && <McpProtocolSection onNavigate={onNavigate} />}
-      {section === "errors" && <ErrorCodesSection />}
-      {section === "outputs" && <OutputsSection />}
-      {section === "examples" && <ExampleArtifactsSection onNavigate={onNavigate} />}
-      {section === "cli" && <CliSection />}
+      <div {...getPanelProps(section)}>
+        {section === "overview" && <OverviewSection />}
+        {section === "programs" && (
+          <ProgramsSection expanded={expandedProgram} onToggle={setExpandedProgram} />
+        )}
+        {section === "api" && <ApiSection />}
+        {section === "mcp" && <McpProtocolSection onNavigate={onNavigate} />}
+        {section === "errors" && <ErrorCodesSection />}
+        {section === "outputs" && <OutputsSection />}
+        {section === "examples" && <ExampleArtifactsSection onNavigate={onNavigate} />}
+        {section === "cli" && <CliSection />}
+      </div>
     </div>
   );
 }

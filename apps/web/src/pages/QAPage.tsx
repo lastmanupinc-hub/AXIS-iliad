@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../components/AxisIcons";
 import { EmptyState } from "../components/primitives/index.ts";
+import { useTabList } from "../useTabList.ts";
 // Single-source counts + canonical API origin (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, ENDPOINT_COUNT, PROD_API_BASE, PROGRAM_COUNT, PRO_PROGRAM_COUNT } from "../config.ts";
 
@@ -288,6 +289,12 @@ export function QAPage() {
     categoryCounts.set(item.category, (categoryCounts.get(item.category) ?? 0) + 1);
   }
 
+  const categoryIds = Object.keys(CATEGORY_LABELS) as QACategory[];
+  const { tabListProps, getTabProps, getPanelProps } = useTabList(categoryIds, category, (cat) => {
+    setCategory(cat);
+    setExpanded(null);
+  });
+
   return (
     <div>
       <div className="card" style={{ textAlign: "center", marginBottom: 24 }}>
@@ -306,12 +313,13 @@ export function QAPage() {
         </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 24 }}>
-        {(Object.keys(CATEGORY_LABELS) as QACategory[]).map((cat) => (
+      <div className="tabs" style={{ marginBottom: 24 }} {...tabListProps} aria-label="Question categories">
+        {categoryIds.map((cat) => (
           <button
             key={cat}
             className={`tab ${category === cat ? "active" : ""}`}
             onClick={() => { setCategory(cat); setExpanded(null); }}
+            {...getTabProps(cat)}
           >
             <Icon name={CATEGORY_LABELS[cat].icon} /> {CATEGORY_LABELS[cat].label}
             {cat !== "all" && (
@@ -329,6 +337,7 @@ export function QAPage() {
         ))}
       </div>
 
+      <div {...getPanelProps(category)}>
       {filtered.length === 0 ? (
         <EmptyState
           icon="search"
@@ -389,6 +398,7 @@ export function QAPage() {
           })}
         </div>
       )}
+      </div>
 
       <div className="card" style={{ textAlign: "center", marginTop: 24 }}>
         <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>

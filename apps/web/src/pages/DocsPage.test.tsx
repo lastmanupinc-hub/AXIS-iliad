@@ -121,7 +121,7 @@ describe("DocsPage — Overview", () => {
 describe("DocsPage — Programs tab (regression: PROGRAM_DOCS drift)", () => {
   it("Free/Pro program badge counts match config.ts's pinned totals, not a stale hand-maintained array", async () => {
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Programs/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Programs/ }));
 
     expect(screen.getByText(`${FREE_PROGRAM_COUNT} programs`)).toBeTruthy();
     expect(screen.getByText(`${PRO_PROGRAM_COUNT} programs`)).toBeTruthy();
@@ -129,7 +129,7 @@ describe("DocsPage — Programs tab (regression: PROGRAM_DOCS drift)", () => {
 
   it("includes cards for the previously-missing agentic-purchasing, closer, and deploy programs", async () => {
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Programs/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Programs/ }));
 
     expect(screen.getByText("Agentic Purchasing")).toBeTruthy();
     expect(screen.getByText("Closer / Packaging")).toBeTruthy();
@@ -140,7 +140,7 @@ describe("DocsPage — Programs tab (regression: PROGRAM_DOCS drift)", () => {
 describe("DocsPage — Outputs tab (regression: same PROGRAM_DOCS drift, different table)", () => {
   it("full output inventory covers all 20 programs, not 17", async () => {
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Output Formats/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Output Formats/ }));
 
     // Each PROGRAM_DOCS row renders its label once in this table.
     expect(screen.getByText("Agentic Purchasing")).toBeTruthy();
@@ -154,7 +154,7 @@ describe("DocsPage — API Reference (live OpenAPI explorer)", () => {
   it("loads the live spec, groups by tag, and shows accurate live counts", async () => {
     stubFetch([["/openapi.json", OPENAPI_SPEC]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /API Reference/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /API Reference/ }));
 
     await waitFor(() => expect(screen.getByText("Axis' Iliad API")).toBeTruthy());
     expect(screen.getByText(/v1\.2\.3/)).toBeTruthy();
@@ -171,7 +171,7 @@ describe("DocsPage — API Reference (live OpenAPI explorer)", () => {
   it("expanding a tag then an endpoint reveals parameters, request-body schema, and a working copy-curl block", async () => {
     stubFetch([["/openapi.json", OPENAPI_SPEC]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /API Reference/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /API Reference/ }));
 
     const tagButton = await screen.findByRole("button", { name: /Programs.*endpoint/ });
     fireEvent.click(tagButton);
@@ -193,7 +193,7 @@ describe("DocsPage — API Reference (live OpenAPI explorer)", () => {
   it("a public endpoint with no `security` entry renders its curl with no Authorization header", async () => {
     stubFetch([["/openapi.json", OPENAPI_SPEC]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /API Reference/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /API Reference/ }));
 
     await waitFor(() => expect(screen.getByText("Health")).toBeTruthy());
     fireEvent.click(screen.getByText("Health"));
@@ -206,7 +206,7 @@ describe("DocsPage — API Reference (live OpenAPI explorer)", () => {
   it("shows a retry option when the live spec fails to load", async () => {
     stubFetch([["/openapi.json", { error: "spec unavailable" }, 500]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /API Reference/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /API Reference/ }));
 
     await screen.findByText("spec unavailable");
 
@@ -221,7 +221,7 @@ describe("DocsPage — MCP Protocol tab", () => {
   it("renders a live manifest summary and links to the full MCP page", async () => {
     stubFetch([["/v1/mcp/server.json", MCP_MANIFEST]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /MCP Protocol/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /MCP Protocol/ }));
 
     await waitFor(() => expect(screen.getByText("2")).toBeTruthy()); // tool count stat
     expect(screen.getByText("bearer")).toBeTruthy();
@@ -232,7 +232,7 @@ describe("DocsPage — MCP Protocol tab", () => {
     stubFetch([["/v1/mcp/server.json", MCP_MANIFEST]]);
     const onNavigate = vi.fn();
     render(<DocsPage onNavigate={onNavigate} />);
-    fireEvent.click(screen.getByRole("button", { name: /MCP Protocol/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /MCP Protocol/ }));
 
     const link = await screen.findByRole("button", { name: /Open the full MCP tool registry/ });
     fireEvent.click(link);
@@ -244,7 +244,7 @@ describe("DocsPage — Error Codes tab (H4.2)", () => {
   it("renders the live REST error-code table with retry guidance", async () => {
     stubFetch([["/v1/error-codes", ERROR_CODE_CATALOG_FIXTURE]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Error Codes/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Error Codes/ }));
 
     expect(await screen.findByText("AUTH_REQUIRED")).toBeTruthy();
     expect(screen.getByText("QUOTA_EXCEEDED")).toBeTruthy();
@@ -254,7 +254,7 @@ describe("DocsPage — Error Codes tab (H4.2)", () => {
   it("renders the MCP tool-call error categories separately from the REST codes", async () => {
     stubFetch([["/v1/error-codes", ERROR_CODE_CATALOG_FIXTURE]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Error Codes/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Error Codes/ }));
 
     await screen.findByText("AUTH_REQUIRED");
     expect(screen.getByText(/MCP tools\/call errors attach a coarser/)).toBeTruthy();
@@ -264,7 +264,7 @@ describe("DocsPage — Error Codes tab (H4.2)", () => {
   it("shows a retry Callout on fetch failure, not a silent blank tab", async () => {
     stubFetch([["/v1/error-codes", { error: "boom" }, 500]]);
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Error Codes/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Error Codes/ }));
 
     expect(await screen.findByText(/Couldn't load the live error-code catalog/)).toBeTruthy();
   });
@@ -273,7 +273,7 @@ describe("DocsPage — Error Codes tab (H4.2)", () => {
 describe("DocsPage — Example Artifacts tab", () => {
   it("renders static samples honestly labeled as samples, not live output", async () => {
     render(<DocsPage onNavigate={noop} />);
-    fireEvent.click(screen.getByRole("button", { name: /Example Artifacts/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Example Artifacts/ }));
 
     expect(screen.getAllByText("Sample — not from a live analysis.").length).toBeGreaterThan(0);
     expect(screen.getByText("AGENTS.md")).toBeTruthy();
@@ -282,7 +282,7 @@ describe("DocsPage — Example Artifacts tab", () => {
   it("cross-links to real case studies and the Runner, not dead buttons", async () => {
     const onNavigate = vi.fn();
     render(<DocsPage onNavigate={onNavigate} />);
-    fireEvent.click(screen.getByRole("button", { name: /Example Artifacts/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Example Artifacts/ }));
 
     fireEvent.click(screen.getByRole("button", { name: /View real case studies/ }));
     expect(onNavigate).toHaveBeenCalledWith("examples");

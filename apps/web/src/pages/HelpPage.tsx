@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "../components/AxisIcons";
+import { useTabList } from "../useTabList.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { FREE_PROGRAM_COUNT, PROGRAM_COUNT } from "../config.ts";
 
@@ -59,6 +60,8 @@ export function HelpPage() {
     { id: "account", label: "Account & Billing", icon: "credit-card" },
     { id: "troubleshooting", label: "Troubleshooting", icon: "wrench" },
   ];
+  const sectionIds = sections.map((s) => s.id);
+  const { tabListProps, getTabProps, getPanelProps } = useTabList(sectionIds, section, setSection);
 
   return (
     <div>
@@ -69,24 +72,27 @@ export function HelpPage() {
         </p>
       </div>
 
-      <div className="tabs" style={{ marginBottom: 24 }}>
+      <div className="tabs" style={{ marginBottom: 24 }} {...tabListProps} aria-label="Help topics">
         {sections.map((s) => (
           <button
             key={s.id}
             className={`tab ${section === s.id ? "active" : ""}`}
             onClick={() => setSection(s.id)}
+            {...getTabProps(s.id)}
           >
             <Icon name={s.icon} /> {s.label}
           </button>
         ))}
       </div>
 
-      {section === "getting-started" && <GettingStartedSection />}
-      {section === "upload" && <UploadGuideSection />}
-      {section === "programs" && <ProgramsGuideSection />}
-      {section === "dashboard" && <DashboardGuideSection />}
-      {section === "account" && <AccountGuideSection />}
-      {section === "troubleshooting" && <TroubleshootingSection />}
+      <div {...getPanelProps(section)}>
+        {section === "getting-started" && <GettingStartedSection />}
+        {section === "upload" && <UploadGuideSection />}
+        {section === "programs" && <ProgramsGuideSection />}
+        {section === "dashboard" && <DashboardGuideSection />}
+        {section === "account" && <AccountGuideSection />}
+        {section === "troubleshooting" && <TroubleshootingSection />}
+      </div>
     </div>
   );
 }
