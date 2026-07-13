@@ -743,7 +743,19 @@ logs reappeared, caused no failure, not chased further per established
 local-noise discipline); production build clean (777.27 kB main bundle /
 218.64 kB gzip, `index-CvY2PD5q.js`; CSS bundle grew slightly to 42.16 kB from
 the new media-query rule); full monorepo build clean. No API changes — pure
-`apps/web` again | `PENDING_COMMIT` |
+`apps/web` again. Pushed via the `gh auth token` workaround (plain `git push` hung
+again — [[git-push-credential-manager-hang]]; confirmed via `git ls-remote` that
+the plain attempt genuinely hadn't landed before retrying). CI green
+(`build-and-test` 20+22, deploy-web all success; docker-build/deploy-api correctly
+skipped). **Live-probed:** CSS bundle is a byte-EXACT, hash-EXACT match —
+`index-BEoaKX2n.css`, 42,161 bytes both live and local (CSS output is fully
+deterministic here, unlike JS). JS bundle `index-CjpgOI7k.js` (777,222 bytes) vs
+local `index-CvY2PD5q.js` (777,265 bytes) — different hash as expected (no
+lockfile) but the SAME 43-byte delta seen on both H5.1b(f) and H5.1b(g)'s
+live-probes, now a confirmed 3-for-3 pattern. Grepped all new strings: JS —
+`statusbar-optional` ×2, "Programs used" ×1, "API status mix" ×1, "All API calls
+by endpoint" ×1; CSS — `statusbar-optional` ×1 — every string at its exact
+expected call-site count, genuine confirmation the new code is live | `74107bc` |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 
