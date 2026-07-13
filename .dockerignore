@@ -17,4 +17,5 @@ vitest-*.txt
 coverage-*.txt
 *.md
 !README.md
+!CHANGELOG.md
 .ai
