@@ -608,6 +608,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   z-index: 1000;
   animation: fadeIn 0.15s ease-out;
 }
@@ -1415,6 +1416,12 @@ kbd {
   .ide-main > .page-enter { max-width: none; }
   .is-landing .ide-main > .page-enter { padding: 16px 14px 8px; }
   .ide-main > .ide-footer { margin-top: 40px; padding: 18px 14px 24px; }
+  /* StatusBar is fixed-height (--statusbar-h, 32px is load-bearing — .ide-shell's
+     max-height calc depends on it) and entirely inline-styled with no wrap
+     handling, so its secondary content is hidden rather than allowed to grow
+     the bar past one line. `important` is required to beat the inline `display`
+     these spans also carry (see StatusBar.tsx). */
+  .statusbar-optional { display: none !important; }
 }
 /* ==========================================================================
    WO-F4 — shared primitives + utility classes

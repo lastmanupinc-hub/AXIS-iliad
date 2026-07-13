@@ -82,7 +82,7 @@ function ToastRail({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: num
         flexDirection: "column",
         gap: 8,
         zIndex: 9000,
-        maxWidth: 380,
+        maxWidth: "min(380px, calc(100vw - 32px))",
       }}
     >
       {toasts.map((t) => {
@@ -105,7 +105,7 @@ function ToastRail({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: num
             onClick={() => onDismiss(t.id)}
           >
             <span style={{ flexShrink: 0 }}>{s.icon}</span>
-            <span style={{ fontSize: "0.8125rem", lineHeight: 1.4 }}>{t.message}</span>
+            <span style={{ fontSize: "0.8125rem", lineHeight: 1.4, overflowWrap: "break-word", minWidth: 0 }}>{t.message}</span>
           </div>
         );
       })}

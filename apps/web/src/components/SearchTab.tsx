@@ -237,7 +237,7 @@ export function SearchTab({ snapshotId }: Props) {
                 <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap", minWidth: 40, textAlign: "right" }}>
                   :{r.line_number}
                 </span>
-                <span style={{ color: "var(--text)", whiteSpace: "pre", overflow: "hidden", textOverflow: "ellipsis" }}>
+                <span style={{ color: "var(--text)", whiteSpace: "pre", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, flex: 1 }}>
                   {r.content}
                 </span>
               </div>
@@ -291,10 +291,10 @@ export function SearchTab({ snapshotId }: Props) {
                 >
                   {s.symbol_type}
                 </span>
-                <span style={{ color: "var(--text)", fontFamily: "monospace", fontWeight: 600 }}>
+                <span style={{ color: "var(--text)", fontFamily: "monospace", fontWeight: 600, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
                   {s.parent ? `${s.parent}.` : ""}{s.symbol_name}
                 </span>
-                <span style={{ color: "var(--text-muted)", marginLeft: "auto", whiteSpace: "nowrap", fontSize: "0.75rem" }}>
+                <span style={{ color: "var(--text-muted)", marginLeft: "auto", whiteSpace: "nowrap", fontSize: "0.75rem", flexShrink: 0 }}>
                   {s.file_path}:{s.line_number}
                 </span>
               </div>

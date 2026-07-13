@@ -154,7 +154,8 @@ July build program. They are not suggestions.
 | H4.6 | AI-agent UX (remaining) | DONE | see PROGRESS |
 | H5.1 | Cross-page a11y pass — audit + tier-1 fixes | DONE | see PROGRESS |
 | H5.1b | a11y follow-ups from the H5.1 audit (see Phase H5 spec) | DONE — (a)-(g) all shipped | see PROGRESS |
-| H5.2–H5.3 | Human UX (mobile pass, performance) | pending | |
+| H5.2 | Mobile pass on all new pages (Gate 4) | DONE | see PROGRESS |
+| H5.3 | Performance (lazy-load, Lighthouse a11y ≥95) | pending | |
 | H6.1–H6.3 | Ops/security | pending | |
 | H7.1–H7.4 | Model-cascade productization | pending | |
 | H8.1–H8.12 | Foundation engineering | pending | |
@@ -400,7 +401,41 @@ criteria are the definition of done, update the BUILD-PLAN status table as each 
   page's error state is shared across 5 unrelated forms, so a blanket `aria-describedby`
   would have mis-linked unrelated errors to this group) — see PROGRESS. This closes
   H5.1b in full — nothing remains disclosed-but-unfixed from the H5.1 audit.
-- **H5.2 — Mobile pass** on all new pages (the plan's Gate 4).
+- **H5.2 — DONE — Mobile pass** on all new pages (the plan's Gate 4). Audit (Explore
+  agent, read-only) first: the IDE shell already has a working off-canvas mobile
+  nav (hamburger + drawer, 900px/600px breakpoint convention) — no wholesale missing
+  mobile nav, contrary to the initial assumption. Real findings, tier-1 fixed:
+  (1) `StatusBar.tsx` — fixed 32px-tall bar (the height is load-bearing: `.ide-shell`'s
+  `max-height: calc(100vh - var(--statusbar-h))` depends on it), fully inline-styled
+  with two non-wrapping flex groups and no className hook a media query could ever
+  reach — affects all 28 pages via the shared shell. Fixed by adding `className`s
+  (`statusbar`, `statusbar-optional` on the two secondary-content groups) and a new
+  ≤600px rule hiding `.statusbar-optional` (`!important`, required to beat the inline
+  `display` these spans still carry) — the connection indicator (the one thing that
+  actually matters on a phone) stays visible alone, everything still fits on one line;
+  (2) `MyAnalyticsPage.tsx`'s 3 tables had no `TableWrap`, inconsistent with every
+  sibling account/billing page (Admin/Usage/Settings) — wrapped all 3, matching the
+  established convention exactly;
+  (3) `SearchTab.tsx` (zero prior test coverage) — both result-row shapes had a
+  span that could force horizontal overflow instead of truncating (text-search's
+  matched-content span had `overflow:hidden;text-overflow:ellipsis` already but no
+  `min-width:0` to let it actually shrink — the classic flexbox min-width:auto floor;
+  symbol-search's symbol-name span had neither) — fixed both, keeping file:line
+  location info fixed-width/non-shrinking in both rows (consistent with the existing
+  priority the text-search row already implied: location is the stable anchor, the
+  variable-length content is what truncates);
+  (4) two tiny, low-risk edge cases: `.modal-overlay` had no edge padding (dialogs
+  touched the viewport edge exactly at ≤420px) — added 16px; `Toast`'s rail used a
+  bare `maxWidth:380` with no viewport-relative bound and no `overflow-wrap` on the
+  message — changed to `min(380px, calc(100vw - 32px))` + `overflow-wrap:break-word`.
+  New tests: `SearchTab.test.tsx` (2, this component's first ever), `MyAnalyticsPage.test.tsx`
+  (1, new file), `StatusBar` extended in `pages.test.tsx` (1). **Disclosed, not fixed**
+  (found during the audit, out of scope for a mobile-bug-fix unit — pure hygiene, zero
+  behavior change on any breakpoint, >5 lines): a legacy pre-"ide-shell" nav system
+  (`.header`/`.nav-desktop`/`.nav-mobile-controls`/`.hamburger` + its own dead 900px/600px
+  media-query block) is forced off via `display:none` but never deleted, plus a
+  duplicate/superseded `@media(max-width:600px){.ide-main...}` block — both dead CSS,
+  deferred to H6.2's hygiene self-scan. See PROGRESS for verification evidence.
 - **H5.3 — Performance:** lazy-load heavy pages via dynamic import (the >500kB chunk
   warning), Lighthouse a11y ≥95 on the 5 core pages. No new deps.
 
@@ -655,6 +690,60 @@ every diff. Newest at the bottom.
 | 2026-07-13 | H5.1b (partial: +e) | a11y follow-ups from the H5.1 audit — item (e) only; (f)-(g) remain, see Phase H5 spec. **Every page now has exactly one `<h1>`.** Re-counting turned up 23 pages missing one (not the original 22 — `tools/WebResearchPage` wasn't counted in the first "22 of 28" estimate), zero anywhere in the app shell either. Fixed via per-page judgment on what "the page's real title" actually is, not a mechanical insert: (1) 13 headings across 12 pages (AccountPage, AdminPage, AnalyzePage, DocsPage, HelpPage, MyAnalyticsPage, NotFoundPage, PaidCheckoutPage ×2 branches, PlansPage, ProjectPage, QAPage, TermsPage) were a direct, already-existing `<h2>` promoted in place to `<h1>` — confirmed per page that the h2 found was genuinely the page's own top-level title (not a nested/secondary heading) by reading the surrounding render logic, not assuming from the tag alone. (2) 10 pages (AccountDashboardPage, ChangelogPage, CommercePage, McpPage, PlaygroundPage, ProjectsPage, RunnerPage, SettingsPage, StatusPage, UsagePage) use the shared `SectionHeader` primitive as their title — rather than changing its default (which would create duplicate `<h1>`s on pages that embed it as a *secondary* section, e.g. AccountDashboardPage's own "Recent projects"/"Quick actions" sub-headers, or where it's embedded in shared components like `LiveDemoTeaser`/`VersionsTab` that live inside pages which already have their own real `<h1>` elsewhere), added an opt-in `level?: "h1" | "h2"` prop defaulting to `"h2"` — fully backward-compatible, applied `level="h1"` only at the 14 call sites confirmed to be a genuine page-top-level title (including all 3 mutually-exclusive loading/error/success branches on AccountDashboardPage/SettingsPage/UsagePage, verified each really is mutually exclusive before editing). (3) `tools/WebResearchPage` has no `<h2>`/`SectionHeader` at all — it's built on the shared `ToolPage` component, which had its own never-promoted `<h2>{name}</h2>`; confirmed `ToolPage` is only actually rendered by this one page (McpPage merely *mentions* it in a comment) before promoting directly, no `level` prop needed for a single-use component. **Visual-regression discipline:** index.css has a real global delta (`h1 { font-size: 1.75rem; font-weight: 700; }` vs `h2 { font-size: 1.25rem; font-weight: 600; }`) — every promoted heading either already had an explicit inline `fontSize` (5 pages share a `1.5rem` "title card" convention; ProjectPage/PlansPage/ToolPage had their own explicit sizes) or got one added matching its *current* computed style exactly (`1.25rem`/`600`, the h2 default) so this unit changes the accessibility tree only, never a single page's visual appearance — a redesign of heading hierarchy weight is a legitimate but separate, undiscussed question, out of scope here. `SectionHeader` itself now pins `fontSize`/`fontWeight` explicitly inside the component (covers all ~20 call sites at once, `level` or not). New dedicated `heading-structure.test.tsx` (27 tests): renders all 23 fixed pages plus the 4 pre-existing-`<h1>` pages (HomePage/ExamplesPage/ForAgentsPage/ProgramsPage — confirming the `SectionHeader` `level` change didn't introduce an accidental duplicate anywhere; KitchenSinkPage excluded as a hidden dev-aid route) and asserts `getAllByRole("heading", {level: 1})` has length exactly 1 — the literal WCAG 2.4.6 claim, not "a heading exists somewhere." Two test-setup wrinkles, not app bugs: AdminPage/PaidCheckoutPage/PlansPage all show a genuinely title-less loading spinner first (correctly left alone — that branch never had a title to begin with), so their tests `await screen.findAllByRole(...)` instead of asserting synchronously; AdminPage's real success-branch response shape wasn't worth fully modeling for this test, so its fetch stub is forced to an error response instead, landing on the (already-confirmed) error branch's `<h1>` — deliberately not a full multi-endpoint fixture. **Verified:** full apps/web suite 578/578 green (551 + 27 new), typecheck clean, production build clean, full monorepo build clean. No API changes — pure `apps/web` again. CI green on push (build-and-test 20+22, Axis Compliance: A, deploy-web all success; docker-build/deploy-api correctly skipped). Pushed via the `gh auth token` workaround (see [[git-push-credential-manager-hang]]). **Live-probed:** fresh bundle hash; size (775,431 bytes) matches the local production build almost exactly (775,474 bytes). Unlike H5.1b(c)/(d)'s live-probes, this fix DOES leave a real, if approximate, textual fingerprint: the compiled JSX for a literal `<h1>` tag emits the string `"h1"` as a createElement/jsx-runtime argument (the `SectionHeader`/`ToolPage` promotions via a dynamic `level` variable do not, since those compile to a variable reference, not a literal) — grepped 34 occurrences of `"h1"` in the live bundle, confirming real `<h1>` JSX is present in meaningful quantity; not an exact before/after count comparison (no baseline was captured), so this corroborates rather than proves precisely | `e9bb5aa` |
 | 2026-07-13 | H5.1b (partial: +f) | a11y follow-ups from the H5.1 audit — item (f) only; (g) remains, see Phase H5 spec. **AdminPage's remaining primitives migration.** H5.1 only fixed its loading/error states (Skeleton+aria-busy, Callout); this unit's the 6 tables it never touched — "Calls by Source", "Calls by Tool", "Accounts by Tier", "Funnel by Stage", "Recent Accounts", "Recent Activity" — none had `TableWrap` (the keyboard-scrollable-region primitive every sibling account/billing page already uses) and none guarded the empty case, silently rendering a header-only table on a fresh install with zero accounts/activity/etc. (confirmed this is a real, reachable state, not theoretical: every one of the 6 data sources — `stats.accounts_by_tier`, `mcpUsage.summary.by_source`/`by_tool`, `funnelMetrics.by_stage`, `accounts.accounts`, `activity.events` — is a plain object/array with no minimum-size guarantee from the API). Wrapped all 6 in `TableWrap` with a distinct accessible `label`; added a `colSpan`-spanning empty-guard row per table with honest copy ("No accounts yet.", "No MCP calls in this window.", "No funnel events yet.", "No activity yet." — two pairs of tables share identical copy since they describe the same underlying fact from two angles, not four different messages). New dedicated `AdminPage.test.tsx` (3 tests, this page had zero prior coverage): a full-empty-response fixture across all 6 admin endpoints confirms every empty message renders (not just "the page doesn't crash"); a second test confirms all `TableWrap` regions are genuinely keyboard-reachable (`role="region"`, `tabindex="0"`); a third populates one data source and confirms its real rows render instead of the empty message (guards against a guard that never turns off). Two test-authoring fixes made mid-unit, neither an app bug: `getByText` throws on 2+ matches (two table pairs intentionally share copy) — switched those specific assertions to `getAllByText(...).toHaveLength(2)`; this codebase doesn't set up `@testing-library/jest-dom` matchers (confirmed via repo-wide grep — zero existing use of `toBeInTheDocument` anywhere), so the "absence" assertion uses plain `toBeNull()` on `queryByText` instead. **Full-suite discipline:** the post-change full local run showed 2 failures in `CommercePage.test.tsx` (a file untouched by this unit, last confirmed 578/578 green two units ago) — re-ran that file alone and it passed 7/7, confirming a local-only, load-related flake matching this exact machine's already-documented pattern (see the loop's own rule 5 and this session's memory), not a regression; did not chase it further, consistent with "trust CI, not local full-suite runs, for the authoritative signal." **Verified:** typecheck clean, new tests 3/3 green in isolation, production build clean, full monorepo build clean. No API changes — pure `apps/web` again. CI green on push (build-and-test 20+22, Axis Compliance: A, deploy-web all success; docker-build/deploy-api correctly skipped) — CI's own full run of `CommercePage.test.tsx` passing here reconfirms the local-only-flake diagnosis. Pushed via the `gh auth token` workaround (see [[git-push-credential-manager-hang]]). **Live-probed:** fresh bundle hash; size (776,497 bytes) matches the local production build almost exactly (776,540 bytes); grepped all 4 new empty-state strings in the live bundle — "No accounts yet." not re-checked (identical text existed nowhere before, but is generic enough to skip re-verifying), "No MCP calls in this window." appears exactly twice (matching its 2 separate JSX call sites), "No funnel events yet."/"No activity yet." appear once each — genuine confirmation the new copy is live, not inferred | `72d08cb` |
 | 2026-07-13 | H5.1b (final: +g) | a11y follow-ups from the H5.1 audit — item (g), the last item; **H5.1b is now fully closed, (a)-(g) all shipped.** The audit found zero `aria-invalid`/`aria-describedby` usage anywhere in the codebase (confirmed via repo-wide grep) — form validation errors had no programmatic link from the invalid field to its message, so screen-reader users got a visual-only error cue. Scoped to the two most-affected forms rather than a blanket sweep: `PaidCheckoutPage`'s email field (single-purpose error state — the page has exactly one thing that can be wrong) and `SettingsPage`'s webhook-events checkbox group (a harder case — this page shares ONE global `error` state across 5 unrelated forms, so a naive `aria-describedby` would mis-link e.g. a failed API-key revoke to the events checkboxes). Added a new optional `id?: string` prop to `Callout` (backward-compatible default `undefined`, zero effect on ~20 pre-existing call sites that don't pass it), then: `PaidCheckoutPage`'s error `Callout` gets `id="paid-checkout-error"` unconditionally and its email `<input>` gets `aria-invalid={error ? true : undefined}` / `aria-describedby={error ? "paid-checkout-error" : undefined}`; `SettingsPage`'s shared error `Callout` gets `id="settings-error"` and its webhook-events group (newly wrapped in `<div role="group" aria-label="Webhook events">`) gets a conditional `aria-describedby="settings-error"` applied ONLY when `error?.message === "Select at least one event to subscribe to"` — a precise string discriminator chosen specifically because this page's error is global, not per-field, so correctness here depends on matching the exact message rather than "any error is currently showing." Extended/added 5 tests: `primitives.test.tsx` (2, Callout's `id` prop present/absent), `pages.test.tsx` (1, PaidCheckoutPage's `aria-invalid`/`aria-describedby` appear after a failed subscribe attempt), `SettingsPage.test.tsx` (extended the existing "requires at least one event" test to also assert the error Callout's `id` and the group's matching `aria-describedby`). **Full-suite discipline** (established after the earlier PaidCheckoutPage Rules-of-Hooks incident this same phase): ran the 5 directly-affected tests in isolation first (103/103 green, the full existing coverage of the 3 touched files), then the complete `apps/web` suite (28/28 files, 584/584 tests, exit 0) before trusting the change — a stray `AggregateError`/`ECONNREFUSED` against `localhost:3000` printed to the log but caused no test failure and matched no test file in this unit; not chased further per the loop's established local-noise discipline. **Verified:** typecheck clean, production build clean (776.83 kB main bundle / 218.54 kB gzip, `index-Sf2Y_hyA.js` — new hash from the `id`/`aria-*` prop additions), full monorepo build clean. No API changes — pure `apps/web` again, same as every other H5.1b sub-unit. Pushed clean on the first plain `git push` (no credential-manager hang this time). CI green (`build-and-test` 20+22, deploy-web all success; docker-build/deploy-api correctly skipped). **Live-probed:** live bundle `index-7tUISv7C.js` (776,789 bytes) vs local production build `index-Sf2Y_hyA.js` (776,832 bytes) — different content hash (expected, no lockfile in this repo per CLAUDE.md's own warning, so CI's dependency resolution can legitimately differ from local) but the same 43-byte delta seen on H5.1b(f)'s live-probe, reinforcing that this is a consistent, benign local-vs-CI artifact rather than drift; grepped all 5 new strings directly in the live bundle — `paid-checkout-error` ×2, `settings-error` ×2, `aria-invalid` ×1, `aria-describedby` ×2, `Webhook events` ×1 — all present at their expected call-site counts, genuine confirmation the new code is live, not inferred. **H5.1b is now closed in full** | `9dc0efd` |
+| 2026-07-13 | H5.2 | Mobile pass on all new pages (Gate 4). Audited first (Explore agent,
+read-only) rather than guessing at fixes — headline correction to the working
+assumption: the IDE shell already has a real off-canvas mobile nav (hamburger +
+drawer, established 900px/600px breakpoint convention), so this was a narrow
+bug-fix pass, not a from-scratch mobile-nav build. 4 real findings, all fixed:
+(1) `StatusBar.tsx` — fixed 32px bar (load-bearing height, `.ide-shell`'s
+`max-height` calc depends on `--statusbar-h`), fully inline-styled with two
+non-wrapping flex groups and no className any media query could reach — the
+single highest-value fix since it's shared by all 28 pages via the shell. Added
+`statusbar`/`statusbar-optional` classNames plus a `!important` ≤600px rule
+hiding the secondary content (snapshot stats, ⌘K hint, version) — `!important`
+is required specifically because these spans still carry an inline `display`
+that no ordinary-specificity CSS rule could beat; the connection indicator
+(the one thing worth keeping on a phone) stays alone, comfortably on one line.
+(2) `MyAnalyticsPage.tsx`'s 3 tables had no `TableWrap`, inconsistent with
+every sibling account/billing page — wrapped all 3 ("Programs used", "API
+status mix", "All API calls by endpoint"), matching the established
+convention exactly. (3) `SearchTab.tsx` (zero prior test coverage of any
+kind) — text-search's matched-content span already had
+`overflow:hidden;text-overflow:ellipsis` but no `min-width:0`, so the
+classic flexbox min-width:auto floor silently defeated it (a flex item won't
+shrink below its content's min-content size — full pre-formatted-text width
+here — unless min-width is explicitly zeroed); symbol-search's symbol-name
+span had neither truncation property at all. Fixed both, deliberately keeping
+each row's file:line location span fixed/non-shrinking (`flexShrink:0` on the
+symbol row), consistent with the priority the text-search row already implied:
+location is the stable anchor, variable-length content is what truncates.
+(4) two tiny edge cases: `.modal-overlay` had no edge padding (dialogs touched
+the viewport edge exactly at ≤420px) — added 16px; `Toast`'s rail used a bare
+`maxWidth:380` with no viewport-relative bound and no wrap handling on the
+message — changed to `min(380px, calc(100vw - 32px))` +
+`overflow-wrap:break-word`. **Disclosed, not fixed** (found during the same
+audit, but pure hygiene with zero behavior change on any breakpoint, and
+>5 lines — out of scope for a bug-fix unit per the loop's own anti-gold-plating
+rule): a legacy pre-"ide-shell" nav system (`.header`/`.nav-desktop`/
+`.nav-mobile-controls`/`.hamburger` + its own dead 900px/600px media-query
+block) is forced off via `display:none` but never deleted, plus a
+duplicate/superseded `@media(max-width:600px){.ide-main...}` block that a
+later block in the same file silently overrides — both dead CSS, deferred to
+H6.2's hygiene self-scan. New tests: `SearchTab.test.tsx` (2 tests — this
+component's first ever), `MyAnalyticsPage.test.tsx` (1 test, new file — all 3
+regions keyboard-reachable via `role="region"`/`tabindex="0"`), `StatusBar`
+extended in `pages.test.tsx` (1 test). One test-authoring fix, not an app bug:
+`minWidth:0` serializes to the DOM as `"0"`, not `"0px"` — the first
+SearchTab.test.tsx draft asserted the wrong string, caught immediately by the
+scoped test run and corrected before the full suite. **Verified:** typecheck
+clean, scoped tests 56/56 green (the 3 touched/new files), full apps/web suite
+30/30 files, 588/588 tests, exit 0 (the same benign stray
+`AggregateError`/`ECONNREFUSED` against `localhost:3000` seen in prior units'
+logs reappeared, caused no failure, not chased further per established
+local-noise discipline); production build clean (777.27 kB main bundle /
+218.64 kB gzip, `index-CvY2PD5q.js`; CSS bundle grew slightly to 42.16 kB from
+the new media-query rule); full monorepo build clean. No API changes — pure
+`apps/web` again | `PENDING_COMMIT` |
 
 ## FAILURES ledger (rule 14 — append-only; a halted unit is a data point, not a shame)
 

@@ -27,6 +27,7 @@ export function StatusBar({ snapshot, fileCount, onOpenStatus }: Props) {
 
   return (
     <footer
+      className="statusbar"
       style={{
         position: "fixed",
         bottom: 0,
@@ -45,21 +46,25 @@ export function StatusBar({ snapshot, fileCount, onOpenStatus }: Props) {
         fontFamily: "var(--mono)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        {/* Connection indicator — links to the full Status page (WO-P17) when a router is present. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+        {/* Connection indicator — links to the full Status page (WO-P17) when a router is present.
+            Always visible: the single most important piece of live status, and short enough
+            to never overflow a narrow bar on its own. */}
         <ConnectionIndicator online={online} onOpenStatus={onOpenStatus} />
 
-        {/* Snapshot stats */}
+        {/* Snapshot stats — hidden below 600px (see index.css) so this fixed-height,
+            all-inline-styled bar never overflows on a narrow viewport; className-driven
+            since a media query can't override an inline `display` otherwise. */}
         {snapshot && (
-          <>
+          <span className="statusbar-optional" style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <span>📦 {snapshot.context_map.structure.total_files} files</span>
             <span>📏 {snapshot.context_map.structure.total_loc.toLocaleString()} LOC</span>
             {fileCount > 0 && <span>📄 {fileCount} generated</span>}
-          </>
+          </span>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div className="statusbar-optional" style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <span title="Ctrl+K for command palette">⌘K commands</span>
         <span>Axis' Iliad v{APP_VERSION}</span>
       </div>

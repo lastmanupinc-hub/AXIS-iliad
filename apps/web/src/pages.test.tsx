@@ -651,6 +651,21 @@ describe("Component smoke tests", () => {
     expect(container.innerHTML.length).toBeGreaterThan(0);
   });
 
+  it("StatusBar marks its secondary content as hideable for narrow viewports", () => {
+    // The bar is fixed-height (32px, load-bearing for .ide-shell's max-height calc)
+    // and fully inline-styled, so a narrow-viewport media query can only hide this
+    // content via a className hook — assert the hook is actually wired up, on both
+    // the snapshot-stats group and the command-hint group.
+    const snapshot = {
+      context_map: { structure: { total_files: 12, total_loc: 3400 } },
+    } as unknown as Parameters<typeof StatusBar>[0]["snapshot"];
+    const { container } = render(<StatusBar snapshot={snapshot} fileCount={2} />);
+    const optional = container.querySelectorAll(".statusbar-optional");
+    expect(optional.length).toBe(2);
+    expect(optional[0].textContent).toContain("files");
+    expect(optional[1].textContent).toContain("commands");
+  });
+
   it("ToastProvider renders children", () => {
     const { container } = render(
       <ToastProvider>

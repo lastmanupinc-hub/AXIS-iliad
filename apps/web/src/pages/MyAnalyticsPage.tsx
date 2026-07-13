@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMyAnalyticsSummary, ApiError, type MyAnalyticsSummary } from "../api.ts";
-import { Callout, Skeleton } from "../components/primitives/index.ts";
+import { Callout, Skeleton, TableWrap } from "../components/primitives/index.ts";
 
 interface StrategyItem {
   title: string;
@@ -165,86 +165,92 @@ export function MyAnalyticsPage() {
           <div className="grid grid-2">
             <div className="card">
               <h3>Programs Used</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Program</th>
-                    <th>Runs</th>
-                    <th>Generators</th>
-                    <th>Input Files</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.programs.length === 0 && (
+              <TableWrap label="Programs used">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan={4}>No program usage in this window.</td>
+                      <th>Program</th>
+                      <th>Runs</th>
+                      <th>Generators</th>
+                      <th>Input Files</th>
                     </tr>
-                  )}
-                  {[...summary.programs].sort((a, b) => b.total_runs - a.total_runs).map((row) => (
-                    <tr key={row.program}>
-                      <td>{row.program}</td>
-                      <td>{row.total_runs}</td>
-                      <td>{row.total_generators}</td>
-                      <td>{row.total_input_files}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {summary.programs.length === 0 && (
+                      <tr>
+                        <td colSpan={4}>No program usage in this window.</td>
+                      </tr>
+                    )}
+                    {[...summary.programs].sort((a, b) => b.total_runs - a.total_runs).map((row) => (
+                      <tr key={row.program}>
+                        <td>{row.program}</td>
+                        <td>{row.total_runs}</td>
+                        <td>{row.total_generators}</td>
+                        <td>{row.total_input_files}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
             </div>
 
             <div className="card">
               <h3>API Status Mix</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Calls</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summary.api_calls.by_status.length === 0 && (
+              <TableWrap label="API status mix">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan={2}>No API calls in this window.</td>
+                      <th>Status</th>
+                      <th>Calls</th>
                     </tr>
-                  )}
-                  {summary.api_calls.by_status.map((row) => (
-                    <tr key={row.status_bucket}>
-                      <td>{row.status_bucket}</td>
-                      <td>{row.calls}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {summary.api_calls.by_status.length === 0 && (
+                      <tr>
+                        <td colSpan={2}>No API calls in this window.</td>
+                      </tr>
+                    )}
+                    {summary.api_calls.by_status.map((row) => (
+                      <tr key={row.status_bucket}>
+                        <td>{row.status_bucket}</td>
+                        <td>{row.calls}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
             </div>
           </div>
 
           <div className="card">
             <h3>All API Calls By Endpoint</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Method</th>
-                  <th>Path</th>
-                  <th>Calls</th>
-                  <th>Last Called</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.api_calls.by_endpoint.length === 0 && (
+            <TableWrap label="All API calls by endpoint">
+              <table>
+                <thead>
                   <tr>
-                    <td colSpan={4}>No API calls in this window.</td>
+                    <th>Method</th>
+                    <th>Path</th>
+                    <th>Calls</th>
+                    <th>Last Called</th>
                   </tr>
-                )}
-                {summary.api_calls.by_endpoint.map((ep) => (
-                  <tr key={`${ep.method}:${ep.path}`}>
-                    <td>{ep.method}</td>
-                    <td className="mono">{ep.path}</td>
-                    <td>{ep.calls}</td>
-                    <td>{new Date(ep.last_called_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {summary.api_calls.by_endpoint.length === 0 && (
+                    <tr>
+                      <td colSpan={4}>No API calls in this window.</td>
+                    </tr>
+                  )}
+                  {summary.api_calls.by_endpoint.map((ep) => (
+                    <tr key={`${ep.method}:${ep.path}`}>
+                      <td>{ep.method}</td>
+                      <td className="mono">{ep.path}</td>
+                      <td>{ep.calls}</td>
+                      <td>{new Date(ep.last_called_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
           </div>
         </>
       )}
