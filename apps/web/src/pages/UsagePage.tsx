@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getAccount,
   getQuota,
@@ -29,6 +29,44 @@ import { PROGRAM_COUNT } from "../config.ts";
 // GET /v1/account/usage/timeseries — WO-A3) and a tier-change proration
 // preview (GET /v1/billing/proration). PAI'D remains the only checkout path
 // for both the tier-upgrade banner and credit top-ups.
+
+/** Click once to arm, click again to confirm — same pattern as
+ *  VersionsTab.tsx/ProjectsPage.tsx/SettingsPage.tsx's DangerButton (each a
+ *  small page-local copy; not shared, see any of them for the "why not a
+ *  native confirm()"). */
+function DangerButton({ label, confirmLabel, busy, onConfirm }: { label: string; confirmLabel: string; busy: boolean; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false);
+  const labelRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const wasArmed = useRef(false);
+
+  // The confirm step replaces this control's whole subtree, which unmounts
+  // whatever was just clicked and silently drops keyboard focus to <body>.
+  // Move focus to the safer default (Cancel, not the destructive action)
+  // on arm, and back to the label button when disarmed.
+  useEffect(() => {
+    if (armed && !wasArmed.current) cancelRef.current?.focus();
+    if (!armed && wasArmed.current) labelRef.current?.focus();
+    wasArmed.current = armed;
+  }, [armed]);
+
+  if (!armed) {
+    return (
+      <button ref={labelRef} type="button" className="btn text-sm" onClick={() => setArmed(true)}>
+        {label}
+      </button>
+    );
+  }
+  return (
+    <span className="flex gap-2" style={{ alignItems: "center", flexWrap: "wrap" }}>
+      <span className="text-muted text-sm">{confirmLabel}</span>
+      <button type="button" className="btn btn-primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} disabled={busy} onClick={onConfirm}>
+        {busy ? "Working..." : "Yes, cancel"}
+      </button>
+      <button ref={cancelRef} type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Never mind</button>
+    </span>
+  );
+}
 
 const TIMESERIES_DAYS = 30;
 const TIER_LABELS: Record<BillingTier, string> = { free: "Free", paid: "Starter", suite: "Growth" };
@@ -103,13 +141,17 @@ export function UsagePage() {
     }
   }
 
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
   async function handleCancelSubscription() {
     setError(null);
+    setCancelingSubscription(true);
     try {
       await cancelSubscription();
       await load();
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Cancellation failed", details: apiErrorDetails(err) });
+    } finally {
+      setCancelingSubscription(false);
     }
   }
 
@@ -240,7 +282,12 @@ export function UsagePage() {
               Cancels on {new Date(subscription.active_subscription.cancel_at).toLocaleDateString()}
             </p>
           ) : (
-            <button type="button" className="btn text-sm" onClick={() => void handleCancelSubscription()}>Cancel Subscription</button>
+            <DangerButton
+              label="Cancel Subscription"
+              confirmLabel="Cancel your subscription? You'll keep access until the current period ends."
+              busy={cancelingSubscription}
+              onConfirm={() => void handleCancelSubscription()}
+            />
           )}
         </div>
       )}

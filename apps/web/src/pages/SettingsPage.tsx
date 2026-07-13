@@ -178,12 +178,16 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
   }
 
+  const [revokingKeyId, setRevokingKeyId] = useState<string | null>(null);
   async function handleRevokeKey(keyId: string) {
+    setRevokingKeyId(keyId);
     try {
       await revokeApiKey(keyId);
       setKeys((await listApiKeys()).keys);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to revoke key", details: apiErrorDetails(err) });
+    } finally {
+      setRevokingKeyId(null);
     }
   }
 
@@ -204,12 +208,16 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
   }
 
+  const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
   async function handleDeleteToken(tokenId: string) {
+    setDeletingTokenId(tokenId);
     try {
       await deleteGitHubToken(tokenId);
       setTokens((await listGitHubTokens()).tokens);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete token", details: apiErrorDetails(err) });
+    } finally {
+      setDeletingTokenId(null);
     }
   }
 
@@ -236,12 +244,16 @@ export function SettingsPage({ onAuthChange }: Props) {
     }
   }
 
+  const [deletingWebhookId, setDeletingWebhookId] = useState<string | null>(null);
   async function handleDeleteWebhook(webhookId: string) {
+    setDeletingWebhookId(webhookId);
     try {
       await deleteWebhook(webhookId);
       setWebhooks((await listWebhooks()).webhooks);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to delete webhook", details: apiErrorDetails(err) });
+    } finally {
+      setDeletingWebhookId(null);
     }
   }
 
@@ -265,6 +277,20 @@ export function SettingsPage({ onAuthChange }: Props) {
       setOpenDeliveries(webhookId);
     } catch (err) {
       setError({ message: err instanceof Error ? err.message : "Failed to load deliveries", details: apiErrorDetails(err) });
+    }
+  }
+
+  // ─── Team seats (revoke only — invite stays inline on its form) ──
+  const [revokingSeatId, setRevokingSeatId] = useState<string | null>(null);
+  async function handleRevokeSeat(seatId: string) {
+    setRevokingSeatId(seatId);
+    try {
+      await revokeSeat(seatId);
+      setSeats(await listSeats());
+    } catch (err) {
+      setError({ message: err instanceof Error ? err.message : "Failed to revoke seat", details: apiErrorDetails(err) });
+    } finally {
+      setRevokingSeatId(null);
     }
   }
 
@@ -388,7 +414,14 @@ export function SettingsPage({ onAuthChange }: Props) {
                     <td className="mono">{k.prefix}...</td>
                     <td>{new Date(k.created_at).toLocaleDateString()}</td>
                     <td>{k.revoked_at ? <span className="badge badge-red">Revoked</span> : <span className="badge badge-green">Active</span>}</td>
-                    <td>{!k.revoked_at && <button type="button" className="btn text-xs" onClick={() => void handleRevokeKey(k.key_id)}>Revoke</button>}</td>
+                    <td>{!k.revoked_at && (
+                      <DangerButton
+                        label="Revoke"
+                        confirmLabel="Revoke this key? Anything using it stops working immediately."
+                        busy={revokingKeyId === k.key_id}
+                        onConfirm={() => void handleRevokeKey(k.key_id)}
+                      />
+                    )}</td>
                   </tr>
                 ))}
               </tbody>
@@ -419,7 +452,14 @@ export function SettingsPage({ onAuthChange }: Props) {
                     <td className="mono">{t.token_prefix}...</td>
                     <td>{new Date(t.created_at).toLocaleDateString()}</td>
                     <td>{t.valid ? <span className="badge badge-green">Valid</span> : <span className="badge badge-red">Invalid</span>}</td>
-                    <td><button type="button" className="btn text-xs" onClick={() => void handleDeleteToken(t.token_id)}>Remove</button></td>
+                    <td>
+                      <DangerButton
+                        label="Remove"
+                        confirmLabel="Remove this token? Program runs relying on it will stop working."
+                        busy={deletingTokenId === t.token_id}
+                        onConfirm={() => void handleDeleteToken(t.token_id)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -464,7 +504,12 @@ export function SettingsPage({ onAuthChange }: Props) {
                     <span className={w.active ? "badge badge-green" : "badge badge-yellow"}>{w.active ? "Active" : "Paused"}</span>
                     <button type="button" className="btn text-xs" onClick={() => void handleToggleWebhook(w.webhook_id, !w.active)}>{w.active ? "Pause" : "Resume"}</button>
                     <button type="button" className="btn text-xs" onClick={() => void handleViewDeliveries(w.webhook_id)}>{openDeliveries === w.webhook_id ? "Hide deliveries" : "View deliveries"}</button>
-                    <button type="button" className="btn text-xs" onClick={() => void handleDeleteWebhook(w.webhook_id)}>Delete</button>
+                    <DangerButton
+                      label="Delete"
+                      confirmLabel="Delete this webhook? Delivery history goes with it."
+                      busy={deletingWebhookId === w.webhook_id}
+                      onConfirm={() => void handleDeleteWebhook(w.webhook_id)}
+                    />
                   </div>
                 </div>
                 {openDeliveries === w.webhook_id && (
@@ -537,20 +582,12 @@ export function SettingsPage({ onAuthChange }: Props) {
                         <td>{new Date(s.created_at).toLocaleDateString()}</td>
                         <td>
                           {!s.revoked_at && (
-                            <button
-                              type="button"
-                              className="btn text-xs"
-                              onClick={async () => {
-                                try {
-                                  await revokeSeat(s.seat_id);
-                                  setSeats(await listSeats());
-                                } catch (err) {
-                                  setError({ message: err instanceof Error ? err.message : "Failed to revoke seat", details: apiErrorDetails(err) });
-                                }
-                              }}
-                            >
-                              Revoke
-                            </button>
+                            <DangerButton
+                              label="Revoke"
+                              confirmLabel={`Revoke ${s.email}'s seat? They lose access immediately.`}
+                              busy={revokingSeatId === s.seat_id}
+                              onConfirm={() => void handleRevokeSeat(s.seat_id)}
+                            />
                           )}
                         </td>
                       </tr>

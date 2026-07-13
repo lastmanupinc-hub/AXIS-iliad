@@ -1,7 +1,10 @@
+import { useEffect, useRef } from "react";
 import { AuthButtons } from "./AuthButtons.tsx";
 import { formatUsdCents } from "./primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, PROGRAM_COUNT } from "../config.ts";
+
+const FOCUSABLE_SELECTOR = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 interface UpsellPricing {
   standardCents: number;
@@ -25,11 +28,59 @@ interface Props {
 export function UpsellModal({ blocked, allowed, onGoFree, onClose, pricing, mode = "standard" }: Props) {
   const isAnonymous = !localStorage.getItem("axis_api_key");
   const isQuotaExceeded = blocked.length === 0;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const titleId = "upsell-modal-title";
+
+  // Dialog semantics: nothing here traps focus, closes on Escape, or
+  // restores focus to the trigger on close — a keyboard user could Tab
+  // straight out into the page behind the (still-visible) overlay. Focus
+  // moves to the dialog container itself (not a specific button) so the
+  // first real Tab press lands on a real control, not an accidental Enter
+  // on whatever happened to be focused first.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    contentRef.current?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusable = contentRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
-        <h2 style={{ marginBottom: 4, textAlign: "center" }}>
+      <div
+        ref={contentRef}
+        className="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 520, outline: "none" }}
+      >
+        <h2 id={titleId} style={{ marginBottom: 4, textAlign: "center" }}>
           {isQuotaExceeded ? "📊 Usage Limit Reached" : "🔒 Pro Programs Required"}
         </h2>
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", textAlign: "center", marginBottom: 16 }}>
