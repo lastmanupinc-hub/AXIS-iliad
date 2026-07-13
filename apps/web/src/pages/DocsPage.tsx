@@ -258,7 +258,7 @@ export function DocsPage({ onNavigate }: Props) {
   return (
     <div>
       <div className="card" style={{ textAlign: "center", marginBottom: 24 }}>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Documentation</h2>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: 8 }}>Documentation</h1>
         <p style={{ color: "var(--text-muted)", maxWidth: 520, margin: "0 auto" }}>
           Everything you need to know about Axis' Iliad — programs, API, outputs, and CLI.
         </p>

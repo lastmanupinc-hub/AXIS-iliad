@@ -74,7 +74,7 @@ export function AdminPage() {
       <div className="card">
         <div className="flex-between">
           <div>
-            <h2>Admin Analytics</h2>
+            <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: 8 }}>Admin Analytics</h1>
             <p>
               System health, usage trends, account tiers, and recent events.
             </p>

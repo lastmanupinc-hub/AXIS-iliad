@@ -344,7 +344,7 @@ export function SettingsPage({ onAuthChange }: Props) {
   if (loading) {
     return (
       <div>
-        <SectionHeader title="Settings" />
+        <SectionHeader title="Settings" level="h1" />
         <div role="status" aria-busy="true">
           <Skeleton lines={8} height={60} />
         </div>
@@ -355,7 +355,7 @@ export function SettingsPage({ onAuthChange }: Props) {
   if (!account) {
     return (
       <div>
-        <SectionHeader title="Settings" />
+        <SectionHeader title="Settings" level="h1" />
         <Callout tone="danger" title="Couldn't load your settings" details={error?.details ?? null}>{error?.message ?? "Unknown error"}</Callout>
       </div>
     );
@@ -366,7 +366,7 @@ export function SettingsPage({ onAuthChange }: Props) {
 
   return (
     <div>
-      <SectionHeader title="Settings" sub="Profile, API keys, integrations, and account management." />
+      <SectionHeader title="Settings" sub="Profile, API keys, integrations, and account management." level="h1" />
 
       {error && (
         <div className="mb-4">

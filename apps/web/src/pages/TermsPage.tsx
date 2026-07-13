@@ -34,7 +34,7 @@ export function TermsPage() {
 
       {/* Header */}
       <div className="card" style={{ textAlign: "center", marginBottom: 24 }}>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Terms of Service</h2>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: 8 }}>Terms of Service</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
           Last Man Up Inc. · Effective {EFFECTIVE_DATE}
         </p>

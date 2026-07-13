@@ -109,7 +109,7 @@ export function ToolPage({
       {/* Header card */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
-          <h2 style={{ margin: 0, fontSize: "1.6rem" }}>{name}</h2>
+          <h1 style={{ margin: 0, fontSize: "1.6rem", fontWeight: 600 }}>{name}</h1>
           <PricingBadge pricing={pricing} />
         </div>
         <p style={{ color: "var(--text-muted)", margin: "0 0 8px 0", fontSize: "0.95rem", lineHeight: 1.5 }}>

@@ -100,7 +100,7 @@ export function PaidCheckoutPage() {
   if (step === "unavailable") {
     return (
       <div className="card" style={{ maxWidth: 520, margin: "40px auto", textAlign: "center" }}>
-        <h2 style={{ marginBottom: 8 }}>Subscription checkout isn't available</h2>
+        <h1 style={{ marginBottom: 8, fontSize: "1.25rem", fontWeight: 600 }}>Subscription checkout isn't available</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: 16 }}>
           This server doesn't have PAI'D billing configured, so checkout can't run right now.
           Please try again shortly.
@@ -116,7 +116,7 @@ export function PaidCheckoutPage() {
   const submitting = step === "redirecting";
   return (
     <div className="card" style={{ maxWidth: 520, margin: "40px auto" }}>
-      <h2 style={{ marginBottom: 4 }}>Subscribe to {planLabel}</h2>
+      <h1 style={{ marginBottom: 4, fontSize: "1.25rem", fontWeight: 600 }}>Subscribe to {planLabel}</h1>
       <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: 16 }}>
         Billed securely through PAI'D. We'll take you to PAI'D's hosted checkout to enter payment.
         Your account is matched by email.

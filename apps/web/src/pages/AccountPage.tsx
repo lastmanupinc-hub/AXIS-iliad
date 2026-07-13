@@ -80,7 +80,7 @@ export function AccountPage({ onAuthChange, onNavigate }: { onAuthChange?: () =>
   return (
     <div style={{ maxWidth: 420, margin: "0 auto" }}>
       <div className="card">
-        <h2 style={{ marginBottom: 4 }}>Sign in to Iliad</h2>
+        <h1 style={{ marginBottom: 4, fontSize: "1.25rem", fontWeight: 600 }}>Sign in to Iliad</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: 16 }}>
           {signingIn ? "Signing you in…" : "Continue with GitHub or Google to view your account and results."}
         </p>

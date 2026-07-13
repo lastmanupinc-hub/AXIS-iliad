@@ -48,7 +48,7 @@ export function NotFoundPage({ badHash, destinations, onNavigate }: Props) {
       >
         404
       </div>
-      <h2 style={{ margin: "16px 0 8px" }}>This page doesn&apos;t exist</h2>
+      <h1 style={{ margin: "16px 0 8px", fontSize: "1.25rem", fontWeight: 600 }}>This page doesn&apos;t exist</h1>
       <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
         Nothing is mounted at{" "}
         <code

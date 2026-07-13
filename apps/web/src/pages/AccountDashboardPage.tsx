@@ -103,7 +103,7 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
   if (loading && !data) {
     return (
       <div>
-        <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." />
+        <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." level="h1" />
         <div className="grid grid-4 mb-4" role="status" aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
             <div className="card" key={i}><Skeleton lines={3} /></div>
@@ -117,7 +117,7 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
   if (error && !data) {
     return (
       <div>
-        <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." />
+        <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." level="h1" />
         <Callout tone="danger" title={error.message} details={error.details}>
           <button type="button" className="btn" onClick={() => void load()}>Retry</button>
         </Callout>
@@ -134,7 +134,7 @@ export function AccountDashboardPage({ onOpenProject, onNavigate }: Props) {
 
   return (
     <div>
-      <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." />
+      <SectionHeader title="Dashboard" sub="Your projects, usage, and quick actions." level="h1" />
 
       {upgradePrompt && !promptDismissed && (
         <div className="mb-4">

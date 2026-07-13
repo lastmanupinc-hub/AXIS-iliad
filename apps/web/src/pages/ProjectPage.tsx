@@ -190,7 +190,7 @@ export function ProjectPage({ result, loggedIn, initialTab, onGeneratedCountChan
       <div className="card" style={{ marginBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}>
         <div className="flex-between" style={{ marginBottom: 8 }}>
           <div>
-            <h2 style={{ fontSize: "1.25rem" }}>{ctx.project_identity.name}</h2>
+            <h1 style={{ fontSize: "1.25rem", fontWeight: 600 }}>{ctx.project_identity.name}</h1>
             <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
               {ctx.project_identity.type.replace(/_/g, " ")} · {ctx.project_identity.primary_language}
             </p>

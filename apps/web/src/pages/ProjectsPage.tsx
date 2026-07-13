@@ -145,6 +145,7 @@ export function ProjectsPage({ onOpenProject, onReanalyze, onAnalyze }: Props) {
         title="Projects"
         sub="Every repo you've analyzed, newest first."
         actions={<button type="button" className="btn btn-primary" onClick={onAnalyze}>Analyze a repo</button>}
+        level="h1"
       />
 
       {error && (

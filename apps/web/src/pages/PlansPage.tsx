@@ -118,7 +118,7 @@ export function PlansPage({ loggedIn, onSelectPlan, onRequireLogin }: Props) {
         </div>
       )}
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <h2 style={{ fontSize: "2rem", marginBottom: 8 }}>Choose Your Plan</h2>
+        <h1 style={{ fontSize: "2rem", fontWeight: 600, marginBottom: 8 }}>Choose Your Plan</h1>
         <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto 16px" }}>
           Blended credit model: Free, Starter, Pro, Growth, and Enterprise. Annual billing saves 20%.
         </p>

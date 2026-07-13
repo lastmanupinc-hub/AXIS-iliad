@@ -116,6 +116,7 @@ export function PlaygroundPage({ loggedIn, onRequireLogin }: Props) {
       <SectionHeader
         title="Playground"
         sub="Run a real analysis on a public repo — no account required. Free programs only; sign up to unlock the rest."
+        level="h1"
       />
 
       {quota && !quota.authenticated && (

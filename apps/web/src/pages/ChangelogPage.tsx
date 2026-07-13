@@ -73,7 +73,7 @@ export function ChangelogPage() {
 
   return (
     <div>
-      <SectionHeader title="Changelog" sub="What's shipped, straight from the repo's CHANGELOG.md." />
+      <SectionHeader title="Changelog" sub="What's shipped, straight from the repo's CHANGELOG.md." level="h1" />
 
       {loading && (
         <div className="card" role="status" aria-live="polite">

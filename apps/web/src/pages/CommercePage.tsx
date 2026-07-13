@@ -197,6 +197,7 @@ export function CommercePage({ loggedIn, currentProjectId, anonResult, onNavigat
       <SectionHeader
         title="Agentic Commerce"
         sub="Generate the artifacts an autonomous purchasing agent needs to evaluate, negotiate, and complete an AXIS purchase for your repo."
+        level="h1"
       />
 
       <Callout tone="info" title="What this generates">

@@ -416,7 +416,7 @@ export function AnalyzePage({ onComplete, loggedIn, initialUrl }: Props) {
   return (
     <div>
       <div className="card" style={{ marginBottom: 24, textAlign: "center", padding: "32px 24px" }}>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Analyze Your Project</h2>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: 8 }}>Analyze Your Project</h1>
         <p style={{ color: "var(--text-muted)", maxWidth: 500, margin: "0 auto", marginBottom: 16 }}>
           Upload a project folder or paste a GitHub URL to generate AI context maps, governance files,
           debug playbooks, and more across {PROGRAM_COUNT} programs.

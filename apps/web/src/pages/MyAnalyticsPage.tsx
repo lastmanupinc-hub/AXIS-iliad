@@ -104,7 +104,7 @@ export function MyAnalyticsPage() {
       <div className="card">
         <div className="flex-between">
           <div>
-            <h2>MyAnalytics</h2>
+            <h1 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: 8 }}>MyAnalytics</h1>
             <p>Track all programs used, all API calls, and strategy recommendations from call behavior.</p>
           </div>
           <div className="flex">

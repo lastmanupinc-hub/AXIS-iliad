@@ -291,6 +291,7 @@ export function RunnerPage({ initialProgram, loggedIn, currentProjectId, anonRes
       <SectionHeader
         title="Program Runner"
         sub={`Run any of the ${PROGRAM_COUNT} programs against one of your projects — free programs run for anyone; paid programs need a plan.`}
+        level="h1"
       />
 
       {/* ── 1. Program picker ──────────────────────────────────────── */}

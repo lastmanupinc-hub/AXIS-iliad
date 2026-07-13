@@ -98,6 +98,7 @@ export function StatusPage() {
       <SectionHeader
         title="Status"
         sub="Live system health — every number below is a real, timed probe result, never an estimate."
+        level="h1"
       />
 
       <div className="card mb-4" role="status" aria-live="polite">

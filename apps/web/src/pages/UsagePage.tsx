@@ -181,7 +181,7 @@ export function UsagePage() {
   if (error && !data) {
     return (
       <div>
-        <SectionHeader title="Usage & Billing" />
+        <SectionHeader title="Usage & Billing" level="h1" />
         <Callout tone="danger" title="Couldn't load your usage & billing" details={error.details}>{error.message}</Callout>
       </div>
     );
@@ -190,7 +190,7 @@ export function UsagePage() {
   if (!data) {
     return (
       <div>
-        <SectionHeader title="Usage & Billing" />
+        <SectionHeader title="Usage & Billing" level="h1" />
         <div role="status" aria-busy="true">
           <Skeleton lines={6} height={60} />
         </div>
@@ -205,7 +205,7 @@ export function UsagePage() {
 
   return (
     <div>
-      <SectionHeader title="Usage & Billing" sub="Your current plan, usage over time, and credit balance." />
+      <SectionHeader title="Usage & Billing" sub="Your current plan, usage over time, and credit balance." level="h1" />
 
       {error && (
         <div className="mb-4">

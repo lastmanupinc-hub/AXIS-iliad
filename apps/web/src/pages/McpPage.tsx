@@ -47,6 +47,7 @@ export function McpPage({ onNavigate }: Props) {
       <SectionHeader
         title="MCP Configuration"
         sub={`Connect Axis' Iliad to your AI tools over the Model Context Protocol — ${TOOL_COUNT} tools behind one endpoint, all live from the API.`}
+        level="h1"
       />
       <ManifestPanel />
       <ToolRegistry onOpenConsole={onNavigate} />

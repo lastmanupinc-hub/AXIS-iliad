@@ -66,7 +66,7 @@ export function HelpPage() {
   return (
     <div>
       <div className="card" style={{ textAlign: "center", marginBottom: 24 }}>
-        <h2 style={{ fontSize: "1.5rem", marginBottom: 8 }}>Help Center</h2>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: 8 }}>Help Center</h1>
         <p style={{ color: "var(--text-muted)", maxWidth: 520, margin: "0 auto" }}>
           Step-by-step guides, tips, and troubleshooting for Axis' Iliad.
         </p>
