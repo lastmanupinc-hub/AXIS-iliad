@@ -3270,10 +3270,148 @@ export async function handleProbeIntent(
 
   const recommendations: Array<{ tool: string; reason: string; auth: boolean; pricing: string }> = [];
 
+  // H4.5: specific-tool rules are checked BEFORE the broad/generic ones below, so a
+  // precise match becomes recommendations[0] (= call_next) instead of being drowned out
+  // by a wide catch-all. Every rule here closes a routing gap a 20-realistic-intent
+  // probe run actually demonstrated (see HARDEN_POLISH_LOOP.md H4.5 ledger row) — this
+  // is not a speculative full 36-tool build-out.
+
+  // Dispute-readiness is its own commerce sub-task, distinct from general purchasing
+  // readiness — checked ahead of the broad commerce rule below so "Stripe chargeback
+  // dispute" doesn't get buried under a same-priority prepare_agentic_purchasing match.
+  if (/dispute|chargeback|reason.?code|representment/.test(allTerms)) {
+    recommendations.push({
+      tool: "score_dispute_readiness",
+      reason: "Score evidence-capture readiness for a specific dispute reason code — free, deterministic, no auth",
+      auth: false,
+      pricing: "free",
+    });
+  }
+  if (/scrape|crawl|web.?page|fetch.*url|extract.*(page|content)/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_web_research",
+      reason: "AXIS-owned SSRF-guarded crawler — scrape a URL to markdown, or crawl a whole domain",
+      auth: true,
+      pricing: "$0.10/call standard, $0.05 lite",
+    });
+  }
+  if (/transcri|speech.to.text|audio.*text|stt\b/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_speech_to_text",
+      reason: "AXIS-owned transcription via whisper.cpp — audio in, timestamped text out",
+      auth: true,
+      pricing: "$0.03/call standard, $0.01 lite",
+    });
+  }
+  if (/voice.?over|text.to.speech|\btts\b|synthesiz.*(voice|speech|audio)/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_text_to_speech",
+      reason: "AXIS-owned voice synthesis via Piper — text in, audio out",
+      auth: true,
+      pricing: "$0.02/call standard, $0.01 lite",
+    });
+  }
+  if (/run.*(code|script|python|snippet)|execute.*code|code.?sandbox/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_code_sandbox",
+      reason: "Ephemeral hardened Docker container — run python/node/bash and get stdout/stderr/exit_code back",
+      auth: true,
+      pricing: "$0.05/call standard, $0.02 lite",
+    });
+  }
+  if (/parse.*(pdf|docx|document)|document.*(markdown|extract)/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_document_parsing",
+      reason: "AXIS-owned PDF/DOCX/HTML → Markdown extractor, in-process, no third-party API",
+      auth: true,
+      pricing: "$0.02/call standard, $0.01 lite",
+    });
+  }
+  if (/send.*email|transactional.?email|email.*(user|customer|notif)/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_transactional_email",
+      reason: "Send a single transactional email via the account's configured ESP",
+      auth: true,
+      pricing: "$0.02/call standard, $0.01 lite",
+    });
+  }
+  if (/signed.?url|object.?storage|store.*file|upload.*file/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_object_storage",
+      reason: "AXIS-owned signed-URL minter (Cloudflare R2) — pre-signed PUT/GET, account-scoped keys",
+      auth: true,
+      pricing: "$0.01/call standard, free lite",
+    });
+  }
+  if (/embedding|vector.*(search|database|store)/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_embeddings",
+      reason: "Convert text into dense vectors, in-process by default — pairs with iliad_vector_database",
+      auth: true,
+      pricing: "$0.05/call standard, $0.02 lite",
+    });
+  }
+  if (/search.*(my|indexed|own)|bm25|search.*corpus/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_web_search",
+      reason: "BM25 search over YOUR indexed content — not a Google/Bing scraper",
+      auth: true,
+      pricing: "$0.01/call standard (search only), free lite",
+    });
+  }
+  if (/analytics|track.*event/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_analytics",
+      reason: "AXIS-owned event capture + aggregation queries (count, distinct users, time-series)",
+      auth: true,
+      pricing: "$0.01/call standard, free lite",
+    });
+  }
+  if (/secret|hygiene|committed.*(key|credential)/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_hygiene",
+      reason: "Scan for committed secrets, .gitignore gaps, and stub markers — scan mode is free",
+      auth: false,
+      pricing: "free (scan mode); fix mode $0.05 standard",
+    });
+  }
+  if (/llm|chat.?completion|inference|language model/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_llm_inference",
+      reason: "AXIS-hosted LLM chat completion, fully in-process — no upstream provider",
+      auth: true,
+      pricing: "$0.02/call standard, $0.01 lite",
+    });
+  }
+  if (/referral.*(code|credit)|earned.*credit/.test(allTerms)) {
+    recommendations.push({
+      tool: "get_referral_code",
+      reason: "Get your shareable referral token and current earned-credit balance",
+      auth: true,
+      pricing: "free",
+    });
+  }
+  if (/network.?token|vts|mdes|token.?requestor/.test(allTerms)) {
+    recommendations.push({
+      tool: "iliad_network_tokenization",
+      reason: "Look up or advance a network-token lifecycle event (Visa VTS / Mastercard MDES)",
+      auth: true,
+      pricing: "free (unmetered)",
+    });
+  }
+  if (/marketplace|package.*(project|product)|ship.*sell|closer\b/.test(allTerms)) {
+    recommendations.push({
+      tool: "closer",
+      reason: "Package an existing AXIS snapshot into marketplace-ready certification artifacts",
+      auth: true,
+      pricing: "included in Pro plan",
+    });
+  }
+
   if (/purchas|commerce|checkout|payment|stripe|visa|ap2|ucp|compliance|negotiat/.test(allTerms)) {
     recommendations.push({
       tool: "prepare_agentic_purchasing",
-      reason: "Full purchasing readiness audit ï¿½ Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
+      reason: "Full purchasing readiness audit — Score 0-100, AP2/UCP/Visa compliance, negotiation playbook, checkout rules",
       auth: true,
       pricing: "$0.50/call via MPP or included in Pro plan",
     });
@@ -3281,7 +3419,7 @@ export async function handleProbeIntent(
   if (/analyz|codebase|repo|context|agents\.md|cursorrules/.test(allTerms)) {
     recommendations.push({
       tool: "analyze_repo",
-      reason: `Full codebase analysis â€” generates ${ARTIFACT_COUNT} artifacts including AGENTS.md, .cursorrules, CLAUDE.md`,
+      reason: `Full codebase analysis — generates ${ARTIFACT_COUNT} artifacts including AGENTS.md, .cursorrules, CLAUDE.md`,
       auth: true,
       pricing: "$0.50/call via MPP or included in Pro plan",
     });
@@ -3289,7 +3427,7 @@ export async function handleProbeIntent(
   if (/discover|search|find|what tool|explore|browse/.test(allTerms)) {
     recommendations.push({
       tool: "search_and_discover_tools",
-      reason: `Keyword search across all ${PROGRAM_COUNT} programs â€” find the right tool for your task`,
+      reason: `Keyword search across all ${PROGRAM_COUNT} programs — find the right tool for your task`,
       auth: false,
       pricing: "free",
     });
@@ -3303,17 +3441,19 @@ export async function handleProbeIntent(
     });
   }
 
-  // Always include discovery as fallback
+  // Honest, non-presumptive fallback: a truly unmatched intent gets the universally-safe
+  // catalog search first, with the commerce-specific triage tool as a secondary pointer —
+  // not the other way around, since most unmatched intents have nothing to do with commerce.
   if (recommendations.length === 0) {
     recommendations.push({
-      tool: "discover_agentic_purchasing_needs",
-      reason: "Describe your commerce/compliance task and get tailored AXIS tool recommendations",
+      tool: "search_and_discover_tools",
+      reason: `Keyword search across all ${PROGRAM_COUNT} programs`,
       auth: false,
       pricing: "free",
     });
     recommendations.push({
-      tool: "search_and_discover_tools",
-      reason: `Keyword search across all ${PROGRAM_COUNT} programs`,
+      tool: "discover_agentic_purchasing_needs",
+      reason: "Describe your commerce/compliance task and get tailored AXIS tool recommendations",
       auth: false,
       pricing: "free",
     });

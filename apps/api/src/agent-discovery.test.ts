@@ -597,6 +597,54 @@ describe("POST /probe-intent", () => {
     expect(data.recommendations.length).toBeGreaterThan(0);
     expect(data.call_next).toBeDefined();
   });
+
+  it("the honest fallback leads with search_and_discover_tools, not a commerce-specific tool", async () => {
+    const r = await postReq("/probe-intent", { description: "xyz zzz qqq completely unrelated gibberish" });
+    const data = JSON.parse(r.body);
+    expect(data.call_next).toBe("search_and_discover_tools");
+  });
+});
+
+// â”€â”€â”€ POST /probe-intent â€” H4.5: 20-realistic-intent routing quality pass â”€
+//
+// Ground truth: probing all 20 of these against the pre-fix classifier showed 12/20
+// (60%) falling through to the generic commerce fallback (discover_agentic_purchasing_needs)
+// for intents with nothing to do with commerce (transcribe audio, run code, check referral
+// credits, etc.), plus 2 false positives (embeddings/web-search intents routed to the
+// program-catalog search instead of the actual iliad_* tool) and 1 same-priority miscall
+// (a Stripe-dispute intent routed to the general purchasing-readiness tool instead of
+// score_dispute_readiness). Each case below pins the fix for one of those real misses.
+
+describe("POST /probe-intent â€” 20 realistic intents (H4.5)", () => {
+  const cases: Array<[string, string]> = [
+    ["I want to understand this codebase before making changes", "analyze_repo"],
+    ["Help me prepare my SaaS for autonomous purchasing agents", "prepare_agentic_purchasing"],
+    ["What tools does AXIS offer?", "search_and_discover_tools"],
+    ["Can you review my agent's setup for missing context files", "analyze_repo"],
+    ["I need to scrape a webpage and extract its content", "iliad_web_research"],
+    ["Transcribe this audio file to text", "iliad_speech_to_text"],
+    ["Generate a voice-over from this script", "iliad_text_to_speech"],
+    ["Run this Python snippet safely and get the output", "iliad_code_sandbox"],
+    ["Parse this PDF into markdown", "iliad_document_parsing"],
+    ["Send a transactional email to a new user", "iliad_transactional_email"],
+    ["Store this file and give me a signed URL", "iliad_object_storage"],
+    ["I need embeddings for semantic search over my docs", "iliad_embeddings"],
+    ["Search my indexed content for a keyword", "iliad_web_search"],
+    ["Track analytics events for my app", "iliad_analytics"],
+    ["Check my workspace for committed secrets", "iliad_hygiene"],
+    ["Get a dispute-readiness score for my Stripe chargebacks", "score_dispute_readiness"],
+    ["Get an AI chat completion without calling an external LLM API", "iliad_llm_inference"],
+    ["What's my referral code and how many credits have I earned?", "get_referral_code"],
+    ["Look up the lifecycle of a network token event", "iliad_network_tokenization"],
+    ["Package my finished project for the marketplace", "closer"],
+  ];
+
+  it.each(cases)("%s -> call_next=%s", async (intent, expectedTool) => {
+    const r = await postReq("/probe-intent", { intent });
+    expect(r.status).toBe(200);
+    const data = JSON.parse(r.body);
+    expect(data.call_next, `"${intent}" routed to ${data.call_next}, expected ${expectedTool}`).toBe(expectedTool);
+  });
 });
 
 // â”€â”€â”€ GET /for-agents?intent= â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
