@@ -77,6 +77,20 @@ export function categorizeError(msg: string): { code: ErrorCategory; retryable: 
   return { code: "internal", retryable: false };
 }
 
+// Doc-facing catalog of the 6 categories above (H4.2) — categorizeError itself can't be
+// introspected for a static list (it's a chain of regex tests), so this is a hand-kept
+// summary of its branches. Kept directly below the function it documents so a change to
+// one is hard to miss when reading the other; mcp-runtime.test.ts checks the `code` set
+// matches the ErrorCategory union exactly (TS also enforces each entry is a real category).
+export const MCP_ERROR_CATEGORY_CATALOG: readonly { code: ErrorCategory; retryable: boolean; description: string }[] = [
+  { code: "auth", retryable: false, description: "API key missing, invalid, or revoked." },
+  { code: "tier_limit", retryable: false, description: "Payment or plan tier required — the tool call needs an upgrade or MPP credit, not a retry." },
+  { code: "quota", retryable: true, description: "Quota exceeded, or another in-flight request already holds this Idempotency-Key — retry after the window/request clears." },
+  { code: "validation", retryable: false, description: "Bad tool arguments (missing/invalid field, path, or URL)." },
+  { code: "external", retryable: true, description: "An upstream dependency (e.g. GitHub) failed or was unreachable." },
+  { code: "internal", retryable: false, description: "Uncategorized error, including genuine server bugs." },
+];
+
 async function buildMcpPaymentRequiredError(
   tool: MeteredMcpTool,
   accountId: string,

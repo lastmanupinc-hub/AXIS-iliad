@@ -969,7 +969,10 @@ export function isPersistenceCreditsError(err: unknown): err is ApiError {
   return (
     err instanceof ApiError &&
     err.status === 402 &&
-    (err.message === "persistence_credits_required" || err.errorCode === "persistence_credits_required")
+    // Real wire value for errorCode is uppercase (ErrorCode.PERSISTENCE_CREDITS_REQUIRED);
+    // the lowercase form only ever appeared in the `message` field. Both are checked since
+    // callers have relied on either historically.
+    (err.message === "persistence_credits_required" || err.errorCode === "PERSISTENCE_CREDITS_REQUIRED")
   );
 }
 
@@ -1060,6 +1063,33 @@ export async function searchMcpTools(q?: string, program?: string): Promise<McpT
   if (program) params.set("program", program);
   const qs = params.toString();
   return fetchJSON(`/v1/mcp/tools${qs ? `?${qs}` : ""}`);
+}
+
+// ─── Error-code catalog (H4.2) ───────────────────────────────────
+
+export interface RestErrorCodeEntry {
+  code: string;
+  statuses: number[];
+  retryable: "yes" | "no" | "depends";
+  retry_guidance: string;
+  description: string;
+}
+
+export interface McpErrorCategoryEntry {
+  code: string;
+  retryable: boolean;
+  description: string;
+}
+
+export interface ErrorCodeCatalogResponse {
+  rest_error_codes: RestErrorCodeEntry[];
+  mcp_tool_error_categories: { note: string; categories: McpErrorCategoryEntry[] };
+  envelope: { rest: string; mcp: string };
+}
+
+/** GET /v1/error-codes — the generated error-code catalog with retry guidance. */
+export async function getErrorCodes(): Promise<ErrorCodeCatalogResponse> {
+  return fetchJSON("/v1/error-codes");
 }
 
 // ─── Full MCP tool catalog (WO-P8) ───────────────────────────────

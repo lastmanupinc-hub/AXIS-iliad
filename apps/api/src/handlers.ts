@@ -53,7 +53,8 @@ import type { GeneratorResult } from "@axis/generator-core";
 import { sendJSON, readBody, sendError, isShuttingDown } from "./router.js";
 import { resolveAuth, requireAuth } from "./billing.js";
 import { requireAdmin } from "./admin.js";
-import { ErrorCode, log, getRequestId } from "./logger.js";
+import { ErrorCode, ERROR_CODE_CATALOG, log, getRequestId } from "./logger.js";
+import { MCP_ERROR_CATEGORY_CATALOG } from "./mcp-runtime.js";
 import { ARTIFACT_COUNT, PROGRAM_COUNT, MCP_TOOL_COUNT, ENDPOINT_COUNT, API_VERSION } from "./counts.js";
 import { buildCodeReadinessBlock } from "./purchasing-readiness-analysis.js";
 
@@ -2266,7 +2267,27 @@ export async function handleWellKnown(
   });
 }
 
-// â”€â”€â”€ GET /llms.txt  -  llmstxt.org standard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GET /v1/error-codes  -  H4.2 generated error-code catalog ──────
+
+export async function handleErrorCodes(
+  _req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const { sendJSON } = await import("./router.js");
+  sendJSON(res, 200, {
+    rest_error_codes: ERROR_CODE_CATALOG,
+    mcp_tool_error_categories: {
+      note: "MCP tools/call errors attach a coarser _error:{code,retryable} next to the tool result, classified from the thrown error's message — not the rest_error_codes above.",
+      categories: MCP_ERROR_CATEGORY_CATALOG,
+    },
+    envelope: {
+      rest: "{ error: string, error_code: string, request_id: string, ...extra }",
+      mcp: "{ content: [...], isError: true, _error: { code, retryable } }",
+    },
+  });
+}
+
+// ─── GET /llms.txt  -  llmstxt.org standard ──────────────────────────
 
 // --- GET /.well-known/capabilities.json -------------------------
 
@@ -2409,6 +2430,16 @@ When integrating with Axis' Iliad as an LLM agent:
 - Use GET /.well-known/axis.json for machine-readable capability discovery, not the OpenAPI spec.
 - Use POST /probe-intent with {intent: "your need"} for lightweight intent matching (free, no auth).
 - Always check the adoption_hint field on returned artifacts to know where to place each file.
+
+## Error Codes
+
+Every REST error response carries error_code alongside error (human message) and request_id. Structured JSON (same data as below, machine-readable): GET /v1/error-codes
+
+${ERROR_CODE_CATALOG.map(e => `- ${e.code} (${e.statuses.length ? e.statuses.join("/") : "reserved, unused"}, retryable: ${e.retryable}): ${e.description} ${e.retry_guidance}`).join("\n")}
+
+MCP tools/call errors instead attach a coarser _error:{code,retryable} next to the tool result, classified from the thrown error's message (not the codes above):
+
+${MCP_ERROR_CATEGORY_CATALOG.map(c => `- ${c.code} (retryable: ${c.retryable}): ${c.description}`).join("\n")}
 
 ## Docs
 

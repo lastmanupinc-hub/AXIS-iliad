@@ -83,6 +83,21 @@ const MCP_MANIFEST = {
   },
 };
 
+const ERROR_CODE_CATALOG_FIXTURE = {
+  rest_error_codes: [
+    { code: "AUTH_REQUIRED", statuses: [401], retryable: "no", retry_guidance: "Add an Authorization header.", description: "No Authorization header was present." },
+    { code: "QUOTA_EXCEEDED", statuses: [429], retryable: "yes", retry_guidance: "Wait for the quota to reset.", description: "The account's monthly quota was reached." },
+  ],
+  mcp_tool_error_categories: {
+    note: "MCP tools/call errors attach a coarser _error code.",
+    categories: [
+      { code: "auth", retryable: false, description: "API key missing or invalid." },
+      { code: "quota", retryable: true, description: "Quota exceeded." },
+    ],
+  },
+  envelope: { rest: "{ error, error_code, request_id }", mcp: "{ content, isError, _error }" },
+};
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -222,6 +237,36 @@ describe("DocsPage — MCP Protocol tab", () => {
     const link = await screen.findByRole("button", { name: /Open the full MCP tool registry/ });
     fireEvent.click(link);
     expect(onNavigate).toHaveBeenCalledWith("mcp");
+  });
+});
+
+describe("DocsPage — Error Codes tab (H4.2)", () => {
+  it("renders the live REST error-code table with retry guidance", async () => {
+    stubFetch([["/v1/error-codes", ERROR_CODE_CATALOG_FIXTURE]]);
+    render(<DocsPage onNavigate={noop} />);
+    fireEvent.click(screen.getByRole("button", { name: /Error Codes/ }));
+
+    expect(await screen.findByText("AUTH_REQUIRED")).toBeTruthy();
+    expect(screen.getByText("QUOTA_EXCEEDED")).toBeTruthy();
+    expect(screen.getByText("401")).toBeTruthy();
+  });
+
+  it("renders the MCP tool-call error categories separately from the REST codes", async () => {
+    stubFetch([["/v1/error-codes", ERROR_CODE_CATALOG_FIXTURE]]);
+    render(<DocsPage onNavigate={noop} />);
+    fireEvent.click(screen.getByRole("button", { name: /Error Codes/ }));
+
+    await screen.findByText("AUTH_REQUIRED");
+    expect(screen.getByText(/MCP tools\/call errors attach a coarser/)).toBeTruthy();
+    expect(screen.getByText("auth")).toBeTruthy();
+  });
+
+  it("shows a retry Callout on fetch failure, not a silent blank tab", async () => {
+    stubFetch([["/v1/error-codes", { error: "boom" }, 500]]);
+    render(<DocsPage onNavigate={noop} />);
+    fireEvent.click(screen.getByRole("button", { name: /Error Codes/ }));
+
+    expect(await screen.findByText(/Couldn't load the live error-code catalog/)).toBeTruthy();
   });
 });
 

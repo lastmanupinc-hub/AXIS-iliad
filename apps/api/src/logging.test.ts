@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import { resetTestDb } from "@axis/snapshots";
 import { Router, sendJSON, sendError } from "./router.js";
 import { startTestServer } from "./test-helpers.js";
-import { ErrorCode, initRequest, getRequestId, getRequestStart } from "./logger.js";
+import { ErrorCode, ERROR_CODE_CATALOG, initRequest, getRequestId, getRequestStart } from "./logger.js";
 import { handleCreateSnapshot, handleHealthCheck } from "./handlers.js";
 import type { ServerResponse } from "node:http";
 
@@ -54,6 +54,7 @@ describe("logger", () => {
     expect(ErrorCode.CONFLICT).toBe("CONFLICT");
     // 413
     expect(ErrorCode.PAYLOAD_TOO_LARGE).toBe("PAYLOAD_TOO_LARGE");
+    expect(ErrorCode.BODY_TOO_LARGE).toBe("BODY_TOO_LARGE");
     expect(ErrorCode.FILE_TOO_LARGE).toBe("FILE_TOO_LARGE");
     expect(ErrorCode.FILE_COUNT_EXCEEDED).toBe("FILE_COUNT_EXCEEDED");
     // 422
@@ -72,6 +73,19 @@ describe("logger", () => {
   it("ErrorCode values are unique", async () => {
     const values = Object.values(ErrorCode);
     expect(new Set(values).size).toBe(values.length);
+  });
+
+  it("H4.2: ERROR_CODE_CATALOG documents every ErrorCode value exactly once, no more, no less", async () => {
+    const allCodes = Object.values(ErrorCode).sort();
+    const catalogCodes = ERROR_CODE_CATALOG.map((e) => e.code).sort();
+    expect(catalogCodes).toEqual(allCodes);
+  });
+
+  it("H4.2: every ERROR_CODE_CATALOG entry has non-empty retry_guidance and description", async () => {
+    for (const entry of ERROR_CODE_CATALOG) {
+      expect(entry.retry_guidance.length, `${entry.code} has empty retry_guidance`).toBeGreaterThan(0);
+      expect(entry.description.length, `${entry.code} has empty description`).toBeGreaterThan(0);
+    }
   });
 });
 

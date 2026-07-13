@@ -35,6 +35,7 @@ import {
   handleWellKnown,
   handleCapabilities,
   handleLlmsTxt,
+  handleErrorCodes,
   handleRobotsTxt,
   handleSkillsIndex,
   handleDocsMd,
@@ -266,6 +267,9 @@ router.get("/.well-known/skills/index.json", handleSkillsIndex);
 
 // Plain-text API docs (Stripe-style .md suffix)
 router.get("/v1/docs.md", handleDocsMd);
+
+// H4.2: generated error-code catalog (rest_error_codes + mcp_tool_error_categories)
+router.get("/v1/error-codes", handleErrorCodes);
 
 // Repo changelog, verbatim (WO-A4)
 router.get("/v1/changelog", handleChangelog);

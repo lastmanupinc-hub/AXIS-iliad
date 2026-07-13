@@ -81,16 +81,16 @@ export class Router {
         if (!res.writableEnded) {
           const msg = err instanceof Error ? err.message : "";
           if (msg === "Request body too large") {
-            sendError(res, 413, "BODY_TOO_LARGE", "Request body exceeds the maximum allowed size (50 MB)");
+            sendError(res, 413, ErrorCode.BODY_TOO_LARGE, "Request body exceeds the maximum allowed size (50 MB)");
           } else {
-            sendError(res, 500, "INTERNAL_ERROR", "Internal server error");
+            sendError(res, 500, ErrorCode.INTERNAL_ERROR, "Internal server error");
           }
         }
       }
       return;
     }
 
-    sendError(res, 404, "NOT_FOUND", "Not found");
+    sendError(res, 404, ErrorCode.NOT_FOUND, "Not found");
   }
 }
 

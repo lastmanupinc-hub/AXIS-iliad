@@ -19,7 +19,9 @@ import {
   handleForAgents,
   handleInstall,
   handleProbeIntent,
+  handleErrorCodes,
 } from "./handlers.js";
+import { ErrorCode } from "./logger.js";
 
 // â”€â”€â”€ HTTP helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -96,6 +98,7 @@ beforeAll(async () => {
   router.get("/v1/install", handleInstall);
   router.get("/v1/install/:platform", handleInstall);
   router.post("/probe-intent", handleProbeIntent);
+  router.get("/v1/error-codes", handleErrorCodes);
   server = createServer((r, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     router.handle(r, res);
@@ -180,6 +183,17 @@ describe("GET /llms.txt", () => {
     expect(body).not.toContain("forwarded to other agents");
     expect(body).not.toContain("micro-discounts");
     expect(body).not.toContain("Share-to-Earn");
+  });
+
+  it("H4.2: contains a generated Error Codes section covering every ErrorCode value", async () => {
+    expect(body).toContain("## Error Codes");
+    expect(body).toContain("GET /v1/error-codes");
+    for (const code of Object.values(ErrorCode)) {
+      expect(body, `llms.txt is missing ${code}`).toContain(code);
+    }
+    // MCP error categories should also be present, not just the REST codes.
+    expect(body).toContain("tier_limit");
+    expect(body).toContain("_error:{code,retryable}");
   });
 });
 
@@ -597,5 +611,45 @@ describe("GET /for-agents?intent=", () => {
     const data = JSON.parse(r.body);
     expect(Array.isArray(data.tools)).toBe(true);
     expect(data.tools.length).toBe(14);
+  });
+});
+
+// ─── GET /v1/error-codes (H4.2) ──────────────────────────────────
+
+describe("GET /v1/error-codes", () => {
+  let data: Record<string, unknown>;
+
+  beforeAll(async () => {
+    const r = await req("/v1/error-codes");
+    expect(r.status).toBe(200);
+    data = JSON.parse(r.body);
+  });
+
+  it("returns rest_error_codes covering every ErrorCode value", () => {
+    const codes = (data.rest_error_codes as Array<{ code: string }>).map((e) => e.code).sort();
+    expect(codes).toEqual(Object.values(ErrorCode).sort());
+  });
+
+  it("every rest_error_codes entry has statuses, retryable, retry_guidance, description", () => {
+    for (const entry of data.rest_error_codes as Array<Record<string, unknown>>) {
+      expect(Array.isArray(entry.statuses)).toBe(true);
+      expect(["yes", "no", "depends"]).toContain(entry.retryable);
+      expect(typeof entry.retry_guidance).toBe("string");
+      expect(typeof entry.description).toBe("string");
+    }
+  });
+
+  it("returns mcp_tool_error_categories with the 6 MCP categories", () => {
+    const mcp = data.mcp_tool_error_categories as { note: string; categories: Array<{ code: string }> };
+    expect(typeof mcp.note).toBe("string");
+    expect(mcp.categories.map((c) => c.code).sort()).toEqual(
+      ["auth", "external", "internal", "quota", "tier_limit", "validation"].sort(),
+    );
+  });
+
+  it("returns the response envelope shapes for both REST and MCP", () => {
+    const envelope = data.envelope as { rest: string; mcp: string };
+    expect(envelope.rest).toContain("error_code");
+    expect(envelope.mcp).toContain("_error");
   });
 });

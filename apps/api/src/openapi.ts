@@ -499,6 +499,16 @@ export function buildOpenApiSpec(): OpenApiSpec {
           },
         },
       },
+      "/v1/error-codes": {
+        get: {
+          summary: "Generated error-code catalog with retry guidance",
+          operationId: "getErrorCodes",
+          tags: ["Discovery"],
+          responses: {
+            200: { description: "Every REST ErrorCode.* value plus the MCP tool-call error categories, each with HTTP status(es), retryable guidance, and a description", content: { "application/json": { schema: { type: "object" } } } },
+          },
+        },
+      },
       "/v1/changelog": {
         get: {
           summary: "Repo CHANGELOG.md, verbatim",

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "../components/AxisIcons";
 import type { PageId } from "../routes.tsx";
-import { getOpenApiSpec, getMcpManifest, apiErrorDetails, type OpenApiSpec, type McpManifest } from "../api.ts";
+import { getOpenApiSpec, getMcpManifest, getErrorCodes, apiErrorDetails, type OpenApiSpec, type McpManifest, type ErrorCodeCatalogResponse } from "../api.ts";
 import { Callout, CodeBlock, Skeleton, TableWrap } from "../components/primitives/index.ts";
 // Single-source counts (WO-F5) — never inline these numbers.
 import { ARTIFACT_COUNT, FREE_PROGRAM_COUNT, PROGRAM_COUNT, PRO_PROGRAM_COUNT, DOCS_API_BASE } from "../config.ts";
 
-type DocSection = "overview" | "programs" | "api" | "outputs" | "cli" | "mcp" | "examples";
+type DocSection = "overview" | "programs" | "api" | "outputs" | "cli" | "mcp" | "errors" | "examples";
 
 interface ProgramDoc {
   name: string;
@@ -246,6 +246,7 @@ export function DocsPage({ onNavigate }: Props) {
     { id: "programs", label: "Programs", icon: "programs" },
     { id: "api", label: "API Reference", icon: "api-link" },
     { id: "mcp", label: "MCP Protocol", icon: "mcp" },
+    { id: "errors", label: "Error Codes", icon: "warning" },
     { id: "outputs", label: "Output Formats", icon: "file-doc" },
     { id: "examples", label: "Example Artifacts", icon: "folder" },
     { id: "cli", label: "CLI Usage", icon: "terminal" },
@@ -278,6 +279,7 @@ export function DocsPage({ onNavigate }: Props) {
       )}
       {section === "api" && <ApiSection />}
       {section === "mcp" && <McpProtocolSection onNavigate={onNavigate} />}
+      {section === "errors" && <ErrorCodesSection />}
       {section === "outputs" && <OutputsSection />}
       {section === "examples" && <ExampleArtifactsSection onNavigate={onNavigate} />}
       {section === "cli" && <CliSection />}
@@ -1072,6 +1074,92 @@ function McpProtocolSection({ onNavigate }: { onNavigate: (page: PageId) => void
         <button type="button" className="btn btn-primary" onClick={() => onNavigate("mcp")}>
           Open the full MCP tool registry →
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Error Codes (H4.2) ───────────────────────────────────────────
+
+function RetryBadge({ retryable }: { retryable: string }) {
+  const cls = retryable === "yes" ? "badge badge-green" : retryable === "depends" ? "badge badge-yellow" : "badge";
+  return <span className={cls} style={{ fontSize: "0.6875rem" }}>{retryable}</span>;
+}
+
+function ErrorCodesSection() {
+  const [catalog, setCatalog] = useState<ErrorCodeCatalogResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<{ message: string; details: string | null } | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return getErrorCodes()
+      .then(setCatalog)
+      .catch((err) => setError({ message: err instanceof Error ? err.message : "Failed to load the error-code catalog", details: apiErrorDetails(err) }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  return (
+    <div className="stagger">
+      <div className="card">
+        <div className="flex-between" style={{ flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>Error Codes</h3>
+          <span className="badge badge-green">Live · GET /v1/error-codes</span>
+        </div>
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 12 }}>
+          Every REST error response carries <code className="mono">error_code</code> alongside{" "}
+          <code className="mono">error</code> (human message) and <code className="mono">request_id</code>. No
+          response ships a literal <code className="mono">retryable</code> field — the column below is editorial
+          guidance for deciding whether to retry, not a claim about the wire format.
+        </p>
+
+        {loading ? (
+          <Skeleton lines={6} />
+        ) : error || !catalog ? (
+          <Callout tone="warning" title="Couldn't load the live error-code catalog" details={error?.details ?? null}>
+            {error?.message ?? "Unknown error"} <button type="button" className="btn" onClick={() => void load()}>Retry</button>
+          </Callout>
+        ) : (
+          <>
+            <TableWrap label="REST error codes">
+              <table>
+                <thead><tr><th>Code</th><th>Status</th><th>Retry?</th><th>Description</th></tr></thead>
+                <tbody>
+                  {catalog.rest_error_codes.map((e) => (
+                    <tr key={e.code}>
+                      <td className="mono" style={{ fontSize: "0.75rem" }}>{e.code}</td>
+                      <td style={{ fontSize: "0.75rem" }}>{e.statuses.length ? e.statuses.join(" / ") : "—"}</td>
+                      <td><RetryBadge retryable={e.retryable} /></td>
+                      <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }} title={e.retry_guidance}>{e.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+
+            <h4 style={{ marginTop: 20, marginBottom: 8 }}>MCP tool-call error categories</h4>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.8125rem", lineHeight: 1.7, marginBottom: 12 }}>
+              {catalog.mcp_tool_error_categories.note}
+            </p>
+            <TableWrap label="MCP error categories">
+              <table>
+                <thead><tr><th>Code</th><th>Retry?</th><th>Description</th></tr></thead>
+                <tbody>
+                  {catalog.mcp_tool_error_categories.categories.map((c) => (
+                    <tr key={c.code}>
+                      <td className="mono" style={{ fontSize: "0.75rem" }}>{c.code}</td>
+                      <td><RetryBadge retryable={c.retryable ? "yes" : "no"} /></td>
+                      <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{c.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+          </>
+        )}
       </div>
     </div>
   );

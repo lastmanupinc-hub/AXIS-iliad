@@ -1499,8 +1499,12 @@ describe("isPersistenceCreditsError", () => {
     expect(isPersistenceCreditsError(new Error("persistence_credits_required"))).toBe(false);
   });
 
-  it("accepts a 402 flagged via error_code as well", () => {
-    expect(isPersistenceCreditsError(new ApiError("Payment required", 402, "persistence_credits_required"))).toBe(true);
+  it("accepts a 402 flagged via error_code as well (real wire value is uppercase)", () => {
+    expect(isPersistenceCreditsError(new ApiError("Payment required", 402, "PERSISTENCE_CREDITS_REQUIRED"))).toBe(true);
+  });
+
+  it("H4.2: rejects the lowercase error_code that never appears on the wire (regression — this used to be the only value checked, so it silently never matched real traffic)", () => {
+    expect(isPersistenceCreditsError(new ApiError("Payment required", 402, "persistence_credits_required"))).toBe(false);
   });
 });
 
